@@ -6,6 +6,7 @@ import {
     privateIncomePayments,
     settleCashPayments,
     beginWaterfallAuction,
+    createCompanyStations,
     type WaterfallAuctionRules,
     type InitialPosition,
     type Opening,
@@ -90,18 +91,9 @@ export function createShikoku1889Opening({ players }: OpeningSetup): Opening {
         tranches: [],
         ownershipLimitExemptions: [],
         stations: majors.flatMap((company) =>
-            Array.from({ length: Shikoku1889StationCounts[company.id] }, (_, index) => ({
-                id: index ? `${company.id}:station:${index}` : `${company.id}:home`,
-                companyId: company.id,
-                status: 'available' as const
-            }))
+            createCompanyStations(company.id, Shikoku1889StationCounts[company.id])
         ),
-        stationReservations: Shikoku1889Map.definition.locations.flatMap((location) =>
-            (location.reservations ?? []).map((reservation) => ({
-                ...reservation,
-                locationId: location.id
-            }))
-        ),
+        stationReservations: Shikoku1889Map.stationReservations(),
         tileInventory: Shikoku1889TileSet.createInventory(),
         trainInventory: Shikoku1889TrainDepot.createInventory(),
         phaseId: '2'

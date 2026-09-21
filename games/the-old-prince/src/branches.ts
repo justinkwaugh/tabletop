@@ -1,4 +1,8 @@
-import { createOrdinaryShareCertificates, type CompanyState } from '@tabletop/18xx'
+import {
+    createCompanyStations,
+    createOrdinaryShareCertificates,
+    type CompanyState
+} from '@tabletop/18xx'
 
 export const TheOldPrinceBranches = [
     { id: 'branch:CB', name: 'Cornwall Branch' },
@@ -34,11 +38,6 @@ export function addTheOldPrinceBranches(state: CompanyState): void {
                 market
             )
         )
-        for (let index = 0; index < 4; index++)
-            state.stations.push({
-                id: index === 0 ? `${branch.id}:home` : `${branch.id}:station:${index}`,
-                companyId: branch.id,
-                status: 'available'
-            })
+        state.stations.push(...createCompanyStations(branch.id, 4))
     }
 }

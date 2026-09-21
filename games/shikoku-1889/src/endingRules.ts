@@ -1,4 +1,9 @@
-import { getCompany, marketShareValue, type EndingRules } from '@tabletop/18xx'
+import {
+    certificateWealthItem,
+    getCompany,
+    marketShareValue,
+    type EndingRules
+} from '@tabletop/18xx'
 import { Shikoku1889PrivateCatalog } from './privates.js'
 export const Shikoku1889EndingRules: EndingRules = {
     trigger(state) {
@@ -21,15 +26,6 @@ export const Shikoku1889EndingRules: EndingRules = {
                     ? marketShareValue(state, certificate)
                     : Shikoku1889PrivateCatalog.faceValue(company.id)
         }
-        return [
-            {
-                assetId: certificate.id,
-                label:
-                    certificate.kind === 'share'
-                        ? `${company.name} · ${certificate.shares} share${certificate.shares === 1 ? '' : 's'}`
-                        : company.name,
-                value
-            }
-        ]
+        return [certificateWealthItem(state, certificate, value)]
     }
 }

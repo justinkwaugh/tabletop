@@ -3,6 +3,7 @@ import { assertExists } from '@tabletop/common'
 import {
     companyMarketSpace,
     getCompany,
+    marketSaleTerms,
     playersAfterPresident,
     privateOwner,
     sameOwner,
@@ -44,15 +45,12 @@ export const TheOldPrinceStockRules: StockRules = {
         if (companyId === 'PEIR' || !company.shareCount || !company.president)
             return 'This company has no saleable shares.'
         if (!company.operated) return 'Shares cannot be sold until the company has operated.'
-        return {
-            payer: { kind: 'bank' },
-            price: companyMarketSpace(state.stockMarket, companyId).price,
+        return marketSaleTerms(state, companyId, {
             destinationPoolId: 'market',
             marketLimit: 80,
             maximumShares: company.shareCount * 0.3,
-            direction: 'down',
             movement: 1
-        }
+        })
     },
     certificateLimit: (state) => (state.players.length === 4 ? 16 : 20),
     certificateWeight: (_state, certificate) => certificate.certificateLimitCount,

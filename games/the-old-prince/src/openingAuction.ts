@@ -9,6 +9,7 @@ import {
     createOrdinaryShareCertificates,
     placeStockMarker,
     beginOfferPileAuction,
+    createCompanyStations,
     type OfferPileAuctionRules,
     type InitialPosition,
     type Opening,
@@ -110,26 +111,8 @@ export function createTheOldPrinceOpening({ players, prng }: OpeningSetup): Open
         const reservation = location.reservations!.find((r) => r.companyId === company.companyId)!
         const position = { locationId: location.id, nodeId: reservation.nodeId, slot: 0 }
         const main = company.companyId === mainline.companyId
-        stations.push(
-            main
-                ? {
-                      id: `${company.companyId}:home`,
-                      companyId: company.companyId,
-                      status: 'placed',
-                      position
-                  }
-                : {
-                      id: `${company.companyId}:home`,
-                      companyId: company.companyId,
-                      status: 'available'
-                  }
-        )
-        for (let index = 1; index < 4; index++)
-            stations.push({
-                id: `${company.companyId}:station:${index}`,
-                companyId: company.companyId,
-                status: 'available'
-            })
+        const [home, ...others] = createCompanyStations(company.companyId, 4)
+        stations.push(main ? { ...home, status: 'placed', position } : home, ...others)
         if (!main) stationReservations.push({ ...reservation, locationId: location.id })
         if (remaining.some((c) => c.companyId === company.companyId))
             stations.push({

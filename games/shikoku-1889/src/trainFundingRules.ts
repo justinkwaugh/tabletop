@@ -7,6 +7,7 @@ import {
     type TrainFundingRules
 } from '@tabletop/18xx'
 import { Shikoku1889OperatingRules } from './roundRules.js'
+import { shikoku1889SaleTerms } from './stockRules.js'
 export const Shikoku1889TrainFundingRules: TrainFundingRules = {
     afterShareSale(state) {
         reorderPendingOperatingCompanies(state, Shikoku1889OperatingRules.companyOrder(state))
@@ -22,15 +23,7 @@ export const Shikoku1889TrainFundingRules: TrainFundingRules = {
         const company = getCompany(state, companyId)
         if (!company.shareCount || !company.president || company.closed)
             return 'This company has no saleable shares.'
-        return {
-            payer: { kind: 'bank' },
-            price: companyMarketSpace(state.stockMarket, companyId).price,
-            destinationPoolId: 'open-market',
-            marketLimit: 50,
-            maximumShares: company.shareCount,
-            direction: 'down',
-            movement: shares
-        }
+        return shikoku1889SaleTerms(state, companyId, company.shareCount, shares)
     },
     protectsPresidency: () => true,
     requiredSaleShares(state, seller, companyId) {

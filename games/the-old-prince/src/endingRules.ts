@@ -1,4 +1,10 @@
-import { getCompany, marketShareValue, portfolioWealth, type EndingRules } from '@tabletop/18xx'
+import {
+    certificateWealthItem,
+    getCompany,
+    marketShareValue,
+    portfolioWealth,
+    type EndingRules
+} from '@tabletop/18xx'
 import { TheOldPrincePrivateCatalog } from './privates.js'
 export const TheOldPrinceEndingRules: EndingRules = {
     trigger(state) {
@@ -26,15 +32,6 @@ export const TheOldPrinceEndingRules: EndingRules = {
                     ? marketShareValue(state, certificate)
                     : TheOldPrincePrivateCatalog.faceValue(company.id)
         }
-        return [
-            {
-                assetId: certificate.id,
-                label:
-                    certificate.kind === 'share'
-                        ? `${company.name} · ${certificate.shares} share${certificate.shares === 1 ? '' : 's'}`
-                        : company.name,
-                value
-            }
-        ]
+        return [certificateWealthItem(state, certificate, value)]
     }
 }

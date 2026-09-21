@@ -1,20 +1,18 @@
-import { assertExists } from '@tabletop/common'
-import { getCompany, certificatesInPool, stockMarketSpace, type CompanyRules } from '@tabletop/18xx'
+import {
+    fullCapitalizationPayments,
+    presidentCertificate,
+    sharesStillToFloat,
+    stockMarketSpace,
+    type CompanyRules
+} from '@tabletop/18xx'
 
 export const Shikoku1889CompanyRules: CompanyRules = {
     startMarketSpaces: (state) =>
         state.stockMarket.spaces.filter((space) => space.color === 'pink').map((space) => space.id),
     startTerms(state, companyId, buyer, marketSpaceId) {
-        const certificate = state.certificates.find(
-            (certificate) =>
-                !certificate.retired &&
-                certificate.kind === 'share' &&
-                certificate.president &&
-                certificate.companyId === companyId
-        )
+        const certificate = presidentCertificate(state, companyId)
         if (
             !certificate ||
-            certificate.retired ||
             certificate.owner.kind !== 'bank' ||
             certificate.poolId !== 'initial-offering'
         )
@@ -25,31 +23,17 @@ export const Shikoku1889CompanyRules: CompanyRules = {
             payers: [buyer]
         }
     },
-    sharesToFloat(state, companyId) {
-        const company = getCompany(state, companyId)
-        if (!company.shareCount) return undefined
-        const unsold = certificatesInPool(state, 'initial-offering').reduce(
-            (sum, certificate) =>
-                sum +
-                (certificate.kind === 'share' && certificate.companyId === companyId
-                    ? certificate.shares
-                    : 0),
-            0
+    sharesToFloat: (state, companyId) =>
+        sharesStillToFloat(
+            state,
+            companyId,
+            50,
+            (certificate) => certificate.poolId === 'initial-offering'
+        ),
+    flotationPayments: (state, companyId) =>
+        fullCapitalizationPayments(
+            state,
+            companyId,
+            Shikoku1889CompanyRules.sharesToFloat?.(state, companyId)
         )
-        return Math.max(0, unsold - Math.floor(company.shareCount * 50 / 100))
-    },
-    flotationPayments(state, companyId) {
-        const company = getCompany(state, companyId)
-        if (Shikoku1889CompanyRules.sharesToFloat?.(state, companyId) !== 0) return undefined
-        assertExists(company.parPrice, 'Started company requires a par price')
-        return company.funded
-            ? []
-            : [
-                  {
-                      from: { kind: 'bank' },
-                      to: { kind: 'company', companyId },
-                      amount: company.parPrice * 10
-                  }
-              ]
-    }
 }

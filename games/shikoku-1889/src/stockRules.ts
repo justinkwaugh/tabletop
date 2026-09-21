@@ -3,9 +3,25 @@ import { assertExists } from '@tabletop/common'
 import {
     companyMarketSpace,
     getCompany,
+    marketSaleTerms,
     playersAfterPresident,
+    type StockState,
     type StockRules
 } from '@tabletop/18xx'
+
+export function shikoku1889SaleTerms(
+    state: Pick<StockState, 'stockMarket'>,
+    companyId: string,
+    shareCount: number,
+    shares: number
+) {
+    return marketSaleTerms(state, companyId, {
+        destinationPoolId: 'open-market',
+        marketLimit: 50,
+        maximumShares: shareCount,
+        movement: shares
+    })
+}
 
 export const Shikoku1889StockRules: StockRules = {
     round: Shikoku1889StockRoundRules,
@@ -31,15 +47,7 @@ export const Shikoku1889StockRules: StockRules = {
         const company = getCompany(state, companyId)
         if (state.stockRound.number === 1) return 'Shares cannot be sold in the first stock round.'
         if (!company.shareCount || !company.president) return 'This company has no saleable shares.'
-        return {
-            payer: { kind: 'bank' },
-            price: companyMarketSpace(state.stockMarket, companyId).price,
-            destinationPoolId: 'open-market',
-            marketLimit: 50,
-            maximumShares: company.shareCount,
-            direction: 'down',
-            movement: shares
-        }
+        return shikoku1889SaleTerms(state, companyId, company.shareCount, shares)
     },
     certificateLimit(state) {
         const limit = [0, 0, 25, 19, 14, 12, 11][state.players.length]

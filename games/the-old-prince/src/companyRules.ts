@@ -3,6 +3,10 @@ import { TheOldPrincePhases } from './trains.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     availableCompanyTranche,
+    homeStationId,
+    fullCapitalizationPayments,
+    presidentCertificate,
+    sharesStillToFloat,
     exchangeCertificate,
     grantOwnershipLimitExemption,
     closePrivate,
@@ -59,16 +63,9 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         )
         if (!peir || peir.retired || peir.owner.kind !== 'player')
             return 'The associated PEIR share must be owned by a player.'
-        const certificate = state.certificates.find(
-            (certificate) =>
-                !certificate.retired &&
-                certificate.kind === 'share' &&
-                certificate.president &&
-                certificate.companyId === companyId
-        )
+        const certificate = presidentCertificate(state, companyId)
         if (
             !certificate ||
-            certificate.retired ||
             certificate.owner.kind !== 'bank' ||
             certificate.poolId !== 'market'
         )
@@ -84,37 +81,19 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         assertExists(tranche, 'Company start requires a tranche space')
         tranche.companyIds.push(details.companyId)
     },
-    sharesToFloat(state, companyId) {
-        const company = getCompany(state, companyId)
-        if (!company.shareCount) return undefined
-        const inBank = state.certificates.reduce(
-            (sum, certificate) =>
-                sum +
-                (!certificate.retired &&
-                certificate.kind === 'share' &&
-                certificate.companyId === companyId &&
-                certificate.owner.kind === 'bank' &&
-                certificate.poolId !== 'reserved'
-                    ? certificate.shares
-                    : 0),
-            0
-        )
-        return Math.max(0, inBank - Math.floor(company.shareCount * 40 / 100))
-    },
-    flotationPayments(state, companyId) {
-        const company = getCompany(state, companyId)
-        if (TheOldPrinceCompanyRules.sharesToFloat?.(state, companyId) !== 0) return undefined
-        assertExists(company.parPrice, 'Started company requires a starting price')
-        return company.funded
-            ? []
-            : [
-                  {
-                      from: { kind: 'bank' },
-                      to: { kind: 'company', companyId },
-                      amount: company.parPrice * 10
-                  }
-              ]
-    },
+    sharesToFloat: (state, companyId) =>
+        sharesStillToFloat(
+            state,
+            companyId,
+            60,
+            (certificate) => certificate.owner.kind === 'bank' && certificate.poolId !== 'reserved'
+        ),
+    flotationPayments: (state, companyId) =>
+        fullCapitalizationPayments(
+            state,
+            companyId,
+            TheOldPrinceCompanyRules.sharesToFloat?.(state, companyId)
+        ),
     onFloat(state, companyId) {
         const association = peirCompanies(state).find((item) => item.companyId === companyId)
         if (!association) {
@@ -122,7 +101,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
                 const reservation = state.stationReservations.find((r) => r.companyId === companyId)
                 assertExists(reservation, 'Shortline requires its reserved home')
                 applyStationPlacement(state, {
-                    stationId: `${companyId}:home`,
+                    stationId: homeStationId(companyId),
                     companyId,
                     position: {
                         locationId: reservation.locationId,
@@ -154,7 +133,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         )
         assert(!presidency.reason, presidency.reason ?? 'Invalid presidency exchange')
         if (presidency.change) applyPresidencyChange(state, presidency.change)
-        replaceStation(state, `PEIR:${companyId}`, `${companyId}:home`)
+        replaceStation(state, `PEIR:${companyId}`, homeStationId(companyId))
         state.stationReservations = state.stationReservations.filter(
             (reservation) => reservation.companyId !== companyId
         )

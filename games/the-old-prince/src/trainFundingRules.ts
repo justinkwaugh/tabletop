@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import { TheOldPrinceOperatingRules } from './roundRules.js'
 import {
-    companyMarketSpace,
+    marketSaleTerms,
     reorderPendingOperatingCompanies,
     getCompany,
     privateOwner,
@@ -22,15 +22,12 @@ export const TheOldPrinceTrainFundingRules: TrainFundingRules = {
         return [president, owner]
     },
     issuanceTerms(state, companyId, shares) {
-        return {
-            payer: { kind: 'bank' },
-            price: companyMarketSpace(state.stockMarket, companyId).price,
+        return marketSaleTerms(state, companyId, {
             destinationPoolId: 'market',
             marketLimit: 100,
             maximumShares: shares,
-            direction: 'down',
             movement: 1
-        }
+        })
     },
     saleTerms: (state, companyId, shares, seller) =>
         TheOldPrinceStockRules.saleTerms(state, companyId, shares, seller),

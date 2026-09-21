@@ -22,14 +22,8 @@ export const TheOldPrinceTrackRules: TrackRules = {
     },
     preservesStops: sameStopCounts,
     useful: ({ newTrack, increasedCityRevenue }) => newTrack || increasedCityRevenue,
-    homeLocations(companyId) {
-        const id = companyId === 'ML' ? 'C' : companyId
-        return TheOldPrinceMap.definition.locations
-            .filter((location) =>
-                location.reservations?.some((reservation) => reservation.companyId === id)
-            )
-            .map((location) => location.id)
-    },
+    homeLocations: (companyId) =>
+        TheOldPrinceMap.reservedLocationIds(companyId === 'ML' ? 'C' : companyId),
     consentPlayerId(state, request) {
         const bridge = state.companies.find((company) => company.id === 'VR')
         if (request.locationId !== 'N18' || !bridge || bridge.closed) return undefined

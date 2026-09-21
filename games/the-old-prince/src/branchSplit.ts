@@ -1,5 +1,6 @@
 import { assert, type GameState } from '@tabletop/common'
 import {
+    homeStationId,
     cashOwnedBy,
     getCompany,
     settleCashPayments,
@@ -277,7 +278,9 @@ export class TheOldPrinceBranchSplit {
         const childStations = this.state.stations.filter(
             (station) => station.companyId === request.branchId && station.status === 'available'
         )
-        const childHome = childStations.find((station) => station.id === `${request.branchId}:home`)
+        const childHome = childStations.find(
+            (station) => station.id === homeStationId(request.branchId)
+        )
         if (!childHome || childStations.length < allocation.stationIds.length)
             return { reason: 'The branch has too few available station pieces.' }
         if (

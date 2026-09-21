@@ -1,7 +1,6 @@
 import { Shikoku1889Map } from './map.js'
 import { Shikoku1889TileSet } from './tiles.js'
-import { hasStationRoute, RailwayMapState } from '@tabletop/18xx'
-import { PhaseTable, TrainDepot, type TrainRules } from '@tabletop/18xx'
+import { PhaseTable, TrainDepot, requiresStationRoute, type TrainRules } from '@tabletop/18xx'
 export const Shikoku1889TrainDepot = new TrainDepot({
     id: 'shikoku-1889',
     trains: [
@@ -66,12 +65,7 @@ export const Shikoku1889TrainRules: TrainRules = {
         ['4', '5', '6'].includes(train.definitionId)
             ? 800
             : undefined,
-    requiresTrain: (state, companyId) =>
-        hasStationRoute(
-            new RailwayMapState(Shikoku1889Map, Shikoku1889TileSet, state.tileInventory),
-            state,
-            companyId
-        ),
+    requiresTrain: requiresStationRoute(Shikoku1889Map, Shikoku1889TileSet),
     availableDefinitions(state) {
         const next = Shikoku1889TrainDepot.nextDefinitionId(state.trainInventory)
         return [

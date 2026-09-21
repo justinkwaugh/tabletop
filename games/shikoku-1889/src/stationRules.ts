@@ -1,4 +1,4 @@
-import { type StationRules } from '@tabletop/18xx'
+import { homeStationId, type StationRules } from '@tabletop/18xx'
 import { Shikoku1889Map } from './map.js'
 import { Shikoku1889TileSet } from './tiles.js'
 export const Shikoku1889StationCounts: Readonly<Record<string, number>> = {
@@ -19,7 +19,7 @@ export const Shikoku1889StationRules: StationRules = {
         return state.stationReservations.flatMap((reservation) => {
             const company = state.companies.find((company) => company.id === reservation.companyId)
             const station = state.stations.find(
-                (station) => station.id === `${reservation.companyId}:home`
+                (station) => station.id === homeStationId(reservation.companyId)
             )
             return company?.floated && !company.closed && station?.status === 'available'
                 ? [

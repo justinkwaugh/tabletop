@@ -1,7 +1,6 @@
 import { TheOldPrinceMap } from './map.js'
 import { TheOldPrinceTileSet } from './tiles.js'
-import { hasStationRoute, RailwayMapState } from '@tabletop/18xx'
-import { PhaseTable, TrainDepot, type TrainRules } from '@tabletop/18xx'
+import { PhaseTable, TrainDepot, requiresStationRoute, type TrainRules } from '@tabletop/18xx'
 export const TheOldPrinceTrainDepot = new TrainDepot({
     id: 'the-old-prince',
     trains: [
@@ -101,16 +100,11 @@ export const TheOldPrincePhases = new PhaseTable(
     ],
     TheOldPrinceTrainDepot
 )
+const hasRoute = requiresStationRoute(TheOldPrinceMap, TheOldPrinceTileSet)
 export const TheOldPrinceTrainRules: TrainRules = {
     depot: TheOldPrinceTrainDepot,
     exchangePrice: () => undefined,
-    requiresTrain: (state, companyId) =>
-        companyId !== 'PEIR' &&
-        hasStationRoute(
-            new RailwayMapState(TheOldPrinceMap, TheOldPrinceTileSet, state.tileInventory),
-            state,
-            companyId
-        ),
+    requiresTrain: (state, companyId) => companyId !== 'PEIR' && hasRoute(state, companyId),
     availableDefinitions(state) {
         const next = TheOldPrinceTrainDepot.nextDefinitionId(state.trainInventory)
         return next ? [next] : []

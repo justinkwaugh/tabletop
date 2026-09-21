@@ -12,12 +12,7 @@ export const Shikoku1889TrackRules: TrackRules = {
         state.trackStep?.lays.length ? { reason: '1889 permits one lay or upgrade' } : { cost: 0 },
     preservesStops: sameStopCounts,
     useful: ({ home, newTrack, increasedCityRevenue }) => home || newTrack || increasedCityRevenue,
-    homeLocations: (companyId) =>
-        Shikoku1889Map.definition.locations
-            .filter((location) =>
-                location.reservations?.some((reservation) => reservation.companyId === companyId)
-            )
-            .map((location) => location.id),
+    homeLocations: (companyId) => Shikoku1889Map.reservedLocationIds(companyId),
     terrainCost(state, request, cost) {
         const privateCompany = state.companies.find((company) => company.id === 'SRR')
         const owner =
