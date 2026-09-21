@@ -46,3 +46,23 @@ export function nextOperatingCompany(state: OperatingState): string | undefined 
             state.companies.some((company) => company.id === id && !company.closed)
     )
 }
+
+export function validateOperatingSet(state: {
+    operatingSet?: OperatingSet
+    companies: readonly { id: string }[]
+}): void {
+    const operatingSet = state.operatingSet
+    if (!operatingSet) return
+    assert(
+        operatingSet.roundNumber <= operatingSet.roundCount,
+        'Operating round exceeds the set length'
+    )
+    assert(
+        operatingSet.companyOrder.every((id) => state.companies.some((company) => company.id === id)),
+        'Unknown operating company'
+    )
+    assert(
+        operatingSet.completedCompanyIds.every((id) => operatingSet.companyOrder.includes(id)),
+        'Completed company must belong to the operating order'
+    )
+}

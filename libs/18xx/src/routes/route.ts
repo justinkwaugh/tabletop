@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import type { FinancialState } from '../finance/finance.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { TrainState } from '../trains/train.js'
+import { assert } from '@tabletop/common'
 const Id = Type.String({ minLength: 1 })
 export const RevenueCenter = Type.Object(
     { locationId: Id, nodeId: Id },
@@ -50,3 +51,20 @@ export type TrainRunningState = FinancialState &
     MapStateData &
     TrainState &
     RouteState & { phaseId: string }
+
+export function validateRouteStep(state: {
+    machineState: string
+    routeStep?: RouteStep
+    operatingSet?: { companyOrder: readonly string[] }
+}): void {
+    if (state.machineState !== 'RunningTrains' && state.machineState !== 'DistributingEarnings')
+        return
+    assert(
+        state.routeStep && state.operatingSet?.companyOrder.includes(state.routeStep.companyId),
+        'Routes require an operating company'
+    )
+    assert(
+        (state.machineState === 'DistributingEarnings') === Boolean(state.routeStep.result),
+        'Route result must match operation progress'
+    )
+}

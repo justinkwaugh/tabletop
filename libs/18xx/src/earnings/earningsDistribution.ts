@@ -166,3 +166,29 @@ export class EarningsDistribution {
         else payments.push({ from: { kind: 'bank' }, to: { ...owner }, amount })
     }
 }
+
+const AfterEarningsStates = [
+    'BuyingTrains',
+    'FundingTrain',
+    'Bankrupt',
+    'GameOver',
+    'AdvancingPhase',
+    'DiscardingTrains'
+]
+export function validateEarningsDistribution(
+    state: EarningsState & {
+        machineState: string
+        routeStep?: { result?: { companyId: string; revenue: number } }
+        trainPurchaseStep?: { companyId: string }
+    }
+): void {
+    const earnings = state.earningsDistribution
+    if (!earnings) return
+    assert(
+        AfterEarningsStates.includes(state.machineState) &&
+            earnings.companyId === state.routeStep?.result?.companyId &&
+            earnings.revenue === state.routeStep.result.revenue &&
+            state.trainPurchaseStep?.companyId === earnings.companyId,
+        'Earnings must match the completed train run and current company'
+    )
+}

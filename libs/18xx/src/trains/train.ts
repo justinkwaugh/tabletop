@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import { Owner, type FinancialState, sameOwner } from '../finance/finance.js'
+import { assert } from '@tabletop/common'
 const Id = Type.String({ minLength: 1 })
 export const TrainDistance = Type.Object(
     {
@@ -76,4 +77,17 @@ export function unownedTrain(train: Train, status: 'market' | 'removed'): Train 
         status,
         ...(train.hasRun === undefined ? {} : { hasRun: train.hasRun })
     }
+}
+
+export function validateTrainPurchaseStep(state: {
+    machineState: string
+    trainPurchaseStep?: TrainPurchaseStep
+    operatingSet?: { companyOrder: readonly string[] }
+}): void {
+    if (state.machineState !== 'BuyingTrains') return
+    assert(
+        state.trainPurchaseStep &&
+            state.operatingSet?.companyOrder.includes(state.trainPurchaseStep.companyId),
+        'Train purchases require an operating company'
+    )
 }

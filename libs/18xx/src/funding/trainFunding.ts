@@ -281,3 +281,37 @@ export class EmergencyTrainFunding {
         })
     }
 }
+
+export function validateTrainFunding(state: {
+    machineState: string
+    trainFunding?: TrainFunding
+    bankruptcy?: Bankruptcy
+    trainPurchaseStep?: { companyId: string }
+    players: readonly { playerId: string }[]
+}): void {
+    const funding = state.trainFunding
+    if (funding) {
+        assert(
+            ['FundingTrain', 'Bankrupt', 'GameOver'].includes(state.machineState) &&
+                funding.purchase.companyId === state.trainPurchaseStep?.companyId,
+            'Funding must belong to the operating train purchase'
+        )
+        assert(
+            state.players.some((player) => player.playerId === funding.playerId),
+            'Unknown funding player'
+        )
+        assert(
+            funding.contributors.every(
+                (owner, index, owners) =>
+                    !owners.slice(0, index).some((other) => sameOwner(owner, other))
+            ),
+            'Duplicate funding owner'
+        )
+    }
+    assert(
+        state.machineState === 'GameOver' ||
+            (state.machineState === 'Bankrupt') === Boolean(state.bankruptcy),
+        'Bankruptcy must match the terminal state'
+    )
+    assert(state.machineState !== 'FundingTrain' || funding, 'Missing train funding')
+}

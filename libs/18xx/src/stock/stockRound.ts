@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { Owner } from '../finance/finance.js'
 import { StockTurn } from './stockTurn.js'
+import { assert } from '@tabletop/common'
 
 export const StockRound = Type.Object(
     {
@@ -26,4 +27,14 @@ export function createStockRound(number: number): StockRound {
         sales: [],
         companyPurchases: []
     }
+}
+
+export function validateStockRound(state: {
+    stockRound: StockRound
+    turnManager: { turnOrder: readonly string[] }
+}): void {
+    assert(
+        state.stockRound.passedPlayerIds.every((id) => state.turnManager.turnOrder.includes(id)),
+        'Unknown passed player'
+    )
 }

@@ -74,3 +74,14 @@ export function finalWealth(state: StockState, rules: ValuationRules): PlayerWea
         }
     })
 }
+
+export function validateFinalResults(state: {
+    machineState: string
+    finalWealth?: PlayerWealth[]
+    result?: unknown
+}): void {
+    assert(
+        (state.machineState === 'GameOver') === Boolean(state.finalWealth && state.result),
+        'Final results must match the terminal state'
+    )
+}

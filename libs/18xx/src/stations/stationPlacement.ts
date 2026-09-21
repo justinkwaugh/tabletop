@@ -203,3 +203,19 @@ export function applyStationPlacement(state: StationState, details: StationPlace
             )
     )
 }
+
+export function validateStationStep(state: {
+    machineState: string
+    stationStep?: StationStep
+    trackStep?: { companyId: string }
+}): void {
+    if (state.machineState !== 'PlacingStation' && state.machineState !== 'StationsComplete') return
+    assert(
+        state.stationStep?.companyId === state.trackStep?.companyId && state.stationStep,
+        'Station step requires the operating company'
+    )
+    assert(
+        state.stationStep.completed === (state.machineState === 'StationsComplete'),
+        'Station completion does not match the machine state'
+    )
+}

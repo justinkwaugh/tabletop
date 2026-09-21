@@ -294,3 +294,42 @@ export class ReserveBidAuction {
         )
     }
 }
+
+export function validateWaterfallAuction(state: {
+    machineState: string
+    openingAuction?: WaterfallAuction
+    players: readonly { playerId: string }[]
+    companies: readonly { id: string }[]
+}): void {
+    const auction = state.openingAuction
+    if (!auction) return
+    assert(
+        auction.completed !== ['WaterfallAuction', 'AuctionBidding'].includes(state.machineState),
+        'Opening auction progress must match its state'
+    )
+    assert(
+        state.players.some((player) => player.playerId === auction.nextPlayerId),
+        'Unknown outer auction player'
+    )
+    assert(
+        new Set(auction.remainingLotIds).size === auction.remainingLotIds.length,
+        'Duplicate auction lot'
+    )
+    assert(
+        auction.remainingLotIds.every((id) => state.companies.some((company) => company.id === id)),
+        'Unknown auction lot'
+    )
+    assert(
+        new Set(auction.reservations.map((bid) => `${bid.playerId}:${bid.lotId}`)).size ===
+            auction.reservations.length,
+        'Duplicate bid commitment'
+    )
+    assert(
+        auction.reservations.every(
+            (bid) =>
+                auction.remainingLotIds.includes(bid.lotId) &&
+                state.players.some((player) => player.playerId === bid.playerId)
+        ),
+        'Invalid reservation'
+    )
+}

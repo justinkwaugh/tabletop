@@ -14,6 +14,7 @@ import {
     fixedNodeRevenue,
     type TileNodeMapping
 } from './trackUpgrade.js'
+import { assert } from '@tabletop/common'
 
 export const TrackStep = Type.Object(
     {
@@ -341,4 +342,20 @@ export class TrackConstruction {
         )
         return { stations, stationReservations }
     }
+}
+
+export function validateTrackStep(state: {
+    machineState: string
+    trackStep?: TrackStep
+    operatingSet?: { companyOrder: readonly string[] }
+}): void {
+    if (!['LayingTrack', 'PlacingStation', 'StationsComplete'].includes(state.machineState)) return
+    assert(
+        state.trackStep && state.operatingSet?.companyOrder.includes(state.trackStep.companyId),
+        'Track step requires an operating company'
+    )
+    assert(
+        state.trackStep.completed === (state.machineState !== 'LayingTrack'),
+        'Track completion does not match the machine state'
+    )
 }

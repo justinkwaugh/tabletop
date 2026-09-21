@@ -128,3 +128,50 @@ export function continuePhaseChange(state: PhaseChangeState): string {
     delete state.phaseChange
     return next
 }
+
+const PhaseDecisionStates = ['AdvancingPhase', 'DiscardingTrains']
+export function validatePhaseChange(
+    state: PhaseState & {
+        machineState: string
+        companies: readonly { id: string }[]
+        trainPurchaseStep?: { companyId: string }
+        trackStep?: { companyId: string }
+        stationStep?: { companyId: string }
+        routeStep?: { companyId: string }
+    }
+): void {
+    assert(
+        new Set(state.phaseEvents.map((event) => event.id)).size === state.phaseEvents.length,
+        'Duplicate phase occurrence'
+    )
+    const change = state.phaseChange
+    if (!change) {
+        assert(!PhaseDecisionStates.includes(state.machineState), 'Missing phase change')
+        return
+    }
+    assert(
+        PhaseDecisionStates.includes(state.machineState),
+        'Pending phase change requires its decision state'
+    )
+    assert(
+        change.continuation.companyId ===
+            (state.trainPurchaseStep?.companyId ??
+                state.trackStep?.companyId ??
+                state.stationStep?.companyId ??
+                state.routeStep?.companyId),
+        'Phase continuation must preserve the operating company'
+    )
+    assert(
+        change.discardCompanyIds.every((id) => state.companies.some((company) => company.id === id)),
+        'Unknown company in discard order'
+    )
+    assert(
+        state.machineState === 'AdvancingPhase'
+            ? state.phaseId === change.event.fromPhaseId &&
+                  !state.phaseEvents.some((event) => event.id === change.event.id)
+            : state.phaseId === change.event.toPhaseId &&
+                  change.discardCompanyIds.length > 0 &&
+                  state.phaseEvents.some((event) => event.id === change.event.id),
+        'Phase effects must match pending decisions'
+    )
+}

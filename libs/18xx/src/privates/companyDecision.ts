@@ -5,6 +5,7 @@ import { TrackLayDetails, type ConstructionState } from '../construction/trackCo
 import type { TrainState } from '../trains/train.js'
 import type { PhaseState } from '../phases/phaseChange.js'
 import { PurchaseOffer } from '../transfers/purchaseOffer.js'
+import { assert } from '@tabletop/common'
 const Id = Type.String({ minLength: 1 })
 export const PrivateTrackLay = Type.Object(
     { privateCompanyId: Id, companyId: Id, playerId: Id },
@@ -36,4 +37,39 @@ export type CompanyDecisionState = StockState &
     Type.Static<Type.TObject<typeof CompanyDecisionFields>> & { machineState: string }
 export function pendingCompanyDecision(state: CompanyDecisionState): boolean {
     return !!(state.purchaseOffer || state.privateTrackLay || state.trackConsent)
+}
+
+const DecisionWindowStates = [
+    'LayingTrack',
+    'PlacingStation',
+    'RunningTrains',
+    'DistributingEarnings',
+    'BuyingTrains'
+]
+export function validateCompanyDecisions(
+    state: Pick<
+        CompanyDecisionState,
+        'machineState' | 'privatePowerWindow' | 'purchaseOffer' | 'privateTrackLay' | 'trackConsent'
+    > & { players: readonly { playerId: string }[] }
+): void {
+    if (state.privatePowerWindow)
+        assert(
+            state.machineState === 'OperatingSet',
+            'The private power window belongs between companies'
+        )
+    const pending = [state.purchaseOffer, state.privateTrackLay, state.trackConsent].filter(Boolean)
+    assert(pending.length <= 1, 'Resolve the current company decision before starting another')
+    if (!pending.length) return
+    assert(
+        DecisionWindowStates.includes(state.machineState),
+        'A company decision requires an operating decision window'
+    )
+    const playerId =
+        state.purchaseOffer?.sellerPlayerId ??
+        state.privateTrackLay?.playerId ??
+        state.trackConsent?.details.consentPlayerId
+    assert(
+        state.players.some((player) => player.playerId === playerId),
+        'Unknown player for the pending decision'
+    )
 }
