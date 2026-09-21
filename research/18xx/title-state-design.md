@@ -64,6 +64,16 @@ This change moves no field and adds no machine state. It is held by:
 - `apps/18xx-playground/src/demo/titleState.spec.ts`: a title with its own field,
   machine state and wrapped decision, and the refusals above.
 
+On 2026-09-21 the pre-change runtime (`ebcd2f60`, built in a separate worktree) and the
+changed runtime were run side by side on the deployed game: for all 181 recorded
+transitions both produced identical States, and the pre-change runtime validated and
+round-tripped every State the changed one wrote. Continuing play from the latest State
+(`FinishTrack` for PEIR, cascading to `FinishStations`) gave identical results and the
+same next Actions in both. This stands in for an already-loaded client's optimistic
+execution against the new server. The browser rehearsal through the local hosted site
+was not run: the development container could not bundle the UI Artifact for lack of
+memory.
+
 Publish TOP's Logic Artifact and republish its UI Artifact, which embeds the Game
 Runtime (ADR 0004).
 
