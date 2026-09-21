@@ -1,4 +1,26 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+async function withholdThroughOperatingTurn(page: Page) {
+    const action = page.getByRole('region', { name: 'Current action', exact: true })
+    const steps = page.getByRole('navigation', { name: 'Operating steps' })
+    const progress = async () =>
+        `${(await steps.count()) ? await steps.innerText() : ''}|${await action.innerText()}`
+    const step = action
+        .getByRole('button', { name: /^(skip|Run trains|finish|Continue operating round)$|^Withhold/ })
+        .first()
+    for (;;) {
+        await expect(step).toBeVisible()
+        const name = (await step.innerText()).trim()
+        const offered = await progress()
+        // A click made while the previous company's turn is still settling is ignored.
+        await expect(async () => {
+            if ((await progress()) === offered) await step.click()
+            await page.waitForTimeout(400)
+            expect(await progress()).not.toBe(offered)
+        }).toPass()
+        if (name === 'finish') return
+    }
+}
 
 for (const title of ['TOP', '1889']) {
     test(`${title} spreadsheet records OR income and keeps completed valuations through reload and Undo`, async ({ page }) => {
@@ -9,62 +31,47 @@ for (const title of ['TOP', '1889']) {
         await page.getByLabel('Position', { exact: true }).selectOption('operations')
         await page.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
         const period = page.getByRole('group', { name: 'Spreadsheet period' })
-        const view = page.getByRole('group', { name: 'Spreadsheet view' })
         await period.getByRole('button', { name: 'Income', exact: true }).click()
         await expect(page.getByText('No operating-round history recorded yet.', { exact: true })).toBeVisible()
-        const turns = title === 'TOP' ? 6 : 4
-        for (let turn = 0; turn < turns; turn++) {
-            if (title === '1889' && turn > 0)
-                await page.getByRole('button', { name: 'Continue operating round', exact: true }).click()
-            await page.getByRole('button', { name: 'Finish track', exact: true }).click()
-            await page.getByRole('button', { name: 'Finish stations', exact: true }).click()
-            await page.getByRole('button', { name: 'Confirm routes', exact: true }).click()
-            await page.getByRole('button', { name: 'Withhold', exact: true }).click()
-            await page.getByRole('button', { name: 'Confirm distribution', exact: true }).click()
-            await page.getByRole('button', { name: 'Finish operating turn', exact: true }).click()
-        }
+        for (let turn = 0; turn < 4; turn++) await withholdThroughOperatingTurn(page)
+        await page.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
+        await period.getByRole('button', { name: 'Income', exact: true }).click()
         const history = page.getByRole('table', { name: 'Operating round history' })
-        await expect(history.getByRole('columnheader', { name: 'OR 1.1 Partial', exact: true })).toBeVisible()
-        await expect(history.getByRole('columnheader', { name: 'OR 1.2', exact: true })).toBeVisible()
-        await expect(history.getByText('In progress')).toHaveCount(0)
-        await view.getByRole('button', { name: 'Player', exact: true }).click()
+        const rounds = history.getByRole('rowheader')
+        await expect(rounds).toHaveText(['OR 1.1 *', 'OR 1.2'])
+        await expect(history.getByRole('columnheader', { name: 'Income', exact: true })).toHaveCount(3)
+        await expect(history.getByRole('columnheader', { name: 'Net worth', exact: true })).toHaveCount(3)
         const recorded = await history.locator('tbody td').allTextContents()
-        await expect(history.getByRole('columnheader', { name: 'Income', exact: true })).toHaveCount(2)
-        await expect(history.getByRole('columnheader', { name: 'Net worth', exact: true })).toHaveCount(2)
         await page.reload()
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('operations')
         await page.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
         await period.getByRole('button', { name: 'Income', exact: true }).click()
-        await view.getByRole('button', { name: 'Player', exact: true }).click()
         await expect(history.locator('tbody td')).toHaveText(recorded)
         await page.getByRole('button', { name: 'Undo', exact: true }).click()
-        await expect(history.getByText('In progress')).toHaveCount(1)
+        await expect(rounds).toHaveText(['OR 1.1 *', 'OR 1.2 *'])
         expect(errors).toEqual([])
     })
 }
 
 for (const title of ['TOP', '1889']) {
     test(`${title} history separates gross train revenue from player dividends`, async ({ page }) => {
+        const [revenue, dividend] = title === 'TOP' ? ['$70', '$21'] : ['$90', '$27']
         await page.goto('/table')
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('routes')
-        const routes = page.getByRole('region', { name: 'Train routes', exact: true })
-        await routes.getByRole('button', { name: /^Run / }).first().click()
-        await routes.getByLabel('Starting revenue center').selectOption(JSON.stringify({ locationId: title === 'TOP' ? 'L16' : 'E2', nodeId: 'city' }))
-        const paths = title === 'TOP' ? [['L16', 'edge-1'], ['K17', 'path-0'], ['K19', 'edge-2']] : [['E2', 'edge-1'], ['F3', 'edge-0']]
-        for (const [location, path] of paths) await routes.getByRole('button', { name: `Add ${location} ${path}`, exact: true }).click()
-        await routes.getByRole('button', { name: 'Save route', exact: true }).click()
-        await routes.getByRole('button', { name: 'Confirm routes', exact: true }).click()
-        await page.getByRole('button', { name: 'Pay dividends', exact: true }).click()
-        await page.getByRole('button', { name: 'Confirm distribution', exact: true }).click()
+        const action = page.getByRole('region', { name: 'Current action', exact: true })
+        const steps = page.getByRole('navigation', { name: 'Operating steps' })
+        await action.getByRole('button', { name: 'Run trains', exact: true }).click()
+        await expect(steps.getByRole('button', { name: /^Run/ })).toContainText(`Ran for ${revenue}`)
+        await action.getByRole('button', { name: 'Pay', exact: true }).click()
+        await expect(steps.getByRole('button', { name: /^Payout/ })).toContainText('Paid out')
         await page.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
         await page.getByRole('group', { name: 'Spreadsheet period' }).getByRole('button', { name: 'Income', exact: true }).click()
         const history = page.getByRole('table', { name: 'Operating round history' })
-        await expect(history.getByRole('row').filter({ has: page.getByRole('rowheader', { name: title === 'TOP' ? 'Charlottetown' : 'Iyo Railway', exact: true }) }).getByRole('cell')).toHaveText(['$40'])
-        await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Player', exact: true }).click()
-        await expect(history.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Alex', exact: true }) }).getByRole('cell').first()).toHaveText('$12')
+        const round = history.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'OR 1.1 *', exact: true }) })
+        await expect(round.getByRole('cell').first()).toHaveText(dividend)
         await page.getByRole('button', { name: 'Undo', exact: true }).click()
-        await expect(history.getByRole('row').filter({ has: page.getByRole('rowheader', { name: 'Alex', exact: true }) }).getByRole('cell').first()).toHaveText('$0')
+        await expect(page.getByText('No operating-round history recorded yet.', { exact: true })).toBeVisible()
     })
 }
