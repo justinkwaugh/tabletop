@@ -576,7 +576,7 @@ widths, including resizing back to mobile.
 The operating company in the phase header uses title-defined initials below that
 same breakpoint and its full name at wider sizes; its token remains visible.
 
-EighteenXXSession.selectMap is the common map-intent entry point for both the
+The session's map.select is the common map-intent entry point for both the
 table and the logic workbench. Route extension/start takes precedence, followed by
 track selection, station selection and ordinary inspection. The existing session
 owns all selections and invalidates them through beforeNewState/updatingVisibleState.
