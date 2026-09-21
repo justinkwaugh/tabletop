@@ -17,18 +17,21 @@ for (const title of ['TOP', '1889']) {
         const resident = page.locator(`[data-market-company="${residentId}"]`)
         const undo = page.getByRole('button', { name: 'Undo', exact: true })
         await expect(token).toHaveAttribute('data-market-token-space', initialSpace)
-        await page.locator(`[data-sale-company="${companyId}"][data-sale-shares="1"]`).click()
+        await page.getByRole('navigation', { name: 'Stock actions' }).getByRole('button', { name: 'Sell', exact: true }).click()
+        await page.locator(`[data-sale-company="${companyId}"]`).first().click()
+        await page.locator('[data-sale-shares="1"]').first().click()
+        await page.getByRole('tab', { name: 'Market', exact: true }).click()
         await token.evaluate((element) => {
             const values = new Set<string>()
             const until = performance.now() + 1200
             function sample() {
-                values.add(element.getAttribute('style') ?? '')
+                values.add(element.querySelector('.token-motion')?.getAttribute('style') ?? '')
                 element.setAttribute('data-animation-samples', String(values.size))
                 if (performance.now() < until) requestAnimationFrame(sample)
             }
             requestAnimationFrame(sample)
         })
-        await page.getByRole('button', { name: 'Confirm sale', exact: true }).click()
+        await page.locator('button.confirm').click()
         await expect(undo).toBeEnabled()
         await expect(token).toHaveAttribute('data-market-token-space', destination)
         expect(Number(await token.getAttribute('data-animation-samples'))).toBeGreaterThan(3)

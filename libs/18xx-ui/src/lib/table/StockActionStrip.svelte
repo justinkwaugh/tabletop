@@ -2,6 +2,7 @@
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import type { StockMenuOption } from '../stock/stockActionSelection.js'
     import { fade } from 'svelte/transition'
+    import { prefersReducedMotion } from 'svelte/motion'
     let { session, additionalActions = [] }: {
         session: FinanceExampleSession
         additionalActions?: readonly StockMenuOption[]
@@ -23,7 +24,7 @@
 {#if session.financialState.machineState === 'StockRound' && !session.financialState.result}
     <nav aria-label="Stock actions">
         {#if selections.length}<div class="selections" style:--segments={selections.length} style:--selected={selectedIndex}>
-            {#if selectedIndex >= 0}<span class="thumb" aria-hidden="true" transition:fade={{ duration: 150 }}></span>{/if}
+            {#if selectedIndex >= 0}<span class="thumb" aria-hidden="true" transition:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}></span>{/if}
             {#each selections as selection (selection.label)}<button {disabled} aria-pressed={selection.selected ?? false} onclick={selection.onSelect}>{selection.label}</button>{/each}
         </div>{/if}
         {#if session.validActionTypes.includes('FinishStockTurn')}

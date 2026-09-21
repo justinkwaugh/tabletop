@@ -111,14 +111,10 @@
                 const destination = end ?? item
                 timeline.fromTo(
                     element,
+                    { x: 0, y: 0, opacity: start ? 1 : 0 },
                     {
-                        x: origin.x * renderScale,
-                        y: origin.y * renderScale,
-                        opacity: start ? 1 : 0
-                    },
-                    {
-                        x: destination.x * renderScale,
-                        y: destination.y * renderScale,
+                        x: (destination.x - origin.x) * renderScale,
+                        y: (destination.y - origin.y) * renderScale,
                         opacity: end ? 1 : 0,
                         duration,
                         ease: 'power2.inOut'
@@ -129,7 +125,14 @@
 
             animationContext.afterAnimations(() => {
                 timelines.delete(timeline)
-                if (board) tokens = after
+                if (!board) return
+                tokens = after
+                void tick().then(() => {
+                    for (const element of elements.values()) {
+                        for (const property of ['transform', 'translate', 'rotate', 'scale', 'opacity'])
+                            element.style.removeProperty(property)
+                    }
+                })
             })
         }
         const unsubscribe = activeSession.subscribe(listener)
@@ -221,12 +224,12 @@
                     : undefined}
             <div
                 class="positioned market-token"
-                use:register={token.companyId}
                 data-market-company={token.companyId}
                 data-market-token-space={token.spaceId}
                 style:transform={`translate(${token.x * renderScale}px, ${token.y * renderScale}px)`}
                 style:z-index={(target ? 101 : 1) + token.z}
             >
+                <div class="token-motion" use:register={token.companyId}>
                 <div
                     class="hover-offset"
                     class:moving={animation?.updatingVisibleState}
@@ -244,6 +247,7 @@
                             size={MarketTokenSize * renderScale}
                         />
                     </div>
+                </div>
                 </div>
             </div>
         {/each}
