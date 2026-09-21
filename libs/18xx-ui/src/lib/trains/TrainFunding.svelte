@@ -7,9 +7,9 @@
     let { session, trainColors, showUndo = true }: {
         session: EighteenXXSession; trainColors: Readonly<Record<string, string>>; showUndo?: boolean
     } = $props()
-    const purchase = $derived(session.fundingPurchase)
-    const plan = $derived(session.fundingPlan)
-    const disabled = $derived(!(session.canFundTrain || session.canResolveFunding))
+    const purchase = $derived(session.trainFunding.purchase)
+    const plan = $derived(session.trainFunding.plan)
+    const disabled = $derived(!(session.trainFunding.canFund || session.trainFunding.canResolve))
 </script>
 
 {#if purchase && plan}
@@ -26,7 +26,7 @@
             <p>Unable to raise the remaining ${session.financialState.bankruptcy.shortfall}. The game has ended.</p>
         {:else}
             {#if plan.treasuryProceeds}<p>Treasury shares will raise ${plan.treasuryProceeds}.</p>{/if}
-            {#each session.fundingContributions as contribution (contribution.id)}
+            {#each session.trainFunding.contributions as contribution (contribution.id)}
                 <p>{session.ownerName(contribution.owner)} contributed ${contribution.amount}.</p>
             {/each}
             {#each plan.contributions as contribution}
@@ -37,11 +37,11 @@
                     {#if plan.amountToRaise > 0}must raise <strong>${plan.amountToRaise}</strong> by selling shares.
                     {:else}must sell shares to meet the ownership limit.{/if}</p>
                 <div class="choices" aria-label="Funding share sales">
-                    {#each session.fundingSales as sale}
+                    {#each session.trainFunding.sales as sale}
                         {@const companyId = sale.sales[0].companyId}
                         <button class="sale-choice" {disabled} data-funding-shares={sale.sales[0].shares}
                             aria-label={`Sell ${sale.sales[0].shares} ${getCompany(session.financialState, companyId).name} shares for $${sale.proceeds}`}
-                            onclick={() => session.resolveTrainFunding(sale)}>
+                            onclick={() => session.trainFunding.resolve(sale)}>
                             <CompanyToken appearance={session.mapView.stations[companyId]} size={32} />
                             <span>{sale.sales[0].shares} {sale.sales[0].shares === 1 ? 'share' : 'shares'} · ${sale.proceeds}</span>
                         </button>
@@ -50,19 +50,19 @@
             {:else if plan.choice.kind === 'bankrupt'}
                 <p>Unable to raise the remaining ${plan.amountToRaise}.</p>
                 <div class="choices"><button class="action-button" {disabled}
-                    onclick={() => session.resolveTrainFunding()}>Declare bankruptcy</button></div>
+                    onclick={() => session.trainFunding.resolve()}>Declare bankruptcy</button></div>
             {:else if plan.choice.kind === 'buy'}
                 <div class="choices">
                     <span>Buy</span>
                     <TrainPurchaseButton name={session.trainDepot.trainDefinition(purchase.definitionId).name}
                         definitionId={purchase.definitionId} price={purchase.price} color={trainColors[purchase.definitionId]}
-                        {disabled} onclick={() => { void session.resolveTrainFunding() }} />
+                        {disabled} onclick={() => { void session.trainFunding.resolve() }} />
                 </div>
             {/if}
-            {#if session.fundingSaleHistory.length}
+            {#if session.trainFunding.saleHistory.length}
                 <table aria-label="Shares sold for train">
                     <thead><tr><th>Seller</th><th>Company</th><th>Shares</th><th>Proceeds</th></tr></thead>
-                    <tbody>{#each session.fundingSaleHistory as { id, details } (id)}
+                    <tbody>{#each session.trainFunding.saleHistory as { id, details } (id)}
                         <tr><td>{session.ownerName(details.seller)}</td>
                             <td><span class="company"><CompanyToken appearance={session.mapView.stations[details.sales[0].companyId]} size={20} />{getCompany(session.financialState, details.sales[0].companyId).name}</span></td>
                             <td>{details.sales[0].shares}</td><td>${details.proceeds}</td></tr>

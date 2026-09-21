@@ -15,7 +15,6 @@ function privates(availability = {}) {
     const base = minimalPlayState()
     const state: PrivatesContext['state'] = {
         ...base,
-        machineState: 'StockRound',
         usedPrivatePowerIds: [],
         companies: [...base.companies, { id: 'P', name: 'Private', kind: 'private' }]
     }

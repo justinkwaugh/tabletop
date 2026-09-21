@@ -1,3 +1,5 @@
+import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
+import { TrainFundingModule } from './trainFundingModule.svelte.js'
 import { PrivatesModule } from './privatesModule.svelte.js'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
@@ -10,11 +12,11 @@ import { operatingStepIndex } from '../table/operatingStep.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { setStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
-import { isSellFundingShares, isIssueTreasuryShares, isContributeTrainFunds } from '@tabletop/18xx'
+import { isIssueTreasuryShares } from '@tabletop/18xx'
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
-import { isOfferPurchase, isRespondToPurchaseOffer, isDistributeEarnings } from '@tabletop/18xx'
+import { isDistributeEarnings } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
-import { chooseTrainSource, chooseCompanyTrain, backFromTrainBuying, type TrainBuyingSelection, type TrainSource } from './trainBuyingSelection.js'
+import { type TrainBuyingSelection } from './trainBuyingSelection.js'
 import { EighteenXXStateValidator } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
@@ -36,12 +38,7 @@ import {
     BuyAuctionLot
 } from '@tabletop/18xx'
 import {
-    EmergencyTrainFunding,
-    FundTrain,
-    IssueTreasuryShares,
-    SellFundingShares,
-    ContributeTrainFunds,
-    type ShareSaleDetails
+    IssueTreasuryShares
 } from '@tabletop/18xx'
 import {
     isLayPrivateTile,
@@ -88,11 +85,7 @@ import {
     type RoutePath
 } from '@tabletop/18xx'
 import {
-    BuyTrain,
-    TrainPurchase,
-    isBuyTrain,
-    trainsOwnedBy,
-    type TrainPurchaseRequest
+    trainsOwnedBy
 } from '@tabletop/18xx'
 import {
     StationPlacement,
@@ -197,12 +190,16 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
                 : session.myPlayer ? [session.myPlayer.id] : []
         },
         canActFor: (playerId) => session.localHotseat || session.myPlayer?.id === playerId,
+        get recordedActions() { return session.actions.slice(0, session.gameState.actionCount) },
+        settled: () => session.waitForVisibleTransitionSettled(),
         createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
         applyAction: (action) => session.applyAction(action)
     }))(this)
     readonly offers = new OfferAuctionModule(this.context)
     readonly waterfall = new WaterfallAuctionModule(this.context)
     readonly privates = new PrivatesModule(this.context)
+    readonly trainFunding = new TrainFundingModule(this.context)
+    readonly trainBuying = new TrainBuyingModule(this.context, () => this.purchaseOptions)
     readonly earnings = new EarningsModule(this.context)
     readonly discard = new DiscardModule(this.context)
     constructor(
@@ -512,7 +509,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             !this.busy &&
             !this.updatingVisibleState &&
             !this.isViewingHistory &&
-            !this.trainSelection &&
+            !this.trainBuying.depotSelection &&
             this.validActionTypes.includes('FinishOperatingTurn')
     )
     async finishOperatingTurn() {
@@ -636,208 +633,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             })
         )
     }
-    funding = $derived.by(
-        () =>
-            new EmergencyTrainFunding(
-                this.financialState,
-                this.rules.trainFundingRules,
-                this.rules.stockRules,
-                this.rules.trainRules
-            )
-    )
-    fundingPurchases = $derived.by(() =>
-        this.financialState.machineState === 'BuyingTrains' ? this.funding.purchases() : []
-    )
-    fundingChoice = $derived.by(() =>
-        this.financialState.machineState === 'FundingTrain' ? this.funding.next() : undefined
-    )
-    canFundTrain = $derived(
-        !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            this.validActionTypes.includes('FundTrain')
-    )
-    canResolveFunding = $derived.by(
-        () =>
-            !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            this.financialState.machineState === 'FundingTrain' &&
-            this.validActionTypes.length > 0
-    )
-    fundingPurchase = $derived.by(() => this.financialState.trainFunding?.purchase ?? this.fundingPurchases[0])
-    fundingPlan = $derived.by(() => this.fundingPurchase ? this.funding.preview(this.fundingPurchase) : undefined)
-    fundingSales = $derived.by(() => this.fundingPlan?.choice.kind === 'sell' ? this.fundingPlan.choice.sales : [])
-    private fundingActions = $derived.by(() => {
-        const actions = this.actions.slice(0, this.gameState.actionCount)
-        const start = actions.findLastIndex((action) => action.type === 'FundTrain')
-        return this.financialState.trainFunding && start >= 0 ? actions.slice(start + 1) : []
-    })
-    fundingContributions = $derived(this.fundingActions.filter(isContributeTrainFunds))
-    fundingSaleHistory = $derived(this.fundingActions.flatMap((action) =>
-        (isSellFundingShares(action) || isIssueTreasuryShares(action)) && action.metadata
-            ? [{ id: action.id, details: action.metadata }] : []))
-    async fundTrain(purchase: TrainPurchaseDetails, buy = true) {
-        assert(this.canFundTrain, 'Train funding is unavailable')
-        await this.applyAction(
-            this.createPlayerAction(FundTrain, {
-                companyId: purchase.companyId,
-                trainId: purchase.trainId,
-                definitionId: purchase.definitionId,
-                expectedPrice: purchase.price
-            })
-        )
-        await this.completeCashFunding(buy)
-    }
-    async resolveTrainFunding(sale?: ShareSaleDetails) {
-        if (sale) assert((this.canFundTrain || this.canResolveFunding) && this.fundingSales.includes(sale), 'Choose a legal funding sale')
-        const purchase = this.fundingPurchase
-        assert(purchase, 'Funding requires a train')
-        if (!this.financialState.trainFunding) {
-            await this.fundTrain(purchase, !sale)
-            if (!sale) return
-        }
-        if (sale) {
-            await this.applyFundingChoice(sale)
-            await this.completeCashFunding(false)
-        } else {
-            await this.completeCashFunding(true)
-        }
-    }
-    private async applyFundingChoice(sale?: ShareSaleDetails) {
-        assert(this.canResolveFunding && this.fundingChoice, 'Train funding is unavailable')
-        const choice = this.fundingChoice
-        switch (choice.kind) {
-            case 'issue':
-                await this.applyAction(
-                    this.createPlayerAction(IssueTreasuryShares, {
-                        expectedProceeds: choice.details.proceeds
-                    })
-                )
-                break
-            case 'contribute':
-                await this.applyAction(
-                    this.createPlayerAction(ContributeTrainFunds, {
-                        owner: choice.owner,
-                        amount: choice.amount
-                    })
-                )
-                break
-            case 'sell': {
-                assert(sale, 'Choose shares to sell')
-                await this.applyAction(
-                    this.createPlayerAction(SellFundingShares, {
-                        seller: sale.seller,
-                        companyId: sale.sales[0].companyId,
-                        shares: sale.sales[0].shares,
-                        expectedProceeds: sale.proceeds
-                    })
-                )
-                break
-            }
-            case 'buy':
-                await this.applyAction(
-                    this.createPlayerAction(BuyTrain, {
-                        companyId: choice.purchase.companyId,
-                        trainId: choice.purchase.trainId,
-                        definitionId: choice.purchase.definitionId,
-                        expectedPrice: choice.purchase.price
-                    })
-                )
-                break
-        }
-    }
-    private async completeCashFunding(buy: boolean) {
-        await this.waitForVisibleTransitionSettled()
-        while (this.canResolveFunding && this.fundingChoice &&
-            (this.fundingChoice.kind === 'issue' || (buy && ['contribute', 'buy'].includes(this.fundingChoice.kind)) || (!buy && this.fundingChoice.kind === 'contribute' && this.fundingPlan?.requiresSales === true))) {
-            const actionCount = this.financialState.actionCount
-            await this.applyFundingChoice()
-            await this.waitForVisibleTransitionSettled()
-            if (this.financialState.actionCount === actionCount) break
-        }
-    }
-    private trainDraft: TrainPurchaseRequest | undefined = $state.raw()
-    private trainBuyingDraft: TrainBuyingSelection = $state({})
-    trainBuyingSelection = $derived.by(() =>
-        !this.updatingVisibleState && !this.isViewingHistory && this.financialState.machineState === 'BuyingTrains'
-            ? this.trainBuyingDraft : {})
-    trainBuyingSource = $derived(this.trainBuyingSelection.source?.value ?? 'depot')
-    companyTrainChoices = $derived.by(() => this.purchaseOptions.flatMap((option) => {
-        if (option.request.asset.kind !== 'train' || option.request.seller.kind !== 'company') return []
-        const evaluation = evaluatePurchaseOffer(this.financialState, option.request, this.rules.transferRules, this.rules.trainRules)
-        const trainId = option.request.asset.trainId
-        const train = this.financialState.trainInventory.trains.find((train) => train.id === trainId)
-        assertExists(train, 'Train purchase choice requires a train')
-        return [{ ...option, definitionId: train.definitionId,
-            source: evaluation.buyerPlayerId === evaluation.sellerPlayerId ? 'mine' as const : 'others' as const }]
-    }))
-    companyTrainEvaluation = $derived.by(() => {
-        const request = this.trainBuyingSelection.purchase?.value
-        return request ? evaluatePurchaseOffer(this.financialState, request, this.rules.transferRules, this.rules.trainRules) : undefined
-    })
-    selectTrainSource(source: TrainSource) {
-        this.trainBuyingDraft = chooseTrainSource(source)
-    }
-    selectCompanyTrain(request: PurchaseOfferRequest) {
-        assert(this.companyTrainChoices.some((choice) => choice.request.asset.kind === 'train' && request.asset.kind === 'train' && choice.request.asset.trainId === request.asset.trainId && choice.source === this.trainBuyingSource), 'Choose an available company train')
-        this.trainBuyingDraft = chooseCompanyTrain(this.trainBuyingDraft, { ...request })
-    }
-    setCompanyTrainPrice(price: number) {
-        const request = this.trainBuyingSelection.purchase?.value
-        assert(request, 'Choose a company train first')
-        this.trainBuyingDraft = chooseCompanyTrain(this.trainBuyingDraft, { ...request, price })
-    }
-    async buyCompanyTrain() {
-        const request = this.trainBuyingSelection.purchase?.value
-        assert(request && this.canResolveCompanyDecision && this.validActionTypes.includes('OfferPurchase') && this.companyTrainEvaluation && !this.companyTrainEvaluation.reason, 'Choose a legal company train purchase')
-        await this.applyAction(this.createPlayerAction(OfferPurchase, request))
-    }
-    trainSelection = $derived.by(() =>
-        !this.updatingVisibleState &&
-        !this.isViewingHistory &&
-        this.financialState.machineState === 'BuyingTrains'
-            ? this.trainDraft
-            : undefined
-    )
-    trainPurchase = $derived.by(() => new TrainPurchase(this.financialState, this.rules.trainRules))
-    trainOffers = $derived(this.trainPurchase.offers())
     availableTrainDefinitionIds = $derived.by(() => this.rules.trainRules.availableDefinitions(this.financialState))
-    marketTrainOffers = $derived(this.trainPurchase.marketOffers())
-    trainExchanges = $derived(this.trainPurchase.exchanges())
-    trainNextPhase = $derived.by(() =>
-        this.trainPreview
-            ? this.rules.trainRules.phaseAfterPurchase(
-                  this.financialState,
-                  this.trainPreview.definitionId
-              )
-            : undefined
-    )
-    trainPreview = $derived(
-        this.trainSelection ? this.trainPurchase.evaluate(this.trainSelection).details : undefined
-    )
-    canBuyTrain = $derived.by(
-        () =>
-            !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            this.financialState.machineState === 'BuyingTrains' &&
-            this.validActionTypes.includes('BuyTrain')
-    )
-    trainPurchases = $derived(this.actions.slice(0, this.gameState.actionCount).filter(isBuyTrain))
-    currentTrainPurchaseIds = $derived.by(() => {
-        const step = this.financialState.trainPurchaseStep
-        if (!step) return []
-        const ids = new Set(step.purchasedTrainIds)
-        const actions = this.actions.slice(0, this.gameState.actionCount)
-        const start = actions.findLastIndex((action) => isDistributeEarnings(action) && action.companyId === step.companyId)
-        for (const action of actions.slice(start + 1)) {
-            if (!isOfferPurchase(action) && !isRespondToPurchaseOffer(action)) continue
-            const offer = action.metadata?.offer
-            if (action.metadata?.accepted && offer?.companyId === step.companyId && offer.asset.kind === 'train') ids.add(offer.asset.trainId)
-        }
-        return [...ids]
-    })
     trainRosters = $derived.by(() =>
         this.financialState.companies
             .map((company) => ({
@@ -871,42 +667,6 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     }
     get trainDepot() {
         return this.rules.trainRules.depot
-    }
-    trainLimit = $derived.by(() =>
-        this.financialState.trainPurchaseStep
-            ? this.rules.trainRules.trainLimit(
-                  this.financialState,
-                  this.financialState.trainPurchaseStep.companyId
-              )
-            : undefined
-    )
-    selectTrain(request: TrainPurchaseRequest) {
-        assert(
-            this.canBuyTrain && this.trainPurchase.evaluate(request).details,
-            'Choose a legal train purchase'
-        )
-        this.trainDraft = request
-    }
-    backTrain() {
-        this.trainDraft = undefined
-    }
-    async confirmTrainPurchase() {
-        const preview = this.trainPreview
-        assert(this.canBuyTrain && preview, 'Choose a legal train purchase')
-        await this.buyTrain(preview)
-    }
-    async buyTrain(request: TrainPurchaseRequest) {
-        const preview = this.trainPurchase.evaluate(request).details
-        assert(this.canBuyTrain && preview, 'Choose a legal train purchase')
-        await this.applyAction(
-            this.createPlayerAction(BuyTrain, {
-                companyId: preview.companyId,
-                trainId: preview.trainId,
-                definitionId: preview.definitionId,
-                expectedPrice: preview.price,
-                ...(preview.exchangeTrainId ? { exchangeTrainId: preview.exchangeTrainId } : {})
-            })
-        )
     }
     get requiresStationTokenChoice(): boolean {
         return false
@@ -1787,15 +1547,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         await super.undo()
     }
     private registerDrafts() {
-        this.drafts.register({
-            pending: () => !!this.trainBuyingDraft.source,
-            unwind: () => {
-                if (!this.trainBuyingDraft.source) return false
-                this.trainBuyingDraft = backFromTrainBuying(this.trainBuyingDraft)
-                return true
-            },
-            clear: () => { this.trainBuyingDraft = {} }
-        })
+        this.drafts.register(this.trainBuying.sourceDraft)
         this.drafts.register(this.offers)
         this.drafts.register(this.waterfall)
         this.drafts.register(clearableDraft(() => !!this.companyDraft, () => { this.companyDraft = undefined }))
@@ -1816,7 +1568,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         this.drafts.register(this.discard)
         this.drafts.register(this.earnings)
         this.drafts.register(clearableDraft(() => this.routeEditor.hasDraft, () => this.routeEditor.clear()))
-        this.drafts.register(clearableDraft(() => !!this.trainDraft, () => { this.trainDraft = undefined }))
+        this.drafts.register(this.trainBuying.depotDraft)
         this.drafts.register({
             pending: () => !!this.stationDraft.stationId,
             unwind: () => {

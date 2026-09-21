@@ -2,6 +2,7 @@ import { Color } from '@tabletop/common'
 import type { FormationState } from '../company/companyState.js'
 import type { DistributionState } from '../earnings/earningsDistribution.js'
 import type { PhaseChangeState } from '../phases/phaseChange.js'
+import type { PrivateState } from '../privates/privateRules.js'
 import { createStockRound } from '../stock/stockRound.js'
 import { createRectangularStockMarket, placeStockMarker } from '../stock/stockMarket.js'
 
@@ -27,7 +28,10 @@ export function minimalRailwayState(): DistributionState {
 
 export const TestPlayerId = 'alex'
 
-export function minimalPlayState(): DistributionState & PhaseChangeState & FormationState {
+export function minimalPlayState(): DistributionState &
+    PhaseChangeState &
+    FormationState &
+    PrivateState {
     return {
         ...minimalRailwayState(),
         players: [{ playerId: TestPlayerId, color: Color.Blue }],
@@ -40,6 +44,7 @@ export function minimalPlayState(): DistributionState & PhaseChangeState & Forma
         stockRound: createStockRound(1),
         ownershipLimitExemptions: [],
         phaseEvents: [],
-        tranches: []
+        tranches: [],
+        machineState: 'StockRound'
     }
 }

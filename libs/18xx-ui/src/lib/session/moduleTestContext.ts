@@ -16,6 +16,8 @@ export function testContext<State, Rules>(
         interactive: availability.interactive ?? true,
         actingPlayerIds: availability.actingPlayerIds ?? ['alex'],
         canActFor: (playerId) => (availability.actingPlayerIds ?? ['alex']).includes(playerId),
+        recordedActions: [],
+        settled: async () => {},
         createPlayerAction: (schema, data) =>
             Object.assign(createAction(schema, data), {
                 id: 'action',

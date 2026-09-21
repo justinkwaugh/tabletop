@@ -6,12 +6,12 @@
     import TrainBadge from './TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let { session, trainColors }: { session: EighteenXXSession; trainColors: Readonly<Record<string, string>> } = $props()
-    const request = $derived(session.trainBuyingSelection.purchase?.value)
+    const request = $derived(session.trainBuying.selection.purchase?.value)
     const response = $derived(session.financialState.purchaseOffer)
     const companies = $derived.by(() => {
-        const groups = new Map<string, typeof session.companyTrainChoices>()
-        for (const choice of session.companyTrainChoices) {
-            if (choice.source !== session.trainBuyingSource || choice.request.seller.kind !== 'company') continue
+        const groups = new Map<string, typeof session.trainBuying.companyChoices>()
+        for (const choice of session.trainBuying.companyChoices) {
+            if (choice.source !== session.trainBuying.source || choice.request.seller.kind !== 'company') continue
             const id = choice.request.seller.companyId
             const group = groups.get(id)
             if (group) group.push(choice)
@@ -54,11 +54,11 @@
         </div>
         <div class="controls">
             <label>Price <span>$</span><input aria-label="Train price" type="number" min="1" step="1" value={request.price}
-                oninput={(event) => session.setCompanyTrainPrice(Number(event.currentTarget.value))} /></label>
-            <button class="action-button" disabled={!session.canResolveCompanyDecision || !session.companyTrainEvaluation || !!session.companyTrainEvaluation.reason}
-                onclick={() => session.buyCompanyTrain()}>{session.trainBuyingSource === 'mine' ? 'Buy' : 'Offer'}</button>
+                oninput={(event) => session.trainBuying.setCompanyTrainPrice(Number(event.currentTarget.value))} /></label>
+            <button class="action-button" disabled={!session.canResolveCompanyDecision || !session.trainBuying.companyEvaluation || !!session.trainBuying.companyEvaluation.reason}
+                onclick={() => session.trainBuying.buyCompanyTrain()}>{session.trainBuying.source === 'mine' ? 'Buy' : 'Offer'}</button>
         </div>
-        {#if session.companyTrainEvaluation?.reason}<p role="status">{session.companyTrainEvaluation.reason}</p>{/if}
+        {#if session.trainBuying.companyEvaluation?.reason}<p role="status">{session.trainBuying.companyEvaluation.reason}</p>{/if}
     {:else}
         <div class="choices">
             {#each companies as { companyId, trains } (companyId)}
@@ -69,7 +69,7 @@
                     </div>
                     <div class="company-roster">
                         {#each trains as choice}
-                            <button class="train" disabled={!session.canResolveCompanyDecision} onclick={() => session.selectCompanyTrain(choice.request)}>
+                            <button class="train" disabled={!session.canResolveCompanyDecision} onclick={() => session.trainBuying.selectCompanyTrain(choice.request)}>
                                 <TrainBadge name={session.trainDepot.trainDefinition(choice.definitionId).name} color={trainColors[choice.definitionId]} />
                             </button>
                         {/each}
