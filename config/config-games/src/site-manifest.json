@@ -211,21 +211,21 @@
     {
       "gameId": "the-old-prince",
       "packageId": "the-old-prince",
-      "logicVersion": "0.9.0",
-      "uiVersion": "0.44.0",
+      "logicVersion": "0.10.0",
+      "uiVersion": "0.45.0",
       "priorLogicVersions": [
+        "0.9.0",
         "0.8.0",
         "0.7.1",
         "0.7.0",
-        "0.6.0",
-        "0.5.0"
+        "0.6.0"
       ],
       "priorUiVersions": [
+        "0.44.0",
         "0.43.0",
         "0.42.0",
         "0.41.0",
-        "0.40.0",
-        "0.39.0"
+        "0.40.0"
       ]
     }
   ]

@@ -712,7 +712,8 @@
     .game-info-pane .game-information { padding-inline: 8px; }
     .game-info-pane .depot-information { margin-inline: 0; }
     .game-info-pane .phase-information { padding-left: 0; }
-    .original-actions { flex: none; max-height: 50dvh; overflow: auto; }
+    .original-actions { --stock-buy-wrap: nowrap; --stock-buy-overflow: auto; flex: none; max-height: 50dvh; overflow: auto; }
+    .original-actions:has(.action-panel :global(.buy-panel)) { max-height: none; overflow: visible; }
     .workspace-view { height: 100%; min-height: 0; min-width: 0; overflow: auto; }
     .players-pane { container: player-pane / size; padding: 10px 8px 0; box-sizing: border-box; }
     .actions-area { display: flex; flex-direction: column; overflow: hidden; }
@@ -739,6 +740,7 @@
         --rail-muted: #7f8e9e;
         --rail-inactive: #596777;
         --rail-surface: #222c37;
+        --rail-surface-inset: #1b232d;
         --rail-surface-raised: #2b3744;
         --rail-surface-selected: #3a4c5e;
         --rail-solid: #40576b;
@@ -788,6 +790,7 @@
         border-bottom: 1px solid var(--rail-border, #b8a995);
         font-size: 13px;
     }
+    .action-panel:has(:global(.buy-panel)) { display: flex; flex-direction: column; overflow: visible; }
     .action-panel :global(section) {
         padding: 0;
         margin: 0;
@@ -795,6 +798,7 @@
         border-radius: 0;
         background: transparent;
     }
+    .action-panel :global(section.buy-panel) { margin-block: auto; }
     .action-panel :global(h2) {
         font-size: 14px;
     }

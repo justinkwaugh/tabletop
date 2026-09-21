@@ -5,6 +5,7 @@
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import type { CertificatePool } from '@tabletop/18xx'
+    import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let { session, poolName }: {
         session: FinanceExampleSession
@@ -56,6 +57,9 @@
             ? sameOwner(choice.request.buyer, session.stockActionBuyer)
             : choice.request.buyer.kind === 'player'))
     const menu = $derived(session.stockMenu)
+    const purchasingOwners = $derived(menu === 'buy' ? buyers : startBuyers)
+    const selectedOwnerIndex = $derived(purchasingOwners.findIndex((buyer) =>
+        session.stockActionBuyer ? sameOwner(buyer, session.stockActionBuyer) : buyer.kind === 'player'))
 
     function exchangeCompany(certificateId: string) {
         const certificate = session.financialState.certificates.find((item) => item.id === certificateId)
@@ -72,7 +76,7 @@
 {#snippet token(companyId: string)}
     <CompanyToken appearance={session.mapView.stations[companyId]} size={38} />
 {/snippet}
-<section aria-label="Stock trading">
+<section aria-label="Stock trading" class:buy-panel={menu === 'buy'}>
     {#if session.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
     {#if menu}
         <div class="heading available-shares">
@@ -87,21 +91,28 @@
             >
         </div>
         {#if (menu === 'buy' && buyers.length > 1) || (menu === 'start' && startBuyers.length > 1)}
-            <div class="heading owner-toggle" aria-label="Purchasing owner">
-                {#each menu === 'buy' ? buyers : startBuyers as buyer, index}
-                    {#if index > 0}<span class="separator" aria-hidden="true"></span>{/if}
-                    <button {disabled} aria-pressed={!!session.stockActionBuyer && sameOwner(buyer, session.stockActionBuyer)}
+            <div class="heading owner-toggle" role="group" aria-label="Purchasing owner">
+                <SlidingToggle count={purchasingOwners.length} selectedIndex={selectedOwnerIndex}>
+                {#each purchasingOwners as buyer, index}
+                    <button {disabled} aria-pressed={index === selectedOwnerIndex}
                         onclick={() => session.chooseStockMenu(menu, buyer)}>{buyer.kind === 'player' ? 'Yourself' : session.ownerName(buyer)}{#if buyer.kind === 'company'} <span class="owner-cash">${buyerCash(buyer)}</span>{/if}</button>
                 {/each}
+                </SlidingToggle>
             </div>
         {/if}
-        <div class="choices" class:exchange-list={menu === 'exchange'}>
+        <div class="choices" class:buy-choices={menu === 'buy'} class:exchange-list={menu === 'exchange'}>
             {#if menu === 'buy'}
                 {#each purchaseCompanies as company (company.id)}
                     {@const ownership = companyOwnership(session.financialState, company.id)}
                     {@const options = buyerPurchases.filter((choice) => choice.certificate.companyId === company.id)}
                     {@const prices = [...new Set(options.map((choice) => choice.result.details?.price))]}
                     {@const toFloat = company.floated ? undefined : session.sharesToFloat(company.id)}
+                    {@const playerPayments = session.stockActionBuyer?.kind === 'company'
+                        ? [...new Set(options.map((choice) => choice.result.details?.payments
+                            .filter((payment) => payment.from.kind === 'player' && payment.from.playerId === session.myPlayer?.id)
+                            .reduce((total, payment) => total + payment.amount, 0) ?? 0))]
+                        : []}
+                    <div class="share-offer">
                     <div class="share-pill" aria-label={company.name}>
                         <div class="share-identity">
                             <CompanyToken appearance={session.mapView.stations[company.id]} size={30} />
@@ -130,6 +141,10 @@
                                 {/if}
                             {/each}
                         </div>
+                    </div>
+                    {#if playerPayments.some((amount) => amount > 0)}
+                        <div class="player-payment">YOU PAY {playerPayments.map((amount) => `$${amount.toLocaleString('en-US')}`).join(' / ')}</div>
+                    {/if}
                     </div>
                 {/each}
             {:else if menu === 'start'}
@@ -247,6 +262,7 @@
 
 <style>
     section {
+        container-type: inline-size;
         padding: 4px 0;
     }
     .choices.exchange-list { flex-direction: column; align-items: stretch; width: fit-content; max-width: 100%; margin-inline: auto; gap: 4px; }
@@ -255,12 +271,15 @@
     .exchange-private { flex: 1; font-weight: 400; }
     .exchange-arrow { color: var(--rail-muted, #95816a); font-size: 16px; }
     .exchange-company { display: flex; align-items: center; flex-shrink: 0; }
+    .share-offer { flex: none; display: flex; flex-direction: column; gap: 4px; }
+    .player-payment { color: #fff8e9; font-size: 10px; line-height: 14px; text-align: center; letter-spacing: .04em; }
     .share-pill { border: 1px solid var(--rail-border, #c7b8a6); border-radius: 6px; display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; background: transparent; }
     .share-identity { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; padding: 4px 8px; align-self: stretch; background: var(--rail-surface-raised, #f3ede4); }
+    .share-offer .share-identity { gap: 12px; padding: clamp(4px, 1cqw, 10px) clamp(8px, 2cqw, 18px); }
     .share-identity :global(svg) { flex-shrink: 0; }
     .float-band { padding: 3px 6px; background: var(--rail-solid, #493b2b); color: #fff8e9; font-size: 10px; line-height: 12px; text-align: center; }
     .share-sources { display: flex; align-self: stretch; }
-    button.share-source { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 3px 7px; border: 0; border-radius: 0; background: transparent; text-align: center; }
+    button.share-source { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: clamp(3px, 0.8cqw, 8px) clamp(7px, 1.6cqw, 16px); border: 0; border-radius: 0; background: var(--rail-surface-inset, #1b232d); text-align: center; }
     .share-source + .share-source::before { content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; border-left: 1px solid var(--rail-border, #d8cbbc); }
     .source-label { font-size: 9px; line-height: 11px; text-transform: uppercase; letter-spacing: .035em; color: var(--rail-text, #786550); }
     .share-count { font-size: 18px; line-height: 20px; font-variant-numeric: tabular-nums; }
@@ -276,6 +295,7 @@
         justify-content: center;
         gap: 8px;
     }
+    .buy-choices { flex-wrap: var(--stock-buy-wrap, wrap); overflow-x: var(--stock-buy-overflow, visible); justify-content: safe center; padding-block: 2px 6px; }
     button {
         border: 1px solid var(--rail-border, #c7b8a6);
         border-radius: 6px;
@@ -333,7 +353,7 @@
         margin-bottom: 10px;
         font-size: 13px;
     }
-    .heading.available-shares { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rail-text, #63513e); }
+    .heading.available-shares { font-size: clamp(11px, calc(9px + 0.5cqw), 14px); letter-spacing: .08em; text-transform: uppercase; color: var(--rail-text, #63513e); }
     .heading.idle-prompt { margin-bottom: 0; }
     .owner-cash { margin-left: 5px; font-variant-numeric: tabular-nums; }
     .owner-toggle { gap: 7px; min-height: 22px; }
@@ -341,6 +361,8 @@
     .owner-toggle button:hover:not(:disabled),
     .owner-toggle button[aria-pressed='true'] {
         border: 0;
+        position: relative;
+        border-radius: 999px;
         padding: 3px 8px;
         background: transparent;
         box-shadow: none;
@@ -348,9 +370,8 @@
         font-size: 13px;
     }
     .owner-toggle button[aria-pressed='true'],
-    .owner-toggle button[aria-pressed='true']:hover:not(:disabled) { color: var(--rail-text, #443c34); font-weight: 700; background: var(--rail-surface-raised, #e5d7c3); }
+    .owner-toggle button[aria-pressed='true']:hover:not(:disabled) { color: #ffffff; font-weight: 700; }
     .owner-toggle button:hover:not(:disabled) { color: var(--rail-text, #443c34); }
-    .owner-toggle .separator { height: 13px; border-left: 1px solid var(--rail-border, #b7a58f); }
     .notice {
         text-align: center;
         font-size: 12px;

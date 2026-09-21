@@ -1202,8 +1202,28 @@ header. Only legal action categories appear; title UI supplies additional choice
 (such as Split) and their selected state. Selection replaces the current manual
 stock draft using the session; switching away from Split clears its draft too.
 Buy and Start show the eligible purchasing owners within their choices, only when
-there are multiple owners. Pass / End turn is separated at the right and commits
-immediately. The strip remains outside the scrolling action choices.
+there are multiple owners. The purchasing-owner selector shares the stock action
+strip’s sliding pill highlight, retains corporate cash labels, and follows the
+session’s selected buyer. This local selection feedback does not gate interaction;
+reduced motion disables sliding and entry/exit fades. Pass / End turn is separated at the right and commits
+immediately. The action pills center across the full strip when they fit clear of
+Pass / End turn; otherwise they center in the remaining space to its left. The
+layout measures the current choices and turn button, so title-specific categories
+and either turn-button label use the same rule. The strip remains outside the
+scrolling action choices. It sticks to the top of its scroll container above
+the action content whenever that area scrolls vertically.
+
+The Buy panel centers its contents vertically in available pane space and keeps
+share choices horizontally centered. When content exceeds the pane height, the
+action body scrolls with the beginning of the content still reachable. In the
+non-paned layout, Buy expands the action area to its content height without an
+vertical internal scroll area or viewport-height cap. Buy cards form a single
+horizontally scrollable row in the non-paned layout, centered when they fit and
+starting at the first card when they overflow. In panes, cards wrap into rows. Corporate share offers show a cream
+YOU PAY amount beneath the share box when the purchase preview requires cash from
+the viewing player. Amounts come from preview payments; fully corporate-funded
+and personal purchases omit the label. Offers with multiple prices preserve the
+corresponding distinct contribution amounts.
 
 The share purchase view reuses CompanyDetails in a vertical layout: identity and
 trains, financial summary, ownership with clickable legal purchase source rows, then private

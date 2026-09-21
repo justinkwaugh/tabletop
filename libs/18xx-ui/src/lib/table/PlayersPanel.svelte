@@ -376,7 +376,7 @@
         margin: 0;
         padding: 6px 10px 8px;
         border-bottom: 1px solid var(--rail-border, #e3d9cd);
-        background: #1b232d;
+        background: var(--rail-surface-inset, #1b232d);
     }
     .stats > dl {
         margin: 0;
