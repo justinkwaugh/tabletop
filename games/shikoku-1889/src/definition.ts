@@ -15,7 +15,6 @@ import { Shikoku1889Map } from './map.js'
 import { Shikoku1889TileSet } from './tiles.js'
 import { Shikoku1889OperatingRules } from './roundRules.js'
 import { Shikoku1889CompanyRules } from './companyRules.js'
-import { createShikoku1889StockMarket } from './stockMarket.js'
 import { Shikoku1889StockRules } from './stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
 import {
@@ -31,9 +30,8 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules = {
     trainFundingRules: Shikoku1889TrainFundingRules,
     transferRules: Shikoku1889TransferRules,
     privatePowerRules: Shikoku1889PrivatePowerRules,
-    createFinances: createShikoku1889Opening,
+    createOpening: createShikoku1889Opening,
     stockRules: Shikoku1889StockRules,
-    createMarket: createShikoku1889StockMarket,
     companyRules: Shikoku1889CompanyRules,
     operatingRules: Shikoku1889OperatingRules,
     map: Shikoku1889Map,

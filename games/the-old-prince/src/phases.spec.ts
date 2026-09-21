@@ -54,10 +54,12 @@ it('starts each phase with its train and rusts each train on schedule', () => {
 
 it('lets a company-owned 4+ that never ran survive until it next runs', () => {
     const players = ['a', 'b', 'c'].map((playerId) => ({ playerId, color: 'blue' as const }))
-    const state = {
-        ...createTheOldPrinceOpening(players, new Prng({ seed: 1, invocations: 0 })),
-        phaseId: 'D'
-    }
+    const { position } = createTheOldPrinceOpening({
+        players,
+        prng: new Prng({ seed: 1, invocations: 0 }),
+        config: {}
+    })
+    const state = { ...position, phaseId: 'D' }
     const owner = { kind: 'company', companyId: 'So' } as const
     const owned = (hasRun: boolean): Train => ({
         id: '4+:1',

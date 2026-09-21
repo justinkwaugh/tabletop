@@ -1,20 +1,22 @@
 import { Shikoku1889Majors } from './majors.js'
-import { assert, type PlayerState } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
     awardPrivate,
     createOrdinaryShareCertificates,
     privateIncomePayments,
     settleCashPayments,
+    beginWaterfallAuction,
     type WaterfallAuctionRules,
-    type CompanyState,
-    type MapStateData,
-    type TrainState
+    type InitialPosition,
+    type Opening,
+    type OpeningSetup
 } from '@tabletop/18xx'
 import { Shikoku1889Privates } from './privates.js'
 import { Shikoku1889Map } from './map.js'
 import { Shikoku1889TileSet } from './tiles.js'
 import { Shikoku1889TrainDepot } from './trains.js'
 import { Shikoku1889StationCounts } from './stationRules.js'
+import { createShikoku1889StockMarket } from './stockMarket.js'
 export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
     lots: (state) =>
         Shikoku1889Privates.filter((lot) =>
@@ -27,9 +29,7 @@ export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
         settleCashPayments(state, privateIncomePayments(state))
     }
 }
-export function createShikoku1889Opening(
-    players: readonly PlayerState[]
-): CompanyState & MapStateData & TrainState {
+export function createShikoku1889Opening({ players }: OpeningSetup): Opening {
     assert(players.length >= 2 && players.length <= 6, '1889 supports two through six players')
     const privates = Shikoku1889Privates.slice(
         0,
@@ -38,7 +38,8 @@ export function createShikoku1889Opening(
     const majors = Object.values(Shikoku1889Majors)
     const capital = players.length <= 4 ? 420 : 390
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
-    return {
+    const position: InitialPosition = {
+        stockMarket: createShikoku1889StockMarket(),
         bank: { name: 'Bank', unlimitedAfterExhaustion: true },
         companies: [
             ...majors.map((company) => ({
@@ -108,4 +109,5 @@ export function createShikoku1889Opening(
         trainInventory: Shikoku1889TrainDepot.createInventory(),
         phaseId: '2'
     }
+    return { position, begin: beginWaterfallAuction(Shikoku1889AuctionRules) }
 }

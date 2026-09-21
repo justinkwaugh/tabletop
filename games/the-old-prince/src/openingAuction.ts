@@ -1,5 +1,5 @@
 import { addTheOldPrinceBranches } from './branches.js'
-import { assert, shuffle, type PlayerState, type Prng } from '@tabletop/common'
+import { assert, shuffle } from '@tabletop/common'
 import {
     awardCertificates,
     cashOwnedBy,
@@ -8,12 +8,12 @@ import {
     settleCashPayments,
     createOrdinaryShareCertificates,
     placeStockMarker,
+    beginOfferPileAuction,
     type OfferPileAuctionRules,
-    type OfferAuctionState,
-    type CompanyState,
-    type MapStateData,
-    type TrainState,
-    type StockMarket
+    type InitialPosition,
+    type Opening,
+    type OpeningSetup,
+    type MapStateData
 } from '@tabletop/18xx'
 import { TheOldPrinceCompanies, theOldPrinceRole } from './companies.js'
 import { TheOldPrincePrivates } from './privates.js'
@@ -84,13 +84,7 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
         })
     }
 }
-export function createTheOldPrinceOpening(
-    players: readonly PlayerState[],
-    prng: Prng
-): CompanyState &
-    MapStateData &
-    TrainState &
-    Pick<OfferAuctionState, 'offerAuction'> & { stockMarket: StockMarket } {
+export function createTheOldPrinceOpening({ players, prng }: OpeningSetup): Opening {
     assert(players.length === 3 || players.length === 4, 'TOP supports three or four players')
     const shuffled = [...TheOldPrinceCompanies]
     shuffle(shuffled, prng.random)
@@ -147,7 +141,7 @@ export function createTheOldPrinceOpening(
                 position
             })
     }
-    const state: ReturnType<typeof createTheOldPrinceOpening> = {
+    const position: InitialPosition = {
         bank: { name: 'Bank' },
         companies: [
             ...TheOldPrinceCompanies.map((c) => ({
@@ -260,8 +254,12 @@ export function createTheOldPrinceOpening(
         stockMarket,
         tileInventory: TheOldPrinceTileSet.createInventory(),
         trainInventory: TheOldPrinceTrainDepot.createInventory(),
-        phaseId: '2H',
-        offerAuction: {
+        phaseId: '2H'
+    }
+    addTheOldPrinceBranches(position)
+    return {
+        position,
+        begin: beginOfferPileAuction({
             piles: players.map((p, index) => ({
                 playerId: p.playerId,
                 lotIds: lotIds.slice(
@@ -274,8 +272,6 @@ export function createTheOldPrinceOpening(
             incomePayments: 0,
             stalled: false,
             completed: false
-        }
+        })
     }
-    addTheOldPrinceBranches(state)
-    return state
 }

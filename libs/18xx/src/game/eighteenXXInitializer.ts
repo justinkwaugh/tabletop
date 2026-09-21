@@ -4,12 +4,10 @@ import {
     BaseGameInitializer,
     Color,
     HydratedTurnManager,
-    assert,
     type Game,
     type PlayerState,
     type UninitializedGameState
 } from '@tabletop/common'
-import { StockMarket } from '../stock/stockMarket.js'
 import { createStockRound } from '../stock/stockRound.js'
 import {
     EighteenXXState,
@@ -17,20 +15,18 @@ import {
     HydratedEighteenXXState,
     inKnownPhase
 } from './eighteenXXState.js'
-import type { EighteenXXTitleRules, InitialFinances } from './eighteenXXTitleRules.js'
+import type { EighteenXXTitleRules } from './eighteenXXTitleRules.js'
+import type { InitialPosition, Opening } from './opening.js'
 export type InitialStateParts = {
     stockRoundNumber: number
-    stockMarket: StockMarket
-    finances: InitialFinances
+    position: InitialPosition
+    titleState?: Opening['titleState']
 }
 export type EighteenXXInitializerRules = Pick<
     EighteenXXTitleRules,
     | 'state'
     | 'phases'
-    | 'createFinances'
-    | 'offerAuctionRules'
-    | 'auctionRules'
-    | 'createMarket'
+    | 'createOpening'
     | 'map'
     | 'tileSet'
     | 'trainRules'
@@ -46,41 +42,17 @@ export class EighteenXXInitializer extends BaseGameInitializer<
         super()
     }
     initializeGameState(game: Game, state: UninitializedGameState): HydratedEighteenXXState {
-        assert(
-            (this.rules.auctionRules || this.rules.offerAuctionRules) &&
-                game.players.length >= 2 &&
-                game.players.length <= 6,
-            'Unsupported player count or opening'
-        )
+        const opening = this.rules.createOpening({
+            players: this.playerStates(game),
+            prng: new Prng(state.prng),
+            config: game.config
+        })
         const initialized = this.createInitialState(game, state, {
             stockRoundNumber: 1,
-            stockMarket: this.rules.createMarket(),
-            finances: this.rules.createFinances(this.playerStates(game), new Prng(state.prng))
+            position: opening.position,
+            titleState: opening.titleState
         })
-        if (initialized.offerAuction) {
-            const playerId = initialized.offerAuction.auctioneerId
-            initialized.turnManager.newFirstPlayer(playerId)
-            initialized.turnManager.series = [{ type: 'turn', playerId, start: 0 }]
-            initialized.activePlayerIds = [playerId]
-            initialized.machineState = 'OfferingLot'
-        } else {
-            assert(this.rules.auctionRules, 'Opening auction requires its rules')
-            const order = initialized.turnManager.turnOrder
-            const first = initialized.getPublicPrng().randInt(order.length)
-            initialized.turnManager.newFirstPlayer(order[first])
-            initialized.turnManager.series = [{ type: 'turn', playerId: order[0], start: 0 }]
-            initialized.activePlayerIds = [order[0]]
-            initialized.openingAuction = {
-                remainingLotIds: this.rules.auctionRules.lots(initialized).map((lot) => lot.id),
-                reservations: [],
-                nextPlayerId: order[0],
-                passedPlayerIds: [],
-                discount: 0,
-                awards: [],
-                completed: false
-            }
-            initialized.machineState = 'WaterfallAuction'
-        }
+        opening.begin(initialized)
         this.applyPhaseEffects(initialized)
         return initialized
     }
@@ -107,13 +79,13 @@ export class EighteenXXInitializer extends BaseGameInitializer<
                     usedPrivatePowerIds: [],
                     machineState: 'StockRound',
                     stockRound: createStockRound(parts.stockRoundNumber),
-                    stockMarket: parts.stockMarket,
                     turnManager: new HydratedTurnManager({
                         series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
                         turnOrder: players.map((player) => player.playerId),
                         turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
                     }),
-                    ...parts.finances
+                    ...parts.position,
+                    ...parts.titleState
                 },
                 this.rules.map,
                 this.rules.tileSet,

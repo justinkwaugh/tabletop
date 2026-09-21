@@ -17,7 +17,6 @@ import { TheOldPrinceMap } from './map.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { TheOldPrinceOperatingRules } from './roundRules.js'
 import { TheOldPrinceCompanyRules } from './companyRules.js'
-import { createTheOldPrinceStockMarket } from './stockMarket.js'
 import { TheOldPrinceStockRules } from './stockRules.js'
 import { GameVisibility, type GameDefinition } from '@tabletop/common'
 import {
@@ -38,9 +37,8 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
     trainFundingRules: TheOldPrinceTrainFundingRules,
     transferRules: TheOldPrinceTransferRules,
     privatePowerRules: TheOldPrincePrivatePowerRules,
-    createFinances: createTheOldPrinceOpening,
+    createOpening: createTheOldPrinceOpening,
     stockRules: TheOldPrinceStockRules,
-    createMarket: createTheOldPrinceStockMarket,
     companyRules: TheOldPrinceCompanyRules,
     operatingRules: TheOldPrinceOperatingRules,
     map: TheOldPrinceMap,
