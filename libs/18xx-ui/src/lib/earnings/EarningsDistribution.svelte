@@ -14,15 +14,15 @@
 {#if result && session.financialState.machineState === 'DistributingEarnings'}
     <section aria-label="Earnings distribution">
         <div class="choices">
-            {#each session.earningsChoices as { choice, evaluation }}
+            {#each session.earnings.choices as { choice, evaluation }}
                 {@const details = evaluation.details}
                 <EarningsCard {choice} {details} label={names[choice]}
                     companyId={result.companyId} stockMarket={session.financialState.stockMarket}
                     ownerName={(owner) => session.ownerName(owner)} reason={evaluation.reason}
-                    disabled={!session.canDistributeEarnings || !details}
+                    disabled={!session.earnings.canDistribute || !details}
                     onclick={() => {
-                        session.selectEarnings(choice)
-                        void session.confirmEarnings()
+                        session.earnings.select(choice)
+                        void session.earnings.confirm()
                     }} />
 
             {/each}

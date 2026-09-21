@@ -95,13 +95,13 @@
         ...new Set(investments.map((certificate) => certificate.companyId))
     ])
     const privates = $derived(
-        session.privateCompanies.filter((item) => {
+        session.privates.companies.filter((item) => {
             const privateCompanyOwner = privateOwner(state, item.id)
             return privateCompanyOwner && sameOwner(privateCompanyOwner, owner)
         })
     )
     const personalPrivates = $derived(
-        session.privateCompanies.flatMap((item) => {
+        session.privates.companies.flatMap((item) => {
             const privateCompanyOwner = privateOwner(state, item.id)
             const priceRange = session.privatePurchasePriceRange(company.id, item.id)
             return !item.closed &&
@@ -289,7 +289,7 @@
                 </div>
 {/snippet}
 
-{#snippet privateCard(item: (typeof session.privateCompanies)[number], purchasePrice?: string)}
+{#snippet privateCard(item: (typeof session.privates.companies)[number], purchasePrice?: string)}
     {@const description = privateOperationDescription(item.id, company.id)}
     <article class="private" data-private-description-row>
         <div class="private-heading">

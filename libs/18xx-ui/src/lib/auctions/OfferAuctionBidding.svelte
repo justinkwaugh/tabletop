@@ -11,8 +11,8 @@
     }: { session: EighteenXXSession; lotInfo: (id: string) => { description: string } } =
         $props()
     const model = $derived.by(() => {
-        assertExists(session.offerAuction, 'Bidding requires an offer auction')
-        return session.offerAuction
+        assertExists(session.offers.model, 'Bidding requires an offer auction')
+        return session.offers.model
     })
     const bidding = $derived.by(() => {
         assertExists(model.auction.bidding, 'Bidding requires an offered lot')
@@ -31,25 +31,25 @@
         assertExists(bidder, 'High bid requires a bidder')
         return bidder.playerId
     })
-    const amount = $derived(session.offerSelection?.amount ?? model.minimumBid)
+    const amount = $derived(session.offers.selection?.amount ?? model.minimumBid)
     function canBid(amount: number) {
         return (
-            session.canOfferAuction &&
+            session.offers.canAct &&
             !!session.myPlayer &&
             model.canBid(session.myPlayer.id, bidding.lotId, amount)
         )
     }
     function changeBid(amount: number) {
-        if (!session.offerSelection) session.selectOffer(bidding.lotId)
-        session.setOfferBid(amount)
+        if (!session.offers.selection) session.offers.select(bidding.lotId)
+        session.offers.setBid(amount)
     }
     function bid() {
         changeBid(amount)
-        void session.confirmOffer()
+        void session.offers.confirm()
     }
     function pass() {
-        session.backOffer()
-        void session.passOffer()
+        session.offers.clear()
+        void session.offers.pass()
     }
 </script>
 
@@ -60,7 +60,7 @@
             name={lot.name}
             description={lotInfo(lot.id).description}
             value={lot.price}
-            income={session.privateCompanies.find((company) => company.id === lot.id)
+            income={session.privates.companies.find((company) => company.id === lot.id)
                 ?.privateRevenue}
         />
     </div>
@@ -75,7 +75,7 @@
             canBid={canBid(amount)}
             canDecrease={canBid(amount - model.rules.increment)}
             canIncrease={canBid(amount + model.rules.increment)}
-            canPass={session.canOfferAuction}
+            canPass={session.offers.canAct}
             onChange={changeBid}
             onBid={bid}
             onPass={pass}

@@ -5,7 +5,7 @@
     const state = $derived(session.financialState)
 </script>
 
-{#if session.offerAuction && !session.offerAuction.auction.completed}
+{#if session.offers.model && !session.offers.model.auction.completed}
     <p class="company-roles">
         {#each state.companies.filter((company) => company.role) as company}
             <span>
@@ -15,21 +15,21 @@
         {/each}
     </p>
     <OfferAuctionPanel
-        model={session.offerAuction}
+        model={session.offers.model}
         playerId={session.myPlayer?.id}
         playerName={(id) => session.getPlayerName(id)}
-        draft={session.offerSelection}
-        disabled={!session.canOfferAuction}
-        onChoose={(id) => session.selectOffer(id)}
-        onBidChange={(amount) => session.setOfferBid(amount)}
-        onConfirm={() => session.confirmOffer()}
-        onBack={() => session.backOffer()}
-        onPass={() => session.passOffer()}
+        draft={session.offers.selection}
+        disabled={!session.offers.canAct}
+        onChoose={(id) => session.offers.select(id)}
+        onBidChange={(amount) => session.offers.setBid(amount)}
+        onConfirm={() => session.offers.confirm()}
+        onBack={() => session.offers.clear()}
+        onPass={() => session.offers.pass()}
         onUndo={() => session.undo()}
         {showUndo}
         canUndo={!session.busy &&
             !session.isViewingHistory &&
-            Boolean(session.offerSelection || session.undoableAction)}
+            Boolean(session.offers.selection || session.undoableAction)}
     />
 {/if}
 

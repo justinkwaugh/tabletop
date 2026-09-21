@@ -1,3 +1,10 @@
+import { PrivatesModule } from './privatesModule.svelte.js'
+import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
+import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
+import type { SessionContext } from './sessionContext.js'
+import { EarningsModule } from './earningsModule.svelte.js'
+import { DiscardModule } from './discardModule.svelte.js'
+import { SessionDrafts, clearableDraft } from './sessionDrafts.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingStepIndex } from '../table/operatingStep.js'
 import { operatingHistory } from '../table/operatingHistory.js'
@@ -8,7 +15,7 @@ import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tab
 import { isOfferPurchase, isRespondToPurchaseOffer, isDistributeEarnings } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
 import { chooseTrainSource, chooseCompanyTrain, backFromTrainBuying, type TrainBuyingSelection, type TrainSource } from './trainBuyingSelection.js'
-import { EighteenXXStateValidator, type ValuationRules } from '@tabletop/18xx'
+import { EighteenXXStateValidator } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
 import {
@@ -20,20 +27,13 @@ import {
 } from '../stock/stockActionSelection.js'
 import { cashOwnedBy, shareSaleValue, priorityOrder, stockCertificateCount, stockMarketOrder } from '@tabletop/18xx'
 import {
-    OfferAuction,
-    OfferAuctionLot,
-    BidOnAuctionLot,
-    type OfferPileAuctionRules
+    type HydratedEighteenXXState,
+    type EighteenXXTitleRules
 } from '@tabletop/18xx'
 import type { OfferAuctionSelection } from '../auctions/auctionSelection.js'
 import type { AuctionSelection } from '../auctions/auctionSelection.js'
 import {
-    ReserveBidAuction,
-    ReserveBid,
-    RaiseAuctionBid,
-    BuyAuctionLot,
-    PassAuction,
-    type WaterfallAuctionRules
+    BuyAuctionLot
 } from '@tabletop/18xx'
 import {
     EmergencyTrainFunding,
@@ -41,7 +41,6 @@ import {
     IssueTreasuryShares,
     SellFundingShares,
     ContributeTrainFunds,
-    type TrainFundingRules,
     type ShareSaleDetails
 } from '@tabletop/18xx'
 import {
@@ -61,8 +60,6 @@ import {
     privateTrainPurchase,
     pendingCompanyDecision,
     evaluatePrivateTrack,
-    type TransferRules,
-    type PrivatePowerRules,
     type PurchaseOfferRequest,
     type TrackLayDetails,
     type TrainPurchaseDetails
@@ -73,22 +70,13 @@ type CompanyDecisionDraft =
     | { kind: 'tile'; privateCompanyId: string; playerId: string; details: TrackLayDetails }
     | { kind: 'train'; privateCompanyId: string; details: TrainPurchaseDetails }
 import {
-    ExchangePrivate,
-    nextCompanyToFloat,
-    evaluatePrivateExchange,
-    privateExchangeOffers,
-    type PrivateRules,
-    type PrivateExchangeRequest
+    evaluatePrivateExchange
 } from '@tabletop/18xx'
 import { GameStorage } from '@tabletop/common'
-import { DiscardTrain, discardableTrains } from '@tabletop/18xx'
+import { discardableTrains } from '@tabletop/18xx'
 import {
-    EarningsDistribution,
-    DistributeEarnings,
     FinishOperatingTurn,
-    finishOperatingTurnReason,
-    type EarningsChoice,
-    type EarningsRules
+    finishOperatingTurnReason
 } from '@tabletop/18xx'
 import { routeColor } from '../routes/routePresentation.js'
 import { RouteEditor } from './routeEditor.svelte.js'
@@ -96,7 +84,6 @@ import {
     RunTrains,
     RouteEvaluation,
     type OperatingResult,
-    type RouteRules,
     type RevenueCenter,
     type RoutePath
 } from '@tabletop/18xx'
@@ -105,7 +92,6 @@ import {
     TrainPurchase,
     isBuyTrain,
     trainsOwnedBy,
-    type TrainRules,
     type TrainPurchaseRequest
 } from '@tabletop/18xx'
 import {
@@ -116,7 +102,6 @@ import {
     TrackNetwork,
     RailwayMapState,
     applyStationPlacement,
-    type StationRules,
     type StationRequest
 } from '@tabletop/18xx'
 import {
@@ -130,7 +115,6 @@ import {
     LayTile,
     FinishTrack,
     isLayTile,
-    type TrackRules,
     type TrackRequest
 } from '@tabletop/18xx'
 import {
@@ -160,7 +144,6 @@ import {
     isStartOperatingSet,
     evaluateCompanyStart,
     flotationAfterPurchase,
-    type CompanyRules,
     type TileFace,
     type CompanyStartRequest,
     BuyShares,
@@ -179,7 +162,6 @@ import {
     type PurchaseRequest,
     type SaleRequest,
     type ShareSale,
-    type StockRules,
     type Owner,
     type Portfolio
 } from '@tabletop/18xx'
@@ -198,139 +180,42 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     readonly marketAnimation = createMarketAnimationSource(this, (state) => requireEighteenXXState(state).stockMarket)
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(EighteenXXPreferenceDefinition)
     selection: Selection | undefined = $state()
+    protected readonly drafts = new SessionDrafts()
+    private get localHotseat() {
+        return !!this.game.hotseat && this.game.storage === GameStorage.Local
+    }
+    private readonly context: SessionContext<HydratedEighteenXXState, EighteenXXTitleRules> = ((
+        session: EighteenXXSession
+    ) => ({
+        get state() { return session.financialState },
+        get rules() { return session.rules },
+        get validActionTypes() { return session.validActionTypes },
+        get draftsVisible() { return !session.updatingVisibleState && !session.isViewingHistory },
+        get interactive() { return !session.busy && !session.updatingVisibleState && !session.isViewingHistory },
+        get actingPlayerIds() {
+            return session.localHotseat ? session.financialState.activePlayerIds
+                : session.myPlayer ? [session.myPlayer.id] : []
+        },
+        canActFor: (playerId) => session.localHotseat || session.myPlayer?.id === playerId,
+        createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
+        applyAction: (action) => session.applyAction(action)
+    }))(this)
+    readonly offers = new OfferAuctionModule(this.context)
+    readonly waterfall = new WaterfallAuctionModule(this.context)
+    readonly privates = new PrivatesModule(this.context)
+    readonly earnings = new EarningsModule(this.context)
+    readonly discard = new DiscardModule(this.context)
     constructor(
         options: SessionOptions,
-        private readonly stockRules: StockRules,
-        private readonly companyRules: CompanyRules,
-        readonly mapView: MapViewDefinition,
-        private readonly trackRules: TrackRules,
-        private readonly stationRules: StationRules,
-        private readonly trainRules: TrainRules,
-        private readonly routeRules: RouteRules,
-        private readonly earningsRules: EarningsRules,
-        private readonly privateRules: PrivateRules,
-        private readonly transferRules: TransferRules,
-        private readonly privatePowerRules: PrivatePowerRules,
-        private readonly trainFundingRules: TrainFundingRules,
-        private readonly auctionRules?: WaterfallAuctionRules,
-        private readonly offerAuctionRules?: OfferPileAuctionRules
+        private readonly rules: EighteenXXTitleRules,
+        readonly mapView: MapViewDefinition
     ) {
         super(options)
         this.historicalMaps = new HistoricalMaps(mapView)
+        this.registerDrafts()
     }
     auctionLotsFor(state: EighteenXXState) {
-        return this.offerAuctionRules?.lots(state) ?? this.auctionRules?.lots(state) ?? []
-    }
-    offerAuction = $derived.by(() =>
-        this.financialState.offerAuction && this.offerAuctionRules
-            ? new OfferAuction(this.financialState, this.offerAuctionRules)
-            : undefined
-    )
-    private offerDraft: OfferAuctionSelection | undefined = $state()
-    offerSelection = $derived.by(() =>
-        this.updatingVisibleState || this.isViewingHistory || this.offerAuction?.auction.completed
-            ? undefined
-            : this.offerDraft
-    )
-    canOfferAuction = $derived.by(
-        () =>
-            !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            (this.validActionTypes.includes('OfferAuctionLot') ||
-                this.validActionTypes.includes('PassAuction'))
-    )
-    async offerAuctionLot(lotId: string) {
-        this.selectOffer(lotId)
-        await this.confirmOffer()
-    }
-    selectOffer(lotId: string) {
-        assert(this.canOfferAuction && this.offerAuction, 'Auction selection is unavailable')
-        this.offerDraft = {
-            lotId,
-            ...(this.offerAuction.auction.bidding ? { amount: this.offerAuction.minimumBid } : {})
-        }
-    }
-    setOfferBid(amount: number) {
-        assert(this.offerDraft && this.canOfferAuction, 'Select a bid')
-        this.offerDraft = { ...this.offerDraft, amount }
-    }
-    backOffer() {
-        this.offerDraft = undefined
-    }
-    async confirmOffer() {
-        const draft = this.offerSelection
-        assert(this.canOfferAuction && draft && this.offerAuction, 'Select an offer or bid')
-        if (this.offerAuction.auction.bidding) {
-            assert(draft.amount !== undefined, 'Enter a bid')
-            await this.applyAction(
-                this.createPlayerAction(BidOnAuctionLot, {
-                    lotId: draft.lotId,
-                    amount: draft.amount
-                })
-            )
-        } else
-            await this.applyAction(this.createPlayerAction(OfferAuctionLot, { lotId: draft.lotId }))
-    }
-    async passOffer() {
-        assert(this.canOfferAuction && !this.offerSelection, 'Finish the auction selection')
-        await this.applyAction(this.createPlayerAction(PassAuction, {}))
-    }
-    auction = $derived.by(() =>
-        this.financialState.openingAuction && this.auctionRules
-            ? new ReserveBidAuction(this.financialState, this.auctionRules)
-            : undefined
-    )
-    private auctionDraft: AuctionSelection | undefined = $state()
-    auctionSelection = $derived.by(() =>
-        this.updatingVisibleState || this.isViewingHistory || this.auction?.auction.completed
-            ? undefined
-            : this.auctionDraft
-    )
-    canAuction = $derived.by(
-        () =>
-            !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            this.validActionTypes.includes('PassAuction')
-    )
-    selectAuctionLot(kind: AuctionSelection['kind'], lotId: string) {
-        assert(this.canAuction && this.auction && this.myPlayer, 'Auction selection is unavailable')
-        this.auctionDraft = {
-            kind,
-            lotId,
-            amount: kind === 'buy' ? this.auction.price(lotId) : this.auction.minimumBid(lotId)
-        }
-    }
-    setAuctionBid(amount: number) {
-        assert(this.canAuction && this.auctionDraft?.kind === 'bid', 'Select a bid first')
-        this.auctionDraft = { ...this.auctionDraft, amount }
-    }
-    backAuction() {
-        this.auctionDraft = undefined
-    }
-    async confirmAuction() {
-        const draft = this.auctionSelection
-        assert(this.canAuction && draft && this.auction, 'Select an auction purchase or bid')
-        if (draft.kind === 'buy') {
-            await this.applyAction(
-                this.createPlayerAction(BuyAuctionLot, {
-                    lotId: draft.lotId,
-                    expectedPrice: draft.amount
-                })
-            )
-        } else {
-            await this.applyAction(
-                this.createPlayerAction(
-                    this.auction.auction.bidding ? RaiseAuctionBid : ReserveBid,
-                    { lotId: draft.lotId, amount: draft.amount }
-                )
-            )
-        }
-    }
-    async passAuction() {
-        assert(this.canAuction && !this.auctionSelection, 'Finish the auction selection first')
-        await this.applyAction(this.createPlayerAction(PassAuction, {}))
+        return this.rules.offerAuctionRules?.lots(state) ?? this.rules.auctionRules?.lots(state) ?? []
     }
     protected override getActivePlayers() {
         return this.gameState.activePlayerIds.flatMap((id) =>
@@ -367,19 +252,15 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             ? purchaseChoices(
                   this.financialState,
                   this.myPlayer.id,
-                  this.transferRules,
-                  this.trainRules
+                  this.rules.transferRules,
+                  this.rules.trainRules
               )
             : []
     )
     companyDecisionPlayers = $derived.by(() =>
         !this.canResolveCompanyDecision
             ? []
-            : this.game.hotseat && this.game.storage === GameStorage.Local
-              ? this.financialState.activePlayerIds
-              : this.myPlayer
-                ? [this.myPlayer.id]
-                : []
+            : this.context.actingPlayerIds
     )
     privateTileOptions = $derived.by(() => {
         const state = this.financialState
@@ -393,9 +274,9 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
                         !state.usedPrivatePowerIds.includes(company.id)
                 )
                 .flatMap((company) => {
-                    const terms = this.privatePowerRules.trackTerms(state, company.id, playerId)
+                    const terms = this.rules.privatePowerRules.trackTerms(state, company.id, playerId)
                     if (!terms) return []
-                    const construction = privateTrackConstruction(state, terms, this.trackRules)
+                    const construction = privateTrackConstruction(state, terms, this.rules.trackRules)
                     return terms.locationIds.flatMap((locationId) =>
                         construction
                             .choices(locationId)
@@ -433,13 +314,13 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         )
             return []
         return this.financialState.companies.flatMap((company) => {
-            const companyId = this.privatePowerRules.earlyTrainCompany(
+            const companyId = this.rules.privatePowerRules.earlyTrainCompany(
                 this.financialState,
                 company.id,
                 this.myPlayer!.id
             )
             return companyId
-                ? privateTrainPurchase(this.financialState, companyId, this.trainRules)
+                ? privateTrainPurchase(this.financialState, companyId, this.rules.trainRules)
                       .offers()
                       .flatMap((offer) =>
                           offer.evaluation.details
@@ -459,8 +340,8 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             ? evaluatePurchaseOffer(
                   this.financialState,
                   this.companyDecisionSelection.request,
-                  this.transferRules,
-                  this.trainRules
+                  this.rules.transferRules,
+                  this.rules.trainRules
               )
             : undefined
     )
@@ -471,7 +352,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         )
         let price = request.price
         if (request.asset.kind === 'private') {
-            const range = this.transferRules.priceRange(this.financialState, request.companyId, request.asset)
+            const range = this.rules.transferRules.priceRange(this.financialState, request.companyId, request.asset)
             assertExists(range, 'Private purchase requires a price range')
             const cash = cashOwnedBy(this.financialState, { kind: 'company', companyId: request.companyId })
             assert(typeof cash === 'number', 'Purchasing company requires a cash balance')
@@ -495,8 +376,8 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
                     option.privateCompanyId,
                     option.playerId,
                     option.details,
-                    this.privatePowerRules,
-                    this.trackRules
+                    this.rules.privatePowerRules,
+                    this.rules.trackRules
                 ).details,
             'Choose an available private tile lay'
         )
@@ -614,153 +495,16 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             })
         )
     }
-    private privateDraft: PrivateExchangeRequest | undefined = $state()
-    privateExchangeSelection = $derived.by(() =>
-        !this.updatingVisibleState &&
-        !this.isViewingHistory &&
-        this.privateDraft &&
-        this.privateExchangeOffers.some(
-            (offer) =>
-                offer.playerId === this.privateDraft?.playerId &&
-                offer.privateCompanyId === this.privateDraft.privateCompanyId &&
-                offer.certificateId === this.privateDraft.certificateId
-        )
-            ? this.privateDraft
-            : undefined
-    )
-    privateExchangeOffers = $derived.by(() => {
-        if (
-            this.busy ||
-            this.updatingVisibleState ||
-            this.isViewingHistory ||
-            pendingCompanyDecision(this.financialState)
-        )
-            return []
-        const players =
-            this.game.hotseat && this.game.storage === GameStorage.Local
-                ? this.financialState.activePlayerIds
-                : this.myPlayer
-                  ? [this.myPlayer.id]
-                  : []
-        return players.flatMap((playerId) =>
-            !nextCompanyToFloat(this.financialState, this.companyRules)
-                ? privateExchangeOffers(
-                      this.financialState,
-                      playerId,
-                      this.privateRules,
-                      this.stockRules
-                  )
-                : []
-        )
-    })
-    privateCompanies = $derived.by(() =>
-        this.financialState.companies
-            .filter((company) => company.kind === 'private')
-            .map((company) => ({
-                ...company,
-                description: this.privateRules.description(this.financialState, company.id)
-            }))
-    )
     privatePurchasePriceRange(companyId: string, privateCompanyId: string) {
-        return this.transferRules.priceRange(this.financialState, companyId, {
+        return this.rules.transferRules.priceRange(this.financialState, companyId, {
             kind: 'private',
             privateCompanyId
         })
     }
-    selectPrivateExchange(request: PrivateExchangeRequest) {
-        assert(
-            this.privateExchangeOffers.some(
-                (offer) =>
-                    offer.playerId === request.playerId &&
-                    offer.privateCompanyId === request.privateCompanyId &&
-                    offer.certificateId === request.certificateId
-            ),
-            'Choose an available private exchange'
-        )
-        this.privateDraft = request
-    }
-    backPrivateExchange() {
-        this.privateDraft = undefined
-    }
-    async confirmPrivateExchange() {
-        const request = this.privateExchangeSelection
-        assert(request, 'Choose an available private exchange')
-        assert(
-            (this.game.hotseat && this.game.storage === GameStorage.Local) ||
-                this.myPlayer?.id === request.playerId,
-            'Only the owning player can confirm this exchange'
-        )
-        assert(
-            evaluatePrivateExchange(
-                this.financialState,
-                request,
-                this.privateRules,
-                this.stockRules
-            ).details,
-            'This private exchange is unavailable'
-        )
-        const action = this.createPlayerAction(ExchangePrivate, {
-            privateCompanyId: request.privateCompanyId,
-            certificateId: request.certificateId
-        })
-        action.playerId = request.playerId
-        await this.applyAction(action)
-    }
-    earnings = $derived.by(() => new EarningsDistribution(this.financialState, this.earningsRules))
-    canDistributeEarnings = $derived(
-        !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            this.validActionTypes.includes('DistributeEarnings')
-    )
-    private earningsDraft: EarningsChoice | undefined = $state()
-    earningsSelection = $derived.by(() =>
-        !this.updatingVisibleState &&
-        !this.isViewingHistory &&
-        this.financialState.machineState === 'DistributingEarnings'
-            ? this.earningsDraft
-            : undefined
-    )
-    earningsChoices = $derived.by(() => {
-        const companyId = this.financialState.routeStep?.companyId
-        return companyId && this.financialState.machineState === 'DistributingEarnings'
-            ? this.earningsRules.choices(this.financialState, companyId).map((choice) => ({
-                  choice,
-                  evaluation: this.earnings.evaluate(companyId, choice)
-              }))
-            : []
-    })
-    earningsPreview = $derived(
-        this.earningsChoices.find((entry) => entry.choice === this.earningsSelection)?.evaluation
-            .details
-    )
-    selectEarnings(choice: EarningsChoice) {
-        assert(
-            this.canDistributeEarnings &&
-                this.earningsChoices.some(
-                    (entry) => entry.choice === choice && entry.evaluation.details
-                ),
-            'Choose an available distribution'
-        )
-        this.earningsDraft = choice
-    }
-    backEarnings() {
-        this.earningsDraft = undefined
-    }
-    async confirmEarnings() {
-        const details = this.earningsPreview
-        assert(this.canDistributeEarnings && details, 'Choose an available distribution')
-        await this.applyAction(
-            this.createPlayerAction(DistributeEarnings, {
-                companyId: details.companyId,
-                choice: details.choice
-            })
-        )
-    }
     finishOperatingReason = $derived.by(() => {
         const companyId = this.financialState.trainPurchaseStep?.companyId
         return companyId
-            ? finishOperatingTurnReason(this.financialState, this.trainRules, companyId)
+            ? finishOperatingTurnReason(this.financialState, this.rules.trainRules, companyId)
             : undefined
     })
     canFinishOperatingTurn = $derived.by(
@@ -784,7 +528,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         const state = this.financialState
         const companyId = state.routeStep?.companyId
         if (companyId && !trainsOwnedBy(state, { kind: 'company', companyId }).length) {
-            const checked = new RouteEvaluation(state, this.routeRules).evaluate(companyId, [])
+            const checked = new RouteEvaluation(state, this.rules.routeRules).evaluate(companyId, [])
             assertExists(checked.result, checked.reason ?? 'Invalid empty train run')
             return { state, result: checked.result, exhaustive: true }
         }
@@ -798,7 +542,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             'Automatic routes require the operating company'
         )
         const routes = this.trainRoutes(result)
-        const checked = new RouteEvaluation(state, this.routeRules).evaluate(companyId, routes)
+        const checked = new RouteEvaluation(state, this.rules.routeRules).evaluate(companyId, routes)
         assertExists(checked.result, checked.reason ?? 'Invalid automatic routes')
         this.automaticRoutes = { state, result: checked.result, exhaustive }
     }
@@ -815,7 +559,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     private trainRoutes(result: OperatingResult) {
         return result.routes.map(({ trainId, start, paths }) => ({ trainId, start, paths }))
     }
-    routeEditor = $derived.by(() => new RouteEditor(this.financialState, this.routeRules))
+    routeEditor = $derived.by(() => new RouteEditor(this.financialState, this.rules.routeRules))
     canRunTrains = $derived(
         !this.busy &&
             !this.updatingVisibleState &&
@@ -892,55 +636,13 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             })
         )
     }
-    private discardDraft: string | undefined = $state()
-    discardSelection = $derived.by(() =>
-        !this.updatingVisibleState &&
-        !this.isViewingHistory &&
-        this.financialState.machineState === 'DiscardingTrains'
-            ? this.discardDraft
-            : undefined
-    )
-    discardCompanyId = $derived.by(() => this.financialState.phaseChange?.discardCompanyIds[0])
-    discardTrains = $derived.by(() =>
-        this.discardCompanyId
-            ? discardableTrains(this.financialState, this.discardCompanyId, this.trainRules)
-            : []
-    )
-    discardCount = $derived.by(() =>
-        this.discardCompanyId
-            ? this.discardTrains.length -
-              this.trainRules.trainLimit(this.financialState, this.discardCompanyId)
-            : 0
-    )
-    canDiscardTrain = $derived(
-        !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            this.validActionTypes.includes('DiscardTrain')
-    )
-    selectDiscard(trainId: string) {
-        assert(
-            this.canDiscardTrain && this.discardTrains.some((train) => train.id === trainId),
-            'Choose a train for compulsory discard'
-        )
-        this.discardDraft = trainId
-    }
-    backDiscard() {
-        this.discardDraft = undefined
-    }
-    async confirmDiscard() {
-        const companyId = this.discardCompanyId,
-            trainId = this.discardSelection
-        assert(this.canDiscardTrain && companyId && trainId, 'Select a train to discard')
-        await this.applyAction(this.createPlayerAction(DiscardTrain, { companyId, trainId }))
-    }
     funding = $derived.by(
         () =>
             new EmergencyTrainFunding(
                 this.financialState,
-                this.trainFundingRules,
-                this.stockRules,
-                this.trainRules
+                this.rules.trainFundingRules,
+                this.rules.stockRules,
+                this.rules.trainRules
             )
     )
     fundingPurchases = $derived.by(() =>
@@ -1063,7 +765,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     trainBuyingSource = $derived(this.trainBuyingSelection.source?.value ?? 'depot')
     companyTrainChoices = $derived.by(() => this.purchaseOptions.flatMap((option) => {
         if (option.request.asset.kind !== 'train' || option.request.seller.kind !== 'company') return []
-        const evaluation = evaluatePurchaseOffer(this.financialState, option.request, this.transferRules, this.trainRules)
+        const evaluation = evaluatePurchaseOffer(this.financialState, option.request, this.rules.transferRules, this.rules.trainRules)
         const trainId = option.request.asset.trainId
         const train = this.financialState.trainInventory.trains.find((train) => train.id === trainId)
         assertExists(train, 'Train purchase choice requires a train')
@@ -1072,7 +774,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     }))
     companyTrainEvaluation = $derived.by(() => {
         const request = this.trainBuyingSelection.purchase?.value
-        return request ? evaluatePurchaseOffer(this.financialState, request, this.transferRules, this.trainRules) : undefined
+        return request ? evaluatePurchaseOffer(this.financialState, request, this.rules.transferRules, this.rules.trainRules) : undefined
     })
     selectTrainSource(source: TrainSource) {
         this.trainBuyingDraft = chooseTrainSource(source)
@@ -1098,14 +800,14 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             ? this.trainDraft
             : undefined
     )
-    trainPurchase = $derived.by(() => new TrainPurchase(this.financialState, this.trainRules))
+    trainPurchase = $derived.by(() => new TrainPurchase(this.financialState, this.rules.trainRules))
     trainOffers = $derived(this.trainPurchase.offers())
-    availableTrainDefinitionIds = $derived.by(() => this.trainRules.availableDefinitions(this.financialState))
+    availableTrainDefinitionIds = $derived.by(() => this.rules.trainRules.availableDefinitions(this.financialState))
     marketTrainOffers = $derived(this.trainPurchase.marketOffers())
     trainExchanges = $derived(this.trainPurchase.exchanges())
     trainNextPhase = $derived.by(() =>
         this.trainPreview
-            ? this.trainRules.phaseAfterPurchase(
+            ? this.rules.trainRules.phaseAfterPurchase(
                   this.financialState,
                   this.trainPreview.definitionId
               )
@@ -1149,30 +851,30 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     )
     playerPriorityOrder = $derived.by(() =>
         this.financialState.machineState === 'StockRound'
-            ? priorityOrder(this.financialState, this.stockRules.round)
+            ? priorityOrder(this.financialState, this.rules.stockRules.round)
             : this.financialState.turnManager.turnOrder
     )
     companySoldOut(companyId: string): boolean {
-        return this.stockRules.round.soldOut(this.financialState, companyId)
+        return this.rules.stockRules.round.soldOut(this.financialState, companyId)
     }
     playerLiquidity(playerId: string): number {
         const owner = { kind: 'player', playerId } as const
         const cash = cashOwnedBy(this.financialState, owner)
         assert(typeof cash === 'number', 'Player liquidity requires finite cash')
-        return cash + shareSaleValue(this.financialState, owner, this.stockRules)
+        return cash + shareSaleValue(this.financialState, owner, this.rules.stockRules)
     }
     companyRequiresTrain(companyId: string): boolean {
         return (
             !getCompany(this.financialState, companyId).closed &&
-            this.trainRules.requiresTrain(this.financialState, companyId)
+            this.rules.trainRules.requiresTrain(this.financialState, companyId)
         )
     }
     get trainDepot() {
-        return this.trainRules.depot
+        return this.rules.trainRules.depot
     }
     trainLimit = $derived.by(() =>
         this.financialState.trainPurchaseStep
-            ? this.trainRules.trainLimit(
+            ? this.rules.trainRules.trainLimit(
                   this.financialState,
                   this.financialState.trainPurchaseStep.companyId
               )
@@ -1221,7 +923,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         return station ? chooseStation(station.id, 'auto') : {}
     })
     stationPlacement = $derived.by(
-        () => new StationPlacement(this.financialState, this.stationRules)
+        () => new StationPlacement(this.financialState, this.rules.stationRules)
     )
     canPlaceStation = $derived(
         !this.busy &&
@@ -1239,11 +941,11 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     stationPlacementCost(stationId: string): number {
         const station = this.financialState.stations.find((entry) => entry.id === stationId)
         assert(station?.status === 'available', 'Station cost requires an available token')
-        return this.stationRules
+        return this.rules.stationRules
             .pendingHomes(this.financialState)
             .some((home) => home.stationId === stationId)
             ? 0
-            : this.stationRules.placementCost(this.financialState, stationId)
+            : this.rules.stationRules.placementCost(this.financialState, stationId)
     }
     stationChoices = $derived(
         this.canPlaceStation && this.stationSelection.stationId
@@ -1405,10 +1107,10 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     )
     construction = $derived.by(() => {
         const power = this.privateTrackPowerSelection?.value
-        if (!power) return new TrackConstruction(this.financialState, this.trackRules)
-        const terms = this.privatePowerRules.trackTerms(this.financialState, power.privateCompanyId, power.playerId)
+        if (!power) return new TrackConstruction(this.financialState, this.rules.trackRules)
+        const terms = this.rules.privatePowerRules.trackTerms(this.financialState, power.privateCompanyId, power.playerId)
         assertExists(terms, 'Selected private tile power requires construction terms')
-        return privateTrackConstruction(this.financialState, terms, this.trackRules)
+        return privateTrackConstruction(this.financialState, terms, this.rules.trackRules)
     })
     canBuildTrack = $derived(
         !this.busy &&
@@ -1620,7 +1322,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         await this.applyAction(this.createPlayerAction(FinishTrack, { companyId }))
     }
     get passing() {
-        return this.stockRules.round.passing
+        return this.rules.stockRules.round.passing
     }
     private readonly historicalMaps: HistoricalMaps
     historicalMap: HistoricalMap | undefined = $derived.by(() => {
@@ -1739,7 +1441,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         this.mapStyles[this.myPlayer.id] = style
     }
     sharesToFloat(companyId: string) {
-        return this.companyRules.sharesToFloat?.(this.financialState, companyId)
+        return this.rules.companyRules.sharesToFloat?.(this.financialState, companyId)
     }
     stockCompanyName(companyId: string) {
         return getCompany(this.financialState, companyId).name
@@ -1782,20 +1484,20 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             state.stockRound.turn.bought
         )
             return []
-        return this.stockRules.buyers(state, playerId).flatMap((buyer) =>
+        return this.rules.stockRules.buyers(state, playerId).flatMap((buyer) =>
             state.companies
                 .filter((company) => !company.started && !company.closed && company.shareCount)
                 .map((company) => {
                     const request = { playerId, buyer, companyId: company.id }
-                    const prices = this.companyRules
+                    const prices = this.rules.companyRules
                         .startMarketSpaces(state, company.id)
                         .map((marketSpaceId) => ({
                             marketSpaceId,
                             result: evaluateCompanyStart(
                                 state,
                                 { ...request, marketSpaceId },
-                                this.stockRules,
-                                this.companyRules
+                                this.rules.stockRules,
+                                this.rules.companyRules
                             )
                         }))
                     return { request, prices }
@@ -1826,8 +1528,8 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             ? evaluateCompanyStart(
                   this.financialState,
                   this.selectedStartRequest,
-                  this.stockRules,
-                  this.companyRules
+                  this.rules.stockRules,
+                  this.rules.companyRules
               )
             : undefined
     )
@@ -1836,7 +1538,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             ? flotationAfterPurchase(
                   this.financialState,
                   this.selectedPurchaseDetails,
-                  this.companyRules
+                  this.rules.companyRules
               )
             : undefined
     )
@@ -1881,7 +1583,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             state.stockRound.turn.bought
         )
             return []
-        return this.stockRules.buyers(state, playerId).flatMap((buyer) =>
+        return this.rules.stockRules.buyers(state, playerId).flatMap((buyer) =>
             state.certificates
                 .filter((certificate) => !certificate.retired)
                 .filter(
@@ -1893,7 +1595,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
                     return {
                         certificate,
                         request,
-                        result: evaluateSharePurchase(state, request, this.stockRules)
+                        result: evaluateSharePurchase(state, request, this.rules.stockRules)
                     }
                 })
         )
@@ -1908,7 +1610,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             state.machineState !== 'StockRound'
         )
             return []
-        return this.stockRules.sellers(state, playerId).flatMap((seller) =>
+        return this.rules.stockRules.sellers(state, playerId).flatMap((seller) =>
             state.companies.flatMap((company) => {
                 const owned = sharesOwned(state, company.id, seller)
                 return Array.from({ length: owned }, (_, index) => {
@@ -1917,7 +1619,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
                     return {
                         sale,
                         request,
-                        result: evaluateShareSale(state, request, this.stockRules)
+                        result: evaluateShareSale(state, request, this.rules.stockRules)
                     }
                 })
             })
@@ -1930,7 +1632,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             this.isViewingHistory
         )
             return undefined
-        return evaluateSharePurchase(this.financialState, this.selection.request, this.stockRules)
+        return evaluateSharePurchase(this.financialState, this.selection.request, this.rules.stockRules)
             .details
     })
     stockSaleSelection = $derived.by(() => {
@@ -1947,7 +1649,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     selectedSale = $derived(this.stockSaleSelection?.request)
     selectedSaleResult = $derived.by(() =>
         this.selectedSale
-            ? evaluateShareSale(this.financialState, this.selectedSale, this.stockRules)
+            ? evaluateShareSale(this.financialState, this.selectedSale, this.rules.stockRules)
             : undefined
     )
     trades = $derived(
@@ -1980,17 +1682,17 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             ? exceedsStockLimits(
                   this.financialState,
                   { kind: 'player', playerId: this.myPlayer.id },
-                  this.stockRules
+                  this.rules.stockRules
               )
             : false
     )
     certificateWeight = (certificate: Portfolio[number]) =>
-        this.stockRules.certificateWeight(this.financialState, certificate)
+        this.rules.stockRules.certificateWeight(this.financialState, certificate)
     playerCertificates(playerId: string) {
         const owner = { kind: 'player', playerId } as const
         return {
-            count: stockCertificateCount(this.financialState, owner, this.stockRules),
-            limit: this.stockRules.certificateLimit(this.financialState, owner)
+            count: stockCertificateCount(this.financialState, owner, this.rules.stockRules),
+            limit: this.rules.stockRules.certificateLimit(this.financialState, owner)
         }
     }
     ownerName(owner: Owner): string {
@@ -2002,7 +1704,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     selectPurchase(request: PurchaseRequest) {
         this.assertSelectionAvailable(request.playerId)
         assert(
-            evaluateSharePurchase(this.financialState, request, this.stockRules).details,
+            evaluateSharePurchase(this.financialState, request, this.rules.stockRules).details,
             'Purchase is unavailable'
         )
         this.selection = { kind: 'purchase', request }
@@ -2073,110 +1775,88 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     override beforeNewState() {
         this.mapInspection = undefined
         this.automaticRoutes = undefined
-        this.stockActionDraft = {}
-        this.offerDraft = undefined
-        this.auctionDraft = undefined
-        this.privateActionStages = {}
-        this.companyDraft = undefined
-        this.privateDraft = undefined
-        this.discardDraft = undefined
-        this.earningsDraft = undefined
-        this.routeEditor.clear()
-        this.trainDraft = undefined
-        this.stationDraft = {}
-        this.trainBuyingDraft = {}
-        this.trackDraft = {}
-        this.cancelSelection()
+        this.drafts.clear()
     }
     get hasActionDraft(): boolean {
-        return Boolean(
-            this.stockActionDraft.action?.source === 'manual' ||
-            this.stockActionDraft.saleCompany?.source === 'manual' ||
-            this.offerDraft ||
-            this.auctionDraft ||
-            this.companyDraft || this.privateActionSelection ||
-            this.privateDraft ||
-            this.discardDraft ||
-            this.earningsDraft ||
-            this.routeEditor.hasDraft ||
-            this.trainDraft ||
-            this.trainBuyingDraft.source ||
-            this.stationDraft.stationId ||
-            this.trackDraft.locationId ||
-            this.selection
-        )
+        return this.drafts.pending()
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
-        if (this.trainBuyingDraft.source) {
-            this.trainBuyingDraft = backFromTrainBuying(this.trainBuyingDraft)
-            return
-        }
-        if (this.offerDraft) {
-            this.offerDraft = undefined
-            return
-        }
-        if (this.auctionDraft) {
-            this.auctionDraft = undefined
-            return
-        }
-        if (this.companyDraft) {
-            this.companyDraft = undefined
-            return
-        }
-        if (this.privateActionSelection || this.privateActionStages.power || (this.privateTrackPowerSelection && this.trackDraft.locationId)) {
-            if (this.trackDraft.locationId) { this.trackDraft = {}; return }
-            if (this.privateActionStages.power?.source === 'manual') {
-                this.privateActionStages = { source: this.privateActionStages.source }
-                return
-            }
-            this.privateActionStages = {}
-            return
-        }
-        if (this.privateDraft) {
-            this.privateDraft = undefined
-            return
-        }
-        if (this.discardDraft) {
-            this.discardDraft = undefined
-            return
-        }
-        if (this.earningsDraft) {
-            this.earningsDraft = undefined
-            return
-        }
-        if (this.routeEditor.hasDraft) {
-            this.routeEditor.clear()
-            return
-        }
-        if (this.trainDraft) {
-            this.trainDraft = undefined
-            return
-        }
-        if (this.stationDraft.placement || this.stationDraft.stationId?.source === 'manual') {
-            this.stationDraft = {}
-            return
-        }
-        if (this.trackDraft.locationId) {
-            this.trackDraft = {}
-            return
-        }
-        if (this.stockMenu === 'sell' && this.selectedSaleCompany) {
-            this.cancelSelection()
-            this.backFromStockMenu()
-            return
-        }
-        if (this.selection) {
-            if (this.selection.kind === 'start') this.backFromStart()
-            else this.cancelSelection()
-            return
-        }
-        if (this.stockActionDraft.action?.source === 'manual') {
-            this.backFromStockMenu()
-            return
-        }
+        if (this.drafts.unwind()) return
         this.stockActionDraft = {}
         await super.undo()
+    }
+    private registerDrafts() {
+        this.drafts.register({
+            pending: () => !!this.trainBuyingDraft.source,
+            unwind: () => {
+                if (!this.trainBuyingDraft.source) return false
+                this.trainBuyingDraft = backFromTrainBuying(this.trainBuyingDraft)
+                return true
+            },
+            clear: () => { this.trainBuyingDraft = {} }
+        })
+        this.drafts.register(this.offers)
+        this.drafts.register(this.waterfall)
+        this.drafts.register(clearableDraft(() => !!this.companyDraft, () => { this.companyDraft = undefined }))
+        this.drafts.register({
+            pending: () => !!this.privateActionSelection,
+            unwind: () => {
+                if (!this.privateActionSelection && !this.privateActionStages.power &&
+                    !(this.privateTrackPowerSelection && this.trackDraft.locationId)) return false
+                if (this.trackDraft.locationId) this.trackDraft = {}
+                else if (this.privateActionStages.power?.source === 'manual')
+                    this.privateActionStages = { source: this.privateActionStages.source }
+                else this.privateActionStages = {}
+                return true
+            },
+            clear: () => { this.privateActionStages = {} }
+        })
+        this.drafts.register(this.privates)
+        this.drafts.register(this.discard)
+        this.drafts.register(this.earnings)
+        this.drafts.register(clearableDraft(() => this.routeEditor.hasDraft, () => this.routeEditor.clear()))
+        this.drafts.register(clearableDraft(() => !!this.trainDraft, () => { this.trainDraft = undefined }))
+        this.drafts.register({
+            pending: () => !!this.stationDraft.stationId,
+            unwind: () => {
+                if (!this.stationDraft.placement && this.stationDraft.stationId?.source !== 'manual') return false
+                this.stationDraft = {}
+                return true
+            },
+            clear: () => { this.stationDraft = {} }
+        })
+        this.drafts.register(clearableDraft(() => !!this.trackDraft.locationId, () => { this.trackDraft = {} }))
+        this.drafts.register({
+            pending: () => false,
+            unwind: () => {
+                if (this.stockMenu !== 'sell' || !this.selectedSaleCompany) return false
+                this.cancelSelection()
+                this.backFromStockMenu()
+                return true
+            },
+            clear: () => {}
+        })
+        this.drafts.register({
+            pending: () => !!this.selection,
+            unwind: () => {
+                if (!this.selection) return false
+                if (this.selection.kind === 'start') this.backFromStart()
+                else this.cancelSelection()
+                return true
+            },
+            clear: () => this.cancelSelection()
+        })
+        this.drafts.register({
+            pending: () => this.stockActionDraft.action?.source === 'manual' ||
+                this.stockActionDraft.saleCompany?.source === 'manual',
+            unwind: () => {
+                if (this.stockActionDraft.action?.source !== 'manual') return false
+                this.backFromStockMenu()
+                return true
+            },
+            clear: () => { this.stockActionDraft = {} }
+        })
     }
     private assertSelectionAvailable(playerId: string | undefined) {
         assert(
@@ -2190,40 +1870,12 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     }
 }
 export function createEighteenXXSessionClass(
-    rules: StockRules,
-    companyRules: CompanyRules,
-    mapView: MapViewDefinition,
-    trackRules: TrackRules,
-    stationRules: StationRules,
-    trainRules: TrainRules,
-    routeRules: RouteRules,
-    earningsRules: EarningsRules,
-    privateRules: PrivateRules,
-    transferRules: TransferRules,
-    privatePowerRules: PrivatePowerRules,
-    trainFundingRules: TrainFundingRules,
-    auctionRules?: WaterfallAuctionRules,
-    offerAuctionRules?: OfferPileAuctionRules
+    rules: EighteenXXTitleRules,
+    mapView: MapViewDefinition
 ): new (options: SessionOptions) => EighteenXXSession {
     return class extends EighteenXXSession {
         constructor(options: SessionOptions) {
-            super(
-                options,
-                rules,
-                companyRules,
-                mapView,
-                trackRules,
-                stationRules,
-                trainRules,
-                routeRules,
-                earningsRules,
-                privateRules,
-                transferRules,
-                privatePowerRules,
-                trainFundingRules,
-                auctionRules,
-                offerAuctionRules
-            )
+            super(options, rules, mapView)
         }
     }
 }

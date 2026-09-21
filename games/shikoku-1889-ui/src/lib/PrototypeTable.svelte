@@ -22,7 +22,7 @@
 
 <GameEnding {session} />
 
-{#if session.auction && !session.auction.auction.completed}
+{#if session.waterfall.model && !session.waterfall.model.auction.completed}
     <OpeningAuction {session} />
 {:else}
     <CompanyDecisions {session} trainColors={Shikoku1889TrainColors} />

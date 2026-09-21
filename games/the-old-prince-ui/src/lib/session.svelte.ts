@@ -2,21 +2,9 @@ import { TheOldPrinceTrainColors } from './trainPresentation.js'
 import { getCompany } from '@tabletop/18xx'
 import UnknownToken from './images/tokens/unknown.svg'
 import StraightTile from './images/tokens/straight-tile.svg'
-import { TheOldPrinceAuctionRules, theOldPrinceRole } from '@tabletop/the-old-prince'
-import { TheOldPrinceTrainFundingRules } from '@tabletop/the-old-prince'
-import { TheOldPrinceTransferRules, TheOldPrincePrivatePowerRules } from '@tabletop/the-old-prince'
-import { TheOldPrincePrivateRules } from '@tabletop/the-old-prince'
-import { TheOldPrinceEarningsRules } from '@tabletop/the-old-prince'
-import { TheOldPrinceRouteRules } from '@tabletop/the-old-prince'
-import { TheOldPrinceTrainRules } from '@tabletop/the-old-prince'
-import { TheOldPrinceStationRules } from '@tabletop/the-old-prince'
+import { TheOldPrinceTitleRules, theOldPrinceRole } from '@tabletop/the-old-prince'
 import { TheOldPrinceMapView } from './mapView.js'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
-import {
-    TheOldPrinceStockRules,
-    TheOldPrinceCompanyRules,
-    TheOldPrinceTrackRules
-} from '@tabletop/the-old-prince'
 import { type GameSession } from '@tabletop/frontend-components'
 import type { GameState, HydratedGameState } from '@tabletop/common'
 
@@ -39,22 +27,7 @@ import {
     type BranchSplitSelection
 } from './branchSplitSelection.js'
 
-const BaseSession = createEighteenXXSessionClass(
-    TheOldPrinceStockRules,
-    TheOldPrinceCompanyRules,
-    TheOldPrinceMapView,
-    TheOldPrinceTrackRules,
-    TheOldPrinceStationRules,
-    TheOldPrinceTrainRules,
-    TheOldPrinceRouteRules,
-    TheOldPrinceEarningsRules,
-    TheOldPrincePrivateRules,
-    TheOldPrinceTransferRules,
-    TheOldPrincePrivatePowerRules,
-    TheOldPrinceTrainFundingRules,
-    undefined,
-    TheOldPrinceAuctionRules
-)
+const BaseSession = createEighteenXXSessionClass(TheOldPrinceTitleRules, TheOldPrinceMapView)
 
 export class TheOldPrinceSession extends BaseSession {
     override privateCardPhaseColors = $derived(TheOldPrinceTrainColors)
@@ -70,6 +43,21 @@ export class TheOldPrinceSession extends BaseSession {
         SLC: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')]
     })
     private splitDraft: BranchSplitSelection = $state({})
+    constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
+        super(options)
+        this.drafts.register(
+            {
+                pending: () => hasSplitSelection(this.splitDraft),
+                unwind: () => {
+                    if (!hasSplitSelection(this.splitDraft)) return false
+                    this.splitDraft = backSplitSelection(this.splitDraft)
+                    return true
+                },
+                clear: () => { this.splitDraft = {} }
+            },
+            'first'
+        )
+    }
     splitModel = $derived(new TheOldPrinceBranchSplit(this.financialState))
     canPreviewSplit = $derived(
         !this.busy &&
@@ -187,19 +175,8 @@ export class TheOldPrinceSession extends BaseSession {
     backSplit() {
         if (this.canPreviewSplit) this.splitDraft = backSplitSelection(this.splitDraft)
     }
-    override beforeNewState() {
-        this.splitDraft = {}
-        super.beforeNewState()
-    }
-    override get hasActionDraft(): boolean {
-        return hasSplitSelection(this.splitDraft) || super.hasActionDraft
-    }
     override async undo() {
-        if (this.busy || this.updatingVisibleState || this.isViewingHistory) return
-        if (hasSplitSelection(this.splitDraft)) {
-            this.splitDraft = backSplitSelection(this.splitDraft)
-            return
-        }
+        if (this.updatingVisibleState) return
         await super.undo()
     }
 }

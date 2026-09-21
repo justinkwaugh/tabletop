@@ -5,7 +5,7 @@
         $props()
     const state = $derived(session.financialState)
     const change = $derived(state.phaseChange)
-    const companyId = $derived(session.discardCompanyId)
+    const companyId = $derived(session.discard.companyId)
     const owner = $derived(companyId ? controllingOwner(state, companyId) : undefined)
 </script>
 
@@ -14,7 +14,7 @@
     {#if change && companyId && owner}
         <div aria-label="Compulsory train discard">
             <h2>
-                {getCompany(state, companyId).name} · Discard {session.discardCount} excess {session.discardCount ===
+                {getCompany(state, companyId).name} · Discard {session.discard.excess} excess {session.discard.excess ===
                 1
                     ? 'train'
                     : 'trains'}
@@ -28,17 +28,17 @@
                     : change.continuation.machineState}.
             </p>
             <div class="choices">
-                {#each session.discardTrains as train}<button
-                        disabled={!session.canDiscardTrain}
-                        aria-pressed={session.discardSelection === train.id}
-                        onclick={() => session.selectDiscard(train.id)}
+                {#each session.discard.trains as train}<button
+                        disabled={!session.discard.canDiscard}
+                        aria-pressed={session.discard.selection === train.id}
+                        onclick={() => session.discard.select(train.id)}
                         >Discard {session.trainDepot.trainDefinition(train.definitionId).name} ({train.id})</button
                     >{/each}
             </div>
-            {#if session.discardSelection}<button onclick={() => session.backDiscard()}>Back</button
+            {#if session.discard.selection}<button onclick={() => session.discard.clear()}>Back</button
                 ><button
-                    disabled={!session.canDiscardTrain}
-                    onclick={() => session.confirmDiscard()}>Confirm discard</button
+                    disabled={!session.discard.canDiscard}
+                    onclick={() => session.discard.confirm()}>Confirm discard</button
                 >{/if}
             {#if showUndo}<button
                     disabled={session.busy ||

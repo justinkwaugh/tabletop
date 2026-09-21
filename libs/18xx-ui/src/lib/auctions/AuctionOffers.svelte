@@ -15,8 +15,8 @@
         onFocus: (locationId: string) => void
     } = $props()
     const model = $derived.by(() => {
-        assertExists(session.offerAuction, 'Auction offers require an offer auction')
-        return session.offerAuction
+        assertExists(session.offers.model, 'Auction offers require an offer auction')
+        return session.offers.model
     })
     const lots = $derived(auctionLotDetails(session, model.offerIds))
 
@@ -39,10 +39,10 @@
                         ><button
                             data-description-exclude
                             aria-label={`Offer ${lot.name}`}
-                            disabled={!session.canOfferAuction ||
+                            disabled={!session.offers.canAct ||
                                 !session.myPlayer ||
                                 !model.canOffer(session.myPlayer.id, lot.id)}
-                            onclick={() => session.offerAuctionLot(lot.id)}
+                            onclick={() => session.offers.offerLot(lot.id)}
                             >Offer</button
                         ></td
                     >

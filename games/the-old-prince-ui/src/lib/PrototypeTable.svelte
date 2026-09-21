@@ -24,7 +24,7 @@
 
 <GameEnding {session} />
 
-{#if session.offerAuction && !session.offerAuction.auction.completed}
+{#if session.offers.model && !session.offers.model.auction.completed}
     <OpeningAuction {session} />
 {:else}
     <BranchSplitPreview {session} />

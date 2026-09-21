@@ -4,22 +4,22 @@
         $props()
 </script>
 
-{#if session.auction && !session.auction.auction.completed}
+{#if session.waterfall.model && !session.waterfall.model.auction.completed}
     <WaterfallAuctionPanel
-        model={session.auction}
+        model={session.waterfall.model}
         playerId={session.myPlayer?.id}
         playerName={(id) => session.getPlayerName(id)}
-        disabled={!session.canAuction}
-        draft={session.auctionSelection}
-        onChoose={(kind, lotId) => session.selectAuctionLot(kind, lotId)}
-        onBidChange={(amount) => session.setAuctionBid(amount)}
-        onConfirm={() => session.confirmAuction()}
-        onBack={() => session.backAuction()}
-        onPass={() => session.passAuction()}
+        disabled={!session.waterfall.canAct}
+        draft={session.waterfall.selection}
+        onChoose={(kind, lotId) => session.waterfall.selectLot(kind, lotId)}
+        onBidChange={(amount) => session.waterfall.setBid(amount)}
+        onConfirm={() => session.waterfall.confirm()}
+        onBack={() => session.waterfall.clear()}
+        onPass={() => session.waterfall.pass()}
         onUndo={() => session.undo()}
         {showUndo}
         canUndo={!session.busy &&
             !session.isViewingHistory &&
-            Boolean(session.auctionSelection || session.undoableAction)}
+            Boolean(session.waterfall.selection || session.undoableAction)}
     />
 {/if}

@@ -17,7 +17,7 @@
     }
     let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
     function lotInfo(id: string) {
-        const privateCompany = session.privateCompanies.find((company) => company.id === id)
+        const privateCompany = session.privates.companies.find((company) => company.id === id)
         if (privateCompany) return { description: privateCompany.description, ...(id === 'VR' ? { locationId: 'N18' } : {}) }
         const share = session.financialState.certificates.find((certificate) => certificate.id === id)
         const company = share?.kind === 'share' ? TheOldPrinceCompanies.find((company) => company.number === share.number) : undefined
@@ -82,10 +82,10 @@
     {poolName}
 >
     {#snippet actions(focusLocation, focusRoute)}
-        {#if session.offerAuction && !session.offerAuction.auction.completed}
-            {#if !session.offerAuction.auction.bidding && !session.offerAuction.auction.stalled}
+        {#if session.offers.model && !session.offers.model.auction.completed}
+            {#if !session.offers.model.auction.bidding && !session.offers.model.auction.stalled}
                 <AuctionOffers {session} {lotInfo} onFocus={focusLocation} />
-            {:else if session.offerAuction.auction.bidding}
+            {:else if session.offers.model.auction.bidding}
                 <OfferAuctionBidding {session} {lotInfo} />
             {:else}
                 <OpeningAuction {session} showUndo={false} />

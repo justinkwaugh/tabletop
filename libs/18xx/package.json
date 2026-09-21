@@ -7,6 +7,10 @@
         ".": {
             "types": "./esm/index.d.ts",
             "import": "./esm/index.js"
+        },
+        "./testing": {
+            "types": "./esm/testing/index.d.ts",
+            "import": "./esm/testing/index.js"
         }
     },
     "sideEffects": false,

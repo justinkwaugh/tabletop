@@ -19,7 +19,11 @@ import {
     type PhaseChangeState,
     type PhaseRules
 } from '../phases/phaseChange.js'
-export function discardableTrains(state: PhaseChangeState, companyId: string, rules: TrainRules) {
+export function discardableTrains(
+    state: PhaseChangeState,
+    companyId: string,
+    rules: Pick<TrainRules, 'trainLimit'>
+) {
     const trains = trainsOwnedBy(state, { kind: 'company', companyId })
     return state.phaseChange?.discardCompanyIds[0] === companyId &&
         trains.length > rules.trainLimit(state, companyId)

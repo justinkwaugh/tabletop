@@ -14,7 +14,7 @@
         ...(purchase ? [{ label: 'Buy', selected: session.stockMenu === 'buy', onSelect: () => session.chooseStockMenu('buy', purchase.request.buyer) }] : []),
         ...(session.saleChoices.some((choice) => choice.result.details) ? [{ label: 'Sell', selected: session.stockMenu === 'sell', onSelect: () => session.chooseStockMenu('sell') }] : []),
         ...(start ? [{ label: 'Start', selected: session.stockMenu === 'start', onSelect: () => session.chooseStockMenu('start', start.request.buyer) }] : []),
-        ...(session.privateExchangeOffers.length ? [{ label: 'Exchange', selected: session.stockMenu === 'exchange', onSelect: () => session.chooseStockMenu('exchange') }] : []),
+        ...(session.privates.exchangeOffers.length ? [{ label: 'Exchange', selected: session.stockMenu === 'exchange', onSelect: () => session.chooseStockMenu('exchange') }] : []),
         ...additionalActions
     ])
     let stripWidth = $state(0)

@@ -60,7 +60,7 @@
                 id: `company:${companyId}`,
                 owner: { kind: 'company', companyId } as const,
                 playerId: undefined,
-                description: session.privateCompanies.find((company) => company.id === companyId)
+                description: session.privates.companies.find((company) => company.id === companyId)
                     ?.description,
                 name: getCompany(session.financialState, companyId).name,
                 controller: controller ? session.getPlayerName(controller.playerId) : undefined,
@@ -75,12 +75,12 @@
         })
     ])
     const auctionActive = $derived(
-        (session.offerAuction !== undefined && !session.offerAuction.auction.completed) ||
-        (session.auction !== undefined && !session.auction.auction.completed)
+        (session.offers.model !== undefined && !session.offers.model.auction.completed) ||
+        (session.waterfall.model !== undefined && !session.waterfall.model.auction.completed)
     )
     const auctionPiles = $derived(new Map(
-        session.offerAuction && !session.offerAuction.auction.completed
-            ? session.offerAuction.auction.piles.map((pile) => [pile.playerId, auctionLotDetails(session, pile.lotIds)])
+        session.offers.model && !session.offers.model.auction.completed
+            ? session.offers.model.auction.piles.map((pile) => [pile.playerId, auctionLotDetails(session, pile.lotIds)])
             : []
     ))
     const focusableCompanyIds = $derived(new Set(session.financialState.companies
@@ -276,7 +276,7 @@
                                             name={entry.company.name}
                                             value={entry.value}
                                             income={entry.income}
-                                            description={session.privateCompanies.find(
+                                            description={session.privates.companies.find(
                                                 (company) => company.id === entry.company.id
                                             )?.description ?? ''}
                                         /></th

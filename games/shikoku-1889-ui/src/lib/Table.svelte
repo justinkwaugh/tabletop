@@ -35,7 +35,7 @@
     {privateOperationDescription}
 >
     {#snippet actions(_focusLocation, focusRoute)}
-        {#if session.auction && !session.auction.auction.completed}
+        {#if session.waterfall.model && !session.waterfall.model.auction.completed}
             <OpeningAuction {session} showUndo={false} />
         {:else}
             <OperatingActions privateTilePrompts={{ MF: 'Place the port tile', ER: 'Place a tile in Ohzu' }} {privateOperationDescription} onFocusRoute={focusRoute} {session} {createRouteWorker} trainColors={Shikoku1889TrainColors} />

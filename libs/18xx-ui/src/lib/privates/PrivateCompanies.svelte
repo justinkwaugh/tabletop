@@ -3,13 +3,13 @@
     import { privateOwner } from '@tabletop/18xx'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
         $props()
-    const selection = $derived(session.privateExchangeSelection)
+    const selection = $derived(session.privates.exchangeSelection)
 </script>
 
 <section aria-label="Private companies" class="privates">
     <h2>Private companies</h2>
     <div class="cards">
-        {#each session.privateCompanies as company (company.id)}
+        {#each session.privates.companies as company (company.id)}
             <article aria-label={company.name}>
                 <strong>{company.name}</strong>
                 {#if company.closed}<p>Closed</p>
@@ -20,8 +20,8 @@
                             0}
                     </p>
                     <p>{company.description}</p>
-                    {#each session.privateExchangeOffers.filter((offer) => offer.privateCompanyId === company.id) as offer (offer.certificateId)}
-                        <button onclick={() => session.selectPrivateExchange(offer)}
+                    {#each session.privates.exchangeOffers.filter((offer) => offer.privateCompanyId === company.id) as offer (offer.certificateId)}
+                        <button onclick={() => session.privates.selectExchange(offer)}
                             >Exchange for {offer.certificateId}</button
                         >
                     {/each}
@@ -34,8 +34,8 @@
             <p>
                 {session.getPlayerName(selection.playerId)} closes {selection.privateCompanyId} for {selection.certificateId}.
             </p>
-            <button onclick={() => session.backPrivateExchange()}>Back</button>
-            <button onclick={() => session.confirmPrivateExchange()}
+            <button onclick={() => session.privates.clear()}>Back</button>
+            <button onclick={() => session.privates.confirmExchange()}
                 >Confirm private exchange</button
             >
         </div>

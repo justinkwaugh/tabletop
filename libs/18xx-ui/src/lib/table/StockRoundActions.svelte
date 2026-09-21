@@ -232,14 +232,14 @@
                     {/if}
                 </div>
             {:else if menu === 'exchange'}
-                {#each session.privateExchangeOffers as offer}
+                {#each session.privates.exchangeOffers as offer}
                     {@const company = exchangeCompany(offer.certificateId)}
                     <button class="exchange-choice"
                         aria-label={`Exchange ${getCompany(session.financialState, offer.privateCompanyId).name} for ${company.name}`}
                         {disabled}
                         onclick={() => {
-                            session.selectPrivateExchange(offer)
-                            void session.confirmPrivateExchange()
+                            session.privates.selectExchange(offer)
+                            void session.privates.confirmExchange()
                         }}
                     >
                         <span class="exchange-private">{getCompany(session.financialState, offer.privateCompanyId).name}</span>

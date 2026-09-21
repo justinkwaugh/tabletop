@@ -64,7 +64,7 @@
     }
 
     function lot(lotId: string) {
-        const lot = session.offerAuction?.lots.find((lot) => lot.id === lotId)
+        const lot = session.offers.model?.lots.find((lot) => lot.id === lotId)
         assertExists(lot, 'Auction history requires a known offered lot')
         return lot
     }
