@@ -177,6 +177,14 @@ Ownership, permission to run, and inclusion in a train limit are separate questi
 Permanent removal of a train from service when it becomes obsolete under the title’s rules.
 _Avoid_: Retirement for this process
 
+**Phase**:
+One stage of the game's progression, identified independently of any train. It sets the
+tile colours that may be laid, the operating rounds in an operating set and the train
+limit, and is started by the first purchase of a train its title names.
+
+**Phase Table**:
+A title's ordered declaration of its phases and of the trains that start them.
+
 **Depot**:
 The supply of new trains available for purchase under the title's ordering and
 availability rules.

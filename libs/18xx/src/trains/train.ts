@@ -19,7 +19,8 @@ export const TrainDefinition = Type.Object(
         id: Id,
         name: Id,
         price: Type.Integer({ minimum: 0 }),
-        distance: TrainDistance
+        distance: TrainDistance,
+        rustsOn: Type.Optional(Id)
     },
     { additionalProperties: false }
 )

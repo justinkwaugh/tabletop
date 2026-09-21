@@ -3,9 +3,9 @@
 A title declares its phases once, as data, in a `PhaseTable`: an ordered list of phases,
 each with an id, the train definitions whose first purchase starts it, its tile colours,
 its operating-round count and its train limit. Train definitions gain an optional
-`rustsOn`: the train definition whose purchase retires them. The table answers
-`phase(id)`, `isAtLeast(current, id)`, `phaseAfterPurchase(current, trainDefinitionId)`
-and `rustTiming(current, train)`.
+`rustsOn`: the train definition whose purchase rusts them. The table answers
+`phase(id)`, `isAtLeast(current, id)`, `phaseAfterPurchase(current, trainDefinitionId)`,
+`rustPhaseId(trainDefinitionId)` and `rustTiming(current, trainDefinitionId)`.
 
 The rule callbacks the family already calls stay as the seam:
 `TrainRules.trainLimit` / `phaseAfterPurchase`, `TrackRules.availableColors`,
@@ -13,7 +13,8 @@ The rule callbacks the family already calls stay as the seam:
 receive the State and the company, which the known exceptions need. Titles implement them
 as lookups in their table and keep only what is genuinely a rule. `EighteenXXTitleRules`
 carries the table so the runtime can refuse a State whose `phaseId` names no phase, and
-so the phase chart in `@tabletop/18xx-ui` reads the same table the rules use.
+so `@tabletop/18xx-ui` reads the same table the rules use: `createPhaseChart` takes the
+table and the depot, and the game table no longer takes per-phase tile colours as a prop.
 
 ## Evidence surveyed
 
@@ -37,7 +38,7 @@ the engine and domain studies.
   the previous phase's in every sample. 46 titles give the train limit by company kind or
   share size; 6 compute it in code; 16 profiles exclude some trains from the count.
   Status strings are on 487 phases, 123 distinct, most used by one title.
-- **Retirement.** Rust is declared on the train, never on the phase, in 121 of 130
+- **Rusting.** Rust is declared on the train, never on the phase, in 121 of 130
   titles, and is triggered by a train purchase: in 11 titles a rust trigger starts no
   phase (1824, 1835, 18CZ, 2038). Five titles list several triggers; 15 give a train
   variant its own; 28 have obsolete trains that survive until they next run. Delayed or
