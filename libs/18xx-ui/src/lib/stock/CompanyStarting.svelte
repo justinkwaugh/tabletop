@@ -5,12 +5,12 @@
     const state = $derived(session.financialState)
 </script>
 
-{#if session.selectedStartCompany}
-    {@const company = getCompany(state, session.selectedStartCompany.companyId)}
+{#if session.stock.selectedStartCompany}
+    {@const company = getCompany(state, session.stock.selectedStartCompany.companyId)}
     <div class="start" aria-label="Start company">
         <h3>Start {company.name}</h3>
-        {#if session.selectedStartResult?.details}
-            {@const details = session.selectedStartResult.details}
+        {#if session.stock.selectedStartResult?.details}
+            {@const details = session.stock.selectedStartResult.details}
             <p>
                 {session.ownerName(details.buyer)} buys the president’s certificate for {details.price}.
                 Starting price: {details.parPrice}.
@@ -23,45 +23,45 @@
                     </li>{/each}
             </ul>
             <div class="buttons">
-                <button disabled={session.busy} onclick={() => session.backFromStart()}>Back</button
-                ><button disabled={session.busy} onclick={() => session.confirmStart()}
+                <button disabled={session.busy} onclick={() => session.stock.backFromStart()}>Back</button
+                ><button disabled={session.busy} onclick={() => session.stock.confirmStart()}
                     >Confirm start</button
                 >
             </div>
         {:else}
             <p>
-                Choose a starting price for {session.ownerName(session.selectedStartCompany.buyer)}.
+                Choose a starting price for {session.ownerName(session.stock.selectedStartCompany.buyer)}.
             </p>
             <div class="buttons" aria-label="Starting prices">
-                {#each session.selectedStartPrices as price (price.marketSpaceId)}
+                {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                     <button
                         data-start-price={stockMarketSpace(state.stockMarket, price.marketSpaceId)
                             .price}
                         disabled={session.busy || !price.result.details}
                         title={price.result.reason}
-                        onclick={() => session.selectStartPrice(price.marketSpaceId)}
+                        onclick={() => session.stock.selectStartPrice(price.marketSpaceId)}
                         >{stockMarketSpace(state.stockMarket, price.marketSpaceId).price}</button
                     >
                 {/each}
             </div>
-            {#if session.selectedStartResult?.reason}<p role="alert">
-                    {session.selectedStartResult.reason}
+            {#if session.stock.selectedStartResult?.reason}<p role="alert">
+                    {session.stock.selectedStartResult.reason}
                 </p>{/if}
-            <button disabled={session.busy} onclick={() => session.backFromStart()}>Back</button>
+            <button disabled={session.busy} onclick={() => session.stock.backFromStart()}>Back</button>
         {/if}
     </div>
-{:else if session.startChoices.length && !session.selection}
+{:else if session.stock.startChoices.length && !session.stock.hasSelection}
     <details open>
         <summary>Start a company</summary>
         <div class="choices">
-            {#each session.startChoices as choice (`${choice.request.buyer.kind === 'company' ? choice.request.buyer.companyId : choice.request.playerId}:${choice.request.companyId}`)}
+            {#each session.stock.startChoices as choice (`${choice.request.buyer.kind === 'company' ? choice.request.buyer.companyId : choice.request.playerId}:${choice.request.companyId}`)}
                 <button
                     data-start-company={choice.request.companyId}
                     data-start-buyer={choice.request.buyer.kind === 'company'
                         ? choice.request.buyer.companyId
                         : 'player'}
                     disabled={session.busy || !choice.prices.some((price) => price.result.details)}
-                    onclick={() => session.selectCompanyStart(choice.request)}
+                    onclick={() => session.stock.selectCompanyStart(choice.request)}
                 >
                     <strong>{getCompany(state, choice.request.companyId).name}</strong>
                     <span>{session.ownerName(choice.request.buyer)}</span>

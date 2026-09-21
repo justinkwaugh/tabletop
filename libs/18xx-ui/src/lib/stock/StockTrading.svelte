@@ -36,10 +36,10 @@
         </h2>
         <div class="buttons">
             {#if state.machineState === 'StockRound'}<button
-                    onclick={() => session.finishTurn()}
+                    onclick={() => session.stock.finishTurn()}
                     disabled={session.busy ||
                         session.isViewingHistory ||
-                        !!session.selection ||
+                        !!session.stock.hasSelection ||
                         !session.validActionTypes.includes('FinishStockTurn')}
                     >{state.stockRound.turn.acted ? 'End turn' : 'Pass'}</button
                 >{/if}
@@ -47,18 +47,18 @@
                     onclick={() => session.undo()}
                     disabled={session.busy ||
                         session.isViewingHistory ||
-                        (!session.selection && !session.undoableAction)}>Undo</button
+                        (!session.stock.hasSelection && !session.undoableAction)}>Undo</button
                 >{/if}
         </div>
     </header>
     <StockRoundStatus {session} />
-    {#if session.mustSell}<p role="status">
+    {#if session.stock.mustSell}<p role="status">
             Sell down to the stock limits before buying or finishing.
         </p>{/if}
-    {#if session.selectedStartCompany}
+    {#if session.stock.selectedStartCompany}
         <CompanyStarting {session} />
-    {:else if session.selectedPurchaseDetails}
-        {@const details = session.selectedPurchaseDetails}
+    {:else if session.stock.selectedPurchaseDetails}
+        {@const details = session.stock.selectedPurchaseDetails}
         <div aria-label="Confirm share purchase">
             <p>
                 <strong>{session.ownerName(details.buyer)}</strong> buys a certificate in
@@ -73,10 +73,10 @@
                     </li>{/each}
             </ul>
             {#if details.presidency}{@render presidency(details.presidency)}{/if}
-            {#if session.selectedPurchaseFlotation}
+            {#if session.stock.selectedPurchaseFlotation}
                 <div aria-label="Flotation preview">
                     <p>{getCompany(state, details.companyId).name} will float.</p>
-                    {#each session.selectedPurchaseFlotation.payments as payment}<p>
+                    {#each session.stock.selectedPurchaseFlotation.payments as payment}<p>
                             {session.ownerName(payment.from)} pays {payment.amount} to {session.ownerName(
                                 payment.to
                             )} as initial capital.
@@ -84,19 +84,19 @@
                 </div>
             {/if}
             <div class="buttons">
-                <button onclick={() => session.cancelSelection()} disabled={session.busy}
+                <button onclick={() => session.stock.cancel()} disabled={session.busy}
                     >Back</button
-                ><button onclick={() => session.confirmPurchase()} disabled={session.busy}
+                ><button onclick={() => session.stock.confirmPurchase()} disabled={session.busy}
                     >Confirm purchase</button
                 >
             </div>
         </div>
     {:else if state.machineState === 'StockRound'}
-        {#if session.selectedSale}
+        {#if session.stock.selectedSale}
             <div class="preview" aria-label="Confirm share sale">
                 <h3>Share sale</h3>
                 <ol>
-                    {#each session.selectedSale.sales as sale (sale.companyId)}
+                    {#each session.stock.selectedSale.sales as sale (sale.companyId)}
                         <li>
                             <strong>{getCompany(state, sale.companyId).name}</strong> · {sale.shares}
                             shares
@@ -104,15 +104,15 @@
                                 <button
                                     aria-label={`Remove ${sale.companyId} sale`}
                                     disabled={session.busy}
-                                    onclick={() => session.removeSale(sale.companyId)}
+                                    onclick={() => session.stock.removeSale(sale.companyId)}
                                     >Remove</button
                                 >
                             </div>
                         </li>
                     {/each}
                 </ol>
-                {#if session.selectedSaleResult?.details}
-                    {@const details = session.selectedSaleResult.details}
+                {#if session.stock.selectedSaleResult?.details}
+                    {@const details = session.stock.selectedSaleResult.details}
                     <p>Total proceeds: <strong>{details.proceeds}</strong></p>
                     {#each details.sales as sale (sale.companyId)}
                         <p>
@@ -124,29 +124,29 @@
                         </p>
                         {#if sale.presidency}{@render presidency(sale.presidency)}{/if}
                     {/each}
-                {:else}<p role="alert">{session.selectedSaleResult?.reason}</p>{/if}
+                {:else}<p role="alert">{session.stock.selectedSaleResult?.reason}</p>{/if}
                 <div class="buttons">
-                    <button onclick={() => session.cancelSelection()} disabled={session.busy}
+                    <button onclick={() => session.stock.cancel()} disabled={session.busy}
                         >Back</button
                     ><button
-                        onclick={() => session.confirmSale()}
-                        disabled={session.busy || !session.selectedSaleResult?.details}
+                        onclick={() => session.stock.confirmSale()}
+                        disabled={session.busy || !session.stock.selectedSaleResult?.details}
                         >Confirm sale</button
                     >
                 </div>
             </div>
         {/if}
-        {#if !session.selection}<CompanyStarting {session} />{/if}
+        {#if !session.stock.hasSelection}<CompanyStarting {session} />{/if}
         <details open>
             <summary>Sell shares</summary>
             <div class="choices">
-                {#each session.saleChoices as choice (`${choice.request.seller.kind === 'company' ? choice.request.seller.companyId : choice.request.playerId}:${choice.sale.companyId}:${choice.sale.shares}`)}
+                {#each session.stock.saleChoices as choice (`${choice.request.seller.kind === 'company' ? choice.request.seller.companyId : choice.request.playerId}:${choice.sale.companyId}:${choice.sale.shares}`)}
                     <button
                         class="choice"
                         data-sale-company={choice.sale.companyId}
                         data-sale-shares={choice.sale.shares}
                         disabled={session.busy || !choice.result.details}
-                        onclick={() => session.selectSale(choice.request)}
+                        onclick={() => session.stock.selectSale(choice.request)}
                     >
                         <strong>{getCompany(state, choice.sale.companyId).name}</strong>
                         <span
@@ -162,11 +162,11 @@
                 {/each}
             </div>
         </details>
-        {#if !session.selectedSale && !state.stockRound.turn.bought}
+        {#if !session.stock.selectedSale && !state.stockRound.turn.bought}
             <details open>
                 <summary>Buy shares</summary>
                 <div class="choices">
-                    {#each session.purchaseChoices as choice (`${choice.request.buyer.kind === 'company' ? choice.request.buyer.companyId : choice.request.playerId}:${choice.certificate.id}`)}
+                    {#each session.stock.purchaseChoices as choice (`${choice.request.buyer.kind === 'company' ? choice.request.buyer.companyId : choice.request.playerId}:${choice.certificate.id}`)}
                         <button
                             class="choice"
                             data-purchase-certificate={choice.certificate.id}
@@ -174,7 +174,7 @@
                                 ? choice.request.buyer.companyId
                                 : 'player'}
                             disabled={session.busy || !choice.result.details}
-                            onclick={() => session.selectPurchase(choice.request)}
+                            onclick={() => session.stock.selectPurchase(choice.request)}
                         >
                             <strong>{getCompany(state, choice.certificate.companyId).name}</strong>
                             <span
@@ -193,9 +193,9 @@
             </details>
         {/if}
     {/if}
-    {#if session.trades.length}
+    {#if session.stock.trades.length}
         <ol aria-label="Stock history">
-            {#each session.trades as trade (trade.id)}
+            {#each session.stock.trades as trade (trade.id)}
                 {#if isFinishStockTurn(trade) && trade.metadata}
                     <li>
                         {session.getPlayerName(trade.playerId)}

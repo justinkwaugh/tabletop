@@ -8,13 +8,13 @@
     } = $props()
     const disabled = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory ||
         !session.myPlayer || !session.financialState.activePlayerIds.includes(session.myPlayer.id))
-    const purchase = $derived(session.purchaseChoices.find((choice) => choice.result.details && choice.certificate.kind === 'share'))
-    const start = $derived(session.startChoices.find((choice) => choice.prices.some((price) => price.result.details)))
+    const purchase = $derived(session.stock.purchaseChoices.find((choice) => choice.result.details && choice.certificate.kind === 'share'))
+    const start = $derived(session.stock.startChoices.find((choice) => choice.prices.some((price) => price.result.details)))
     const selections = $derived<StockMenuOption[]>([
-        ...(purchase ? [{ label: 'Buy', selected: session.stockMenu === 'buy', onSelect: () => session.chooseStockMenu('buy', purchase.request.buyer) }] : []),
-        ...(session.saleChoices.some((choice) => choice.result.details) ? [{ label: 'Sell', selected: session.stockMenu === 'sell', onSelect: () => session.chooseStockMenu('sell') }] : []),
-        ...(start ? [{ label: 'Start', selected: session.stockMenu === 'start', onSelect: () => session.chooseStockMenu('start', start.request.buyer) }] : []),
-        ...(session.privates.exchangeOffers.length ? [{ label: 'Exchange', selected: session.stockMenu === 'exchange', onSelect: () => session.chooseStockMenu('exchange') }] : []),
+        ...(purchase ? [{ label: 'Buy', selected: session.stock.openMenu === 'buy', onSelect: () => session.stock.chooseMenu('buy', purchase.request.buyer) }] : []),
+        ...(session.stock.saleChoices.some((choice) => choice.result.details) ? [{ label: 'Sell', selected: session.stock.openMenu === 'sell', onSelect: () => session.stock.chooseMenu('sell') }] : []),
+        ...(start ? [{ label: 'Start', selected: session.stock.openMenu === 'start', onSelect: () => session.stock.chooseMenu('start', start.request.buyer) }] : []),
+        ...(session.privates.exchangeOffers.length ? [{ label: 'Exchange', selected: session.stock.openMenu === 'exchange', onSelect: () => session.stock.chooseMenu('exchange') }] : []),
         ...additionalActions
     ])
     let stripWidth = $state(0)
@@ -50,7 +50,7 @@
         </div>{/if}
         <div class="turn-action" bind:offsetWidth={turnActionWidth}>
             {#if session.validActionTypes.includes('FinishStockTurn')}
-                <button class="commit" {disabled} onclick={() => session.finishTurn()}>{session.financialState.stockRound.turn.acted ? 'End turn' : 'Pass'}</button>
+                <button class="commit" {disabled} onclick={() => session.stock.finishTurn()}>{session.financialState.stockRound.turn.acted ? 'End turn' : 'Pass'}</button>
             {/if}
         </div>
     </nav>

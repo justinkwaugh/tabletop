@@ -131,9 +131,8 @@ export class TheOldPrinceSession extends BaseSession {
             })
         )
     }
-    override cancelSelection() {
+    protected override onStockSelectionCancelled() {
         this.splitStages = {}
-        super.cancelSelection()
     }
     override get privatePurchaseHeading(): string | undefined { return undefined }
     override stockCompanyName(companyId: string) {
@@ -145,7 +144,7 @@ export class TheOldPrinceSession extends BaseSession {
     }
     chooseSplit() {
         assert(this.canPreviewSplit, 'Split selection is unavailable')
-        this.chooseStockMenu(undefined)
+        this.stock.chooseMenu(undefined)
         this.splitStages = chooseSplitAction()
     }
     selectSplitParent(parentId: string) {

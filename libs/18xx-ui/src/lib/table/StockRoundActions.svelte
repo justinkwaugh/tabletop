@@ -20,7 +20,7 @@
     )
     const purchases = $derived.by(() => {
         const seen = new Set<string>()
-        return session.purchaseChoices.filter((choice) => {
+        return session.stock.purchaseChoices.filter((choice) => {
             if (!choice.result.details || choice.certificate.kind !== 'share') return false
             const key = JSON.stringify([
                 choice.request.buyer,
@@ -42,24 +42,24 @@
     }
     const buyers = $derived(distinctBuyers(purchases.map((choice) => choice.request.buyer)))
     const buyerPurchases = $derived(purchases.filter((choice) =>
-        session.stockActionBuyer
-            ? sameOwner(choice.request.buyer, session.stockActionBuyer)
+        session.stock.menuBuyer
+            ? sameOwner(choice.request.buyer, session.stock.menuBuyer)
             : choice.request.buyer.kind === 'player'))
     const purchaseCompanies = $derived(session.stockCompanies.filter((company) =>
         buyerPurchases.some((choice) => choice.certificate.companyId === company.id)))
-    const sales = $derived(session.saleChoices.filter((choice) => choice.result.details))
+    const sales = $derived(session.stock.saleChoices.filter((choice) => choice.result.details))
     const starts = $derived(
-        session.startChoices.filter((choice) => choice.prices.some((price) => price.result.details))
+        session.stock.startChoices.filter((choice) => choice.prices.some((price) => price.result.details))
     )
     const startBuyers = $derived(distinctBuyers(starts.map((choice) => choice.request.buyer)))
     const buyerStarts = $derived(starts.filter((choice) =>
-        session.stockActionBuyer
-            ? sameOwner(choice.request.buyer, session.stockActionBuyer)
+        session.stock.menuBuyer
+            ? sameOwner(choice.request.buyer, session.stock.menuBuyer)
             : choice.request.buyer.kind === 'player'))
-    const menu = $derived(session.stockMenu)
+    const menu = $derived(session.stock.openMenu)
     const purchasingOwners = $derived(menu === 'buy' ? buyers : startBuyers)
     const selectedOwnerIndex = $derived(purchasingOwners.findIndex((buyer) =>
-        session.stockActionBuyer ? sameOwner(buyer, session.stockActionBuyer) : buyer.kind === 'player'))
+        session.stock.menuBuyer ? sameOwner(buyer, session.stock.menuBuyer) : buyer.kind === 'player'))
 
     function exchangeCompany(certificateId: string) {
         const certificate = session.financialState.certificates.find((item) => item.id === certificateId)
@@ -78,12 +78,12 @@
 {/snippet}
 <section class="stock-trading" aria-label="Stock trading" class:centered-panel={!menu || menu === 'buy' || menu === 'sell' || menu === 'exchange'}>
     <div class="stock-controls">
-    {#if session.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
+    {#if session.stock.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
     {#if menu}
         <div class="heading available-shares">
             <span
                 >{menu === 'buy'
-                    ? (session.stockActionBuyer?.kind === 'company' ? `Buy for ${session.ownerName(session.stockActionBuyer)}` : 'Available Shares')
+                    ? (session.stock.menuBuyer?.kind === 'company' ? `Buy for ${session.ownerName(session.stock.menuBuyer)}` : 'Available Shares')
                     : menu === 'sell'
                       ? 'Available Sales'
                       : menu === 'start'
@@ -96,7 +96,7 @@
                 <SlidingToggle count={purchasingOwners.length} selectedIndex={selectedOwnerIndex}>
                 {#each purchasingOwners as buyer, index}
                     <button {disabled} aria-pressed={index === selectedOwnerIndex}
-                        onclick={() => session.chooseStockMenu(menu, buyer)}>{buyer.kind === 'player' ? 'Yourself' : session.ownerName(buyer)}{#if buyer.kind === 'company'} <span class="owner-cash">${buyerCash(buyer)}</span>{/if}</button>
+                        onclick={() => session.stock.chooseMenu(menu, buyer)}>{buyer.kind === 'player' ? 'Yourself' : session.ownerName(buyer)}{#if buyer.kind === 'company'} <span class="owner-cash">${buyerCash(buyer)}</span>{/if}</button>
                 {/each}
                 </SlidingToggle>
             </div>
@@ -108,7 +108,7 @@
                     {@const options = buyerPurchases.filter((choice) => choice.certificate.companyId === company.id)}
                     {@const prices = [...new Set(options.map((choice) => choice.result.details?.price))]}
                     {@const toFloat = company.floated ? undefined : session.sharesToFloat(company.id)}
-                    {@const playerPayments = session.stockActionBuyer?.kind === 'company'
+                    {@const playerPayments = session.stock.menuBuyer?.kind === 'company'
                         ? [...new Set(options.map((choice) => choice.result.details?.payments
                             .filter((payment) => payment.from.kind === 'player' && payment.from.playerId === session.myPlayer?.id)
                             .reduce((total, payment) => total + payment.amount, 0) ?? 0))]
@@ -131,7 +131,7 @@
                                 <button class="share-source" {disabled}
                                     aria-label={`Buy ${company.name} from ${source} for $${choice.result.details?.price}`}
                                     data-purchase-certificate={choice.certificate.id}
-                                    onclick={() => { session.selectPurchase(choice.request); void session.confirmPurchase() }}>
+                                    onclick={() => { session.stock.selectPurchase(choice.request); void session.stock.confirmPurchase() }}>
                                     <span class="source-label">{source}
                                         {#if choice.certificate.number !== undefined}<small>Share #{choice.certificate.number}</small>{/if}
                                         {#if choice.certificate.president || choice.certificate.shares !== 1}<small>{choice.certificate.shares} shares{choice.certificate.president ? ' · President' : ''}</small>{/if}
@@ -155,25 +155,25 @@
                             <button class="company-choice start-company-choice"
                                 {disabled}
                                 aria-label={`Start ${getCompany(session.financialState, choice.request.companyId).name}`}
-                                aria-pressed={session.selectedStartCompany?.companyId === choice.request.companyId}
+                                aria-pressed={session.stock.selectedStartCompany?.companyId === choice.request.companyId}
                                 data-start-company={choice.request.companyId}
-                                onclick={() => session.selectCompanyStart(choice.request)}>
+                                onclick={() => session.stock.selectCompanyStart(choice.request)}>
                                 {@render token(choice.request.companyId)}
                             </button>
                         {/each}
                     </div>
-                    {#if session.selectedStartCompany}
-                        {@const sharesToFloat = session.sharesToFloat(session.selectedStartCompany.companyId)}
+                    {#if session.stock.selectedStartCompany}
+                        {@const sharesToFloat = session.sharesToFloat(session.stock.selectedStartCompany.companyId)}
                         <div class="choices par-choices">
-                            {#each session.selectedStartPrices as price}
+                            {#each session.stock.selectedStartPrices as price}
                                 {#if price.result.details}
                                      {@const space = stockMarketSpace(session.financialState.stockMarket, price.marketSpaceId)}
                                     <button class="par-choice" {disabled}
                                         style:background={marketColors[space.color] ?? space.color}
                                         data-start-price={price.result.details.parPrice}
                                         onclick={() => {
-                                            session.selectStartPrice(price.marketSpaceId)
-                                            void session.confirmStart()
+                                            session.stock.selectStartPrice(price.marketSpaceId)
+                                            void session.stock.confirmStart()
                                         }}>
                                         <span class="par-value">{price.result.details.parPrice}</span>
                                         <small>Cost ${price.result.details.price}</small>
@@ -193,16 +193,16 @@
                             {@const owned = session.myPlayer ? sharesOwned(session.financialState, company.id, { kind: 'player', playerId: session.myPlayer.id }) : 0}
                             <button class="share-identity sale-company" {disabled}
                                 aria-label={`Sell ${company.name}`}
-                                aria-pressed={session.selectedSaleCompany === company.id}
+                                aria-pressed={session.stock.selectedSaleCompany === company.id}
                                 data-sale-company={company.id}
                                 onclick={() => {
-                                    session.cancelSelection()
-                                    session.chooseStockSaleCompany(company.id)
+                                    session.stock.cancel()
+                                    session.stock.chooseSaleCompany(company.id)
                                     if (owned === 1) {
                                         const choice = sales.find((choice) => choice.sale.companyId === company.id && choice.sale.shares === 1)
                                         assertExists(choice, 'A single owned share requires an available sale')
-                                        session.selectSale(choice.request)
-                                        void session.confirmSale()
+                                        session.stock.selectSale(choice.request)
+                                        void session.stock.confirmSale()
                                     }
                                 }}>
                                 <span class="owned-shares">{owned}</span>
@@ -212,17 +212,17 @@
                             </button>
                         {/each}
                     </div>
-                    {#if session.selectedSaleCompany}
+                    {#if session.stock.selectedSaleCompany}
                         <div class="quantity-heading">HOW MANY</div>
                         <div class="choices">
-                            {#each sales.filter((choice) => choice.sale.companyId === session.selectedSaleCompany) as choice}
+                            {#each sales.filter((choice) => choice.sale.companyId === session.stock.selectedSaleCompany) as choice}
                                 <button class="sale-quantity" {disabled}
                                     data-sale-shares={choice.sale.shares}
                                     aria-label={`Sell ${choice.sale.shares} shares for $${choice.result.details?.proceeds}`}
-                                    aria-pressed={!!session.selectedSale && sameOwner(session.selectedSale.seller, choice.request.seller) && session.selectedSale.sales.some((sale) => sale.companyId === choice.sale.companyId && sale.shares === choice.sale.shares)}
+                                    aria-pressed={!!session.stock.selectedSale && sameOwner(session.stock.selectedSale.seller, choice.request.seller) && session.stock.selectedSale.sales.some((sale) => sale.companyId === choice.sale.companyId && sale.shares === choice.sale.shares)}
                                     onclick={() => {
-                                        session.selectSale(choice.request)
-                                        void session.confirmSale()
+                                        session.stock.selectSale(choice.request)
+                                        void session.stock.confirmSale()
                                     }}>
                                     <span class="share-count">{choice.sale.shares}</span>
                                     <small>${choice.result.details?.proceeds}</small>
@@ -255,12 +255,12 @@
     {/if}
 
     </div>
-    {#if session.stockTurnSales.length}
+    {#if session.stock.turnSales.length}
         <aside class="sales-sidebar" aria-label="Sales summary">
         <table class="sales-summary" aria-label="Sales this turn">
             <caption>SALES THIS TURN</caption>
             <tbody>
-                {#each session.stockTurnSales as sale (sale.companyId)}
+                {#each session.stock.turnSales as sale (sale.companyId)}
                     <tr data-sold-company={sale.companyId}>
                         <th scope="row" aria-label={getCompany(session.financialState, sale.companyId).name}>
                             <CompanyToken appearance={session.mapView.stations[sale.companyId]} size={26} />

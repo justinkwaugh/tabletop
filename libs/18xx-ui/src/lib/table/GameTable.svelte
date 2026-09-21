@@ -285,7 +285,7 @@
         frame(initial)
         return { update: frame, destroy: () => { request++ } }
     }
-    type StartCompanySelection = typeof session.selectedStartCompany
+    type StartCompanySelection = typeof session.stock.selectedStartCompany
     function frameStartCompany(_table: HTMLElement, initial: StartCompanySelection) {
         let returnTo: { view: string; restore: ReturnType<ScalingWrapper['captureView']> | undefined } | undefined
         let request = 0
@@ -480,7 +480,7 @@
             </div>
 {/snippet}
 
-<div class="railway-table" use:paintBodyBackground={boardArtwork?.backgroundColor} use:framePlacement={activePlacementFocusKey} use:frameRoutes={{ runningCompanyId, preview: routePreview }} use:frameStartCompany={session.selectedStartCompany} use:frameHistory={settledHistoricalFocus} style:--rail-table-background={boardArtwork?.backgroundColor} style:--rail-map-background={boardArtwork?.backgroundColor} style:--table-header-offset="calc(var(--app-navbar-height, 0px) + {session.isViewingHistory ? 14 : 0}px)" data-theme="dark" aria-label="Game table" aria-busy={!session.preferences.ready}>
+<div class="railway-table" use:paintBodyBackground={boardArtwork?.backgroundColor} use:framePlacement={activePlacementFocusKey} use:frameRoutes={{ runningCompanyId, preview: routePreview }} use:frameStartCompany={session.stock.selectedStartCompany} use:frameHistory={settledHistoricalFocus} style:--rail-table-background={boardArtwork?.backgroundColor} style:--rail-map-background={boardArtwork?.backgroundColor} style:--table-header-offset="calc(var(--app-navbar-height, 0px) + {session.isViewingHistory ? 14 : 0}px)" data-theme="dark" aria-label="Game table" aria-busy={!session.preferences.ready}>
     {#if session.preferences.ready && layoutPreference.ready}
     {#if session.isViewingHistory}
         <div class="history-strip" role="status"><span>VIEWING HISTORY</span></div>
