@@ -1,6 +1,5 @@
 import type { PreparedPosition } from '../scenarioInitializer.js'
 import { Shikoku1889Majors } from '@tabletop/shikoku-1889'
-import { createShikoku1889Opening } from '@tabletop/shikoku-1889'
 import { prepareShikoku1889Privates } from './privateExamples.js'
 import { Shikoku1889TrainDepot } from '@tabletop/shikoku-1889'
 import { Shikoku1889StationCounts } from '@tabletop/shikoku-1889'

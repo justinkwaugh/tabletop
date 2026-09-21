@@ -87,6 +87,26 @@ function inCharterRound(state: EighteenXXState, charterVotes: string[]) {
     return { ...afterOpening, machineState: 'CharterRound', charterVotes }
 }
 
+const CharterOpening: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
+    info: Shikoku.info,
+    runtime: createEighteenXXRuntime({
+        ...CharterRules,
+        createOpening(setup) {
+            const { position } = Shikoku1889TitleRules.createOpening(setup)
+            return {
+                position,
+                titleState: { charterVotes: ['KO'] },
+                begin(state) {
+                    const playerId = state.turnManager.turnOrder[1]
+                    state.turnManager.series = [{ type: 'turn', playerId, start: 0 }]
+                    state.activePlayerIds = [playerId]
+                    state.machineState = 'CharterRound'
+                }
+            }
+        }
+    })
+}
+
 describe('a title that defines its own state', () => {
     it('keeps its fields and machine states through hydration', () => {
         const { engine, state } = start(Charter)
@@ -95,6 +115,28 @@ describe('a title that defines its own state', () => {
         const hydrated = Charter.runtime.hydrator.hydrateState(stored)
         expect(hydrated).toBeInstanceOf(HydratedCharterState)
         expect(hydrated.dehydrate()).toEqual(stored)
+    })
+
+    it('opens in its own machine state with its own initial fields', () => {
+        const { game, engine, state } = start(CharterOpening)
+        expect(state.machineState).toBe('CharterRound')
+        expect(state.openingAuction).toBeUndefined()
+        expect(state.activePlayerIds).toEqual(['blair'])
+        expect(engine.getValidActionTypesForPlayer(game, state, 'blair')).toEqual(['Vote:KO'])
+    })
+
+    it('cannot open with a field its State does not define', () => {
+        const undeclared: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
+            info: Shikoku.info,
+            runtime: createEighteenXXRuntime({
+                ...Shikoku1889TitleRules,
+                createOpening: (setup) => ({
+                    ...Shikoku1889TitleRules.createOpening(setup),
+                    titleState: { charterVotes: [] }
+                })
+            })
+        }
+        expect(() => start(undeclared)).toThrow()
     })
 
     it('decides its own machine states', () => {
@@ -109,7 +151,9 @@ describe('a title that defines its own state', () => {
         const family = start(Shikoku)
         const title = start(Charter)
         const playerId = title.state.activePlayerIds[0]
-        expect(title.engine.getValidActionTypesForPlayer(title.game, title.state, playerId)).toEqual([
+        expect(
+            title.engine.getValidActionTypesForPlayer(title.game, title.state, playerId)
+        ).toEqual([
             ...family.engine.getValidActionTypesForPlayer(family.game, family.state, playerId),
             'PetitionForCharter'
         ])
@@ -128,7 +172,9 @@ describe('a title that defines its own state', () => {
         expect(() => extendEighteenXXState({ stockRound: Type.String() })).toThrow(
             'stockRound already belongs'
         )
-        expect(() => extendEighteenXXState({}, ['StockRound'])).toThrow('StockRound already belongs')
+        expect(() => extendEighteenXXState({}, ['StockRound'])).toThrow(
+            'StockRound already belongs'
+        )
         expect(() =>
             createEighteenXXRuntime({
                 ...Shikoku1889TitleRules,

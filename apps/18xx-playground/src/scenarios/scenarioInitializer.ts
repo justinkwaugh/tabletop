@@ -9,7 +9,7 @@ import {
     settleCashPayments,
     type EighteenXXTitleRules,
     type HydratedEighteenXXState,
-    type InitialFinances,
+    type InitialPosition,
     type StockMarket
 } from '@tabletop/18xx'
 import { ScenarioPosition } from './scenarioPosition.js'
@@ -17,7 +17,10 @@ import { ScenarioPosition } from './scenarioPosition.js'
 export type PreparedPosition = Exclude<ScenarioPosition, 'opening' | 'ending'>
 export interface ScenarioFixtures {
     createMarket(position: PreparedPosition): StockMarket
-    createFinances(players: readonly PlayerState[], position: PreparedPosition): InitialFinances
+    createFinances(
+        players: readonly PlayerState[],
+        position: PreparedPosition
+    ): Omit<InitialPosition, 'stockMarket'>
     prepareEnding(state: HydratedEighteenXXState): void
 }
 
@@ -69,8 +72,10 @@ export class ScenarioInitializer extends EighteenXXInitializer {
         )
         const initialized = this.createInitialState(game, state, {
             stockRoundNumber: 2,
-            stockMarket: this.fixtures.createMarket(position),
-            finances: this.fixtures.createFinances(this.playerStates(game), position)
+            position: {
+                ...this.fixtures.createFinances(this.playerStates(game), position),
+                stockMarket: this.fixtures.createMarket(position)
+            }
         })
         this.applyPhaseEffects(initialized)
         if (OperatingPositions.includes(position)) this.enterOperatingStep(initialized, position)

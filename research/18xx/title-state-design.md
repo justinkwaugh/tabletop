@@ -102,5 +102,5 @@ Runtime (ADR 0004).
   of them a dedicated round needs is left to the first title with such a round.
 - `hydrate` receives the family-typed State; a title reads its own fields from its
   subclass. The class is not generic over the title's schema.
-- The initializer still takes the title's opening through `createFinances`; a title's
-  initial fields travel the same way until the opening contract is typed.
+- A title's initial fields and first machine state come from its `createOpening`
+  (`titleState` and `begin`); see [opening contract](opening-contract-design.md).
