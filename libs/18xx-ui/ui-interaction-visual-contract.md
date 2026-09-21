@@ -577,8 +577,9 @@ The operating company in the phase header uses title-defined initials below that
 same breakpoint and its full name at wider sizes; its token remains visible.
 
 The session's map.select is the common map-intent entry point for both the
-table and the logic workbench. Route extension/start takes precedence, followed by
-track selection, station selection and ordinary inspection. The existing session
+table and the logic workbench. While track choices show, a click selects or rotates
+track and never inspects. Otherwise route extension/start takes precedence, followed
+by station selection and ordinary inspection. The existing session
 owns all selections and invalidates them through beforeNewState/updatingVisibleState.
 The shell does not create another selection state or publish Actions itself.
 
