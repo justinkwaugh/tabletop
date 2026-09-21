@@ -1,3 +1,4 @@
+import { isOperatingStep } from '../operating/operatingSteps.js'
 import * as Type from 'typebox'
 import type { StockState } from '../stock/stockState.js'
 import type { OperatingState } from '../operating/operatingSet.js'
@@ -39,13 +40,6 @@ export function pendingCompanyDecision(state: CompanyDecisionState): boolean {
     return !!(state.purchaseOffer || state.privateTrackLay || state.trackConsent)
 }
 
-const DecisionWindowStates = [
-    'LayingTrack',
-    'PlacingStation',
-    'RunningTrains',
-    'DistributingEarnings',
-    'BuyingTrains'
-]
 export function validateCompanyDecisions(
     state: Pick<
         CompanyDecisionState,
@@ -61,7 +55,7 @@ export function validateCompanyDecisions(
     assert(pending.length <= 1, 'Resolve the current company decision before starting another')
     if (!pending.length) return
     assert(
-        DecisionWindowStates.includes(state.machineState),
+        isOperatingStep(state.machineState),
         'A company decision requires an operating decision window'
     )
     const playerId =

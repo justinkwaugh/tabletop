@@ -16,7 +16,10 @@ export class DistributingEarningsHandler implements MachineStateHandler<
     HydratedDistributeEarnings,
     State
 > {
-    constructor(private readonly rules: EarningsRules) {}
+    constructor(
+        private readonly rules: EarningsRules,
+        private readonly nextState: string
+    ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
         if (
@@ -53,6 +56,6 @@ export class DistributingEarningsHandler implements MachineStateHandler<
         })
     }
     onAction(): string {
-        return 'BuyingTrains'
+        return this.nextState
     }
 }

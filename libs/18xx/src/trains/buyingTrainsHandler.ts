@@ -31,7 +31,8 @@ export class BuyingTrainsHandler implements MachineStateHandler<
     constructor(
         private readonly rules: TrainRules,
         private readonly fundingRules: TrainFundingRules,
-        private readonly stocks: StockRules
+        private readonly stocks: StockRules,
+        private readonly nextState: string
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
@@ -95,7 +96,7 @@ export class BuyingTrainsHandler implements MachineStateHandler<
     ): string {
         if (action instanceof HydratedFundTrain) return 'FundingTrain'
         return isFinishOperatingTurn(action)
-            ? 'OperatingSet'
+            ? this.nextState
             : context.gameState.phaseChange
               ? 'AdvancingPhase'
               : context.gameState.machineState

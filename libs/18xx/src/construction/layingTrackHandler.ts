@@ -1,15 +1,17 @@
 import {
     ActionSource,
+    assertExists,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
+import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
 import { isLayTile, type HydratedLayTile } from './layTile.js'
 import { isFinishTrack, type HydratedFinishTrack } from './finishTrack.js'
 import { TrackConstruction, type TrackRules, type ConstructionState } from './trackConstruction.js'
 
-type State = HydratedGameState & ConstructionState
+type State = HydratedGameState & ConstructionState & OperatingState
 export class LayingTrackHandler implements MachineStateHandler<
     HydratedLayTile | HydratedFinishTrack,
     State
@@ -53,7 +55,13 @@ export class LayingTrackHandler implements MachineStateHandler<
             ? ['LayTile', 'FinishTrack']
             : ['FinishTrack']
     }
-    enter(): void {}
+    enter(context: MachineContext<State>): void {
+        const state = context.gameState
+        if (state.trackStep) return
+        const companyId = nextOperatingCompany(state)
+        assertExists(companyId, 'Step entry requires an operating company')
+        state.trackStep = { companyId, lays: [], completed: false }
+    }
     onAction(
         action: HydratedLayTile | HydratedFinishTrack,
         context: MachineContext<State>

@@ -39,6 +39,7 @@ export * from './finance/certificateExchange.js'
 
 export * from './stock/stockRoundRules.js'
 export * from './stock/completeStockRound.js'
+export * from './operating/operatingSteps.js'
 export * from './operating/operatingSet.js'
 export * from './operating/startOperatingSet.js'
 export * from './operating/startOperatingSetHandler.js'

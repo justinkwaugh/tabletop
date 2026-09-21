@@ -32,6 +32,7 @@ import {
 } from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
 import type { OperatingState } from './operatingSet.js'
+import { BetweenCompaniesState } from './operatingSteps.js'
 import type { ConstructionState } from '../construction/trackConstruction.js'
 
 type State = HydratedGameState & OperatingState & ConstructionState & StationPlacementState
@@ -72,7 +73,6 @@ export class HydratedStartOperatingTurn
         )
         const owner = controllingOwner(state, this.companyId)
         assertExists(owner, 'The operating company requires a controlling owner')
-        state.trackStep = { companyId: this.companyId, lays: [], completed: false }
         state.activePlayerIds = [owner.playerId]
         state.turnManager.startTurn(owner.playerId, state.actionCount + 1)
     }
@@ -84,7 +84,10 @@ export class StartOperatingTurnHandler implements MachineStateHandler<
     | HydratedStartStockRound,
     State
 > {
-    constructor(private readonly stationRules: StationRules) {}
+    constructor(
+        private readonly stationRules: StationRules,
+        private readonly firstStep: string
+    ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         return (
             action.source === ActionSource.System &&
@@ -134,7 +137,7 @@ export class StartOperatingTurnHandler implements MachineStateHandler<
         return isStartStockRound(action)
             ? 'StockRound'
             : isStartOperatingTurn(action)
-              ? 'LayingTrack'
-              : 'OperatingSet'
+              ? this.firstStep
+              : BetweenCompaniesState
     }
 }

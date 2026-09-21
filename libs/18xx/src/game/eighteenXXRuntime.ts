@@ -45,6 +45,11 @@ import { trainActions } from '../trains/trainActions.js'
 import { routeActions } from '../routes/routeActions.js'
 import { earningsActions } from '../earnings/earningsActions.js'
 import { companyActions } from '../company/companyActions.js'
+import {
+    BetweenCompaniesState,
+    OperatingStepStates,
+    stateAfterOperatingStep
+} from '../operating/operatingSteps.js'
 import { EighteenXXInitializer } from './eighteenXXInitializer.js'
 import type { EighteenXXStateHandler, EighteenXXTitleRules } from './eighteenXXTitleRules.js'
 function handledStateValidator(
@@ -87,6 +92,7 @@ export function createEighteenXXRuntime(
             companyRules,
             options.trackRules
         )
+    const after = stateAfterOperatingStep
     const operatingStep = (handler: Handler): Handler =>
         endsGame(allowsCompanyDecisions(allowsExchange(handler)))
     const familyStateHandlers: Record<string, Handler> = {
@@ -123,7 +129,7 @@ export function createEighteenXXRuntime(
             decides('DiscardingTrains', new DiscardingTrainsHandler(options.trainRules))
         ),
         RustingTrains: endsGame(
-            decides('RustingTrains', new RustingTrainsHandler('DistributingEarnings'))
+            decides('RustingTrains', new RustingTrainsHandler(after('RunningTrains')))
         ),
         StockRound: endsGame(
             allowsCompanyDecisions(
@@ -138,11 +144,14 @@ export function createEighteenXXRuntime(
             )
         ),
         StartingOperatingSet: endsGame(
-            decides('StartingOperatingSet', new StartOperatingSetHandler('OperatingSet'))
+            decides('StartingOperatingSet', new StartOperatingSetHandler(BetweenCompaniesState))
         ),
         OperatingSet: endsGame(
             new BetweenCompaniesHandler(
-                decides('OperatingSet', new StartOperatingTurnHandler(options.stationRules)),
+                decides(
+                    'OperatingSet',
+                    new StartOperatingTurnHandler(options.stationRules, OperatingStepStates[0])
+                ),
                 options.privatePowerRules,
                 options.trackRules,
                 options.stationRules
@@ -150,33 +159,44 @@ export function createEighteenXXRuntime(
         ),
         LayingTrack: new AutomaticTrackCompletionHandler(
             operatingStep(
-                decides('LayingTrack', new LayingTrackHandler(options.trackRules, 'PlacingStation'))
+                decides(
+                    'LayingTrack',
+                    new LayingTrackHandler(options.trackRules, after('LayingTrack'))
+                )
             )
         ),
         PlacingStation: operatingStep(
             decides(
                 'PlacingStation',
-                new PlacingStationHandler(options.stationRules, 'RunningTrains')
+                new PlacingStationHandler(options.stationRules, after('PlacingStation'))
             )
         ),
         StationsComplete: endsGame(new TerminalStateHandler()),
         RunningTrains: operatingStep(
             decides(
                 'RunningTrains',
-                new RunningTrainsHandler(options.routeRules, 'DistributingEarnings')
+                new RunningTrainsHandler(options.routeRules, after('RunningTrains'))
             )
         ),
         DistributingEarnings: operatingStep(
             decides(
                 'DistributingEarnings',
-                new DistributingEarningsHandler(options.earningsRules)
+                new DistributingEarningsHandler(
+                    options.earningsRules,
+                    after('DistributingEarnings')
+                )
             )
         ),
         BuyingTrains: new AutomaticTrainCompletionHandler(
             operatingStep(
                 decides(
                     'BuyingTrains',
-                    new BuyingTrainsHandler(options.trainRules, options.trainFundingRules, rules)
+                    new BuyingTrainsHandler(
+                        options.trainRules,
+                        options.trainFundingRules,
+                        rules,
+                        after('BuyingTrains')
+                    )
                 )
             )
         )
