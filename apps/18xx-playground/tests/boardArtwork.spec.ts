@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 for (const width of [1280, 390]) {
-    test(`published board preserves tile drafts, history and Undo at ${width}px`, async ({
+    test(`published board preserves tile selections, history and Undo at ${width}px`, async ({
         page
     }) => {
         const errors: string[] = []

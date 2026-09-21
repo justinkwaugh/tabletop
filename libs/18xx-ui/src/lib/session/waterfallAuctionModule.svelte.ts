@@ -49,20 +49,20 @@ export class WaterfallAuctionModule {
         this.choice.choose('choice', { ...bid, amount })
     }
     async confirm() {
-        const draft = this.selection
-        assert(this.canAct && draft && this.model, 'Select an auction purchase or bid')
-        if (draft.kind === 'buy')
+        const selection = this.selection
+        assert(this.canAct && selection && this.model, 'Select an auction purchase or bid')
+        if (selection.kind === 'buy')
             await this.session.applyAction(
                 this.session.createPlayerAction(BuyAuctionLot, {
-                    lotId: draft.lotId,
-                    expectedPrice: draft.amount
+                    lotId: selection.lotId,
+                    expectedPrice: selection.amount
                 })
             )
         else
             await this.session.applyAction(
                 this.session.createPlayerAction(
                     this.model.auction.bidding ? RaiseAuctionBid : ReserveBid,
-                    { lotId: draft.lotId, amount: draft.amount }
+                    { lotId: selection.lotId, amount: selection.amount }
                 )
             )
     }

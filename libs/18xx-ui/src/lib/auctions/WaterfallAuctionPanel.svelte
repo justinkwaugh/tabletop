@@ -7,7 +7,7 @@
         playerId,
         playerName,
         disabled = false,
-        draft,
+        selection,
         onChoose,
         onBidChange,
         onConfirm,
@@ -21,7 +21,7 @@
         playerId?: string
         playerName: (id: string) => string
         disabled?: boolean
-        draft?: AuctionSelection
+        selection?: AuctionSelection
         onChoose: (kind: AuctionSelection['kind'], lotId: string) => void
         onBidChange: (amount: number) => void
         onConfirm: () => void
@@ -38,11 +38,11 @@
     const bidding = $derived(model.auction.bidding)
     const confirmable = $derived(
         playerId &&
-            draft &&
-            (draft.kind === 'buy'
-                ? model.canPurchase(playerId, draft.lotId) &&
-                  draft.amount === model.price(draft.lotId)
-                : model.canBid(playerId, draft.lotId, draft.amount))
+            selection &&
+            (selection.kind === 'buy'
+                ? model.canPurchase(playerId, selection.lotId) &&
+                  selection.amount === model.price(selection.lotId)
+                : model.canBid(playerId, selection.lotId, selection.amount))
     )
 </script>
 
@@ -79,36 +79,36 @@
                         </p>{/each}
                 {/if}
                 {#if playerId && model.canPurchase(playerId, lot.id)}
-                    <button disabled={disabled || !!draft} onclick={() => onChoose('buy', lot.id)}
+                    <button disabled={disabled || !!selection} onclick={() => onChoose('buy', lot.id)}
                         >Buy for {model.price(lot.id)}</button
                     >
                 {:else if playerId && model.canBid(playerId, lot.id, model.minimumBid(lot.id))}
-                    <button disabled={disabled || !!draft} onclick={() => onChoose('bid', lot.id)}
+                    <button disabled={disabled || !!selection} onclick={() => onChoose('bid', lot.id)}
                         >{bidding ? 'Raise bid' : 'Reserve bid'} · {model.minimumBid(lot.id)} minimum</button
                     >
                 {/if}
             </article>
         {/each}
     </div>
-    {#if draft}
+    {#if selection}
         <div class="confirmation" aria-label="Auction selection">
-            <strong>{model.lots.find((lot) => lot.id === draft.lotId)?.name}</strong>
-            {#if draft.kind === 'bid'}
+            <strong>{model.lots.find((lot) => lot.id === selection.lotId)?.name}</strong>
+            {#if selection.kind === 'bid'}
                 <label
                     >Bid amount <input
                         type="number"
-                        value={draft.amount}
-                        min={model.minimumBid(draft.lotId)}
-                        max={playerId ? model.availableCash(playerId, draft.lotId) : 0}
+                        value={selection.amount}
+                        min={model.minimumBid(selection.lotId)}
+                        max={playerId ? model.availableCash(playerId, selection.lotId) : 0}
                         step="1"
                         oninput={(event) => onBidChange(event.currentTarget.valueAsNumber)}
                     /></label
                 >
-                <span>Maximum {playerId ? model.availableCash(playerId, draft.lotId) : 0}</span>
-            {:else}<span>Purchase for {draft.amount}</span>{/if}
+                <span>Maximum {playerId ? model.availableCash(playerId, selection.lotId) : 0}</span>
+            {:else}<span>Purchase for {selection.amount}</span>{/if}
             <button onclick={onBack} {disabled}>Back</button>
             <button onclick={onConfirm} disabled={disabled || !confirmable}
-                >Confirm {draft.kind === 'buy' ? 'purchase' : 'bid'}</button
+                >Confirm {selection.kind === 'buy' ? 'purchase' : 'bid'}</button
             >
         </div>
     {:else}<button onclick={onPass} {disabled}>Pass auction</button>{/if}

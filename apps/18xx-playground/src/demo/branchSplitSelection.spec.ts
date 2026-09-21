@@ -20,7 +20,7 @@ it('reselecting a parent or branch clears dependent selections', () => {
         branchId: { value: 'branch:CB', source: 'manual' }
     })
 })
-it('Back removes one manual stage at a time without changing the original draft', () => {
+it('Back removes one manual stage at a time without changing the original selection', () => {
     const original = selected()
     const priceRemoved = backSplitSelection(original)
     expect(priceRemoved.marketSpaceId).toBeUndefined()
@@ -30,7 +30,7 @@ it('Back removes one manual stage at a time without changing the original draft'
     expect(original).toEqual(selected())
     expect(backSplitSelection({})).toEqual({})
 })
-it('only a complete draft produces a request and auto-only values do not consume Undo', () => {
+it('only a complete selection produces a request and auto-only values do not consume Undo', () => {
     expect(splitRequest(chooseSplitParent({}, 'So'), 'alex')).toBeUndefined()
     expect(splitRequest(selected(), 'alex')).toEqual({
         playerId: 'alex',
@@ -53,10 +53,10 @@ it('clears allocations when earlier choices change and returns to the financial 
         cash: 10,
         hunslet: false
     }
-    const draft = chooseSplitAllocation(selected(), allocation)
-    expect(backSplitSelection(draft)).toEqual(selected())
-    expect(chooseSplitPrice(draft, '5:1').allocation).toEqual(selected().allocation)
+    const selection = chooseSplitAllocation(selected(), allocation)
+    expect(backSplitSelection(selection)).toEqual(selected())
+    expect(chooseSplitPrice(selection, '5:1').allocation).toEqual(selected().allocation)
     expect(selected().allocation?.source).toBe('auto')
-    expect(chooseSplitBranch(draft, 'branch:CB').allocation).toBeUndefined()
-    expect(chooseSplitParent(draft, 'ML').allocation).toBeUndefined()
+    expect(chooseSplitBranch(selection, 'branch:CB').allocation).toBeUndefined()
+    expect(chooseSplitParent(selection, 'ML').allocation).toBeUndefined()
 })

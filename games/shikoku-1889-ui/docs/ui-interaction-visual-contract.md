@@ -51,12 +51,12 @@ UI remains disposable; this slice requires desktop interaction verification only
 
 The map follows the shared live-map contract. Its current tiles, stations,
 reservations, and inventory counts come from the session's visible state. Map
-inspection is independent of stock drafts and survives station exchange, history,
+inspection is independent of stock selections and survives station exchange, history,
 and Undo when its target remains valid. Each hotseat player has a local map style.
 Fit/focus/pan/zoom and tile browsing create no actions. This remains a prepared
 position; legal track construction follows the shared track-construction contract.
 
-Track construction follows the shared draft, preview, target, Back/Undo and history
+Track construction follows the shared selection, preview, target, Back/Undo and history
 contract. The new Track construction example starts directly in the first
 operating company's track step. Normal stock examples reach that step through
 system Actions. The map shows legal locations and candidate tile artwork before
@@ -83,13 +83,13 @@ and reload follow the shared contract (fixture version 16).
 Payout choice is manual session-owned local selection. Its preview uses the same
 EarningsDistribution evaluator as DistributeEarnings. Back clears the choice;
 Undo clears a manual choice before undoing a committed action. History and
-updatingVisibleState hide the draft; beforeNewState clears it. Reload restores
+updatingVisibleState hide the selection; beforeNewState clears it. Reload restores
 only committed earnings. Confirmation shows recipient amounts, retained revenue,
 rounding/bonus supplements and share-price movement; it never changes route
 geometry. Committed payment details remain visible during train purchasing.
 
 DistributeEarnings enters BuyingTrains. Finish operating turn is disabled while a
-train purchase is drafted or a compulsory train is missing. The rules own company
+train purchase is selected or a compulsory train is missing. The rules own company
 completion, the next operator, private income at OR entry and the return to stock
 trading. The operating-step strip and company order reflect canonical state.
 Undo across a turn boundary also restores automatic round and income changes.
@@ -111,10 +111,10 @@ Completed events show rusted and deferred train identities in phase history.
 Discard selection is manual session state; Back clears it, Undo clears it before
 committed Undo. History/updatingVisibleState hide the selection and beforeNewState
 clears it. Reload restores the pending company and continuation without restoring
-a draft. No automatic selection consumes an Undo. Confirming the final discard
+a selection. No automatic selection consumes an Undo. Confirming the final discard
 resumes the original company automatically without starting another player turn.
 
-Diesel exchanges reuse the manual train-purchase draft and confirmation, including
+Diesel exchanges reuse the manual train-purchase selection and confirmation, including
 its exchangeTrainId. Preview shows the trade-in, price, and resulting phase.
 Market trains appear separately from depot supply. TOP's retained 4+ trains are
 marked as awaiting a final operation and unavailable for trade. Their rusting
@@ -127,9 +127,9 @@ are integrated in their planned later slices.
 ## Private exchanges and lifecycle
 
 Private-company cards show ownership, income, closure, and eligible exchanges.
-Selecting an exchange creates a manual session draft naming its owner and target.
-Back clears that draft; Undo clears it before undoing committed history. History
-and updatingVisibleState hide the draft; beforeNewState clears it.
+Selecting an exchange creates a manual session selection naming its owner and target.
+Back clears that selection; Undo clears it before undoing committed history. History
+and updatingVisibleState hide the selection; beforeNewState clears it.
 
 An optional Dôgo exchange can belong to a different player than the ordinary turn.
 The first active identity remains the ordinary decision owner; additional active
@@ -146,9 +146,9 @@ ordinary game setup and negotiated powers remain later slices.
 ### Negotiated purchases and private powers
 
 The disposable company-decisions panel is session-owned. Asset/price selection,
-private tile placement, and early train selection are manual local drafts. Back
-clears the draft; Undo clears a manual draft first, then uses engine history.
-Drafts hide during updatingVisibleState and History View and clear in beforeNewState.
+private tile placement, and early train selection are manual local selections. Back
+clears the selection; Undo clears a manual selection first, then uses engine history.
+Selections hide during updatingVisibleState and History View and clear in beforeNewState.
 Committed offers, seller tile choices, and track-permission requests remain in
 Game State across reload. Their entitled player decides before ordinary play resumes.
 Other stock, construction, route, and train controls remain unavailable meanwhile.
@@ -170,8 +170,8 @@ The prototype funding panel shows the selected train, remaining shortfall,
 ordered liable owners, and only the current legal funding choices. FundTrain is
 an explicit committed decision; its funding record persists across reload.
 Issuance and contributions require explicit confirmation of the displayed amount.
-A share-sale selection is a manual Game Session draft: Back clears it, and Undo
-clears it before reversing a committed Action. Drafts hide in History View and
+A share-sale selection is a manual Game Session selection: Back clears it, and Undo
+clears it before reversing a committed Action. Selections hide in History View and
 while updatingVisibleState, and clear in beforeNewState. Components call session
 methods for every Action. Other operating, private, and stock actions are
 unavailable during funding. Only the responsible player may act.
@@ -191,9 +191,9 @@ hidden until the opening is complete; the financial inspector remains available.
 The Standard Game supports 2–6 players. The opening example offers that player count
 and uses a separate local save for each count (prototype save identity version 23).
 
-Purchases and bids have explicit manual drafts owned by the Game Session. Back
-clears only the draft; Undo clears a draft first, otherwise reversing a committed
-Action and its automatic cascade. Drafts hide during updatingVisibleState and
+Purchases and bids have explicit manual selections owned by the Game Session. Back
+clears only the selection; Undo clears a selection first, otherwise reversing a committed
+Action and its automatic cascade. Selections hide during updatingVisibleState and
 History View and clear in beforeNewState. Pass is an immediate explicit Action.
 Components call session methods and never construct Actions. Public reservations,
 restricted bidding, and automatic awards survive reload in canonical state.
@@ -203,7 +203,7 @@ restore the last opening turn, including reversing automatic awards and completi
 ## Game ending and final wealth
 
 The ending panel renders the canonical ending schedule and final wealth from the
-Session's displayed state, including history. It owns no draft or gameplay
+Session's displayed state, including history. It owns no selection or gameplay
 mutation. Its Undo control invokes the existing Session Undo method and is disabled
 during state publication, busy processing, and History View. Undo reverses the
 triggering user Action and its System Action cascade together, restoring the ending

@@ -18,7 +18,7 @@
         model={session.offers.model}
         playerId={session.myPlayer?.id}
         playerName={(id) => session.getPlayerName(id)}
-        draft={session.offers.selection}
+        selection={session.offers.selection}
         disabled={!session.offers.canAct}
         onChoose={(id) => session.offers.select(id)}
         onBidChange={(amount) => session.offers.setBid(amount)}

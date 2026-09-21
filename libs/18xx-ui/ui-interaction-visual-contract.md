@@ -140,7 +140,7 @@ path, stop, or slot in the current drawing. Tokens and routes are supplied posit
 data, independent of inspection. Viewport state belongs to `ScalingWrapper`; a new
 map mounts a fresh wrapper and starts fitted. No map-view state is serialized.
 
-There is no Action Draft, Back, Undo, replay, or history lifecycle in this viewer.
+There is no Action Selection, Back, Undo, replay, or history lifecycle in this viewer.
 Future Game Session consumers must supply the intended visible position and own
 selection invalidation at their session boundaries. The shared scene renders the
 supplied position without initiating actions or inferring live/history mode.
@@ -264,7 +264,7 @@ History records the start or flotation and payments. Company details show separa
 started/funded/floated/operated facts and reserved or placed home locations.
 
 The harness selects Share trading, Starting companies, or Flotation. Each has its
-own persisted example; switching disposes the session and discards drafts. Reload
+own persisted example; switching disposes the session and discards selections. Reload
 restores committed state. These controls select examples, not game-rule actions.
 Desktop/mobile checks cover both Back stages, confirmation, reload, position/title
 switching, market/cash/ownership results and complete Undo of flotation.
@@ -310,12 +310,12 @@ counts from its exposed `gameState`, including History View. Static maps, manife
 layouts, and station colors come from title UI configuration. Shared modules have
 no title dependencies. Prepared placements persist with the financial example.
 
-Map inspection is manual local presentation state, separate from stock drafts.
+Map inspection is manual local presentation state, separate from stock selections.
 It is hidden during `updatingVisibleState`. Hex inspection remains valid while its
 location exists; path, node, and slot inspection also require the same tile face
 and a valid target in the displayed drawing. Returning to a matching historical
 face can restore that inspection. Station exchange alone preserves the selection.
-Stock Back and Undo retain map inspection; neither consumes it as a stock draft.
+Stock Back and Undo retain map inspection; neither consumes it as a stock selection.
 
 The shared MapViewer composes MapScene, MapInspector, and Common ScalingWrapper.
 Fit, focus, pan, zoom, fullscreen, and style choices generate no Game Actions.
@@ -336,11 +336,11 @@ hotseat styles without extra actions. Shared map tests retain fit/zoom/pan cover
 
 ### Track construction
 
-The session owns a manual location → tile → placement draft. Placement includes
+The session owns a manual location → tile → placement selection. Placement includes
 rotation and the mapping of old stop IDs to the new tile. A single remaining
 placement is auto-selected only when choosing the tile; no reactive loop chooses
 or commits Actions. Back pops the last manual stage, skipping any auto placement.
-Undo clears a manual draft before invoking committed history Undo. Reselecting a
+Undo clears a manual selection before invoking committed history Undo. Reselecting a
 location or tile removes downstream choices.
 
 Legal target IDs come from the same TrackConstruction evaluator used by LayTile.
@@ -356,16 +356,16 @@ hex, so old path/slot identities never highlight the wrong preview object.
 The inspector describes that preview. Inventory counts, treasury, action history
 and the actual game state remain committed values until Confirm track.
 
-Drafts and targets are hidden in History View and while updatingVisibleState.
-beforeNewState clears the draft. Back, Undo and history restoration redraw the
+Selections and targets are hidden in History View and while updatingVisibleState.
+beforeNewState clears the selection. Back, Undo and history restoration redraw the
 committed tiles and stations. Fit/focus, pan/zoom and player style do not change
-the draft. Confirmation calls the session's LayTile method; Finish track calls its
+the selection. Confirmation calls the session's LayTile method; Finish track calls its
 FinishTrack method, which initializes the station step and transitions directly
 to PlacingStation.
 The prototype continues into station placement. Each committed lay appears in construction history with hex,
 tile, rotation and cost.
 
-Desktop checks cover TOP's manual rotation, Back, draft-clearing Undo, two lays,
+Desktop checks cover TOP's manual rotation, Back, selection-clearing Undo, two lays,
 second-lay cost, history, reload, and full Undo; and 1889's single auto placement,
 Back skipping it, station-preserving upgrade, Finish track and Undo. Shared
 semantic preview/target rendering is lasting; the control panel remains provisional.
@@ -375,8 +375,8 @@ semantic preview/target rendering is lasting; the control panel remains provisio
 The session owns manual station → city-slot selections. An explicit click on a
 hex or city with exactly one legal slot chooses that position; multiple legal
 slots require a slot click or dropdown choice. No station is auto-selected.
-Back removes the position before the station; Undo clears a manual draft before
-undoing a committed action and its cascade. Drafts are hidden during History View
+Back removes the position before the station; Undo clears a manual selection before
+undoing a committed action and its cascade. Selections are hidden during History View
 and updatingVisibleState, and cleared by beforeNewState. Only session methods
 create PlaceStation and FinishStations Actions.
 
@@ -408,16 +408,16 @@ company rosters, allowance usage and the current train limit from exposed gameSt
 Unavailable offers state the rule or implementation boundary. Purchases that
 advance a phase use the phase-change and compulsory-discard flow below.
 
-Train selection is one manual local draft, with no automatic selection. It names
+Train selection is one manual local selection, with no automatic selection. It names
 an actual finite train or the next deterministic unlimited identity. Back clears
-that choice. Undo clears a manual draft before undoing a committed purchase.
-History and updatingVisibleState hide the draft; beforeNewState clears it. A stale
+that choice. Undo clears a manual selection before undoing a committed purchase.
+History and updatingVisibleState hide the selection; beforeNewState clears it. A stale
 choice cannot confirm without passing the same evaluator as the BuyTrain Action.
 The component calls session methods; only explicit confirmation buys the train.
 
 The preview highlights a selected depot rank and states its price. Money, supply,
 rosters and purchase history remain canonical until confirmation. History restores
-those values, and returning Live does not restore a cleared draft. Map inspection,
+those values, and returning Live does not restore a cleared selection. Map inspection,
 styles and viewport controls remain independent. No map overlay represents an
 uncommitted train purchase. Existing station/track examples do not skip the missing
 route and dividend steps to enter BuyingTrains. Finish operating turn checks compulsory train ownership before advancing.
@@ -434,16 +434,16 @@ revenue, distance and set-level track-conflict feedback. Invalid sets cannot be
 confirmed. No optimizer or automatic route selection runs in the editor.
 
 Back removes one path, then the start, then train selection. Undo clears all manual
-route drafts before committed Undo. Draft overlays/controls are hidden in history
+route selections before committed Undo. Selection overlays/controls are hidden in history
 and during updatingVisibleState; beforeNewState clears them. The editor is rebuilt
 from the next exposed game state. Reload restores committed results only. Map
-style and viewport changes preserve drafts. Save/edit/remove controls do not
+style and viewport changes preserve selections. Save/edit/remove controls do not
 mutate canonical state or generate Actions.
 
 A selected train can start at a map revenue-center/slot click or the center
 selector. Connected path clicks and Next track buttons append semantic path IDs.
-Other hits retain map inspection. Draft paths are amber; saved routes have distinct
-colors. Route drafts retain only canonical location/node/path IDs, excluding
+Other hits retain map inspection. Selected paths are amber; saved routes have distinct
+colors. Route selections retain only canonical location/node/path IDs, excluding
 presentation fields from map selections. While route overlays are present, the reachability controls and blue
 legend are hidden. Route overlays replace reachable-track overlays, retaining
 the existing layer ordering below node artwork and selection. History renders
@@ -460,13 +460,13 @@ implied by a displayed route total. The route panel remains disposable.
 Payout choice is manual session-owned local selection. Its preview uses the same
 EarningsDistribution evaluator as DistributeEarnings. Back clears the choice;
 Undo clears a manual choice before undoing a committed action. History and
-updatingVisibleState hide the draft; beforeNewState clears it. Reload restores
+updatingVisibleState hide the selection; beforeNewState clears it. Reload restores
 only committed earnings. Confirmation shows recipient amounts, retained revenue,
 rounding/bonus supplements and share-price movement; it never changes route
 geometry. Committed payment details remain visible during train purchasing.
 
 DistributeEarnings enters BuyingTrains. Finish operating turn is disabled while a
-train purchase is drafted or a compulsory train is missing. The rules own company
+train purchase is selected or a compulsory train is missing. The rules own company
 completion, the next operator, private income at OR entry and the return to stock
 trading. The operating-step strip and company order reflect canonical state.
 Undo across a turn boundary also restores automatic round and income changes.
@@ -488,10 +488,10 @@ Completed events show rusted and deferred train identities in phase history.
 Discard selection is manual session state; Back clears it, Undo clears it before
 committed Undo. History/updatingVisibleState hide the selection and beforeNewState
 clears it. Reload restores the pending company and continuation without restoring
-a draft. No automatic selection consumes an Undo. Confirming the final discard
+a selection. No automatic selection consumes an Undo. Confirming the final discard
 resumes the original company automatically without starting another player turn.
 
-Diesel exchanges reuse the manual train-purchase draft and confirmation, including
+Diesel exchanges reuse the manual train-purchase selection and confirmation, including
 its exchangeTrainId. Preview shows the trade-in, price, and resulting phase.
 Market trains appear separately from depot supply. TOP's retained 4+ trains are
 marked as awaiting a final operation and unavailable for trade. Their rusting
@@ -504,9 +504,9 @@ are integrated in their planned later slices.
 ## Private exchanges and lifecycle
 
 Private-company cards show ownership, income, closure, and eligible exchanges.
-Selecting an exchange creates a manual session draft naming its owner and target.
-Back clears that draft; Undo clears it before undoing committed history. History
-and updatingVisibleState hide the draft; beforeNewState clears it.
+Selecting an exchange creates a manual session selection naming its owner and target.
+Back clears that selection; Undo clears it before undoing committed history. History
+and updatingVisibleState hide the selection; beforeNewState clears it.
 
 An optional Dôgo exchange can belong to a different player than the ordinary turn.
 The first active identity remains the ordinary decision owner; additional active
@@ -523,9 +523,9 @@ ordinary game setup and negotiated powers remain later slices.
 ### Negotiated purchases and private powers
 
 The disposable company-decisions panel is session-owned. Asset/price selection,
-private tile placement, and early train selection are manual local drafts. Back
-clears the draft; Undo clears a manual draft first, then uses engine history.
-Drafts hide during updatingVisibleState and History View and clear in beforeNewState.
+private tile placement, and early train selection are manual local selections. Back
+clears the selection; Undo clears a manual selection first, then uses engine history.
+Selections hide during updatingVisibleState and History View and clear in beforeNewState.
 Committed offers, seller tile choices, and track-permission requests remain in
 Game State across reload. Their entitled player decides before ordinary play resumes.
 Other stock, construction, route, and train controls remain unavailable meanwhile.
@@ -547,8 +547,8 @@ The prototype funding panel shows the selected train, remaining shortfall,
 ordered liable owners, and only the current legal funding choices. FundTrain is
 an explicit committed decision; its funding record persists across reload.
 Issuance and contributions require explicit confirmation of the displayed amount.
-A share-sale selection is a manual Game Session draft: Back clears it, and Undo
-clears it before reversing a committed Action. Drafts hide in History View and
+A share-sale selection is a manual Game Session selection: Back clears it, and Undo
+clears it before reversing a committed Action. Selections hide in History View and
 while updatingVisibleState, and clear in beforeNewState. Components call session
 methods for every Action. Other operating, private, and stock actions are
 unavailable during funding. Only the responsible player may act.
@@ -579,12 +579,12 @@ same breakpoint and its full name at wider sizes; its token remains visible.
 EighteenXXSession.selectMap is the common map-intent entry point for both the
 table and the logic workbench. Route extension/start takes precedence, followed by
 track selection, station selection and ordinary inspection. The existing session
-owns all drafts and invalidates them through beforeNewState/updatingVisibleState.
+owns all selections and invalidates them through beforeNewState/updatingVisibleState.
 The shell does not create another selection state or publish Actions itself.
 
 Header Undo delegates to the title session's existing undo method and is disabled
-while busy, changing visible state or viewing history. hasActionDraft reports the
-same drafts consumed by that method, including TOP's split draft. Embedded action
+while busy, changing visible state or viewing history. hasLocalSelection reports the
+same selections consumed by that method, including TOP's split selection. Embedded action
 controls suppress their duplicate Undo buttons only in the table composition;
 Back remains local to the active flow. History controls and history rows use the
 existing History interface. The action list shows processed player Actions; system
@@ -592,7 +592,7 @@ consequences remain in canonical history and are navigable with HistoryControls.
 
 Map, Market and Spreadsheet tabs sit between the action panel and the content
 viewport, outside ScalingWrapper. Selection is local to the table and does not
-clear an Action Draft or change Game State/history. The map stays mounted with
+clear an Action Selection or change Game State/history. The map stays mounted with
 its viewport dimensions intact while inactive, preserving pan/zoom and inspection;
 inactive panels are hidden from assistive technology and inert. Market renders
 canonical visible-state prices and company markers. Spreadsheet is a placeholder.
@@ -615,7 +615,7 @@ pill styling; its operating status remains available through accessible semantic
 Pills sit below the operating-order heading. Each places a 38px company token filling the rounded left end
 beside two compact lines: the available station-token count and tiny token icon
 alongside dollar-prefixed cash above the owned train names. The token count and
-icon are grayed out at zero. These summaries follow the displayed state, not Action Drafts.
+icon are grayed out at zero. These summaries follow the displayed state, not Action Selections.
 During stock rounds it shows the prospective order supplied by the title's rules.
 The strip owns no selection or Action; artwork has full company names available
 as tooltips and accessible list labels. Interruptions do not substitute the deciding
@@ -671,7 +671,7 @@ and a subtle border for the currently acting player. Cash, liquidity, shares, Ce
 bold) and private-company table (income per OR and value). Liquidity is cash plus
 one legal stock-sale block per company at current terms, excluding corporate cash
 and negotiated private sales. Valuation is title-owned. All values follow the
-displayed state, including Undo/history; no local draft affects them.
+displayed state, including Undo/history; no local selection affects them.
 
 Shares totals directly owned share units, including multi-share president
 certificates and numbered PEIR interests; it excludes privates and company-owned
@@ -692,19 +692,19 @@ Hovering a legal track-lay location uses the same solid red outline as selection
 
 Selecting a legal construction hex opens tile choices on a compact, evenly spaced circular arc around it. The arc prefers directly above the hex and rotates only as far as needed to clear viewport edges, without snapping to cardinal directions. It adjusts radius/size when rotation alone cannot fit. Choices match the map hex scale, shrinking only when needed to fit the viewport. Icon controls scale with the map. Both render outside the scaling wrapper and follow the hex through pan, zoom, and layout changes. Existing shared tile artwork and title layouts render each choice in a legal rotation.
 
-Choosing a tile previews its first legal placement. Clicking that same map hex advances to the next distinct legal rotation, using its first legal station mapping; choosing another legal hex replaces the draft. Before tile choice, clicking away dismisses the picker and no cancel icon appears. After tile choice, cancel collapses the visible choices into the hex before clearing the draft and closing the picker. The accept icon calls the existing session confirmation, including consent when required. Neither tile choice nor rotation commits an action. Back/Undo retain source-tagged staged behavior; lifecycle invalidation and history suppress the picker with the existing track selection. Clicking away from the initial tile choices, including another tab, clears that draft; a selected tile preview remains staged when switching tabs.
+Choosing a tile previews its first legal placement. Clicking that same map hex advances to the next distinct legal rotation, using its first legal station mapping; choosing another legal hex replaces the selection. Before tile choice, clicking away dismisses the picker and no cancel icon appears. After tile choice, cancel collapses the visible choices into the hex before clearing the selection and closing the picker. The accept icon calls the existing session confirmation, including consent when required. Neither tile choice nor rotation commits an action. Back/Undo retain source-tagged staged behavior; lifecycle invalidation and history suppress the picker with the existing track selection. Clicking away from the initial tile choices, including another tab, clears that selection; a selected tile preview remains staged when switching tabs.
 
 The table action area keeps construction status, cost and Finish Track, with selection controls on the map. The economy workbench retains its existing explicit controls. Verification covers both titles, on-screen arc bounds, preview/rotation/cancel, acceptance, history, reload, Undo, and tab preservation.
 
 The map construction header reserves inline space for the pending cost. Choosing, rotating, cancelling, or accepting a tile must not add a cost row or resize the map viewport.
 
-### Draft tile motion
+### Selected tile motion
 
-The map picker owns local, cancellable 220ms DOM motion triggered by a tile-choice or cancel gesture, not by committed game actions. On opening, choices fly and scale out from the selected hex into the arc. The selected choice moves to the hex; other choices remain selectable in their original arc positions, leaving a gap for the chosen tile. Selecting a replacement returns the previous choice to the arc. Cancel interrupts the current motion, shrinks all visible tiles into the hex over 160ms, then clears the draft and closes the picker. Clicking away from the initial choices uses the same collapse. Reduced-motion preference skips the flight.
+The map picker owns local, cancellable 220ms DOM motion triggered by a tile-choice or cancel gesture, not by committed game actions. On opening, choices fly and scale out from the selected hex into the arc. The selected choice moves to the hex; other choices remain selectable in their original arc positions, leaving a gap for the chosen tile. Selecting a replacement returns the previous choice to the arc. Cancel interrupts the current motion, shrinks all visible tiles into the hex over 160ms, then clears the selection and closes the picker. Clicking away from the initial choices uses the same collapse. Reduced-motion preference skips the flight.
 
-A session-owned, draft-scoped in-flight flag keeps the map on its current committed artwork until the moving tile lands, avoiding duplicate preview artwork. The picker is the sole writer during the motion; selection replacement, teardown, and visible-state invalidation clear it. Accept interrupts and finishes the preview before invoking the existing action. New gestures retarget from current DOM positions. No animation frame writes interpolated motion into reactive state. History, replay, and silent restore do not create draft motion; teardown cancels outstanding DOM animations. The masking projection remains based on displayed construction state throughout busy updates.
+A session-owned, selection-scoped in-flight flag keeps the map on its current committed artwork until the moving tile lands, avoiding duplicate preview artwork. The picker is the sole writer during the motion; selection replacement, teardown, and visible-state invalidation clear it. Accept interrupts and finishes the preview before invoking the existing action. New gestures retarget from current DOM positions. No animation frame writes interpolated motion into reactive state. History, replay, and silent restore do not create selected tile motion; teardown cancels outstanding DOM animations. The masking projection remains based on displayed construction state throughout busy updates.
 
-Draft cancel/accept controls use a local 120ms opacity fade on entry and exit. On cancel, the fade begins alongside the tile collapse. This is non-blocking presentation, including picker teardown, with no opacity transition under reduced motion.
+Selection cancel/accept controls use a local 120ms opacity fade on entry and exit. On cancel, the fade begins alongside the tile collapse. This is non-blocking presentation, including picker teardown, with no opacity transition under reduced motion.
 
 Tile text uses geometric-precision SVG rendering so revenue baselines remain centered during small-scale picker animations without waiting for pointer-triggered repaint.
 
@@ -716,7 +716,7 @@ Viewport-driven picker repositioning settles with a 100ms CSS translate transiti
 
 Private-company rows in player panels and company cards (including purchasable privates) open title-owned descriptions on click or keyboard activation of the name. The shared floating layer centers above the row, flips or shifts against viewport boundaries, and locally rises 6px into place over 140ms (suppressed with reduced motion). The next click anywhere, Escape, or row removal dismisses it. This local information affordance neither stages nor commits game actions.
 
-Accepting a track lay fades unchosen picker tiles in place over 120ms as the draft picker disappears. This non-blocking local exit does not delay confirmation or animate the committed tile. Cancel retains its collapse; reduced motion skips the exit.
+Accepting a track lay fades unchosen picker tiles in place over 120ms as the tile picker disappears. This non-blocking local exit does not delay confirmation or animate the committed tile. Cancel retains its collapse; reduced motion skips the exit.
 
 A company portfolio header can expose its title-owned private description using the same click popover as private rows. TOP uses this for Union Bank; player headers remain ordinary headings.
 
@@ -771,11 +771,11 @@ Operating order offers Tokens only / Detailed chips icons beside its heading, se
 
 Company cash follows Market, separated by the same stronger divider as the ownership pools. It is a column in Company view and a row in Player view, sourced from displayed company cash accounts. Intersections with owner statistics are not applicable and show dashes.
 
-During TOP offer bidding the action panel shows the lot/value, current bid if present, next bidder, a minus/amount/plus control, Bid and Pass. Increment and affordability come from the auction model; disabled controls prevent stepping below the legal minimum or above available cash. Initial amount is the minimum without a staged selection. Amount changes use the session draft; Bid commits through the session and Pass clears the draft before passing. The next turn resets to its legal minimum through the normal session lifecycle. The bidding controls replace the prototype pile/award summaries in the table only.
+During TOP offer bidding the action panel shows the lot/value, current bid if present, next bidder, a minus/amount/plus control, Bid and Pass. Increment and affordability come from the auction model; disabled controls prevent stepping below the legal minimum or above available cash. Initial amount is the minimum without a staged selection. Amount changes use the session selection; Bid commits through the session and Pass clears the selection before passing. The next turn resets to its legal minimum through the normal session lifecycle. The bidding controls replace the prototype pile/award summaries in the table only.
 
 PrivateCard is the shared name/value/income/description presentation for private popovers and the auctioned lot on the action panel's left. Numeric facts are supplied by callers, omitted when inapplicable, and never inferred from descriptions. Popover placement, dismissal and animation remain owned by PrivateDescription.
 
-Construction picker and confirmation controls render in ScalingWrapper's unscaled viewport overlay, inside the fullscreen stacking context. They measure that same viewport for arc fitting and screen-to-local coordinates in either mode; fullscreen does not remount the picker or change draft/animation ownership. Other games can omit the additive overlay snippet. This changes no host bridge contract; TOP and 1889 UI artifacts must be republished to adopt it, with no logic or site publication required.
+Construction picker and confirmation controls render in ScalingWrapper's unscaled viewport overlay, inside the fullscreen stacking context. They measure that same viewport for arc fitting and screen-to-local coordinates in either mode; fullscreen does not remount the picker or change selection/animation ownership. Other games can omit the additive overlay snippet. This changes no host bridge contract; TOP and 1889 UI artifacts must be republished to adopt it, with no logic or site publication required.
 
 During an offer-pile opening auction, each player's card lists their remaining auction lot immediately after finances, with names and face values in the same order as the offer panel. The currently offered item remains in its pile until awarded; awards remove it, Undo restores it, and completed auctions hide this section. Corporate portfolios and titles without player-assigned offer piles do not invent auction lots.
 
@@ -785,11 +785,11 @@ Empty Ownership sections are hidden only while an opening auction is incomplete 
 
 Title-supplied numbered share names enable indented number/name rows under the owning company's row. These companies appear last in portfolios (PEIR for TOP); ordinary holdings keep descending ownership order. Only active certificates owned by that portfolio appear, so purchases, exchanges and Undo update the list without local tracking.
 
-Company names and tokens in portfolio ownership rows focus the Map tab on all of that company's placed stations. The bounds include roughly two surrounding hexes on each side to preserve track context even for a single station. Clicking the same company again fits the full map. Focus is camera-only, creates no selection/action and does not alter construction drafts. A title may exclude special companies (TOP's PEIR); companies without placed stations have no focus interaction. Existing operating-order chip expansion remains independent.
+Company names and tokens in portfolio ownership rows focus the Map tab on all of that company's placed stations. The bounds include roughly two surrounding hexes on each side to preserve track context even for a single station. Clicking the same company again fits the full map. Focus is camera-only, creates no selection/action and does not alter construction selections. A title may exclude special companies (TOP's PEIR); companies without placed stations have no focus interaction. Existing operating-order chip expansion remains independent.
 
 A title may associate a numbered share with a map location. Clicking that share's number/name focuses its location with the same context padding as company station focus; clicking again fits the map. TOP maps PEIR rights to their railway's printed home location, even before that railway forms. PEIR's aggregate ownership row stays noninteractive.
 
-The table's stock-round panel starts with legal Buy/Sell/Start/Exchange/Pass-or-Finish options. Stock action and sale-company navigation use manual stagedSelection entries in the session, while company starts retain their existing company/price stages. Back/Undo pop draft decisions before reversing committed actions; state transitions clear the menu. Buy choices preserve purchaser, pool, certificate size/presidency and numbered identity, combining only equivalent ordinary certificates. Selecting a purchase commits it directly. Start selects company then legal par price and commits; sales select company and quantity, retain ordered multi-company batches, and commit with Sell. Private exchanges remain available through Exchange. No automatic selection effects or UI-constructed Actions are introduced.
+The table's stock-round panel starts with legal Buy/Sell/Start/Exchange/Pass-or-Finish options. Stock action and sale-company navigation use manual stagedSelection entries in the session, while company starts retain their existing company/price stages. Back/Undo pop selection decisions before reversing committed actions; state transitions clear the menu. Buy choices preserve purchaser, pool, certificate size/presidency and numbered identity, combining only equivalent ordinary certificates. Selecting a purchase commits it directly. Start selects company then legal par price and commits; sales select company and quantity, retain ordered multi-company batches, and commit with Sell. Private exchanges remain available through Exchange. No automatic selection effects or UI-constructed Actions are introduced.
 
 Company focus also works before home-station placement: if there are no placed stations, use that company's canonical station reservations. The same target helper controls button availability and camera framing. Once stations are placed their actual locations take precedence.
 
@@ -1115,7 +1115,7 @@ Placement masking focuses the map on the union of its legal locations, with the 
 
 Staged revenue layout favors horizontally centered rows or vertically centered columns. Track/stop clearance and staying inside the hex take precedence over centering.
 
-Station-placement selection outlines belong to the placement draft, matching track placement. They disappear when the visible-state update begins and do not return after placement, cancellation, or Undo clears the draft. General map inspection selections also clear before publishing a new visible state; historical-map previews retain their separate explicit selection ownership.
+Station-placement selection outlines belong to the placement selection, matching track placement. They disappear when the visible-state update begins and do not return after placement, cancellation, or Undo clears the selection. General map inspection selections also clear before publishing a new visible state; historical-map previews retain their separate explicit selection ownership.
 
 Stock-menu navigation (Buy, Sell, Start, Exchange and title-specific staged choices) uses light buttons. Dark action-button treatment is reserved for submission. The root stock prompt includes an inline lowercase pass, or end turn after acting, only when FinishStockTurn is legal.
 
@@ -1185,7 +1185,7 @@ are hidden. Source selection resets before publishing the next game state.
 A horizontal operating-step strip sits below the turn header. The current canonical
 step is highlighted, prior steps muted, and later mandatory steps noninteractive.
 Station/Run destinations may finish optional track/station steps through session
-methods and canonical actions. Pending drafts or decisions block these shortcuts.
+methods and canonical actions. Pending selections or decisions block these shortcuts.
 The session waits for each visible transition and stops if a required decision or
 company/round boundary intervenes. Prior-step buttons never navigate or undo.
 Steps completed without an action show an inline second line: Not available for
@@ -1200,7 +1200,7 @@ visible canonical step state, including partial progress in the current step.
 The stock round uses a persistent rectangular action strip directly beneath the
 header. Only legal action categories appear; title UI supplies additional choices
 (such as Split) and their selected state. Selection replaces the current manual
-stock draft using the session; switching away from Split clears its draft too.
+stock selection using the session; switching away from Split clears its selection too.
 Buy and Start show the eligible purchasing owners within their choices, only when
 there are multiple owners. The purchasing-owner selector shares the stock action
 strip’s sliding pill highlight, retains corporate cash labels, and follows the
@@ -1730,7 +1730,7 @@ The picture button beside Undo is available only when a title supplies board
 artwork. It switches this client's table between generic and published
 presentations, with a pressed state and an accessible label describing the next
 choice. The choice lasts for the mounted table and resets to generic on reload.
-It creates no Action, changes no other client's view, and retains any Action Draft
+It creates no Action, changes no other client's view, and retains any Action Selection
 and map selection. Switching fits the selected presentation's full bounds.
 
 The image renders at its native dimensions behind laid tiles, station tokens,
@@ -1745,7 +1745,7 @@ their displayed map state. Existing masks, route emphasis and selection preceden
 continue to apply. The table owns the local presentation choice; MapScene owns the
 background and overlay composition. No Game Session transient value is added.
 
-Browser verification switches modes with a track draft, commits a lay, steps back
+Browser verification switches modes with a track selection, commits a lay, steps back
 and returns to Live View, then undoes the lay at desktop and mobile widths. The
 image remains visible while tiles follow the displayed state. A title without
 artwork retains its generic map and has no picture button.

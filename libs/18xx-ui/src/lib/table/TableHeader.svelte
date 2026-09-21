@@ -106,7 +106,7 @@
             disabled={session.busy ||
                 session.updatingVisibleState ||
                 session.isViewingHistory ||
-                !(session.hasActionDraft || session.undoableAction)}>Undo</button
+                !(session.hasLocalSelection || session.undoableAction)}>Undo</button
         >
         {#if artworkAvailable}
             <button class="artwork-toggle"

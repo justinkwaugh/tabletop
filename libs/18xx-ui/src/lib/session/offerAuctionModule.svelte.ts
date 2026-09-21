@@ -54,19 +54,19 @@ export class OfferAuctionModule {
         await this.confirm()
     }
     async confirm() {
-        const draft = this.selection
-        assert(this.canAct && draft && this.model, 'Select an offer or bid')
+        const selection = this.selection
+        assert(this.canAct && selection && this.model, 'Select an offer or bid')
         if (this.model.auction.bidding) {
-            assert(draft.amount !== undefined, 'Enter a bid')
+            assert(selection.amount !== undefined, 'Enter a bid')
             await this.session.applyAction(
                 this.session.createPlayerAction(BidOnAuctionLot, {
-                    lotId: draft.lotId,
-                    amount: draft.amount
+                    lotId: selection.lotId,
+                    amount: selection.amount
                 })
             )
         } else
             await this.session.applyAction(
-                this.session.createPlayerAction(OfferAuctionLot, { lotId: draft.lotId })
+                this.session.createPlayerAction(OfferAuctionLot, { lotId: selection.lotId })
             )
     }
     async pass() {

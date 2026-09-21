@@ -52,7 +52,7 @@ export class RouteEditor {
     get extensions() {
         return this.start ? this.evaluation.network.extensions(this.start, this.paths) : []
     }
-    get hasDraft() {
+    get hasSelection() {
         return Boolean(this.trainId || this.routes.length)
     }
     selectTrain(trainId: string) {

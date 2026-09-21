@@ -56,11 +56,11 @@ export class PrivatesModule {
         )
     })
     exchangeSelection = $derived.by(() => {
-        const draft = this.exchangeChoice.value('choice')
+        const chosen = this.exchangeChoice.value('choice')
         return this.session.selectionsVisible &&
-            draft &&
-            this.exchangeOffers.some((offer) => sameExchange(offer, draft))
-            ? draft
+            chosen &&
+            this.exchangeOffers.some((offer) => sameExchange(offer, chosen))
+            ? chosen
             : undefined
     })
 

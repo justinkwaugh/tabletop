@@ -5,7 +5,7 @@
         model,
         playerId,
         playerName,
-        draft,
+        selection,
         disabled,
         onChoose,
         onBidChange,
@@ -19,7 +19,7 @@
         model: OfferAuction
         playerId?: string
         playerName: (id: string) => string
-        draft?: OfferAuctionSelection
+        selection?: OfferAuctionSelection
         disabled: boolean
         onChoose: (id: string) => void
         onBidChange: (amount: number) => void
@@ -31,13 +31,13 @@
         canUndo: boolean
     } = $props()
     const bidding = $derived(model.auction.bidding)
-    const selected = $derived(draft && model.lots.find((lot) => lot.id === draft.lotId))
+    const selected = $derived(selection && model.lots.find((lot) => lot.id === selection.lotId))
     const confirmable = $derived(
         playerId &&
-            draft &&
+            selection &&
             (bidding
-                ? draft.amount !== undefined && model.canBid(playerId, draft.lotId, draft.amount)
-                : model.canOffer(playerId, draft.lotId))
+                ? selection.amount !== undefined && model.canBid(playerId, selection.lotId, selection.amount)
+                : model.canOffer(playerId, selection.lotId))
     )
 </script>
 
@@ -71,7 +71,7 @@
                             'No bid'}{participant.passed ? ' · Passed' : ''}
                     </li>{/each}
             </ul>
-            {#if !draft}<button
+            {#if !selection}<button
                     onclick={() => onChoose(bidding.lotId)}
                     disabled={disabled ||
                         !playerId ||
@@ -92,13 +92,13 @@
                         <span>{lot.name} · {lot.price}</span>
                         {#if !bidding && pile.playerId === model.auction.auctioneerId}<button
                                 onclick={() => onChoose(lotId)}
-                                disabled={disabled || !!draft}>Offer {lot.name}</button
+                                disabled={disabled || !!selection}>Offer {lot.name}</button
                             >{/if}
                     </div>
                 {:else}<p>All items sold</p>{/each}
             </article>{/each}
     </div>
-    {#if draft && selected}<div aria-label="Auction selection" class="selection">
+    {#if selection && selected}<div aria-label="Auction selection" class="selection">
             <strong>{selected.name}</strong>
             {#if bidding}<label
                     >Bid amount <input
@@ -106,7 +106,7 @@
                         min={model.minimumBid}
                         max={playerId ? model.cash(playerId) : 0}
                         step={model.rules.increment}
-                        value={draft.amount}
+                        value={selection.amount}
                         oninput={(event) => onBidChange(event.currentTarget.valueAsNumber)}
                     /></label
                 >{/if}

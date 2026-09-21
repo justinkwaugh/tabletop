@@ -138,7 +138,7 @@ test('table commits a lay and restores map, portfolio and controls through histo
 })
 
 for (const title of ['TOP', '1889']) {
-    test(`${title} company details preserve drafts and distinguish ownership`, async ({ page }) => {
+    test(`${title} company details preserve selections and distinguish ownership`, async ({ page }) => {
         const errors: string[] = []
         page.on('pageerror', (error) => errors.push(error.message))
         await page.goto('/table')
@@ -274,7 +274,7 @@ for (const title of ['TOP', '1889']) {
     })
 }
 
-test('draft tile motion keeps alternatives, closes on cancel, and preserves the mask through accept and Undo', async ({ page }) => {
+test('selected tile motion keeps alternatives, closes on cancel, and preserves the mask through accept and Undo', async ({ page }) => {
     await page.goto('/table')
     const hex = page.locator('[data-map-location="K17"]')
     await hex.click()

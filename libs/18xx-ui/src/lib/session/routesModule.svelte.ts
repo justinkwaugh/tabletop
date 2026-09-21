@@ -42,11 +42,11 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     canRun = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('RunTrains')
     )
-    draftVisible = $derived.by(
+    editorVisible = $derived.by(
         () => this.session.selectionsVisible && this.session.state.machineState === 'RunningTrains'
     )
     solved = $derived.by((): SolvedRoutes<State> | undefined => {
-        if (!this.draftVisible) return undefined
+        if (!this.editorVisible) return undefined
         const state = this.session.state
         const companyId = state.routeStep?.companyId
         if (companyId && !trainsOwnedBy(state, { kind: 'company', companyId }).length) {
@@ -58,7 +58,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     })
     overlays = $derived.by((): RouteOverlay[] => {
         if (this.session.publishing) return []
-        const routes = this.draftVisible
+        const routes = this.editorVisible
             ? (this.solved?.result.routes ?? this.editor.routes)
             : (this.session.state.routeStep?.result?.routes ?? [])
         const overlays: RouteOverlay[] = routes.map((route, index) => ({
@@ -66,8 +66,8 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
             color: routeColor(index),
             segments: route.paths
         }))
-        if (this.draftVisible && this.editor.route)
-            overlays.push({ id: 'route-draft', color: '#d58400', segments: this.editor.paths })
+        if (this.editorVisible && this.editor.route)
+            overlays.push({ id: 'route-selection', color: '#d58400', segments: this.editor.paths })
         return overlays
     })
     displayed = $derived.by(() =>
@@ -130,7 +130,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         const editor = this.editor
         assert(
             this.canRun && editor.companyId && !editor.trainId && editor.submission?.result,
-            'Finish the route draft before submitting'
+            'Finish the route selection before submitting'
         )
         await this.session.applyAction(
             this.session.createPlayerAction(RunTrains, {
@@ -141,10 +141,10 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     }
 
     hasManual() {
-        return this.editor.hasDraft
+        return this.editor.hasSelection
     }
     undo() {
-        if (!this.editor.hasDraft) return false
+        if (!this.editor.hasSelection) return false
         this.editor.clear()
         return true
     }

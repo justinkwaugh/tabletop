@@ -55,7 +55,7 @@
         </div>
         {#if showUndo}<button class="local-undo"
             onclick={() => session.undo()}
-            disabled={session.busy || (!session.hasSplitDraft && !session.undoableAction)}>Undo</button>{/if}
+            disabled={session.busy || (!session.splitInProgress && !session.undoableAction)}>Undo</button>{/if}
         {#if session.splitPreview?.reason}<p role="status">{session.splitPreview.reason}</p>{/if}
         {#if preview}
             <table aria-label="Split share ownership">

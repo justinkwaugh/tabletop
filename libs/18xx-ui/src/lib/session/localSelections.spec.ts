@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { LocalSelections, type LocalSelection } from './localSelections.js'
 
-function draft(name: string, log: string[], steps = 0, pending = steps > 0) {
+function selection(name: string, log: string[], steps = 0, pending = steps > 0) {
     const state = { steps, pending }
     const entry: LocalSelection = {
         hasManual: () => state.pending,
@@ -22,59 +22,59 @@ function draft(name: string, log: string[], steps = 0, pending = steps > 0) {
 }
 
 describe('LocalSelections', () => {
-    it('unwinds only the first draft that consumes the Undo, in registration order', () => {
+    it('unwinds only the first selection that consumes the Undo, in registration order', () => {
         const log: string[] = []
-        const drafts = new LocalSelections()
-        drafts.register(draft('empty', log))
-        drafts.register(draft('track', log, 1))
-        drafts.register(draft('stock', log, 1))
-        expect(drafts.undo()).toBe(true)
+        const selections = new LocalSelections()
+        selections.register(selection('empty', log))
+        selections.register(selection('track', log, 1))
+        selections.register(selection('stock', log, 1))
+        expect(selections.undo()).toBe(true)
         expect(log).toEqual(['undo:track'])
-        expect(drafts.undo()).toBe(true)
+        expect(selections.undo()).toBe(true)
         expect(log).toEqual(['undo:track', 'undo:stock'])
     })
 
     it('reports that nothing consumed the Undo so committed history can be undone', () => {
-        const drafts = new LocalSelections()
-        drafts.register(draft('empty', []))
-        expect(drafts.undo()).toBe(false)
+        const selections = new LocalSelections()
+        selections.register(selection('empty', []))
+        expect(selections.undo()).toBe(false)
     })
 
-    it('unwinds a multi-step draft one step at a time before later drafts', () => {
+    it('unwinds a multi-step selection one step at a time before later selections', () => {
         const log: string[] = []
-        const drafts = new LocalSelections()
-        drafts.register(draft('split', log, 2))
-        drafts.register(draft('stock', log, 1))
-        drafts.undo()
-        drafts.undo()
-        drafts.undo()
+        const selections = new LocalSelections()
+        selections.register(selection('split', log, 2))
+        selections.register(selection('stock', log, 1))
+        selections.undo()
+        selections.undo()
+        selections.undo()
         expect(log).toEqual(['undo:split', 'undo:split', 'undo:stock'])
     })
 
-    it('lets a title take precedence over the shared drafts', () => {
+    it('lets a title take precedence over the shared selections', () => {
         const log: string[] = []
-        const drafts = new LocalSelections()
-        drafts.register(draft('stock', log, 1))
-        drafts.register(draft('split', log, 1), 'first')
-        drafts.undo()
+        const selections = new LocalSelections()
+        selections.register(selection('stock', log, 1))
+        selections.register(selection('split', log, 1), 'first')
+        selections.undo()
         expect(log).toEqual(['undo:split'])
     })
 
-    it('keeps pending independent of whether Undo would consume the draft', () => {
-        const drafts = new LocalSelections()
-        drafts.register(draft('auto-selected station', [], 0, true))
-        expect(drafts.hasManual()).toBe(true)
-        expect(drafts.undo()).toBe(false)
+    it('keeps pending independent of whether Undo would consume the selection', () => {
+        const selections = new LocalSelections()
+        selections.register(selection('auto-selected station', [], 0, true))
+        expect(selections.hasManual()).toBe(true)
+        expect(selections.undo()).toBe(false)
     })
 
-    it('is pending when any draft is, and clears every draft', () => {
+    it('is pending when any selection is, and clears every selection', () => {
         const log: string[] = []
-        const drafts = new LocalSelections()
-        drafts.register(draft('track', log))
-        drafts.register(draft('stock', log, 1))
-        expect(drafts.hasManual()).toBe(true)
-        drafts.clear()
-        expect(drafts.hasManual()).toBe(false)
+        const selections = new LocalSelections()
+        selections.register(selection('track', log))
+        selections.register(selection('stock', log, 1))
+        expect(selections.hasManual()).toBe(true)
+        selections.clear()
+        expect(selections.hasManual()).toBe(false)
         expect(log).toEqual(['clear:track', 'clear:stock'])
     })
 })

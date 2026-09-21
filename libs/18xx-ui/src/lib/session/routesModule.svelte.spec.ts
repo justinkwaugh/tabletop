@@ -30,10 +30,10 @@ describe('RoutesModule', () => {
         expect(running('RunningTrains', ['RunTrains'], { interactive: false }).module.canRun).toBe(false)
     })
 
-    it('shows a route draft only while running trains with drafts visible', () => {
-        expect(running('RunningTrains', ['RunTrains']).module.draftVisible).toBe(true)
-        expect(running('StockRound', ['RunTrains']).module.draftVisible).toBe(false)
-        expect(running('RunningTrains', ['RunTrains'], { selectionsVisible: false }).module.draftVisible).toBe(false)
+    it('shows a route selection only while running trains with selections visible', () => {
+        expect(running('RunningTrains', ['RunTrains']).module.editorVisible).toBe(true)
+        expect(running('StockRound', ['RunTrains']).module.editorVisible).toBe(false)
+        expect(running('RunningTrains', ['RunTrains'], { selectionsVisible: false }).module.editorVisible).toBe(false)
     })
 
     it('solves an empty run immediately for a company that owns no trains', () => {
@@ -60,7 +60,7 @@ describe('RoutesModule', () => {
         expect(() => module.save()).toThrow('Routes are not active')
     })
 
-    it('has nothing pending without a route draft and yields Undo to game history', () => {
+    it('has nothing pending without a route selection and yields Undo to game history', () => {
         const { module } = running('RunningTrains', ['RunTrains'])
         expect(module.hasManual()).toBe(false)
         expect(module.undo()).toBe(false)

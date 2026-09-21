@@ -72,7 +72,7 @@ describe('DiscardModule', () => {
         )
     })
 
-    it('lets Undo consume the draft once, and clears it for a new state', () => {
+    it('lets Undo consume the selection once, and clears it for a new state', () => {
         const { discard } = discarding(2)
         discard.select('t1')
         expect(discard.choice.hasManual()).toBe(true)

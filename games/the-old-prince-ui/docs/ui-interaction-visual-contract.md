@@ -20,7 +20,7 @@ trading and operating content with the auction until it completes.
 - While a lot is being bid on, the bidding controls replace the offer choice.
 - When the auctioneer has one lot left, the engine records the offer as a system
   action and bidding opens without a manual offer.
-- Offer and bid choices are manual session drafts. Pass is an explicit action.
+- Offer and bid choices are manual session selections. Pass is an explicit action.
   No reactive behavior commits an offer, bid, pass, or award.
 
 ### Stalled forced purchase
@@ -31,7 +31,7 @@ auction actions. This is the accepted resolution, not an error state: the player
 whose bid or pass caused the stall uses Undo to take a different line. Undo stays
 available because eligibility follows the last user action, not the active player.
 
-### Branch split draft
+### Branch split selection
 
 Trigger: the active player chooses Split in the stock action strip, which is offered
 only when a branch remains and the player has an eligible parent. Choosing Split
@@ -85,14 +85,14 @@ These change shared presentation without adding interaction:
 
 ## Coexistence and precedence
 
-- **Split draft and stock menu.** They never coexist. Choosing Split clears the stock
-  menu, and the split panel replaces the operating content while a split draft exists.
-- **Split draft and opening auction.** Impossible together: Split requires the stock
+- **Split selection and stock menu.** They never coexist. Choosing Split clears the stock
+  menu, and the split panel replaces the operating content while a split selection exists.
+- **Split selection and opening auction.** Impossible together: Split requires the stock
   round, which begins only after the auction completes.
-- **Split draft and History View or state publication.** The draft is hidden, not
+- **Split selection and History View or state publication.** The selection is hidden, not
   merely disabled, whenever the session is viewing history, publishing visible
   state, busy, or the player is not the active stock player.
-- **Split draft and pending company decisions or flotations.** Those keep their
+- **Split selection and pending company decisions or flotations.** Those keep their
   shared handler precedence. A split cannot start once the turn's buy has been used.
 - **Stalled auction and auction actions.** The stall wins: no offer, bid, or pass is
   available, and only Undo changes the position.
@@ -101,7 +101,7 @@ These change shared presentation without adding interaction:
 
 ## Shared visual state
 
-### Split draft
+### Split selection
 
 - **Meaning.** The player's staged progress toward one split: that Split was chosen,
   the parent, the branch, the starting price, and the allocation.
@@ -115,19 +115,19 @@ These change shared presentation without adding interaction:
   allocation is created automatically with an empty default when a price is chosen,
   and becomes manual once the player edits it.
 - **Back and Undo.** Undo unwinds the latest manual stage first and consumes no game
-  action while a draft exists. Changing parent, branch, or price clears the later
-  stages. Once the draft is empty, Undo follows ordinary game history.
+  action while a selection exists. Changing parent, branch, or price clears the later
+  stages. Once the selection is empty, Undo follows ordinary game history.
 - **Lifetime.** Cleared before each new visible state is applied, and when selection
   is cancelled. It does not persist across reload.
 - **Validity.** While present it applies only when the session can preview a split.
   Otherwise consumers see an empty selection.
 - **History, replay, and restoration.** Hidden in History View and during state
-  publication. A committed action invalidates the old draft before the new state is
+  publication. A committed action invalidates the old selection before the new state is
   displayed, so no stale preview survives replay or silent restoration.
 
-### Auction drafts
+### Auction selections
 
-Offer and bid drafts follow the shared auction draft rules: hidden during state
+Offer and bid selections follow the shared auction selection rules: hidden during state
 publication and History View, and cleared before each new visible state.
 
 ## Render ownership
@@ -135,7 +135,7 @@ publication and History View, and cleared before each new visible state.
 - **Action area content.** The title's table is the single owner of which panel
   fills the action area: offer choice, bidding, the stalled auction view, the split
   panel, or the shared operating actions. It decides from the auction state and the
-  split draft. The shared table only provides the slot.
+  split selection. The shared table only provides the slot.
 - **Split entry.** The title supplies Split as an additional stock action. The shared
   strip renders it and owns its selected styling.
 - **Tranches.** The title owns the tranche display inside the shared game
@@ -153,10 +153,10 @@ publication and History View, and cleared before each new visible state.
 | Stall and recovery | All players at zero cash before a forced purchase | The action that forces the purchase | Stalled view, no auction actions, no active player | Undo restores the exact prior state | Automated, engine (`topOpening.spec.ts`); manual in browser |
 | Auction completion | Final lot awarded | None | First stock round appears in remaining-cash order | Undo restores the last auction turn | Automated, engine |
 | Split staging | Stock round, eligible parent and branch | Split, parent, branch, price | One stage at a time, earlier choices collapse, preview and allocation open on price | Undo unwinds one manual stage at a time, then follows game history | Automated, selection (`branchSplitSelection.spec.ts`); manual in browser |
-| Reselect earlier stage | Split draft with a price | Choose a different parent or branch | Later stages clear | As above | Automated, selection |
+| Reselect earlier stage | Split selection with a price | Choose a different parent or branch | Later stages clear | As above | Automated, selection |
 | Split and stock menu | Stock menu open | Choose Split | Menu closes and the split panel shows | Cancelling the split returns the operating content | Manual |
 | Split commitment | Complete valid allocation | Confirm split | One action; shares, stations, trains, cash, tranche, and turn update together; branch stations appear on the map | Undo restores the entire pre-split state; reload keeps the split | Automated, engine (`splitCompany.spec.ts`, `branchSplit.spec.ts`); manual in browser |
-| Draft across history | Split draft in progress | Enter History View, then return | Draft hidden in history | Draft is cleared once a new state is applied | Manual |
+| Selection across history | Split selection in progress | Enter History View, then return | Selection hidden in history | Selection is cleared once a new state is applied | Manual |
 | Value label | Company cards and spreadsheet | Switch spreadsheet orientation, step through history | Value replaces Par and follows displayed state | 1889 keeps Par and Market | Manual |
-| Published board | Generic map with a track draft | Toggle published board | Board image under tiles and overlays, dark surround | Toggling back or leaving restores the background | Automated, browser (`boardArtwork.spec.ts`) |
+| Published board | Generic map with a track selection | Toggle published board | Board image under tiles and overlays, dark surround | Toggling back or leaving restores the background | Automated, browser (`boardArtwork.spec.ts`) |
 | Tranches | Companies started across tranches | Start a company, then Undo | Slots fill and closed tranches lock | Undo empties the slot | Manual |

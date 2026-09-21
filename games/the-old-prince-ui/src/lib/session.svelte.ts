@@ -42,18 +42,18 @@ export class TheOldPrinceSession extends BaseSession {
         MLC: this.mapView.stations[theOldPrinceRole(this.financialState, 'mainline')],
         SLC: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')]
     })
-    private splitDraft: BranchSplitSelection = $state({})
+    private splitStages: BranchSplitSelection = $state({})
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
         this.localSelections.register(
             {
-                hasManual: () => hasSplitSelection(this.splitDraft),
+                hasManual: () => hasSplitSelection(this.splitStages),
                 undo: () => {
-                    if (!hasSplitSelection(this.splitDraft)) return false
-                    this.splitDraft = backSplitSelection(this.splitDraft)
+                    if (!hasSplitSelection(this.splitStages)) return false
+                    this.splitStages = backSplitSelection(this.splitStages)
                     return true
                 },
-                clear: () => { this.splitDraft = {} }
+                clear: () => { this.splitStages = {} }
             },
             'first'
         )
@@ -69,8 +69,8 @@ export class TheOldPrinceSession extends BaseSession {
             !this.financialState.stockRound.turn.bought &&
             this.validActionTypes.includes('SplitCompany')
     )
-    splitSelection = $derived(this.canPreviewSplit ? this.splitDraft : {})
-    hasSplitDraft = $derived(hasSplitSelection(this.splitSelection))
+    splitSelection = $derived(this.canPreviewSplit ? this.splitStages : {})
+    splitInProgress = $derived(hasSplitSelection(this.splitSelection))
     splitPreview = $derived.by(() => {
         const request = this.myPlayer
             ? splitRequest(this.splitSelection, this.myPlayer.id)
@@ -90,7 +90,7 @@ export class TheOldPrinceSession extends BaseSession {
             this.canPreviewSplit && this.splitSelection.allocation,
             'Choose a split price first'
         )
-        this.splitDraft = chooseSplitAllocation(this.splitDraft, allocation)
+        this.splitStages = chooseSplitAllocation(this.splitStages, allocation)
     }
     setSplitCash(cash: number) {
         const allocation = this.splitSelection.allocation?.value
@@ -132,7 +132,7 @@ export class TheOldPrinceSession extends BaseSession {
         )
     }
     override cancelSelection() {
-        this.splitDraft = {}
+        this.splitStages = {}
         super.cancelSelection()
     }
     override get privatePurchaseHeading(): string | undefined { return undefined }
@@ -146,7 +146,7 @@ export class TheOldPrinceSession extends BaseSession {
     chooseSplit() {
         assert(this.canPreviewSplit, 'Split selection is unavailable')
         this.chooseStockMenu(undefined)
-        this.splitDraft = chooseSplitAction()
+        this.splitStages = chooseSplitAction()
     }
     selectSplitParent(parentId: string) {
         assert(this.canPreviewSplit && this.myPlayer, 'Split selection is unavailable')
@@ -154,7 +154,7 @@ export class TheOldPrinceSession extends BaseSession {
             !this.splitModel.parentReason(this.myPlayer.id, parentId),
             'Choose an eligible parent'
         )
-        this.splitDraft = chooseSplitParent(this.splitDraft, parentId)
+        this.splitStages = chooseSplitParent(this.splitStages, parentId)
     }
     selectSplitBranch(branchId: string) {
         assert(this.canPreviewSplit && this.splitSelection.parentId, 'Select a parent first')
@@ -162,7 +162,7 @@ export class TheOldPrinceSession extends BaseSession {
             this.splitModel.branches().some((branch) => branch.id === branchId),
             'Choose an available branch'
         )
-        this.splitDraft = chooseSplitBranch(this.splitDraft, branchId)
+        this.splitStages = chooseSplitBranch(this.splitStages, branchId)
     }
     selectSplitPrice(marketSpaceId: string) {
         assert(this.canPreviewSplit && this.splitSelection.branchId, 'Select a branch first')
@@ -170,10 +170,10 @@ export class TheOldPrinceSession extends BaseSession {
             this.splitModel.prices().some((price) => price.id === marketSpaceId),
             'Choose an available price'
         )
-        this.splitDraft = chooseSplitPrice(this.splitDraft, marketSpaceId)
+        this.splitStages = chooseSplitPrice(this.splitStages, marketSpaceId)
     }
     backSplit() {
-        if (this.canPreviewSplit) this.splitDraft = backSplitSelection(this.splitDraft)
+        if (this.canPreviewSplit) this.splitStages = backSplitSelection(this.splitStages)
     }
     override async undo() {
         if (this.updatingVisibleState) return

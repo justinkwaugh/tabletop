@@ -4,7 +4,7 @@
         $props()
     const editor = $derived(session.routes.editor)
     const step = $derived(session.financialState.routeStep)
-    const visible = $derived(session.routes.draftVisible)
+    const visible = $derived(session.routes.editorVisible)
     const current = $derived(visible ? editor.route : undefined)
     const preview = $derived(visible ? editor.preview : undefined)
     const evaluation = $derived(visible ? editor.combinedPreview : undefined)
@@ -45,7 +45,7 @@
                 {/each}
             </div>
             {#if visible && editor.trainId}
-                <div aria-label="Route draft" class="draft">
+                <div aria-label="Route selection" class="route-selection">
                     <label
                         >Starting revenue center
                         <select
@@ -178,7 +178,7 @@
     button[aria-pressed='true'] {
         outline: 2px solid #d58400;
     }
-    .draft {
+    .route-selection {
         padding: 12px;
         border: 1px dashed #d58400;
         margin: 12px 0;

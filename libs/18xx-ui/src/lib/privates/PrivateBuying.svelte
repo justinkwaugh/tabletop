@@ -7,15 +7,15 @@
     const others = $derived(session.decisions.privatePurchases.filter((option) => !mine.includes(option)))
     const source = $derived(session.privateActions.purchaseSource)
     const choices = $derived(source === 'mine' ? mine : others)
-    const draft = $derived(session.decisions.selection)
+    const selection = $derived(session.decisions.selection)
 </script>
 
-{#if (showEntry || source) && (session.decisions.privatePurchases.length || (draft?.kind === 'purchase' && draft.request.asset.kind === 'private'))}
+{#if (showEntry || source) && (session.decisions.privatePurchases.length || (selection?.kind === 'purchase' && selection.request.asset.kind === 'private'))}
 <section aria-label="Buy privates">
     {#if !source}
         <button onclick={() => session.privateActions.choosePurchaseSource(mine.length ? 'mine' : 'other')}>Buy privates</button>
     {:else}
-        {#if session.privatePurchaseHeading && !(draft?.kind === 'purchase' && draft.request.asset.kind === 'private')}
+        {#if session.privatePurchaseHeading && !(selection?.kind === 'purchase' && selection.request.asset.kind === 'private')}
             <p class="prompt">{session.privatePurchaseHeading}</p>
         {/if}
         {#if mine.length && others.length}
@@ -25,16 +25,16 @@
             {#if others.length}<button aria-pressed={source === 'other'} onclick={() => session.privateActions.choosePurchaseSource('other')}>Other players’</button>{/if}
         </div>
         {/if}
-        {#if draft?.kind === 'purchase' && draft.request.asset.kind === 'private'}
-            {@const company = getCompany(session.financialState, draft.request.asset.privateCompanyId)}
+        {#if selection?.kind === 'purchase' && selection.request.asset.kind === 'private'}
+            {@const company = getCompany(session.financialState, selection.request.asset.privateCompanyId)}
             {@const terms = session.decisions.privatePurchases.find((option) => option.request.asset.kind === 'private' && option.request.asset.privateCompanyId === company.id)}
             <div class="selected-private">
                 <PrivateCard phaseColors={session.privateCardPhaseColors} token={session.privateCompanyTokens[company.id]} name={company.name} description="" income={company.privateRevenue ?? 0}
                     purchaseRange={terms ? { minimum: terms.minimum, maximum: terms.maximum } : undefined} />
-                {#if source === 'other'}<small class="seller">owned by {session.ownerName(draft.request.seller)}</small>{/if}
+                {#if source === 'other'}<small class="seller">owned by {session.ownerName(selection.request.seller)}</small>{/if}
             </div>
             <div class="price">
-                <label>Price $<input aria-label="Private purchase price" type="number" min={terms?.minimum} max={terms?.maximum} step="1" value={draft.request.price} oninput={(event) => session.decisions.setPurchasePrice(event.currentTarget.valueAsNumber)} /></label>
+                <label>Price $<input aria-label="Private purchase price" type="number" min={terms?.minimum} max={terms?.maximum} step="1" value={selection.request.price} oninput={(event) => session.decisions.setPurchasePrice(event.currentTarget.valueAsNumber)} /></label>
                 <button class="commit" disabled={!session.decisions.canResolve || !!session.decisions.purchaseOfferEvaluation?.reason} onclick={() => session.decisions.confirm()}>{session.decisions.purchaseOfferEvaluation?.buyerPlayerId === session.decisions.purchaseOfferEvaluation?.sellerPlayerId ? 'Buy' : 'Offer'}</button>
             </div>
             {#if session.decisions.purchaseOfferEvaluation?.reason}<p>{session.decisions.purchaseOfferEvaluation.reason}</p>{/if}

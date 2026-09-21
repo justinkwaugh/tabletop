@@ -332,7 +332,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         const current = this.operatingStep
         return current !== undefined && target > current && target <= 2 &&
             !this.skippingOperatingSteps && !this.busy && !this.updatingVisibleState &&
-            !this.isViewingHistory && !this.hasActionDraft &&
+            !this.isViewingHistory && !this.hasLocalSelection &&
             !this.financialState.purchaseOffer && !this.financialState.trackConsent &&
             !this.financialState.privateTrackLay &&
             this.validActionTypes.includes(current === 0 ? 'FinishTrack' : 'FinishStations')
@@ -490,25 +490,25 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             .sort((left, right) =>
                 (rank.get(left.id) ?? order.length) - (rank.get(right.id) ?? order.length))
     }
-    private stockActionDraft: StockActionSelection = $state({})
+    private stockActionStages: StockActionSelection = $state({})
     stockMenu = $derived(
         this.updatingVisibleState || this.isViewingHistory
             ? undefined
-            : this.stockActionDraft.action?.value.menu
+            : this.stockActionStages.action?.value.menu
     )
-    stockActionBuyer = $derived(this.stockActionDraft.action?.value.buyer)
-    selectedSaleCompany = $derived(this.stockActionDraft.saleCompany?.value)
+    stockActionBuyer = $derived(this.stockActionStages.action?.value.buyer)
+    selectedSaleCompany = $derived(this.stockActionStages.saleCompany?.value)
     chooseStockMenu(menu: StockAction | undefined, buyer?: Owner) {
         this.assertSelectionAvailable(this.myPlayer?.id)
         this.cancelSelection()
-        this.stockActionDraft = menu ? chooseStockAction(menu, buyer) : {}
+        this.stockActionStages = menu ? chooseStockAction(menu, buyer) : {}
     }
     chooseStockSaleCompany(companyId: string) {
         this.assertSelectionAvailable(this.myPlayer?.id)
-        this.stockActionDraft = chooseSaleCompany(this.stockActionDraft, companyId)
+        this.stockActionStages = chooseSaleCompany(this.stockActionStages, companyId)
     }
     backFromStockMenu() {
-        this.stockActionDraft = backFromStockAction(this.stockActionDraft)
+        this.stockActionStages = backFromStockAction(this.stockActionStages)
     }
     startChoices = $derived.by(() => {
         const state = this.financialState
@@ -798,7 +798,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             this.financialState.stockRound.number === roundNumber &&
             this.saleChoices.some((choice) => choice.result.details)
         ) {
-            this.stockActionDraft = chooseStockAction('sell', undefined, 'auto')
+            this.stockActionStages = chooseStockAction('sell', undefined, 'auto')
         }
     }
     async finishTurn() {
@@ -813,13 +813,13 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         this.mapInspection = undefined
         this.localSelections.clear()
     }
-    get hasActionDraft(): boolean {
+    get hasLocalSelection(): boolean {
         return this.localSelections.hasManual()
     }
     override async undo() {
         if (this.busy || this.isViewingHistory) return
         if (this.localSelections.undo()) return
-        this.stockActionDraft = {}
+        this.stockActionStages = {}
         await super.undo()
     }
     private registerLocalSelections() {
@@ -857,13 +857,13 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             clear: () => this.cancelSelection()
         })
         localSelections.register({
-            hasManual: () => hasManualStagedSelection(this.stockActionDraft, StockActionStageOrder),
+            hasManual: () => hasManualStagedSelection(this.stockActionStages, StockActionStageOrder),
             undo: () => {
-                if (this.stockActionDraft.action?.source !== 'manual') return false
+                if (this.stockActionStages.action?.source !== 'manual') return false
                 this.backFromStockMenu()
                 return true
             },
-            clear: () => { this.stockActionDraft = {} }
+            clear: () => { this.stockActionStages = {} }
         })
     }
     private assertSelectionAvailable(playerId: string | undefined) {

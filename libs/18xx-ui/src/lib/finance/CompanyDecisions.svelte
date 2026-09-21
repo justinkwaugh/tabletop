@@ -10,7 +10,7 @@
         $props()
     const purchaseOptions = $derived(session.decisions.purchaseOptions.filter((option) => option.request.asset.kind === 'train' && !excludeTrainPurchases))
     const state = $derived(session.financialState)
-    const draft = $derived(session.decisions.selection)
+    const selection = $derived(session.decisions.selection)
     const showPowers = $derived(!session.privateActions.purchaseSource && (session.operatingStep === undefined || session.privateActions.selection === 'powers' || !!state.privateTrackLay || !!state.privatePowerWindow))
 </script>
 
@@ -101,16 +101,16 @@
             {/if}
         </div>
     {/if}
-    {#if draft && !(draft.kind === 'purchase' && draft.request.asset.kind === 'private')}
+    {#if selection && !(selection.kind === 'purchase' && selection.request.asset.kind === 'private')}
         <div aria-label="Company decision preview">
-            {#if draft.kind === 'purchase'}
+            {#if selection.kind === 'purchase'}
                 <label
                     >Offer price <input
                         aria-label="Offer price"
                         type="number"
                         min="1"
                         step="1"
-                        value={draft.request.price}
+                        value={selection.request.price}
                         oninput={(event) =>
                             session.decisions.setPurchasePrice(event.currentTarget.valueAsNumber)}
                     /></label
@@ -123,27 +123,27 @@
                         You control both sides. Confirming completes the purchase.
                     </p>
                 {:else}<p>The seller’s controlling owner will accept or reject this offer.</p>{/if}
-            {:else if draft.kind === 'tile'}
+            {:else if selection.kind === 'tile'}
                 {@const definition = session.mapView.tileSet.definitions.find(
-                    (tile) => tile.id === draft.details.definitionId
+                    (tile) => tile.id === selection.details.definitionId
                 )}
                 {#if definition}<Tile
                         face={definition.face}
                         orientation={session.mapView.map.definition.orientation}
-                        rotation={draft.details.rotation}
+                        rotation={selection.details.rotation}
                     />{/if}
                 <p>
-                    {session.getPlayerName(draft.playerId)} uses {draft.privateCompanyId}: {draft
-                        .details.locationId}, cost {draft.details.cost}.
+                    {session.getPlayerName(selection.playerId)} uses {selection.privateCompanyId}: {selection
+                        .details.locationId}, cost {selection.details.cost}.
                 </p>
             {:else}<p>
-                    {draft.details.companyId} closes {draft.privateCompanyId} and pays {draft
-                        .details.price} for a {draft.details.definitionId} train.
+                    {selection.details.companyId} closes {selection.privateCompanyId} and pays {selection
+                        .details.price} for a {selection.details.definitionId} train.
                 </p>{/if}
             <button onclick={() => session.decisions.back()}>Back</button>
             <button
                 disabled={!session.decisions.canResolve ||
-                    (draft.kind === 'purchase' && !!session.decisions.purchaseOfferEvaluation?.reason)}
+                    (selection.kind === 'purchase' && !!session.decisions.purchaseOfferEvaluation?.reason)}
                 onclick={() => session.decisions.confirm()}>Confirm decision</button
             >
         </div>
@@ -151,7 +151,7 @@
     {#if showUndo}<button
             disabled={session.busy ||
                 session.isViewingHistory ||
-                (!draft && !session.actions.length)}
+                (!selection && !session.actions.length)}
             onclick={() => session.undo()}>Undo</button
         >{/if}
 </section>

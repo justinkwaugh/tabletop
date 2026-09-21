@@ -58,14 +58,14 @@ describe('EarningsModule', () => {
         expect(() => blocked.earnings.select('pay')).toThrow('Choose an available distribution')
     })
 
-    it('hides its selection while drafts are not visible but keeps it pending', () => {
+    it('hides its selection while selections are not visible but keeps it pending', () => {
         const { earnings } = distributing('DistributingEarnings', { selectionsVisible: false })
         earnings.select('pay')
         expect(earnings.selection).toBeUndefined()
         expect(earnings.choice.hasManual()).toBe(true)
     })
 
-    it('lets Undo consume the draft once, then yields to game history', () => {
+    it('lets Undo consume the selection once, then yields to game history', () => {
         const { earnings } = distributing()
         earnings.select('pay')
         expect(earnings.choice.undo()).toBe(true)

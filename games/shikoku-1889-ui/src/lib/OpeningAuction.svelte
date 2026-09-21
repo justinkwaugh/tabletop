@@ -10,7 +10,7 @@
         playerId={session.myPlayer?.id}
         playerName={(id) => session.getPlayerName(id)}
         disabled={!session.waterfall.canAct}
-        draft={session.waterfall.selection}
+        selection={session.waterfall.selection}
         onChoose={(kind, lotId) => session.waterfall.selectLot(kind, lotId)}
         onBidChange={(amount) => session.waterfall.setBid(amount)}
         onConfirm={() => session.waterfall.confirm()}
