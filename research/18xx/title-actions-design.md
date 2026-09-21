@@ -35,20 +35,20 @@ explicit: an Action type existing does not imply a game supports it, and steps g
 it meaning and eligibility. Registration is the one part every timing needs, so the
 extension point is a plain list of definitions and carries no handler.
 
-Acceptance stays with handlers. A title that adds an option to an existing state
-substitutes or wraps that state's handler; `stockRoundHandler` is the only such hook
-today and is what makes the stock round accept `SplitCompany`.
+Acceptance stays with handlers. A title that adds an option to an existing state wraps
+that state's decision handler through `decisionHandlers`, which is what makes the stock
+round accept `SplitCompany`. See [title-owned state](title-state-design.md).
 
 The registry refuses two definitions for one Action type, so a title cannot shadow a
 shared Action silently.
 
 ## Intentional limits
 
-- No hook exists for title handlers in states other than the stock round. An
-  operating-step option such as an acquisition step needs one.
-- Dedicated rounds need machine states the shared schema does not contain. The
-  machine state union is closed and serialized, so that is a separate extension.
-- Event interrupts need title wrappers around shared handlers.
+- Dedicated rounds and their pending state are now expressible as title machine states
+  and fields, but no title has one yet; see the limits in
+  [title-owned state](title-state-design.md).
+- Event interrupts need title wrappers around shared handlers. `decisionHandlers` wraps
+  a state's decisions, not the family handlers around them.
 - Seven titles have no reorganization profile: 1826, 1832, 1833NE, 18PA, 18WE, 18West
   and 2038. 1833NE is known to insert a takeover round. These are evidence gaps, not
   proof of absence.
