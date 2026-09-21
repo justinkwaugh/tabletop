@@ -26,6 +26,22 @@ pnpm --filter @tabletop/18xx-playground dev:scenarios
 That runs this app on port 4188 and opens `/table`. If it is already running,
 visit `http://localhost:4188/table` instead of starting another server.
 
+## Scenarios
+
+Prepared positions such as Stock round, Track construction, or Bankruptcy exist only
+in this app, under `src/scenarios`. The shared libraries and the game packages know
+nothing about them: a title's production definition always performs its real opening.
+
+`ScenarioInitializer` extends the shared initializer. For the opening position it
+defers to the production opening unchanged; for any other position it builds the
+initial state from this app's title fixtures. `definitions.ts` wraps each title's
+production definition with that initializer, and `withScenarioUi` does the same for
+a UI definition. Tests obtain scenario games through `example()` in
+`src/demo/stockTestUtils.ts`.
+
+Scenario-based tests belong here as well, because shared libraries and game packages
+cannot depend on this app.
+
 ## Tile gallery
 
 Build the workspace dependencies, then start the gallery:

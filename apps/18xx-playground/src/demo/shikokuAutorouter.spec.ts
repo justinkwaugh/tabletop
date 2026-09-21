@@ -11,15 +11,15 @@ import {
     createStagedTileRevenue,
     type TrainRunningState
 } from '@tabletop/18xx'
-import { exhaustiveRevenue } from '../../../libs/18xx-autorouter/test/exhaustiveRevenue.js'
-import { createShikoku1889CompanyExample } from './companyExamples.js'
-import { Shikoku1889RouteRules } from './routeRules.js'
-import { Shikoku1889TrainDepot } from './trains.js'
+import { exhaustiveRevenue } from '../../../../libs/18xx-autorouter/test/exhaustiveRevenue.js'
+import { createShikoku1889CompanyExample } from '../scenarios/shikoku-1889/companyExamples.js'
+import { Shikoku1889RouteRules } from '@tabletop/shikoku-1889'
+import { Shikoku1889TrainDepot } from '@tabletop/shikoku-1889'
 
 let router: Autorouter
 beforeAll(async () => {
     const bytes = await readFile(
-        new URL('../../../libs/18xx-autorouter/esm/solver.wasm', import.meta.url)
+        new URL('../../../../libs/18xx-autorouter/esm/solver.wasm', import.meta.url)
     )
     router = await Autorouter.create(new Uint8Array(bytes).buffer)
 })

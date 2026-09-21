@@ -1,7 +1,8 @@
 <script lang="ts">
     import { UiDefinition as Top } from '@tabletop/the-old-prince-ui'
     import { UiDefinition as Shikoku } from '@tabletop/shikoku-1889-ui'
-    import type { ScenarioPosition } from '@tabletop/18xx'
+    import type { ScenarioPosition } from '../../scenarios/scenarioPosition.js'
+    import { withScenarioUi } from '../../scenarios/uiDefinitions.js'
     import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
     import '../../table.css'
     let title = $state('TOP')
@@ -46,7 +47,7 @@
         </select>
     </nav>
     {#key `${title}:${position}`}<FinanceExampleHost
-            definition={title === 'TOP' ? Top : Shikoku}
+            definition={withScenarioUi(title === 'TOP' ? Top : Shikoku)}
             {position}
         />{/key}
 </div>

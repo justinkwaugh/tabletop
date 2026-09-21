@@ -1,30 +1,24 @@
+import type { PreparedPosition } from '../scenarioInitializer.js'
 import { prepareTheOldPrinceBranchSplit } from './branchSplitExample.js'
-import { createTheOldPrinceOpening } from './openingAuction.js'
 import { prepareTheOldPrincePrivates } from './privateExamples.js'
-import { TheOldPrinceTrainDepot } from './trains.js'
-import { TheOldPrinceTileSet } from './tiles.js'
-import { assert, type Prng, type PlayerState } from '@tabletop/common'
+import { TheOldPrinceTrainDepot } from '@tabletop/the-old-prince'
+import { TheOldPrinceTileSet } from '@tabletop/the-old-prince'
+import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
     getCompany,
     type CompanyState,
     type TrainState,
     type MapStateData,
-    type ScenarioPosition
-} from '@tabletop/18xx'
-import { createTheOldPrinceFinanceExample } from './finance.js'
-import { peirCompanies } from './companies.js'
-import { TheOldPrinceMap } from './map.js'
+    } from '@tabletop/18xx'
+import { createTheOldPrinceFinanceExample } from './financeFixture.js'
+import { peirCompanies } from '@tabletop/the-old-prince'
+import { TheOldPrinceMap } from '@tabletop/the-old-prince'
 
 export function createTheOldPrinceCompanyExample(
     players: readonly PlayerState[],
-    position: ScenarioPosition,
-    prng?: Prng
+    position: PreparedPosition
 ): CompanyState & MapStateData & TrainState {
-    if (position === 'opening') {
-        assert(prng, 'Opening setup requires seeded randomness')
-        return createTheOldPrinceOpening(players, prng)
-    }
     const state: CompanyState & MapStateData & TrainState = {
         ...createTheOldPrinceFinanceExample(players),
         trainInventory: TheOldPrinceTrainDepot.createInventory(),

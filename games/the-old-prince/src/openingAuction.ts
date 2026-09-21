@@ -17,7 +17,7 @@ import {
 } from '@tabletop/18xx'
 import { TheOldPrinceCompanies, theOldPrinceRole } from './companies.js'
 import { TheOldPrincePrivates } from './privates.js'
-import { peirPresident } from './finance.js'
+import { peirPresident } from './peir.js'
 import { TheOldPrinceMap } from './map.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { TheOldPrinceTrainDepot } from './trains.js'
@@ -106,7 +106,7 @@ export function createTheOldPrinceOpening(
     ]
     shuffle(lotIds, prng.random)
     const auctioneerId = players[prng.randInt(players.length)].playerId
-    const stockMarket = createTheOldPrinceStockMarket('opening')
+    const stockMarket = createTheOldPrinceStockMarket()
     placeStockMarker(stockMarket, mainline.companyId, '1:1')
     placeStockMarker(stockMarket, shortline.companyId, '2:1')
     const stations: MapStateData['stations'] = []

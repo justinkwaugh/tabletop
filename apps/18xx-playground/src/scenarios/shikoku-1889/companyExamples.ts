@@ -1,9 +1,10 @@
-import { Shikoku1889Majors } from './majors.js'
-import { createShikoku1889Opening } from './openingAuction.js'
+import type { PreparedPosition } from '../scenarioInitializer.js'
+import { Shikoku1889Majors } from '@tabletop/shikoku-1889'
+import { createShikoku1889Opening } from '@tabletop/shikoku-1889'
 import { prepareShikoku1889Privates } from './privateExamples.js'
-import { Shikoku1889TrainDepot } from './trains.js'
-import { Shikoku1889StationCounts } from './stationRules.js'
-import { Shikoku1889TileSet } from './tiles.js'
+import { Shikoku1889TrainDepot } from '@tabletop/shikoku-1889'
+import { Shikoku1889StationCounts } from '@tabletop/shikoku-1889'
+import { Shikoku1889TileSet } from '@tabletop/shikoku-1889'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
@@ -12,16 +13,14 @@ import {
     type CompanyState,
     type TrainState,
     type MapStateData,
-    type ScenarioPosition
-} from '@tabletop/18xx'
-import { createShikoku1889FinanceExample } from './finance.js'
-import { Shikoku1889Map } from './map.js'
+    } from '@tabletop/18xx'
+import { createShikoku1889FinanceExample } from './financeFixture.js'
+import { Shikoku1889Map } from '@tabletop/shikoku-1889'
 
 export function createShikoku1889CompanyExample(
     players: readonly PlayerState[],
-    position: ScenarioPosition
+    position: PreparedPosition
 ): CompanyState & MapStateData & TrainState {
-    if (position === 'opening') return createShikoku1889Opening(players)
     const state: CompanyState & MapStateData & TrainState = {
         ...createShikoku1889FinanceExample(players),
         trainInventory: Shikoku1889TrainDepot.createInventory(),

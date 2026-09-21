@@ -6,10 +6,10 @@ import {
     type MapStateData,
     type TrainState
 } from '@tabletop/18xx'
-import { addTheOldPrinceBranches } from './branches.js'
-import { TheOldPrinceTrainDepot } from './trains.js'
-import { TheOldPrinceTileSet } from './tiles.js'
-import { TheOldPrincePrivates } from './privates.js'
+import { addTheOldPrinceBranches } from '@tabletop/the-old-prince'
+import { TheOldPrinceTrainDepot } from '@tabletop/the-old-prince'
+import { TheOldPrinceTileSet } from '@tabletop/the-old-prince'
+import { TheOldPrincePrivates } from '@tabletop/the-old-prince'
 
 export function prepareTheOldPrinceBranchSplit(
     state: CompanyState & MapStateData & TrainState,

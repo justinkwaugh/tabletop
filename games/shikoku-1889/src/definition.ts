@@ -1,7 +1,6 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
-import { prepareShikoku1889Ending } from './endingExample.js'
 import { Shikoku1889EndingRules } from './endingRules.js'
-import { Shikoku1889AuctionRules } from './openingAuction.js'
+import { Shikoku1889AuctionRules, createShikoku1889Opening } from './openingAuction.js'
 import { Shikoku1889TrainFundingRules } from './trainFundingRules.js'
 import { Shikoku1889TransferRules } from './transferRules.js'
 import { Shikoku1889PrivatePowerRules } from './privatePowerRules.js'
@@ -21,16 +20,36 @@ import { Shikoku1889StockRules } from './stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
 import {
     createEighteenXXRuntime,
-    ScenarioConfigurator,
     type EighteenXXState,
+    type EighteenXXTitleRules,
     type HydratedEighteenXXState
 } from '@tabletop/18xx'
-import { createShikoku1889CompanyExample } from './companyExamples.js'
+
+export const Shikoku1889TitleRules: EighteenXXTitleRules = {
+    endingRules: Shikoku1889EndingRules,
+    auctionRules: Shikoku1889AuctionRules,
+    trainFundingRules: Shikoku1889TrainFundingRules,
+    transferRules: Shikoku1889TransferRules,
+    privatePowerRules: Shikoku1889PrivatePowerRules,
+    createFinances: createShikoku1889Opening,
+    stockRules: Shikoku1889StockRules,
+    createMarket: createShikoku1889StockMarket,
+    companyRules: Shikoku1889CompanyRules,
+    operatingRules: Shikoku1889OperatingRules,
+    map: Shikoku1889Map,
+    tileSet: Shikoku1889TileSet,
+    trackRules: Shikoku1889TrackRules,
+    stationRules: Shikoku1889StationRules,
+    earningsRules: Shikoku1889EarningsRules,
+    routeRules: Shikoku1889RouteRules,
+    privateRules: Shikoku1889PrivateRules,
+    phaseRules: Shikoku1889PhaseRules,
+    trainRules: Shikoku1889TrainRules
+}
 
 export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
     info: {
         preferences: EighteenXXPreferenceDefinition,
-        configurator: new ScenarioConfigurator(),
         id: 'shikoku-1889',
         metadata: {
             name: 'Shikoku 1889',
@@ -44,27 +63,6 @@ export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState
             beta: true
         }
     },
-    runtime: createEighteenXXRuntime({
-        endingRules: Shikoku1889EndingRules,
-        prepareEndingExample: prepareShikoku1889Ending,
-        auctionRules: Shikoku1889AuctionRules,
-        defaultPosition: 'opening',
-        trainFundingRules: Shikoku1889TrainFundingRules,
-        transferRules: Shikoku1889TransferRules,
-        privatePowerRules: Shikoku1889PrivatePowerRules,
-        createFinances: createShikoku1889CompanyExample,
-        stockRules: Shikoku1889StockRules,
-        createMarket: createShikoku1889StockMarket,
-        companyRules: Shikoku1889CompanyRules,
-        operatingRules: Shikoku1889OperatingRules,
-        map: Shikoku1889Map,
-        tileSet: Shikoku1889TileSet,
-        trackRules: Shikoku1889TrackRules,
-        stationRules: Shikoku1889StationRules,
-        earningsRules: Shikoku1889EarningsRules,
-        routeRules: Shikoku1889RouteRules,
-        privateRules: Shikoku1889PrivateRules,
-        phaseRules: Shikoku1889PhaseRules,
-        trainRules: Shikoku1889TrainRules
-    })
+    runtime: createEighteenXXRuntime(Shikoku1889TitleRules)
 }
+

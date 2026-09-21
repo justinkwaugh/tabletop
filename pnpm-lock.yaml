@@ -39,6 +39,9 @@ importers:
       '@tabletop/18xx':
         specifier: workspace:*
         version: link:../../libs/18xx
+      '@tabletop/18xx-autorouter':
+        specifier: workspace:*
+        version: link:../../libs/18xx-autorouter
       '@tabletop/18xx-ui':
         specifier: workspace:*
         version: link:../../libs/18xx-ui
@@ -2006,9 +2009,6 @@ importers:
         specifier: workspace:*
         version: link:../../libs/common
     devDependencies:
-      '@tabletop/18xx-autorouter':
-        specifier: workspace:*
-        version: link:../../libs/18xx-autorouter
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2268,9 +2268,6 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79
     devDependencies:
-      '@tabletop/18xx-autorouter':
-        specifier: workspace:*
-        version: link:../../libs/18xx-autorouter
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup

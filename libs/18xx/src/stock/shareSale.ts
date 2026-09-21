@@ -174,7 +174,7 @@ export function evaluateShareDisposal(
             cash < owed &&
             !(payment.from.kind === 'bank' && state.bank.unlimitedAfterExhaustion)
         )
-            return { reason: 'The payer cannot fund this sale in the example.' }
+            return { reason: 'The payer cannot fund this sale.' }
     }
     return { details: { seller, sales: settlements, payments, proceeds: total } }
 }

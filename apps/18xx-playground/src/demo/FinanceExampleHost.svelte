@@ -13,7 +13,8 @@
         type GameState,
         type HydratedGameState
     } from '@tabletop/common'
-    import { EighteenXXStateValidator, type ScenarioPosition } from '@tabletop/18xx'
+    import { EighteenXXStateValidator } from '@tabletop/18xx'
+    import type { ScenarioPosition } from '../scenarios/scenarioPosition.js'
     import {
         createHarnessAppContext,
         setAppContext,

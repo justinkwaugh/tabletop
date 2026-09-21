@@ -1,8 +1,7 @@
 import { getCompany, cashOwnedBy } from '@tabletop/18xx'
 import { expect, it } from 'vitest'
 import { Color, GameEngine, GameStorage, PlayerStatus } from '@tabletop/common'
-import { Definition as Top } from '@tabletop/the-old-prince'
-import { Definition as Shikoku } from '@tabletop/shikoku-1889'
+import { TopScenarios as Top, ShikokuScenarios as Shikoku } from '../scenarios/definitions.js'
 import { EighteenXXStateValidator } from '@tabletop/18xx'
 
 it.each([Top, Shikoku])(

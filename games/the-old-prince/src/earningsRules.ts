@@ -6,7 +6,7 @@ import {
     getCompany,
     type EarningsRules
 } from '@tabletop/18xx'
-import { peirShares } from './finance.js'
+import { peirShares } from './peir.js'
 export const TheOldPrinceEarningsRules: EarningsRules = {
     choices: (_state, companyId) =>
         companyId === 'PEIR' ? ['pay', 'half-pay', 'withhold'] : ['pay', 'withhold'],

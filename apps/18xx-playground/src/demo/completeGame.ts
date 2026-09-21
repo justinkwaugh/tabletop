@@ -1,3 +1,4 @@
+import type { ScenarioPosition } from '../scenarios/scenarioPosition.js'
 import { ActionSource, assert, type GameAction } from '@tabletop/common'
 import {
     Definition as Top,
@@ -32,7 +33,6 @@ import {
     EmergencyTrainFunding,
     discardableTrains,
     trainsOwnedBy,
-    type ScenarioPosition,
     type EighteenXXState,
     type TrainRoute
 } from '@tabletop/18xx'

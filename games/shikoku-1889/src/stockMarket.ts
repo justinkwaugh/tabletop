@@ -1,10 +1,6 @@
-import {
-    createRectangularStockMarket,
-    placeStockMarker,
-    type ScenarioPosition
-} from '@tabletop/18xx'
+import { createRectangularStockMarket } from '@tabletop/18xx'
 
-export function createShikoku1889StockMarket(position: ScenarioPosition = 'trading') {
+export function createShikoku1889StockMarket() {
     const market = createRectangularStockMarket(
         [
             [75, 80, 90, 100, 110, 125, 140, 155, 175, 200, 225, 255, 285, 315, 350],
@@ -25,9 +21,5 @@ export function createShikoku1889StockMarket(position: ScenarioPosition = 'tradi
             return row <= 5 && column === 3 ? 'pink' : 'white'
         }
     )
-    if (position === 'opening') return market
-    placeStockMarker(market, 'AR', '1:3')
-    placeStockMarker(market, 'IR', '0:3')
-    if (position === 'flotation') placeStockMarker(market, 'SR', '5:3')
     return market
 }

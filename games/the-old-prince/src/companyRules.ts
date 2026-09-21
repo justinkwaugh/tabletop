@@ -18,7 +18,7 @@ import {
     type FormationState,
     type StockState
 } from '@tabletop/18xx'
-import { peirPresident } from './finance.js'
+import { peirPresident } from './peir.js'
 import { TheOldPrinceStockRules, theOldPrincePurchasePayers } from './stockRules.js'
 
 export function availableTheOldPrinceTranche(state: FormationState) {

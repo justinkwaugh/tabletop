@@ -1,9 +1,8 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
-import { prepareTheOldPrinceEnding } from './endingExample.js'
 import { TheOldPrinceEndingRules } from './endingRules.js'
 import { TheOldPrinceStockRoundHandler } from './stockRoundHandler.js'
 import { SplitCompany, HydratedSplitCompany, isSplitCompany } from './splitCompany.js'
-import { TheOldPrinceAuctionRules } from './openingAuction.js'
+import { TheOldPrinceAuctionRules, createTheOldPrinceOpening } from './openingAuction.js'
 import { TheOldPrinceTrainFundingRules } from './trainFundingRules.js'
 import { TheOldPrinceTransferRules } from './transferRules.js'
 import { TheOldPrincePrivatePowerRules } from './privatePowerRules.js'
@@ -23,22 +22,19 @@ import { TheOldPrinceStockRules } from './stockRules.js'
 import { GameVisibility, type GameDefinition } from '@tabletop/common'
 import {
     createEighteenXXRuntime,
-    ScenarioConfigurator,
     type EighteenXXState,
+    type EighteenXXTitleRules,
     type HydratedEighteenXXState
 } from '@tabletop/18xx'
-import { createTheOldPrinceCompanyExample } from './companyExamples.js'
 
-const FinanceRuntime = createEighteenXXRuntime({
+export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
     endingRules: TheOldPrinceEndingRules,
-    prepareEndingExample: prepareTheOldPrinceEnding,
     stockRoundHandler: new TheOldPrinceStockRoundHandler(),
     offerAuctionRules: TheOldPrinceAuctionRules,
-    defaultPosition: 'opening',
     trainFundingRules: TheOldPrinceTrainFundingRules,
     transferRules: TheOldPrinceTransferRules,
     privatePowerRules: TheOldPrincePrivatePowerRules,
-    createFinances: createTheOldPrinceCompanyExample,
+    createFinances: createTheOldPrinceOpening,
     stockRules: TheOldPrinceStockRules,
     createMarket: createTheOldPrinceStockMarket,
     companyRules: TheOldPrinceCompanyRules,
@@ -52,12 +48,12 @@ const FinanceRuntime = createEighteenXXRuntime({
     privateRules: TheOldPrincePrivateRules,
     phaseRules: TheOldPrincePhaseRules,
     trainRules: TheOldPrinceTrainRules
-})
+}
+const FinanceRuntime = createEighteenXXRuntime(TheOldPrinceTitleRules)
 
 export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
     info: {
         preferences: EighteenXXPreferenceDefinition,
-        configurator: new ScenarioConfigurator(),
         id: 'the-old-prince',
         metadata: {
             name: 'The Old Prince 1871',

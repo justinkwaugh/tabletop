@@ -52,5 +52,5 @@ it('keeps the affordability restriction for banks that cannot exceed their cash'
         Shikoku1889StockRules
     )
     expect(result.details).toBeUndefined()
-    expect(result.reason).toBe('The payer cannot fund this sale in the example.')
+    expect(result.reason).toBe('The payer cannot fund this sale.')
 })

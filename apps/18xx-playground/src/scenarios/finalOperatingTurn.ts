@@ -1,5 +1,5 @@
 import { assert } from '@tabletop/common'
-import type { HydratedEighteenXXState } from './eighteenXXRuntime.js'
+import type { HydratedEighteenXXState } from '@tabletop/18xx'
 
 export function prepareFinalOperatingTurn(state: HydratedEighteenXXState): void {
     const set = state.operatingSet

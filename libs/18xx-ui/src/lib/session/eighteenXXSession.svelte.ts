@@ -2230,6 +2230,6 @@ export function createEighteenXXSessionClass(
 export function requireEighteenXXSession(
     session: GameSession<GameState, HydratedGameState>
 ): EighteenXXSession {
-    assert(session instanceof EighteenXXSession, 'Expected a finance example session')
+    assert(session instanceof EighteenXXSession, 'Expected an 18xx session')
     return session
 }

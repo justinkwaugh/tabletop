@@ -3,15 +3,15 @@ import { beforeAll, expect, it } from 'vitest'
 import { assertExists, Color } from '@tabletop/common'
 import { Autorouter } from '@tabletop/18xx-autorouter'
 import { RouteEvaluation, type TrainRunningState } from '@tabletop/18xx'
-import { exhaustiveRevenue } from '../../../libs/18xx-autorouter/test/exhaustiveRevenue.js'
-import { createTheOldPrinceCompanyExample } from './companyExamples.js'
-import { TheOldPrinceRouteRules } from './routeRules.js'
-import { TheOldPrinceTrainDepot } from './trains.js'
+import { exhaustiveRevenue } from '../../../../libs/18xx-autorouter/test/exhaustiveRevenue.js'
+import { createTheOldPrinceCompanyExample } from '../scenarios/the-old-prince/companyExamples.js'
+import { TheOldPrinceRouteRules } from '@tabletop/the-old-prince'
+import { TheOldPrinceTrainDepot } from '@tabletop/the-old-prince'
 
 let router: Autorouter
 beforeAll(async () => {
     const bytes = await readFile(
-        new URL('../../../libs/18xx-autorouter/esm/solver.wasm', import.meta.url)
+        new URL('../../../../libs/18xx-autorouter/esm/solver.wasm', import.meta.url)
     )
     router = await Autorouter.create(new Uint8Array(bytes).buffer)
 })

@@ -145,7 +145,6 @@ import {
     isRustTrains,
     RustingTrainsHandler
 } from '../trains/rustTrains.js'
-import { settleCashPayments } from '../finance/cashPayments.js'
 import {
     EarningsFields,
     type EarningsDetails,
@@ -160,8 +159,7 @@ import { DistributingEarningsHandler } from '../earnings/distributingEarningsHan
 import {
     StartOperatingRound,
     HydratedStartOperatingRound,
-    isStartOperatingRound,
-    privateIncomePayments
+    isStartOperatingRound
 } from '../operating/startOperatingRound.js'
 import {
     FinishOperatingTurn,
@@ -189,9 +187,7 @@ import type { TrainRules } from '../trains/trainPurchase.js'
 import type { TrainDepot } from '../trains/trainDepot.js'
 import {
     StationStep,
-    type StationRules,
-    StationPlacement,
-    applyStationPlacement
+    type StationRules
 } from '../stations/stationPlacement.js'
 import { PlaceStation, HydratedPlaceStation, isPlaceStation } from '../stations/placeStation.js'
 import {
@@ -215,7 +211,6 @@ import {
     isStartOperatingTurn,
     StartOperatingTurnHandler
 } from '../operating/startOperatingTurn.js'
-import { controllingOwner } from '../finance/finance.js'
 import { MapFields, RailwayMapState, type MapStateData } from '../map/mapState.js'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet, TileInventory } from '../tiles/inventory.js'
@@ -235,7 +230,6 @@ import { CompanyFields, type CompanyState } from '../company/companyState.js'
 import { validateStations } from '../map/station.js'
 import { StartCompany, HydratedStartCompany, isStartCompany } from '../company/startCompany.js'
 import { FloatCompany, HydratedFloatCompany, isFloatCompany } from '../company/floatCompany.js'
-import { ScenarioPosition } from './scenarioPosition.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import * as Type from 'typebox'
 import { Compile, type Validator } from 'typebox/compile'
@@ -273,6 +267,7 @@ import {
 } from '../finance/finance.js'
 
 const ExampleFields = Type.Object({
+    // Serialized marker retained so games created before the runtime left the examples folder keep loading.
     example: Type.Literal('finances'),
     machineState: Type.Union([
         Type.Literal('StockRound'),
@@ -637,91 +632,59 @@ export class HydratedEighteenXXState
     }
 }
 
-const PositionValidator = Compile(ScenarioPosition)
-const ExampleColors = [Color.Blue, Color.Red, Color.Green, Color.Yellow, Color.Purple, Color.Orange]
-type CreateFinances = (
-    players: readonly PlayerState[],
-    position: ScenarioPosition,
-    prng: Prng
-) => CompanyState & MapStateData & TrainState
-class EighteenXXInitializer extends BaseGameInitializer<
+const PlayerColors = [Color.Blue, Color.Red, Color.Green, Color.Yellow, Color.Purple, Color.Orange]
+export type InitialFinances = CompanyState & MapStateData & TrainState
+export type InitialStateParts = {
+    stockRoundNumber: number
+    stockMarket: StockMarket
+    finances: InitialFinances
+}
+export type EighteenXXInitializerRules = Pick<
+    EighteenXXTitleRules,
+    | 'createFinances'
+    | 'offerAuctionRules'
+    | 'auctionRules'
+    | 'createMarket'
+    | 'map'
+    | 'tileSet'
+    | 'trainRules'
+    | 'privateRules'
+    | 'stockRules'
+>
+export class EighteenXXInitializer extends BaseGameInitializer<
     EighteenXXState,
     HydratedEighteenXXState
 > {
-    constructor(
-        private readonly options: Pick<
-            EighteenXXTitleRules,
-            | 'createFinances'
-            | 'prepareEndingExample'
-            | 'offerAuctionRules'
-            | 'auctionRules'
-            | 'defaultPosition'
-            | 'createMarket'
-            | 'map'
-            | 'tileSet'
-            | 'operatingRules'
-            | 'stationRules'
-            | 'trainRules'
-            | 'privateRules'
-            | 'stockRules'
-        >
-    ) {
+    constructor(protected readonly rules: EighteenXXInitializerRules) {
         super()
     }
     initializeGameState(game: Game, state: UninitializedGameState): HydratedEighteenXXState {
-        const requestedPosition =
-            game.config?.examplePosition ?? this.options.defaultPosition ?? 'trading'
-        const position = requestedPosition === 'ending' ? 'trains' : requestedPosition
-        assert(PositionValidator.Check(position), 'Unknown finance example position')
         assert(
-            position === 'opening'
-                ? (this.options.auctionRules || this.options.offerAuctionRules) &&
-                      game.players.length >= 2 &&
-                      game.players.length <= 6
-                : game.players.length === 3 || game.players.length === 4,
+            (this.rules.auctionRules || this.rules.offerAuctionRules) &&
+                game.players.length >= 2 &&
+                game.players.length <= 6,
             'Unsupported player count or opening'
         )
-        const players = game.players.map((player, index) => ({
-            playerId: player.id,
-            color: ExampleColors[index]
-        }))
-        const initialized = new HydratedEighteenXXState(
-            {
-                ...state,
-                players,
-                activePlayerIds: [players[0].playerId],
-                example: 'finances',
-                phaseEvents: [],
-                usedPrivatePowerIds: [],
-                machineState: 'StockRound',
-                stockRound: createStockRound(position === 'opening' ? 1 : 2),
-                stockMarket: this.options.createMarket(position),
-                turnManager: new HydratedTurnManager({
-                    series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
-                    turnOrder: players.map((player) => player.playerId),
-                    turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
-                }),
-                ...this.options.createFinances(players, position, new Prng(state.prng))
-            },
-            this.options.map,
-            this.options.tileSet,
-            this.options.trainRules.depot
-        )
-        if (position === 'opening' && initialized.offerAuction) {
+        const initialized = this.createInitialState(game, state, {
+            stockRoundNumber: 1,
+            stockMarket: this.rules.createMarket(),
+            finances: this.rules.createFinances(this.playerStates(game), new Prng(state.prng))
+        })
+        if (initialized.offerAuction) {
             const playerId = initialized.offerAuction.auctioneerId
             initialized.turnManager.newFirstPlayer(playerId)
             initialized.turnManager.series = [{ type: 'turn', playerId, start: 0 }]
             initialized.activePlayerIds = [playerId]
             initialized.machineState = 'OfferingLot'
-        } else if (position === 'opening') {
-            assert(this.options.auctionRules, 'Opening auction requires its rules')
+        } else {
+            assert(this.rules.auctionRules, 'Opening auction requires its rules')
             const order = initialized.turnManager.turnOrder
             const first = initialized.getPublicPrng().randInt(order.length)
             initialized.turnManager.newFirstPlayer(order[first])
             initialized.turnManager.series = [{ type: 'turn', playerId: order[0], start: 0 }]
             initialized.activePlayerIds = [order[0]]
             initialized.openingAuction = {
-                remainingLotIds: this.options.auctionRules.lots(initialized).map((lot) => lot.id),
+                remainingLotIds: this.rules.auctionRules.lots(initialized).map((lot) => lot.id),
                 reservations: [],
                 nextPlayerId: order[0],
                 passedPlayerIds: [],
@@ -731,99 +694,57 @@ class EighteenXXInitializer extends BaseGameInitializer<
             }
             initialized.machineState = 'WaterfallAuction'
         }
-        applyPrivateEffects(
-            initialized,
-            this.options.privateRules.phaseEffects(initialized),
-            this.options.stockRules
-        )
-        if (
-            position === 'construction' ||
-            position === 'stations' ||
-            position === 'trains' ||
-            position === 'routes' ||
-            position === 'operations' ||
-            position === 'phases' ||
-            position === 'diesel' ||
-            position === 'private-events' ||
-            position === 'transfers' ||
-            position === 'powers' ||
-            position === 'funding' ||
-            position === 'funding-chain' ||
-            position === 'bankruptcy'
-        ) {
-            const companyOrder = this.options.operatingRules.companyOrder(initialized)
-            const companyId = companyOrder[0]
-            const owner = controllingOwner(initialized, companyId)
-            assert(owner, 'Construction example requires a controlling owner')
-            initialized.stockRound.completed = true
-            initialized.operatingSet = {
-                number: 1,
-                roundNumber: 1,
-                roundCount: this.options.operatingRules.roundCount(initialized),
-                companyOrder,
-                completedCompanyIds: [],
-                privateIncomePaid: true,
-                completed: false
-            }
-            initialized.trackStep = { companyId, lays: [], completed: false }
-            initialized.machineState = 'LayingTrack'
-            for (const home of new StationPlacement(
-                initialized,
-                this.options.stationRules
-            ).homePlacements())
-                applyStationPlacement(initialized, home)
-            if (position === 'stations') {
-                initialized.trackStep.completed = true
-                initialized.stationStep = { companyId, placedStationIds: [], completed: false }
-                initialized.machineState = 'PlacingStation'
-            }
-            if (
-                position === 'trains' ||
-                position === 'phases' ||
-                position === 'diesel' ||
-                position === 'private-events' ||
-                position === 'transfers' ||
-                position === 'funding' ||
-                position === 'funding-chain' ||
-                position === 'bankruptcy'
-            ) {
-                delete initialized.trackStep
-                initialized.trainPurchaseStep = { companyId, purchasedTrainIds: [] }
-                initialized.machineState = 'BuyingTrains'
-            }
-            if (position === 'routes') {
-                delete initialized.trackStep
-                initialized.routeStep = { companyId }
-                initialized.machineState = 'RunningTrains'
-            }
-            if (position === 'operations') {
-                settleCashPayments(initialized, privateIncomePayments(initialized))
-            }
-            initialized.activePlayerIds = [owner.playerId]
-            initialized.turnManager.series = [{ type: 'turn', playerId: owner.playerId, start: 0 }]
-        }
-        if (requestedPosition === 'ending') {
-            this.options.prepareEndingExample(initialized)
-            applyPrivateEffects(
-                initialized,
-                this.options.privateRules.phaseEffects(initialized),
-                this.options.stockRules
-            )
-        }
+        this.applyPhaseEffects(initialized)
         return initialized
+    }
+    protected playerStates(game: Game): PlayerState[] {
+        return game.players.map((player, index) => ({
+            playerId: player.id,
+            color: PlayerColors[index]
+        }))
+    }
+    protected createInitialState(
+        game: Game,
+        state: UninitializedGameState,
+        parts: InitialStateParts
+    ): HydratedEighteenXXState {
+        const players = this.playerStates(game)
+        return new HydratedEighteenXXState(
+            {
+                ...state,
+                players,
+                activePlayerIds: [players[0].playerId],
+                example: 'finances',
+                phaseEvents: [],
+                usedPrivatePowerIds: [],
+                machineState: 'StockRound',
+                stockRound: createStockRound(parts.stockRoundNumber),
+                stockMarket: parts.stockMarket,
+                turnManager: new HydratedTurnManager({
+                    series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
+                    turnOrder: players.map((player) => player.playerId),
+                    turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
+                }),
+                ...parts.finances
+            },
+            this.rules.map,
+            this.rules.tileSet,
+            this.rules.trainRules.depot
+        )
+    }
+    protected applyPhaseEffects(state: HydratedEighteenXXState): void {
+        applyPrivateEffects(state, this.rules.privateRules.phaseEffects(state), this.rules.stockRules)
     }
 }
 export interface EighteenXXTitleRules {
     endingRules: EndingRules
-    prepareEndingExample: (state: HydratedEighteenXXState) => void
     stockRoundHandler?: MachineStateHandler<HydratedAction, HydratedEighteenXXState>
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules
-    defaultPosition?: ScenarioPosition
     trainFundingRules: TrainFundingRules
-    createFinances: CreateFinances
+    createFinances: (players: readonly PlayerState[], prng: Prng) => InitialFinances
     stockRules: StockRules
-    createMarket: (position: ScenarioPosition) => StockMarket
+    createMarket: () => StockMarket
     companyRules: CompanyRules
     operatingRules: OperatingRules
     map: RailwayMap
@@ -1117,11 +1038,11 @@ export function createEighteenXXRuntime(
                 if (isBuyShares(action)) return new HydratedBuyShares(action, rules)
                 if (isSellShares(action)) return new HydratedSellShares(action, rules)
                 if (isFinishStockTurn(action)) return new HydratedFinishStockTurn(action, rules)
-                throw new Error(`Unknown finance example action: ${action.type}`)
+                throw new Error(`Unknown 18xx action: ${action.type}`)
             }
         },
         canonicalStateValidator: handledStateValidator(Object.keys(stateHandlers)),
-        playerColors: ExampleColors,
+        playerColors: PlayerColors,
         apiActions: {
             ScheduleGameEnd,
             EndGame,
@@ -1173,6 +1094,6 @@ export function createEighteenXXRuntime(
 }
 
 export function requireEighteenXXState(state: HydratedGameState): HydratedEighteenXXState {
-    assert(state instanceof HydratedEighteenXXState, 'Expected a hydrated finance example')
+    assert(state instanceof HydratedEighteenXXState, 'Expected hydrated 18xx state')
     return state
 }

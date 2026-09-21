@@ -19,6 +19,7 @@
     "dependencies": {
         "@tabletop/18xx": "workspace:*",
         "@tabletop/18xx-ui": "workspace:*",
+        "@tabletop/18xx-autorouter": "workspace:*",
         "@tabletop/common": "workspace:*",
         "@tabletop/the-old-prince": "workspace:*",
         "@tabletop/shikoku-1889": "workspace:*",

@@ -1,13 +1,16 @@
 import { ActionSource, GameEngine, GameStorage, PlayerStatus } from '@tabletop/common'
 import { Definition as Top } from '@tabletop/the-old-prince'
-import type { BuyShares, President, ScenarioPosition } from '@tabletop/18xx'
+import type { BuyShares, President } from '@tabletop/18xx'
+import type { ScenarioPosition } from '../scenarios/scenarioPosition.js'
+import { scenarioDefinition } from '../scenarios/definitions.js'
 const alex = { kind: 'player', playerId: 'alex' } as const
 export function example(
-    definition: typeof Top,
+    title: typeof Top,
     examplePosition: ScenarioPosition = 'trading',
     playerCount?: number,
     seed = 5
 ) {
+    const definition = scenarioDefinition(title.info.id)
     const game = definition.runtime.initializer.initializeGame(
         {
             id: 'purchase-example',

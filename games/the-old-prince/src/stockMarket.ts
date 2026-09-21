@@ -1,10 +1,6 @@
-import {
-    createRectangularStockMarket,
-    placeStockMarker,
-    type ScenarioPosition
-} from '@tabletop/18xx'
+import { createRectangularStockMarket } from '@tabletop/18xx'
 
-export function createTheOldPrinceStockMarket(position: ScenarioPosition = 'trading') {
+export function createTheOldPrinceStockMarket() {
     const market = createRectangularStockMarket(
         [
             [null, null, 111, 122, 136, 152, 170, 190, 215, 240, 270, 300, 330, 360, 400],
@@ -29,13 +25,5 @@ export function createTheOldPrinceStockMarket(position: ScenarioPosition = 'trad
                       : 'white'
         }
     )
-    if (position === 'opening') return market
-    placeStockMarker(market, 'ML', '1:1')
-    placeStockMarker(market, 'So', '2:1')
-    if (
-        position === 'flotation' ||
-        ['privates', 'private-events', 'transfers', 'powers'].includes(position)
-    )
-        placeStockMarker(market, 'A', '3:1')
     return market
 }

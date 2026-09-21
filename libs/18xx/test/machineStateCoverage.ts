@@ -18,7 +18,6 @@ export function machineStateCoverageTests(
             typeId: definition.info.id,
             ownerId: 'alex',
             seed: 1889,
-            config: { examplePosition: 'construction' },
             players: ['alex', 'blair', 'casey'].map((id) => ({
                 id,
                 name: id,
