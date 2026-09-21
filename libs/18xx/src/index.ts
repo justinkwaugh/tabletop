@@ -87,6 +87,7 @@ export * from './trains/rustTrains.js'
 
 export * from './privates/privateCompany.js'
 export * from './privates/privateRules.js'
+export * from './privates/privateCatalog.js'
 export * from './privates/privateExchange.js'
 export * from './privates/privateLifecycle.js'
 export * from './privates/exchangePrivate.js'
