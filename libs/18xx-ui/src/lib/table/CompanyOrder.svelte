@@ -38,44 +38,47 @@
         completedCompanyIds?: readonly string[]
         companyDetails: Snippet<[Company]>
     } = $props()
-    let scrollArea: HTMLOListElement | undefined = $state()
     let overflowing = $state(false)
     let firstVisible = $state(-1)
     let lastVisible = $state(-1)
-    $effect(() => {
-        const area = scrollArea
-        entries
-        if (!area) return
+    function trackVisibleCompanies(area: HTMLOListElement) {
         let frame: number | undefined
         function measure() {
             frame = undefined
-            if (!area) return
             overflowing = area.scrollWidth > area.clientWidth + 1
-            const bounds = area.getBoundingClientRect()
-            const visible = [...area.children].flatMap((child, index) => {
-                const rect = child.getBoundingClientRect()
-                return rect.left >= bounds.left - 0.5 &&
-                    rect.right <= bounds.left + area.clientWidth + 0.5
+            const visible = [...area.children].flatMap((child, index) =>
+                child instanceof HTMLElement &&
+                child.offsetLeft - area.offsetLeft >= area.scrollLeft - 0.5 &&
+                child.offsetLeft - area.offsetLeft + child.offsetWidth <= area.scrollLeft + area.clientWidth + 0.5
                     ? [index]
                     : []
-            })
+            )
             firstVisible = visible[0] ?? -1
             lastVisible = visible.at(-1) ?? -1
         }
         function scheduleMeasure() {
             if (frame === undefined) frame = requestAnimationFrame(measure)
         }
-        const observer = new ResizeObserver(scheduleMeasure)
-        observer.observe(area)
-        for (const child of area.children) observer.observe(child)
-        area.addEventListener('scroll', scheduleMeasure, { passive: true })
-        scheduleMeasure()
-        return () => {
-            observer.disconnect()
-            area.removeEventListener('scroll', scheduleMeasure)
-            if (frame !== undefined) cancelAnimationFrame(frame)
+        const resize = new ResizeObserver(scheduleMeasure)
+        function observeCompanies() {
+            resize.disconnect()
+            resize.observe(area)
+            for (const child of area.children) resize.observe(child)
+            scheduleMeasure()
         }
-    })
+        const companiesChanged = new MutationObserver(observeCompanies)
+        companiesChanged.observe(area, { childList: true })
+        area.addEventListener('scroll', scheduleMeasure, { passive: true })
+        observeCompanies()
+        return {
+            destroy() {
+                resize.disconnect()
+                companiesChanged.disconnect()
+                area.removeEventListener('scroll', scheduleMeasure)
+                if (frame !== undefined) cancelAnimationFrame(frame)
+            }
+        }
+    }
     const detailsId = $props.id()
     let expandedCompanyId = $state<string>()
     const expandedCompany = $derived(companies.find((company) => company.id === expandedCompanyId))
@@ -126,7 +129,7 @@
             </div>
     </div>
     {/if}
-    <ol bind:this={scrollArea}>
+    <ol use:trackVisibleCompanies>
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
             {@const detailed = showDetails || currentCompanyId === company.id}

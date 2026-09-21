@@ -121,13 +121,14 @@
 
     let publishedArtwork = $state(false)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
-    $effect(() => {
-        const color = boardArtwork?.backgroundColor
-        if (!color) return
-        const previous = document.body.style.backgroundColor
-        document.body.style.backgroundColor = color
-        return () => { document.body.style.backgroundColor = previous }
-    })
+    function paintBodyBackground(_table: HTMLElement, initialColor: string | undefined) {
+        const original = document.body.style.backgroundColor
+        function paint(color: string | undefined) {
+            document.body.style.backgroundColor = color ?? original
+        }
+        paint(initialColor)
+        return { update: paint, destroy: () => paint(undefined) }
+    }
     async function toggleArtwork() {
         publishedArtwork = !publishedArtwork
         restoreRouteView = undefined
@@ -227,72 +228,91 @@
         : placementLocationIds)
     const placementFocusKey = $derived(consentPreview?.id ?? (maskPlacementLocations
         ? JSON.stringify([session.financialState.machineState, highlightedPlacementLocationIds]) : undefined))
-    $effect(() => {
-        if (session.isViewingHistory || !placementFocusKey || session.updatingVisibleState) return
-        return untrack(() => {
+    const activePlacementFocusKey = $derived(
+        session.isViewingHistory || session.updatingVisibleState ? undefined : placementFocusKey
+    )
+    function framePlacement(_table: HTMLElement, initialKey: string | undefined) {
+        let request = 0
+        function frame(key: string | undefined) {
+            const current = ++request
+            if (!key) return
             const locations = consentPreview ? [consentPreview.details.locationId] : [...highlightedPlacementLocationIds]
             if (!locations.length) return
-            let cancelled = false
             selectedView = 'Map'
             void tick().then(() => {
-                if (!cancelled) focusLocations(locations)
+                if (current === request) focusLocations(locations)
             })
-            return () => { cancelled = true }
-        })
-    })
+        }
+        frame(initialKey)
+        return { update: frame, destroy: () => { request++ } }
+    }
     let restoreRouteView: ReturnType<ScalingWrapper['captureView']> | undefined
     const runningCompanyId = $derived(!session.isViewingHistory && session.financialState.machineState === 'RunningTrains'
         ? session.financialState.routeStep?.companyId : undefined)
-    $effect(() => {
-        if (!runningCompanyId) return
-        return () => {
-            const restore = restoreRouteView
-            restoreRouteView = undefined
-            if (!session.isViewingHistory) restore?.({ animate: true })
-        }
-    })
-    $effect(() => {
-        const preview = session.automaticRouteResult
-        if (session.isViewingHistory || !preview?.result.routes.length) return
-        let cancelled = false
-        untrack(() => {
+    const routePreview = $derived(
+        !session.isViewingHistory && session.automaticRouteResult?.result.routes.length
+            ? session.automaticRouteResult : undefined
+    )
+    type RouteFraming = { runningCompanyId: string | undefined; preview: typeof routePreview }
+    function frameRoutes(_table: HTMLElement, initial: RouteFraming) {
+        let framed: RouteFraming = { runningCompanyId: undefined, preview: undefined }
+        let request = 0
+        function frame(next: RouteFraming) {
+            const previous = framed
+            framed = next
+            if (previous.runningCompanyId && previous.runningCompanyId !== next.runningCompanyId) {
+                const restore = restoreRouteView
+                restoreRouteView = undefined
+                if (!session.isViewingHistory) restore?.({ animate: true })
+            }
+            if (next.preview === previous.preview) return
+            const current = ++request
+            const preview = next.preview
+            if (!preview) return
             focusedRoute = undefined
             focusedLocation = undefined
             focusedCompany = undefined
             selectedView = 'Map'
             void tick().then(() => {
-                if (cancelled) return
+                if (current !== request) return
                 const locations = preview.result.routes.flatMap((route) =>
                     route.paths.map((path) => path.locationId)
                 )
                 restoreRouteView ??= mapWrapper?.captureView()
                 focusLocations([...new Set(locations)])
             })
-        })
-        return () => { cancelled = true }
-    })
-    $effect(() => {
-        const selected = session.selectedStartCompany
-        if (!selected) return
-        return untrack(() => {
-            const previousView = view
-            const restore = mapWrapper?.captureView()
-            let cancelled = false
+        }
+        frame(initial)
+        return { update: frame, destroy: () => { request++ } }
+    }
+    type StartCompanySelection = typeof session.selectedStartCompany
+    function frameStartCompany(_table: HTMLElement, initial: StartCompanySelection) {
+        let returnTo: { view: string; restore: ReturnType<ScalingWrapper['captureView']> | undefined } | undefined
+        let request = 0
+        function frame(selected: StartCompanySelection) {
+            const current = ++request
+            if (!selected) {
+                const origin = returnTo
+                returnTo = undefined
+                if (!origin || session.busy || session.updatingVisibleState || session.isViewingHistory) return
+                selectedView = origin.view
+                void tick().then(() => {
+                    if (current === request) origin.restore?.({ animate: true })
+                })
+                return
+            }
+            returnTo ??= { view, restore: mapWrapper?.captureView() }
             session.closeHistoricalMap()
             selectedView = 'Map'
             void tick().then(() => {
-                if (cancelled) return
+                if (current !== request) return
                 const locations = companyFocusLocations(session.stationDisplayState, selected.companyId)
                 if (locations.length) focusLocations(locations)
             })
-            return () => {
-                cancelled = true
-                if (session.busy || session.updatingVisibleState || session.isViewingHistory) return
-                selectedView = previousView
-                void tick().then(() => restore?.({ animate: true }))
-            }
-        })
-    })
+        }
+        frame(initial)
+        return { update: frame, destroy: () => { request++ } }
+    }
 
     const historicalFocus = $derived.by(() => {
         if (!session.isViewingHistory) return undefined
@@ -307,19 +327,21 @@
             id: route.trainId, color: routeColor(index), segments: route.paths
         }))
         : session.routeOverlays)
-    $effect(() => {
-        const target = historicalFocus
-        if (!target || !historyMapSettled || !mapWrapper) return
-        return untrack(() => {
-            let cancelled = false
+    const settledHistoricalFocus = $derived(historyMapSettled && mapWrapper ? historicalFocus : undefined)
+    function frameHistory(_table: HTMLElement, initial: typeof settledHistoricalFocus) {
+        let request = 0
+        function frame(target: typeof settledHistoricalFocus) {
+            const current = ++request
+            if (!target) return
             void tick().then(() => {
-                if (cancelled) return
+                if (current !== request) return
                 if (target.locations.length) focusLocations(target.locations, false)
                 else mapWrapper?.fitToContent()
             })
-            return () => { cancelled = true }
-        })
-    })
+        }
+        frame(initial)
+        return { update: frame, destroy: () => { request++ } }
+    }
 
     const financialState = $derived(session.financialState)
     const startedCompanies = $derived(spreadsheetCompanies(
@@ -458,7 +480,7 @@
             </div>
 {/snippet}
 
-<div class="railway-table" style:--rail-table-background={boardArtwork?.backgroundColor} style:--rail-map-background={boardArtwork?.backgroundColor} style:--table-header-offset="calc(var(--app-navbar-height, 0px) + {session.isViewingHistory ? 14 : 0}px)" data-theme="dark" aria-label="Game table" aria-busy={!session.preferences.ready}>
+<div class="railway-table" use:paintBodyBackground={boardArtwork?.backgroundColor} use:framePlacement={activePlacementFocusKey} use:frameRoutes={{ runningCompanyId, preview: routePreview }} use:frameStartCompany={session.selectedStartCompany} use:frameHistory={settledHistoricalFocus} style:--rail-table-background={boardArtwork?.backgroundColor} style:--rail-map-background={boardArtwork?.backgroundColor} style:--table-header-offset="calc(var(--app-navbar-height, 0px) + {session.isViewingHistory ? 14 : 0}px)" data-theme="dark" aria-label="Game table" aria-busy={!session.preferences.ready}>
     {#if session.preferences.ready && layoutPreference.ready}
     {#if session.isViewingHistory}
         <div class="history-strip" role="status"><span>VIEWING HISTORY</span></div>

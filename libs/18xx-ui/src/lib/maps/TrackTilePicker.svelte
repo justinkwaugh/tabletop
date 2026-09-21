@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { untrack, tick, onDestroy } from 'svelte'
+    import { tick, onDestroy } from 'svelte'
     import { fade } from 'svelte/transition'
     import { prefersReducedMotion } from 'svelte/motion'
     import { StandardTileLayouts } from '../tiles/standardTileLayouts.js'
@@ -30,36 +30,51 @@
         y: Math.max(buttonSize * 0.6, center.y - hexHeight / 2 - buttonSize * 0.65) + 1
     })
 
-    $effect(() => {
-        const id = locationId
-        if (!id) return
-        let frame: number
+    function followHex(_anchor: HTMLElement, initialLocationId: string | undefined) {
+        let followedId = initialLocationId
+        let frame: number | undefined
         function measure() {
+            frame = undefined
             const hex = [...viewport.querySelectorAll('[data-map-location]')].find(
-                (element) => element.getAttribute('data-map-location') === id
+                (element) => element.getAttribute('data-map-location') === followedId
             )
-            if (hex) {
-                const bounds = viewport.getBoundingClientRect()
-                const rect = hex.getBoundingClientRect()
-                const next = {
-                    x: rect.x + rect.width / 2 - bounds.x,
-                    y: rect.y + rect.height / 2 - bounds.y
-                }
-                if (center.x !== next.x || center.y !== next.y) center = next
-                width = bounds.width
-                height = bounds.height
-                hexHeight = rect.height
-                const svg = viewport.querySelector('svg.map-scene')
-                if (svg instanceof SVGSVGElement) {
-                    // WebKit's getScreenCTM omits the CSS scale on the map wrapper.
-                    tileSize = 106 * svg.getBoundingClientRect().width / svg.viewBox.baseVal.width
-                }
+            if (!hex) return
+            const bounds = viewport.getBoundingClientRect()
+            const rect = hex.getBoundingClientRect()
+            const next = {
+                x: rect.x + rect.width / 2 - bounds.x,
+                y: rect.y + rect.height / 2 - bounds.y
             }
-            frame = requestAnimationFrame(measure)
+            if (center.x !== next.x || center.y !== next.y) center = next
+            width = bounds.width
+            height = bounds.height
+            hexHeight = rect.height
+            const svg = viewport.querySelector('svg.map-scene')
+            if (svg instanceof SVGSVGElement) {
+                // WebKit's getScreenCTM omits the CSS scale on the map wrapper.
+                tileSize = 106 * svg.getBoundingClientRect().width / svg.viewBox.baseVal.width
+            }
         }
-        untrack(measure)
-        return () => cancelAnimationFrame(frame)
-    })
+        function scheduleMeasure() {
+            if (frame === undefined) frame = requestAnimationFrame(measure)
+        }
+        const resized = new ResizeObserver(scheduleMeasure)
+        resized.observe(viewport)
+        const viewMoved = new MutationObserver(scheduleMeasure)
+        viewMoved.observe(viewport, { subtree: true, attributes: true, attributeFilter: ['style'] })
+        measure()
+        return {
+            update(locationId: string | undefined) {
+                followedId = locationId
+                measure()
+            },
+            destroy() {
+                resized.disconnect()
+                viewMoved.disconnect()
+                if (frame !== undefined) cancelAnimationFrame(frame)
+            }
+        }
+    }
     const elements = new Map<string, HTMLButtonElement>()
     const animations = new Set<Animation>()
     let motionVersion = 0
@@ -197,6 +212,7 @@
 
 <svelte:window onpointerdown={dismissChoices} />
 
+<span class="hex-anchor" hidden use:followHex={locationId}></span>
 {#if locationId && width && session.canBuildTrack}
     <div
         class="picker"

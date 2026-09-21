@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { untrack } from 'svelte'
     import { FinanceExampleValidator } from '@tabletop/18xx'
     import { assert } from '@tabletop/common'
     import type { AutoroutingRequest, AutoroutingResponse } from '@tabletop/18xx-autorouter'
@@ -21,57 +20,68 @@
     let attempt = $state(0)
     const result = $derived(session.automaticRouteResult?.result)
     const trains = $derived(session.routeEditor.trains)
-    $effect(() => {
-        const state = session.financialState
-        const companyId = state.routeStep?.companyId
-        const canRun = session.canRunTrains
-        void attempt
-        if (!canRun || !companyId || untrack(() => session.automaticRouteResult)) return
-        error = undefined
-        let cancelled = false
-        let worker: Worker | undefined
-        try {
-            worker = createRouteWorker()
-            worker.onmessage = (event: MessageEvent<AutoroutingResponse>) => {
-                if (cancelled) return
-                if (event.data.error !== undefined) error = event.data.error
-                else {
-                    try {
-                        session.setAutomaticRoutes(
-                            state,
-                            event.data.result.result,
-                            event.data.result.exhaustive
-                        )
-                    } catch (failure) {
-                        error =
-                            failure instanceof Error ? failure.message : 'Route calculation failed.'
-                    }
-                }
-                worker?.terminate()
-            }
-            worker.onerror = () => {
-                if (!cancelled) error = 'The route solver could not finish. Please try again.'
-                worker?.terminate()
-            }
-            const snapshot = session.gameState.dehydrate()
-            assert(
-                FinanceExampleValidator.Check(snapshot),
-                'Autorouting requires complete game state'
-            )
-            const request: AutoroutingRequest = { state: snapshot, companyId }
-            worker.postMessage(request)
-        } catch (failure) {
-            worker?.terminate()
-            error = failure instanceof Error ? failure.message : 'The route solver could not start.'
-        }
-        return () => {
-            cancelled = true
-            worker?.terminate()
-        }
+    type RouteSolve = { state: typeof session.financialState; companyId: string | undefined; attempt: number }
+    const solve = $derived<RouteSolve>({
+        state: session.financialState,
+        companyId: session.canRunTrains ? session.financialState.routeStep?.companyId : undefined,
+        attempt
     })
+    function solveRoutes(_section: HTMLElement, initial: RouteSolve) {
+        let worker: Worker | undefined
+        function start({ state, companyId }: RouteSolve) {
+            worker?.terminate()
+            worker = undefined
+            if (!companyId || session.automaticRouteResult) return
+            error = undefined
+            try {
+                const solver = createRouteWorker()
+                worker = solver
+                solver.onmessage = (event: MessageEvent<AutoroutingResponse>) => {
+                    if (worker !== solver) return
+                    if (event.data.error !== undefined) error = event.data.error
+                    else {
+                        try {
+                            session.setAutomaticRoutes(
+                                state,
+                                event.data.result.result,
+                                event.data.result.exhaustive
+                            )
+                        } catch (failure) {
+                            error =
+                                failure instanceof Error ? failure.message : 'Route calculation failed.'
+                        }
+                    }
+                    solver.terminate()
+                }
+                solver.onerror = () => {
+                    if (worker === solver) error = 'The route solver could not finish. Please try again.'
+                    solver.terminate()
+                }
+                const snapshot = session.gameState.dehydrate()
+                assert(
+                    FinanceExampleValidator.Check(snapshot),
+                    'Autorouting requires complete game state'
+                )
+                const request: AutoroutingRequest = { state: snapshot, companyId }
+                solver.postMessage(request)
+            } catch (failure) {
+                worker?.terminate()
+                worker = undefined
+                error = failure instanceof Error ? failure.message : 'The route solver could not start.'
+            }
+        }
+        start(initial)
+        return {
+            update: start,
+            destroy() {
+                worker?.terminate()
+                worker = undefined
+            }
+        }
+    }
 </script>
 
-<section aria-label="Run trains" class="automatic-routes">
+<section aria-label="Run trains" class="automatic-routes" use:solveRoutes={solve}>
     {#if error}
         <p role="alert">{error}</p>
         <button disabled={!session.canRunTrains} onclick={() => attempt++}>Try again</button>

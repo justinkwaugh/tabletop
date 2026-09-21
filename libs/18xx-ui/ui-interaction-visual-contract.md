@@ -1046,7 +1046,7 @@ Stock exchange choices read private name → destination company token and full 
 
 Company starts select the buyer in the stock action stage, just like share purchases: Start for a player, or Start for the eligible corporate owner. The company list contains only that buyer’s valid starts; buyer-specific prices and canonical start requests remain intact. Global Undo unwinds the existing staged selection.
 
-Selecting a company to start focuses its home locations using the map’s contextual focus bounds. This local selection owns a saved viewport: unwinding the company selection restores the prior tab and viewport, while committing or navigating game history discards the saved view. Map focus remains an imperative ScalingWrapper presentation operation, not a game-state action.
+Selecting a company to start focuses its home locations using the map’s contextual focus bounds. This local selection owns a saved viewport: unwinding the company selection restores the prior tab and viewport, including after changing the selected company, while committing or navigating game history discards the saved view. Map focus remains an imperative ScalingWrapper presentation operation, not a game-state action.
 
 Ordinary station placement automatically selects the cheapest available token with a legal placement, retaining supply order for equal costs. Titles whose token identities introduce a meaningful choice can override requiresStationTokenChoice to retain manual selection. Token selection is derived and marked auto; only the location choice is a manual stage. Undo skips the automatic token selection, and Finish stations remains available until a location is selected. Canonical token identity, costs and placement validation are unchanged.
 

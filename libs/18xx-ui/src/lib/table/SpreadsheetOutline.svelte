@@ -1,12 +1,13 @@
 <script lang="ts">
-    let { table }: { table: HTMLTableElement | undefined } = $props()
+    import { assertExists } from '@tabletop/common'
     let path = $state('')
     let width = $state(0)
     let height = $state(0)
 
-    $effect(() => {
-        if (!table) return
-        const element = table
+    function outlineHighlights(svg: SVGSVGElement) {
+        const sibling = svg.parentElement?.querySelector('table')
+        assertExists(sibling, 'Spreadsheet outline sits beside its table')
+        const element: HTMLTableElement = sibling
         let frame = 0
         function measure() {
             const bounds = element.getBoundingClientRect()
@@ -63,11 +64,11 @@
         const mutation = new MutationObserver(observeCells)
         mutation.observe(element, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] })
         observeCells()
-        return () => { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect() }
-    })
+        return { destroy() { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect() } }
+    }
 </script>
 
-<svg {width} {height} aria-hidden="true"><path d={path} /></svg>
+<svg use:outlineHighlights {width} {height} aria-hidden="true"><path d={path} /></svg>
 
 <style>
     svg { position: absolute; inset: 0 auto auto 0; z-index: 2; pointer-events: none; overflow: visible; }

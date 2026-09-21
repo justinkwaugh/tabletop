@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { untrack } from 'svelte'
+    import { assert } from '@tabletop/common'
     import { tableHeaderState } from './tableHeaderState.js'
     import type { FinanceExampleSession } from '../examples/financeExampleSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -28,29 +28,24 @@
     } = $props()
     let showPhaseChart = $state(false)
     let compact = $state(false)
-    let headerElement: HTMLElement
-    let phaseElement: HTMLDivElement
-    let turnElement: HTMLDivElement
-    let fullLabel = $state<HTMLSpanElement>()
-    let shortLabel = $state<HTMLSpanElement>()
-    $effect(() => {
-        const full = fullLabel
-        const short = shortLabel
-        if (!full || !short) return
+    function fitRoundLabel(header: HTMLElement) {
+        const phase = header.querySelector<HTMLElement>('.phase')
+        const turn = header.querySelector<HTMLElement>('.turn')
+        assert(phase && turn, 'Table header requires phase and turn regions')
         const observer = new ResizeObserver(() => {
-            const style = getComputedStyle(headerElement)
-            const available = headerElement.clientWidth - parseFloat(style.paddingLeft) -
+            const full = phase.querySelector<HTMLElement>('.round-full')
+            const short = phase.querySelector<HTMLElement>('.round-short')
+            if (!full || !short) return
+            const style = getComputedStyle(header)
+            const available = header.clientWidth - parseFloat(style.paddingLeft) -
                 parseFloat(style.paddingRight) - parseFloat(style.columnGap)
-            const fullWidth = phaseElement.getBoundingClientRect().width +
-                (untrack(() => compact) ? full.getBoundingClientRect().width -
-                    short.getBoundingClientRect().width : 0)
-            compact = fullWidth + turnElement.getBoundingClientRect().width > available
+            const fullWidth = phase.getBoundingClientRect().width +
+                (compact ? full.getBoundingClientRect().width - short.getBoundingClientRect().width : 0)
+            compact = fullWidth + turn.getBoundingClientRect().width > available
         })
-        for (const element of [headerElement, phaseElement, turnElement, full, short]) {
-            observer.observe(element)
-        }
-        return () => observer.disconnect()
-    })
+        for (const element of [header, phase, turn]) observer.observe(element)
+        return { destroy: () => observer.disconnect() }
+    }
     const financialState = $derived(tableHeaderState(session))
     const auction = $derived(
         Boolean(
@@ -66,18 +61,18 @@
     const company = $derived(financialState.companies.find((company) => company.id === companyId))
 </script>
 
-<header aria-label="Game phase" bind:this={headerElement} class:compact class:borderless={!bordered}>
-    <div class="phase" bind:this={phaseElement}>
+<header aria-label="Game phase" use:fitRoundLabel class:compact class:borderless={!bordered}>
+    <div class="phase">
         <strong>
             {#if financialState.result}
                 Game over
             {:else if auction}
                 <span class="auction-label max-sm:hidden">Opening auction</span><span class="auction-label sm:hidden">Auction</span>
             {:else if !financialState.stockRound.completed}
-                <span class="round-full" bind:this={fullLabel} aria-hidden={compact}>Stock round</span><span class="round-short" bind:this={shortLabel} aria-hidden={!compact}>SR</span>
+                <span class="round-full" aria-hidden={compact}>Stock round</span><span class="round-short" aria-hidden={!compact}>SR</span>
                 {financialState.stockRound.number}
             {:else}
-                <span class="round-full" bind:this={fullLabel} aria-hidden={compact}>Operating round</span><span class="round-short" bind:this={shortLabel} aria-hidden={!compact}>OR</span>
+                <span class="round-full" aria-hidden={compact}>Operating round</span><span class="round-short" aria-hidden={!compact}>OR</span>
                 {financialState.operatingSet?.number}.{financialState.operatingSet?.roundNumber}
             {/if}
         </strong>
@@ -94,7 +89,7 @@
                 /><span class="max-sm:hidden">{company.name}</span><span class="sm:hidden">{companyNames[company.id]?.initials ?? company.id}</span></span
             >{/if}
     </div>
-    <div class="turn" bind:this={turnElement}>
+    <div class="turn">
         {#if session.isViewingHistory}
             <span>History</span>
         {:else}

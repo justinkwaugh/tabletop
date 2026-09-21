@@ -23,7 +23,6 @@
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import SpreadsheetOutline from './SpreadsheetOutline.svelte'
 
-    let ownershipTable: HTMLTableElement | undefined = $state()
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
 
@@ -274,7 +273,7 @@
     {:else}
         <div class="table-scroll" class:scrolled onscroll={(event) => scrolled = event.currentTarget.scrollLeft > 0}>
         <div class="outlined-table">
-        <table bind:this={ownershipTable} aria-label="Company share ownership" class:transposed={view === 'Player'}>
+        <table aria-label="Company share ownership" class:transposed={view === 'Player'}>
             <colgroup>
                 <col class="label-column" />
                 {#if view === 'Company'}
@@ -434,7 +433,7 @@
                 {/if}
             </tbody>
         </table>
-        <SpreadsheetOutline table={ownershipTable} />
+        <SpreadsheetOutline />
         </div>
         </div>
         {#each includedPortfolioOwners as owner (owner.id)}

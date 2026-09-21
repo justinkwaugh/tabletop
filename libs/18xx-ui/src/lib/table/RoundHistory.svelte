@@ -55,14 +55,14 @@
         indexButton?.focus()
     }
     let scrollElement: HTMLDivElement | undefined = $state()
-    $effect(() => {
-        const first = newestFirst
-        const element = scrollElement
-        if (!historyComplete) return
-        void tick().then(() => {
-            if (element) element.scrollTop = first ? 0 : element.scrollHeight
-        })
-    })
+    function pinToNewest(element: HTMLDivElement, pin: { newestFirst: boolean; historyComplete: boolean }) {
+        function scrollToNewest({ newestFirst, historyComplete }: typeof pin) {
+            if (!historyComplete) return
+            void tick().then(() => { element.scrollTop = newestFirst ? 0 : element.scrollHeight })
+        }
+        scrollToNewest(pin)
+        return { update: scrollToNewest }
+    }
     function phaseBackground(round: HistoryRound) {
         const colors = round.phases
             .map((phase) => {
@@ -126,7 +126,7 @@
             {:else}<div class="empty">No rounds yet.</div>{/each}
         </nav>
     </div>
-    <div class="history-scroll" bind:this={scrollElement} role="region" aria-label="Scrollable history">
+    <div class="history-scroll" bind:this={scrollElement} use:pinToNewest={{ newestFirst, historyComplete }} role="region" aria-label="Scrollable history">
         <ol class="history-content" class:newest-last={!newestFirst} aria-label="Action history">
             {#each newestFirst ? rounds : rounds.toReversed() as round (round.id)}
                 <li class="round-section" data-round-id={round.id} aria-label={round.label}>
