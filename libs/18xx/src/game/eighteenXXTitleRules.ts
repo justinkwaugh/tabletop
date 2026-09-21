@@ -13,8 +13,6 @@ import type { RouteRules } from '../routes/routeEvaluation.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { type StationRules } from '../stations/stationPlacement.js'
 import { type TrackRules } from '../construction/trackConstruction.js'
-import type { RailwayMap } from '../map/map.js'
-import type { TileSet } from '../tiles/inventory.js'
 import { type OperatingRules } from '../operating/operatingSet.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import type { StockRules } from '../stock/stockRules.js'
@@ -41,8 +39,6 @@ export interface EighteenXXTitleRules {
     stockRules: StockRules
     companyRules: CompanyRules
     operatingRules: OperatingRules
-    map: RailwayMap
-    tileSet: TileSet
     stationRules: StationRules
     earningsRules: EarningsRules
     routeRules: RouteRules

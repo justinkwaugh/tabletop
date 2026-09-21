@@ -11,8 +11,6 @@ import { Shikoku1889RouteRules } from './routeRules.js'
 import { Shikoku1889Phases, Shikoku1889TrainRules } from './trains.js'
 import { Shikoku1889StationRules } from './stationRules.js'
 import { Shikoku1889TrackRules } from './trackRules.js'
-import { Shikoku1889Map } from './map.js'
-import { Shikoku1889TileSet } from './tiles.js'
 import { Shikoku1889OperatingRules } from './roundRules.js'
 import { Shikoku1889CompanyRules } from './companyRules.js'
 import { Shikoku1889StockRules } from './stockRules.js'
@@ -34,8 +32,6 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules = {
     stockRules: Shikoku1889StockRules,
     companyRules: Shikoku1889CompanyRules,
     operatingRules: Shikoku1889OperatingRules,
-    map: Shikoku1889Map,
-    tileSet: Shikoku1889TileSet,
     trackRules: Shikoku1889TrackRules,
     stationRules: Shikoku1889StationRules,
     earningsRules: Shikoku1889EarningsRules,

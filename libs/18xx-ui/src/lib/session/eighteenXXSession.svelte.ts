@@ -22,7 +22,14 @@ import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tab
 import type { TitlePreferences } from '@tabletop/frontend-components'
 import type { GameAction } from '@tabletop/common'
 import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
-import { cashOwnedBy, shareSaleValue, priorityOrder, stockCertificateCount, stockMarketOrder } from '@tabletop/18xx'
+import {
+    cashOwnedBy,
+    shareSaleValue,
+    priorityOrder,
+    stockCertificateCount,
+    stockMarketOrder,
+    titleComponents
+} from '@tabletop/18xx'
 import {
     type HydratedEighteenXXState,
     type EighteenXXTitleRules
@@ -130,6 +137,11 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         readonly presentation: TitlePresentation
     ) {
         super(options)
+        const { map, tileSet } = titleComponents(rules)
+        assert(
+            mapView.map === map && mapView.tileSet === tileSet,
+            'The map view must present the title’s map and tile set'
+        )
         this.historicalMaps = new HistoricalMaps(mapView)
         this.registerLocalSelections()
     }

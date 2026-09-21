@@ -71,3 +71,19 @@ at 50 and 60 percent; capital paid once; a sold-out company with a share in a po
 title counts or does not; sale terms; operating order skipping unfloated and closed
 companies; station markers and the home id; the playground's flotation, sold-out,
 funding and ending tests for both titles.
+
+## The map, tile set and depot
+
+`TrackRules`, `StationRules` and `RouteRules` each carry the map and tile set, and
+`RouteRules` and `TrainRules` the depot. They keep them: a mechanism's rules are what its
+procedure needs, which is why `TrackConstruction`, `StationPlacement`, `RouteEvaluation`
+and `TrainPurchase` can be constructed from a State and one rule object — as they are in
+about a hundred places, most of them tests — and used without a title's other rules.
+
+What was wrong was narrower. `EighteenXXTitleRules` repeated the map and tile set a
+fourth time only so hydration could read them, while hydration read the depot from
+`trainRules`; and nothing checked that the copies agreed, so a title giving track one map
+and routes another would have failed far from the cause. `titleComponents(rules)` now
+takes the three from the mechanism rules and refuses rules that disagree; the runtime and
+initializer use it, the top-level `map` and `tileSet` are gone, and the UI session checks
+that its map view presents the same map and tile set.

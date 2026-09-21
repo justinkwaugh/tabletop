@@ -13,8 +13,6 @@ import { TheOldPrinceRouteRules } from './routeRules.js'
 import { TheOldPrincePhases, TheOldPrinceTrainRules } from './trains.js'
 import { TheOldPrinceStationRules } from './stationRules.js'
 import { TheOldPrinceTrackRules } from './trackRules.js'
-import { TheOldPrinceMap } from './map.js'
-import { TheOldPrinceTileSet } from './tiles.js'
 import { TheOldPrinceOperatingRules } from './roundRules.js'
 import { TheOldPrinceCompanyRules } from './companyRules.js'
 import { TheOldPrinceStockRules } from './stockRules.js'
@@ -41,8 +39,6 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
     stockRules: TheOldPrinceStockRules,
     companyRules: TheOldPrinceCompanyRules,
     operatingRules: TheOldPrinceOperatingRules,
-    map: TheOldPrinceMap,
-    tileSet: TheOldPrinceTileSet,
     trackRules: TheOldPrinceTrackRules,
     stationRules: TheOldPrinceStationRules,
     earningsRules: TheOldPrinceEarningsRules,

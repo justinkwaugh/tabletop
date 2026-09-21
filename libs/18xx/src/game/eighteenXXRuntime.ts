@@ -51,6 +51,7 @@ import {
     stateAfterOperatingStep
 } from '../operating/operatingSteps.js'
 import { EighteenXXInitializer } from './eighteenXXInitializer.js'
+import { titleComponents } from './titleComponents.js'
 import type { EighteenXXStateHandler, EighteenXXTitleRules } from './eighteenXXTitleRules.js'
 function handledStateValidator(
     schema: Type.TObject,
@@ -69,7 +70,8 @@ function handledStateValidator(
 export function createEighteenXXRuntime(
     options: EighteenXXTitleRules
 ): GameRuntime<EighteenXXState, HydratedEighteenXXState> {
-    const { stockRules: rules, companyRules, operatingRules, map, tileSet } = options
+    const { stockRules: rules, companyRules, operatingRules } = options
+    const { map, tileSet, depot } = titleComponents(options)
     type Handler = EighteenXXStateHandler
     const stateDefinition = options.state ?? FamilyStateDefinition
     const decides = (machineState: EighteenXXMachineState, family: Handler): Handler =>
@@ -232,7 +234,7 @@ export function createEighteenXXRuntime(
         hydrator: {
             hydrateState: (state) =>
                 inKnownPhase(
-                    stateDefinition.hydrate(state, map, tileSet, options.trainRules.depot),
+                    stateDefinition.hydrate(state, map, tileSet, depot),
                     options.phases
                 ),
             hydrateAction: (action) => {

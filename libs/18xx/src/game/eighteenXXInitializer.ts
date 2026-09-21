@@ -17,6 +17,7 @@ import {
 } from './eighteenXXState.js'
 import type { EighteenXXTitleRules } from './eighteenXXTitleRules.js'
 import type { InitialPosition, Opening } from './opening.js'
+import { titleComponents } from './titleComponents.js'
 export type InitialStateParts = {
     stockRoundNumber: number
     position: InitialPosition
@@ -27,8 +28,9 @@ export type EighteenXXInitializerRules = Pick<
     | 'state'
     | 'phases'
     | 'createOpening'
-    | 'map'
-    | 'tileSet'
+    | 'trackRules'
+    | 'stationRules'
+    | 'routeRules'
     | 'trainRules'
     | 'privateRules'
     | 'stockRules'
@@ -68,6 +70,7 @@ export class EighteenXXInitializer extends BaseGameInitializer<
         parts: InitialStateParts
     ): HydratedEighteenXXState {
         const players = this.playerStates(game)
+        const { map, tileSet, depot } = titleComponents(this.rules)
         return inKnownPhase(
             (this.rules.state ?? FamilyStateDefinition).hydrate(
                 {
@@ -87,9 +90,9 @@ export class EighteenXXInitializer extends BaseGameInitializer<
                     ...parts.position,
                     ...parts.titleState
                 },
-                this.rules.map,
-                this.rules.tileSet,
-                this.rules.trainRules.depot
+                map,
+                tileSet,
+                depot
             ),
             this.rules.phases
         )
