@@ -20,6 +20,13 @@ describe('stock action selection', () => {
         expect(backFromStockAction(selection)).toEqual({})
         expect(chooseStockAction('buy').action?.value.buyer).toBeUndefined()
     })
+    it('keeps continued selling automatic while company selection stays manual', () => {
+        const action = chooseStockAction('sell', undefined, 'auto')
+        expect(action.action?.source).toBe('auto')
+        const company = chooseSaleCompany(action, 'A')
+        expect(company.saleCompany?.source).toBe('manual')
+        expect(backFromStockAction(company)).toEqual(action)
+    })
     it('starts a fresh branch when the action is reselected', () => {
         const previous = chooseSaleCompany(chooseStockAction('sell'), 'A')
         const next = chooseStockAction('buy')

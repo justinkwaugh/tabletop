@@ -1964,6 +1964,17 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
                     isStartOperatingSet(action)
             )
     )
+    stockTurnSales = $derived.by(() => {
+        const boundary = this.trades.findLastIndex((action) =>
+            isFinishStockTurn(action) || isCompleteStockRound(action))
+        const totals = new Map<string, number>()
+        for (const action of this.trades.slice(boundary + 1)) {
+            if (!isSellShares(action)) continue
+            for (const sale of action.sales)
+                totals.set(sale.companyId, (totals.get(sale.companyId) ?? 0) + sale.shares)
+        }
+        return [...totals].map(([companyId, shares]) => ({ companyId, shares }))
+    })
     mustSell = $derived.by(() =>
         this.financialState.machineState === 'StockRound' && this.myPlayer
             ? exceedsStockLimits(
@@ -2048,7 +2059,7 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             this.financialState.stockRound.number === roundNumber &&
             this.saleChoices.some((choice) => choice.result.details)
         ) {
-            this.stockActionDraft = chooseStockAction('sell')
+            this.stockActionDraft = chooseStockAction('sell', undefined, 'auto')
         }
     }
     async finishTurn() {
@@ -2079,7 +2090,8 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
     }
     get hasActionDraft(): boolean {
         return Boolean(
-            this.stockMenu ||
+            this.stockActionDraft.action?.source === 'manual' ||
+            this.stockActionDraft.saleCompany?.source === 'manual' ||
             this.offerDraft ||
             this.auctionDraft ||
             this.companyDraft || this.privateActionSelection ||
@@ -2159,10 +2171,11 @@ export class FinanceExampleSession extends GameSession<GameState, HydratedGameSt
             else this.cancelSelection()
             return
         }
-        if (this.stockMenu) {
+        if (this.stockActionDraft.action?.source === 'manual') {
             this.backFromStockMenu()
             return
         }
+        this.stockActionDraft = {}
         await super.undo()
     }
     private assertSelectionAvailable(playerId: string | undefined) {

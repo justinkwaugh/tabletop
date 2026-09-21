@@ -1208,7 +1208,10 @@ session’s selected buyer. This local selection feedback does not gate interact
 reduced motion disables sliding and entry/exit fades. Pass / End turn is separated at the right and commits
 immediately. The action pills center across the full strip when they fit clear of
 Pass / End turn; otherwise they center in the remaining space to its left. The
-layout measures the current choices and turn button, so title-specific categories
+layout measures the current choices and turn button. As space narrows further,
+stock pill padding shrinks to zero before labels overflow, reserving an 8px gap
+between the pill group and the turn-button area while the labels fit. Padding
+returns as space grows. This supports title-specific categories
 and either turn-button label use the same rule. The strip remains outside the
 scrolling action choices. It sticks to the top of its scroll container above
 the action content whenever that area scrolls vertically.
@@ -1753,3 +1756,21 @@ The full row is a real button, including the income amount, with hover and keybo
 focus on that same button. It must never intercept adjacent actions such as Run
 trains. WebKit browser coverage verifies route focus, Run trains and Undo for TOP
 and 1889.
+
+Stock sales share Buy’s vertical centering and pane scrolling behavior. Company
+choices show the owned share count at token size, followed by the token and the
+price at Buy’s price size. Clicking a company with one owned share immediately
+commits its legal sale. Other companies open legal quantity choices; clicking a
+quantity commits that sale directly, without a confirmation stage. These explicit
+clicks use the existing session sale path, including sale-block pricing, visible
+state settlement, continued selling, and committed-action Undo.
+
+Sale quantity choices are introduced by HOW MANY. Below the stock controls, a
+compact SALES table shows each company token and total shares sold in the current
+stock turn. It derives totals from visible committed sales since the last turn or
+round boundary, follows Undo/history, and disappears when the turn has no sales.
+
+At Actions-pane widths of 500px or more, the current-turn sales summary occupies
+a 140px dark strip on the right, with a left border spanning the action content’s
+height beneath the persistent action strip. The controls center in the remaining
+space. Narrower panes and non-paned layouts retain the summary below the controls.

@@ -713,10 +713,10 @@
     .game-info-pane .depot-information { margin-inline: 0; }
     .game-info-pane .phase-information { padding-left: 0; }
     .original-actions { --stock-buy-wrap: nowrap; --stock-buy-overflow: auto; flex: none; max-height: 50dvh; overflow: auto; }
-    .original-actions:has(.action-panel :global(.buy-panel)) { max-height: none; overflow: visible; }
+    .original-actions:has(.action-panel :global(.centered-panel)) { max-height: none; overflow: visible; }
     .workspace-view { height: 100%; min-height: 0; min-width: 0; overflow: auto; }
     .players-pane { container: player-pane / size; padding: 10px 8px 0; box-sizing: border-box; }
-    .actions-area { display: flex; flex-direction: column; overflow: hidden; }
+    .actions-area { container: stock-actions / inline-size; display: flex; flex-direction: column; overflow: hidden; }
     .actions-area .action-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
     .actions-area .action-panel { flex: 1 0 auto; }
     .widget-empty { padding: 16px; color: var(--rail-muted, #887969); }
@@ -790,7 +790,7 @@
         border-bottom: 1px solid var(--rail-border, #b8a995);
         font-size: 13px;
     }
-    .action-panel:has(:global(.buy-panel)) { display: flex; flex-direction: column; overflow: visible; }
+    .action-panel:has(:global(.centered-panel)) { display: flex; flex-direction: column; overflow: visible; }
     .action-panel :global(section) {
         padding: 0;
         margin: 0;
@@ -798,7 +798,11 @@
         border-radius: 0;
         background: transparent;
     }
-    .action-panel :global(section.buy-panel) { margin-block: auto; }
+    .action-panel :global(section.centered-panel) { margin-block: auto; }
+    @container stock-actions (min-width: 500px) {
+        .action-panel:has(:global(.sales-sidebar)) { display: flex; flex-direction: column; padding: 0; }
+        .action-panel :global(section.stock-trading:has(.sales-sidebar)) { flex: 1; margin-block: 0; }
+    }
     .action-panel :global(h2) {
         font-size: 14px;
     }

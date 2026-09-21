@@ -76,7 +76,8 @@
 {#snippet token(companyId: string)}
     <CompanyToken appearance={session.mapView.stations[companyId]} size={38} />
 {/snippet}
-<section aria-label="Stock trading" class:buy-panel={menu === 'buy'}>
+<section class="stock-trading" aria-label="Stock trading" class:centered-panel={!menu || menu === 'buy' || menu === 'sell' || menu === 'exchange'}>
+    <div class="stock-controls">
     {#if session.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
     {#if menu}
         <div class="heading available-shares">
@@ -189,6 +190,7 @@
                 <div class="start-selection">
                     <div class="choices">
                         {#each session.stockCompanies.filter((company) => sales.some((choice) => choice.sale.companyId === company.id)) as company (company.id)}
+                            {@const owned = session.myPlayer ? sharesOwned(session.financialState, company.id, { kind: 'player', playerId: session.myPlayer.id }) : 0}
                             <button class="share-identity sale-company" {disabled}
                                 aria-label={`Sell ${company.name}`}
                                 aria-pressed={session.selectedSaleCompany === company.id}
@@ -196,14 +198,22 @@
                                 onclick={() => {
                                     session.cancelSelection()
                                     session.chooseStockSaleCompany(company.id)
+                                    if (owned === 1) {
+                                        const choice = sales.find((choice) => choice.sale.companyId === company.id && choice.sale.shares === 1)
+                                        assertExists(choice, 'A single owned share requires an available sale')
+                                        session.selectSale(choice.request)
+                                        void session.confirmSale()
+                                    }
                                 }}>
+                                <span class="owned-shares">{owned}</span>
                                 <CompanyToken appearance={session.mapView.stations[company.id]} size={30} />
-                                <span class="sale-heading-values"><span class="share-value">${session.financialState.stockRound.turn.saleBlocks?.find((block) => block.companyId === company.id && block.seller.kind === 'player' && block.seller.playerId === session.myPlayer?.id)?.price ?? companyMarketSpace(session.financialState.stockMarket, company.id).price}</span>
-                                    {#if session.myPlayer}<small>{sharesOwned(session.financialState, company.id, { kind: 'player', playerId: session.myPlayer.id })} owned</small>{/if}</span>
+                                <span class="share-value">${session.financialState.stockRound.turn.saleBlocks?.find((block) => block.companyId === company.id && block.seller.kind === 'player' && block.seller.playerId === session.myPlayer?.id)?.price ?? companyMarketSpace(session.financialState.stockMarket, company.id).price}</span>
+
                             </button>
                         {/each}
                     </div>
                     {#if session.selectedSaleCompany}
+                        <div class="quantity-heading">HOW MANY</div>
                         <div class="choices">
                             {#each sales.filter((choice) => choice.sale.companyId === session.selectedSaleCompany) as choice}
                                 <button class="sale-quantity" {disabled}
@@ -211,7 +221,8 @@
                                     aria-label={`Sell ${choice.sale.shares} shares for $${choice.result.details?.proceeds}`}
                                     aria-pressed={!!session.selectedSale && sameOwner(session.selectedSale.seller, choice.request.seller) && session.selectedSale.sales.some((sale) => sale.companyId === choice.sale.companyId && sale.shares === choice.sale.shares)}
                                     onclick={() => {
-                                        if (session.stockSaleSelection?.source !== 'auto') session.selectSale(choice.request)
+                                        session.selectSale(choice.request)
+                                        void session.confirmSale()
                                     }}>
                                     <span class="share-count">{choice.sale.shares}</span>
                                     <small>${choice.result.details?.proceeds}</small>
@@ -239,31 +250,40 @@
                     </button>{/each}
             {/if}
         </div>
-        {#if menu === 'sell' && session.selectedSale}
-            <div class="sale-order">
-                <button
-                    class="confirm action-button"
-                    disabled={disabled || !session.selectedSaleResult?.details}
-                    onclick={() => session.confirmSale()}
-                    >{session.selectedSaleResult?.details
-                        ? `Sell ${session.selectedSaleResult.details.sales.reduce((total, sale) => total + sale.shares, 0)} for $${session.selectedSaleResult.details.proceeds}`
-                        : 'Sell'}</button
-                >
-                {#if session.selectedSaleResult?.reason}<p role="alert">
-                        {session.selectedSaleResult.reason}
-                    </p>{/if}
-            </div>
-        {/if}
     {:else}
         <div class="heading available-shares idle-prompt">Choose an action above</div>
     {/if}
 
+    </div>
+    {#if session.stockTurnSales.length}
+        <aside class="sales-sidebar" aria-label="Sales summary">
+        <table class="sales-summary" aria-label="Sales this turn">
+            <caption>SALES THIS TURN</caption>
+            <tbody>
+                {#each session.stockTurnSales as sale (sale.companyId)}
+                    <tr data-sold-company={sale.companyId}>
+                        <th scope="row" aria-label={getCompany(session.financialState, sale.companyId).name}>
+                            <CompanyToken appearance={session.mapView.stations[sale.companyId]} size={26} />
+                        </th>
+                        <td>{sale.shares}</td>
+                    </tr>
+                {/each}
+            </tbody>
+        </table>
+        </aside>
+    {/if}
 </section>
 
 <style>
     section {
         container-type: inline-size;
         padding: 4px 0;
+    }
+    @container stock-actions (min-width: 500px) {
+        section:has(.sales-sidebar) { display: grid; grid-template-columns: minmax(0, 1fr) 140px; }
+        section:has(.sales-sidebar) .stock-controls { align-self: center; min-width: 0; padding: 10px 16px; container-type: inline-size; }
+        .sales-sidebar { padding: 14px 10px; border-left: 1px solid var(--rail-border, #485666); background: var(--rail-surface-inset, #1b232d); }
+        .sales-sidebar .sales-summary { margin-top: 0; }
     }
     .choices.exchange-list { flex-direction: column; align-items: stretch; width: fit-content; max-width: 100%; margin-inline: auto; gap: 4px; }
     button.exchange-choice { display: flex; align-items: center; gap: 10px; padding: 4px 8px; border: 0; background: var(--rail-surface-raised, #eee6da); text-align: left; }
@@ -283,7 +303,8 @@
     .share-source + .share-source::before { content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; border-left: 1px solid var(--rail-border, #d8cbbc); }
     .source-label { font-size: 9px; line-height: 11px; text-transform: uppercase; letter-spacing: .035em; color: var(--rail-text, #786550); }
     .share-count { font-size: 18px; line-height: 20px; font-variant-numeric: tabular-nums; }
-    .sale-heading-values { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .owned-shares { font-size: 30px; line-height: 30px; font-variant-numeric: tabular-nums; }
+    button.sale-company { font-size: 15px; gap: 12px; }
     button.sale-quantity { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 10px; }
     button.sale-company[aria-pressed='true'] { background: var(--rail-surface-raised, #e5d7c3); }
     button.sale-quantity[aria-pressed='true'] { background: var(--rail-surface-raised, #e5d7c3); box-shadow: none; }
@@ -330,6 +351,14 @@
         min-width: 66px;
         padding: 7px 9px;
     }
+    .quantity-heading { margin-top: 8px; text-align: center; font-size: 11px; letter-spacing: .08em; color: var(--rail-text, #63513e); }
+    .sales-summary { margin: 16px auto 0; border-collapse: collapse; min-width: 90px; }
+    .sales-summary caption { white-space: nowrap; padding-bottom: 1px; font-size: clamp(10px, calc(8px + 0.5cqw), 13px); letter-spacing: .08em; }
+    .sales-summary th { padding: 6px 16px 0 0; font-weight: normal; }
+    .sales-summary tr:first-child th,
+    .sales-summary tr:first-child td { padding-top: 2px; }
+    .sales-summary th :global(svg) { width: clamp(18px, calc(12px + 2cqw), 32px); height: auto; }
+    .sales-summary td { padding-top: 6px; text-align: right; font-size: clamp(13px, calc(8px + 1.5cqw), 23px); font-variant-numeric: tabular-nums; }
     .start-selection { display: flex; flex-direction: column; gap: 8px; }
     .choices.start-choices { gap: 3px; }
     button.start-company-choice[aria-pressed='true'] { background: var(--rail-surface-raised, #e5d7c3); box-shadow: none; }
@@ -376,18 +405,5 @@
         text-align: center;
         font-size: 12px;
         margin: 0 0 8px;
-    }
-    .sale-order {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        margin-top: 12px;
-        font-size: 12px;
-    }
-    .confirm {
-        margin-top: 5px;
-        background: var(--rail-solid, #695540);
-        color: #fffaf4;
     }
 </style>

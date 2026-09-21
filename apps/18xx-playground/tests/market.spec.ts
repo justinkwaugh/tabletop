@@ -19,7 +19,6 @@ for (const title of ['TOP', '1889']) {
         await expect(token).toHaveAttribute('data-market-token-space', initialSpace)
         await page.getByRole('navigation', { name: 'Stock actions' }).getByRole('button', { name: 'Sell', exact: true }).click()
         await page.locator(`[data-sale-company="${companyId}"]`).first().click()
-        await page.locator('[data-sale-shares="1"]').first().click()
         await page.getByRole('tab', { name: 'Market', exact: true }).click()
         await token.evaluate((element) => {
             const values = new Set<string>()
@@ -31,7 +30,7 @@ for (const title of ['TOP', '1889']) {
             }
             requestAnimationFrame(sample)
         })
-        await page.locator('button.confirm').click()
+        await page.locator('[data-sale-shares="1"]').first().click()
         await expect(undo).toBeEnabled()
         await expect(token).toHaveAttribute('data-market-token-space', destination)
         expect(Number(await token.getAttribute('data-animation-samples'))).toBeGreaterThan(3)
