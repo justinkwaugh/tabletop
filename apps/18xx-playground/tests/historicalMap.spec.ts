@@ -1,4 +1,13 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+const viewer = (page: Page) => page.getByRole('dialog', { name: 'Historical map' })
+const tableTiles = (page: Page) =>
+    page.locator('[data-map-location][data-placed="true"]:not([aria-label="Historical map"] *)')
+const open = (page: Page, label: RegExp) =>
+    page
+        .getByRole('button', { name: label })
+        .last()
+        .evaluate((element: HTMLButtonElement) => element.click())
 
 test('finished-game map inspection shows past track and routes without changing the table', async ({ page }) => {
     test.setTimeout(90000)
@@ -11,50 +20,53 @@ test('finished-game map inspection shows past track and routes without changing 
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const header = page.locator('header[aria-label="Game phase"]')
     const currentHeader = await header.innerText()
-    const placed = page.locator('[data-map-location][data-placed="true"]')
-    const currentTiles = await placed.count()
+    await expect.poll(() => tableTiles(page).count()).toBeGreaterThan(0)
+    const currentTiles = await tableTiles(page).count()
     await expect(page.locator('[data-map-route]')).toHaveCount(0)
-    const lay = page.getByRole('button', { name: /Preview historical map: Laid track/ }).last()
-    await lay.evaluate((element: HTMLButtonElement) => element.click())
-    await expect(page.getByText('Historical map', { exact: true })).toBeVisible()
-    expect(await placed.count()).toBeLessThan(currentTiles)
-    await expect(header).toHaveText(currentHeader, { useInnerText: true })
-    await expect(page.locator('[data-map-location][tabindex="0"]')).toHaveCount(0)
-    await expect(page.locator('[data-map-layer="unavailable"]')).toHaveCount(0)
-    await expect(page.locator('[data-map-route]')).toHaveCount(0)
-    await page.getByRole('button', { name: 'Return to current map' }).click()
-    await expect(placed).toHaveCount(currentTiles)
-    await expect(page.getByText('Historical map', { exact: true })).toHaveCount(0)
 
-    const run = page.getByRole('button', { name: /Preview historical map: Ran/ }).last()
-    await run.evaluate((element: HTMLButtonElement) => element.click())
-    await expect(page.getByText('Historical map', { exact: true })).toBeVisible()
-    expect(await page.locator('[data-map-route]').count()).toBeGreaterThan(0)
+    await open(page, /Preview historical map: Laid track/)
+    await expect(viewer(page)).toBeVisible()
+    await expect(viewer(page).locator('header')).toContainText('Historical track lay')
+    const pastTiles = await viewer(page).locator('[data-map-location][data-placed="true"]').count()
+    expect(pastTiles).toBeGreaterThan(0)
+    expect(pastTiles).toBeLessThanOrEqual(currentTiles)
+    await expect(viewer(page).locator('[data-map-location][tabindex="0"]')).toHaveCount(0)
+    await expect(viewer(page).locator('[data-map-layer="unavailable"]')).toHaveCount(0)
+    await expect(viewer(page).locator('[data-map-route]')).toHaveCount(0)
+    await expect(tableTiles(page)).toHaveCount(currentTiles)
     await expect(header).toHaveText(currentHeader, { useInnerText: true })
-    await expect.poll(async () => page.locator('.map-area').evaluate((area) => {
-        const viewport = area.getBoundingClientRect()
-        const banner = area.querySelector('.historical-map-banner')!.getBoundingClientRect()
-        return [...area.querySelectorAll('[data-map-route]')].every((route) => {
+    await viewer(page).getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(viewer(page)).toHaveCount(0)
+    await expect(tableTiles(page)).toHaveCount(currentTiles)
+
+    await open(page, /Preview historical map: Ran/)
+    await expect(viewer(page)).toBeVisible()
+    await expect(viewer(page).locator('header')).toContainText(/Historical run · .+ · OR .+\$\d+/)
+    expect(await viewer(page).locator('[data-map-route]').count()).toBeGreaterThan(0)
+    await expect(page.locator('[data-map-route]:not([aria-label="Historical map"] *)')).toHaveCount(0)
+    await expect(header).toHaveText(currentHeader, { useInnerText: true })
+    await expect.poll(async () => viewer(page).evaluate((dialog) => {
+        const viewport = dialog.querySelector('.map')!.getBoundingClientRect()
+        return [...dialog.querySelectorAll('[data-map-route]')].every((route) => {
             const bounds = route.getBoundingClientRect()
-            return bounds.top >= banner.bottom && bounds.bottom <= viewport.bottom &&
+            return bounds.top >= viewport.top && bounds.bottom <= viewport.bottom &&
                 bounds.left >= viewport.left && bounds.right <= viewport.right
         })
     })).toBe(true)
-    await page.locator('.map-area').click({ position: { x: 100, y: 200 } })
     await page.keyboard.press('f')
-    await expect(page.getByRole('button', { name: 'Return to current map' })).toBeVisible()
-    await page.getByRole('button', { name: 'Return to current map' }).click()
-    await expect(placed).toHaveCount(currentTiles)
+    await expect(viewer(page)).toHaveCount(0)
+
+    await open(page, /Preview historical map: Ran/)
+    await expect(viewer(page)).toBeVisible()
     await page.keyboard.press('Escape')
-    await run.evaluate((element: HTMLButtonElement) => element.click())
-    await expect(page.getByText('Historical map', { exact: true })).toBeVisible()
-    await run.evaluate((element: HTMLButtonElement) => element.click())
-    await expect(page.getByText('Historical map', { exact: true })).toHaveCount(0)
+    await expect(viewer(page)).toHaveCount(0)
+    await expect(tableTiles(page)).toHaveCount(currentTiles)
+    await expect(header).toHaveText(currentHeader, { useInnerText: true })
     expect(errors).toEqual([])
 })
 
 for (const title of ['TOP', '1889'] as const) {
-    test(`${title} clears a map preview when Undo changes the live state`, async ({ page }) => {
+    test(`${title} closes the map viewer when the live state changes beneath it`, async ({ page }) => {
         await page.goto('/table')
         await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
         await page.getByLabel('Game', { exact: true }).selectOption(title)
@@ -63,10 +75,14 @@ for (const title of ['TOP', '1889'] as const) {
         await expect(run).toBeEnabled()
         await run.click()
         await page.getByRole('tab', { name: 'History', exact: true }).click()
-        await page.getByRole('button', { name: /Preview historical map: Ran/ }).evaluate((element: HTMLButtonElement) => element.click())
-        await expect(page.getByText('Historical map', { exact: true })).toBeVisible()
-        await page.getByRole('button', { name: 'Undo', exact: true }).click()
-        await expect(page.getByText('Historical map', { exact: true })).toHaveCount(0)
+        await open(page, /Preview historical map: Ran/)
+        await expect(viewer(page)).toBeVisible()
+        await page
+            .getByRole('button', { name: 'Undo', exact: true })
+            .first()
+            .evaluate((element: HTMLButtonElement) => element.click())
+        await expect(viewer(page)).toHaveCount(0)
+        await page.getByRole('tab', { name: 'Map', exact: true }).click()
         await expect(run).toBeEnabled()
     })
 }
