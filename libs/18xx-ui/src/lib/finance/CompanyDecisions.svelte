@@ -8,19 +8,19 @@
     import PrivateTrainBuying from '../trains/PrivateTrainBuying.svelte'
     let { session, trainColors, privateTilePrompts = {}, showUndo = true, excludeTrainPurchases = false }: { privateTilePrompts?: Readonly<Record<string, string>>; trainColors: Readonly<Record<string, string>>; excludeTrainPurchases?: boolean; showUndo?: boolean; session: EighteenXXSession } =
         $props()
-    const purchaseOptions = $derived(session.purchaseOptions.filter((option) => option.request.asset.kind === 'train' && !excludeTrainPurchases))
+    const purchaseOptions = $derived(session.decisions.purchaseOptions.filter((option) => option.request.asset.kind === 'train' && !excludeTrainPurchases))
     const state = $derived(session.financialState)
-    const draft = $derived(session.companyDecisionSelection)
-    const showPowers = $derived(!session.privatePurchaseSource && (session.operatingStep === undefined || session.privateActionSelection === 'powers' || !!state.privateTrackLay || !!state.privatePowerWindow))
+    const draft = $derived(session.decisions.selection)
+    const showPowers = $derived(!session.privateActions.purchaseSource && (session.operatingStep === undefined || session.privateActions.selection === 'powers' || !!state.privateTrackLay || !!state.privatePowerWindow))
 </script>
 
 {#if state.trackConsent}
     {@const request = state.trackConsent.details}
     {@const definition = session.mapView.tileSet.definitions.find((tile) => tile.id === request.definitionId)}
     <DecisionResponse label="Track permission response" acceptLabel="Allow"
-        disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('RespondToTrackConsent')}
-        onAccept={() => session.respondToTrackConsent(true)}
-        onDecline={() => session.respondToTrackConsent(false)}>
+        disabled={!session.decisions.canResolve || !session.validActionTypes.includes('RespondToTrackConsent')}
+        onAccept={() => session.decisions.respondToTrackConsent(true)}
+        onDecline={() => session.decisions.respondToTrackConsent(false)}>
         <CompanyToken appearance={session.mapView.stations[request.companyId]} size={24} />
         <strong>{getCompany(state, request.companyId).name}</strong>
         <span>requests permission to lay track at {request.locationId}</span>
@@ -36,16 +36,16 @@
     {#if state.privatePowerWindow}
         <p>Private powers before {state.privatePowerWindow.companyId} operates.</p>
         <button
-            disabled={!session.canResolveCompanyDecision ||
+            disabled={!session.decisions.canResolve ||
                 !session.validActionTypes.includes('ContinueOperatingRound')}
-            onclick={() => session.continueOperatingRound()}>Continue operating round</button
+            onclick={() => session.decisions.continueOperatingRound()}>Continue operating round</button
         >
     {/if}
     {#if state.purchaseOffer}
         {@const offer = state.purchaseOffer}
         <DecisionResponse label="Purchase response" acceptLabel="Accept"
-            disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('RespondToPurchaseOffer')}
-            onAccept={() => session.respondToPurchaseOffer(true)} onDecline={() => session.respondToPurchaseOffer(false)}>
+            disabled={!session.decisions.canResolve || !session.validActionTypes.includes('RespondToPurchaseOffer')}
+            onAccept={() => session.decisions.respondToPurchaseOffer(true)} onDecline={() => session.decisions.respondToPurchaseOffer(false)}>
             <CompanyToken appearance={session.mapView.stations[offer.companyId]} size={24} />
             <span>{getCompany(state, offer.companyId).name} offers ${offer.price} for {offer.asset.kind === 'private' ? getCompany(state, offer.asset.privateCompanyId).name : offer.asset.trainId}</span>
         </DecisionResponse>
@@ -62,7 +62,7 @@
                             const choice =
                                 purchaseOptions[Number(event.currentTarget.value)]
                             if (event.currentTarget.value && choice)
-                                session.selectPurchaseOffer(choice.request)
+                                session.decisions.selectPurchaseOffer(choice.request)
                         }}
                     >
                         <option value="">Choose asset</option>
@@ -78,25 +78,25 @@
                     </select>
                 </label>
             {/if}
-            {#if showPowers && session.privateTileOptions.length}
+            {#if showPowers && session.decisions.privateTileOptions.length}
                 <div class="private-track">
-                    {#if session.privateTrackPowerSelection}
-                        {@const power = session.privateTrackPowerSelection.value}
+                    {#if session.privateActions.trackPowerSelection}
+                        {@const power = session.privateActions.trackPowerSelection.value}
                         <header class="private-track-prompt">
                             <span>{privateTilePrompts[power.privateCompanyId] ?? `Place a tile using ${getCompany(state, power.privateCompanyId).name}`}</span>
                             {#if state.privateTrackLay}
                                 <span>or</span>
-                                <button class="action-button inline-action" disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('DeclinePrivateTile')} onclick={() => session.declinePrivateTile()}>skip</button>
+                                <button class="action-button inline-action" disabled={!session.decisions.canResolve || !session.validActionTypes.includes('DeclinePrivateTile')} onclick={() => session.decisions.declinePrivateTile()}>skip</button>
                             {/if}
                         </header>
                     {:else}
-                        {#each session.privateTrackPowers as power}
-                            <button onclick={() => session.choosePrivateTrackPower(power)}>{getCompany(state, power.privateCompanyId).name}</button>
+                        {#each session.privateActions.trackPowers as power}
+                            <button onclick={() => session.privateActions.chooseTrackPower(power)}>{getCompany(state, power.privateCompanyId).name}</button>
                         {/each}
                     {/if}
                 </div>
             {/if}
-            {#if showPowers && session.privateTrainOptions.length}
+            {#if showPowers && session.decisions.privateTrainOptions.length}
                 <PrivateTrainBuying {session} {trainColors} />
             {/if}
         </div>
@@ -112,13 +112,13 @@
                         step="1"
                         value={draft.request.price}
                         oninput={(event) =>
-                            session.setPurchasePrice(event.currentTarget.valueAsNumber)}
+                            session.decisions.setPurchasePrice(event.currentTarget.valueAsNumber)}
                     /></label
                 >
-                {#if session.purchaseOfferEvaluation?.reason}<p>
-                        {session.purchaseOfferEvaluation.reason}
+                {#if session.decisions.purchaseOfferEvaluation?.reason}<p>
+                        {session.decisions.purchaseOfferEvaluation.reason}
                     </p>
-                {:else if session.purchaseOfferEvaluation?.buyerPlayerId === session.purchaseOfferEvaluation?.sellerPlayerId}<p
+                {:else if session.decisions.purchaseOfferEvaluation?.buyerPlayerId === session.decisions.purchaseOfferEvaluation?.sellerPlayerId}<p
                     >
                         You control both sides. Confirming completes the purchase.
                     </p>
@@ -140,11 +140,11 @@
                     {draft.details.companyId} closes {draft.privateCompanyId} and pays {draft
                         .details.price} for a {draft.details.definitionId} train.
                 </p>{/if}
-            <button onclick={() => session.backCompanyDecision()}>Back</button>
+            <button onclick={() => session.decisions.back()}>Back</button>
             <button
-                disabled={!session.canResolveCompanyDecision ||
-                    (draft.kind === 'purchase' && !!session.purchaseOfferEvaluation?.reason)}
-                onclick={() => session.confirmCompanyDecision()}>Confirm decision</button
+                disabled={!session.decisions.canResolve ||
+                    (draft.kind === 'purchase' && !!session.decisions.purchaseOfferEvaluation?.reason)}
+                onclick={() => session.decisions.confirm()}>Confirm decision</button
             >
         </div>
     {/if}

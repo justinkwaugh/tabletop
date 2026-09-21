@@ -220,11 +220,11 @@
     }
     const consentPreview = $derived(session.financialState.trackConsent)
     const maskPlacementLocations = $derived(!consentPreview &&
-        (session.showTrackChoices || session.financialState.machineState === 'PlacingStation'))
-    const placementLocationIds = $derived(!session.privateTrackPowerSelection && session.stations.canPlace
-        ? session.stations.locationIds : session.trackLocationIds)
-    const highlightedPlacementLocationIds = $derived(session.showTrackChoices
-        ? [...new Set([...session.reachableTrackLocationIds, ...placementLocationIds])]
+        (session.track.showChoices || session.financialState.machineState === 'PlacingStation'))
+    const placementLocationIds = $derived(!session.privateActions.trackPowerSelection && session.stations.canPlace
+        ? session.stations.locationIds : session.track.locationIds)
+    const highlightedPlacementLocationIds = $derived(session.track.showChoices
+        ? [...new Set([...session.track.reachableLocationIds, ...placementLocationIds])]
         : placementLocationIds)
     const placementFocusKey = $derived(consentPreview?.id ?? (maskPlacementLocations
         ? JSON.stringify([session.financialState.machineState, highlightedPlacementLocationIds]) : undefined))
@@ -585,7 +585,7 @@
                             scene={displayedScene}
                             artwork={boardArtwork}
                             tokens={session.displayedMapTokens}
-                            reservations={session.displayedTrackPreview?.stationReservations ??
+                            reservations={session.track.displayedPreview?.stationReservations ??
                                 session.stations.displayState.stationReservations}
                             routes={mapRoutes}
                             selection={session.isViewingHistory
@@ -594,7 +594,7 @@
                             maskUnavailableLocations={!session.isViewingHistory && maskPlacementLocations}
                             legalLocationIds={placementLocationIds}
                             highlightedLocationIds={highlightedPlacementLocationIds}
-                            previewLocationId={session.displayedTrackPreview?.locationId ??
+                            previewLocationId={session.track.displayedPreview?.locationId ??
                                 session.stations.preview?.position.locationId}
                             translucentLocationId={consentPreview?.details.locationId}
                             appearance={session.mapStyle === 'muted'
@@ -604,7 +604,7 @@
                             onselect={consentPreview ? undefined : (selection) => session.selectMap(selection, false)}
                         />
                         {#snippet overlay(viewport)}
-                            {#if active && session.canBuildTrack && session.trackSelection.locationId}
+                            {#if active && session.track.canBuild && session.track.selection.locationId}
                                 <TrackTilePicker {session} {viewport} />
                             {/if}
                         {/snippet}

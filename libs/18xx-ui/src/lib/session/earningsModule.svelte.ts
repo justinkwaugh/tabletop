@@ -8,7 +8,7 @@ import {
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
 import type { SessionContext } from './sessionContext.js'
-import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
+import { singleChoice } from './stagedSelection.svelte.js'
 
 export type EarningsContext = SessionContext<
     DistributionState & Pick<EighteenXXState, 'machineState'>,
@@ -16,7 +16,7 @@ export type EarningsContext = SessionContext<
 >
 
 export class EarningsModule {
-    readonly choice = singleChoiceStore<EarningsChoice>()
+    readonly choice = singleChoice<EarningsChoice>()
     constructor(private readonly context: EarningsContext) {}
 
     private distributing = $derived.by(() => this.context.state.machineState === 'DistributingEarnings')
@@ -24,7 +24,7 @@ export class EarningsModule {
         () => new EarningsDistribution(this.context.state, this.context.rules.earningsRules)
     )
     canDistribute = $derived.by(() => this.context.interactive && this.context.validActionTypes.includes('DistributeEarnings'))
-    selection = $derived.by(() => this.context.draftsVisible && this.distributing ? this.choice.value('choice') : undefined)
+    selection = $derived.by(() => this.context.selectionsVisible && this.distributing ? this.choice.value('choice') : undefined)
     choices = $derived.by(() => {
         const companyId = this.context.state.routeStep?.companyId
         return companyId && this.distributing

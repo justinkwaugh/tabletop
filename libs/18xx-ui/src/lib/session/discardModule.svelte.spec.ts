@@ -8,7 +8,7 @@ const owner = { kind: 'company', companyId: TestCompanyId } as const
 
 function discarding(
     trainLimit: number,
-    availability: { draftsVisible?: boolean; interactive?: boolean } = {}
+    availability: { selectionsVisible?: boolean; interactive?: boolean } = {}
 ) {
     const state = {
         ...minimalPlayState(),

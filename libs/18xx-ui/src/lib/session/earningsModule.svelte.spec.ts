@@ -15,7 +15,7 @@ const earningsRules: EarningsRules = {
 
 function distributing(
     machineState: 'DistributingEarnings' | 'StockRound' = 'DistributingEarnings',
-    availability: { draftsVisible?: boolean; interactive?: boolean } = {}
+    availability: { selectionsVisible?: boolean; interactive?: boolean } = {}
 ) {
     const state = {
         ...minimalRailwayState(),
@@ -59,7 +59,7 @@ describe('EarningsModule', () => {
     })
 
     it('hides its selection while drafts are not visible but keeps it pending', () => {
-        const { earnings } = distributing('DistributingEarnings', { draftsVisible: false })
+        const { earnings } = distributing('DistributingEarnings', { selectionsVisible: false })
         earnings.select('pay')
         expect(earnings.selection).toBeUndefined()
         expect(earnings.choice.hasManual()).toBe(true)

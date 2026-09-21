@@ -1,27 +1,27 @@
 <script lang="ts">
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, purchaseLabel }: { session: EighteenXXSession; purchaseLabel: string } = $props()
-    const canBuy = $derived(session.privatePurchases.length > 0)
-    const canUse = $derived(session.privatePowersAvailable)
+    const canBuy = $derived(session.decisions.privatePurchases.length > 0)
+    const canUse = $derived(session.privateActions.powersAvailable)
     let menu = $state<HTMLDivElement>()
     let expanded = $state(false)
     let position = $state({ top: 0, left: 0 })
 
     function choose(powers: boolean) {
         menu?.hidePopover()
-        if (powers) session.choosePrivatePowers()
-        else session.choosePrivatePurchaseSource(
-            session.privatePurchases.some((option) => option.request.seller.kind === 'player' &&
+        if (powers) session.privateActions.choosePowers()
+        else session.privateActions.choosePurchaseSource(
+            session.decisions.privatePurchases.some((option) => option.request.seller.kind === 'player' &&
                 option.request.seller.playerId === session.myPlayer?.id) ? 'mine' : 'other'
         )
     }
 </script>
 
 {#snippet choices()}
-    {#if canBuy}<button aria-pressed={!!session.privatePurchaseSource}
-        disabled={!session.canResolveCompanyDecision} onclick={() => choose(false)}>{purchaseLabel}</button>{/if}
-    {#if canUse}<button aria-pressed={session.privateActionSelection === 'powers'}
-        disabled={!session.canResolveCompanyDecision} onclick={() => choose(true)}>Use privates</button>{/if}
+    {#if canBuy}<button aria-pressed={!!session.privateActions.purchaseSource}
+        disabled={!session.decisions.canResolve} onclick={() => choose(false)}>{purchaseLabel}</button>{/if}
+    {#if canUse}<button aria-pressed={session.privateActions.selection === 'powers'}
+        disabled={!session.decisions.canResolve} onclick={() => choose(true)}>Use privates</button>{/if}
 {/snippet}
 
 {#if canBuy || canUse}
@@ -29,7 +29,7 @@
         <div class="direct">{@render choices()}</div>
         {#if canBuy && canUse}
             <button class="compact" aria-expanded={expanded} aria-haspopup="true"
-                disabled={!session.canResolveCompanyDecision}
+                disabled={!session.decisions.canResolve}
                 onclick={(event) => {
                     const bounds = event.currentTarget.getBoundingClientRect()
                     position = { top: bounds.bottom + 4, left: Math.max(8, Math.min(bounds.right - 168, window.innerWidth - 176)) }

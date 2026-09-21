@@ -3,7 +3,7 @@
     import TrainPurchaseButton from './TrainPurchaseButton.svelte'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, trainColors }: { session: EighteenXXSession; trainColors: Readonly<Record<string, string>> } = $props()
-    const privateIds = $derived([...new Set(session.privateTrainOptions.map((option) => option.privateCompanyId))])
+    const privateIds = $derived([...new Set(session.decisions.privateTrainOptions.map((option) => option.privateCompanyId))])
 </script>
 
 <div class="private-trains">
@@ -11,12 +11,12 @@
         <section aria-label={`Use ${getCompany(session.financialState, privateId).name}`}>
             <p>Buy a train and close {getCompany(session.financialState, privateId).name}</p>
             <div class="trains">
-                {#each session.privateTrainOptions.filter((option) => option.privateCompanyId === privateId) as option}
+                {#each session.decisions.privateTrainOptions.filter((option) => option.privateCompanyId === privateId) as option}
                     {@const definition = session.trainDepot.trainDefinition(option.details.definitionId)}
                     <TrainPurchaseButton name={definition.name} price={option.details.price}
                         color={trainColors[definition.id]} definitionId={definition.id}
-                        disabled={!session.canResolveCompanyDecision}
-                        onclick={() => session.buyPrivateTrain(option)} />
+                        disabled={!session.decisions.canResolve}
+                        onclick={() => session.decisions.buyPrivateTrain(option)} />
                 {/each}
             </div>
         </section>

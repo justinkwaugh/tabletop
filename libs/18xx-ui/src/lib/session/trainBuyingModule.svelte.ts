@@ -15,7 +15,7 @@ import {
     type TrainPurchaseRequest
 } from '@tabletop/18xx'
 import type { SessionContext } from './sessionContext.js'
-import { StagedSelectionStore, singleChoiceStore } from './stagedSelectionStore.svelte.js'
+import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
 import {
     TrainBuyingStageOrder,
     type TrainBuyingStages,
@@ -33,8 +33,8 @@ export type TrainBuyingContext = SessionContext<
 type PurchaseOptions = () => ReturnType<typeof purchaseChoices>
 
 export class TrainBuyingModule {
-    readonly depotChoice = singleChoiceStore<TrainPurchaseRequest>()
-    readonly sourceStages = new StagedSelectionStore<TrainBuyingStages>(
+    readonly depotChoice = singleChoice<TrainPurchaseRequest>()
+    readonly sourceStages = new StagedSelection<TrainBuyingStages>(
         TrainBuyingStageOrder,
         'pop-stage'
     )
@@ -45,7 +45,7 @@ export class TrainBuyingModule {
 
     private buying = $derived.by(() => this.context.state.machineState === 'BuyingTrains')
     selection = $derived.by(() =>
-        this.context.draftsVisible && this.buying ? this.sourceStages.state : {}
+        this.context.selectionsVisible && this.buying ? this.sourceStages.state : {}
     )
     source = $derived.by(() => this.selection.source?.value ?? 'depot')
     companyChoices = $derived.by(() =>
@@ -67,7 +67,7 @@ export class TrainBuyingModule {
         return request ? this.evaluateOffer(request) : undefined
     })
     depotSelection = $derived.by(() =>
-        this.context.draftsVisible && this.buying ? this.depotChoice.value('choice') : undefined
+        this.context.selectionsVisible && this.buying ? this.depotChoice.value('choice') : undefined
     )
     model = $derived.by(
         () => new TrainPurchase(this.context.state, this.context.rules.trainRules)

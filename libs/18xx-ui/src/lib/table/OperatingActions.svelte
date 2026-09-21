@@ -32,10 +32,10 @@
 
 {#if state.result}<GameEnding {session} />
 {:else}
-    {#if (state.purchaseOffer && !(trainBuying && state.purchaseOffer.asset.kind === 'train')) || state.trackConsent || state.privateTrackLay || state.privatePowerWindow || session.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.privateTileOptions.length || session.privateTrainOptions.length || session.companyDecisionSelection}
+    {#if (state.purchaseOffer && !(trainBuying && state.purchaseOffer.asset.kind === 'train')) || state.trackConsent || state.privateTrackLay || state.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.decisions.privateTileOptions.length || session.decisions.privateTrainOptions.length || session.decisions.selection}
         <CompanyDecisions {session} {trainColors} {privateTilePrompts} showUndo={false} excludeTrainPurchases={trainBuying} />
     {/if}
-    {#if !session.privateActionSelection && !session.privateTrackPowerSelection && state.purchaseOffer?.asset.kind !== 'private'}
+    {#if !session.privateActions.selection && !session.privateActions.trackPowerSelection && state.purchaseOffer?.asset.kind !== 'private'}
     {#if state.machineState === 'StockRound'}
         <StockRoundActions {session} {poolName} />
     {:else if state.machineState === 'LayingTrack'}<TrackBuilding

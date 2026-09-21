@@ -12,7 +12,7 @@ import type { LocalSelection } from './localSelections.js'
 type StageKey<Stages> = Extract<keyof Stages, string>
 export type UndoMode = 'clear-selection' | 'pop-stage'
 
-export class StagedSelectionStore<Stages extends Record<string, unknown>> implements LocalSelection {
+export class StagedSelection<Stages extends Record<string, unknown>> implements LocalSelection {
     state: StagedSelectionState<Stages> = $state({})
     constructor(
         private readonly order: readonly StageKey<Stages>[],
@@ -63,6 +63,6 @@ export class StagedSelectionStore<Stages extends Record<string, unknown>> implem
 }
 
 export type SingleChoice<Value> = { choice: Value }
-export function singleChoiceStore<Value>(): StagedSelectionStore<SingleChoice<Value>> {
-    return new StagedSelectionStore<SingleChoice<Value>>(['choice'])
+export function singleChoice<Value>(): StagedSelection<SingleChoice<Value>> {
+    return new StagedSelection<SingleChoice<Value>>(['choice'])
 }

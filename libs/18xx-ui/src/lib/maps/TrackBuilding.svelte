@@ -10,8 +10,8 @@
     }: { showUndo?: boolean; mapControls?: boolean; session: EighteenXXSession } = $props()
     const declined = $derived(trackConsentDecline(session.actions, session.financialState))
     const turn = $derived(session.financialState.trackStep)
-    const selection = $derived(session.trackSelection)
-    const preview = $derived(session.trackPreview)
+    const selection = $derived(session.track.selection)
+    const preview = $derived(session.track.preview)
 </script>
 
 {#if turn && !session.financialState.stationStep && !session.financialState.trackConsent}
@@ -22,8 +22,8 @@
         {#if mapControls}
             <header class="map-prompt">
                 <span>Choose a tile space or</span>
-                <button class="action-button inline-action" onclick={() => session.finishTrack()}
-                    disabled={!session.canBuildTrack || !!selection.locationId}>skip</button>
+                <button class="action-button inline-action" onclick={() => session.track.finish()}
+                    disabled={!session.track.canBuild || !!selection.locationId}>skip</button>
             </header>
         {:else}
         <header>
@@ -43,8 +43,8 @@
                 >{/if}
             {#if !turn.completed}
                 <button
-                    onclick={() => session.finishTrack()}
-                    disabled={!session.canBuildTrack || !!selection.locationId}>Finish track</button
+                    onclick={() => session.track.finish()}
+                    disabled={!session.track.canBuild || !!selection.locationId}>Finish track</button
                 >
             {/if}
         </header>
@@ -57,32 +57,32 @@
                     value=""
                     onchange={(event) => {
                         if (event.currentTarget.value)
-                            session.selectTrackLocation(event.currentTarget.value)
+                            session.track.selectLocation(event.currentTarget.value)
                     }}
-                    disabled={!session.canBuildTrack}
+                    disabled={!session.track.canBuild}
                 >
                     <option value="">Select a highlighted hex</option>
-                    {#each session.trackLocationIds as id}<option value={id}
+                    {#each session.track.locationIds as id}<option value={id}
                             >{id} {session.mapView.map.location(id).name ?? ''}</option
                         >{/each}
                 </select></label
             >
-            {#if session.canBuildTrack && !session.trackLocationIds.length}<p>
+            {#if session.track.canBuild && !session.track.locationIds.length}<p>
                     No legal construction is available.
                 </p>{/if}
         {:else if !session.isViewingHistory && !mapControls && selection.locationId}
             <div class="selection">
                 <strong>{selection.locationId.value}</strong><button
-                    onclick={() => session.backTrack()}>Back</button
+                    onclick={() => session.track.back()}>Back</button
                 >
             </div>
             {#if !selection.definitionId}
                 <div class="tiles">
-                    {#each session.trackTiles as tile (tile.id)}
+                    {#each session.track.tiles as tile (tile.id)}
                         <button
                             data-track-tile={tile.id}
                             aria-label={`Build tile ${tile.printedNumber}`}
-                            onclick={() => session.selectTrackTile(tile.id)}
+                            onclick={() => session.track.selectTile(tile.id)}
                         >
                             <Tile
                                 face={tile.face}
@@ -96,15 +96,15 @@
                 </div>
             {:else}
                 <div class="rotations" aria-label="Tile rotations">
-                    {#each session.trackPlacements as choice, index}
+                    {#each session.track.placements as choice, index}
                         <button
                             data-track-rotation={choice.rotation}
                             aria-pressed={preview?.rotation === choice.rotation &&
                                 JSON.stringify(preview.nodeMapping) ===
                                     JSON.stringify(choice.nodeMapping)}
-                            onclick={() => session.selectTrackPlacement(choice)}
+                            onclick={() => session.track.selectPlacement(choice)}
                             >{choice.rotation *
-                                60}°{#if session.trackPlacements.filter((entry) => entry.rotation === choice.rotation).length > 1}
+                                60}°{#if session.track.placements.filter((entry) => entry.rotation === choice.rotation).length > 1}
                                 · Stops {index + 1}{/if}</button
                         >
                     {/each}
@@ -112,7 +112,7 @@
                 {#if preview}<p>
                         Cost: ${preview.cost} (terrain ${preview.terrainCost}, lay ${preview.allowanceCost})
                     </p>
-                    <button onclick={() => session.confirmTrack()} disabled={!session.canBuildTrack}
+                    <button onclick={() => session.track.confirm()} disabled={!session.track.canBuild}
                         >{preview.consentPlayerId &&
                         preview.consentPlayerId !== session.myPlayer?.id
                             ? 'Request track permission'
@@ -121,10 +121,10 @@
                 {:else}<p>Choose a rotation to preview.</p>{/if}
             {/if}
         {/if}
-        {#if !mapControls && session.constructionActions.length}<ol
+        {#if !mapControls && session.track.constructionActions.length}<ol
                 aria-label="Construction history"
             >
-                {#each session.constructionActions as action (action.id)}
+                {#each session.track.constructionActions as action (action.id)}
                     <li>
                         {action.locationId}: tile {session.mapView.tileSet.definitions.find(
                             (tile) => tile.id === action.definitionId

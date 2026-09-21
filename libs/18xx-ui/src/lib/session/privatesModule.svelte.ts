@@ -9,7 +9,7 @@ import {
     type PrivateExchangeRequest
 } from '@tabletop/18xx'
 import type { SessionContext } from './sessionContext.js'
-import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
+import { singleChoice } from './stagedSelection.svelte.js'
 
 type PrivatesState = Parameters<typeof privateExchangeOffers>[0] &
     Parameters<typeof pendingCompanyDecision>[0] &
@@ -29,7 +29,7 @@ function sameExchange(a: PrivateExchangeRequest, b: PrivateExchangeRequest) {
 }
 
 export class PrivatesModule {
-    readonly exchangeChoice = singleChoiceStore<PrivateExchangeRequest>()
+    readonly exchangeChoice = singleChoice<PrivateExchangeRequest>()
     constructor(private readonly context: PrivatesContext) {}
 
     companies = $derived.by(() =>
@@ -57,7 +57,7 @@ export class PrivatesModule {
     })
     exchangeSelection = $derived.by(() => {
         const draft = this.exchangeChoice.value('choice')
-        return this.context.draftsVisible &&
+        return this.context.selectionsVisible &&
             draft &&
             this.exchangeOffers.some((offer) => sameExchange(offer, draft))
             ? draft

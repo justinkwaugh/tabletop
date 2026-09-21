@@ -3,47 +3,47 @@
     import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showEntry = true }: { session: EighteenXXSession; showEntry?: boolean } = $props()
-    const mine = $derived(session.privatePurchases.filter((option) => option.request.seller.kind === 'player' && option.request.seller.playerId === session.myPlayer?.id))
-    const others = $derived(session.privatePurchases.filter((option) => !mine.includes(option)))
-    const source = $derived(session.privatePurchaseSource)
+    const mine = $derived(session.decisions.privatePurchases.filter((option) => option.request.seller.kind === 'player' && option.request.seller.playerId === session.myPlayer?.id))
+    const others = $derived(session.decisions.privatePurchases.filter((option) => !mine.includes(option)))
+    const source = $derived(session.privateActions.purchaseSource)
     const choices = $derived(source === 'mine' ? mine : others)
-    const draft = $derived(session.companyDecisionSelection)
+    const draft = $derived(session.decisions.selection)
 </script>
 
-{#if (showEntry || source) && (session.privatePurchases.length || (draft?.kind === 'purchase' && draft.request.asset.kind === 'private'))}
+{#if (showEntry || source) && (session.decisions.privatePurchases.length || (draft?.kind === 'purchase' && draft.request.asset.kind === 'private'))}
 <section aria-label="Buy privates">
     {#if !source}
-        <button onclick={() => session.choosePrivatePurchaseSource(mine.length ? 'mine' : 'other')}>Buy privates</button>
+        <button onclick={() => session.privateActions.choosePurchaseSource(mine.length ? 'mine' : 'other')}>Buy privates</button>
     {:else}
         {#if session.privatePurchaseHeading && !(draft?.kind === 'purchase' && draft.request.asset.kind === 'private')}
             <p class="prompt">{session.privatePurchaseHeading}</p>
         {/if}
         {#if mine.length && others.length}
         <div class="sources">
-            {#if mine.length}<button aria-pressed={source === 'mine'} onclick={() => session.choosePrivatePurchaseSource('mine')}>Mine</button>{/if}
+            {#if mine.length}<button aria-pressed={source === 'mine'} onclick={() => session.privateActions.choosePurchaseSource('mine')}>Mine</button>{/if}
             <span class="source-divider" aria-hidden="true"></span>
-            {#if others.length}<button aria-pressed={source === 'other'} onclick={() => session.choosePrivatePurchaseSource('other')}>Other players’</button>{/if}
+            {#if others.length}<button aria-pressed={source === 'other'} onclick={() => session.privateActions.choosePurchaseSource('other')}>Other players’</button>{/if}
         </div>
         {/if}
         {#if draft?.kind === 'purchase' && draft.request.asset.kind === 'private'}
             {@const company = getCompany(session.financialState, draft.request.asset.privateCompanyId)}
-            {@const terms = session.privatePurchases.find((option) => option.request.asset.kind === 'private' && option.request.asset.privateCompanyId === company.id)}
+            {@const terms = session.decisions.privatePurchases.find((option) => option.request.asset.kind === 'private' && option.request.asset.privateCompanyId === company.id)}
             <div class="selected-private">
                 <PrivateCard phaseColors={session.privateCardPhaseColors} token={session.privateCompanyTokens[company.id]} name={company.name} description="" income={company.privateRevenue ?? 0}
                     purchaseRange={terms ? { minimum: terms.minimum, maximum: terms.maximum } : undefined} />
                 {#if source === 'other'}<small class="seller">owned by {session.ownerName(draft.request.seller)}</small>{/if}
             </div>
             <div class="price">
-                <label>Price $<input aria-label="Private purchase price" type="number" min={terms?.minimum} max={terms?.maximum} step="1" value={draft.request.price} oninput={(event) => session.setPurchasePrice(event.currentTarget.valueAsNumber)} /></label>
-                <button class="commit" disabled={!session.canResolveCompanyDecision || !!session.purchaseOfferEvaluation?.reason} onclick={() => session.confirmCompanyDecision()}>{session.purchaseOfferEvaluation?.buyerPlayerId === session.purchaseOfferEvaluation?.sellerPlayerId ? 'Buy' : 'Offer'}</button>
+                <label>Price $<input aria-label="Private purchase price" type="number" min={terms?.minimum} max={terms?.maximum} step="1" value={draft.request.price} oninput={(event) => session.decisions.setPurchasePrice(event.currentTarget.valueAsNumber)} /></label>
+                <button class="commit" disabled={!session.decisions.canResolve || !!session.decisions.purchaseOfferEvaluation?.reason} onclick={() => session.decisions.confirm()}>{session.decisions.purchaseOfferEvaluation?.buyerPlayerId === session.decisions.purchaseOfferEvaluation?.sellerPlayerId ? 'Buy' : 'Offer'}</button>
             </div>
-            {#if session.purchaseOfferEvaluation?.reason}<p>{session.purchaseOfferEvaluation.reason}</p>{/if}
+            {#if session.decisions.purchaseOfferEvaluation?.reason}<p>{session.decisions.purchaseOfferEvaluation.reason}</p>{/if}
         {:else}
             <div class="privates">
                 {#each choices as option}
                     {#if option.request.asset.kind === 'private'}
                         {@const company = getCompany(session.financialState, option.request.asset.privateCompanyId)}
-                        <button class="private" onclick={() => session.selectPurchaseOffer(option.request)}>
+                        <button class="private" onclick={() => session.decisions.selectPurchaseOffer(option.request)}>
                             <PrivateCard phaseColors={session.privateCardPhaseColors} token={session.privateCompanyTokens[company.id]} name={company.name} description="" income={company.privateRevenue ?? 0}
                                 purchaseRange={{ minimum: option.minimum, maximum: option.maximum }} />
                             {#if source === 'other'}<small class="seller">owned by {session.ownerName(option.request.seller)}</small>{/if}

@@ -31,9 +31,9 @@
 <div class="company-trains">
     {#if response?.asset.kind === 'train' && selectedTrain}
         <DecisionResponse label="Train purchase response"
-            disabled={!session.canResolveCompanyDecision || !session.validActionTypes.includes('RespondToPurchaseOffer')}
-            onAccept={() => session.respondToPurchaseOffer(true)}
-            onDecline={() => session.respondToPurchaseOffer(false)}>
+            disabled={!session.decisions.canResolve || !session.validActionTypes.includes('RespondToPurchaseOffer')}
+            onAccept={() => session.decisions.respondToPurchaseOffer(true)}
+            onDecline={() => session.decisions.respondToPurchaseOffer(false)}>
             <CompanyToken appearance={session.mapView.stations[response.companyId]} size={24} />
             <strong>{getCompany(session.financialState, response.companyId).name}</strong>
             <span>offers ${response.price} for</span>
@@ -55,7 +55,7 @@
         <div class="controls">
             <label>Price <span>$</span><input aria-label="Train price" type="number" min="1" step="1" value={request.price}
                 oninput={(event) => session.trainBuying.setCompanyTrainPrice(Number(event.currentTarget.value))} /></label>
-            <button class="action-button" disabled={!session.canResolveCompanyDecision || !session.trainBuying.companyEvaluation || !!session.trainBuying.companyEvaluation.reason}
+            <button class="action-button" disabled={!session.decisions.canResolve || !session.trainBuying.companyEvaluation || !!session.trainBuying.companyEvaluation.reason}
                 onclick={() => session.trainBuying.buyCompanyTrain()}>{session.trainBuying.source === 'mine' ? 'Buy' : 'Offer'}</button>
         </div>
         {#if session.trainBuying.companyEvaluation?.reason}<p role="status">{session.trainBuying.companyEvaluation.reason}</p>{/if}
@@ -69,7 +69,7 @@
                     </div>
                     <div class="company-roster">
                         {#each trains as choice}
-                            <button class="train" disabled={!session.canResolveCompanyDecision} onclick={() => session.trainBuying.selectCompanyTrain(choice.request)}>
+                            <button class="train" disabled={!session.decisions.canResolve} onclick={() => session.trainBuying.selectCompanyTrain(choice.request)}>
                                 <TrainBadge name={session.trainDepot.trainDefinition(choice.definitionId).name} color={trainColors[choice.definitionId]} />
                             </button>
                         {/each}

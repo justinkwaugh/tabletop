@@ -84,17 +84,17 @@
     {/if}
     <MapViewer revenueStageColors={session.mapView.revenueStageColors}
         scene={session.displayedMapScene}
-        maskUnavailableLocations={session.showTrackChoices}
-        highlightedLocationIds={session.stations.canPlace ? session.stations.locationIds : [...new Set([...session.reachableTrackLocationIds, ...session.trackLocationIds])]}
+        maskUnavailableLocations={session.track.showChoices}
+        highlightedLocationIds={session.stations.canPlace ? session.stations.locationIds : [...new Set([...session.track.reachableLocationIds, ...session.track.locationIds])]}
         legalLocationIds={session.stations.canPlace
             ? session.stations.locationIds
-            : session.trackLocationIds}
+            : session.track.locationIds}
         routes={session.routes.displayed}
-        previewLocationId={session.trackPreview?.locationId ??
+        previewLocationId={session.track.preview?.locationId ??
             session.stations.preview?.position.locationId}
         selection={session.mapSelection}
         tokens={session.displayedMapTokens}
-        reservations={session.trackPreview?.stationReservations ??
+        reservations={session.track.preview?.stationReservations ??
             session.stations.displayState.stationReservations}
         appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
         onselect={(selection) => session.selectMap(selection)}

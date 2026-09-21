@@ -10,7 +10,7 @@ import {
 } from '@tabletop/18xx'
 import type { AuctionSelection } from '../auctions/auctionSelection.js'
 import type { SessionContext } from './sessionContext.js'
-import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
+import { singleChoice } from './stagedSelection.svelte.js'
 
 export type WaterfallAuctionContext = SessionContext<
     AuctionState,
@@ -18,7 +18,7 @@ export type WaterfallAuctionContext = SessionContext<
 >
 
 export class WaterfallAuctionModule {
-    readonly choice = singleChoiceStore<AuctionSelection>()
+    readonly choice = singleChoice<AuctionSelection>()
     constructor(private readonly context: WaterfallAuctionContext) {}
 
     model = $derived.by(() =>
@@ -27,7 +27,7 @@ export class WaterfallAuctionModule {
             : undefined
     )
     selection = $derived.by(() =>
-        !this.context.draftsVisible || this.model?.auction.completed
+        !this.context.selectionsVisible || this.model?.auction.completed
             ? undefined
             : this.choice.value('choice')
     )

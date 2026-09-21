@@ -9,7 +9,7 @@ import {
 } from '@tabletop/18xx'
 import type { OfferAuctionSelection } from '../auctions/auctionSelection.js'
 import type { SessionContext } from './sessionContext.js'
-import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
+import { singleChoice } from './stagedSelection.svelte.js'
 
 export type OfferAuctionContext = SessionContext<
     OfferAuctionState,
@@ -17,7 +17,7 @@ export type OfferAuctionContext = SessionContext<
 >
 
 export class OfferAuctionModule {
-    readonly choice = singleChoiceStore<OfferAuctionSelection>()
+    readonly choice = singleChoice<OfferAuctionSelection>()
     constructor(private readonly context: OfferAuctionContext) {}
 
     model = $derived.by(() =>
@@ -26,7 +26,7 @@ export class OfferAuctionModule {
             : undefined
     )
     selection = $derived.by(() =>
-        !this.context.draftsVisible || this.model?.auction.completed
+        !this.context.selectionsVisible || this.model?.auction.completed
             ? undefined
             : this.choice.value('choice')
     )

@@ -15,14 +15,14 @@
     let height = $state(0)
     let tileSize = $state(80)
     let hexHeight = $state(100)
-    const locationId = $derived(session.trackSelection.locationId?.value)
+    const locationId = $derived(session.track.selection.locationId?.value)
     let collapsing = $derived.by(() => {
-        session.trackSelection
+        session.track.selection
         return false
     })
-    const selectedId = $derived(session.trackPreview?.definitionId)
+    const selectedId = $derived(session.track.preview?.definitionId)
     const layout = $derived(
-        tileChoiceArc(center, width, height, session.trackTiles.length, tileSize, 1.4)
+        tileChoiceArc(center, width, height, session.track.tiles.length, tileSize, 1.4)
     )
     const buttonSize = $derived(tileSize * 0.42)
     const controls = $derived({
@@ -80,8 +80,8 @@
     let motionVersion = 0
     function register(node: HTMLButtonElement, id: string) {
         elements.set(id, node)
-        const autoSelected = id === selectedId && session.trackSelection.definitionId?.source === 'auto'
-        if (autoSelected && prefersReducedMotion.current) session.trackTileInFlight = false
+        const autoSelected = id === selectedId && session.track.selection.definitionId?.source === 'auto'
+        if (autoSelected && prefersReducedMotion.current) session.track.tileInFlight = false
         if ((!selectedId || autoSelected) && !prefersReducedMotion.current) {
             const bounds = viewport.getBoundingClientRect()
             const target = node.getBoundingClientRect()
@@ -103,7 +103,7 @@
             void animation.finished.catch(() => undefined).then(() => {
                 animations.delete(animation)
                 if (autoSelected && version === motionVersion && openingLocation === locationId)
-                    session.trackTileInFlight = false
+                    session.track.tileInFlight = false
             })
         }
         return {
@@ -119,7 +119,7 @@
     }
     onDestroy(() => {
         stopMotion()
-        session.trackTileInFlight = false
+        session.track.tileInFlight = false
     })
     async function moveTile(id: string) {
         const from = new Map(
@@ -127,9 +127,9 @@
         )
         stopMotion()
         const version = motionVersion
-        session.previewTrackTile(id)
+        session.track.previewTile(id)
         collapsing = false
-        session.trackTileInFlight = true
+        session.track.tileInFlight = true
         await tick()
         if (version !== motionVersion) return
         const duration = prefersReducedMotion.current ? 0 : 220
@@ -154,7 +154,7 @@
         await Promise.all(finished)
         if (version !== motionVersion) return
         animations.clear()
-        session.trackTileInFlight = false
+        session.track.tileInFlight = false
     }
     async function cancel() {
         collapsing = true
@@ -164,7 +164,7 @@
         )
         stopMotion()
         const version = motionVersion
-        session.trackTileInFlight = true
+        session.track.tileInFlight = true
         const bounds = viewport.getBoundingClientRect()
         const duration = prefersReducedMotion.current ? 0 : 160
         const finished: Promise<unknown>[] = []
@@ -190,16 +190,16 @@
         }
         await Promise.all(finished)
         if (version !== motionVersion || id !== locationId) return
-        session.trackTileInFlight = false
-        session.cancelTrack()
+        session.track.tileInFlight = false
+        session.track.cancel()
     }
     function accept() {
         stopMotion()
-        session.trackTileInFlight = false
-        void session.confirmTrack()
+        session.track.tileInFlight = false
+        void session.track.confirm()
     }
     function dismissChoices(event: PointerEvent) {
-        if (session.trackPreview || !(event.target instanceof Element)) return
+        if (session.track.preview || !(event.target instanceof Element)) return
         if (event.target.closest('[data-map-tile-choice]')) return
         if (
             event.target.closest('[data-map-location]')?.getAttribute('data-map-location') ===
@@ -213,15 +213,15 @@
 <svelte:window onpointerdown={dismissChoices} />
 
 <span class="hex-anchor" hidden use:followHex={locationId}></span>
-{#if locationId && width && session.canBuildTrack}
+{#if locationId && width && session.track.canBuild}
     <div
         class="picker"
         aria-label="Track tile picker"
-        data-track-motion={session.trackTileInFlight}
+        data-track-motion={session.track.tileInFlight}
     >
         {#if layout}
             {#key locationId}
-                {#each session.trackTiles as tile, index (tile.id)}
+                {#each session.track.tiles as tile, index (tile.id)}
                     {@const chosen = tile.id === selectedId}
                     {@const point = chosen ? center : layout.points[index]}
                     {@const size = chosen ? tileSize : layout.size}
@@ -250,8 +250,8 @@
                                 StandardTileLayouts[tile.id]}
                             orientation={session.mapView.map.definition.orientation}
                             rotation={chosen
-                                ? session.trackPreview?.rotation
-                                : session.trackChoices.find(
+                                ? session.track.preview?.rotation
+                                : session.track.choices.find(
                                       (choice) => choice.definitionId === tile.id
                                   )?.rotation}
                         />
@@ -259,15 +259,15 @@
                 {/each}
             {/key}
         {/if}
-        {#if session.trackPreview && !collapsing}
-            {#if session.trackPreview.cost > 0}
+        {#if session.track.preview && !collapsing}
+            {#if session.track.preview.cost > 0}
             <div
                 class="placement-cost"
                 transition:fade|global={{ duration: prefersReducedMotion.current ? 0 : 120 }}
                 style:left={`${center.x}px`}
                 style:top={`${Math.min(height - tileSize * 0.3, center.y + hexHeight / 2 + tileSize * 0.06)}px`}
                 style:font-size={`${tileSize * 0.15}px`}
-            >${session.trackPreview.cost}</div>
+            >${session.track.preview.cost}</div>
             {/if}
             <div
                 class="controls"
@@ -289,7 +289,7 @@
                 <button
                     class="accept"
                     aria-label="Accept track lay"
-                    title={`Accept track lay · $${session.trackPreview.cost}`}
+                    title={`Accept track lay · $${session.track.preview.cost}`}
                     onclick={accept}
                 >
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 13 4 4L19 7" /></svg>

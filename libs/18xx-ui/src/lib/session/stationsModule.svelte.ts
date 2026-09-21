@@ -9,7 +9,7 @@ import {
     type StationRequest
 } from '@tabletop/18xx'
 import type { SessionContext } from './sessionContext.js'
-import { StagedSelectionStore } from './stagedSelectionStore.svelte.js'
+import { StagedSelection } from './stagedSelection.svelte.js'
 import {
     StationStageOrder,
     automaticStation,
@@ -25,7 +25,7 @@ export type StationsContext<State extends StationsState = StationsState> = Sessi
 >
 
 export class StationsModule<State extends StationsState> {
-    readonly stages = new StagedSelectionStore<StationStages>(StationStageOrder)
+    readonly stages = new StagedSelection<StationStages>(StationStageOrder)
     constructor(
         private readonly context: StationsContext<State>,
         private readonly onPositionChosen: () => void,
@@ -48,7 +48,7 @@ export class StationsModule<State extends StationsState> {
         )
     )
     selection = $derived.by((): StationSelection => {
-        if (!this.context.draftsVisible || this.context.state.machineState !== 'PlacingStation')
+        if (!this.context.selectionsVisible || this.context.state.machineState !== 'PlacingStation')
             return {}
         if (this.stages.entry('stationId')) return this.stages.state
         if (

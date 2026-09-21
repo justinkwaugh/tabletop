@@ -103,7 +103,7 @@
     const personalPrivates = $derived(
         session.privates.companies.flatMap((item) => {
             const privateCompanyOwner = privateOwner(state, item.id)
-            const priceRange = session.privatePurchasePriceRange(company.id, item.id)
+            const priceRange = session.decisions.privatePurchasePriceRange(company.id, item.id)
             return !item.closed &&
                 privateCompanyOwner &&
                 control &&

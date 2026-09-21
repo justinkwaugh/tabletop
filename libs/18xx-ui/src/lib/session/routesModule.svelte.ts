@@ -43,7 +43,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         () => this.context.interactive && this.context.validActionTypes.includes('RunTrains')
     )
     draftVisible = $derived.by(
-        () => this.context.draftsVisible && this.context.state.machineState === 'RunningTrains'
+        () => this.context.selectionsVisible && this.context.state.machineState === 'RunningTrains'
     )
     solved = $derived.by((): SolvedRoutes<State> | undefined => {
         if (!this.draftVisible) return undefined

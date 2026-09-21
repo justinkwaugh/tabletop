@@ -7,7 +7,7 @@ import {
     type PhaseChangeState
 } from '@tabletop/18xx'
 import type { SessionContext } from './sessionContext.js'
-import { singleChoiceStore } from './stagedSelectionStore.svelte.js'
+import { singleChoice } from './stagedSelection.svelte.js'
 
 export type DiscardContext = SessionContext<
     PhaseChangeState & Pick<EighteenXXState, 'machineState'>,
@@ -15,10 +15,10 @@ export type DiscardContext = SessionContext<
 >
 
 export class DiscardModule {
-    readonly choice = singleChoiceStore<string>()
+    readonly choice = singleChoice<string>()
     constructor(private readonly context: DiscardContext) {}
 
-    selection = $derived.by(() => this.context.draftsVisible && this.context.state.machineState === 'DiscardingTrains'
+    selection = $derived.by(() => this.context.selectionsVisible && this.context.state.machineState === 'DiscardingTrains'
             ? this.choice.value('choice')
             : undefined)
     companyId = $derived.by(() => this.context.state.phaseChange?.discardCompanyIds[0])

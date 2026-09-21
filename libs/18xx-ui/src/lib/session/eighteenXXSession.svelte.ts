@@ -8,16 +8,16 @@ import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
 import type { SessionContext } from './sessionContext.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
+import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
+import { PrivateActionsModule } from './privateActionsModule.svelte.js'
+import { TrackModule } from './trackModule.svelte.js'
 import { LocalSelections } from './localSelections.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingStepIndex } from '../table/operatingStep.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import {
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
-    setStagedSelectionValue,
-    type StagedSelectionState
+    hasManualStagedSelection
 } from '@tabletop/frontend-components'
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
@@ -38,47 +38,12 @@ import {
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
 import {
-    BuyAuctionLot
-} from '@tabletop/18xx'
-import {
-    IssueTreasuryShares
-} from '@tabletop/18xx'
-import {
-    isLayPrivateTile,
-    isRespondToTrackConsent,
-    ContinueOperatingRound,
-    purchaseChoices,
-    evaluatePurchaseOffer,
-    OfferPurchase,
-    RespondToPurchaseOffer,
-    RequestTrackConsent,
-    RespondToTrackConsent,
-    LayPrivateTile,
-    DeclinePrivateTile,
-    BuyPrivateTrain,
-    privateTrackConstruction,
-    privateTrainPurchase,
-    pendingCompanyDecision,
-    evaluatePrivateTrack,
-    type PurchaseOfferRequest,
-    type TrackLayDetails,
-    type TrainPurchaseDetails
-} from '@tabletop/18xx'
-type PrivateTrackPower = { privateCompanyId: string; playerId: string }
-type CompanyDecisionDraft =
-    | { kind: 'purchase'; request: PurchaseOfferRequest }
-    | { kind: 'tile'; privateCompanyId: string; playerId: string; details: TrackLayDetails }
-    | { kind: 'train'; privateCompanyId: string; details: TrainPurchaseDetails }
-import {
-    evaluatePrivateExchange
+    purchaseChoices
 } from '@tabletop/18xx'
 import { GameStorage } from '@tabletop/common'
 import {
     FinishOperatingTurn,
     finishOperatingTurnReason
-} from '@tabletop/18xx'
-import {
-    RouteEvaluation
 } from '@tabletop/18xx'
 import {
     trainsOwnedBy
@@ -89,22 +54,8 @@ import {
     RailwayMapState
 } from '@tabletop/18xx'
 import {
-    type StationSelection
-} from './stationSelection.js'
-import {
-    TrackConstruction,
-    LayTile,
-    FinishTrack,
-    isLayTile,
-    type TrackRequest
+    FinishTrack
 } from '@tabletop/18xx'
-import {
-    chooseTrackLocation,
-    chooseTrackTile,
-    chooseTrackPlacement,
-    backFromTrack,
-    type TrackSelection
-} from './trackSelection.js'
 import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
 import {
@@ -147,7 +98,6 @@ import {
     type Portfolio
 } from '@tabletop/18xx'
 
-const PrivateActionStageOrder = ['source', 'power'] as const
 type SessionOptions = ConstructorParameters<typeof GameSession<GameState, HydratedGameState>>[0]
 type Selection =
     | { kind: 'purchase'; request: PurchaseRequest }
@@ -173,8 +123,10 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         get rules() { return session.rules },
         get validActionTypes() { return session.validActionTypes },
         get publishing() { return session.updatingVisibleState },
-        get draftsVisible() { return !session.updatingVisibleState && !session.isViewingHistory },
+        get viewingHistory() { return session.isViewingHistory },
+        get selectionsVisible() { return !session.updatingVisibleState && !session.isViewingHistory },
         get interactive() { return !session.busy && !session.updatingVisibleState && !session.isViewingHistory },
+        get playerId() { return session.myPlayer?.id },
         get actingPlayerIds() {
             return session.localHotseat ? session.financialState.activePlayerIds
                 : session.myPlayer ? [session.myPlayer.id] : []
@@ -189,7 +141,19 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     readonly waterfall = new WaterfallAuctionModule(this.context)
     readonly privates = new PrivatesModule(this.context)
     readonly trainFunding = new TrainFundingModule(this.context)
-    readonly trainBuying = new TrainBuyingModule(this.context, () => this.purchaseOptions)
+    readonly decisions = new CompanyDecisionsModule(this.context)
+    readonly privateActions: PrivateActionsModule = new PrivateActionsModule(this.context, this.decisions, {
+        undo: (): boolean => this.track.stages.undo(),
+        clear: () => this.track.stages.clear()
+    })
+    readonly track: TrackModule = new TrackModule(
+        this.context,
+        () => this.mapView,
+        this.privateActions,
+        this.decisions,
+        () => { this.mapInspection = undefined }
+    )
+    readonly trainBuying = new TrainBuyingModule(this.context, () => this.decisions.purchaseOptions)
     get requiresStationTokenChoice(): boolean {
         return false
     }
@@ -222,285 +186,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             this.game.players.filter((player) => player.id === id)
         )
     }
-    private privateActionStages: StagedSelectionState<{ source: 'mine' | 'other' | 'powers'; power: PrivateTrackPower }> = $state({})
-    privateActionSelection = $derived(!this.updatingVisibleState && !this.isViewingHistory ? this.privateActionStages.source?.value : undefined)
-    privatePurchaseSource = $derived(this.privateActionSelection === 'powers' ? undefined : this.privateActionSelection)
-    get privatePowersAvailable() { return this.privateTileOptions.length > 0 || this.privateTrainOptions.length > 0 }
-    choosePrivatePowers() {
-        this.trackDraft = {}
-        this.companyDraft = undefined
-        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, PrivateActionStageOrder, 'source', 'powers', 'manual')
-    }
     get privatePurchaseHeading(): string | undefined { return 'Available privates' }
-    privatePurchases = $derived.by(() => this.purchaseOptions.filter((option) => option.request.asset.kind === 'private'))
-    choosePrivatePurchaseSource(source: 'mine' | 'other') {
-        this.trackDraft = {}
-        this.companyDraft = undefined
-        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, PrivateActionStageOrder, 'source', source, 'manual')
-    }
-    private companyDraft: CompanyDecisionDraft | undefined = $state()
-    companyDecisionSelection = $derived(
-        !this.updatingVisibleState && !this.isViewingHistory ? this.companyDraft : undefined
-    )
-    canResolveCompanyDecision = $derived(
-        !this.busy && !this.updatingVisibleState && !this.isViewingHistory
-    )
-    purchaseOptions = $derived.by(() =>
-        this.canResolveCompanyDecision &&
-        this.myPlayer &&
-        this.validActionTypes.includes('OfferPurchase')
-            ? purchaseChoices(
-                  this.financialState,
-                  this.myPlayer.id,
-                  this.rules.transferRules,
-                  this.rules.trainRules
-              )
-            : []
-    )
-    companyDecisionPlayers = $derived.by(() =>
-        !this.canResolveCompanyDecision
-            ? []
-            : this.context.actingPlayerIds
-    )
-    privateTileOptions = $derived.by(() => {
-        const state = this.financialState
-        if (state.purchaseOffer || state.trackConsent) return []
-        return this.companyDecisionPlayers.flatMap((playerId) =>
-            state.companies
-                .filter(
-                    (company) =>
-                        company.kind === 'private' &&
-                        !company.closed &&
-                        !state.usedPrivatePowerIds.includes(company.id)
-                )
-                .flatMap((company) => {
-                    const terms = this.rules.privatePowerRules.trackTerms(state, company.id, playerId)
-                    if (!terms) return []
-                    const construction = privateTrackConstruction(state, terms, this.rules.trackRules)
-                    return terms.locationIds.flatMap((locationId) =>
-                        construction
-                            .choices(locationId)
-                            .map((details) => ({ privateCompanyId: company.id, playerId, details }))
-                    )
-                })
-        )
-    })
-    privateTrackPowers = $derived.by(() => {
-        const powers: PrivateTrackPower[] = []
-        for (const { privateCompanyId, playerId } of this.privateTileOptions) {
-            if (!powers.some((power) => power.privateCompanyId === privateCompanyId && power.playerId === playerId))
-                powers.push({ privateCompanyId, playerId })
-        }
-        return powers
-    })
-    privateTrackPowerSelection = $derived.by(() => {
-        if (this.updatingVisibleState || this.isViewingHistory ||
-            (this.privateActionSelection !== 'powers' && !this.financialState.privateTrackLay && !this.financialState.privatePowerWindow)) return undefined
-        const selected = this.privateActionStages.power
-        if (selected && this.privateTrackPowers.some((power) => power.privateCompanyId === selected.value.privateCompanyId && power.playerId === selected.value.playerId)) return selected
-        return this.privateTrackPowers.length === 1
-            ? { value: this.privateTrackPowers[0], source: 'auto' as const } : undefined
-    })
-    choosePrivateTrackPower(power: PrivateTrackPower) {
-        assert(this.privateTrackPowers.some((option) => option.privateCompanyId === power.privateCompanyId && option.playerId === power.playerId), 'Choose an available private tile power')
-        this.trackDraft = {}
-        this.privateActionStages = setStagedSelectionValue(this.privateActionStages, PrivateActionStageOrder, 'power', power, 'manual')
-    }
-    privateTrainOptions = $derived.by(() => {
-        if (
-            !this.canResolveCompanyDecision ||
-            !this.myPlayer ||
-            pendingCompanyDecision(this.financialState)
-        )
-            return []
-        return this.financialState.companies.flatMap((company) => {
-            const companyId = this.rules.privatePowerRules.earlyTrainCompany(
-                this.financialState,
-                company.id,
-                this.myPlayer!.id
-            )
-            return companyId
-                ? privateTrainPurchase(this.financialState, companyId, this.rules.trainRules)
-                      .offers()
-                      .flatMap((offer) =>
-                          offer.evaluation.details
-                              ? [
-                                    {
-                                        privateCompanyId: company.id,
-                                        details: offer.evaluation.details
-                                    }
-                                ]
-                              : []
-                      )
-                : []
-        })
-    })
-    purchaseOfferEvaluation = $derived.by(() =>
-        this.companyDecisionSelection?.kind === 'purchase'
-            ? evaluatePurchaseOffer(
-                  this.financialState,
-                  this.companyDecisionSelection.request,
-                  this.rules.transferRules,
-                  this.rules.trainRules
-              )
-            : undefined
-    )
-    selectPurchaseOffer(request: PurchaseOfferRequest) {
-        assert(
-            this.canResolveCompanyDecision && this.validActionTypes.includes('OfferPurchase'),
-            'Purchasing is unavailable'
-        )
-        let price = request.price
-        if (request.asset.kind === 'private') {
-            const range = this.rules.transferRules.priceRange(this.financialState, request.companyId, request.asset)
-            assertExists(range, 'Private purchase requires a price range')
-            const cash = cashOwnedBy(this.financialState, { kind: 'company', companyId: request.companyId })
-            assert(typeof cash === 'number', 'Purchasing company requires a cash balance')
-            price = Math.min(cash, range.maximum ?? cash)
-        }
-        this.companyDraft = { kind: 'purchase', request: { ...request, price } }
-    }
-    setPurchasePrice(price: number) {
-        assert(this.companyDraft?.kind === 'purchase', 'Select an asset first')
-        this.companyDraft.request.price = price
-    }
-    selectPrivateTile(option: {
-        privateCompanyId: string
-        playerId: string
-        details: TrackLayDetails
-    }) {
-        assert(
-            this.companyDecisionPlayers.includes(option.playerId) &&
-                evaluatePrivateTrack(
-                    this.financialState,
-                    option.privateCompanyId,
-                    option.playerId,
-                    option.details,
-                    this.rules.privatePowerRules,
-                    this.rules.trackRules
-                ).details,
-            'Choose an available private tile lay'
-        )
-        this.companyDraft = { kind: 'tile', ...option }
-    }
-    selectPrivateTrain(option: Omit<Extract<CompanyDecisionDraft, { kind: 'train' }>, 'kind'>) {
-        assert(
-            this.privateTrainOptions.some(
-                (item) =>
-                    item.privateCompanyId === option.privateCompanyId &&
-                    item.details.trainId === option.details.trainId
-            ),
-            'Choose an available private train purchase'
-        )
-        this.companyDraft = { kind: 'train', ...option }
-    }
-    backCompanyDecision() {
-        this.companyDraft = undefined
-    }
-    async buyPrivateTrain(option: Omit<Extract<CompanyDecisionDraft, { kind: 'train' }>, 'kind'>) {
-        this.selectPrivateTrain(option)
-        await this.confirmCompanyDecision()
-    }
-    async confirmCompanyDecision() {
-        const draft = this.companyDecisionSelection
-        assert(this.canResolveCompanyDecision && draft, 'Choose a company decision')
-        if (draft.kind === 'purchase') {
-            assert(
-                this.purchaseOfferEvaluation && !this.purchaseOfferEvaluation.reason,
-                'This offer is unavailable'
-            )
-            await this.applyAction(this.createPlayerAction(OfferPurchase, draft.request))
-        } else if (draft.kind === 'tile') {
-            const { companyId, locationId, definitionId, rotation, nodeMapping, cost } =
-                draft.details
-            assert(
-                this.companyDecisionPlayers.includes(draft.playerId),
-                'Only the entitled player may lay this tile'
-            )
-            const action = this.createPlayerAction(LayPrivateTile, {
-                privateCompanyId: draft.privateCompanyId,
-                companyId,
-                locationId,
-                definitionId,
-                rotation,
-                nodeMapping,
-                expectedCost: cost
-            })
-            action.playerId = draft.playerId
-            await this.applyAction(action)
-        } else {
-            const { companyId, trainId, definitionId, price } = draft.details
-            await this.applyAction(
-                this.createPlayerAction(BuyPrivateTrain, {
-                    privateCompanyId: draft.privateCompanyId,
-                    companyId,
-                    trainId,
-                    definitionId,
-                    expectedPrice: price
-                })
-            )
-        }
-    }
-    async respondToPurchaseOffer(accept: boolean) {
-        assert(
-            this.canResolveCompanyDecision &&
-                this.validActionTypes.includes('RespondToPurchaseOffer') &&
-                this.financialState.purchaseOffer,
-            'No offer is awaiting this player'
-        )
-        await this.applyAction(
-            this.createPlayerAction(RespondToPurchaseOffer, {
-                offerId: this.financialState.purchaseOffer.id,
-                accept
-            })
-        )
-    }
-    async respondToTrackConsent(accept: boolean) {
-        assert(
-            this.canResolveCompanyDecision &&
-                this.validActionTypes.includes('RespondToTrackConsent') &&
-                this.financialState.trackConsent,
-            'No permission request is awaiting this player'
-        )
-        await this.applyAction(
-            this.createPlayerAction(RespondToTrackConsent, {
-                requestId: this.financialState.trackConsent.id,
-                accept
-            })
-        )
-    }
-    async continueOperatingRound() {
-        assert(
-            this.canResolveCompanyDecision &&
-                this.validActionTypes.includes('ContinueOperatingRound') &&
-                this.financialState.privatePowerWindow,
-            'No private power window awaits this player'
-        )
-        await this.applyAction(
-            this.createPlayerAction(ContinueOperatingRound, {
-                companyId: this.financialState.privatePowerWindow.companyId
-            })
-        )
-    }
-    async declinePrivateTile() {
-        assert(
-            this.canResolveCompanyDecision &&
-                this.validActionTypes.includes('DeclinePrivateTile') &&
-                this.financialState.privateTrackLay,
-            'No private tile lay is awaiting this player'
-        )
-        await this.applyAction(
-            this.createPlayerAction(DeclinePrivateTile, {
-                privateCompanyId: this.financialState.privateTrackLay.privateCompanyId
-            })
-        )
-    }
-    privatePurchasePriceRange(companyId: string, privateCompanyId: string) {
-        return this.rules.transferRules.priceRange(this.financialState, companyId, {
-            kind: 'private',
-            privateCompanyId
-        })
-    }
     finishOperatingReason = $derived.by(() => {
         const companyId = this.financialState.trainPurchaseStep?.companyId
         return companyId
@@ -585,7 +271,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             : undefined
     )
     networkRoutes = $derived.by(() =>
-        this.showTrackAccess && !this.updatingVisibleState && !this.trackPreview && this.network
+        this.showTrackAccess && !this.updatingVisibleState && !this.track.preview && this.network
             ? [
                   {
                       id: 'track-access',
@@ -617,106 +303,13 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         )
         this.inspectedCompanyId = companyId
     }
-    constructionActions = $derived.by(() =>
-        this.actions.slice(0, this.gameState.actionCount).flatMap((action) => {
-            const details =
-                isLayTile(action) || isLayPrivateTile(action)
-                    ? action.metadata
-                    : isRespondToTrackConsent(action) && action.metadata?.accepted
-                      ? action.metadata.request.details
-                      : undefined
-            return details
-                ? [
-                      {
-                          id: action.id,
-                          locationId: details.locationId,
-                          definitionId: details.definitionId,
-                          rotation: details.rotation,
-                          cost: details.cost
-                      }
-                  ]
-                : []
-        })
-    )
-    private trackDraft: TrackSelection = $state({})
-    trackSelection = $derived.by(() =>
-        !this.updatingVisibleState &&
-        !this.isViewingHistory &&
-        (this.privateTrackPowerSelection || (this.financialState.machineState === 'LayingTrack' && !this.privateActionSelection))
-            ? this.trackDraft
-            : {}
-    )
-    construction = $derived.by(() => {
-        const power = this.privateTrackPowerSelection?.value
-        if (!power) return new TrackConstruction(this.financialState, this.rules.trackRules)
-        const terms = this.rules.privatePowerRules.trackTerms(this.financialState, power.privateCompanyId, power.playerId)
-        assertExists(terms, 'Selected private tile power requires construction terms')
-        return privateTrackConstruction(this.financialState, terms, this.rules.trackRules)
-    })
-    canBuildTrack = $derived(
-        !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            (this.privateTrackPowerSelection
-                ? this.validActionTypes.includes('LayPrivateTile')
-                : !this.privateActionSelection && this.validActionTypes.includes('FinishTrack'))
-    )
-    showTrackChoices = $derived.by(
-        () => !this.isViewingHistory && (!!this.privateTrackPowerSelection || (this.financialState.machineState === 'LayingTrack' && !this.privateActionSelection))
-    )
-    trackChoicesByLocation = $derived.by(
-        () =>
-            new Map(
-                this.showTrackChoices
-                    ? this.mapView.map.definition.locations.map(
-                          (location) =>
-                              [location.id, this.construction.choices(location.id)] as const
-                      )
-                    : []
-            )
-    )
-    reachableTrackLocationIds = $derived.by(() =>
-        this.showTrackChoices
-            ? this.mapView.map.definition.locations
-                .filter((location) => this.construction.canReach(location.id))
-                .map((location) => location.id)
-            : []
-    )
-    trackLocationIds = $derived(
-        [...this.trackChoicesByLocation].filter(([, choices]) => choices.length).map(([id]) => id)
-    )
-    trackChoices = $derived(
-        this.trackSelection.locationId
-            ? (this.trackChoicesByLocation.get(this.trackSelection.locationId.value) ?? [])
-            : []
-    )
-    trackTiles = $derived.by(() =>
-        this.mapView.tileSet.definitions.filter((tile) =>
-            this.trackChoices.some((choice) => choice.definitionId === tile.id)
-        )
-    )
-    trackPlacements = $derived(
-        this.trackChoices.filter(
-            (choice) => choice.definitionId === this.trackSelection.definitionId?.value
-        )
-    )
-    trackPreview = $derived(
-        this.trackSelection.placement
-            ? this.construction.evaluate(this.trackSelection.placement.value).details
-            : undefined
-    )
-    trackTileInFlight = $derived.by(() => {
-        this.trackSelection
-        return false
-    })
-    displayedTrackPreview = $derived.by(() => this.financialState.trackConsent?.details ?? this.trackPreview)
     displayedMapScene = $derived.by(() =>
-        this.displayedTrackPreview && !this.trackTileInFlight
+        this.track.displayedPreview && !this.track.tileInFlight
             ? createMapDrawing(
                   this.mapView.map,
                   {
                       tileSet: this.mapView.tileSet,
-                      inventory: this.construction.inventoryAfter(this.displayedTrackPreview)
+                      inventory: this.track.construction.inventoryAfter(this.track.displayedPreview)
                   },
                   this.mapView.layouts,
                   this.mapView.markerImages
@@ -724,97 +317,12 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             : this.mapScene
     )
     displayedMapTokens = $derived.by(() =>
-        this.displayedTrackPreview && !this.trackTileInFlight
-            ? stationMapTokens(this.displayedTrackPreview, this.mapView.stations)
+        this.track.displayedPreview && !this.track.tileInFlight
+            ? stationMapTokens(this.track.displayedPreview, this.mapView.stations)
             : this.stations.preview
               ? stationMapTokens(this.stations.displayState, this.mapView.stations)
               : this.mapTokens
     )
-    selectTrackLocation(locationId: string) {
-        assert(
-            this.canBuildTrack && this.trackLocationIds.includes(locationId),
-            'No legal construction at this location'
-        )
-        this.trackDraft = chooseTrackLocation(locationId)
-        const choices = this.trackChoicesByLocation.get(locationId)!
-        if (new Set(choices.map((choice) => choice.definitionId)).size === 1) {
-            this.trackDraft = chooseTrackTile(this.trackDraft, choices[0].definitionId, choices.slice(0, 1), 'auto')
-            this.trackTileInFlight = true
-        }
-        this.mapInspection = undefined
-    }
-    selectTrackTile(definitionId: string) {
-        assert(
-            this.canBuildTrack && this.trackSelection.locationId,
-            'Choose a construction location'
-        )
-        const choices = this.trackChoices.filter((choice) => choice.definitionId === definitionId)
-        assert(choices.length, 'No legal placement for this tile')
-        this.trackDraft = chooseTrackTile(this.trackDraft, definitionId, choices)
-    }
-    previewTrackTile(definitionId: string) {
-        this.selectTrackTile(definitionId)
-        this.trackDraft = chooseTrackTile(
-            this.trackDraft,
-            definitionId,
-            this.trackPlacements.slice(0, 1)
-        )
-    }
-    rotateTrackPreview() {
-        assert(this.canBuildTrack && this.trackPreview, 'Choose a track tile to rotate')
-        const preview = this.trackPreview
-        const index = this.trackPlacements.findIndex(
-            (choice) =>
-                choice.rotation === preview.rotation &&
-                JSON.stringify(choice.nodeMapping) === JSON.stringify(preview.nodeMapping)
-        )
-        const next = [
-            ...this.trackPlacements.slice(index + 1),
-            ...this.trackPlacements.slice(0, index + 1)
-        ].find((choice) => choice.rotation !== preview.rotation)
-        if (next) this.selectTrackPlacement(next)
-    }
-    cancelTrack() {
-        this.trackDraft = {}
-    }
-    selectTrackPlacement(request: TrackRequest) {
-        assert(
-            this.canBuildTrack &&
-                this.trackSelection.definitionId?.value === request.definitionId &&
-                this.construction.evaluate(request).details,
-            'Choose a legal tile rotation'
-        )
-        this.trackDraft = chooseTrackPlacement(this.trackDraft, request)
-    }
-    backTrack() {
-        this.trackDraft = backFromTrack(this.trackDraft)
-    }
-    async confirmTrack() {
-        const preview = this.trackPreview
-        assert(this.canBuildTrack && preview, 'Choose a legal track placement')
-        const power = this.privateTrackPowerSelection?.value
-        if (power) {
-            this.selectPrivateTile({ ...power, details: preview })
-            await this.confirmCompanyDecision()
-            return
-        }
-        const { companyId, locationId, definitionId, rotation, nodeMapping, cost } = preview
-        await this.applyAction(
-            this.createPlayerAction(
-                preview.consentPlayerId && preview.consentPlayerId !== this.myPlayer?.id
-                    ? RequestTrackConsent
-                    : LayTile,
-                {
-                    companyId,
-                    locationId,
-                    definitionId,
-                    rotation,
-                    nodeMapping,
-                    expectedCost: cost
-                }
-            )
-        )
-    }
     override shouldAutoStepAction(action: GameAction, next?: GameAction) {
         return shouldContinueHistoryStep(action, next)
     }
@@ -836,7 +344,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         this.skippingOperatingSteps = true
         try {
             while (this.operatingStep !== undefined && this.operatingStep < target) {
-                if (this.operatingStep === 0) await this.finishTrack()
+                if (this.operatingStep === 0) await this.track.finish()
                 else if (this.operatingStep === 1 && this.validActionTypes.includes('FinishStations')) await this.stations.finish()
                 else break
                 await this.waitForVisibleTransitionSettled()
@@ -849,18 +357,6 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         } finally {
             this.skippingOperatingSteps = false
         }
-    }
-    async finishTrack() {
-        const companyId = this.financialState.trackStep?.companyId
-        assert(
-            companyId &&
-                !this.trackSelection.locationId &&
-                this.validActionTypes.includes('FinishTrack') &&
-                !this.busy &&
-                !this.isViewingHistory,
-            'Finish or cancel the construction selection'
-        )
-        await this.applyAction(this.createPlayerAction(FinishTrack, { companyId }))
     }
     get passing() {
         return this.rules.stockRules.round.passing
@@ -896,10 +392,10 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         )
     )
     selectMap(selection: MapSelection, allowInspection = true) {
-        if (this.showTrackChoices) {
-            if (this.canBuildTrack && this.trackLocationIds.includes(selection.locationId)) {
-                if (this.trackPreview?.locationId === selection.locationId) this.rotateTrackPreview()
-                else this.selectTrackLocation(selection.locationId)
+        if (this.track.showChoices) {
+            if (this.track.canBuild && this.track.locationIds.includes(selection.locationId)) {
+                if (this.track.preview?.locationId === selection.locationId) this.track.rotatePreview()
+                else this.track.selectLocation(selection.locationId)
             }
             return
         }
@@ -949,7 +445,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     private mapInspection: { selection: MapSelection; face: TileFace } | undefined = $state.raw()
     mapSelection = $derived.by(() => {
         if (this.updatingVisibleState) return undefined
-        const constructionLocation = this.trackSelection.locationId?.value
+        const constructionLocation = this.track.selection.locationId?.value
         if (constructionLocation) return { kind: 'hex', locationId: constructionLocation } as const
         const stationPosition = this.stations.selection.placement?.value.position
         if (stationPosition) return { kind: 'slot', ...stationPosition } as const
@@ -1331,43 +827,15 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         localSelections.register(this.trainBuying.sourceStages)
         localSelections.register(this.offers.choice)
         localSelections.register(this.waterfall.choice)
-        localSelections.register({
-            hasManual: () => !!this.companyDraft,
-            undo: () => {
-                if (!this.companyDraft) return false
-                this.companyDraft = undefined
-                return true
-            },
-            clear: () => { this.companyDraft = undefined }
-        })
-        localSelections.register({
-            hasManual: () => !!this.privateActionSelection,
-            undo: () => {
-                if (!this.privateActionSelection && !this.privateActionStages.power &&
-                    !(this.privateTrackPowerSelection && this.trackDraft.locationId)) return false
-                if (this.trackDraft.locationId) this.trackDraft = {}
-                else this.privateActionStages = popHighestManualStagedSelection(
-                    this.privateActionStages, PrivateActionStageOrder
-                ).nextState
-                return true
-            },
-            clear: () => { this.privateActionStages = {} }
-        })
+        localSelections.register(this.decisions.choice)
+        localSelections.register(this.privateActions)
         localSelections.register(this.privates.exchangeChoice)
         localSelections.register(this.discard.choice)
         localSelections.register(this.earnings.choice)
         localSelections.register(this.routes)
         localSelections.register(this.trainBuying.depotChoice)
         localSelections.register(this.stations.stages)
-        localSelections.register({
-            hasManual: () => !!this.trackDraft.locationId,
-            undo: () => {
-                if (!this.trackDraft.locationId) return false
-                this.trackDraft = {}
-                return true
-            },
-            clear: () => { this.trackDraft = {} }
-        })
+        localSelections.register(this.track.stages)
         localSelections.register({
             hasManual: () => false,
             undo: () => {

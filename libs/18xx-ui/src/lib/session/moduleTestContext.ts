@@ -5,7 +5,7 @@ export function testContext<State, Rules>(
     state: State,
     rules: Rules,
     validActionTypes: string[],
-    availability: { draftsVisible?: boolean; interactive?: boolean; actingPlayerIds?: string[] } = {}
+    availability: { selectionsVisible?: boolean; interactive?: boolean; actingPlayerIds?: string[] } = {}
 ) {
     const applied: GameAction[] = []
     const context: SessionContext<State, Rules> = {
@@ -13,8 +13,10 @@ export function testContext<State, Rules>(
         rules,
         validActionTypes,
         publishing: false,
-        draftsVisible: availability.draftsVisible ?? true,
+        viewingHistory: false,
+        selectionsVisible: availability.selectionsVisible ?? true,
         interactive: availability.interactive ?? true,
+        playerId: 'alex',
         actingPlayerIds: availability.actingPlayerIds ?? ['alex'],
         canActFor: (playerId) => (availability.actingPlayerIds ?? ['alex']).includes(playerId),
         recordedActions: [],

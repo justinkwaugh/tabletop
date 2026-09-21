@@ -33,7 +33,7 @@ describe('RoutesModule', () => {
     it('shows a route draft only while running trains with drafts visible', () => {
         expect(running('RunningTrains', ['RunTrains']).module.draftVisible).toBe(true)
         expect(running('StockRound', ['RunTrains']).module.draftVisible).toBe(false)
-        expect(running('RunningTrains', ['RunTrains'], { draftsVisible: false }).module.draftVisible).toBe(false)
+        expect(running('RunningTrains', ['RunTrains'], { selectionsVisible: false }).module.draftVisible).toBe(false)
     })
 
     it('solves an empty run immediately for a company that owns no trains', () => {
