@@ -1,10 +1,10 @@
-import type { GameState, HydratedGameState } from '@tabletop/common'
+import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
 import type { GameUiDefinition } from '@tabletop/frontend-components'
 import { scenarioDefinition } from './definitions.js'
 
 export function withScenarioUi(
-    definition: GameUiDefinition<GameState, HydratedGameState>
-): GameUiDefinition<GameState, HydratedGameState> {
+    definition: GameUiDefinition<EighteenXXState, HydratedEighteenXXState>
+): GameUiDefinition<EighteenXXState, HydratedEighteenXXState> {
     const scenarios = scenarioDefinition(definition.info.id)
     return {
         ...definition,

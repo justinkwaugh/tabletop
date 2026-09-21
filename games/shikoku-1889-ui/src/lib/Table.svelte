@@ -7,12 +7,12 @@
     import { Shikoku1889OperatingRules } from '@tabletop/shikoku-1889'
     import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
+    import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
     import { GameTable, OperatingActions, requireEighteenXXSession } from '@tabletop/18xx-ui'
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
-    let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
+    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } = $props()
     const session = $derived(requireEighteenXXSession(gameSession))
     const privateOperationDescription = (id: string) =>
         id === 'SRR'

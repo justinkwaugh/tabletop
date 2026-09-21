@@ -6,7 +6,7 @@ import { TheOldPrinceTitleRules, theOldPrinceRole } from '@tabletop/the-old-prin
 import { TheOldPrinceMapView } from './mapView.js'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import { type GameSession } from '@tabletop/frontend-components'
-import type { GameState, HydratedGameState } from '@tabletop/common'
+import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
 
 import { assert } from '@tabletop/common'
 import {
@@ -180,7 +180,7 @@ export class TheOldPrinceSession extends BaseSession {
     }
 }
 export function requireTheOldPrinceSession(
-    session: GameSession<GameState, HydratedGameState>
+    session: GameSession<EighteenXXState, HydratedEighteenXXState>
 ): TheOldPrinceSession {
     assert(session instanceof TheOldPrinceSession, 'Expected a TOP session')
     return session

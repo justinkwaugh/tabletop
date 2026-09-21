@@ -20,7 +20,6 @@ import { operatingHistory } from '../table/operatingHistory.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
-import { EighteenXXStateValidator } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
 import { cashOwnedBy, shareSaleValue, priorityOrder, stockCertificateCount, stockMarketOrder } from '@tabletop/18xx'
@@ -34,23 +33,24 @@ import {
 } from '@tabletop/18xx'
 import { type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
 import { GameSession } from '@tabletop/frontend-components'
-import { assert, type GameState, type HydratedGameState } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
-    requireEighteenXXState,
     type EighteenXXState,
     getCompany,
     type Owner,
     type Portfolio
 } from '@tabletop/18xx'
 
-type SessionOptions = ConstructorParameters<typeof GameSession<GameState, HydratedGameState>>[0]
-export class EighteenXXSession extends GameSession<GameState, HydratedGameState> {
+type SessionOptions = ConstructorParameters<
+    typeof GameSession<EighteenXXState, HydratedEighteenXXState>
+>[0]
+export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEighteenXXState> {
     privateCardPhaseColors: Readonly<Record<string, string>> = $derived({})
     privateCompanyTokens: Readonly<Record<string, StationAppearance>> = $derived({})
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)
     }
-    readonly marketAnimation = createMarketAnimationSource(this, (state) => requireEighteenXXState(state).stockMarket)
+    readonly marketAnimation = createMarketAnimationSource(this, (state) => state.stockMarket)
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(EighteenXXPreferenceDefinition)
     protected readonly localSelections = new LocalSelections()
     private get localHotseat() {
@@ -196,7 +196,6 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             return
         }
         const context = this.history.visibleContext
-        assert(EighteenXXStateValidator.Check(context.state), 'Historical map requires financial state')
         this.historicalMap = this.historicalMaps.preview(
             context.state, context.actions, action
         )
@@ -204,7 +203,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     closeHistoricalMap() {
         this.historicalMap = undefined
     }
-    financialState = $derived(requireEighteenXXState(this.gameState))
+    financialState = $derived(this.gameState)
     sharesToFloat(companyId: string) {
         return this.rules.companyRules.sharesToFloat?.(this.financialState, companyId)
     }
@@ -274,7 +273,7 @@ export function createEighteenXXSessionClass(
     }
 }
 export function requireEighteenXXSession(
-    session: GameSession<GameState, HydratedGameState>
+    session: GameSession<EighteenXXState, HydratedEighteenXXState>
 ): EighteenXXSession {
     assert(session instanceof EighteenXXSession, 'Expected an 18xx session')
     return session

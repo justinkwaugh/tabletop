@@ -5,11 +5,11 @@ import {
     mountDynamicComponent,
     type GameUIRuntime
 } from '@tabletop/frontend-components'
-import type { GameState, HydratedGameState } from '@tabletop/common'
+import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
 import { TheOldPrinceSession } from './session.svelte.js'
 import Table from './Table.svelte'
 
-export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
+export const UiRuntime: GameUIRuntime<EighteenXXState, HydratedEighteenXXState> = {
     ...Definition.runtime,
     gameUI: { component: Table, load: async () => Table, mount: mountDynamicComponent },
     sessionClass: TheOldPrinceSession,

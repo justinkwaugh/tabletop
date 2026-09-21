@@ -13,7 +13,11 @@
         type GameState,
         type HydratedGameState
     } from '@tabletop/common'
-    import { EighteenXXStateValidator } from '@tabletop/18xx'
+    import {
+        EighteenXXStateValidator,
+        type EighteenXXState,
+        type HydratedEighteenXXState
+    } from '@tabletop/18xx'
     import type { ScenarioPosition } from '../scenarios/scenarioPosition.js'
     import {
         createHarnessAppContext,
@@ -29,13 +33,17 @@
         position = 'trading',
         playerCount
     }: {
-        definition: GameUiDefinition<GameState, HydratedGameState>
+        definition: GameUiDefinition<EighteenXXState, HydratedEighteenXXState>
         position?: ScenarioPosition | 'finished'
         playerCount?: number
     } = $props()
-    const app = untrack(() => createHarnessAppContext(definition))
+    const app = untrack(() =>
+        createHarnessAppContext(
+            definition as unknown as GameUiDefinition<GameState, HydratedGameState>
+        )
+    )
     setAppContext(app)
-    let session: GameSession<GameState, HydratedGameState> | undefined = $state.raw()
+    let session: GameSession<EighteenXXState, HydratedEighteenXXState> | undefined = $state.raw()
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false

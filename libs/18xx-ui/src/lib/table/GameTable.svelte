@@ -8,7 +8,6 @@
     import PositionPanel from './PositionPanel.svelte'
     import { companyFocusLocations, companyNetworkFocusLocations } from '../maps/companyFocusLocations.js'
     import {
-        EighteenXXStateValidator,
         RailwayMapState,
         getCompany,
         nextOperatingCompany,
@@ -47,7 +46,7 @@
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
-    import { assert, type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import type { HistoryDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
@@ -317,7 +316,6 @@
     const historicalFocus = $derived.by(() => {
         if (!session.isViewingHistory) return undefined
         const context = session.history.visibleContext
-        assert(EighteenXXStateValidator.Check(context.state), 'History map focus requires financial state')
         return historyMapFocus(context.state, context.actions.at(-1))
     })
     const historyMapSettled = $derived(!session.updatingVisibleState &&

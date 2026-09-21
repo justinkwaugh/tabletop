@@ -8,14 +8,14 @@
     import { TheOldPrinceOperatingRules } from '@tabletop/the-old-prince'
     import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
+    import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
     import { CompanyToken, GameTable, OperatingActions, AuctionOffers, OfferAuctionBidding } from '@tabletop/18xx-ui'
     import { requireTheOldPrinceSession } from './session.svelte.js'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
-    let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
+    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } = $props()
     function lotInfo(id: string) {
         const privateCompany = session.privates.companies.find((company) => company.id === id)
         if (privateCompany) return { description: privateCompany.description, ...(id === 'VR' ? { locationId: 'N18' } : {}) }

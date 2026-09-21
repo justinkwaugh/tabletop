@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { EighteenXXStateValidator } from '@tabletop/18xx'
-    import { assert } from '@tabletop/common'
     import type { AutoroutingRequest, AutoroutingResponse } from '@tabletop/18xx-autorouter'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import TrainRunTable from './TrainRunTable.svelte'
@@ -57,12 +55,10 @@
                     if (worker === solver) error = 'The route solver could not finish. Please try again.'
                     solver.terminate()
                 }
-                const snapshot = session.gameState.dehydrate()
-                assert(
-                    EighteenXXStateValidator.Check(snapshot),
-                    'Autorouting requires complete game state'
-                )
-                const request: AutoroutingRequest = { state: snapshot, companyId }
+                const request: AutoroutingRequest = {
+                    state: session.gameState.dehydrate(),
+                    companyId
+                }
                 solver.postMessage(request)
             } catch (failure) {
                 worker?.terminate()

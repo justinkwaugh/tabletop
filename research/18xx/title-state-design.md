@@ -77,9 +77,11 @@ Runtime (ADR 0004).
 - The first change that adds a field or machine state to a deployed title must keep
   the field optional for stored games and move the title to `1.0.0`: the version check
   compares only the first number, and both titles are at `0.x`.
-- `@tabletop/18xx-ui` narrows `context.state` with the family `EighteenXXStateValidator`
-  in seven files. A title with its own fields fails those checks; they must use
-  the title's validator before the first title extends its state.
+- The shared session is `GameSession<EighteenXXState, HydratedEighteenXXState>`, so the
+  shared UI reads history State already typed and never re-validates it against the
+  family schema; a title's own fields pass through. The host harness is still typed over
+  base `GameState`, so a title's dev page and the playground host cast the definition at
+  that boundary, as the other games do. `financialState` is now an alias of `gameState`.
 - A title's added handlers receive none of the family's cross-cutting handlers. Which
   of them a dedicated round needs is left to the first title with such a round.
 - `hydrate` receives the family-typed State; a title reads its own fields from its

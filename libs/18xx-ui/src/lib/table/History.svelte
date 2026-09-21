@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { assert, assertExists, type GameAction } from '@tabletop/common'
-    import { controllingOwner, EighteenXXStateValidator } from '@tabletop/18xx'
+    import { assertExists, type GameAction } from '@tabletop/common'
+    import { controllingOwner } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
     import { historyCash } from './historyCash.js'
     import { historyOperatingOrder } from './historyOperatingOrder.js'
@@ -36,10 +36,7 @@
     }
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
     const context = $derived(session.history.visibleContext)
-    const state = $derived.by(() => {
-        assert(EighteenXXStateValidator.Check(context.state), 'History requires financial state')
-        return context.state
-    })
+    const state = $derived(context.state)
     const orderChanges = $derived(historyOperatingOrder(context.actions, state))
     const cash = $derived(historyCash(context.actions, state))
     const companyChanges = $derived(historyCompanyChanges(context.actions, state))

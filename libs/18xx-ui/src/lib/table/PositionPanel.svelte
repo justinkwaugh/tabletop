@@ -1,7 +1,6 @@
 <script lang="ts">
     import { assert, type GameAction } from '@tabletop/common'
     import {
-        EighteenXXStateValidator,
         nextOperatingCompany,
         isOfferAuctionLot,
         isBidOnAuctionLot,
@@ -29,10 +28,7 @@
         describeAction?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
     } = $props()
     const context = $derived(session.history.visibleContext)
-    const state = $derived.by(() => {
-        assert(EighteenXXStateValidator.Check(context.state), 'Position panel requires financial state')
-        return context.state
-    })
+    const state = $derived(context.state)
     const company = $derived(state.companies.find((company) => company.id === nextOperatingCompany(state)))
     const statusLabels: Readonly<Record<string, string>> = {
         OfferingLot: 'Auction offerings', OfferBidding: 'Auction bidding',

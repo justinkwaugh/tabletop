@@ -3,7 +3,7 @@
     import OpeningAuction from './OpeningAuction.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
     import { requireEighteenXXState } from '@tabletop/18xx'
-    import type { GameState, HydratedGameState } from '@tabletop/common'
+    import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
     import {
         GameEnding,
         FinanceInspector,
@@ -15,7 +15,7 @@
         StockMarket,
         requireEighteenXXSession
     } from '@tabletop/18xx-ui'
-    let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
+    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } = $props()
     const session = $derived(requireEighteenXXSession(gameSession))
     const state = $derived(requireEighteenXXState(gameSession.gameState))
 </script>

@@ -8,10 +8,10 @@ import {
     mountDynamicComponent,
     type GameUIRuntime
 } from '@tabletop/frontend-components'
-import type { GameState, HydratedGameState } from '@tabletop/common'
+import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
 import Table from './Table.svelte'
 
-export const UiRuntime: GameUIRuntime<GameState, HydratedGameState> = {
+export const UiRuntime: GameUIRuntime<EighteenXXState, HydratedEighteenXXState> = {
     ...Definition.runtime,
     gameUI: { component: Table, load: async () => Table, mount: mountDynamicComponent },
     sessionClass: createEighteenXXSessionClass(Shikoku1889TitleRules, Shikoku1889MapView),
