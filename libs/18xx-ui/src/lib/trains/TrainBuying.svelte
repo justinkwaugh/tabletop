@@ -52,9 +52,9 @@
         <header>
             <h2>
                 Choose a train to buy
-                {#if !session.finishOperatingReason}
-                    or <button class="action-button inline-action" onclick={() => session.finishOperatingTurn()}
-                        disabled={!session.canFinishOperatingTurn}>finish</button>
+                {#if !session.operating.finishReason}
+                    or <button class="action-button inline-action" onclick={() => session.operating.finish()}
+                        disabled={!session.operating.canFinish}>finish</button>
                 {/if}
             </h2>
             {#if showUndo}<button

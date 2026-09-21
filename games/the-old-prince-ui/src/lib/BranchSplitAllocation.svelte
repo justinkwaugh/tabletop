@@ -30,7 +30,7 @@
                             {#if !protectedHome}<button class="transfer" disabled={!session.canPreviewSplit}
                                 aria-label={`Transfer ${name} to ${destination}`}
                                 onclick={() => session.transferSplitStation(station.id)}>{branch ? '←' : '→'}</button>{/if}
-                            <button class="station-name" onclick={() => onFocusLocation ? onFocusLocation(station.position.locationId) : session.inspectMap({kind:'hex',locationId:station.position.locationId})}>{name}</button>
+                            <button class="station-name" onclick={() => onFocusLocation ? onFocusLocation(station.position.locationId) : session.map.inspect({kind:'hex',locationId:station.position.locationId})}>{name}</button>
                             {#if protectedHome}<small>Home</small>{/if}
                         </div>
                     {:else}<span class="empty">None</span>{/each}

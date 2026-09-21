@@ -49,9 +49,9 @@
     {#each steps as step, index}
         <button class:current={index === currentStep} class:completed={index < currentStep}
             aria-current={index === currentStep ? 'step' : undefined}
-            disabled={readOnly || !session.canSkipToOperatingStep(index)}
-            title={!readOnly && session.canSkipToOperatingStep(index) ? (index === 1 ? 'Finish track and proceed to station placement' : 'Finish track and station placement, stopping for any required decision') : undefined}
-            onclick={() => session.skipToOperatingStep(index)}>
+            disabled={readOnly || !session.operating.canSkipTo(index)}
+            title={!readOnly && session.operating.canSkipTo(index) ? (index === 1 ? 'Finish track and proceed to station placement' : 'Finish track and station placement, stopping for any required decision') : undefined}
+            onclick={() => session.operating.skipTo(index)}>
             <span>{step}</span>
             {#if statuses[index]}<small>{statuses[index]}</small>{/if}
         </button>

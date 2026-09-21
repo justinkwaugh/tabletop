@@ -19,9 +19,9 @@
         <h2>Map</h2>
         <label
             >Tile style <select
-                value={session.mapStyle}
+                value={session.map.style}
                 onchange={(event) =>
-                    session.setMapStyle(
+                    session.map.setStyle(
                         event.currentTarget.value === 'muted' ? 'muted' : 'classic'
                     )}
             >
@@ -58,24 +58,24 @@
     {#if !session.routes.overlays.length}
         <div class="network" aria-label="Network access">
             <label
-                ><input type="checkbox" bind:checked={session.showTrackAccess} /> Show reachable track</label
+                ><input type="checkbox" bind:checked={session.map.showTrackAccess} /> Show reachable track</label
             >
             <label
                 >Company <select
                     aria-label="Network company"
-                    value={session.networkCompanyId ?? ''}
-                    onchange={(event) => session.inspectCompanyNetwork(event.currentTarget.value)}
+                    value={session.map.networkCompanyId ?? ''}
+                    onchange={(event) => session.map.inspectCompanyNetwork(event.currentTarget.value)}
                 >
-                    {#each session.networkCompanies as company}<option value={company.id}
+                    {#each session.map.networkCompanies as company}<option value={company.id}
                             >{company.name}</option
                         >{/each}
                 </select></label
             >
-            {#if session.showTrackAccess}<span
+            {#if session.map.showTrackAccess}<span
                     >Blue: reachable track{session.stations.preview ? ' (preview)' : ''}</span
                 >
-                {#if session.blockedCities.length}<span
-                        >Blocked cities: {session.blockedCities
+                {#if session.map.blockedCities.length}<span
+                        >Blocked cities: {session.map.blockedCities
                             .map((city) => `${city.locationId} ${city.name ?? ''}`)
                             .join(', ')}</span
                     >{/if}
@@ -83,7 +83,7 @@
         </div>
     {/if}
     <MapViewer revenueStageColors={session.mapView.revenueStageColors}
-        scene={session.displayedMapScene}
+        scene={session.map.displayedScene}
         maskUnavailableLocations={session.track.showChoices}
         highlightedLocationIds={session.stations.canPlace ? session.stations.locationIds : [...new Set([...session.track.reachableLocationIds, ...session.track.locationIds])]}
         legalLocationIds={session.stations.canPlace
@@ -92,18 +92,18 @@
         routes={session.routes.displayed}
         previewLocationId={session.track.preview?.locationId ??
             session.stations.preview?.position.locationId}
-        selection={session.mapSelection}
-        tokens={session.displayedMapTokens}
+        selection={session.map.selection}
+        tokens={session.map.displayedTokens}
         reservations={session.track.preview?.stationReservations ??
             session.stations.displayState.stationReservations}
-        appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
-        onselect={(selection) => session.selectMap(selection)}
+        appearance={session.map.style === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
+        onselect={(selection) => session.map.select(selection)}
     />
     <details bind:open={showTiles}>
         <summary>Available tiles</summary>
         {#if showTiles}<TileLibraryViewer
                 tiles={session.mapView.tileSet.definitions}
-                inventory={session.tileCounts}
+                inventory={session.map.tileCounts}
                 layouts={session.mapView.layouts}
             />{/if}
     </details>

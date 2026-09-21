@@ -5,14 +5,14 @@ export function testSession<State, Rules>(
     state: State,
     rules: Rules,
     validActionTypes: string[],
-    availability: { selectionsVisible?: boolean; interactive?: boolean; actingPlayerIds?: string[] } = {}
+    availability: { publishing?: boolean; selectionsVisible?: boolean; interactive?: boolean; actingPlayerIds?: string[] } = {}
 ) {
     const applied: GameAction[] = []
     const session: ModuleSession<State, Rules> = {
         state,
         rules,
         validActionTypes,
-        publishing: false,
+        publishing: availability.publishing ?? false,
         viewingHistory: false,
         selectionsVisible: availability.selectionsVisible ?? true,
         interactive: availability.interactive ?? true,

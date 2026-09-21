@@ -11,7 +11,7 @@
     const purchaseOptions = $derived(session.decisions.purchaseOptions.filter((option) => option.request.asset.kind === 'train' && !excludeTrainPurchases))
     const state = $derived(session.financialState)
     const selection = $derived(session.decisions.selection)
-    const showPowers = $derived(!session.privateActions.purchaseSource && (session.operatingStep === undefined || session.privateActions.selection === 'powers' || !!state.privateTrackLay || !!state.privatePowerWindow))
+    const showPowers = $derived(!session.privateActions.purchaseSource && (session.operating.step === undefined || session.privateActions.selection === 'powers' || !!state.privateTrackLay || !!state.privatePowerWindow))
 </script>
 
 {#if state.trackConsent}
@@ -50,7 +50,7 @@
             <span>{getCompany(state, offer.companyId).name} offers ${offer.price} for {offer.asset.kind === 'private' ? getCompany(state, offer.asset.privateCompanyId).name : offer.asset.trainId}</span>
         </DecisionResponse>
     {:else}
-        <PrivateBuying {session} showEntry={session.operatingStep === undefined} />
+        <PrivateBuying {session} showEntry={session.operating.step === undefined} />
         <div class="choices">
             {#if purchaseOptions.length}
                 <label

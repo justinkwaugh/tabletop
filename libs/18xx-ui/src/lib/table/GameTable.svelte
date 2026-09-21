@@ -148,13 +148,13 @@
         const restore = focusedLocation === locationId
         focusedLocation = restore ? undefined : locationId
         selectedView = 'Map'
-        session.inspectMap({ kind: 'hex', locationId })
+        session.map.inspect({ kind: 'hex', locationId })
         await tick()
         if (restore) {
             mapWrapper?.fitToContent({ animate: true })
             return
         }
-        const scene = session.displayedMapScene
+        const scene = session.map.displayedScene
         mapWrapper?.focusRect(mapSelectionRect(scene, { kind: 'hex', locationId }, 140, 220, boardArtwork), {
             animate: true
         })
@@ -207,7 +207,7 @@
     function previewHistoryMap(action: GameAction) {
         session.previewHistoryMap(action)
     }
-    const displayedScene = $derived(session.displayedMapScene)
+    const displayedScene = $derived(session.map.displayedScene)
     function focusLocations(locations: readonly string[], animate = true) {
         const rectangles = locations.map((locationId) => mapSelectionRect(
             displayedScene, { kind: 'hex', locationId }, 140, 220, boardArtwork
@@ -584,24 +584,24 @@
                         <MapScene revenueStageColors={session.mapView.revenueStageColors}
                             scene={displayedScene}
                             artwork={boardArtwork}
-                            tokens={session.displayedMapTokens}
+                            tokens={session.map.displayedTokens}
                             reservations={session.track.displayedPreview?.stationReservations ??
                                 session.stations.displayState.stationReservations}
                             routes={mapRoutes}
                             selection={session.isViewingHistory
                                 ? historyMapSettled ? historicalFocus?.selection : undefined
-                                : session.mapSelection}
+                                : session.map.selection}
                             maskUnavailableLocations={!session.isViewingHistory && maskPlacementLocations}
                             legalLocationIds={placementLocationIds}
                             highlightedLocationIds={highlightedPlacementLocationIds}
                             previewLocationId={session.track.displayedPreview?.locationId ??
                                 session.stations.preview?.position.locationId}
                             translucentLocationId={consentPreview?.details.locationId}
-                            appearance={session.mapStyle === 'muted'
+                            appearance={session.map.style === 'muted'
                                 ? MutedTileAppearance
                                 : ClassicTileAppearance}
                             hexDiameter={140}
-                            onselect={consentPreview ? undefined : (selection) => session.selectMap(selection, false)}
+                            onselect={consentPreview ? undefined : (selection) => session.map.select(selection, false)}
                         />
                         {#snippet overlay(viewport)}
                             {#if active && session.track.canBuild && session.track.selection.locationId}
@@ -653,10 +653,10 @@
                     </div>{:else if id === 'Tiles'}<div class="workspace-view">
                     <TileManifest
                         tiles={session.mapView.tileSet.definitions}
-                        inventory={session.tileCounts}
+                        inventory={session.map.tileCounts}
                         layouts={session.mapView.layouts}
                         orientation={session.mapView.map.definition.orientation}
-                        appearance={session.mapStyle === 'muted'
+                        appearance={session.map.style === 'muted'
                             ? MutedTileAppearance
                             : ClassicTileAppearance}
                     />
@@ -678,7 +678,7 @@
 {#if session.historicalMap}
     <HistoricalMapViewer artwork={boardArtwork} preview={session.historicalMap}
         revenueStageColors={session.mapView.revenueStageColors}
-        appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
+        appearance={session.map.style === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
         onclose={() => session.closeHistoricalMap()} />
 {/if}
     {/if}
