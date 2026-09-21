@@ -20,15 +20,15 @@ import { PlacingStationHandler } from '../stations/placingStationHandler.js'
 import { LayingTrackHandler } from '../construction/layingTrackHandler.js'
 import { StartOperatingTurnHandler } from '../operating/startOperatingTurn.js'
 import { StartOperatingSetHandler } from '../operating/startOperatingSetHandler.js'
-import {
-    TerminalStateHandler,
-    type GameRuntime,
-    type HydratedAction,
-    type MachineStateHandler
-} from '@tabletop/common'
+import { TerminalStateHandler, assert, type GameRuntime } from '@tabletop/common'
 import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
 import { StockRoundHandler } from '../stock/stockRoundHandler.js'
-import { EighteenXXState, HydratedEighteenXXState } from './eighteenXXState.js'
+import {
+    EighteenXXState,
+    FamilyStateDefinition,
+    HydratedEighteenXXState,
+    type EighteenXXMachineState
+} from './eighteenXXState.js'
 import { ActionRegistry } from '../actions/actionDefinition.js'
 import { endingActions } from '../ending/endingActions.js'
 import { auctionActions } from '../auctions/auctionActions.js'
@@ -45,12 +45,15 @@ import { routeActions } from '../routes/routeActions.js'
 import { earningsActions } from '../earnings/earningsActions.js'
 import { companyActions } from '../company/companyActions.js'
 import { EighteenXXInitializer } from './eighteenXXInitializer.js'
-import type { EighteenXXTitleRules } from './eighteenXXTitleRules.js'
-function handledStateValidator(machineStates: readonly string[]): Pick<Validator, 'Check'> {
+import type { EighteenXXStateHandler, EighteenXXTitleRules } from './eighteenXXTitleRules.js'
+function handledStateValidator(
+    schema: Type.TObject,
+    machineStates: readonly string[]
+): Pick<Validator, 'Check'> {
     return Compile(
         Type.Object(
             {
-                ...EighteenXXState.properties,
+                ...schema.properties,
                 machineState: Type.Union(machineStates.map((name) => Type.Literal(name)))
             },
             { additionalProperties: false }
@@ -61,7 +64,10 @@ export function createEighteenXXRuntime(
     options: EighteenXXTitleRules
 ): GameRuntime<EighteenXXState, HydratedEighteenXXState> {
     const { stockRules: rules, companyRules, operatingRules, map, tileSet } = options
-    type Handler = MachineStateHandler<HydratedAction, HydratedEighteenXXState>
+    type Handler = EighteenXXStateHandler
+    const stateDefinition = options.state ?? FamilyStateDefinition
+    const decides = (machineState: EighteenXXMachineState, family: Handler): Handler =>
+        options.decisionHandlers?.[machineState]?.(family) ?? family
     const endsGame = (handler: Handler): Handler =>
         new GameEndingHandler<HydratedEighteenXXState>(handler, options.endingRules)
     const allowsExchange = (handler: Handler): Handler =>
@@ -82,62 +88,106 @@ export function createEighteenXXRuntime(
         )
     const operatingStep = (handler: Handler): Handler =>
         endsGame(allowsCompanyDecisions(allowsExchange(handler)))
-    const stateHandlers: Record<string, Handler> = {
+    const familyStateHandlers: Record<string, Handler> = {
         ...(options.offerAuctionRules
             ? {
-                  OfferingLot: endsGame(new OfferAuctionHandler(options.offerAuctionRules)),
-                  OfferBidding: endsGame(new OfferAuctionHandler(options.offerAuctionRules))
+                  OfferingLot: endsGame(
+                      decides('OfferingLot', new OfferAuctionHandler(options.offerAuctionRules))
+                  ),
+                  OfferBidding: endsGame(
+                      decides('OfferBidding', new OfferAuctionHandler(options.offerAuctionRules))
+                  )
               }
             : {}),
         ...(options.auctionRules
             ? {
-                  WaterfallAuction: endsGame(new WaterfallAuctionHandler(options.auctionRules)),
-                  AuctionBidding: endsGame(new WaterfallAuctionHandler(options.auctionRules))
+                  WaterfallAuction: endsGame(
+                      decides('WaterfallAuction', new WaterfallAuctionHandler(options.auctionRules))
+                  ),
+                  AuctionBidding: endsGame(
+                      decides('AuctionBidding', new WaterfallAuctionHandler(options.auctionRules))
+                  )
               }
             : {}),
         FundingTrain: endsGame(
-            new FundingTrainHandler(options.trainFundingRules, rules, options.trainRules)
+            decides(
+                'FundingTrain',
+                new FundingTrainHandler(options.trainFundingRules, rules, options.trainRules)
+            )
         ),
         GameOver: new TerminalStateHandler(),
-        Bankrupt: endsGame(new BankruptHandler()),
-        AdvancingPhase: endsGame(new AdvancingPhaseHandler()),
-        DiscardingTrains: endsGame(new DiscardingTrainsHandler(options.trainRules)),
-        RustingTrains: endsGame(new RustingTrainsHandler('DistributingEarnings')),
+        Bankrupt: endsGame(decides('Bankrupt', new BankruptHandler())),
+        AdvancingPhase: endsGame(decides('AdvancingPhase', new AdvancingPhaseHandler())),
+        DiscardingTrains: endsGame(
+            decides('DiscardingTrains', new DiscardingTrainsHandler(options.trainRules))
+        ),
+        RustingTrains: endsGame(
+            decides('RustingTrains', new RustingTrainsHandler('DistributingEarnings'))
+        ),
         StockRound: endsGame(
             allowsCompanyDecisions(
                 new AutomaticStockTurnHandler(
                     allowsExchange(
-                        options.stockRoundHandler ??
+                        decides(
+                            'StockRound',
                             new StockRoundHandler(rules, 'StartingOperatingSet', companyRules)
+                        )
                     )
                 )
             )
         ),
-        StartingOperatingSet: endsGame(new StartOperatingSetHandler('OperatingSet')),
+        StartingOperatingSet: endsGame(
+            decides('StartingOperatingSet', new StartOperatingSetHandler('OperatingSet'))
+        ),
         OperatingSet: endsGame(
             new BetweenCompaniesHandler(
-                new StartOperatingTurnHandler(options.stationRules),
+                decides('OperatingSet', new StartOperatingTurnHandler(options.stationRules)),
                 options.privatePowerRules,
                 options.trackRules,
                 options.stationRules
             )
         ),
         LayingTrack: new AutomaticTrackCompletionHandler(
-            operatingStep(new LayingTrackHandler(options.trackRules, 'PlacingStation'))
+            operatingStep(
+                decides('LayingTrack', new LayingTrackHandler(options.trackRules, 'PlacingStation'))
+            )
         ),
         PlacingStation: operatingStep(
-            new PlacingStationHandler(options.stationRules, 'RunningTrains')
+            decides(
+                'PlacingStation',
+                new PlacingStationHandler(options.stationRules, 'RunningTrains')
+            )
         ),
         StationsComplete: endsGame(new TerminalStateHandler()),
         RunningTrains: operatingStep(
-            new RunningTrainsHandler(options.routeRules, 'DistributingEarnings')
+            decides(
+                'RunningTrains',
+                new RunningTrainsHandler(options.routeRules, 'DistributingEarnings')
+            )
         ),
-        DistributingEarnings: operatingStep(new DistributingEarningsHandler(options.earningsRules)),
+        DistributingEarnings: operatingStep(
+            decides(
+                'DistributingEarnings',
+                new DistributingEarningsHandler(options.earningsRules)
+            )
+        ),
         BuyingTrains: new AutomaticTrainCompletionHandler(
             operatingStep(
-                new BuyingTrainsHandler(options.trainRules, options.trainFundingRules, rules)
+                decides(
+                    'BuyingTrains',
+                    new BuyingTrainsHandler(options.trainRules, options.trainFundingRules, rules)
+                )
             )
         )
+    }
+    for (const machineState of Object.keys(options.titleStateHandlers ?? {}))
+        assert(
+            !(machineState in familyStateHandlers),
+            `${machineState} already has a family handler; wrap its decisions instead`
+        )
+    const stateHandlers: Record<string, Handler> = {
+        ...familyStateHandlers,
+        ...options.titleStateHandlers
     }
     const actions = new ActionRegistry([
         ...endingActions(options.endingRules),
@@ -160,14 +210,17 @@ export function createEighteenXXRuntime(
         initializer: new EighteenXXInitializer(options),
         hydrator: {
             hydrateState: (state) =>
-                new HydratedEighteenXXState(state, map, tileSet, options.trainRules.depot),
+                stateDefinition.hydrate(state, map, tileSet, options.trainRules.depot),
             hydrateAction: (action) => {
                 const hydrated = actions.hydrate(action)
                 if (!hydrated) throw new Error(`Unknown 18xx action: ${action.type}`)
                 return hydrated
             }
         },
-        canonicalStateValidator: handledStateValidator(Object.keys(stateHandlers)),
+        canonicalStateValidator: handledStateValidator(
+            stateDefinition.schema,
+            Object.keys(stateHandlers)
+        ),
         playerColors: EighteenXXInitializer.playerColors,
         apiActions: actions.schemas,
         stateHandlers

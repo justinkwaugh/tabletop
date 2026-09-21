@@ -1,20 +1,10 @@
-import type { HydratedAction, MachineContext, MachineStateHandler } from '@tabletop/common'
-import { StockRoundHandler, type HydratedEighteenXXState } from '@tabletop/18xx'
-import { TheOldPrinceCompanyRules } from './companyRules.js'
-import { TheOldPrinceStockRules } from './stockRules.js'
+import type { HydratedAction, MachineContext } from '@tabletop/common'
+import type { EighteenXXStateHandler, HydratedEighteenXXState } from '@tabletop/18xx'
 import { TheOldPrinceBranchSplit } from './branchSplit.js'
 import { HydratedSplitCompany } from './splitCompany.js'
 
-export class TheOldPrinceStockRoundHandler implements MachineStateHandler<
-    HydratedAction,
-    HydratedEighteenXXState
-> {
-    private readonly handler: MachineStateHandler<HydratedAction, HydratedEighteenXXState> =
-        new StockRoundHandler(
-            TheOldPrinceStockRules,
-            'StartingOperatingSet',
-            TheOldPrinceCompanyRules
-        )
+export class TheOldPrinceStockRoundHandler implements EighteenXXStateHandler {
+    constructor(private readonly handler: EighteenXXStateHandler) {}
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedEighteenXXState>

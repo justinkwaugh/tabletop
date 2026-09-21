@@ -48,30 +48,31 @@ import { validatePhaseChange } from '../phases/phaseChange.js'
 import { validateEarningsDistribution } from '../earnings/earningsDistribution.js'
 import { validateTrainPurchaseStep } from '../trains/train.js'
 
-const ExampleFields = Type.Object({
+const FamilyMachineState = Type.Union([
+    Type.Literal('StockRound'),
+    Type.Literal('OfferingLot'),
+    Type.Literal('OfferBidding'),
+    Type.Literal('WaterfallAuction'),
+    Type.Literal('AuctionBidding'),
+    Type.Literal('StartingOperatingSet'),
+    Type.Literal('OperatingSet'),
+    Type.Literal('LayingTrack'),
+    Type.Literal('PlacingStation'),
+    Type.Literal('StationsComplete'),
+    Type.Literal('BuyingTrains'),
+    Type.Literal('FundingTrain'),
+    Type.Literal('Bankrupt'),
+    Type.Literal('GameOver'),
+    Type.Literal('AdvancingPhase'),
+    Type.Literal('DiscardingTrains'),
+    Type.Literal('RustingTrains'),
+    Type.Literal('RunningTrains'),
+    Type.Literal('DistributingEarnings')
+])
+const FamilyFields = Type.Object({
     // Serialized marker retained so games created before the runtime left the examples folder keep loading.
     example: Type.Literal('finances'),
-    machineState: Type.Union([
-        Type.Literal('StockRound'),
-        Type.Literal('OfferingLot'),
-        Type.Literal('OfferBidding'),
-        Type.Literal('WaterfallAuction'),
-        Type.Literal('AuctionBidding'),
-        Type.Literal('StartingOperatingSet'),
-        Type.Literal('OperatingSet'),
-        Type.Literal('LayingTrack'),
-        Type.Literal('PlacingStation'),
-        Type.Literal('StationsComplete'),
-        Type.Literal('BuyingTrains'),
-        Type.Literal('FundingTrain'),
-        Type.Literal('Bankrupt'),
-        Type.Literal('GameOver'),
-        Type.Literal('AdvancingPhase'),
-        Type.Literal('DiscardingTrains'),
-        Type.Literal('RustingTrains'),
-        Type.Literal('RunningTrains'),
-        Type.Literal('DistributingEarnings')
-    ]),
+    machineState: FamilyMachineState,
     stockRound: StockRound,
     operatingSet: Type.Optional(OperatingSet),
     trackStep: Type.Optional(TrackStep),
@@ -92,19 +93,51 @@ const ExampleFields = Type.Object({
     ...RouteFields
 })
 export const EighteenXXState: Type.TObject<
-    Omit<typeof GameState.properties, 'machineState'> & typeof ExampleFields.properties
+    Omit<typeof GameState.properties, 'machineState'> & typeof FamilyFields.properties
 > = Type.Object(
     {
         ...GameState.properties,
-        ...ExampleFields.properties
+        ...FamilyFields.properties
     },
     { additionalProperties: false }
 )
-export type EighteenXXState = Type.Static<typeof EighteenXXState>
-export const EighteenXXStateValidator: Validator<{}, typeof EighteenXXState> =
-    Compile(EighteenXXState)
+export type EighteenXXMachineState = Type.Static<typeof FamilyMachineState>
+type TitleMachineState = { machineState: Type.TUnsafe<string> }
+type TitleStateSchema<Fields extends Type.TProperties = {}> = Type.TObject<
+    Omit<typeof EighteenXXState.properties, 'machineState'> & Fields & TitleMachineState
+>
+export type EighteenXXState = Type.Static<TitleStateSchema>
+export type EighteenXXStateValidator = Validator<{}, TitleStateSchema>
+
+export function extendEighteenXXState<Fields extends Type.TProperties>(
+    fields: Fields,
+    machineStates: readonly string[] = []
+): TitleStateSchema<Fields> {
+    for (const name of [...Object.keys(fields), ...machineStates])
+        assert(
+            !(name in EighteenXXState.properties) &&
+                !FamilyMachineState.anyOf.some((literal) => literal.const === name),
+            `${name} already belongs to the 18xx family state`
+        )
+    return Type.Object(
+        {
+            ...EighteenXXState.properties,
+            ...fields,
+            machineState: Type.Unsafe<string>(
+                Type.Union([
+                    ...FamilyMachineState.anyOf,
+                    ...machineStates.map((name) => Type.Literal(name))
+                ])
+            )
+        },
+        { additionalProperties: false }
+    )
+}
+export const EighteenXXStateValidator: EighteenXXStateValidator = Compile(
+    extendEighteenXXState({})
+)
 export class HydratedEighteenXXState
-    extends HydratableGameState<typeof EighteenXXState, PlayerState>
+    extends HydratableGameState<TitleStateSchema, PlayerState>
     implements EighteenXXState
 {
     declare offerAuction?: OfferPileAuction
@@ -131,7 +164,7 @@ export class HydratedEighteenXXState
     declare stations: CompanyState['stations']
     declare stationReservations: CompanyState['stationReservations']
     declare example: 'finances'
-    declare machineState: EighteenXXState['machineState']
+    declare machineState: string
     declare operatingSet?: OperatingSet
     declare stationStep?: StationStep
     declare trackStep?: TrackStep
@@ -142,11 +175,14 @@ export class HydratedEighteenXXState
     declare certificatePools: FinancialState['certificatePools']
     declare cash: FinancialState['cash']
     declare certificates: FinancialState['certificates']
-    constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
-        super(
-            data instanceof HydratedEighteenXXState ? data.dehydrate() : data,
-            EighteenXXStateValidator
-        )
+    constructor(
+        data: EighteenXXState,
+        map: RailwayMap,
+        tileSet: TileSet,
+        depot: TrainDepot,
+        validator: EighteenXXStateValidator = EighteenXXStateValidator
+    ) {
+        super(data instanceof HydratedEighteenXXState ? data.dehydrate() : data, validator)
         assert(
             new Set(this.players.map((player) => player.playerId)).size === this.players.length,
             'Duplicate player identity'
@@ -182,6 +218,20 @@ export class HydratedEighteenXXState
             this.players.map((player) => player.playerId)
         )
     }
+}
+
+export type EighteenXXStateDefinition = {
+    schema: Type.TObject
+    hydrate(
+        data: EighteenXXState,
+        map: RailwayMap,
+        tileSet: TileSet,
+        depot: TrainDepot
+    ): HydratedEighteenXXState
+}
+export const FamilyStateDefinition: EighteenXXStateDefinition = {
+    schema: EighteenXXState,
+    hydrate: (data, map, tileSet, depot) => new HydratedEighteenXXState(data, map, tileSet, depot)
 }
 
 export function requireEighteenXXState(state: HydratedGameState): HydratedEighteenXXState {

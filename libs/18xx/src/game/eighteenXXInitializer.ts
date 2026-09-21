@@ -11,7 +11,7 @@ import {
 } from '@tabletop/common'
 import { StockMarket } from '../stock/stockMarket.js'
 import { createStockRound } from '../stock/stockRound.js'
-import { EighteenXXState, HydratedEighteenXXState } from './eighteenXXState.js'
+import { EighteenXXState, FamilyStateDefinition, HydratedEighteenXXState } from './eighteenXXState.js'
 import type { EighteenXXTitleRules, InitialFinances } from './eighteenXXTitleRules.js'
 export type InitialStateParts = {
     stockRoundNumber: number
@@ -20,6 +20,7 @@ export type InitialStateParts = {
 }
 export type EighteenXXInitializerRules = Pick<
     EighteenXXTitleRules,
+    | 'state'
     | 'createFinances'
     | 'offerAuctionRules'
     | 'auctionRules'
@@ -89,7 +90,7 @@ export class EighteenXXInitializer extends BaseGameInitializer<
         parts: InitialStateParts
     ): HydratedEighteenXXState {
         const players = this.playerStates(game)
-        return new HydratedEighteenXXState(
+        return (this.rules.state ?? FamilyStateDefinition).hydrate(
             {
                 ...state,
                 players,

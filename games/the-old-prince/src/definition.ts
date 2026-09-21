@@ -30,7 +30,7 @@ import {
 
 export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
     endingRules: TheOldPrinceEndingRules,
-    stockRoundHandler: new TheOldPrinceStockRoundHandler(),
+    decisionHandlers: { StockRound: (family) => new TheOldPrinceStockRoundHandler(family) },
     titleActions: [
         defineAction(SplitCompany, isSplitCompany, (action) => new HydratedSplitCompany(action))
     ],

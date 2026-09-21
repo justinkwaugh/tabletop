@@ -24,11 +24,20 @@ import { type PlayerState } from '@tabletop/common'
 import { StockMarket } from '../stock/stockMarket.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { ActionDefinition } from '../actions/actionDefinition.js'
-import { HydratedEighteenXXState } from './eighteenXXState.js'
+import type {
+    EighteenXXMachineState,
+    EighteenXXStateDefinition,
+    HydratedEighteenXXState
+} from './eighteenXXState.js'
 export type InitialFinances = CompanyState & MapStateData & TrainState
+export type EighteenXXStateHandler = MachineStateHandler<HydratedAction, HydratedEighteenXXState>
 export interface EighteenXXTitleRules {
     endingRules: EndingRules
-    stockRoundHandler?: MachineStateHandler<HydratedAction, HydratedEighteenXXState>
+    state?: EighteenXXStateDefinition
+    decisionHandlers?: Partial<
+        Record<EighteenXXMachineState, (family: EighteenXXStateHandler) => EighteenXXStateHandler>
+    >
+    titleStateHandlers?: Readonly<Record<string, EighteenXXStateHandler>>
     titleActions?: readonly ActionDefinition[]
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules
