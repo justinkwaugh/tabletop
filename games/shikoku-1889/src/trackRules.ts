@@ -2,6 +2,7 @@ import { sameStopCounts, privateOwner, type TrackRules } from '@tabletop/18xx'
 import { Shikoku1889Map } from './map.js'
 import { Shikoku1889TileSet } from './tiles.js'
 import { Shikoku1889Phases } from './trains.js'
+import { Shikoku1889PrivateCatalog } from './privates.js'
 export const Shikoku1889TrackRules: TrackRules = {
     map: Shikoku1889Map,
     tileSet: Shikoku1889TileSet,
@@ -35,13 +36,8 @@ export const Shikoku1889TrackRules: TrackRules = {
     restriction(state, request) {
         if (request.definitionId === '18xx:437')
             return 'The port tile requires Mitsubishi Ferry’s special lay'
-        const privateId =
-            request.locationId === 'K4' ? 'TE' : request.locationId === 'C4' ? 'ER' : undefined
-        if (privateId) {
-            const company = state.companies.find((company) => company.id === privateId)
-            if (!company || (!company.closed && privateOwner(state, privateId)?.kind !== 'company'))
-                return 'The private company blocks this upgrade until corporate ownership or closure'
-        }
+        if (Shikoku1889PrivateCatalog.blockedBy(state, request.locationId))
+            return 'The private company blocks this upgrade until corporate ownership or closure'
         return undefined
     }
 }

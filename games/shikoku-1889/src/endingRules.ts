@@ -1,6 +1,5 @@
-import { assert } from '@tabletop/common'
 import { getCompany, marketShareValue, type EndingRules } from '@tabletop/18xx'
-import { Shikoku1889Privates } from './privates.js'
+import { Shikoku1889PrivateCatalog } from './privates.js'
 export const Shikoku1889EndingRules: EndingRules = {
     trigger(state) {
         if (state.bankruptcy) return { reason: 'Bankruptcy' }
@@ -17,14 +16,10 @@ export const Shikoku1889EndingRules: EndingRules = {
         const company = getCompany(state, certificate.companyId)
         let value = 0
         if (!company.closed) {
-            if (certificate.kind === 'share') value = marketShareValue(state, certificate)
-            else {
-                const privateCompany = Shikoku1889Privates.find(
-                    (privateCompany) => privateCompany.id === company.id
-                )
-                assert(privateCompany, 'Unknown private face value')
-                value = privateCompany.price
-            }
+            value =
+                certificate.kind === 'share'
+                    ? marketShareValue(state, certificate)
+                    : Shikoku1889PrivateCatalog.faceValue(company.id)
         }
         return [
             {

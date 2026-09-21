@@ -1,6 +1,5 @@
-import { assert } from '@tabletop/common'
 import { getCompany, marketShareValue, portfolioWealth, type EndingRules } from '@tabletop/18xx'
-import { TheOldPrincePrivates } from './privates.js'
+import { TheOldPrincePrivateCatalog } from './privates.js'
 export const TheOldPrinceEndingRules: EndingRules = {
     trigger(state) {
         if (state.bankruptcy) return { reason: 'Bankruptcy' }
@@ -22,14 +21,10 @@ export const TheOldPrinceEndingRules: EndingRules = {
         let value = 0
         if (certificate.kind === 'share' && company.id === 'PEIR') value = 80 * certificate.shares
         else if (!company.closed) {
-            if (certificate.kind === 'share') value = marketShareValue(state, certificate)
-            else {
-                const privateCompany = TheOldPrincePrivates.find(
-                    (privateCompany) => privateCompany.id === company.id
-                )
-                assert(privateCompany, 'Unknown private face value')
-                value = privateCompany.price
-            }
+            value =
+                certificate.kind === 'share'
+                    ? marketShareValue(state, certificate)
+                    : TheOldPrincePrivateCatalog.faceValue(company.id)
         }
         return [
             {

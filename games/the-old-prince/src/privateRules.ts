@@ -3,6 +3,7 @@ import { TheOldPrinceTileSet } from './tiles.js'
 import { assertExists } from '@tabletop/common'
 import { getCompany, type PrivateRules, type PrivateEffect, type FinancialState } from '@tabletop/18xx'
 import { TheOldPrincePhases } from './trains.js'
+import { TheOldPrincePrivateCatalog } from './privates.js'
 const ShortlineExchanges: Record<string, number> = { MC: 6, SB: 7, VR: 8 }
 function shortlineExchange(state: FinancialState, id: string) {
     return ShortlineExchanges[id]
@@ -57,15 +58,14 @@ export const TheOldPrincePrivateRules: PrivateRules = {
         }
     },
     phaseEffects(state) {
-        if (!TheOldPrincePhases.isAtLeast(state.phaseId, '4+')) return []
-        const open = state.companies.filter(
-            (company) =>
-                company.kind === 'private' && !company.closed && company.id !== 'UB'
-        )
+        const due = TheOldPrincePrivateCatalog.closureEffects(state)
         return [
-            ...['MC', 'VR', 'SB'].flatMap((id) => open.filter((company) => company.id === id)),
-            ...open.filter((company) => !ShortlineExchanges[company.id])
-        ].map((company): PrivateEffect => {
+            ...['MC', 'VR', 'SB'].flatMap((id) =>
+                due.filter((effect) => effect.privateCompanyId === id)
+            ),
+            ...due.filter((effect) => !ShortlineExchanges[effect.privateCompanyId])
+        ].map((effect): PrivateEffect => {
+            const company = { id: effect.privateCompanyId }
             const certificateId = shortlineExchange(state, company.id)
             if (!certificateId)
                 return {
@@ -108,10 +108,6 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             .map((company) => ({ kind: 'close', privateCompanyId: company.id }))
     },
     description(state, id) {
-        if (id === 'HS')
-            return 'From 4H, may be sold to a railway other than PEIR for $1–200. Its railway may close it to buy one depot train during its turn, paying the normal price.\n\nCloses unused at 4+.'
-        if (id === 'SBC')
-            return 'The owning player’s railways may lay the single straight yellow tile using ordinary track rules and costs.\n\nCloses at 4+; the unused tile is removed.'
         if (ShortlineExchanges[id]) {
             const company = getCompany(state, theOldPrinceRole(state, 'shortline'))
             return (
@@ -122,11 +118,6 @@ export const TheOldPrincePrivateRules: PrivateRules = {
                 'Exchange for a reserved Shortline share during your stock turn, in addition to selling and buying. Cancels your pass. Ownership limit exemption applies.\n\nForced exchange at 4+.'
             )
         }
-        if (id === 'IB')
-            return 'Exchange during your stock turn for a Bank share in another started railway.\n\nCloses unused at 4+.'
-        if (id === 'UB')
-            return 'Union Bank holds its own cash and shares, controlled by the player who owns it. Once per stock round, that player may use a buying or company-starting action for Union Bank instead of themselves. Spend Union Bank’s cash first; its owner may contribute any shortfall. Dividends on its shares go to Union Bank. It may hold presidencies, with its owner making the company’s decisions. It cannot voluntarily sell shares. If one of its companies must buy a train, Union Bank contributes before its owner, with emergency share sales as required. It remains open throughout the game, and its cash and share value count toward its owner’s final wealth.'
-        if (id === 'KM') return 'Pays PEIR each operating round.\n\nCloses at 4+ or when PEIR closes.'
         if (id === 'RA' || id === 'RF') {
             const company = getCompany(state, theOldPrinceRole(state, 'mainline'))
             return `**Includes one share of ${company.name}.**\n\nCloses at 4+.`
@@ -135,6 +126,6 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             const company = getCompany(state, theOldPrinceRole(state, id === 'MLC' ? 'mainline' : 'shortline'))
             return `**Includes the president's cert for ${company.name}.**\n\nCloses when its railway first operates, or at 4+.`
         }
-        return 'Closes at 4+.'
+        return TheOldPrincePrivateCatalog.definition(id).description ?? 'Closes at 4+.'
     }
 }

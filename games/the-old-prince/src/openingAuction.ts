@@ -16,7 +16,7 @@ import {
     type MapStateData
 } from '@tabletop/18xx'
 import { TheOldPrinceCompanies, theOldPrinceRole } from './companies.js'
-import { TheOldPrincePrivates } from './privates.js'
+import { TheOldPrincePrivateCatalog, TheOldPrincePrivates } from './privates.js'
 import { peirPresident } from './peir.js'
 import { TheOldPrinceMap } from './map.js'
 import { TheOldPrinceTileSet } from './tiles.js'
@@ -27,9 +27,7 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
     autoOfferSingleLot: true,
     lots(state) {
         return [
-            ...TheOldPrincePrivates.filter(
-                (lot) => lot.id !== 'KM' && state.companies.some((c) => c.id === lot.id)
-            ),
+            ...TheOldPrincePrivateCatalog.lots(state).filter((lot) => lot.id !== 'KM'),
             ...state.certificates
                 .filter((c) => c.kind === 'share')
                 .filter((c) => c.companyId === 'PEIR')

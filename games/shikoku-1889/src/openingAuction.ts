@@ -11,17 +11,14 @@ import {
     type Opening,
     type OpeningSetup
 } from '@tabletop/18xx'
-import { Shikoku1889Privates } from './privates.js'
+import { Shikoku1889PrivateCatalog, Shikoku1889Privates } from './privates.js'
 import { Shikoku1889Map } from './map.js'
 import { Shikoku1889TileSet } from './tiles.js'
 import { Shikoku1889TrainDepot } from './trains.js'
 import { Shikoku1889StationCounts } from './stationRules.js'
 import { createShikoku1889StockMarket } from './stockMarket.js'
 export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
-    lots: (state) =>
-        Shikoku1889Privates.filter((lot) =>
-            state.companies.some((company) => company.id === lot.id)
-        ),
+    lots: (state) => Shikoku1889PrivateCatalog.lots(state),
     increment: 5,
     bidOrder: 'clockwise-from-highest',
     award: awardPrivate,

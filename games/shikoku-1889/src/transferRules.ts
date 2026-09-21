@@ -1,16 +1,14 @@
-import { Shikoku1889Privates } from './privates.js'
+import { Shikoku1889PrivateCatalog } from './privates.js'
 import { Shikoku1889Phases } from './trains.js'
 import { EighteenXXTransferTiming, privateOwner, type TransferRules } from '@tabletop/18xx'
 export const Shikoku1889TransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
     priceRange(state, _companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
-        const value = Shikoku1889Privates.find((item) => item.id === asset.privateCompanyId)?.price
         return Shikoku1889Phases.isAtLeast(state.phaseId, '3') &&
             !Shikoku1889Phases.isAtLeast(state.phaseId, '5') &&
-            value &&
             privateOwner(state, asset.privateCompanyId)?.kind === 'player'
-            ? { minimum: value / 2, maximum: value * 2 }
+            ? Shikoku1889PrivateCatalog.priceRange(asset.privateCompanyId)
             : undefined
     },
     afterPurchase(state, offer) {

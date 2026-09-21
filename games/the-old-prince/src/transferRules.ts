@@ -1,5 +1,6 @@
 import { EighteenXXTransferTiming, privateOwner, type TransferRules } from '@tabletop/18xx'
 import { TheOldPrincePhases } from './trains.js'
+import { TheOldPrincePrivateCatalog } from './privates.js'
 export const TheOldPrinceTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
     priceRange(state, companyId, asset) {
@@ -9,7 +10,7 @@ export const TheOldPrinceTransferRules: TransferRules = {
             TheOldPrincePhases.isAtLeast(state.phaseId, '4H') &&
             !TheOldPrincePhases.isAtLeast(state.phaseId, '4+') &&
             privateOwner(state, 'HS')?.kind === 'player'
-            ? { minimum: 1, maximum: 200 }
+            ? TheOldPrincePrivateCatalog.priceRange('HS')
             : undefined
     },
     afterPurchase: () => {}

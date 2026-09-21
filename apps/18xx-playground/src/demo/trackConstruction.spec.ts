@@ -251,6 +251,15 @@ it('respects private rights independently of ordinary topology checks', () => {
     state.companies.find((company) => company.id === 'VR')!.closed = true
     expect(TheOldPrinceTrackRules.consentPlayerId!(state, request)).toBeUndefined()
     const { state: s } = example(Shikoku, 'construction')
+    s.companies.push({ id: 'TE', name: 'Takamatsu Electric Track', kind: 'private' })
+    s.certificates.push({
+        id: 'TE:charter',
+        companyId: 'TE',
+        kind: 'private',
+        certificateLimitCount: 1,
+        retired: false,
+        owner: { kind: 'player', playerId: 'blair' }
+    })
     expect(
         Shikoku1889TrackRules.restriction(s, { ...request, companyId: 'IR', locationId: 'K4' })
     ).toContain('blocks')
