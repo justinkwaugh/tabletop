@@ -32,7 +32,9 @@ claim that they have been published or accepted for production.
   It records rulebook/source differences and internal rulebook contradictions.
 
 The implementation follows the recorded slice decisions and user-confirmed
-corrections, including Union Bank at $120 and King’s Mail at $80. Remaining opening
+corrections, including Union Bank at $120 and King’s Mail at $80. The supplied
+rulebook is out of date on these values; where it disagrees with them, the
+implementation is right. Remaining opening
 auction interpretation limits are documented in the
 [TOP opening design](../../research/18xx/top-opening-auction-slice-design.md).
 Physical-board artwork and mobile presentation remain deferred.
