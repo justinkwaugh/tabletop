@@ -20,7 +20,12 @@ import { PlacingStationHandler } from '../stations/placingStationHandler.js'
 import { LayingTrackHandler } from '../construction/layingTrackHandler.js'
 import { StartOperatingTurnHandler } from '../operating/startOperatingTurn.js'
 import { StartOperatingSetHandler } from '../operating/startOperatingSetHandler.js'
-import { TerminalStateHandler, type GameRuntime } from '@tabletop/common'
+import {
+    TerminalStateHandler,
+    type GameRuntime,
+    type HydratedAction,
+    type MachineStateHandler
+} from '@tabletop/common'
 import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
 import { StockRoundHandler } from '../stock/stockRoundHandler.js'
 import { EighteenXXState, HydratedEighteenXXState } from './eighteenXXState.js'
@@ -56,126 +61,84 @@ export function createEighteenXXRuntime(
     options: EighteenXXTitleRules
 ): GameRuntime<EighteenXXState, HydratedEighteenXXState> {
     const { stockRules: rules, companyRules, operatingRules, map, tileSet } = options
-    const stateHandlers = Object.fromEntries(
-        Object.entries({
-            ...(options.offerAuctionRules
-                ? {
-                      OfferingLot: new OfferAuctionHandler<HydratedEighteenXXState>(
-                          options.offerAuctionRules
-                      ),
-                      OfferBidding: new OfferAuctionHandler<HydratedEighteenXXState>(
-                          options.offerAuctionRules
-                      )
-                  }
-                : {}),
-            ...(options.auctionRules
-                ? {
-                      WaterfallAuction:
-                          new WaterfallAuctionHandler<HydratedEighteenXXState>(
-                              options.auctionRules
-                          ),
-                      AuctionBidding: new WaterfallAuctionHandler<HydratedEighteenXXState>(
-                          options.auctionRules
-                      )
-                  }
-                : {}),
-            FundingTrain: new FundingTrainHandler<HydratedEighteenXXState>(
-                options.trainFundingRules,
-                rules,
-                options.trainRules
-            ),
-            GameOver: new TerminalStateHandler(),
-            Bankrupt: new BankruptHandler<HydratedEighteenXXState>(),
-            AdvancingPhase: new AdvancingPhaseHandler(),
-            DiscardingTrains: new DiscardingTrainsHandler(options.trainRules),
-            RustingTrains: new RustingTrainsHandler('DistributingEarnings'),
-            StockRound: new AutomaticStockTurnHandler(
-                new PrivateExchangeHandler<HydratedEighteenXXState>(
-                    options.stockRoundHandler ??
-                        new StockRoundHandler(rules, 'StartingOperatingSet', companyRules),
-                    options.privateRules,
-                    rules,
-                    companyRules
+    type Handler = MachineStateHandler<HydratedAction, HydratedEighteenXXState>
+    const endsGame = (handler: Handler): Handler =>
+        new GameEndingHandler<HydratedEighteenXXState>(handler, options.endingRules)
+    const allowsExchange = (handler: Handler): Handler =>
+        new PrivateExchangeHandler<HydratedEighteenXXState>(
+            handler,
+            options.privateRules,
+            rules,
+            companyRules
+        )
+    const allowsCompanyDecisions = (handler: Handler): Handler =>
+        new CompanyDecisionsHandler<HydratedEighteenXXState>(
+            handler,
+            options.transferRules,
+            options.privatePowerRules,
+            options.trainRules,
+            companyRules,
+            options.trackRules
+        )
+    const operatingStep = (handler: Handler): Handler =>
+        endsGame(allowsCompanyDecisions(allowsExchange(handler)))
+    const stateHandlers: Record<string, Handler> = {
+        ...(options.offerAuctionRules
+            ? {
+                  OfferingLot: endsGame(new OfferAuctionHandler(options.offerAuctionRules)),
+                  OfferBidding: endsGame(new OfferAuctionHandler(options.offerAuctionRules))
+              }
+            : {}),
+        ...(options.auctionRules
+            ? {
+                  WaterfallAuction: endsGame(new WaterfallAuctionHandler(options.auctionRules)),
+                  AuctionBidding: endsGame(new WaterfallAuctionHandler(options.auctionRules))
+              }
+            : {}),
+        FundingTrain: endsGame(
+            new FundingTrainHandler(options.trainFundingRules, rules, options.trainRules)
+        ),
+        GameOver: new TerminalStateHandler(),
+        Bankrupt: endsGame(new BankruptHandler()),
+        AdvancingPhase: endsGame(new AdvancingPhaseHandler()),
+        DiscardingTrains: endsGame(new DiscardingTrainsHandler(options.trainRules)),
+        RustingTrains: endsGame(new RustingTrainsHandler('DistributingEarnings')),
+        StockRound: endsGame(
+            allowsCompanyDecisions(
+                new AutomaticStockTurnHandler(
+                    allowsExchange(
+                        options.stockRoundHandler ??
+                            new StockRoundHandler(rules, 'StartingOperatingSet', companyRules)
+                    )
                 )
-            ),
-            StartingOperatingSet: new StartOperatingSetHandler('OperatingSet'),
-            OperatingSet: new BetweenCompaniesHandler<HydratedEighteenXXState>(
+            )
+        ),
+        StartingOperatingSet: endsGame(new StartOperatingSetHandler('OperatingSet')),
+        OperatingSet: endsGame(
+            new BetweenCompaniesHandler(
                 new StartOperatingTurnHandler(options.stationRules),
                 options.privatePowerRules,
                 options.trackRules,
                 options.stationRules
-            ),
-            LayingTrack: new PrivateExchangeHandler<HydratedEighteenXXState>(
-                new LayingTrackHandler(options.trackRules, 'PlacingStation'),
-                options.privateRules,
-                rules,
-                companyRules
-            ),
-            PlacingStation: new PrivateExchangeHandler<HydratedEighteenXXState>(
-                new PlacingStationHandler(options.stationRules, 'RunningTrains'),
-                options.privateRules,
-                rules,
-                companyRules
-            ),
-            StationsComplete: new TerminalStateHandler(),
-            RunningTrains: new PrivateExchangeHandler<HydratedEighteenXXState>(
-                new RunningTrainsHandler(options.routeRules, 'DistributingEarnings'),
-                options.privateRules,
-                rules,
-                companyRules
-            ),
-            DistributingEarnings: new PrivateExchangeHandler<HydratedEighteenXXState>(
-                new DistributingEarningsHandler(options.earningsRules),
-                options.privateRules,
-                rules,
-                companyRules
-            ),
-            BuyingTrains: new PrivateExchangeHandler<HydratedEighteenXXState>(
-                new BuyingTrainsHandler(options.trainRules, options.trainFundingRules, rules),
-                options.privateRules,
-                rules,
-                companyRules
             )
-        })
-            .map(
-                ([name, handler]) =>
-                    [
-                        name,
-                        name === 'GameOver'
-                            ? handler
-                            : new GameEndingHandler<HydratedEighteenXXState>(
-                                  [
-                                      'StockRound',
-                                      'LayingTrack',
-                                      'PlacingStation',
-                                      'RunningTrains',
-                                      'DistributingEarnings',
-                                      'BuyingTrains'
-                                  ].includes(name)
-                                      ? new CompanyDecisionsHandler<HydratedEighteenXXState>(
-                                            handler,
-                                            options.transferRules,
-                                            options.privatePowerRules,
-                                            options.trainRules,
-                                            companyRules,
-                                            options.trackRules
-                                        )
-                                      : handler,
-                                  options.endingRules
-                              )
-                    ] as const
+        ),
+        LayingTrack: new AutomaticTrackCompletionHandler(
+            operatingStep(new LayingTrackHandler(options.trackRules, 'PlacingStation'))
+        ),
+        PlacingStation: operatingStep(
+            new PlacingStationHandler(options.stationRules, 'RunningTrains')
+        ),
+        StationsComplete: endsGame(new TerminalStateHandler()),
+        RunningTrains: operatingStep(
+            new RunningTrainsHandler(options.routeRules, 'DistributingEarnings')
+        ),
+        DistributingEarnings: operatingStep(new DistributingEarningsHandler(options.earningsRules)),
+        BuyingTrains: new AutomaticTrainCompletionHandler(
+            operatingStep(
+                new BuyingTrainsHandler(options.trainRules, options.trainFundingRules, rules)
             )
-            .map(([name, handler]) => [
-                name,
-                name === 'LayingTrack'
-                    ? new AutomaticTrackCompletionHandler<HydratedEighteenXXState>(handler)
-                    : name === 'BuyingTrains'
-                      ? new AutomaticTrainCompletionHandler<HydratedEighteenXXState>(
-                            handler
-                        )
-                      : handler
-            ])
-    )
+        )
+    }
     const actions = new ActionRegistry([
         ...endingActions(options.endingRules),
         ...auctionActions(options.offerAuctionRules, options.auctionRules),
