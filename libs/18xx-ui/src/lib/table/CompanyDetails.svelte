@@ -81,7 +81,7 @@
     const tokenGroups = $derived.by(() => {
         const counts = new Map<number, number>()
         for (const station of remainingStations) {
-            const cost = session.stationPlacementCost(station.id)
+            const cost = session.stations.placementCost(station.id)
             counts.set(cost, (counts.get(cost) ?? 0) + 1)
         }
         return [...counts].sort(([a], [b]) => a - b).map(([cost, count]) => ({ cost, count }))
@@ -158,7 +158,7 @@
             <div class="remaining-tokens" role="group" aria-label="Remaining station tokens">
                 {#if !vertical}
                     {#each remainingStations as station (station.id)}
-                        {@const cost = session.stationPlacementCost(station.id)}
+                        {@const cost = session.stations.placementCost(station.id)}
                         <div class="token-cost" aria-label={`Station token, $${cost}`}>
                             <CompanyToken appearance={session.mapView.stations[company.id]} size={20} />
                             <span>{cost}</span>

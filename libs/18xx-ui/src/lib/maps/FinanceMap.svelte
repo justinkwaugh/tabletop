@@ -72,7 +72,7 @@
                 </select></label
             >
             {#if session.showTrackAccess}<span
-                    >Blue: reachable track{session.stationPreview ? ' (preview)' : ''}</span
+                    >Blue: reachable track{session.stations.preview ? ' (preview)' : ''}</span
                 >
                 {#if session.blockedCities.length}<span
                         >Blocked cities: {session.blockedCities
@@ -85,17 +85,17 @@
     <MapViewer revenueStageColors={session.mapView.revenueStageColors}
         scene={session.displayedMapScene}
         maskUnavailableLocations={session.showTrackChoices}
-        highlightedLocationIds={session.canPlaceStation ? session.stationLocationIds : [...new Set([...session.reachableTrackLocationIds, ...session.trackLocationIds])]}
-        legalLocationIds={session.canPlaceStation
-            ? session.stationLocationIds
+        highlightedLocationIds={session.stations.canPlace ? session.stations.locationIds : [...new Set([...session.reachableTrackLocationIds, ...session.trackLocationIds])]}
+        legalLocationIds={session.stations.canPlace
+            ? session.stations.locationIds
             : session.trackLocationIds}
         routes={session.displayedRoutes}
         previewLocationId={session.trackPreview?.locationId ??
-            session.stationPreview?.position.locationId}
+            session.stations.preview?.position.locationId}
         selection={session.mapSelection}
         tokens={session.displayedMapTokens}
         reservations={session.trackPreview?.stationReservations ??
-            session.stationDisplayState.stationReservations}
+            session.stations.displayState.stationReservations}
         appearance={session.mapStyle === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
         onselect={(selection) => session.selectMap(selection)}
     />

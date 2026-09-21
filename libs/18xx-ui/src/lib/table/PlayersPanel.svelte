@@ -84,7 +84,7 @@
             : []
     ))
     const focusableCompanyIds = $derived(new Set(session.financialState.companies
-        .filter((company) => !mapFocusExcludedCompanyIds.includes(company.id) && companyFocusLocations(session.stationDisplayState, company.id).length > 0)
+        .filter((company) => !mapFocusExcludedCompanyIds.includes(company.id) && companyFocusLocations(session.stations.displayState, company.id).length > 0)
         .map((company) => company.id)))
     function numberedShares(owner: Owner, companyId: string) {
         const names = numberedShareNames[companyId]

@@ -177,7 +177,7 @@
         }
         const locations = companyNetworkFocusLocations(
             new RailwayMapState(session.mapView.map, session.mapView.tileSet, session.financialState.tileInventory),
-            session.stationDisplayState,
+            session.stations.displayState,
             companyId
         )
         if (!locations.length) return
@@ -221,8 +221,8 @@
     const consentPreview = $derived(session.financialState.trackConsent)
     const maskPlacementLocations = $derived(!consentPreview &&
         (session.showTrackChoices || session.financialState.machineState === 'PlacingStation'))
-    const placementLocationIds = $derived(!session.privateTrackPowerSelection && session.canPlaceStation
-        ? session.stationLocationIds : session.trackLocationIds)
+    const placementLocationIds = $derived(!session.privateTrackPowerSelection && session.stations.canPlace
+        ? session.stations.locationIds : session.trackLocationIds)
     const highlightedPlacementLocationIds = $derived(session.showTrackChoices
         ? [...new Set([...session.reachableTrackLocationIds, ...placementLocationIds])]
         : placementLocationIds)
@@ -306,7 +306,7 @@
             selectedView = 'Map'
             void tick().then(() => {
                 if (current !== request) return
-                const locations = companyFocusLocations(session.stationDisplayState, selected.companyId)
+                const locations = companyFocusLocations(session.stations.displayState, selected.companyId)
                 if (locations.length) focusLocations(locations)
             })
         }
@@ -586,7 +586,7 @@
                             artwork={boardArtwork}
                             tokens={session.displayedMapTokens}
                             reservations={session.displayedTrackPreview?.stationReservations ??
-                                session.stationDisplayState.stationReservations}
+                                session.stations.displayState.stationReservations}
                             routes={mapRoutes}
                             selection={session.isViewingHistory
                                 ? historyMapSettled ? historicalFocus?.selection : undefined
@@ -595,7 +595,7 @@
                             legalLocationIds={placementLocationIds}
                             highlightedLocationIds={highlightedPlacementLocationIds}
                             previewLocationId={session.displayedTrackPreview?.locationId ??
-                                session.stationPreview?.position.locationId}
+                                session.stations.preview?.position.locationId}
                             translucentLocationId={consentPreview?.details.locationId}
                             appearance={session.mapStyle === 'muted'
                                 ? MutedTileAppearance

@@ -1,3 +1,4 @@
+import { StationsModule } from './stationsModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
 import { PrivatesModule } from './privatesModule.svelte.js'
@@ -200,6 +201,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     readonly privates = new PrivatesModule(this.context)
     readonly trainFunding = new TrainFundingModule(this.context)
     readonly trainBuying = new TrainBuyingModule(this.context, () => this.purchaseOptions)
+    readonly stations = new StationsModule(this.context, () => { this.mapInspection = undefined })
     readonly earnings = new EarningsModule(this.context)
     readonly discard = new DiscardModule(this.context)
     constructor(
@@ -668,71 +670,6 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     get trainDepot() {
         return this.rules.trainRules.depot
     }
-    get requiresStationTokenChoice(): boolean {
-        return false
-    }
-    private stationDraft: StationSelection = $state({})
-    stationSelection = $derived.by(() => {
-        if (this.updatingVisibleState || this.isViewingHistory ||
-            this.financialState.machineState !== 'PlacingStation') return {}
-        if (this.stationDraft.stationId) return this.stationDraft
-        if (this.requiresStationTokenChoice || !this.canPlaceStation || !this.validActionTypes.includes('PlaceStation')) return {}
-        const station = [...this.availableStations]
-            .sort((left, right) => this.stationPlacementCost(left.id) - this.stationPlacementCost(right.id))
-            .find((token) => this.stationPlacement.choices(token.id).length > 0)
-        return station ? chooseStation(station.id, 'auto') : {}
-    })
-    stationPlacement = $derived.by(
-        () => new StationPlacement(this.financialState, this.rules.stationRules)
-    )
-    canPlaceStation = $derived(
-        !this.busy &&
-            !this.updatingVisibleState &&
-            !this.isViewingHistory &&
-            this.validActionTypes.includes('FinishStations')
-    )
-    availableStations = $derived.by(() =>
-        this.financialState.stations.filter(
-            (station) =>
-                station.companyId === this.financialState.stationStep?.companyId &&
-                station.status === 'available'
-        )
-    )
-    stationPlacementCost(stationId: string): number {
-        const station = this.financialState.stations.find((entry) => entry.id === stationId)
-        assert(station?.status === 'available', 'Station cost requires an available token')
-        return this.rules.stationRules
-            .pendingHomes(this.financialState)
-            .some((home) => home.stationId === stationId)
-            ? 0
-            : this.rules.stationRules.placementCost(this.financialState, stationId)
-    }
-    stationChoices = $derived(
-        this.canPlaceStation && this.stationSelection.stationId
-            ? this.stationPlacement.choices(this.stationSelection.stationId.value)
-            : []
-    )
-    stationLocationIds = $derived([
-        ...new Set(this.stationChoices.map((choice) => choice.position.locationId))
-    ])
-    stationPreview = $derived(
-        this.stationSelection.placement
-            ? this.stationPlacement.evaluate(this.stationSelection.placement.value).details
-            : undefined
-    )
-    stationDisplayState = $derived.by(() => {
-        if (!this.stationPreview) return this.financialState
-        const state = {
-            ...this.financialState,
-            stations: [...this.financialState.stations],
-            stationReservations: [...this.financialState.stationReservations]
-        }
-        applyStationPlacement(state, this.stationPreview)
-        return state
-    })
-    stationActions = $derived(
-        this.actions.slice(0, this.gameState.actionCount).filter(isPlaceStation)
-    )
     showTrackAccess = $state(true)
     private inspectedCompanyId: string | undefined = $state()
     networkCompanies = $derived.by(() =>
@@ -757,7 +694,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
                       this.mapView.tileSet,
                       this.financialState.tileInventory
                   ),
-                  this.stationDisplayState,
+                  this.stations.displayState,
                   this.networkCompanyId
               )
             : undefined
@@ -794,47 +731,6 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
             'Choose a company with a station'
         )
         this.inspectedCompanyId = companyId
-    }
-    selectStation(stationId: string) {
-        assert(
-            this.canPlaceStation &&
-                this.availableStations.some((station) => station.id === stationId),
-            'Choose an available station'
-        )
-        this.stationDraft = chooseStation(stationId)
-    }
-    selectStationPosition(request: StationRequest) {
-        assert(
-            this.canPlaceStation &&
-                this.stationSelection.stationId?.value === request.stationId &&
-                this.stationPlacement.evaluate(request).details,
-            'Choose a legal station position'
-        )
-        this.stationDraft = chooseStationPosition(this.stationSelection, request)
-        this.mapInspection = undefined
-    }
-    backStation() {
-        this.stationDraft = backFromStation(this.stationDraft)
-    }
-    async confirmStation() {
-        const preview = this.stationPreview
-        assert(this.canPlaceStation && preview, 'Choose a legal station position')
-        await this.applyAction(
-            this.createPlayerAction(PlaceStation, {
-                companyId: preview.companyId,
-                stationId: preview.stationId,
-                position: preview.position,
-                expectedCost: preview.cost
-            })
-        )
-    }
-    async finishStations() {
-        const companyId = this.financialState.stationStep?.companyId
-        assert(
-            companyId && this.canPlaceStation && !this.stationSelection.placement,
-            'Finish or cancel the station selection'
-        )
-        await this.applyAction(this.createPlayerAction(FinishStations, { companyId }))
     }
     constructionActions = $derived.by(() =>
         this.actions.slice(0, this.gameState.actionCount).flatMap((action) => {
@@ -945,8 +841,8 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
     displayedMapTokens = $derived.by(() =>
         this.displayedTrackPreview && !this.trackTileInFlight
             ? stationMapTokens(this.displayedTrackPreview, this.mapView.stations)
-            : this.stationPreview
-              ? stationMapTokens(this.stationDisplayState, this.mapView.stations)
+            : this.stations.preview
+              ? stationMapTokens(this.stations.displayState, this.mapView.stations)
               : this.mapTokens
     )
     selectTrackLocation(locationId: string) {
@@ -1056,7 +952,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         try {
             while (this.operatingStep !== undefined && this.operatingStep < target) {
                 if (this.operatingStep === 0) await this.finishTrack()
-                else if (this.operatingStep === 1 && this.validActionTypes.includes('FinishStations')) await this.finishStations()
+                else if (this.operatingStep === 1 && this.validActionTypes.includes('FinishStations')) await this.stations.finish()
                 else break
                 await this.waitForVisibleTransitionSettled()
                 const state = this.financialState
@@ -1146,20 +1042,20 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
                 locationId: selection.locationId,
                 nodeId: selection.nodeId
             })
-        else if (this.canPlaceStation && this.stationLocationIds.includes(selection.locationId)) {
+        else if (this.stations.canPlace && this.stations.locationIds.includes(selection.locationId)) {
             const location = this.mapScene.locations.find((entry) => entry.location.id === selection.locationId)
             assertExists(location, 'Station placement requires a map location')
             const separateCities = location.face.nodes.filter((node) => node.kind === 'city').length > 1
             if (separateCities && selection.kind !== 'slot' && selection.kind !== 'node') return
-            const choice = this.stationChoices.find(
+            const choice = this.stations.choices.find(
                 (choice) => choice.position.locationId === selection.locationId &&
                     (!separateCities ||
                         ((selection.kind === 'slot' || selection.kind === 'node') &&
                             choice.position.nodeId === selection.nodeId))
             )
             if (choice) {
-                this.selectStationPosition(choice)
-                void this.confirmStation()
+                this.stations.selectPosition(choice)
+                void this.stations.confirm()
             }
         } else if (allowInspection) this.inspectMap(selection)
     }
@@ -1170,7 +1066,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         if (this.updatingVisibleState) return undefined
         const constructionLocation = this.trackSelection.locationId?.value
         if (constructionLocation) return { kind: 'hex', locationId: constructionLocation } as const
-        const stationPosition = this.stationSelection.placement?.value.position
+        const stationPosition = this.stations.selection.placement?.value.position
         if (stationPosition) return { kind: 'slot', ...stationPosition } as const
         const inspection = this.mapInspection
         if (
@@ -1569,15 +1465,7 @@ export class EighteenXXSession extends GameSession<GameState, HydratedGameState>
         this.drafts.register(this.earnings)
         this.drafts.register(clearableDraft(() => this.routeEditor.hasDraft, () => this.routeEditor.clear()))
         this.drafts.register(this.trainBuying.depotDraft)
-        this.drafts.register({
-            pending: () => !!this.stationDraft.stationId,
-            unwind: () => {
-                if (!this.stationDraft.placement && this.stationDraft.stationId?.source !== 'manual') return false
-                this.stationDraft = {}
-                return true
-            },
-            clear: () => { this.stationDraft = {} }
-        })
+        this.drafts.register(this.stations)
         this.drafts.register(clearableDraft(() => !!this.trackDraft.locationId, () => { this.trackDraft = {} }))
         this.drafts.register({
             pending: () => false,

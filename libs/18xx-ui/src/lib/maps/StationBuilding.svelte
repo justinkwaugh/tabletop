@@ -3,33 +3,33 @@
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
         $props()
     const step = $derived(session.financialState.stationStep)
-    const selection = $derived(session.stationSelection)
+    const selection = $derived(session.stations.selection)
 </script>
 
 {#if step}
     <section aria-label="Station placement">
         <header>
             <span>Choose a city to place a station or</span>
-            <button class="action-button inline-action" onclick={() => session.finishStations()}
-                disabled={!session.canPlaceStation || !!selection.placement}>skip</button>
+            <button class="action-button inline-action" onclick={() => session.stations.finish()}
+                disabled={!session.stations.canPlace || !!selection.placement}>skip</button>
             {#if showUndo}<button onclick={() => session.undo()}
                 disabled={session.busy || session.isViewingHistory ||
                     (!selection.placement && !session.actions.length)}>Undo</button>{/if}
         </header>
         {#if step.completed}<p>Station placement complete.</p>
         {:else if !session.isViewingHistory && !selection.stationId}
-            {#if session.requiresStationTokenChoice}
+            {#if session.stations.requiresTokenChoice}
                 <div class="choices">
-                    {#each session.availableStations as station, index}
+                    {#each session.stations.available as station, index}
                         <button data-station-id={station.id}
-                            onclick={() => session.selectStation(station.id)}
-                            disabled={!session.canPlaceStation || !session.stationPlacement.choices(station.id).length}>
+                            onclick={() => session.stations.select(station.id)}
+                            disabled={!session.stations.canPlace || !session.stations.model.choices(station.id).length}>
                             Station {index + 1}
                         </button>
                     {/each}
                 </div>
             {/if}
-            {#if session.canPlaceStation && !session.validActionTypes.includes('PlaceStation')}<p>
+            {#if session.stations.canPlace && !session.validActionTypes.includes('PlaceStation')}<p>
                     No legal station placement is available.
                 </p>{/if}
         {/if}
