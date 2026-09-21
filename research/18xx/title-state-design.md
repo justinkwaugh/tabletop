@@ -70,9 +70,15 @@ transitions both produced identical States, and the pre-change runtime validated
 round-tripped every State the changed one wrote. Continuing play from the latest State
 (`FinishTrack` for PEIR, cascading to `FinishStations`) gave identical results and the
 same next Actions in both. This stands in for an already-loaded client's optimistic
-execution against the new server. The browser rehearsal through the local hosted site
-was not run: the development container could not bundle the UI Artifact for lack of
-memory.
+execution against the new server.
+
+The same combination was then run through the local hosted site: a three-account Hosted
+Game created by the changed Logic Artifact and played from the pre-change UI Artifact,
+which embeds the pre-change runtime. Nine Actions across the three clients were accepted,
+each `checkSync` agreed, and turns passed between browsers without page errors. All three
+clients were then reloaded onto the changed UI Artifact and played six more Actions in
+the same game. Restarting the local development servers reloads an open tab, so the
+mixed pair was served deliberately rather than by leaving a tab open across the swap.
 
 Publish TOP's Logic Artifact and republish its UI Artifact, which embeds the Game
 Runtime (ADR 0004).
