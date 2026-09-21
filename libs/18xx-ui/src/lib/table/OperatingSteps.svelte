@@ -5,6 +5,7 @@
     import { isFinishTrack, isFinishStations, isRunTrains } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, privatePurchaseLabel = 'Buy privates', readOnly = false }: { session: EighteenXXSession; privatePurchaseLabel?: string; readOnly?: boolean } = $props()
+    const money = $derived(session.presentation.money)
     const context = $derived(session.history.visibleContext)
     const state = $derived(readOnly ? context.state : session.financialState)
     const currentStep = $derived(session.isViewingHistory
@@ -27,7 +28,7 @@
             state.stationStep?.placedStationIds.length ? 'Placed' :
                 state.stationStep?.completed && station?.companyId === state.stationStep.companyId
                     ? station.source === ActionSource.System ? 'Not available' : 'Skipped' : undefined,
-            state.routeStep?.result?.routes.length ? `Ran for $${state.routeStep.result.revenue.toLocaleString('en-US')}` :
+            state.routeStep?.result?.routes.length ? `Ran for ${money(state.routeStep.result.revenue)}` :
                 state.routeStep?.result && run?.companyId === state.routeStep.companyId
                     ? run.source === ActionSource.System ? 'Not available' : 'Skipped' : undefined,
             distribution ? distribution.choice === 'pay' ? 'Paid out' : distribution.choice === 'half-pay' ? 'Half-paid' : 'Withheld' : undefined,

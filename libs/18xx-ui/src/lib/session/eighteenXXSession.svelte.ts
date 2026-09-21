@@ -177,6 +177,12 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     get trainDepot() {
         return this.rules.trainRules.depot
     }
+    trainShortLabel(definitionId: string): string {
+        return (
+            this.presentation.trainShortLabels?.[definitionId] ??
+            this.trainDepot.trainDefinition(definitionId).name
+        )
+    }
     get phases() {
         return this.rules.phases
     }

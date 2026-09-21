@@ -47,7 +47,7 @@
     additionalStockActions={session.canPreviewSplit && session.myPlayer && session.splitModel.branches().length && session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason) ? [{ label: 'Split', selected: session.splitInProgress, onSelect: () => session.chooseSplit() }] : []}
     historyDescription={(action, companyName) => isSplitCompany(action) ? {
         text: `Split ${companyName(action.branchId)} from ${companyName(action.parentId)}`,
-        value: `$${action.expectedFunding.toLocaleString('en-US')}`,
+        value: session.presentation.money(action.expectedFunding),
         detail: 'Branch capital', important: true
     } : undefined}
     {numberedShareLocation}

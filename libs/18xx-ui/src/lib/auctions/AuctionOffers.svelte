@@ -14,6 +14,7 @@
         lotInfo: (id: string) => { locationId?: string; description: string }
         onFocus: (locationId: string) => void
     } = $props()
+    const money = $derived(session.presentation.money)
     const model = $derived.by(() => {
         assertExists(session.offers.model, 'Auction offers require an offer auction')
         return session.offers.model
@@ -61,7 +62,7 @@
                                 {:else}<span class="private-icon" aria-hidden="true">{lot.id}</span
                                     >{/if}
                             </button>
-                            <PrivateDescription phaseColors={session.presentation.phaseColors}
+                            <PrivateDescription {money} phaseColors={session.presentation.phaseColors}
                                 {token}
                                 name={lot.name}
                                 description={info.description}
@@ -71,10 +72,10 @@
                         </div></th
                     >
                     <td class="amount income"
-                        >{#if lot.company && lot.company.privateRevenue !== undefined}${lot.company
-                                .privateRevenue}<small> / OR</small>{:else}—{/if}</td
+                        >{#if lot.company && lot.company.privateRevenue !== undefined}{money(lot.company
+                                .privateRevenue)}<small> / OR</small>{:else}—{/if}</td
                     >
-                    <td class="amount value">${lot.price}</td>
+                    <td class="amount value">{money(lot.price)}</td>
                 </tr>
             {/each}
         </tbody>

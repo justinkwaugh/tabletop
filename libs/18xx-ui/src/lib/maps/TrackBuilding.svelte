@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { cashText } from '../presentation/money.js'
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import { trackConsentDecline } from '../session/trackConsentNotice.js'
     import Tile from '../tiles/Tile.svelte'
@@ -8,6 +9,7 @@
         showUndo = true,
         mapControls = false
     }: { showUndo?: boolean; mapControls?: boolean; session: EighteenXXSession } = $props()
+    const money = $derived(session.presentation.money)
     const declined = $derived(trackConsentDecline(session.actions, session.financialState))
     const turn = $derived(session.financialState.trackStep)
     const selection = $derived(session.track.selection)
@@ -29,10 +31,10 @@
         <header>
             <strong>{getCompany(session.financialState, turn.companyId).name} · Track</strong>
             <span
-                >Treasury: ${cashOwnedBy(session.financialState, {
+                >Treasury: {cashText(money, cashOwnedBy(session.financialState, {
                     kind: 'company',
                     companyId: turn.companyId
-                })}</span
+                }))}</span
             >
             <span>{turn.lays.length} placed</span>
             {#if showUndo}<button
@@ -110,7 +112,7 @@
                     {/each}
                 </div>
                 {#if preview}<p>
-                        Cost: ${preview.cost} (terrain ${preview.terrainCost}, lay ${preview.allowanceCost})
+                        Cost: {money(preview.cost)} (terrain {money(preview.terrainCost)}, lay {money(preview.allowanceCost)})
                     </p>
                     <button onclick={() => session.track.confirm()} disabled={!session.track.canBuild}
                         >{preview.consentPlayerId &&
@@ -128,7 +130,7 @@
                     <li>
                         {action.locationId}: tile {session.mapView.tileSet.definitions.find(
                             (tile) => tile.id === action.definitionId
-                        )?.printedNumber}, {action.rotation * 60}°, ${action.cost}
+                        )?.printedNumber}, {action.rotation * 60}°, {money(action.cost)}
                     </li>
                 {/each}
             </ol>{/if}

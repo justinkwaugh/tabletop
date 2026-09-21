@@ -1,5 +1,6 @@
 import type { CertificatePool } from '@tabletop/18xx'
 import type { PhaseChartData } from '../phases/phaseChart.js'
+import type { MoneyFormat } from '../presentation/money.js'
 import type {
     CompanyNameVariants,
     CompanyPricePresentation,
@@ -7,6 +8,8 @@ import type {
 } from '../table/companyPresentation.js'
 
 export type TitlePresentation = {
+    money: MoneyFormat
+    trainShortLabels?: Readonly<Record<string, string>>
     phaseChart: PhaseChartData
     trainColors: Readonly<Record<string, string>>
     phaseColors: Readonly<Record<string, string>>

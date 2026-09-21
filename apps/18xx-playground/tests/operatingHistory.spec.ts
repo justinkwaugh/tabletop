@@ -56,7 +56,7 @@ for (const title of ['TOP', '1889']) {
 
 for (const title of ['TOP', '1889']) {
     test(`${title} history separates gross train revenue from player dividends`, async ({ page }) => {
-        const [revenue, dividend] = title === 'TOP' ? ['$70', '$21'] : ['$90', '$27']
+        const [revenue, dividend] = title === 'TOP' ? ['$70', '$21'] : ['¥90', '¥27']
         await page.goto('/table')
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('routes')

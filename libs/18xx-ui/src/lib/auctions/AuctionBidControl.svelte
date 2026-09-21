@@ -1,5 +1,7 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     let {
+        money,
         amount,
         increment,
         canBid,
@@ -10,6 +12,7 @@
         onBid,
         onPass
     }: {
+        money: MoneyFormat
         amount: number
         increment: number
         canBid: boolean
@@ -29,7 +32,7 @@
             disabled={!canDecrease}
             onclick={() => onChange(amount - increment)}>−</button
         >
-        <output aria-label="Bid amount">${amount.toLocaleString('en-US')}</output>
+        <output aria-label="Bid amount">{money(amount)}</output>
         <button
             aria-label="Increase bid"
             disabled={!canIncrease}

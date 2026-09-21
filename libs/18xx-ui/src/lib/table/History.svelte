@@ -30,6 +30,7 @@
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
     } = $props()
+    const money = $derived(session.presentation.money)
     const jumpDisabled = $derived(session.busy || session.updatingVisibleState || session.history.isDisabled())
     function jumpToHistory(index: number) {
         if (!jumpDisabled) void session.history.goToActionIndex(index, { exact: true })
@@ -55,7 +56,7 @@
         const description =
             describeAction?.(action, companyName) ??
             historyDescription(action, state, companyName, (id) =>
-                session.getPlayerName(id), companyChanges.get(action.id)
+                session.getPlayerName(id), companyChanges.get(action.id), session.presentation.money
             )
         return orderChanges.has(action.id) ? { ...description, important: true } : description
     }
@@ -80,7 +81,7 @@
             {#each newestFirst ? groups : groups.toReversed() as entry (entry.id)}
                 {#if entry.kind === 'auction'}
                     <li class="auction">
-                        <AuctionHistoryCard
+                        <AuctionHistoryCard {money}
                             card={entry}
                             lot={lot(entry.offer.lotId)}
                             playerName={(id) => session.getPlayerName(id)}
@@ -89,7 +90,7 @@
                     </li>
                 {:else}
                     <li>
-                        <HistoryGroup
+                        <HistoryGroup {money}
                             group={entry}
                             onReturn={round.id === currentHeaderId && entry.id === groups.find(group => group.kind === 'operation')?.id ? returnToCurrent : undefined}
                             onJump={jumpToHistory}

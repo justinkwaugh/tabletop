@@ -1,9 +1,11 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import { onMount } from 'svelte'
     import PhaseChartContent from './PhaseChartContent.svelte'
     import type { PhaseChartData, PhaseChartDepotState } from './phaseChart.js'
 
     let {
+        money,
         chart,
         depotState,
         depotOnly = false,
@@ -11,6 +13,7 @@
         trainColors,
         onclose
     }: {
+        money: MoneyFormat
         depotState: PhaseChartDepotState
         depotOnly?: boolean
         chart: PhaseChartData
@@ -52,7 +55,7 @@
             >
         </button>
     </header>
-    <PhaseChartContent {chart} {depotState} {depotOnly} {currentPhaseId} {trainColors} />
+    <PhaseChartContent {money} {chart} {depotState} {depotOnly} {currentPhaseId} {trainColors} />
 </dialog>
 
 <style>

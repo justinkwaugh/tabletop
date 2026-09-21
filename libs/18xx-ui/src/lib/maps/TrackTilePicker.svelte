@@ -10,6 +10,7 @@
 
     let { session, viewport }: { session: EighteenXXSession; viewport: HTMLDivElement } =
         $props()
+    const money = $derived(session.presentation.money)
     let center: Point = $state({ x: 0, y: 0 })
     let width = $state(0)
     let height = $state(0)
@@ -267,7 +268,7 @@
                 style:left={`${center.x}px`}
                 style:top={`${Math.min(height - tileSize * 0.3, center.y + hexHeight / 2 + tileSize * 0.06)}px`}
                 style:font-size={`${tileSize * 0.15}px`}
-            >${session.track.preview.cost}</div>
+            >{money(session.track.preview.cost)}</div>
             {/if}
             <div
                 class="controls"
@@ -289,7 +290,7 @@
                 <button
                     class="accept"
                     aria-label="Accept track lay"
-                    title={`Accept track lay · $${session.track.preview.cost}`}
+                    title={`Accept track lay · ${money(session.track.preview.cost)}`}
                     onclick={accept}
                 >
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 13 4 4L19 7" /></svg>

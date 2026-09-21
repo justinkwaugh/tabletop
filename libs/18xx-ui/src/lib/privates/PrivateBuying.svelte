@@ -3,6 +3,7 @@
     import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showEntry = true }: { session: EighteenXXSession; showEntry?: boolean } = $props()
+    const money = $derived(session.presentation.money)
     const mine = $derived(session.decisions.privatePurchases.filter((option) => option.request.seller.kind === 'player' && option.request.seller.playerId === session.myPlayer?.id))
     const others = $derived(session.decisions.privatePurchases.filter((option) => !mine.includes(option)))
     const source = $derived(session.privateActions.purchaseSource)
@@ -29,7 +30,7 @@
             {@const company = getCompany(session.financialState, selection.request.asset.privateCompanyId)}
             {@const terms = session.decisions.privatePurchases.find((option) => option.request.asset.kind === 'private' && option.request.asset.privateCompanyId === company.id)}
             <div class="selected-private">
-                <PrivateCard phaseColors={session.presentation.phaseColors} token={session.privateCompanyTokens[company.id]} name={company.name} description="" income={company.privateRevenue ?? 0}
+                <PrivateCard {money} phaseColors={session.presentation.phaseColors} token={session.privateCompanyTokens[company.id]} name={company.name} description="" income={company.privateRevenue ?? 0}
                     purchaseRange={terms ? { minimum: terms.minimum, maximum: terms.maximum } : undefined} />
                 {#if source === 'other'}<small class="seller">owned by {session.ownerName(selection.request.seller)}</small>{/if}
             </div>
@@ -44,7 +45,7 @@
                     {#if option.request.asset.kind === 'private'}
                         {@const company = getCompany(session.financialState, option.request.asset.privateCompanyId)}
                         <button class="private" onclick={() => session.decisions.selectPurchaseOffer(option.request)}>
-                            <PrivateCard phaseColors={session.presentation.phaseColors} token={session.privateCompanyTokens[company.id]} name={company.name} description="" income={company.privateRevenue ?? 0}
+                            <PrivateCard {money} phaseColors={session.presentation.phaseColors} token={session.privateCompanyTokens[company.id]} name={company.name} description="" income={company.privateRevenue ?? 0}
                                 purchaseRange={{ minimum: option.minimum, maximum: option.maximum }} />
                             {#if source === 'other'}<small class="seller">owned by {session.ownerName(option.request.seller)}</small>{/if}
                         </button>

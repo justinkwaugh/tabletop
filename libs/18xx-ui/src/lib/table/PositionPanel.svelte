@@ -27,6 +27,7 @@
         trainColors: Readonly<Record<string, string>>
         describeAction?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
     } = $props()
+    const money = $derived(session.presentation.money)
     const context = $derived(session.history.visibleContext)
     const state = $derived(context.state)
     const company = $derived(state.companies.find((company) => company.id === nextOperatingCompany(state)))
@@ -51,11 +52,11 @@
             const lot = session.auctionLotsFor(state).find((lot) => lot.id === action.lotId)
             assert(lot, 'Recorded auction requires its lot')
             return isOfferAuctionLot(action)
-                ? { text: `offered ${lot.name} for auction at $${lot.price}` }
-                : { text: `bid $${action.amount} for ${lot.name}` }
+                ? { text: `offered ${lot.name} for auction at ${money(lot.price)}` }
+                : { text: `bid ${money(action.amount)} for ${lot.name}` }
         }
         if (isPassAuction(action)) return { text: 'passed' }
-        return describeAction?.(action, companyName) ?? historyDescription(action, state, companyName, (id) => session.getPlayerName(id))
+        return describeAction?.(action, companyName) ?? historyDescription(action, state, companyName, (id) => session.getPlayerName(id), undefined, session.presentation.money)
     }
     const latest = $derived.by(() => {
         const paired = purchaseWithFlotation(context.actions)
@@ -99,7 +100,7 @@
         </header>{/if}
         {#if latest?.isRun && result && result.routes.length}
             <div class="run-table">
-                <TrainRunTable {result} {trainColors} label="Recorded train runs"
+                <TrainRunTable {money} {result} {trainColors} label="Recorded train runs"
                     trains={state.trainInventory.trains.filter((train) => result.routes.some((route) => route.trainId === train.id))}
                     trainName={(id) => session.trainDepot.trainDefinition(id).name} />
             </div>
@@ -108,15 +109,15 @@
             <div class="station-result">
                 <span>Placed</span>
                 <CompanyToken appearance={session.mapView.stations[latest.station.companyId]} size={28} />
-                <span>for ${latest.station.expectedCost.toLocaleString('en-US')}</span>
+                <span>for {money(latest.station.expectedCost)}</span>
             </div>
         {/if}
         {#if latest?.track}
-            <TrackLayResult details={latest.track} map={session.mapView.map} tileSet={session.mapView.tileSet} />
+            <TrackLayResult {money} details={latest.track} map={session.mapView.map} tileSet={session.mapView.tileSet} />
         {/if}
         {#if latest?.payout}
             <div class="payout-card">
-                <EarningsCard choice={latest.payout.choice} details={latest.payout.metadata}
+                <EarningsCard {money} choice={latest.payout.choice} details={latest.payout.metadata}
                     label={latest.description.text} companyId={latest.payout.companyId}
                     stockMarket={state.stockMarket}
                     ownerName={(owner) => owner.kind === 'player' ? session.getPlayerName(owner.playerId) : owner.kind === 'bank' ? state.bank.name : companyName(owner.companyId)} />

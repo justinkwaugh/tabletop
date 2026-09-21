@@ -52,6 +52,7 @@
         ) => string | undefined
         poolName?: (pool: CertificatePool) => string
     } = $props()
+    const money = $derived(session.presentation.money)
     const state = $derived(session.financialState)
     const lastRun = $derived(vertical ? undefined : companyLastRun(session.actions, session.gameState.actionCount, company.id))
     const owner = $derived({ kind: 'company', companyId: company.id } as const)
@@ -159,14 +160,14 @@
                 {#if !vertical}
                     {#each remainingStations as station (station.id)}
                         {@const cost = session.stations.placementCost(station.id)}
-                        <div class="token-cost" aria-label={`Station token, $${cost}`}>
+                        <div class="token-cost" aria-label={`Station token, ${money(cost)}`}>
                             <CompanyToken appearance={session.mapView.stations[company.id]} size={20} />
                             <span>{cost}</span>
                         </div>
                     {/each}
                 {:else}
                 {#each tokenGroups as group (group.cost)}
-                    <div class="token-cost" aria-label={`${group.count} station tokens, $${group.cost} each`}>
+                    <div class="token-cost" aria-label={`${group.count} station tokens, ${money(group.cost)} each`}>
                         <div class="token-count"><span>{group.count}</span><CompanyToken appearance={session.mapView.stations[company.id]} size={20} /></div>
                         <span class="token-price">{group.cost}</span>
                     </div>
@@ -233,7 +234,7 @@
                     {#each personalPrivates as item (item.id)}
                         {@render privateCard(
                             item,
-                            item.maximumPrice === undefined ? 'No maximum' : `$${item.maximumPrice}`
+                            item.maximumPrice === undefined ? 'No maximum' : `${money(item.maximumPrice)}`
                         )}
                     {/each}
                 {/if}
@@ -263,8 +264,8 @@
                         <span>Last run</span>
                         {#if lastRun?.metadata && onPreviewMap}
                             <button class="last-run" disabled={session.busy || session.updatingVisibleState}
-                                aria-label={`View ${company.name}'s last run for $${lastRun.metadata.revenue}`}
-                                onclick={() => onPreviewMap?.(lastRun!)}>${lastRun.metadata.revenue.toLocaleString('en-US')}</button>
+                                aria-label={`View ${company.name}'s last run for ${money(lastRun.metadata.revenue)}`}
+                                onclick={() => onPreviewMap?.(lastRun!)}>{money(lastRun.metadata.revenue)}</button>
                         {:else}<strong>—</strong>{/if}
                     </div>
                 {/if}
@@ -284,7 +285,7 @@
                             ? '—'
                             : cash === 'unlimited'
                               ? '$∞'
-                              : `$${cash.toLocaleString('en-US')}`}</strong
+                              : `${money(cash)}`}</strong
                     >
                 </div>
 {/snippet}
@@ -293,10 +294,10 @@
     {@const description = privateOperationDescription(item.id, company.id)}
     <article class="private" data-private-description-row>
         <div class="private-heading">
-            <div class="private-name"><PrivateDescription phaseColors={session.presentation.phaseColors} token={session.privateCompanyTokens[item.id]} name={item.name} description={item.description} income={item.closed ? undefined : item.privateRevenue} /></div
+            <div class="private-name"><PrivateDescription {money} phaseColors={session.presentation.phaseColors} token={session.privateCompanyTokens[item.id]} name={item.name} description={item.description} income={item.closed ? undefined : item.privateRevenue} /></div
             ><span
                 >{purchasePrice ??
-                    (item.closed ? 'Closed' : `$${item.privateRevenue ?? 0} / OR`)}</span
+                    (item.closed ? 'Closed' : `${money(item.privateRevenue ?? 0)} / OR`)}</span
             >
         </div>
         {#if !vertical && !item.closed && description}<p>{description}</p>{/if}

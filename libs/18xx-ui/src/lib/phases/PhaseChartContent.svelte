@@ -1,14 +1,17 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import { TileColors } from '../tiles/tilePresentation.js'
     import type { PhaseChartData, PhaseChartDepotState } from './phaseChart.js'
     let {
+        money,
         chart,
         depotState,
         depotOnly = false,
         currentPhaseId,
         trainColors,
     }: {
+        money: MoneyFormat
         depotState: PhaseChartDepotState
         depotOnly?: boolean
         chart: PhaseChartData
@@ -79,7 +82,7 @@
                             <th scope="row"
                                 ><TrainBadge name={train.name} color={trainColors[train.id]} /></th
                             >
-                            <td class="money">${train.price.toLocaleString('en-US')}</td>
+                            <td class="money">{money(train.price)}</td>
                             <td class="number">{remaining === 'unlimited' ? '∞' : remaining}/{train.count === 'unlimited' ? '∞' : train.count}</td
                             >
                             <td

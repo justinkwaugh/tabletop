@@ -1,9 +1,11 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import type { OperatingResult, Train } from '@tabletop/18xx'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import { routeColor } from './routePresentation.js'
 
     let {
+        money,
         result,
         trains,
         trainName,
@@ -11,6 +13,7 @@
         onFocusRoute,
         label = 'Train income'
     }: {
+        money: MoneyFormat
         result: OperatingResult
         trains: readonly Train[]
         trainName: (definitionId: string) => string
@@ -31,7 +34,7 @@
                     ><button
                         class="route-focus"
                         disabled={!route || !onFocusRoute}
-                        aria-label={`Show ${trainName(train.definitionId)} route for $${route?.revenue ?? 0}`}
+                        aria-label={`Show ${trainName(train.definitionId)} route for ${money(route?.revenue ?? 0)}`}
                         onclick={() => onFocusRoute?.(train.id)}
                         ><span class="train">
                             <span
@@ -42,7 +45,7 @@
                                 name={trainName(train.definitionId)}
                                 color={trainColors[train.definitionId]}
                             />
-                        </span><span class="income">${(route?.revenue ?? 0).toLocaleString('en-US')}</span></button
+                        </span><span class="income">{money(route?.revenue ?? 0)}</span></button
                     ></td
                 >
             </tr>
@@ -51,7 +54,7 @@
     <tfoot
         ><tr
             ><th scope="row">Total</th><td class="income"
-                >${result.revenue.toLocaleString('en-US')}</td
+                >{money(result.revenue)}</td
             ></tr
         ></tfoot
     >

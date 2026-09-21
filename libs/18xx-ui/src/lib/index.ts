@@ -46,6 +46,7 @@ export { default as GameEnding } from './ending/GameEnding.svelte'
 export { default as GameTable } from './table/GameTable.svelte'
 export type { CompanyNameVariants, NumberedShareNames } from './table/companyPresentation.js'
 export type { TitlePresentation } from './session/titlePresentation.js'
+export { moneyFormat, type MoneyFormat } from './presentation/money.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'
 
 export { default as StockMarketScene } from './stock/StockMarketScene.svelte'

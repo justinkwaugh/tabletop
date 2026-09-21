@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import './historyCard.css'
     import HistoryHeaderJump from './HistoryHeaderJump.svelte'
@@ -16,6 +17,7 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let {
+        money,
         group,
         onJump,
         onReturn,
@@ -36,6 +38,7 @@
         stations,
         cash
     }: {
+        money: MoneyFormat
         onPreviewMap: (action: GameAction) => void
         previewActionId?: string
         cash: ReadonlyMap<string, HistoryCash>
@@ -81,7 +84,6 @@
         ? group.actions.findLast(isFinishOperatingTurn)?.playerId
             ?? (group.companyId ? currentController(group.companyId) : undefined)
         : group.playerId)
-    function money(amount: number) { return `$${amount.toLocaleString('en-US')}` }
     const rows = $derived(group.actions.map((action) => {
         const description = describe(action)
         const stockPlayerId = isFloatCompany(action) ? undefined : action.playerId

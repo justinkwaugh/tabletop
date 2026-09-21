@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { cashText } from '../presentation/money.js'
     import './playerTint.css'
     import { companySharePrice, DefaultCompanyPricePresentation, type CompanyPricePresentation } from './companyPresentation.js'
     import type { GameAction } from '@tabletop/common'
@@ -53,6 +54,7 @@
         portfolioCompanyIds?: readonly string[]
         includedPortfolioCompanyIds?: readonly string[]
     } = $props()
+    const money = $derived(session.presentation.money)
     const operatingCompanyId = $derived(
         session.financialState.stockRound.completed && session.financialState.operatingSet && !session.financialState.result
             ? nextOperatingCompany(session.financialState) : undefined
@@ -155,14 +157,13 @@
         }))
     )
     const statisticLabels = ['Cash', 'Shares', 'Certs', 'Net worth']
-    const money = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
     function financialValues(owner: Owner, certs = '—'): string[] {
         const { cash, netWorth, shares } = ownerPortfolio(
             session.financialState,
             owner,
             valuationRules
         )
-        return [`$${money.format(cash)}`, String(shares), certs, `$${money.format(netWorth)}`]
+        return [`${money(cash)}`, String(shares), certs, `${money(netWorth)}`]
     }
     const statistics = $derived(
         new Map([
@@ -207,23 +208,22 @@
 {/snippet}
 
 {#snippet companyCash(cash: number | 'unlimited' | undefined)}
-    {cash === undefined ? '—' : cash === 'unlimited' ? '∞' : `$${money.format(cash)}`}
+    {cashText(money, cash)}
 {/snippet}
 
 {#snippet lastRunCell(company: Company)}
     {@const run = companyLastRun(session.actions, session.gameState.actionCount, company.id)}
     {#if run?.metadata}
         <button class="last-run" disabled={session.busy || session.updatingVisibleState}
-            aria-label={`View ${company.name}'s last run for $${run.metadata.revenue}`}
-            onclick={() => onPreviewMap(run)}>${money.format(run.metadata.revenue)}</button>
+            aria-label={`View ${company.name}'s last run for ${money(run.metadata.revenue)}`}
+            onclick={() => onPreviewMap(run)}>{money(run.metadata.revenue)}</button>
     {:else}<span class="empty">—</span>{/if}
 {/snippet}
 
 {#snippet companyTrains(companyId: string)}
     <span class="company-trains">
         {#each trainsOwnedBy(session.financialState, { kind: 'company', companyId }) as train (train.id)}
-            {@const trainName = session.trainDepot.trainDefinition(train.definitionId).name}
-            <TrainBadge name={trainName === 'Diesel' ? 'D' : trainName} color={trainColors[train.definitionId]} />
+            <TrainBadge name={session.trainShortLabel(train.definitionId)} color={trainColors[train.definitionId]} />
         {:else}<span class="empty">—</span>{/each}
     </span>
 {/snippet}
@@ -267,7 +267,7 @@
     <div class="sheet-spacing" aria-hidden="true"></div>
     <div class="sheet-content">
     {#if period !== 'Current'}
-        <OperatingHistory rounds={session.operatingIncomeHistory()}
+        <OperatingHistory {money} rounds={session.operatingIncomeHistory()}
             players={session.playerPriorityOrder.map((playerId) => ({ playerId, name: session.getPlayerName(playerId), color: session.colors.getPlayerBgColorValue(playerId) }))}
             appearances={session.mapView.stations} view={period === 'Player income' ? 'Player' : 'Company'} {companyNames} {onPreviewMap} />
     {:else}
@@ -338,7 +338,7 @@
                                     ownerTintColor(owners[index].id),
                                     poolAlternate(owners[index].id)
                                 )}{/each}
-                            {#if pricePresentation.showInSpreadsheet}<td class="company-stat-start bright-cell value-cell">{row.value === undefined ? '—' : money.format(row.value)}</td>{/if}
+                            {#if pricePresentation.showInSpreadsheet}<td class="company-stat-start bright-cell value-cell">{row.value === undefined ? '—' : row.value.toLocaleString('en-US')}</td>{/if}
                             <td class="company-stat-start bright-cell">{@render companyCash(row.cash)}</td>
                             <td class="bright-cell">{@render companyTrains(row.company.id)}</td>
                             <td class="bright-cell token-cell">{row.stations.filter((station) => station.status === 'available').length}/{row.stations.length}</td>
@@ -400,7 +400,7 @@
                     {#if pricePresentation.showInSpreadsheet}
                         <tr class="company-stat-start financial-row">
                             <th scope="row">{pricePresentation.label}</th>
-                            {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell value-cell">{row.value === undefined ? '—' : money.format(row.value)}</td>{/each}
+                            {#each rows as row (row.company.id)}<td class:operating-column={row.company.id === operatingCompanyId} class="bright-cell value-cell">{row.value === undefined ? '—' : row.value.toLocaleString('en-US')}</td>{/each}
                             {#each statisticLabels as _, index}<td class:stat-start={index === 0} class="void"></td>{/each}
                         </tr>
                     {/if}

@@ -1,3 +1,4 @@
+import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
     isLayTile,
     isRequestTrackConsent,
@@ -50,16 +51,15 @@ export type HistoryDescription = {
     routine?: boolean
     important?: boolean
 }
-const historyMoney = (value: number) => `$${value.toLocaleString('en-US')}`
 
 export function historyDescription(
     action: GameAction,
     state: EighteenXXState,
     companyName: (id: string) => string = (id) => id,
     playerName: (id: string) => string = (id) => id,
-    companyChanges?: HistoryCompanyChanges
+    companyChanges?: HistoryCompanyChanges,
+    money: MoneyFormat = moneyFormat('$')
 ): HistoryDescription {
-    const money = historyMoney
     const ownerName = (owner: Owner) =>
         owner.kind === 'bank'
             ? state.bank.name

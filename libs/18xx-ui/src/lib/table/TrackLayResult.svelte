@@ -1,13 +1,16 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import { assertExists } from '@tabletop/common'
     import type { RailwayMap, TileSet, TrackLayDetails } from '@tabletop/18xx'
     import Tile from '../tiles/Tile.svelte'
 
     let {
+        money,
         details,
         map,
         tileSet
     }: {
+        money: MoneyFormat
         details: TrackLayDetails
         map: RailwayMap
         tileSet: TileSet
@@ -45,7 +48,7 @@
         size={64}
     />
     {#if details.cost > 0}
-        <span>for ${details.cost.toLocaleString('en-US')}</span>
+        <span>for {money(details.cost)}</span>
     {/if}
 </div>
 

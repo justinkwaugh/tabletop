@@ -3,6 +3,7 @@
     import TrainPurchaseButton from './TrainPurchaseButton.svelte'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, trainColors }: { session: EighteenXXSession; trainColors: Readonly<Record<string, string>> } = $props()
+    const money = $derived(session.presentation.money)
     const privateIds = $derived([...new Set(session.decisions.privateTrainOptions.map((option) => option.privateCompanyId))])
 </script>
 
@@ -13,7 +14,7 @@
             <div class="trains">
                 {#each session.decisions.privateTrainOptions.filter((option) => option.privateCompanyId === privateId) as option}
                     {@const definition = session.trainDepot.trainDefinition(option.details.definitionId)}
-                    <TrainPurchaseButton name={definition.name} price={option.details.price}
+                    <TrainPurchaseButton {money} name={definition.name} price={option.details.price}
                         color={trainColors[definition.id]} definitionId={definition.id}
                         disabled={!session.decisions.canResolve}
                         onclick={() => session.decisions.buyPrivateTrain(option)} />

@@ -1,8 +1,10 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     let {
+        money,
         name,
         description,
         value,
@@ -11,6 +13,7 @@
         phaseColors = {},
         purchaseRange
     }: {
+        money: MoneyFormat
         name: string
         description: string
         value?: number
@@ -32,12 +35,12 @@
             <div class="values">
                 {#if income !== undefined}<span
                         >Income <strong
-                            >${income.toLocaleString('en-US')}{#if !purchaseRange}<small> / OR</small>{/if}</strong
+                            >{money(income)}{#if !purchaseRange}<small> / OR</small>{/if}</strong
                         ></span
                     >{/if}
-                {#if purchaseRange}<span class="value">Purchase <strong>${purchaseRange.minimum}{#if purchaseRange.maximum !== undefined}–${purchaseRange.maximum}{/if}</strong></span>
+                {#if purchaseRange}<span class="value">Purchase <strong>{money(purchaseRange.minimum)}{#if purchaseRange.maximum !== undefined}–{money(purchaseRange.maximum)}{/if}</strong></span>
                 {:else if value !== undefined}<span class="value"
-                        >Value <strong>${value.toLocaleString('en-US')}</strong></span
+                        >Value <strong>{money(value)}</strong></span
                     >{/if}
             </div>
         {/if}

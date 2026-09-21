@@ -8,6 +8,7 @@
     import PrivateTrainBuying from '../trains/PrivateTrainBuying.svelte'
     let { session, trainColors, privateTilePrompts = {}, showUndo = true, excludeTrainPurchases = false }: { privateTilePrompts?: Readonly<Record<string, string>>; trainColors: Readonly<Record<string, string>>; excludeTrainPurchases?: boolean; showUndo?: boolean; session: EighteenXXSession } =
         $props()
+    const money = $derived(session.presentation.money)
     const purchaseOptions = $derived(session.decisions.purchaseOptions.filter((option) => option.request.asset.kind === 'train' && !excludeTrainPurchases))
     const state = $derived(session.financialState)
     const selection = $derived(session.decisions.selection)
@@ -28,7 +29,7 @@
             <Tile face={definition.face} orientation={session.mapView.map.definition.orientation}
                 rotation={request.rotation} size={48} />
         {/if}
-        {#if request.cost}<span>for ${request.cost}</span>{/if}
+        {#if request.cost}<span>for {money(request.cost)}</span>{/if}
     </DecisionResponse>
 {:else}
 <section aria-label="Company decisions" class:private-powers={showPowers}>
@@ -47,7 +48,7 @@
             disabled={!session.decisions.canResolve || !session.validActionTypes.includes('RespondToPurchaseOffer')}
             onAccept={() => session.decisions.respondToPurchaseOffer(true)} onDecline={() => session.decisions.respondToPurchaseOffer(false)}>
             <CompanyToken appearance={session.mapView.stations[offer.companyId]} size={24} />
-            <span>{getCompany(state, offer.companyId).name} offers ${offer.price} for {offer.asset.kind === 'private' ? getCompany(state, offer.asset.privateCompanyId).name : offer.asset.trainId}</span>
+            <span>{getCompany(state, offer.companyId).name} offers {money(offer.price)} for {offer.asset.kind === 'private' ? getCompany(state, offer.asset.privateCompanyId).name : offer.asset.trainId}</span>
         </DecisionResponse>
     {:else}
         <PrivateBuying {session} showEntry={session.operating.step === undefined} />

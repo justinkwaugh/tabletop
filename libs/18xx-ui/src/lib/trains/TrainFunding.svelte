@@ -7,6 +7,7 @@
     let { session, trainColors, showUndo = true }: {
         session: EighteenXXSession; trainColors: Readonly<Record<string, string>>; showUndo?: boolean
     } = $props()
+    const money = $derived(session.presentation.money)
     const purchase = $derived(session.trainFunding.purchase)
     const plan = $derived(session.trainFunding.plan)
     const disabled = $derived(!(session.trainFunding.canFund || session.trainFunding.canResolve))
@@ -18,43 +19,43 @@
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
             <span>{getCompany(session.financialState, purchase.companyId).name} must buy a</span>
             <TrainBadge name={session.trainDepot.trainDefinition(purchase.definitionId).name} color={trainColors[purchase.definitionId]} />
-            <span>for ${purchase.price}</span>
+            <span>for {money(purchase.price)}</span>
             {#if showUndo}<button disabled={session.busy || session.updatingVisibleState || session.isViewingHistory}
                 onclick={() => session.undo()}>Undo</button>{/if}
         </header>
         {#if session.financialState.bankruptcy}
-            <p>Unable to raise the remaining ${session.financialState.bankruptcy.shortfall}. The game has ended.</p>
+            <p>Unable to raise the remaining {money(session.financialState.bankruptcy.shortfall)}. The game has ended.</p>
         {:else}
-            {#if plan.treasuryProceeds}<p>Treasury shares will raise ${plan.treasuryProceeds}.</p>{/if}
+            {#if plan.treasuryProceeds}<p>Treasury shares will raise {money(plan.treasuryProceeds)}.</p>{/if}
             {#each session.trainFunding.contributions as contribution (contribution.id)}
-                <p>{session.ownerName(contribution.owner)} contributed ${contribution.amount}.</p>
+                <p>{session.ownerName(contribution.owner)} contributed {money(contribution.amount)}.</p>
             {/each}
             {#each plan.contributions as contribution}
-                <p>{session.ownerName(contribution.owner)} contributes ${contribution.amount}.</p>
+                <p>{session.ownerName(contribution.owner)} contributes {money(contribution.amount)}.</p>
             {/each}
             {#if plan.choice.kind === 'sell'}
                 <p>{session.ownerName(plan.choice.owner)}
-                    {#if plan.amountToRaise > 0}must raise <strong>${plan.amountToRaise}</strong> by selling shares.
+                    {#if plan.amountToRaise > 0}must raise <strong>{money(plan.amountToRaise)}</strong> by selling shares.
                     {:else}must sell shares to meet the ownership limit.{/if}</p>
                 <div class="choices" aria-label="Funding share sales">
                     {#each session.trainFunding.sales as sale}
                         {@const companyId = sale.sales[0].companyId}
                         <button class="sale-choice" {disabled} data-funding-shares={sale.sales[0].shares}
-                            aria-label={`Sell ${sale.sales[0].shares} ${getCompany(session.financialState, companyId).name} shares for $${sale.proceeds}`}
+                            aria-label={`Sell ${sale.sales[0].shares} ${getCompany(session.financialState, companyId).name} shares for ${money(sale.proceeds)}`}
                             onclick={() => session.trainFunding.resolve(sale)}>
                             <CompanyToken appearance={session.mapView.stations[companyId]} size={32} />
-                            <span>{sale.sales[0].shares} {sale.sales[0].shares === 1 ? 'share' : 'shares'} · ${sale.proceeds}</span>
+                            <span>{sale.sales[0].shares} {sale.sales[0].shares === 1 ? 'share' : 'shares'} · {money(sale.proceeds)}</span>
                         </button>
                     {/each}
                 </div>
             {:else if plan.choice.kind === 'bankrupt'}
-                <p>Unable to raise the remaining ${plan.amountToRaise}.</p>
+                <p>Unable to raise the remaining {money(plan.amountToRaise)}.</p>
                 <div class="choices"><button class="action-button" {disabled}
                     onclick={() => session.trainFunding.resolve()}>Declare bankruptcy</button></div>
             {:else if plan.choice.kind === 'buy'}
                 <div class="choices">
                     <span>Buy</span>
-                    <TrainPurchaseButton name={session.trainDepot.trainDefinition(purchase.definitionId).name}
+                    <TrainPurchaseButton {money} name={session.trainDepot.trainDefinition(purchase.definitionId).name}
                         definitionId={purchase.definitionId} price={purchase.price} color={trainColors[purchase.definitionId]}
                         {disabled} onclick={() => { void session.trainFunding.resolve() }} />
                 </div>
@@ -65,7 +66,7 @@
                     <tbody>{#each session.trainFunding.saleHistory as { id, details } (id)}
                         <tr><td>{session.ownerName(details.seller)}</td>
                             <td><span class="company"><CompanyToken appearance={session.mapView.stations[details.sales[0].companyId]} size={20} />{getCompany(session.financialState, details.sales[0].companyId).name}</span></td>
-                            <td>{details.sales[0].shares}</td><td>${details.proceeds}</td></tr>
+                            <td>{details.sales[0].shares}</td><td>{money(details.proceeds)}</td></tr>
                     {/each}</tbody>
                 </table>
             {/if}

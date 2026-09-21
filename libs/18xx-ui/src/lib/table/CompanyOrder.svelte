@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
     import type { Snippet } from 'svelte'
@@ -16,6 +17,7 @@
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let {
+        money,
         showDetails,
         companies,
         state: financialState,
@@ -27,6 +29,7 @@
         completedCompanyIds = [],
         companyDetails
     }: {
+        money: MoneyFormat
         showDetails: boolean
         companies: readonly Company[]
         state: Pick<FinancialState, 'cash'> & TrainState & StationState
@@ -160,7 +163,7 @@
                                         ? '—'
                                         : amount === 'unlimited'
                                           ? '$∞'
-                                          : `$${amount.toLocaleString('en-US')}`}</span
+                                          : `${money(amount)}`}</span
                                 >
                                 <span
                                     class="tokens"

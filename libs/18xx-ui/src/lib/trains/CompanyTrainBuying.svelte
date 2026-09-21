@@ -6,6 +6,7 @@
     import TrainBadge from './TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let { session, trainColors }: { session: EighteenXXSession; trainColors: Readonly<Record<string, string>> } = $props()
+    const money = $derived(session.presentation.money)
     const request = $derived(session.trainBuying.selection.purchase?.value)
     const response = $derived(session.financialState.purchaseOffer)
     const companies = $derived.by(() => {
@@ -36,7 +37,7 @@
             onDecline={() => session.decisions.respondToPurchaseOffer(false)}>
             <CompanyToken appearance={session.mapView.stations[response.companyId]} size={24} />
             <strong>{getCompany(session.financialState, response.companyId).name}</strong>
-            <span>offers ${response.price} for</span>
+            <span>offers {money(response.price)} for</span>
             <TrainBadge name={selectedTrain.name} color={trainColors[selectedTrain.id]} />
             <span>from</span>
             {#if response.seller.kind === 'company'}

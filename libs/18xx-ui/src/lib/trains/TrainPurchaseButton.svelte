@@ -1,6 +1,7 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
-    let { name, price, color, disabled = false, upcoming = false, market = false, definitionId, onclick }: {
+    let { money, name, price, color, disabled = false, upcoming = false, market = false, definitionId, onclick }: { money: MoneyFormat;
         name: string; price: number; color: string; disabled?: boolean; upcoming?: boolean;
         market?: boolean; definitionId: string; onclick: () => void
     } = $props()
@@ -8,9 +9,9 @@
 
 <button class:upcoming style:background={color} style:color={contrastingTextColor(color)}
     data-depot-train={market ? undefined : definitionId}
-    aria-label={`${name} for $${price}${upcoming ? ', upcoming' : market ? ' from Market' : ''}`}
+    aria-label={`${name} for ${money(price)}${upcoming ? ', upcoming' : market ? ' from Market' : ''}`}
     disabled={disabled || upcoming} {onclick}>
-    <span>{name}</span><span class="price">${price}</span>
+    <span>{name}</span><span class="price">{money(price)}</span>
 </button>
 
 <style>

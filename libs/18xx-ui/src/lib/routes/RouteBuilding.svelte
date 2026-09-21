@@ -2,6 +2,7 @@
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
         $props()
+    const money = $derived(session.presentation.money)
     const editor = $derived(session.routes.editor)
     const step = $derived(session.financialState.routeStep)
     const visible = $derived(session.routes.editorVisible)
@@ -30,7 +31,7 @@
                     onclick={() => session.undo()}
                     disabled={session.busy || session.isViewingHistory}>Undo</button
                 >{/if}
-            {#if step.result}<strong>Revenue: ${step.result.revenue}</strong>{/if}
+            {#if step.result}<strong>Revenue: {money(step.result.revenue)}</strong>{/if}
         </header>
         {#if !step.result}
             <div class="trains" aria-label="Route trains">
@@ -83,11 +84,11 @@
                     {/if}
                     {#if preview?.reason}<p role="status">{preview.reason}</p>{/if}
                     {#if preview?.result}<p>
-                            Distance: {preview.result.distance} · Revenue: ${preview.result.revenue}
+                            Distance: {preview.result.distance} · Revenue: {money(preview.result.revenue)}
                         </p>
                         <p>
                             {preview.result.payments
-                                .map((payment) => `${payment.locationId}: $${payment.amount}`)
+                                .map((payment) => `${payment.locationId}: ${money(payment.amount)}`)
                                 .join(' + ')}
                         </p>{/if}
                     <button disabled={!session.routes.canRun} onclick={() => session.routes.back()}
@@ -107,11 +108,11 @@
                             editor.state.trainInventory.trains.find(
                                 (train) => train.id === route.trainId
                             )!.definitionId
-                        ).name}: ${route.revenue}</strong
+                        ).name}: {money(route.revenue)}</strong
                     >
                     <span
                         >{route.payments
-                            .map((payment) => `${payment.locationId}: $${payment.amount}`)
+                            .map((payment) => `${payment.locationId}: ${money(payment.amount)}`)
                             .join(' + ')}</span
                     >
                     {#if !step.result}<button
@@ -126,7 +127,7 @@
         {#if !step.result}
             {#if evaluation?.reason}<p role="alert">{evaluation.reason}</p>{/if}
             <footer>
-                <strong>Revenue: ${evaluation?.result?.revenue ?? 0}</strong>
+                <strong>Revenue: {money(evaluation?.result?.revenue ?? 0)}</strong>
                 <button
                     disabled={!session.routes.canRun ||
                         Boolean(editor.trainId) ||

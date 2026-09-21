@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import {
         stockMarketSpace,
         type EarningsChoice,
@@ -7,6 +8,7 @@
         type StockMarket
     } from '@tabletop/18xx'
     let {
+        money,
         choice,
         details,
         label,
@@ -17,6 +19,7 @@
         onclick,
         disabled = false
     }: {
+        money: MoneyFormat
         choice: EarningsChoice
         details?: EarningsDetails
         label: string
@@ -41,24 +44,24 @@
         {#if details}
             <span class="heading-amounts">
                 <span class="heading-amount">
-                    <b>${choice === 'withhold' ? details.retained : details.dividendPerShare}</b>
+                    <b>{money(choice === 'withhold' ? details.retained : details.dividendPerShare)}</b>
                     {#if choice !== 'withhold'}<small>/share</small>{/if}
                 </span>
                 {#if choice === 'half-pay'}
                     <span class="heading-amount"
-                        ><b>${details.retained}</b><small>&nbsp;retained</small></span
+                        ><b>{money(details.retained)}</b><small>&nbsp;retained</small></span
                     >
                 {/if}
             </span>
         {/if}
     </span>
     {#if details}
-        {#if details.bonusPerShare}<small>Includes ${details.bonusPerShare}/share bonus</small>{/if}
+        {#if details.bonusPerShare}<small>Includes {money(details.bonusPerShare)}/share bonus</small>{/if}
         {#if choice !== 'withhold'}<span class="payments">
                 {#each details.payments.toSorted((a, b) => paymentOrder(a.to) - paymentOrder(b.to)) as payment}
                     <span
                         ><span>{isTreasury(payment.to) ? 'Treasury' : ownerName(payment.to)}</span
-                        ><b>${payment.amount}</b></span
+                        ><b>{money(payment.amount)}</b></span
                     >
                 {/each}
             </span>{/if}

@@ -1,10 +1,12 @@
-import type { TitlePresentation } from '@tabletop/18xx-ui'
+import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { TheOldPrinceCompanies } from '@tabletop/the-old-prince'
 import { TheOldPrinceCompanyNames } from './companyPresentation.js'
 import { TheOldPrincePhaseChart } from './phaseChart.js'
 import { TheOldPrinceTrainColors } from './trainPresentation.js'
 
 export const TheOldPrincePresentation: TitlePresentation = {
+    money: moneyFormat('$'),
+    trainShortLabels: { D: 'D' },
     phaseChart: TheOldPrincePhaseChart,
     trainColors: TheOldPrinceTrainColors,
     phaseColors: TheOldPrinceTrainColors,
@@ -22,6 +24,10 @@ export const TheOldPrincePresentation: TitlePresentation = {
     portfolioCompanyIds: ['UB'],
     includedPortfolioCompanyIds: ['UB'],
     poolName: (pool) =>
-        pool.id === 'reserved' ? 'Exchange' : pool.owner.kind === 'company' ? 'Treasury' : pool.name,
+        pool.id === 'reserved'
+            ? 'Exchange'
+            : pool.owner.kind === 'company'
+              ? 'Treasury'
+              : pool.name,
     privatePurchaseLabel: 'Buy Hunslet'
 }

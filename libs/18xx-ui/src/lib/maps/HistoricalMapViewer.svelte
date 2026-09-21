@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import { onMount } from 'svelte'
     import { ScalingWrapper } from '@tabletop/frontend-components'
     import MapScene from './MapScene.svelte'
@@ -6,7 +7,7 @@
     import type { HistoricalMap } from './historicalMap.js'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
 
-    let { preview, appearance, revenueStageColors, artwork, onclose }: {
+    let { money, preview, appearance, revenueStageColors, artwork, onclose }: { money: MoneyFormat;
         artwork?: BoardArtwork
         preview: HistoricalMap
         appearance: TileAppearance
@@ -41,7 +42,7 @@
 
 <dialog bind:this={dialog} aria-label="Historical map" oncancel={onclose}>
     <header>
-        <span><strong>Historical {preview.kind}</strong> · {preview.label}{#if preview.revenue !== undefined} · <strong>${preview.revenue}</strong>{/if}</span>
+        <span><strong>Historical {preview.kind}</strong> · {preview.label}{#if preview.revenue !== undefined} · <strong>{money(preview.revenue)}</strong>{/if}</span>
         <button onclick={onclose}>Close</button>
     </header>
     <div class="map" style:background={artwork?.backgroundColor}>

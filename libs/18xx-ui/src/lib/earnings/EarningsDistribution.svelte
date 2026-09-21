@@ -3,6 +3,7 @@
     import EarningsCard from './EarningsCard.svelte'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
+    const money = $derived(session.presentation.money)
     const result = $derived(session.financialState.routeStep?.result)
     const names: Record<EarningsChoice, string> = {
         pay: 'Pay',
@@ -16,7 +17,7 @@
         <div class="choices">
             {#each session.earnings.choices as { choice, evaluation }}
                 {@const details = evaluation.details}
-                <EarningsCard {choice} {details} label={names[choice]}
+                <EarningsCard {money} {choice} {details} label={names[choice]}
                     companyId={result.companyId} stockMarket={session.financialState.stockMarket}
                     ownerName={(owner) => session.ownerName(owner)} reason={evaluation.reason}
                     disabled={!session.earnings.canDistribute || !details}

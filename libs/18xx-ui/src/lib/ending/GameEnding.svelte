@@ -2,6 +2,7 @@
     import type { EighteenXXState } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, position }: { session: EighteenXXSession; position?: EighteenXXState } = $props()
+    const money = $derived(session.presentation.money)
     const state = $derived(position ?? session.financialState)
     const standings = $derived(state.finalWealth?.toSorted((a, b) => b.total - a.total) ?? [])
     const winners = $derived(state.winningPlayerIds.map((id) => session.getPlayerName(id)).join(' & '))
@@ -22,7 +23,7 @@
                         {#each standings as player}
                             <tr class:winner={state.winningPlayerIds.includes(player.playerId)}>
                                 <th scope="row"><span class="rank">{standings.findIndex((entry) => entry.total === player.total) + 1}</span>{session.getPlayerName(player.playerId)}</th>
-                                <td>${player.total.toLocaleString('en-US')}</td>
+                                <td>{money(player.total)}</td>
                             </tr>
                         {/each}
                     </tbody>

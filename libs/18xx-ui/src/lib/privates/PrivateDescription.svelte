@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import { flip, shift, offset, hide } from '@floating-ui/dom'
     import { assertExists } from '@tabletop/common'
     import PrivateCard from './PrivateCard.svelte'
@@ -6,13 +7,15 @@
     import { Floater } from '@tabletop/frontend-components'
 
     let {
+        money,
         name,
         description,
         value,
         income,
         token,
         phaseColors = {}
-    }: { name: string; description: string; value?: number; income?: number; token?: StationAppearance; phaseColors?: Readonly<Record<string, string>> } = $props()
+    }: {
+        money: MoneyFormat; name: string; description: string; value?: number; income?: number; token?: StationAppearance; phaseColors?: Readonly<Record<string, string>> } = $props()
     const id = $props.id()
     let open = $state(false)
     let triggerEvent: Event | undefined
@@ -70,7 +73,7 @@
         }}
     >
         <div id={`${id}-description`} class="description" role="tooltip">
-            <PrivateCard {phaseColors} {name} {description} {value} {income} {token} />
+            <PrivateCard {money} {phaseColors} {name} {description} {value} {income} {token} />
         </div>
     </Floater>
 {/if}

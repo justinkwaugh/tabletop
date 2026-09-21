@@ -36,6 +36,7 @@
         onFocusCompany: (companyId: string) => void
         portfolioCompanyIds?: readonly string[]
     } = $props()
+    const money = $derived(session.presentation.money)
     const compact = $derived(session.preferences.values.compactPlayerCards)
     function toggleCompact() {
         session.preferences.set({ compactPlayerCards: !compact }, 'family')
@@ -100,7 +101,6 @@
             })
             .sort((a, b) => a.number - b.number)
     }
-    const money = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
     const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
 </script>
 
@@ -124,7 +124,7 @@
                     {#if player.playerId}<span
                             class="player-color"
                             style:background={session.colors.getPlayerBgColorValue(player.playerId)}
-                        ></span>{/if}{#if player.description}<PrivateDescription phaseColors={session.presentation.phaseColors}
+                        ></span>{/if}{#if player.description}<PrivateDescription {money} phaseColors={session.presentation.phaseColors}
                             token={player.owner.kind === 'company' ? session.privateCompanyTokens[player.owner.companyId] : undefined}
                             name={player.name}
                             description={player.description}
@@ -161,7 +161,7 @@
             <div class="stats">
                 <dl>
                     <dt>Cash</dt>
-                    <dd>${money.format(player.cash)}</dd>
+                    <dd>{money(player.cash)}</dd>
                 </dl>
                 {#if player.liquidity !== undefined}<span class="stat-divider" aria-hidden="true"
                     ></span>
@@ -169,7 +169,7 @@
                         title="Cash plus available share-sale proceeds at current prices and stock-sale limits. Excludes negotiated private sales and company cash."
                     >
                         <dt>Liquidity</dt>
-                        <dd>${money.format(player.liquidity)}</dd>
+                        <dd>{money(player.liquidity)}</dd>
                     </dl>{/if}
                 <span class="stat-divider" aria-hidden="true"></span>
                 <dl>
@@ -184,7 +184,7 @@
                 <span class="stat-divider" aria-hidden="true"></span>
                 <dl>
                     <dt>Net worth</dt>
-                    <dd>${money.format(player.netWorth)}</dd>
+                    <dd>{money(player.netWorth)}</dd>
                 </dl>
             </div>
             {#if player.playerId && auctionPiles.has(player.playerId)}
@@ -196,9 +196,9 @@
                                 {@const description = auctionLotDescription?.(lot.id) ?? lot.company?.description}
                                 <tr data-private-description-row>
                                     <th scope="row">
-                                        {#if description}<PrivateDescription phaseColors={session.presentation.phaseColors} token={lot.token} name={lot.name} {description} value={lot.price} income={lot.company?.privateRevenue} />{:else}{lot.name}{/if}
+                                        {#if description}<PrivateDescription {money} phaseColors={session.presentation.phaseColors} token={lot.token} name={lot.name} {description} value={lot.price} income={lot.company?.privateRevenue} />{:else}{lot.name}{/if}
                                     </th>
-                                    <td class="amount">${money.format(lot.price)}</td>
+                                    <td class="amount">{money(lot.price)}</td>
                                 </tr>
                             {:else}<tr><td class="empty">None</td></tr>{/each}
                         </tbody>
@@ -271,7 +271,7 @@
                             {#each player.privates as entry (entry.company.id)}
                                 <tr data-private-description-row>
                                     <th scope="row"
-                                        ><PrivateDescription phaseColors={session.presentation.phaseColors}
+                                        ><PrivateDescription {money} phaseColors={session.presentation.phaseColors}
                                             token={session.privateCompanyTokens[entry.company.id]}
                                             name={entry.company.name}
                                             value={entry.value}
@@ -281,8 +281,8 @@
                                             )?.description ?? ''}
                                         /></th
                                     >
-                                    <td class="amount">{#if entry.income !== 0}${money.format(entry.income)}{#if compact}<small class="income-period">{' / OR'}</small>{/if}{/if}</td>
-                                    <td class="amount">${money.format(entry.value)}</td>
+                                    <td class="amount">{#if entry.income !== 0}{money(entry.income)}{#if compact}<small class="income-period">{' / OR'}</small>{/if}{/if}</td>
+                                    <td class="amount">{money(entry.value)}</td>
                                 </tr>
                             {/each}
                         </tbody>

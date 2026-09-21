@@ -14,6 +14,7 @@
         onFocusRoute: (trainId: string) => void
         trainColors: Readonly<Record<string, string>>
     } = $props()
+    const money = $derived(session.presentation.money)
     let error = $state<string>()
     let attempt = $state(0)
     const result = $derived(session.routes.solved?.result)
@@ -86,7 +87,7 @@
             {session.isViewingHistory ? 'Viewing train run' : 'Calculating routes…'}
         </p>
     {:else}
-        <TrainRunTable {result} {trains} {trainColors} {onFocusRoute}
+        <TrainRunTable {money} {result} {trains} {trainColors} {onFocusRoute}
             trainName={(id) => session.trainDepot.trainDefinition(id).name} />
         <button
             class="run"

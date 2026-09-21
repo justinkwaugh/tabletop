@@ -8,6 +8,7 @@
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, trainColors, showUndo = true }: { trainColors: Readonly<Record<string, string>>; showUndo?: boolean; session: EighteenXXSession } =
         $props()
+    const money = $derived(session.presentation.money)
     const step = $derived(session.financialState.trainPurchaseStep)
     const availableTypes = $derived(session.availableTrainDefinitionIds)
     const fundingDepot = $derived(session.trainFunding.purchases.filter((purchase) => session.financialState.trainInventory.trains.some((train) => train.id === purchase.trainId && train.status === 'depot')))
@@ -32,7 +33,7 @@
 {#snippet trainChoice(definitionId: string, price: number, remaining: number | 'unlimited', details: TrainPurchaseDetails | undefined, market = false, funding = false)}
     {@const definition = session.trainDepot.trainDefinition(definitionId)}
     <div class="depot-entry">
-        <TrainPurchaseButton name={definition.name} {price} color={trainColors[definitionId]}
+        <TrainPurchaseButton {money} name={definition.name} {price} color={trainColors[definitionId]}
             {definitionId} {market}
             disabled={!(funding ? session.trainFunding.canFund : session.trainBuying.canBuy) || !details}
             onclick={() => { if (details) void (funding ? session.trainFunding.fund(details) : session.trainBuying.buy(details)) }} />
@@ -93,12 +94,12 @@
                 {@render trainChoice(details.definitionId, details.price, count, details, true, session.trainFunding.purchases.some((purchase) => purchase.trainId === details.trainId))}
             {/each}
         </div>
-        {#if session.trainBuying.exchanges.length}<h3>Diesel exchange</h3>
+        {#if session.trainBuying.exchanges.length}<h3>Train exchange</h3>
             <div class="trains">
                 {#each session.trainBuying.exchanges as exchange}<button
                         disabled={!session.trainBuying.canBuy}
                         onclick={() => session.trainBuying.buy(exchange)}
-                        >Exchange {exchange.exchangeTrainId} for Diesel · ${exchange.price}</button
+                        >Exchange {exchange.exchangeTrainId} for {session.trainDepot.trainDefinition(exchange.definitionId).name} · {money(exchange.price)}</button
                     >{/each}
             </div>{/if}
         {/if}

@@ -1,14 +1,17 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import './historyCard.css'
     import './playerTint.css'
     import type { AuctionLot } from '@tabletop/18xx'
     import type { AuctionHistoryCard } from './auctionHistory.js'
     let {
+        money,
         card,
         lot,
         playerName,
         playerColor,
     }: {
+        money: MoneyFormat
         card: AuctionHistoryCard
         lot: AuctionLot
         playerName: (id: string) => string
@@ -30,7 +33,7 @@
             >
                 <span>{playerName(event.playerId)}</span>
                 {#if event.type === 'BidOnAuctionLot'}<span
-                        >bid <strong>${event.amount.toLocaleString('en-US')}</strong></span
+                        >bid <strong>{money(event.amount)}</strong></span
                     >{:else}<span class="passed">passed</span>{/if}
             </div>
         {/each}
@@ -39,11 +42,11 @@
                 class="history-entry winner"
             >
                 <strong>{playerName(card.award.playerId)} won</strong><strong
-                    >${card.award.price.toLocaleString('en-US')}</strong
+                    >{money(card.award.price)}</strong
                 >
             </div>
         {:else if !card.events.length}<div class="initial">
-                Starting value <strong>${lot.price.toLocaleString('en-US')}</strong>
+                Starting value <strong>{money(lot.price)}</strong>
             </div>{/if}
     </div>
 </article>

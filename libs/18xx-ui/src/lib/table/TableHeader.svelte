@@ -26,6 +26,7 @@
         phaseChart: PhaseChartData
         trainColors: Readonly<Record<string, string>>
     } = $props()
+    const money = $derived(session.presentation.money)
     let showPhaseChart = $state(false)
     let compact = $state(false)
     function fitRoundLabel(header: HTMLElement) {
@@ -124,7 +125,7 @@
     </div>
 </header>
 
-{#if showPhaseChart}<PhaseChart
+{#if showPhaseChart}<PhaseChart {money}
         depotState={{ depot: session.trainDepot, inventory: financialState.trainInventory, availableDefinitionIds: session.availableTrainDefinitionIds }}
         chart={phaseChart}
         currentPhaseId={financialState.phaseId}

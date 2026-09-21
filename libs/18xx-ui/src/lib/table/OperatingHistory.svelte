@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { MoneyFormat } from '../presentation/money.js'
     import './playerTint.css'
     import type { GameAction } from '@tabletop/common'
     import type { StationAppearance } from '../maps/stationPresentation.js'
@@ -8,6 +9,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
 
     let {
+        money,
         rounds,
         players,
         appearances,
@@ -15,6 +17,7 @@
         companyNames,
         onPreviewMap
     }: {
+        money: MoneyFormat
         onPreviewMap: (action: GameAction) => void
         rounds: OperatingRoundHistory[]
         players: { playerId: string; name: string; color: string }[]
@@ -25,7 +28,6 @@
     const companies = $derived([
         ...new Map(rounds.flatMap((round) => Object.entries(round.companyNames))).entries()
     ])
-    const money = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 </script>
 
 {#if rounds.length}
@@ -76,12 +78,12 @@
                     </th>
                     {#if view === 'Player'}
                         {#each players as player (player.playerId)}
-                            <td class="player-tinted-cell group-start" style:--player-color={player.color}>${money.format(round.playerIncome[player.playerId] ?? 0)}</td>
-                            <td class="player-tinted-cell" style:--player-color={player.color}>{round.playerNetWorth[player.playerId] === undefined ? '—' : `$${money.format(round.playerNetWorth[player.playerId])}`}</td>
+                            <td class="player-tinted-cell group-start" style:--player-color={player.color}>{money(round.playerIncome[player.playerId] ?? 0)}</td>
+                            <td class="player-tinted-cell" style:--player-color={player.color}>{round.playerNetWorth[player.playerId] === undefined ? '—' : `${money(round.playerNetWorth[player.playerId])}`}</td>
                             <td class="player-tinted-cell" style:--player-color={player.color}>
                                 {#if roundIndex > 0 && round.playerNetWorth[player.playerId] !== undefined && rounds[roundIndex - 1].playerNetWorth[player.playerId] !== undefined}
                                     {@const delta = round.playerNetWorth[player.playerId] - rounds[roundIndex - 1].playerNetWorth[player.playerId]}
-                                    <span class:negative={delta < 0}>${money.format(Math.abs(delta))}</span>
+                                    <span class:negative={delta < 0}>{money(Math.abs(delta))}</span>
                                 {:else}—{/if}
                             </td>
                         {/each}
@@ -92,8 +94,8 @@
                                 {#if round.companyIncome[companyId] === undefined}—
                                 {:else if run && round.companyIncome[companyId] > 0}<button class="payout" onclick={() => onPreviewMap(run)}
                                     aria-label={`Show ${round.companyNames[companyId]} run in OR ${round.id}`}
-                                    >${money.format(round.companyIncome[companyId])}</button>
-                                {:else}${money.format(round.companyIncome[companyId])}{/if}
+                                    >{money(round.companyIncome[companyId])}</button>
+                                {:else}{money(round.companyIncome[companyId])}{/if}
                             </td>
                         {/each}
                     {/if}

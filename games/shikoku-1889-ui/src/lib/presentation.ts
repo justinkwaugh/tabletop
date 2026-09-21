@@ -1,9 +1,11 @@
-import type { TitlePresentation } from '@tabletop/18xx-ui'
+import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { Shikoku1889CompanyNames } from './companyPresentation.js'
 import { Shikoku1889PhaseChart } from './phaseChart.js'
 import { Shikoku1889TrainColors } from './trainPresentation.js'
 
 export const Shikoku1889Presentation: TitlePresentation = {
+    money: moneyFormat('¥'),
+    trainShortLabels: { D: 'D' },
     phaseChart: Shikoku1889PhaseChart,
     trainColors: Shikoku1889TrainColors,
     phaseColors: Shikoku1889TrainColors,

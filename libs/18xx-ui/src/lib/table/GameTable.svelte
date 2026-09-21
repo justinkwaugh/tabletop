@@ -78,6 +78,7 @@
             companyId: string
         ) => string | undefined
     } = $props()
+    const money = $derived(session.presentation.money)
     const {
         marketPoolId,
         exchangePoolId,
@@ -428,8 +429,7 @@
                     <span class="information-label">Depot</span>
                     {#each currentDepotIds as currentDepotId (currentDepotId)}
                         {@const remaining = session.trainDepot.remaining(session.financialState.trainInventory, currentDepotId)}
-                        {@const trainName = session.trainDepot.trainDefinition(currentDepotId).name}
-                        <span class="depot-type"><TrainBadge name={trainName === 'Diesel' ? 'D' : trainName} color={trainColors[currentDepotId]} />
+                        <span class="depot-type"><TrainBadge name={session.trainShortLabel(currentDepotId)} color={trainColors[currentDepotId]} />
                         <span class="depot-count">{remaining === 'unlimited' ? '∞' : `×${remaining}`}</span></span>
                     {:else}<span>Empty</span>{/each}
                 </button>
@@ -503,7 +503,7 @@
                     )}
                 />
             </div>
-            <CompanyOrder
+            <CompanyOrder {money}
                 showDetails={session.preferences.values.operatingOrderDisplay === 'details'}
                 companies={companyOrder}
                 state={financialState}
@@ -549,8 +549,8 @@
             {/snippet}
             {#snippet children(id: string, active: boolean)}
                     {#if id === 'Game info'}<div class="workspace-view game-info-pane">{@render sidebarInformation()}</div>
-                    {:else if id === 'Player Aid'}<div class="workspace-view"><PhaseChartContent {depotState} chart={phaseChart} currentPhaseId={headerState.phaseId} {trainColors} /></div>
-                    {:else if id === 'Depot'}<div class="workspace-view"><PhaseChartContent {depotState} depotOnly chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} /></div>
+                    {:else if id === 'Player Aid'}<div class="workspace-view"><PhaseChartContent {money} {depotState} chart={phaseChart} currentPhaseId={headerState.phaseId} {trainColors} /></div>
+                    {:else if id === 'Depot'}<div class="workspace-view"><PhaseChartContent {money} {depotState} depotOnly chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} /></div>
                     {:else if id === 'Players'}<div class="workspace-view players-pane">{@render playerCards()}</div>
                     {:else if id === 'History'}<div class="workspace-view">{@render historyPanel()}</div>
                     {:else if id === 'Chat'}<div class="workspace-view">{#if active}{@render chatPanel()}{/if}</div>
@@ -655,11 +655,11 @@
     </DefaultTableLayout>
     </div>
 
-{#if showPhaseChart}<PhaseChart {depotState} chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showPhaseChart = false} />{/if}
-{#if showDepot}<PhaseChart {depotState} depotOnly chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showDepot = false} />{/if}
+{#if showPhaseChart}<PhaseChart {money} {depotState} chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showPhaseChart = false} />{/if}
+{#if showDepot}<PhaseChart {money} {depotState} depotOnly chart={phaseChart} currentPhaseId={session.financialState.phaseId} {trainColors} onclose={() => showDepot = false} />{/if}
 
 {#if session.historicalMap}
-    <HistoricalMapViewer artwork={boardArtwork} preview={session.historicalMap}
+    <HistoricalMapViewer {money} artwork={boardArtwork} preview={session.historicalMap}
         revenueStageColors={session.mapView.revenueStageColors}
         appearance={session.map.style === 'muted' ? MutedTileAppearance : ClassicTileAppearance}
         onclose={() => session.closeHistoricalMap()} />
