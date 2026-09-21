@@ -8,6 +8,7 @@ import { type TransferRules } from '../transfers/purchaseOffer.js'
 import { type PrivatePowerRules } from '../privates/privatePowers.js'
 import type { PrivateRules } from '../privates/privateRules.js'
 import { type PhaseRules } from '../phases/phaseChange.js'
+import type { PhaseTable } from '../phases/phaseTable.js'
 import { type EarningsRules } from '../earnings/earningsDistribution.js'
 import type { RouteRules } from '../routes/routeEvaluation.js'
 import { type TrainState } from '../trains/train.js'
@@ -53,6 +54,7 @@ export interface EighteenXXTitleRules {
     earningsRules: EarningsRules
     routeRules: RouteRules
     trainRules: TrainRules
+    phases: PhaseTable
     phaseRules: PhaseRules
     privateRules: PrivateRules
     transferRules: TransferRules

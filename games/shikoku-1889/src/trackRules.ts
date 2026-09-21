@@ -1,24 +1,12 @@
-import { assertExists } from '@tabletop/common'
 import { sameStopCounts, privateOwner, type TrackRules } from '@tabletop/18xx'
 import { Shikoku1889Map } from './map.js'
 import { Shikoku1889TileSet } from './tiles.js'
-export const Shikoku1889TrackColors: Record<string, readonly string[]> = {
-    '2': ['yellow'],
-    '3': ['yellow', 'green'],
-    '4': ['yellow', 'green'],
-    '5': ['yellow', 'green', 'brown'],
-    '6': ['yellow', 'green', 'brown'],
-    D: ['yellow', 'green', 'brown']
-}
+import { Shikoku1889Phases } from './trains.js'
 export const Shikoku1889TrackRules: TrackRules = {
     map: Shikoku1889Map,
     tileSet: Shikoku1889TileSet,
     colorOrder: ['white', 'yellow', 'green', 'brown'],
-    availableColors(state) {
-        const colors = Shikoku1889TrackColors[state.phaseId]
-        assertExists(colors, 'Unknown phase')
-        return colors
-    },
+    availableColors: (state) => Shikoku1889Phases.phase(state.phaseId).tileColors,
     allowance: (state) =>
         state.trackStep?.lays.length ? { reason: '1889 permits one lay or upgrade' } : { cost: 0 },
     preservesStops: sameStopCounts,

@@ -27,6 +27,7 @@ import {
     EighteenXXState,
     FamilyStateDefinition,
     HydratedEighteenXXState,
+    inKnownPhase,
     type EighteenXXMachineState
 } from './eighteenXXState.js'
 import { ActionRegistry } from '../actions/actionDefinition.js'
@@ -210,7 +211,10 @@ export function createEighteenXXRuntime(
         initializer: new EighteenXXInitializer(options),
         hydrator: {
             hydrateState: (state) =>
-                stateDefinition.hydrate(state, map, tileSet, options.trainRules.depot),
+                inKnownPhase(
+                    stateDefinition.hydrate(state, map, tileSet, options.trainRules.depot),
+                    options.phases
+                ),
             hydrateAction: (action) => {
                 const hydrated = actions.hydrate(action)
                 if (!hydrated) throw new Error(`Unknown 18xx action: ${action.type}`)

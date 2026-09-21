@@ -11,7 +11,7 @@ function shortlineExchange(state: FinancialState, id: string) {
 }
 export const TheOldPrincePrivateRules: PrivateRules = {
     exchangeTerms(state, privateCompanyId) {
-        if (TheOldPrincePhases.indexOf(state.phaseId) >= TheOldPrincePhases.indexOf('4+'))
+        if (TheOldPrincePhases.isAtLeast(state.phaseId, '4+'))
             return undefined
         const reservedId = shortlineExchange(state, privateCompanyId)
         if (reservedId)
@@ -57,7 +57,7 @@ export const TheOldPrincePrivateRules: PrivateRules = {
         }
     },
     phaseEffects(state) {
-        if (TheOldPrincePhases.indexOf(state.phaseId) < TheOldPrincePhases.indexOf('4+')) return []
+        if (!TheOldPrincePhases.isAtLeast(state.phaseId, '4+')) return []
         const open = state.companies.filter(
             (company) =>
                 company.kind === 'private' && !company.closed && company.id !== 'UB'

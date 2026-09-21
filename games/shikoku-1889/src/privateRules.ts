@@ -4,7 +4,7 @@ export const Shikoku1889PrivateRules: PrivateRules = {
     exchangeTerms(state, privateCompanyId) {
         if (
             privateCompanyId !== 'DR' ||
-            Shikoku1889Phases.indexOf(state.phaseId) >= Shikoku1889Phases.indexOf('5')
+            Shikoku1889Phases.isAtLeast(state.phaseId, '5')
         )
             return undefined
         return {
@@ -26,7 +26,7 @@ export const Shikoku1889PrivateRules: PrivateRules = {
         }
     },
     phaseEffects(state) {
-        if (Shikoku1889Phases.indexOf(state.phaseId) < Shikoku1889Phases.indexOf('5')) return []
+        if (!Shikoku1889Phases.isAtLeast(state.phaseId, '5')) return []
         return state.companies
             .filter((company) => company.kind === 'private' && !company.closed)
             .flatMap((company): PrivateEffect[] => {
@@ -48,7 +48,7 @@ export const Shikoku1889PrivateRules: PrivateRules = {
         if (id === 'DR')
             return 'The owning player may exchange for a 10% Iyo IPO share, including during another player’s turn. Does not consume a purchase or change passes. Closes at phase 5.'
         if (id === 'UTF')
-            return Shikoku1889Phases.indexOf(state.phaseId) >= Shikoku1889Phases.indexOf('5')
+            return Shikoku1889Phases.isAtLeast(state.phaseId, '5')
                 ? 'Player-owned ferry remains open, pays ¥50, and cannot be sold to a company.'
                 : 'At phase 5: stays open and pays ¥50 if player-owned; otherwise closes.'
         return 'Closes at phase 5.'

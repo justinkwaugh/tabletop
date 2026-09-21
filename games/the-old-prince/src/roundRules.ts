@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { TheOldPrincePhases } from './trains.js'
 import {
     getCompany,
     stockMarketOrder,
@@ -32,24 +32,8 @@ export const TheOldPrinceStockRoundRules: StockRoundRules = {
         )
     }
 }
-export const TheOldPrinceOperatingRoundCounts: Record<string, number> = {
-    '2H': 1,
-    '3H': 1,
-    '4H': 2,
-    '5H': 2,
-    '6H': 2,
-    '2+': 2,
-    '3+': 2,
-    '4+': 3,
-    '7': 3,
-    D: 3
-}
 export const TheOldPrinceOperatingRules: OperatingRules = {
-    roundCount(state) {
-        const count = TheOldPrinceOperatingRoundCounts[state.phaseId]
-        assertExists(count, 'Unknown phase')
-        return count
-    },
+    roundCount: (state) => TheOldPrincePhases.phase(state.phaseId).operatingRounds,
     companyOrder(state) {
         const companies = stockMarketOrder(state.stockMarket).filter((id) => {
             const company = getCompany(state, id)

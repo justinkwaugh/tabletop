@@ -10,7 +10,7 @@ import { TheOldPrincePrivateRules } from './privateRules.js'
 import { TheOldPrincePhaseRules } from './phaseRules.js'
 import { TheOldPrinceEarningsRules } from './earningsRules.js'
 import { TheOldPrinceRouteRules } from './routeRules.js'
-import { TheOldPrinceTrainRules } from './trains.js'
+import { TheOldPrincePhases, TheOldPrinceTrainRules } from './trains.js'
 import { TheOldPrinceStationRules } from './stationRules.js'
 import { TheOldPrinceTrackRules } from './trackRules.js'
 import { TheOldPrinceMap } from './map.js'
@@ -50,6 +50,7 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
     earningsRules: TheOldPrinceEarningsRules,
     routeRules: TheOldPrinceRouteRules,
     privateRules: TheOldPrincePrivateRules,
+    phases: TheOldPrincePhases,
     phaseRules: TheOldPrincePhaseRules,
     trainRules: TheOldPrinceTrainRules
 }

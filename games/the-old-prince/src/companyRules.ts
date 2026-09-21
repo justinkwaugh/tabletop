@@ -39,17 +39,8 @@ export function availableTheOldPrinceTranche(state: FormationState) {
     })
 }
 export function theOldPrinceStartMarketSpaces(state: StockState): string[] {
-    const phases = TheOldPrincePhases
-    const phase = phases.indexOf(state.phaseId)
-    assert(phase >= 0, 'Unknown TOP phase')
-    const minimumRow =
-        phase >= phases.indexOf('7')
-            ? 6
-            : phase >= phases.indexOf('3+')
-              ? 5
-              : phase >= phases.indexOf('5H')
-                ? 4
-                : 3
+    const reached = (phaseId: string) => TheOldPrincePhases.isAtLeast(state.phaseId, phaseId)
+    const minimumRow = reached('7') ? 6 : reached('3+') ? 5 : reached('5H') ? 4 : 3
     return state.stockMarket.spaces
         .filter((space) => space.column === 1 && space.row >= minimumRow)
         .map((space) => space.id)

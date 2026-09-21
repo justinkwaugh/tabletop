@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { Shikoku1889Phases } from './trains.js'
 import {
     getCompany,
     playerOrderAfterLastTurn,
@@ -26,20 +26,8 @@ export const Shikoku1889StockRoundRules: StockRoundRules = {
         )
     }
 }
-export const Shikoku1889OperatingRoundCounts: Record<string, number> = {
-    '2': 1,
-    '3': 2,
-    '4': 2,
-    '5': 3,
-    '6': 3,
-    D: 3
-}
 export const Shikoku1889OperatingRules: OperatingRules = {
-    roundCount(state) {
-        const count = Shikoku1889OperatingRoundCounts[state.phaseId]
-        assertExists(count, 'Unknown phase')
-        return count
-    },
+    roundCount: (state) => Shikoku1889Phases.phase(state.phaseId).operatingRounds,
     companyOrder(state) {
         return stockMarketOrder(state.stockMarket).filter((id) => {
             const company = getCompany(state, id)

@@ -4,11 +4,10 @@ export const TheOldPrinceTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
     priceRange(state, companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
-        const phase = TheOldPrincePhases.indexOf(state.phaseId)
         return asset.privateCompanyId === 'HS' &&
             companyId !== 'PEIR' &&
-            phase >= 2 &&
-            phase < TheOldPrincePhases.indexOf('4+') &&
+            TheOldPrincePhases.isAtLeast(state.phaseId, '4H') &&
+            !TheOldPrincePhases.isAtLeast(state.phaseId, '4+') &&
             privateOwner(state, 'HS')?.kind === 'player'
             ? { minimum: 1, maximum: 200 }
             : undefined

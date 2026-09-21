@@ -1,4 +1,3 @@
-import { assertExists } from '@tabletop/common'
 import {
     sameStopCounts,
     privateOwner,
@@ -8,27 +7,12 @@ import {
 } from '@tabletop/18xx'
 import { TheOldPrinceMap } from './map.js'
 import { TheOldPrinceTileSet } from './tiles.js'
-export const TheOldPrinceTrackColors: Record<string, readonly string[]> = {
-    '2H': ['yellow'],
-    '3H': ['yellow'],
-    '4H': ['yellow', 'green'],
-    '5H': ['yellow', 'green'],
-    '6H': ['yellow', 'green'],
-    '2+': ['yellow', 'green'],
-    '3+': ['yellow', 'green'],
-    '4+': ['yellow', 'green', 'brown'],
-    '7': ['yellow', 'green', 'brown'],
-    D: ['yellow', 'green', 'brown', 'gray']
-}
+import { TheOldPrincePhases } from './trains.js'
 export const TheOldPrinceTrackRules: TrackRules = {
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
     colorOrder: ['white', 'yellow', 'green', 'brown', 'gray'],
-    availableColors(state) {
-        const colors = TheOldPrinceTrackColors[state.phaseId]
-        assertExists(colors, 'Unknown phase')
-        return colors
-    },
+    availableColors: (state) => TheOldPrincePhases.phase(state.phaseId).tileColors,
     allowance(state, color) {
         const lays = state.trackStep?.lays ?? []
         if (!lays.length) return { cost: 0 }

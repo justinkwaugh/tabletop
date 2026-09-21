@@ -8,7 +8,7 @@ import { Shikoku1889PrivateRules } from './privateRules.js'
 import { Shikoku1889PhaseRules } from './phaseRules.js'
 import { Shikoku1889EarningsRules } from './earningsRules.js'
 import { Shikoku1889RouteRules } from './routeRules.js'
-import { Shikoku1889TrainRules } from './trains.js'
+import { Shikoku1889Phases, Shikoku1889TrainRules } from './trains.js'
 import { Shikoku1889StationRules } from './stationRules.js'
 import { Shikoku1889TrackRules } from './trackRules.js'
 import { Shikoku1889Map } from './map.js'
@@ -43,6 +43,7 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules = {
     earningsRules: Shikoku1889EarningsRules,
     routeRules: Shikoku1889RouteRules,
     privateRules: Shikoku1889PrivateRules,
+    phases: Shikoku1889Phases,
     phaseRules: Shikoku1889PhaseRules,
     trainRules: Shikoku1889TrainRules
 }

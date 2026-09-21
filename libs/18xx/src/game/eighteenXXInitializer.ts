@@ -11,7 +11,12 @@ import {
 } from '@tabletop/common'
 import { StockMarket } from '../stock/stockMarket.js'
 import { createStockRound } from '../stock/stockRound.js'
-import { EighteenXXState, FamilyStateDefinition, HydratedEighteenXXState } from './eighteenXXState.js'
+import {
+    EighteenXXState,
+    FamilyStateDefinition,
+    HydratedEighteenXXState,
+    inKnownPhase
+} from './eighteenXXState.js'
 import type { EighteenXXTitleRules, InitialFinances } from './eighteenXXTitleRules.js'
 export type InitialStateParts = {
     stockRoundNumber: number
@@ -21,6 +26,7 @@ export type InitialStateParts = {
 export type EighteenXXInitializerRules = Pick<
     EighteenXXTitleRules,
     | 'state'
+    | 'phases'
     | 'createFinances'
     | 'offerAuctionRules'
     | 'auctionRules'
@@ -90,27 +96,30 @@ export class EighteenXXInitializer extends BaseGameInitializer<
         parts: InitialStateParts
     ): HydratedEighteenXXState {
         const players = this.playerStates(game)
-        return (this.rules.state ?? FamilyStateDefinition).hydrate(
-            {
-                ...state,
-                players,
-                activePlayerIds: [players[0].playerId],
-                example: 'finances',
-                phaseEvents: [],
-                usedPrivatePowerIds: [],
-                machineState: 'StockRound',
-                stockRound: createStockRound(parts.stockRoundNumber),
-                stockMarket: parts.stockMarket,
-                turnManager: new HydratedTurnManager({
-                    series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
-                    turnOrder: players.map((player) => player.playerId),
-                    turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
-                }),
-                ...parts.finances
-            },
-            this.rules.map,
-            this.rules.tileSet,
-            this.rules.trainRules.depot
+        return inKnownPhase(
+            (this.rules.state ?? FamilyStateDefinition).hydrate(
+                {
+                    ...state,
+                    players,
+                    activePlayerIds: [players[0].playerId],
+                    example: 'finances',
+                    phaseEvents: [],
+                    usedPrivatePowerIds: [],
+                    machineState: 'StockRound',
+                    stockRound: createStockRound(parts.stockRoundNumber),
+                    stockMarket: parts.stockMarket,
+                    turnManager: new HydratedTurnManager({
+                        series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
+                        turnOrder: players.map((player) => player.playerId),
+                        turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
+                    }),
+                    ...parts.finances
+                },
+                this.rules.map,
+                this.rules.tileSet,
+                this.rules.trainRules.depot
+            ),
+            this.rules.phases
         )
     }
     protected applyPhaseEffects(state: HydratedEighteenXXState): void {

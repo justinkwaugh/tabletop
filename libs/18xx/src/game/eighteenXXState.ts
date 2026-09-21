@@ -19,6 +19,7 @@ import { StationStep } from '../stations/stationPlacement.js'
 import { TrackStep } from '../construction/trackConstruction.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
 import type { RailwayMap } from '../map/map.js'
+import type { PhaseTable } from '../phases/phaseTable.js'
 import type { TileSet, TileInventory } from '../tiles/inventory.js'
 import { OperatingSet } from '../operating/operatingSet.js'
 import { CompanyFields, type CompanyState } from '../company/companyState.js'
@@ -232,6 +233,14 @@ export type EighteenXXStateDefinition = {
 export const FamilyStateDefinition: EighteenXXStateDefinition = {
     schema: EighteenXXState,
     hydrate: (data, map, tileSet, depot) => new HydratedEighteenXXState(data, map, tileSet, depot)
+}
+
+export function inKnownPhase(
+    state: HydratedEighteenXXState,
+    phases: PhaseTable
+): HydratedEighteenXXState {
+    assert(phases.has(state.phaseId), `Unknown phase ${state.phaseId}`)
+    return state
 }
 
 export function requireEighteenXXState(state: HydratedGameState): HydratedEighteenXXState {
