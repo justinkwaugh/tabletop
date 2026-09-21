@@ -64,8 +64,9 @@ obligation during the stock round.
 A TOP stock handler adds the one title Action and delegates ordinary stock behavior.
 The shared example runtime accepts an optional stock handler inside its existing
 private-exchange and company-decision wrappers. Those wrappers retain their pending
-decision and flotation precedence. TOP registers its Action schema and hydrator
-locally; shared libraries and 1889 acquire no split Action or canonical fields.
+decision and flotation precedence. TOP registers its Action through
+[`titleActions`](title-actions-design.md); shared libraries and 1889 acquire no
+split Action or canonical fields.
 TypeBox is now a direct TOP logic dependency for its first title-owned Action.
 
 ## UI and verification

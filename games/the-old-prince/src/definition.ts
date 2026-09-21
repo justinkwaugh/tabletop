@@ -22,6 +22,7 @@ import { TheOldPrinceStockRules } from './stockRules.js'
 import { GameVisibility, type GameDefinition } from '@tabletop/common'
 import {
     createEighteenXXRuntime,
+    defineAction,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type HydratedEighteenXXState
@@ -30,6 +31,9 @@ import {
 export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
     endingRules: TheOldPrinceEndingRules,
     stockRoundHandler: new TheOldPrinceStockRoundHandler(),
+    titleActions: [
+        defineAction(SplitCompany, isSplitCompany, (action) => new HydratedSplitCompany(action))
+    ],
     offerAuctionRules: TheOldPrinceAuctionRules,
     trainFundingRules: TheOldPrinceTrainFundingRules,
     transferRules: TheOldPrinceTransferRules,
@@ -49,7 +53,6 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
     phaseRules: TheOldPrincePhaseRules,
     trainRules: TheOldPrinceTrainRules
 }
-const FinanceRuntime = createEighteenXXRuntime(TheOldPrinceTitleRules)
 
 export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
     info: {
@@ -68,15 +71,5 @@ export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState
             visibility: GameVisibility.Alpha
         }
     },
-    runtime: {
-        ...FinanceRuntime,
-        apiActions: { ...FinanceRuntime.apiActions, SplitCompany },
-        hydrator: {
-            ...FinanceRuntime.hydrator,
-            hydrateAction: (action) =>
-                isSplitCompany(action)
-                    ? new HydratedSplitCompany(action)
-                    : FinanceRuntime.hydrator.hydrateAction(action)
-        }
-    }
+    runtime: createEighteenXXRuntime(TheOldPrinceTitleRules)
 }

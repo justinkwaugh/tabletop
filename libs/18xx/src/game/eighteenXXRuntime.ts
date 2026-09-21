@@ -153,7 +153,8 @@ export function createEighteenXXRuntime(
         ...stationActions(options.stationRules),
         ...routeActions(options.routeRules),
         ...earningsActions(options.earningsRules, options.privateRules, rules),
-        ...trainActions(options.trainRules, options.phaseRules)
+        ...trainActions(options.trainRules, options.phaseRules),
+        ...(options.titleActions ?? [])
     ])
     return {
         initializer: new EighteenXXInitializer(options),
