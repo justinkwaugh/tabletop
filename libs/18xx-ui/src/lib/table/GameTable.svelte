@@ -834,6 +834,7 @@
                                     chart={phaseChart}
                                     currentPhaseId={headerState.phaseId}
                                     {trainColors}
+                                    tileColors={tileAppearance.colors}
                                 />
                             </div>
                         {:else if id === 'Depot'}<div class="workspace-view">
@@ -844,6 +845,7 @@
                                     chart={phaseChart}
                                     currentPhaseId={session.gameState.phaseId}
                                     {trainColors}
+                                    tileColors={tileAppearance.colors}
                                 />
                             </div>
                         {:else if id === 'Players'}<div class="workspace-view players-pane">
