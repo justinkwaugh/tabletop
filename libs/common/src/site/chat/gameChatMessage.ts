@@ -6,7 +6,8 @@ export const GameChatMessage = Type.Evaluate(
     Type.Intersect([
         ChatMessage,
         Type.Object({
-            playerId: Type.Optional(Type.String())
+            playerId: Type.Optional(Type.String()),
+            admin: Type.Optional(Type.Boolean())
         })
     ])
 )

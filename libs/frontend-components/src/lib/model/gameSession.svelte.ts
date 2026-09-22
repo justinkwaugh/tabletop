@@ -16,6 +16,7 @@ import {
     createAction,
     type User,
     type GameChat,
+    type GameChatMessage,
     Visibility
 } from '@tabletop/common'
 import { watch } from 'runed'
@@ -27,7 +28,7 @@ import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBri
 import type { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
 import type { ChatServiceBridge } from '$lib/services/bridges/chatServiceBridge.svelte.js'
 import type { GameUIRuntime } from '$lib/definition/gameUiDefinition'
-import type { ChatService } from '$lib/services/chatService'
+import type { ChatAuthor, ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
@@ -393,6 +394,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     isChatParticipant: boolean = $derived(this.chatMessagePlayer !== undefined)
 
+    chatAuthor: ChatAuthor | undefined = $derived.by(() => {
+        if (!this.chatAvailable) {
+            return undefined
+        }
+        if (!this.primaryGame.hotseat && this.isActingAdmin) {
+            return { kind: 'admin' }
+        }
+        const player = this.chatMessagePlayer
+        return player ? { kind: 'player', player } : undefined
+    })
+
     myPlayerState: PlayerStateOf<U> | undefined = $derived.by(() =>
         this.gameState.findPlayerState(this.myPlayer?.id)
     )
@@ -518,6 +530,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     hasUnreadMessages = $derived.by(() => {
         return this.isChatParticipant && this.hasUnreadMessagesStore.current
     })
+
+    async sendChatMessage(text: string): Promise<void> {
+        const author = this.chatAuthor
+        assertExists(author, 'No chat author for this session')
+        const attribution: Pick<GameChatMessage, 'playerId' | 'admin'> =
+            author.kind === 'admin' ? { admin: true } : { playerId: author.player.id }
+        await this.chatService.sendGameChatMessage(
+            { id: nanoid(), timestamp: new Date(), text, ...attribution },
+            this.primaryGame.id
+        )
+    }
 
     async markChatRead(): Promise<void> {
         if (!this.isChatParticipant) {

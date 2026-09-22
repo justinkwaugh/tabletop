@@ -1,5 +1,6 @@
 import {
     Bookmark,
+    Game,
     GameChat,
     GameChatMessage,
     GameNotificationAction,
@@ -32,23 +33,18 @@ export class ChatService {
         if (!game) {
             throw new GameNotFoundError({ id: gameId })
         }
-        if (!user.roles.includes(Role.Admin)) {
-            const player = this.gameService.findValidPlayerForUser({ user, game })
-            if (player.id !== message.playerId) {
-                throw new InvalidChatMemberError({ playerId: player.id, gameId })
-            }
-        }
+        const attributedMessage = this.attributeMessage(user, game, message)
 
-        const chat = await this.chatStore.addGameChatMessage(message, gameId)
+        const chat = await this.chatStore.addGameChatMessage(attributedMessage, gameId)
         const updatedMessage = chat.messages.find((m) => m.id === message.id)
         if (!updatedMessage) {
             throw new AddMessageError({ gameId })
         }
 
-        if (message.playerId) {
+        if (attributedMessage.playerId) {
             await this.chatStore.setGameChatBookmark(gameId, {
-                id: message.playerId,
-                lastReadTimestamp: message.timestamp
+                id: attributedMessage.playerId,
+                lastReadTimestamp: attributedMessage.timestamp
             })
         }
 
@@ -65,6 +61,26 @@ export class ChatService {
             })
 
         return chat
+    }
+
+    private attributeMessage(user: User, game: Game, message: GameChatMessage): GameChatMessage {
+        const isAdmin = user.roles.includes(Role.Admin)
+        if (message.playerId === undefined) {
+            if (!isAdmin) {
+                throw new UserIsNotAllowedPlayerError({ user, gameId: game.id })
+            }
+            return { ...message, admin: true }
+        }
+
+        if (!isAdmin) {
+            const player = this.gameService.findValidPlayerForUser({ user, game })
+            if (player.id !== message.playerId) {
+                throw new InvalidChatMemberError({ playerId: player.id, gameId: game.id })
+            }
+        }
+        const playerMessage = { ...message }
+        delete playerMessage.admin
+        return playerMessage
     }
 
     async getGameChatEtag(gameId: string): Promise<string | undefined> {

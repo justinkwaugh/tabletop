@@ -33,12 +33,16 @@ describe('HarnessChatService', () => {
         const chat = service.currentGameChat
         assertExists(chat)
         expect(chat.gameId).toBe(game.id)
-        expect(chat.messages).toHaveLength(3)
+        expect(chat.messages).toHaveLength(4)
         expect(chat.messages).toMatchObject([
             { playerId: 'one' },
             { playerId: 'two' },
+            { admin: true },
             { playerId: 'three' }
         ])
+        const adminMessages = chat.messages.filter((message: GameChatMessage) => message.admin)
+        expect(adminMessages).toHaveLength(1)
+        expect('playerId' in adminMessages[0]).toBe(false)
         expect(chat.messages.some((message) => message.text.includes('\n'))).toBe(true)
         expect(chat.messages.some((message) => message.text.includes('🎲'))).toBe(true)
         expect(chat.messages.some((message) => message.text.length > 80)).toBe(true)
@@ -93,6 +97,7 @@ describe('HarnessChatService', () => {
         expect(replacementChat.messages).toMatchObject([
             { playerId: 'other' },
             { playerId: 'other' },
+            { admin: true },
             { playerId: 'other' }
         ])
         expect(replacementChat.messages.every((message) => !message.id.includes('game-a'))).toBe(

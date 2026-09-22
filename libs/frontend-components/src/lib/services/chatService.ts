@@ -1,4 +1,6 @@
-import type { Game, GameChat, GameChatMessage } from '@tabletop/common'
+import type { Game, GameChat, GameChatMessage, Player } from '@tabletop/common'
+
+export type ChatAuthor = { kind: 'player'; player: Player } | { kind: 'admin' }
 
 export enum ChatEventType {
     NewGameChatMessage = 'newGameChatMessage'

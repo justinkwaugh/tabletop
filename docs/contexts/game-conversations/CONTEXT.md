@@ -19,7 +19,7 @@ _Avoid_: Chat message
 A Conversation Message sent by a Joined Player while the Game is In Progress or Finished. The Player is its visible author, while the submitting User Account is retained as private audit attribution.
 
 **Administrative Message**:
-A Conversation Message sent by an Administrator in Admin Mode for explicit moderation. The Administrator is visibly attributed and cannot impersonate a Player or owner.
+A Conversation Message sent by an Administrator in Admin Mode. It carries no Player and is presented with a distinct administrative attribution instead of a Player identity, so the Administrator cannot impersonate a Player or owner. It advances no Read Position for the Administrator.
 
 **Conversation History**:
 The canonical Message collection ordered by accepted timestamp, with persisted append order breaking ties. It remains readable after the Game finishes, is removed with permanent Game deletion, and is not copied into a Fork.

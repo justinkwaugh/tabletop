@@ -378,7 +378,7 @@ export async function runSpectatorChatReadPosition() {
             await settle(c.session)
         }
         assert(
-            observer.session.currentGameChat?.messages.length === 3,
+            observer.session.currentGameChat?.messages.length === 4,
             'Spectator chat fixture has no messages'
         )
         assert(!observer.session.isChatParticipant, 'Spectator counts as chat participant')

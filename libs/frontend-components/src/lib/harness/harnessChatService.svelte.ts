@@ -151,12 +151,21 @@ export class HarnessChatService implements ChatService {
                 timestamp: new Date(now - 2 * 60 * 1000)
             }
         ]
-
-        return fixtures.map((fixture, index) => ({
+        const playerMessages = fixtures.map((fixture, index) => ({
             id: `harness-message-${game.id}-${index + 1}`,
             playerId: players[index % players.length].id,
             timestamp: fixture.timestamp,
             text: fixture.text
         }))
+        const adminMessage: GameChatMessage = {
+            id: `harness-message-${game.id}-admin`,
+            admin: true,
+            timestamp: new Date(now - 4 * 60 * 1000),
+            text: 'Heads up: the server restarts in ten minutes. Your game will be saved.'
+        }
+
+        return [...playerMessages, adminMessage].sort(
+            (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+        )
     }
 }
