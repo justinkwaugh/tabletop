@@ -2,6 +2,7 @@
     import { assertExists } from '@tabletop/common'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import PrivateCard from '../privates/PrivateCard.svelte'
+    import CardLightbox from '../privates/CardLightbox.svelte'
     import AuctionBidControl from './AuctionBidControl.svelte'
     import { auctionLotDetails } from './auctionLotDetails.js'
 
@@ -32,6 +33,8 @@
         return bidder.playerId
     })
     const amount = $derived(session.offers.selection?.amount ?? model.minimumBid)
+    const imageUrl = $derived(session.publishedCardImage(lot.id))
+    let lightbox = $state(false)
     function canBid(amount: number) {
         return (
             session.offers.canAct &&
@@ -54,17 +57,38 @@
 </script>
 
 <article class="centered-panel" aria-label="Current auction">
-    <div class="lot">
-        <PrivateCard
-            {money}
-            phaseColors={session.presentation.phaseColors}
-            token={lot.token}
-            name={lot.name}
-            description={lotInfo(lot.id).description}
-            value={lot.price}
-            income={session.privates.companies.find((company) => company.id === lot.id)
-                ?.privateRevenue}
-        />
+    <div class="lot" class:image={!!imageUrl}>
+        {#if imageUrl}
+            <button
+                class="card-button"
+                aria-label={`Show ${lot.name} card`}
+                onclick={() => {
+                    lightbox = true
+                }}
+            >
+                <PrivateCard {money} name={lot.name} description="" {imageUrl} />
+            </button>
+            {#if lightbox}
+                <CardLightbox
+                    {imageUrl}
+                    name={lot.name}
+                    onclose={() => {
+                        lightbox = false
+                    }}
+                />
+            {/if}
+        {:else}
+            <PrivateCard
+                {money}
+                phaseColors={session.presentation.phaseColors}
+                token={lot.token}
+                name={lot.name}
+                description={lotInfo(lot.id).description}
+                value={lot.price}
+                income={session.privates.companies.find((company) => company.id === lot.id)
+                    ?.privateRevenue}
+            />
+        {/if}
     </div>
     <div class="turn">
         <div class="bid-summary">
@@ -104,6 +128,32 @@
     .lot {
         width: 300px;
         max-width: 100%;
+    }
+    /* Fill the action pane and contain the size so the published card can measure the pane. */
+    article {
+        container-type: size;
+        flex: 1 1 auto;
+        min-height: 196px;
+    }
+    .lot.image {
+        width: auto;
+    }
+    .card-button {
+        display: block;
+        padding: 0;
+        border: 0;
+        background: none;
+        cursor: zoom-in;
+        border-radius: 10px;
+    }
+    .card-button:focus-visible {
+        outline: 2px solid var(--rail-focus, #796047);
+        outline-offset: 3px;
+    }
+    /* Published card art shrinks with the pane, with a floor so it stays legible. */
+    .lot.image :global(.private-card img) {
+        width: auto;
+        height: clamp(180px, 100cqh - 16px, 360px);
     }
     .bid-summary {
         display: flex;

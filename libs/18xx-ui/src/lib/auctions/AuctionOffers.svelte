@@ -65,6 +65,7 @@
                                 {money}
                                 phaseColors={session.presentation.phaseColors}
                                 {token}
+                                imageUrl={session.publishedCardImage(lot.id)}
                                 name={lot.name}
                                 description={info.description}
                                 value={lot.price}

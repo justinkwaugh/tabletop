@@ -14,6 +14,20 @@ import MBToken from './images/tokens/MB.svg'
 import BBToken from './images/tokens/BB.svg'
 import WBToken from './images/tokens/WB.svg'
 import HRBToken from './images/tokens/HRB.svg'
+import CPublished from './images/published/tokens/C.svg'
+import SoPublished from './images/published/tokens/So.svg'
+import APublished from './images/published/tokens/A.svg'
+import MSPublished from './images/published/tokens/MS.svg'
+import MRPublished from './images/published/tokens/MR.svg'
+import SPublished from './images/published/tokens/S.svg'
+import GtPublished from './images/published/tokens/Gt.svg'
+import PEIRPublished from './images/published/tokens/PEIR.svg'
+import CBPublished from './images/published/tokens/CB.svg'
+import SBPublished from './images/published/tokens/SB.svg'
+import MBPublished from './images/published/tokens/MB.svg'
+import BBPublished from './images/published/tokens/BB.svg'
+import WBPublished from './images/published/tokens/WB.svg'
+import HRBPublished from './images/published/tokens/HRB.svg'
 import { TheOldPrinceMap, TheOldPrinceTileSet } from '@tabletop/the-old-prince'
 import type { MapViewDefinition } from '@tabletop/18xx-ui'
 
@@ -29,6 +43,13 @@ export const TheOldPrinceMapView: MapViewDefinition = {
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
     markerImages: { 'vernon-river-bridge': VernonRiver },
+    // Printed city circles that sit off the generic hex centre on the published board, measured in
+    // map units (hex radius 50) from MAP-AUGUST-01.jpg; see docs/board-artwork.md.
+    publishedLayouts: {
+        D14: { nodePositions: { city: { x: 9.9, y: -7.5 } } },
+        F14: { nodePositions: { city: { x: -0.3, y: 11.3 } } },
+        L16: { nodePositions: { city: { x: 0.7, y: 11.6 } } }
+    },
     stations: {
         'branch:CB': { color: '#886bab', label: 'CB', imageUrl: CBToken },
         'branch:SB': { color: '#a44684', label: 'SB', imageUrl: SBToken },
@@ -45,5 +66,24 @@ export const TheOldPrinceMapView: MapViewDefinition = {
         MR: { color: '#4b7b43', label: 'MR', imageUrl: MRToken },
         S: { color: '#286b73', label: 'S', imageUrl: SToken },
         Gt: { color: '#a14372', label: 'Gt', imageUrl: GtToken }
+    },
+    // Published presentation: the Boda Games charter tokens, coloured with the wood
+    // specification's disc colours so route and market tints match the artwork.
+    publishedStations: {
+        'branch:CB': { color: '#618e92', label: 'CB', imageUrl: CBPublished },
+        'branch:SB': { color: '#be7047', label: 'SB', imageUrl: SBPublished },
+        'branch:MB': { color: '#7d6c6a', label: 'MB', imageUrl: MBPublished },
+        'branch:BB': { color: '#8a8f55', label: 'BB', imageUrl: BBPublished },
+        'branch:WB': { color: '#5969b1', label: 'WB', imageUrl: WBPublished },
+        'branch:HRB': { color: '#7a5e74', label: 'HRB', imageUrl: HRBPublished },
+        C: { color: '#ac483b', label: 'C', imageUrl: CPublished },
+        ML: { color: '#ac483b', label: 'ML', imageUrl: CPublished },
+        So: { color: '#b56e9a', label: 'So', imageUrl: SoPublished },
+        PEIR: { color: '#353f47', label: 'PEIR', imageUrl: PEIRPublished },
+        A: { color: '#7b69a5', label: 'A', imageUrl: APublished },
+        MS: { color: '#cc9945', label: 'MS', imageUrl: MSPublished },
+        MR: { color: '#908c89', label: 'MR', imageUrl: MRPublished },
+        S: { color: '#607963', label: 'S', imageUrl: SPublished },
+        Gt: { color: '#4d82ac', label: 'Gt', imageUrl: GtPublished }
     }
 }

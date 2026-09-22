@@ -129,7 +129,7 @@
         )
     )
 
-    let publishedArtwork = $state(false)
+    const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
     function paintBodyBackground(_table: HTMLElement, initialColor: string | undefined) {
         const original = document.body.style.backgroundColor
@@ -140,7 +140,7 @@
         return { update: paint, destroy: () => paint(undefined) }
     }
     async function toggleArtwork() {
-        publishedArtwork = !publishedArtwork
+        session.toggleArtwork()
         restoreRouteView = undefined
         await tick()
         mapWrapper?.fitToContent()
@@ -710,7 +710,7 @@
                             </div>{/if}
                         <div class="table-heading">
                             <TableHeader
-                                artworkAvailable={!!session.mapView.boardArtwork}
+                                artworkAvailable={session.publishedArtworkAvailable}
                                 {publishedArtwork}
                                 onToggleArtwork={toggleArtwork}
                                 {session}

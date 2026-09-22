@@ -147,6 +147,9 @@
                             token={player.owner.kind === 'company'
                                 ? session.privateCompanyTokens[player.owner.companyId]
                                 : undefined}
+                            imageUrl={session.publishedCardImage(
+                                player.owner.kind === 'company' ? player.owner.companyId : undefined
+                            )}
                             name={player.name}
                             description={player.description}
                         />{:else}<span>{player.name}</span>{/if}
@@ -251,6 +254,7 @@
                                                 {money}
                                                 phaseColors={session.presentation.phaseColors}
                                                 token={lot.token}
+                                                imageUrl={session.publishedCardImage(lot.id)}
                                                 name={lot.name}
                                                 {description}
                                                 value={lot.price}
@@ -410,6 +414,7 @@
                                             {money}
                                             phaseColors={session.presentation.phaseColors}
                                             token={session.privateCompanyTokens[entry.company.id]}
+                                            imageUrl={session.publishedCardImage(entry.company.id)}
                                             name={entry.company.name}
                                             value={entry.value}
                                             income={entry.income}

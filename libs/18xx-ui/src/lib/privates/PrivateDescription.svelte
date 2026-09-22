@@ -3,6 +3,7 @@
     import { flip, shift, offset, hide } from '@floating-ui/dom'
     import { assertExists } from '@tabletop/common'
     import PrivateCard from './PrivateCard.svelte'
+    import CardLightbox from './CardLightbox.svelte'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import { Floater } from '@tabletop/frontend-components'
 
@@ -13,7 +14,8 @@
         value,
         income,
         token,
-        phaseColors = {}
+        phaseColors = {},
+        imageUrl
     }: {
         money: MoneyFormat
         name: string
@@ -22,6 +24,7 @@
         income?: number
         token?: StationAppearance
         phaseColors?: Readonly<Record<string, string>>
+        imageUrl?: string
     } = $props()
     const id = $props.id()
     let open = $state(false)
@@ -62,7 +65,15 @@
     aria-expanded={open}
     aria-describedby={open ? `${id}-description` : undefined}>{name}</button
 >
-{#if open}
+{#if open && imageUrl}
+    <CardLightbox
+        {imageUrl}
+        {name}
+        onclose={() => {
+            open = false
+        }}
+    />
+{:else if open}
     <Floater
         reference={`[id="${id}-row"]`}
         placement="top"

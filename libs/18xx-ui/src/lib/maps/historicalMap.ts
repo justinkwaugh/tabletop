@@ -46,12 +46,16 @@ export function historicalMapSnapshot(
 
 export class HistoricalMaps {
     private source?: EighteenXXState
+    private view?: MapViewDefinition
     private readonly cache = new Map<string, HistoricalMap>()
-    constructor(private readonly view: MapViewDefinition) {}
+    /** ``currentView`` is read per preview so presentation changes (token artwork) invalidate the cache. */
+    constructor(private readonly currentView: () => MapViewDefinition) {}
 
     preview(state: EighteenXXState, actions: readonly GameAction[], action: GameAction) {
-        if (this.source !== state) {
+        const view = this.currentView()
+        if (this.source !== state || this.view !== view) {
             this.source = state
+            this.view = view
             this.cache.clear()
         }
         const cached = this.cache.get(action.id)
@@ -86,15 +90,15 @@ export class HistoricalMaps {
             kind: isRunTrains(action) ? 'run' : 'track lay',
             revenue: isRunTrains(action) ? action.metadata?.revenue : undefined,
             scene: createMapDrawing(
-                this.view.map,
+                view.map,
                 {
-                    tileSet: this.view.tileSet,
+                    tileSet: view.tileSet,
                     inventory: snapshot.tileInventory
                 },
-                this.view.layouts,
-                this.view.markerImages
+                view.layouts,
+                view.markerImages
             ),
-            tokens: stationMapTokens(snapshot, this.view.stations),
+            tokens: stationMapTokens(snapshot, view.stations),
             reservations: snapshot.stationReservations,
             routes,
             selection,

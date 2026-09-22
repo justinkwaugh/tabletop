@@ -11,7 +11,8 @@
         income,
         token,
         phaseColors = {},
-        purchaseRange
+        purchaseRange,
+        imageUrl
     }: {
         money: MoneyFormat
         name: string
@@ -21,53 +22,73 @@
         token?: StationAppearance
         phaseColors?: Readonly<Record<string, string>>
         purchaseRange?: { minimum: number; maximum?: number }
+        /** Published card artwork; when present it replaces the generated card. */
+        imageUrl?: string
     } = $props()
     const paragraphs = $derived(description.split('\n\n'))
 </script>
 
-<div class="private-card">
-    <header>
-        <div class="heading">
-            <h3>{name}</h3>
-            {#if token}<CompanyToken appearance={token} size={28} />{/if}
-        </div>
-        {#if value !== undefined || income !== undefined || purchaseRange}
-            <div class="values">
-                {#if income !== undefined}<span
-                        >Income <strong
-                            >{money(income)}{#if !purchaseRange}<small> / OR</small>{/if}</strong
-                        ></span
-                    >{/if}
-                {#if purchaseRange}<span class="value"
-                        >Purchase <strong
-                            >{money(
-                                purchaseRange.minimum
-                            )}{#if purchaseRange.maximum !== undefined}–{money(
-                                    purchaseRange.maximum
-                                )}{/if}</strong
-                        ></span
-                    >
-                {:else if value !== undefined}<span class="value"
-                        >Value <strong>{money(value)}</strong></span
-                    >{/if}
+<div class="private-card" class:image={!!imageUrl} data-card-image={imageUrl ? true : undefined}>
+    {#if imageUrl}
+        <img src={imageUrl} alt={name} />
+    {:else}
+        <header>
+            <div class="heading">
+                <h3>{name}</h3>
+                {#if token}<CompanyToken appearance={token} size={28} />{/if}
             </div>
+            {#if value !== undefined || income !== undefined || purchaseRange}
+                <div class="values">
+                    {#if income !== undefined}<span
+                            >Income <strong
+                                >{money(income)}{#if !purchaseRange}<small>
+                                        / OR</small
+                                    >{/if}</strong
+                            ></span
+                        >{/if}
+                    {#if purchaseRange}<span class="value"
+                            >Purchase <strong
+                                >{money(
+                                    purchaseRange.minimum
+                                )}{#if purchaseRange.maximum !== undefined}–{money(
+                                        purchaseRange.maximum
+                                    )}{/if}</strong
+                            ></span
+                        >
+                    {:else if value !== undefined}<span class="value"
+                            >Value <strong>{money(value)}</strong></span
+                        >{/if}
+                </div>
+            {/if}
+        </header>
+        {#if description}
+            {#each paragraphs as paragraph, index}
+                <p>
+                    {#if paragraph.startsWith('**') && paragraph.endsWith('**')}<strong
+                            class="intro">{paragraph.slice(2, -2)}</strong
+                        >{:else}{#each paragraph.split(/(\b\d+(?:H|\+)?)/g) as part}{#if index === paragraphs.length - 1 && phaseColors[part]}<TrainBadge
+                                    name={part}
+                                    color={phaseColors[part]}
+                                />{:else}{part}{/if}{/each}{/if}
+                </p>
+            {/each}
         {/if}
-    </header>
-    {#if description}
-        {#each paragraphs as paragraph, index}
-            <p>
-                {#if paragraph.startsWith('**') && paragraph.endsWith('**')}<strong class="intro"
-                        >{paragraph.slice(2, -2)}</strong
-                    >{:else}{#each paragraph.split(/(\b\d+(?:H|\+)?)/g) as part}{#if index === paragraphs.length - 1 && phaseColors[part]}<TrainBadge
-                                name={part}
-                                color={phaseColors[part]}
-                            />{:else}{part}{/if}{/each}{/if}
-            </p>
-        {/each}
     {/if}
 </div>
 
 <style>
+    .private-card.image {
+        border: 0;
+        border-radius: 10px;
+        background: none;
+        line-height: 0;
+    }
+    .private-card.image img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+    }
     .private-card {
         border: 1px solid var(--rail-border, #c9baa5);
         border-radius: 8px;

@@ -163,19 +163,50 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     }
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
+    /**
+     * Whether this player is viewing the title's published artwork (board image and token art)
+     * instead of the generic presentation. A display choice only: it never changes Game State.
+     */
+    publishedArtwork = $state(false)
+    get publishedArtworkAvailable(): boolean {
+        return (
+            !!this.mapViewDefinition.boardArtwork ||
+            !!this.mapViewDefinition.publishedStations ||
+            !!this.presentation.publishedCardImages
+        )
+    }
+    toggleArtwork() {
+        this.publishedArtwork = !this.publishedArtwork
+    }
+    /** Published card image for a private company or certificate id, when that presentation is on. */
+    publishedCardImage(id: string | undefined): string | undefined {
+        if (!this.publishedArtwork || id === undefined) return undefined
+        return this.presentation.publishedCardImages?.[id]
+    }
+    /** The map view for the current presentation: published token art replaces the generic set when selected. */
+    readonly mapView: MapViewDefinition = $derived.by(() => {
+        const definition = this.mapViewDefinition
+        if (!this.publishedArtwork) return definition
+        if (!definition.publishedStations && !definition.publishedLayouts) return definition
+        return {
+            ...definition,
+            stations: { ...definition.stations, ...definition.publishedStations },
+            layouts: { ...definition.layouts, ...definition.publishedLayouts }
+        }
+    })
     constructor(
         options: SessionOptions,
         private readonly rules: EighteenXXTitleRules,
-        readonly mapView: MapViewDefinition,
+        private readonly mapViewDefinition: MapViewDefinition,
         readonly presentation: TitlePresentation
     ) {
         super(options)
         const { map, tileSet } = titleComponents(rules)
         assert(
-            mapView.map === map && mapView.tileSet === tileSet,
+            mapViewDefinition.map === map && mapViewDefinition.tileSet === tileSet,
             'The map view must present the title’s map and tile set'
         )
-        this.historicalMaps = new HistoricalMaps(mapView)
+        this.historicalMaps = new HistoricalMaps(() => this.mapView)
         this.registerLocalSelections()
     }
     auctionLotsFor(state: EighteenXXState) {

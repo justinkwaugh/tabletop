@@ -339,6 +339,7 @@
                     {money}
                     phaseColors={session.presentation.phaseColors}
                     token={session.privateCompanyTokens[item.id]}
+                    imageUrl={session.publishedCardImage(item.id)}
                     name={item.name}
                     description={item.description}
                     income={item.closed ? undefined : item.privateRevenue}

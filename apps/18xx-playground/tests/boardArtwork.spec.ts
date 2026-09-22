@@ -63,3 +63,41 @@ for (const width of [1280, 390]) {
         expect(errors).toEqual([])
     })
 }
+
+test('published artwork swaps token art and private cards', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto('/table')
+    const publishedTokens = page.locator('image[href*="published/tokens/"]')
+    await page.getByRole('button', { name: 'Use published artwork', exact: true }).waitFor()
+    await expect(publishedTokens).toHaveCount(0)
+    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+    await expect.poll(() => publishedTokens.count()).toBeGreaterThan(0)
+    await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
+    await expect(publishedTokens).toHaveCount(0)
+
+    await page.getByLabel('Position', { exact: true }).selectOption('opening')
+    const cardImages = page.locator('[data-card-image] img')
+    const offers = page.getByRole('region', { name: 'Auction offers' })
+    await page.getByRole('button', { name: 'Use published artwork', exact: true }).click()
+    const peirLot = offers.locator('button.name', { hasText: 'PEIR' }).first()
+    await peirLot.click()
+    await expect(cardImages).toHaveCount(1)
+    await expect(cardImages.first()).toHaveAttribute('src', /published\/peirs\/v2\//)
+    await page.keyboard.press('Escape')
+    await expect(cardImages).toHaveCount(0)
+    await offers.getByRole('button', { name: 'Offer Merchants and Co.', exact: true }).click()
+    const bidding = page.getByRole('article', { name: 'Current auction' })
+    await expect(bidding.locator('[data-card-image] img')).toHaveAttribute(
+        'src',
+        /published\/privates\//
+    )
+    await bidding.getByRole('button', { name: 'Show Merchants and Co. card', exact: true }).click()
+    await expect(page.getByRole('dialog', { name: 'Merchants and Co.' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog', { name: 'Merchants and Co.' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
+    await expect(cardImages).toHaveCount(0)
+    await expect(bidding.locator('.private-card h3')).toHaveText('Merchants and Co.')
+    expect(errors).toEqual([])
+})

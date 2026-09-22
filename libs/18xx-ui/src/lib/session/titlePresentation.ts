@@ -26,4 +26,9 @@ export type TitlePresentation = {
     privatePurchaseLabel?: string
     privatePurchaseHeading?: string
     privateTilePrompts?: Readonly<Record<string, string>>
+    /**
+     * Published card artwork for the published presentation, keyed by private company id or
+     * certificate id (for shares auctioned like privates). Shown in place of the generated card.
+     */
+    publishedCardImages?: Readonly<Record<string, string>>
 }

@@ -25,8 +25,13 @@ Initial alignment uses a map origin at (55.5, 105.5) pixels and scale 1.173. The
 diagnostic grid is hidden in artwork mode. Island hexes align closely. The user
 confirmed that the physical board intentionally rearranges offboards: no tiles
 are laid on them and their game meaning is unchanged, so those differences do not
-require tile alignment. Some printed city centers differ from the generic node
-layout and remain calibration gaps. The file's rules-edition equivalence has not
+require tile alignment. Printed city circles were measured against the generic
+node layout (ring detection on the image, offsets in map units of hex radius 50):
+Wellington D14 sits at (9.9, -7.5), Summerside F14 at (-0.3, 11.3) and Charlottetown
+L16 at (0.7, 11.6); every other preprinted city is within two units of the hex
+centre, and the twin-slot cities at Morell P12 and Emerald Junction I17 print their
+slots 12.4 units apart against the renderer's 11. The three offsets are applied as
+published-only layouts in `mapView.ts` so tokens land on the printed circles. The file's rules-edition equivalence has not
 been established by its filename; this is an alignment preview, not a claim of
 complete published-edition fidelity. The existing market and phase panels display current game facts; the updated
 image omits the old printed reference tables.

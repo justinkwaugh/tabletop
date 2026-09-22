@@ -1,0 +1,18 @@
+{
+  "$comment": "Tile rendering style measured from the Boda Games The Old Prince punch sheets (artassets/the-old-prince/hexes, 300 dpi CMYK raster). Hex is 520 px flat-to-flat; 'renderer' values are scaled to the shared TileArtwork hex (86.6 units flat-to-flat).",
+  "hex": { "flatToFlatPx": 520, "rendererScale": 0.1665 },
+  "style": {
+    "description": "Hand-inked look on speckled paper: rough-edged near-black track without casing, off-white station circles with a heavy ink ring, white pill revenue badges with bold numerals, black blob town markers on the track, faint tone-on-tone rings or hex outlines marking special tiles. Tile backs are black speckled paper.",
+    "colors": { "yellow": "#dcc464", "green": "#9ce464", "brown": "#cc9cac", "gray": "#bcc4c4" },
+    "colorsNote": "Brown-tier tiles are printed dusty rose; gray-tier tiles are pale sage gray.",
+    "ink": "#070707",
+    "paper": "#f4f2ea",
+    "track": { "inkWidthPx": 37, "casing": "none", "edge": "rough (displaced), speckle overlay" },
+    "renderer": { "trackWidth": 6.2, "trackBorderWidth": 0, "townMarker": "dot" },
+    "city": { "fill": "#f4f2ea", "ring": "#070707", "ringWidthPx": 9 },
+    "town": { "marker": "blob on track", "fill": "#070707" },
+    "revenue": { "shape": "pill", "fill": "#f6f4ee", "textColor": "#070707", "textWeight": "bold condensed" },
+    "specialMarkers": { "ring": "faint darker-tint circle around a station", "hexOutline": "faint darker-tint hex inside the tile edge" },
+    "texture": "fine paper grain plus dark and light speckles across the whole tile; a mid-grey texture can be overlaid at ~8% opacity"
+  }
+}

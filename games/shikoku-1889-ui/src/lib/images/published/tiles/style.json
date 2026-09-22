@@ -1,0 +1,30 @@
+{
+  "$comment": "Tile rendering styles measured from the Boda Games Shikoku 1889 punchboards (artassets/shikoku). Values are PDF points on a 108 pt flat-to-flat hex (vertex radius 62.35 pt); 'renderer' values are the same numbers scaled to the shared TileArtwork hex (vertex radius 50). Ink is #231f20 everywhere.",
+  "hex": { "flatToFlatPt": 108, "vertexRadiusPt": 62.35, "rendererScale": 0.802 },
+  "styles": {
+    "plain": {
+      "description": "Flat saturated tile colours, white track casing, white station circles with an ink ring, white revenue ovals. Printed on the seating-order side of each punchboard.",
+      "colors": { "yellow": "#ffde18", "green": "#00aa7e", "brown": "#b9785c" },
+      "ink": "#231f20",
+      "paper": "#ffffff",
+      "track": { "inkWidthPt": 8.0, "casingWidthPt": 11.0, "casingColor": "#ffffff" },
+      "renderer": { "trackWidth": 6.4, "trackBorderWidth": 2.4 },
+      "city": { "fill": "#ffffff", "ring": "#231f20", "ringWidthPt": 3.0, "twinSlotBridgeInkWidthPt": 10.5 },
+      "town": { "marker": "dot", "fill": "#231f20" },
+      "revenue": { "shape": "oval", "fill": "#ffffff", "textColor": "#231f20" },
+      "tokenSpots": { "KO": "#c9243f", "TR": "#00ae8d" }
+    },
+    "patterned": {
+      "description": "Muted tile colours over a tone-on-tone ornamental hex lattice, no white casing (track is cased in the tile colour to cut the pattern), station circles filled in a darker tint of the tile colour, white revenue ovals.",
+      "colors": { "yellow": "#ffd65c", "green": "#50bf9d", "brown": "#b9886e" },
+      "pattern": { "yellow": "#e8c453", "green": "#42b392", "brown": "#a57c66" },
+      "ink": "#231f20",
+      "paper": "#ffffff",
+      "track": { "inkWidthPt": 9.5, "casingWidthPt": 13.0, "casingColor": "tile colour" },
+      "renderer": { "trackWidth": 7.6, "trackBorderWidth": 2.8 },
+      "city": { "fill": { "yellow": "#bd8d27", "green": "#33745d", "brown": "#6b4f3e" }, "ring": "tile colour", "ringWidthPt": 6.0 },
+      "town": { "marker": "dot", "fill": { "yellow": "#bd8d27", "green": "#33745d", "brown": "#6b4f3e" } },
+      "revenue": { "shape": "oval", "fill": "#ffffff", "textColor": "#231f20" }
+    }
+  }
+}

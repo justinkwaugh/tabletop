@@ -78,10 +78,16 @@ These change shared presentation without adding interaction:
 - Vernon River's unbuilt map marker is title artwork: a large VR above two small
   connected circles. It disappears when a tile is laid and adds no route nodes or
   station slots.
-- The published board option uses the packaged board image. In that mode the page
-  and map surround take the board's dark border color, and leaving the mode or the
-  table restores the normal background. Calibration notes are in
-  [the board artwork note](board-artwork.md).
+- The published artwork option uses the packaged board image, the Boda Games charter
+  tokens (icon discs in the wood-specification colours, which also tint routes and
+  market entries), the published private cards and second-variant PEIR certificates in
+  the auction bidding panel and, when a private is clicked, centred over a full-screen
+  mask at a size that follows the viewport, and printed-city station positions
+  for Wellington, Summerside and Charlottetown. In that mode the page and map surround
+  take the board's dark border color, and leaving the mode or the table restores the
+  generic lettered tokens, generated cards and background. It is a per-player display
+  choice held by the session; it never changes Game State or creates an Action.
+  Calibration notes are in [the board artwork note](board-artwork.md).
 
 ## Coexistence and precedence
 
@@ -140,9 +146,11 @@ publication and History View, and cleared before each new visible state.
   strip renders it and owns its selected styling.
 - **Tranches.** The title owns the tranche display inside the shared game
   information slot.
-- **Map.** The shared map owns all map rendering. The title supplies the token
-  artwork, the Vernon River marker, and the published board image, and excludes PEIR
-  from company map focus.
+- **Map.** The shared map owns all map rendering. The title supplies both token
+  sets (generic and published), the Vernon River marker, the published board image
+  with its printed-city layouts, and the published card images; the shared session
+  chooses between generic and published from the artwork toggle. The title excludes
+  PEIR from company map focus.
 
 ## Verification scenarios
 
@@ -158,7 +166,8 @@ publication and History View, and cleared before each new visible state.
 | Split commitment | Complete valid allocation | Confirm split | One action; shares, stations, trains, cash, tranche, and turn update together; branch stations appear on the map | Undo restores the entire pre-split state; reload keeps the split | Automated, engine (`splitCompany.spec.ts`, `branchSplit.spec.ts`); manual in browser |
 | Selection across history | Split selection in progress | Enter History View, then return | Selection hidden in history | Selection is cleared once a new state is applied | Manual |
 | Value label | Company cards and spreadsheet | Switch spreadsheet orientation, step through history | Value replaces Par and follows displayed state | 1889 keeps Par and Market | Manual |
-| Published board | Generic map with a track selection | Toggle published board | Board image under tiles and overlays, dark surround | Toggling back or leaving restores the background | Automated, browser (`boardArtwork.spec.ts`) |
+| Published board | Generic map with a track selection | Toggle published artwork | Board image under tiles and overlays, dark surround, published tokens on the map and in panels | Toggling back or leaving restores the background and lettered tokens | Automated, browser (`boardArtwork.spec.ts`) |
+| Published cards | Opening auction, generic presentation | Toggle published artwork, click a lot, offer a lot, click the bidding card | Clicking a lot opens the printed card centred over a full-screen mask, sized from the viewport; the bidding panel shows the same image sized from the action pane's height with a floor (PEIR lots use the second certificate variant), and clicking it opens the same mask; Escape or a click closes it | Toggling back restores the generated card popover | Automated, browser (`boardArtwork.spec.ts`) |
 | Tranches | Companies started across tranches | Start a company, then Undo | Slots fill and closed tranches lock | Undo empties the slot | Manual |
 
 A sole Split option in the stock action bar opens automatically, excluding Pass

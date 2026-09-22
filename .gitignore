@@ -60,3 +60,6 @@ tools/deploy/deploy.config.json
 .worktrees/
 
 .local-rehearsals/
+
+# raw publisher art (source material for tools/art-extraction, multi-GB)
+artassets/
