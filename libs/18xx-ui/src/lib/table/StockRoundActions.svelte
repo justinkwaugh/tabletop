@@ -108,11 +108,7 @@
 {#snippet token(companyId: string)}
     <CompanyToken appearance={session.mapView.stations[companyId]} size={38} />
 {/snippet}
-<section
-    class="stock-trading"
-    aria-label="Stock trading"
-    class:centered-panel={!menu || menu === 'buy' || menu === 'sell' || menu === 'exchange'}
->
+<section class="stock-trading centered-panel" aria-label="Stock trading">
     <div class="stock-controls">
         {#if session.stock.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
         {#if menu}

@@ -1758,7 +1758,8 @@ focus on that same button. It must never intercept adjacent actions such as Run
 trains. WebKit browser coverage verifies route focus, Run trains and Undo for TOP
 and 1889.
 
-Stock sales share Buy’s vertical centering and pane scrolling behavior. Company
+Stock sales, company starts and private exchanges share Buy’s vertical centering
+and pane scrolling behavior, as does the root prompt. Company
 choices show the owned share count at token size, followed by the token and the
 price at Buy’s price size. Clicking a company with one owned share immediately
 commits its legal sale. Other companies open legal quantity choices; clicking a
