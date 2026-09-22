@@ -662,7 +662,7 @@
             fontClass="railway-tab-label"
             contentClass="p-0 mt-0 has-[.round-history]:-mt-1 h-full overflow-auto rounded-none bg-transparent dark:bg-transparent"
             activeTabClass="py-2 px-2 text-[var(--rail-text,#5e4937)] rounded-none"
-            inactiveTabClass="py-2 px-2 text-[var(--rail-inactive,#998b79)] hover:text-[var(--rail-text,#5e4937)] rounded-none"
+            inactiveTabClass="py-2 px-2 text-[var(--rail-tab-inactive,var(--rail-inactive,#998b79))] hover:text-[var(--rail-text,#5e4937)] rounded-none"
         ></DefaultTabs>
     </div>
 {/snippet}
@@ -1192,6 +1192,7 @@
         --rail-text: #e6dbce;
         --rail-muted: #af9d87;
         --rail-inactive: #6f6457;
+        --rail-tab-inactive: var(--rail-muted);
         --rail-border: #5c5349;
         --rail-solid: #5c5348;
         --rail-interstitial-border: #22201d;
