@@ -16,6 +16,10 @@ export type TileAppearance = {
     roughness?: number
     /** Station circle ring width; defaults to 1.1. */
     cityRingWidth?: number
+    /** Station circle radius in tile units; defaults to 10. Slot spacing is unchanged. */
+    citySlotRadius?: number
+    /** Company token size on the map in tile units; defaults to 18. */
+    mapTokenSize?: number
     /** Fixed revenue badge: the default ringed circle, or a plain borderless paper disc with black text. */
     revenueBadge?: 'circle' | 'plain'
     /** Labels drawn as a faint tone-on-tone marker instead of text: a ring around the city or an inset hex. */

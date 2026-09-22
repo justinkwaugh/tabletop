@@ -28,7 +28,11 @@ export const TheOldPrincePublishedTileAppearance: TileAppearance = Object.freeze
     // 240 px of a 300 dpi punch tile is 40 tile units (the 520 px punch hex is 86.6 units wide).
     grain: { href: PaperGrain, size: 40 },
     roughness: 1.0,
-    cityRingWidth: 1.6,
+    // Printed circles: white hole about radius 9.7 with a heavy ring out to 12.5 on the tiles,
+    // and rings at about 12.8 on the board, so the token fills a larger hole than the classic style.
+    cityRingWidth: 3,
+    citySlotRadius: 11,
+    mapTokenSize: 22,
     revenueBadge: 'plain',
     labelMarkers: { X: 'ring', T: 'hex' } as const
 })

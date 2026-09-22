@@ -49,6 +49,7 @@
         artwork?: BoardArtwork
         onselect?: (selection: MapSelection) => void
     } = $props()
+    const tokenSize = $derived(appearance.mapTokenSize ?? 18)
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork))
     const perimeterMaskId = $props.id()
     const perimeterRoundingId = `${perimeterMaskId}-rounding`
@@ -231,9 +232,9 @@
                         <g data-map-token={token.id}>
                             <CompanyToken
                                 appearance={token}
-                                size={18}
-                                x={point.x - 9}
-                                y={point.y - 9}
+                                size={tokenSize}
+                                x={point.x - tokenSize / 2}
+                                y={point.y - tokenSize / 2}
                             />
                         </g>
                     {/if}
@@ -376,7 +377,7 @@
                         data-map-slot={`${node.node.id}:${slot}`}
                         cx={point.x}
                         cy={point.y}
-                        r="10"
+                        r={appearance.citySlotRadius ?? 10}
                         fill="transparent"
                         stroke={selected &&
                         selection?.kind === 'slot' &&

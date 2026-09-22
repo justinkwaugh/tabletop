@@ -41,6 +41,7 @@
     const inkId = $derived(`${styleId}-ink`)
     const inkFilter = $derived(appearance.roughness ? `url(#${inkId})` : undefined)
     const cityRingWidth = $derived(appearance.cityRingWidth ?? 1.1)
+    const citySlotRadius = $derived(appearance.citySlotRadius ?? 10)
     /** A darker tint of the tile colour for tone-on-tone markers. */
     const tint = $derived.by(() => {
         const hex = /^#([0-9a-f]{6})$/i.exec(fill)?.[1]
@@ -181,7 +182,7 @@
                         d={`M ${slots.map((point) => `${point.x},${point.y}`).join(' L ')} Z`}
                         fill={appearance.ink}
                         stroke={appearance.ink}
-                        stroke-width="23"
+                        stroke-width={2 * citySlotRadius + 3}
                         stroke-linejoin="round"
                     ></path>
                 {/if}
@@ -190,7 +191,7 @@
                         data-station-slot={index}
                         cx={point.x}
                         cy={point.y}
-                        r="10"
+                        r={citySlotRadius}
                         fill={appearance.paper}
                         stroke={appearance.ink}
                         stroke-width={cityRingWidth}

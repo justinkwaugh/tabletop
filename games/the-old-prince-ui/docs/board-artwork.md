@@ -31,7 +31,11 @@ Wellington D14 sits at (9.9, -7.5), Summerside F14 at (-0.3, 11.3) and Charlotte
 L16 at (0.7, 11.6); every other preprinted city is within two units of the hex
 centre, and the twin-slot cities at Morell P12 and Emerald Junction I17 print their
 slots 12.4 units apart against the renderer's 11. The three offsets are applied as
-published-only layouts in `mapView.ts` so tokens land on the printed circles. The file's rules-edition equivalence has not
+published-only layouts in `mapView.ts` so tokens land on the printed circles. The
+printed station circles are larger than the generic ones: rings at about 12.8 units
+on the board and a heavy ring out to 12.5 units on the punch tiles (white hole about
+9.7), against the classic radius of 10; the published tile appearance uses radius 11
+with a 3-unit ring and 22-unit map tokens so tokens fill both. The file's rules-edition equivalence has not
 been established by its filename; this is an alignment preview, not a claim of
 complete published-edition fidelity. The existing market and phase panels display current game facts; the updated
 image omits the old printed reference tables.
