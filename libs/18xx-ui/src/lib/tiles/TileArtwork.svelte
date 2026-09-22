@@ -60,7 +60,17 @@
             return marker ? [{ label, marker }] : []
         })
     )
-    const textLabels = $derived(face.labels.filter((label) => !appearance.labelMarkers?.[label]))
+    const textLabels = $derived(
+        face.labels.filter(
+            (label) => !appearance.labelMarkers?.[label] && !appearance.labelText?.[label]
+        )
+    )
+    const namedLabels = $derived(
+        face.labels.flatMap((label) => {
+            const text = appearance.labelText?.[label]
+            return text ? [text] : []
+        })
+    )
     const insetPolygon = $derived(
         drawing.polygon
             .split(' ')
@@ -329,6 +339,19 @@
                 </g>
             {/if}
         {/each}
+        {#if namedLabels.length}
+            <text
+                data-tile-label-text
+                x={drawing.labelPosition.x}
+                y={drawing.labelPosition.y}
+                font-size="6.5"
+                font-weight="600"
+                font-family="Georgia, 'Times New Roman', serif"
+                paint-order="stroke"
+                stroke={fill}
+                stroke-width="1.5">{namedLabels.join(' ')}</text
+            >
+        {/if}
         {#if textLabels.length}
             <text
                 data-tile-label

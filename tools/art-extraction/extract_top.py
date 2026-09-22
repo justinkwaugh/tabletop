@@ -3,8 +3,8 @@
 
 Inputs live in artassets/the-old-prince (not committed). Outputs:
   privates/*.webp  one card per private company (1200 px) plus a -600 inline thumbnail
-  shares/v1|v2/*.webp  share and president certificates, two art variants (1100 px plus -600 thumbnail)
-  peirs/v1|v2/*.webp   the seven PEIR "private-share" certificates (1200 px plus -600 thumbnail)
+  shares/v2/*.webp  share and president certificates, second art variant (1100 px plus -600 thumbnail)
+  peirs/v2/*.webp   the seven PEIR "private-share" certificates (1200 px plus -600 thumbnail)
   tokens/*.svg     vector charter tokens: coloured disc + Pantone 9200 icon path
 
 Run: python3 tools/art-extraction/extract_top.py --out <dir>
@@ -149,7 +149,7 @@ def main():
                           out / 'privates' / f'{slug}.webp', heights=(1200, 600))
         print('private', slug, size)
 
-    for variant in (1, 2):
+    for variant in (2,):  # only the second art variant is used
         folder = SRC / 'shares' / f'shares variant 0{variant}'
         # Sheet order alternates president certificate of company i (slot 2i) with the regular
         # share of company i+1 (slot 2i+1); the wrap is reversed, so slot 0 is company 0's share

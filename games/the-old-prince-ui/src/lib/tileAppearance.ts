@@ -33,7 +33,9 @@ export const TheOldPrincePublishedTileAppearance: TileAppearance = Object.freeze
     citySlotRadius: 11,
     mapTokenSize: 22,
     revenueBadge: 'plain',
-    labelMarkers: { X: 'ring', T: 'hex' } as const,
+    // The Charlottetown gray tile (CX) prints the ring plus the city name instead of a code.
+    labelMarkers: { X: 'ring', T: 'hex', CX: 'ring' } as const,
+    labelText: { CX: 'Charlottetown' },
     // The published tiles and player aid call the brown tier pink.
     colorNames: { brown: 'pink' },
     // Printed marker colours per tier, measured on the punch sheets.
