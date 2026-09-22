@@ -149,6 +149,10 @@ test('navigating history masks non-route hexes on the table map only at train ru
     expect(masking.maskedRouteHexes).toBe(0)
     expect(masking.masked).toBe(masking.hexes - masking.routeHexes)
 
+    await stepBack()
+    await expect(tableRoutes.first()).toBeVisible()
+    await expect(tableMask).toHaveCount(1)
+
     await stepUntil(false)
     await expect(tableMask).toHaveCount(0)
 })

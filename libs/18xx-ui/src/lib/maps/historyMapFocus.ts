@@ -1,17 +1,27 @@
-import type { GameAction } from '@tabletop/common'
 import {
+    isDistributeEarnings,
     isPlaceStation,
     isLayTile,
     isLayPrivateTile,
     isRespondToTrackConsent,
     isRunTrains,
     nextOperatingCompany,
-    type EighteenXXState
+    type EighteenXXState,
+    type TrainRoute
 } from '@tabletop/18xx'
+import { assertExists, type GameAction } from '@tabletop/common'
 import { companyFocusLocations } from './companyFocusLocations.js'
 
+function historyRunRoutes(state: EighteenXXState, action?: GameAction): readonly TrainRoute[] {
+    if (!action) return []
+    if (isRunTrains(action)) return action.routes
+    if (!isDistributeEarnings(action) || state.routeStep?.companyId !== action.companyId) return []
+    assertExists(state.routeStep.result, 'Distributed earnings require the recorded train run')
+    return state.routeStep.result.routes
+}
+
 export function historyMapFocus(state: EighteenXXState, action?: GameAction) {
-    const routes = action && isRunTrains(action) ? action.routes : []
+    const routes = historyRunRoutes(state, action)
     if (routes.length) {
         return {
             locations: [
