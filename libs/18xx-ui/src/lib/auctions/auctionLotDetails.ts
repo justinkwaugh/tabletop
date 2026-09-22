@@ -9,7 +9,7 @@ export function auctionLotDetails(session: EighteenXXSession, lotIds: readonly s
             const lot = model.lots.find((item) => item.id === id)
             assertExists(lot, 'Offer pile requires an auction lot')
             const company = session.privates.companies.find((item) => item.id === id)
-            const share = session.financialState.certificates.find(
+            const share = session.gameState.certificates.find(
                 (item) => item.id === id && item.kind === 'share'
             )
             const token =

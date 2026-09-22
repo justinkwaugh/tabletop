@@ -49,7 +49,7 @@
             {/if}
             {#if selection?.kind === 'purchase' && selection.request.asset.kind === 'private'}
                 {@const company = getCompany(
-                    session.financialState,
+                    session.gameState,
                     selection.request.asset.privateCompanyId
                 )}
                 {@const terms = session.decisions.privatePurchases.find(
@@ -107,7 +107,7 @@
                     {#each choices as option}
                         {#if option.request.asset.kind === 'private'}
                             {@const company = getCompany(
-                                session.financialState,
+                                session.gameState,
                                 option.request.asset.privateCompanyId
                             )}
                             <button

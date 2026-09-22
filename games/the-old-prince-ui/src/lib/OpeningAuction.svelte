@@ -1,7 +1,7 @@
 <script lang="ts">
     import { OfferAuctionPanel, type EighteenXXSession } from '@tabletop/18xx-ui'
     let { session, showUndo = true }: { session: EighteenXXSession; showUndo?: boolean } = $props()
-    const state = $derived(session.financialState)
+    const state = $derived(session.gameState)
 </script>
 
 {#if session.offers.model && !session.offers.model.auction.completed}

@@ -3,7 +3,7 @@
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, position }: { session: EighteenXXSession; position?: EighteenXXState } = $props()
     const money = $derived(session.presentation.money)
-    const state = $derived(position ?? session.financialState)
+    const state = $derived(position ?? session.gameState)
     const standings = $derived(state.finalWealth?.toSorted((a, b) => b.total - a.total) ?? [])
     const winners = $derived(
         state.winningPlayerIds.map((id) => session.getPlayerName(id)).join(' & ')

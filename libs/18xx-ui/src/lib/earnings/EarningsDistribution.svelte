@@ -4,7 +4,7 @@
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const money = $derived(session.presentation.money)
-    const result = $derived(session.financialState.routeStep?.result)
+    const result = $derived(session.gameState.routeStep?.result)
     const names: Record<EarningsChoice, string> = {
         pay: 'Pay',
         withhold: 'Withhold',
@@ -12,7 +12,7 @@
     }
 </script>
 
-{#if result && session.financialState.machineState === 'DistributingEarnings'}
+{#if result && session.gameState.machineState === 'DistributingEarnings'}
     <section aria-label="Earnings distribution">
         <div class="choices">
             {#each session.earnings.choices as { choice, evaluation }}
@@ -23,7 +23,7 @@
                     {details}
                     label={names[choice]}
                     companyId={result.companyId}
-                    stockMarket={session.financialState.stockMarket}
+                    stockMarket={session.gameState.stockMarket}
                     ownerName={(owner) => session.ownerName(owner)}
                     reason={evaluation.reason}
                     disabled={!session.earnings.canDistribute || !details}

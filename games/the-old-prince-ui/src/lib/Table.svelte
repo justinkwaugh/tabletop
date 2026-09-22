@@ -29,9 +29,7 @@
                 description: privateCompany.description,
                 ...(id === 'VR' ? { locationId: 'N18' } : {})
             }
-        const share = session.financialState.certificates.find(
-            (certificate) => certificate.id === id
-        )
+        const share = session.gameState.certificates.find((certificate) => certificate.id === id)
         const company =
             share?.kind === 'share'
                 ? TheOldPrinceCompanies.find((company) => company.number === share.number)
@@ -53,7 +51,7 @@
     }
     const session = $derived(requireTheOldPrinceSession(gameSession))
     const spreadsheetCompanyOrder = $derived.by(() => {
-        const state = session.financialState
+        const state = session.gameState
         const trancheCompanies = state.tranches.flatMap((tranche) => tranche.companyIds)
         return [
             ...state.companies
@@ -70,7 +68,7 @@
             ...trancheCompanies
         ]
     })
-    const availableTranche = $derived(availableTheOldPrinceTranche(session.financialState))
+    const availableTranche = $derived(availableTheOldPrinceTranche(session.gameState))
     const privateOperationDescription = (id: string, companyId: string) =>
         id === 'HS' && companyId !== 'PEIR'
             ? 'Close to buy one depot train during the company’s turn, paying the normal train price.'
@@ -128,7 +126,7 @@
     {#snippet gameInformation()}
         <div class="tranches" aria-label="Company tranches">
             <span class="tranches-label">Tranches</span>
-            {#each session.financialState.tranches.filter((tranche) => tranche.id !== 'initial') as tranche (tranche.id)}
+            {#each session.gameState.tranches.filter((tranche) => tranche.id !== 'initial') as tranche (tranche.id)}
                 {@const closed =
                     tranche.companyIds.length < tranche.capacity &&
                     tranche.id !== availableTranche?.id}

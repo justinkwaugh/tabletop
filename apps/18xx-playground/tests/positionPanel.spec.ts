@@ -26,9 +26,7 @@ test('history shows recorded auction details without action controls', async ({ 
     expect(errors).toEqual([])
 })
 
-test('a local spectator sees stock-round information instead of stock actions', async ({
-    page
-}) => {
+test('a local spectator sees the active player and a disabled stock strip', async ({ page }) => {
     test.setTimeout(60000)
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('trading')
@@ -67,7 +65,15 @@ test('a local spectator sees stock-round information instead of stock actions', 
     await expect(panel.getByLabel('Position summary')).toBeVisible()
     await expect(panel).not.toContainText('Stock round')
     await expect(panel.getByRole('button')).toHaveCount(0)
-    await expect(page.getByRole('navigation', { name: 'Stock actions' })).toHaveCount(0)
+    const activePlayer = page.locator('header[aria-label="Game phase"] .turn .player-name').first()
+    const turn = panel.getByRole('status', { name: 'Active player' })
+    await expect(turn).toContainText(`${await activePlayer.innerText()}’s turn`)
+    const strip = page.getByRole('navigation', { name: 'Stock actions' })
+    await expect(strip).toBeVisible()
+    await expect(strip.getByRole('button', { name: 'Buy', exact: true })).toBeDisabled()
+    await expect(strip.getByRole('button', { name: 'Sell', exact: true })).toBeDisabled()
+    await expect(strip.locator('button:enabled')).toHaveCount(0)
+    await expect(strip.getByRole('button', { name: /Pass|End turn/ })).toHaveCount(0)
 })
 
 test('backward navigation separates the last payout from its train run', async ({ page }) => {

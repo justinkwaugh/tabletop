@@ -20,13 +20,13 @@
     const result = $derived(session.routes.solved?.result)
     const trains = $derived(session.routes.editor.trains)
     type RouteSolve = {
-        state: typeof session.financialState
+        state: typeof session.gameState
         companyId: string | undefined
         attempt: number
     }
     const solve = $derived<RouteSolve>({
-        state: session.financialState,
-        companyId: session.routes.canRun ? session.financialState.routeStep?.companyId : undefined,
+        state: session.gameState,
+        companyId: session.routes.canRun ? session.gameState.routeStep?.companyId : undefined,
         attempt
     })
     function solveRoutes(_section: HTMLElement, initial: RouteSolve) {

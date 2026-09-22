@@ -58,7 +58,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     private readonly moduleSession: ModuleSession<HydratedEighteenXXState, EighteenXXTitleRules> =
         ((session: EighteenXXSession) => ({
             get state() {
-                return session.financialState
+                return session.gameState
             },
             get rules() {
                 return session.rules
@@ -83,7 +83,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
             },
             get actingPlayerIds() {
                 return session.localHotseat
-                    ? session.financialState.activePlayerIds
+                    ? session.gameState.activePlayerIds
                     : session.myPlayer
                       ? [session.myPlayer.id]
                       : []
@@ -182,13 +182,13 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     }
     protected onStockSelectionCancelled() {}
     availableTrainDefinitionIds = $derived.by(() =>
-        this.rules.trainRules.availableDefinitions(this.financialState)
+        this.rules.trainRules.availableDefinitions(this.gameState)
     )
     trainRosters = $derived.by(() =>
-        this.financialState.companies
+        this.gameState.companies
             .map((company) => ({
                 company,
-                trains: trainsOwnedBy(this.financialState, {
+                trains: trainsOwnedBy(this.gameState, {
                     kind: 'company',
                     companyId: company.id
                 })
@@ -196,23 +196,23 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
             .filter((entry) => entry.trains.length)
     )
     playerPriorityOrder = $derived.by(() =>
-        this.financialState.machineState === 'StockRound'
-            ? priorityOrder(this.financialState, this.rules.stockRules.round)
-            : this.financialState.turnManager.turnOrder
+        this.gameState.machineState === 'StockRound'
+            ? priorityOrder(this.gameState, this.rules.stockRules.round)
+            : this.gameState.turnManager.turnOrder
     )
     companySoldOut(companyId: string): boolean {
-        return this.rules.stockRules.round.soldOut(this.financialState, companyId)
+        return this.rules.stockRules.round.soldOut(this.gameState, companyId)
     }
     playerLiquidity(playerId: string): number {
         const owner = { kind: 'player', playerId } as const
-        const cash = cashOwnedBy(this.financialState, owner)
+        const cash = cashOwnedBy(this.gameState, owner)
         assert(typeof cash === 'number', 'Player liquidity requires finite cash')
-        return cash + shareSaleValue(this.financialState, owner, this.rules.stockRules)
+        return cash + shareSaleValue(this.gameState, owner, this.rules.stockRules)
     }
     companyRequiresTrain(companyId: string): boolean {
         return (
-            !getCompany(this.financialState, companyId).closed &&
-            this.rules.trainRules.requiresTrain(this.financialState, companyId)
+            !getCompany(this.gameState, companyId).closed &&
+            this.rules.trainRules.requiresTrain(this.gameState, companyId)
         )
     }
     get trainDepot() {
@@ -241,7 +241,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     }
     private readonly historicalMaps: HistoricalMaps
     historicalMap: HistoricalMap | undefined = $derived.by(() => {
-        this.financialState
+        this.gameState
         this.updatingVisibleState
         return undefined
     })
@@ -257,17 +257,16 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     closeHistoricalMap() {
         this.historicalMap = undefined
     }
-    financialState = $derived(this.gameState)
     sharesToFloat(companyId: string) {
-        return this.rules.companyRules.sharesToFloat?.(this.financialState, companyId)
+        return this.rules.companyRules.sharesToFloat?.(this.gameState, companyId)
     }
     stockCompanyName(companyId: string) {
-        return getCompany(this.financialState, companyId).name
+        return getCompany(this.gameState, companyId).name
     }
     get stockCompanies() {
-        const order = stockMarketOrder(this.financialState.stockMarket)
+        const order = stockMarketOrder(this.gameState.stockMarket)
         const rank = new Map(order.map((id, index) => [id, index]))
-        return this.financialState.companies
+        return this.gameState.companies
             .filter((company) => company.started)
             .sort(
                 (left, right) =>
@@ -275,19 +274,19 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
             )
     }
     certificateWeight = (certificate: Portfolio[number]) =>
-        this.rules.stockRules.certificateWeight(this.financialState, certificate)
+        this.rules.stockRules.certificateWeight(this.gameState, certificate)
     playerCertificates(playerId: string) {
         const owner = { kind: 'player', playerId } as const
         return {
-            count: stockCertificateCount(this.financialState, owner, this.rules.stockRules),
-            limit: this.rules.stockRules.certificateLimit(this.financialState, owner)
+            count: stockCertificateCount(this.gameState, owner, this.rules.stockRules),
+            limit: this.rules.stockRules.certificateLimit(this.gameState, owner)
         }
     }
     ownerName(owner: Owner): string {
         if (owner.kind === 'player') return this.getPlayerName(owner.playerId)
         return owner.kind === 'bank'
-            ? this.financialState.bank.name
-            : getCompany(this.financialState, owner.companyId).name
+            ? this.gameState.bank.name
+            : getCompany(this.gameState, owner.companyId).name
     }
     override beforeNewState() {
         this.map.clearInspection()

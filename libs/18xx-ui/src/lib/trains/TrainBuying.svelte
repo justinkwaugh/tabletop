@@ -16,11 +16,11 @@
         session: EighteenXXSession
     } = $props()
     const money = $derived(session.presentation.money)
-    const step = $derived(session.financialState.trainPurchaseStep)
+    const step = $derived(session.gameState.trainPurchaseStep)
     const availableTypes = $derived(session.availableTrainDefinitionIds)
     const fundingDepot = $derived(
         session.trainFunding.purchases.filter((purchase) =>
-            session.financialState.trainInventory.trains.some(
+            session.gameState.trainInventory.trains.some(
                 (train) => train.id === purchase.trainId && train.status === 'depot'
             )
         )
@@ -43,7 +43,7 @@
                 offer.details ? [offer.details] : []
             ),
             ...session.trainFunding.purchases.filter((purchase) =>
-                session.financialState.trainInventory.trains.some(
+                session.gameState.trainInventory.trains.some(
                     (train) => train.id === purchase.trainId && train.status === 'market'
                 )
             )
@@ -92,12 +92,12 @@
     </div>
 {/snippet}
 
-{#if session.financialState.phaseChange}<PhaseChanges {session} {showUndo} />{/if}
-{#if session.financialState.trainFunding}<TrainFunding {session} {showUndo} {trainColors} />{/if}
+{#if session.gameState.phaseChange}<PhaseChanges {session} {showUndo} />{/if}
+{#if session.gameState.trainFunding}<TrainFunding {session} {showUndo} {trainColors} />{/if}
 
-{#if step && session.financialState.machineState === 'BuyingTrains'}
+{#if step && session.gameState.machineState === 'BuyingTrains'}
     <section aria-label="Train purchases">
-        {#if session.financialState.purchaseOffer?.asset.kind === 'train'}
+        {#if session.gameState.purchaseOffer?.asset.kind === 'train'}
             <CompanyTrainBuying {session} {trainColors} />
         {:else}
             {#if !session.trainFunding.purchases.length}
@@ -194,7 +194,7 @@
             {#if session.trainBuying.currentPurchaseIds.length}
                 <div class="purchased" aria-label="Trains purchased this OR">
                     <span>Purchased</span>
-                    {#each session.financialState.trainInventory.trains.filter( (train) => session.trainBuying.currentPurchaseIds.includes(train.id) ) as train (train.id)}
+                    {#each session.gameState.trainInventory.trains.filter( (train) => session.trainBuying.currentPurchaseIds.includes(train.id) ) as train (train.id)}
                         <TrainBadge
                             name={session.trainDepot.trainDefinition(train.definitionId).name}
                             color={trainColors[train.definitionId]}

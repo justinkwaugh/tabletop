@@ -23,7 +23,7 @@
     <section aria-label="Compulsory train funding">
         <header>
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
-            <span>{getCompany(session.financialState, purchase.companyId).name} must buy a</span>
+            <span>{getCompany(session.gameState, purchase.companyId).name} must buy a</span>
             <TrainBadge
                 name={session.trainDepot.trainDefinition(purchase.definitionId).name}
                 color={trainColors[purchase.definitionId]}
@@ -36,10 +36,10 @@
                     onclick={() => session.undo()}>Undo</button
                 >{/if}
         </header>
-        {#if session.financialState.bankruptcy}
+        {#if session.gameState.bankruptcy}
             <p>
-                Unable to raise the remaining {money(session.financialState.bankruptcy.shortfall)}.
-                The game has ended.
+                Unable to raise the remaining {money(session.gameState.bankruptcy.shortfall)}. The
+                game has ended.
             </p>
         {:else}
             {#if plan.treasuryProceeds}<p>
@@ -74,7 +74,7 @@
                             class="sale-choice"
                             {disabled}
                             data-funding-shares={sale.sales[0].shares}
-                            aria-label={`Sell ${sale.sales[0].shares} ${getCompany(session.financialState, companyId).name} shares for ${money(sale.proceeds)}`}
+                            aria-label={`Sell ${sale.sales[0].shares} ${getCompany(session.gameState, companyId).name} shares for ${money(sale.proceeds)}`}
                             onclick={() => session.trainFunding.resolve(sale)}
                         >
                             <CompanyToken
@@ -132,10 +132,8 @@
                                                 details.sales[0].companyId
                                             ]}
                                             size={20}
-                                        />{getCompany(
-                                            session.financialState,
-                                            details.sales[0].companyId
-                                        ).name}</span
+                                        />{getCompany(session.gameState, details.sales[0].companyId)
+                                            .name}</span
                                     ></td
                                 >
                                 <td>{details.sales[0].shares}</td><td>{money(details.proceeds)}</td

@@ -2,7 +2,7 @@
     import { getCompany, stockMarketSpace } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session }: { session: EighteenXXSession } = $props()
-    const state = $derived(session.financialState)
+    const state = $derived(session.gameState)
 </script>
 
 {#if session.stock.selectedStartCompany}

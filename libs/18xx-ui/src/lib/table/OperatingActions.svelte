@@ -20,7 +20,7 @@
         session: EighteenXXSession
     } = $props()
     const { trainColors, poolName, privateTilePrompts } = $derived(session.presentation)
-    const state = $derived(session.financialState)
+    const state = $derived(session.gameState)
     const trainBuying = $derived(state.machineState === 'BuyingTrains')
 </script>
 

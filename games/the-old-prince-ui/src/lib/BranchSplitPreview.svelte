@@ -12,7 +12,7 @@
         session: TheOldPrinceSession
         onFocusLocation?: (locationId: string) => void
     } = $props()
-    const state = $derived(session.financialState)
+    const state = $derived(session.gameState)
     const selection = $derived(session.splitSelection)
     const preview = $derived(session.splitPreview?.details)
     const parents = $derived(

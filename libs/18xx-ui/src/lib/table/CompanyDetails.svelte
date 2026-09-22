@@ -57,7 +57,7 @@
         poolName?: (pool: CertificatePool) => string
     } = $props()
     const money = $derived(session.presentation.money)
-    const state = $derived(session.financialState)
+    const state = $derived(session.gameState)
     const lastRun = $derived(
         vertical
             ? undefined

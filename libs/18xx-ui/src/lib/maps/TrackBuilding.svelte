@@ -10,13 +10,13 @@
         mapControls = false
     }: { showUndo?: boolean; mapControls?: boolean; session: EighteenXXSession } = $props()
     const money = $derived(session.presentation.money)
-    const declined = $derived(trackConsentDecline(session.actions, session.financialState))
-    const turn = $derived(session.financialState.trackStep)
+    const declined = $derived(trackConsentDecline(session.actions, session.gameState))
+    const turn = $derived(session.gameState.trackStep)
     const selection = $derived(session.track.selection)
     const preview = $derived(session.track.preview)
 </script>
 
-{#if turn && !session.financialState.stationStep && !session.financialState.trackConsent}
+{#if turn && !session.gameState.stationStep && !session.gameState.trackConsent}
     <section aria-label="Track construction">
         {#if declined}
             <p class="decline-notice" role="status">
@@ -35,11 +35,11 @@
             </header>
         {:else}
             <header>
-                <strong>{getCompany(session.financialState, turn.companyId).name} · Track</strong>
+                <strong>{getCompany(session.gameState, turn.companyId).name} · Track</strong>
                 <span
                     >Treasury: {cashText(
                         money,
-                        cashOwnedBy(session.financialState, {
+                        cashOwnedBy(session.gameState, {
                             kind: 'company',
                             companyId: turn.companyId
                         })

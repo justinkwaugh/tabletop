@@ -11,7 +11,7 @@
     }: { session: EighteenXXSession; privatePurchaseLabel?: string; readOnly?: boolean } = $props()
     const money = $derived(session.presentation.money)
     const context = $derived(session.history.visibleContext)
-    const state = $derived(readOnly ? context.state : session.financialState)
+    const state = $derived(readOnly ? context.state : session.gameState)
     const currentStep = $derived(
         session.isViewingHistory
             ? historicalOperatingStepIndex(context.actions.at(-1), state.machineState)

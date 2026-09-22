@@ -2,7 +2,7 @@
     import { getCompany, controllingOwner } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
-    const state = $derived(session.financialState)
+    const state = $derived(session.gameState)
     const change = $derived(state.phaseChange)
     const companyId = $derived(session.discard.companyId)
     const owner = $derived(companyId ? controllingOwner(state, companyId) : undefined)

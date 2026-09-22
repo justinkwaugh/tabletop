@@ -97,7 +97,7 @@ Runtime (ADR 0004).
   shared UI reads history State already typed and never re-validates it against the
   family schema; a title's own fields pass through. The host harness is still typed over
   base `GameState`, so a title's dev page and the playground host cast the definition at
-  that boundary, as the other games do. `financialState` is now an alias of `gameState`.
+  that boundary, as the other games do. `gameState` is now an alias of `gameState`.
 - A title's added handlers receive none of the family's cross-cutting handlers. Which
   of them a dedicated round needs is left to the first title with such a round.
 - `hydrate` receives the family-typed State; a title reads its own fields from its

@@ -43,6 +43,15 @@ export class PrivatesModule {
                 )
             }))
     )
+    hasExchanges = $derived.by(() => {
+        const { state, rules } = this.session
+        return state.companies.some(
+            (company) =>
+                company.kind === 'private' &&
+                !company.closed &&
+                rules.privateRules.exchangeTerms(state, company.id) !== undefined
+        )
+    })
     exchangeOffers = $derived.by(() => {
         const { state, rules } = this.session
         if (

@@ -60,22 +60,20 @@
     } = $props()
     const money = $derived(session.presentation.money)
     const operatingCompanyId = $derived(
-        session.financialState.stockRound.completed &&
-            session.financialState.operatingSet &&
-            !session.financialState.result
-            ? nextOperatingCompany(session.financialState)
+        session.gameState.stockRound.completed &&
+            session.gameState.operatingSet &&
+            !session.gameState.result
+            ? nextOperatingCompany(session.gameState)
             : undefined
     )
     const currentPlayerOwners = $derived(
         new Set(
-            operatingCompanyId
-                ? []
-                : session.financialState.activePlayerIds.map((id) => `player:${id}`)
+            operatingCompanyId ? [] : session.gameState.activePlayerIds.map((id) => `player:${id}`)
         )
     )
     const companies = $derived(
         spreadsheetCompanies(
-            session.financialState,
+            session.gameState,
             session.actions,
             session.gameState.actionCount,
             companyOrder
@@ -88,7 +86,7 @@
         session.preferences.values.spreadsheetView === 'company' ? 'Company' : 'Player'
     )
     function soldThisRound(ownerId: string, companyId: string): boolean {
-        const state = session.financialState
+        const state = session.gameState
         return (
             state.machineState === 'StockRound' &&
             !state.stockRound.completed &&
@@ -115,7 +113,7 @@
         )
     )
     function poolShares(poolId: string, companyId: string): number {
-        return certificatesInPool(session.financialState, poolId).reduce(
+        return certificatesInPool(session.gameState, poolId).reduce(
             (sum, certificate) =>
                 sum +
                 (certificate.kind === 'share' && certificate.companyId === companyId
@@ -127,10 +125,10 @@
     const portfolioOwners = $derived(
         portfolioCompanyIds.map((ownerId) => ({
             id: `company:${ownerId}`,
-            name: getCompany(session.financialState, ownerId).name,
-            controllerId: controllingOwner(session.financialState, ownerId)?.playerId,
+            name: getCompany(session.gameState, ownerId).name,
+            controllerId: controllingOwner(session.gameState, ownerId)?.playerId,
             count: (companyId: string) =>
-                sharesOwned(session.financialState, companyId, {
+                sharesOwned(session.gameState, companyId, {
                     kind: 'company',
                     companyId: ownerId
                 })
@@ -143,7 +141,7 @@
                     id: `player:${playerId}`,
                     name: session.getPlayerName(playerId),
                     count: (companyId: string) =>
-                        sharesOwned(session.financialState, companyId, { kind: 'player', playerId })
+                        sharesOwned(session.gameState, companyId, { kind: 'player', playerId })
                 },
                 ...portfolioOwners.filter((owner) => owner.controllerId === playerId)
             ]),
@@ -157,7 +155,7 @@
                 id: 'treasury',
                 name: 'Treasury',
                 count: (companyId: string) =>
-                    sharesOwned(session.financialState, companyId, { kind: 'company', companyId })
+                    sharesOwned(session.gameState, companyId, { kind: 'company', companyId })
             },
             ...(exchangePoolId
                 ? [
@@ -201,11 +199,11 @@
     const rows = $derived(
         companies.map((company) => ({
             company,
-            value: companySharePrice(session.financialState.stockMarket, company.id),
-            stations: session.financialState.stations.filter(
+            value: companySharePrice(session.gameState.stockMarket, company.id),
+            stations: session.gameState.stations.filter(
                 (station) => station.companyId === company.id
             ),
-            cash: cashOwnedBy(session.financialState, { kind: 'company', companyId: company.id }),
+            cash: cashOwnedBy(session.gameState, { kind: 'company', companyId: company.id }),
             presidentId:
                 company.president?.kind === 'player'
                     ? `player:${company.president.playerId}`
@@ -217,11 +215,7 @@
     )
     const statisticLabels = ['Cash', 'Shares', 'Certs', 'Net worth']
     function financialValues(owner: Owner, certs = '—'): string[] {
-        const { cash, netWorth, shares } = ownerPortfolio(
-            session.financialState,
-            owner,
-            valuationRules
-        )
+        const { cash, netWorth, shares } = ownerPortfolio(session.gameState, owner, valuationRules)
         return [`${money(cash)}`, String(shares), certs, `${money(netWorth)}`]
     }
     const statistics = $derived(
@@ -303,7 +297,7 @@
 
 {#snippet companyTrains(companyId: string)}
     <span class="company-trains">
-        {#each trainsOwnedBy( session.financialState, { kind: 'company', companyId } ) as train (train.id)}
+        {#each trainsOwnedBy(session.gameState, { kind: 'company', companyId }) as train (train.id)}
             <TrainBadge
                 name={session.trainShortLabel(train.definitionId)}
                 color={trainColors[train.definitionId]}

@@ -35,15 +35,15 @@ const BaseSession = createEighteenXXSessionClass(
 
 export class TheOldPrinceSession extends BaseSession {
     override privateCompanyTokens = $derived({
-        MC: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')],
-        VR: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')],
-        SB: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')],
+        MC: this.mapView.stations[theOldPrinceRole(this.gameState, 'shortline')],
+        VR: this.mapView.stations[theOldPrinceRole(this.gameState, 'shortline')],
+        SB: this.mapView.stations[theOldPrinceRole(this.gameState, 'shortline')],
         IB: { label: '?', color: 'transparent', imageUrl: UnknownToken },
         SBC: { label: '9', color: 'transparent', imageUrl: StraightTile },
-        RA: this.mapView.stations[theOldPrinceRole(this.financialState, 'mainline')],
-        RF: this.mapView.stations[theOldPrinceRole(this.financialState, 'mainline')],
-        MLC: this.mapView.stations[theOldPrinceRole(this.financialState, 'mainline')],
-        SLC: this.mapView.stations[theOldPrinceRole(this.financialState, 'shortline')]
+        RA: this.mapView.stations[theOldPrinceRole(this.gameState, 'mainline')],
+        RF: this.mapView.stations[theOldPrinceRole(this.gameState, 'mainline')],
+        MLC: this.mapView.stations[theOldPrinceRole(this.gameState, 'mainline')],
+        SLC: this.mapView.stations[theOldPrinceRole(this.gameState, 'shortline')]
     })
     private splitStages: BranchSplitSelection = $state({})
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
@@ -63,15 +63,15 @@ export class TheOldPrinceSession extends BaseSession {
             'first'
         )
     }
-    splitModel = $derived(new TheOldPrinceBranchSplit(this.financialState))
+    splitModel = $derived(new TheOldPrinceBranchSplit(this.gameState))
     canPreviewSplit = $derived(
         !this.busy &&
             !this.updatingVisibleState &&
             !this.isViewingHistory &&
-            this.financialState.machineState === 'StockRound' &&
+            this.gameState.machineState === 'StockRound' &&
             !!this.myPlayer &&
-            this.financialState.activePlayerIds.includes(this.myPlayer.id) &&
-            !this.financialState.stockRound.turn.bought &&
+            this.gameState.activePlayerIds.includes(this.myPlayer.id) &&
+            !this.gameState.stockRound.turn.bought &&
             this.validActionTypes.includes('SplitCompany')
     )
     splitSelection = $derived(this.canPreviewSplit ? this.splitStages : {})
@@ -156,7 +156,7 @@ export class TheOldPrinceSession extends BaseSession {
     override get stockCompanies() {
         return [
             ...super.stockCompanies.filter((company) => company.id !== 'PEIR'),
-            getCompany(this.financialState, 'PEIR')
+            getCompany(this.gameState, 'PEIR')
         ]
     }
     chooseSplit() {

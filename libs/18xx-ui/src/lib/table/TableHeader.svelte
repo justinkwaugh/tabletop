@@ -53,42 +53,42 @@
         for (const element of [header, phase, turn]) observer.observe(element)
         return { destroy: () => observer.disconnect() }
     }
-    const financialState = $derived(tableHeaderState(session))
+    const gameState = $derived(tableHeaderState(session))
     const auction = $derived(
         Boolean(
-            (financialState.openingAuction && !financialState.openingAuction.completed) ||
-            (financialState.offerAuction && !financialState.offerAuction.completed)
+            (gameState.openingAuction && !gameState.openingAuction.completed) ||
+            (gameState.offerAuction && !gameState.offerAuction.completed)
         )
     )
     const companyId = $derived(
-        financialState.operatingSet?.companyOrder.find(
-            (id) => !financialState.operatingSet?.completedCompanyIds.includes(id)
+        gameState.operatingSet?.companyOrder.find(
+            (id) => !gameState.operatingSet?.completedCompanyIds.includes(id)
         )
     )
-    const company = $derived(financialState.companies.find((company) => company.id === companyId))
+    const company = $derived(gameState.companies.find((company) => company.id === companyId))
 </script>
 
 <header aria-label="Game phase" use:fitRoundLabel class:compact class:borderless={!bordered}>
     <div class="phase">
         <strong>
-            {#if financialState.result}
+            {#if gameState.result}
                 Game over
             {:else if auction}
                 <span class="auction-label max-sm:hidden">Opening auction</span><span
                     class="auction-label sm:hidden">Auction</span
                 >
-            {:else if !financialState.stockRound.completed}
+            {:else if !gameState.stockRound.completed}
                 <span class="round-full" aria-hidden={compact}>Stock round</span><span
                     class="round-short"
                     aria-hidden={!compact}>SR</span
                 >
-                {financialState.stockRound.number}
+                {gameState.stockRound.number}
             {:else}
                 <span class="round-full" aria-hidden={compact}>Operating round</span><span
                     class="round-short"
                     aria-hidden={!compact}>OR</span
                 >
-                {financialState.operatingSet?.number}.{financialState.operatingSet?.roundNumber}
+                {gameState.operatingSet?.number}.{gameState.operatingSet?.roundNumber}
             {/if}
         </strong>
         <span class="separator">/</span><button
@@ -96,11 +96,11 @@
             aria-haspopup="dialog"
             onclick={() => (showPhaseChart = true)}
             ><span class="max-sm:hidden">Phase </span><TrainBadge
-                name={financialState.phaseId}
-                color={trainColors[financialState.phaseId]}
+                name={gameState.phaseId}
+                color={trainColors[gameState.phaseId]}
             /></button
         >
-        {#if company && financialState.stockRound.completed && !financialState.result}<span
+        {#if company && gameState.stockRound.completed && !gameState.result}<span
                 class="separator"
                 aria-hidden="true">/</span
             ><span class="company" title={company.name}
@@ -114,7 +114,7 @@
         {#if session.isViewingHistory}
             <span>History</span>
         {:else}
-            {#each financialState.activePlayerIds as playerId (playerId)}
+            {#each gameState.activePlayerIds as playerId (playerId)}
                 <span class="player-name"
                     ><span
                         class="player-color"
@@ -163,11 +163,11 @@
         {money}
         depotState={{
             depot: session.trainDepot,
-            inventory: financialState.trainInventory,
+            inventory: gameState.trainInventory,
             availableDefinitionIds: session.availableTrainDefinitionIds
         }}
         chart={phaseChart}
-        currentPhaseId={financialState.phaseId}
+        currentPhaseId={gameState.phaseId}
         {trainColors}
         onclose={() => (showPhaseChart = false)}
     />{/if}

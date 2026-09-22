@@ -120,12 +120,12 @@
     let showPhaseChart = $state(false)
     const depotState = $derived({
         depot: session.trainDepot,
-        inventory: session.financialState.trainInventory,
+        inventory: session.gameState.trainInventory,
         availableDefinitionIds: session.availableTrainDefinitionIds
     })
     const currentDepotIds = $derived(
         session.availableTrainDefinitionIds.filter(
-            (id) => session.trainDepot.remaining(session.financialState.trainInventory, id) !== 0
+            (id) => session.trainDepot.remaining(session.gameState.trainInventory, id) !== 0
         )
     )
 
@@ -148,7 +148,7 @@
 
     let mapWrapper = $state<ScalingWrapper>()
     let focusedLocation: string | undefined = $derived.by(() => {
-        session.financialState
+        session.gameState
         return undefined
     })
     async function focusLocation(locationId: string) {
@@ -173,7 +173,7 @@
         )
     }
     let focusedCompany: string | undefined = $derived.by(() => {
-        session.financialState
+        session.gameState
         return undefined
     })
     async function focusCompany(companyId: string) {
@@ -192,7 +192,7 @@
             new RailwayMapState(
                 session.mapView.map,
                 session.mapView.tileSet,
-                session.financialState.tileInventory
+                session.gameState.tileInventory
             ),
             session.stations.displayState,
             companyId
@@ -201,7 +201,7 @@
         focusLocations(locations)
     }
     let focusedRoute: string | undefined = $derived.by(() => {
-        session.financialState
+        session.gameState
         session.updatingVisibleState
         return undefined
     })
@@ -237,10 +237,10 @@
         const bottom = Math.max(...rectangles.map((rect) => rect.y + rect.height))
         mapWrapper?.focusRect({ x, y, width: right - x, height: bottom - y }, { animate })
     }
-    const consentPreview = $derived(session.financialState.trackConsent)
+    const consentPreview = $derived(session.gameState.trackConsent)
     const maskPlacementLocations = $derived(
         !consentPreview &&
-            (session.track.showChoices || session.financialState.machineState === 'PlacingStation')
+            (session.track.showChoices || session.gameState.machineState === 'PlacingStation')
     )
     const placementLocationIds = $derived(
         !session.privateActions.trackPowerSelection && session.stations.canPlace
@@ -255,10 +255,7 @@
     const placementFocusKey = $derived(
         consentPreview?.id ??
             (maskPlacementLocations
-                ? JSON.stringify([
-                      session.financialState.machineState,
-                      highlightedPlacementLocationIds
-                  ])
+                ? JSON.stringify([session.gameState.machineState, highlightedPlacementLocationIds])
                 : undefined)
     )
     const activePlacementFocusKey = $derived(
@@ -288,8 +285,8 @@
     }
     let restoreRouteView: ReturnType<ScalingWrapper['captureView']> | undefined
     const runningCompanyId = $derived(
-        !session.isViewingHistory && session.financialState.machineState === 'RunningTrains'
-            ? session.financialState.routeStep?.companyId
+        !session.isViewingHistory && session.gameState.machineState === 'RunningTrains'
+            ? session.gameState.routeStep?.companyId
             : undefined
     )
     const routePreview = $derived(
@@ -422,10 +419,10 @@
         }
     }
 
-    const financialState = $derived(session.financialState)
+    const gameState = $derived(session.gameState)
     const startedCompanies = $derived(
         spreadsheetCompanies(
-            financialState,
+            gameState,
             session.actions,
             session.gameState.actionCount,
             spreadsheetCompanyOrder,
@@ -436,15 +433,15 @@
     const headerPlayerId = $derived(
         headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined
     )
-    const operating = $derived(financialState.stockRound.completed && !!financialState.operatingSet)
+    const operating = $derived(gameState.stockRound.completed && !!gameState.operatingSet)
     const operatingCompanyId = $derived(
-        operating && !financialState.result ? nextOperatingCompany(financialState) : undefined
+        operating && !gameState.result ? nextOperatingCompany(gameState) : undefined
     )
     const companyOrder = $derived(
-        (operating && financialState.operatingSet
-            ? financialState.operatingSet.companyOrder
-            : operatingRules.companyOrder(financialState)
-        ).map((id) => getCompany(financialState, id))
+        (operating && gameState.operatingSet
+            ? gameState.operatingSet.companyOrder
+            : operatingRules.companyOrder(gameState)
+        ).map((id) => getCompany(gameState, id))
     )
     setGameSession(untrack(() => session))
     const layoutPreference = new DebouncedLayout(
@@ -585,14 +582,14 @@
         >
             <span class="information-label">Phase</span>
             <TrainBadge
-                name={session.financialState.phaseId}
-                color={trainColors[session.financialState.phaseId]}
+                name={session.gameState.phaseId}
+                color={trainColors[session.gameState.phaseId]}
             />
         </button>
         <div class="game-information-item">
             <span class="information-label train-limit-label">Train limit</span>
             <span class="train-limit-value"
-                >{phaseChart.phases.find((phase) => phase.id === session.financialState.phaseId)
+                >{phaseChart.phases.find((phase) => phase.id === session.gameState.phaseId)
                     ?.trainLimit}</span
             >
         </div>
@@ -605,7 +602,7 @@
             <span class="information-label">Depot</span>
             {#each currentDepotIds as currentDepotId (currentDepotId)}
                 {@const remaining = session.trainDepot.remaining(
-                    session.financialState.trainInventory,
+                    session.gameState.trainInventory,
                     currentDepotId
                 )}
                 <span class="depot-type"
@@ -724,7 +721,7 @@
                         </button>
                     {/if}
                     {#snippet operatingOrderContent()}
-                        {#if operating && !financialState.result && companyOrder.length}
+                        {#if operating && !gameState.result && companyOrder.length}
                             <div class="operating-order-footer">
                                 <div class="order-display">
                                     <CompanyOrderToggle
@@ -746,14 +743,14 @@
                                     showDetails={session.preferences.values
                                         .operatingOrderDisplay === 'details'}
                                     companies={companyOrder}
-                                    state={financialState}
+                                    state={gameState}
                                     trainDepot={session.trainDepot}
                                     {trainColors}
                                     requiresTrain={(companyId) =>
                                         session.companyRequiresTrain(companyId)}
                                     appearances={session.mapView.stations}
                                     completedCompanyIds={operating
-                                        ? financialState.operatingSet?.completedCompanyIds
+                                        ? gameState.operatingSet?.completedCompanyIds
                                         : []}
                                     currentCompanyId={operatingCompanyId}
                                 >
@@ -779,10 +776,11 @@
                                 {privatePurchaseLabel}
                                 readOnly={readOnlyPosition}
                             />
-                            {#if !readOnlyPosition}
+                            {#if !session.isViewingHistory}
                                 <StockActionStrip
                                     {session}
                                     additionalActions={additionalStockActions}
+                                    readOnly={readOnlyPosition}
                                 />
                             {/if}
                             <section class="action-panel" aria-label="Current action">
@@ -818,7 +816,7 @@
                                     {depotState}
                                     depotOnly
                                     chart={phaseChart}
-                                    currentPhaseId={session.financialState.phaseId}
+                                    currentPhaseId={session.gameState.phaseId}
                                     {trainColors}
                                 />
                             </div>
@@ -832,7 +830,7 @@
                                 {#if active}{@render chatPanel()}{/if}
                             </div>
                         {:else if id === 'Operating Order'}<div class="workspace-view">
-                                {@render operatingOrderContent()}{#if !operating || financialState.result || !companyOrder.length}<p
+                                {@render operatingOrderContent()}{#if !operating || gameState.result || !companyOrder.length}<p
                                         class="widget-empty"
                                     >
                                         No operating order this round.
@@ -898,8 +896,8 @@
                                         animation={session.marketAnimation}
                                         appearances={session.mapView.stations}
                                         renderScale={2}
-                                        market={session.financialState.stockMarket}
-                                        companies={session.financialState.companies}
+                                        market={session.gameState.stockMarket}
+                                        companies={session.gameState.companies}
                                     />
                                 </ScalingWrapper>
                             </div>{:else if id === 'Spreadsheet'}<div
@@ -987,7 +985,7 @@
                 {money}
                 {depotState}
                 chart={phaseChart}
-                currentPhaseId={session.financialState.phaseId}
+                currentPhaseId={session.gameState.phaseId}
                 {trainColors}
                 onclose={() => (showPhaseChart = false)}
             />{/if}
@@ -996,7 +994,7 @@
                 {depotState}
                 depotOnly
                 chart={phaseChart}
-                currentPhaseId={session.financialState.phaseId}
+                currentPhaseId={session.gameState.phaseId}
                 {trainColors}
                 onclose={() => (showDepot = false)}
             />{/if}

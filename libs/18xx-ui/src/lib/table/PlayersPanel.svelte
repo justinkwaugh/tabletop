@@ -47,10 +47,10 @@
     function toggleCompact() {
         session.preferences.set({ compactPlayerCards: !compact }, 'family')
     }
-    const stockRoundActive = $derived(session.financialState.machineState === 'StockRound')
+    const stockRoundActive = $derived(session.gameState.machineState === 'StockRound')
     const passOrderPositions = $derived(session.passing === 'pass-order')
     const players = $derived([
-        ...session.financialState.turnManager.turnOrder.map((playerId) => ({
+        ...session.gameState.turnManager.turnOrder.map((playerId) => ({
             id: `player:${playerId}`,
             owner: { kind: 'player', playerId } as const,
             controller: undefined,
@@ -59,25 +59,21 @@
             name: session.getPlayerName(playerId),
             liquidity: session.playerLiquidity(playerId),
             certs: session.playerCertificates(playerId),
-            ...ownerPortfolio(session.financialState, { kind: 'player', playerId }, valuationRules)
+            ...ownerPortfolio(session.gameState, { kind: 'player', playerId }, valuationRules)
         })),
         ...portfolioCompanyIds.map((companyId) => {
-            const controller = controllingOwner(session.financialState, companyId)
+            const controller = controllingOwner(session.gameState, companyId)
             return {
                 id: `company:${companyId}`,
                 owner: { kind: 'company', companyId } as const,
                 playerId: undefined,
                 description: session.privates.companies.find((company) => company.id === companyId)
                     ?.description,
-                name: getCompany(session.financialState, companyId).name,
+                name: getCompany(session.gameState, companyId).name,
                 controller: controller ? session.getPlayerName(controller.playerId) : undefined,
                 liquidity: undefined,
                 certs: undefined,
-                ...ownerPortfolio(
-                    session.financialState,
-                    { kind: 'company', companyId },
-                    valuationRules
-                )
+                ...ownerPortfolio(session.gameState, { kind: 'company', companyId }, valuationRules)
             }
         })
     ])
@@ -97,7 +93,7 @@
     )
     const focusableCompanyIds = $derived(
         new Set(
-            session.financialState.companies
+            session.gameState.companies
                 .filter(
                     (company) =>
                         !mapFocusExcludedCompanyIds.includes(company.id) &&
@@ -109,7 +105,7 @@
     function numberedShares(owner: Owner, companyId: string) {
         const names = numberedShareNames[companyId]
         if (!names) return []
-        return certificatesOwnedBy(session.financialState, owner)
+        return certificatesOwnedBy(session.gameState, owner)
             .filter((certificate) => certificate.kind === 'share')
             .filter((certificate) => certificate.companyId === companyId)
             .map((certificate) => {
@@ -131,7 +127,7 @@
             aria-label={`${player.name} portfolio`}
             data-player-id={player.playerId}
             class:active={player.playerId !== undefined &&
-                session.financialState.activePlayerIds.includes(player.playerId)}
+                session.gameState.activePlayerIds.includes(player.playerId)}
         >
             <header
                 class:player-tinted-header={!!player.playerId}
@@ -192,7 +188,7 @@
                         {@const position = stockRoundActive
                             ? session.playerPriorityOrder.indexOf(player.playerId) + 1
                             : index + 1}
-                        {#if !stockRoundActive || session.financialState.stockRound.passedPlayerIds.includes(player.playerId)}
+                        {#if !stockRoundActive || session.gameState.stockRound.passedPlayerIds.includes(player.playerId)}
                             <span
                                 class="turn-position"
                                 aria-label={`${stockRoundActive ? 'Next turn' : 'Turn'} position ${position}`}

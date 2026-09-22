@@ -2,7 +2,7 @@
     import { getCompany, controllingOwner } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session }: { session: EighteenXXSession } = $props()
-    const state = $derived(session.financialState)
+    const state = $derived(session.gameState)
 </script>
 
 <section aria-label="Round status">

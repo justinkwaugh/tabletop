@@ -3,7 +3,7 @@
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const money = $derived(session.presentation.money)
     const editor = $derived(session.routes.editor)
-    const step = $derived(session.financialState.routeStep)
+    const step = $derived(session.gameState.routeStep)
     const visible = $derived(session.routes.editorVisible)
     const current = $derived(visible ? editor.route : undefined)
     const preview = $derived(visible ? editor.preview : undefined)
@@ -23,8 +23,8 @@
     <section aria-label="Train routes" class="routes">
         <header>
             <h3>
-                {session.financialState.companies.find((company) => company.id === step.companyId)
-                    ?.name} · Routes
+                {session.gameState.companies.find((company) => company.id === step.companyId)?.name} ·
+                Routes
             </h3>
             {#if showUndo}<button
                     onclick={() => session.undo()}

@@ -13,7 +13,7 @@
                 <strong>{company.name}</strong>
                 {#if company.closed}<p>Closed</p>
                 {:else}
-                    {@const owner = privateOwner(session.financialState, company.id)}
+                    {@const owner = privateOwner(session.gameState, company.id)}
                     <p>
                         {owner ? session.ownerName(owner) : 'Unowned'} · Revenue {company.privateRevenue ??
                             0}

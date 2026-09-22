@@ -73,12 +73,18 @@ export class StockModule implements LocalSelection {
         return this.trade.hasManual() || this.start.hasManual()
     }
 
+    private unstartedCompanies() {
+        return this.session.state.companies.filter(
+            (company) => !company.started && !company.closed && company.shareCount
+        )
+    }
+    canStartCompanies = $derived.by(() => this.trading && this.unstartedCompanies().length > 0)
+
     startChoices = $derived.by(() => {
         const { state, rules, playerId } = this.session
         if (!playerId || !this.trading || state.stockRound.turn.bought) return []
         return rules.stockRules.buyers(state, playerId).flatMap((buyer) =>
-            state.companies
-                .filter((company) => !company.started && !company.closed && company.shareCount)
+            this.unstartedCompanies()
                 .map((company) => {
                     const request = { playerId, buyer, companyId: company.id }
                     const prices = rules.companyRules

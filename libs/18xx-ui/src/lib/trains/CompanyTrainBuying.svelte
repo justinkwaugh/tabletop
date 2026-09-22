@@ -11,7 +11,7 @@
     }: { session: EighteenXXSession; trainColors: Readonly<Record<string, string>> } = $props()
     const money = $derived(session.presentation.money)
     const request = $derived(session.trainBuying.selection.purchase?.value)
-    const response = $derived(session.financialState.purchaseOffer)
+    const response = $derived(session.gameState.purchaseOffer)
     const companies = $derived.by(() => {
         const groups = new Map<string, typeof session.trainBuying.companyChoices>()
         for (const choice of session.trainBuying.companyChoices) {
@@ -30,7 +30,7 @@
     const selectedTrain = $derived.by(() => {
         const asset = response?.asset ?? request?.asset
         if (asset?.kind !== 'train') return undefined
-        const train = session.financialState.trainInventory.trains.find(
+        const train = session.gameState.trainInventory.trains.find(
             (train) => train.id === asset.trainId
         )
         assertExists(train, 'Selected purchase requires a train')
@@ -48,7 +48,7 @@
             onDecline={() => session.decisions.respondToPurchaseOffer(false)}
         >
             <CompanyToken appearance={session.mapView.stations[response.companyId]} size={24} />
-            <strong>{getCompany(session.financialState, response.companyId).name}</strong>
+            <strong>{getCompany(session.gameState, response.companyId).name}</strong>
             <span>offers {money(response.price)} for</span>
             <TrainBadge name={selectedTrain.name} color={trainColors[selectedTrain.id]} />
             <span>from</span>
@@ -101,11 +101,11 @@
                 <div
                     class="company"
                     role="group"
-                    aria-label={getCompany(session.financialState, companyId).name}
+                    aria-label={getCompany(session.gameState, companyId).name}
                 >
                     <div class="company-heading">
                         <CompanyToken appearance={session.mapView.stations[companyId]} size={24} />
-                        <strong>{getCompany(session.financialState, companyId).name}</strong>
+                        <strong>{getCompany(session.gameState, companyId).name}</strong>
                     </div>
                     <div class="company-roster">
                         {#each trains as choice}

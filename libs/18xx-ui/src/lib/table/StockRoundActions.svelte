@@ -29,7 +29,7 @@
             session.updatingVisibleState ||
             session.isViewingHistory ||
             !session.myPlayer ||
-            !session.financialState.activePlayerIds.includes(session.myPlayer.id)
+            !session.gameState.activePlayerIds.includes(session.myPlayer.id)
     )
     const purchases = $derived.by(() => {
         const seen = new Set<string>()
@@ -92,14 +92,12 @@
     )
 
     function exchangeCompany(certificateId: string) {
-        const certificate = session.financialState.certificates.find(
-            (item) => item.id === certificateId
-        )
+        const certificate = session.gameState.certificates.find((item) => item.id === certificateId)
         assertExists(certificate, 'An exchange requires its destination certificate')
-        return getCompany(session.financialState, certificate.companyId)
+        return getCompany(session.gameState, certificate.companyId)
     }
     function buyerCash(buyer: Owner): string {
-        const cash = cashOwnedBy(session.financialState, buyer)
+        const cash = cashOwnedBy(session.gameState, buyer)
         assertExists(cash, 'A stock buyer company requires a cash account')
         return cashText(money, cash)
     }
@@ -152,7 +150,7 @@
             >
                 {#if menu === 'buy'}
                     {#each purchaseCompanies as company (company.id)}
-                        {@const ownership = companyOwnership(session.financialState, company.id)}
+                        {@const ownership = companyOwnership(session.gameState, company.id)}
                         {@const options = buyerPurchases.filter(
                             (choice) => choice.certificate.companyId === company.id
                         )}
@@ -203,10 +201,9 @@
                                 <div class="share-sources">
                                     {#each options as choice (choice.certificate.id)}
                                         {#if choice.certificate.kind === 'share'}
-                                            {@const pool =
-                                                session.financialState.certificatePools.find(
-                                                    (pool) => pool.id === choice.certificate.poolId
-                                                )}
+                                            {@const pool = session.gameState.certificatePools.find(
+                                                (pool) => pool.id === choice.certificate.poolId
+                                            )}
                                             {@const source = pool
                                                 ? (poolName?.(pool) ?? pool.name).replace(
                                                       'Treasury shares',
@@ -269,7 +266,7 @@
                                 <button
                                     class="company-choice start-company-choice"
                                     {disabled}
-                                    aria-label={`Start ${getCompany(session.financialState, choice.request.companyId).name}`}
+                                    aria-label={`Start ${getCompany(session.gameState, choice.request.companyId).name}`}
                                     aria-pressed={session.stock.selectedStartCompany?.companyId ===
                                         choice.request.companyId}
                                     data-start-company={choice.request.companyId}
@@ -287,7 +284,7 @@
                                 {#each session.stock.selectedStartPrices as price}
                                     {#if price.result.details}
                                         {@const space = stockMarketSpace(
-                                            session.financialState.stockMarket,
+                                            session.gameState.stockMarket,
                                             price.marketSpaceId
                                         )}
                                         <button
@@ -324,7 +321,7 @@
                         <div class="choices">
                             {#each session.stockCompanies.filter( (company) => sales.some((choice) => choice.sale.companyId === company.id) ) as company (company.id)}
                                 {@const owned = session.myPlayer
-                                    ? sharesOwned(session.financialState, company.id, {
+                                    ? sharesOwned(session.gameState, company.id, {
                                           kind: 'player',
                                           playerId: session.myPlayer.id
                                       })
@@ -360,14 +357,14 @@
                                     />
                                     <span class="share-value"
                                         >{money(
-                                            session.financialState.stockRound.turn.saleBlocks?.find(
+                                            session.gameState.stockRound.turn.saleBlocks?.find(
                                                 (block) =>
                                                     block.companyId === company.id &&
                                                     block.seller.kind === 'player' &&
                                                     block.seller.playerId === session.myPlayer?.id
                                             )?.price ??
                                                 companyMarketSpace(
-                                                    session.financialState.stockMarket,
+                                                    session.gameState.stockMarket,
                                                     company.id
                                                 ).price
                                         )}</span
@@ -416,7 +413,7 @@
                         {@const company = exchangeCompany(offer.certificateId)}
                         <button
                             class="exchange-choice"
-                            aria-label={`Exchange ${getCompany(session.financialState, offer.privateCompanyId).name} for ${company.name}`}
+                            aria-label={`Exchange ${getCompany(session.gameState, offer.privateCompanyId).name} for ${company.name}`}
                             {disabled}
                             onclick={() => {
                                 session.privates.selectExchange(offer)
@@ -424,8 +421,7 @@
                             }}
                         >
                             <span class="exchange-private"
-                                >{getCompany(session.financialState, offer.privateCompanyId)
-                                    .name}</span
+                                >{getCompany(session.gameState, offer.privateCompanyId).name}</span
                             >
                             <span class="exchange-arrow" aria-hidden="true">→</span>
                             <span class="exchange-company">
@@ -450,7 +446,7 @@
                         <tr data-sold-company={sale.companyId}>
                             <th
                                 scope="row"
-                                aria-label={getCompany(session.financialState, sale.companyId).name}
+                                aria-label={getCompany(session.gameState, sale.companyId).name}
                             >
                                 <CompanyToken
                                     appearance={session.mapView.stations[sale.companyId]}

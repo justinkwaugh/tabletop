@@ -48,7 +48,7 @@
             >
         </div>
         <span role="status"
-            >{session.isViewingHistory ? 'History' : 'Live'} · {session.financialState.actionCount} actions</span
+            >{session.isViewingHistory ? 'History' : 'Live'} · {session.gameState.actionCount} actions</span
         >
     </header>
     <RouteBuilding {session} />

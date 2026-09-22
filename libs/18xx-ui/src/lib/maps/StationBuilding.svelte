@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
-    const step = $derived(session.financialState.stationStep)
+    const step = $derived(session.gameState.stationStep)
     const selection = $derived(session.stations.selection)
 </script>
 

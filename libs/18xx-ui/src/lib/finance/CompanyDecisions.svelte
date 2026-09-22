@@ -25,7 +25,7 @@
             (option) => option.request.asset.kind === 'train' && !excludeTrainPurchases
         )
     )
-    const state = $derived(session.financialState)
+    const state = $derived(session.gameState)
     const selection = $derived(session.decisions.selection)
     const showPowers = $derived(
         !session.privateActions.purchaseSource &&

@@ -35,8 +35,8 @@
         ) => HistoryDescription | undefined
     } = $props()
     const money = $derived(session.presentation.money)
-    const context = $derived(session.history.visibleContext)
-    const state = $derived(context.state)
+    const state = $derived(session.gameState)
+    const actions = $derived(session.actions.slice(0, state.actionCount))
     const company = $derived(
         state.companies.find((company) => company.id === nextOperatingCompany(state))
     )
@@ -99,9 +99,8 @@
         )
     }
     const latest = $derived.by(() => {
-        const paired = purchaseWithFlotation(context.actions)
-        const action =
-            paired?.flotation ?? context.actions.findLast((item) => !isHistoryBookkeeping(item))
+        const paired = purchaseWithFlotation(actions)
+        const action = paired?.flotation ?? actions.findLast((item) => !isHistoryBookkeeping(item))
         if (!action) return
         const description = describe(action)
         if (description.routine) return
@@ -139,12 +138,22 @@
         }
     })
     const result = $derived(state.routeStep?.result)
+    const turnPlayerId = $derived(state.turnManager.currentTurn()?.playerId)
 </script>
 
 {#if state.result}
     <GameEnding {session} position={state} />
 {:else}
     <div class="position" aria-label="Position summary">
+        {#if !session.isViewingHistory && turnPlayerId}
+            <div class="turn" role="status" aria-label="Active player">
+                <span
+                    class="player-color"
+                    style:background={session.colors.getPlayerBgColorValue(turnPlayerId)}
+                    aria-hidden="true"
+                ></span><strong>{session.getPlayerName(turnPlayerId)}</strong>’s turn
+            </div>
+        {/if}
         {#if status}<header>
                 <strong>{status}</strong>
             </header>{/if}
@@ -239,6 +248,26 @@
         padding: 6px 0;
         color: var(--rail-text, #514536);
         font-size: 13px;
+    }
+    .turn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 6px 0 12px;
+        font-size: 26px;
+        line-height: 32px;
+        color: var(--rail-muted, #7f8e9e);
+    }
+    .turn strong {
+        font-weight: 700;
+        color: var(--rail-text, #e3e9ef);
+    }
+    .player-color {
+        width: 20px;
+        height: 20px;
+        margin-right: 10px;
+        flex-shrink: 0;
+        border-radius: 50%;
     }
     header {
         display: flex;

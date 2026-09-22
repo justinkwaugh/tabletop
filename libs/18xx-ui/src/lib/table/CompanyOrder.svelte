@@ -20,7 +20,7 @@
         money,
         showDetails,
         companies,
-        state: financialState,
+        state: gameState,
         trainDepot,
         trainColors,
         requiresTrain,
@@ -93,8 +93,8 @@
             return {
                 company,
                 appearance,
-                amount: cashOwnedBy(financialState, { kind: 'company', companyId: company.id }),
-                trains: trainsOwnedBy(financialState, {
+                amount: cashOwnedBy(gameState, { kind: 'company', companyId: company.id }),
+                trains: trainsOwnedBy(gameState, {
                     kind: 'company',
                     companyId: company.id
                 }).map((train) => ({
@@ -102,7 +102,7 @@
                     color: trainColors[train.definitionId],
                     name: trainDepot.trainDefinition(train.definitionId).name
                 })),
-                remainingTokens: financialState.stations.filter(
+                remainingTokens: gameState.stations.filter(
                     (station) => station.companyId === company.id && station.status === 'available'
                 )
             }

@@ -12,7 +12,7 @@
     const privateOperationDescription = (id: string) =>
         id === 'SRR'
             ? 'Ignores mountain-only terrain costs. Combined river and mountain costs still apply.'
-            : id === 'ER' && !session.financialState.usedPrivatePowerIds.includes(id)
+            : id === 'ER' && !session.gameState.usedPrivatePowerIds.includes(id)
               ? 'On purchase, the seller may immediately upgrade Ohzu in addition to ordinary construction.'
               : undefined
 </script>
