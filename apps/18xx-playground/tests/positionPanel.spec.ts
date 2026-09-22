@@ -65,7 +65,7 @@ test('a local spectator sees the active player and a disabled stock strip', asyn
     await expect(panel.getByLabel('Position summary')).toBeVisible()
     await expect(panel).not.toContainText('Stock round')
     await expect(panel.getByRole('button')).toHaveCount(0)
-    const activePlayer = page.locator('header[aria-label="Game phase"] .turn .player-name').first()
+    const activePlayer = page.locator('header[aria-label="Game phase"] .player-name').first()
     const turn = panel.getByRole('status', { name: 'Active player' })
     await expect(turn).toContainText(`${await activePlayer.innerText()}’s turn`)
     const strip = page.getByRole('navigation', { name: 'Stock actions' })

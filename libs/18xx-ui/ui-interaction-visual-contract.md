@@ -575,6 +575,12 @@ controls. Browser coverage checks TOP and 1889 at phone, breakpoint and desktop
 widths, including resizing back to mobile.
 The operating company in the phase header uses title-defined initials below that
 same breakpoint and its full name at wider sizes; its token remains visible.
+In the paned layout the header centers the round / phase / company group and
+appends the active player names, or History, after a further separator; Undo and
+the artwork toggle stay at the right edge. When the centered group cannot fit
+with symmetric margins, the round label compacts first and the group then yields
+toward the left rather than overlapping the controls. The non-paned layout keeps
+the round group at the left and the active player beside Undo.
 
 The session's map.select is the common map-intent entry point for both the
 table and the logic workbench. While track choices show, a click selects or rotates

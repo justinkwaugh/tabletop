@@ -700,6 +700,7 @@
                                 {trainColors}
                                 {companyNames}
                                 bordered={!paneLayout.current}
+                                centered={paneLayout.current}
                             />
                         </div>
                     </div>

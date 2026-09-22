@@ -253,7 +253,7 @@ for (const title of ['TOP', '1889']) {
         const choices = page.locator('[data-map-tile-choice]')
         await expect(choices.first()).toBeVisible()
         await expect(page.getByRole('button', { name: 'Cancel track lay' })).toHaveCount(0)
-        await page.getByRole('banner', { name: 'Game phase' }).click()
+        await page.getByRole('banner', { name: 'Game phase' }).click({ position: { x: 8, y: 8 } })
         await expect(choices).toHaveCount(0)
         await hex.click()
         await expect(choices.first()).toBeVisible()

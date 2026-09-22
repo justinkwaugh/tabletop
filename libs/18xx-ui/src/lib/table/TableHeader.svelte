@@ -11,6 +11,7 @@
         session,
         companyNames = {},
         bordered = true,
+        centered = false,
         phaseChart,
         trainColors,
         artworkAvailable = false,
@@ -21,6 +22,7 @@
         publishedArtwork?: boolean
         onToggleArtwork?: () => void
         bordered?: boolean
+        centered?: boolean
         session: EighteenXXSession
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         phaseChart: PhaseChartData
@@ -48,7 +50,8 @@
                 (compact
                     ? full.getBoundingClientRect().width - short.getBoundingClientRect().width
                     : 0)
-            compact = fullWidth + turn.getBoundingClientRect().width > available
+            compact =
+                fullWidth + (centered ? 2 : 1) * turn.getBoundingClientRect().width > available
         })
         for (const element of [header, phase, turn]) observer.observe(element)
         return { destroy: () => observer.disconnect() }
@@ -68,7 +71,28 @@
     const company = $derived(gameState.companies.find((company) => company.id === companyId))
 </script>
 
-<header aria-label="Game phase" use:fitRoundLabel class:compact class:borderless={!bordered}>
+{#snippet turnLabel()}
+    {#if session.isViewingHistory}
+        <span>History</span>
+    {:else}
+        {#each gameState.activePlayerIds as playerId (playerId)}
+            <span class="player-name"
+                ><span
+                    class="player-color"
+                    style:background={session.colors.getPlayerBgColorValue(playerId)}
+                    aria-hidden="true"
+                ></span>{session.getPlayerName(playerId)}</span
+            >
+        {/each}
+    {/if}
+{/snippet}
+<header
+    aria-label="Game phase"
+    use:fitRoundLabel
+    class:compact
+    class:centered
+    class:borderless={!bordered}
+>
     <div class="phase">
         <strong>
             {#if gameState.result}
@@ -109,21 +133,10 @@
                 ><span class="sm:hidden">{companyNames[company.id]?.initials ?? company.id}</span
                 ></span
             >{/if}
+        {#if centered}<span class="separator" aria-hidden="true">/</span>{@render turnLabel()}{/if}
     </div>
     <div class="turn">
-        {#if session.isViewingHistory}
-            <span>History</span>
-        {:else}
-            {#each gameState.activePlayerIds as playerId (playerId)}
-                <span class="player-name"
-                    ><span
-                        class="player-color"
-                        style:background={session.colors.getPlayerBgColorValue(playerId)}
-                        aria-hidden="true"
-                    ></span>{session.getPlayerName(playerId)}</span
-                >
-            {/each}
-        {/if}
+        {#if !centered}{@render turnLabel()}{/if}
         <button
             onclick={() => session.undo()}
             disabled={session.busy ||
@@ -187,6 +200,17 @@
     }
     header.borderless {
         border-bottom: 0;
+    }
+    header.centered {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) max-content minmax(max-content, 1fr);
+    }
+    .centered .phase {
+        grid-column: 2;
+    }
+    .centered .turn {
+        grid-column: 3;
+        justify-self: end;
     }
     @media (width < 40rem) {
         header {
