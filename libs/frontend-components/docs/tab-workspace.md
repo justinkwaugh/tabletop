@@ -29,7 +29,8 @@ The caller supplies stable tab IDs, labels, and content. Tabs are closeable unle
 `closable: false`; optional tabs start absent and appear in Add tabs. At most eight
 main panes can exist. Deleting a pane merges its tabs into the surviving sibling.
 Both split directions, repeated splitting, swapping sides, and divider resizing
-are built in. Divider ratios range from 20% to 80%.
+are built in. Dragging keeps each side of a divider at least 100px; ratios are
+clamped to 5–95% when restored or moved with the keyboard.
 
 `initialSplit: { axis: 'horizontal', first: ['editor'] }` starts with an upper pane
 containing Editor and the remaining tabs below. `vertical` splits left/right.

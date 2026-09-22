@@ -2,7 +2,7 @@
     import type { WorkspaceTab, WorkspaceFixedPane } from './workspaceTypes.js'
     import { restoreWorkspace, saveWorkspace, type SavedWorkspace, type SavedPane } from './workspacePersistence.js'
     import { tick, untrack, type Snippet } from 'svelte'
-    import { type WorkspaceInitialSplit, activateTab, closeTab, addTab, deletePane, moveTab, resizeSplit, splitPane, swapSplit, workspaceLayout, type DividerLayout, type WorkspaceNode, type WorkspacePane, type PaneLayout } from './tabWorkspace.js'
+    import { type WorkspaceInitialSplit, activateTab, closeTab, addTab, deletePane, maxSplitRatio, minSplitRatio, moveTab, resizeSplit, splitPane, swapSplit, workspaceLayout, type DividerLayout, type WorkspaceNode, type WorkspacePane, type PaneLayout } from './tabWorkspace.js'
     let { tabs, children, selected = $bindable<string | undefined>(), label = 'Workspace', splittable = true, initialSplit, initialLayout, fixedPane, tabTitle, savedLayout, onLayoutChange }: {
         tabs: readonly WorkspaceTab[]
         children: Snippet<[string, boolean]>
@@ -123,6 +123,7 @@
         select(pane.tabs[next])
         document.getElementById(`${instanceId}-tab-${encodeURIComponent(pane.tabs[next])}`)?.focus()
     }
+    const minPaneSize = 100
     function startResize(event: MouseEvent, divider: DividerLayout) {
         if (event.button !== 0 || !(event.currentTarget instanceof HTMLElement)) return
         event.preventDefault()
@@ -136,7 +137,9 @@
     function moveResize(event: MouseEvent) {
         if (!resize) return
         const coordinate = resize.axis === 'vertical' ? event.clientX : event.clientY
-        root = resizeSplit(root, resize.id, resize.ratio + (coordinate - resize.start) / resize.extent * 100)
+        const minRatio = minPaneSize / resize.extent * 100
+        const ratio = resize.ratio + (coordinate - resize.start) / resize.extent * 100
+        root = resizeSplit(root, resize.id, Math.max(minRatio, Math.min(100 - minRatio, ratio)))
     }
     function endResize(event: MouseEvent) { moveResize(event); resize = undefined }
     function cancelResize() { if (resize) root = resizeSplit(root, resize.id, resize.ratio); resize = undefined }
@@ -144,7 +147,7 @@
         const { axis, ratio, id } = divider.split
         const next = event.key === (axis === 'vertical' ? 'ArrowLeft' : 'ArrowUp') ? ratio - 2
             : event.key === (axis === 'vertical' ? 'ArrowRight' : 'ArrowDown') ? ratio + 2
-            : event.key === 'Home' ? 20 : event.key === 'End' ? 80 : undefined
+            : event.key === 'Home' ? minSplitRatio : event.key === 'End' ? maxSplitRatio : undefined
         if (next === undefined) return
         event.preventDefault(); root = resizeSplit(root, id, next)
     }
@@ -236,7 +239,7 @@
     {#each layout.dividers as item (item.split.id)}
         {@const vertical = item.split.axis === 'vertical'}
         <div class="divider" class:vertical role="separator" tabindex="0" aria-label={`Resize ${item.split.axis} split`}
-            aria-orientation={item.split.axis} aria-valuemin="20" aria-valuemax="80" aria-valuenow={Math.round(item.split.ratio)}
+            aria-orientation={item.split.axis} aria-valuemin={minSplitRatio} aria-valuemax={maxSplitRatio} aria-valuenow={Math.round(item.split.ratio)}
             style:left={vertical ? `calc(${item.x + item.width * item.split.ratio / 100}% - 4px)` : `${item.x}%`}
             style:top={vertical ? `${item.y}%` : `calc(${item.y + item.height * item.split.ratio / 100}% - 4px)`}
             style:width={vertical ? '8px' : `${item.width}%`} style:height={vertical ? `${item.height}%` : '8px'}

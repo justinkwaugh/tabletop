@@ -69,7 +69,7 @@ test('workspace splits, moves live tabs, resizes and stops at eight panes', asyn
     await expect(divider).not.toHaveAttribute('aria-valuenow', '50')
     await divider.focus()
     await page.keyboard.press('Home')
-    await expect(divider).toHaveAttribute('aria-valuenow', '20')
+    await expect(divider).toHaveAttribute('aria-valuenow', '5')
     await page.getByRole('tab', { name: 'Map', exact: true }).focus()
     await page.keyboard.press('Alt+Shift+ArrowRight')
     await expect(map).toHaveAttribute('data-mount-check', 'preserved')

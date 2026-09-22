@@ -16,7 +16,7 @@ it('drops unknown and duplicate tabs, rejects wrong sidebar tabs, and restores m
     const panes = workspaceLayout(restored.root).panes
     expect(restored.fixed.tabs).toEqual(['Players', 'Chat'])
     expect(panes.flatMap(p => p.pane.tabs)).toEqual(['Map', 'Market', 'Tiles', 'Actions', 'History'])
-    expect(workspaceLayout(restored.root).dividers[0].split.ratio).toBe(80)
+    expect(workspaceLayout(restored.root).dividers[0].split.ratio).toBe(95)
 })
 it('invalid, future-version, overdeep and overfull layouts fall back safely', () => {
     let deep: unknown = []

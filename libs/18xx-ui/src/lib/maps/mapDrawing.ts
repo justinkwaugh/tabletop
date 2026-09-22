@@ -38,6 +38,9 @@ export type MapRoute = {
     color: string
     segments: readonly RoutePath[]
 }
+export function routeLocationIds(routes: readonly MapRoute[]): string[] {
+    return [...new Set(routes.flatMap((route) => route.segments.map((path) => path.locationId)))]
+}
 export type MapDrawnLocation = {
     location: MapLocation
     center: Point

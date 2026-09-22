@@ -754,22 +754,33 @@
             var(--player-tinted-background, var(--sheet-label))
         );
     }
+    td:has(.last-run) {
+        position: relative;
+        padding: 0;
+    }
     .last-run {
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
         border: 0;
-        border-radius: 4px;
-        padding: 1px 4px;
+        padding: 4px var(--cell-padding-inline);
         background: transparent;
         color: inherit;
         font: inherit;
         font-variant-numeric: tabular-nums;
         cursor: pointer;
     }
-    .last-run:hover:enabled {
+    .last-run::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+    }
+    .last-run:hover:enabled::after {
         background: var(--rail-hover, #ffffff66);
     }
     .last-run:focus-visible {
         outline: 2px solid var(--rail-focus, #9e7752);
-        outline-offset: 1px;
+        outline-offset: -2px;
     }
     .last-run:disabled {
         cursor: default;

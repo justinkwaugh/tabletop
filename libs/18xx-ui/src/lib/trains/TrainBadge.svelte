@@ -9,13 +9,13 @@
 <style>
     .train-badge {
         display: inline-block;
-        padding: 0 4px;
+        padding: 0 0.333em;
         border-radius: 3px;
         color: #181818;
         filter: var(--rail-phase-filter, saturate(0.6));
-        font-size: 12px;
+        font-size: var(--train-badge-font, 12px);
         font-weight: 600;
-        line-height: 16px;
+        line-height: calc(4em / 3);
         white-space: nowrap;
     }
 </style>

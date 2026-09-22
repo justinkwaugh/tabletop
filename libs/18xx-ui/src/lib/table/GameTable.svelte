@@ -45,7 +45,7 @@
         setGameSession
     } from '@tabletop/frontend-components'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    import { mapSelectionRect } from '../maps/mapDrawing.js'
+    import { mapSelectionRect, routeLocationIds } from '../maps/mapDrawing.js'
     import MapScene from '../maps/MapScene.svelte'
     import HistoricalMapViewer from '../maps/HistoricalMapViewer.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
@@ -395,6 +395,24 @@
                     segments: route.paths
                 }))
               : session.routes.overlays
+    )
+    const mapMask = $derived.by(
+        ():
+            | { legalLocationIds: readonly string[]; highlightedLocationIds: readonly string[] }
+            | undefined => {
+            if (session.isViewingHistory)
+                return mapRoutes.length
+                    ? { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+                    : undefined
+            if (maskPlacementLocations)
+                return {
+                    legalLocationIds: placementLocationIds,
+                    highlightedLocationIds: highlightedPlacementLocationIds
+                }
+            if (routePreview && !session.routes.editor.trainId && mapRoutes.length)
+                return { legalLocationIds: [], highlightedLocationIds: routeLocationIds(mapRoutes) }
+            return undefined
+        }
     )
     const settledHistoricalFocus = $derived(
         historyMapSettled && mapWrapper ? historicalFocus : undefined
@@ -864,10 +882,9 @@
                                                 ? historicalFocus?.selection
                                                 : undefined
                                             : session.map.selection}
-                                        maskUnavailableLocations={!session.isViewingHistory &&
-                                            maskPlacementLocations}
-                                        legalLocationIds={placementLocationIds}
-                                        highlightedLocationIds={highlightedPlacementLocationIds}
+                                        maskUnavailableLocations={!!mapMask}
+                                        legalLocationIds={mapMask?.legalLocationIds}
+                                        highlightedLocationIds={mapMask?.highlightedLocationIds}
                                         previewLocationId={session.track.displayedPreview
                                             ?.locationId ??
                                             session.stations.preview?.position.locationId}

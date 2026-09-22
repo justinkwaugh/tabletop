@@ -312,20 +312,20 @@
         display: flex;
         align-items: start;
         position: relative;
-        margin: 2px 0;
+        margin: 0.167em 0;
     }
     .stock-action {
         display: block;
         min-width: 0;
         overflow-wrap: anywhere;
         width: 100%;
-        padding: 4px 6px;
-        line-height: 16px;
+        padding: 0.333em 0.5em;
+        line-height: 1.333em;
     }
     .stock-action.flotation {
         display: grid;
-        grid-template-columns: 23px minmax(0, 1fr);
-        column-gap: 6px;
+        grid-template-columns: 1.917em minmax(0, 1fr);
+        column-gap: 0.5em;
         align-items: center;
     }
     .flotation-token {
@@ -349,22 +349,22 @@
     .stock-action small {
         display: block;
         color: var(--rail-muted, #817565);
-        font-size: 10px;
-        line-height: 13px;
+        font-size: 0.833em;
+        line-height: 1.3em;
     }
 
     .passes {
         display: grid;
-        gap: 2px;
+        gap: 0.167em;
     }
     .passes .history-entry {
         display: block;
     }
     article {
-        margin: var(--history-item-gap, 5px) 0;
-        padding: 3px 6px 5px;
+        margin: var(--history-item-gap, 0.417em) 0;
+        padding: 0.25em 0.5em 0.417em;
         color: var(--rail-text, #463e35);
-        font-size: 12px;
+        font-size: 1em;
     }
     article:not(.history-card) {
         border-bottom: 1px solid var(--rail-shadow, #b9ac994f);
@@ -376,17 +376,17 @@
         border-bottom: 0;
     }
     .order-start .events .history-entry {
-        row-gap: 6px;
+        row-gap: 0.5em;
     }
     header {
         position: relative;
         display: flex;
         align-items: center;
-        gap: 4px;
-        min-height: 24px;
+        gap: 0.333em;
+        min-height: 2em;
     }
     .company-header {
-        margin: -3px -6px 5px;
+        margin: -0.25em -0.5em 0.417em;
     }
     .history-entry {
         border: 0;
@@ -398,10 +398,16 @@
     .heading {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 0.5em;
         flex: 1;
         min-width: 0;
         padding: 0;
+    }
+    .heading > :global(svg),
+    .flotation-token :global(svg) {
+        flex: none;
+        width: 1.917em;
+        height: 1.917em;
     }
     strong {
         font-weight: 600;
@@ -409,28 +415,28 @@
     .company-name {
         display: flex;
         align-items: center;
-        gap: 2px;
+        gap: 0.167em;
     }
     .company-heading {
         display: flex;
         flex-direction: column;
         gap: 0;
-        line-height: 14px;
+        line-height: 1.167em;
     }
     .actor {
-        font-size: 10px;
+        font-size: 0.833em;
         color: var(--rail-muted, #817565);
     }
     .events {
-        margin-top: 2px;
+        margin-top: 0.167em;
     }
     .events .history-entry {
         width: 100%;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        column-gap: 6px;
-        padding: 2px 0;
-        line-height: 16px;
+        column-gap: 0.5em;
+        padding: 0.167em 0;
+        line-height: 1.333em;
     }
     .events strong {
         text-align: right;
@@ -440,14 +446,14 @@
     .events small {
         grid-column: 1 / -1;
         color: var(--rail-muted, #817565);
-        font-size: 10px;
-        line-height: 14px;
+        font-size: 0.833em;
+        line-height: 1.4em;
     }
     .history-entry.phase-change {
         --rail-text: light-dark(#302c27, var(--phase-ink));
         --rail-muted: light-dark(#817565, var(--phase-ink));
-        margin: 3px 0;
-        padding: 4px 6px;
+        margin: 0.25em 0;
+        padding: 0.333em 0.5em;
         border-left: 4px solid var(--phase-color);
         border-radius: 3px;
         background: color-mix(
@@ -459,8 +465,8 @@
     }
     .phase-colors {
         display: inline-block;
-        margin-left: 7px;
-        font-size: 10px;
+        margin-left: 0.7em;
+        font-size: 0.833em;
         font-weight: 500;
         text-transform: none;
     }
@@ -483,29 +489,30 @@
         outline-offset: 2px;
     }
     .run-trains {
+        --train-badge-font: 1em;
         display: inline-flex;
-        gap: 3px;
-        margin-left: 5px;
+        gap: 0.25em;
+        margin-left: 0.417em;
         vertical-align: baseline;
     }
     .funding-obligation {
-        padding: 2px 0;
-        line-height: 16px;
+        padding: 0.167em 0;
+        line-height: 1.333em;
         font-weight: 600;
     }
     .cash-balance {
         display: flex;
         flex-direction: column;
         text-align: right;
-        line-height: 14px;
+        line-height: 1.167em;
     }
     .cash-balance small {
-        font-size: 10px;
+        font-size: 0.833em;
         color: var(--rail-muted, #817565);
     }
     .ledger-note {
-        margin-left: 5px;
-        font-size: 11px;
+        margin-left: 0.455em;
+        font-size: 0.917em;
     }
     .events strong.debit {
         color: var(--rail-negative, #aa352e);
@@ -516,21 +523,21 @@
     footer {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-top: 4px;
+        gap: 0.667em;
+        margin-top: 0.333em;
     }
     .end-cash {
         display: flex;
-        gap: 12px;
+        gap: 1em;
         flex: 1;
         justify-content: flex-end;
-        padding-top: 3px;
+        padding-top: 0.25em;
     }
     .end-cash strong {
-        min-width: 48px;
+        min-width: 4em;
         text-align: right;
         border-top: 1px solid var(--rail-shadow, #b9ac9970);
-        padding-top: 3px;
+        padding-top: 0.25em;
     }
     .cash-balance strong,
     .end-cash strong {
@@ -538,7 +545,7 @@
     }
     .routine {
         color: var(--rail-muted, #918575);
-        font-size: 11px;
+        font-size: 0.917em;
     }
     .important > span {
         font-weight: 600;

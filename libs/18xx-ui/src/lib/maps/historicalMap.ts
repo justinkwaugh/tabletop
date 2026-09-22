@@ -1,7 +1,12 @@
 import { isLayTile, isLayPrivateTile, isRunTrains, type EighteenXXState } from '@tabletop/18xx'
 import { assert, assertExists, type GameAction } from '@tabletop/common'
 import jsonpatch from 'fast-json-patch'
-import { createMapDrawing, type MapSelection, type MapRoute } from './mapDrawing.js'
+import {
+    createMapDrawing,
+    routeLocationIds,
+    type MapSelection,
+    type MapRoute
+} from './mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from './stationPresentation.js'
 import { routeColor } from '../routes/routePresentation.js'
 
@@ -75,7 +80,7 @@ export class HistoricalMaps {
         const selection: MapSelection | undefined = locationId
             ? { kind: 'hex', locationId }
             : undefined
-        const preview = {
+        const preview: HistoricalMap = {
             actionId: action.id,
             label: `${company.name}${set ? ` · OR ${set.number}.${set.roundNumber}` : ''}`,
             kind: isRunTrains(action) ? 'run' : 'track lay',
@@ -93,13 +98,7 @@ export class HistoricalMaps {
             reservations: snapshot.stationReservations,
             routes,
             selection,
-            locations: locationId
-                ? [locationId]
-                : [
-                      ...new Set(
-                          routes.flatMap((route) => route.segments.map((path) => path.locationId))
-                      )
-                  ]
+            locations: locationId ? [locationId] : routeLocationIds(routes)
         }
         this.cache.set(action.id, preview)
         if (this.cache.size > 3) this.cache.delete(this.cache.keys().next().value!)
@@ -110,7 +109,7 @@ export class HistoricalMaps {
 export type HistoricalMap = {
     actionId: string
     label: string
-    kind: string
+    kind: 'run' | 'track lay'
     revenue?: number
     scene: ReturnType<typeof createMapDrawing>
     tokens: ReturnType<typeof stationMapTokens>

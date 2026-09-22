@@ -87,7 +87,7 @@ test('restores tab transfers and sanitizes unknown tabs without overwriting futu
     await expect(page.getByRole('tab', { name: 'History', exact: true })).toHaveCount(1)
     await expect(
         page.getByRole('separator', { name: 'Resize vertical split' }).last()
-    ).toHaveAttribute('aria-valuenow', '80')
+    ).toHaveAttribute('aria-valuenow', '95')
     await page.evaluate(() => {
         const key = Object.keys(localStorage).find(
             (key) => key.includes('harness:preferences:') && key.includes('family:18xx')
@@ -113,7 +113,7 @@ test('swap exchanges whole panes, preserves mounted content and saves the result
     await divider.focus()
     await page.keyboard.press('Home')
     await page.getByRole('button', { name: 'Swap sides of horizontal split' }).last().click()
-    await expect(divider).toHaveAttribute('aria-valuenow', '80')
+    await expect(divider).toHaveAttribute('aria-valuenow', '95')
     const mapBounds = await map.boundingBox()
     const actionBounds = await actions.boundingBox()
     if (!mapBounds || !actionBounds) throw new Error('Both panes must be visible')
@@ -129,7 +129,7 @@ test('swap exchanges whole panes, preserves mounted content and saves the result
                 ['rows', 25, ['Game info'], ['Players', 'History', 'Chat']],
                 [
                     'rows',
-                    80,
+                    95,
                     ['Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid'],
                     ['Actions']
                 ]
@@ -141,5 +141,5 @@ test('swap exchanges whole panes, preserves mounted content and saves the result
             .getByRole('tablist', { name: 'Table views tabs 3' })
             .getByRole('tab', { name: 'Map', exact: true })
     ).toBeVisible()
-    await expect(divider).toHaveAttribute('aria-valuenow', '80')
+    await expect(divider).toHaveAttribute('aria-valuenow', '95')
 })

@@ -67,17 +67,22 @@
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 2px 7px;
+        gap: 0.167em 0.583em;
         grid-column: 1 / -1;
     }
     .order {
         display: flex;
-        gap: 4px;
+        gap: 0.333em;
         flex-wrap: wrap;
     }
+    .order > :global(svg) {
+        width: 1.833em;
+        height: 1.833em;
+    }
     svg {
+        width: auto;
         max-width: 100%;
-        height: auto;
+        height: 3.083em;
         flex-shrink: 0;
     }
 </style>

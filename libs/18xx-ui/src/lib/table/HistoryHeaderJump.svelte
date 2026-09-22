@@ -39,6 +39,7 @@
         border: 0;
         background: transparent;
         color: inherit;
+        font: inherit;
         cursor: pointer;
     }
     .jump {
@@ -64,8 +65,12 @@
         z-index: 2;
         display: inline-flex;
         flex: none;
-        padding: 2px 4px;
+        padding: 0.167em 0.333em;
         border-radius: 3px;
+    }
+    .return svg {
+        width: 1.667em;
+        height: 1.667em;
     }
     .return:hover:not(:disabled) {
         background: var(--rail-hover, #49352a20);

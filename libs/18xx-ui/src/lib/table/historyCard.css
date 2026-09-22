@@ -7,9 +7,9 @@
 .history-card-header {
     display: flex;
     align-items: center;
-    gap: 4px;
-    min-height: 24px;
-    padding: 5px 6px;
+    gap: 0.333em;
+    min-height: 2em;
+    padding: 0.417em 0.5em;
     border-radius: 4px 4px 0 0;
     background: var(--rail-surface-selected, #d9cdbc);
     color: var(--rail-text, #463e35);

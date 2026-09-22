@@ -224,12 +224,18 @@
     }
 
     .round-history {
-        --history-item-gap: 5px;
+        --history-item-gap: 0.417em;
+        container-type: inline-size;
         display: flex;
         flex-direction: column;
         height: 100%;
         min-height: 0;
         overflow: hidden;
+    }
+    .history-toolbar,
+    .round-index,
+    .history-scroll {
+        font-size: clamp(12px, calc(8.8px + 1cqi), 16px);
     }
     .history-scroll {
         display: flex;
@@ -244,7 +250,7 @@
         display: grid;
         grid-template-columns: auto 1fr;
         align-items: center;
-        padding-right: 6px;
+        padding-right: 0.5em;
     }
     .index-button {
         justify-self: end;
@@ -254,7 +260,7 @@
         inset: auto;
         margin: 0;
         box-sizing: border-box;
-        padding: 5px;
+        padding: 0.417em;
         border: 1px solid var(--rail-border, #a2917a);
         border-radius: 5px;
         background: var(--rail-surface-raised, #eee8df);
@@ -265,18 +271,18 @@
     .round-index nav {
         display: flex;
         flex-direction: column;
-        gap: 3px;
+        gap: 0.25em;
     }
     .round-index nav button {
         display: flex;
         justify-content: space-between;
-        gap: 8px;
-        padding: 6px 8px;
+        gap: 0.667em;
+        padding: 0.5em 0.667em;
         border: 1px solid var(--rail-border, #9d8d78);
         border-radius: 3px;
         color: var(--rail-text, #30271f);
         font:
-            12px/1.3 ui-sans-serif,
+            1em/1.3 ui-sans-serif,
             system-ui,
             sans-serif;
         cursor: pointer;
@@ -286,28 +292,28 @@
         filter: var(--rail-phase-filter, brightness(0.95));
     }
     .round-index nav button span {
-        font-size: 11px;
+        font-size: 0.917em;
     }
     .history-order {
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 7px;
-        padding: 0 6px 2px;
+        gap: 0.583em;
+        padding: 0 0.5em 0.167em;
         color: var(--rail-muted, #9b8e7c);
-        font-size: 11px;
+        font-size: 0.917em;
     }
     .history-order button,
     .index-button {
         border: 0;
         background: none;
-        padding: 2px 0;
+        padding: 0.167em 0;
         color: var(--rail-muted, #817565);
         font: inherit;
         cursor: pointer;
     }
     .index-button {
-        font-size: 11px;
+        font-size: 0.917em;
     }
     .history-order button[aria-pressed='true'] {
         color: var(--rail-text, #463e35);
@@ -338,17 +344,17 @@
         grid-template-columns: max-content minmax(0, 1fr) max-content;
         grid-template-areas: 'title order phase';
         align-items: center;
-        column-gap: 8px;
-        row-gap: 3px;
-        min-height: 36px;
+        column-gap: 0.615em;
+        row-gap: 0.231em;
+        min-height: 2.769em;
         box-sizing: border-box;
         margin: 0;
-        padding: 7px 10px;
+        padding: 0.538em 0.769em;
         border-top: 2px solid var(--rail-interstitial-border, #6f5c46);
         border-bottom: 2px solid var(--rail-interstitial-border, #6f5c46);
         color: var(--rail-text, #30271f);
         font:
-            750 13px/1.3 ui-sans-serif,
+            750 1.083em/1.3 ui-sans-serif,
             system-ui,
             sans-serif;
     }
@@ -370,6 +376,7 @@
         width: max-content;
         max-width: 100%;
         overflow-x: auto;
+        font-size: 0.923em;
     }
     .round-order :global(.order-history),
     .round-order :global(.order) {
@@ -385,14 +392,14 @@
     .round-phase {
         grid-area: phase;
         justify-self: end;
-        font-size: 11px;
+        font-size: 0.846em;
         font-weight: 600;
         text-align: right;
         white-space: nowrap;
     }
     .empty {
-        padding: 20px 8px;
+        padding: 1.538em 0.615em;
         color: var(--rail-text, #7d7266);
-        font-size: 13px;
+        font-size: 1.083em;
     }
 </style>

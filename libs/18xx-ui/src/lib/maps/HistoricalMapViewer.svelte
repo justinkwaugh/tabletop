@@ -66,6 +66,8 @@
                 reservations={preview.reservations}
                 routes={preview.routes}
                 selection={preview.selection}
+                maskUnavailableLocations={preview.kind === 'run'}
+                highlightedLocationIds={preview.locations}
                 {appearance}
                 {revenueStageColors}
                 hexDiameter={140}

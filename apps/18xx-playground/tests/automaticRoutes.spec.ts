@@ -23,9 +23,28 @@ for (const [title, revenue, paths] of [
         await expect(panel.locator('[data-route-train]')).toHaveCount(2)
         await expect(page.locator('[data-map-route]')).toHaveCount(paths)
         await expect(undo).toBeDisabled()
+        const masking = await page.evaluate(() => {
+            const routeHexes = new Set(
+                [...document.querySelectorAll('[data-map-route]')].map((path) =>
+                    path.parentElement!.getAttribute('transform')
+                )
+            )
+            const masked = [...document.querySelectorAll('[data-map-masked]')].map((polygon) =>
+                polygon.getAttribute('transform')
+            )
+            return {
+                hexes: document.querySelectorAll('[data-map-location]').length,
+                routeHexes: routeHexes.size,
+                masked: masked.length,
+                maskedRouteHexes: masked.filter((transform) => routeHexes.has(transform)).length
+            }
+        })
+        expect(masking.maskedRouteHexes).toBe(0)
+        expect(masking.masked).toBe(masking.hexes - masking.routeHexes)
         await run.click()
         await expect(panel).toHaveCount(0)
         await expect(page.locator('[data-map-route]')).toHaveCount(paths)
+        await expect(page.locator('[data-map-layer="unavailable"]')).toHaveCount(0)
         await page.reload()
         await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
         await page.getByLabel('Game', { exact: true }).selectOption(title)

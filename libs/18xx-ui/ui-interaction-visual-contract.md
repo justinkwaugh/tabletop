@@ -702,6 +702,8 @@ During actionable track construction, all locations absent from the session’s 
 
 Hovering a legal track-lay location uses the same solid red outline as selection, without stacking a second outline. Masked locations receive no hover outline. Pointer exit, scene changes, and construction-availability changes clear this local presentation state; hover never selects or commits an action.
 
+While the run-trains step displays autorouted routes and no train is selected for manual editing, the same translucent mask covers every hex outside those routes, and no map space is clickable or keyboard-selectable. Selecting a train for manual editing or committing the run clears the mask while the routes stay drawn. While navigating history, the table map masks non-route hexes whenever the settled position is a train run, and clears the mask at every other position. The historical map dialog masks non-route hexes the same way for run previews.
+
 ### Map track picker
 
 Selecting a legal construction hex opens tile choices on a compact, evenly spaced circular arc around it. The arc prefers directly above the hex and rotates only as far as needed to clear viewport edges, without snapping to cardinal directions. It adjusts radius/size when rotation alone cannot fit. Choices match the map hex scale, shrinking only when needed to fit the viewport. Icon controls scale with the map. Both render outside the scaling wrapper and follow the hex through pan, zoom, and layout changes. Existing shared tile artwork and title layouts render each choice in a legal rotation.

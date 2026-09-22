@@ -1,4 +1,4 @@
-import { createWorkspace, workspaceLayout, MAX_WORKSPACE_PANES, type WorkspaceNode, type WorkspacePane, type WorkspaceInitialSplit } from './tabWorkspace.js'
+import { clampSplitRatio, createWorkspace, workspaceLayout, MAX_WORKSPACE_PANES, type WorkspaceNode, type WorkspacePane, type WorkspaceInitialSplit } from './tabWorkspace.js'
 
 export type SavedPane = string[] | ['rows' | 'cols', number, SavedPane, SavedPane]
 export interface SavedWorkspace { v: 1; sidebar: string[]; main: SavedPane; closed?: string[] }
@@ -32,7 +32,7 @@ export function restoreWorkspace(value: unknown, tabs: readonly string[], sideba
         const id = `restored-${serial++}`
         if (node.length === 4 && (node[0] === 'rows' || node[0] === 'cols') && typeof node[1] === 'number') {
             if (!Number.isFinite(node[1])) throw new Error('Invalid ratio')
-            return { kind: 'split', id, axis: node[0] === 'rows' ? 'horizontal' : 'vertical', ratio: Math.max(20, Math.min(80, Math.round(node[1]))), first: decode(node[2], depth + 1), second: decode(node[3], depth + 1) }
+            return { kind: 'split', id, axis: node[0] === 'rows' ? 'horizontal' : 'vertical', ratio: clampSplitRatio(Math.round(node[1])), first: decode(node[2], depth + 1), second: decode(node[3], depth + 1) }
         }
         if (!node.every(id => typeof id === 'string') || ++leaves > MAX_WORKSPACE_PANES) throw new Error('Invalid tabs')
         const ids = clean(node, tabs)

@@ -95,9 +95,14 @@ export function moveTab(root: WorkspaceNode, tab: string, destination: string, b
         return { ...pane, tabs, active: tab }
     })
 }
+export const minSplitRatio = 5
+export const maxSplitRatio = 95
+export function clampSplitRatio(ratio: number): number {
+    return Math.max(minSplitRatio, Math.min(maxSplitRatio, ratio))
+}
 export function resizeSplit(root: WorkspaceNode, id: string, ratio: number): WorkspaceNode {
     if (root.kind === 'pane') return root
-    if (root.id === id) return { ...root, ratio: Math.max(20, Math.min(80, ratio)) }
+    if (root.id === id) return { ...root, ratio: clampSplitRatio(ratio) }
     return { ...root, first: resizeSplit(root.first, id, ratio), second: resizeSplit(root.second, id, ratio) }
 }
 

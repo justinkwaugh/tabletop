@@ -206,7 +206,7 @@ remaining tabs start in the second pane, with a 50/50 divider. Without it the
 workspace starts as one pane.
 It owns a local binary split tree, permitting repeated splits in either direction
 with a global limit of eight panes. Deleting a pane restores split capacity. Splits start at 50%, have draggable
-20–80% dividers, and create empty drop targets. Each tab belongs to exactly one
+dividers that keep each side at least 100px (5–95% for restored or keyboard ratios), and create empty drop targets. Each tab belongs to exactly one
 pane and each nonempty pane has an active tab. Drag/drop or Alt+Shift+Left/Right
 moves tabs; standard tab arrow/Home/End navigation selects within a pane. Splitter
 arrow/Home/End controls resize, and cancelled pointer drags restore their ratio.

@@ -54,10 +54,10 @@
     article {
         border: 0;
         border-radius: 0;
-        margin: var(--history-item-gap, 5px) 0;
+        margin: var(--history-item-gap, 0.417em) 0;
         background: transparent;
         color: var(--rail-text, #514538);
-        font-size: 12px;
+        font-size: 1em;
         line-height: 1.4;
     }
     .history-card-header {
@@ -74,20 +74,20 @@
         color: inherit;
         font: inherit;
         text-align: left;
-        padding: 3px 6px;
+        padding: 0.25em 0.5em;
     }
     strong {
         font-weight: 600;
     }
     .events {
-        padding: 3px 0;
+        padding: 0.25em 0;
     }
     .events .history-entry,
     .initial {
         display: flex;
         justify-content: space-between;
-        gap: 8px;
-        padding: 2px 6px;
+        gap: 0.667em;
+        padding: 0.167em 0.5em;
     }
     .passed,
     .initial {
@@ -95,7 +95,7 @@
     }
     .events .history-entry.winner {
         border-top: 1px solid var(--rail-border, #e3d9cd);
-        margin-top: 3px;
-        padding-top: 3px;
+        margin-top: 0.25em;
+        padding-top: 0.25em;
     }
 </style>

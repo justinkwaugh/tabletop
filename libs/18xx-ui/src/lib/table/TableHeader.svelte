@@ -1,6 +1,7 @@
 <script lang="ts">
     import { assert } from '@tabletop/common'
     import { tableHeaderState } from './tableHeaderState.js'
+    import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -69,22 +70,25 @@
         )
     )
     const company = $derived(gameState.companies.find((company) => company.id === companyId))
+    const turnPlayerIds = $derived.by(() => {
+        if (!session.isViewingHistory) return gameState.activePlayerIds
+        const actorId = session.history.visibleContext.actions.findLast(
+            (action) => !isHistoryBookkeeping(action)
+        )?.playerId
+        return actorId ? [actorId] : gameState.activePlayerIds
+    })
 </script>
 
 {#snippet turnLabel()}
-    {#if session.isViewingHistory}
-        <span>History</span>
-    {:else}
-        {#each gameState.activePlayerIds as playerId (playerId)}
-            <span class="player-name"
-                ><span
-                    class="player-color"
-                    style:background={session.colors.getPlayerBgColorValue(playerId)}
-                    aria-hidden="true"
-                ></span>{session.getPlayerName(playerId)}</span
-            >
-        {/each}
-    {/if}
+    {#each turnPlayerIds as playerId (playerId)}
+        <span class="player-name"
+            ><span
+                class="player-color"
+                style:background={session.colors.getPlayerBgColorValue(playerId)}
+                aria-hidden="true"
+            ></span>{session.getPlayerName(playerId)}</span
+        >
+    {/each}
 {/snippet}
 <header
     aria-label="Game phase"

@@ -33,9 +33,9 @@ it('moves tabs without losing or duplicating them, allowing empty panes', () => 
 it('resizes only the chosen split and keeps panes within the workspace', () => {
     let root = splitPane(initial(), 'root', 'vertical')
     root = splitPane(root, 'root', 'horizontal')
-    root = resizeSplit(root, 'root-split-horizontal', 95)
+    root = resizeSplit(root, 'root-split-horizontal', 99)
     const layout = workspaceLayout(root)
-    expect(layout.dividers.map(item => item.split.ratio)).toEqual([50, 80])
+    expect(layout.dividers.map(item => item.split.ratio)).toEqual([50, 95])
     expect(layout.panes.reduce((area, pane) => area + pane.width * pane.height, 0)).toBe(10000)
 })
 it('reorders tabs within and between panes and appends drops on empty tab-bar space', () => {
