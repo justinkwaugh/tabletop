@@ -35,7 +35,12 @@ published-only layouts in `mapView.ts` so tokens land on the printed circles. Th
 printed station circles are larger than the generic ones: rings at about 12.8 units
 on the board and a heavy ring out to 12.5 units on the punch tiles (white hole about
 9.7), against the classic radius of 10; the published tile appearance uses radius 11
-with a 3-unit ring and 22-unit map tokens so tokens fill both. The file's rules-edition equivalence has not
+with a 3-unit ring and 22-unit map tokens so tokens fill both. Tile paper colours are
+the punch-sheet medians (yellow #dec565, green #9be563, brown #cc9caf, gray #b9c3be);
+the board's own preprinted yellow and green are a little more muted (#debc73,
+#a5b980), which is recorded in `images/published/tiles/style.json` if laid tiles ever
+need to be matched to the board instead. The X ring sits at 32.5 units, 3 wide; the
+T hex is inset to 0.855 of the outline, 2.5 wide; both are 0.88 x the tile colour. The file's rules-edition equivalence has not
 been established by its filename; this is an alignment preview, not a claim of
 complete published-edition fidelity. The existing market and phase panels display current game facts; the updated
 image omits the old printed reference tables.

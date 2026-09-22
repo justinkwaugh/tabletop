@@ -13,7 +13,7 @@
     "city": { "fill": "#f4f2ea", "ring": "#070707", "ringWidthPx": 9 },
     "town": { "marker": "blob on track", "fill": "#070707" },
     "revenue": { "shape": "pill", "fill": "#f6f4ee", "textColor": "#070707", "textWeight": "bold condensed" },
-    "specialMarkers": { "ring": "faint darker-tint circle around a station", "hexOutline": "faint darker-tint hex inside the tile edge" },
+    "specialMarkers": { "ring": "X tiles: tone-on-tone circle, radius ~32.5 units, ~3 units wide, colour ~0.88 x tile colour", "hexOutline": "T tiles: tone-on-tone hex at ~0.855 of the tile outline, ~2.5 units wide, rounded corners" },
     "texture": "fine paper grain plus dark and light speckles across the whole tile; a mid-grey texture can be overlaid at ~8% opacity"
   }
 }

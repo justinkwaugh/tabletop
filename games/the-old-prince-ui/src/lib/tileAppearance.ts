@@ -9,15 +9,13 @@ import PaperGrain from './images/published/tiles/paper-grain.png'
  */
 export const TheOldPrincePublishedTileAppearance: TileAppearance = Object.freeze({
     name: 'Old Prince published',
-    // Yellow and green are sampled from the printed board's tile hexes so laid tiles sit
-    // with the preprinted ones; brown and gray come from the punch sheets, slightly muted
-    // to match the board's tone.
+    // Median paper colour of each tier on the punch sheets (ink and white discs excluded).
     colors: Object.freeze({
         ...ClassicTileAppearance.colors,
-        yellow: '#debc73',
-        green: '#a5b980',
-        brown: '#c9a0ad',
-        gray: '#bcc2bf'
+        yellow: '#dec565',
+        green: '#9be563',
+        brown: '#cc9caf',
+        gray: '#b9c3be'
     }),
     ink: '#111111',
     paper: '#ffffff',

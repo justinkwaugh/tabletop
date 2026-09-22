@@ -47,7 +47,7 @@
         const hex = /^#([0-9a-f]{6})$/i.exec(fill)?.[1]
         if (!hex) return appearance.ink
         const channel = (offset: number) =>
-            Math.round(parseInt(hex.slice(offset, offset + 2), 16) * 0.78)
+            Math.round(parseInt(hex.slice(offset, offset + 2), 16) * 0.88)
                 .toString(16)
                 .padStart(2, '0')
         return `#${channel(0)}${channel(2)}${channel(4)}`
@@ -133,10 +133,10 @@
                 data-tile-marker={label}
                 cx={city?.center.x ?? 0}
                 cy={city?.center.y ?? 0}
-                r="31"
+                r="32.5"
                 fill="none"
                 stroke={tint}
-                stroke-width="1.6"
+                stroke-width="3"
             ></circle>
         {:else}
             <polygon
@@ -144,7 +144,7 @@
                 points={insetPolygon}
                 fill="none"
                 stroke={tint}
-                stroke-width="1.6"
+                stroke-width="2.5"
                 stroke-linejoin="round"
             ></polygon>
         {/if}
