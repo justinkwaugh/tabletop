@@ -4,6 +4,7 @@ for (const scenario of [
     'runPrivateHandPlayAndUndo',
     'runPatchedSubmissionCorrection',
     'runPrivateHandDelivery',
+    'runSpectatorChatReadPosition',
     'runPrivateHandDrawAndReload',
     'runPrivateHandExploration',
     'runPrivateHandHostView',

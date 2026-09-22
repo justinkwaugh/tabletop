@@ -17,7 +17,7 @@ function fixture(ready = false) {
     const getBookmark = vi.spyOn(api, 'getGameChatBookmark').mockResolvedValue({ id: 'bookmark', lastReadTimestamp: new Date(0) })
     const service = new ChatService({ getSessionUser: () => user }, notifications, api)
     return {
-        service, getChat, getBookmark,
+        service, api, getChat, getBookmark,
         emit: async (event: NotificationEvent) => listener?.(event),
         async attach() {
             ready = true
@@ -80,6 +80,21 @@ it('clears loading after a failed read and retries on reattachment', async () =>
     expect(service.isLoading()).toBe(false)
     await attach()
     expect(service.currentGameChat).toEqual(chat)
+})
+
+it('does not request a bookmark or report unread messages when not tracking a read position', async () => {
+    const { service, api, getChat, getBookmark, attach } = fixture()
+    const message = { id: 'm1', playerId: 'p1', timestamp: new Date(1000), text: 'hello' }
+    getChat.mockResolvedValue({ ...chat, messages: [message] })
+    service.setGameId('game', { trackReadPosition: false })
+    await attach()
+    expect(getChat).toHaveBeenCalledTimes(1)
+    expect(getBookmark).not.toHaveBeenCalled()
+    expect(service.currentGameChat?.messages).toHaveLength(1)
+    expect(service.hasUnreadMessages).toBe(false)
+    const setBookmark = vi.spyOn(api, 'setGameChatBookmark').mockResolvedValue()
+    await service.markLatestRead()
+    expect(setBookmark).not.toHaveBeenCalled()
 })
 
 it('loads immediately if the user channel was already attached', async () => {

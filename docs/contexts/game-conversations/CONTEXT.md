@@ -33,11 +33,11 @@ An auditable administrative replacement of visible Message content that preserve
 ## Reading
 
 **Read Position**:
-The furthest canonical Message read by one User Account in one Game Conversation, anchored by that Message’s ID. It advances only forward through existing Conversation History and is shared across the Account’s devices.
+The furthest canonical Message read by one User Account in one Game Conversation, anchored by that Message’s ID. It advances only forward through existing Conversation History and is shared across the Account’s devices. Only a Joined Player’s Account holds a Read Position; Audience members who are not Players read the Conversation without one and never advance it.
 _Avoid_: Bookmark, read timestamp
 
 **Unread Message**:
-A Conversation Message occurring after a User Account’s Read Position. Game Client may derive counts and indicators without storing a separate unread counter.
+A Conversation Message occurring after a User Account’s Read Position. Game Client may derive counts and indicators without storing a separate unread counter, and derives none for an Account without a Read Position.
 
 ## Consistency
 

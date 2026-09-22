@@ -1,4 +1,9 @@
-import type { ChatEvent, ChatListener, ChatService } from '$lib/services/chatService.js'
+import type {
+    ChatEvent,
+    ChatGameOptions,
+    ChatListener,
+    ChatService
+} from '$lib/services/chatService.js'
 import { ChatEventType } from '$lib/services/chatService.js'
 import {
     addToChecksum,
@@ -11,12 +16,13 @@ import {
 export class HarnessChatService implements ChatService {
     private listeners = new Set<ChatListener>()
     private currentGameId: string | undefined = $state(undefined)
+    private trackReadPosition = $state(true)
     private lastReadTimestamp: Date | undefined = $state(undefined)
 
     currentGameChat: GameChat | undefined = $state(undefined)
     get hasUnreadMessages(): boolean {
         const chat = this.currentGameChat
-        if (!this.currentGameId || chat?.gameId !== this.currentGameId) {
+        if (!this.trackReadPosition || !this.currentGameId || chat?.gameId !== this.currentGameId) {
             return false
         }
 
@@ -51,12 +57,13 @@ export class HarnessChatService implements ChatService {
         }
     }
 
-    setGameId(gameId: string): void {
+    setGameId(gameId: string, options: ChatGameOptions = {}): void {
         if (gameId === this.currentGameId) {
             return
         }
 
         this.currentGameId = gameId
+        this.trackReadPosition = options.trackReadPosition ?? true
         this.lastReadTimestamp = undefined
         this.currentGameChat = {
             id: `harness-chat-${gameId}`,
@@ -92,8 +99,9 @@ export class HarnessChatService implements ChatService {
 
     async setGameChatBookmark(lastReadTimestamp: Date): Promise<void> {
         if (
-            this.lastReadTimestamp &&
-            lastReadTimestamp.getTime() <= this.lastReadTimestamp.getTime()
+            !this.trackReadPosition ||
+            (this.lastReadTimestamp &&
+                lastReadTimestamp.getTime() <= this.lastReadTimestamp.getTime())
         ) {
             return
         }
@@ -118,6 +126,7 @@ export class HarnessChatService implements ChatService {
 
     clear(): void {
         this.currentGameId = undefined
+        this.trackReadPosition = true
         this.lastReadTimestamp = undefined
         this.currentGameChat = undefined
     }

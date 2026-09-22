@@ -17,11 +17,15 @@ export function isNewGameChatMessageEvent(event: ChatEvent): event is NewGameCha
 
 export type ChatListener = (event: ChatEvent) => Promise<void>
 
+export type ChatGameOptions = {
+    trackReadPosition?: boolean
+}
+
 export type ChatService = {
     currentGameChat: GameChat | undefined
     hasUnreadMessages: boolean
     isAvailable?(game: Pick<Game, 'hotseat'>): boolean
-    setGameId(gameId: string): void
+    setGameId(gameId: string, options?: ChatGameOptions): void
     sendGameChatMessage(gameChatMessage: GameChatMessage, gameId: string): Promise<void>
     setGameChatBookmark(lastReadTimestamp: Date): Promise<void>
     markLatestRead(): Promise<void>

@@ -125,13 +125,13 @@
 
     async function chatListener(event: ChatEvent) {
         if (messagePanel?.scrollTop === 0) {
-            chatService.setGameChatBookmark(event.message.timestamp)
+            gameSession.advanceChatReadPosition(event.message.timestamp)
         }
     }
 
     onMount(() => {
         chatService.addListener(chatListener)
-        chatService.markLatestRead()
+        gameSession.markChatRead()
 
         return () => {
             chatService.removeListener(chatListener)
@@ -145,7 +145,7 @@
     function onScroll(event: Event) {
         if ((event.target as HTMLDivElement).scrollTop === 0) {
             if (messages.length > 0) {
-                chatService.setGameChatBookmark(messages[0]?.timestamp)
+                gameSession.advanceChatReadPosition(messages[0].timestamp)
             }
         }
     }

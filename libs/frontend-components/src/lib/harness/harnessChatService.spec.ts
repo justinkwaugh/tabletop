@@ -104,4 +104,18 @@ describe('HarnessChatService', () => {
         expect(service.currentGameChat).toBeUndefined()
         expect(service.hasUnreadMessages).toBe(false)
     })
+
+    test('reports no unread messages and keeps no read position when not tracking one', async () => {
+        const service = new HarnessChatService(() => now)
+        const game = createGame('game-a', ['one', 'two'])
+
+        service.setGameId(game.id, { trackReadPosition: false })
+        service.setGame(game)
+        expect(service.hasUnreadMessages).toBe(false)
+
+        await service.markLatestRead()
+        service.setGameId('game-b')
+        service.setGame(createGame('game-b', ['other']))
+        expect(service.hasUnreadMessages).toBe(true)
+    })
 })

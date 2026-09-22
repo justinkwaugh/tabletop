@@ -391,6 +391,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.primaryGame.hotseat && this.chatAvailable ? this.myPlayer : this.myPrimaryPlayer
     )
 
+    isChatParticipant: boolean = $derived(this.chatMessagePlayer !== undefined)
+
     myPlayerState: PlayerStateOf<U> | undefined = $derived.by(() =>
         this.gameState.findPlayerState(this.myPlayer?.id)
     )
@@ -514,8 +516,22 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     hasUnreadMessages = $derived.by(() => {
-        return this.hasUnreadMessagesStore.current
+        return this.isChatParticipant && this.hasUnreadMessagesStore.current
     })
+
+    async markChatRead(): Promise<void> {
+        if (!this.isChatParticipant) {
+            return
+        }
+        await this.chatService.markLatestRead()
+    }
+
+    async advanceChatReadPosition(lastReadTimestamp: Date): Promise<void> {
+        if (!this.isChatParticipant) {
+            return
+        }
+        await this.chatService.setGameChatBookmark(lastReadTimestamp)
+    }
 
     readonly chatAvailable: boolean
 
@@ -661,7 +677,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.bridge = new GameSessionBridge(this)
 
         if (!game.hotseat) {
-            this.chatService.setGameId(game.id)
+            this.chatService.setGameId(game.id, { trackReadPosition: this.isChatParticipant })
         }
 
         // Add self as a listener for game state changes for subclasses to override

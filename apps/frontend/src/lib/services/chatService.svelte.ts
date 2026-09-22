@@ -6,6 +6,7 @@ import {
     isDiscontinuityEvent,
     NotificationChannel,
     type ChatListener,
+    type ChatGameOptions,
     type NewGameChatMessageEvent,
     ChatEventType
 } from '@tabletop/frontend-components'
@@ -31,6 +32,7 @@ export class ChatService {
     private listeners: Set<ChatListener> = new Set()
 
     private currentGameId: string | undefined = $state(undefined)
+    private trackReadPosition = $state(true)
     currentGameChat: GameChat | undefined = $state(undefined)
     lastReadTimestamp: Date | undefined = $state(undefined)
 
@@ -40,7 +42,7 @@ export class ChatService {
 
     hasUnreadMessages: boolean = $derived.by(() => {
         const messages = this.currentGameChat?.messages ?? []
-        if (messages.length === 0) {
+        if (!this.trackReadPosition || messages.length === 0) {
             return false
         }
         return (
@@ -65,13 +67,14 @@ export class ChatService {
         return this.loading
     }
 
-    setGameId(gameId: string) {
+    setGameId(gameId: string, options: ChatGameOptions = {}) {
         if (gameId === this.currentGameId) {
             return
         }
 
         this.clear()
         this.currentGameId = gameId
+        this.trackReadPosition = options.trackReadPosition ?? true
         this.loading = true
         if (!this.notificationService.isUserChannelReady()) return
         this.loadGameChat().catch((error) => {
@@ -84,6 +87,7 @@ export class ChatService {
         this.loadPromise = undefined
         this.reloadRequested = false
         this.currentGameId = undefined
+        this.trackReadPosition = true
         this.currentGameChat = undefined
         this.lastReadTimestamp = undefined
         this.loaded = false
@@ -121,11 +125,11 @@ export class ChatService {
             this.reloadRequested = false
             const [gameChat, bookmark] = await Promise.all([
                 this.api.getGameChat(gameId),
-                this.api.getGameChatBookmark(gameId)
+                this.trackReadPosition ? this.api.getGameChatBookmark(gameId) : undefined
             ])
             if (generation !== this.generation) return
             if (this.reloadRequested) continue
-            this.lastReadTimestamp = bookmark.lastReadTimestamp
+            this.lastReadTimestamp = bookmark?.lastReadTimestamp
             this.currentGameChat = gameChat
             this.loaded = true
         } while (this.reloadRequested)
@@ -188,7 +192,7 @@ export class ChatService {
     }
 
     async setGameChatBookmark(lastReadTimestamp: Date): Promise<void> {
-        if (!this.currentGameChat) {
+        if (!this.currentGameChat || !this.trackReadPosition) {
             return
         }
 

@@ -214,6 +214,7 @@ function client(
         api,
         notifications,
         authorization,
+        chatService,
         async notify(result: ReturnType<PrivateHandHost['apply']>) {
             assertExists(runtime.visibility, 'Expected private-hand visibility')
             const projected = Visibility.projectActionCascade(result.actionCascade, {
@@ -363,6 +364,39 @@ export async function runPrivateHandDelivery() {
     } finally {
         owner.dispose()
         opponent.dispose()
+        observer.dispose()
+    }
+}
+
+export async function runSpectatorChatReadPosition() {
+    const host = new PrivateHandHost()
+    const owner = client(host, p1),
+        observer = client(host, spectator)
+    try {
+        for (const c of [owner, observer]) {
+            c.chatService.setGame(host.game)
+            await settle(c.session)
+        }
+        assert(
+            observer.session.currentGameChat?.messages.length === 3,
+            'Spectator chat fixture has no messages'
+        )
+        assert(!observer.session.isChatParticipant, 'Spectator counts as chat participant')
+        assert(!observer.chatService.hasUnreadMessages, 'Spectator chat service tracks unread')
+        assert(!observer.session.hasUnreadMessages, 'Spectator sees unread indicator')
+        await observer.session.markChatRead()
+        await observer.session.advanceChatReadPosition(new Date())
+        await settle(observer.session)
+        assert(!observer.session.hasUnreadMessages, 'Spectator read position changed state')
+
+        assert(owner.session.isChatParticipant, 'Player is not a chat participant')
+        assert(owner.session.hasUnreadMessages, 'Player misses unread indicator')
+        await owner.session.markChatRead()
+        await settle(owner.session)
+        assert(!owner.session.hasUnreadMessages, 'Player read position did not advance')
+        return { spectator: true, player: true }
+    } finally {
+        owner.dispose()
         observer.dispose()
     }
 }
