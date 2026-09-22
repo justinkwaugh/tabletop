@@ -27,3 +27,9 @@ export const TheOldPrincePublishedTrainColors: Readonly<Record<string, string>> 
     '7': '#2e4c4d',
     D: 'linear-gradient(120deg, #463657 0 42%, #912c4b 58% 100%)'
 }
+
+/** Phase colours need a solid value where they are mixed into backgrounds, so the diesel takes the midpoint of its two tones. */
+export const TheOldPrincePublishedPhaseColors: Readonly<Record<string, string>> = {
+    ...TheOldPrincePublishedTrainColors,
+    D: '#6c3151'
+}

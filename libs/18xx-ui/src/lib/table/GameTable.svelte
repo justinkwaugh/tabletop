@@ -1202,6 +1202,10 @@
         --rail-hover: #e6dbce18;
         --rail-focus: #e6dbce;
     }
+    /* The history round index floats over the page, so it takes the page's dark background. */
+    .railway-table.published-artwork :global(.round-index) {
+        background: var(--rail-table-background);
+    }
     /* Inactive tabs read in the dimmed-text colour, like the game information labels. */
     .railway-table.published-artwork :global([role='tab'][aria-selected='false']) {
         color: var(--rail-muted);
