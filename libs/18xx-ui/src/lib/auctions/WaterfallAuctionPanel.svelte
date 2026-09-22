@@ -46,7 +46,7 @@
     )
 </script>
 
-<section aria-label="Opening auction">
+<section class="centered-panel" aria-label="Opening auction">
     <h2>Opening auction</h2>
     <p>
         {playerName(model.playerId)}’s turn{bidding

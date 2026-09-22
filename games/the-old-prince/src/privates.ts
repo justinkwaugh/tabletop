@@ -14,7 +14,7 @@ export const TheOldPrincePrivateCatalog = new PrivateCatalog(
                 revenue: 5,
                 sale: 'never',
                 description:
-                    'Exchange during your stock turn for a Bank share in another started railway.\n\nCloses unused at 4+.'
+                    'Exchange during your stock turn for a Bank share in a started railway other than the Mainline or Shortline.\n\nCloses unused at 4+.'
             },
             {
                 id: 'RA',

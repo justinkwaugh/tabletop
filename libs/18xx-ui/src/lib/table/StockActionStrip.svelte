@@ -23,16 +23,6 @@
             !session.myPlayer ||
             !session.gameState.activePlayerIds.includes(session.myPlayer.id)
     )
-    const purchase = $derived(
-        session.stock.purchaseChoices.find(
-            (choice) => choice.result.details && choice.certificate.kind === 'share'
-        )
-    )
-    const start = $derived(
-        session.stock.startChoices.find((choice) =>
-            choice.prices.some((price) => price.result.details)
-        )
-    )
     const roundMenus = $derived<StockAction[]>([
         'buy',
         'sell',
@@ -44,44 +34,11 @@
         readOnly
             ? roundMenus.map((menu) => ({ label: stockActionLabels[menu] }))
             : [
-                  ...(purchase
-                      ? [
-                            {
-                                label: stockActionLabels.buy,
-                                selected: session.stock.openMenu === 'buy',
-                                onSelect: () =>
-                                    session.stock.chooseMenu('buy', purchase.request.buyer)
-                            }
-                        ]
-                      : []),
-                  ...(session.stock.saleChoices.some((choice) => choice.result.details)
-                      ? [
-                            {
-                                label: stockActionLabels.sell,
-                                selected: session.stock.openMenu === 'sell',
-                                onSelect: () => session.stock.chooseMenu('sell')
-                            }
-                        ]
-                      : []),
-                  ...(start
-                      ? [
-                            {
-                                label: stockActionLabels.start,
-                                selected: session.stock.openMenu === 'start',
-                                onSelect: () =>
-                                    session.stock.chooseMenu('start', start.request.buyer)
-                            }
-                        ]
-                      : []),
-                  ...(session.privates.exchangeOffers.length
-                      ? [
-                            {
-                                label: stockActionLabels.exchange,
-                                selected: session.stock.openMenu === 'exchange',
-                                onSelect: () => session.stock.chooseMenu('exchange')
-                            }
-                        ]
-                      : []),
+                  ...session.stock.availableMenus.map(({ menu, buyer }) => ({
+                      label: stockActionLabels[menu],
+                      selected: session.stock.openMenu === menu,
+                      onSelect: () => session.stock.chooseMenu(menu, buyer)
+                  })),
                   ...additionalActions
               ]
     )

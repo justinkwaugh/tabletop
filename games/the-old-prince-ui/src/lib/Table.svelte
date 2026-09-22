@@ -77,10 +77,7 @@
 
 <GameTable
     {spreadsheetCompanyOrder}
-    additionalStockActions={session.canPreviewSplit &&
-    session.myPlayer &&
-    session.splitModel.branches().length &&
-    session.splitModel.parents(session.myPlayer.id).some((parent) => !parent.reason)
+    additionalStockActions={session.additionalStockMenuCount
         ? [
               {
                   label: 'Split',

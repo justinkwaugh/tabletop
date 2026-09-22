@@ -1788,3 +1788,48 @@ At Actions-pane widths of 500px or more, the current-turn sales summary occupies
 a 140px dark strip on the right, with a left border spanning the action content’s
 height beneath the persistent action strip. The controls center in the remaining
 space. Narrower panes and non-paned layouts retain the summary below the controls.
+
+When exactly one legal stock action menu is available apart from Pass/End turn,
+it opens automatically. The count includes private exchanges and title-specific
+menus such as TOP Split. This is an auto-sourced transient choice: it commits
+nothing, preserves Pass, and Undo proceeds to committed history unless a manual
+selection remains. Manual menus take precedence; hidden selections and unavailable
+interaction suppress automatic menus. Clearing selections recomputes the sole
+choice from current legality without an effect.
+
+This uses the variation catalog's stock-trading distinctions: title-owned buyer,
+start, exchange, and split legality remain authoritative. It imposes no stock
+sequence on titles without ordinary stock rounds. TOP and 1889 adopt this through
+UI-only publication; Logic and the host bridge are unchanged, so mixed host/UI
+versions remain compatible. Automated module coverage checks sole-option opening,
+title-option counting, manual precedence, disabled interaction, Pass, and Undo.
+
+Private exchange lists group equivalent certificates into one option per target
+company, retaining a legal certificate identity for the submitted action. Different
+private rights, players, share sizes, presidencies, numbered identities, sources,
+and certificate-limit weights stay distinct. This is presentation grouping only;
+title exchange eligibility and committed-action validation remain authoritative.
+The stock action list and private-company cards use the same grouped options.
+Module coverage checks duplicate ordinary shares, distinct companies, numbered
+shares, and confirmation of the selected target.
+
+Live spectator and non-active-player action panels label the latest recorded event
+LAST ACTION across auctions, stock rounds and operating rounds, without a second
+phase-status title such as Auction bidding. The heading has 28px of separation
+below the player-turn line and appears only when an event is available. In pane
+mode the turn line and event form one vertically centered block below the disabled
+action strip, using the same layout behavior as stock controls. Narrow layouts
+retain content-sized height; History View retains its position-status headings and uses the same pane-mode
+vertical centering while navigating recorded actions.
+
+Active operating controls use the same pane-mode vertical centering as stock
+controls. Track, station, route, payout and train controls center as one block
+with any associated company decision; the operating-step strip remains at the
+top. Oversized controls scroll within the Actions pane, and narrow layouts keep
+content-sized height. Both TOP and 1889 share this presentation.
+
+Auction offering and bidding controls also center vertically in pane mode,
+including TOP's stalled-auction fallback and 1889's waterfall auction. TOP's
+branch-split editor uses the same centering. Negotiated purchase and track-consent
+responses remain grouped within the centered operating controls. Tall lists grow
+the scrollable action body; narrow layouts retain their natural content height.

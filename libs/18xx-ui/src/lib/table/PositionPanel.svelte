@@ -144,17 +144,23 @@
 {#if state.result}
     <GameEnding {session} position={state} />
 {:else}
-    <div class="position" aria-label="Position summary">
+    <section class="position centered-panel" aria-label="Position summary">
         {#if !session.isViewingHistory && turnPlayerId}
             <div class="turn" role="status" aria-label="Active player">
                 <span
                     class="player-color"
                     style:background={session.colors.getPlayerBgColorValue(turnPlayerId)}
                     aria-hidden="true"
-                ></span><strong>{session.getPlayerName(turnPlayerId)}</strong>’s turn
+                ></span><span
+                    ><span class="possessive"
+                        ><strong>{session.getPlayerName(turnPlayerId)}</strong>’s</span
+                    > turn</span
+                >
             </div>
         {/if}
-        {#if status}<header>
+        {#if !session.isViewingHistory && latest}
+            <header class="last-action"><strong>Last action</strong></header>
+        {:else if session.isViewingHistory && status}<header>
                 <strong>{status}</strong>
             </header>{/if}
         {#if latest?.isRun && result && result.routes.length}
@@ -240,7 +246,7 @@
                     </p>{/if}
             </div>
         {/if}
-    </div>
+    </section>
 {/if}
 
 <style>
@@ -253,10 +259,13 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 6px 0 12px;
+        margin: 6px 0 28px;
         font-size: 26px;
         line-height: 32px;
         color: var(--rail-muted, #7f8e9e);
+    }
+    .possessive {
+        white-space: nowrap;
     }
     .turn strong {
         font-weight: 700;
@@ -275,6 +284,13 @@
         justify-content: center;
         flex-wrap: wrap;
         gap: 8px;
+    }
+    .last-action {
+        margin-bottom: 2px;
+    }
+    .last-action + .event,
+    .last-action + .run-table {
+        margin-top: 0;
     }
     header strong {
         font-size: 11px;

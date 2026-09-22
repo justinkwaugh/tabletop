@@ -160,3 +160,14 @@ publication and History View, and cleared before each new visible state.
 | Value label | Company cards and spreadsheet | Switch spreadsheet orientation, step through history | Value replaces Par and follows displayed state | 1889 keeps Par and Market | Manual |
 | Published board | Generic map with a track selection | Toggle published board | Board image under tiles and overlays, dark surround | Toggling back or leaving restores the background | Automated, browser (`boardArtwork.spec.ts`) |
 | Tranches | Companies started across tranches | Start a company, then Undo | Slots fill and closed tranches lock | Undo empties the slot | Manual |
+
+A sole Split option in the stock action bar opens automatically, excluding Pass
+from the count. Its menu stage is auto-sourced; selecting a parent starts manual
+progress. Undo skips the automatic menu and undoes committed history when no
+manual split choice remains. Split counts alongside the shared stock menus, so
+multiple legal menu options require an explicit choice.
+
+Ice Boats shows one exchange row per eligible company, not one row per ordinary
+certificate. It retains the started-company restriction, excluding Mainline,
+Shortline and PEIR. With only Mainline and Shortline started, no exchange appears;
+starting another eligible railway makes one company row available.

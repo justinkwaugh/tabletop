@@ -409,7 +409,7 @@
                         {/if}
                     </div>
                 {:else if menu === 'exchange'}
-                    {#each session.privates.exchangeOffers as offer}
+                    {#each session.privates.exchangeOptions as offer}
                         {@const company = exchangeCompany(offer.certificateId)}
                         <button
                             class="exchange-choice"

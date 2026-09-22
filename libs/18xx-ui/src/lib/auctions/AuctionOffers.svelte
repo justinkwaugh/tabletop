@@ -22,7 +22,7 @@
     const lots = $derived(auctionLotDetails(session, model.offerIds))
 </script>
 
-<section aria-label="Auction offers">
+<section class="centered-panel" aria-label="Auction offers">
     <table>
         <thead
             ><tr

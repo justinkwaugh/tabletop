@@ -152,7 +152,15 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         trainSelected: () => !!this.trainBuying.depotSelection,
         hasLocalSelection: () => this.hasLocalSelection
     })
-    readonly stock = new StockModule(this.moduleSession, () => this.onStockSelectionCancelled())
+    readonly stock = new StockModule(
+        this.moduleSession,
+        () => this.onStockSelectionCancelled(),
+        () => this.privates.exchangeOffers.length > 0,
+        () => this.additionalStockMenuCount
+    )
+    get additionalStockMenuCount() {
+        return 0
+    }
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
     constructor(

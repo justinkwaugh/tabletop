@@ -58,16 +58,42 @@ export class StockModule implements LocalSelection {
     readonly start = new StagedSelection<CompanyStartStages>(CompanyStartStageOrder, 'pop-stage')
     constructor(
         private readonly session: StockSession,
-        private readonly onCancel: () => void
+        private readonly onCancel: () => void,
+        private readonly exchangeAvailable: () => boolean = () => false,
+        private readonly additionalMenuCount: () => number = () => 0
     ) {}
 
     private trading = $derived.by(
         () => this.session.selectionsVisible && this.session.state.machineState === 'StockRound'
     )
-    openMenu = $derived.by(() =>
-        this.session.selectionsVisible ? this.menu.value('action')?.menu : undefined
-    )
-    menuBuyer = $derived.by(() => this.menu.value('action')?.buyer)
+    availableMenus = $derived.by(() => {
+        const choices: StockActionStages['action'][] = []
+        const purchase = this.purchaseChoices.find((choice) => choice.result.details)
+        if (purchase) choices.push({ menu: 'buy', buyer: purchase.request.buyer })
+        if (this.saleChoices.some((choice) => choice.result.details)) choices.push({ menu: 'sell' })
+        const start = this.startChoices.find((choice) =>
+            choice.prices.some((price) => price.result.details)
+        )
+        if (start) choices.push({ menu: 'start', buyer: start.request.buyer })
+        if (this.exchangeAvailable()) choices.push({ menu: 'exchange' })
+        return choices
+    })
+    private menuSelection = $derived.by(() => {
+        if (!this.trading) return undefined
+        const selected = this.menu.entry('action')
+        if (selected) return selected
+        if (
+            !this.session.interactive ||
+            !this.session.playerId ||
+            !this.session.state.activePlayerIds.includes(this.session.playerId) ||
+            this.additionalMenuCount() ||
+            this.availableMenus.length !== 1
+        )
+            return undefined
+        return { value: this.availableMenus[0], source: 'auto' as const }
+    })
+    openMenu = $derived.by(() => this.menuSelection?.value.menu)
+    menuBuyer = $derived.by(() => this.menuSelection?.value.buyer)
     selectedSaleCompany = $derived.by(() => this.menu.value('saleCompany'))
     get hasSelection() {
         return this.trade.hasManual() || this.start.hasManual()

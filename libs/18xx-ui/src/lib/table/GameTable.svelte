@@ -1273,7 +1273,7 @@
         border-radius: 0;
         background: transparent;
     }
-    .action-panel :global(section.centered-panel) {
+    .action-panel :global(.centered-panel) {
         margin-block: auto;
     }
     @container stock-actions (min-width: 500px) {

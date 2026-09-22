@@ -24,8 +24,7 @@
     const trainBuying = $derived(state.machineState === 'BuyingTrains')
 </script>
 
-{#if state.result}<GameEnding {session} />
-{:else}
+{#snippet actionControls()}
     {#if (state.purchaseOffer && !(trainBuying && state.purchaseOffer.asset.kind === 'train')) || state.trackConsent || state.privateTrackLay || state.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.decisions.privateTileOptions.length || session.decisions.privateTrainOptions.length || session.decisions.selection}
         <CompanyDecisions
             {session}
@@ -59,4 +58,13 @@
             />
         {:else}<TrainBuying {session} {trainColors} showUndo={false} />{/if}
     {/if}
+{/snippet}
+
+{#if state.result}<GameEnding {session} />
+{:else if state.machineState === 'StockRound'}
+    {@render actionControls()}
+{:else}
+    <section class="centered-panel" aria-label="Operating actions">
+        {@render actionControls()}
+    </section>
 {/if}

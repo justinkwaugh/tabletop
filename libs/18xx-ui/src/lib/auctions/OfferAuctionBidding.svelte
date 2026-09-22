@@ -53,7 +53,7 @@
     }
 </script>
 
-<article aria-label="Current auction">
+<article class="centered-panel" aria-label="Current auction">
     <div class="lot">
         <PrivateCard
             {money}

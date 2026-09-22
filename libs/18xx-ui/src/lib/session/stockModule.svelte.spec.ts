@@ -31,6 +31,51 @@ function trading(valid: string[] = [], availability = {}) {
 }
 
 describe('StockModule', () => {
+    it('opens a sole non-pass menu automatically without consuming Undo or committing an action', async () => {
+        const { session, applied } = trading(['FinishStockTurn'])
+        const module = new StockModule(
+            session,
+            () => {},
+            () => true
+        )
+        expect(module.openMenu).toBe('exchange')
+        expect(module.hasManual()).toBe(false)
+        expect(module.undo()).toBe(false)
+        expect(applied).toEqual([])
+        module.clear()
+        expect(module.openMenu).toBe('exchange')
+        await module.finishTurn()
+        expect(applied.map((action) => action.type)).toEqual(['FinishStockTurn'])
+    })
+
+    it('counts title-specific options and respects manual choices', () => {
+        const { session } = trading()
+        const module = new StockModule(
+            session,
+            () => {},
+            () => true,
+            () => 1
+        )
+        expect(module.openMenu).toBeUndefined()
+        module.chooseMenu('exchange')
+        expect(module.openMenu).toBe('exchange')
+        expect(module.hasManual()).toBe(true)
+        expect(module.undo()).toBe(true)
+        expect(module.openMenu).toBeUndefined()
+    })
+
+    it('does not auto-open a menu when interaction or selections are unavailable', () => {
+        for (const availability of [{ interactive: false }, { selectionsVisible: false }]) {
+            const { session } = trading([], availability)
+            const module = new StockModule(
+                session,
+                () => {},
+                () => true
+            )
+            expect(module.openMenu).toBeUndefined()
+        }
+    })
+
     it('Undo steps back from the sale company to the menu, then closes the menu', () => {
         const { module } = trading()
         module.chooseMenu('sell')

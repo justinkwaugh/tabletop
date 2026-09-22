@@ -74,8 +74,22 @@ export class TheOldPrinceSession extends BaseSession {
             !this.gameState.stockRound.turn.bought &&
             this.validActionTypes.includes('SplitCompany')
     )
-    splitSelection = $derived(this.canPreviewSplit ? this.splitStages : {})
-    splitInProgress = $derived(hasSplitSelection(this.splitSelection))
+    override get additionalStockMenuCount() {
+        return this.canPreviewSplit &&
+            this.myPlayer &&
+            this.splitModel.branches().length &&
+            this.splitModel.parents(this.myPlayer.id).some((parent) => !parent.reason)
+            ? 1
+            : 0
+    }
+    splitSelection = $derived.by((): BranchSplitSelection => {
+        if (!this.canPreviewSplit) return {}
+        if (this.splitStages.action) return this.splitStages
+        return this.additionalStockMenuCount === 1 && !this.stock.availableMenus.length
+            ? { action: { value: true, source: 'auto' as const } }
+            : {}
+    })
+    splitInProgress = $derived(!!this.splitSelection.action)
     splitPreview = $derived.by(() => {
         const request = this.myPlayer
             ? splitRequest(this.splitSelection, this.myPlayer.id)
@@ -170,7 +184,7 @@ export class TheOldPrinceSession extends BaseSession {
             !this.splitModel.parentReason(this.myPlayer.id, parentId),
             'Choose an eligible parent'
         )
-        this.splitStages = chooseSplitParent(this.splitStages, parentId)
+        this.splitStages = chooseSplitParent(this.splitSelection, parentId)
     }
     selectSplitBranch(branchId: string) {
         assert(this.canPreviewSplit && this.splitSelection.parentId, 'Select a parent first')

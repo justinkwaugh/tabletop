@@ -23,7 +23,7 @@
 </script>
 
 {#if state.machineState === 'StockRound' && session.splitModel.branches().length && !session.isViewingHistory && !session.updatingVisibleState}
-    <section aria-label="Branch split preview">
+    <section class="centered-panel" aria-label="Branch split preview">
         <h2>
             {!selection.parentId
                 ? 'Choose a parent company'

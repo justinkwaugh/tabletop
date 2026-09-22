@@ -64,6 +64,32 @@ export class PrivatesModule {
             privateExchangeOffers(state, playerId, rules.privateRules, rules.stockRules)
         )
     })
+    exchangeOptions = $derived.by(() => {
+        const seen = new Set<string>()
+        return this.exchangeOffers.filter((offer) => {
+            const certificate = this.session.state.certificates.find(
+                (item) => item.id === offer.certificateId
+            )
+            assert(
+                certificate && !certificate.retired && certificate.kind === 'share',
+                'An exchange offer requires an available share certificate'
+            )
+            const key = JSON.stringify([
+                offer.playerId,
+                offer.privateCompanyId,
+                certificate.companyId,
+                certificate.owner,
+                certificate.poolId,
+                certificate.shares,
+                certificate.president,
+                certificate.number,
+                certificate.certificateLimitCount
+            ])
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+        })
+    })
     exchangeSelection = $derived.by(() => {
         const chosen = this.exchangeChoice.value('choice')
         return this.session.selectionsVisible &&

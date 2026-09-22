@@ -19,7 +19,7 @@
                             0}
                     </p>
                     <p>{company.description}</p>
-                    {#each session.privates.exchangeOffers.filter((offer) => offer.privateCompanyId === company.id) as offer (offer.certificateId)}
+                    {#each session.privates.exchangeOptions.filter((offer) => offer.privateCompanyId === company.id) as offer (offer.certificateId)}
                         <button onclick={() => session.privates.selectExchange(offer)}
                             >Exchange for {offer.certificateId}</button
                         >
