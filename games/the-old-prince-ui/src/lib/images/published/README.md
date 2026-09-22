@@ -4,7 +4,9 @@ Extracted from the publisher print files with `tools/art-extraction/extract_top.
 (`mapView.ts`, `publishedStations`), the private cards and the second-variant PEIR certificates
 (`presentation.ts`, `publishedCardImages`) are shown while the published artwork toggle is on, the
 cards as a viewport-sized lightbox when clicked and inside the auction bidding panel;
-the shares and tile references are not wired yet.
+the tile style (`tileAppearance.ts`, `publishedTileAppearance`, with `tiles/paper-grain.png` as
+the grain overlay) draws laid tiles in the punch-tile look; only the share certificates are not
+wired yet.
 
 | Folder | Contents | Source |
 | --- | --- | --- |
@@ -14,6 +16,7 @@ the shares and tile references are not wired yet.
 | `peirs/v1/`, `peirs/v2/` | `peir-<n>-<town>.jpg` for the seven numbered PEIR certificates plus `peir-back.jpg`, both variants, 966 x 1600 px | `privates+peirs/peir variant 01|02` |
 | `tiles/reference/` | Sixteen representative die-cut tiles (one or two per colour tier and marker type) as PNG with hex alpha, half resolution | `hexes/PUNCH-TILES-*.tiff` |
 | `tiles/style.json` | Measured palette, ink, track width and marker conventions for the hand-inked tile style, pre-scaled to the shared tile renderer | same |
+| `tiles/paper-grain.png` | Seamless 384 px paper-grain overlay (white and black with alpha) cut from a track-free area of a punch sheet, used by the published tile appearance | `hexes/PUNCH-TILES-03.tiff` |
 
 The lettered tokens in `../tokens/` remain the generic presentation.
 

@@ -35,6 +35,7 @@ for (const width of [1280, 390]) {
         await hex.click()
         await page.locator('[data-map-tile-choice="18xx:8"]').click()
         await expect(hex.locator('.tile-artwork')).toHaveCount(1)
+        await expect(hex.locator('[data-tile-grain]')).toHaveCount(1)
         await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
         await expect(scene).toHaveAttribute('data-presentation', 'generic')
         await expect(

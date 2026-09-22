@@ -82,7 +82,10 @@ These change shared presentation without adding interaction:
   tokens (icon discs in the wood-specification colours, which also tint routes and
   market entries), the published private cards and second-variant PEIR certificates in
   the auction bidding panel and, when a private is clicked, centred over a full-screen
-  mask at a size that follows the viewport, and printed-city station positions
+  mask at a size that follows the viewport, laid tiles drawn in the published tile style
+  (board-matched colours, paper grain, hand-inked track without casing, heavy-ringed
+  station circles, pill revenue badges, and a faint ring or inset hex in place of the X
+  and T labels), and printed-city station positions
   for Wellington, Summerside and Charlottetown. In that mode the page and map surround
   take the board's dark border color, and leaving the mode or the table restores the
   generic lettered tokens, generated cards and background. It is a per-player display
@@ -167,6 +170,7 @@ publication and History View, and cleared before each new visible state.
 | Selection across history | Split selection in progress | Enter History View, then return | Selection hidden in history | Selection is cleared once a new state is applied | Manual |
 | Value label | Company cards and spreadsheet | Switch spreadsheet orientation, step through history | Value replaces Par and follows displayed state | 1889 keeps Par and Market | Manual |
 | Published board | Generic map with a track selection | Toggle published artwork | Board image under tiles and overlays, dark surround, published tokens on the map and in panels | Toggling back or leaving restores the background and lettered tokens | Automated, browser (`boardArtwork.spec.ts`) |
+| Published tiles | Track construction, published artwork | Pick and lay a tile, then toggle back | Picker and laid tiles use the published tile style with a paper-grain overlay; generic presentation restores the classic style | Toggling back restores the classic tiles | Automated, browser (`boardArtwork.spec.ts`) |
 | Published cards | Opening auction, generic presentation | Toggle published artwork, click a lot, offer a lot, click the bidding card, step back through history | Clicking a lot opens the printed card centred over a full-screen mask, sized from the viewport; the bidding panel shows the same image sized from the action pane's height with a floor (PEIR lots use the second certificate variant), and clicking it opens the same mask; in History View the position summary shows the lot's card below an offer, bid or pass description, published or generated to match the presentation; Escape or a click closes the mask | Toggling back restores the generated card popover | Automated, browser (`boardArtwork.spec.ts`) |
 | Tranches | Companies started across tranches | Start a company, then Undo | Slots fill and closed tranches lock | Undo empties the slot | Manual |
 

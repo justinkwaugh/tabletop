@@ -8,6 +8,18 @@ export type TileAppearance = {
     trackWidth: number
     trackBorderWidth: number
     townMarker: 'bar' | 'dot'
+    /** Hex outline stroke; defaults to a dark hairline. */
+    edge?: { color: string; width: number }
+    /** Paper-grain overlay tiled over the hex: an image with alpha, ``size`` in tile units per repeat. */
+    grain?: { href: string; size: number; opacity?: number }
+    /** Displacement (tile units) applied to ink edges for a hand-inked look; omit for crisp edges. */
+    roughness?: number
+    /** Station circle ring width; defaults to 1.1. */
+    cityRingWidth?: number
+    /** Fixed revenue badge shape; defaults to a circle. */
+    revenueBadge?: 'circle' | 'pill'
+    /** Labels drawn as a faint tone-on-tone marker instead of text: a ring around the city or an inset hex. */
+    labelMarkers?: Readonly<Record<string, 'ring' | 'hex'>>
 }
 
 export const ClassicTileAppearance: TileAppearance = Object.freeze({

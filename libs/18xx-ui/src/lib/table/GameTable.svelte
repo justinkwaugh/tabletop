@@ -131,6 +131,10 @@
 
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
+    const tileAppearance = $derived(
+        (publishedArtwork ? session.mapView.publishedTileAppearance : undefined) ??
+            (session.map.style === 'muted' ? MutedTileAppearance : ClassicTileAppearance)
+    )
     function paintBodyBackground(_table: HTMLElement, initialColor: string | undefined) {
         const original = document.body.style.backgroundColor
         function paint(color: string | undefined) {
@@ -889,9 +893,7 @@
                                             ?.locationId ??
                                             session.stations.preview?.position.locationId}
                                         translucentLocationId={consentPreview?.details.locationId}
-                                        appearance={session.map.style === 'muted'
-                                            ? MutedTileAppearance
-                                            : ClassicTileAppearance}
+                                        appearance={tileAppearance}
                                         hexDiameter={140}
                                         onselect={consentPreview
                                             ? undefined
@@ -899,7 +901,11 @@
                                     />
                                     {#snippet overlay(viewport)}
                                         {#if active && session.track.canBuild && session.track.selection.locationId}
-                                            <TrackTilePicker {session} {viewport} />
+                                            <TrackTilePicker
+                                                {session}
+                                                {viewport}
+                                                appearance={tileAppearance}
+                                            />
                                         {/if}
                                     {/snippet}
                                 </ScalingWrapper>
@@ -962,9 +968,7 @@
                                     inventory={session.map.tileCounts}
                                     layouts={session.mapView.layouts}
                                     orientation={session.mapView.map.definition.orientation}
-                                    appearance={session.map.style === 'muted'
-                                        ? MutedTileAppearance
-                                        : ClassicTileAppearance}
+                                    appearance={tileAppearance}
                                 />
                             </div>{/if}
                     {/snippet}
@@ -1023,9 +1027,7 @@
                 artwork={boardArtwork}
                 preview={session.historicalMap}
                 revenueStageColors={session.mapView.revenueStageColors}
-                appearance={session.map.style === 'muted'
-                    ? MutedTileAppearance
-                    : ClassicTileAppearance}
+                appearance={tileAppearance}
                 onclose={() => session.closeHistoricalMap()}
             />
         {/if}

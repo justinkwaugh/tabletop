@@ -34,11 +34,120 @@
         )
         return color
     })
+    const styleId = $derived(
+        `tile-style-${appearance.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
+    )
+    const grainId = $derived(`${styleId}-grain`)
+    const inkId = $derived(`${styleId}-ink`)
+    const inkFilter = $derived(appearance.roughness ? `url(#${inkId})` : undefined)
+    const cityRingWidth = $derived(appearance.cityRingWidth ?? 1.1)
+    /** A darker tint of the tile colour for tone-on-tone markers. */
+    const tint = $derived.by(() => {
+        const hex = /^#([0-9a-f]{6})$/i.exec(fill)?.[1]
+        if (!hex) return appearance.ink
+        const channel = (offset: number) =>
+            Math.round(parseInt(hex.slice(offset, offset + 2), 16) * 0.78)
+                .toString(16)
+                .padStart(2, '0')
+        return `#${channel(0)}${channel(2)}${channel(4)}`
+    })
+    const markers = $derived(
+        face.labels.flatMap((label) => {
+            const marker = appearance.labelMarkers?.[label]
+            return marker ? [{ label, marker }] : []
+        })
+    )
+    const textLabels = $derived(face.labels.filter((label) => !appearance.labelMarkers?.[label]))
+    const insetPolygon = $derived(
+        drawing.polygon
+            .split(' ')
+            .map((pair) =>
+                pair
+                    .split(',')
+                    .map((value) => (Number(value) * 0.84).toFixed(2))
+                    .join(',')
+            )
+            .join(' ')
+    )
 </script>
 
 <g class="tile-artwork" data-color={face.color}>
-    <polygon points={drawing.polygon} {fill} stroke="#453e32" stroke-width="0.65"></polygon>
-    <g fill="none" stroke-linecap="butt">
+    {#if appearance.grain || appearance.roughness}
+        <defs>
+            {#if appearance.grain}
+                <pattern
+                    id={grainId}
+                    patternUnits="userSpaceOnUse"
+                    width={appearance.grain.size}
+                    height={appearance.grain.size}
+                >
+                    <image
+                        href={appearance.grain.href}
+                        width={appearance.grain.size}
+                        height={appearance.grain.size}
+                        preserveAspectRatio="none"
+                    ></image>
+                </pattern>
+            {/if}
+            {#if appearance.roughness}
+                <filter id={inkId} x="-10%" y="-10%" width="120%" height="120%">
+                    <feTurbulence
+                        type="fractalNoise"
+                        baseFrequency="0.55"
+                        numOctaves="2"
+                        seed="7"
+                        result="noise"
+                    ></feTurbulence>
+                    <feDisplacementMap
+                        in="SourceGraphic"
+                        in2="noise"
+                        scale={appearance.roughness}
+                        xChannelSelector="R"
+                        yChannelSelector="G"
+                    ></feDisplacementMap>
+                </filter>
+            {/if}
+        </defs>
+    {/if}
+    <polygon
+        points={drawing.polygon}
+        {fill}
+        stroke={appearance.edge?.color ?? '#453e32'}
+        stroke-width={appearance.edge?.width ?? 0.65}
+    ></polygon>
+    {#if appearance.grain}
+        <polygon
+            data-tile-grain
+            points={drawing.polygon}
+            fill={`url(#${grainId})`}
+            opacity={appearance.grain.opacity ?? 1}
+            pointer-events="none"
+        ></polygon>
+    {/if}
+    {#each markers as { label, marker } (label)}
+        {#if marker === 'ring'}
+            {@const city = drawing.nodes.find(({ node }) => node.kind === 'city')}
+            <circle
+                data-tile-marker={label}
+                cx={city?.center.x ?? 0}
+                cy={city?.center.y ?? 0}
+                r="31"
+                fill="none"
+                stroke={tint}
+                stroke-width="1.6"
+            ></circle>
+        {:else}
+            <polygon
+                data-tile-marker={label}
+                points={insetPolygon}
+                fill="none"
+                stroke={tint}
+                stroke-width="1.6"
+                stroke-linejoin="round"
+            ></polygon>
+        {/if}
+    {/each}
+    <g fill="none" stroke-linecap="butt" filter={inkFilter}>
         {#each drawing.paths as path (path.id)}
             <path
                 d={path.d}
@@ -64,7 +173,7 @@
     {/each}
     {@render trackOverlay?.(drawing)}
     {#each drawing.nodes as { node, center, slots, townAngle } (node.id)}
-        <g data-node-id={node.id}>
+        <g data-node-id={node.id} filter={inkFilter}>
             {#if node.kind === 'city'}
                 {#if slots.length > 1}
                     <path
@@ -83,7 +192,7 @@
                         r="10"
                         fill={appearance.paper}
                         stroke={appearance.ink}
-                        stroke-width="1.1"
+                        stroke-width={cityRingWidth}
                     ></circle>
                 {/each}
                 {#if slots.length === 0}<circle
@@ -171,9 +280,27 @@
                     transform={`translate(${revenuePosition.x} ${revenuePosition.y})`}
                 >
                     {#if node.revenue.kind === 'fixed'}
-                        <circle r="8.7" fill={appearance.paper} stroke="#5d584a" stroke-width="0.55"
-                        ></circle>
-                        <text font-size="10" font-weight="750">{node.revenue.amount}</text>
+                        {#if appearance.revenueBadge === 'pill'}
+                            <rect
+                                x="-11"
+                                y="-7"
+                                width="22"
+                                height="14"
+                                rx="7"
+                                fill={appearance.paper}
+                                stroke={appearance.ink}
+                                stroke-width="0.6"
+                            ></rect>
+                            <text font-size="10" font-weight="800">{node.revenue.amount}</text>
+                        {:else}
+                            <circle
+                                r="8.7"
+                                fill={appearance.paper}
+                                stroke="#5d584a"
+                                stroke-width="0.55"
+                            ></circle>
+                            <text font-size="10" font-weight="750">{node.revenue.amount}</text>
+                        {/if}
                     {:else}
                         {#each revenueCells as cell}
                             {@const color =
@@ -205,7 +332,7 @@
                 </g>
             {/if}
         {/each}
-        {#if face.labels.length}
+        {#if textLabels.length}
             <text
                 data-tile-label
                 x={drawing.labelPosition.x}
@@ -214,7 +341,7 @@
                 font-weight="850"
                 paint-order="stroke"
                 stroke={fill}
-                stroke-width="2.5">{face.labels.join(' ')}</text
+                stroke-width="2.5">{textLabels.join(' ')}</text
             >
         {/if}
     </g>

@@ -6,9 +6,15 @@
     import type { Point } from '@tabletop/common'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import Tile from '../tiles/Tile.svelte'
+    import type { TileAppearance } from '../tiles/tileAppearance.js'
     import { tileChoiceArc } from './tileChoiceArc.js'
 
-    let { session, viewport }: { session: EighteenXXSession; viewport: HTMLDivElement } = $props()
+    let {
+        session,
+        viewport,
+        appearance
+    }: { session: EighteenXXSession; viewport: HTMLDivElement; appearance?: TileAppearance } =
+        $props()
     const money = $derived(session.presentation.money)
     let center: Point = $state({ x: 0, y: 0 })
     let width = $state(0)
@@ -258,6 +264,7 @@
                         <Tile
                             face={tile.face}
                             printedNumber={tile.printedNumber}
+                            {appearance}
                             {size}
                             layout={session.mapView.layouts?.[tile.id] ??
                                 StandardTileLayouts[tile.id]}

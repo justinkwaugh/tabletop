@@ -29,6 +29,7 @@ import BBPublished from './images/published/tokens/BB.svg'
 import WBPublished from './images/published/tokens/WB.svg'
 import HRBPublished from './images/published/tokens/HRB.svg'
 import { TheOldPrinceMap, TheOldPrinceTileSet } from '@tabletop/the-old-prince'
+import { TheOldPrincePublishedTileAppearance } from './tileAppearance.js'
 import type { MapViewDefinition } from '@tabletop/18xx-ui'
 
 export const TheOldPrinceMapView: MapViewDefinition = {
@@ -45,6 +46,7 @@ export const TheOldPrinceMapView: MapViewDefinition = {
     markerImages: { 'vernon-river-bridge': VernonRiver },
     // Printed city circles that sit off the generic hex centre on the published board, measured in
     // map units (hex radius 50) from MAP-AUGUST-01.jpg; see docs/board-artwork.md.
+    publishedTileAppearance: TheOldPrincePublishedTileAppearance,
     publishedLayouts: {
         D14: { nodePositions: { city: { x: 9.9, y: -7.5 } } },
         F14: { nodePositions: { city: { x: -0.3, y: 11.3 } } },

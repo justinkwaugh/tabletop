@@ -4,7 +4,8 @@
   "style": {
     "description": "Hand-inked look on speckled paper: rough-edged near-black track without casing, off-white station circles with a heavy ink ring, white pill revenue badges with bold numerals, black blob town markers on the track, faint tone-on-tone rings or hex outlines marking special tiles. Tile backs are black speckled paper.",
     "colors": { "yellow": "#dcc464", "green": "#9ce464", "brown": "#cc9cac", "gray": "#bcc4c4" },
-    "colorsNote": "Brown-tier tiles are printed dusty rose; gray-tier tiles are pale sage gray.",
+    "boardColors": { "yellow": "#debc73", "green": "#a5b980", "plainHex": "#e6dbce" },
+    "colorsNote": "Brown-tier tiles are printed dusty rose; gray-tier tiles are pale sage gray. boardColors are sampled from MAP-AUGUST-01.jpg and are what the published tile appearance uses so laid tiles match the preprinted hexes.",
     "ink": "#070707",
     "paper": "#f4f2ea",
     "track": { "inkWidthPx": 37, "casing": "none", "edge": "rough (displaced), speckle overlay" },

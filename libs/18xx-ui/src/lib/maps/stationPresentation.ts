@@ -2,6 +2,7 @@ import { assertExists } from '@tabletop/common'
 import type { StationState, RailwayMap, TileSet } from '@tabletop/18xx'
 import type { BoardArtwork, MapToken } from './mapDrawing.js'
 import type { TileLayout } from '../tiles/tileDrawing.js'
+import type { TileAppearance } from '../tiles/tileAppearance.js'
 
 export type StationAppearance = { label: string; color: string; imageUrl?: string }
 export type MapViewDefinition = {
@@ -22,6 +23,8 @@ export type MapViewDefinition = {
      * Used to move station slots onto the printed city circles of the board artwork.
      */
     publishedLayouts?: Readonly<Record<string, TileLayout>>
+    /** Tile rendering style used while the published artwork toggle is on. */
+    publishedTileAppearance?: TileAppearance
 }
 export function stationMapTokens(
     state: StationState,
