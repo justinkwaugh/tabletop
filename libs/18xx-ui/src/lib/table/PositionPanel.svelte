@@ -271,7 +271,7 @@
                     </p>{/if}
             </div>
             {#if latest.shareCards.length}
-                <div class="share-strip"><ShareCardStrip cards={latest.shareCards} /></div>
+                <div class="share-strip"><ShareCardStrip cards={latest.shareCards} stacked /></div>
             {/if}
             {#if latest.lot}
                 <div class="lot-card">
