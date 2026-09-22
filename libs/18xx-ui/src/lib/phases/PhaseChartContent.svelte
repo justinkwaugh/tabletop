@@ -10,7 +10,8 @@
         depotOnly = false,
         currentPhaseId,
         trainColors,
-        tileColors = TileColors
+        tileColors = TileColors,
+        tileColorNames = {}
     }: {
         money: MoneyFormat
         depotState: PhaseChartDepotState
@@ -19,6 +20,7 @@
         currentPhaseId: string
         trainColors: Readonly<Record<string, string>>
         tileColors?: Readonly<Record<string, string>>
+        tileColorNames?: Readonly<Record<string, string>>
     } = $props()
 </script>
 
@@ -47,11 +49,16 @@
                                     /></th
                                 >
                                 <td
-                                    ><span class="colors" aria-label={phase.tileColors.join(', ')}>
+                                    ><span
+                                        class="colors"
+                                        aria-label={phase.tileColors
+                                            .map((color) => tileColorNames[color] ?? color)
+                                            .join(', ')}
+                                    >
                                         {#each phase.tileColors as color}<span
                                                 class="tile-color"
                                                 style:background={tileColors[color]}
-                                                title={color}
+                                                title={tileColorNames[color] ?? color}
                                             ></span>{/each}
                                     </span></td
                                 >

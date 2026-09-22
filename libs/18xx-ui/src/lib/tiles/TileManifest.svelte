@@ -50,7 +50,8 @@
             <button
                 aria-pressed={color === value}
                 style:background={value ? appearance.colors[value] : '#faf7f1'}
-                onclick={() => (color = value)}>{value || 'All'}</button
+                onclick={() => (color = value)}
+                >{value ? (appearance.colorNames?.[value] ?? value) : 'All'}</button
             >
         {/each}
     </div>

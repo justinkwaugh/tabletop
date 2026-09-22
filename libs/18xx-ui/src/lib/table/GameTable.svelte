@@ -582,6 +582,7 @@
         {phaseColors}
         {phaseTileColors}
         tileColors={tileAppearance.colors}
+        tileColorNames={tileAppearance.colorNames}
         {companyNames}
         describeAction={historyDescription}
     />{/snippet}
@@ -723,6 +724,7 @@
                                 {phaseChart}
                                 {trainColors}
                                 tileColors={tileAppearance.colors}
+                                tileColorNames={tileAppearance.colorNames}
                                 {companyNames}
                                 bordered={!paneLayout.current}
                                 centered={paneLayout.current}
@@ -835,6 +837,7 @@
                                     currentPhaseId={headerState.phaseId}
                                     {trainColors}
                                     tileColors={tileAppearance.colors}
+                                    tileColorNames={tileAppearance.colorNames}
                                 />
                             </div>
                         {:else if id === 'Depot'}<div class="workspace-view">
@@ -846,6 +849,7 @@
                                     currentPhaseId={session.gameState.phaseId}
                                     {trainColors}
                                     tileColors={tileAppearance.colors}
+                                    tileColorNames={tileAppearance.colorNames}
                                 />
                             </div>
                         {:else if id === 'Players'}<div class="workspace-view players-pane">
@@ -1015,6 +1019,7 @@
                 currentPhaseId={session.gameState.phaseId}
                 {trainColors}
                 tileColors={tileAppearance.colors}
+                tileColorNames={tileAppearance.colorNames}
                 onclose={() => (showPhaseChart = false)}
             />{/if}
         {#if showDepot}<PhaseChart
@@ -1025,6 +1030,7 @@
                 currentPhaseId={session.gameState.phaseId}
                 {trainColors}
                 tileColors={tileAppearance.colors}
+                tileColorNames={tileAppearance.colorNames}
                 onclose={() => (showDepot = false)}
             />{/if}
 

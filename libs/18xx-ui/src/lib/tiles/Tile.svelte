@@ -36,7 +36,7 @@
     const drawing = $derived(createTileDrawing(face, orientation, rotation, layout))
     const description = $derived(
         label ??
-            `${printedNumber ? `Tile ${printedNumber}` : 'Printed hex'}, ${face.color}${face.labels.length ? `, ${face.labels.join(', ')}` : ''}, rotation ${rotation * 60} degrees`
+            `${printedNumber ? `Tile ${printedNumber}` : 'Printed hex'}, ${appearance?.colorNames?.[face.color] ?? face.color}${face.labels.length ? `, ${face.labels.join(', ')}` : ''}, rotation ${rotation * 60} degrees`
     )
 </script>
 

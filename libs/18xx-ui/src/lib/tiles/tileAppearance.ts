@@ -24,6 +24,8 @@ export type TileAppearance = {
     revenueBadge?: 'circle' | 'plain'
     /** Labels drawn as a tone-on-tone marker instead of text: a ring around the city or an inset hex. */
     labelMarkers?: Readonly<Record<string, 'ring' | 'hex'>>
+    /** Display names for tile colours whose printed name differs (e.g. brown tiles called pink). */
+    colorNames?: Readonly<Record<string, string>>
     /** Marker colour per tile colour; tile colours without an entry use a darkened tile colour. */
     markerColors?: Readonly<Record<string, string>>
 }

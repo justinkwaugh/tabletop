@@ -43,6 +43,7 @@
         phaseColors,
         phaseTileColors,
         tileColors = TileColors,
+        tileColorNames = {},
         trainColors,
         trainName,
         orderChanges,
@@ -62,6 +63,8 @@
         phaseTileColors: Readonly<Record<string, readonly string[]>>
         /** Tile palette for phase changes that unlock a tile colour; follows the current tile appearance. */
         tileColors?: Readonly<Record<string, string>>
+        /** Display names for tile colours, for titles that call a tier by another name. */
+        tileColorNames?: Readonly<Record<string, string>>
         /** Published certificate art for the shares an action traded; empty in the generic presentation. */
         shareCards?: (action: GameAction) => readonly ShareCard[]
         onJump: (index: number) => void
@@ -92,7 +95,9 @@
         assertExists(color, `Unknown history phase color: ${toPhaseId}`)
         return {
             color,
-            label: unlocked.length ? `${unlocked.join(' and ')} tiles now available` : undefined
+            label: unlocked.length
+                ? `${unlocked.map((color) => tileColorNames[color] ?? color).join(' and ')} tiles now available`
+                : undefined
         }
     }
     const startingCash = $derived(

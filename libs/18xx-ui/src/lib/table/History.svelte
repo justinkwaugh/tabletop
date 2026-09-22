@@ -19,6 +19,7 @@
         phaseColors,
         phaseTileColors,
         tileColors,
+        tileColorNames,
         trainColors,
         describeAction,
         companyNames
@@ -29,6 +30,7 @@
         phaseColors: Readonly<Record<string, string>>
         phaseTileColors: Readonly<Record<string, readonly string[]>>
         tileColors?: Readonly<Record<string, string>>
+        tileColorNames?: Readonly<Record<string, string>>
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: (
             action: GameAction,
@@ -131,6 +133,7 @@
                             {phaseColors}
                             {phaseTileColors}
                             {tileColors}
+                            {tileColorNames}
                             {trainColors}
                             shareCards={(action) => session.shareCards(action)}
                             trainName={(id) => session.trainDepot.trainDefinition(id).name}

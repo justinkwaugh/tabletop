@@ -34,6 +34,8 @@ export const TheOldPrincePublishedTileAppearance: TileAppearance = Object.freeze
     mapTokenSize: 22,
     revenueBadge: 'plain',
     labelMarkers: { X: 'ring', T: 'hex' } as const,
+    // The published tiles and player aid call the brown tier pink.
+    colorNames: { brown: 'pink' },
     // Printed marker colours per tier, measured on the punch sheets.
     markerColors: { yellow: '#cfa661', green: '#7ea169', brown: '#b5807c', gray: '#9a9692' }
 })

@@ -12,6 +12,7 @@
         currentPhaseId,
         trainColors,
         tileColors,
+        tileColorNames,
         onclose
     }: {
         money: MoneyFormat
@@ -21,6 +22,7 @@
         currentPhaseId: string
         trainColors: Readonly<Record<string, string>>
         tileColors?: Readonly<Record<string, string>>
+        tileColorNames?: Readonly<Record<string, string>>
         onclose: () => void
     } = $props()
     let dialog: HTMLDialogElement
@@ -75,6 +77,7 @@
         {currentPhaseId}
         {trainColors}
         {tileColors}
+        {tileColorNames}
     />
 </dialog>
 
