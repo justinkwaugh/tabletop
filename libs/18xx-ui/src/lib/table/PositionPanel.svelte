@@ -21,6 +21,7 @@
     import TrackLayResult from './TrackLayResult.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import GameEnding from '../ending/GameEnding.svelte'
+    import AuctionLotCard from '../auctions/AuctionLotCard.svelte'
 
     let {
         session,
@@ -120,11 +121,33 @@
                 : isRespondToTrackConsent(action) && action.metadata?.accepted
                   ? action.metadata.request.details
                   : undefined
+        // A pass belongs to the bidding opened by the most recent offer or bid before it.
+        const lotAction = isPassAuction(action)
+            ? actions
+                  .slice(0, actions.indexOf(action))
+                  .findLast((item) => !isPassAuction(item) && !isHistoryBookkeeping(item))
+            : action
+        const lot =
+            lotAction && (isOfferAuctionLot(lotAction) || isBidOnAuctionLot(lotAction))
+                ? session.auctionLotsFor(state).find((lot) => lot.id === lotAction.lotId)
+                : undefined
+        const share = lot
+            ? state.certificates.find((item) => item.id === lot.id && item.kind === 'share')
+            : undefined
         return {
             station: isPlaceStation(action) ? action : undefined,
             track,
             description,
             actor,
+            lot: lot
+                ? {
+                      ...lot,
+                      company: session.privates.companies.find((item) => item.id === lot.id),
+                      token:
+                          session.privateCompanyTokens[lot.id] ??
+                          (share ? session.mapView.stations[share.companyId] : undefined)
+                  }
+                : undefined,
             purchase: purchase
                 ? {
                       description: describe(purchase),
@@ -245,6 +268,19 @@
                         {latest.description.detail}
                     </p>{/if}
             </div>
+            {#if latest.lot}
+                <div class="lot-card">
+                    <AuctionLotCard
+                        {session}
+                        id={latest.lot.id}
+                        name={latest.lot.name}
+                        price={latest.lot.price}
+                        income={latest.lot.company?.privateRevenue}
+                        description={latest.lot.company?.description ?? ''}
+                        token={latest.lot.token}
+                    />
+                </div>
+            {/if}
         {/if}
     </section>
 {/if}
@@ -308,6 +344,18 @@
     .event {
         text-align: center;
         margin-top: 8px;
+    }
+    .lot-card {
+        display: flex;
+        justify-content: center;
+        margin-top: 12px;
+        width: 300px;
+        max-width: 100%;
+        margin-inline: auto;
+        text-align: left;
+    }
+    .lot-card :global(.private-card:not(.image)) {
+        width: 100%;
     }
     p {
         margin: 2px 0;

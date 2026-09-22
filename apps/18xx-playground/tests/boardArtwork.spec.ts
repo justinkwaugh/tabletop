@@ -96,6 +96,15 @@ test('published artwork swaps token art and private cards', async ({ page }) => 
     await expect(page.getByRole('dialog', { name: 'Merchants and Co.' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog', { name: 'Merchants and Co.' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Bid', exact: true }).click()
+    await page.getByRole('button', { name: 'step backwards', exact: true }).click()
+    const summary = page.getByRole('region', { name: 'Position summary' })
+    await expect(summary).toContainText('offered Merchants and Co.')
+    await expect(summary.locator('[data-card-image] img')).toHaveAttribute(
+        'src',
+        /published\/privates\//
+    )
+    await page.getByRole('button', { name: 'go to current', exact: true }).click()
     await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
     await expect(cardImages).toHaveCount(0)
     await expect(bidding.locator('.private-card h3')).toHaveText('Merchants and Co.')
