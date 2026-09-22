@@ -58,6 +58,7 @@
         }
         function scheduleMeasure() {
             if (frame === undefined) frame = requestAnimationFrame(measure)
+            releaseStuckEntrances()
         }
         const resized = new ResizeObserver(scheduleMeasure)
         resized.observe(viewport)
@@ -112,6 +113,15 @@
                 elements.delete(id)
             }
         }
+    }
+    // Moving the picker into or out of the fullscreen dialog re-parents its choices; an entrance
+    // animation caught mid-flight then reports finished yet keeps rendering its first frame.
+    function releaseStuckEntrances() {
+        for (const animation of animations)
+            if (animation.playState === 'finished') {
+                animation.cancel()
+                animations.delete(animation)
+            }
     }
     function stopMotion() {
         motionVersion++
