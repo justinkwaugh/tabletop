@@ -36,10 +36,15 @@ for (const width of [1280, 390]) {
         await page.locator('[data-map-tile-choice="18xx:8"]').click()
         await expect(hex.locator('.tile-artwork')).toHaveCount(1)
         await expect(hex.locator('[data-tile-grain]')).toHaveCount(1)
-        // Rearranged offboards: England's H6 moves to the printed cell and H8 is hidden.
-        const england = scene.locator('[data-map-location="H6"]')
-        await expect(england).toHaveAttribute('transform', /translate\(675 /)
-        await expect(scene.locator('[data-map-location="H8"]')).toHaveAttribute('data-hidden', 'true')
+        // Rearranged offboards: England's H6 and H8 move to their printed cells.
+        await expect(scene.locator('[data-map-location="H6"]')).toHaveAttribute(
+            'transform',
+            /translate\(675 /
+        )
+        await expect(scene.locator('[data-map-location="H8"]')).toHaveAttribute(
+            'transform',
+            /translate\(600 /
+        )
         await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
         await expect(scene).toHaveAttribute('data-presentation', 'generic')
         await expect(

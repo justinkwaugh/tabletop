@@ -53,7 +53,6 @@
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
-    import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import type { GameAction } from '@tabletop/common'
@@ -131,10 +130,7 @@
 
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
-    const tileAppearance = $derived(
-        (publishedArtwork ? session.mapView.publishedTileAppearance : undefined) ??
-            (session.map.style === 'muted' ? MutedTileAppearance : ClassicTileAppearance)
-    )
+    const tileAppearance = $derived(session.tileAppearance)
     function paintBodyBackground(_table: HTMLElement, initialColor: string | undefined) {
         const original = document.body.style.backgroundColor
         function paint(color: string | undefined) {

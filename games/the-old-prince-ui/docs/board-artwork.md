@@ -27,8 +27,8 @@ board intentionally rearranges three offboard groups: no tiles are laid on them 
 their game meaning is unchanged, but routes, hover masks and hit targets drawn from
 the semantic cells landed on empty water. `mapView.ts` now carries published-only
 placements that move each affected hex to its printed cell and remap its track edges
-(England: semantic G11 → H10 → G9 → H8 → H6 becomes printed H10 → I9 → J8 with H8
-hidden; Îles de la Madeleine: U15 → U17 → V16 becomes U15 → V14 → W15; Pictou
+(England: the four-hex group is printed rotated one side clockwise, so semantic
+H10 → G9 → H8 → H6 becomes printed H10 → H8 → I9 → J8; Îles de la Madeleine: U15 → U17 → V16 becomes U15 → V14 → W15; Pictou
 Landing: P24 → O25 → P26 becomes P24 → Q23 → R24). Path ids are unchanged, so route
 segments still resolve, and each chain's drawn track meets edge to edge. Printed city circles were measured against the generic
 node layout (ring detection on the image, offsets in map units of hex radius 50):

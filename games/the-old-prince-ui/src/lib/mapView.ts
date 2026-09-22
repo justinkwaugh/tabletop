@@ -51,10 +51,11 @@ export const TheOldPrinceMapView: MapViewDefinition = {
     // printed cell (axial q = column index, r = (row - q - 1) / 2) and its track edges remapped
     // to the printed ones (edge 0 = S, 1 = SW, 2 = NW, 3 = N, 4 = NE, 5 = SE).
     publishedPlacements: {
-        // England: printed G11 → H10 → I9 → J8; semantic G11 → H10 → G9 → H8 → H6.
-        H10: { edges: { 2: 4 } },
-        G9: { at: { q: 8, r: 0 }, edges: { 5: 1 } }, // printed I9
-        H8: { hidden: true },
+        // England: the four-hex group is printed rotated one side clockwise about H10, so
+        // semantic H10 → G9 → H8 → H6 becomes printed H10 → H8 → I9 → J8.
+        H10: { edges: { 2: 3 } },
+        G9: { at: { q: 7, r: 0 }, edges: { 5: 0, 4: 5 } }, // printed H8
+        H8: { at: { q: 8, r: 0 }, edges: { 1: 2, 3: 4 } }, // printed I9
         H6: { at: { q: 9, r: -1 }, edges: { 0: 1 } }, // printed J8
         // Îles de la Madeleine: printed T14 → U15 → V14 → W15; semantic T14 → U15 → U17 → V16.
         U15: { edges: { 0: 4 } },

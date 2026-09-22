@@ -55,6 +55,7 @@
         {#if definition}
             <Tile
                 face={definition.face}
+                appearance={session.tileAppearance}
                 orientation={session.mapView.map.definition.orientation}
                 rotation={request.rotation}
                 size={48}
@@ -188,6 +189,7 @@
                     )}
                     {#if definition}<Tile
                             face={definition.face}
+                            appearance={session.tileAppearance}
                             orientation={session.mapView.map.definition.orientation}
                             rotation={selection.details.rotation}
                         />{/if}

@@ -220,6 +220,7 @@
                 details={latest.track}
                 map={session.mapView.map}
                 tileSet={session.mapView.tileSet}
+                appearance={session.tileAppearance}
             />
         {/if}
         {#if latest?.payout}

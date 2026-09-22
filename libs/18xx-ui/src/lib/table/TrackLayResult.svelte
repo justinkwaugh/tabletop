@@ -3,17 +3,20 @@
     import { assertExists } from '@tabletop/common'
     import type { RailwayMap, TileSet, TrackLayDetails } from '@tabletop/18xx'
     import Tile from '../tiles/Tile.svelte'
+    import type { TileAppearance } from '../tiles/tileAppearance.js'
 
     let {
         money,
         details,
         map,
-        tileSet
+        tileSet,
+        appearance
     }: {
         money: MoneyFormat
         details: TrackLayDetails
         map: RailwayMap
         tileSet: TileSet
+        appearance?: TileAppearance
     } = $props()
     function definition(id: string) {
         const tile = tileSet.definitions.find((tile) => tile.id === id)
@@ -36,6 +39,7 @@
             printedNumber={previous?.printedNumber}
             rotation={details.previous?.rotation ?? 0}
             orientation={map.definition.orientation}
+            {appearance}
             size={64}
         />
         <span aria-label="to">→</span>
@@ -45,6 +49,7 @@
         printedNumber={placed.printedNumber}
         rotation={details.rotation}
         orientation={map.definition.orientation}
+        {appearance}
         size={64}
     />
     {#if details.cost > 0}

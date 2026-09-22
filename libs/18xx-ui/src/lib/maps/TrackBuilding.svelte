@@ -99,6 +99,7 @@
                             <Tile
                                 face={tile.face}
                                 printedNumber={tile.printedNumber}
+                                appearance={session.tileAppearance}
                                 size={80}
                                 orientation={session.mapView.map.definition.orientation}
                             />

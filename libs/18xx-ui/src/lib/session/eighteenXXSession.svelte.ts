@@ -18,6 +18,11 @@ import { LocalSelections } from './localSelections.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
+import {
+    ClassicTileAppearance,
+    MutedTileAppearance,
+    type TileAppearance
+} from '../tiles/tileAppearance.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
@@ -210,6 +215,15 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         const full = this.presentation.publishedCardImages?.[id]
         return (size === 'thumbnail' && this.presentation.publishedCardThumbnails?.[id]) || full
     }
+    /** Tile rendering style for the current presentation, used by every tile drawn in the table. */
+    readonly tileAppearance: TileAppearance = $derived.by(() => {
+        const published = this.publishedArtwork
+            ? this.mapViewDefinition.publishedTileAppearance
+            : undefined
+        return (
+            published ?? (this.map.style === 'muted' ? MutedTileAppearance : ClassicTileAppearance)
+        )
+    })
     /** The map view for the current presentation: published token art replaces the generic set when selected. */
     readonly mapView: MapViewDefinition = $derived.by(() => {
         const definition = this.mapViewDefinition
