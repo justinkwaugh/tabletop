@@ -1163,13 +1163,14 @@
     }
     .railway-table {
         color-scheme: dark;
-        --rail-text: #e3e9ef;
+        /* Text colours are the published board's light tan paper and its brown name lettering. */
+        --rail-text: #e6dbce;
         --rail-negative: #ff9c91;
         --rail-phase-tint: 100%;
         --rail-phase-filter: none;
         --rail-phase-opacity: 1;
-        --rail-muted: #7f8e9e;
-        --rail-inactive: #596777;
+        --rail-muted: #b3a28c;
+        --rail-inactive: #857661;
         --rail-surface: #222c37;
         --rail-surface-inset: #1b232d;
         --rail-surface-raised: #2b3744;
