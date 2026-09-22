@@ -282,9 +282,9 @@
         padding: 4px 0;
     }
     @container stock-actions (min-width: 500px) {
-        section:has(.sales-sidebar) { display: grid; grid-template-columns: minmax(0, 1fr) 140px; }
+        section:has(.sales-sidebar) { display: grid; grid-template-columns: minmax(0, 1fr) 168px; }
         section:has(.sales-sidebar) .stock-controls { align-self: center; min-width: 0; padding: 10px 16px; container-type: inline-size; }
-        .sales-sidebar { padding: 14px 10px; border-left: 1px solid var(--rail-border, #485666); background: var(--rail-surface-inset, #1b232d); }
+        .sales-sidebar { padding: 16px 14px; border-left: 1px solid var(--rail-border, #485666); background: var(--rail-surface-inset, #1b232d); }
         .sales-sidebar .sales-summary { margin-top: 0; }
     }
     .choices.exchange-list { flex-direction: column; align-items: stretch; width: fit-content; max-width: 100%; margin-inline: auto; gap: 4px; }
@@ -354,13 +354,13 @@
         padding: 7px 9px;
     }
     .quantity-heading { margin-top: 8px; text-align: center; font-size: 11px; letter-spacing: .08em; color: var(--rail-text, #63513e); }
-    .sales-summary { margin: 16px auto 0; border-collapse: collapse; min-width: 90px; }
-    .sales-summary caption { white-space: nowrap; padding-bottom: 1px; font-size: clamp(10px, calc(8px + 0.5cqw), 13px); letter-spacing: .08em; }
-    .sales-summary th { padding: 6px 16px 0 0; font-weight: normal; }
+    .sales-summary { margin: 16px auto 0; border-collapse: collapse; min-width: 90px; max-width: 100%; }
+    .sales-summary caption { white-space: nowrap; padding-bottom: 8px; font-size: clamp(10px, calc(8px + 0.5cqw), 13px); letter-spacing: .08em; }
+    .sales-summary th { padding: 8px 14px 0 6px; font-weight: normal; }
     .sales-summary tr:first-child th,
-    .sales-summary tr:first-child td { padding-top: 2px; }
+    .sales-summary tr:first-child td { padding-top: 4px; }
     .sales-summary th :global(svg) { width: clamp(18px, calc(12px + 2cqw), 32px); height: auto; }
-    .sales-summary td { padding-top: 6px; text-align: right; font-size: clamp(13px, calc(8px + 1.5cqw), 23px); font-variant-numeric: tabular-nums; }
+    .sales-summary td { padding: 8px 6px 0 0; text-align: right; font-size: clamp(13px, calc(8px + 1.5cqw), 23px); font-variant-numeric: tabular-nums; }
     .start-selection { display: flex; flex-direction: column; gap: 8px; }
     .choices.start-choices { gap: 3px; }
     button.start-company-choice[aria-pressed='true'] { background: var(--rail-surface-raised, #e5d7c3); box-shadow: none; }
