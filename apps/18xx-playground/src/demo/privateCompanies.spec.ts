@@ -333,7 +333,8 @@ it.each([
             expect(getCompany(updated, 'UB').closed).not.toBe(true)
             expect(getCompany(updated, 'KM').closed).toBe(true)
             expect(updated.phaseEvents[0].privateEffects).toContainEqual({
-                kind: 'close', privateCompanyId: 'KM'
+                kind: 'close',
+                privateCompanyId: 'KM'
             })
             expect(
                 updated.phaseEvents[0].privateEffects.filter((effect) => effect.kind === 'exchange')

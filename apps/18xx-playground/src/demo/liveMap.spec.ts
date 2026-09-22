@@ -1,12 +1,7 @@
 import { expect, it } from 'vitest'
 import { Definition as Top, TheOldPrinceMap, TheOldPrinceTileSet } from '@tabletop/the-old-prince'
 import { Definition as Shikoku, Shikoku1889Map, Shikoku1889TileSet } from '@tabletop/shikoku-1889'
-import {
-    RailwayMapState,
-    TrackNetwork,
-    cashOwnedBy,
-    type EighteenXXState
-} from '@tabletop/18xx'
+import { RailwayMapState, TrackNetwork, cashOwnedBy, type EighteenXXState } from '@tabletop/18xx'
 import {
     createMapDrawing,
     stationMapTokens,
@@ -29,7 +24,10 @@ it.each([Top, Shikoku])(
         expect(
             tileSet.counts(state.tileInventory).find((count) => count.definitionId === '18xx:5')
         ).toMatchObject({
-            available: definition === Top ? 'unlimited' : tileSet.availablePieces(tileSet.createInventory(), '18xx:5').length - 1
+            available:
+                definition === Top
+                    ? 'unlimited'
+                    : tileSet.availablePieces(tileSet.createInventory(), '18xx:5').length - 1
         })
         expect(
             isMapSelectionValid(scene, { kind: 'slot', locationId, nodeId: 'city', slot: 0 })

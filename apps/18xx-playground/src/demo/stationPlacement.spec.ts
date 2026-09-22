@@ -49,10 +49,22 @@ it.each(Titles)(
         expect(state).toEqual(before)
         const command = action(state, details)
         const result = engine.executeCanonicalAction({ game, state, action: command })
-        expect(result.processedActions.map((action) => action.type)).toEqual(['PlaceStation', 'FinishStations', 'RunTrains', 'DistributeEarnings'])
-        expect(result.processedActions.slice(1).every((action) => action.source === ActionSource.System)).toBe(true)
+        expect(result.processedActions.map((action) => action.type)).toEqual([
+            'PlaceStation',
+            'FinishStations',
+            'RunTrains',
+            'DistributeEarnings'
+        ])
+        expect(
+            result.processedActions
+                .slice(1)
+                .every((action) => action.source === ActionSource.System)
+        ).toBe(true)
         expect(result.updatedState.routeStep?.result).toMatchObject({ routes: [], revenue: 0 })
-        expect(result.updatedState.earningsDistribution).toMatchObject({ choice: 'withhold', payments: [] })
+        expect(result.updatedState.earningsDistribution).toMatchObject({
+            choice: 'withhold',
+            payments: []
+        })
         expect(result.updatedState.machineState).toBe('BuyingTrains')
         expect(
             result.updatedState.stations.find((station) => station.id === details.stationId)
@@ -245,7 +257,6 @@ it('reaches a rival-filled city as an endpoint and stops access beyond it until 
     expect(network(restored).reaches('E2', { kind: 'node', nodeId: 'city' })).toBe(true)
 })
 
-
 it('keeps station placement open when the title allows another token', () => {
     const { game, state } = example(Top, 'stations')
     const hydrated = Top.runtime.hydrator.hydrateState(state)
@@ -265,17 +276,27 @@ it.each(['unaffordable', 'no tokens', 'disconnected'] as const)(
         const { game, state } = example(Top, 'stations')
         const companyId = state.stationStep!.companyId
         if (reason === 'unaffordable')
-            state.cash.find((entry) => entry.owner.kind === 'company' && entry.owner.companyId === companyId)!.amount = 0
+            state.cash.find(
+                (entry) => entry.owner.kind === 'company' && entry.owner.companyId === companyId
+            )!.amount = 0
         else
-            state.stations = state.stations.filter((station) =>
-                station.companyId !== companyId ||
-                (reason === 'no tokens' ? station.status !== 'available' : station.status !== 'placed'))
+            state.stations = state.stations.filter(
+                (station) =>
+                    station.companyId !== companyId ||
+                    (reason === 'no tokens'
+                        ? station.status !== 'available'
+                        : station.status !== 'placed')
+            )
         const hydrated = Top.runtime.hydrator.hydrateState(state)
         const context = new MachineContext({ gameConfig: game.config, gameState: hydrated })
         const handler = new PlacingStationHandler(TheOldPrinceStationRules, 'RunningTrains')
         handler.enter(context)
-        expect(context.getPendingActions()).toMatchObject([{
-            type: 'FinishStations', source: ActionSource.System, companyId
-        }])
+        expect(context.getPendingActions()).toMatchObject([
+            {
+                type: 'FinishStations',
+                source: ActionSource.System,
+                companyId
+            }
+        ])
     }
 )

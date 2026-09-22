@@ -1,9 +1,6 @@
 import { expect, it } from 'vitest'
 import { GameEngine, PlayerStatus, assertExists, type GameDefinition } from '@tabletop/common'
-import {
-    EighteenXXState,
-    type HydratedEighteenXXState
-} from '@tabletop/18xx'
+import { EighteenXXState, type HydratedEighteenXXState } from '@tabletop/18xx'
 
 export function machineStateCoverageTests(
     definition: GameDefinition<EighteenXXState, HydratedEighteenXXState>,

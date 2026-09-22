@@ -21,7 +21,12 @@ export const SellShares = Type.Object(
         seller: Owner,
         sales: Type.Array(ShareSale, { minItems: 1, maxItems: 1 }),
         expectedProceeds: Type.Integer({ minimum: 1 }),
-        metadata: Type.Optional(Type.Object({ ...ShareSaleDetails.properties, saleBlockId: Type.Optional(Type.String()) }, { additionalProperties: false }))
+        metadata: Type.Optional(
+            Type.Object(
+                { ...ShareSaleDetails.properties, saleBlockId: Type.Optional(Type.String()) },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -53,9 +58,11 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
         let saleBlockId: string | undefined
         if (this.#rules.extendSaleBlocks) {
             const sale = result.details.sales[0]
-            const blocks = state.stockRound.turn.saleBlocks ??= []
-            const previous = blocks.find((block) =>
-                block.companyId === sale.companyId && sameOwner(block.seller, this.seller))
+            const blocks = (state.stockRound.turn.saleBlocks ??= [])
+            const previous = blocks.find(
+                (block) =>
+                    block.companyId === sale.companyId && sameOwner(block.seller, this.seller)
+            )
             const shares = (previous?.shares ?? 0) + sale.shares
             const terms = this.#rules.saleTerms(state, sale.companyId, shares, this.seller)
             assert(typeof terms !== 'string', 'A legal sale requires sale terms')
@@ -66,8 +73,15 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
                 saleBlockId = previous.id
             } else {
                 saleBlockId = this.id
-                blocks.push({ id: this.id, companyId: sale.companyId, seller: this.seller,
-                    shares, price: sale.price, movement: terms.movement, direction: terms.direction })
+                blocks.push({
+                    id: this.id,
+                    companyId: sale.companyId,
+                    seller: this.seller,
+                    shares,
+                    price: sale.price,
+                    movement: terms.movement,
+                    direction: terms.direction
+                })
             }
         }
         applyShareSale(state, result.details)

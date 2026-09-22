@@ -46,9 +46,16 @@ it.each(Titles)(
         expect(state).toEqual(before)
         const action = lay(state, details)
         const result = engine.executeCanonicalAction({ game, state, action })
-        expect(result.processedActions.map((action) => action.type)).toEqual(['LayTile', 'FinishTrack', 'FinishStations', ...(definition === Top ? [] : ['RunTrains', 'DistributeEarnings'])])
+        expect(result.processedActions.map((action) => action.type)).toEqual([
+            'LayTile',
+            'FinishTrack',
+            'FinishStations',
+            ...(definition === Top ? [] : ['RunTrains', 'DistributeEarnings'])
+        ])
         expect(result.processedActions[1].source).toBe(ActionSource.System)
-        expect(result.updatedState.machineState).toBe(definition === Top ? 'RunningTrains' : 'BuyingTrains')
+        expect(result.updatedState.machineState).toBe(
+            definition === Top ? 'RunningTrains' : 'BuyingTrains'
+        )
         expect(result.updatedState.tileInventory.placements[locationId]).toEqual(details.placement)
         expect(result.updatedState.stations).toEqual(state.stations)
         expect(result.updatedState.trackStep?.lays).toHaveLength(1)
@@ -210,8 +217,14 @@ it.each(Titles)(
             companyId: state.trackStep!.companyId
         }
         const result = engine.executeCanonicalAction({ game, state, action })
-        expect(result.updatedState.machineState).toBe(definition === Top ? 'RunningTrains' : 'BuyingTrains')
-        expect(result.processedActions.map((action) => action.type)).toEqual(['FinishTrack', 'FinishStations', ...(definition === Top ? [] : ['RunTrains', 'DistributeEarnings'])])
+        expect(result.updatedState.machineState).toBe(
+            definition === Top ? 'RunningTrains' : 'BuyingTrains'
+        )
+        expect(result.processedActions.map((action) => action.type)).toEqual([
+            'FinishTrack',
+            'FinishStations',
+            ...(definition === Top ? [] : ['RunTrains', 'DistributeEarnings'])
+        ])
         expect(result.updatedState.stationStep).toEqual({
             companyId: state.trackStep!.companyId,
             placedStationIds: [],
@@ -363,16 +376,23 @@ it('rejects TOP’s O17 upgrade when its new branch requires reversing at the he
     expect(() => engine.executeCanonicalAction({ game, state, action })).toThrow()
 })
 
-
 it('finishes TOP construction when the second lay is unaffordable', () => {
     const { game, engine, state } = example(Top, 'construction')
-    const details = first(new TrackConstruction(state, TheOldPrinceTrackRules)
-        .choices('K17').filter((choice) => choice.definitionId === '18xx:8' && choice.rotation === 2))
-    const cash = state.cash.find((entry) =>
-        entry.owner.kind === 'company' && entry.owner.companyId === details.companyId)!
+    const details = first(
+        new TrackConstruction(state, TheOldPrinceTrackRules)
+            .choices('K17')
+            .filter((choice) => choice.definitionId === '18xx:8' && choice.rotation === 2)
+    )
+    const cash = state.cash.find(
+        (entry) => entry.owner.kind === 'company' && entry.owner.companyId === details.companyId
+    )!
     cash.amount = details.cost
     const result = engine.executeCanonicalAction({ game, state, action: lay(state, details) })
-    expect(result.processedActions.map((action) => action.type)).toEqual(['LayTile', 'FinishTrack', 'FinishStations'])
+    expect(result.processedActions.map((action) => action.type)).toEqual([
+        'LayTile',
+        'FinishTrack',
+        'FinishStations'
+    ])
     expect(result.updatedState.trackStep?.completed).toBe(true)
 })
 
@@ -380,44 +400,60 @@ it('rejects unaffordable additional track before network usefulness checks', () 
     const { state } = example(Top, 'construction')
     const construction = new TrackConstruction(state, TheOldPrinceTrackRules)
     const request = first(construction.choices('K17'))
-    const cash = state.cash.find((account) => account.owner.kind === 'company' &&
-        account.owner.companyId === request.companyId)
+    const cash = state.cash.find(
+        (account) =>
+            account.owner.kind === 'company' && account.owner.companyId === request.companyId
+    )
     if (!cash || !state.trackStep) throw new Error('Expected company construction state')
     cash.amount = 0
     state.trackStep.lays.push({ locationId: 'V12', color: 'yellow', cost: 0 })
     const useful = vi.fn(TheOldPrinceTrackRules.useful)
-    const evaluation = new TrackConstruction(state, { ...TheOldPrinceTrackRules, useful }).evaluate(request)
+    const evaluation = new TrackConstruction(state, { ...TheOldPrinceTrackRules, useful }).evaluate(
+        request
+    )
     expect(evaluation.reason).toBe('The company cannot afford construction')
     expect(useful).not.toHaveBeenCalled()
 })
 
-it.each(Titles)('keeps reachable track visible without a permitted lay in $definition.info.id', ({ definition, rules }) => {
-    const { state } = example(definition, 'construction')
-    const locationId = definition === Top ? 'L16' : 'E2'
-    const construction = new TrackConstruction(state, rules)
-    expect(construction.canReach(locationId)).toBe(true)
-    expect(construction.choices(locationId).length).toBeGreaterThan(0)
-    const unavailable = new TrackConstruction(state, {
-        ...rules,
-        allowance: () => ({ reason: 'No lays remaining' })
-    })
-    expect(unavailable.canReach(locationId)).toBe(true)
-    expect(unavailable.choices(locationId)).toEqual([])
-})
+it.each(Titles)(
+    'keeps reachable track visible without a permitted lay in $definition.info.id',
+    ({ definition, rules }) => {
+        const { state } = example(definition, 'construction')
+        const locationId = definition === Top ? 'L16' : 'E2'
+        const construction = new TrackConstruction(state, rules)
+        expect(construction.canReach(locationId)).toBe(true)
+        expect(construction.choices(locationId).length).toBeGreaterThan(0)
+        const unavailable = new TrackConstruction(state, {
+            ...rules,
+            allowance: () => ({ reason: 'No lays remaining' })
+        })
+        expect(unavailable.canReach(locationId)).toBe(true)
+        expect(unavailable.choices(locationId)).toEqual([])
+    }
+)
 
-it.each([{ locationId: 'M13', label: 'X' }, { locationId: 'V12', label: 'T' }])(
+it.each([
+    { locationId: 'M13', label: 'X' },
+    { locationId: 'V12', label: 'T' }
+])(
     'lays labeled yellow cities at $locationId before green is available',
     ({ locationId, label }) => {
         const { state } = example(Top, 'construction')
         state.phaseId = '2H'
         state.tileInventory = TheOldPrinceTrackRules.tileSet.createInventory()
-        const station = state.stations.find((station) => station.companyId === 'ML' && station.status === 'placed')
+        const station = state.stations.find(
+            (station) => station.companyId === 'ML' && station.status === 'placed'
+        )
         if (!station || station.status !== 'placed') throw new Error('Expected placed ML station')
         const city = TheOldPrinceTrackRules.map.location(locationId).preprintedTile.nodes[0]
         station.position = { locationId, nodeId: city.id, slot: 0 }
         const choices = new TrackConstruction(state, TheOldPrinceTrackRules).choices(locationId)
         expect(new Set(choices.map((choice) => choice.definitionId))).toEqual(
-            new Set((label === 'T' ? ['5'] : ['5', '6']).map((number) => `the-old-prince:${number}${label}`))
+            new Set(
+                (label === 'T' ? ['5'] : ['5', '6']).map(
+                    (number) => `the-old-prince:${number}${label}`
+                )
+            )
         )
     }
 )

@@ -5,15 +5,23 @@ import { isHistoryBookkeeping } from './historyNavigation.js'
 
 it('skips turn completion while retaining a player pass as a history stop', () => {
     const finish: FinishStockTurn = {
-        id: 'finish', gameId: 'game', playerId: 'alex', source: ActionSource.User,
-        type: 'FinishStockTurn', metadata: { passed: false }
+        id: 'finish',
+        gameId: 'game',
+        playerId: 'alex',
+        source: ActionSource.User,
+        type: 'FinishStockTurn',
+        metadata: { passed: false }
     }
     expect(isHistoryBookkeeping(finish)).toBe(true)
     const pass: FinishStockTurn = { ...finish, metadata: { passed: true } }
     expect(isHistoryBookkeeping(pass)).toBe(false)
     const operating: FinishOperatingTurn = {
-        id: 'operating', gameId: 'game', playerId: 'alex', source: ActionSource.User,
-        type: 'FinishOperatingTurn', companyId: 'G'
+        id: 'operating',
+        gameId: 'game',
+        playerId: 'alex',
+        source: ActionSource.User,
+        type: 'FinishOperatingTurn',
+        companyId: 'G'
     }
     expect(isHistoryBookkeeping(operating)).toBe(true)
 })

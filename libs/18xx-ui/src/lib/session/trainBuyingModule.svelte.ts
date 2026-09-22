@@ -69,9 +69,7 @@ export class TrainBuyingModule {
     depotSelection = $derived.by(() =>
         this.session.selectionsVisible && this.buying ? this.depotChoice.value('choice') : undefined
     )
-    model = $derived.by(
-        () => new TrainPurchase(this.session.state, this.session.rules.trainRules)
-    )
+    model = $derived.by(() => new TrainPurchase(this.session.state, this.session.rules.trainRules))
     offers = $derived.by(() => this.model.offers())
     marketOffers = $derived.by(() => this.model.marketOffers())
     exchanges = $derived.by(() => this.model.exchanges())

@@ -1,15 +1,23 @@
 import { expect, test } from '@playwright/test'
-test('only absent widgets can be added and the add section disappears once all are present', async ({ page }) => {
+test('only absent widgets can be added and the add section disappears once all are present', async ({
+    page
+}) => {
     await page.goto('/table')
     await expect(page.getByRole('tab', { name: 'Map', exact: true })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Operating Order', exact: true })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Pane options for Table views pane 4', exact: true }).click()
-    await expect(page.locator('.widget-menu:popover-open').getByRole('button', { name: 'Map', exact: true })).toHaveCount(0)
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
+    await expect(
+        page.locator('.widget-menu:popover-open').getByRole('button', { name: 'Map', exact: true })
+    ).toHaveCount(0)
     await page.getByRole('button', { name: 'Operating Order', exact: true }).click()
     await expect(page.getByRole('tabpanel', { name: 'Operating Order', exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('tab', { name: 'Depot', exact: true })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Pane options for Table views pane 4', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Depot', exact: true }).click()
     const depot = page.getByRole('tabpanel', { name: 'Depot', exact: true })
     await expect(depot.getByRole('columnheader', { name: 'Remaining', exact: true })).toBeVisible()
@@ -20,18 +28,30 @@ test('only absent widgets can be added and the add section disappears once all a
     await page.reload()
     await page.getByRole('tab', { name: 'Operating Order', exact: true }).click()
     await expect(page.getByRole('tabpanel', { name: 'Operating Order', exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Pane options for Table views pane 1', exact: true }).click()
-    await expect(page.locator('.widget-menu:popover-open').getByText('Add tabs', { exact: true })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Split pane 1 vertically', exact: true })).toBeVisible()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+        .click()
+    await expect(
+        page.locator('.widget-menu:popover-open').getByText('Add tabs', { exact: true })
+    ).toHaveCount(0)
+    await expect(
+        page.getByRole('button', { name: 'Split pane 1 vertically', exact: true })
+    ).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Operating Order', exact: true })).toHaveCount(1)
 })
 
 test('tabs can close and reopen while Actions stays protected', async ({ page }) => {
     await page.goto('/table')
-    await page.getByRole('button', { name: 'Pane options for Table views pane 3', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Close Actions tab', exact: true })).toHaveCount(0)
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 3', exact: true })
+        .click()
+    await expect(page.getByRole('button', { name: 'Close Actions tab', exact: true })).toHaveCount(
+        0
+    )
     await page.keyboard.press('Escape')
-    await page.getByRole('button', { name: 'Pane options for Table views pane 4', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Close Tiles tab', exact: true }).click()
     await expect(page.getByRole('tab', { name: 'Tiles', exact: true })).toHaveCount(0)
     await page.keyboard.press('Escape')
@@ -40,7 +60,9 @@ test('tabs can close and reopen while Actions stays protected', async ({ page })
     await page.reload()
     await expect(page.getByRole('tab', { name: 'Map', exact: true })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Tiles', exact: true })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Pane options for Table views pane 4', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Tiles', exact: true }).click()
     await expect(page.getByRole('tab', { name: 'Tiles', exact: true })).toBeVisible()
 })

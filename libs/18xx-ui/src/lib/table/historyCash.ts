@@ -7,7 +7,10 @@ export type HistoryCash = {
     after: ReadonlyMap<string, number>
 }
 
-export function historyCash(actions: readonly GameAction[], state: EighteenXXState): Map<string, HistoryCash> {
+export function historyCash(
+    actions: readonly GameAction[],
+    state: EighteenXXState
+): Map<string, HistoryCash> {
     let ledger = { cash: structuredClone(state.cash) }
     const result = new Map<string, HistoryCash>()
     function balances() {
@@ -21,8 +24,11 @@ export function historyCash(actions: readonly GameAction[], state: EighteenXXSta
     }
     let after = balances()
     for (const action of actions.toReversed()) {
-        const patches = (action.undoPatch ?? []).filter((patch) => patch.path === '/cash' || patch.path.startsWith('/cash/'))
-        if (patches.length) ledger = jsonpatch.applyPatch(ledger, structuredClone(patches)).newDocument
+        const patches = (action.undoPatch ?? []).filter(
+            (patch) => patch.path === '/cash' || patch.path.startsWith('/cash/')
+        )
+        if (patches.length)
+            ledger = jsonpatch.applyPatch(ledger, structuredClone(patches)).newDocument
         const before = patches.length ? balances() : after
         result.set(action.id, { before, after })
         after = before
@@ -31,6 +37,7 @@ export function historyCash(actions: readonly GameAction[], state: EighteenXXSta
 }
 
 export function changedCompanyCash(cash: HistoryCash): boolean {
-    return [...new Set([...cash.before.keys(), ...cash.after.keys()])]
-        .some((id) => cash.before.get(id) !== cash.after.get(id))
+    return [...new Set([...cash.before.keys(), ...cash.after.keys()])].some(
+        (id) => cash.before.get(id) !== cash.after.get(id)
+    )
 }

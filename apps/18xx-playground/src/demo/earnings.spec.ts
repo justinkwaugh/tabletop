@@ -363,15 +363,23 @@ it('previews a bank-breaking payment without mutation, then pays in full and sch
     )
 })
 
-it.each(Titles)('skips running and payout with trains but no connected route for $companyId', ({ definition, companyId }) => {
-    const { game, engine, state } = example(definition, 'routes')
-    state.stations = state.stations.filter((station) => station.companyId !== companyId)
-    const result = engine.executeCanonicalAction({ game, state, action: {
-        ...action(state, 'RunTrains', { companyId, routes: [] }), source: ActionSource.System
-    } })
-    expect(result.updatedState.routeStep?.result).toMatchObject({ revenue: 0, routes: [] })
-    expect(result.updatedState.machineState).not.toBe('RunningTrains')
-    expect(result.updatedState.machineState).not.toBe('DistributingEarnings')
-    expect(result.updatedState.earningsDistribution?.choice).toBe('withhold')
-    expect(result.updatedState.earningsDistribution?.marketMove).toBeDefined()
-})
+it.each(Titles)(
+    'skips running and payout with trains but no connected route for $companyId',
+    ({ definition, companyId }) => {
+        const { game, engine, state } = example(definition, 'routes')
+        state.stations = state.stations.filter((station) => station.companyId !== companyId)
+        const result = engine.executeCanonicalAction({
+            game,
+            state,
+            action: {
+                ...action(state, 'RunTrains', { companyId, routes: [] }),
+                source: ActionSource.System
+            }
+        })
+        expect(result.updatedState.routeStep?.result).toMatchObject({ revenue: 0, routes: [] })
+        expect(result.updatedState.machineState).not.toBe('RunningTrains')
+        expect(result.updatedState.machineState).not.toBe('DistributingEarnings')
+        expect(result.updatedState.earningsDistribution?.choice).toBe('withhold')
+        expect(result.updatedState.earningsDistribution?.marketMove).toBeDefined()
+    }
+)

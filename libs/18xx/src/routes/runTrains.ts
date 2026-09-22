@@ -44,7 +44,8 @@ export class HydratedRunTrains extends HydratableAction<typeof RunTrains> implem
         assert(
             (this.source === ActionSource.User ||
                 (this.source === ActionSource.System &&
-                    this.routes.length === 0 && running.cannotRun(this.companyId))) &&
+                    this.routes.length === 0 &&
+                    running.cannotRun(this.companyId))) &&
                 state.activePlayerIds.includes(this.playerId) &&
                 running.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may run trains'

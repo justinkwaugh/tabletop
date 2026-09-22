@@ -33,5 +33,8 @@ export function openingPositionDigest(
     const { id, protectedPrng, masterSeed, ...position } = new GameEngine(runtime).startGame(
         game
     ).initialState
-    return createHash('sha256').update(JSON.stringify(position, sortedKeys)).digest('hex').slice(0, 16)
+    return createHash('sha256')
+        .update(JSON.stringify(position, sortedKeys))
+        .digest('hex')
+        .slice(0, 16)
 }

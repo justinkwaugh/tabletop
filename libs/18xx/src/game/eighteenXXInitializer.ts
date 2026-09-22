@@ -39,7 +39,14 @@ export class EighteenXXInitializer extends BaseGameInitializer<
     EighteenXXState,
     HydratedEighteenXXState
 > {
-    static readonly playerColors = [Color.Blue, Color.Red, Color.Green, Color.Yellow, Color.Purple, Color.Orange]
+    static readonly playerColors = [
+        Color.Blue,
+        Color.Red,
+        Color.Green,
+        Color.Yellow,
+        Color.Purple,
+        Color.Orange
+    ]
     constructor(protected readonly rules: EighteenXXInitializerRules) {
         super()
     }
@@ -85,7 +92,9 @@ export class EighteenXXInitializer extends BaseGameInitializer<
                     turnManager: new HydratedTurnManager({
                         series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
                         turnOrder: players.map((player) => player.playerId),
-                        turnCounts: Object.fromEntries(players.map((player) => [player.playerId, 0]))
+                        turnCounts: Object.fromEntries(
+                            players.map((player) => [player.playerId, 0])
+                        )
                     }),
                     ...parts.position,
                     ...parts.titleState
@@ -98,6 +107,10 @@ export class EighteenXXInitializer extends BaseGameInitializer<
         )
     }
     protected applyPhaseEffects(state: HydratedEighteenXXState): void {
-        applyPrivateEffects(state, this.rules.privateRules.phaseEffects(state), this.rules.stockRules)
+        applyPrivateEffects(
+            state,
+            this.rules.privateRules.phaseEffects(state),
+            this.rules.stockRules
+        )
     }
 }

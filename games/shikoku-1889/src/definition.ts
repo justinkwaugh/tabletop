@@ -60,4 +60,3 @@ export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState
     },
     runtime: createEighteenXXRuntime(Shikoku1889TitleRules)
 }
-

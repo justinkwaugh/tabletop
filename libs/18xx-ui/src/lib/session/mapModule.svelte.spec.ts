@@ -35,7 +35,10 @@ function table(machineState: 'LayingTrack' | 'StockRound', valid: string[], avai
         ...base,
         machineState,
         companies: base.companies.map((company) => ({ ...company, floated: true })),
-        cash: [...base.cash, { owner: { kind: 'company' as const, companyId: TestCompanyId }, amount: 100 }],
+        cash: [
+            ...base.cash,
+            { owner: { kind: 'company' as const, companyId: TestCompanyId }, amount: 100 }
+        ],
         tileInventory: tileSet.createInventory(),
         trackStep: { companyId: TestCompanyId, lays: [], completed: false },
         usedPrivatePowerIds: [],
@@ -54,10 +57,24 @@ function table(machineState: 'LayingTrack' | 'StockRound', valid: string[], avai
         () => view,
         { selection: undefined, trackPowerSelection: undefined },
         { selectPrivateTile: () => {}, confirm: async () => {} },
-        () => { map.clearInspection() }
+        () => {
+            map.clearInspection()
+        }
     )
-    const stations = new StationsModule(session, () => { map.clearInspection() }, () => false)
-    const routes = new RoutesModule(session, (selection) => { map.inspect(selection) }, () => map.networkRoutes)
+    const stations = new StationsModule(
+        session,
+        () => {
+            map.clearInspection()
+        },
+        () => false
+    )
+    const routes = new RoutesModule(
+        session,
+        (selection) => {
+            map.inspect(selection)
+        },
+        () => map.networkRoutes
+    )
     const map: MapModule = new MapModule(session, () => view, track, stations, routes)
     return { map, track }
 }
@@ -66,7 +83,9 @@ describe('MapModule', () => {
     it('draws every map location and the placed station tokens', () => {
         const { map } = table('StockRound', [])
         expect(map.scene.locations).toHaveLength(minimalTrackMap.definition.locations.length)
-        expect(map.tokens).toMatchObject([{ locationId: TestTrackHomeLocationId, label: TestCompanyId }])
+        expect(map.tokens).toMatchObject([
+            { locationId: TestTrackHomeLocationId, label: TestCompanyId }
+        ])
     })
 
     it('inspects a clicked location when no action claims the click', () => {
@@ -80,7 +99,9 @@ describe('MapModule', () => {
     })
 
     it('rejects an inspection of something that is not on the map', () => {
-        expect(() => table('StockRound', []).map.inspect({ kind: 'hex', locationId: 'nowhere' })).toThrow()
+        expect(() =>
+            table('StockRound', []).map.inspect({ kind: 'hex', locationId: 'nowhere' })
+        ).toThrow()
     })
 
     it('gives a click to track laying first, and never inspects while track choices show', () => {

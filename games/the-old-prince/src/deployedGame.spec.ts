@@ -6,7 +6,10 @@ import { Definition } from './definition.js'
 
 function readFixture(name: string) {
     return JSON.parse(
-        readFileSync(new URL(`../test/fixtures/deployed-game/${name}.json`, import.meta.url), 'utf8')
+        readFileSync(
+            new URL(`../test/fixtures/deployed-game/${name}.json`, import.meta.url),
+            'utf8'
+        )
     )
 }
 

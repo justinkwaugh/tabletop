@@ -83,7 +83,9 @@ describe('CompanyDecisionsModule', () => {
     })
 
     it('offers no private tile lays once the power is used or the session is not interactive', () => {
-        expect(deciding([], { usedPrivatePowerIds: [PrivateId] }).module.privateTileOptions).toEqual([])
+        expect(
+            deciding([], { usedPrivatePowerIds: [PrivateId] }).module.privateTileOptions
+        ).toEqual([])
         expect(deciding([], {}, { interactive: false }).module.privateTileOptions).toEqual([])
     })
 
@@ -139,16 +141,28 @@ describe('CompanyDecisionsModule', () => {
             privatePowerWindow: { companyId: TestCompanyId, passedPlayerIds: [] }
         })
         await window.module.continueOperatingRound()
-        expect(window.applied[0]).toMatchObject({ type: 'ContinueOperatingRound', companyId: TestCompanyId })
+        expect(window.applied[0]).toMatchObject({
+            type: 'ContinueOperatingRound',
+            companyId: TestCompanyId
+        })
 
         const lay = deciding(['DeclinePrivateTile'], {
-            privateTrackLay: { privateCompanyId: PrivateId, companyId: TestCompanyId, playerId: TestPlayerId }
+            privateTrackLay: {
+                privateCompanyId: PrivateId,
+                companyId: TestCompanyId,
+                playerId: TestPlayerId
+            }
         })
         await lay.module.declinePrivateTile()
-        expect(lay.applied[0]).toMatchObject({ type: 'DeclinePrivateTile', privateCompanyId: PrivateId })
+        expect(lay.applied[0]).toMatchObject({
+            type: 'DeclinePrivateTile',
+            privateCompanyId: PrivateId
+        })
 
         await expect(deciding(['DeclinePrivateTile']).module.declinePrivateTile()).rejects.toThrow()
-        await expect(deciding(['RespondToPurchaseOffer']).module.respondToPurchaseOffer(true)).rejects.toThrow()
+        await expect(
+            deciding(['RespondToPurchaseOffer']).module.respondToPurchaseOffer(true)
+        ).rejects.toThrow()
     })
 
     it('hides the staged decision while selections are hidden', () => {

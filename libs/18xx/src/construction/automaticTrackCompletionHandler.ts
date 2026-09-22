@@ -17,19 +17,28 @@ export class AutomaticTrackCompletionHandler<
     private canFinish(context: MachineContext<State>, playerId: string): boolean {
         const state = context.gameState
         const step = state.trackStep
-        if (!step || step.completed || !step.lays.length ||
-            controllingOwner(state, step.companyId)?.playerId !== playerId) return false
+        if (
+            !step ||
+            step.completed ||
+            !step.lays.length ||
+            controllingOwner(state, step.companyId)?.playerId !== playerId
+        )
+            return false
         const actions = this.handler.validActionsForPlayer(playerId, context)
         if (!actions.includes('FinishTrack')) return false
         return !state.activePlayerIds.some((id) =>
-            (id === playerId ? actions : this.handler.validActionsForPlayer(id, context)).some((action) =>
-                ['LayTile', 'LayPrivateTile', 'RequestTrackConsent'].includes(action)))
+            (id === playerId ? actions : this.handler.validActionsForPlayer(id, context)).some(
+                (action) => ['LayTile', 'LayPrivateTile', 'RequestTrackConsent'].includes(action)
+            )
+        )
     }
 
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         if (isFinishTrack(action) && action.source === ActionSource.System)
-            return action.companyId === context.gameState.trackStep?.companyId &&
+            return (
+                action.companyId === context.gameState.trackStep?.companyId &&
                 this.canFinish(context, action.playerId)
+            )
         return this.handler.isValidAction(action, context)
     }
 

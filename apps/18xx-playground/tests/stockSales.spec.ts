@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test'
 
 for (const title of ['TOP', '1889']) {
-    test(`${title} sells immediately from quantity choices and single-share companies`, async ({ page }) => {
+    test(`${title} sells immediately from quantity choices and single-share companies`, async ({
+        page
+    }) => {
         await page.goto('/table')
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('trading')
@@ -47,24 +49,45 @@ test('sales summary moves to a full-height strip only in wide panes', async ({ p
     await page.goto('/table')
     await page.getByLabel('Game', { exact: true }).selectOption('TOP')
     await page.getByLabel('Position', { exact: true }).selectOption('trading')
-    await page.getByRole('navigation', { name: 'Stock actions' }).getByRole('button', { name: 'Sell', exact: true }).click()
+    await page
+        .getByRole('navigation', { name: 'Stock actions' })
+        .getByRole('button', { name: 'Sell', exact: true })
+        .click()
     await page.locator('[data-sale-company="ML"]').click()
     await page.locator('[data-sale-shares="1"]').click()
     const summary = page.getByRole('complementary', { name: 'Sales summary' })
     await expect(summary).toBeVisible()
     for (const width of [700, 500, 499, 500]) {
-        await page.locator('.actions-area').evaluate((element, width) => { element.style.width = `${width}px` }, width)
-        await expect.poll(() => summary.evaluate((element) => {
-            const bounds = element.getBoundingClientRect()
-            const panel = element.closest('.action-panel')!.getBoundingClientRect()
-            const controls = element.parentElement!.querySelector('.stock-controls')!.getBoundingClientRect()
-            return bounds.left >= controls.right && Math.abs(bounds.top - panel.top) < 1 && Math.abs(bounds.bottom - panel.bottom) < 2
-        })).toBe(width >= 500)
+        await page.locator('.actions-area').evaluate((element, width) => {
+            element.style.width = `${width}px`
+        }, width)
+        await expect
+            .poll(() =>
+                summary.evaluate((element) => {
+                    const bounds = element.getBoundingClientRect()
+                    const panel = element.closest('.action-panel')!.getBoundingClientRect()
+                    const controls = element
+                        .parentElement!.querySelector('.stock-controls')!
+                        .getBoundingClientRect()
+                    return (
+                        bounds.left >= controls.right &&
+                        Math.abs(bounds.top - panel.top) < 1 &&
+                        Math.abs(bounds.bottom - panel.bottom) < 2
+                    )
+                })
+            )
+            .toBe(width >= 500)
     }
     await page.setViewportSize({ width: 800, height: 960 })
     await expect(summary).toBeVisible()
-    await expect.poll(() => summary.evaluate((element) => {
-        const controls = element.parentElement!.querySelector('.stock-controls')!.getBoundingClientRect()
-        return element.getBoundingClientRect().top >= controls.bottom
-    })).toBe(true)
+    await expect
+        .poll(() =>
+            summary.evaluate((element) => {
+                const controls = element
+                    .parentElement!.querySelector('.stock-controls')!
+                    .getBoundingClientRect()
+                return element.getBoundingClientRect().top >= controls.bottom
+            })
+        )
+        .toBe(true)
 })

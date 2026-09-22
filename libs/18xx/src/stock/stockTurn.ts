@@ -7,15 +7,22 @@ export const StockTurn = Type.Object(
         bought: Type.Boolean(),
         soldBeforeBuying: Type.Boolean(),
         companiesSold: Type.Array(Type.String()),
-        saleBlocks: Type.Optional(Type.Array(Type.Object({
-            id: Type.String(),
-            companyId: Type.String(),
-            seller: Owner,
-            shares: Type.Integer({ minimum: 1 }),
-            price: Type.Integer({ minimum: 1 }),
-            movement: Type.Integer({ minimum: 0 }),
-            direction: Type.String()
-        }, { additionalProperties: false })))
+        saleBlocks: Type.Optional(
+            Type.Array(
+                Type.Object(
+                    {
+                        id: Type.String(),
+                        companyId: Type.String(),
+                        seller: Owner,
+                        shares: Type.Integer({ minimum: 1 }),
+                        price: Type.Integer({ minimum: 1 }),
+                        movement: Type.Integer({ minimum: 0 }),
+                        direction: Type.String()
+                    },
+                    { additionalProperties: false }
+                )
+            )
+        )
     },
     { additionalProperties: false }
 )

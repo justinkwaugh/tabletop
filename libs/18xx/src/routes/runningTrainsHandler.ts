@@ -22,8 +22,11 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
         if (
             !isRunTrains(action) ||
             (action.source !== ActionSource.User &&
-                !(action.source === ActionSource.System &&
-                    action.routes.length === 0 && new RouteEvaluation(state, this.rules).cannotRun(action.companyId))) ||
+                !(
+                    action.source === ActionSource.System &&
+                    action.routes.length === 0 &&
+                    new RouteEvaluation(state, this.rules).cannotRun(action.companyId)
+                )) ||
             !action.playerId ||
             !state.activePlayerIds.includes(action.playerId)
         )
@@ -51,10 +54,15 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
             state.routeStep = { companyId: operatingCompanyId }
         }
         const companyId = state.routeStep?.companyId
-        if (companyId && !state.routeStep?.result &&
-            new RouteEvaluation(state, this.rules).cannotRun(companyId)) {
+        if (
+            companyId &&
+            !state.routeStep?.result &&
+            new RouteEvaluation(state, this.rules).cannotRun(companyId)
+        ) {
             context.addSystemAction(RunTrains, {
-                companyId, playerId: state.activePlayerIds[0], routes: []
+                companyId,
+                playerId: state.activePlayerIds[0],
+                routes: []
             })
         }
     }

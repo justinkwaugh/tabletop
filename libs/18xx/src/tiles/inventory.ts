@@ -136,9 +136,13 @@ export class TileSet {
         this.assertInventory(inventory)
         const unavailable = this.unavailablePieces(inventory)
         return this.definitions.map((definition) => {
-            if (this.manifest.entries.some((entry) =>
-                entry.count === 'unlimited' && entry.faceDefinitionIds.includes(definition.id)
-            )) {
+            if (
+                this.manifest.entries.some(
+                    (entry) =>
+                        entry.count === 'unlimited' &&
+                        entry.faceDefinitionIds.includes(definition.id)
+                )
+            ) {
                 return { definitionId: definition.id, total: 'unlimited', available: 'unlimited' }
             }
             const pieces = this.pieces.filter((piece) =>
@@ -159,8 +163,8 @@ export class TileSet {
             `Tile is not in this set: ${definitionId}`
         )
         const unavailable = this.unavailablePieces(inventory)
-        const unlimited = this.manifest.entries.filter((entry) =>
-            entry.count === 'unlimited' && entry.faceDefinitionIds.includes(definitionId)
+        const unlimited = this.manifest.entries.filter(
+            (entry) => entry.count === 'unlimited' && entry.faceDefinitionIds.includes(definitionId)
         )
         const generated = unlimited.map((entry) => {
             let index = 1
@@ -172,8 +176,9 @@ export class TileSet {
         })
         return [
             ...generated,
-            ...this.pieces.filter((piece) =>
-                piece.faceDefinitionIds.includes(definitionId) && !unavailable.has(piece.id)
+            ...this.pieces.filter(
+                (piece) =>
+                    piece.faceDefinitionIds.includes(definitionId) && !unavailable.has(piece.id)
             )
         ]
     }

@@ -134,9 +134,7 @@ export function extendEighteenXXState<Fields extends Type.TProperties>(
         { additionalProperties: false }
     )
 }
-export const EighteenXXStateValidator: EighteenXXStateValidator = Compile(
-    extendEighteenXXState({})
-)
+export const EighteenXXStateValidator: EighteenXXStateValidator = Compile(extendEighteenXXState({}))
 export class HydratedEighteenXXState
     extends HydratableGameState<TitleStateSchema, PlayerState>
     implements EighteenXXState
@@ -247,4 +245,3 @@ export function requireEighteenXXState(state: HydratedGameState): HydratedEighte
     assert(state instanceof HydratedEighteenXXState, 'Expected hydrated 18xx state')
     return state
 }
-

@@ -51,7 +51,12 @@ export interface TrainFundingRules {
         companyId: string,
         shares: number
     ): ShareSaleTerms | undefined
-    saleTerms(state: FundingState, companyId: string, shares: number, seller: Owner): ShareSaleTerms | string
+    saleTerms(
+        state: FundingState,
+        companyId: string,
+        shares: number,
+        seller: Owner
+    ): ShareSaleTerms | string
     protectsPresidency(companyId: string, operatingCompanyId: string): boolean
     requiredSaleShares(state: FundingState, seller: Owner, companyId: string): number
 }

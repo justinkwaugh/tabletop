@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TestCompanyId, minimalPlayState, minimalTrainRules } from '@tabletop/18xx/testing'
-import {
-    OperatingTurnModule,
-    type OperatingTurnSession
-} from './operatingTurnModule.svelte.js'
+import { OperatingTurnModule, type OperatingTurnSession } from './operatingTurnModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
 type State = OperatingTurnSession['state']
@@ -37,8 +34,12 @@ function operating(overrides: Partial<State>, valid: string[], availability = {}
         module,
         state,
         finished,
-        selectLocally: () => { localSelection = true },
-        selectTrain: () => { trainSelected = true }
+        selectLocally: () => {
+            localSelection = true
+        },
+        selectTrain: () => {
+            trainSelected = true
+        }
     }
 }
 const purchaseOffer: NonNullable<State['purchaseOffer']> = {
@@ -65,7 +66,9 @@ describe('OperatingTurnModule', () => {
         expect(module.canSkipTo(0)).toBe(false)
         expect(module.canSkipTo(3)).toBe(false)
         expect(operating({}, []).module.canSkipTo(1)).toBe(false)
-        expect(operating({}, ['FinishTrack'], { interactive: false }).module.canSkipTo(1)).toBe(false)
+        expect(operating({}, ['FinishTrack'], { interactive: false }).module.canSkipTo(1)).toBe(
+            false
+        )
     })
 
     it('does not skip past a local selection or a pending company decision', () => {
@@ -97,7 +100,10 @@ describe('OperatingTurnModule', () => {
         const ready = operating(buying, ['FinishOperatingTurn'])
         expect(ready.module.canFinish).toBe(true)
         await ready.module.finish()
-        expect(ready.applied[0]).toMatchObject({ type: 'FinishOperatingTurn', companyId: TestCompanyId })
+        expect(ready.applied[0]).toMatchObject({
+            type: 'FinishOperatingTurn',
+            companyId: TestCompanyId
+        })
 
         const selecting = operating(buying, ['FinishOperatingTurn'])
         selecting.selectTrain()

@@ -420,7 +420,9 @@ it('automatically finishes a TOP purchase in the same undoable result', () => {
     const action = buy(state, 'ML:share:5', 92)
     const result = engine.executeCanonicalAction({ game, state, action })
     expect(result.processedActions.at(-1)).toMatchObject({
-        type: 'FinishStockTurn', source: ActionSource.System, playerId: 'alex',
+        type: 'FinishStockTurn',
+        source: ActionSource.System,
+        playerId: 'alex',
         metadata: { passed: false }
     })
     expect(result.updatedState.activePlayerIds[0]).toBe('blair')
@@ -432,7 +434,11 @@ it('automatically finishes a TOP purchase in the same undoable result', () => {
 
 it('keeps an 1889 purchase turn open when selling is still legal', () => {
     const { game, engine, state } = example(Shikoku)
-    const result = engine.executeCanonicalAction({ game, state, action: buy(state, 'IR:share:5', 70) })
+    const result = engine.executeCanonicalAction({
+        game,
+        state,
+        action: buy(state, 'IR:share:5', 70)
+    })
     expect(result.processedActions.some(isFinishStockTurn)).toBe(false)
     expect(result.updatedState.activePlayerIds[0]).toBe('alex')
     expect(result.updatedState.stockRound.turn.bought).toBe(true)
@@ -443,7 +449,11 @@ it('automatically passes a stock player with no affordable purchase or holdings 
     for (const cash of state.cash)
         if (cash.owner.kind === 'player' && cash.owner.playerId === 'blair') cash.amount = 0
     for (const certificate of state.certificates)
-        if (!certificate.retired && certificate.owner.kind === 'player' && certificate.owner.playerId === 'blair') {
+        if (
+            !certificate.retired &&
+            certificate.owner.kind === 'player' &&
+            certificate.owner.playerId === 'blair'
+        ) {
             certificate.owner = { kind: 'player', playerId: 'casey' }
         }
     const result = engine.executeCanonicalAction({ game, state, action: finish(state) })

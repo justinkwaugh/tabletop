@@ -1,9 +1,4 @@
-import {
-    getCompany,
-    openShares,
-    type FinancialState,
-    type OpenShare
-} from '../finance/finance.js'
+import { getCompany, openShares, type FinancialState, type OpenShare } from '../finance/finance.js'
 import type { StockState } from './stockState.js'
 
 export interface StockRoundRules {

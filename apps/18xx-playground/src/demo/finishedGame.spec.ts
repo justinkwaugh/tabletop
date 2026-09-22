@@ -23,38 +23,71 @@ it('replays the finished game and restores every history step in both directions
     const orders = historyOperatingOrder(actions, state)
     expect(orders.size).toBeGreaterThan(0)
     const fundingSale = actions.find((action) => action.type === 'SellFundingShares')!
-    expect(historyDescription(fundingSale, state).beforeText).toBe('President owes $400 and is short $135')
-    expect(orders.get(fundingSale.id)?.after).toEqual(['MS', 'S', 'A', 'So', 'C', 'branch:BB', 'MR', 'Gt'])
+    expect(historyDescription(fundingSale, state).beforeText).toBe(
+        'President owes $400 and is short $135'
+    )
+    expect(orders.get(fundingSale.id)?.after).toEqual([
+        'MS',
+        'S',
+        'A',
+        'So',
+        'C',
+        'branch:BB',
+        'MR',
+        'Gt'
+    ])
     expect(historyDescription(fundingSale, state).detail).toContain('Market')
     const rounds = historyRounds(actions, state)
     const operatingRounds = rounds.filter((round) => round.label.startsWith('OR '))
     expect(operatingRounds.every((round) => round.operatingOrder?.after.length)).toBe(true)
-    expect(operatingRounds.flatMap((round) => round.entries).some((entry) =>
-        entry.kind === 'action' && entry.action.type === 'StartOperatingRound'
-    )).toBe(false)
-    const thirdStockRound = new Set(rounds.find((round) => round.label === 'SR 3')?.entries.map((entry) => entry.id))
-    const firstPurchaseIndex = actions.findIndex((action) => thirdStockRound.has(action.id) && action.type === 'BuyShares')
+    expect(
+        operatingRounds
+            .flatMap((round) => round.entries)
+            .some((entry) => entry.kind === 'action' && entry.action.type === 'StartOperatingRound')
+    ).toBe(false)
+    const thirdStockRound = new Set(
+        rounds.find((round) => round.label === 'SR 3')?.entries.map((entry) => entry.id)
+    )
+    const firstPurchaseIndex = actions.findIndex(
+        (action) => thirdStockRound.has(action.id) && action.type === 'BuyShares'
+    )
     const firstPurchase = actions[firstPurchaseIndex]
     const automaticFinish = actions[firstPurchaseIndex + 1]
     const followingPass = actions[firstPurchaseIndex + 2]
     assertExists(firstPurchase, 'SR 3 requires its first share purchase')
     assertExists(automaticFinish, 'SR 3 requires automatic turn completion')
     assertExists(followingPass, 'SR 3 requires the following pass')
-    expect(automaticFinish).toMatchObject({ type: 'FinishStockTurn', source: ActionSource.System, metadata: { passed: false } })
-    expect(followingPass).toMatchObject({ type: 'FinishStockTurn', source: ActionSource.User, metadata: { passed: true } })
+    expect(automaticFinish).toMatchObject({
+        type: 'FinishStockTurn',
+        source: ActionSource.System,
+        metadata: { passed: false }
+    })
+    expect(followingPass).toMatchObject({
+        type: 'FinishStockTurn',
+        source: ActionSource.User,
+        metadata: { passed: true }
+    })
     expect(shouldContinueHistoryStep(firstPurchase, automaticFinish)).toBe(false)
     expect(shouldContinueHistoryStep(automaticFinish, followingPass)).toBe(true)
-    const trainlessActions = actions.filter((action) =>
-        (isRunTrains(action) && action.metadata?.revenue === 0) ||
-        (isDistributeEarnings(action) && action.metadata?.revenue === 0))
+    const trainlessActions = actions.filter(
+        (action) =>
+            (isRunTrains(action) && action.metadata?.revenue === 0) ||
+            (isDistributeEarnings(action) && action.metadata?.revenue === 0)
+    )
     expect(trainlessActions.length).toBeGreaterThan(0)
     const visibleIds = new Set(rounds.flatMap((round) => round.entries.map((entry) => entry.id)))
     for (const action of trainlessActions) {
         expect(visibleIds.has(action.id)).toBe(true)
         const description = historyDescription(action, state)
-        expect(description.text).toBe(action.type === 'RunTrains' ? 'Did not run trains' : 'Did not pay out')
-        if (isDistributeEarnings(action) && action.metadata?.marketMove &&
-            action.metadata.marketMove.fromMarketSpaceId !== action.metadata.marketMove.toMarketSpaceId)
+        expect(description.text).toBe(
+            action.type === 'RunTrains' ? 'Did not run trains' : 'Did not pay out'
+        )
+        if (
+            isDistributeEarnings(action) &&
+            action.metadata?.marketMove &&
+            action.metadata.marketMove.fromMarketSpaceId !==
+                action.metadata.marketMove.toMarketSpaceId
+        )
             expect(description.detail).toContain('Market')
     }
     expect(rounds.map((round) => round.label)).toEqual([
@@ -107,10 +140,12 @@ it('replays the finished game and restores every history step in both directions
     for (const action of actions) {
         const cash = cashHistory.get(action.id)!
         for (const entry of restored.cash)
-            if (entry.owner.kind === 'company') expect(cash.before.get(entry.owner.companyId)).toBe(entry.amount)
+            if (entry.owner.kind === 'company')
+                expect(cash.before.get(entry.owner.companyId)).toBe(entry.amount)
         restored = engine.applyProcessedAction({ game, state: restored, action })
         for (const entry of restored.cash)
-            if (entry.owner.kind === 'company') expect(cash.after.get(entry.owner.companyId)).toBe(entry.amount)
+            if (entry.owner.kind === 'company')
+                expect(cash.after.get(entry.owner.companyId)).toBe(entry.amount)
     }
     expect(restored).toEqual(state)
     const pending = structuredClone(initialState)

@@ -30,24 +30,14 @@ import {
     stockMarketOrder,
     titleComponents
 } from '@tabletop/18xx'
-import {
-    type HydratedEighteenXXState,
-    type EighteenXXTitleRules
-} from '@tabletop/18xx'
+import { type HydratedEighteenXXState, type EighteenXXTitleRules } from '@tabletop/18xx'
 import { GameStorage } from '@tabletop/common'
-import {
-    trainsOwnedBy
-} from '@tabletop/18xx'
+import { trainsOwnedBy } from '@tabletop/18xx'
 import { type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
 import { GameSession } from '@tabletop/frontend-components'
 import { assert } from '@tabletop/common'
 import type { TitlePresentation } from './titlePresentation.js'
-import {
-    type EighteenXXState,
-    getCompany,
-    type Owner,
-    type Portfolio
-} from '@tabletop/18xx'
+import { type EighteenXXState, getCompany, type Owner, type Portfolio } from '@tabletop/18xx'
 
 type SessionOptions = ConstructorParameters<
     typeof GameSession<EighteenXXState, HydratedEighteenXXState>
@@ -58,60 +48,95 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         return operatingHistory(this.history.visibleContext.actions)
     }
     readonly marketAnimation = createMarketAnimationSource(this, (state) => state.stockMarket)
-    readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(EighteenXXPreferenceDefinition)
+    readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(
+        EighteenXXPreferenceDefinition
+    )
     protected readonly localSelections = new LocalSelections()
     private get localHotseat() {
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
     }
-    private readonly moduleSession: ModuleSession<HydratedEighteenXXState, EighteenXXTitleRules> = ((
-        session: EighteenXXSession
-    ) => ({
-        get state() { return session.financialState },
-        get rules() { return session.rules },
-        get validActionTypes() { return session.validActionTypes },
-        get publishing() { return session.updatingVisibleState },
-        get viewingHistory() { return session.isViewingHistory },
-        get selectionsVisible() { return !session.updatingVisibleState && !session.isViewingHistory },
-        get interactive() { return !session.busy && !session.updatingVisibleState && !session.isViewingHistory },
-        get playerId() { return session.myPlayer?.id },
-        get actingPlayerIds() {
-            return session.localHotseat ? session.financialState.activePlayerIds
-                : session.myPlayer ? [session.myPlayer.id] : []
-        },
-        canActFor: (playerId) => session.localHotseat || session.myPlayer?.id === playerId,
-        get recordedActions() { return session.actions.slice(0, session.gameState.actionCount) },
-        settled: () => session.waitForVisibleTransitionSettled(),
-        createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
-        applyAction: (action) => session.applyAction(action)
-    }))(this)
+    private readonly moduleSession: ModuleSession<HydratedEighteenXXState, EighteenXXTitleRules> =
+        ((session: EighteenXXSession) => ({
+            get state() {
+                return session.financialState
+            },
+            get rules() {
+                return session.rules
+            },
+            get validActionTypes() {
+                return session.validActionTypes
+            },
+            get publishing() {
+                return session.updatingVisibleState
+            },
+            get viewingHistory() {
+                return session.isViewingHistory
+            },
+            get selectionsVisible() {
+                return !session.updatingVisibleState && !session.isViewingHistory
+            },
+            get interactive() {
+                return !session.busy && !session.updatingVisibleState && !session.isViewingHistory
+            },
+            get playerId() {
+                return session.myPlayer?.id
+            },
+            get actingPlayerIds() {
+                return session.localHotseat
+                    ? session.financialState.activePlayerIds
+                    : session.myPlayer
+                      ? [session.myPlayer.id]
+                      : []
+            },
+            canActFor: (playerId) => session.localHotseat || session.myPlayer?.id === playerId,
+            get recordedActions() {
+                return session.actions.slice(0, session.gameState.actionCount)
+            },
+            settled: () => session.waitForVisibleTransitionSettled(),
+            createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
+            applyAction: (action) => session.applyAction(action)
+        }))(this)
     readonly offers = new OfferAuctionModule(this.moduleSession)
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
     readonly privates = new PrivatesModule(this.moduleSession)
     readonly trainFunding = new TrainFundingModule(this.moduleSession)
     readonly decisions = new CompanyDecisionsModule(this.moduleSession)
-    readonly privateActions: PrivateActionsModule = new PrivateActionsModule(this.moduleSession, this.decisions, {
-        undo: (): boolean => this.track.stages.undo(),
-        clear: () => this.track.stages.clear()
-    })
+    readonly privateActions: PrivateActionsModule = new PrivateActionsModule(
+        this.moduleSession,
+        this.decisions,
+        {
+            undo: (): boolean => this.track.stages.undo(),
+            clear: () => this.track.stages.clear()
+        }
+    )
     readonly track: TrackModule = new TrackModule(
         this.moduleSession,
         () => this.mapView,
         this.privateActions,
         this.decisions,
-        () => { this.map.clearInspection() }
+        () => {
+            this.map.clearInspection()
+        }
     )
-    readonly trainBuying = new TrainBuyingModule(this.moduleSession, () => this.decisions.purchaseOptions)
+    readonly trainBuying = new TrainBuyingModule(
+        this.moduleSession,
+        () => this.decisions.purchaseOptions
+    )
     get requiresStationTokenChoice(): boolean {
         return false
     }
     readonly stations = new StationsModule(
         this.moduleSession,
-        () => { this.map.clearInspection() },
+        () => {
+            this.map.clearInspection()
+        },
         () => this.requiresStationTokenChoice
     )
     readonly routes = new RoutesModule(
         this.moduleSession,
-        (selection) => { this.map.inspect(selection) },
+        (selection) => {
+            this.map.inspect(selection)
+        },
         () => this.map.networkRoutes
     )
     readonly map: MapModule = new MapModule(
@@ -146,7 +171,9 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         this.registerLocalSelections()
     }
     auctionLotsFor(state: EighteenXXState) {
-        return this.rules.offerAuctionRules?.lots(state) ?? this.rules.auctionRules?.lots(state) ?? []
+        return (
+            this.rules.offerAuctionRules?.lots(state) ?? this.rules.auctionRules?.lots(state) ?? []
+        )
     }
     protected override getActivePlayers() {
         return this.gameState.activePlayerIds.flatMap((id) =>
@@ -154,7 +181,9 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         )
     }
     protected onStockSelectionCancelled() {}
-    availableTrainDefinitionIds = $derived.by(() => this.rules.trainRules.availableDefinitions(this.financialState))
+    availableTrainDefinitionIds = $derived.by(() =>
+        this.rules.trainRules.availableDefinitions(this.financialState)
+    )
     trainRosters = $derived.by(() =>
         this.financialState.companies
             .map((company) => ({
@@ -223,9 +252,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
             return
         }
         const context = this.history.visibleContext
-        this.historicalMap = this.historicalMaps.preview(
-            context.state, context.actions, action
-        )
+        this.historicalMap = this.historicalMaps.preview(context.state, context.actions, action)
     }
     closeHistoricalMap() {
         this.historicalMap = undefined
@@ -240,9 +267,12 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     get stockCompanies() {
         const order = stockMarketOrder(this.financialState.stockMarket)
         const rank = new Map(order.map((id, index) => [id, index]))
-        return this.financialState.companies.filter((company) => company.started)
-            .sort((left, right) =>
-                (rank.get(left.id) ?? order.length) - (rank.get(right.id) ?? order.length))
+        return this.financialState.companies
+            .filter((company) => company.started)
+            .sort(
+                (left, right) =>
+                    (rank.get(left.id) ?? order.length) - (rank.get(right.id) ?? order.length)
+            )
     }
     certificateWeight = (certificate: Portfolio[number]) =>
         this.rules.stockRules.certificateWeight(this.financialState, certificate)

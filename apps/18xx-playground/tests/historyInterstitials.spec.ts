@@ -1,19 +1,34 @@
 import { expect, test } from '@playwright/test'
 
-test('round interstitials jump across their full surface and return to the current game', async ({ page }) => {
+test('round interstitials jump across their full surface and return to the current game', async ({
+    page
+}) => {
     test.setTimeout(60000)
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
-    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({ timeout: 30000 })
+    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({
+        timeout: 30000
+    })
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const history = page.getByRole('list', { name: 'Action history', exact: true })
     for (const newestFirst of [false, true]) {
-        await page.getByRole('button', { name: newestFirst ? 'Newest first' : 'Newest last', exact: true }).click()
+        await page
+            .getByRole('button', {
+                name: newestFirst ? 'Newest first' : 'Newest last',
+                exact: true
+            })
+            .click()
         const round = history.locator('.round-section[data-round-id="OR 1.1"]')
         const contents = await round.locator('ol').innerText()
-        const roundIds = await history.locator('.round-section').evaluateAll(sections => sections.map(section => section.getAttribute('data-round-id')))
+        const roundIds = await history
+            .locator('.round-section')
+            .evaluateAll((sections) =>
+                sections.map((section) => section.getAttribute('data-round-id'))
+            )
         const targetIndex = roundIds.indexOf('OR 1.1')
-        const laterRoundIds = newestFirst ? roundIds.slice(0, targetIndex) : roundIds.slice(targetIndex + 1)
+        const laterRoundIds = newestFirst
+            ? roundIds.slice(0, targetIndex)
+            : roundIds.slice(targetIndex + 1)
         const header = round.locator('.round-divider')
         await header.scrollIntoViewIfNeeded()
         const bounds = await header.boundingBox()
@@ -25,38 +40,59 @@ test('round interstitials jump across their full surface and return to the curre
         await jump.click({ position: { x: bounds.width - 12, y: 12 } })
         await expect(page.getByRole('status')).toHaveText('VIEWING HISTORY')
         await expect(round.locator('ol')).toHaveText(contents, { useInnerText: true })
-        for (const id of laterRoundIds) await expect(history.locator(`.round-section[data-round-id="${id}"]`)).toHaveCount(0)
-        const returnButton = round.locator('.round-divider').getByRole('button', { name: 'Return to current game', exact: true })
+        for (const id of laterRoundIds)
+            await expect(history.locator(`.round-section[data-round-id="${id}"]`)).toHaveCount(0)
+        const returnButton = round
+            .locator('.round-divider')
+            .getByRole('button', { name: 'Return to current game', exact: true })
         await expect(returnButton).toHaveCount(1)
         await returnButton.click()
         await expect(page.locator('.history-strip')).toHaveCount(0)
         await expect(returnButton).toHaveCount(0)
-        await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible()
+        await expect(
+            page.getByRole('heading', { name: 'Player 2 wins', exact: true })
+        ).toBeVisible()
     }
     await expect(history.locator('.round-divider svg.clock')).toHaveCount(0)
 })
 
-
-test('company headers retain the full operation and exclude the following company', async ({ page }) => {
+test('company headers retain the full operation and exclude the following company', async ({
+    page
+}) => {
     test.setTimeout(60000)
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
-    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({ timeout: 30000 })
+    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({
+        timeout: 30000
+    })
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     for (const newestFirst of [false, true]) {
-        await page.getByRole('button', { name: newestFirst ? 'Newest first' : 'Newest last', exact: true }).click()
+        await page
+            .getByRole('button', {
+                name: newestFirst ? 'Newest first' : 'Newest last',
+                exact: true
+            })
+            .click()
         const round = page.locator('.round-section[data-round-id="OR 1.1"]')
         const companies = round.locator('article.operation')
         expect(await companies.count()).toBeGreaterThan(1)
         const company = newestFirst ? companies.last() : companies.first()
         const name = await company.getAttribute('aria-label')
         const contents = await company.locator('.events').innerText()
-        await company.locator('header').getByRole('button', { name: /^Jump to / }).click()
+        await company
+            .locator('header')
+            .getByRole('button', { name: /^Jump to / })
+            .click()
         await expect(page.locator('.history-strip')).toBeVisible()
         await expect(companies).toHaveCount(1)
         await expect(companies.first()).toHaveAttribute('aria-label', name!)
-        await expect(companies.first().locator('.events')).toHaveText(contents, { useInnerText: true })
-        await companies.first().getByRole('button', { name: 'Return to current game', exact: true }).click()
+        await expect(companies.first().locator('.events')).toHaveText(contents, {
+            useInnerText: true
+        })
+        await companies
+            .first()
+            .getByRole('button', { name: 'Return to current game', exact: true })
+            .click()
         await expect(page.locator('.history-strip')).toHaveCount(0)
     }
 })

@@ -14,7 +14,12 @@ function offers(valid: string[], availability = {}) {
     return { ...harness, module: new OfferAuctionModule(harness.session) }
 }
 function waterfall(valid: string[], availability = {}) {
-    const harness = testSession(minimalPlayState(), { auctionRules: undefined }, valid, availability)
+    const harness = testSession(
+        minimalPlayState(),
+        { auctionRules: undefined },
+        valid,
+        availability
+    )
     return { ...harness, module: new WaterfallAuctionModule(harness.session) }
 }
 

@@ -135,5 +135,4 @@ export class StationsModule<State extends StationsState> {
             this.session.createPlayerAction(FinishStations, { companyId })
         )
     }
-
 }

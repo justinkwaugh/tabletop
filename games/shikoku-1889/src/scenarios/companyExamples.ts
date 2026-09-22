@@ -11,8 +11,8 @@ import {
     getCompany,
     type CompanyState,
     type TrainState,
-    type MapStateData,
-    } from '@tabletop/18xx'
+    type MapStateData
+} from '@tabletop/18xx'
 import { createShikoku1889FinanceExample } from './financeFixture.js'
 import { Shikoku1889Map } from '../index.js'
 

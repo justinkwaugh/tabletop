@@ -89,7 +89,8 @@ export class EarningsDistribution {
         return this.state.routeStep?.result?.revenue === 0 &&
             this.state.routeStep.result.routes.length === 0 &&
             this.rules.choices(this.state, companyId).includes('withhold')
-            ? 'withhold' : undefined
+            ? 'withhold'
+            : undefined
     }
     canAct(playerId: string, companyId: string): boolean {
         return (
@@ -124,7 +125,10 @@ export class EarningsDistribution {
         )
         const base = this.rules.roundDividend(this.state, companyId, (revenue - retained) / count)
         const effect = this.rules.marketEffect(this.state, companyId, {
-            choice, revenue, retained, baseDividendPerShare: base
+            choice,
+            revenue,
+            retained,
+            baseDividendPerShare: base
         })
         const dividendPerShare = base + effect.bonusPerShare
         assert(

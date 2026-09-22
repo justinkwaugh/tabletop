@@ -188,8 +188,18 @@ export function createTileDrawing(
                       ? geometry.vertices
                       : undefined
               )
-        const revenueCells = node.kind === 'junction' ? [] : stagedRevenueLayout(node.revenue, revenuePosition, geometry.vertices, paths, occupied)
-        if (node.kind !== 'junction') occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))
+        const revenueCells =
+            node.kind === 'junction'
+                ? []
+                : stagedRevenueLayout(
+                      node.revenue,
+                      revenuePosition,
+                      geometry.vertices,
+                      paths,
+                      occupied
+                  )
+        if (node.kind !== 'junction')
+            occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))
         const townAngle = automaticTownPaths.has(node.id)
             ? townMarkerAngle(center, paths)
             : undefined

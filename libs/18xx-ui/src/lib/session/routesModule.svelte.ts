@@ -36,9 +36,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         private readonly networkRoutes: () => readonly RouteOverlay[]
     ) {}
 
-    editor = $derived.by(
-        () => new RouteEditor(this.session.state, this.session.rules.routeRules)
-    )
+    editor = $derived.by(() => new RouteEditor(this.session.state, this.session.rules.routeRules))
     canRun = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('RunTrains')
     )
@@ -156,11 +154,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     private assertActive() {
         assert(this.canRun, 'Routes are not active')
     }
-    private evaluate(
-        state: State,
-        companyId: string,
-        routes: ReturnType<typeof submittedRoutes>
-    ) {
+    private evaluate(state: State, companyId: string, routes: ReturnType<typeof submittedRoutes>) {
         return new RouteEvaluation(state, this.session.rules.routeRules).evaluate(companyId, routes)
     }
 }

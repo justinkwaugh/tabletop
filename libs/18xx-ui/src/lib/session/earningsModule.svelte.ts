@@ -19,12 +19,21 @@ export class EarningsModule {
     readonly choice = singleChoice<EarningsChoice>()
     constructor(private readonly session: EarningsSession) {}
 
-    private distributing = $derived.by(() => this.session.state.machineState === 'DistributingEarnings')
+    private distributing = $derived.by(
+        () => this.session.state.machineState === 'DistributingEarnings'
+    )
     distribution = $derived.by(
         () => new EarningsDistribution(this.session.state, this.session.rules.earningsRules)
     )
-    canDistribute = $derived.by(() => this.session.interactive && this.session.validActionTypes.includes('DistributeEarnings'))
-    selection = $derived.by(() => this.session.selectionsVisible && this.distributing ? this.choice.value('choice') : undefined)
+    canDistribute = $derived.by(
+        () =>
+            this.session.interactive && this.session.validActionTypes.includes('DistributeEarnings')
+    )
+    selection = $derived.by(() =>
+        this.session.selectionsVisible && this.distributing
+            ? this.choice.value('choice')
+            : undefined
+    )
     choices = $derived.by(() => {
         const companyId = this.session.state.routeStep?.companyId
         return companyId && this.distributing
@@ -36,7 +45,9 @@ export class EarningsModule {
                   }))
             : []
     })
-    preview = $derived.by(() => this.choices.find((entry) => entry.choice === this.selection)?.evaluation.details)
+    preview = $derived.by(
+        () => this.choices.find((entry) => entry.choice === this.selection)?.evaluation.details
+    )
 
     select(choice: EarningsChoice) {
         assert(
@@ -49,9 +60,11 @@ export class EarningsModule {
     async confirm() {
         const details = this.preview
         assert(this.canDistribute && details, 'Choose an available distribution')
-        await this.session.applyAction(this.session.createPlayerAction(DistributeEarnings, {
-            companyId: details.companyId,
-            choice: details.choice
-        }))
+        await this.session.applyAction(
+            this.session.createPlayerAction(DistributeEarnings, {
+                companyId: details.companyId,
+                choice: details.choice
+            })
+        )
     }
 }

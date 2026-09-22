@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test'
 
 for (const title of ['TOP', '1889']) {
-    test(`${title} Undo unwinds the stock menu one stage at a time before game history`, async ({ page }) => {
+    test(`${title} Undo unwinds the stock menu one stage at a time before game history`, async ({
+        page
+    }) => {
         await page.goto('/table')
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('trading')

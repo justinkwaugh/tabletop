@@ -102,11 +102,15 @@ export class TrackConstruction {
     }
     canReach(locationId: string): boolean {
         const companyId = this.state.trackStep?.companyId
-        return !!companyId && (this.network(companyId).canReach(locationId) || this.rules.useful({
-            home: this.rules.homeLocations(companyId).includes(locationId),
-            newTrack: false,
-            increasedCityRevenue: false
-        }))
+        return (
+            !!companyId &&
+            (this.network(companyId).canReach(locationId) ||
+                this.rules.useful({
+                    home: this.rules.homeLocations(companyId).includes(locationId),
+                    newTrack: false,
+                    increasedCityRevenue: false
+                }))
+        )
     }
     choices(locationId: string): TrackLayDetails[] {
         const companyId = this.state.trackStep?.companyId
@@ -273,7 +277,11 @@ export class TrackConstruction {
         })
     }
     private network(companyId: string): ConstructionReachability {
-        return this.reachability ??= new ConstructionReachability(this.mapState, this.state, companyId)
+        return (this.reachability ??= new ConstructionReachability(
+            this.mapState,
+            this.state,
+            companyId
+        ))
     }
     private availablePieces(definitionId: string): ReturnType<TileSet['availablePieces']> {
         let pieces = this.pieces.get(definitionId)

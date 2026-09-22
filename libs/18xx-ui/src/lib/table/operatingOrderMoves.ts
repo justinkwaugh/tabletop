@@ -6,16 +6,21 @@ export type OperatingOrderMove = {
     to: number
 }
 
-export function operatingOrderMoves({ before, after, movingCompanyId }: HistoryOperatingOrder): OperatingOrderMove[] {
+export function operatingOrderMoves({
+    before,
+    after,
+    movingCompanyId
+}: HistoryOperatingOrder): OperatingOrderMove[] {
     if (before.length !== after.length || before.some((id) => !after.includes(id))) return []
     const lengths = Array.from({ length: before.length + 1 }, () =>
         Array<number>(after.length + 1).fill(0)
     )
     for (let i = before.length - 1; i >= 0; i--)
         for (let j = after.length - 1; j >= 0; j--)
-            lengths[i][j] = before[i] === after[j]
-                ? 1 + lengths[i + 1][j + 1]
-                : Math.max(lengths[i + 1][j], lengths[i][j + 1])
+            lengths[i][j] =
+                before[i] === after[j]
+                    ? 1 + lengths[i + 1][j + 1]
+                    : Math.max(lengths[i + 1][j], lengths[i][j + 1])
     const stationary = new Set<string>()
     let i = 0
     let j = 0
@@ -49,7 +54,11 @@ export function operatingOrderMoves({ before, after, movingCompanyId }: HistoryO
         const companies = current.slice(start, Math.max(from, to) + 1)
         if (from < to) companies.push(company)
         else companies.unshift(company)
-        moves.push({ companies, from: from < to ? 0 : companies.length - 1, to: from < to ? companies.length - 1 : 0 })
+        moves.push({
+            companies,
+            from: from < to ? 0 : companies.length - 1,
+            to: from < to ? companies.length - 1 : 0
+        })
         current.splice(from, 1)
         current.splice(to, 0, company)
     }

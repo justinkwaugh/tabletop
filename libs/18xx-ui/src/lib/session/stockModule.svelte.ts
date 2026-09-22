@@ -62,8 +62,7 @@ export class StockModule implements LocalSelection {
     ) {}
 
     private trading = $derived.by(
-        () =>
-            this.session.selectionsVisible && this.session.state.machineState === 'StockRound'
+        () => this.session.selectionsVisible && this.session.state.machineState === 'StockRound'
     )
     openMenu = $derived.by(() =>
         this.session.selectionsVisible ? this.menu.value('action')?.menu : undefined
@@ -157,7 +156,11 @@ export class StockModule implements LocalSelection {
                 return Array.from({ length: owned }, (_, index) => {
                     const sale = { companyId: company.id, shares: index + 1 }
                     const request = { playerId, seller, sales: [sale] }
-                    return { sale, request, result: evaluateShareSale(state, request, rules.stockRules) }
+                    return {
+                        sale,
+                        request,
+                        result: evaluateShareSale(state, request, rules.stockRules)
+                    }
                 })
             })
         )
@@ -189,8 +192,7 @@ export class StockModule implements LocalSelection {
             return { source: 'manual' as const, request: this.visibleTrade.request }
         if (this.openMenu !== 'sell' || !this.selectedSaleCompany) return undefined
         const choices = this.saleChoices.filter(
-            (choice) =>
-                choice.sale.companyId === this.selectedSaleCompany && choice.result.details
+            (choice) => choice.sale.companyId === this.selectedSaleCompany && choice.result.details
         )
         return choices.length === 1 && choices[0].sale.shares === 1
             ? { source: 'auto' as const, request: choices[0].request }
@@ -285,7 +287,8 @@ export class StockModule implements LocalSelection {
         const trade = this.trade.value('choice')
         if (trade?.kind !== 'sale') return
         const sales = trade.request.sales.filter((sale) => sale.companyId !== companyId)
-        if (sales.length) this.trade.choose('choice', { kind: 'sale', request: { ...trade.request, sales } })
+        if (sales.length)
+            this.trade.choose('choice', { kind: 'sale', request: { ...trade.request, sales } })
         else this.trade.clear()
     }
     cancel() {

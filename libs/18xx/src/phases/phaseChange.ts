@@ -162,7 +162,9 @@ export function validatePhaseChange(
         'Phase continuation must preserve the operating company'
     )
     assert(
-        change.discardCompanyIds.every((id) => state.companies.some((company) => company.id === id)),
+        change.discardCompanyIds.every((id) =>
+            state.companies.some((company) => company.id === id)
+        ),
         'Unknown company in discard order'
     )
     assert(

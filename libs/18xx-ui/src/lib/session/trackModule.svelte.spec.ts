@@ -63,7 +63,10 @@ describe('TrackModule', () => {
         const { module } = laying()
         expect(module.locationIds.length).toBeGreaterThan(0)
         expect(module.locationIds).not.toContain(TestTrackHomeLocationId)
-        expect(laying(minimalTrackTileSet, ['FinishTrack'], { selectionsVisible: false }).module.selection).toEqual({})
+        expect(
+            laying(minimalTrackTileSet, ['FinishTrack'], { selectionsVisible: false }).module
+                .selection
+        ).toEqual({})
     })
 
     it('stages location then tile, and leaves the rotation manual when several are legal', () => {
@@ -153,17 +156,24 @@ describe('TrackModule', () => {
 
     it('hides choices while a private purchase source is open', () => {
         expect(laying().module.showChoices).toBe(true)
-        const { module } = laying(minimalTrackTileSet, ['LayTile', 'FinishTrack'], {}, {
-            selection: 'mine',
-            trackPowerSelection: undefined
-        })
+        const { module } = laying(
+            minimalTrackTileSet,
+            ['LayTile', 'FinishTrack'],
+            {},
+            {
+                selection: 'mine',
+                trackPowerSelection: undefined
+            }
+        )
         expect(module.showChoices).toBe(false)
         expect(module.canBuild).toBe(false)
         expect(module.locationIds).toEqual([])
     })
 
     it('cannot build while the session is not interactive', () => {
-        const { module } = laying(minimalTrackTileSet, ['LayTile', 'FinishTrack'], { interactive: false })
+        const { module } = laying(minimalTrackTileSet, ['LayTile', 'FinishTrack'], {
+            interactive: false
+        })
         expect(module.canBuild).toBe(false)
         expect(() => module.selectLocation(module.locationIds[0])).toThrow()
     })

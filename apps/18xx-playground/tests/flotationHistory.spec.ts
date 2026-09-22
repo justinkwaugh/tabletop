@@ -44,15 +44,21 @@ test('finished SR 3 skips automatic turn completion after its first purchase', a
     expect(steps.afterExactPurchase).toEqual(steps.followingPass)
 })
 
-test('the position panel describes the purchase and flotation in the same step', async ({ page }) => {
+test('the position panel describes the purchase and flotation in the same step', async ({
+    page
+}) => {
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('flotation')
     const stock = page.getByRole('region', { name: 'Stock trading', exact: true })
-    await page.getByRole('navigation', { name: 'Stock actions' })
-        .getByRole('button', { name: 'Buy', exact: true }).click()
+    await page
+        .getByRole('navigation', { name: 'Stock actions' })
+        .getByRole('button', { name: 'Buy', exact: true })
+        .click()
     await stock.locator('[data-purchase-certificate="A:share:4"]').click()
-    await page.getByRole('navigation', { name: 'Stock actions' })
-        .getByRole('button', { name: 'Pass', exact: true }).click()
+    await page
+        .getByRole('navigation', { name: 'Stock actions' })
+        .getByRole('button', { name: 'Pass', exact: true })
+        .click()
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     await page.getByRole('button', { name: 'step backwards', exact: true }).click()
     await page.getByRole('button', { name: 'step backwards', exact: true }).click()

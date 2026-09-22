@@ -21,9 +21,13 @@ test('finished TOP supports saved history navigation back to the opening auction
     await page.getByRole('button', { name: 'step forwards', exact: true }).click()
     await expect(action).not.toContainText('Auction bidding', { ignoreCase: true })
     await page.getByRole('button', { name: 'go to current', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({ timeout: 30000 })
+    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({
+        timeout: 30000
+    })
     await page.reload()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
-    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({ timeout: 30000 })
+    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({
+        timeout: 30000
+    })
     expect(errors).toEqual([])
 })

@@ -22,5 +22,7 @@ test('players, history and chat stay in the sidebar at every desktop width', asy
     await expect(chat).toHaveAttribute('aria-selected', 'true')
     await page.keyboard.press('p')
     await expect(players).toHaveAttribute('aria-selected', 'true')
-    await expect(page.getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })).toBeVisible()
+    await expect(
+        page.getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+    ).toBeVisible()
 })

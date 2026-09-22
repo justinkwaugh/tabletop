@@ -34,8 +34,10 @@ export class RouteEvaluation {
         )
     }
     cannotRun(companyId: string): boolean {
-        return !trainsOwnedBy(this.state, { kind: 'company', companyId }).length ||
+        return (
+            !trainsOwnedBy(this.state, { kind: 'company', companyId }).length ||
             !hasStationRoute(this.network.mapState, this.state, companyId)
+        )
     }
     canAct(playerId: string, companyId: string): boolean {
         return (

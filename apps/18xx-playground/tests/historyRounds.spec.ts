@@ -2,7 +2,9 @@ import { expect, test, type Page } from '@playwright/test'
 
 async function topWithinScroll(page: Page, round: string) {
     const viewport = (await page.locator('.history-scroll').boundingBox())!
-    const actions = (await page.getByRole('list', { name: `${round} actions`, exact: true }).boundingBox())!
+    const actions = (await page
+        .getByRole('list', { name: `${round} actions`, exact: true })
+        .boundingBox())!
     return actions.y - viewport.y
 }
 
@@ -25,7 +27,9 @@ test('the round index scrolls history to a round without changing the game posit
 
     await openIndex.click()
     for (const round of ['OR 8.3', 'OR 8.2', 'SR 8'])
-        await expect(index.getByRole('button', { name: new RegExp(`^${round.replace('.', '\\.')}`) })).toBeVisible()
+        await expect(
+            index.getByRole('button', { name: new RegExp(`^${round.replace('.', '\\.')}`) })
+        ).toBeVisible()
     await index.getByRole('button', { name: /^OR 7\.1/ }).click()
     await expect.poll(() => topWithinScroll(page, 'OR 7.1')).toBeGreaterThanOrEqual(-1)
     const viewportHeight = (await scroll.boundingBox())!.height

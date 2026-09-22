@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-    minimalPlayState,
-    minimalTrainRules,
-    minimalTransferRules
-} from '@tabletop/18xx/testing'
+import { minimalPlayState, minimalTrainRules, minimalTransferRules } from '@tabletop/18xx/testing'
 import { TrainBuyingModule, type TrainBuyingSession } from './trainBuyingModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
@@ -31,7 +27,9 @@ describe('TrainBuyingModule', () => {
         expect(buying('BuyingTrains', ['BuyTrain']).module.canBuy).toBe(true)
         expect(buying('StockRound', ['BuyTrain']).module.canBuy).toBe(false)
         expect(buying('BuyingTrains', ['FinishOperatingTurn']).module.canBuy).toBe(false)
-        expect(buying('BuyingTrains', ['BuyTrain'], { interactive: false }).module.canBuy).toBe(false)
+        expect(buying('BuyingTrains', ['BuyTrain'], { interactive: false }).module.canBuy).toBe(
+            false
+        )
     })
 
     it('defaults to the depot source and has no company train choices without purchase options', () => {

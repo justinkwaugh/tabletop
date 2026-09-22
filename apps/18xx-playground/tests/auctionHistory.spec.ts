@@ -1,11 +1,16 @@
 import { expect, test } from '@playwright/test'
 
-test('offered auction history stays in one card through bids, award, reload and Undo', async ({ page }) => {
+test('offered auction history stays in one card through bids, award, reload and Undo', async ({
+    page
+}) => {
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('opening')
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const offers = page.getByRole('region', { name: 'Auction offers' })
-    await offers.getByRole('button', { name: /^Offer / }).first().click()
+    await offers
+        .getByRole('button', { name: /^Offer / })
+        .first()
+        .click()
     const history = page.getByRole('list', { name: 'Action history' })
     const cards = history.getByRole('article')
     await expect(cards).toHaveCount(1)

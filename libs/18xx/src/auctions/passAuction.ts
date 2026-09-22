@@ -44,7 +44,9 @@ export class HydratedPassAuction
         return (
             !!model &&
             (this.source === ActionSource.User ||
-                (this.source === ActionSource.System && model instanceof OfferAuction && model.mustPass)) &&
+                (this.source === ActionSource.System &&
+                    model instanceof OfferAuction &&
+                    model.mustPass)) &&
             canActInAuction(state, model, this.playerId) &&
             (!(model instanceof OfferAuction) || !!model.auction.bidding)
         )

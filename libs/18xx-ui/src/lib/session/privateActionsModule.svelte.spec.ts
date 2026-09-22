@@ -37,7 +37,9 @@ function privateActions(
     return {
         module: new PrivateActionsModule(session, decisions, track),
         decisions,
-        selectTrack: () => { trackSelected = true },
+        selectTrack: () => {
+            trackSelected = true
+        },
         trackSelected: () => trackSelected,
         trackCleared: () => trackCleared
     }
@@ -87,7 +89,9 @@ describe('PrivateActionsModule', () => {
         expect(module.trackPowerSelection).toBeUndefined()
         module.chooseTrackPower(Beta)
         expect(module.trackPowerSelection).toEqual({ value: Beta, source: 'manual' })
-        expect(() => module.chooseTrackPower({ privateCompanyId: 'gamma', playerId: 'alex' })).toThrow()
+        expect(() =>
+            module.chooseTrackPower({ privateCompanyId: 'gamma', playerId: 'alex' })
+        ).toThrow()
     })
 
     it('offers the power without opening a source while the state awaits a private tile lay', () => {

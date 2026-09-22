@@ -9,8 +9,8 @@ import {
     getCompany,
     type CompanyState,
     type TrainState,
-    type MapStateData,
-    } from '@tabletop/18xx'
+    type MapStateData
+} from '@tabletop/18xx'
 import { createTheOldPrinceFinanceExample } from './financeFixture.js'
 import { peirCompanies } from '../index.js'
 import { TheOldPrinceMap } from '../index.js'

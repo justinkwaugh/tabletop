@@ -33,7 +33,12 @@ export const DistributeEarnings = Type.Object(
         choice: EarningsChoice,
         metadata: Type.Optional(
             Type.Object(
-                { ...EarningsDetails.properties, privateEffects: Type.Array(PrivateEffect), round: Type.Optional(OperatingRoundIdentity), companyName: Type.String() },
+                {
+                    ...EarningsDetails.properties,
+                    privateEffects: Type.Array(PrivateEffect),
+                    round: Type.Optional(OperatingRoundIdentity),
+                    companyName: Type.String()
+                },
                 { additionalProperties: false }
             )
         )
@@ -71,7 +76,13 @@ export class HydratedDistributeEarnings
         this.#privateRules = privateRules
         this.#stockRules = stockRules
     }
-    apply(state: HydratedGameState & DistributionState & StockState & MapStateData & Pick<OperatingState, 'operatingSet'>): void {
+    apply(
+        state: HydratedGameState &
+            DistributionState &
+            StockState &
+            MapStateData &
+            Pick<OperatingState, 'operatingSet'>
+    ): void {
         const distribution = new EarningsDistribution(state, this.#rules)
         assert(
             (this.source === ActionSource.User ||
@@ -98,7 +109,14 @@ export class HydratedDistributeEarnings
             ...result.details,
             privateEffects,
             companyName: getCompany(state, this.companyId).name,
-            ...(state.operatingSet ? { round: { number: state.operatingSet.number, roundNumber: state.operatingSet.roundNumber } } : {})
+            ...(state.operatingSet
+                ? {
+                      round: {
+                          number: state.operatingSet.number,
+                          roundNumber: state.operatingSet.roundNumber
+                      }
+                  }
+                : {})
         }
     }
 }

@@ -23,7 +23,11 @@ import {
 import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 
-export type PrivateTileOption = { privateCompanyId: string; playerId: string; details: TrackLayDetails }
+export type PrivateTileOption = {
+    privateCompanyId: string
+    playerId: string
+    details: TrackLayDetails
+}
 export type PrivateTrainOption = { privateCompanyId: string; details: TrainPurchaseDetails }
 export type CompanyDecision =
     | { kind: 'purchase'; request: PurchaseOfferRequest }
@@ -38,7 +42,11 @@ type CompanyDecisionsState = Parameters<typeof purchaseChoices>[0] &
     Parameters<typeof pendingCompanyDecision>[0] &
     Pick<
         EighteenXXState,
-        'purchaseOffer' | 'trackConsent' | 'privateTrackLay' | 'privatePowerWindow' | 'usedPrivatePowerIds'
+        | 'purchaseOffer'
+        | 'trackConsent'
+        | 'privateTrackLay'
+        | 'privatePowerWindow'
+        | 'usedPrivatePowerIds'
     >
 
 export type CompanyDecisionsSession = ModuleSession<
@@ -103,7 +111,12 @@ export class CompanyDecisionsModule {
                       .offers()
                       .flatMap((offer) =>
                           offer.evaluation.details
-                              ? [{ privateCompanyId: company.id, details: offer.evaluation.details }]
+                              ? [
+                                    {
+                                        privateCompanyId: company.id,
+                                        details: offer.evaluation.details
+                                    }
+                                ]
                               : []
                       )
                 : []
@@ -250,7 +263,10 @@ export class CompanyDecisionsModule {
             'No permission request is awaiting this player'
         )
         await this.session.applyAction(
-            this.session.createPlayerAction(RespondToTrackConsent, { requestId: request.id, accept })
+            this.session.createPlayerAction(RespondToTrackConsent, {
+                requestId: request.id,
+                accept
+            })
         )
     }
     async continueOperatingRound() {

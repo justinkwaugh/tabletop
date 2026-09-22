@@ -55,12 +55,7 @@ function action(state: EighteenXXState, type: string, fields: object = {}): Game
         ...fields
     }
 }
-function buy(
-    state: EighteenXXState,
-    rules: TrainRules,
-    rank: string,
-    exchangeTrainId?: string
-) {
+function buy(state: EighteenXXState, rules: TrainRules, rank: string, exchangeTrainId?: string) {
     const companyId = state.trainPurchaseStep!.companyId,
         train = rules.depot.nextTrain(state.trainInventory, rank)!
     const request = {
@@ -299,7 +294,8 @@ it.each([true, false])(
         expect(trainCanBeTraded(remaining)).toBe(false)
         delete current.trainPurchaseStep
         current.machineState = 'RunningTrains'
-        current.operatingSet!.completedCompanyIds = current.operatingSet!.completedCompanyIds.filter((id) => id !== 'ML')
+        current.operatingSet!.completedCompanyIds =
+            current.operatingSet!.completedCompanyIds.filter((id) => id !== 'ML')
         current.routeStep = { companyId: 'ML' }
         const result = engine.executeCanonicalAction({
             game,
@@ -320,9 +316,11 @@ it.each([true, false])(
                     : []
             })
         })
-        expect(result.processedActions.map((a) => a.type)).toEqual(submitRoute
-            ? ['RunTrains', 'RustTrains']
-            : ['RunTrains', 'RustTrains', 'DistributeEarnings'])
+        expect(result.processedActions.map((a) => a.type)).toEqual(
+            submitRoute
+                ? ['RunTrains', 'RustTrains']
+                : ['RunTrains', 'RustTrains', 'DistributeEarnings']
+        )
         let afterRust = current
         for (const processed of result.processedActions.slice(0, 2))
             afterRust = engine.applyProcessedAction({ game, state: afterRust, action: processed })

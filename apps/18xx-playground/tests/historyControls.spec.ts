@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test'
 
 for (const title of ['TOP', '1889']) {
-    test(`${title} history controls show one themed toolbar at every breakpoint`, async ({ page }) => {
+    test(`${title} history controls show one themed toolbar at every breakpoint`, async ({
+        page
+    }) => {
         await page.goto('/table')
         await page.getByLabel('Game', { exact: true }).selectOption(title)
 

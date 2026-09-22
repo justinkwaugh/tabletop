@@ -1,9 +1,4 @@
-import {
-    isLayTile,
-    isLayPrivateTile,
-    isRunTrains,
-    type EighteenXXState
-} from '@tabletop/18xx'
+import { isLayTile, isLayPrivateTile, isRunTrains, type EighteenXXState } from '@tabletop/18xx'
 import { assert, assertExists, type GameAction } from '@tabletop/common'
 import jsonpatch from 'fast-json-patch'
 import { createMapDrawing, type MapSelection, type MapRoute } from './mapDrawing.js'
@@ -14,8 +9,10 @@ export function isMapHistoryAction(action: GameAction) {
     return isLayTile(action) || isLayPrivateTile(action) || isRunTrains(action)
 }
 
-type MapSnapshot = Pick<EighteenXXState,
-    'tileInventory' | 'stations' | 'stationReservations' | 'operatingSet' | 'companies'>
+type MapSnapshot = Pick<
+    EighteenXXState,
+    'tileInventory' | 'stations' | 'stationReservations' | 'operatingSet' | 'companies'
+>
 
 export function historicalMapSnapshot(
     state: MapSnapshot,
@@ -36,7 +33,8 @@ export function historicalMapSnapshot(
         const patches = (actions[i].undoPatch ?? []).filter((patch) =>
             roots.has(patch.path.split('/').slice(0, 2).join('/'))
         )
-        if (patches.length) snapshot = jsonpatch.applyPatch(snapshot, structuredClone(patches)).newDocument
+        if (patches.length)
+            snapshot = jsonpatch.applyPatch(snapshot, structuredClone(patches)).newDocument
     }
     return snapshot
 }
@@ -58,32 +56,50 @@ export class HistoricalMaps {
             return cached
         }
         const snapshot = historicalMapSnapshot(state, actions, action.id)
-        assert(isLayTile(action) || isLayPrivateTile(action) || isRunTrains(action),
-            'Historical map requires a company action')
+        assert(
+            isLayTile(action) || isLayPrivateTile(action) || isRunTrains(action),
+            'Historical map requires a company action'
+        )
         const company = snapshot.companies.find((company) => company.id === action.companyId)
         assertExists(company, 'Historical map requires its operating company')
         const set = snapshot.operatingSet
-        const routes = isRunTrains(action) ? action.routes.map((route, index) => ({
-            id: route.trainId,
-            color: routeColor(index),
-            segments: route.paths
-        })) : []
-        const locationId = isLayTile(action) || isLayPrivateTile(action) ? action.locationId : undefined
-        const selection: MapSelection | undefined = locationId ? { kind: 'hex', locationId } : undefined
+        const routes = isRunTrains(action)
+            ? action.routes.map((route, index) => ({
+                  id: route.trainId,
+                  color: routeColor(index),
+                  segments: route.paths
+              }))
+            : []
+        const locationId =
+            isLayTile(action) || isLayPrivateTile(action) ? action.locationId : undefined
+        const selection: MapSelection | undefined = locationId
+            ? { kind: 'hex', locationId }
+            : undefined
         const preview = {
             actionId: action.id,
             label: `${company.name}${set ? ` · OR ${set.number}.${set.roundNumber}` : ''}`,
             kind: isRunTrains(action) ? 'run' : 'track lay',
             revenue: isRunTrains(action) ? action.metadata?.revenue : undefined,
-            scene: createMapDrawing(this.view.map, {
-                tileSet: this.view.tileSet, inventory: snapshot.tileInventory
-            }, this.view.layouts, this.view.markerImages),
+            scene: createMapDrawing(
+                this.view.map,
+                {
+                    tileSet: this.view.tileSet,
+                    inventory: snapshot.tileInventory
+                },
+                this.view.layouts,
+                this.view.markerImages
+            ),
             tokens: stationMapTokens(snapshot, this.view.stations),
             reservations: snapshot.stationReservations,
             routes,
             selection,
-            locations: locationId ? [locationId] : [...new Set(routes.flatMap((route) =>
-                route.segments.map((path) => path.locationId)))]
+            locations: locationId
+                ? [locationId]
+                : [
+                      ...new Set(
+                          routes.flatMap((route) => route.segments.map((path) => path.locationId))
+                      )
+                  ]
         }
         this.cache.set(action.id, preview)
         if (this.cache.size > 3) this.cache.delete(this.cache.keys().next().value!)

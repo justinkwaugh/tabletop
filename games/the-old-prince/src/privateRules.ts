@@ -1,7 +1,12 @@
 import { theOldPrinceRole } from './companies.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { assertExists } from '@tabletop/common'
-import { getCompany, type PrivateRules, type PrivateEffect, type FinancialState } from '@tabletop/18xx'
+import {
+    getCompany,
+    type PrivateRules,
+    type PrivateEffect,
+    type FinancialState
+} from '@tabletop/18xx'
 import { TheOldPrincePhases } from './trains.js'
 import { TheOldPrincePrivateCatalog } from './privates.js'
 const ShortlineExchanges: Record<string, number> = { MC: 6, SB: 7, VR: 8 }
@@ -12,8 +17,7 @@ function shortlineExchange(state: FinancialState, id: string) {
 }
 export const TheOldPrincePrivateRules: PrivateRules = {
     exchangeTerms(state, privateCompanyId) {
-        if (TheOldPrincePhases.isAtLeast(state.phaseId, '4+'))
-            return undefined
+        if (TheOldPrincePhases.isAtLeast(state.phaseId, '4+')) return undefined
         const reservedId = shortlineExchange(state, privateCompanyId)
         if (reservedId)
             return {
@@ -123,7 +127,10 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             return `**Includes one share of ${company.name}.**\n\nCloses at 4+.`
         }
         if (id === 'MLC' || id === 'SLC') {
-            const company = getCompany(state, theOldPrinceRole(state, id === 'MLC' ? 'mainline' : 'shortline'))
+            const company = getCompany(
+                state,
+                theOldPrinceRole(state, id === 'MLC' ? 'mainline' : 'shortline')
+            )
             return `**Includes the president's cert for ${company.name}.**\n\nCloses when its railway first operates, or at 4+.`
         }
         return TheOldPrincePrivateCatalog.definition(id).description ?? 'Closes at 4+.'

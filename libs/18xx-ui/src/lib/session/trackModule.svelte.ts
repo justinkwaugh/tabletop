@@ -27,7 +27,10 @@ export type TrackSession = ModuleSession<
     TrackState,
     Pick<EighteenXXTitleRules, 'trackRules' | 'privatePowerRules'>
 >
-type TrackMap = { map: Pick<MapViewDefinition['map'], 'definition'>; tileSet: Pick<MapViewDefinition['tileSet'], 'definitions'> }
+type TrackMap = {
+    map: Pick<MapViewDefinition['map'], 'definition'>
+    tileSet: Pick<MapViewDefinition['tileSet'], 'definitions'>
+}
 type PrivateActions = Pick<PrivateActionsModule, 'selection' | 'trackPowerSelection'>
 type Decisions = Pick<CompanyDecisionsModule, 'selectPrivateTile' | 'confirm'>
 
@@ -47,13 +50,18 @@ export class TrackModule {
             (this.session.state.machineState === 'LayingTrack' && !this.privateActions.selection)
     )
     selection = $derived.by(
-        (): TrackSelection => (this.session.selectionsVisible && this.laying ? this.stages.state : {})
+        (): TrackSelection =>
+            this.session.selectionsVisible && this.laying ? this.stages.state : {}
     )
     construction = $derived.by(() => {
         const { state, rules } = this.session
         const power = this.privateActions.trackPowerSelection?.value
         if (!power) return new TrackConstruction(state, rules.trackRules)
-        const terms = rules.privatePowerRules.trackTerms(state, power.privateCompanyId, power.playerId)
+        const terms = rules.privatePowerRules.trackTerms(
+            state,
+            power.privateCompanyId,
+            power.playerId
+        )
         assertExists(terms, 'Selected private tile power requires construction terms')
         return privateTrackConstruction(state, terms, rules.trackRules)
     })
@@ -71,15 +79,18 @@ export class TrackModule {
             new Map(
                 this.showChoices
                     ? this.mapView().map.definition.locations.map(
-                          (location) => [location.id, this.construction.choices(location.id)] as const
+                          (location) =>
+                              [location.id, this.construction.choices(location.id)] as const
                       )
                     : []
             )
     )
     reachableLocationIds = $derived.by(() =>
         this.showChoices
-            ? this.mapView().map.definition.locations
-                  .filter((location) => this.construction.canReach(location.id))
+            ? this.mapView()
+                  .map.definition.locations.filter((location) =>
+                      this.construction.canReach(location.id)
+                  )
                   .map((location) => location.id)
             : []
     )

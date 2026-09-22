@@ -18,13 +18,33 @@ export const EighteenXXPreferences = Type.Object(
 export const EighteenXXPreferenceDefinition = {
     title: {
         schema: EighteenXXPreferences,
-        defaults: { paneLayout: null, operatingOrderDisplay: 'details', historyOrder: 'newestLast', spreadsheetView: 'player', compactPlayerCards: false, theme: 'light', spreadsheetSplitPercent: 40, spreadsheetHeightPercent: 55, tableTopPercent: 35 },
+        defaults: {
+            paneLayout: null,
+            operatingOrderDisplay: 'details',
+            historyOrder: 'newestLast',
+            spreadsheetView: 'player',
+            compactPlayerCards: false,
+            theme: 'light',
+            spreadsheetSplitPercent: 40,
+            spreadsheetHeightPercent: 55,
+            tableTopPercent: 35
+        },
         version: 1
     },
     family: {
         id: '18xx',
         schema: EighteenXXPreferences,
-        defaults: { paneLayout: null, operatingOrderDisplay: 'details', historyOrder: 'newestLast', spreadsheetView: 'player', compactPlayerCards: false, theme: 'light', spreadsheetSplitPercent: 40, spreadsheetHeightPercent: 55, tableTopPercent: 35 },
+        defaults: {
+            paneLayout: null,
+            operatingOrderDisplay: 'details',
+            historyOrder: 'newestLast',
+            spreadsheetView: 'player',
+            compactPlayerCards: false,
+            theme: 'light',
+            spreadsheetSplitPercent: 40,
+            spreadsheetHeightPercent: 55,
+            tableTopPercent: 35
+        },
         version: 1
     }
 } satisfies TitlePreferenceDefinition<typeof EighteenXXPreferences>

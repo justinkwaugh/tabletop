@@ -28,9 +28,16 @@ export const TheOldPrinceEarningsRules: EarningsRules = {
         if (companyId === 'PEIR' || !getCompany(state, companyId).floated)
             return { bonusPerShare: 0 }
         return {
-            move: dividendMarketMove(state.stockMarket, companyId, distribution.baseDividendPerShare > 0),
+            move: dividendMarketMove(
+                state.stockMarket,
+                companyId,
+                distribution.baseDividendPerShare > 0
+            ),
             bonusPerShare:
-                distribution.baseDividendPerShare > 0 && companyMarketSpace(state.stockMarket, companyId).price === 400 ? 40 : 0
+                distribution.baseDividendPerShare > 0 &&
+                companyMarketSpace(state.stockMarket, companyId).price === 400
+                    ? 40
+                    : 0
         }
     }
 }

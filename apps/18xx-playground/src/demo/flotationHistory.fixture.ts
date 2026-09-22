@@ -61,10 +61,13 @@ export async function flotationHistorySteps() {
 
 export async function finishedStockTurnHistorySteps() {
     const { game, state, initialState, actions, engine } = await finishedGame(
-        'local-user', 'SR 3 history'
+        'local-user',
+        'SR 3 history'
     )
     const thirdStockRound = new Set(
-        historyRounds(actions, state).find((round) => round.label === 'SR 3')?.entries.map((entry) => entry.id)
+        historyRounds(actions, state)
+            .find((round) => round.label === 'SR 3')
+            ?.entries.map((entry) => entry.id)
     )
     const purchaseIndex = actions.findIndex(
         (action) => thirdStockRound.has(action.id) && action.type === 'BuyShares'
@@ -113,5 +116,13 @@ export async function finishedStockTurnHistorySteps() {
     await history.goToNextAction()
     await settle()
     const afterExactPurchase = position()
-    return { purchaseIndex, beforePurchase, purchasePosition, followingPass, previous, exactPurchase, afterExactPurchase }
+    return {
+        purchaseIndex,
+        beforePurchase,
+        purchasePosition,
+        followingPass,
+        previous,
+        exactPurchase,
+        afterExactPurchase
+    }
 }

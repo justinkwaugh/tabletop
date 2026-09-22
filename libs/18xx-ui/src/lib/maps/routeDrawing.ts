@@ -15,7 +15,11 @@ export function cityOutline(node: TileDrawnNode): string {
     const halfHull = (input: readonly Point[]) => {
         const hull: Point[] = []
         for (const point of input) {
-            while (hull.length >= 2 && cross(hull[hull.length - 2], hull[hull.length - 1], point) <= 0) hull.pop()
+            while (
+                hull.length >= 2 &&
+                cross(hull[hull.length - 2], hull[hull.length - 1], point) <= 0
+            )
+                hull.pop()
             hull.push(point)
         }
         return hull.slice(0, -1)
@@ -24,32 +28,57 @@ export function cityOutline(node: TileDrawnNode): string {
     const normals = hull.map((point, i) => {
         const next = hull[(i + 1) % hull.length]
         const length = Math.hypot(next.x - point.x, next.y - point.y)
-        return { x: (next.y - point.y) / length * radius, y: (point.x - next.x) / length * radius }
+        return {
+            x: ((next.y - point.y) / length) * radius,
+            y: ((point.x - next.x) / length) * radius
+        }
     })
-    return hull.map((point, i) => {
-        const previous = normals[(i + hull.length - 1) % hull.length]
-        const next = normals[i]
-        return `${i ? 'L' : 'M'} ${point.x + previous.x} ${point.y + previous.y} A ${radius} ${radius} 0 0 1 ${point.x + next.x} ${point.y + next.y}`
-    }).join(' ') + ' Z'
+    return (
+        hull
+            .map((point, i) => {
+                const previous = normals[(i + hull.length - 1) % hull.length]
+                const next = normals[i]
+                return `${i ? 'L' : 'M'} ${point.x + previous.x} ${point.y + previous.y} A ${radius} ${radius} 0 0 1 ${point.x + next.x} ${point.y + next.y}`
+            })
+            .join(' ') + ' Z'
+    )
 }
 
 export function drawMapRoutes(scene: MapDrawing, routes: readonly MapRoute[]) {
     return scene.locations.flatMap((entry) => {
-        const paths = routes.flatMap((route) => route.segments
-            .filter((segment) => segment.locationId === entry.location.id)
-            .map((segment) => {
-                const path = entry.drawing.paths.find((path) => path.id === segment.pathId)
-                assertExists(path, `Missing route path ${segment.pathId}`)
-                return { id: `${route.id}:${path.id}`, routeId: route.id, color: route.color, d: path.d, pathId: path.id }
-            }))
+        const paths = routes.flatMap((route) =>
+            route.segments
+                .filter((segment) => segment.locationId === entry.location.id)
+                .map((segment) => {
+                    const path = entry.drawing.paths.find((path) => path.id === segment.pathId)
+                    assertExists(path, `Missing route path ${segment.pathId}`)
+                    return {
+                        id: `${route.id}:${path.id}`,
+                        routeId: route.id,
+                        color: route.color,
+                        d: path.d,
+                        pathId: path.id
+                    }
+                })
+        )
         if (!paths.length) return []
-        const cities = entry.drawing.nodes.filter((node) => node.node.kind === 'city').flatMap((node) => {
-            const incidentIds = new Set(entry.face.paths.filter((path) => path.endpoints.some(
-                (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === node.node.id
-            )).map((path) => path.id))
-            return paths.some((path) => incidentIds.has(path.pathId))
-                ? [{ id: node.node.id, d: cityOutline(node) }] : []
-        })
+        const cities = entry.drawing.nodes
+            .filter((node) => node.node.kind === 'city')
+            .flatMap((node) => {
+                const incidentIds = new Set(
+                    entry.face.paths
+                        .filter((path) =>
+                            path.endpoints.some(
+                                (endpoint) =>
+                                    endpoint.kind === 'node' && endpoint.nodeId === node.node.id
+                            )
+                        )
+                        .map((path) => path.id)
+                )
+                return paths.some((path) => incidentIds.has(path.pathId))
+                    ? [{ id: node.node.id, d: cityOutline(node) }]
+                    : []
+            })
         return [{ id: entry.location.id, center: entry.center, paths, cities }]
     })
 }

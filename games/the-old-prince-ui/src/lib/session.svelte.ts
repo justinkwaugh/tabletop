@@ -56,7 +56,9 @@ export class TheOldPrinceSession extends BaseSession {
                     this.splitStages = backSplitSelection(this.splitStages)
                     return true
                 },
-                clear: () => { this.splitStages = {} }
+                clear: () => {
+                    this.splitStages = {}
+                }
             },
             'first'
         )
@@ -89,33 +91,44 @@ export class TheOldPrinceSession extends BaseSession {
     })
     latestSplit = $derived(this.actions.filter(isSplitCompany).at(-1))
     setSplitAllocation(allocation: BranchSplitAllocation) {
-        assert(
-            this.canPreviewSplit && this.splitSelection.allocation,
-            'Choose a split price first'
-        )
+        assert(this.canPreviewSplit && this.splitSelection.allocation, 'Choose a split price first')
         this.splitStages = chooseSplitAllocation(this.splitStages, allocation)
     }
     setSplitCash(cash: number) {
         const allocation = this.splitSelection.allocation?.value
         const preview = this.splitPreview?.details
         assert(allocation && preview && Number.isFinite(cash), 'Choose a valid cash allocation')
-        this.setSplitAllocation({ ...allocation, cash: Math.max(0, Math.min(preview.parentCash, Math.round(cash))) })
+        this.setSplitAllocation({
+            ...allocation,
+            cash: Math.max(0, Math.min(preview.parentCash, Math.round(cash)))
+        })
     }
     transferSplitStation(stationId: string) {
         const allocation = this.splitSelection.allocation?.value
-        const station = this.splitPreview?.details?.stations.find((entry) => entry.station.id === stationId)
+        const station = this.splitPreview?.details?.stations.find(
+            (entry) => entry.station.id === stationId
+        )
         assert(allocation && station && !station.protectedHome, 'Choose a transferable station')
         const stationIds = allocation.stationIds.includes(stationId)
             ? allocation.stationIds.filter((id) => id !== stationId)
             : [...allocation.stationIds, stationId]
-        this.setSplitAllocation({ ...allocation, stationIds,
-            homeStationId: stationIds.includes(allocation.homeStationId) ? allocation.homeStationId : stationIds[0] ?? '' })
+        this.setSplitAllocation({
+            ...allocation,
+            stationIds,
+            homeStationId: stationIds.includes(allocation.homeStationId)
+                ? allocation.homeStationId
+                : (stationIds[0] ?? '')
+        })
     }
     transferSplitTrain(trainId: string) {
         const allocation = this.splitSelection.allocation?.value
         assert(allocation, 'Choose a split price first')
-        this.setSplitAllocation({ ...allocation, trainIds: allocation.trainIds.includes(trainId)
-            ? allocation.trainIds.filter((id) => id !== trainId) : [...allocation.trainIds, trainId] })
+        this.setSplitAllocation({
+            ...allocation,
+            trainIds: allocation.trainIds.includes(trainId)
+                ? allocation.trainIds.filter((id) => id !== trainId)
+                : [...allocation.trainIds, trainId]
+        })
     }
     async confirmSplit() {
         const preview = this.splitPreview?.details
@@ -141,8 +154,10 @@ export class TheOldPrinceSession extends BaseSession {
         return companyId === 'PEIR' ? 'PEIR' : super.stockCompanyName(companyId)
     }
     override get stockCompanies() {
-        return [...super.stockCompanies.filter((company) => company.id !== 'PEIR'),
-            getCompany(this.financialState, 'PEIR')]
+        return [
+            ...super.stockCompanies.filter((company) => company.id !== 'PEIR'),
+            getCompany(this.financialState, 'PEIR')
+        ]
     }
     chooseSplit() {
         assert(this.canPreviewSplit, 'Split selection is unavailable')

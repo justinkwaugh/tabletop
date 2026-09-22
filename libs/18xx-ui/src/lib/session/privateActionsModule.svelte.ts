@@ -14,7 +14,10 @@ export type PrivateActionsSession = ModuleSession<
     Pick<EighteenXXState, 'privateTrackLay' | 'privatePowerWindow'>,
     unknown
 >
-type Decisions = Pick<CompanyDecisionsModule, 'choice' | 'privateTileOptions' | 'privateTrainOptions'>
+type Decisions = Pick<
+    CompanyDecisionsModule,
+    'choice' | 'privateTileOptions' | 'privateTrainOptions'
+>
 type TrackSelection = Pick<LocalSelection, 'undo' | 'clear'>
 
 function samePower(left: PrivateTrackPower, right: PrivateTrackPower) {

@@ -5,7 +5,11 @@ import {
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { DistributeEarnings, isDistributeEarnings, type HydratedDistributeEarnings } from './distributeEarnings.js'
+import {
+    DistributeEarnings,
+    isDistributeEarnings,
+    type HydratedDistributeEarnings
+} from './distributeEarnings.js'
 import {
     EarningsDistribution,
     type EarningsRules,
@@ -25,8 +29,12 @@ export class DistributingEarningsHandler implements MachineStateHandler<
         if (
             !isDistributeEarnings(action) ||
             (action.source !== ActionSource.User &&
-                !(action.source === ActionSource.System &&
-                    new EarningsDistribution(state, this.rules).automaticChoice(action.companyId) === action.choice)) ||
+                !(
+                    action.source === ActionSource.System &&
+                    new EarningsDistribution(state, this.rules).automaticChoice(
+                        action.companyId
+                    ) === action.choice
+                )) ||
             !action.playerId ||
             !state.activePlayerIds.includes(action.playerId)
         )
@@ -51,9 +59,12 @@ export class DistributingEarningsHandler implements MachineStateHandler<
         const companyId = state.routeStep?.companyId
         if (!companyId || state.earningsDistribution) return
         const choice = new EarningsDistribution(state, this.rules).automaticChoice(companyId)
-        if (choice) context.addSystemAction(DistributeEarnings, {
-            companyId, playerId: state.activePlayerIds[0], choice
-        })
+        if (choice)
+            context.addSystemAction(DistributeEarnings, {
+                companyId,
+                playerId: state.activePlayerIds[0],
+                choice
+            })
     }
     onAction(): string {
         return this.nextState

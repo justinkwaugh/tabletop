@@ -4,7 +4,9 @@ for (const title of ['TOP', '1889']) {
     test(`${title} track preview and controls match the rendered map scale`, async ({ page }) => {
         await page.goto('/table')
         await page.getByLabel('Game', { exact: true }).selectOption(title)
-        await expect(page.locator('[data-map-location]')).toHaveCount(title === 'TOP' ? 110 : 52, { timeout: 15000 })
+        await expect(page.locator('[data-map-location]')).toHaveCount(title === 'TOP' ? 110 : 52, {
+            timeout: 15000
+        })
         await page.locator(`[data-map-location="${title === 'TOP' ? 'K17' : 'E2'}"]`).click()
         await page
             .locator(`[data-map-tile-choice="${title === 'TOP' ? '18xx:8' : '18xx:15'}"]`)

@@ -43,7 +43,9 @@ export function chooseSplitPrice(
     selection: BranchSplitSelection,
     marketSpaceId: string
 ): BranchSplitSelection {
-    return initializeSplitAllocation(setStagedSelectionValue(selection, Stages, 'marketSpaceId', marketSpaceId, 'manual'))
+    return initializeSplitAllocation(
+        setStagedSelectionValue(selection, Stages, 'marketSpaceId', marketSpaceId, 'manual')
+    )
 }
 export function backSplitSelection(selection: BranchSplitSelection): BranchSplitSelection {
     const next = popHighestManualStagedSelection<SplitStages>(selection, Stages).nextState
@@ -74,7 +76,17 @@ export function chooseSplitAllocation(
 }
 
 function initializeSplitAllocation(selection: BranchSplitSelection): BranchSplitSelection {
-    return setStagedSelectionValue(selection, Stages, 'allocation', {
-        stationIds: [], homeStationId: '', trainIds: [], cash: 0, hunslet: false
-    }, 'auto')
+    return setStagedSelectionValue(
+        selection,
+        Stages,
+        'allocation',
+        {
+            stationIds: [],
+            homeStationId: '',
+            trainIds: [],
+            cash: 0,
+            hunslet: false
+        },
+        'auto'
+    )
 }

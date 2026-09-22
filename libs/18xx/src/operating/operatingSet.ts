@@ -60,7 +60,9 @@ export function validateOperatingSet(state: {
         'Operating round exceeds the set length'
     )
     assert(
-        operatingSet.companyOrder.every((id) => state.companies.some((company) => company.id === id)),
+        operatingSet.companyOrder.every((id) =>
+            state.companies.some((company) => company.id === id)
+        ),
         'Unknown operating company'
     )
     assert(

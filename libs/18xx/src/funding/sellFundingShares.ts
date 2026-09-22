@@ -14,11 +14,14 @@ import type { TrainRules } from '../trains/trainPurchase.js'
 import { ShareSale, ShareSaleDetails } from '../stock/shareSale.js'
 import { Owner, sameOwner, cashOwnedBy } from '../finance/finance.js'
 
-const FundingShareSaleDetails = Type.Object({
-    ...ShareSaleDetails.properties,
-    requiredContribution: Type.Integer({ minimum: 0 }),
-    cashShortfall: Type.Integer({ minimum: 0 })
-}, { additionalProperties: false })
+const FundingShareSaleDetails = Type.Object(
+    {
+        ...ShareSaleDetails.properties,
+        requiredContribution: Type.Integer({ minimum: 0 }),
+        cashShortfall: Type.Integer({ minimum: 0 })
+    },
+    { additionalProperties: false }
+)
 type FundingShareSaleDetails = Type.Static<typeof FundingShareSaleDetails>
 
 export const SellFundingShares = Type.Object(

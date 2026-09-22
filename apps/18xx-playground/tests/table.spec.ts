@@ -67,22 +67,46 @@ for (const title of ['TOP', '1889']) {
         const spreadsheet = page.getByRole('table', { name: 'Company share ownership' })
         await expect(spreadsheet).toBeVisible()
         await expect(spreadsheet.getByRole('columnheader').first()).toHaveText('Player')
-        await expect(spreadsheet.getByRole('rowheader').filter({ hasText: /^\s*(Alex|Blair|Casey)\s*$/ })).toHaveCount(3)
-        await expect(spreadsheet.getByRole('columnheader').filter({ hasText: title === 'TOP' ? /\bC$/ : /\bIR$/ })).toHaveCount(1)
-        const matrix = await spreadsheet.locator('tbody tr').evaluateAll(rows => rows.map(row => [...row.querySelectorAll('td')].map(cell => cell.textContent?.trim())))
-        await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Swap rows and columns', exact: true }).click()
+        await expect(
+            spreadsheet.getByRole('rowheader').filter({ hasText: /^\s*(Alex|Blair|Casey)\s*$/ })
+        ).toHaveCount(3)
+        await expect(
+            spreadsheet
+                .getByRole('columnheader')
+                .filter({ hasText: title === 'TOP' ? /\bC$/ : /\bIR$/ })
+        ).toHaveCount(1)
+        const matrix = await spreadsheet
+            .locator('tbody tr')
+            .evaluateAll((rows) =>
+                rows.map((row) =>
+                    [...row.querySelectorAll('td')].map((cell) => cell.textContent?.trim())
+                )
+            )
+        await page
+            .getByRole('group', { name: 'Spreadsheet view' })
+            .getByRole('button', { name: 'Swap rows and columns', exact: true })
+            .click()
         for (let index = 0; index < matrix[0].length; index++) {
-            await expect(spreadsheet.locator('tbody tr').nth(index).getByRole('cell')).toHaveText(matrix.map(row => row[index] ?? ''))
+            await expect(spreadsheet.locator('tbody tr').nth(index).getByRole('cell')).toHaveText(
+                matrix.map((row) => row[index] ?? '')
+            )
         }
-        await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Swap rows and columns', exact: true }).click()
+        await page
+            .getByRole('group', { name: 'Spreadsheet view' })
+            .getByRole('button', { name: 'Swap rows and columns', exact: true })
+            .click()
         await views.getByRole('tab', { name: 'Spreadsheet', exact: true }).press('ArrowRight')
         await expect(views.getByRole('tab', { name: 'Companies', exact: true })).toBeFocused()
         await views.getByRole('tab', { name: 'Companies', exact: true }).press('ArrowRight')
         await expect(views.getByRole('tab', { name: 'Tiles', exact: true })).toBeFocused()
         await expect(page.getByRole('region', { name: 'Tile manifest', exact: true })).toBeVisible()
         await page.getByRole('button', { name: 'green', exact: true }).click()
-        await expect(page.locator('[data-manifest-tile]:not([data-tile-color="green"])')).toHaveCount(0)
-        await expect(page.locator('[data-manifest-tile][data-tile-color="green"]').first()).toBeVisible()
+        await expect(
+            page.locator('[data-manifest-tile]:not([data-tile-color="green"])')
+        ).toHaveCount(0)
+        await expect(
+            page.locator('[data-manifest-tile][data-tile-color="green"]').first()
+        ).toBeVisible()
         await views.getByRole('tab', { name: 'Tiles', exact: true }).press('ArrowRight')
         await expect(views.getByRole('tab', { name: 'Player Aid', exact: true })).toBeFocused()
         await views.getByRole('tab', { name: 'Player Aid', exact: true }).press('ArrowRight')
@@ -95,7 +119,10 @@ for (const title of ['TOP', '1889']) {
         await expect(page.locator('[data-map-tile-choice]')).toHaveCount(0)
         await page.getByLabel('Position', { exact: true }).selectOption('opening')
         await expect(
-            page.getByRole('region', { name: title === 'TOP' ? 'Auction offers' : 'Opening auction', exact: true })
+            page.getByRole('region', {
+                name: title === 'TOP' ? 'Auction offers' : 'Opening auction',
+                exact: true
+            })
         ).toBeVisible()
         await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(1)
         expect(errors).toEqual([])
@@ -120,7 +147,9 @@ test('table commits a lay and restores map, portfolio and controls through histo
     await expect.poll(() => page.locator('.map-area').boundingBox()).toEqual(mapBounds)
     await expect(page.locator('[data-map-location="K17"]')).toHaveAttribute('data-placed', 'true')
     await page.getByRole('tab', { name: 'History' }).click()
-    await expect(page.getByRole('list', { name: 'Action history' })).toContainText(/Laid track at K17/)
+    await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
+        /Laid track at K17/
+    )
     await page.getByRole('button', { name: 'step backwards', exact: true }).click()
     await expect(page.locator('[data-map-location="K17"]')).toHaveAttribute('data-placed', 'false')
     await expect(undo).toBeDisabled()
@@ -188,10 +217,11 @@ for (const title of ['TOP', '1889']) {
             'Net worth'
         ])
         await expect(alex.locator('dd').nth(2)).toHaveText(title === 'TOP' ? '5' : '6')
-        await expect(alex.locator('dd').filter({ hasText: title === 'TOP' ? '$' : '¥' })).toHaveText(
-            title === 'TOP' ? ['$240', '$602', '$1,072'] : ['¥240', '¥630', '¥810']
-        )
-        if (title === '1889') await expect(alex.getByText('Priority deal', { exact: true })).toBeVisible()
+        await expect(
+            alex.locator('dd').filter({ hasText: title === 'TOP' ? '$' : '¥' })
+        ).toHaveText(title === 'TOP' ? ['$240', '$602', '$1,072'] : ['¥240', '¥630', '¥810'])
+        if (title === '1889')
+            await expect(alex.getByText('Priority deal', { exact: true })).toBeVisible()
         await expect(page.locator('.players article h3')).toHaveText(
             title === 'TOP' ? ['Alex', 'Blair', 'Casey', 'Union Bank'] : ['Alex', 'Blair', 'Casey']
         )
@@ -248,14 +278,18 @@ for (const title of ['TOP', '1889']) {
         await hex.click()
         if (title === 'TOP') await expect.poll(paths).not.toEqual(first)
         else await expect.poll(paths).toEqual(first)
-        await expect(page.getByRole('navigation', { name: 'Operating steps' })).not.toContainText('laid')
+        await expect(page.getByRole('navigation', { name: 'Operating steps' })).not.toContainText(
+            'laid'
+        )
         await page.getByRole('button', { name: 'Cancel track lay' }).click()
         await expect(hex).toHaveAttribute('data-placed', wasPlaced ?? 'false')
         await expect(page.locator('.picker')).toHaveCount(0)
     })
 }
 
-test('selected tile motion keeps alternatives, closes on cancel, and preserves the mask through accept and Undo', async ({ page }) => {
+test('selected tile motion keeps alternatives, closes on cancel, and preserves the mask through accept and Undo', async ({
+    page
+}) => {
     await page.goto('/table')
     const hex = page.locator('[data-map-location="K17"]')
     await hex.click()
@@ -284,18 +318,31 @@ test('selected tile motion keeps alternatives, closes on cancel, and preserves t
     await expect(page.locator('html')).not.toHaveAttribute('data-mask-missing', 'true')
 })
 
-test('double-town tile rotates on each click and revenue stays centered after opening', async ({ page }) => {
+test('double-town tile rotates on each click and revenue stays centered after opening', async ({
+    page
+}) => {
     await page.goto('/table')
     await page.locator('[data-map-location="L16"]').click()
     const revenue = page.locator('[data-map-tile-choice] [data-revenue-for]')
     await expect(revenue.first()).toBeVisible()
-    await expect.poll(() => page.locator('[data-map-tile-choice]').evaluateAll((elements) => elements.flatMap((element) => element.getAnimations()).length)).toBe(0)
-    const offsets = () => revenue.evaluateAll((elements) => elements.map((element) => {
-        const circle = element.querySelector('circle')?.getBoundingClientRect()
-        const text = element.querySelector('text')?.getBoundingClientRect()
-        if (!circle || !text) throw new Error('Missing revenue')
-        return text.y + text.height / 2 - circle.y - circle.height / 2
-    }))
+    await expect
+        .poll(() =>
+            page
+                .locator('[data-map-tile-choice]')
+                .evaluateAll(
+                    (elements) => elements.flatMap((element) => element.getAnimations()).length
+                )
+        )
+        .toBe(0)
+    const offsets = () =>
+        revenue.evaluateAll((elements) =>
+            elements.map((element) => {
+                const circle = element.querySelector('circle')?.getBoundingClientRect()
+                const text = element.querySelector('text')?.getBoundingClientRect()
+                if (!circle || !text) throw new Error('Missing revenue')
+                return text.y + text.height / 2 - circle.y - circle.height / 2
+            })
+        )
     for (const offset of await offsets()) expect(Math.abs(offset)).toBeLessThan(0.2)
     await page.mouse.move(20, 20)
     for (const offset of await offsets()) expect(Math.abs(offset)).toBeLessThan(0.2)
@@ -308,10 +355,12 @@ test('double-town tile rotates on each click and revenue stays centered after op
     for (let index = 0; index < 5; index++) {
         const rotation = await page.locator('.chosen svg').getAttribute('data-tile-rotation')
         await page.locator('[data-map-location="K15"]').click()
-        await expect(page.locator('.chosen svg')).not.toHaveAttribute('data-tile-rotation', rotation ?? '')
+        await expect(page.locator('.chosen svg')).not.toHaveAttribute(
+            'data-tile-rotation',
+            rotation ?? ''
+        )
     }
 })
-
 
 test('auction offers separate map focus, descriptions and committed offers', async ({ page }) => {
     await page.setViewportSize({ width: 1400, height: 950 })
@@ -335,8 +384,10 @@ test('auction offers separate map focus, descriptions and committed offers', asy
     await expect.poll(mapWidth).toBeGreaterThan(initialWidth + 10)
     await expect(page.locator('.description')).toHaveCount(0)
     await icon.click()
-    await expect.poll(async () => Math.abs(await mapWidth() - initialWidth)).toBeLessThan(1)
-    const row = offers.locator('tbody tr').filter({ has: page.getByRole('button', { name: /Show PEIR 2/ }) })
+    await expect.poll(async () => Math.abs((await mapWidth()) - initialWidth)).toBeLessThan(1)
+    const row = offers
+        .locator('tbody tr')
+        .filter({ has: page.getByRole('button', { name: /Show PEIR 2/ }) })
     await row.locator('.value').click()
     await expect(page.locator('.description')).toContainText('numbered PEIR share')
     await page.locator('.description').click()
@@ -376,7 +427,9 @@ for (const title of ['TOP', '1889']) {
         await hex.click()
         await expect(page.locator('[data-map-tile-choice]').first()).toBeVisible()
         await page.keyboard.press('f')
-        const tile = page.locator(`[data-map-tile-choice="${title === 'TOP' ? '18xx:8' : '18xx:15'}"]`)
+        const tile = page.locator(
+            `[data-map-tile-choice="${title === 'TOP' ? '18xx:8' : '18xx:15'}"]`
+        )
         const drawn = async () => {
             const before = await tile.boundingBox()
             await page.waitForTimeout(120)

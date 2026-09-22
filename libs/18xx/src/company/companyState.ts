@@ -32,7 +32,8 @@ export const StockCompanyFields = {
 }
 export const TrancheFields = { tranches: Type.Array(CompanyTranche) }
 export const CompanyFields = { ...StockCompanyFields, ...TrancheFields, ...StationFields }
-export type StockCompanyState = FinancialState & Type.Static<Type.TObject<typeof StockCompanyFields>>
+export type StockCompanyState = FinancialState &
+    Type.Static<Type.TObject<typeof StockCompanyFields>>
 export type CompanyState = FinancialState & Type.Static<Type.TObject<typeof CompanyFields>>
 export type FormationState = StockState & CompanyState
 

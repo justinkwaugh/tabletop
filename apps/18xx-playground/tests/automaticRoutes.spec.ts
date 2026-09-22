@@ -17,7 +17,9 @@ for (const [title, revenue, paths] of [
         const run = panel.getByRole('button', { name: 'Run trains', exact: true })
         const undo = page.getByRole('button', { name: 'Undo', exact: true })
         await expect(run).toBeEnabled()
-        await expect(panel.getByRole('row', { name: /Total/ }).getByRole('cell')).toHaveText(`${title === 'TOP' ? '$' : '¥'}${revenue}`)
+        await expect(panel.getByRole('row', { name: /Total/ }).getByRole('cell')).toHaveText(
+            `${title === 'TOP' ? '$' : '¥'}${revenue}`
+        )
         await expect(panel.locator('[data-route-train]')).toHaveCount(2)
         await expect(page.locator('[data-map-route]')).toHaveCount(paths)
         await expect(undo).toBeDisabled()
@@ -32,7 +34,9 @@ for (const [title, revenue, paths] of [
         await expect(panel).toHaveCount(0)
         await undo.click()
         await expect(run).toBeEnabled()
-        await expect(panel.getByRole('row', { name: /Total/ }).getByRole('cell')).toHaveText(`${title === 'TOP' ? '$' : '¥'}${revenue}`)
+        await expect(panel.getByRole('row', { name: /Total/ }).getByRole('cell')).toHaveText(
+            `${title === 'TOP' ? '$' : '¥'}${revenue}`
+        )
         await expect(undo).toBeDisabled()
         await expect(page.locator('[data-map-route]')).toHaveCount(paths)
         expect(errors).toEqual([])
@@ -53,9 +57,13 @@ test('leaving a running search discards its result', async ({ page }) => {
     await expect(page.locator('[data-map-route]')).toHaveCount(0)
     await page.getByLabel('Position', { exact: true }).selectOption('routes')
     await expect(page.getByRole('button', { name: 'Run trains', exact: true })).toBeEnabled()
-    await expect(page.getByRole('table', { name: 'Train income' }).getByRole('row', { name: /Total/ }).getByRole('cell')).toHaveText('$70')
+    await expect(
+        page
+            .getByRole('table', { name: 'Train income' })
+            .getByRole('row', { name: /Total/ })
+            .getByRole('cell')
+    ).toHaveText('$70')
 })
-
 
 test('a failed solver load offers a working retry', async ({ page }) => {
     let fail = true

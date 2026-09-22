@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
 
-test('auction abbreviation icons reserve their full width beside private names', async ({ page }) => {
+test('auction abbreviation icons reserve their full width beside private names', async ({
+    page
+}) => {
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('opening')
     const offers = page.getByRole('region', { name: 'Auction offers' })

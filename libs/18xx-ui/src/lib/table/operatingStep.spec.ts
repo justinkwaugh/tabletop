@@ -4,7 +4,10 @@ import { historicalOperatingStepIndex, operatingStepIndex } from './operatingSte
 
 it('labels the recorded operation rather than the next decision', () => {
     const action = (type: string): GameAction => ({
-        id: type, gameId: 'game', type, source: ActionSource.User
+        id: type,
+        gameId: 'game',
+        type,
+        source: ActionSource.User
     })
     expect(historicalOperatingStepIndex(action('RunTrains'), 'DistributingEarnings')).toBe(2)
     expect(historicalOperatingStepIndex(action('DistributeEarnings'), 'BuyingTrains')).toBe(3)

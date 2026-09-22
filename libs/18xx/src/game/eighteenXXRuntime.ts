@@ -233,10 +233,7 @@ export function createEighteenXXRuntime(
         initializer: new EighteenXXInitializer(options),
         hydrator: {
             hydrateState: (state) =>
-                inKnownPhase(
-                    stateDefinition.hydrate(state, map, tileSet, depot),
-                    options.phases
-                ),
+                inKnownPhase(stateDefinition.hydrate(state, map, tileSet, depot), options.phases),
             hydrateAction: (action) => {
                 const hydrated = actions.hydrate(action)
                 if (!hydrated) throw new Error(`Unknown 18xx action: ${action.type}`)
@@ -252,4 +249,3 @@ export function createEighteenXXRuntime(
         stateHandlers
     }
 }
-

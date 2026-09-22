@@ -43,7 +43,9 @@ function placing(valid: string[], availability = {}, tokenChoiceRequired = false
 
 describe('StationsModule', () => {
     it('lists the operating company tokens that are still available', () => {
-        expect(placing(['FinishStations']).module.available.map((token) => token.id)).toEqual([extra])
+        expect(placing(['FinishStations']).module.available.map((token) => token.id)).toEqual([
+            extra
+        ])
     })
 
     it('charges the title cost, and nothing for a pending home', () => {
@@ -83,19 +85,25 @@ describe('StationsModule', () => {
             (candidate) => candidate.position.locationId === TestOpenLocationId
         )
         expect(choice).toBeDefined()
-        module.selectPosition({ companyId: TestCompanyId, stationId: extra, position: choice!.position })
+        module.selectPosition({
+            companyId: TestCompanyId,
+            stationId: extra,
+            position: choice!.position
+        })
         expect(positionsChosen()).toBe(1)
         expect(module.preview).toMatchObject({ stationId: extra, cost: 40 })
-        expect(
-            module.displayState.stations.find((station) => station.id === extra)?.status
-        ).toBe('placed')
+        expect(module.displayState.stations.find((station) => station.id === extra)?.status).toBe(
+            'placed'
+        )
         await module.confirm()
-        expect(applied).toMatchObject([{ type: 'PlaceStation', stationId: extra, expectedCost: 40 }])
+        expect(applied).toMatchObject([
+            { type: 'PlaceStation', stationId: extra, expectedCost: 40 }
+        ])
     })
 
     it('refuses to finish while a position is selected, and blocks selection when not interactive', () => {
-        expect(() => placing(['FinishStations'], { interactive: false }).module.select(extra)).toThrow(
-            'Choose an available station'
-        )
+        expect(() =>
+            placing(['FinishStations'], { interactive: false }).module.select(extra)
+        ).toThrow('Choose an available station')
     })
 })

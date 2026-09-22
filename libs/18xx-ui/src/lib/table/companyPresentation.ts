@@ -1,6 +1,11 @@
 import { companyMarketSpace, type StockMarket } from '@tabletop/18xx'
 
-export type CompanyNameVariants = { short: string; initials: string; history?: string; card?: string }
+export type CompanyNameVariants = {
+    short: string
+    initials: string
+    history?: string
+    card?: string
+}
 
 export type NumberedShareNames = Readonly<Record<string, Readonly<Record<number, string>>>>
 

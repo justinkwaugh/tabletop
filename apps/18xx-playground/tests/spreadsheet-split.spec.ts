@@ -4,33 +4,61 @@ test('workspace splits, moves live tabs, resizes and stops at eight panes', asyn
     await page.setViewportSize({ width: 2200, height: 1100 })
     await page.goto('/table')
     await expect(page.getByRole('tab', { name: 'Map', exact: true })).toBeVisible()
-    while (await page.getByRole('region', { name: /^Table views pane / }).count() > 1) await page.getByRole('button', { name: 'Delete pane 1', exact: true }).click()
+    while ((await page.getByRole('region', { name: /^Table views pane / }).count()) > 1)
+        await page.getByRole('button', { name: 'Delete pane 1', exact: true }).click()
     const map = page.getByRole('tabpanel', { name: 'Map', exact: true })
     await expect(map).toBeVisible()
-    await map.evaluate(element => element.dataset.mountCheck = 'preserved')
-    await page.getByRole('button', { name: 'Pane options for Table views pane 1', exact: true }).click()
+    await map.evaluate((element) => (element.dataset.mountCheck = 'preserved'))
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 1 vertically', exact: true }).click()
     await expect(page.getByText('Drag a tab here', { exact: true })).toHaveCount(1)
-    await expect(page.getByRole('button', { name: 'Split pane 1 vertically', exact: true, includeHidden: true })).toBeEnabled()
+    await expect(
+        page.getByRole('button', {
+            name: 'Split pane 1 vertically',
+            exact: true,
+            includeHidden: true
+        })
+    ).toBeEnabled()
     const pane2 = page.getByRole('region', { name: 'Table views pane 2', exact: true })
-    await page.getByRole('tab', { name: 'Map', exact: true }).dragTo(pane2.getByText('Drag a tab here'))
+    await page
+        .getByRole('tab', { name: 'Map', exact: true })
+        .dragTo(pane2.getByText('Drag a tab here'))
     await expect(map).toBeVisible()
     await expect(map).toHaveAttribute('data-mount-check', 'preserved')
-    await page.getByRole('button', { name: 'Pane options for Table views pane 1', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 1 horizontally', exact: true }).click()
-    await page.getByRole('button', { name: 'Pane options for Table views pane 3', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 3', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 3 horizontally', exact: true }).click()
-    await page.getByRole('button', { name: 'Pane options for Table views pane 2', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 2', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 2 horizontally', exact: true }).click()
-    await page.getByRole('button', { name: 'Pane options for Table views pane 5', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 5', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 5 horizontally', exact: true }).click()
-    await page.getByRole('button', { name: 'Pane options for Table views pane 1', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 1 horizontally', exact: true }).click()
-    await page.getByRole('button', { name: 'Pane options for Table views pane 4', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 4 horizontally', exact: true }).click()
     await expect(page.getByRole('region', { name: /^Table views pane / })).toHaveCount(8)
-    await expect(page.getByRole('button', { name: /^Split pane /, includeHidden: true })).toHaveCount(16)
-    for (const button of await page.getByRole('button', { name: /^Split pane /, includeHidden: true }).all()) await expect(button).toBeDisabled()
+    await expect(
+        page.getByRole('button', { name: /^Split pane /, includeHidden: true })
+    ).toHaveCount(16)
+    for (const button of await page
+        .getByRole('button', { name: /^Split pane /, includeHidden: true })
+        .all())
+        await expect(button).toBeDisabled()
     const divider = page.getByRole('separator', { name: 'Resize vertical split' })
     const bounds = await divider.boundingBox()
     if (!bounds) throw new Error('Divider must be visible')
@@ -48,7 +76,10 @@ test('workspace splits, moves live tabs, resizes and stops at eight panes', asyn
     await expect(map).toBeVisible()
     await page.getByRole('button', { name: 'Delete pane 1', exact: true }).click()
     await expect(page.getByRole('region', { name: /^Table views pane / })).toHaveCount(7)
-    for (const button of await page.getByRole('button', { name: /^Split pane /, includeHidden: true }).all()) await expect(button).toBeEnabled()
+    for (const button of await page
+        .getByRole('button', { name: /^Split pane /, includeHidden: true })
+        .all())
+        await expect(button).toBeEnabled()
     await page.setViewportSize({ width: 1280, height: 900 })
     await expect(map).toHaveAttribute('data-mount-check', 'preserved')
 })
@@ -57,38 +88,75 @@ test('tabs reorder and empty-pane deletion restores a single pane', async ({ pag
     await page.setViewportSize({ width: 2200, height: 1100 })
     await page.goto('/table')
     await expect(page.getByRole('tab', { name: 'Map', exact: true })).toBeVisible()
-    while (await page.getByRole('region', { name: /^Table views pane / }).count() > 1) await page.getByRole('button', { name: 'Delete pane 1', exact: true }).click()
+    while ((await page.getByRole('region', { name: /^Table views pane / }).count()) > 1)
+        await page.getByRole('button', { name: 'Delete pane 1', exact: true }).click()
     const tiles = page.getByRole('tab', { name: 'Tiles', exact: true })
     const map = page.getByRole('tab', { name: 'Map', exact: true })
     await tiles.dragTo(map)
-    await expect(page.getByRole('tablist', { name: 'Table views tabs 1' }).getByRole('tab')).toHaveText(['Tiles', 'Map', 'Market', 'SpreadsheetSheet', 'Companies', 'Player Aid', 'Actions', 'Players', 'History', 'Chat', 'Game info'])
-    await page.getByRole('button', { name: 'Pane options for Table views pane 1', exact: true }).click()
+    await expect(
+        page.getByRole('tablist', { name: 'Table views tabs 1' }).getByRole('tab')
+    ).toHaveText([
+        'Tiles',
+        'Map',
+        'Market',
+        'SpreadsheetSheet',
+        'Companies',
+        'Player Aid',
+        'Actions',
+        'Players',
+        'History',
+        'Chat',
+        'Game info'
+    ])
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 1 horizontally', exact: true }).click()
     await page.getByRole('button', { name: 'Delete pane 2', exact: true }).click()
     await expect(page.getByRole('region', { name: /^Table views pane / })).toHaveCount(1)
-    await expect(page.getByRole('button', { name: 'Split pane 1 horizontally', exact: true, includeHidden: true })).toBeEnabled()
-    await expect(page.getByRole('button', { name: 'Split pane 1 vertically', exact: true, includeHidden: true })).toBeEnabled()
+    await expect(
+        page.getByRole('button', {
+            name: 'Split pane 1 horizontally',
+            exact: true,
+            includeHidden: true
+        })
+    ).toBeEnabled()
+    await expect(
+        page.getByRole('button', {
+            name: 'Split pane 1 vertically',
+            exact: true,
+            includeHidden: true
+        })
+    ).toBeEnabled()
     await expect(page.getByRole('tabpanel', { name: 'Tiles', exact: true })).toBeVisible()
 })
 
-test('deleting a populated pane merges its tabs and preserves mounted content', async ({ page }) => {
+test('deleting a populated pane merges its tabs and preserves mounted content', async ({
+    page
+}) => {
     await page.setViewportSize({ width: 2200, height: 1100 })
     await page.goto('/table')
     await expect(page.getByRole('tab', { name: 'Map', exact: true })).toBeVisible()
-    while (await page.getByRole('region', { name: /^Table views pane / }).count() > 1) await page.getByRole('button', { name: 'Delete pane 1', exact: true }).click()
+    while ((await page.getByRole('region', { name: /^Table views pane / }).count()) > 1)
+        await page.getByRole('button', { name: 'Delete pane 1', exact: true }).click()
     const map = page.getByRole('tabpanel', { name: 'Map', exact: true })
-    await map.evaluate(element => element.dataset.mountCheck = 'preserved')
-    await page.getByRole('button', { name: 'Pane options for Table views pane 1', exact: true }).click()
+    await map.evaluate((element) => (element.dataset.mountCheck = 'preserved'))
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 1 vertically', exact: true }).click()
-    await page.getByRole('tab', { name: 'Map', exact: true }).dragTo(page.getByText('Drag a tab here', { exact: true }))
+    await page
+        .getByRole('tab', { name: 'Map', exact: true })
+        .dragTo(page.getByText('Drag a tab here', { exact: true }))
     await page.getByRole('button', { name: 'Delete pane 2', exact: true }).click()
     await expect(page.getByRole('region', { name: /^Table views pane / })).toHaveCount(1)
-    await expect(page.getByRole('tablist', { name: 'Table views tabs 1' }).getByRole('tab')).toHaveCount(11)
+    await expect(
+        page.getByRole('tablist', { name: 'Table views tabs 1' }).getByRole('tab')
+    ).toHaveCount(11)
     await expect(page.getByRole('button', { name: /^Delete pane / })).toHaveCount(0)
     await expect(map).toHaveAttribute('data-mount-check', 'preserved')
     await expect(map).toBeVisible()
 })
-
 
 test('actions start above the four views and move without remounting', async ({ page }) => {
     await page.setViewportSize({ width: 2200, height: 1100 })
@@ -97,18 +165,22 @@ test('actions start above the four views and move without remounting', async ({ 
     const map = page.getByRole('tabpanel', { name: 'Map', exact: true })
     await expect(actions).toBeVisible()
     await expect(map).toBeVisible()
-    await expect(page.getByRole('tablist', { name: 'Table views tabs 4' }).getByRole('tab')).toHaveCount(6)
+    await expect(
+        page.getByRole('tablist', { name: 'Table views tabs 4' }).getByRole('tab')
+    ).toHaveCount(6)
     const upper = await actions.boundingBox()
     const lower = await map.boundingBox()
     if (!upper || !lower) throw new Error('Both panes must be visible')
     expect(upper.y + upper.height).toBeLessThanOrEqual(lower.y)
     expect(Math.abs(upper.height - lower.height)).toBeLessThan(2)
-    await actions.evaluate(element => element.dataset.mountCheck = 'preserved')
+    await actions.evaluate((element) => (element.dataset.mountCheck = 'preserved'))
     const divider = page.getByRole('separator', { name: 'Resize horizontal split' }).last()
     await divider.focus()
     await page.keyboard.press('ArrowUp')
     await expect(divider).toHaveAttribute('aria-valuenow', '48')
-    await page.getByRole('tab', { name: 'Actions', exact: true }).dragTo(page.getByRole('tab', { name: 'Map', exact: true }))
+    await page
+        .getByRole('tab', { name: 'Actions', exact: true })
+        .dragTo(page.getByRole('tab', { name: 'Map', exact: true }))
     await expect(actions).toBeVisible()
     await expect(actions).toHaveAttribute('data-mount-check', 'preserved')
     await expect(page.getByText('Drag a tab here', { exact: true })).toBeVisible()
@@ -116,7 +188,9 @@ test('actions start above the four views and move without remounting', async ({ 
 
 test('map tile picker opens after another tab moves to a different pane', async ({ page }) => {
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Tiles', exact: true }).dragTo(page.getByRole('tab', { name: 'Actions', exact: true }))
+    await page
+        .getByRole('tab', { name: 'Tiles', exact: true })
+        .dragTo(page.getByRole('tab', { name: 'Actions', exact: true }))
     await expect(page.getByRole('tabpanel', { name: 'Map', exact: true })).toBeVisible()
     await page.locator('[data-map-location="K17"]').click()
     await expect(page.locator('.picker')).toBeVisible()
@@ -128,27 +202,40 @@ test('map tile picker opens after another tab moves to a different pane', async 
     await expect(page.locator('.picker')).toBeVisible()
 })
 
-test('below 1024px actions sit above four fixed tabs and the sidebar stays intact', async ({ page }) => {
+test('below 1024px actions sit above four fixed tabs and the sidebar stays intact', async ({
+    page
+}) => {
     await page.setViewportSize({ width: 1023, height: 900 })
     await page.goto('/table')
-    await expect(page.getByRole('button', { name: /^Split pane /, includeHidden: true })).toHaveCount(0)
+    await expect(
+        page.getByRole('button', { name: /^Split pane /, includeHidden: true })
+    ).toHaveCount(0)
     await expect(page.getByRole('tab', { name: 'Actions', exact: true })).toHaveCount(0)
-    await expect(page.getByRole('tablist', { name: 'Table views tabs 1' }).getByRole('tab')).toHaveCount(6)
+    await expect(
+        page.getByRole('tablist', { name: 'Table views tabs 1' }).getByRole('tab')
+    ).toHaveCount(6)
     const action = page.getByRole('region', { name: 'Current action', exact: true })
     await expect(action).toBeVisible()
     await page.getByRole('tab', { name: 'Market', exact: true }).click()
     await expect(action).toBeVisible()
     await expect(page.getByRole('tabpanel', { name: 'Market', exact: true })).toBeVisible()
-    for (const name of ['Players', 'History', 'Chat']) await expect(page.getByRole('tab', { name, exact: true })).toBeVisible()
+    for (const name of ['Players', 'History', 'Chat'])
+        await expect(page.getByRole('tab', { name, exact: true })).toBeVisible()
     await page.setViewportSize({ width: 1024, height: 900 })
     await expect(page.getByRole('tab', { name: 'Actions', exact: true })).toBeVisible()
-    await expect(page.getByRole('separator', { name: 'Resize horizontal split' }).last()).toBeVisible()
+    await expect(
+        page.getByRole('separator', { name: 'Resize horizontal split' }).last()
+    ).toBeVisible()
     await page.setViewportSize({ width: 1023, height: 900 })
-    await expect(page.getByRole('button', { name: /^Split pane /, includeHidden: true })).toHaveCount(0)
+    await expect(
+        page.getByRole('button', { name: /^Split pane /, includeHidden: true })
+    ).toHaveCount(0)
     await expect(action).toBeVisible()
 })
 
-test('Game info starts above social tabs and the left panes split, accept any tab, and close', async ({ page }) => {
+test('Game info starts above social tabs and the left panes split, accept any tab, and close', async ({
+    page
+}) => {
     await page.setViewportSize({ width: 1800, height: 1000 })
     await page.goto('/table')
     const info = page.getByRole('tabpanel', { name: 'Game info', exact: true })
@@ -160,11 +247,19 @@ test('Game info starts above social tabs and the left panes split, accept any ta
     if (!upper || !lower) throw new Error('Left panes must be visible')
     expect(upper.y + upper.height).toBeLessThanOrEqual(lower.y)
     expect(upper.x).toBe(lower.x)
-    await page.getByRole('tab', { name: 'Map', exact: true }).dragTo(page.getByRole('tab', { name: 'History', exact: true }))
-    await expect(page.getByRole('tablist', { name: 'Table views tabs 2' }).getByRole('tab', { name: 'Map', exact: true })).toBeVisible()
+    await page
+        .getByRole('tab', { name: 'Map', exact: true })
+        .dragTo(page.getByRole('tab', { name: 'History', exact: true }))
+    await expect(
+        page
+            .getByRole('tablist', { name: 'Table views tabs 2' })
+            .getByRole('tab', { name: 'Map', exact: true })
+    ).toBeVisible()
     await page.getByRole('button', { name: 'Pane options for Table views pane 1' }).click()
     await page.getByRole('button', { name: 'Split pane 1 vertically' }).click()
-    await page.getByRole('tab', { name: 'Game info', exact: true }).dragTo(page.getByText('Drag a tab here', { exact: true }))
+    await page
+        .getByRole('tab', { name: 'Game info', exact: true })
+        .dragTo(page.getByText('Drag a tab here', { exact: true }))
     await info.getByRole('button', { name: 'Open phase chart' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.keyboard.press('Escape')
@@ -176,20 +271,35 @@ test('Game info starts above social tabs and the left panes split, accept any ta
 test('controls remain interactive after moving a tab into a newly split pane', async ({ page }) => {
     await page.setViewportSize({ width: 1800, height: 1000 })
     await page.goto('/table')
-    await page.getByRole('button', { name: 'Pane options for Table views pane 4', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
     await page.getByRole('button', { name: 'Split pane 4 vertically', exact: true }).click()
-    await page.getByRole('tab', { name: 'Spreadsheet', exact: true }).dragTo(page.getByText('Drag a tab here', { exact: true }))
+    await page
+        .getByRole('tab', { name: 'Spreadsheet', exact: true })
+        .dragTo(page.getByText('Drag a tab here', { exact: true }))
     const sheet = page.getByRole('tabpanel', { name: 'Spreadsheet', exact: true })
     await sheet.getByRole('button', { name: 'Income', exact: true }).click({ timeout: 5000 })
-    await expect(sheet.getByRole('button', { name: 'Income', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(sheet.getByRole('button', { name: 'Income', exact: true })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    )
     await sheet.getByRole('button', { name: 'Current', exact: true }).click()
     await sheet.getByRole('button', { name: 'Swap rows and columns' }).click()
     await expect(sheet.getByRole('table', { name: 'Company share ownership' })).toBeVisible()
-    await page.getByRole('tab', { name: 'Players', exact: true }).dragTo(page.getByRole('tab', { name: 'Spreadsheet', exact: true }))
+    await page
+        .getByRole('tab', { name: 'Players', exact: true })
+        .dragTo(page.getByRole('tab', { name: 'Spreadsheet', exact: true }))
     const players = page.getByRole('tabpanel', { name: 'Players', exact: true })
     await players.getByRole('button', { name: 'Compact Alex card', exact: true }).click()
-    await expect(players.getByRole('button', { name: 'Expand Alex card', exact: true })).toHaveAttribute('aria-pressed', 'true')
-    await page.getByRole('tab', { name: 'Players', exact: true }).dragTo(page.getByRole('tab', { name: 'History', exact: true }))
+    await expect(
+        players.getByRole('button', { name: 'Expand Alex card', exact: true })
+    ).toHaveAttribute('aria-pressed', 'true')
+    await page
+        .getByRole('tab', { name: 'Players', exact: true })
+        .dragTo(page.getByRole('tab', { name: 'History', exact: true }))
     await players.getByRole('button', { name: 'Expand Alex card', exact: true }).click()
-    await expect(players.getByRole('button', { name: 'Compact Alex card', exact: true })).toHaveAttribute('aria-pressed', 'false')
+    await expect(
+        players.getByRole('button', { name: 'Compact Alex card', exact: true })
+    ).toHaveAttribute('aria-pressed', 'false')
 })

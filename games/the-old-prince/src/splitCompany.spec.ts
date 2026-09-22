@@ -75,7 +75,10 @@ it('commits the exact preview, conserves assets, and uses one stock action', () 
     const action = split(state)
     const calculation = new TheOldPrinceBranchSplit(state).allocate(action, action.allocation)
     const result = engine.executeCanonicalAction({ game, state, action })
-    expect(result.processedActions.map((action) => action.type)).toEqual(['SplitCompany', 'FinishStockTurn'])
+    expect(result.processedActions.map((action) => action.type)).toEqual([
+        'SplitCompany',
+        'FinishStockTurn'
+    ])
     const processed = result.processedActions[0]
     if (!isSplitCompany(processed)) throw new Error('Expected a processed split')
     expect(processed.metadata).toEqual(calculation.details)
@@ -289,7 +292,8 @@ it('finishes the stock turn, bars a second purchase, and floats later without pa
         })
         state = result.updatedState
         if (playerId !== 'alex') {
-            if (state.stockRound.turn.acted) state = apply(state, game, engine, 'FinishStockTurn', playerId)
+            if (state.stockRound.turn.acted)
+                state = apply(state, game, engine, 'FinishStockTurn', playerId)
         } else
             expect(result.processedActions.map((action) => action.type)).toEqual([
                 'BuyShares',

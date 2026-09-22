@@ -201,33 +201,62 @@ it('seeds distinct physical pieces and rejects duplicate locations or exhausted 
     expect(set.createInventory().placements).toEqual({})
 })
 
-
 it('keeps unlimited supplies available with unique, serializable, reusable piece identities', () => {
-    const set = new TileSet({ id: 'unlimited', entries: [
-        { id: 'curves', faceDefinitionIds: ['18xx:7', '18xx:8'], count: 'unlimited' },
-        { id: 'straight', faceDefinitionIds: ['18xx:9'], count: 1 }
-    ] }, [StandardTileCatalog])
+    const set = new TileSet(
+        {
+            id: 'unlimited',
+            entries: [
+                { id: 'curves', faceDefinitionIds: ['18xx:7', '18xx:8'], count: 'unlimited' },
+                { id: 'straight', faceDefinitionIds: ['18xx:9'], count: 1 }
+            ]
+        },
+        [StandardTileCatalog]
+    )
     let inventory = set.createInventory()
     for (let i = 0; i < 50; i++) {
         const piece = set.availablePieces(inventory, '18xx:7')[0]
-        inventory = set.replace(inventory, { locationId: `A${i}`, placement: {
-            pieceId: piece.id, definitionId: '18xx:7', rotation: 0
-        }, returnPrevious: true })
+        inventory = set.replace(inventory, {
+            locationId: `A${i}`,
+            placement: {
+                pieceId: piece.id,
+                definitionId: '18xx:7',
+                rotation: 0
+            },
+            returnPrevious: true
+        })
     }
-    expect(set.counts(inventory).map((count) => count.available)).toEqual(['unlimited', 'unlimited', 1])
+    expect(set.counts(inventory).map((count) => count.available)).toEqual([
+        'unlimited',
+        'unlimited',
+        1
+    ])
     const first = inventory.placements.A0.pieceId
-    inventory = set.replace(inventory, { locationId: 'A0', placement: {
-        pieceId: set.availablePieces(inventory, '18xx:9')[0].id, definitionId: '18xx:9', rotation: 0
-    }, returnPrevious: true })
+    inventory = set.replace(inventory, {
+        locationId: 'A0',
+        placement: {
+            pieceId: set.availablePieces(inventory, '18xx:9')[0].id,
+            definitionId: '18xx:9',
+            rotation: 0
+        },
+        returnPrevious: true
+    })
     expect(set.availablePieces(inventory, '18xx:8')[0].id).toBe(first)
     expect(set.availablePieces(inventory, '18xx:9')).toEqual([])
-    inventory = set.replace(inventory, { locationId: 'A1', placement: {
-        pieceId: first, definitionId: '18xx:8', rotation: 0
-    }, returnPrevious: false })
+    inventory = set.replace(inventory, {
+        locationId: 'A1',
+        placement: {
+            pieceId: first,
+            definitionId: '18xx:8',
+            rotation: 0
+        },
+        returnPrevious: false
+    })
     expect(inventory.retiredPieceIds).toEqual(['unlimited/curves/2'])
     expect(set.availablePieces(inventory, '18xx:7')[0].id).toBe('unlimited/curves/51')
     expect(set.parseInventory(JSON.parse(JSON.stringify(inventory)))).toEqual(inventory)
     for (const id of ['unlimited/curves/0', 'unlimited/curves/01', 'unlimited/curves/NaN']) {
-        expect(() => set.parseInventory({ ...inventory, retiredPieceIds: [id] })).toThrow('Unknown physical tile')
+        expect(() => set.parseInventory({ ...inventory, retiredPieceIds: [id] })).toThrow(
+            'Unknown physical tile'
+        )
     }
 })

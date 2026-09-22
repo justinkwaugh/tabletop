@@ -1,4 +1,9 @@
-import { isStartOperatingRound, isStartOperatingSet, isSellFundingShares, type EighteenXXState } from '@tabletop/18xx'
+import {
+    isStartOperatingRound,
+    isStartOperatingSet,
+    isSellFundingShares,
+    type EighteenXXState
+} from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { assert } from '@tabletop/common'
 
@@ -48,7 +53,11 @@ export function historyOperatingOrder(
             after.length &&
             (after.length !== order.length || after.some((id, index) => id !== order[index]))
         )
-            changes.set(action.id, { before: [...order], after, ...(isSellFundingShares(action) ? { movingCompanyId: action.companyId } : {}) })
+            changes.set(action.id, {
+                before: [...order],
+                after,
+                ...(isSellFundingShares(action) ? { movingCompanyId: action.companyId } : {})
+            })
     }
     return changes
 }

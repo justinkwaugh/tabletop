@@ -67,17 +67,22 @@ export function evaluateShareSale(
     const turn = state.stockRound.turn
     if (turn.bought && (!rules.sellAfterBuying || turn.soldBeforeBuying))
         return { reason: 'Selling is not allowed after this purchase.' }
-    const previous = turn.saleBlocks?.find((block) =>
-        block.companyId === sales[0].companyId && sameOwner(block.seller, seller))
+    const previous = turn.saleBlocks?.find(
+        (block) => block.companyId === sales[0].companyId && sameOwner(block.seller, seller)
+    )
     if (turn.companiesSold.includes(sales[0].companyId) && (!rules.extendSaleBlocks || !previous))
         return { reason: 'Sell a company’s shares in one block per turn.' }
-    if (!previous || !rules.extendSaleBlocks) return evaluateShareDisposal(state, seller, sales, rules)
+    if (!previous || !rules.extendSaleBlocks)
+        return evaluateShareDisposal(state, seller, sales, rules)
     return evaluateShareDisposal(state, seller, sales, {
         presidencyCandidates: rules.presidencyCandidates,
         saleTerms(projected, companyId, shares, seller) {
             const terms = rules.saleTerms(projected, companyId, previous.shares + shares, seller)
             if (typeof terms === 'string') return terms
-            assert(terms.direction === previous.direction, 'An extended sale block must keep its movement direction')
+            assert(
+                terms.direction === previous.direction,
+                'An extended sale block must keep its movement direction'
+            )
             return {
                 ...terms,
                 price: previous.price,

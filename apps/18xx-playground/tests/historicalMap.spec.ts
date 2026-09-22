@@ -9,7 +9,9 @@ const open = (page: Page, label: RegExp) =>
         .last()
         .evaluate((element: HTMLButtonElement) => element.click())
 
-test('finished-game map inspection shows past track and routes without changing the table', async ({ page }) => {
+test('finished-game map inspection shows past track and routes without changing the table', async ({
+    page
+}) => {
     test.setTimeout(90000)
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
@@ -43,16 +45,26 @@ test('finished-game map inspection shows past track and routes without changing 
     await expect(viewer(page)).toBeVisible()
     await expect(viewer(page).locator('header')).toContainText(/Historical run · .+ · OR .+\$\d+/)
     expect(await viewer(page).locator('[data-map-route]').count()).toBeGreaterThan(0)
-    await expect(page.locator('[data-map-route]:not([aria-label="Historical map"] *)')).toHaveCount(0)
+    await expect(page.locator('[data-map-route]:not([aria-label="Historical map"] *)')).toHaveCount(
+        0
+    )
     await expect(header).toHaveText(currentHeader, { useInnerText: true })
-    await expect.poll(async () => viewer(page).evaluate((dialog) => {
-        const viewport = dialog.querySelector('.map')!.getBoundingClientRect()
-        return [...dialog.querySelectorAll('[data-map-route]')].every((route) => {
-            const bounds = route.getBoundingClientRect()
-            return bounds.top >= viewport.top && bounds.bottom <= viewport.bottom &&
-                bounds.left >= viewport.left && bounds.right <= viewport.right
-        })
-    })).toBe(true)
+    await expect
+        .poll(async () =>
+            viewer(page).evaluate((dialog) => {
+                const viewport = dialog.querySelector('.map')!.getBoundingClientRect()
+                return [...dialog.querySelectorAll('[data-map-route]')].every((route) => {
+                    const bounds = route.getBoundingClientRect()
+                    return (
+                        bounds.top >= viewport.top &&
+                        bounds.bottom <= viewport.bottom &&
+                        bounds.left >= viewport.left &&
+                        bounds.right <= viewport.right
+                    )
+                })
+            })
+        )
+        .toBe(true)
     await page.keyboard.press('f')
     await expect(viewer(page)).toHaveCount(0)
 
@@ -66,7 +78,9 @@ test('finished-game map inspection shows past track and routes without changing 
 })
 
 for (const title of ['TOP', '1889'] as const) {
-    test(`${title} closes the map viewer when the live state changes beneath it`, async ({ page }) => {
+    test(`${title} closes the map viewer when the live state changes beneath it`, async ({
+        page
+    }) => {
         await page.goto('/table')
         await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
         await page.getByLabel('Game', { exact: true }).selectOption(title)

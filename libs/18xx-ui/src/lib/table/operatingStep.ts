@@ -16,17 +16,31 @@ export function operatingStepIndex(machineState: string): number | undefined {
 }
 
 const actionIndices: Readonly<Record<string, number>> = {
-    LayTile: 0, RequestTrackConsent: 0, RespondToTrackConsent: 0, FinishTrack: 0,
-    PlaceStation: 1, FinishStations: 1,
+    LayTile: 0,
+    RequestTrackConsent: 0,
+    RespondToTrackConsent: 0,
+    FinishTrack: 0,
+    PlaceStation: 1,
+    FinishStations: 1,
     RunTrains: 2,
     DistributeEarnings: 3,
-    BuyTrain: 4, BuyPrivateTrain: 4, FundTrain: 4, ContributeTrainFunds: 4, SellFundingShares: 4
+    BuyTrain: 4,
+    BuyPrivateTrain: 4,
+    FundTrain: 4,
+    ContributeTrainFunds: 4,
+    SellFundingShares: 4
 }
 
-export function historicalOperatingStepIndex(action: GameAction | undefined, machineState: string): number | undefined {
+export function historicalOperatingStepIndex(
+    action: GameAction | undefined,
+    machineState: string
+): number | undefined {
     if (action) {
-        if ((isOfferPurchase(action) || isRespondToPurchaseOffer(action)) &&
-            action.metadata?.offer.asset.kind === 'train') return 4
+        if (
+            (isOfferPurchase(action) || isRespondToPurchaseOffer(action)) &&
+            action.metadata?.offer.asset.kind === 'train'
+        )
+            return 4
         const index = actionIndices[action.type]
         if (index !== undefined) return index
     }

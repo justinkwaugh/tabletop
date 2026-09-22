@@ -3,22 +3,39 @@ import { operatingOrderMoves } from './operatingOrderMoves.js'
 
 describe('operating order history moves', () => {
     it('crops a later move to its old position, intervening companies and new position', () => {
-        expect(operatingOrderMoves({ before: ['A', 'B', 'C', 'D', 'E'], after: ['A', 'C', 'D', 'B', 'E'] }))
-            .toEqual([{ companies: ['B', 'C', 'D', 'B'], from: 0, to: 3 }])
+        expect(
+            operatingOrderMoves({
+                before: ['A', 'B', 'C', 'D', 'E'],
+                after: ['A', 'C', 'D', 'B', 'E']
+            })
+        ).toEqual([{ companies: ['B', 'C', 'D', 'B'], from: 0, to: 3 }])
     })
     it('points an earlier move back across only the affected companies', () => {
-        expect(operatingOrderMoves({ before: ['A', 'B', 'C', 'D', 'E'], after: ['A', 'D', 'B', 'C', 'E'] }))
-            .toEqual([{ companies: ['D', 'B', 'C', 'D'], from: 3, to: 0 }])
+        expect(
+            operatingOrderMoves({
+                before: ['A', 'B', 'C', 'D', 'E'],
+                after: ['A', 'D', 'B', 'C', 'E']
+            })
+        ).toEqual([{ companies: ['D', 'B', 'C', 'D'], from: 3, to: 0 }])
     })
     it('shows the sold company as the mover in an adjacent swap', () => {
-        expect(operatingOrderMoves({ before: ['A', 'B'], after: ['B', 'A'], movingCompanyId: 'B' })).toEqual([{ companies: ['B', 'A', 'B'], from: 2, to: 0 }])
+        expect(
+            operatingOrderMoves({ before: ['A', 'B'], after: ['B', 'A'], movingCompanyId: 'B' })
+        ).toEqual([{ companies: ['B', 'A', 'B'], from: 2, to: 0 }])
     })
     it('uses the complete resulting order for new membership', () => {
         expect(operatingOrderMoves({ before: ['A'], after: ['A', 'B'] })).toEqual([])
     })
     it('reconstructs every permutation from its successive move diagrams', () => {
         function permutations(items: string[]): string[][] {
-            return items.length ? items.flatMap((id) => permutations(items.filter((other) => other !== id)).map((rest) => [id, ...rest])) : [[]]
+            return items.length
+                ? items.flatMap((id) =>
+                      permutations(items.filter((other) => other !== id)).map((rest) => [
+                          id,
+                          ...rest
+                      ])
+                  )
+                : [[]]
         }
         const before = ['A', 'B', 'C', 'D', 'E']
         for (const after of permutations(before)) {

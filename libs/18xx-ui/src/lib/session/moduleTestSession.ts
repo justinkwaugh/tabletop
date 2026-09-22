@@ -5,7 +5,12 @@ export function testSession<State, Rules>(
     state: State,
     rules: Rules,
     validActionTypes: string[],
-    availability: { publishing?: boolean; selectionsVisible?: boolean; interactive?: boolean; actingPlayerIds?: string[] } = {}
+    availability: {
+        publishing?: boolean
+        selectionsVisible?: boolean
+        interactive?: boolean
+        actingPlayerIds?: string[]
+    } = {}
 ) {
     const applied: GameAction[] = []
     const session: ModuleSession<State, Rules> = {

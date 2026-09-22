@@ -17,16 +17,22 @@ test('compact stock rows and operating groups retain details and action navigati
     const firstLine = playerLines.first()
     await expect(firstLine).toContainText(/^\s*Player \d+\s+\S/)
     await expect(firstLine).toContainText(/Player \d+\s+split Belfast Branch/)
-    await expect(page.getByRole('list', { name: 'Action history', exact: true })
-        .locator('.stock-action.player-tinted-header').filter({ hasText: /bought 1/ }).first())
-        .toContainText(/Player \d+\s+bought 1/)
+    await expect(
+        page
+            .getByRole('list', { name: 'Action history', exact: true })
+            .locator('.stock-action.player-tinted-header')
+            .filter({ hasText: /bought 1/ })
+            .first()
+    ).toContainText(/Player \d+\s+bought 1/)
     await expect(firstLine.locator('.color-dot')).toHaveCount(0)
     const typography = await firstLine.evaluate((line) => {
         const name = line.querySelector('span')
         const description = name?.nextElementSibling
         return {
             name: name && `${getComputedStyle(name).fontSize} ${getComputedStyle(name).fontWeight}`,
-            description: description && `${getComputedStyle(description).fontSize} ${getComputedStyle(description).fontWeight}`,
+            description:
+                description &&
+                `${getComputedStyle(description).fontSize} ${getComputedStyle(description).fontWeight}`,
             background: getComputedStyle(line).backgroundColor
         }
     })
@@ -38,13 +44,21 @@ test('compact stock rows and operating groups retain details and action navigati
     expect(await passes.count()).toBeGreaterThan(0)
     await expect(passes.first()).toHaveText(/^Player \d+ passed$/)
     await expect(passes.first().locator('.color-dot')).toHaveCount(0)
-    const flotation = page.getByRole('list', { name: 'Action history', exact: true })
-        .locator('.stock-action').filter({ hasText: /floated/ }).first()
+    const flotation = page
+        .getByRole('list', { name: 'Action history', exact: true })
+        .locator('.stock-action')
+        .filter({ hasText: /floated/ })
+        .first()
     await expect(flotation).toContainText('floated')
     await expect(flotation).not.toContainText(/Player \d/)
     await expect(flotation).not.toHaveClass(/player-tinted-header/)
-    await expect(page.getByRole('list', { name: 'Action history', exact: true })
-        .locator('.stock-action').filter({ hasText: 'Murray River floated' }).first()).toBeVisible()
+    await expect(
+        page
+            .getByRole('list', { name: 'Action history', exact: true })
+            .locator('.stock-action')
+            .filter({ hasText: 'Murray River floated' })
+            .first()
+    ).toBeVisible()
     await expect(flotation.locator('.flotation-token svg')).toHaveCount(1)
     await expect(flotation.locator('small')).not.toBeEmpty()
     const flotationColumns = await flotation.evaluate((line) => {
@@ -82,41 +96,64 @@ test('compact stock rows and operating groups retain details and action navigati
     await expect(company.getByRole('button', { name: 'Details', exact: true })).toHaveCount(0)
     await expect(company.getByText('Finished track', { exact: true })).toHaveCount(0)
     await expect(company.getByText(/^Tile /)).toHaveCount(0)
-    await expect(page.getByRole('article', { name: 'PEIR operation history' }).first()
-        .locator('.company-heading strong')).toHaveText('PEIR')
+    await expect(
+        page
+            .getByRole('article', { name: 'PEIR operation history' })
+            .first()
+            .locator('.company-heading strong')
+    ).toHaveText('PEIR')
     const round = page.locator('.round-section[data-round-id="OR 1.1"]')
     const divider = round.locator('.round-divider')
     await expect(divider.locator('.round-order svg')).toHaveCount(2)
     await expect(round.getByText('Operating order', { exact: true })).toHaveCount(0)
     const history = page.locator('.round-history')
-    await history.evaluate((element) => element.style.width = '260px')
+    await history.evaluate((element) => (element.style.width = '260px'))
     await expect(divider).toHaveClass(/order-on-second-line/)
     const narrow = await divider.evaluate((element) => {
         const title = element.querySelector('.round-title')?.getBoundingClientRect()
         const phase = element.querySelector('.round-phase')?.getBoundingClientRect()
         const order = element.querySelector('.round-order')?.getBoundingClientRect()
         if (!title || !phase || !order) throw new Error('Operating round divider is incomplete')
-        return { titleCenter: (title.top + title.bottom) / 2,
-            phaseCenter: (phase.top + phase.bottom) / 2, titleBottom: title.bottom, orderTop: order.top }
+        return {
+            titleCenter: (title.top + title.bottom) / 2,
+            phaseCenter: (phase.top + phase.bottom) / 2,
+            titleBottom: title.bottom,
+            orderTop: order.top
+        }
     })
     expect(Math.abs(narrow.titleCenter - narrow.phaseCenter)).toBeLessThan(2)
     expect(narrow.orderTop).toBeGreaterThan(narrow.titleBottom)
-    await history.evaluate((element) => element.style.width = '600px')
+    await history.evaluate((element) => (element.style.width = '600px'))
     await expect(divider).not.toHaveClass(/order-on-second-line/)
     const wide = await divider.evaluate((element) => {
         const title = element.querySelector('.round-title')?.getBoundingClientRect()
         const phase = element.querySelector('.round-phase')?.getBoundingClientRect()
         const order = element.querySelector('.round-order')?.getBoundingClientRect()
         if (!title || !phase || !order) throw new Error('Operating round divider is incomplete')
-        return { titleRight: title.right, orderLeft: order.left, orderRight: order.right,
-            phaseLeft: phase.left, titleCenter: (title.top + title.bottom) / 2,
-            phaseCenter: (phase.top + phase.bottom) / 2 }
+        return {
+            titleRight: title.right,
+            orderLeft: order.left,
+            orderRight: order.right,
+            phaseLeft: phase.left,
+            titleCenter: (title.top + title.bottom) / 2,
+            phaseCenter: (phase.top + phase.bottom) / 2
+        }
     })
     expect(wide.titleRight).toBeLessThan(wide.orderLeft)
     expect(wide.orderRight).toBeLessThan(wide.phaseLeft)
     expect(Math.abs(wide.titleCenter - wide.phaseCenter)).toBeLessThan(2)
     await history.evaluate((element) => element.style.removeProperty('width'))
-    await expect(companyHeader.getByRole('button', { name: 'Jump to Charlottetown operations in history', exact: true })).toHaveCount(1)
-    await page.locator('.round-section[data-round-id="OR 1.1"]').getByRole('button', { name: 'Jump to OR 1.1 in history', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).not.toBeVisible()
+    await expect(
+        companyHeader.getByRole('button', {
+            name: 'Jump to Charlottetown operations in history',
+            exact: true
+        })
+    ).toHaveCount(1)
+    await page
+        .locator('.round-section[data-round-id="OR 1.1"]')
+        .getByRole('button', { name: 'Jump to OR 1.1 in history', exact: true })
+        .click()
+    await expect(
+        page.getByRole('heading', { name: 'Player 2 wins', exact: true })
+    ).not.toBeVisible()
 })

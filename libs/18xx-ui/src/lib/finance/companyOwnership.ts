@@ -7,7 +7,11 @@ export type CompanyOwnership = {
     certificateNumbers: number[]
 }
 
-export function companyOwnership(state: FinancialState, companyId: string, retainedOwners: readonly Owner[] = []): CompanyOwnership[] {
+export function companyOwnership(
+    state: FinancialState,
+    companyId: string,
+    retainedOwners: readonly Owner[] = []
+): CompanyOwnership[] {
     const rows: CompanyOwnership[] = []
     for (const certificate of state.certificates) {
         if (
@@ -39,13 +43,17 @@ export function companyOwnership(state: FinancialState, companyId: string, retai
     }
     for (const row of rows) row.certificateNumbers.sort((a, b) => a - b)
     const investors: CompanyOwnership[] = []
-    const corporate = rows.filter((row) => row.owner.kind === 'company' && row.owner.companyId !== companyId)
+    const corporate = rows.filter(
+        (row) => row.owner.kind === 'company' && row.owner.companyId !== companyId
+    )
     for (const row of rows.filter((row) => row.owner.kind === 'player')) {
         investors.push(row)
         for (const entry of corporate) {
             const investorId = entry.owner.kind === 'company' ? entry.owner.companyId : undefined
-            const controller = investorId && state.companies.some((candidate) => candidate.id === investorId)
-                ? controllingOwner(state, investorId) : undefined
+            const controller =
+                investorId && state.companies.some((candidate) => candidate.id === investorId)
+                    ? controllingOwner(state, investorId)
+                    : undefined
             if (controller && sameOwner(controller, row.owner)) investors.push(entry)
         }
     }

@@ -1,10 +1,5 @@
 import { assert, assertExists } from '@tabletop/common'
-import {
-    RailwayMapState,
-    TrackNetwork,
-    type EighteenXXState,
-    type TileFace
-} from '@tabletop/18xx'
+import { RailwayMapState, TrackNetwork, type EighteenXXState, type TileFace } from '@tabletop/18xx'
 import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
 import type { ModuleSession } from './moduleSession.js'
@@ -41,7 +36,10 @@ type Stations = Pick<
     | 'selectPosition'
     | 'confirm'
 >
-type Routes = Pick<RoutesModule<RoutesSession['state']>, 'canRun' | 'editor' | 'appendPath' | 'selectStart'>
+type Routes = Pick<
+    RoutesModule<RoutesSession['state']>,
+    'canRun' | 'editor' | 'appendPath' | 'selectStart'
+>
 
 export class MapModule {
     showTrackAccess = $state(true)

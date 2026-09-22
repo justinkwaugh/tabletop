@@ -17,7 +17,10 @@ for (const title of ['TOP', '1889']) {
         const resident = page.locator(`[data-market-company="${residentId}"]`)
         const undo = page.getByRole('button', { name: 'Undo', exact: true })
         await expect(token).toHaveAttribute('data-market-token-space', initialSpace)
-        await page.getByRole('navigation', { name: 'Stock actions' }).getByRole('button', { name: 'Sell', exact: true }).click()
+        await page
+            .getByRole('navigation', { name: 'Stock actions' })
+            .getByRole('button', { name: 'Sell', exact: true })
+            .click()
         await page.locator(`[data-sale-company="${companyId}"]`).first().click()
         await page.getByRole('tab', { name: 'Market', exact: true }).click()
         await token.evaluate((element) => {
@@ -34,20 +37,39 @@ for (const title of ['TOP', '1889']) {
         await expect(undo).toBeEnabled()
         await expect(token).toHaveAttribute('data-market-token-space', destination)
         expect(Number(await token.getAttribute('data-animation-samples'))).toBeGreaterThan(3)
-        expect(await resident.evaluate((element) => Number(getComputedStyle(element).zIndex))).toBeGreaterThan(await token.evaluate((element) => Number(getComputedStyle(element).zIndex)))
-        const sameColumn = await Promise.all([token, resident].map((item) => item.evaluate((element) => element.getBoundingClientRect().x)))
+        expect(
+            await resident.evaluate((element) => Number(getComputedStyle(element).zIndex))
+        ).toBeGreaterThan(
+            await token.evaluate((element) => Number(getComputedStyle(element).zIndex))
+        )
+        const sameColumn = await Promise.all(
+            [token, resident].map((item) =>
+                item.evaluate((element) => element.getBoundingClientRect().x)
+            )
+        )
         expect(sameColumn[0]).toBeCloseTo(sameColumn[1])
         await page.getByRole('button', { name: 'step backwards', exact: true }).click()
         await expect(token).toHaveAttribute('data-market-token-space', initialSpace)
-        await expect(page.getByRole('region', { name: 'Stock market board' })).toHaveAttribute('aria-busy', 'false')
-        await page.getByRole('button', { name: 'step forwards', exact: true }).click({ modifiers: ['Shift'] })
+        await expect(page.getByRole('region', { name: 'Stock market board' })).toHaveAttribute(
+            'aria-busy',
+            'false'
+        )
+        await page
+            .getByRole('button', { name: 'step forwards', exact: true })
+            .click({ modifiers: ['Shift'] })
         await expect(token).toHaveAttribute('data-market-token-space', destination)
-        await expect(page.getByRole('region', { name: 'Stock market board' })).toHaveAttribute('aria-busy', 'false')
+        await expect(page.getByRole('region', { name: 'Stock market board' })).toHaveAttribute(
+            'aria-busy',
+            'false'
+        )
         await page.getByRole('button', { name: 'go to current', exact: true }).click()
         await expect(undo).toBeEnabled()
         await undo.click()
         await expect(token).toHaveAttribute('data-market-token-space', initialSpace)
-        await expect(page.getByRole('region', { name: 'Stock market board' })).toHaveAttribute('aria-busy', 'false')
+        await expect(page.getByRole('region', { name: 'Stock market board' })).toHaveAttribute(
+            'aria-busy',
+            'false'
+        )
         await page.reload()
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('trading')

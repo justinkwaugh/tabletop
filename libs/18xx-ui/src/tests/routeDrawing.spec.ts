@@ -5,11 +5,21 @@ import { createMapDrawing, type MapRoute } from '../lib/maps/mapDrawing.js'
 import { cityOutline, drawMapRoutes } from '../lib/maps/routeDrawing.js'
 
 function cityScene(slots: number) {
-    return createMapDrawing(new RailwayMap({
-        id: 'routes', name: 'Routes', orientation: HexOrientation.Flat,
-        locations: [{ id: 'A1', coordinates: { q: 0, r: 0 }, buildable: true,
-            preprintedTile: createCityTileFace('green', [0, 2, 4], 30, slots) }]
-    }))
+    return createMapDrawing(
+        new RailwayMap({
+            id: 'routes',
+            name: 'Routes',
+            orientation: HexOrientation.Flat,
+            locations: [
+                {
+                    id: 'A1',
+                    coordinates: { q: 0, r: 0 },
+                    buildable: true,
+                    preprintedTile: createCityTileFace('green', [0, 2, 4], 30, slots)
+                }
+            ]
+        })
+    )
 }
 
 it.each([1, 2, 3, 4])('outlines a %i-slot city with one closed perimeter', (slots) => {
@@ -25,7 +35,11 @@ it('masks shared cities once while preserving complete track geometry', () => {
     const scene = cityScene(3)
     const [first, second, third] = scene.locations[0].drawing.paths
     const routes: MapRoute[] = [
-        { id: 'a', color: 'red', segments: [first, second].map((path) => ({ locationId: 'A1', pathId: path.id })) },
+        {
+            id: 'a',
+            color: 'red',
+            segments: [first, second].map((path) => ({ locationId: 'A1', pathId: path.id }))
+        },
         { id: 'b', color: 'blue', segments: [{ locationId: 'A1', pathId: third.id }] }
     ]
     const [drawing] = drawMapRoutes(scene, routes)

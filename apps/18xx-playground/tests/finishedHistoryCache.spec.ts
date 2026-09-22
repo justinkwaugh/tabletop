@@ -8,7 +8,9 @@ test('rebuilds a finished example with outdated funding-sale metadata', async ({
         timeout: 30000
     })
     await page.getByLabel('Position', { exact: true }).selectOption('construction')
-    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).not.toBeVisible()
+    await expect(
+        page.getByRole('heading', { name: 'Player 2 wins', exact: true })
+    ).not.toBeVisible()
     await page.evaluate(
         () =>
             new Promise<void>((resolve, reject) => {

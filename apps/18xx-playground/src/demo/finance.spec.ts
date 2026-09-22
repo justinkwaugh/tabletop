@@ -61,56 +61,58 @@ it.each([Top, Shikoku])(
         expect(president.certificateLimitCount).toBe(1)
         expect(getCompany(restored, president.companyId).shareCount).toBe(10)
         expect(restored.activePlayerIds[0]).toBe('alex')
-        expect(Object.keys(definition.runtime.apiActions).sort()).toEqual([
-            'ScheduleGameEnd',
-            'EndGame',
-            ...(definition === Shikoku
-                ? [
-                      'ReserveBid',
-                      'RaiseAuctionBid',
-                      'BuyAuctionLot',
-                      'PassAuction',
-                      'ResolveAuction'
-                  ]
-                : ['OfferAuctionLot', 'BidOnAuctionLot', 'PassAuction', 'ResolveAuction']),
-            'FundTrain',
-            'IssueTreasuryShares',
-            'SellFundingShares',
-            'ContributeTrainFunds',
-            'DeclareBankruptcy',
-            'ContinueOperatingRound',
-            'BuyPrivateTrain',
-            'DeclinePrivateTile',
-            'LayPrivateTile',
-            'RespondToTrackConsent',
-            'RequestTrackConsent',
-            'RespondToPurchaseOffer',
-            'OfferPurchase',
-            'ExchangePrivate',
-            'BuyShares',
-            'SellShares',
-            'FinishStockTurn',
-            'StartCompany',
-            'FloatCompany',
-            'CompleteStockRound',
-            'StartOperatingSet',
-            'LayTile',
-            'FinishTrack',
-            'StartOperatingTurn',
-            'PlaceStation',
-            'FinishStations',
-            'PlaceHomeStations',
-            'BuyTrain',
-            'RunTrains',
-            'DistributeEarnings',
-            'StartOperatingRound',
-            'FinishOperatingTurn',
-            'StartStockRound',
-            'AdvancePhase',
-            'DiscardTrain',
-            'RustTrains',
-            ...(definition === Top ? ['SplitCompany'] : [])
-        ].sort())
+        expect(Object.keys(definition.runtime.apiActions).sort()).toEqual(
+            [
+                'ScheduleGameEnd',
+                'EndGame',
+                ...(definition === Shikoku
+                    ? [
+                          'ReserveBid',
+                          'RaiseAuctionBid',
+                          'BuyAuctionLot',
+                          'PassAuction',
+                          'ResolveAuction'
+                      ]
+                    : ['OfferAuctionLot', 'BidOnAuctionLot', 'PassAuction', 'ResolveAuction']),
+                'FundTrain',
+                'IssueTreasuryShares',
+                'SellFundingShares',
+                'ContributeTrainFunds',
+                'DeclareBankruptcy',
+                'ContinueOperatingRound',
+                'BuyPrivateTrain',
+                'DeclinePrivateTile',
+                'LayPrivateTile',
+                'RespondToTrackConsent',
+                'RequestTrackConsent',
+                'RespondToPurchaseOffer',
+                'OfferPurchase',
+                'ExchangePrivate',
+                'BuyShares',
+                'SellShares',
+                'FinishStockTurn',
+                'StartCompany',
+                'FloatCompany',
+                'CompleteStockRound',
+                'StartOperatingSet',
+                'LayTile',
+                'FinishTrack',
+                'StartOperatingTurn',
+                'PlaceStation',
+                'FinishStations',
+                'PlaceHomeStations',
+                'BuyTrain',
+                'RunTrains',
+                'DistributeEarnings',
+                'StartOperatingRound',
+                'FinishOperatingTurn',
+                'StartStockRound',
+                'AdvancePhase',
+                'DiscardTrain',
+                'RustTrains',
+                ...(definition === Top ? ['SplitCompany'] : [])
+            ].sort()
+        )
         expect(() =>
             definition.runtime.hydrator.hydrateState({
                 ...initialState,

@@ -3,10 +3,7 @@ import { Shikoku1889PrivateCatalog } from './privates.js'
 import { Shikoku1889Phases } from './trains.js'
 export const Shikoku1889PrivateRules: PrivateRules = {
     exchangeTerms(state, privateCompanyId) {
-        if (
-            privateCompanyId !== 'DR' ||
-            Shikoku1889Phases.isAtLeast(state.phaseId, '5')
-        )
+        if (privateCompanyId !== 'DR' || Shikoku1889Phases.isAtLeast(state.phaseId, '5'))
             return undefined
         return {
             certificateIds: state.certificates

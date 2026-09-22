@@ -74,7 +74,7 @@ export function historyRounds(
         }
         const entry = startsOperatingRound
             ? undefined
-            : entries.get(action.id) ??
+            : (entries.get(action.id) ??
               (orderChanges.has(action.id) ||
               (cash.has(action.id) && changedCompanyCash(cash.get(action.id)!)) ||
               isRunTrains(action) ||
@@ -89,14 +89,14 @@ export function historyRounds(
               isEndGame(action) ||
               (isResolveAuction(action) && !state.offerAuction)
                   ? { kind: 'action' as const, id: action.id, action }
-                  : undefined)
+                  : undefined))
         if (entry) section.entries.push(entry)
         for (const patch of action.undoPatch ?? []) {
             if (patch.op !== 'add' && patch.op !== 'replace') continue
             if (patch.path === '/phaseId') {
                 phase = patch.value
                 section.startActionIndex = action.index
-        if (section.phases[0] !== phase) section.phases.unshift(phase)
+                if (section.phases[0] !== phase) section.phases.unshift(phase)
             } else if (patch.path === '/stockRound') {
                 stock = patch.value.number
                 operating = patch.value.completed
@@ -114,5 +114,7 @@ export function historyRounds(
                 auction = !patch.value
         }
     }
-    return rounds.filter((section) => section.entries.length > 0 || section.operatingOrder !== undefined)
+    return rounds.filter(
+        (section) => section.entries.length > 0 || section.operatingOrder !== undefined
+    )
 }

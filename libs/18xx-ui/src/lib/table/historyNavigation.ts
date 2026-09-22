@@ -11,8 +11,12 @@ import {
 } from '@tabletop/18xx'
 
 export function isHistoryBookkeeping(action: GameAction): boolean {
-    return isFinishTrack(action) || isFinishStations(action) || isFinishOperatingTurn(action) ||
+    return (
+        isFinishTrack(action) ||
+        isFinishStations(action) ||
+        isFinishOperatingTurn(action) ||
         (isFinishStockTurn(action) && action.metadata?.passed === false)
+    )
 }
 
 export function shouldContinueHistoryStep(action: GameAction, next?: GameAction): boolean {
@@ -30,7 +34,9 @@ export function purchaseWithFlotation(
         const action = actions[index]
         if (isFloatCompany(action)) flotation = action
         if (action.source === ActionSource.System || isHistoryBookkeeping(action)) continue
-        return flotation && isBuyShares(action) && action.metadata?.companyId === flotation.companyId
+        return flotation &&
+            isBuyShares(action) &&
+            action.metadata?.companyId === flotation.companyId
             ? { purchase: action, flotation }
             : undefined
     }

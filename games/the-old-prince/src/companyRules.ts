@@ -64,11 +64,7 @@ export const TheOldPrinceCompanyRules: CompanyRules = {
         if (!peir || peir.retired || peir.owner.kind !== 'player')
             return 'The associated PEIR share must be owned by a player.'
         const certificate = presidentCertificate(state, companyId)
-        if (
-            !certificate ||
-            certificate.owner.kind !== 'bank' ||
-            certificate.poolId !== 'market'
-        )
+        if (!certificate || certificate.owner.kind !== 'bank' || certificate.poolId !== 'market')
             return 'The president’s certificate must be available from the Bank.'
         return {
             price: stockMarketSpace(state.stockMarket, marketSpaceId).price * 2,

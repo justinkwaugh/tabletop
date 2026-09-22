@@ -15,10 +15,7 @@ export class AutomaticStockTurnHandler<
 
     private canFinish(context: MachineContext<State>, playerId: string): boolean {
         const state = context.gameState
-        if (
-            state.stockRound.completed ||
-            state.turnManager.currentTurn()?.playerId !== playerId
-        )
+        if (state.stockRound.completed || state.turnManager.currentTurn()?.playerId !== playerId)
             return false
         const actions = this.handler.validActionsForPlayer(playerId, context)
         return actions.length === 1 && actions[0] === 'FinishStockTurn'

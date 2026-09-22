@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, createAction } from '@tabletop/common'
 import { FinishTrack, HydratedFinishTrack, isFinishTrack } from '../construction/finishTrack.js'
-import { FinishStations, HydratedFinishStations, isFinishStations } from '../stations/finishStations.js'
+import {
+    FinishStations,
+    HydratedFinishStations,
+    isFinishStations
+} from '../stations/finishStations.js'
 import { ActionRegistry, defineAction } from './actionDefinition.js'
 
-const finishTrack = defineAction(FinishTrack, isFinishTrack, (action) => new HydratedFinishTrack(action))
+const finishTrack = defineAction(
+    FinishTrack,
+    isFinishTrack,
+    (action) => new HydratedFinishTrack(action)
+)
 const finishStations = defineAction(
     FinishStations,
     isFinishStations,

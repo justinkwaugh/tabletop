@@ -9,7 +9,9 @@ test('operating-order preference survives reload and follows the player between 
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('routes')
     const showOperatingOrder = async () => {
-        await page.getByRole('button', { name: 'Pane options for Table views pane 4', exact: true }).click()
+        await page
+            .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+            .click()
         await page.getByRole('button', { name: 'Operating Order', exact: true }).click()
         await page.getByRole('tab', { name: 'Operating Order', exact: true }).click()
     }
@@ -56,7 +58,9 @@ test('history order defaults to newest last and follows the player between title
     await expect(last).toHaveAttribute('aria-pressed', 'true')
 })
 
-test('compact player cards toggle together and persist across reloads and titles', async ({ page }) => {
+test('compact player cards toggle together and persist across reloads and titles', async ({
+    page
+}) => {
     await page.goto('/table')
     const compact = page.getByRole('button', { name: /^Compact .* card$/ })
     const expand = page.getByRole('button', { name: /^Expand .* card$/ })
@@ -102,9 +106,11 @@ test('dark mode has no bright loading canvas on reload', async ({ page }) => {
             if (document.body) {
                 const root = document.documentElement
                 const bodyColor = getComputedStyle(document.body).backgroundColor
-                if (getComputedStyle(root).backgroundColor !== 'rgb(24, 33, 43)' ||
+                if (
+                    getComputedStyle(root).backgroundColor !== 'rgb(24, 33, 43)' ||
                     !['rgba(0, 0, 0, 0)', 'rgb(24, 33, 43)'].includes(bodyColor) ||
-                    document.querySelector('.railway-table')?.getAttribute('data-theme') === 'light') {
+                    document.querySelector('.railway-table')?.getAttribute('data-theme') === 'light'
+                ) {
                     root.dataset.brightStartupFrame = 'true'
                 }
                 root.dataset.startupFrames = String(++frames)

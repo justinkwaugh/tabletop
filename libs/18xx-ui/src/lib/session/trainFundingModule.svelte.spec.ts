@@ -41,7 +41,9 @@ describe('TrainFundingModule', () => {
     it('can start funding only when the action is valid and the session is interactive', () => {
         expect(funding('BuyingTrains', ['FundTrain']).module.canFund).toBe(true)
         expect(funding('BuyingTrains', ['BuyTrain']).module.canFund).toBe(false)
-        expect(funding('BuyingTrains', ['FundTrain'], { interactive: false }).module.canFund).toBe(false)
+        expect(funding('BuyingTrains', ['FundTrain'], { interactive: false }).module.canFund).toBe(
+            false
+        )
     })
 
     it('can resolve only while funding a train with some valid action', () => {

@@ -6,10 +6,15 @@ import {
     type MachineStateHandler
 } from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
-import { FinishOperatingTurn, isFinishOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
+import {
+    FinishOperatingTurn,
+    isFinishOperatingTurn,
+    type OperatingTurnState
+} from '../operating/finishOperatingTurn.js'
 
-export class AutomaticTrainCompletionHandler<State extends HydratedGameState & OperatingTurnState>
-    implements MachineStateHandler<HydratedAction, State> {
+export class AutomaticTrainCompletionHandler<
+    State extends HydratedGameState & OperatingTurnState
+> implements MachineStateHandler<HydratedAction, State> {
     constructor(private readonly handler: MachineStateHandler<HydratedAction, State>) {}
 
     private canFinish(context: MachineContext<State>, playerId: string): boolean {
@@ -17,13 +22,22 @@ export class AutomaticTrainCompletionHandler<State extends HydratedGameState & O
         const companyId = state.trainPurchaseStep?.companyId
         if (!companyId || controllingOwner(state, companyId)?.playerId !== playerId) return false
         const actions = this.handler.validActionsForPlayer(playerId, context)
-        return actions.includes('FinishOperatingTurn') && !state.activePlayerIds.some((id) =>
-            this.handler.validActionsForPlayer(id, context).some((action) => action !== 'FinishOperatingTurn'))
+        return (
+            actions.includes('FinishOperatingTurn') &&
+            !state.activePlayerIds.some((id) =>
+                this.handler
+                    .validActionsForPlayer(id, context)
+                    .some((action) => action !== 'FinishOperatingTurn')
+            )
+        )
     }
 
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         if (isFinishOperatingTurn(action) && action.source === ActionSource.System)
-            return action.companyId === context.gameState.trainPurchaseStep?.companyId && this.canFinish(context, action.playerId)
+            return (
+                action.companyId === context.gameState.trainPurchaseStep?.companyId &&
+                this.canFinish(context, action.playerId)
+            )
         return this.handler.isValidAction(action, context)
     }
 

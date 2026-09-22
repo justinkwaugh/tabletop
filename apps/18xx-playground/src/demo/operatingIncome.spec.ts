@@ -47,7 +47,9 @@ it('builds full-game income from recorded actions without states or replay patch
     }
     const originalState = structuredClone(state)
     expect(migrateOperatingIncome(state, legacy, engine, TheOldPrinceEndingRules)).toBe(true)
-    expect(operatingHistory(legacy.map(({ undoPatch, forwardPatch, ...action }) => action))).toEqual(rounds)
+    expect(
+        operatingHistory(legacy.map(({ undoPatch, forwardPatch, ...action }) => action))
+    ).toEqual(rounds)
     expect(migrateOperatingIncome(state, legacy, engine, TheOldPrinceEndingRules)).toBe(false)
     expect(state).toEqual(originalState)
 }, 60000)
