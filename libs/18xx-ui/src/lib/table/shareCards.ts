@@ -8,7 +8,14 @@ import {
 } from '@tabletop/18xx'
 import type { TitlePresentation } from '../session/titlePresentation.js'
 
-export type ShareCard = { id: string; name: string; thumbnail: string; full: string }
+export type ShareCard = {
+    id: string
+    companyId: string
+    president: boolean
+    name: string
+    thumbnail: string
+    full: string
+}
 
 /** Certificates that changed hands in a share purchase, sale or issue, in action order. */
 export function tradedCertificateIds(action: GameAction): readonly string[] {
@@ -37,5 +44,12 @@ export function shareCard(
     const name = certificate.number
         ? `${companyName(certificate.companyId)} certificate ${certificate.number}`
         : `${companyName(certificate.companyId)} ${certificate.president ? "president's certificate" : 'share'}`
-    return { id: certificate.id, name, thumbnail, full }
+    return {
+        id: certificate.id,
+        companyId: certificate.companyId,
+        president: certificate.president,
+        name,
+        thumbnail,
+        full
+    }
 }
