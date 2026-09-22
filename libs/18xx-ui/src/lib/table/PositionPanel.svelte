@@ -22,6 +22,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import GameEnding from '../ending/GameEnding.svelte'
     import AuctionLotCard from '../auctions/AuctionLotCard.svelte'
+    import ShareCardStrip from './ShareCardStrip.svelte'
 
     let {
         session,
@@ -139,6 +140,7 @@
             track,
             description,
             actor,
+            shareCards: session.shareCards(action),
             lot: lot
                 ? {
                       ...lot,
@@ -268,6 +270,9 @@
                         {latest.description.detail}
                     </p>{/if}
             </div>
+            {#if latest.shareCards.length}
+                <div class="share-strip"><ShareCardStrip cards={latest.shareCards} /></div>
+            {/if}
             {#if latest.lot}
                 <div class="lot-card">
                     <AuctionLotCard
@@ -344,6 +349,15 @@
     .event {
         text-align: center;
         margin-top: 8px;
+    }
+    .share-strip {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+        --share-card-height: 120px;
+    }
+    .share-strip :global(.share-cards) {
+        justify-content: center;
     }
     .lot-card {
         display: flex;

@@ -3,7 +3,7 @@
 
 Inputs live in artassets/the-old-prince (not committed). Outputs:
   privates/*.webp  one card per private company (1200 px) plus a -600 inline thumbnail
-  shares/v1|v2/*.webp  share certificates, two art variants (1100 px)
+  shares/v1|v2/*.webp  share and president certificates, two art variants (1100 px plus -600 thumbnail)
   peirs/v1|v2/*.webp   the seven PEIR "private-share" certificates (1200 px plus -600 thumbnail)
   tokens/*.svg     vector charter tokens: coloured disc + Pantone 9200 icon path
 
@@ -151,11 +151,13 @@ def main():
 
     for variant in (1, 2):
         folder = SRC / 'shares' / f'shares variant 0{variant}'
+        # Sheet order alternates president certificate of company i (slot 2i) with the regular
+        # share of company i+1 (slot 2i+1), wrapping so the last odd slot is company 0's share.
         for i, company in enumerate(SHARE_ORDER):
-            for kind, offset in (('share', 0), ('president', 1)):
-                n = (2 * i + offset) * 2 + variant  # odd for v1, even for v2
+            for kind, slot in (('president', 2 * i), ('share', (2 * i - 1) % (2 * len(SHARE_ORDER)))):
+                n = slot * 2 + variant  # odd for v1, even for v2
                 src = folder / ('share.pdf' if n == 1 else f'share_{n}.pdf')
-                size = page_image(src, out / 'shares' / f'v{variant}' / f'{company}-{kind}.webp', heights=(1100,))
+                size = page_image(src, out / 'shares' / f'v{variant}' / f'{company}-{kind}.webp', heights=(1100, 600))
                 print('share', variant, company, kind, src.name, size)
         pfolder = SRC / 'privates+peirs' / f'peir variant 0{variant}'
         for n, town in PEIR_ORDER.items():

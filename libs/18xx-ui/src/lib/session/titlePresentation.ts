@@ -33,6 +33,10 @@ export type TitlePresentation = {
     publishedCardImages?: Readonly<Record<string, string>>
     /** Smaller versions of ``publishedCardImages`` for inline display; falls back to the full image. */
     publishedCardThumbnails?: Readonly<Record<string, string>>
+    /** Published share and president certificate art by company id. */
+    publishedShareImages?: Readonly<Record<string, { share: string; president: string }>>
+    /** Smaller versions of ``publishedShareImages`` for inline display; falls back to the full image. */
+    publishedShareThumbnails?: Readonly<Record<string, { share: string; president: string }>>
     /** Train badge colours for the published presentation; a value may be any CSS background. */
     publishedTrainColors?: Readonly<Record<string, string>>
     /** Phase badge colours for the published presentation; defaults to publishedTrainColors. */

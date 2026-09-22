@@ -132,6 +132,7 @@
                             {phaseTileColors}
                             {tileColors}
                             {trainColors}
+                            shareCards={(action) => session.shareCards(action)}
                             trainName={(id) => session.trainDepot.trainDefinition(id).name}
                             {orderChanges}
                             {cash}

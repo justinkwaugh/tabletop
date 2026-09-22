@@ -17,6 +17,8 @@
     import { TileColors } from '../tiles/tilePresentation.js'
     import type { HistoryGroup } from './historyGroups.js'
     import type { HistoryDescription } from './historyDescription.js'
+    import ShareCardStrip from './ShareCardStrip.svelte'
+    import type { ShareCard } from './shareCards.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import type { HistoryCash } from './historyCash.js'
@@ -45,7 +47,8 @@
         trainName,
         orderChanges,
         stations,
-        cash
+        cash,
+        shareCards = () => []
     }: {
         money: MoneyFormat
         onPreviewMap: (action: GameAction) => void
@@ -59,6 +62,8 @@
         phaseTileColors: Readonly<Record<string, readonly string[]>>
         /** Tile palette for phase changes that unlock a tile colour; follows the current tile appearance. */
         tileColors?: Readonly<Record<string, string>>
+        /** Published certificate art for the shares an action traded; empty in the generic presentation. */
+        shareCards?: (action: GameAction) => readonly ShareCard[]
         onJump: (index: number) => void
         onReturn?: () => void
         jumpDisabled?: boolean
@@ -193,6 +198,7 @@
                             for <span class="stock-value">{row.value}</span>{/if}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
+                    <ShareCardStrip cards={shareCards(row.action)} />
                     {#if row.order}<OperatingOrderHistory
                             order={row.order}
                             {stations}
@@ -289,6 +295,7 @@
                             : (row.value ?? '')}</strong
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
+                    <ShareCardStrip cards={shareCards(row.action)} />
                     {#if row.order}<OperatingOrderHistory
                             order={row.order}
                             {stations}

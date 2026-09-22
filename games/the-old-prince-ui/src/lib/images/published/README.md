@@ -5,14 +5,15 @@ Extracted from the publisher print files with `tools/art-extraction/extract_top.
 (`presentation.ts`, `publishedCardImages`) are shown while the published artwork toggle is on, the
 cards as a viewport-sized lightbox when clicked and inside the auction bidding panel;
 the tile style (`tileAppearance.ts`, `publishedTileAppearance`, with `tiles/paper-grain.png` as
-the grain overlay) draws laid tiles in the punch-tile look; only the share certificates are not
-wired yet.
+the grain overlay) draws laid tiles in the punch-tile look, and the second-variant share and
+president certificates (`presentation.ts`, `publishedShareImages`) appear beside share purchases
+and sales in history and the position summary.
 
 | Folder | Contents | Source |
 | --- | --- | --- |
 | `tokens/` | `<companyId>.svg` for C, So, A, MS, MR, S, Gt, PEIR and the six branches CB, SB, MB, BB, WB, HRB. Coloured disc (wood-spec Pantone, as converted by the spec sheet) plus the Pantone 9200 C icon path, 100 x 100 viewBox | `wood/15 mm/token-15mm-charter-*.pdf` and `wood/wood-specification-05-add-on.pdf` |
 | `privates/` | The 12 private company cards as WebP, 1200 px tall for the lightbox plus a `-600` thumbnail for inline use | `privates+peirs/private companies` |
-| `shares/v1/`, `shares/v2/` | `<company>-share.webp` and `<company>-president.webp` for all 13 charters in both printed art variants, 1100 px tall | `shares/shares variant 01|02` |
+| `shares/v1/`, `shares/v2/` | `<company>-share.webp` and `<company>-president.webp` for all 13 charters in both printed art variants, 1100 px tall with `-600` thumbnails | `shares/shares variant 01|02` |
 | `peirs/v1/`, `peirs/v2/` | `peir-<n>-<town>.webp` for the seven numbered PEIR certificates plus `peir-back.webp`, both variants, 1200 px tall with `-600` thumbnails | `privates+peirs/peir variant 01|02` |
 | `tiles/reference/` | Sixteen representative die-cut tiles (one or two per colour tier and marker type) as PNG with hex alpha, half resolution | `hexes/PUNCH-TILES-*.tiff` |
 | `tiles/style.json` | Measured palette, ink, track width and marker conventions for the hand-inked tile style, pre-scaled to the shared tile renderer | same |

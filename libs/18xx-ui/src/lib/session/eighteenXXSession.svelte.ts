@@ -17,6 +17,7 @@ import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
 import { LocalSelections } from './localSelections.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
+import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
 import type { TitlePreferences } from '@tabletop/frontend-components'
@@ -178,6 +179,23 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     }
     toggleArtwork() {
         this.publishedArtwork = !this.publishedArtwork
+    }
+    /** Published certificate art for the shares a purchase, sale or issue moved; empty unless that presentation is on. */
+    shareCards(action: GameAction): readonly ShareCard[] {
+        if (!this.publishedArtwork) return []
+        return tradedCertificateIds(action).flatMap((id) => {
+            const certificate = this.gameState.certificates.find((item) => item.id === id)
+            const card =
+                certificate &&
+                shareCard(
+                    certificate,
+                    this.presentation,
+                    (companyId) =>
+                        this.gameState.companies.find((company) => company.id === companyId)
+                            ?.name ?? companyId
+                )
+            return card ? [card] : []
+        })
     }
     /** Published card image for a private company or certificate id, when that presentation is on. */
     publishedCardImage(

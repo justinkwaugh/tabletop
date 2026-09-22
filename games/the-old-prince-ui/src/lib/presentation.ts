@@ -23,6 +23,58 @@ import UnionBankCard from './images/published/privates/union-bank.webp'
 import UnionBankThumb from './images/published/privates/union-bank-600.webp'
 import KingsMailCard from './images/published/privates/kings-mail.webp'
 import KingsMailThumb from './images/published/privates/kings-mail-600.webp'
+import CharlottetownShare from './images/published/shares/v2/charlottetown-share.webp'
+import CharlottetownShareThumb from './images/published/shares/v2/charlottetown-share-600.webp'
+import CharlottetownPresident from './images/published/shares/v2/charlottetown-president.webp'
+import CharlottetownPresidentThumb from './images/published/shares/v2/charlottetown-president-600.webp'
+import SourisShare from './images/published/shares/v2/souris-share.webp'
+import SourisShareThumb from './images/published/shares/v2/souris-share-600.webp'
+import SourisPresident from './images/published/shares/v2/souris-president.webp'
+import SourisPresidentThumb from './images/published/shares/v2/souris-president-600.webp'
+import AlbertonShare from './images/published/shares/v2/alberton-share.webp'
+import AlbertonShareThumb from './images/published/shares/v2/alberton-share-600.webp'
+import AlbertonPresident from './images/published/shares/v2/alberton-president.webp'
+import AlbertonPresidentThumb from './images/published/shares/v2/alberton-president-600.webp'
+import MountStewartShare from './images/published/shares/v2/mount-stewart-share.webp'
+import MountStewartShareThumb from './images/published/shares/v2/mount-stewart-share-600.webp'
+import MountStewartPresident from './images/published/shares/v2/mount-stewart-president.webp'
+import MountStewartPresidentThumb from './images/published/shares/v2/mount-stewart-president-600.webp'
+import MurrayRiverShare from './images/published/shares/v2/murray-river-share.webp'
+import MurrayRiverShareThumb from './images/published/shares/v2/murray-river-share-600.webp'
+import MurrayRiverPresident from './images/published/shares/v2/murray-river-president.webp'
+import MurrayRiverPresidentThumb from './images/published/shares/v2/murray-river-president-600.webp'
+import SummersideShare from './images/published/shares/v2/summerside-share.webp'
+import SummersideShareThumb from './images/published/shares/v2/summerside-share-600.webp'
+import SummersidePresident from './images/published/shares/v2/summerside-president.webp'
+import SummersidePresidentThumb from './images/published/shares/v2/summerside-president-600.webp'
+import GeorgetownShare from './images/published/shares/v2/georgetown-share.webp'
+import GeorgetownShareThumb from './images/published/shares/v2/georgetown-share-600.webp'
+import GeorgetownPresident from './images/published/shares/v2/georgetown-president.webp'
+import GeorgetownPresidentThumb from './images/published/shares/v2/georgetown-president-600.webp'
+import CornwallShare from './images/published/shares/v2/cornwall-share.webp'
+import CornwallShareThumb from './images/published/shares/v2/cornwall-share-600.webp'
+import CornwallPresident from './images/published/shares/v2/cornwall-president.webp'
+import CornwallPresidentThumb from './images/published/shares/v2/cornwall-president-600.webp'
+import StratfordShare from './images/published/shares/v2/stratford-share.webp'
+import StratfordShareThumb from './images/published/shares/v2/stratford-share-600.webp'
+import StratfordPresident from './images/published/shares/v2/stratford-president.webp'
+import StratfordPresidentThumb from './images/published/shares/v2/stratford-president-600.webp'
+import MorellShare from './images/published/shares/v2/morell-share.webp'
+import MorellShareThumb from './images/published/shares/v2/morell-share-600.webp'
+import MorellPresident from './images/published/shares/v2/morell-president.webp'
+import MorellPresidentThumb from './images/published/shares/v2/morell-president-600.webp'
+import BelfastShare from './images/published/shares/v2/belfast-share.webp'
+import BelfastShareThumb from './images/published/shares/v2/belfast-share-600.webp'
+import BelfastPresident from './images/published/shares/v2/belfast-president.webp'
+import BelfastPresidentThumb from './images/published/shares/v2/belfast-president-600.webp'
+import WellingtonShare from './images/published/shares/v2/wellington-share.webp'
+import WellingtonShareThumb from './images/published/shares/v2/wellington-share-600.webp'
+import WellingtonPresident from './images/published/shares/v2/wellington-president.webp'
+import WellingtonPresidentThumb from './images/published/shares/v2/wellington-president-600.webp'
+import HunterRiverShare from './images/published/shares/v2/hunter-river-share.webp'
+import HunterRiverShareThumb from './images/published/shares/v2/hunter-river-share-600.webp'
+import HunterRiverPresident from './images/published/shares/v2/hunter-river-president.webp'
+import HunterRiverPresidentThumb from './images/published/shares/v2/hunter-river-president-600.webp'
 import Peir1Card from './images/published/peirs/v2/peir-1-souris.webp'
 import Peir1Thumb from './images/published/peirs/v2/peir-1-souris-600.webp'
 import Peir2Card from './images/published/peirs/v2/peir-2-alberton.webp'
@@ -72,6 +124,40 @@ export const TheOldPrincePresentation: TitlePresentation = {
               ? 'Treasury'
               : pool.name,
     privatePurchaseLabel: 'Buy Hunslet',
+    // Second-variant share and president certificates for the seven charters and six branches.
+    publishedShareImages: {
+        C: { share: CharlottetownShare, president: CharlottetownPresident },
+        // Scenario fixtures name the mainline Charlottetown company ML.
+        ML: { share: CharlottetownShare, president: CharlottetownPresident },
+        So: { share: SourisShare, president: SourisPresident },
+        A: { share: AlbertonShare, president: AlbertonPresident },
+        MS: { share: MountStewartShare, president: MountStewartPresident },
+        MR: { share: MurrayRiverShare, president: MurrayRiverPresident },
+        S: { share: SummersideShare, president: SummersidePresident },
+        Gt: { share: GeorgetownShare, president: GeorgetownPresident },
+        'branch:CB': { share: CornwallShare, president: CornwallPresident },
+        'branch:SB': { share: StratfordShare, president: StratfordPresident },
+        'branch:MB': { share: MorellShare, president: MorellPresident },
+        'branch:BB': { share: BelfastShare, president: BelfastPresident },
+        'branch:WB': { share: WellingtonShare, president: WellingtonPresident },
+        'branch:HRB': { share: HunterRiverShare, president: HunterRiverPresident }
+    },
+    publishedShareThumbnails: {
+        C: { share: CharlottetownShareThumb, president: CharlottetownPresidentThumb },
+        ML: { share: CharlottetownShareThumb, president: CharlottetownPresidentThumb },
+        So: { share: SourisShareThumb, president: SourisPresidentThumb },
+        A: { share: AlbertonShareThumb, president: AlbertonPresidentThumb },
+        MS: { share: MountStewartShareThumb, president: MountStewartPresidentThumb },
+        MR: { share: MurrayRiverShareThumb, president: MurrayRiverPresidentThumb },
+        S: { share: SummersideShareThumb, president: SummersidePresidentThumb },
+        Gt: { share: GeorgetownShareThumb, president: GeorgetownPresidentThumb },
+        'branch:CB': { share: CornwallShareThumb, president: CornwallPresidentThumb },
+        'branch:SB': { share: StratfordShareThumb, president: StratfordPresidentThumb },
+        'branch:MB': { share: MorellShareThumb, president: MorellPresidentThumb },
+        'branch:BB': { share: BelfastShareThumb, president: BelfastPresidentThumb },
+        'branch:WB': { share: WellingtonShareThumb, president: WellingtonPresidentThumb },
+        'branch:HRB': { share: HunterRiverShareThumb, president: HunterRiverPresidentThumb }
+    },
     publishedTrainColors: TheOldPrincePublishedTrainColors,
     publishedPhaseColors: TheOldPrincePublishedPhaseColors,
     // Published presentation: Boda Games private cards and the second-variant PEIR certificates.
