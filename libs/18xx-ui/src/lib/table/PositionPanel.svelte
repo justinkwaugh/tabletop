@@ -361,7 +361,16 @@
         --share-card-height: 150px;
     }
     .share-strip :global(.share-cards) {
+        position: relative;
         justify-content: center;
+    }
+    /* The sign hangs to the left of the centred cards rather than shifting them. */
+    .share-strip :global(.share-cards .sign) {
+        position: absolute;
+        right: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-right: 10px;
     }
     .lot-card {
         display: flex;
