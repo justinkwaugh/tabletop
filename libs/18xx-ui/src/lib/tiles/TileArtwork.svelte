@@ -91,10 +91,11 @@
             {/if}
             {#if appearance.roughness}
                 <filter id={inkId} x="-10%" y="-10%" width="120%" height="120%">
+                    <!-- Low-frequency noise gives a gentle hand-inked waver rather than a jitter. -->
                     <feTurbulence
                         type="fractalNoise"
-                        baseFrequency="0.55"
-                        numOctaves="2"
+                        baseFrequency="0.16"
+                        numOctaves="1"
                         seed="7"
                         result="noise"
                     ></feTurbulence>

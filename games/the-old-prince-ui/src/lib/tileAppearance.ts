@@ -27,7 +27,7 @@ export const TheOldPrincePublishedTileAppearance: TileAppearance = Object.freeze
     edge: { color: 'rgb(0 0 0 / 0.16)', width: 0.6 },
     // 384 px of 300 dpi sheet is 64 tile units (the 520 px punch hex is 86.6 units wide).
     grain: { href: PaperGrain, size: 64 },
-    roughness: 1.3,
+    roughness: 1.0,
     cityRingWidth: 1.6,
     revenueBadge: 'pill',
     labelMarkers: { X: 'ring', T: 'hex' } as const
