@@ -348,6 +348,8 @@
     }
     .picker[data-track-motion='true'] .tile-choice {
         transition: none;
+        /* Tiles moving under a still pointer would otherwise pick up a stale hover state. */
+        pointer-events: none;
     }
     .tile-choice.chosen {
         pointer-events: none;

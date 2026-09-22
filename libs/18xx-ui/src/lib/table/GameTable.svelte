@@ -45,7 +45,7 @@
         setGameSession
     } from '@tabletop/frontend-components'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    import { mapSelectionRect, routeLocationIds } from '../maps/mapDrawing.js'
+    import { mapSelectionRect, routeLocationIds, type MapRoute } from '../maps/mapDrawing.js'
     import MapScene from '../maps/MapScene.svelte'
     import HistoricalMapViewer from '../maps/HistoricalMapViewer.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
@@ -389,17 +389,20 @@
         !session.updatingVisibleState &&
             session.history.visibleContext.state.actionCount === session.gameState.actionCount
     )
-    const mapRoutes = $derived(
-        !historyMapSettled
-            ? []
-            : historicalFocus
-              ? historicalFocus.routes.map((route, index) => ({
-                    id: route.trainId,
-                    color: routeColor(index),
-                    segments: route.paths
-                }))
-              : session.routes.overlays
-    )
+    // While a history step is still settling, keep the last settled routes so the route mask
+    // does not drop out between one step's map and the next.
+    let settledRoutes: MapRoute[] = []
+    const mapRoutes = $derived.by((): MapRoute[] => {
+        if (!historyMapSettled) return settledRoutes
+        settledRoutes = historicalFocus
+            ? historicalFocus.routes.map((route, index) => ({
+                  id: route.trainId,
+                  color: routeColor(index),
+                  segments: route.paths
+              }))
+            : session.routes.overlays
+        return settledRoutes
+    })
     const mapMask = $derived.by(
         ():
             | { legalLocationIds: readonly string[]; highlightedLocationIds: readonly string[] }
