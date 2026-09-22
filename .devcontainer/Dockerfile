@@ -10,7 +10,14 @@ RUN npm install -g \
     pnpm@10.28.2 \
     turbo
 
+ENV PNPM_HOME="/opt/pnpm"
+ENV PATH="${PNPM_HOME}:${PATH}"
+ARG T3_VERSION=0.0.42
+RUN pnpm add --global t3@${T3_VERSION}
+
 USER node
+
+RUN mkdir -p /home/node/.t3
 
 RUN curl -fsSL https://chatgpt.com/codex/install.sh | sh
 
