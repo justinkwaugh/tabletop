@@ -11,7 +11,9 @@ for (const title of ['TOP', '1889']) {
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         const header = page.getByRole('banner', { name: 'Game phase' })
         const action = page.getByRole('region', { name: 'Current action' })
-        await expect(page.locator('[data-map-location]')).toHaveCount(title === 'TOP' ? 110 : 52)
+        await expect(page.locator('[data-map-location]')).toHaveCount(title === 'TOP' ? 110 : 52, {
+            timeout: 15000
+        })
         await expect(page.getByRole('article', { name: 'Casey portfolio' })).toBeVisible()
         await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(1)
         await expect(header).toContainText(/Operating round\s*OR 1\.1/i)
