@@ -604,10 +604,17 @@ with no market heading, order summary or nested scroll frame. The scene owns onl
 the market spaces and company markers; the prototype StockMarket view composes
 that same scene with its existing inspection chrome. Map and Market retain separate
 pan/zoom positions while mounted; their shared tab strip remains outside both.
-Market cells share single-width borders with values at the upper left. Small
+Market cells share single-width borders with values at the upper left. In the
+dark table, neutral (white) cells use the raised table surface and table borders,
+while colored cells keep each market color's hue at dark-surface lightness,
+blended toward the raised surface. Prices are readable but slightly subdued so
+company tokens remain the brightest elements on the board.
+Company tokens keep their artwork unchanged and gain a thin dark ring so they
+sit off the cell without altering their colors; the expanded-stack backdrop uses
+the inset surface. The prototype market view
+keeps its light rendering. Small
 lower-right up and lower-left down arrows indicate the current titles' dividend
 edge turns; these are static annotations, not controls or staged movement.
-
 
 Company order sits between the action area and view tabs, outside ScalingWrapper.
 Its ordered token list follows the displayed OperatingSet, including completed
@@ -1750,7 +1757,6 @@ Browser verification switches modes with a track selection, commits a lay, steps
 and returns to Live View, then undoes the lay at desktop and mobile widths. The
 image remains visible while tiles follow the displayed state. A title without
 artwork retains its generic map and has no picture button.
-
 
 Train-income row hit targets are confined to the visible train and income cells.
 The full row is a real button, including the income amount, with hover and keyboard

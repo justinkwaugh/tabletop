@@ -170,15 +170,19 @@
             {@const crowded = tokens.some(
                 (token) => token.spaceId === space.id && token.overlapped
             )}
+            {@const tinted = space.color !== 'white'}
             <div
                 class="space"
+                class:tinted
                 role="button"
                 tabindex={crowded ? 0 : -1}
                 aria-label={`Market value ${space.price}${crowded ? ', expand company stack' : ''}`}
                 data-market-space={space.id}
                 style:grid-column={space.column + 1}
                 style:grid-row={space.row + 1}
-                style:background={marketColors[space.color] ?? space.color}
+                style:--market-color={tinted
+                    ? (marketColors[space.color] ?? space.color)
+                    : undefined}
                 onpointerenter={() => expandStack(space.id)}
                 onfocus={() => expandStack(space.id)}
                 onblur={() => (hoveredSpace = undefined)}
@@ -255,7 +259,8 @@
     .market {
         width: max-content;
         padding: calc(6px * var(--render-scale));
-        color: #253b35;
+        --price-ink: light-dark(#253b35, #b4bfca);
+        color: light-dark(#253b35, var(--rail-text, #e3e9ef));
         font:
             14px/1.4 ui-sans-serif,
             system-ui,
@@ -273,16 +278,31 @@
     }
     .space {
         position: relative;
-        border: calc(1px * var(--render-scale)) solid #a4b3a7;
+        border: calc(1px * var(--render-scale)) solid
+            light-dark(#a4b3a7, var(--rail-border, #485666));
+        background: light-dark(#fffefa, var(--rail-surface-raised, #2b3744));
         margin-right: calc(-1px * var(--render-scale));
         margin-bottom: calc(-1px * var(--render-scale));
         font-size: calc(12px * var(--render-scale));
     }
+    .space.tinted {
+        background: light-dark(
+            var(--market-color),
+            color-mix(
+                in oklab,
+                oklch(from var(--market-color) 0.62 calc(c * 1.25) h) 80%,
+                var(--rail-surface-raised, #2b3744)
+            )
+        );
+        --price-ink: light-dark(#253b35, #ebe6dcd9);
+    }
     .space:focus-visible {
-        outline: calc(2px * var(--render-scale)) solid #796047;
+        outline: calc(2px * var(--render-scale)) solid
+            light-dark(#796047, var(--rail-focus, #b8cddd));
         outline-offset: calc(-2px * var(--render-scale));
     }
     strong {
+        color: var(--price-ink);
         position: absolute;
         top: calc(2px * var(--render-scale));
         left: calc(4px * var(--render-scale));
@@ -297,6 +317,11 @@
         height: calc(26px * var(--render-scale));
         pointer-events: auto;
     }
+    .token-payload :global(svg) {
+        display: block;
+        border-radius: 50%;
+        box-shadow: 0 0 0 calc(1.5px * var(--render-scale)) light-dark(transparent, #0b1118);
+    }
     .hover-offset {
         transition: transform 140ms ease-out;
     }
@@ -307,8 +332,8 @@
         position: absolute;
         z-index: 100;
         border-radius: calc(8px * var(--render-scale));
-        background: #faf7f1e8;
-        box-shadow: 0 2px 8px #0003;
+        background: light-dark(#faf7f1e8, var(--rail-surface-inset, #1b232d));
+        box-shadow: 0 2px 8px light-dark(#0003, var(--rail-shadow, #00000055));
     }
     .edge-arrow {
         opacity: 0.4;
