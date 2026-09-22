@@ -2,9 +2,9 @@
 """Extract The Old Prince alternate-art assets from the raw Boda Games print files.
 
 Inputs live in artassets/the-old-prince (not committed). Outputs:
-  privates/*.jpg   one JPG per private company card (native 600 dpi raster)
-  shares/v1|v2/*.jpg  share certificates, two art variants
-  peirs/v1|v2/*.jpg   the seven PEIR "private-share" certificates
+  privates/*.webp  one card per private company (1200 px) plus a -600 inline thumbnail
+  shares/v1|v2/*.webp  share certificates, two art variants (1100 px)
+  peirs/v1|v2/*.webp   the seven PEIR "private-share" certificates (1200 px plus -600 thumbnail)
   tokens/*.svg     vector charter tokens: coloured disc + Pantone 9200 icon path
 
 Run: python3 tools/art-extraction/extract_top.py --out <dir>
@@ -51,8 +51,13 @@ PRIVATES = {
 }
 
 
-def page_image_jpg(pdf: pathlib.Path, out: pathlib.Path, quality=85, max_height=1600):
-    """Save the single embedded raster of a one-page PDF as JPG, capped at ``max_height`` px."""
+def page_image(pdf: pathlib.Path, out: pathlib.Path, *, heights=(1200,), quality=78):
+    """Save the single embedded raster of a one-page PDF as WebP at each requested height.
+
+    The first height writes ``out``; further heights add a ``-<height>`` suffix. Card art is
+    shown at most about 360 CSS px tall inline and viewport-height in the lightbox, so the
+    defaults are a 1200 px full image and, when requested, a 600 px inline thumbnail.
+    """
     doc = fitz.open(pdf)
     page = doc[0]
     imgs = page.get_images(full=True)
@@ -61,11 +66,14 @@ def page_image_jpg(pdf: pathlib.Path, out: pathlib.Path, quality=85, max_height=
     if pix.n - pix.alpha >= 4:
         pix = fitz.Pixmap(fitz.csRGB, pix)
     im = Image.open(io.BytesIO(pix.tobytes('png'))).convert('RGB')
-    if im.height > max_height:
-        im = im.resize((round(im.width * max_height / im.height), max_height), Image.LANCZOS)
     out.parent.mkdir(parents=True, exist_ok=True)
-    im.save(out, 'JPEG', quality=quality, optimize=True, progressive=True)
-    return im.size
+    sizes = []
+    for index, height in enumerate(heights):
+        scaled = im.resize((round(im.width * height / im.height), height), Image.LANCZOS) if im.height > height else im
+        dest = out if index == 0 else out.with_name(f'{out.stem}-{height}{out.suffix}')
+        scaled.save(dest, 'WEBP', quality=quality, method=6)
+        sizes.append(scaled.size)
+    return sizes[0]
 
 
 def token_svg(pdf: pathlib.Path, fill: str, label: str) -> str:
@@ -137,8 +145,8 @@ def main():
     out = args.out
 
     for key, slug in PRIVATES.items():
-        size = page_image_jpg(SRC / 'privates+peirs' / 'private companies' / f'PRIVATE-{key}.pdf',
-                              out / 'privates' / f'{slug}.jpg')
+        size = page_image(SRC / 'privates+peirs' / 'private companies' / f'PRIVATE-{key}.pdf',
+                          out / 'privates' / f'{slug}.webp', heights=(1200, 600))
         print('private', slug, size)
 
     for variant in (1, 2):
@@ -147,16 +155,16 @@ def main():
             for kind, offset in (('share', 0), ('president', 1)):
                 n = (2 * i + offset) * 2 + variant  # odd for v1, even for v2
                 src = folder / ('share.pdf' if n == 1 else f'share_{n}.pdf')
-                size = page_image_jpg(src, out / 'shares' / f'v{variant}' / f'{company}-{kind}.jpg', quality=82, max_height=1100)
+                size = page_image(src, out / 'shares' / f'v{variant}' / f'{company}-{kind}.webp', heights=(1100,))
                 print('share', variant, company, kind, src.name, size)
         pfolder = SRC / 'privates+peirs' / f'peir variant 0{variant}'
         for n, town in PEIR_ORDER.items():
             # file suffix k holds peir number 8-k; the unsuffixed file is peir 7
             k = 8 - n
             src = pfolder / (f'private-share-0{variant}.pdf' if k == 1 else f'private-share-0{variant}_{k}.pdf')
-            size = page_image_jpg(src, out / 'peirs' / f'v{variant}' / f'peir-{n}-{town}.jpg')
+            size = page_image(src, out / 'peirs' / f'v{variant}' / f'peir-{n}-{town}.webp', heights=(1200, 600))
             print('peir', variant, n, town, size)
-        page_image_jpg(pfolder / f'private-share-0{variant}-REVERSE.pdf', out / 'peirs' / f'v{variant}' / 'peir-back.jpg')
+        page_image(pfolder / f'private-share-0{variant}-REVERSE.pdf', out / 'peirs' / f'v{variant}' / 'peir-back.webp')
 
     tile_reference(out)
 

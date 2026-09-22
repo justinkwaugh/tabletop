@@ -180,9 +180,13 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         this.publishedArtwork = !this.publishedArtwork
     }
     /** Published card image for a private company or certificate id, when that presentation is on. */
-    publishedCardImage(id: string | undefined): string | undefined {
+    publishedCardImage(
+        id: string | undefined,
+        size: 'full' | 'thumbnail' = 'full'
+    ): string | undefined {
         if (!this.publishedArtwork || id === undefined) return undefined
-        return this.presentation.publishedCardImages?.[id]
+        const full = this.presentation.publishedCardImages?.[id]
+        return (size === 'thumbnail' && this.presentation.publishedCardThumbnails?.[id]) || full
     }
     /** The map view for the current presentation: published token art replaces the generic set when selected. */
     readonly mapView: MapViewDefinition = $derived.by(() => {

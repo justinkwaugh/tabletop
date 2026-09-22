@@ -31,6 +31,8 @@ export type TitlePresentation = {
      * certificate id (for shares auctioned like privates). Shown in place of the generated card.
      */
     publishedCardImages?: Readonly<Record<string, string>>
+    /** Smaller versions of ``publishedCardImages`` for inline display; falls back to the full image. */
+    publishedCardThumbnails?: Readonly<Record<string, string>>
     /** Train badge colours for the published presentation; a value may be any CSS background. */
     publishedTrainColors?: Readonly<Record<string, string>>
     /** Phase badge colours for the published presentation; defaults to publishedTrainColors. */

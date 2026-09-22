@@ -23,6 +23,7 @@
     } = $props()
     const money = $derived(session.presentation.money)
     const imageUrl = $derived(session.publishedCardImage(id))
+    const thumbnailUrl = $derived(session.publishedCardImage(id, 'thumbnail'))
     let lightbox = $state(false)
 </script>
 
@@ -35,7 +36,7 @@
             lightbox = true
         }}
     >
-        <PrivateCard {money} {name} description="" {imageUrl} />
+        <PrivateCard {money} {name} description="" imageUrl={thumbnailUrl} />
     </button>
     {#if lightbox}
         <CardLightbox

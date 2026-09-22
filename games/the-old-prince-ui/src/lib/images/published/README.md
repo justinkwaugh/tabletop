@@ -11,9 +11,9 @@ wired yet.
 | Folder | Contents | Source |
 | --- | --- | --- |
 | `tokens/` | `<companyId>.svg` for C, So, A, MS, MR, S, Gt, PEIR and the six branches CB, SB, MB, BB, WB, HRB. Coloured disc (wood-spec Pantone, as converted by the spec sheet) plus the Pantone 9200 C icon path, 100 x 100 viewBox | `wood/15 mm/token-15mm-charter-*.pdf` and `wood/wood-specification-05-add-on.pdf` |
-| `privates/` | The 13 private company cards, 966 x 1600 px JPG | `privates+peirs/private companies` |
-| `shares/v1/`, `shares/v2/` | `<company>-share.jpg` and `<company>-president.jpg` for all 13 charters in both printed art variants, 793 x 1100 px | `shares/shares variant 01|02` |
-| `peirs/v1/`, `peirs/v2/` | `peir-<n>-<town>.jpg` for the seven numbered PEIR certificates plus `peir-back.jpg`, both variants, 966 x 1600 px | `privates+peirs/peir variant 01|02` |
+| `privates/` | The 12 private company cards as WebP, 1200 px tall for the lightbox plus a `-600` thumbnail for inline use | `privates+peirs/private companies` |
+| `shares/v1/`, `shares/v2/` | `<company>-share.webp` and `<company>-president.webp` for all 13 charters in both printed art variants, 1100 px tall | `shares/shares variant 01|02` |
+| `peirs/v1/`, `peirs/v2/` | `peir-<n>-<town>.webp` for the seven numbered PEIR certificates plus `peir-back.webp`, both variants, 1200 px tall with `-600` thumbnails | `privates+peirs/peir variant 01|02` |
 | `tiles/reference/` | Sixteen representative die-cut tiles (one or two per colour tier and marker type) as PNG with hex alpha, half resolution | `hexes/PUNCH-TILES-*.tiff` |
 | `tiles/style.json` | Measured palette, ink, track width and marker conventions for the hand-inked tile style, pre-scaled to the shared tile renderer | same |
 | `tiles/paper-grain.png` | Seamless 240 px paper-grain overlay (white and black with low alpha) cut from a track-free area of a punch tile, used by the published tile appearance | `hexes/PUNCH-TILES-03.tiff` |
