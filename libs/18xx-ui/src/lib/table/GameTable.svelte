@@ -1188,10 +1188,13 @@
     /* Published artwork: text takes the board's light tan paper and its hex-border brown,
        and pane borders take a darker step of the same brown. */
     .railway-table.published-artwork {
+        /* Each value keeps the generic palette's lightness in the board's hex-border hue. */
         --rail-text: #e6dbce;
         --rail-muted: #af9d87;
-        --rail-inactive: #857761;
-        --rail-border: #7d6f5d;
+        --rail-inactive: #6f6457;
+        --rail-border: #5c5349;
+        --rail-solid: #5c5348;
+        --rail-interstitial-border: #22201d;
     }
     .game-information {
         display: flex;
