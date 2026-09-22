@@ -2,7 +2,16 @@
     import CardLightbox from '../privates/CardLightbox.svelte'
     import type { ShareCard } from './shareCards.js'
 
-    let { cards, stacked = false }: { cards: readonly ShareCard[]; stacked?: boolean } = $props()
+    let {
+        cards,
+        stacked = false,
+        sign
+    }: {
+        cards: readonly ShareCard[]
+        stacked?: boolean
+        /** Marks the set as acquired (+) or disposed of (−) in front of the cards. */
+        sign?: 'plus' | 'minus'
+    } = $props()
     let open = $state<ShareCard | undefined>()
     /**
      * When ``stacked``, a company's certificates form one stack with the regular shares first and
@@ -25,6 +34,9 @@
 <!-- Published certificate art for traded shares; a company's cards stack with each one lower so every card's stripes show. -->
 {#if cards.length}
     <div class="share-cards" data-share-cards>
+        {#if sign}<span class="sign" class:minus={sign === 'minus'} aria-hidden="true"
+                >{sign === 'plus' ? '+' : '−'}</span
+            >{/if}
         {#each groups as group, groupIndex (groupIndex)}
             <div
                 class="stack"
@@ -71,6 +83,17 @@
            14.7%; an 18% step shows the stripes with a sliver of panel, not enough to read as a card. */
         --share-card-step: calc(var(--share-card-height, 64px) * 0.18);
         --share-card-ratio: 0.72;
+    }
+    .sign {
+        align-self: center;
+        margin-right: 2px;
+        font-size: calc(var(--share-card-height, 64px) * 0.4);
+        font-weight: 700;
+        line-height: 1;
+        color: var(--rail-text, #181818);
+    }
+    .sign.minus {
+        color: var(--rail-negative, #aa352e);
     }
     .stack {
         position: relative;

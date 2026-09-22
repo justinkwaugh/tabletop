@@ -46,6 +46,14 @@ export function tradedCertificateIds(
     return []
 }
 
+/** Whether a share action acquires (+) or disposes of (−) the certificates it shows. */
+export function shareSign(action: GameAction): 'plus' | 'minus' | undefined {
+    if (isBuyShares(action)) return 'plus'
+    if (isSellShares(action) || isSellFundingShares(action) || isIssueTreasuryShares(action))
+        return 'minus'
+    return undefined
+}
+
 /** Published card art for a share certificate: numbered certificates by id, else by company and kind. */
 export function shareCard(
     certificate: Certificate,

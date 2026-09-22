@@ -18,7 +18,7 @@
     import type { HistoryGroup } from './historyGroups.js'
     import type { HistoryDescription } from './historyDescription.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
-    import type { ShareCard } from './shareCards.js'
+    import { shareSign, type ShareCard } from './shareCards.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import type { HistoryCash } from './historyCash.js'
@@ -198,7 +198,7 @@
                             for <span class="stock-value">{row.value}</span>{/if}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
-                    <ShareCardStrip cards={shareCards(row.action)} />
+                    <ShareCardStrip cards={shareCards(row.action)} sign={shareSign(row.action)} />
                     {#if row.order}<OperatingOrderHistory
                             order={row.order}
                             {stations}
@@ -295,7 +295,7 @@
                             : (row.value ?? '')}</strong
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
-                    <ShareCardStrip cards={shareCards(row.action)} />
+                    <ShareCardStrip cards={shareCards(row.action)} sign={shareSign(row.action)} />
                     {#if row.order}<OperatingOrderHistory
                             order={row.order}
                             {stations}

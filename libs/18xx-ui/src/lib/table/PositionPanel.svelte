@@ -23,6 +23,7 @@
     import GameEnding from '../ending/GameEnding.svelte'
     import AuctionLotCard from '../auctions/AuctionLotCard.svelte'
     import ShareCardStrip from './ShareCardStrip.svelte'
+    import { shareSign } from './shareCards.js'
 
     let {
         session,
@@ -141,6 +142,7 @@
             description,
             actor,
             shareCards: session.shareCards(action),
+            shareSign: shareSign(action),
             lot: lot
                 ? {
                       ...lot,
@@ -271,7 +273,9 @@
                     </p>{/if}
             </div>
             {#if latest.shareCards.length}
-                <div class="share-strip"><ShareCardStrip cards={latest.shareCards} stacked /></div>
+                <div class="share-strip">
+                    <ShareCardStrip cards={latest.shareCards} stacked sign={latest.shareSign} />
+                </div>
             {/if}
             {#if latest.lot}
                 <div class="lot-card">
