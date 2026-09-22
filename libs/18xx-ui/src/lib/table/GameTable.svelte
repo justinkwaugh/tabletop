@@ -1185,19 +1185,24 @@
         --rail-table-background: #18212b;
         --rail-map-background: #172832;
     }
-    /* Published artwork: text takes the board's light tan paper and its hex-border brown,
-       and pane borders take a darker step of the same brown. */
+    /* Published artwork: the board's own palette. Bright text is its light tan paper, dimmed
+       text the grey-tan of its stock market figures, and surfaces its slate market cells on the
+       near-black slate ground (MAP-JUNE-for-print: ground #1a292c, cells #213742, figures #b2a994). */
     .railway-table.published-artwork {
-        /* Each value keeps the generic palette's lightness in the board's hex-border hue. */
         --rail-text: #e6dbce;
-        --rail-muted: #af9d87;
-        --rail-inactive: #6f6457;
-        --workspace-inactive: var(--rail-muted);
-        --rail-border: #5c5349;
-        --rail-solid: #5c5348;
-        --rail-interstitial-border: #22201d;
+        --rail-muted: #a8a094;
+        --rail-inactive: #7a746a;
+        --rail-border: #34474f;
+        --rail-solid: #2c4652;
+        --rail-interstitial-border: #1a292c;
+        --rail-surface: #213742;
+        --rail-surface-inset: #182427;
+        --rail-surface-raised: #29434f;
+        --rail-surface-selected: #34505e;
+        --rail-hover: #e6dbce18;
+        --rail-focus: #e6dbce;
     }
-    /* Inactive tabs read in the dimmed-text brown, like the game information labels. */
+    /* Inactive tabs read in the dimmed-text colour, like the game information labels. */
     .railway-table.published-artwork :global([role='tab'][aria-selected='false']) {
         color: var(--rail-muted);
     }

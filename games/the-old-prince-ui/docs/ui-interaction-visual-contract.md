@@ -87,8 +87,9 @@ These change shared presentation without adding interaction:
   station circles, plain white revenue discs, and a faint ring or inset hex in place of the X
   and T labels), and printed-city station positions
   for Wellington, Summerside and Charlottetown. In that mode the page and map surround
-  take the board's dark border color, table text takes the board's light tan paper and
-  its hex-border brown for dimmed text and pane borders, and train and phase badges take
+  take the board's dark border color, the table takes the board's own palette (light tan
+  paper for bright text, the grey-tan of its stock market figures for dimmed text and
+  inactive tabs, slate market-cell surfaces and borders), and train and phase badges take
   the player aid's purple, crimson and teal cycle with a two-tone diesel, and leaving the mode or the table restores the
   generic lettered tokens, generated cards and background. It is a per-player display
   choice held by the session; it never changes Game State or creates an Action.
