@@ -343,7 +343,7 @@
             <text
                 data-tile-label-text
                 x={drawing.labelPosition.x}
-                y={drawing.labelPosition.y}
+                y={drawing.labelPosition.y + 4}
                 font-size="6.5"
                 font-weight="600"
                 font-family="Georgia, 'Times New Roman', serif"
