@@ -18,7 +18,7 @@
         type EighteenXXState,
         type HydratedEighteenXXState
     } from '@tabletop/18xx'
-    import type { ScenarioPosition } from '../scenarios/scenarioPosition.js'
+    import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
     import {
         createHarnessAppContext,
         setAppContext,

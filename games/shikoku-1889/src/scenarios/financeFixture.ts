@@ -1,5 +1,5 @@
-import { Shikoku1889Majors } from '@tabletop/shikoku-1889'
-import { Shikoku1889Privates } from '@tabletop/shikoku-1889'
+import { Shikoku1889Majors } from '../index.js'
+import { Shikoku1889Privates } from '../index.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,

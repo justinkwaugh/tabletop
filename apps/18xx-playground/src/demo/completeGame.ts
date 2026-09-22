@@ -1,4 +1,4 @@
-import type { ScenarioPosition } from '../scenarios/scenarioPosition.js'
+import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
 import { ActionSource, assert, type GameAction } from '@tabletop/common'
 import {
     Definition as Top,

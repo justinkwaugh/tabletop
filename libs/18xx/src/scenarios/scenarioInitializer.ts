@@ -1,17 +1,14 @@
 import { assert, type Game, type PlayerState, type UninitializedGameState } from '@tabletop/common'
 import { Compile } from 'typebox/compile'
-import {
-    EighteenXXInitializer,
-    StationPlacement,
-    applyStationPlacement,
-    controllingOwner,
-    privateIncomePayments,
-    settleCashPayments,
-    type EighteenXXTitleRules,
-    type HydratedEighteenXXState,
-    type InitialPosition,
-    type StockMarket
-} from '@tabletop/18xx'
+import { EighteenXXInitializer } from '../game/eighteenXXInitializer.js'
+import type { HydratedEighteenXXState } from '../game/eighteenXXState.js'
+import type { EighteenXXTitleRules } from '../game/eighteenXXTitleRules.js'
+import type { InitialPosition } from '../game/opening.js'
+import { StationPlacement, applyStationPlacement } from '../stations/stationPlacement.js'
+import { controllingOwner } from '../finance/finance.js'
+import { privateIncomePayments } from '../operating/startOperatingRound.js'
+import { settleCashPayments } from '../finance/cashPayments.js'
+import type { StockMarket } from '../stock/stockMarket.js'
 import { ScenarioPosition } from './scenarioPosition.js'
 
 export type PreparedPosition = Exclude<ScenarioPosition, 'opening' | 'ending'>

@@ -1,4 +1,4 @@
-import { Shikoku1889Privates } from '@tabletop/shikoku-1889'
+import { Shikoku1889Privates } from '../index.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import type { CompanyState } from '@tabletop/18xx'
 export function prepareShikoku1889Privates(

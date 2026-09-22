@@ -1,7 +1,7 @@
 <script lang="ts">
     import { UiDefinition as Top } from '@tabletop/the-old-prince-ui'
     import { UiDefinition as Shikoku } from '@tabletop/shikoku-1889-ui'
-    import type { ScenarioPosition } from '../../scenarios/scenarioPosition.js'
+    import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
     import { withScenarioUi } from '../../scenarios/uiDefinitions.js'
     import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
     import '../../table.css'

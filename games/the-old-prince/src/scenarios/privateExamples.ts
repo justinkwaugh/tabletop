@@ -1,4 +1,4 @@
-import { TheOldPrincePrivates } from '@tabletop/the-old-prince'
+import { TheOldPrincePrivates } from '../index.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import { getCompany, type CompanyState } from '@tabletop/18xx'
 export function prepareTheOldPrincePrivates(

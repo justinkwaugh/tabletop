@@ -8,8 +8,8 @@ import {
 import { expect, it } from 'vitest'
 import { assert, Color } from '@tabletop/common'
 import { validateFinances } from '@tabletop/18xx'
-import { peirEntitlement, peirPresident, peirShares } from '@tabletop/the-old-prince'
-import { createTheOldPrinceFinanceExample } from '../scenarios/the-old-prince/financeFixture.js'
+import { peirEntitlement, peirPresident, peirShares } from './index.js'
+import { createTheOldPrinceFinanceExample } from './scenarios/index.js'
 const players = [
     { playerId: 'alex', color: Color.Blue },
     { playerId: 'blair', color: Color.Red },

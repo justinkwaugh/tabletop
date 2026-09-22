@@ -16,7 +16,7 @@ import {
     type RouteRules
 } from '@tabletop/18xx'
 import { Autorouter } from './autorouter.js'
-import { exhaustiveRevenue } from '../test/exhaustiveRevenue.js'
+import { exhaustiveRevenue } from './testing/exhaustiveRevenue.js'
 
 let router: Autorouter
 beforeAll(async () => {

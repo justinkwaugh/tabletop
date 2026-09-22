@@ -1,8 +1,8 @@
-import type { PreparedPosition } from '../scenarioInitializer.js'
+import type { PreparedPosition } from '@tabletop/18xx/scenarios'
 import { prepareTheOldPrinceBranchSplit } from './branchSplitExample.js'
 import { prepareTheOldPrincePrivates } from './privateExamples.js'
-import { TheOldPrinceTrainDepot } from '@tabletop/the-old-prince'
-import { TheOldPrinceTileSet } from '@tabletop/the-old-prince'
+import { TheOldPrinceTrainDepot } from '../index.js'
+import { TheOldPrinceTileSet } from '../index.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
@@ -12,8 +12,8 @@ import {
     type MapStateData,
     } from '@tabletop/18xx'
 import { createTheOldPrinceFinanceExample } from './financeFixture.js'
-import { peirCompanies } from '@tabletop/the-old-prince'
-import { TheOldPrinceMap } from '@tabletop/the-old-prince'
+import { peirCompanies } from '../index.js'
+import { TheOldPrinceMap } from '../index.js'
 
 export function createTheOldPrinceCompanyExample(
     players: readonly PlayerState[],

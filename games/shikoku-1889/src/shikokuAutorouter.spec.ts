@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { beforeAll, expect, it } from 'vitest'
 import { assertExists, Color, HexOrientation } from '@tabletop/common'
@@ -11,15 +12,15 @@ import {
     createStagedTileRevenue,
     type TrainRunningState
 } from '@tabletop/18xx'
-import { exhaustiveRevenue } from '../../../../libs/18xx-autorouter/test/exhaustiveRevenue.js'
-import { createShikoku1889CompanyExample } from '../scenarios/shikoku-1889/companyExamples.js'
-import { Shikoku1889RouteRules } from '@tabletop/shikoku-1889'
-import { Shikoku1889TrainDepot } from '@tabletop/shikoku-1889'
+import { exhaustiveRevenue } from '@tabletop/18xx-autorouter/testing'
+import { createShikoku1889CompanyExample } from './scenarios/index.js'
+import { Shikoku1889RouteRules } from './index.js'
+import { Shikoku1889TrainDepot } from './index.js'
 
 let router: Autorouter
 beforeAll(async () => {
     const bytes = await readFile(
-        new URL('../../../../libs/18xx-autorouter/esm/solver.wasm', import.meta.url)
+        createRequire(import.meta.url).resolve('@tabletop/18xx-autorouter/solver.wasm')
     )
     router = await Autorouter.create(new Uint8Array(bytes).buffer)
 })

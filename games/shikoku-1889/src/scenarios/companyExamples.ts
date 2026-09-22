@@ -1,9 +1,9 @@
-import type { PreparedPosition } from '../scenarioInitializer.js'
-import { Shikoku1889Majors } from '@tabletop/shikoku-1889'
+import type { PreparedPosition } from '@tabletop/18xx/scenarios'
+import { Shikoku1889Majors } from '../index.js'
 import { prepareShikoku1889Privates } from './privateExamples.js'
-import { Shikoku1889TrainDepot } from '@tabletop/shikoku-1889'
-import { Shikoku1889StationCounts } from '@tabletop/shikoku-1889'
-import { Shikoku1889TileSet } from '@tabletop/shikoku-1889'
+import { Shikoku1889TrainDepot } from '../index.js'
+import { Shikoku1889StationCounts } from '../index.js'
+import { Shikoku1889TileSet } from '../index.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
@@ -14,7 +14,7 @@ import {
     type MapStateData,
     } from '@tabletop/18xx'
 import { createShikoku1889FinanceExample } from './financeFixture.js'
-import { Shikoku1889Map } from '@tabletop/shikoku-1889'
+import { Shikoku1889Map } from '../index.js'
 
 export function createShikoku1889CompanyExample(
     players: readonly PlayerState[],

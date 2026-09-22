@@ -1,6 +1,6 @@
 import { placeStockMarker } from '@tabletop/18xx'
-import { createTheOldPrinceStockMarket } from '@tabletop/the-old-prince'
-import type { PreparedPosition } from '../scenarioInitializer.js'
+import { createTheOldPrinceStockMarket } from '../index.js'
+import type { PreparedPosition } from '@tabletop/18xx/scenarios'
 
 const ThirdCompanyPositions: readonly PreparedPosition[] = ['flotation', 'privates', 'private-events', 'transfers', 'powers']
 export function createTheOldPrinceScenarioMarket(position: PreparedPosition) {

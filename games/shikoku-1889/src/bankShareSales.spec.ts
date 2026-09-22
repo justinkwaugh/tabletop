@@ -1,11 +1,12 @@
 import { expect, it } from 'vitest'
 import { ActionSource } from '@tabletop/common'
-import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
+import { Definition as Shikoku, Shikoku1889StockRules } from './index.js'
 import { cashOwnedBy, evaluateShareSale, type SellShares } from '@tabletop/18xx'
-import { example } from './stockTestUtils.js'
+import { exampleGame } from '@tabletop/18xx/scenarios'
+import { Shikoku1889Scenarios } from './scenarios/index.js'
 
 it('pays a stock sale that exhausts the bank and reverses it on undo', () => {
-    const { game, engine, state } = example(Shikoku, 'trading')
+    const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
     state.stockRound.number = 2
     const bank = state.cash.find((cash) => cash.owner.kind === 'bank')!
     bank.amount = 1
@@ -37,7 +38,7 @@ it('pays a stock sale that exhausts the bank and reverses it on undo', () => {
 })
 
 it('keeps the affordability restriction for banks that cannot exceed their cash', () => {
-    const { state } = example(Shikoku, 'trading')
+    const { state } = exampleGame(Shikoku1889Scenarios, 'trading')
     state.stockRound.number = 2
     state.bank.unlimitedAfterExhaustion = false
     state.cash.find((cash) => cash.owner.kind === 'bank')!.amount = 1

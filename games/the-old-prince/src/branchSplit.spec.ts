@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-    Definition as Top,
-    TheOldPrinceBranchSplit,
-    TheOldPrinceBranches
-} from '@tabletop/the-old-prince'
-import { Definition as Shikoku } from '@tabletop/shikoku-1889'
+import { Definition as Top, TheOldPrinceBranchSplit, TheOldPrinceBranches } from './index.js'
 import {
     getCompany,
     sameOwner,
@@ -12,14 +7,15 @@ import {
     type Owner,
     type EighteenXXState
 } from '@tabletop/18xx'
-import { example } from './stockTestUtils.js'
+import { exampleGame } from '@tabletop/18xx/scenarios'
+import { TheOldPrinceScenarios } from './scenarios/index.js'
 const alex = { kind: 'player', playerId: 'alex' } as const
 const blair = { kind: 'player', playerId: 'blair' } as const
 const bank = { kind: 'bank' } as const
 const union = { kind: 'company', companyId: 'UB' } as const
 const treasury = { kind: 'company', companyId: 'So' } as const
 const request = { playerId: 'alex', parentId: 'So', branchId: 'branch:BB', marketSpaceId: '3:1' }
-function preview(state = example(Top, 'split').state) {
+function preview(state = exampleGame(TheOldPrinceScenarios, 'split').state) {
     const result = new TheOldPrinceBranchSplit(state).evaluate(request)
     expect(result.reason).toBeUndefined()
     if (!result.details) throw new Error(result.reason)
@@ -35,7 +31,7 @@ function allocate(state: EighteenXXState, owners: { owner: Owner; poolId?: strin
     }
 }
 it('previews the 50/30/20 split with exact certificate identities and no canonical changes', () => {
-    const { state } = example(Top, 'split')
+    const { state } = exampleGame(TheOldPrinceScenarios, 'split')
     const before = structuredClone(state)
     const details = preview(state)
     expect(
@@ -75,7 +71,7 @@ it('previews the 50/30/20 split with exact certificate identities and no canonic
     expect(state).toEqual(before)
 })
 it('rounds players and Union Bank independently and preserves reserved exchange shares', () => {
-    const { state } = example(Top, 'split')
+    const { state } = exampleGame(TheOldPrinceScenarios, 'split')
     allocate(state, [
         { owner: alex },
         { owner: alex },
@@ -99,7 +95,7 @@ it('rounds players and Union Bank independently and preserves reserved exchange 
     expect(details.ownership.find((row) => sameOwner(row.owner, treasury))?.parentShares).toBe(3)
 })
 it('retains existing treasury shares and rounds eligible Bank shares across pools together', () => {
-    const { state } = example(Top, 'split')
+    const { state } = exampleGame(TheOldPrinceScenarios, 'split')
     state.certificatePools.push({ id: 'ipo', name: 'IPO', owner: bank })
     allocate(state, [
         { owner: alex },
@@ -127,7 +123,7 @@ it('retains existing treasury shares and rounds eligible Bank shares across pool
     ).toBe(false)
 })
 it('does not combine a player’s shares with Union Bank for split eligibility', () => {
-    const { state } = example(Top, 'split')
+    const { state } = exampleGame(TheOldPrinceScenarios, 'split')
     allocate(state, [
         { owner: alex },
         { owner: union },
@@ -204,12 +200,12 @@ describe('split eligibility', () => {
             }
         ]
     ])('rejects %s', (_name, change) => {
-        const { state } = example(Top, 'split')
+        const { state } = exampleGame(TheOldPrinceScenarios, 'split')
         change(state)
         expect(new TheOldPrinceBranchSplit(state).evaluate(request).reason).toBeDefined()
     })
     it('rejects PEIR, geographic companies as branches, and branches already started', () => {
-        const { state } = example(Top, 'split')
+        const { state } = exampleGame(TheOldPrinceScenarios, 'split')
         const model = new TheOldPrinceBranchSplit(state)
         expect(model.evaluate({ ...request, parentId: 'PEIR' }).reason).toBeDefined()
         expect(model.evaluate({ ...request, branchId: 'ML' }).reason).toBeDefined()
@@ -223,7 +219,7 @@ it.each([
     ['3+', [65, 58]],
     ['7', [58]]
 ])('applies phase %s prices to branch funding', (phase, prices) => {
-    const { state } = example(Top, 'split')
+    const { state } = exampleGame(TheOldPrinceScenarios, 'split')
     state.phaseId = phase
     const model = new TheOldPrinceBranchSplit(state)
     expect(model.prices().map((p) => p.price)).toEqual(prices)
@@ -234,7 +230,7 @@ it.each([
     expect(model.evaluate({ ...request, marketSpaceId: '1:1' }).reason).toBeDefined()
 })
 it('conserves each company’s share units across the preview transfers', () => {
-    const { state } = example(Top, 'split')
+    const { state } = exampleGame(TheOldPrinceScenarios, 'split')
     const details = preview(state)
     for (const transfer of details.certificateTransfers) {
         const certificate = state.certificates.find((c) => c.id === transfer.certificateId)
@@ -250,17 +246,12 @@ it('conserves each company’s share units across the preview transfers', () => 
     expect(details.ownership.reduce((sum, row) => sum + row.parentShares, 0)).toBe(10)
     expect(details.ownership.reduce((sum, row) => sum + row.childShares, 0)).toBe(10)
 })
-it('registers six distinct branch charters in TOP setup and none in 1889', () => {
-    const top = example(Top, 'opening').state
+it('registers six distinct branch charters in TOP setup', () => {
+    const top = exampleGame(TheOldPrinceScenarios, 'opening').state
     for (const branch of TheOldPrinceBranches) {
         expect(getCompany(top, branch.id).started).toBe(false)
         expect(top.certificates.filter((c) => c.companyId === branch.id)).toHaveLength(9)
         expect(top.stations.filter((s) => s.companyId === branch.id)).toHaveLength(4)
     }
     expect(new Set(top.companies.map((c) => c.id)).size).toBe(top.companies.length)
-    expect(
-        example(Shikoku).state.companies.some((c) =>
-            TheOldPrinceBranches.some((branch) => branch.id === c.id)
-        )
-    ).toBe(false)
 })

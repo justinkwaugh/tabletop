@@ -1,10 +1,15 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { OfferAuction, cashOwnedBy, getCompany, type EighteenXXState } from '@tabletop/18xx'
-import { Definition, TheOldPrinceAuctionRules, theOldPrinceRole } from '@tabletop/the-old-prince'
-import { example } from './stockTestUtils.js'
+import { Definition, TheOldPrinceAuctionRules, theOldPrinceRole } from './index.js'
+import { exampleGame } from '@tabletop/18xx/scenarios'
+import { TheOldPrinceScenarios } from './scenarios/index.js'
 function opening(count = 3, seed = 5) {
-    const { game, engine, state: initial } = example(Definition, 'opening', count, seed)
+    const {
+        game,
+        engine,
+        state: initial
+    } = exampleGame(TheOldPrinceScenarios, 'opening', count, seed)
     let state = initial
     const history: GameAction[] = []
     return {

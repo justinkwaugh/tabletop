@@ -8,7 +8,11 @@
             "types": "./esm/index.d.ts",
             "import": "./esm/index.js"
         },
-        "./solver.wasm": "./esm/solver.wasm"
+        "./solver.wasm": "./esm/solver.wasm",
+        "./testing": {
+            "types": "./esm/testing/index.d.ts",
+            "import": "./esm/testing/index.js"
+        }
     },
     "sideEffects": false,
     "files": [

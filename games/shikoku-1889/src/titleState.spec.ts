@@ -13,7 +13,7 @@ import {
     type TileSet,
     type TrainDepot
 } from '@tabletop/18xx'
-import { Definition as Shikoku, Shikoku1889TitleRules } from '@tabletop/shikoku-1889'
+import { Definition as Shikoku, Shikoku1889TitleRules } from './index.js'
 
 const CharterState = extendEighteenXXState(
     { charterVotes: Type.Optional(Type.Array(Type.String())) },

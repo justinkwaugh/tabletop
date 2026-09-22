@@ -1,15 +1,16 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { Definition, Shikoku1889AuctionRules } from '@tabletop/shikoku-1889'
+import { Definition, Shikoku1889AuctionRules } from './index.js'
 import {
     ReserveBidAuction,
     cashOwnedBy,
     EighteenXXStateValidator,
     type EighteenXXState
 } from '@tabletop/18xx'
-import { example } from './stockTestUtils.js'
+import { exampleGame } from '@tabletop/18xx/scenarios'
+import { Shikoku1889Scenarios } from './scenarios/index.js'
 function opening(count = 3) {
-    const { game, engine, state: initial } = example(Definition, 'opening', count)
+    const { game, engine, state: initial } = exampleGame(Shikoku1889Scenarios, 'opening', count)
     let state = initial
     const history: GameAction[] = []
     return {

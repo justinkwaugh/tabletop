@@ -1,4 +1,4 @@
-import { TheOldPrinceKingsMail } from '@tabletop/the-old-prince'
+import { TheOldPrinceKingsMail } from '../index.js'
 import { assert, assertExists, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,

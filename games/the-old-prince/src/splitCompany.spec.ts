@@ -6,18 +6,20 @@ import {
     HydratedSplitCompany,
     isSplitCompany,
     TheOldPrinceBranchSplit,
-    type BranchSplitAllocation
-} from '@tabletop/the-old-prince'
-import { Definition as Shikoku } from '@tabletop/shikoku-1889'
+    type BranchSplitAllocation,
+    TheOldPrinceTitleRules
+} from './index.js'
 import {
     cashOwnedBy,
     getCompany,
     sameOwner,
     sharesOwned,
     companyMarketSpace,
-    type EighteenXXState
+    type EighteenXXState,
+    createEighteenXXRuntime
 } from '@tabletop/18xx'
-import { example, purchase } from './stockTestUtils.js'
+import { exampleGame, purchase } from '@tabletop/18xx/scenarios'
+import { TheOldPrinceScenarios } from './scenarios/index.js'
 const alex = { kind: 'player', playerId: 'alex' } as const
 function split(state: EighteenXXState, changes: Partial<BranchSplitAllocation> = {}) {
     return createAction(SplitCompany, {
@@ -68,7 +70,7 @@ function apply(
     }).updatedState
 }
 it('commits the exact preview, conserves assets, and uses one stock action', () => {
-    const { game, engine, state } = example(Top, 'split')
+    const { game, engine, state } = exampleGame(TheOldPrinceScenarios, 'split')
     const before = structuredClone(state)
     const action = split(state)
     const calculation = new TheOldPrinceBranchSplit(state).allocate(action, action.allocation)
@@ -140,7 +142,7 @@ it('commits the exact preview, conserves assets, and uses one stock action', () 
     expect(after.machineState).toBe('StockRound')
 })
 it('round-trips the action and restores the entire split with replay and Undo', () => {
-    const { game, engine, state } = example(Top, 'split')
+    const { game, engine, state } = exampleGame(TheOldPrinceScenarios, 'split')
     const action = split(state)
     const result = engine.executeCanonicalAction({ game, state, action })
     const processed = result.processedActions[0]
@@ -158,7 +160,10 @@ it('round-trips the action and restores the entire split with replay and Undo', 
     for (const action of result.processedActions.toReversed())
         replay = engine.undoProcessedAction({ state: replay, action })
     expect(replay).toEqual(state)
-    expect(Shikoku.runtime.apiActions.SplitCompany).toBeUndefined()
+    expect(
+        createEighteenXXRuntime({ ...TheOldPrinceTitleRules, titleActions: [] }).apiActions
+            .SplitCompany
+    ).toBeUndefined()
 })
 it.each([
     ['no station', { stationIds: [] }],
@@ -171,7 +176,7 @@ it.each([
     ['fractional cash', { cash: 0.5 }],
     ['foreign train', { trainIds: ['missing'] }]
 ])('rejects %s without changing state', (_name, change) => {
-    const { game, engine, state } = example(Top, 'split')
+    const { game, engine, state } = exampleGame(TheOldPrinceScenarios, 'split')
     const action = split(state)
     const before = structuredClone(state)
     const invalid = { ...action, allocation: { ...action.allocation, ...change } }
@@ -179,7 +184,7 @@ it.each([
     expect(state).toEqual(before)
 })
 it('rejects duplicate trains, a missing Hunslet, wrong actors, system actions, and stale grants', () => {
-    const { game, engine, state } = example(Top, 'split')
+    const { game, engine, state } = exampleGame(TheOldPrinceScenarios, 'split')
     const action = split(state)
     for (const override of [
         { playerId: 'blair' },
@@ -201,7 +206,7 @@ it('rejects duplicate trains, a missing Hunslet, wrong actors, system actions, a
     expect(() => engine.executeCanonicalAction({ game, state, action })).toThrow()
 })
 it('checks available station pieces and each resulting train limit', () => {
-    const { state } = example(Top, 'split')
+    const { state } = exampleGame(TheOldPrinceScenarios, 'split')
     const action = split(state)
     state.stations = state.stations.filter(
         (s) => s.companyId !== 'branch:BB' || s.id === 'branch:BB:home'
@@ -229,7 +234,7 @@ it('checks available station pieces and each resulting train limit', () => {
     ).toBeUndefined()
 })
 it('allows zero cash and no trains or Hunslet to be transferred', () => {
-    const { game, engine, state } = example(Top, 'split')
+    const { game, engine, state } = exampleGame(TheOldPrinceScenarios, 'split')
     const result = engine.executeCanonicalAction({
         game,
         state,
@@ -253,7 +258,7 @@ it('allows zero cash and no trains or Hunslet to be transferred', () => {
     })
 })
 it('finishes the stock turn, bars a second purchase, and floats later without paying again', () => {
-    const { game, engine, state: initial } = example(Top, 'split')
+    const { game, engine, state: initial } = exampleGame(TheOldPrinceScenarios, 'split')
     let state = engine.executeCanonicalAction({
         game,
         state: initial,
@@ -306,7 +311,7 @@ it('finishes the stock turn, bars a second purchase, and floats later without pa
     ).not.toContain('SplitCompany')
 })
 it('preserves reserved certificates and non-acting-player authority during stock exchanges', () => {
-    const { game, engine, state } = example(Top, 'split')
+    const { game, engine, state } = exampleGame(TheOldPrinceScenarios, 'split')
     const certificate = state.certificates.find((c) => c.id === 'So:share:8')
     if (!certificate || certificate.retired) throw new Error('Missing share')
     certificate.poolId = 'reserved'

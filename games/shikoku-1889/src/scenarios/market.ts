@@ -1,6 +1,6 @@
 import { placeStockMarker } from '@tabletop/18xx'
-import { createShikoku1889StockMarket } from '@tabletop/shikoku-1889'
-import type { PreparedPosition } from '../scenarioInitializer.js'
+import { createShikoku1889StockMarket } from '../index.js'
+import type { PreparedPosition } from '@tabletop/18xx/scenarios'
 
 export function createShikoku1889ScenarioMarket(position: PreparedPosition) {
     const market = createShikoku1889StockMarket()

@@ -1,9 +1,10 @@
 import { it, expect } from 'vitest'
 import { TrackConstruction } from '@tabletop/18xx'
-import { Definition as Top, TheOldPrinceTrackRules } from '@tabletop/the-old-prince'
-import { example } from './stockTestUtils.js'
+import { Definition as Top, TheOldPrinceTrackRules } from './index.js'
+import { exampleGame } from '@tabletop/18xx/scenarios'
+import { TheOldPrinceScenarios } from './scenarios/index.js'
 it('enumerates affordable construction over the full map', () => {
-    const { state } = example(Top, 'routes')
+    const { state } = exampleGame(TheOldPrinceScenarios, 'routes')
     state.machineState = 'LayingTrack'
     state.trackStep = { companyId: 'ML', lays: [], completed: false }
     const cash = state.cash.find(
