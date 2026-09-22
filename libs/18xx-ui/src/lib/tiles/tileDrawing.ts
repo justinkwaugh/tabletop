@@ -204,7 +204,7 @@ export function createTileDrawing(
     })
     const labelPosition = layout.labelPosition
         ? orientPoint(layout.labelPosition, angle)
-        : annotationPosition(paths, occupied, 31.5)
+        : labelAnnotationPosition(paths, occupied, geometry.vertices, face.labels.join(' '))
     if (face.labels.length) occupied.push(labelPosition)
     const symbolPosition = annotationPosition(paths, occupied, 29)
     if (face.symbols?.length) occupied.push(symbolPosition)
@@ -254,11 +254,61 @@ function townMarkerAngle(center: Point, paths: readonly TileDrawnPath[]): number
     return (Math.atan2(tangent.y - center.y, tangent.x - center.x) * 180) / Math.PI + 90
 }
 
+const LabelFontSize = 12
+const LabelGlyphWidth = 0.7 * LabelFontSize
+const LabelOutline = 1.25
+const MarkerRadius = 10
+
+function labelAnnotationPosition(
+    paths: readonly TileDrawnPath[],
+    occupied: readonly Point[],
+    vertices: readonly Point[],
+    label: string
+): Point {
+    const halfWidth = (label.length * LabelGlyphWidth) / 2 + LabelOutline
+    const halfHeight = LabelFontSize / 2 + LabelOutline
+    const clearOfMarkers = (center: Point) =>
+        occupied.every(
+            (marker) =>
+                Math.hypot(
+                    Math.max(0, Math.abs(marker.x - center.x) - halfWidth),
+                    Math.max(0, Math.abs(marker.y - center.y) - halfHeight)
+                ) >= MarkerRadius
+        )
+    const fits = (center: Point) =>
+        clearOfMarkers(center) &&
+        [-1, 1].every((horizontal) =>
+            [-1, 1].every((vertical) =>
+                insideHex(vertices, {
+                    x: center.x + horizontal * halfWidth,
+                    y: center.y + vertical * halfHeight
+                })
+            )
+        )
+    const preferred = 31.5
+    const radii = Array.from({ length: 9 }, (_, step) => preferred - step * 2).flatMap(
+        (radius, step) => (step ? [radius, preferred + step * 2] : [radius])
+    )
+    for (const radius of radii) {
+        const position = annotationPosition(paths, occupied, radius, undefined, fits)
+        if (fits(position)) return position
+    }
+    return annotationPosition(paths, occupied, preferred)
+}
+
+function insideHex(vertices: readonly Point[], point: Point): boolean {
+    return vertices.every((a, index) => {
+        const b = vertices[(index + 1) % vertices.length]
+        return (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x) >= 0
+    })
+}
+
 function annotationPosition(
     paths: readonly TileDrawnPath[],
     occupied: readonly Point[],
     radius: number,
-    corners?: readonly Point[]
+    corners?: readonly Point[],
+    fits: (point: Point) => boolean = () => true
 ): Point {
     const samples = paths.flatMap((path) =>
         Array.from({ length: 21 }, (_, index) => tilePathPoint(path, index / 20))
@@ -275,5 +325,8 @@ function annotationPosition(
             ...occupied.map((sample) => Math.hypot(point.x - sample.x, point.y - sample.y) - 10)
         )
     }
-    return candidates.reduce((best, point) => (clearance(point) > clearance(best) ? point : best))
+    const fitting = candidates.filter(fits)
+    return (fitting.length ? fitting : candidates).reduce((best, point) =>
+        clearance(point) > clearance(best) ? point : best
+    )
 }
