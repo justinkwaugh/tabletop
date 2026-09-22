@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/the-old-prince-ui",
-    "version": "0.47.0",
+    "version": "0.54.0",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",
