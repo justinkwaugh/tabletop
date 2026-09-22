@@ -172,7 +172,8 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         return (
             !!this.mapViewDefinition.boardArtwork ||
             !!this.mapViewDefinition.publishedStations ||
-            !!this.presentation.publishedCardImages
+            !!this.presentationDefinition.publishedCardImages ||
+            !!this.presentationDefinition.publishedTrainColors
         )
     }
     toggleArtwork() {
@@ -194,11 +195,25 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
             layouts: { ...definition.layouts, ...definition.publishedLayouts }
         }
     })
+    /** The title presentation for the current mode: published badge colours replace the generic ones when selected. */
+    readonly presentation: TitlePresentation = $derived.by(() => {
+        const definition = this.presentationDefinition
+        const trains = definition.publishedTrainColors
+        if (!this.publishedArtwork || !trains) return definition
+        return {
+            ...definition,
+            trainColors: { ...definition.trainColors, ...trains },
+            phaseColors: {
+                ...definition.phaseColors,
+                ...(definition.publishedPhaseColors ?? trains)
+            }
+        }
+    })
     constructor(
         options: SessionOptions,
         private readonly rules: EighteenXXTitleRules,
         private readonly mapViewDefinition: MapViewDefinition,
-        readonly presentation: TitlePresentation
+        private readonly presentationDefinition: TitlePresentation
     ) {
         super(options)
         const { map, tileSet } = titleComponents(rules)

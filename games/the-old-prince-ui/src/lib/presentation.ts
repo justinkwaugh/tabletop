@@ -21,7 +21,7 @@ import Peir7Card from './images/published/peirs/v2/peir-7-charlottetown.jpg'
 import { TheOldPrinceCompanies } from '@tabletop/the-old-prince'
 import { TheOldPrinceCompanyNames } from './companyPresentation.js'
 import { TheOldPrincePhaseChart } from './phaseChart.js'
-import { TheOldPrinceTrainColors } from './trainPresentation.js'
+import { TheOldPrinceTrainColors, TheOldPrincePublishedTrainColors } from './trainPresentation.js'
 
 export const TheOldPrincePresentation: TitlePresentation = {
     money: moneyFormat('$'),
@@ -49,6 +49,7 @@ export const TheOldPrincePresentation: TitlePresentation = {
               ? 'Treasury'
               : pool.name,
     privatePurchaseLabel: 'Buy Hunslet',
+    publishedTrainColors: TheOldPrincePublishedTrainColors,
     // Published presentation: Boda Games private cards and the second-variant PEIR certificates.
     publishedCardImages: {
         MC: MerchantsCard,

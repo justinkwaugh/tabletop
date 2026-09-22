@@ -10,3 +10,20 @@ export const TheOldPrinceTrainColors: Readonly<Record<string, string>> = {
     '7': '#e06666',
     D: '#cccccc'
 }
+
+/**
+ * Badge colours from the published player aid: the trains cycle purple, crimson and teal, and
+ * the diesel is a two-tone marble of the purple and crimson.
+ */
+export const TheOldPrincePublishedTrainColors: Readonly<Record<string, string>> = {
+    '2H': '#473759',
+    '3H': '#912c4b',
+    '4H': '#2d4b4c',
+    '5H': '#463657',
+    '6H': '#912b4b',
+    '2+': '#2e4c4c',
+    '3+': '#463657',
+    '4+': '#912c4c',
+    '7': '#2e4c4d',
+    D: 'linear-gradient(120deg, #463657 0 42%, #912c4b 58% 100%)'
+}
