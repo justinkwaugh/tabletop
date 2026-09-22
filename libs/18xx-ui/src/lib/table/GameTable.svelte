@@ -669,6 +669,7 @@
 
 <div
     class="railway-table"
+    class:published-artwork={publishedArtwork}
     use:paintBodyBackground={boardArtwork?.backgroundColor}
     use:framePlacement={activePlacementFocusKey}
     use:frameRoutes={{ runningCompanyId, preview: routePreview }}
@@ -1163,14 +1164,13 @@
     }
     .railway-table {
         color-scheme: dark;
-        /* Text colours are the published board's light tan paper and its brown name lettering. */
-        --rail-text: #e6dbce;
+        --rail-text: #e3e9ef;
         --rail-negative: #ff9c91;
         --rail-phase-tint: 100%;
         --rail-phase-filter: none;
         --rail-phase-opacity: 1;
-        --rail-muted: #b3a28c;
-        --rail-inactive: #857661;
+        --rail-muted: #7f8e9e;
+        --rail-inactive: #596777;
         --rail-surface: #222c37;
         --rail-surface-inset: #1b232d;
         --rail-surface-raised: #2b3744;
@@ -1184,6 +1184,12 @@
         --rail-backdrop: #080f18bb;
         --rail-table-background: #18212b;
         --rail-map-background: #172832;
+    }
+    /* Published artwork: text takes the board's light tan paper and its hex-border brown. */
+    .railway-table.published-artwork {
+        --rail-text: #e6dbce;
+        --rail-muted: #af9d87;
+        --rail-inactive: #857761;
     }
     .game-information {
         display: flex;
