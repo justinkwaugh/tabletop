@@ -214,11 +214,17 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     readonly mapView: MapViewDefinition = $derived.by(() => {
         const definition = this.mapViewDefinition
         if (!this.publishedArtwork) return definition
-        if (!definition.publishedStations && !definition.publishedLayouts) return definition
+        if (
+            !definition.publishedStations &&
+            !definition.publishedLayouts &&
+            !definition.publishedPlacements
+        )
+            return definition
         return {
             ...definition,
             stations: { ...definition.stations, ...definition.publishedStations },
-            layouts: { ...definition.layouts, ...definition.publishedLayouts }
+            layouts: { ...definition.layouts, ...definition.publishedLayouts },
+            placements: definition.publishedPlacements
         }
     })
     /** The title presentation for the current mode: published badge colours replace the generic ones when selected. */

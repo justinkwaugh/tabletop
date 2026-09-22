@@ -16,7 +16,7 @@
     <defs>
         <mask id={maskId} maskUnits="userSpaceOnUse" {...scene.bounds}>
             <rect {...scene.bounds} fill="white"></rect>
-            {#each scene.locations as entry (entry.location.id)}
+            {#each scene.locations.filter((entry) => !entry.hidden) as entry (entry.location.id)}
                 <g transform={`translate(${entry.center.x} ${entry.center.y})`} fill="black">
                     {#each entry.drawing.nodes.filter((node) => node.node.kind !== 'city') as node (node.node.id)}
                         {#if node.node.kind === 'town' && appearance.townMarker === 'bar' && node.townAngle !== undefined}

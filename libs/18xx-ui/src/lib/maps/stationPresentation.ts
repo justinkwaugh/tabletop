@@ -1,6 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import type { StationState, RailwayMap, TileSet } from '@tabletop/18xx'
-import type { BoardArtwork, MapToken } from './mapDrawing.js'
+import type { BoardArtwork, MapPlacement, MapToken } from './mapDrawing.js'
 import type { TileLayout } from '../tiles/tileDrawing.js'
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 
@@ -25,6 +25,13 @@ export type MapViewDefinition = {
     publishedLayouts?: Readonly<Record<string, TileLayout>>
     /** Tile rendering style used while the published artwork toggle is on. */
     publishedTileAppearance?: TileAppearance
+    /** Presentation placements in effect (set by the session from ``publishedPlacements``). */
+    placements?: Readonly<Record<string, MapPlacement>>
+    /**
+     * Untiled hexes the printed board places or connects differently from the semantic map,
+     * keyed by location id; applied only while the published artwork toggle is on.
+     */
+    publishedPlacements?: Readonly<Record<string, MapPlacement>>
 }
 export function stationMapTokens(
     state: StationState,

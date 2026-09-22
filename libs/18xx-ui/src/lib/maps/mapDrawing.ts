@@ -6,6 +6,7 @@ import {
     ClockwiseFlatHexDirections,
     ClockwisePointyHexDirections,
     HexOrientation,
+    type AxialCoordinates,
     type BoundingBox,
     type Point
 } from '@tabletop/common'
@@ -41,12 +42,25 @@ export type MapRoute = {
 export function routeLocationIds(routes: readonly MapRoute[]): string[] {
     return [...new Set(routes.flatMap((route) => route.segments.map((path) => path.locationId)))]
 }
+/**
+ * A presentation-only relocation of an untiled hex, for boards whose print rearranges cells.
+ * ``at`` moves the hex to another grid cell; ``edges`` remaps the preprinted track's edges to the
+ * printed ones (same path ids, so routes still resolve); ``hidden`` draws nothing for the hex.
+ */
+export type MapPlacement = {
+    at?: AxialCoordinates
+    edges?: Readonly<Record<number, number>>
+    hidden?: boolean
+}
+
 export type MapDrawnLocation = {
     location: MapLocation
     center: Point
     face: TileFace
     rotation: TileRotation
     placed: boolean
+    /** True for a presentation placement that hides the hex entirely. */
+    hidden: boolean
     markerImages: Readonly<Record<string, string>>
     drawing: TileDrawing
     borders: readonly {
@@ -83,17 +97,37 @@ export type MapDrawing = {
     bounds: BoundingBox
 }
 
+function remapFaceEdges(face: TileFace, edges: Readonly<Record<number, number>>): TileFace {
+    return {
+        ...face,
+        paths: face.paths.map((path) => {
+            const remap = (endpoint: (typeof path.endpoints)[number]) =>
+                endpoint.kind === 'edge' && edges[endpoint.edge] !== undefined
+                    ? { ...endpoint, edge: edges[endpoint.edge] as typeof endpoint.edge }
+                    : endpoint
+            return {
+                ...path,
+                endpoints: [remap(path.endpoints[0]), remap(path.endpoints[1])] as const
+            }
+        })
+    }
+}
+
 export function createMapDrawing(
     map: RailwayMap,
     supply?: { tileSet: TileSet; inventory: TileInventory },
     layouts: Readonly<Record<string, TileLayout>> = {},
-    markerImages: Readonly<Record<string, string>> = {}
+    markerImages: Readonly<Record<string, string>> = {},
+    placements: Readonly<Record<string, MapPlacement>> = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
     const locations = map.definition.locations.map((location): MapDrawnLocation => {
         const tile = mapState?.tile(location.id)
         const placement = tile?.placement
-        const face = tile?.face ?? location.preprintedTile
+        const relocation = placement ? undefined : placements[location.id]
+        const face = relocation?.edges
+            ? remapFaceEdges(tile?.face ?? location.preprintedTile, relocation.edges)
+            : (tile?.face ?? location.preprintedTile)
         const rotation = tile?.rotation ?? 0
         const layout = placement
             ? (layouts[placement.definitionId] ?? StandardTileLayouts[placement.definitionId])
@@ -135,7 +169,7 @@ export function createMapDrawing(
         })
         const geometry = calculateHexGeometry(
             { orientation: map.definition.orientation, dimensions: { radius: 50 } },
-            location.coordinates
+            relocation?.at ?? location.coordinates
         )
         const borders = (location.borders ?? []).map((border) => {
             const direction = tileEdgeDirection(border.edge, map.definition.orientation)
@@ -157,6 +191,7 @@ export function createMapDrawing(
             face,
             rotation,
             placed: !!placement,
+            hidden: !!relocation?.hidden,
             drawing,
             markerImages,
             borders

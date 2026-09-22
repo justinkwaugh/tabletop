@@ -169,233 +169,237 @@
             !!onselect && (!maskUnavailableLocations || legalLocationIds.includes(id))}
         {@const selected = selection?.locationId === id}
         {@const target: MapSelection = { kind: 'hex', locationId: id }}
-        <g
-            transform={`translate(${entry.center.x} ${entry.center.y})`}
-            data-map-location={id}
-            data-placed={entry.placed}
-            opacity={id === translucentLocationId ? 0.55 : 1}
-            class:unavailable={!available}
-            aria-disabled={!available}
-            role="button"
-            tabindex={available ? 0 : -1}
-            aria-label={`${id}${entry.location.name ? ` ${entry.location.name}` : ''}`}
-            aria-pressed={selected}
-            onfocus={(event) =>
-                (focusedLocationId = event.currentTarget.matches(':focus-visible')
-                    ? id
-                    : undefined)}
-            onblur={() => (focusedLocationId = undefined)}
-            onpointerenter={() => (hoveredLocationId = id)}
-            onpointerleave={() => (hoveredLocationId = undefined)}
-            onclick={(event) => select(event, target)}
-            onkeydown={(event) => select(event, target)}
-        >
-            {#snippet selectedTrack()}
-                {#if selected && selection?.kind === 'path'}
-                    {#each entry.drawing.paths.filter((path) => path.id === selectedPath) as path}
-                        <path d={path.d} fill="none" stroke="#d52f83" stroke-width="3"></path>
-                    {/each}
+        {#if entry.hidden}
+            <g data-map-location={id} data-placed={entry.placed} data-hidden="true"></g>
+        {:else}
+            <g
+                transform={`translate(${entry.center.x} ${entry.center.y})`}
+                data-map-location={id}
+                data-placed={entry.placed}
+                opacity={id === translucentLocationId ? 0.55 : 1}
+                class:unavailable={!available}
+                aria-disabled={!available}
+                role="button"
+                tabindex={available ? 0 : -1}
+                aria-label={`${id}${entry.location.name ? ` ${entry.location.name}` : ''}`}
+                aria-pressed={selected}
+                onfocus={(event) =>
+                    (focusedLocationId = event.currentTarget.matches(':focus-visible')
+                        ? id
+                        : undefined)}
+                onblur={() => (focusedLocationId = undefined)}
+                onpointerenter={() => (hoveredLocationId = id)}
+                onpointerleave={() => (hoveredLocationId = undefined)}
+                onclick={(event) => select(event, target)}
+                onkeydown={(event) => select(event, target)}
+            >
+                {#snippet selectedTrack()}
+                    {#if selected && selection?.kind === 'path'}
+                        {#each entry.drawing.paths.filter((path) => path.id === selectedPath) as path}
+                            <path d={path.d} fill="none" stroke="#d52f83" stroke-width="3"></path>
+                        {/each}
+                    {/if}
+                {/snippet}
+                <polygon points={entry.drawing.polygon} fill="transparent"></polygon>
+                {#if !artwork || entry.placed}
+                    <TileArtwork
+                        face={entry.face}
+                        drawing={entry.drawing}
+                        {appearance}
+                        {revenueStageColors}
+                        showZeroRevenue={false}
+                    >
+                        {#snippet trackOverlay()}
+                            {@render selectedTrack()}
+                        {/snippet}
+                    </TileArtwork>
+                {:else}
+                    {@render selectedTrack()}
                 {/if}
-            {/snippet}
-            <polygon points={entry.drawing.polygon} fill="transparent"></polygon>
-            {#if !artwork || entry.placed}
-                <TileArtwork
-                    face={entry.face}
-                    drawing={entry.drawing}
-                    {appearance}
-                    {revenueStageColors}
-                    showZeroRevenue={false}
-                >
-                    {#snippet trackOverlay()}
-                        {@render selectedTrack()}
-                    {/snippet}
-                </TileArtwork>
-            {:else}
-                {@render selectedTrack()}
-            {/if}
-            {#each entry.drawing.nodes as node (node.node.id)}
-                {@const reservationLabel = currentReservations
-                    .filter(
-                        (reservation) =>
-                            reservation.locationId === id && reservation.nodeId === node.node.id
-                    )
-                    .map((reservation) => reservation.companyId)
-                    .join('/')}
-                {#each node.slots as point, slot}
-                    {@const token = tokens.find(
-                        (token) =>
-                            token.locationId === id &&
-                            token.nodeId === node.node.id &&
-                            token.slot === slot
-                    )}
-                    {#if token}
-                        <g data-map-token={token.id}>
-                            <CompanyToken
-                                appearance={token}
-                                size={tokenSize}
-                                x={point.x - tokenSize / 2}
-                                y={point.y - tokenSize / 2}
-                            />
-                        </g>
-                    {/if}
-                    {#if slot === 0 && reservationLabel && !token}
-                        <text
-                            x={point.x}
-                            y={point.y}
-                            text-anchor="middle"
-                            dominant-baseline="central"
-                            font-size="5"
-                            fill="#52545b"
-                            paint-order="stroke"
-                            stroke="none"
-                            stroke-width="1"
-                            data-map-reservation>{reservationLabel}</text
-                        >
-                    {/if}
-                {/each}
-            {/each}
-            {#if !artwork || entry.placed}
-                <g
-                    class="map-annotations"
-                    fill="#202c31"
-                    text-anchor="middle"
-                    paint-order="stroke"
-                    stroke={appearance.colors[entry.face.color]}
-                    stroke-width="1.7"
-                >
-                    {#if !entry.placed && entry.location.terrain}
-                        {@const terrain = entry.location.terrain}
-                        {@const iconWidth = terrain.kinds.length * 19}
-                        {@const labelWidth = String(terrain.cost).length * 6.5}
-                        <g
-                            data-map-terrain
-                            transform={`translate(${-(iconWidth + labelWidth) / 2} ${(entry.face.nodes.length || entry.face.paths.length ? 19 : 0) + (terrain.kinds.includes('water') && entry.face.nodes.some((node) => node.kind === 'city' || node.kind === 'town') ? 3 : 0)})`}
-                        >
-                            {#each terrain.kinds as kind, index}
-                                <g transform={`translate(${index * 19} 0)`} stroke="none">
-                                    {#if kind === 'mountain'}
-                                        <path d="M0 5 L6 -6 L10 0 L13 -4 L19 5 Z" fill="#936039"
-                                        ></path>
-                                    {:else if kind === 'water'}
-                                        <path
-                                            transform="translate(4 0) scale(0.75 1)"
-                                            d="M0 -2 C3 -4 6 -4 9 -2 S15 0 18 -2 M0 2 C3 0 6 0 9 2 S15 4 18 2"
-                                            fill="none"
-                                            stroke="#287fab"
-                                            stroke-width="1.8"
-                                            stroke-linecap="round"
-                                        ></path>
-                                    {:else}
-                                        <text x="8" y="4" font-size="11" font-weight="700"
-                                            >{kind === 'urban' ? '▦' : kind}</text
-                                        >
-                                    {/if}
-                                </g>
-                            {/each}
+                {#each entry.drawing.nodes as node (node.node.id)}
+                    {@const reservationLabel = currentReservations
+                        .filter(
+                            (reservation) =>
+                                reservation.locationId === id && reservation.nodeId === node.node.id
+                        )
+                        .map((reservation) => reservation.companyId)
+                        .join('/')}
+                    {#each node.slots as point, slot}
+                        {@const token = tokens.find(
+                            (token) =>
+                                token.locationId === id &&
+                                token.nodeId === node.node.id &&
+                                token.slot === slot
+                        )}
+                        {#if token}
+                            <g data-map-token={token.id}>
+                                <CompanyToken
+                                    appearance={token}
+                                    size={tokenSize}
+                                    x={point.x - tokenSize / 2}
+                                    y={point.y - tokenSize / 2}
+                                />
+                            </g>
+                        {/if}
+                        {#if slot === 0 && reservationLabel && !token}
                             <text
-                                x={iconWidth + 2}
-                                y="4"
-                                text-anchor="start"
-                                font-size="10"
-                                font-weight="750">{terrain.cost}</text
+                                x={point.x}
+                                y={point.y}
+                                text-anchor="middle"
+                                dominant-baseline="central"
+                                font-size="5"
+                                fill="#52545b"
+                                paint-order="stroke"
+                                stroke="none"
+                                stroke-width="1"
+                                data-map-reservation>{reservationLabel}</text
                             >
-                        </g>
-                    {/if}
-                    {#if (!entry.placed || entry.face.color === 'yellow') && overlayLabels.length}
-                        <g
-                            data-map-upgrade-label
-                            transform="translate(-30 0)"
-                            aria-label={`${overlayLabels.map((label) => label.label).join(' ')} upgrade location`}
-                            dominant-baseline="central"
-                            fill={appearance.ink}
-                            stroke="none"
-                        >
-                            <text x="0" font-size="12" font-weight="850"
-                                >{overlayLabels.map((label) => label.label).join(' ')}</text
-                            >
-                        </g>
-                    {/if}
-                    {#each entry.location.markers ?? [] as marker (marker.id)}
-                        {#if !entry.placed && entry.markerImages[marker.id]}
-                            <image
-                                href={entry.markerImages[marker.id]}
-                                x="-25"
-                                y="-25"
-                                width="50"
-                                height="40"
-                            ></image>
                         {/if}
                     {/each}
-                    <text y="36" font-size="5" font-weight="650" data-map-markers
-                        >{[
-                            ...(entry.location.upgradeLabels ?? [])
-                                .filter((label) => !yellowUpgradeLabels.includes(label))
-                                .map((label) => `${label.label} (${label.color})`),
-                            ...(entry.location.markers ?? [])
-                                .filter((marker) => !entry.markerImages[marker.id])
-                                .map((marker) => marker.label)
-                        ].join(' · ')}</text
-                    >
-                </g>
-            {/if}
-            {#each entry.drawing.paths as path (path.id)}
-                {@const pathTarget: MapSelection = { kind: 'path', locationId: id, pathId: path.id }}
-                <path
-                    data-map-path={path.id}
-                    d={path.d}
-                    fill="none"
-                    stroke="transparent"
-                    stroke-width="12"
-                    role="button"
-                    tabindex={available ? 0 : -1}
-                    aria-label={`${id} path ${path.id}`}
-                    class="hit-path"
-                    onclick={(event) => select(event, pathTarget)}
-                    onkeydown={(event) => select(event, pathTarget)}
-                ></path>
-            {/each}
-            {#each entry.drawing.nodes as node (node.node.id)}
-                {#if node.slots.length === 0}
-                    {@const nodeTarget: MapSelection = { kind: 'node', locationId: id, nodeId: node.node.id }}
-                    <circle
-                        data-map-node={node.node.id}
-                        cx={node.center.x}
-                        cy={node.center.y}
-                        r="9"
-                        fill="transparent"
-                        role="button"
-                        tabindex={available ? 0 : -1}
-                        aria-label={`${id} ${node.node.kind} ${node.node.id}`}
-                        class="hit-node"
-                        onclick={(event) => select(event, nodeTarget)}
-                        onkeydown={(event) => select(event, nodeTarget)}
-                    ></circle>
-                {/if}
-                {#each node.slots as point, slot}
-                    {@const slotTarget: MapSelection = { kind: 'slot', locationId: id, nodeId: node.node.id, slot }}
-                    <circle
-                        data-map-slot={`${node.node.id}:${slot}`}
-                        cx={point.x}
-                        cy={point.y}
-                        r={appearance.citySlotRadius ?? 10}
-                        fill="transparent"
-                        stroke={selected &&
-                        selection?.kind === 'slot' &&
-                        selection.nodeId === node.node.id &&
-                        selection.slot === slot
-                            ? '#d52f83'
-                            : 'none'}
-                        stroke-width="2"
-                        role="button"
-                        tabindex={available ? 0 : -1}
-                        aria-label={`${id} ${node.node.id} slot ${slot + 1}`}
-                        class="hit-node"
-                        onclick={(event) => select(event, slotTarget)}
-                        onkeydown={(event) => select(event, slotTarget)}
-                    ></circle>
                 {/each}
-            {/each}
-        </g>
+                {#if !artwork || entry.placed}
+                    <g
+                        class="map-annotations"
+                        fill="#202c31"
+                        text-anchor="middle"
+                        paint-order="stroke"
+                        stroke={appearance.colors[entry.face.color]}
+                        stroke-width="1.7"
+                    >
+                        {#if !entry.placed && entry.location.terrain}
+                            {@const terrain = entry.location.terrain}
+                            {@const iconWidth = terrain.kinds.length * 19}
+                            {@const labelWidth = String(terrain.cost).length * 6.5}
+                            <g
+                                data-map-terrain
+                                transform={`translate(${-(iconWidth + labelWidth) / 2} ${(entry.face.nodes.length || entry.face.paths.length ? 19 : 0) + (terrain.kinds.includes('water') && entry.face.nodes.some((node) => node.kind === 'city' || node.kind === 'town') ? 3 : 0)})`}
+                            >
+                                {#each terrain.kinds as kind, index}
+                                    <g transform={`translate(${index * 19} 0)`} stroke="none">
+                                        {#if kind === 'mountain'}
+                                            <path d="M0 5 L6 -6 L10 0 L13 -4 L19 5 Z" fill="#936039"
+                                            ></path>
+                                        {:else if kind === 'water'}
+                                            <path
+                                                transform="translate(4 0) scale(0.75 1)"
+                                                d="M0 -2 C3 -4 6 -4 9 -2 S15 0 18 -2 M0 2 C3 0 6 0 9 2 S15 4 18 2"
+                                                fill="none"
+                                                stroke="#287fab"
+                                                stroke-width="1.8"
+                                                stroke-linecap="round"
+                                            ></path>
+                                        {:else}
+                                            <text x="8" y="4" font-size="11" font-weight="700"
+                                                >{kind === 'urban' ? '▦' : kind}</text
+                                            >
+                                        {/if}
+                                    </g>
+                                {/each}
+                                <text
+                                    x={iconWidth + 2}
+                                    y="4"
+                                    text-anchor="start"
+                                    font-size="10"
+                                    font-weight="750">{terrain.cost}</text
+                                >
+                            </g>
+                        {/if}
+                        {#if (!entry.placed || entry.face.color === 'yellow') && overlayLabels.length}
+                            <g
+                                data-map-upgrade-label
+                                transform="translate(-30 0)"
+                                aria-label={`${overlayLabels.map((label) => label.label).join(' ')} upgrade location`}
+                                dominant-baseline="central"
+                                fill={appearance.ink}
+                                stroke="none"
+                            >
+                                <text x="0" font-size="12" font-weight="850"
+                                    >{overlayLabels.map((label) => label.label).join(' ')}</text
+                                >
+                            </g>
+                        {/if}
+                        {#each entry.location.markers ?? [] as marker (marker.id)}
+                            {#if !entry.placed && entry.markerImages[marker.id]}
+                                <image
+                                    href={entry.markerImages[marker.id]}
+                                    x="-25"
+                                    y="-25"
+                                    width="50"
+                                    height="40"
+                                ></image>
+                            {/if}
+                        {/each}
+                        <text y="36" font-size="5" font-weight="650" data-map-markers
+                            >{[
+                                ...(entry.location.upgradeLabels ?? [])
+                                    .filter((label) => !yellowUpgradeLabels.includes(label))
+                                    .map((label) => `${label.label} (${label.color})`),
+                                ...(entry.location.markers ?? [])
+                                    .filter((marker) => !entry.markerImages[marker.id])
+                                    .map((marker) => marker.label)
+                            ].join(' · ')}</text
+                        >
+                    </g>
+                {/if}
+                {#each entry.drawing.paths as path (path.id)}
+                    {@const pathTarget: MapSelection = { kind: 'path', locationId: id, pathId: path.id }}
+                    <path
+                        data-map-path={path.id}
+                        d={path.d}
+                        fill="none"
+                        stroke="transparent"
+                        stroke-width="12"
+                        role="button"
+                        tabindex={available ? 0 : -1}
+                        aria-label={`${id} path ${path.id}`}
+                        class="hit-path"
+                        onclick={(event) => select(event, pathTarget)}
+                        onkeydown={(event) => select(event, pathTarget)}
+                    ></path>
+                {/each}
+                {#each entry.drawing.nodes as node (node.node.id)}
+                    {#if node.slots.length === 0}
+                        {@const nodeTarget: MapSelection = { kind: 'node', locationId: id, nodeId: node.node.id }}
+                        <circle
+                            data-map-node={node.node.id}
+                            cx={node.center.x}
+                            cy={node.center.y}
+                            r="9"
+                            fill="transparent"
+                            role="button"
+                            tabindex={available ? 0 : -1}
+                            aria-label={`${id} ${node.node.kind} ${node.node.id}`}
+                            class="hit-node"
+                            onclick={(event) => select(event, nodeTarget)}
+                            onkeydown={(event) => select(event, nodeTarget)}
+                        ></circle>
+                    {/if}
+                    {#each node.slots as point, slot}
+                        {@const slotTarget: MapSelection = { kind: 'slot', locationId: id, nodeId: node.node.id, slot }}
+                        <circle
+                            data-map-slot={`${node.node.id}:${slot}`}
+                            cx={point.x}
+                            cy={point.y}
+                            r={appearance.citySlotRadius ?? 10}
+                            fill="transparent"
+                            stroke={selected &&
+                            selection?.kind === 'slot' &&
+                            selection.nodeId === node.node.id &&
+                            selection.slot === slot
+                                ? '#d52f83'
+                                : 'none'}
+                            stroke-width="2"
+                            role="button"
+                            tabindex={available ? 0 : -1}
+                            aria-label={`${id} ${node.node.id} slot ${slot + 1}`}
+                            class="hit-node"
+                            onclick={(event) => select(event, slotTarget)}
+                            onkeydown={(event) => select(event, slotTarget)}
+                        ></circle>
+                    {/each}
+                {/each}
+            </g>
+        {/if}
     {/each}
     {#if !artwork}
         <g data-map-layer="outlines" fill="none" pointer-events="none" aria-hidden="true">

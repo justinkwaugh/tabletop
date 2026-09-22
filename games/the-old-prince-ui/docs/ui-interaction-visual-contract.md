@@ -85,7 +85,8 @@ These change shared presentation without adding interaction:
   mask at a size that follows the viewport, laid tiles drawn in the published tile style
   (board-matched colours, paper grain, hand-inked track without casing, heavy-ringed
   station circles, plain white revenue discs, and a faint ring or inset hex in place of the X
-  and T labels, with the brown tier named pink wherever tile colours are written), and
+  and T labels, with the brown tier named pink wherever tile colours are written), printed-city station positions, and the three rearranged offboard groups moved to their
+  printed cells so routes and hit targets follow the printed track), and
   printed-city station positions
   for Wellington, Summerside and Charlottetown. In that mode the page and map surround
   take the board's dark border color, the table takes the board's own palette (light tan

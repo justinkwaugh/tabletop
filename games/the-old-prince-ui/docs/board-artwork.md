@@ -22,10 +22,15 @@ alternate editions and mutable printed features require
 explicit title presentation data before those cases are supported.
 
 Initial alignment uses a map origin at (55.5, 105.5) pixels and scale 1.173. The
-diagnostic grid is hidden in artwork mode. Island hexes align closely. The user
-confirmed that the physical board intentionally rearranges offboards: no tiles
-are laid on them and their game meaning is unchanged, so those differences do not
-require tile alignment. Printed city circles were measured against the generic
+diagnostic grid is hidden in artwork mode. Island hexes align closely. The physical
+board intentionally rearranges three offboard groups: no tiles are laid on them and
+their game meaning is unchanged, but routes, hover masks and hit targets drawn from
+the semantic cells landed on empty water. `mapView.ts` now carries published-only
+placements that move each affected hex to its printed cell and remap its track edges
+(England: semantic G11 → H10 → G9 → H8 → H6 becomes printed H10 → I9 → J8 with H8
+hidden; Îles de la Madeleine: U15 → U17 → V16 becomes U15 → V14 → W15; Pictou
+Landing: P24 → O25 → P26 becomes P24 → Q23 → R24). Path ids are unchanged, so route
+segments still resolve, and each chain's drawn track meets edge to edge. Printed city circles were measured against the generic
 node layout (ring detection on the image, offsets in map units of hex radius 50):
 Wellington D14 sits at (9.9, -7.5), Summerside F14 at (-0.3, 11.3) and Charlottetown
 L16 at (0.7, 11.6); every other preprinted city is within two units of the hex

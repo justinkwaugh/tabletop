@@ -46,6 +46,7 @@ export function cityOutline(node: TileDrawnNode): string {
 
 export function drawMapRoutes(scene: MapDrawing, routes: readonly MapRoute[]) {
     return scene.locations.flatMap((entry) => {
+        if (entry.hidden) return []
         const paths = routes.flatMap((route) =>
             route.segments
                 .filter((segment) => segment.locationId === entry.location.id)

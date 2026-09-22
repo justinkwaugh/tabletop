@@ -47,6 +47,24 @@ export const TheOldPrinceMapView: MapViewDefinition = {
     // Printed city circles that sit off the generic hex centre on the published board, measured in
     // map units (hex radius 50) from MAP-AUGUST-01.jpg; see docs/board-artwork.md.
     publishedTileAppearance: TheOldPrincePublishedTileAppearance,
+    // The printed board rearranges three offboard groups. Each semantic hex is moved to its
+    // printed cell (axial q = column index, r = (row - q - 1) / 2) and its track edges remapped
+    // to the printed ones (edge 0 = S, 1 = SW, 2 = NW, 3 = N, 4 = NE, 5 = SE).
+    publishedPlacements: {
+        // England: printed G11 → H10 → I9 → J8; semantic G11 → H10 → G9 → H8 → H6.
+        H10: { edges: { 2: 4 } },
+        G9: { at: { q: 8, r: 0 }, edges: { 5: 1 } }, // printed I9
+        H8: { hidden: true },
+        H6: { at: { q: 9, r: -1 }, edges: { 0: 1 } }, // printed J8
+        // Îles de la Madeleine: printed T14 → U15 → V14 → W15; semantic T14 → U15 → U17 → V16.
+        U15: { edges: { 0: 4 } },
+        U17: { at: { q: 21, r: -4 }, edges: { 3: 1, 4: 5 } }, // printed V14
+        V16: { at: { q: 22, r: -4 }, edges: { 1: 2 } }, // printed W15
+        // Pictou Landing: printed P22 → P24 → Q23 → R24; semantic P22 → P24 → O25 → P26.
+        P24: { edges: { 1: 4 } },
+        O25: { at: { q: 16, r: 3 }, edges: { 4: 1 } }, // printed Q23
+        P26: { at: { q: 17, r: 3 } } // printed R24, entering at the same NW edge
+    },
     publishedLayouts: {
         D14: { nodePositions: { city: { x: 9.9, y: -7.5 } } },
         F14: { nodePositions: { city: { x: -0.3, y: 11.3 } } },
