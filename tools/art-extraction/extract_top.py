@@ -152,9 +152,12 @@ def main():
     for variant in (1, 2):
         folder = SRC / 'shares' / f'shares variant 0{variant}'
         # Sheet order alternates president certificate of company i (slot 2i) with the regular
-        # share of company i+1 (slot 2i+1), wrapping so the last odd slot is company 0's share.
+        # share of company i+1 (slot 2i+1); the wrap is reversed, so slot 0 is company 0's share
+        # and the last slot is its president's certificate.
+        last = 2 * len(SHARE_ORDER) - 1
         for i, company in enumerate(SHARE_ORDER):
-            for kind, slot in (('president', 2 * i), ('share', (2 * i - 1) % (2 * len(SHARE_ORDER)))):
+            slots = (('president', last), ('share', 0)) if i == 0 else (('president', 2 * i), ('share', 2 * i - 1))
+            for kind, slot in slots:
                 n = slot * 2 + variant  # odd for v1, even for v2
                 src = folder / ('share.pdf' if n == 1 else f'share_{n}.pdf')
                 size = page_image(src, out / 'shares' / f'v{variant}' / f'{company}-{kind}.webp', heights=(1100, 600))
