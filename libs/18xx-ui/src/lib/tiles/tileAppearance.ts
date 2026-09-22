@@ -22,8 +22,10 @@ export type TileAppearance = {
     mapTokenSize?: number
     /** Fixed revenue badge: the default ringed circle, or a plain borderless paper disc with black text. */
     revenueBadge?: 'circle' | 'plain'
-    /** Labels drawn as a faint tone-on-tone marker instead of text: a ring around the city or an inset hex. */
+    /** Labels drawn as a tone-on-tone marker instead of text: a ring around the city or an inset hex. */
     labelMarkers?: Readonly<Record<string, 'ring' | 'hex'>>
+    /** Marker colour per tile colour; tile colours without an entry use a darkened tile colour. */
+    markerColors?: Readonly<Record<string, string>>
 }
 
 export const ClassicTileAppearance: TileAppearance = Object.freeze({

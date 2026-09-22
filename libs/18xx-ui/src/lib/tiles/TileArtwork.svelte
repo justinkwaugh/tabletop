@@ -42,12 +42,14 @@
     const inkFilter = $derived(appearance.roughness ? `url(#${inkId})` : undefined)
     const cityRingWidth = $derived(appearance.cityRingWidth ?? 1.1)
     const citySlotRadius = $derived(appearance.citySlotRadius ?? 10)
-    /** A darker tint of the tile colour for tone-on-tone markers. */
+    /** The marker colour: the appearance's own per-colour value, else a darker tint of the tile colour. */
     const tint = $derived.by(() => {
+        const explicit = appearance.markerColors?.[face.color]
+        if (explicit) return explicit
         const hex = /^#([0-9a-f]{6})$/i.exec(fill)?.[1]
         if (!hex) return appearance.ink
         const channel = (offset: number) =>
-            Math.round(parseInt(hex.slice(offset, offset + 2), 16) * 0.88)
+            Math.round(parseInt(hex.slice(offset, offset + 2), 16) * 0.82)
                 .toString(16)
                 .padStart(2, '0')
         return `#${channel(0)}${channel(2)}${channel(4)}`
@@ -133,10 +135,10 @@
                 data-tile-marker={label}
                 cx={city?.center.x ?? 0}
                 cy={city?.center.y ?? 0}
-                r="32.5"
+                r="30"
                 fill="none"
                 stroke={tint}
-                stroke-width="3"
+                stroke-width="2.5"
             ></circle>
         {:else}
             <polygon
@@ -144,7 +146,7 @@
                 points={insetPolygon}
                 fill="none"
                 stroke={tint}
-                stroke-width="2.5"
+                stroke-width="2.7"
                 stroke-linejoin="round"
             ></polygon>
         {/if}
