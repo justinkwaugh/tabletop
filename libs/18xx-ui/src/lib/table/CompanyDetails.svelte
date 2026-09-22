@@ -427,7 +427,7 @@
         background: #1b3d4580;
     }
     .financial-summary .prices .cash-value {
-        background: #1b232d;
+        background: var(--rail-surface-inset, #1b232d);
     }
     .financial-summary .prices div + div::before {
         content: '';

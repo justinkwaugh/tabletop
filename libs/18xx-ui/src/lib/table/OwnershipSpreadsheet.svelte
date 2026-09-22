@@ -703,7 +703,7 @@
         --sheet-label: var(--rail-surface-raised, #2b3744);
         --sheet-pool: var(--sheet-cell);
         --sheet-market: #1b3d45;
-        --sheet-financial: #1b232d;
+        --sheet-financial: var(--rail-surface-inset, #1b232d);
         --sheet-sold: #4a2a33;
         --sheet-rule: #2f3b48;
         --sheet-divider: #5b6d80;
