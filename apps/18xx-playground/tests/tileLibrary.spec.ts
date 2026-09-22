@@ -25,7 +25,7 @@ test('search preserves variants, rotation and style are local, and paths can be 
     await viewer.getByLabel('Find a tile').fill('no such tile')
     await expect(detail).toContainText('No matching tiles')
     await viewer.getByRole('button', { name: 'Clear filters' }).click()
-    await expect(viewer.getByRole('button', { name: /^Inspect / })).toHaveCount(84)
+    await expect(viewer.getByRole('button', { name: /^Inspect / })).toHaveCount(88)
 })
 
 test('title collections show independent full inventories and beginner extras', async ({
@@ -34,10 +34,10 @@ test('title collections show independent full inventories and beginner extras', 
     await page.goto('/')
     const viewer = page.getByRole('region', { name: 'Tile library', exact: true })
     await page.getByLabel('Browse a collection').selectOption('The Old Prince 1871')
-    await expect(viewer.getByRole('button', { name: /^Inspect / })).toHaveCount(58)
+    await expect(viewer.getByRole('button', { name: /^Inspect / })).toHaveCount(62)
     await viewer.getByRole('button', { name: 'Inspect 8, Shared 18xx', exact: true }).click()
     await expect(viewer.getByRole('complementary').locator('[data-tile-inventory]')).toHaveText(
-        '25 of 25 available'
+        'Unlimited'
     )
     await page.getByLabel('Browse a collection').selectOption('Shikoku 1889')
     await expect(viewer.getByRole('button', { name: /^Inspect / })).toHaveCount(40)
