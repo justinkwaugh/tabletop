@@ -64,29 +64,23 @@
     .share-cards {
         display: flex;
         flex-wrap: wrap;
+        align-items: flex-start;
         gap: 6px;
         margin-top: 4px;
-        /* The stripes sit in the top fifth of a certificate; a 30% step shows them with a margin. */
-        --share-card-step: calc(var(--share-card-height, 64px) * 0.3);
+        /* The two stripes end at 11.5% of a certificate's height and the marble panel starts at
+           14.7%; an 18% step shows the stripes with a sliver of panel, not enough to read as a card. */
+        --share-card-step: calc(var(--share-card-height, 64px) * 0.18);
+        --share-card-ratio: 0.72;
     }
     .stack {
-        display: grid;
-        grid-template-areas: 'card';
-        align-content: start;
-        padding-bottom: calc(
-            (var(--count) - 1) * var(--share-card-step) + var(--president-extra, 0px)
-        );
-    }
-    /* A president's certificate sits on top with a larger drop so it stands apart from the shares. */
-    .stack.with-president {
-        --president-extra: calc(var(--share-card-height, 64px) * 0.35);
-    }
-    .card.president {
-        margin-top: calc(var(--index) * var(--share-card-step) + var(--president-extra, 0px));
+        position: relative;
+        width: calc(var(--share-card-height, 64px) * var(--share-card-ratio));
+        height: calc(var(--share-card-height, 64px) + (var(--count) - 1) * var(--share-card-step));
     }
     .card {
-        grid-area: card;
-        margin-top: calc(var(--index) * var(--share-card-step));
+        position: absolute;
+        top: calc(var(--index) * var(--share-card-step));
+        left: 0;
         padding: 0;
         border: 0;
         background: none;

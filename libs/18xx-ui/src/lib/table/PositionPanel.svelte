@@ -353,8 +353,8 @@
     .share-strip {
         display: flex;
         justify-content: center;
-        margin-top: 10px;
-        --share-card-height: 120px;
+        margin-top: 6px;
+        --share-card-height: 150px;
     }
     .share-strip :global(.share-cards) {
         justify-content: center;
