@@ -18,6 +18,7 @@
         onPreviewMap,
         phaseColors,
         phaseTileColors,
+        tileColors,
         trainColors,
         describeAction,
         companyNames
@@ -27,6 +28,7 @@
         trainColors: Readonly<Record<string, string>>
         phaseColors: Readonly<Record<string, string>>
         phaseTileColors: Readonly<Record<string, readonly string[]>>
+        tileColors?: Readonly<Record<string, string>>
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: (
             action: GameAction,
@@ -128,6 +130,7 @@
                             currentController={(id) => controllingOwner(state, id)?.playerId}
                             {phaseColors}
                             {phaseTileColors}
+                            {tileColors}
                             {trainColors}
                             trainName={(id) => session.trainDepot.trainDefinition(id).name}
                             {orderChanges}

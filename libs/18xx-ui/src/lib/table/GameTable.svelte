@@ -581,6 +581,7 @@
         {trainColors}
         {phaseColors}
         {phaseTileColors}
+        tileColors={tileAppearance.colors}
         {companyNames}
         describeAction={historyDescription}
     />{/snippet}
@@ -721,6 +722,7 @@
                                 {session}
                                 {phaseChart}
                                 {trainColors}
+                                tileColors={tileAppearance.colors}
                                 {companyNames}
                                 bordered={!paneLayout.current}
                                 centered={paneLayout.current}
@@ -1010,6 +1012,7 @@
                 chart={phaseChart}
                 currentPhaseId={session.gameState.phaseId}
                 {trainColors}
+                tileColors={tileAppearance.colors}
                 onclose={() => (showPhaseChart = false)}
             />{/if}
         {#if showDepot}<PhaseChart
@@ -1019,6 +1022,7 @@
                 chart={phaseChart}
                 currentPhaseId={session.gameState.phaseId}
                 {trainColors}
+                tileColors={tileAppearance.colors}
                 onclose={() => (showDepot = false)}
             />{/if}
 

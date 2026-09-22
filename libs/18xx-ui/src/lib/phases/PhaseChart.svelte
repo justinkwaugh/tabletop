@@ -11,6 +11,7 @@
         depotOnly = false,
         currentPhaseId,
         trainColors,
+        tileColors,
         onclose
     }: {
         money: MoneyFormat
@@ -19,6 +20,7 @@
         chart: PhaseChartData
         currentPhaseId: string
         trainColors: Readonly<Record<string, string>>
+        tileColors?: Readonly<Record<string, string>>
         onclose: () => void
     } = $props()
     let dialog: HTMLDialogElement
@@ -65,7 +67,15 @@
             >
         </button>
     </header>
-    <PhaseChartContent {money} {chart} {depotState} {depotOnly} {currentPhaseId} {trainColors} />
+    <PhaseChartContent
+        {money}
+        {chart}
+        {depotState}
+        {depotOnly}
+        {currentPhaseId}
+        {trainColors}
+        {tileColors}
+    />
 </dialog>
 
 <style>

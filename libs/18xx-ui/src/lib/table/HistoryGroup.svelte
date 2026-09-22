@@ -40,6 +40,7 @@
         companyName,
         phaseColors,
         phaseTileColors,
+        tileColors = TileColors,
         trainColors,
         trainName,
         orderChanges,
@@ -56,6 +57,8 @@
         trainName: (id: string) => string
         phaseColors: Readonly<Record<string, string>>
         phaseTileColors: Readonly<Record<string, readonly string[]>>
+        /** Tile palette for phase changes that unlock a tile colour; follows the current tile appearance. */
+        tileColors?: Readonly<Record<string, string>>
         onJump: (index: number) => void
         onReturn?: () => void
         jumpDisabled?: boolean
@@ -80,7 +83,7 @@
         const unlocked = nextTiles.filter((color) => !previousTiles.includes(color))
         if (previous === next && !unlocked.length) return undefined
         const unlockedColor = unlocked.at(-1)
-        const color = unlockedColor ? TileColors[unlockedColor] : next
+        const color = unlockedColor ? tileColors[unlockedColor] : next
         assertExists(color, `Unknown history phase color: ${toPhaseId}`)
         return {
             color,

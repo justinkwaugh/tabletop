@@ -15,6 +15,7 @@
         centered = false,
         phaseChart,
         trainColors,
+        tileColors,
         artworkAvailable = false,
         publishedArtwork = false,
         onToggleArtwork
@@ -28,6 +29,7 @@
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         phaseChart: PhaseChartData
         trainColors: Readonly<Record<string, string>>
+        tileColors?: Readonly<Record<string, string>>
     } = $props()
     const money = $derived(session.presentation.money)
     let showPhaseChart = $state(false)
@@ -186,6 +188,7 @@
         chart={phaseChart}
         currentPhaseId={gameState.phaseId}
         {trainColors}
+        {tileColors}
         onclose={() => (showPhaseChart = false)}
     />{/if}
 
