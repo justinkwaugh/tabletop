@@ -17,11 +17,26 @@ export type ShareCard = {
     full: string
 }
 
-/** Certificates that changed hands in a share purchase, sale or issue, in action order. */
+/**
+ * Certificates that changed hands in a share purchase, sale or issue, in action order. When the
+ * trade moved a presidency, that president's certificate comes last so it lands on top of a stack.
+ */
 export function tradedCertificateIds(action: GameAction): readonly string[] {
-    if (isBuyShares(action)) return [action.certificateId]
+    if (isBuyShares(action)) {
+        const president = action.metadata?.presidency?.presidentCertificateId
+        return president && president !== action.certificateId
+            ? [action.certificateId, president]
+            : [action.certificateId]
+    }
     if (isSellShares(action) || isSellFundingShares(action) || isIssueTreasuryShares(action))
-        return action.metadata?.sales.flatMap((sale) => sale.certificateIds) ?? []
+        return (
+            action.metadata?.sales.flatMap((sale) => {
+                const president = sale.presidency?.presidentCertificateId
+                return president && !sale.certificateIds.includes(president)
+                    ? [...sale.certificateIds, president]
+                    : sale.certificateIds
+            }) ?? []
+        )
     return []
 }
 
