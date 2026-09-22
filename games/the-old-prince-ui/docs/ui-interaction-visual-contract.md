@@ -88,7 +88,7 @@ These change shared presentation without adding interaction:
   and T labels), and printed-city station positions
   for Wellington, Summerside and Charlottetown. In that mode the page and map surround
   take the board's dark border color, table text takes the board's light tan paper and
-  its hex-border brown for dimmed text, and leaving the mode or the table restores the
+  its hex-border brown for dimmed text and pane borders, and leaving the mode or the table restores the
   generic lettered tokens, generated cards and background. It is a per-player display
   choice held by the session; it never changes Game State or creates an Action.
   Calibration notes are in [the board artwork note](board-artwork.md).

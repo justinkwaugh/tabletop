@@ -1185,11 +1185,13 @@
         --rail-table-background: #18212b;
         --rail-map-background: #172832;
     }
-    /* Published artwork: text takes the board's light tan paper and its hex-border brown. */
+    /* Published artwork: text takes the board's light tan paper and its hex-border brown,
+       and pane borders take a darker step of the same brown. */
     .railway-table.published-artwork {
         --rail-text: #e6dbce;
         --rail-muted: #af9d87;
         --rail-inactive: #857761;
+        --rail-border: #7d6f5d;
     }
     .game-information {
         display: flex;
