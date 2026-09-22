@@ -183,7 +183,11 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     /** Published certificate art for the shares a purchase, sale or issue moved; empty unless that presentation is on. */
     shareCards(action: GameAction): readonly ShareCard[] {
         if (!this.publishedArtwork) return []
-        return tradedCertificateIds(action).flatMap((id) => {
+        const shares = (id: string) => {
+            const certificate = this.gameState.certificates.find((item) => item.id === id)
+            return certificate?.kind === 'share' ? certificate.shares : 1
+        }
+        return tradedCertificateIds(action, shares).flatMap((id) => {
             const certificate = this.gameState.certificates.find((item) => item.id === id)
             const card =
                 certificate &&

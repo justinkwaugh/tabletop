@@ -18,23 +18,29 @@ export type ShareCard = {
 }
 
 /**
- * Certificates that changed hands in a share purchase, sale or issue, in action order. When the
- * trade moved a presidency, that president's certificate comes last so it lands on top of a stack.
+ * Certificates to show for a share purchase, sale or issue, in display order. When the trade
+ * moved a presidency, the president's certificate stands in for the shares exchanged for it and
+ * comes last, so it is the fully visible top card of a stack.
  */
-export function tradedCertificateIds(action: GameAction): readonly string[] {
+export function tradedCertificateIds(
+    action: GameAction,
+    certificateShares: (id: string) => number
+): readonly string[] {
     if (isBuyShares(action)) {
-        const president = action.metadata?.presidency?.presidentCertificateId
-        return president && president !== action.certificateId
-            ? [action.certificateId, president]
-            : [action.certificateId]
+        const presidency = action.metadata?.presidency
+        return presidency ? [presidency.presidentCertificateId] : [action.certificateId]
     }
     if (isSellShares(action) || isSellFundingShares(action) || isIssueTreasuryShares(action))
         return (
             action.metadata?.sales.flatMap((sale) => {
-                const president = sale.presidency?.presidentCertificateId
-                return president && !sale.certificateIds.includes(president)
-                    ? [...sale.certificateIds, president]
-                    : sale.certificateIds
+                const presidency = sale.presidency
+                if (!presidency) return sale.certificateIds
+                let ids = sale.certificateIds.filter(
+                    (id) => !presidency.exchangedCertificateIds.includes(id)
+                )
+                if (ids.length === sale.certificateIds.length)
+                    ids = ids.slice(certificateShares(presidency.presidentCertificateId))
+                return [...ids, presidency.presidentCertificateId]
             }) ?? []
         )
     return []
