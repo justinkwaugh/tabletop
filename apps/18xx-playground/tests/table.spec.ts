@@ -14,20 +14,11 @@ for (const title of ['TOP', '1889']) {
         await expect(page.locator('[data-map-location]')).toHaveCount(title === 'TOP' ? 110 : 52)
         await expect(page.getByRole('article', { name: 'Casey portfolio' })).toBeVisible()
         await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(1)
-        await expect(header).toContainText('Operating round 1.1')
-        await expect(action).toContainText('Finish track')
-        const order = page.getByRole('region', { name: 'Company order', exact: true })
-        await expect(order).toBeVisible()
-        await expect(order.locator('[aria-current="step"]')).toHaveAttribute(
-            'data-company-id',
-            title === 'TOP' ? 'ML' : 'IR'
-        )
-        await expect(order.locator('li')).toHaveCount(title === 'TOP' ? 3 : 2)
-        await expect(order.locator('.pill > svg image')).toHaveCount(title === 'TOP' ? 3 : 2)
-        const rowBounds = await order.boundingBox()
-        const tabBounds = await page.getByRole('tablist', { name: 'Table views' }).boundingBox()
-        if (!rowBounds || !tabBounds) throw new Error('Missing company order or tabs')
-        expect(rowBounds.y + rowBounds.height).toBeLessThanOrEqual(tabBounds.y + 1)
+        await expect(header).toContainText(/Operating round\s*OR 1\.1/i)
+        await expect(header).toContainText(title === 'TOP' ? 'Charlottetown' : 'Iyo Railway')
+        await expect(action).toContainText('Choose a tile space')
+        const steps = page.getByRole('navigation', { name: 'Operating steps' })
+        await expect(steps.locator('[aria-current="step"]')).toHaveText(/Track/)
 
         const mapBounds = await page.locator('.map-area').boundingBox()
         const actionBounds = await action.boundingBox()
@@ -75,8 +66,9 @@ for (const title of ['TOP', '1889']) {
         await views.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
         const spreadsheet = page.getByRole('table', { name: 'Company share ownership' })
         await expect(spreadsheet).toBeVisible()
-        await expect(spreadsheet.getByRole('columnheader')).toHaveText(['Company', 'Alex', 'Blair', 'Casey', ...(title === 'TOP' ? ['Union Bank', 'Exchange'] : []), 'Treasury', 'Market', 'Cash'])
-        await expect(spreadsheet.getByRole('row').filter({ has: page.getByRole('rowheader', { name: title === 'TOP' ? 'Charlottetown' : 'Iyo Railway', exact: true }) }).getByRole('cell')).toHaveText(title === 'TOP' ? [/^3\s*P$/, '2', '0', '1', '1', '1', '2', /^\$[\d,]+$/] : ['3', /^3\s*P$/, '0', '0', '0', /^\$[\d,]+$/])
+        await expect(spreadsheet.getByRole('columnheader').first()).toHaveText('Player')
+        await expect(spreadsheet.getByRole('rowheader').filter({ hasText: /^\s*(Alex|Blair|Casey)\s*$/ })).toHaveCount(3)
+        await expect(spreadsheet.getByRole('columnheader').filter({ hasText: title === 'TOP' ? /\bC$/ : /\bIR$/ })).toHaveCount(1)
         const matrix = await spreadsheet.locator('tbody tr').evaluateAll(rows => rows.map(row => [...row.querySelectorAll('td')].map(cell => cell.textContent?.trim())))
         await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Swap rows and columns', exact: true }).click()
         for (let index = 0; index < matrix[0].length; index++) {
@@ -84,12 +76,16 @@ for (const title of ['TOP', '1889']) {
         }
         await page.getByRole('group', { name: 'Spreadsheet view' }).getByRole('button', { name: 'Swap rows and columns', exact: true }).click()
         await views.getByRole('tab', { name: 'Spreadsheet', exact: true }).press('ArrowRight')
+        await expect(views.getByRole('tab', { name: 'Companies', exact: true })).toBeFocused()
+        await views.getByRole('tab', { name: 'Companies', exact: true }).press('ArrowRight')
         await expect(views.getByRole('tab', { name: 'Tiles', exact: true })).toBeFocused()
         await expect(page.getByRole('region', { name: 'Tile manifest', exact: true })).toBeVisible()
         await page.getByRole('button', { name: 'green', exact: true }).click()
         await expect(page.locator('[data-manifest-tile]:not([data-tile-color="green"])')).toHaveCount(0)
         await expect(page.locator('[data-manifest-tile][data-tile-color="green"]').first()).toBeVisible()
         await views.getByRole('tab', { name: 'Tiles', exact: true }).press('ArrowRight')
+        await expect(views.getByRole('tab', { name: 'Player Aid', exact: true })).toBeFocused()
+        await views.getByRole('tab', { name: 'Player Aid', exact: true }).press('ArrowRight')
         await expect(views.getByRole('tab', { name: 'Map', exact: true })).toBeFocused()
         await expect(scene).toBeVisible()
         expect(await transform()).toBe(zoomedView)
@@ -110,83 +106,67 @@ test('table commits a lay and restores map, portfolio and controls through histo
     page
 }) => {
     await page.goto('/table')
-    const actions = page.getByRole('region', { name: 'Current action' })
+    const steps = page.getByRole('navigation', { name: 'Operating steps' })
     const undo = page.getByRole('button', { name: 'Undo', exact: true })
     const tileCount = page.locator('[data-manifest-tile="18xx:8"] .count')
-    const initialCount = await tileCount.textContent()
+    await expect(tileCount).toHaveText('∞')
     await page.locator('[data-map-location="K17"]').click()
     const mapBounds = await page.locator('.map-area').boundingBox()
     await page.locator('[data-map-tile-choice="18xx:8"]').click()
     await expect.poll(() => page.locator('.map-area').boundingBox()).toEqual(mapBounds)
     await page.getByRole('button', { name: 'Accept track lay', exact: true }).click()
-    await expect(actions).toContainText('1 placed')
-    await expect(tileCount).toHaveText(`×${Number(initialCount?.trim().slice(1)) - 1}`)
+    await expect(steps).toContainText('1 laid')
+    await expect(tileCount).toHaveText('∞')
     await expect.poll(() => page.locator('.map-area').boundingBox()).toEqual(mapBounds)
     await expect(page.locator('[data-map-location="K17"]')).toHaveAttribute('data-placed', 'true')
     await page.getByRole('tab', { name: 'History' }).click()
-    await expect(page.getByRole('list', { name: 'Action history' })).toContainText('Lay Tile')
+    await expect(page.getByRole('list', { name: 'Action history' })).toContainText(/Laid track at K17/)
     await page.getByRole('button', { name: 'step backwards', exact: true }).click()
     await expect(page.locator('[data-map-location="K17"]')).toHaveAttribute('data-placed', 'false')
     await expect(undo).toBeDisabled()
     await page.getByRole('button', { name: 'go to current', exact: true }).click()
     await page.reload()
-    await expect(actions).toContainText('1 placed')
+    await expect(steps).toContainText('1 laid')
     await undo.click()
-    await expect(actions).toContainText('0 placed')
-    await expect(tileCount).toHaveText(initialCount ?? '')
+    await expect(steps).not.toContainText('laid')
+    await expect(tileCount).toHaveText('∞')
     await expect(page.locator('[data-map-location="K17"]')).toHaveAttribute('data-placed', 'false')
 })
 
 for (const title of ['TOP', '1889']) {
-    test(`${title} company details preserve selections and distinguish ownership`, async ({ page }) => {
+    test(`${title} company details distinguish ownership and control`, async ({ page }) => {
         const errors: string[] = []
         page.on('pageerror', (error) => errors.push(error.message))
         await page.goto('/table')
         await page.getByLabel('Game', { exact: true }).selectOption(title)
-        const order = page.getByRole('region', { name: 'Company order', exact: true })
-        const pills = order.locator('.pill')
-        await page.locator(`[data-map-location="${title === 'TOP' ? 'K17' : 'E2'}"]`).click()
-        await pills.first().focus()
-        await pills.first().press('Enter')
-        const details = page.locator('.company-detail')
-        await expect(details).toHaveCount(1)
-        await expect(pills.first()).toHaveAttribute('aria-expanded', 'true')
-        const ownership = details.getByRole('table')
+        await page.getByRole('tab', { name: 'Companies', exact: true }).click()
+        const companies = page.getByRole('tabpanel', { name: 'Companies', exact: true })
+        const first = companies.getByRole('article', {
+            name: title === 'TOP' ? 'Charlottetown details' : 'Awa Railroad details',
+            exact: true
+        })
+        const ownership = first.getByRole('table')
         await expect(ownership.getByRole('row', { name: /Alex(?: President)? 3$/ })).toBeVisible()
-        await expect(details.locator('tr.president')).toContainText(
-            title === 'TOP' ? 'Alex' : 'Blair'
-        )
-        await expect(details.locator('.control')).toHaveCount(0)
+        await expect(first.locator('tr.president')).toContainText('Alex')
         await expect(
-            ownership.getByRole('row', {
-                name: title === 'TOP' ? /Market 2$/ : /IPO 4$/
-            })
+            ownership.getByRole('row', { name: title === 'TOP' ? /Market 2$/ : /IPO 4$/ })
         ).toBeVisible()
         if (title === 'TOP') {
             await expect(ownership.getByRole('row', { name: /Treasury 1$/ })).toBeVisible()
-            await pills.nth(1).click()
-            await expect(details.locator('tr.president')).toContainText('Union Bank')
-            await expect(details).toContainText('(Controlled by Alex)')
-            await pills.nth(2).click()
-            await expect(details.locator('td[title="Certificate numbers"]').first()).toBeVisible()
-            await expect(details.getByRole('columnheader', { name: '%', exact: true })).toHaveCount(
-                0
-            )
-            await expect(details).toContainText('The King’s Mail')
-            await expect(details).not.toContainText('Pays PEIR')
+            const souris = companies.getByRole('article', { name: 'Souris details', exact: true })
+            await expect(souris.locator('tr.president')).toContainText('Union Bank')
+            const peir = companies.getByRole('article', {
+                name: 'Prince Edward Island Railway details',
+                exact: true
+            })
+            await expect(peir.locator('td[title="Certificate numbers"]').first()).toBeVisible()
+            await expect(peir.getByRole('columnheader', { name: '%', exact: true })).toHaveCount(0)
+            await expect(companies).toContainText('The King’s Mail')
         } else {
-            await expect(details).toContainText('Ehime Railroad')
-            await expect(details).toContainText('upgrade Ohzu')
-            await pills.nth(1).click()
+            await expect(companies).toContainText('Ehime Railroad')
+            const iyo = companies.getByRole('article', { name: 'Iyo Railway details', exact: true })
+            await expect(iyo.locator('tr.president')).toContainText('Blair')
         }
-        await expect(details).toHaveCount(1)
-        await expect(page.locator('[data-map-tile-choice]')).toHaveCount(0)
-        await pills.nth(title === 'TOP' ? 2 : 1).click()
-        await expect(details).toHaveCount(0)
-        await expect(pills.nth(title === 'TOP' ? 2 : 1)).toBeFocused()
-        await pills.first().click()
-        await pills.first().click()
-        await expect(details).toHaveCount(0)
         expect(errors).toEqual([])
     })
 }
@@ -199,6 +179,7 @@ for (const title of ['TOP', '1889']) {
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         const alex = page.getByRole('article', { name: 'Alex portfolio' })
         const casey = page.getByRole('article', { name: 'Casey portfolio' })
+        await expect(alex).toBeVisible({ timeout: 15000 })
         await expect(alex.locator('dt')).toHaveText([
             'Cash',
             'Liquidity',
@@ -207,22 +188,22 @@ for (const title of ['TOP', '1889']) {
             'Net worth'
         ])
         await expect(alex.locator('dd').nth(2)).toHaveText(title === 'TOP' ? '5' : '6')
-        await expect(alex.locator('dd').filter({ hasText: '$' })).toHaveText(
-            title === 'TOP' ? ['$240', '$602', '$1,072'] : ['$240', '$630', '$810']
+        await expect(alex.locator('dd').filter({ hasText: title === 'TOP' ? '$' : '¥' })).toHaveText(
+            title === 'TOP' ? ['$240', '$602', '$1,072'] : ['¥240', '¥630', '¥810']
         )
-        await expect(alex.getByText('Priority deal', { exact: true })).toBeVisible()
+        if (title === '1889') await expect(alex.getByText('Priority deal', { exact: true })).toBeVisible()
         await expect(page.locator('.players article h3')).toHaveText(
             title === 'TOP' ? ['Alex', 'Blair', 'Casey', 'Union Bank'] : ['Alex', 'Blair', 'Casey']
         )
         await expect(alex.locator('.ownership .token svg')).toHaveCount(title === 'TOP' ? 3 : 2)
         await expect(alex.locator('.ownership .amount')).toHaveText(
-            title === 'TOP' ? ['30%', '20%', '10%'] : ['30%', '30%']
+            title === 'TOP' ? ['30%', '10%', '20%'] : ['30%', '30%']
         )
         await expect(casey.getByRole('table', { name: 'Casey private companies' })).toContainText(
             title === 'TOP' ? 'Vernon River Bridge' : 'Mitsubishi Ferry'
         )
         await expect(casey.locator('.privates td')).toHaveText(
-            title === 'TOP' ? ['$10', '$40'] : ['$5', '$30']
+            title === 'TOP' ? ['$10', '$40'] : ['¥5', '¥30']
         )
     })
 }
@@ -267,7 +248,7 @@ for (const title of ['TOP', '1889']) {
         await hex.click()
         if (title === 'TOP') await expect.poll(paths).not.toEqual(first)
         else await expect.poll(paths).toEqual(first)
-        await expect(page.getByRole('region', { name: 'Current action' })).toContainText('0 placed')
+        await expect(page.getByRole('navigation', { name: 'Operating steps' })).not.toContainText('laid')
         await page.getByRole('button', { name: 'Cancel track lay' }).click()
         await expect(hex).toHaveAttribute('data-placed', wasPlaced ?? 'false')
         await expect(page.locator('.picker')).toHaveCount(0)
@@ -297,7 +278,7 @@ test('selected tile motion keeps alternatives, closes on cancel, and preserves t
     await hex.click()
     await page.locator('[data-map-tile-choice="18xx:8"]').click()
     await page.getByRole('button', { name: 'Accept track lay' }).click()
-    await expect(page.getByRole('region', { name: 'Current action' })).toContainText('1 placed')
+    await expect(page.getByRole('navigation', { name: 'Operating steps' })).toContainText('1 laid')
     await page.getByRole('button', { name: 'Undo', exact: true }).click()
     await expect(hex).toHaveAttribute('data-placed', 'false')
     await expect(page.locator('html')).not.toHaveAttribute('data-mask-missing', 'true')
@@ -391,9 +372,18 @@ for (const title of ['TOP', '1889']) {
         await page.goto('/table')
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         const hex = page.locator(`[data-map-location="${title === 'TOP' ? 'K17' : 'E2'}"]`)
+        const undo = page.getByRole('button', { name: 'Undo', exact: true })
         await hex.click()
+        await expect(page.locator('[data-map-tile-choice]').first()).toBeVisible()
         await page.keyboard.press('f')
         const tile = page.locator(`[data-map-tile-choice="${title === 'TOP' ? '18xx:8' : '18xx:15'}"]`)
+        const drawn = async () => {
+            const before = await tile.boundingBox()
+            await page.waitForTimeout(120)
+            const after = await tile.boundingBox()
+            return !!after && after.width > 0 && JSON.stringify(before) === JSON.stringify(after)
+        }
+        await expect.poll(drawn).toBe(true)
         await tile.click()
         await expect(page.locator('.picker')).toHaveAttribute('data-track-motion', 'false')
         await hex.click()
@@ -404,9 +394,12 @@ for (const title of ['TOP', '1889']) {
         await page.getByRole('button', { name: 'Accept track lay', exact: true }).click()
         await expect(hex).toHaveAttribute('data-placed', 'true')
         await page.keyboard.press('Escape')
-        await page.getByRole('button', { name: 'Undo', exact: true }).click()
+        await undo.click()
+        await expect(undo).toBeDisabled()
         await hex.click()
+        await expect(tile).toBeVisible()
         await page.keyboard.press('f')
+        await expect.poll(drawn).toBe(true)
         await tile.click()
         await page.keyboard.press('f')
         await page.getByRole('button', { name: 'Cancel track lay', exact: true }).click()

@@ -9,10 +9,10 @@ for (const title of ['TOP', '1889']) {
             await page.setViewportSize({ width, height: 900 })
             const fork = page.getByRole('button', { name: 'fork game', exact: true })
             await expect(fork).toHaveCount(1)
-            await expect(fork.locator('svg')).toHaveCSS('color', 'rgb(105, 85, 64)')
+            await expect(fork.locator('svg')).toHaveCSS('color', 'rgb(227, 233, 239)')
             const backward = page.getByRole('button', { name: 'step backwards', exact: true })
             await expect(backward).toHaveCount(1)
-            await expect(backward.locator('svg')).toHaveCSS('color', 'rgb(185, 174, 159)')
+            await expect(backward.locator('svg')).toHaveCSS('color', 'rgb(89, 103, 119)')
         }
     })
 }
