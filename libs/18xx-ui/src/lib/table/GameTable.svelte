@@ -45,7 +45,12 @@
         setGameSession
     } from '@tabletop/frontend-components'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    import { mapSelectionRect, routeLocationIds, type MapRoute } from '../maps/mapDrawing.js'
+    import {
+        isMapSelectionValid,
+        mapSelectionRect,
+        routeLocationIds,
+        type MapRoute
+    } from '../maps/mapDrawing.js'
     import MapScene from '../maps/MapScene.svelte'
     import HistoricalMapViewer from '../maps/HistoricalMapViewer.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
@@ -386,10 +391,19 @@
             session.history.visibleContext.state.actionCount === session.gameState.actionCount
     )
     // While a history step is still settling, keep the last settled routes so the route mask
-    // does not drop out between one step's map and the next.
+    // does not drop out between one step's map and the next. Only routes that still resolve on
+    // the displayed scene are kept, and only while viewing history: during an undo the scene
+    // changes before the routes do, and a stale segment would fail the map's overlay checks.
     let settledRoutes: MapRoute[] = []
     const mapRoutes = $derived.by((): MapRoute[] => {
-        if (!historyMapSettled) return settledRoutes
+        if (!historyMapSettled)
+            return session.isViewingHistory
+                ? settledRoutes.filter((route) =>
+                      route.segments.every((segment) =>
+                          isMapSelectionValid(displayedScene, { kind: 'path', ...segment })
+                      )
+                  )
+                : []
         settledRoutes = historicalFocus
             ? historicalFocus.routes.map((route, index) => ({
                   id: route.trainId,
