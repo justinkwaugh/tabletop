@@ -3,8 +3,8 @@ import PaperGrain from './images/published/tiles/paper-grain.png'
 
 /**
  * Tile style matching the Boda Games punch tiles: measured tile colours, near-black
- * hand-inked track without casing, heavy-ringed paper station circles, pill revenue
- * badges, paper grain, and the printed markers for X (ring) and T (inset hex) tiles.
+ * hand-inked track without casing, heavy-ringed white station circles, plain white
+ * revenue discs, paper grain, and the printed markers for X (ring) and T (inset hex) tiles.
  * See images/published/tiles/style.json for the measurements.
  */
 export const TheOldPrincePublishedTileAppearance: TileAppearance = Object.freeze({
@@ -20,15 +20,15 @@ export const TheOldPrincePublishedTileAppearance: TileAppearance = Object.freeze
         gray: '#bcc2bf'
     }),
     ink: '#111111',
-    paper: '#f4f2ea',
+    paper: '#ffffff',
     trackWidth: 6.2,
     trackBorderWidth: 0,
     townMarker: 'dot',
     edge: { color: 'rgb(0 0 0 / 0.16)', width: 0.6 },
-    // 384 px of 300 dpi sheet is 64 tile units (the 520 px punch hex is 86.6 units wide).
-    grain: { href: PaperGrain, size: 64 },
+    // 240 px of a 300 dpi punch tile is 40 tile units (the 520 px punch hex is 86.6 units wide).
+    grain: { href: PaperGrain, size: 40 },
     roughness: 1.0,
     cityRingWidth: 1.6,
-    revenueBadge: 'pill',
+    revenueBadge: 'plain',
     labelMarkers: { X: 'ring', T: 'hex' } as const
 })

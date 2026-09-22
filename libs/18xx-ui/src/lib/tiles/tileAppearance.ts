@@ -16,8 +16,8 @@ export type TileAppearance = {
     roughness?: number
     /** Station circle ring width; defaults to 1.1. */
     cityRingWidth?: number
-    /** Fixed revenue badge shape; defaults to a circle. */
-    revenueBadge?: 'circle' | 'pill'
+    /** Fixed revenue badge: the default ringed circle, or a plain borderless paper disc with black text. */
+    revenueBadge?: 'circle' | 'plain'
     /** Labels drawn as a faint tone-on-tone marker instead of text: a ring around the city or an inset hex. */
     labelMarkers?: Readonly<Record<string, 'ring' | 'hex'>>
 }

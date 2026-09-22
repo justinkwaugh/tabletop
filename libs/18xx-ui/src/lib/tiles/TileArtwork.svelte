@@ -281,18 +281,11 @@
                     transform={`translate(${revenuePosition.x} ${revenuePosition.y})`}
                 >
                     {#if node.revenue.kind === 'fixed'}
-                        {#if appearance.revenueBadge === 'pill'}
-                            <rect
-                                x="-11"
-                                y="-7"
-                                width="22"
-                                height="14"
-                                rx="7"
-                                fill={appearance.paper}
-                                stroke={appearance.ink}
-                                stroke-width="0.6"
-                            ></rect>
-                            <text font-size="10" font-weight="800">{node.revenue.amount}</text>
+                        {#if appearance.revenueBadge === 'plain'}
+                            <circle r="8.7" fill={appearance.paper}></circle>
+                            <text font-size="10" font-weight="800" fill="#000"
+                                >{node.revenue.amount}</text
+                            >
                         {:else}
                             <circle
                                 r="8.7"

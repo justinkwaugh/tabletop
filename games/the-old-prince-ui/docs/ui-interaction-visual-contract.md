@@ -84,7 +84,7 @@ These change shared presentation without adding interaction:
   the auction bidding panel and, when a private is clicked, centred over a full-screen
   mask at a size that follows the viewport, laid tiles drawn in the published tile style
   (board-matched colours, paper grain, hand-inked track without casing, heavy-ringed
-  station circles, pill revenue badges, and a faint ring or inset hex in place of the X
+  station circles, plain white revenue discs, and a faint ring or inset hex in place of the X
   and T labels), and printed-city station positions
   for Wellington, Summerside and Charlottetown. In that mode the page and map surround
   take the board's dark border color, and leaving the mode or the table restores the
