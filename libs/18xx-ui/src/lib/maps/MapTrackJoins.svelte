@@ -13,9 +13,14 @@
         <defs>
             <mask id={maskId} maskUnits="userSpaceOnUse" {...scene.bounds}>
                 {#each joins as point}
-                    <rect x="-1" y={-(appearance.trackWidth + appearance.trackBorderWidth) / 2 - 2}
-                        width="2" height={appearance.trackWidth + appearance.trackBorderWidth + 4}
-                        transform={`translate(${point.x} ${point.y}) rotate(${point.angle})`} fill="white" />
+                    <rect
+                        x="-1"
+                        y={-(appearance.trackWidth + appearance.trackBorderWidth) / 2 - 2}
+                        width="2"
+                        height={appearance.trackWidth + appearance.trackBorderWidth + 4}
+                        transform={`translate(${point.x} ${point.y}) rotate(${point.angle})`}
+                        fill="white"
+                    ></rect>
                 {/each}
             </mask>
         </defs>
@@ -24,8 +29,12 @@
                 {#each scene.locations as entry (entry.location.id)}
                     <g transform={`translate(${entry.center.x} ${entry.center.y})`}>
                         {#each entry.drawing.paths as path (path.id)}
-                            <path d={path.d} stroke={border ? appearance.paper : appearance.ink}
-                                stroke-width={appearance.trackWidth + (border ? appearance.trackBorderWidth : 0)} />
+                            <path
+                                d={path.d}
+                                stroke={border ? appearance.paper : appearance.ink}
+                                stroke-width={appearance.trackWidth +
+                                    (border ? appearance.trackBorderWidth : 0)}
+                            ></path>
                         {/each}
                     </g>
                 {/each}

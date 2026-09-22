@@ -8,8 +8,7 @@
     let {
         session,
         lotInfo
-    }: { session: EighteenXXSession; lotInfo: (id: string) => { description: string } } =
-        $props()
+    }: { session: EighteenXXSession; lotInfo: (id: string) => { description: string } } = $props()
     const money = $derived(session.presentation.money)
     const model = $derived.by(() => {
         assertExists(session.offers.model, 'Bidding requires an offer auction')
@@ -56,7 +55,9 @@
 
 <article aria-label="Current auction">
     <div class="lot">
-        <PrivateCard {money} phaseColors={session.presentation.phaseColors}
+        <PrivateCard
+            {money}
+            phaseColors={session.presentation.phaseColors}
             token={lot.token}
             name={lot.name}
             description={lotInfo(lot.id).description}
@@ -67,10 +68,17 @@
     </div>
     <div class="turn">
         <div class="bid-summary">
-            <span class="value">{bidding.auction.highBid === undefined ? 'Offered by' : 'Current bidder'} <strong>{session.getPlayerName(highBidderId)}</strong></span>
-            <span class="value">{bidding.auction.highBid === undefined ? 'Initial value' : 'High bid'} <strong>{money(bidding.auction.highBid ?? lot.price)}</strong></span>
+            <span class="value"
+                >{bidding.auction.highBid === undefined ? 'Offered by' : 'Current bidder'}
+                <strong>{session.getPlayerName(highBidderId)}</strong></span
+            >
+            <span class="value"
+                >{bidding.auction.highBid === undefined ? 'Initial value' : 'High bid'}
+                <strong>{money(bidding.auction.highBid ?? lot.price)}</strong></span
+            >
         </div>
-        <AuctionBidControl {money}
+        <AuctionBidControl
+            {money}
             {amount}
             increment={model.rules.increment}
             canBid={canBid(amount)}

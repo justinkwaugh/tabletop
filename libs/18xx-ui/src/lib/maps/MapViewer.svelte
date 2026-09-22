@@ -70,7 +70,7 @@
                     {routes}
                     {reservations}
                     {appearance}
-                {revenueStageColors}
+                    {revenueStageColors}
                     {hexDiameter}
                     {onselect}
                 />

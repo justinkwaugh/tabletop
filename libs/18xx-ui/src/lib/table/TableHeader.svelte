@@ -38,10 +38,16 @@
             const short = phase.querySelector<HTMLElement>('.round-short')
             if (!full || !short) return
             const style = getComputedStyle(header)
-            const available = header.clientWidth - parseFloat(style.paddingLeft) -
-                parseFloat(style.paddingRight) - parseFloat(style.columnGap)
-            const fullWidth = phase.getBoundingClientRect().width +
-                (compact ? full.getBoundingClientRect().width - short.getBoundingClientRect().width : 0)
+            const available =
+                header.clientWidth -
+                parseFloat(style.paddingLeft) -
+                parseFloat(style.paddingRight) -
+                parseFloat(style.columnGap)
+            const fullWidth =
+                phase.getBoundingClientRect().width +
+                (compact
+                    ? full.getBoundingClientRect().width - short.getBoundingClientRect().width
+                    : 0)
             compact = fullWidth + turn.getBoundingClientRect().width > available
         })
         for (const element of [header, phase, turn]) observer.observe(element)
@@ -68,26 +74,40 @@
             {#if financialState.result}
                 Game over
             {:else if auction}
-                <span class="auction-label max-sm:hidden">Opening auction</span><span class="auction-label sm:hidden">Auction</span>
+                <span class="auction-label max-sm:hidden">Opening auction</span><span
+                    class="auction-label sm:hidden">Auction</span
+                >
             {:else if !financialState.stockRound.completed}
-                <span class="round-full" aria-hidden={compact}>Stock round</span><span class="round-short" aria-hidden={!compact}>SR</span>
+                <span class="round-full" aria-hidden={compact}>Stock round</span><span
+                    class="round-short"
+                    aria-hidden={!compact}>SR</span
+                >
                 {financialState.stockRound.number}
             {:else}
-                <span class="round-full" aria-hidden={compact}>Operating round</span><span class="round-short" aria-hidden={!compact}>OR</span>
+                <span class="round-full" aria-hidden={compact}>Operating round</span><span
+                    class="round-short"
+                    aria-hidden={!compact}>OR</span
+                >
                 {financialState.operatingSet?.number}.{financialState.operatingSet?.roundNumber}
             {/if}
         </strong>
         <span class="separator">/</span><button
             class="phase-button"
             aria-haspopup="dialog"
-            onclick={() => (showPhaseChart = true)}><span class="max-sm:hidden">Phase </span><TrainBadge name={financialState.phaseId} color={trainColors[financialState.phaseId]} /></button
+            onclick={() => (showPhaseChart = true)}
+            ><span class="max-sm:hidden">Phase </span><TrainBadge
+                name={financialState.phaseId}
+                color={trainColors[financialState.phaseId]}
+            /></button
         >
-        {#if company && financialState.stockRound.completed && !financialState.result}<span class="separator" aria-hidden="true">/</span><span
-                class="company" title={company.name}
-                ><CompanyToken
-                    appearance={session.mapView.stations[company.id]}
-                    size={22}
-                /><span class="max-sm:hidden">{company.name}</span><span class="sm:hidden">{companyNames[company.id]?.initials ?? company.id}</span></span
+        {#if company && financialState.stockRound.completed && !financialState.result}<span
+                class="separator"
+                aria-hidden="true">/</span
+            ><span class="company" title={company.name}
+                ><CompanyToken appearance={session.mapView.stations[company.id]} size={22} /><span
+                    class="max-sm:hidden">{company.name}</span
+                ><span class="sm:hidden">{companyNames[company.id]?.initials ?? company.id}</span
+                ></span
             >{/if}
     </div>
     <div class="turn">
@@ -95,11 +115,13 @@
             <span>History</span>
         {:else}
             {#each financialState.activePlayerIds as playerId (playerId)}
-                <span class="player-name"><span
-                    class="player-color"
-                    style:background={session.colors.getPlayerBgColorValue(playerId)}
-                    aria-hidden="true"
-                ></span>{session.getPlayerName(playerId)}</span>
+                <span class="player-name"
+                    ><span
+                        class="player-color"
+                        style:background={session.colors.getPlayerBgColorValue(playerId)}
+                        aria-hidden="true"
+                    ></span>{session.getPlayerName(playerId)}</span
+                >
             {/each}
         {/if}
         <button
@@ -110,23 +132,40 @@
                 !(session.hasLocalSelection || session.undoableAction)}>Undo</button
         >
         {#if artworkAvailable}
-            <button class="artwork-toggle"
+            <button
+                class="artwork-toggle"
                 aria-label={publishedArtwork ? 'Use generic presentation' : 'Use published artwork'}
                 title={publishedArtwork ? 'Use generic presentation' : 'Use published artwork'}
                 aria-pressed={publishedArtwork}
-                onclick={onToggleArtwork}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <circle cx="8" cy="8" r="1.5" />
-                    <path d="m3 17 5-5 4 4 4-6 5 7" />
+                onclick={onToggleArtwork}
+            >
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    <circle cx="8" cy="8" r="1.5"></circle>
+                    <path d="m3 17 5-5 4 4 4-6 5 7"></path>
                 </svg>
             </button>
         {/if}
     </div>
 </header>
 
-{#if showPhaseChart}<PhaseChart {money}
-        depotState={{ depot: session.trainDepot, inventory: financialState.trainInventory, availableDefinitionIds: session.availableTrainDefinitionIds }}
+{#if showPhaseChart}<PhaseChart
+        {money}
+        depotState={{
+            depot: session.trainDepot,
+            inventory: financialState.trainInventory,
+            availableDefinitionIds: session.availableTrainDefinitionIds
+        }}
         chart={phaseChart}
         currentPhaseId={financialState.phaseId}
         {trainColors}
@@ -146,9 +185,13 @@
         padding: 0;
         color: var(--rail-text, #5e4937);
     }
-    header.borderless { border-bottom: 0; }
+    header.borderless {
+        border-bottom: 0;
+    }
     @media (width < 40rem) {
-        header { min-height: 36px; }
+        header {
+            min-height: 36px;
+        }
     }
     .phase,
     .turn {
@@ -239,6 +282,19 @@
         opacity: 0.3;
         cursor: default;
     }
-    .artwork-toggle { margin-left: -8px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; padding: 6px; color: var(--rail-muted, #786550); }
-    .artwork-toggle[aria-pressed='true'] { background: var(--rail-hover, #69554016); color: var(--rail-text, #443c34); }
+    .artwork-toggle {
+        margin-left: -8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        padding: 6px;
+        color: var(--rail-muted, #786550);
+    }
+    .artwork-toggle[aria-pressed='true'] {
+        background: var(--rail-hover, #69554016);
+        color: var(--rail-text, #443c34);
+    }
 </style>

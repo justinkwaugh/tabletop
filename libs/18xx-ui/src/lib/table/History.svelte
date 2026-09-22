@@ -28,10 +28,15 @@
         phaseColors: Readonly<Record<string, string>>
         phaseTileColors: Readonly<Record<string, readonly string[]>>
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
-        describeAction?: (action: GameAction, companyName: (id: string) => string) => HistoryDescription | undefined
+        describeAction?: (
+            action: GameAction,
+            companyName: (id: string) => string
+        ) => HistoryDescription | undefined
     } = $props()
     const money = $derived(session.presentation.money)
-    const jumpDisabled = $derived(session.busy || session.updatingVisibleState || session.history.isDisabled())
+    const jumpDisabled = $derived(
+        session.busy || session.updatingVisibleState || session.history.isDisabled()
+    )
     function jumpToHistory(index: number) {
         if (!jumpDisabled) void session.history.goToActionIndex(index, { exact: true })
     }
@@ -55,8 +60,13 @@
     function describe(action: GameAction) {
         const description =
             describeAction?.(action, companyName) ??
-            historyDescription(action, state, companyName, (id) =>
-                session.getPlayerName(id), companyChanges.get(action.id), session.presentation.money
+            historyDescription(
+                action,
+                state,
+                companyName,
+                (id) => session.getPlayerName(id),
+                companyChanges.get(action.id),
+                session.presentation.money
             )
         return orderChanges.has(action.id) ? { ...description, important: true } : description
     }
@@ -68,10 +78,18 @@
     }
 </script>
 
-<RoundHistory {currentHeaderId} onReturn={returnToCurrent} onJump={jumpToHistory} {jumpDisabled} {rounds} {phaseColors} {newestFirst}
+<RoundHistory
+    {currentHeaderId}
+    onReturn={returnToCurrent}
+    onJump={jumpToHistory}
+    {jumpDisabled}
+    {rounds}
+    {phaseColors}
+    {newestFirst}
     historyComplete={context.hasCompleteHistory}
-    onOrderChange={(first) => session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}>
-
+    onOrderChange={(first) =>
+        session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}
+>
     {#snippet orderContent(order)}
         <OperatingOrderHistory {order} stations={session.mapView.stations} {companyName} />
     {/snippet}
@@ -81,7 +99,8 @@
             {#each newestFirst ? groups : groups.toReversed() as entry (entry.id)}
                 {#if entry.kind === 'auction'}
                     <li class="auction">
-                        <AuctionHistoryCard {money}
+                        <AuctionHistoryCard
+                            {money}
                             card={entry}
                             lot={lot(entry.offer.lotId)}
                             playerName={(id) => session.getPlayerName(id)}
@@ -90,9 +109,13 @@
                     </li>
                 {:else}
                     <li>
-                        <HistoryGroup {money}
+                        <HistoryGroup
+                            {money}
                             group={entry}
-                            onReturn={round.id === currentHeaderId && entry.id === groups.find(group => group.kind === 'operation')?.id ? returnToCurrent : undefined}
+                            onReturn={round.id === currentHeaderId &&
+                            entry.id === groups.find((group) => group.kind === 'operation')?.id
+                                ? returnToCurrent
+                                : undefined}
                             onJump={jumpToHistory}
                             {jumpDisabled}
                             {onPreviewMap}

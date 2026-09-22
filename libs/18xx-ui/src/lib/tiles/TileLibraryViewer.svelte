@@ -106,7 +106,9 @@
                 {#if supply.has(selected.id)}
                     {@const count = supply.get(selected.id)!}
                     <p class="scope" data-tile-inventory>
-                        {count.available === 'unlimited' ? 'Unlimited' : `${count.available} of ${count.total} available`}
+                        {count.available === 'unlimited'
+                            ? 'Unlimited'
+                            : `${count.available} of ${count.total} available`}
                     </p>
                 {/if}
                 <div class="large-tile">
@@ -241,7 +243,9 @@
                         {#if supply.has(tile.id)}
                             {@const count = supply.get(tile.id)!}
                             <span class="scope" data-tile-inventory
-                                >{count.available === 'unlimited' ? 'Unlimited' : `${count.available} / ${count.total} available`}</span
+                                >{count.available === 'unlimited'
+                                    ? 'Unlimited'
+                                    : `${count.available} / ${count.total} available`}</span
                             >
                         {/if}
                         <span class="card-title"

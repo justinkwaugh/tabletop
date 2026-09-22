@@ -17,7 +17,8 @@
         StockMarket
     } from '@tabletop/18xx-ui'
     import { peirShares, peirPresident } from '@tabletop/the-old-prince'
-    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } = $props()
+    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
+        $props()
     const session = $derived(requireTheOldPrinceSession(gameSession))
     const state = $derived(requireEighteenXXState(gameSession.gameState))
 </script>
@@ -33,7 +34,12 @@
     <TrainBuying {session} trainColors={TheOldPrinceTrainColors} />
     <FinanceMap {session} />
     <StockTrading {session} />
-    <StockMarket animation={session.marketAnimation} appearances={session.mapView.stations} market={state.stockMarket} companies={state.companies} />
+    <StockMarket
+        animation={session.marketAnimation}
+        appearances={session.mapView.stations}
+        market={state.stockMarket}
+        companies={state.companies}
+    />
 
     {#if state.tranches.length}<section class="tranches" aria-label="Company tranches">
             {#each state.tranches as tranche (tranche.id)}<p>

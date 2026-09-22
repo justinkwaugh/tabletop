@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
-        $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const money = $derived(session.presentation.money)
     const editor = $derived(session.routes.editor)
     const step = $derived(session.financialState.routeStep)
@@ -84,7 +83,9 @@
                     {/if}
                     {#if preview?.reason}<p role="status">{preview.reason}</p>{/if}
                     {#if preview?.result}<p>
-                            Distance: {preview.result.distance} · Revenue: {money(preview.result.revenue)}
+                            Distance: {preview.result.distance} · Revenue: {money(
+                                preview.result.revenue
+                            )}
                         </p>
                         <p>
                             {preview.result.payments
@@ -120,7 +121,8 @@
                             onclick={() => session.routes.edit(route.trainId)}>Edit route</button
                         ><button
                             disabled={!session.routes.canRun}
-                            onclick={() => session.routes.remove(route.trainId)}>Remove route</button
+                            onclick={() => session.routes.remove(route.trainId)}
+                            >Remove route</button
                         >{/if}
                 </div>{/each}
         </div>

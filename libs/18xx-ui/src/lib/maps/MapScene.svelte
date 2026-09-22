@@ -106,7 +106,7 @@
             {...viewport.bounds}
             preserveAspectRatio="none"
             pointer-events="none"
-        />
+        ></image>
     {/if}
     {#if maskUnavailableLocations}
         <defs>
@@ -116,9 +116,9 @@
                 {...scene.bounds}
                 color-interpolation-filters="sRGB"
             >
-                <feGaussianBlur stdDeviation="5" />
+                <feGaussianBlur stdDeviation="5"></feGaussianBlur>
                 <feComponentTransfer>
-                    <feFuncA type="linear" slope="20" intercept="-9.5" />
+                    <feFuncA type="linear" slope="20" intercept="-9.5"></feFuncA>
                 </feComponentTransfer>
             </filter>
             <mask id={perimeterMaskId} maskUnits="userSpaceOnUse" {...scene.bounds}>
@@ -133,7 +133,7 @@
                         <polygon
                             transform={`translate(${entry.center.x} ${entry.center.y})`}
                             points={entry.drawing.polygon}
-                        />
+                        ></polygon>
                     {/each}
                 </g>
                 <g fill="black">
@@ -141,7 +141,7 @@
                         <polygon
                             transform={`translate(${entry.center.x} ${entry.center.y})`}
                             points={entry.drawing.polygon}
-                        />
+                        ></polygon>
                     {/each}
                 </g>
             </mask>
@@ -153,7 +153,7 @@
             fill-opacity="0.45"
             pointer-events="none"
             data-map-layer="masked-perimeter"
-        />
+        ></rect>
     {/if}
     {#each entries as entry (entry.location.id)}
         {@const id = entry.location.id}
@@ -192,11 +192,11 @@
             {#snippet selectedTrack()}
                 {#if selected && selection?.kind === 'path'}
                     {#each entry.drawing.paths.filter((path) => path.id === selectedPath) as path}
-                        <path d={path.d} fill="none" stroke="#d52f83" stroke-width="3" />
+                        <path d={path.d} fill="none" stroke="#d52f83" stroke-width="3"></path>
                     {/each}
                 {/if}
             {/snippet}
-            <polygon points={entry.drawing.polygon} fill="transparent" />
+            <polygon points={entry.drawing.polygon} fill="transparent"></polygon>
             {#if !artwork || entry.placed}
                 <TileArtwork
                     face={entry.face}
@@ -273,7 +273,8 @@
                             {#each terrain.kinds as kind, index}
                                 <g transform={`translate(${index * 19} 0)`} stroke="none">
                                     {#if kind === 'mountain'}
-                                        <path d="M0 5 L6 -6 L10 0 L13 -4 L19 5 Z" fill="#936039" />
+                                        <path d="M0 5 L6 -6 L10 0 L13 -4 L19 5 Z" fill="#936039"
+                                        ></path>
                                     {:else if kind === 'water'}
                                         <path
                                             transform="translate(4 0) scale(0.75 1)"
@@ -282,7 +283,7 @@
                                             stroke="#287fab"
                                             stroke-width="1.8"
                                             stroke-linecap="round"
-                                        />
+                                        ></path>
                                     {:else}
                                         <text x="8" y="4" font-size="11" font-weight="700"
                                             >{kind === 'urban' ? '▦' : kind}</text
@@ -321,7 +322,7 @@
                                 y="-25"
                                 width="50"
                                 height="40"
-                            />
+                            ></image>
                         {/if}
                     {/each}
                     <text y="36" font-size="5" font-weight="650" data-map-markers
@@ -350,7 +351,7 @@
                     class="hit-path"
                     onclick={(event) => select(event, pathTarget)}
                     onkeydown={(event) => select(event, pathTarget)}
-                />
+                ></path>
             {/each}
             {#each entry.drawing.nodes as node (node.node.id)}
                 {#if node.slots.length === 0}
@@ -367,7 +368,7 @@
                         class="hit-node"
                         onclick={(event) => select(event, nodeTarget)}
                         onkeydown={(event) => select(event, nodeTarget)}
-                    />
+                    ></circle>
                 {/if}
                 {#each node.slots as point, slot}
                     {@const slotTarget: MapSelection = { kind: 'slot', locationId: id, nodeId: node.node.id, slot }}
@@ -390,7 +391,7 @@
                         class="hit-node"
                         onclick={(event) => select(event, slotTarget)}
                         onkeydown={(event) => select(event, slotTarget)}
-                    />
+                    ></circle>
                 {/each}
             {/each}
         </g>
@@ -403,7 +404,7 @@
                     points={entry.drawing.polygon}
                     stroke="#566368"
                     stroke-width="0.6"
-                />
+                ></polygon>
             {/each}
         </g>
     {/if}
@@ -424,7 +425,7 @@
                                   ? '#875e36'
                                   : '#b02235'}
                             stroke-width="3"
-                        />
+                        ></line>
                     {/each}
                 </g>
             {/each}
@@ -468,7 +469,7 @@
                     data-map-masked={entry.location.id}
                     transform={`translate(${entry.center.x} ${entry.center.y})`}
                     points={entry.drawing.polygon}
-                />
+                ></polygon>
             {/each}
         </g>
     {/if}
@@ -494,7 +495,7 @@
                 points={entry.drawing.polygon}
                 stroke-width="5"
                 stroke-linejoin="round"
-            />
+            ></polygon>
         {/each}
     </g>
 </svg>

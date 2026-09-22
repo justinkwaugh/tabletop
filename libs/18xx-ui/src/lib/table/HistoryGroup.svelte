@@ -5,7 +5,15 @@
     import HistoryHeaderJump from './HistoryHeaderJump.svelte'
     import './playerTint.css'
     import { assertExists, type GameAction } from '@tabletop/common'
-    import { isAdvancePhase, isStartOperatingRound, isSellFundingShares, sameOwner, isDistributeEarnings, isFloatCompany, isFinishOperatingTurn } from '@tabletop/18xx'
+    import {
+        isAdvancePhase,
+        isStartOperatingRound,
+        isSellFundingShares,
+        sameOwner,
+        isDistributeEarnings,
+        isFloatCompany,
+        isFinishOperatingTurn
+    } from '@tabletop/18xx'
     import { TileColors } from '../tiles/tilePresentation.js'
     import type { HistoryGroup } from './historyGroups.js'
     import type { HistoryDescription } from './historyDescription.js'
@@ -74,28 +82,57 @@
         const unlockedColor = unlocked.at(-1)
         const color = unlockedColor ? TileColors[unlockedColor] : next
         assertExists(color, `Unknown history phase color: ${toPhaseId}`)
-        return { color, label: unlocked.length ? `${unlocked.join(' and ')} tiles now available` : undefined }
+        return {
+            color,
+            label: unlocked.length ? `${unlocked.join(' and ')} tiles now available` : undefined
+        }
     }
-    const startingCash = $derived(group.kind === 'operation' && group.companyId
-        ? cash.get(group.actions[0].id)?.before.get(group.companyId) : undefined)
-    const endingCash = $derived(group.kind === 'operation' && group.companyId
-        ? cash.get(group.actions.at(-1)!.id)?.after.get(group.companyId) : undefined)
-    const operatingPlayerId = $derived(group.kind === 'operation'
-        ? group.actions.findLast(isFinishOperatingTurn)?.playerId
-            ?? (group.companyId ? currentController(group.companyId) : undefined)
-        : group.playerId)
-    const rows = $derived(group.actions.map((action) => {
-        const description = describe(action)
-        const stockPlayerId = isFloatCompany(action) ? undefined : action.playerId
-        const balance = cash.get(action.id)
-        const delta = startingCash !== undefined && group.companyId && balance
-            ? (balance.after.get(group.companyId) ?? 0) - (balance.before.get(group.companyId) ?? 0)
-            : 0
-        return { action, ...description, stockPlayerId, routine: delta ? false : description.routine,
-            phase: phaseChange(action), order: orderChanges.get(action.id), delta,
-            ledgerValue: startingCash !== undefined && description.value && (!delta || isDistributeEarnings(action)) ? description.value : undefined }
-    }))
-    const visible = $derived(rows.filter((row) => !row.routine && (row.text || row.detail || row.order)))
+    const startingCash = $derived(
+        group.kind === 'operation' && group.companyId
+            ? cash.get(group.actions[0].id)?.before.get(group.companyId)
+            : undefined
+    )
+    const endingCash = $derived(
+        group.kind === 'operation' && group.companyId
+            ? cash.get(group.actions.at(-1)!.id)?.after.get(group.companyId)
+            : undefined
+    )
+    const operatingPlayerId = $derived(
+        group.kind === 'operation'
+            ? (group.actions.findLast(isFinishOperatingTurn)?.playerId ??
+                  (group.companyId ? currentController(group.companyId) : undefined))
+            : group.playerId
+    )
+    const rows = $derived(
+        group.actions.map((action) => {
+            const description = describe(action)
+            const stockPlayerId = isFloatCompany(action) ? undefined : action.playerId
+            const balance = cash.get(action.id)
+            const delta =
+                startingCash !== undefined && group.companyId && balance
+                    ? (balance.after.get(group.companyId) ?? 0) -
+                      (balance.before.get(group.companyId) ?? 0)
+                    : 0
+            return {
+                action,
+                ...description,
+                stockPlayerId,
+                routine: delta ? false : description.routine,
+                phase: phaseChange(action),
+                order: orderChanges.get(action.id),
+                delta,
+                ledgerValue:
+                    startingCash !== undefined &&
+                    description.value &&
+                    (!delta || isDistributeEarnings(action))
+                        ? description.value
+                        : undefined
+            }
+        })
+    )
+    const visible = $derived(
+        rows.filter((row) => !row.routine && (row.text || row.detail || row.order))
+    )
 </script>
 
 <article
@@ -110,9 +147,15 @@
 >
     {#if group.kind === 'passes'}
         <div class="passes">
-            {#each group.actions as action (action.id)}<div class="history-entry stock-action" class:player-tinted-header={!!action.playerId} style:--player-color={action.playerId ? playerColor(action.playerId) : undefined}
-                    >{#if action.playerId}{playerName(action.playerId)}{' '}{/if}passed</div
-                >{/each}
+            {#each group.actions as action (action.id)}<div
+                    class="history-entry stock-action"
+                    class:player-tinted-header={!!action.playerId}
+                    style:--player-color={action.playerId
+                        ? playerColor(action.playerId)
+                        : undefined}
+                >
+                    {#if action.playerId}{playerName(action.playerId)}{' '}{/if}passed
+                </div>{/each}
         </div>
     {:else if group.kind === 'turn'}
         {#each visible as row (row.action.id)}
@@ -120,80 +163,137 @@
                 <div
                     class="history-entry stock-action"
                     class:player-tinted-header={!!row.stockPlayerId}
-                    style:--player-color={row.stockPlayerId ? playerColor(row.stockPlayerId) : undefined}
+                    style:--player-color={row.stockPlayerId
+                        ? playerColor(row.stockPlayerId)
+                        : undefined}
                     class:phase-change={!!row.phase}
                     class:flotation={isFloatCompany(row.action)}
                     style:--phase-color={row.phase?.color}
-                    style:--phase-ink={row.phase ? contrastingTextColor(row.phase.color) : undefined}
+                    style:--phase-ink={row.phase
+                        ? contrastingTextColor(row.phase.color)
+                        : undefined}
                     class:routine={row.routine}
                 >
-                    {#if isFloatCompany(row.action)}<span class="flotation-token"><CompanyToken appearance={stations[row.action.companyId]} size={23} /></span>{/if}
+                    {#if isFloatCompany(row.action)}<span class="flotation-token"
+                            ><CompanyToken
+                                appearance={stations[row.action.companyId]}
+                                size={23}
+                            /></span
+                        >{/if}
                     {#if row.stockPlayerId}<span>{playerName(row.stockPlayerId)}</span>{' '}{/if}
                     <span
-                        >{row.stockPlayerId ? row.text.charAt(0).toLowerCase() + row.text.slice(1) : row.text}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.value}
+                        >{row.stockPlayerId
+                            ? row.text.charAt(0).toLowerCase() + row.text.slice(1)
+                            : row.text}{#if row.phase}<span class="phase-colors"
+                                >{row.phase.label}</span
+                            >{/if}{#if row.value}
                             for <span class="stock-value">{row.value}</span>{/if}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
-                    {#if row.order}<OperatingOrderHistory order={row.order} {stations} {companyName} />{/if}
+                    {#if row.order}<OperatingOrderHistory
+                            order={row.order}
+                            {stations}
+                            {companyName}
+                        />{/if}
                 </div>
             </div>
         {/each}
     {:else}
-        {#if group.kind !== 'event'}<header class:history-card-header={group.kind === 'operation'} class:company-header={group.kind === 'operation'} class:player-tinted-header={group.kind === 'operation' && !!operatingPlayerId} style:--player-color={group.kind === 'operation' && operatingPlayerId ? playerColor(operatingPlayerId) : undefined}>
-            <div
-                class="history-entry heading"
+        {#if group.kind !== 'event'}<header
+                class:history-card-header={group.kind === 'operation'}
+                class:company-header={group.kind === 'operation'}
+                class:player-tinted-header={group.kind === 'operation' && !!operatingPlayerId}
+                style:--player-color={group.kind === 'operation' && operatingPlayerId
+                    ? playerColor(operatingPlayerId)
+                    : undefined}
             >
-                {#if appearance}<CompanyToken {appearance} size={23} />{/if}
-                <span class="company-heading">
-                <span class="company-name">
-                <strong
-                    >{(group.companyId ? companyName(group.companyId) : undefined) ??
-                        playerName(operatingPlayerId ?? '')}</strong
-                >
-            {#if group.kind === 'operation' && group.actions.at(-1)?.index !== undefined}
-                <HistoryHeaderJump {onReturn} label={`Jump to ${group.companyId ? companyName(group.companyId) : 'company'} operations in history`}
-                    disabled={jumpDisabled} onclick={() => {
-                        const index = group.actions.at(-1)?.index
-                        if (index !== undefined) onJump(index)
-                    }} />
-            {/if}
-                </span>
-                {#if group.companyId}<span class="actor">{playerName(operatingPlayerId ?? '')}</span
+                <div class="history-entry heading">
+                    {#if appearance}<CompanyToken {appearance} size={23} />{/if}
+                    <span class="company-heading">
+                        <span class="company-name">
+                            <strong
+                                >{(group.companyId ? companyName(group.companyId) : undefined) ??
+                                    playerName(operatingPlayerId ?? '')}</strong
+                            >
+                            {#if group.kind === 'operation' && group.actions.at(-1)?.index !== undefined}
+                                <HistoryHeaderJump
+                                    {onReturn}
+                                    label={`Jump to ${group.companyId ? companyName(group.companyId) : 'company'} operations in history`}
+                                    disabled={jumpDisabled}
+                                    onclick={() => {
+                                        const index = group.actions.at(-1)?.index
+                                        if (index !== undefined) onJump(index)
+                                    }}
+                                />
+                            {/if}
+                        </span>
+                        {#if group.companyId}<span class="actor"
+                                >{playerName(operatingPlayerId ?? '')}</span
+                            >{/if}
+                    </span>
+                </div>
+                {#if startingCash !== undefined}<span class="cash-balance"
+                        ><small>Start cash</small><strong>{money(startingCash)}</strong></span
                     >{/if}
-                </span>
-            </div>
-            {#if startingCash !== undefined}<span class="cash-balance"><small>Start cash</small><strong>{money(startingCash)}</strong></span>{/if}
-        </header>{/if}
+            </header>{/if}
 
         <div class="events">
             {#each visible as row (row.action.id)}
-                {#if row.beforeText && !group.actions.slice(0, group.actions.indexOf(row.action)).some((earlier) => isSellFundingShares(earlier) && isSellFundingShares(row.action) && sameOwner(earlier.seller, row.action.seller))}
+                {#if row.beforeText && !group.actions
+                        .slice(0, group.actions.indexOf(row.action))
+                        .some((earlier) => isSellFundingShares(earlier) && isSellFundingShares(row.action) && sameOwner(earlier.seller, row.action.seller))}
                     <div class="funding-obligation">{row.beforeText}</div>
                 {/if}
-                <div class="history-entry"
+                <div
+                    class="history-entry"
                     class:phase-change={!!row.phase}
                     style:--phase-color={row.phase?.color}
-                    style:--phase-ink={row.phase ? contrastingTextColor(row.phase.color) : undefined}
+                    style:--phase-ink={row.phase
+                        ? contrastingTextColor(row.phase.color)
+                        : undefined}
                     class:important={row.important}
                     class:routine={row.routine}
                 >
                     {#if !row.omitActor && row.action.playerId && row.action.playerId !== operatingPlayerId}<small
                             >{playerName(row.action.playerId)}</small
                         >{/if}
-                    <span>{#snippet actionSummary()}{startingCash !== undefined ? row.ledgerText ?? row.text : row.text}{#if row.trainDefinitionIds?.length}<span class="run-trains">{#each row.trainDefinitionIds as id}<TrainBadge name={trainName(id)} color={trainColors[id]} />{/each}</span>{/if}{/snippet}
-                    {#if isMapHistoryAction(row.action)}<button
-                        class="map-history-link"
-                        aria-label={`Preview historical map: ${row.text}`}
-                        aria-pressed={previewActionId === row.action.id}
-                        onclick={() => onPreviewMap(row.action)}
-                    >{@render actionSummary()}</button>{:else}{@render actionSummary()}{/if}{#if row.phase}<span class="phase-colors">{row.phase.label}</span>{/if}{#if row.ledgerValue}<span class="ledger-note">{row.ledgerValue}</span>{/if}</span><strong class:debit={row.delta < 0} class:credit={row.delta > 0}>{startingCash !== undefined ? row.delta ? `${row.delta > 0 ? '+' : '−'}${money(Math.abs(row.delta))}` : '' : row.value ?? ''}</strong>
+                    <span
+                        >{#snippet actionSummary()}{startingCash !== undefined
+                                ? (row.ledgerText ?? row.text)
+                                : row.text}{#if row.trainDefinitionIds?.length}<span
+                                    class="run-trains"
+                                    >{#each row.trainDefinitionIds as id}<TrainBadge
+                                            name={trainName(id)}
+                                            color={trainColors[id]}
+                                        />{/each}</span
+                                >{/if}{/snippet}
+                        {#if isMapHistoryAction(row.action)}<button
+                                class="map-history-link"
+                                aria-label={`Preview historical map: ${row.text}`}
+                                aria-pressed={previewActionId === row.action.id}
+                                onclick={() => onPreviewMap(row.action)}
+                                >{@render actionSummary()}</button
+                            >{:else}{@render actionSummary()}{/if}{#if row.phase}<span
+                                class="phase-colors">{row.phase.label}</span
+                            >{/if}{#if row.ledgerValue}<span class="ledger-note"
+                                >{row.ledgerValue}</span
+                            >{/if}</span
+                    ><strong class:debit={row.delta < 0} class:credit={row.delta > 0}
+                        >{startingCash !== undefined
+                            ? row.delta
+                                ? `${row.delta > 0 ? '+' : '−'}${money(Math.abs(row.delta))}`
+                                : ''
+                            : (row.value ?? '')}</strong
+                    >
                     {#if row.detail}<small>{row.detail}</small>{/if}
-                    {#if row.order}<OperatingOrderHistory order={row.order} {stations} {companyName} />{/if}
+                    {#if row.order}<OperatingOrderHistory
+                            order={row.order}
+                            {stations}
+                            {companyName}
+                        />{/if}
                 </div>
             {/each}
-            {#if !visible.length}<div class="history-entry routine"
-                    >No further actions</div
-                >{/if}
+            {#if !visible.length}<div class="history-entry routine">No further actions</div>{/if}
         </div>
         {#if endingCash !== undefined && rows.some((row) => row.delta !== 0)}
             <footer>
@@ -228,8 +328,14 @@
         column-gap: 6px;
         align-items: center;
     }
-    .flotation-token { grid-row: 1 / span 2; display: flex; align-items: center; }
-    .stock-action.flotation > small { grid-column: 2; }
+    .flotation-token {
+        grid-row: 1 / span 2;
+        display: flex;
+        align-items: center;
+    }
+    .stock-action.flotation > small {
+        grid-column: 2;
+    }
     .stock-action.player-tinted-header {
         background: var(--player-tinted-background);
     }
@@ -260,9 +366,15 @@
         color: var(--rail-text, #463e35);
         font-size: 12px;
     }
-    article:not(.history-card) { border-bottom: 1px solid var(--rail-shadow, #b9ac994f); }
-    article.stock:not(.history-card) { border-bottom: 0; }
-    article.order-start { border-bottom: 0; }
+    article:not(.history-card) {
+        border-bottom: 1px solid var(--rail-shadow, #b9ac994f);
+    }
+    article.stock:not(.history-card) {
+        border-bottom: 0;
+    }
+    article.order-start {
+        border-bottom: 0;
+    }
     .order-start .events .history-entry {
         row-gap: 6px;
     }
@@ -294,8 +406,17 @@
     strong {
         font-weight: 600;
     }
-    .company-name { display: flex; align-items: center; gap: 2px; }
-    .company-heading { display: flex; flex-direction: column; gap: 0; line-height: 14px; }
+    .company-name {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+    .company-heading {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        line-height: 14px;
+    }
     .actor {
         font-size: 10px;
         color: var(--rail-muted, #817565);
@@ -329,7 +450,11 @@
         padding: 4px 6px;
         border-left: 4px solid var(--phase-color);
         border-radius: 3px;
-        background: color-mix(in srgb, var(--phase-color) var(--rail-phase-tint, 32%), var(--rail-surface, #f7f5f0));
+        background: color-mix(
+            in srgb,
+            var(--phase-color) var(--rail-phase-tint, 32%),
+            var(--rail-surface, #f7f5f0)
+        );
         color: var(--rail-text, #302c27);
     }
     .phase-colors {
@@ -349,24 +474,68 @@
         cursor: pointer;
         border-radius: 4px;
     }
-    .map-history-link:hover, .map-history-link[aria-pressed='true'] {
+    .map-history-link:hover,
+    .map-history-link[aria-pressed='true'] {
         background: var(--rail-hover, #ffffff66);
     }
     .map-history-link:focus-visible {
         outline: 2px solid #865320;
         outline-offset: 2px;
     }
-    .run-trains { display: inline-flex; gap: 3px; margin-left: 5px; vertical-align: baseline; }
-    .funding-obligation { padding: 2px 0; line-height: 16px; font-weight: 600; }
-    .cash-balance { display: flex; flex-direction: column; text-align: right; line-height: 14px; }
-    .cash-balance small { font-size: 10px; color: var(--rail-muted, #817565); }
-    .ledger-note { margin-left: 5px; font-size: 11px; }
-    .events strong.debit { color: var(--rail-negative, #aa352e); }
-    .events strong.credit { color: var(--rail-text, #181818); }
-    footer { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-    .end-cash { display: flex; gap: 12px; flex: 1; justify-content: flex-end; padding-top: 3px; }
-    .end-cash strong { min-width: 48px; text-align: right; border-top: 1px solid var(--rail-shadow, #b9ac9970); padding-top: 3px; }
-    .cash-balance strong, .end-cash strong { font-variant-numeric: tabular-nums; }
+    .run-trains {
+        display: inline-flex;
+        gap: 3px;
+        margin-left: 5px;
+        vertical-align: baseline;
+    }
+    .funding-obligation {
+        padding: 2px 0;
+        line-height: 16px;
+        font-weight: 600;
+    }
+    .cash-balance {
+        display: flex;
+        flex-direction: column;
+        text-align: right;
+        line-height: 14px;
+    }
+    .cash-balance small {
+        font-size: 10px;
+        color: var(--rail-muted, #817565);
+    }
+    .ledger-note {
+        margin-left: 5px;
+        font-size: 11px;
+    }
+    .events strong.debit {
+        color: var(--rail-negative, #aa352e);
+    }
+    .events strong.credit {
+        color: var(--rail-text, #181818);
+    }
+    footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+    }
+    .end-cash {
+        display: flex;
+        gap: 12px;
+        flex: 1;
+        justify-content: flex-end;
+        padding-top: 3px;
+    }
+    .end-cash strong {
+        min-width: 48px;
+        text-align: right;
+        border-top: 1px solid var(--rail-shadow, #b9ac9970);
+        padding-top: 3px;
+    }
+    .cash-balance strong,
+    .end-cash strong {
+        font-variant-numeric: tabular-nums;
+    }
     .routine {
         color: var(--rail-muted, #918575);
         font-size: 11px;
@@ -374,5 +543,4 @@
     .important > span {
         font-weight: 600;
     }
-
 </style>

@@ -79,11 +79,15 @@
                         </p>{/each}
                 {/if}
                 {#if playerId && model.canPurchase(playerId, lot.id)}
-                    <button disabled={disabled || !!selection} onclick={() => onChoose('buy', lot.id)}
+                    <button
+                        disabled={disabled || !!selection}
+                        onclick={() => onChoose('buy', lot.id)}
                         >Buy for {model.price(lot.id)}</button
                     >
                 {:else if playerId && model.canBid(playerId, lot.id, model.minimumBid(lot.id))}
-                    <button disabled={disabled || !!selection} onclick={() => onChoose('bid', lot.id)}
+                    <button
+                        disabled={disabled || !!selection}
+                        onclick={() => onChoose('bid', lot.id)}
                         >{bidding ? 'Raise bid' : 'Reserve bid'} · {model.minimumBid(lot.id)} minimum</button
                     >
                 {/if}

@@ -52,7 +52,8 @@
             const visible = [...area.children].flatMap((child, index) =>
                 child instanceof HTMLElement &&
                 child.offsetLeft - area.offsetLeft >= area.scrollLeft - 0.5 &&
-                child.offsetLeft - area.offsetLeft + child.offsetWidth <= area.scrollLeft + area.clientWidth + 0.5
+                child.offsetLeft - area.offsetLeft + child.offsetWidth <=
+                    area.scrollLeft + area.clientWidth + 0.5
                     ? [index]
                     : []
             )
@@ -111,7 +112,7 @@
 
 <section aria-label="Company order" class="company-order">
     {#if overflowing}
-    <div class="order-heading">
+        <div class="order-heading">
             <div class="overview" aria-hidden="true">
                 {#if firstVisible >= 0}
                     <span
@@ -130,7 +131,7 @@
                     </span>
                 {/each}
             </div>
-    </div>
+        </div>
     {/if}
     <ol use:trackVisibleCompanies>
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}

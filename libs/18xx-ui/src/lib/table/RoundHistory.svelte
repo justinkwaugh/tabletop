@@ -39,12 +39,18 @@
         indexOpen = event.newState === 'open'
         if (!indexOpen || !scrollElement) return
         const bounds = scrollElement.getBoundingClientRect()
-        indexBounds = { left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height }
+        indexBounds = {
+            left: bounds.left,
+            top: bounds.top,
+            width: bounds.width,
+            height: bounds.height
+        }
     }
     function scrollToRound(id: string) {
         assertExists(scrollElement, 'History scrolling region is mounted')
-        const section = [...scrollElement.querySelectorAll('[data-round-id]')]
-            .find((element) => element.getAttribute('data-round-id') === id)
+        const section = [...scrollElement.querySelectorAll('[data-round-id]')].find(
+            (element) => element.getAttribute('data-round-id') === id
+        )
         assertExists(section, 'Selected history round is rendered')
         const bounds = section.getBoundingClientRect()
         const viewport = scrollElement.getBoundingClientRect()
@@ -55,10 +61,15 @@
         indexButton?.focus()
     }
     let scrollElement: HTMLDivElement | undefined = $state()
-    function pinToNewest(element: HTMLDivElement, pin: { newestFirst: boolean; historyComplete: boolean }) {
+    function pinToNewest(
+        element: HTMLDivElement,
+        pin: { newestFirst: boolean; historyComplete: boolean }
+    ) {
         function scrollToNewest({ newestFirst, historyComplete }: typeof pin) {
             if (!historyComplete) return
-            void tick().then(() => { element.scrollTop = newestFirst ? 0 : element.scrollHeight })
+            void tick().then(() => {
+                element.scrollTop = newestFirst ? 0 : element.scrollHeight
+            })
         }
         scrollToNewest(pin)
         return { update: scrollToNewest }
@@ -88,8 +99,13 @@
         const parts = { title, order, phase }
         function update() {
             const style = getComputedStyle(node)
-            const available = node.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
-            const needed = parts.title.offsetWidth + parts.order.scrollWidth + parts.phase.offsetWidth + 2 * parseFloat(style.columnGap)
+            const available =
+                node.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+            const needed =
+                parts.title.offsetWidth +
+                parts.order.scrollWidth +
+                parts.phase.offsetWidth +
+                2 * parseFloat(style.columnGap)
             node.classList.toggle('order-on-second-line', needed > available)
         }
         const observer = new ResizeObserver(update)
@@ -106,39 +122,90 @@
 
 <div class="round-history" class:newest-first={newestFirst}>
     <div class="history-toolbar">
-    <div class="history-order" role="group" aria-label="History order">
-        <button type="button" aria-pressed={!newestFirst} onclick={() => onOrderChange(false)}>Newest last</button>
-        <span aria-hidden="true">/</span>
-        <button type="button" aria-pressed={newestFirst} onclick={() => onOrderChange(true)}>Newest first</button>
+        <div class="history-order" role="group" aria-label="History order">
+            <button type="button" aria-pressed={!newestFirst} onclick={() => onOrderChange(false)}
+                >Newest last</button
+            >
+            <span aria-hidden="true">/</span>
+            <button type="button" aria-pressed={newestFirst} onclick={() => onOrderChange(true)}
+                >Newest first</button
+            >
+        </div>
+        <button
+            class="index-button"
+            type="button"
+            bind:this={indexButton}
+            popovertarget={indexId}
+            aria-expanded={indexOpen}
+            aria-controls={indexId}>Index</button
+        >
     </div>
-    <button class="index-button" type="button" bind:this={indexButton}
-        popovertarget={indexId} aria-expanded={indexOpen} aria-controls={indexId}>Index</button>
-    </div>
-    <div id={indexId} bind:this={indexPanel} class="round-index" popover="auto"
+    <div
+        id={indexId}
+        bind:this={indexPanel}
+        class="round-index"
+        popover="auto"
         onbeforetoggle={prepareIndex}
-        style:left={`${indexBounds.left}px`} style:top={`${indexBounds.top}px`}
-        style:width={`${indexBounds.width}px`} style:max-height={`${indexBounds.height}px`}>
+        style:left={`${indexBounds.left}px`}
+        style:top={`${indexBounds.top}px`}
+        style:width={`${indexBounds.width}px`}
+        style:max-height={`${indexBounds.height}px`}
+    >
         <nav aria-label="History round index">
             {#each newestFirst ? rounds : rounds.toReversed() as round (round.id)}
-                <button type="button" style:background={phaseBackground(round)} style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])} onclick={() => scrollToRound(round.id)}>
+                <button
+                    type="button"
+                    style:background={phaseBackground(round)}
+                    style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}
+                    onclick={() => scrollToRound(round.id)}
+                >
                     <strong>{round.label}</strong><span>Phase {round.phases.join(' → ')}</span>
                 </button>
             {:else}<div class="empty">No rounds yet.</div>{/each}
         </nav>
     </div>
-    <div class="history-scroll" bind:this={scrollElement} use:pinToNewest={{ newestFirst, historyComplete }} role="region" aria-label="Scrollable history">
+    <div
+        class="history-scroll"
+        bind:this={scrollElement}
+        use:pinToNewest={{ newestFirst, historyComplete }}
+        role="region"
+        aria-label="Scrollable history"
+    >
         <ol class="history-content" class:newest-last={!newestFirst} aria-label="Action history">
             {#each newestFirst ? rounds : rounds.toReversed() as round (round.id)}
                 <li class="round-section" data-round-id={round.id} aria-label={round.label}>
                     {#snippet divider()}
-                    <h3 class="round-divider" use:fitOperatingOrder style:background={phaseBackground(round)} style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}>
-                        <span class="round-title">
-                            <span>{round.label.replace(/^OR /, 'Operating round ').replace(/^SR /, 'Stock round ')}</span>
-                            {#if round.endActionIndex !== undefined}<HistoryHeaderJump onReturn={round.id === currentHeaderId ? onReturn : undefined} label={`Jump to ${round.label} in history`} disabled={jumpDisabled} onclick={() => { if (round.endActionIndex !== undefined) onJump(round.endActionIndex) }} />{/if}
-                        </span>
-                        {#if round.operatingOrder && orderContent}<span class="round-order" aria-label="Operating order">{@render orderContent(round.operatingOrder)}</span>{/if}
-                        <span class="round-phase">Phase {round.phases.join(' → ')}</span>
-                    </h3>
+                        <h3
+                            class="round-divider"
+                            use:fitOperatingOrder
+                            style:background={phaseBackground(round)}
+                            style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}
+                        >
+                            <span class="round-title">
+                                <span
+                                    >{round.label
+                                        .replace(/^OR /, 'Operating round ')
+                                        .replace(/^SR /, 'Stock round ')}</span
+                                >
+                                {#if round.endActionIndex !== undefined}<HistoryHeaderJump
+                                        onReturn={round.id === currentHeaderId
+                                            ? onReturn
+                                            : undefined}
+                                        label={`Jump to ${round.label} in history`}
+                                        disabled={jumpDisabled}
+                                        onclick={() => {
+                                            if (round.endActionIndex !== undefined)
+                                                onJump(round.endActionIndex)
+                                        }}
+                                    />{/if}
+                            </span>
+                            {#if round.operatingOrder && orderContent}<span
+                                    class="round-order"
+                                    aria-label="Operating order"
+                                    >{@render orderContent(round.operatingOrder)}</span
+                                >{/if}
+                            <span class="round-phase">Phase {round.phases.join(' → ')}</span>
+                        </h3>
                     {/snippet}
                     {#if !newestFirst}{@render divider()}{/if}
                     {@render children(round)}
@@ -179,7 +246,9 @@
         align-items: center;
         padding-right: 6px;
     }
-    .index-button { justify-self: end; }
+    .index-button {
+        justify-self: end;
+    }
     .round-index {
         position: fixed;
         inset: auto;
@@ -193,7 +262,11 @@
         overflow-y: auto;
         overscroll-behavior: contain;
     }
-    .round-index nav { display: flex; flex-direction: column; gap: 3px; }
+    .round-index nav {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
     .round-index nav button {
         display: flex;
         justify-content: space-between;
@@ -202,12 +275,19 @@
         border: 1px solid var(--rail-border, #9d8d78);
         border-radius: 3px;
         color: var(--rail-text, #30271f);
-        font: 12px/1.3 ui-sans-serif, system-ui, sans-serif;
+        font:
+            12px/1.3 ui-sans-serif,
+            system-ui,
+            sans-serif;
         cursor: pointer;
         text-align: left;
     }
-    .round-index nav button:hover { filter: var(--rail-phase-filter, brightness(0.95)); }
-    .round-index nav button span { font-size: 11px; }
+    .round-index nav button:hover {
+        filter: var(--rail-phase-filter, brightness(0.95));
+    }
+    .round-index nav button span {
+        font-size: 11px;
+    }
     .history-order {
         display: flex;
         justify-content: center;
@@ -217,7 +297,8 @@
         color: var(--rail-muted, #9b8e7c);
         font-size: 11px;
     }
-    .history-order button, .index-button {
+    .history-order button,
+    .index-button {
         border: 0;
         background: none;
         padding: 2px 0;
@@ -225,7 +306,9 @@
         font: inherit;
         cursor: pointer;
     }
-    .index-button { font-size: 11px; }
+    .index-button {
+        font-size: 11px;
+    }
     .history-order button[aria-pressed='true'] {
         color: var(--rail-text, #463e35);
         font-weight: 650;
@@ -264,20 +347,41 @@
         border-top: 2px solid var(--rail-interstitial-border, #6f5c46);
         border-bottom: 2px solid var(--rail-interstitial-border, #6f5c46);
         color: var(--rail-text, #30271f);
-        font: 750 13px/1.3 ui-sans-serif, system-ui, sans-serif;
+        font:
+            750 13px/1.3 ui-sans-serif,
+            system-ui,
+            sans-serif;
     }
     .newest-first .round-divider {
         top: auto;
         bottom: 0;
     }
-    .round-title { grid-area: title; display: flex; align-items: center; gap: 0; width: max-content; white-space: nowrap; }
-    .round-order { grid-area: order; display: flex; width: max-content; max-width: 100%; overflow-x: auto; }
-    .round-order :global(.order-history), .round-order :global(.order) { flex-wrap: nowrap; }
+    .round-title {
+        grid-area: title;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        width: max-content;
+        white-space: nowrap;
+    }
+    .round-order {
+        grid-area: order;
+        display: flex;
+        width: max-content;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    .round-order :global(.order-history),
+    .round-order :global(.order) {
+        flex-wrap: nowrap;
+    }
     .round-divider:global(.order-on-second-line) {
         grid-template-columns: minmax(0, 1fr) max-content;
         grid-template-areas: 'title phase' 'order order';
     }
-    :global(.order-on-second-line) .round-order { justify-self: center; }
+    :global(.order-on-second-line) .round-order {
+        justify-self: center;
+    }
     .round-phase {
         grid-area: phase;
         justify-self: end;

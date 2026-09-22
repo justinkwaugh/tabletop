@@ -15,9 +15,9 @@
 
 <svg {x} {y} width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
     {#if appearance.imageUrl}
-        <image href={appearance.imageUrl} width="40" height="40" />
+        <image href={appearance.imageUrl} width="40" height="40"></image>
     {:else}
-        <circle cx="20" cy="20" r="19" fill={appearance.color} stroke="white" />
+        <circle cx="20" cy="20" r="19" fill={appearance.color} stroke="white"></circle>
         <text
             x="20"
             y="20"

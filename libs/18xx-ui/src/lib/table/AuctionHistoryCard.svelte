@@ -9,7 +9,7 @@
         card,
         lot,
         playerName,
-        playerColor,
+        playerColor
     }: {
         money: MoneyFormat
         card: AuctionHistoryCard
@@ -20,17 +20,18 @@
 </script>
 
 <article class="history-card" aria-label={`${lot.name} auction history`}>
-    <header class="history-card-header player-tinted-header" style:--player-color={playerColor(card.offer.playerId)}>
-        <div class="history-entry"
-        >
+    <header
+        class="history-card-header player-tinted-header"
+        style:--player-color={playerColor(card.offer.playerId)}
+    >
+        <div class="history-entry">
             <strong>{playerName(card.offer.playerId)}</strong> offered <strong>{lot.name}</strong> for
             auction
         </div>
     </header>
     <div class="events">
         {#each card.events as event (event.id)}
-            <div class="history-entry"
-            >
+            <div class="history-entry">
                 <span>{playerName(event.playerId)}</span>
                 {#if event.type === 'BidOnAuctionLot'}<span
                         >bid <strong>{money(event.amount)}</strong></span
@@ -38,9 +39,7 @@
             </div>
         {/each}
         {#if card.award && card.resolution}
-            <div
-                class="history-entry winner"
-            >
+            <div class="history-entry winner">
                 <strong>{playerName(card.award.playerId)} won</strong><strong
                     >{money(card.award.price)}</strong
                 >

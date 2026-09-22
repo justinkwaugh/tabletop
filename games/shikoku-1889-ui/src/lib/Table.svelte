@@ -6,7 +6,8 @@
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
-    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } = $props()
+    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
+        $props()
     const session = $derived(requireEighteenXXSession(gameSession))
     const privateOperationDescription = (id: string) =>
         id === 'SRR'
@@ -21,7 +22,12 @@
         {#if session.waterfall.model && !session.waterfall.model.auction.completed}
             <OpeningAuction {session} showUndo={false} />
         {:else}
-            <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session} {createRouteWorker} />
+            <OperatingActions
+                {privateOperationDescription}
+                onFocusRoute={focusRoute}
+                {session}
+                {createRouteWorker}
+            />
         {/if}
     {/snippet}
 </GameTable>

@@ -1,8 +1,7 @@
 <script lang="ts">
     import { getCompany, controllingOwner } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
-        $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const state = $derived(session.financialState)
     const change = $derived(state.phaseChange)
     const companyId = $derived(session.discard.companyId)
@@ -14,8 +13,8 @@
     {#if change && companyId && owner}
         <div aria-label="Compulsory train discard">
             <h2>
-                {getCompany(state, companyId).name} · Discard {session.discard.excess} excess {session.discard.excess ===
-                1
+                {getCompany(state, companyId).name} · Discard {session.discard.excess} excess {session
+                    .discard.excess === 1
                     ? 'train'
                     : 'trains'}
             </h2>
@@ -35,7 +34,8 @@
                         >Discard {session.trainDepot.trainDefinition(train.definitionId).name} ({train.id})</button
                     >{/each}
             </div>
-            {#if session.discard.selection}<button onclick={() => session.discard.choice.clear()}>Back</button
+            {#if session.discard.selection}<button onclick={() => session.discard.choice.clear()}
+                    >Back</button
                 ><button
                     disabled={!session.discard.canDiscard}
                     onclick={() => session.discard.confirm()}>Confirm discard</button

@@ -13,11 +13,15 @@
             const bounds = element.getBoundingClientRect()
             width = bounds.width
             height = bounds.height
-            const highlightedRows = [...element.querySelectorAll('tr.current-player, tr.operating-company')].map(row => row.getBoundingClientRect())
-            const highlightedColumns = [...element.querySelectorAll('thead .operating-column, thead .current-player-column')].map(cell => cell.getBoundingClientRect())
+            const highlightedRows = [
+                ...element.querySelectorAll('tr.current-player, tr.operating-company')
+            ].map((row) => row.getBoundingClientRect())
+            const highlightedColumns = [
+                ...element.querySelectorAll('thead .operating-column, thead .current-player-column')
+            ].map((cell) => cell.getBoundingClientRect())
             const segments: string[] = []
-            const x = (value: number) => Math.max(.5, Math.min(width - .5, value - bounds.left))
-            const y = (value: number) => Math.max(.5, Math.min(height - .5, value - bounds.top))
+            const x = (value: number) => Math.max(0.5, Math.min(width - 0.5, value - bounds.left))
+            const y = (value: number) => Math.max(0.5, Math.min(height - 0.5, value - bounds.top))
             function horizontal(left: number, right: number, top: number) {
                 segments.push(`M${x(left)},${y(top)}H${x(right)}`)
             }
@@ -62,15 +66,37 @@
             scheduleMeasure()
         }
         const mutation = new MutationObserver(observeCells)
-        mutation.observe(element, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] })
+        mutation.observe(element, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            attributeFilter: ['class']
+        })
         observeCells()
-        return { destroy() { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect() } }
+        return {
+            destroy() {
+                cancelAnimationFrame(frame)
+                resize.disconnect()
+                mutation.disconnect()
+            }
+        }
     }
 </script>
 
-<svg use:outlineHighlights {width} {height} aria-hidden="true"><path d={path} /></svg>
+<svg use:outlineHighlights {width} {height} aria-hidden="true"><path d={path}></path></svg>
 
 <style>
-    svg { position: absolute; inset: 0 auto auto 0; z-index: 2; pointer-events: none; overflow: visible; }
-    path { fill: none; stroke: var(--rail-focus, #9e7752); stroke-width: 1; shape-rendering: crispEdges; }
+    svg {
+        position: absolute;
+        inset: 0 auto auto 0;
+        z-index: 2;
+        pointer-events: none;
+        overflow: visible;
+    }
+    path {
+        fill: none;
+        stroke: var(--rail-focus, #9e7752);
+        stroke-width: 1;
+        shape-rendering: crispEdges;
+    }
 </style>

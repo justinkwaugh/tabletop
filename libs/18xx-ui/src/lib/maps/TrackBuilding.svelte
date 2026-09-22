@@ -19,37 +19,47 @@
 {#if turn && !session.financialState.stationStep && !session.financialState.trackConsent}
     <section aria-label="Track construction">
         {#if declined}
-            <p class="decline-notice" role="status">{session.getPlayerName(declined.playerId)} declined permission to lay track at {declined.metadata?.request.details.locationId}.</p>
+            <p class="decline-notice" role="status">
+                {session.getPlayerName(declined.playerId)} declined permission to lay track at {declined
+                    .metadata?.request.details.locationId}.
+            </p>
         {/if}
         {#if mapControls}
             <header class="map-prompt">
                 <span>Choose a tile space or</span>
-                <button class="action-button inline-action" onclick={() => session.track.finish()}
-                    disabled={!session.track.canBuild || !!selection.locationId}>skip</button>
+                <button
+                    class="action-button inline-action"
+                    onclick={() => session.track.finish()}
+                    disabled={!session.track.canBuild || !!selection.locationId}>skip</button
+                >
             </header>
         {:else}
-        <header>
-            <strong>{getCompany(session.financialState, turn.companyId).name} · Track</strong>
-            <span
-                >Treasury: {cashText(money, cashOwnedBy(session.financialState, {
-                    kind: 'company',
-                    companyId: turn.companyId
-                }))}</span
-            >
-            <span>{turn.lays.length} placed</span>
-            {#if showUndo}<button
-                    onclick={() => session.undo()}
-                    disabled={session.busy ||
-                        session.isViewingHistory ||
-                        (!selection.locationId && !session.actions.length)}>Undo</button
-                >{/if}
-            {#if !turn.completed}
-                <button
-                    onclick={() => session.track.finish()}
-                    disabled={!session.track.canBuild || !!selection.locationId}>Finish track</button
+            <header>
+                <strong>{getCompany(session.financialState, turn.companyId).name} · Track</strong>
+                <span
+                    >Treasury: {cashText(
+                        money,
+                        cashOwnedBy(session.financialState, {
+                            kind: 'company',
+                            companyId: turn.companyId
+                        })
+                    )}</span
                 >
-            {/if}
-        </header>
+                <span>{turn.lays.length} placed</span>
+                {#if showUndo}<button
+                        onclick={() => session.undo()}
+                        disabled={session.busy ||
+                            session.isViewingHistory ||
+                            (!selection.locationId && !session.actions.length)}>Undo</button
+                    >{/if}
+                {#if !turn.completed}
+                    <button
+                        onclick={() => session.track.finish()}
+                        disabled={!session.track.canBuild || !!selection.locationId}
+                        >Finish track</button
+                    >
+                {/if}
+            </header>
         {/if}
         {#if turn.completed}<p>Track complete.</p>
         {:else if !session.isViewingHistory && !mapControls && !selection.locationId}
@@ -112,9 +122,13 @@
                     {/each}
                 </div>
                 {#if preview}<p>
-                        Cost: {money(preview.cost)} (terrain {money(preview.terrainCost)}, lay {money(preview.allowanceCost)})
+                        Cost: {money(preview.cost)} (terrain {money(preview.terrainCost)}, lay {money(
+                            preview.allowanceCost
+                        )})
                     </p>
-                    <button onclick={() => session.track.confirm()} disabled={!session.track.canBuild}
+                    <button
+                        onclick={() => session.track.confirm()}
+                        disabled={!session.track.canBuild}
                         >{preview.consentPlayerId &&
                         preview.consentPlayerId !== session.myPlayer?.id
                             ? 'Request track permission'
@@ -150,7 +164,10 @@
         text-align: center;
         font-size: 13px;
     }
-    .map-prompt { justify-content: center; margin-bottom: 0; }
+    .map-prompt {
+        justify-content: center;
+        margin-bottom: 0;
+    }
     section {
         margin: 12px 0;
         padding: 12px;

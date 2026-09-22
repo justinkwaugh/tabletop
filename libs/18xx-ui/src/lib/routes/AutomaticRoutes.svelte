@@ -19,7 +19,11 @@
     let attempt = $state(0)
     const result = $derived(session.routes.solved?.result)
     const trains = $derived(session.routes.editor.trains)
-    type RouteSolve = { state: typeof session.financialState; companyId: string | undefined; attempt: number }
+    type RouteSolve = {
+        state: typeof session.financialState
+        companyId: string | undefined
+        attempt: number
+    }
     const solve = $derived<RouteSolve>({
         state: session.financialState,
         companyId: session.routes.canRun ? session.financialState.routeStep?.companyId : undefined,
@@ -47,13 +51,16 @@
                             )
                         } catch (failure) {
                             error =
-                                failure instanceof Error ? failure.message : 'Route calculation failed.'
+                                failure instanceof Error
+                                    ? failure.message
+                                    : 'Route calculation failed.'
                         }
                     }
                     solver.terminate()
                 }
                 solver.onerror = () => {
-                    if (worker === solver) error = 'The route solver could not finish. Please try again.'
+                    if (worker === solver)
+                        error = 'The route solver could not finish. Please try again.'
                     solver.terminate()
                 }
                 const request: AutoroutingRequest = {
@@ -64,7 +71,8 @@
             } catch (failure) {
                 worker?.terminate()
                 worker = undefined
-                error = failure instanceof Error ? failure.message : 'The route solver could not start.'
+                error =
+                    failure instanceof Error ? failure.message : 'The route solver could not start.'
             }
         }
         start(initial)
@@ -87,8 +95,14 @@
             {session.isViewingHistory ? 'Viewing train run' : 'Calculating routes…'}
         </p>
     {:else}
-        <TrainRunTable {money} {result} {trains} {trainColors} {onFocusRoute}
-            trainName={(id) => session.trainDepot.trainDefinition(id).name} />
+        <TrainRunTable
+            {money}
+            {result}
+            {trains}
+            {trainColors}
+            {onFocusRoute}
+            trainName={(id) => session.trainDepot.trainDefinition(id).name}
+        />
         <button
             class="run"
             disabled={!session.routes.canRun}

@@ -51,12 +51,7 @@
             </tr>
         {:else}<tr><td colspan="2">No trains</td></tr>{/each}
     </tbody>
-    <tfoot
-        ><tr
-            ><th scope="row">Total</th><td class="income"
-                >{money(result.revenue)}</td
-            ></tr
-        ></tfoot
+    <tfoot><tr><th scope="row">Total</th><td class="income">{money(result.revenue)}</td></tr></tfoot
     >
 </table>
 

@@ -44,7 +44,11 @@
         {#if details}
             <span class="heading-amounts">
                 <span class="heading-amount">
-                    <b>{money(choice === 'withhold' ? details.retained : details.dividendPerShare)}</b>
+                    <b
+                        >{money(
+                            choice === 'withhold' ? details.retained : details.dividendPerShare
+                        )}</b
+                    >
                     {#if choice !== 'withhold'}<small>/share</small>{/if}
                 </span>
                 {#if choice === 'half-pay'}
@@ -56,7 +60,8 @@
         {/if}
     </span>
     {#if details}
-        {#if details.bonusPerShare}<small>Includes {money(details.bonusPerShare)}/share bonus</small>{/if}
+        {#if details.bonusPerShare}<small>Includes {money(details.bonusPerShare)}/share bonus</small
+            >{/if}
         {#if choice !== 'withhold'}<span class="payments">
                 {#each details.payments.toSorted((a, b) => paymentOrder(a.to) - paymentOrder(b.to)) as payment}
                     <span

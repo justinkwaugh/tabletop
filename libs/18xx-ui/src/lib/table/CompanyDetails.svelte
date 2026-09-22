@@ -1,6 +1,10 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import { companySharePrice, DefaultCompanyPricePresentation, type CompanyPricePresentation } from './companyPresentation.js'
+    import {
+        companySharePrice,
+        DefaultCompanyPricePresentation,
+        type CompanyPricePresentation
+    } from './companyPresentation.js'
     import { assertExists, type GameAction } from '@tabletop/common'
     import {
         cashOwnedBy,
@@ -54,22 +58,31 @@
     } = $props()
     const money = $derived(session.presentation.money)
     const state = $derived(session.financialState)
-    const lastRun = $derived(vertical ? undefined : companyLastRun(session.actions, session.gameState.actionCount, company.id))
+    const lastRun = $derived(
+        vertical
+            ? undefined
+            : companyLastRun(session.actions, session.gameState.actionCount, company.id)
+    )
     const owner = $derived({ kind: 'company', companyId: company.id } as const)
     const cash = $derived(cashOwnedBy(state, owner))
     const control = $derived(controllingOwner(state, company.id))
     function investorTint(entry: { owner: Owner }) {
         const investor = entry.owner
-        const playerId = investor.kind === 'player'
-            ? investor.playerId
-            : investor.kind === 'company' && !sameOwner(investor, owner)
-              ? controllingOwner(state, investor.companyId)?.playerId
-              : undefined
+        const playerId =
+            investor.kind === 'player'
+                ? investor.playerId
+                : investor.kind === 'company' && !sameOwner(investor, owner)
+                  ? controllingOwner(state, investor.companyId)?.playerId
+                  : undefined
         return playerId ? session.colors.getPlayerBgColorValue(playerId) : undefined
     }
-    const sellers = $derived(state.machineState === 'StockRound' && !state.stockRound.completed
-        ? state.stockRound.sales.filter((sale) => sale.companyId === company.id).map((sale) => sale.owner)
-        : [])
+    const sellers = $derived(
+        state.machineState === 'StockRound' && !state.stockRound.completed
+            ? state.stockRound.sales
+                  .filter((sale) => sale.companyId === company.id)
+                  .map((sale) => sale.owner)
+            : []
+    )
     const ownership = $derived(companyOwnership(state, company.id, sellers))
     const sharePoolsStart = $derived(
         ownership.findIndex((entry) => entry.owner.kind === 'bank' || sameOwner(entry.owner, owner))
@@ -125,7 +138,12 @@
     }
 </script>
 
-<article class="company-detail" class:vertical class:unavailable aria-label={`${company.name} details`}>
+<article
+    class="company-detail"
+    class:vertical
+    class:unavailable
+    aria-label={`${company.name} details`}
+>
     <header>
         <div class="identity">
             <CompanyToken appearance={session.mapView.stations[company.id]} size={28} />
@@ -161,21 +179,35 @@
                     {#each remainingStations as station (station.id)}
                         {@const cost = session.stations.placementCost(station.id)}
                         <div class="token-cost" aria-label={`Station token, ${money(cost)}`}>
-                            <CompanyToken appearance={session.mapView.stations[company.id]} size={20} />
+                            <CompanyToken
+                                appearance={session.mapView.stations[company.id]}
+                                size={20}
+                            />
                             <span>{cost}</span>
                         </div>
                     {/each}
                 {:else}
-                {#each tokenGroups as group (group.cost)}
-                    <div class="token-cost" aria-label={`${group.count} station tokens, ${money(group.cost)} each`}>
-                        <div class="token-count"><span>{group.count}</span><CompanyToken appearance={session.mapView.stations[company.id]} size={20} /></div>
-                        <span class="token-price">{group.cost}</span>
-                    </div>
-                {:else}
-                    <div class="token-count exhausted" aria-label="0 station tokens remaining">
-                        <span>0</span><CompanyToken appearance={session.mapView.stations[company.id]} size={20} />
-                    </div>
-                {/each}
+                    {#each tokenGroups as group (group.cost)}
+                        <div
+                            class="token-cost"
+                            aria-label={`${group.count} station tokens, ${money(group.cost)} each`}
+                        >
+                            <div class="token-count">
+                                <span>{group.count}</span><CompanyToken
+                                    appearance={session.mapView.stations[company.id]}
+                                    size={20}
+                                />
+                            </div>
+                            <span class="token-price">{group.cost}</span>
+                        </div>
+                    {:else}
+                        <div class="token-count exhausted" aria-label="0 station tokens remaining">
+                            <span>0</span><CompanyToken
+                                appearance={session.mapView.stations[company.id]}
+                                size={20}
+                            />
+                        </div>
+                    {/each}
                 {/if}
             </div>
         </div>
@@ -196,22 +228,28 @@
                             <tr
                                 class:pool-divider={index > 0 && index === sharePoolsStart}
                                 class:president
-                                class:sold={sellers.some((seller) => sameOwner(seller, entry.owner))}
-                                class:investor-owner={entry.owner.kind === 'player' || (entry.owner.kind === 'company' && !sameOwner(entry.owner, owner))}
+                                class:sold={sellers.some((seller) =>
+                                    sameOwner(seller, entry.owner)
+                                )}
+                                class:investor-owner={entry.owner.kind === 'player' ||
+                                    (entry.owner.kind === 'company' &&
+                                        !sameOwner(entry.owner, owner))}
                                 class:player-tinted-row={!!investorTint(entry)}
                                 style:--player-color={investorTint(entry)}
                             >
                                 {#if purchaseSources && canPurchase?.(entry)}
-                                    <td class="purchase-cell" colspan={numberedShares ? 3 : 2}>{@render purchaseSources(entry)}</td>
+                                    <td class="purchase-cell" colspan={numberedShares ? 3 : 2}
+                                        >{@render purchaseSources(entry)}</td
+                                    >
                                 {:else}
-                                <th scope="row" title={president ? 'President' : undefined}
-                                    >{ownershipName(entry)}{#if president}<PresidentBadge
-                                        />{/if}</th
-                                >
-                                {#if numberedShares}<td title="Certificate numbers"
-                                        >{entry.certificateNumbers.join(', ') || '—'}</td
-                                    >{/if}
-                                <td title="Shares">{entry.shares || '—'}</td>
+                                    <th scope="row" title={president ? 'President' : undefined}
+                                        >{ownershipName(entry)}{#if president}<PresidentBadge
+                                            />{/if}</th
+                                    >
+                                    {#if numberedShares}<td title="Certificate numbers"
+                                            >{entry.certificateNumbers.join(', ') || '—'}</td
+                                        >{/if}
+                                    <td title="Shares">{entry.shares || '—'}</td>
                                 {/if}
                             </tr>
                         {/each}
@@ -220,82 +258,93 @@
             {:else}<p class="empty">No issued shares.</p>{/if}
         </section>
         {#if !vertical || privates.length || personalPrivates.length || investmentCompanies.length}
-        <section aria-label="Company assets">
-            <section aria-label="Private companies and powers">
-                {#if !vertical || privates.length}
-                <h3>Privates & powers</h3>
-                {#each privates as item (item.id)}
-                    {@render privateCard(item)}
-                {:else}<p class="empty">None</p>{/each}
-                {/if}
-                {#if personalPrivates.length && control}
-                    {#if !vertical || privates.length}<hr />{/if}
-                    <h3>Purchasable privates</h3>
-                    {#each personalPrivates as item (item.id)}
-                        {@render privateCard(
-                            item,
-                            item.maximumPrice === undefined ? 'No maximum' : `${money(item.maximumPrice)}`
-                        )}
-                    {/each}
+            <section aria-label="Company assets">
+                <section aria-label="Private companies and powers">
+                    {#if !vertical || privates.length}
+                        <h3>Privates & powers</h3>
+                        {#each privates as item (item.id)}
+                            {@render privateCard(item)}
+                        {:else}<p class="empty">None</p>{/each}
+                    {/if}
+                    {#if personalPrivates.length && control}
+                        {#if !vertical || privates.length}<hr />{/if}
+                        <h3>Purchasable privates</h3>
+                        {#each personalPrivates as item (item.id)}
+                            {@render privateCard(
+                                item,
+                                item.maximumPrice === undefined
+                                    ? 'No maximum'
+                                    : `${money(item.maximumPrice)}`
+                            )}
+                        {/each}
+                    {/if}
+                </section>
+                {#if investmentCompanies.length}
+                    <h3 class="section-heading">Investments</h3>
+                    {#each investmentCompanies as id}<p class="investment">
+                            {getCompany(state, id).name}<strong
+                                >{sharesOwned(state, id, owner)} shares</strong
+                            >
+                        </p>{/each}
                 {/if}
             </section>
-            {#if investmentCompanies.length}
-                <h3 class="section-heading">Investments</h3>
-                {#each investmentCompanies as id}<p class="investment">
-                        {getCompany(state, id).name}<strong
-                            >{sharesOwned(state, id, owner)} shares</strong
-                        >
-                    </p>{/each}
-            {/if}
-        </section>
         {/if}
     </div>
 </article>
 
 {#snippet prices()}
-            <div class="prices">
-                {@render cashValue()}
-                {#if pricePresentation.showPar && company.parPrice !== undefined}<div>
-                        <span>Par</span><strong>{company.parPrice}</strong>
-                    </div>{/if}
-                {@render marketValue()}
-                {#if !vertical}
-                    <div>
-                        <span>Last run</span>
-                        {#if lastRun?.metadata && onPreviewMap}
-                            <button class="last-run" disabled={session.busy || session.updatingVisibleState}
-                                aria-label={`View ${company.name}'s last run for ${money(lastRun.metadata.revenue)}`}
-                                onclick={() => onPreviewMap?.(lastRun!)}>{money(lastRun.metadata.revenue)}</button>
-                        {:else}<strong>—</strong>{/if}
-                    </div>
-                {/if}
+    <div class="prices">
+        {@render cashValue()}
+        {#if pricePresentation.showPar && company.parPrice !== undefined}<div>
+                <span>Par</span><strong>{company.parPrice}</strong>
+            </div>{/if}
+        {@render marketValue()}
+        {#if !vertical}
+            <div>
+                <span>Last run</span>
+                {#if lastRun?.metadata && onPreviewMap}
+                    <button
+                        class="last-run"
+                        disabled={session.busy || session.updatingVisibleState}
+                        aria-label={`View ${company.name}'s last run for ${money(lastRun.metadata.revenue)}`}
+                        onclick={() => onPreviewMap?.(lastRun!)}
+                        >{money(lastRun.metadata.revenue)}</button
+                    >
+                {:else}<strong>—</strong>{/if}
             </div>
+        {/if}
+    </div>
 {/snippet}
 
 {#snippet marketValue()}
-                {#if marketPrice !== undefined}<div class="market-value">
-                        <span>{pricePresentation.label}</span><strong>{marketPrice}</strong>
-                    </div>{/if}
+    {#if marketPrice !== undefined}<div class="market-value">
+            <span>{pricePresentation.label}</span><strong>{marketPrice}</strong>
+        </div>{/if}
 {/snippet}
 
 {#snippet cashValue()}
-                <div class="cash-value">
-                    <span>Cash</span><strong
-                        >{cash === undefined
-                            ? '—'
-                            : cash === 'unlimited'
-                              ? '$∞'
-                              : `${money(cash)}`}</strong
-                    >
-                </div>
+    <div class="cash-value">
+        <span>Cash</span><strong
+            >{cash === undefined ? '—' : cash === 'unlimited' ? '$∞' : `${money(cash)}`}</strong
+        >
+    </div>
 {/snippet}
 
 {#snippet privateCard(item: (typeof session.privates.companies)[number], purchasePrice?: string)}
     {@const description = privateOperationDescription(item.id, company.id)}
     <article class="private" data-private-description-row>
         <div class="private-heading">
-            <div class="private-name"><PrivateDescription {money} phaseColors={session.presentation.phaseColors} token={session.privateCompanyTokens[item.id]} name={item.name} description={item.description} income={item.closed ? undefined : item.privateRevenue} /></div
-            ><span
+            <div class="private-name">
+                <PrivateDescription
+                    {money}
+                    phaseColors={session.presentation.phaseColors}
+                    token={session.privateCompanyTokens[item.id]}
+                    name={item.name}
+                    description={item.description}
+                    income={item.closed ? undefined : item.privateRevenue}
+                />
+            </div>
+            <span
                 >{purchasePrice ??
                     (item.closed ? 'Closed' : `${money(item.privateRevenue ?? 0)} / OR`)}</span
             >
@@ -308,38 +357,103 @@
 {/snippet}
 
 <style>
-    .company-detail.unavailable { background: var(--rail-surface, #f1f1ef); border-color: var(--rail-border, #d0d0cd); }
-    .company-detail.unavailable header { background: var(--rail-surface-raised, #dededb); }
+    .company-detail.unavailable {
+        background: var(--rail-surface, #f1f1ef);
+        border-color: var(--rail-border, #d0d0cd);
+    }
+    .company-detail.unavailable header {
+        background: var(--rail-surface-raised, #dededb);
+    }
     .company-detail.unavailable .identity > div,
     .company-detail.unavailable .header-summary,
     .company-detail.unavailable .financial-summary,
-    .company-detail.unavailable .detail-columns { opacity: var(--rail-phase-opacity, .5); filter: var(--rail-phase-filter, grayscale(1)); }
-    .company-detail.vertical { width: 200px; margin: 0; border-radius: 7px; }
-    .vertical header { flex-wrap: wrap; gap: 5px; background: var(--rail-surface-raised, #e5dccf); }
-    .vertical .identity { flex-shrink: 1; gap: 7px; }
-    .vertical h2 { white-space: normal; font-size: 13px; line-height: 1.2; }
-    .vertical .header-summary { padding-left: 0; }
-    .vertical .detail-columns { grid-template-columns: minmax(0, 1fr); min-width: 0; max-height: none; contain: none; overflow: visible; }
-    .company-detail.vertical .detail-columns > section { padding: 7px 10px; }
-    .company-detail.vertical .detail-columns > section + section { border-left: 0; border-top: 1px solid var(--rail-border, #e3d9cd); }
+    .company-detail.unavailable .detail-columns {
+        opacity: var(--rail-phase-opacity, 0.5);
+        filter: var(--rail-phase-filter, grayscale(1));
+    }
+    .company-detail.vertical {
+        width: 200px;
+        margin: 0;
+        border-radius: 7px;
+    }
+    .vertical header {
+        flex-wrap: wrap;
+        gap: 5px;
+        background: var(--rail-surface-raised, #e5dccf);
+    }
+    .vertical .identity {
+        flex-shrink: 1;
+        gap: 7px;
+    }
+    .vertical h2 {
+        white-space: normal;
+        font-size: 13px;
+        line-height: 1.2;
+    }
+    .vertical .header-summary {
+        padding-left: 0;
+    }
+    .vertical .detail-columns {
+        grid-template-columns: minmax(0, 1fr);
+        min-width: 0;
+        max-height: none;
+        contain: none;
+        overflow: visible;
+    }
+    .company-detail.vertical .detail-columns > section {
+        padding: 7px 10px;
+    }
+    .company-detail.vertical .detail-columns > section + section {
+        border-left: 0;
+        border-top: 1px solid var(--rail-border, #e3d9cd);
+    }
     .financial-summary {
         padding: 0;
         border-top: 1px solid #ffffff0a;
         border-bottom: 1px solid var(--rail-border, #e3d9cd);
         background: color-mix(in srgb, #ffffff 4%, transparent);
     }
-    .financial-summary .prices { gap: 0; }
-    .financial-summary .prices div { position: relative; flex: 1; text-align: center; padding: 7px 10px; }
-    .financial-summary .prices .market-value { background: #1b3d4580; }
-    .financial-summary .prices .cash-value { background: #1b232d; }
-    .financial-summary .prices div + div::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 12px; border-left: 1px solid var(--rail-border, #e3d9cd); }
+    .financial-summary .prices {
+        gap: 0;
+    }
+    .financial-summary .prices div {
+        position: relative;
+        flex: 1;
+        text-align: center;
+        padding: 7px 10px;
+    }
+    .financial-summary .prices .market-value {
+        background: #1b3d4580;
+    }
+    .financial-summary .prices .cash-value {
+        background: #1b232d;
+    }
+    .financial-summary .prices div + div::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 12px;
+        border-left: 1px solid var(--rail-border, #e3d9cd);
+    }
     .vertical tr > th,
-    .vertical tr > td { padding-top: 0; padding-bottom: 0; line-height: 17px; }
+    .vertical tr > td {
+        padding-top: 0;
+        padding-bottom: 0;
+        line-height: 17px;
+    }
     .vertical tr.investor-owner:has(+ .pool-divider) > th,
-    .vertical tr.investor-owner:has(+ .pool-divider) > td { border-bottom: 6px solid transparent; }
-    td.purchase-cell { padding: 0; }
+    .vertical tr.investor-owner:has(+ .pool-divider) > td {
+        border-bottom: 6px solid transparent;
+    }
+    td.purchase-cell {
+        padding: 0;
+    }
     .vertical tr.pool-divider > th,
-    .vertical tr.pool-divider > td { padding-top: 6px; }
+    .vertical tr.pool-divider > td {
+        padding-top: 6px;
+    }
     .company-detail {
         width: fit-content;
         max-width: 100%;
@@ -388,9 +502,22 @@
         display: flex;
         gap: 6px;
     }
-    .token-count { display: flex; align-items: center; gap: 3px; font-size: 16px; line-height: 20px; }
-    .token-price { align-self: flex-end; width: 20px; text-align: center; }
-    .token-count.exhausted { opacity: .45; filter: grayscale(1); }
+    .token-count {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 16px;
+        line-height: 20px;
+    }
+    .token-price {
+        align-self: flex-end;
+        width: 20px;
+        text-align: center;
+    }
+    .token-count.exhausted {
+        opacity: 0.45;
+        filter: grayscale(1);
+    }
     .token-cost {
         display: flex;
         flex-direction: column;
@@ -416,10 +543,30 @@
         font-size: 10px;
         color: var(--rail-muted, #887664);
     }
-    .last-run { border: 0; border-radius: 4px; padding: 0 4px; margin: 0 auto; background: transparent; color: inherit; font: inherit; font-size: 14px; font-weight: 700; line-height: 16px; cursor: pointer; font-variant-numeric: tabular-nums; }
-    .last-run:hover:enabled { background: var(--rail-hover, #ffffff66); }
-    .last-run:focus-visible { outline: 2px solid var(--rail-focus, #9e7752); outline-offset: 2px; }
-    .last-run:disabled { cursor: default; }
+    .last-run {
+        border: 0;
+        border-radius: 4px;
+        padding: 0 4px;
+        margin: 0 auto;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 16px;
+        cursor: pointer;
+        font-variant-numeric: tabular-nums;
+    }
+    .last-run:hover:enabled {
+        background: var(--rail-hover, #ffffff66);
+    }
+    .last-run:focus-visible {
+        outline: 2px solid var(--rail-focus, #9e7752);
+        outline-offset: 2px;
+    }
+    .last-run:disabled {
+        cursor: default;
+    }
     .prices strong {
         line-height: 16px;
         font-size: 14px;
@@ -464,9 +611,13 @@
     .ownership-heading h3 {
         margin-bottom: 0;
     }
-    tr.sold { color: var(--rail-negative, #b33a32); }
+    tr.sold {
+        color: var(--rail-negative, #b33a32);
+    }
     tr.player-tinted-row > th,
-    tr.player-tinted-row > td { background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37)); }
+    tr.player-tinted-row > td {
+        background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37));
+    }
     .president > th,
     .president > td {
         font-weight: 700;
@@ -494,8 +645,12 @@
         text-align: right;
         font-variant-numeric: tabular-nums;
     }
-    tr > :first-child { padding-left: 10px; }
-    tr > :last-child { padding-right: 10px; }
+    tr > :first-child {
+        padding-left: 10px;
+    }
+    tr > :last-child {
+        padding-right: 10px;
+    }
     th:first-child {
         text-align: left;
     }

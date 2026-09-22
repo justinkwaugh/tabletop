@@ -37,18 +37,19 @@
 </script>
 
 <g class="tile-artwork" data-color={face.color}>
-    <polygon points={drawing.polygon} {fill} stroke="#453e32" stroke-width="0.65" />
+    <polygon points={drawing.polygon} {fill} stroke="#453e32" stroke-width="0.65"></polygon>
     <g fill="none" stroke-linecap="butt">
         {#each drawing.paths as path (path.id)}
             <path
                 d={path.d}
                 stroke={appearance.paper}
                 stroke-width={appearance.trackWidth + appearance.trackBorderWidth}
-            />
+            ></path>
         {/each}
         {#each drawing.paths as path (path.id)}
             <g data-path-id={path.id}>
-                <path d={path.d} stroke={appearance.ink} stroke-width={appearance.trackWidth} />
+                <path d={path.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
+                ></path>
             </g>
         {/each}
     </g>
@@ -59,7 +60,7 @@
             fill="none"
             stroke="#b32747"
             stroke-width="2.8"
-        />
+        ></path>
     {/each}
     {@render trackOverlay?.(drawing)}
     {#each drawing.nodes as { node, center, slots, townAngle } (node.id)}
@@ -72,7 +73,7 @@
                         stroke={appearance.ink}
                         stroke-width="23"
                         stroke-linejoin="round"
-                    />
+                    ></path>
                 {/if}
                 {#each slots as point, index}
                     <circle
@@ -83,14 +84,14 @@
                         fill={appearance.paper}
                         stroke={appearance.ink}
                         stroke-width="1.1"
-                    />
+                    ></circle>
                 {/each}
                 {#if slots.length === 0}<circle
                         cx={center.x}
                         cy={center.y}
                         r="7"
                         fill={appearance.ink}
-                    />{/if}
+                    ></circle>{/if}
             {:else if node.kind === 'town'}
                 {#if appearance.townMarker === 'bar' && townAngle !== undefined}
                     <rect
@@ -103,7 +104,7 @@
                         fill={appearance.ink}
                         stroke={appearance.paper}
                         stroke-width="1"
-                    />
+                    ></rect>
                 {:else}
                     <circle
                         data-town-marker="dot"
@@ -113,7 +114,7 @@
                         fill={appearance.ink}
                         stroke={appearance.paper}
                         stroke-width="0.7"
-                    />
+                    ></circle>
                 {/if}
             {:else if node.kind === 'offboard'}
                 <rect
@@ -123,9 +124,9 @@
                     height="14"
                     rx="2"
                     fill={appearance.ink}
-                />
+                ></rect>
             {:else}
-                <circle cx={center.x} cy={center.y} r="3" fill={appearance.ink} />
+                <circle cx={center.x} cy={center.y} r="3" fill={appearance.ink}></circle>
             {/if}
         </g>
     {/each}
@@ -145,7 +146,7 @@
                     fill={appearance.paper}
                     stroke={appearance.ink}
                     stroke-width="0.5"
-                />
+                ></rect>
                 <text font-size="6.5" font-weight="650">{face.upgradeCost}</text>
             </g>
         {/if}
@@ -154,12 +155,12 @@
                 data-tile-symbol="port"
                 transform={`translate(${drawing.symbolPosition.x} ${drawing.symbolPosition.y})`}
             >
-                <circle r="8" fill={appearance.paper} />
+                <circle r="8" fill={appearance.paper}></circle>
                 <g fill="none" stroke={appearance.ink} stroke-width="1.5" stroke-linecap="round">
-                    <circle cy="-4" r="1.5" />
+                    <circle cy="-4" r="1.5"></circle>
                     <path
                         d="M 0 -2.5 V 6 M -3 -1 H 3 M -5 2 Q -5 6 0 6 Q 5 6 5 2 M -5 2 L -6 3 M 5 2 L 6 3"
-                    />
+                    ></path>
                 </g>
             </g>
         {/if}
@@ -170,19 +171,34 @@
                     transform={`translate(${revenuePosition.x} ${revenuePosition.y})`}
                 >
                     {#if node.revenue.kind === 'fixed'}
-                        <circle
-                            r="8.7"
-                            fill={appearance.paper}
-                            stroke="#5d584a"
-                            stroke-width="0.55"
-                        />
+                        <circle r="8.7" fill={appearance.paper} stroke="#5d584a" stroke-width="0.55"
+                        ></circle>
                         <text font-size="10" font-weight="750">{node.revenue.amount}</text>
                     {:else}
                         {#each revenueCells as cell}
-                            {@const color = revenueStageColors[cell.stage] ?? appearance.colors[cell.stage] ?? appearance.paper}
-                            <g transform={`translate(${cell.x - revenuePosition.x} ${cell.y - revenuePosition.y})`} data-revenue-stage={cell.stage}>
-                                <rect x={-cell.width / 2} y={-cell.height / 2} width={cell.width} height={cell.height} fill={color} stroke={appearance.ink} stroke-width="0.5" />
-                                <text fill={contrastingTextColor(color)} font-size="9" font-weight="650" aria-label={`${cell.stage}: ${cell.amount}`}>{cell.amount}</text>
+                            {@const color =
+                                revenueStageColors[cell.stage] ??
+                                appearance.colors[cell.stage] ??
+                                appearance.paper}
+                            <g
+                                transform={`translate(${cell.x - revenuePosition.x} ${cell.y - revenuePosition.y})`}
+                                data-revenue-stage={cell.stage}
+                            >
+                                <rect
+                                    x={-cell.width / 2}
+                                    y={-cell.height / 2}
+                                    width={cell.width}
+                                    height={cell.height}
+                                    fill={color}
+                                    stroke={appearance.ink}
+                                    stroke-width="0.5"
+                                ></rect>
+                                <text
+                                    fill={contrastingTextColor(color)}
+                                    font-size="9"
+                                    font-weight="650"
+                                    aria-label={`${cell.stage}: ${cell.amount}`}>{cell.amount}</text
+                                >
                             </g>
                         {/each}
                     {/if}

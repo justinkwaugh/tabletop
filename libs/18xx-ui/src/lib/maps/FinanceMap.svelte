@@ -64,7 +64,8 @@
                 >Company <select
                     aria-label="Network company"
                     value={session.map.networkCompanyId ?? ''}
-                    onchange={(event) => session.map.inspectCompanyNetwork(event.currentTarget.value)}
+                    onchange={(event) =>
+                        session.map.inspectCompanyNetwork(event.currentTarget.value)}
                 >
                     {#each session.map.networkCompanies as company}<option value={company.id}
                             >{company.name}</option
@@ -82,10 +83,13 @@
             {/if}
         </div>
     {/if}
-    <MapViewer revenueStageColors={session.mapView.revenueStageColors}
+    <MapViewer
+        revenueStageColors={session.mapView.revenueStageColors}
         scene={session.map.displayedScene}
         maskUnavailableLocations={session.track.showChoices}
-        highlightedLocationIds={session.stations.canPlace ? session.stations.locationIds : [...new Set([...session.track.reachableLocationIds, ...session.track.locationIds])]}
+        highlightedLocationIds={session.stations.canPlace
+            ? session.stations.locationIds
+            : [...new Set([...session.track.reachableLocationIds, ...session.track.locationIds])]}
         legalLocationIds={session.stations.canPlace
             ? session.stations.locationIds
             : session.track.locationIds}

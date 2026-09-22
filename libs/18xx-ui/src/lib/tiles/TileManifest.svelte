@@ -28,7 +28,10 @@
     const visible = $derived(
         tiles
             .filter(
-                (tile) => (remaining.get(tile.id) === 'unlimited' || Number(remaining.get(tile.id) ?? 0) > 0) && (!color || tile.face.color === color)
+                (tile) =>
+                    (remaining.get(tile.id) === 'unlimited' ||
+                        Number(remaining.get(tile.id) ?? 0) > 0) &&
+                    (!color || tile.face.color === color)
             )
             .sort(
                 (a, b) =>

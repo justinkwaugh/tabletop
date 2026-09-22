@@ -23,14 +23,17 @@
                     </li>{/each}
             </ul>
             <div class="buttons">
-                <button disabled={session.busy} onclick={() => session.stock.backFromStart()}>Back</button
+                <button disabled={session.busy} onclick={() => session.stock.backFromStart()}
+                    >Back</button
                 ><button disabled={session.busy} onclick={() => session.stock.confirmStart()}
                     >Confirm start</button
                 >
             </div>
         {:else}
             <p>
-                Choose a starting price for {session.ownerName(session.stock.selectedStartCompany.buyer)}.
+                Choose a starting price for {session.ownerName(
+                    session.stock.selectedStartCompany.buyer
+                )}.
             </p>
             <div class="buttons" aria-label="Starting prices">
                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
@@ -47,7 +50,9 @@
             {#if session.stock.selectedStartResult?.reason}<p role="alert">
                     {session.stock.selectedStartResult.reason}
                 </p>{/if}
-            <button disabled={session.busy} onclick={() => session.stock.backFromStart()}>Back</button>
+            <button disabled={session.busy} onclick={() => session.stock.backFromStart()}
+                >Back</button
+            >
         {/if}
     </div>
 {:else if session.stock.startChoices.length && !session.stock.hasSelection}

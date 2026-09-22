@@ -54,7 +54,7 @@
                         fill="none"
                         stroke="#ae2544"
                         stroke-width="3"
-                    />
+                    ></path>
                 {/snippet}
                 {#snippet overlays(drawing)}
                     {@const slot = drawing.nodes[0].slots[0]}
@@ -66,7 +66,7 @@
                         fill="#294f9c"
                         stroke="white"
                         stroke-width=".8"
-                    />
+                    ></circle>
                     <text
                         x={slot.x}
                         y={slot.y}

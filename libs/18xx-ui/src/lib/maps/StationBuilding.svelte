@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
-        $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const step = $derived(session.financialState.stationStep)
     const selection = $derived(session.stations.selection)
 </script>
@@ -10,20 +9,29 @@
     <section aria-label="Station placement">
         <header>
             <span>Choose a city to place a station or</span>
-            <button class="action-button inline-action" onclick={() => session.stations.finish()}
-                disabled={!session.stations.canPlace || !!selection.placement}>skip</button>
-            {#if showUndo}<button onclick={() => session.undo()}
-                disabled={session.busy || session.isViewingHistory ||
-                    (!selection.placement && !session.actions.length)}>Undo</button>{/if}
+            <button
+                class="action-button inline-action"
+                onclick={() => session.stations.finish()}
+                disabled={!session.stations.canPlace || !!selection.placement}>skip</button
+            >
+            {#if showUndo}<button
+                    onclick={() => session.undo()}
+                    disabled={session.busy ||
+                        session.isViewingHistory ||
+                        (!selection.placement && !session.actions.length)}>Undo</button
+                >{/if}
         </header>
         {#if step.completed}<p>Station placement complete.</p>
         {:else if !session.isViewingHistory && !selection.stationId}
             {#if session.stations.requiresTokenChoice}
                 <div class="choices">
                     {#each session.stations.available as station, index}
-                        <button data-station-id={station.id}
+                        <button
+                            data-station-id={station.id}
                             onclick={() => session.stations.select(station.id)}
-                            disabled={!session.stations.canPlace || !session.stations.model.choices(station.id).length}>
+                            disabled={!session.stations.canPlace ||
+                                !session.stations.model.choices(station.id).length}
+                        >
                             Station {index + 1}
                         </button>
                     {/each}
@@ -58,8 +66,13 @@
         background: var(--rail-surface, #fffdf8);
         cursor: pointer;
     }
-    button:hover:not(:disabled) { background: var(--rail-surface-raised, #efe7db); }
-    button:focus-visible { outline: 2px solid #a87948; outline-offset: 2px; }
+    button:hover:not(:disabled) {
+        background: var(--rail-surface-raised, #efe7db);
+    }
+    button:focus-visible {
+        outline: 2px solid #a87948;
+        outline-offset: 2px;
+    }
     button:disabled {
         opacity: 0.45;
         cursor: default;

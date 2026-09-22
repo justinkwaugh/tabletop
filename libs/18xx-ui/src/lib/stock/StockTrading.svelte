@@ -14,8 +14,7 @@
         type PresidencyChange
     } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } =
-        $props()
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const state = $derived(session.financialState)
 </script>
 
@@ -84,8 +83,7 @@
                 </div>
             {/if}
             <div class="buttons">
-                <button onclick={() => session.stock.cancel()} disabled={session.busy}
-                    >Back</button
+                <button onclick={() => session.stock.cancel()} disabled={session.busy}>Back</button
                 ><button onclick={() => session.stock.confirmPurchase()} disabled={session.busy}
                     >Confirm purchase</button
                 >

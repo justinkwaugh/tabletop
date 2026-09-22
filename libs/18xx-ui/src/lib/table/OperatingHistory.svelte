@@ -32,96 +32,154 @@
 
 {#if rounds.length}
     <div class="table-scroll">
-    <table aria-label="Operating round history">
-        <colgroup>
-            <col class="round-column" />
-            {#if view === 'Player'}
-                {#each players as player (player.playerId)}<col span="3" class="data-column" />{/each}
-            {:else}
-                {#each companies as [companyId], index (companyId)}<col class="data-column" class:shaded={index % 2 === 1} />{/each}
-            {/if}
-        </colgroup>
-        <thead>
-            <tr>
-                <th scope="col" rowspan={view === 'Player' ? 2 : 1}>Round</th>
+        <table aria-label="Operating round history">
+            <colgroup>
+                <col class="round-column" />
                 {#if view === 'Player'}
-                    {#each players as player (player.playerId)}
-                        <th scope="colgroup" colspan="3" title={player.name} class="player-tinted-header group-start" style:--player-color={player.color}><PlayerName name={player.name} color={player.color} /></th>
-                    {/each}
+                    {#each players as player (player.playerId)}<col
+                            span="3"
+                            class="data-column"
+                        />{/each}
                 {:else}
-                    {#each companies as [companyId, name], index (companyId)}
-                        <th scope="col" aria-label={name} class:group-start={index === 0}>
-                            <span class="company">
-                                {#if appearances[companyId]}<CompanyToken appearance={appearances[companyId]} size={22} />{/if}
-                                <span title={name}>{companyNames[companyId]?.initials ?? companyId}</span>
-                            </span>
-                        </th>
-                    {/each}
+                    {#each companies as [companyId], index (companyId)}<col
+                            class="data-column"
+                            class:shaded={index % 2 === 1}
+                        />{/each}
                 {/if}
-            </tr>
-            {#if view === 'Player'}
-                <tr class="metrics">
-                    {#each players as player (player.playerId)}
-                        <th scope="col" class="group-start">Income</th>
-                        <th scope="col">Net worth</th>
-                        <th scope="col" aria-label="Net worth change from previous OR">Δ</th>
-                    {/each}
-                </tr>
-            {/if}
-        </thead>
-        <tbody>
-            {#each rounds as round, roundIndex (round.id)}
+            </colgroup>
+            <thead>
                 <tr>
-                    <th scope="row">
-                        OR {round.id}
-                        {#if !round.complete || round.partial}<sup>*</sup>{/if}
-                    </th>
+                    <th scope="col" rowspan={view === 'Player' ? 2 : 1}>Round</th>
                     {#if view === 'Player'}
                         {#each players as player (player.playerId)}
-                            <td class="player-tinted-cell group-start" style:--player-color={player.color}>{money(round.playerIncome[player.playerId] ?? 0)}</td>
-                            <td class="player-tinted-cell" style:--player-color={player.color}>{round.playerNetWorth[player.playerId] === undefined ? '—' : `${money(round.playerNetWorth[player.playerId])}`}</td>
-                            <td class="player-tinted-cell" style:--player-color={player.color}>
-                                {#if roundIndex > 0 && round.playerNetWorth[player.playerId] !== undefined && rounds[roundIndex - 1].playerNetWorth[player.playerId] !== undefined}
-                                    {@const delta = round.playerNetWorth[player.playerId] - rounds[roundIndex - 1].playerNetWorth[player.playerId]}
-                                    <span class:negative={delta < 0}>{money(Math.abs(delta))}</span>
-                                {:else}—{/if}
-                            </td>
+                            <th
+                                scope="colgroup"
+                                colspan="3"
+                                title={player.name}
+                                class="player-tinted-header group-start"
+                                style:--player-color={player.color}
+                                ><PlayerName name={player.name} color={player.color} /></th
+                            >
                         {/each}
                     {:else}
-                        {#each companies as [companyId], index (companyId)}
-                            {@const run = round.companyRuns[companyId]}
-                            <td class:negative={round.withheldCompanyIds.includes(companyId)} class:group-start={index === 0}>
-                                {#if round.companyIncome[companyId] === undefined}—
-                                {:else if run && round.companyIncome[companyId] > 0}<button class="payout" onclick={() => onPreviewMap(run)}
-                                    aria-label={`Show ${round.companyNames[companyId]} run in OR ${round.id}`}
-                                    >{money(round.companyIncome[companyId])}</button>
-                                {:else}{money(round.companyIncome[companyId])}{/if}
-                            </td>
+                        {#each companies as [companyId, name], index (companyId)}
+                            <th scope="col" aria-label={name} class:group-start={index === 0}>
+                                <span class="company">
+                                    {#if appearances[companyId]}<CompanyToken
+                                            appearance={appearances[companyId]}
+                                            size={22}
+                                        />{/if}
+                                    <span title={name}
+                                        >{companyNames[companyId]?.initials ?? companyId}</span
+                                    >
+                                </span>
+                            </th>
                         {/each}
                     {/if}
                 </tr>
-            {/each}
-        </tbody>
-    </table>
+                {#if view === 'Player'}
+                    <tr class="metrics">
+                        {#each players as player (player.playerId)}
+                            <th scope="col" class="group-start">Income</th>
+                            <th scope="col">Net worth</th>
+                            <th scope="col" aria-label="Net worth change from previous OR">Δ</th>
+                        {/each}
+                    </tr>
+                {/if}
+            </thead>
+            <tbody>
+                {#each rounds as round, roundIndex (round.id)}
+                    <tr>
+                        <th scope="row">
+                            OR {round.id}
+                            {#if !round.complete || round.partial}<sup>*</sup>{/if}
+                        </th>
+                        {#if view === 'Player'}
+                            {#each players as player (player.playerId)}
+                                <td
+                                    class="player-tinted-cell group-start"
+                                    style:--player-color={player.color}
+                                    >{money(round.playerIncome[player.playerId] ?? 0)}</td
+                                >
+                                <td class="player-tinted-cell" style:--player-color={player.color}
+                                    >{round.playerNetWorth[player.playerId] === undefined
+                                        ? '—'
+                                        : `${money(round.playerNetWorth[player.playerId])}`}</td
+                                >
+                                <td class="player-tinted-cell" style:--player-color={player.color}>
+                                    {#if roundIndex > 0 && round.playerNetWorth[player.playerId] !== undefined && rounds[roundIndex - 1].playerNetWorth[player.playerId] !== undefined}
+                                        {@const delta =
+                                            round.playerNetWorth[player.playerId] -
+                                            rounds[roundIndex - 1].playerNetWorth[player.playerId]}
+                                        <span class:negative={delta < 0}
+                                            >{money(Math.abs(delta))}</span
+                                        >
+                                    {:else}—{/if}
+                                </td>
+                            {/each}
+                        {:else}
+                            {#each companies as [companyId], index (companyId)}
+                                {@const run = round.companyRuns[companyId]}
+                                <td
+                                    class:negative={round.withheldCompanyIds.includes(companyId)}
+                                    class:group-start={index === 0}
+                                >
+                                    {#if round.companyIncome[companyId] === undefined}—
+                                    {:else if run && round.companyIncome[companyId] > 0}<button
+                                            class="payout"
+                                            onclick={() => onPreviewMap(run)}
+                                            aria-label={`Show ${round.companyNames[companyId]} run in OR ${round.id}`}
+                                            >{money(round.companyIncome[companyId])}</button
+                                        >
+                                    {:else}{money(round.companyIncome[companyId])}{/if}
+                                </td>
+                            {/each}
+                        {/if}
+                    </tr>
+                {/each}
+            </tbody>
+        </table>
     </div>
     {#if view === 'Player'}<p class="history-note">
-        Player income includes dividends and private income. Net worth is recorded at OR end; unfinished rounds show the latest snapshot from the round’s start or a completed company turn.
-    </p>{/if}
+            Player income includes dividends and private income. Net worth is recorded at OR end;
+            unfinished rounds show the latest snapshot from the round’s start or a completed company
+            turn.
+        </p>{/if}
     {#if rounds.some((round) => !round.complete || round.partial)}<p class="history-note">
-            * Incomplete round: still in progress or only partially recorded. Values include recorded
-            income only.{#if view === 'Player'} Net worth reflects the latest recorded snapshot in that round.{/if}
+            * Incomplete round: still in progress or only partially recorded. Values include
+            recorded income only.{#if view === 'Player'}
+                Net worth reflects the latest recorded snapshot in that round.{/if}
         </p>{/if}
 {:else}
     <p>No operating-round history recorded yet.</p>
 {/if}
 
 <style>
-    .payout { border: 0; border-radius: 4px; padding: 1px 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
-    .payout:hover { background: var(--rail-hover, #69554016); }
-    .payout:focus-visible { outline: 2px solid var(--rail-focus, #9e7752); outline-offset: 1px; }
-    .negative { color: var(--rail-negative, #b33a32); }
-    .table-scroll { overflow-x: auto; }
-    .history-note { contain: inline-size; }
+    .payout {
+        border: 0;
+        border-radius: 4px;
+        padding: 1px 4px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+    }
+    .payout:hover {
+        background: var(--rail-hover, #69554016);
+    }
+    .payout:focus-visible {
+        outline: 2px solid var(--rail-focus, #9e7752);
+        outline-offset: 1px;
+    }
+    .negative {
+        color: var(--rail-negative, #b33a32);
+    }
+    .table-scroll {
+        overflow-x: auto;
+    }
+    .history-note {
+        contain: inline-size;
+    }
     table {
         width: auto;
         border-collapse: collapse;
@@ -137,13 +195,17 @@
     th {
         font-weight: 500;
     }
-    tr > * + * { border-left: 1px solid #ffffff10; }
-    .group-start { border-left: 2px solid #5b6d80; }
+    tr > * + * {
+        border-left: 1px solid #ffffff10;
+    }
+    .group-start {
+        border-left: 2px solid #5b6d80;
+    }
     thead th {
         color: var(--rail-text, #786550);
         font-size: 12px;
     }
-    th[scope="row"],
+    th[scope='row'],
     th[rowspan] {
         text-align: left;
         padding-left: 12px;
@@ -158,15 +220,38 @@
         justify-content: center;
         gap: 6px;
     }
-    sup { font-size: 10px; margin-left: 2px; }
-    .round-column { background: var(--rail-hover, #69554008); }
-    .data-column { background: var(--rail-surface, #faf6ee); }
-    .shaded { background: var(--rail-surface-raised, #f0e7d9); }
-    .player-tinted-cell { background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37)); }
-    tbody tr:hover .player-tinted-cell { background: color-mix(in srgb, var(--rail-text, #e3e9ef) 9%, color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37))); }
-    thead { background: var(--rail-hover, #69554012); }
-    .metrics { background: var(--rail-hover, #69554008); }
-    tbody tr:hover { background-color: var(--rail-hover, #69554016); }
+    sup {
+        font-size: 10px;
+        margin-left: 2px;
+    }
+    .round-column {
+        background: var(--rail-hover, #69554008);
+    }
+    .data-column {
+        background: var(--rail-surface, #faf6ee);
+    }
+    .shaded {
+        background: var(--rail-surface-raised, #f0e7d9);
+    }
+    .player-tinted-cell {
+        background: color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37));
+    }
+    tbody tr:hover .player-tinted-cell {
+        background: color-mix(
+            in srgb,
+            var(--rail-text, #e3e9ef) 9%,
+            color-mix(in srgb, var(--player-color) 15%, var(--rail-surface, #222c37))
+        );
+    }
+    thead {
+        background: var(--rail-hover, #69554012);
+    }
+    .metrics {
+        background: var(--rail-hover, #69554008);
+    }
+    tbody tr:hover {
+        background-color: var(--rail-hover, #69554016);
+    }
     p {
         font-size: 11px;
         color: var(--rail-muted, #8b7b6b);

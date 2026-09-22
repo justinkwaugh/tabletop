@@ -36,7 +36,8 @@
         playerId &&
             selection &&
             (bidding
-                ? selection.amount !== undefined && model.canBid(playerId, selection.lotId, selection.amount)
+                ? selection.amount !== undefined &&
+                  model.canBid(playerId, selection.lotId, selection.amount)
                 : model.canOffer(playerId, selection.lotId))
     )
 </script>

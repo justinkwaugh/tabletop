@@ -15,7 +15,14 @@
         token,
         phaseColors = {}
     }: {
-        money: MoneyFormat; name: string; description: string; value?: number; income?: number; token?: StationAppearance; phaseColors?: Readonly<Record<string, string>> } = $props()
+        money: MoneyFormat
+        name: string
+        description: string
+        value?: number
+        income?: number
+        token?: StationAppearance
+        phaseColors?: Readonly<Record<string, string>>
+    } = $props()
     const id = $props.id()
     let open = $state(false)
     let triggerEvent: Event | undefined

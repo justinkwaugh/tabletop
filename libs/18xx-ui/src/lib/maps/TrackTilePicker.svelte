@@ -8,8 +8,7 @@
     import Tile from '../tiles/Tile.svelte'
     import { tileChoiceArc } from './tileChoiceArc.js'
 
-    let { session, viewport }: { session: EighteenXXSession; viewport: HTMLDivElement } =
-        $props()
+    let { session, viewport }: { session: EighteenXXSession; viewport: HTMLDivElement } = $props()
     const money = $derived(session.presentation.money)
     let center: Point = $state({ x: 0, y: 0 })
     let width = $state(0)
@@ -53,7 +52,7 @@
             const svg = viewport.querySelector('svg.map-scene')
             if (svg instanceof SVGSVGElement) {
                 // WebKit's getScreenCTM omits the CSS scale on the map wrapper.
-                tileSize = 106 * svg.getBoundingClientRect().width / svg.viewBox.baseVal.width
+                tileSize = (106 * svg.getBoundingClientRect().width) / svg.viewBox.baseVal.width
             }
         }
         function scheduleMeasure() {
@@ -82,7 +81,8 @@
     let motionVersion = 0
     function register(node: HTMLButtonElement, id: string) {
         elements.set(id, node)
-        const autoSelected = id === selectedId && session.track.selection.definitionId?.source === 'auto'
+        const autoSelected =
+            id === selectedId && session.track.selection.definitionId?.source === 'auto'
         if (autoSelected && prefersReducedMotion.current) session.track.tileInFlight = false
         if ((!selectedId || autoSelected) && !prefersReducedMotion.current) {
             const bounds = viewport.getBoundingClientRect()
@@ -102,11 +102,13 @@
                 { duration: 200, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
             )
             animations.add(animation)
-            void animation.finished.catch(() => undefined).then(() => {
-                animations.delete(animation)
-                if (autoSelected && version === motionVersion && openingLocation === locationId)
-                    session.track.tileInFlight = false
-            })
+            void animation.finished
+                .catch(() => undefined)
+                .then(() => {
+                    animations.delete(animation)
+                    if (autoSelected && version === motionVersion && openingLocation === locationId)
+                        session.track.tileInFlight = false
+                })
         }
         return {
             destroy() {
@@ -272,13 +274,15 @@
         {/if}
         {#if session.track.preview && !collapsing}
             {#if session.track.preview.cost > 0}
-            <div
-                class="placement-cost"
-                transition:fade|global={{ duration: prefersReducedMotion.current ? 0 : 120 }}
-                style:left={`${center.x}px`}
-                style:top={`${Math.min(height - tileSize * 0.3, center.y + hexHeight / 2 + tileSize * 0.06)}px`}
-                style:font-size={`${tileSize * 0.15}px`}
-            >{money(session.track.preview.cost)}</div>
+                <div
+                    class="placement-cost"
+                    transition:fade|global={{ duration: prefersReducedMotion.current ? 0 : 120 }}
+                    style:left={`${center.x}px`}
+                    style:top={`${Math.min(height - tileSize * 0.3, center.y + hexHeight / 2 + tileSize * 0.06)}px`}
+                    style:font-size={`${tileSize * 0.15}px`}
+                >
+                    {money(session.track.preview.cost)}
+                </div>
             {/if}
             <div
                 class="controls"
@@ -294,7 +298,7 @@
                     onclick={cancel}
                 >
                     <svg viewBox="0 0 24 24" aria-hidden="true"
-                        ><path d="m7 7 10 10M17 7 7 17" /></svg
+                        ><path d="m7 7 10 10M17 7 7 17"></path></svg
                     >
                 </button>
                 <button
@@ -303,7 +307,9 @@
                     title={`Accept track lay · ${money(session.track.preview.cost)}`}
                     onclick={accept}
                 >
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 13 4 4L19 7" /></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"
+                        ><path d="m5 13 4 4L19 7"></path></svg
+                    >
                 </button>
             </div>
         {/if}

@@ -2,10 +2,7 @@
     import { marketColors } from './marketColors.js'
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
-    import {
-        type StockMarket as StockMarketModel,
-        type Company
-    } from '@tabletop/18xx'
+    import { type StockMarket as StockMarketModel, type Company } from '@tabletop/18xx'
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
@@ -76,12 +73,7 @@
     onMount(() => {
         const activeSession = untrack(() => animation)
         if (!activeSession) return
-        const listener = async ({
-            to,
-            from,
-            action,
-            animationContext
-        }: MarketStateChange) => {
+        const listener = async ({ to, from, action, animationContext }: MarketStateChange) => {
             if (!from || !board || getComputedStyle(board).visibility !== 'visible') return
             const before = marketTokenLayout(from)
             const after = marketTokenLayout(to)
@@ -129,7 +121,13 @@
                 tokens = after
                 void tick().then(() => {
                     for (const element of elements.values()) {
-                        for (const property of ['transform', 'translate', 'rotate', 'scale', 'opacity'])
+                        for (const property of [
+                            'transform',
+                            'translate',
+                            'rotate',
+                            'scale',
+                            'opacity'
+                        ])
                             element.style.removeProperty(property)
                     }
                 })
@@ -150,7 +148,6 @@
             ? spaceId
             : undefined
     }
-
 </script>
 
 <div
@@ -199,13 +196,13 @@
                         class="edge-arrow right"
                         viewBox="0 0 10 32"
                         role="img"
-                        aria-label="Right moves up"><path d="M7 28V4L3 10" /></svg
+                        aria-label="Right moves up"><path d="M7 28V4L3 10"></path></svg
                     >{/if}
                 {#if !space.moves.left && space.moves.down}<svg
                         class="edge-arrow left"
                         viewBox="0 0 10 32"
                         role="img"
-                        aria-label="Left moves down"><path d="M7 28V4L3 10" /></svg
+                        aria-label="Left moves down"><path d="M7 28V4L3 10"></path></svg
                     >{/if}
             </div>
         {/each}
@@ -230,24 +227,24 @@
                 style:z-index={(target ? 101 : 1) + token.z}
             >
                 <div class="token-motion" use:register={token.companyId}>
-                <div
-                    class="hover-offset"
-                    class:moving={animation?.updatingVisibleState}
-                    style:transform={`translate(${((target?.x ?? token.x) - token.x) * renderScale}px, ${((target?.y ?? token.y) - token.y) * renderScale}px)`}
-                >
                     <div
-                        class="token-payload"
-                        role="img"
-                        aria-label={companies.find((company) => company.id === token.companyId)
-                            ?.name}
-                        onpointerenter={() => expandStack(token.spaceId)}
+                        class="hover-offset"
+                        class:moving={animation?.updatingVisibleState}
+                        style:transform={`translate(${((target?.x ?? token.x) - token.x) * renderScale}px, ${((target?.y ?? token.y) - token.y) * renderScale}px)`}
                     >
-                        <CompanyToken
-                            appearance={appearances[token.companyId]}
-                            size={MarketTokenSize * renderScale}
-                        />
+                        <div
+                            class="token-payload"
+                            role="img"
+                            aria-label={companies.find((company) => company.id === token.companyId)
+                                ?.name}
+                            onpointerenter={() => expandStack(token.spaceId)}
+                        >
+                            <CompanyToken
+                                appearance={appearances[token.companyId]}
+                                size={MarketTokenSize * renderScale}
+                            />
+                        </div>
                     </div>
-                </div>
                 </div>
             </div>
         {/each}

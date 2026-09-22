@@ -9,7 +9,7 @@
         depotState,
         depotOnly = false,
         currentPhaseId,
-        trainColors,
+        trainColors
     }: {
         money: MoneyFormat
         depotState: PhaseChartDepotState
@@ -19,71 +19,89 @@
         trainColors: Readonly<Record<string, string>>
     } = $props()
 </script>
+
 <div class="phase-chart-content" class:depot={depotOnly}>
     <div class="charts">
         {#if !depotOnly}
-        <section aria-label="Phases">
-            <table>
-                <thead
-                    ><tr
-                        ><th>Phase</th><th>Tiles</th><th>ORs</th><th>Train limit</th><th
-                            >Rusts</th
-                        ><th>Notes</th></tr
-                    ></thead
-                >
-                <tbody>
-                    {#each chart.phases as phase (phase.id)}
-                        <tr
-                            class:current={phase.id === currentPhaseId}
-                            aria-current={phase.id === currentPhaseId ? 'step' : undefined}
-                        >
-                            <th scope="row"
-                                ><TrainBadge name={phase.id} color={trainColors[phase.id]} /></th
+            <section aria-label="Phases">
+                <table>
+                    <thead
+                        ><tr
+                            ><th>Phase</th><th>Tiles</th><th>ORs</th><th>Train limit</th><th
+                                >Rusts</th
+                            ><th>Notes</th></tr
+                        ></thead
+                    >
+                    <tbody>
+                        {#each chart.phases as phase (phase.id)}
+                            <tr
+                                class:current={phase.id === currentPhaseId}
+                                aria-current={phase.id === currentPhaseId ? 'step' : undefined}
                             >
-                            <td
-                                ><span class="colors" aria-label={phase.tileColors.join(', ')}>
-                                    {#each phase.tileColors as color}<span
-                                            class="tile-color"
-                                            style:background={TileColors[color]}
-                                            title={color}
-                                        ></span>{/each}
-                                </span></td
-                            >
-                            <td class="number">{phase.operatingRounds}</td>
-                            <td class="number">{phase.trainLimit}</td>
-                            <td
-                                ><span class="badges">
-                                    {#each chart.trains.filter((train) => train.rustPhaseId === phase.id) as train}
-                                        <TrainBadge
-                                            name={train.id}
-                                            color={trainColors[train.id]}
-                                        />{#if train.rustNote}<span>*</span>{/if}
-                                    {:else}<span class="muted">—</span>{/each}
-                                </span></td
-                            >
-                            <td class="phase-notes">{phase.notes ?? ''}</td>
-                        </tr>
-                    {/each}
-                </tbody>
-            </table>
-        </section>
+                                <th scope="row"
+                                    ><TrainBadge
+                                        name={phase.id}
+                                        color={trainColors[phase.id]}
+                                    /></th
+                                >
+                                <td
+                                    ><span class="colors" aria-label={phase.tileColors.join(', ')}>
+                                        {#each phase.tileColors as color}<span
+                                                class="tile-color"
+                                                style:background={TileColors[color]}
+                                                title={color}
+                                            ></span>{/each}
+                                    </span></td
+                                >
+                                <td class="number">{phase.operatingRounds}</td>
+                                <td class="number">{phase.trainLimit}</td>
+                                <td
+                                    ><span class="badges">
+                                        {#each chart.trains.filter((train) => train.rustPhaseId === phase.id) as train}
+                                            <TrainBadge
+                                                name={train.id}
+                                                color={trainColors[train.id]}
+                                            />{#if train.rustNote}<span>*</span>{/if}
+                                        {:else}<span class="muted">—</span>{/each}
+                                    </span></td
+                                >
+                                <td class="phase-notes">{phase.notes ?? ''}</td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </section>
         {/if}
         <section aria-label="Train roster">
             <table>
                 <thead
-                    ><tr><th>Train</th><th class="money">Price</th><th class="number">Remaining</th><th>Rusts in phase</th></tr
+                    ><tr
+                        ><th>Train</th><th class="money">Price</th><th class="number">Remaining</th
+                        ><th>Rusts in phase</th></tr
                     ></thead
                 >
                 <tbody>
                     {#each chart.trains as train (train.id)}
-                        {@const remaining = depotState.depot.remaining(depotState.inventory, train.id)}
-                        {@const current = depotState.availableDefinitionIds.includes(train.id) && remaining !== 0}
-                        <tr class:current aria-current={current ? 'step' : undefined} class:exhausted={remaining === 0}>
+                        {@const remaining = depotState.depot.remaining(
+                            depotState.inventory,
+                            train.id
+                        )}
+                        {@const current =
+                            depotState.availableDefinitionIds.includes(train.id) && remaining !== 0}
+                        <tr
+                            class:current
+                            aria-current={current ? 'step' : undefined}
+                            class:exhausted={remaining === 0}
+                        >
                             <th scope="row"
                                 ><TrainBadge name={train.name} color={trainColors[train.id]} /></th
                             >
                             <td class="money">{money(train.price)}</td>
-                            <td class="number">{remaining === 'unlimited' ? '∞' : remaining}/{train.count === 'unlimited' ? '∞' : train.count}</td
+                            <td class="number"
+                                >{remaining === 'unlimited' ? '∞' : remaining}/{train.count ===
+                                'unlimited'
+                                    ? '∞'
+                                    : train.count}</td
                             >
                             <td
                                 >{#if train.rustPhaseId}<TrainBadge
@@ -105,10 +123,19 @@
         {#if !depotOnly}{#each chart.notes as note}<p>{note}</p>{/each}{/if}
     </div>
 </div>
+
 <style>
-    .phase-chart-content { container-type: inline-size; color: var(--rail-text, #463e35); }
-    .depot .charts { grid-template-columns: minmax(0, 1fr); }
-    .exhausted { color: var(--rail-muted, #958878); opacity: var(--rail-phase-opacity, .55); }
+    .phase-chart-content {
+        container-type: inline-size;
+        color: var(--rail-text, #463e35);
+    }
+    .depot .charts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .exhausted {
+        color: var(--rail-muted, #958878);
+        opacity: var(--rail-phase-opacity, 0.55);
+    }
     .charts {
         display: grid;
         grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);

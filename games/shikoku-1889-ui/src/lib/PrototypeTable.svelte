@@ -15,7 +15,8 @@
         StockMarket,
         requireEighteenXXSession
     } from '@tabletop/18xx-ui'
-    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } = $props()
+    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
+        $props()
     const session = $derived(requireEighteenXXSession(gameSession))
     const state = $derived(requireEighteenXXState(gameSession.gameState))
 </script>
@@ -30,7 +31,12 @@
     <TrainBuying {session} trainColors={Shikoku1889TrainColors} />
     <FinanceMap {session} />
     <StockTrading {session} />
-    <StockMarket animation={session.marketAnimation} appearances={session.mapView.stations} market={state.stockMarket} companies={state.companies} />
+    <StockMarket
+        animation={session.marketAnimation}
+        appearances={session.mapView.stations}
+        market={state.stockMarket}
+        companies={state.companies}
+    />
 {/if}
 
 <FinanceInspector

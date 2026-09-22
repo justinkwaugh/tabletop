@@ -48,7 +48,15 @@
     aria-label={description}
     data-tile-rotation={rotation}
 >
-    <TileArtwork {face} {drawing} {appearance} {revenueStageColors} {highlightedPathIds} {trackOverlay} {overlays} />
+    <TileArtwork
+        {face}
+        {drawing}
+        {appearance}
+        {revenueStageColors}
+        {highlightedPathIds}
+        {trackOverlay}
+        {overlays}
+    />
 </svg>
 
 <style>

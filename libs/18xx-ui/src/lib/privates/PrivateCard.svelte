@@ -38,7 +38,15 @@
                             >{money(income)}{#if !purchaseRange}<small> / OR</small>{/if}</strong
                         ></span
                     >{/if}
-                {#if purchaseRange}<span class="value">Purchase <strong>{money(purchaseRange.minimum)}{#if purchaseRange.maximum !== undefined}–{money(purchaseRange.maximum)}{/if}</strong></span>
+                {#if purchaseRange}<span class="value"
+                        >Purchase <strong
+                            >{money(
+                                purchaseRange.minimum
+                            )}{#if purchaseRange.maximum !== undefined}–{money(
+                                    purchaseRange.maximum
+                                )}{/if}</strong
+                        ></span
+                    >
                 {:else if value !== undefined}<span class="value"
                         >Value <strong>{money(value)}</strong></span
                     >{/if}
@@ -47,7 +55,14 @@
     </header>
     {#if description}
         {#each paragraphs as paragraph, index}
-            <p>{#if paragraph.startsWith('**') && paragraph.endsWith('**')}<strong class="intro">{paragraph.slice(2, -2)}</strong>{:else}{#each paragraph.split(/(\b\d+(?:H|\+)?)/g) as part}{#if index === paragraphs.length - 1 && phaseColors[part]}<TrainBadge name={part} color={phaseColors[part]} />{:else}{part}{/if}{/each}{/if}</p>
+            <p>
+                {#if paragraph.startsWith('**') && paragraph.endsWith('**')}<strong class="intro"
+                        >{paragraph.slice(2, -2)}</strong
+                    >{:else}{#each paragraph.split(/(\b\d+(?:H|\+)?)/g) as part}{#if index === paragraphs.length - 1 && phaseColors[part]}<TrainBadge
+                                name={part}
+                                color={phaseColors[part]}
+                            />{:else}{part}{/if}{/each}{/if}
+            </p>
         {/each}
     {/if}
 </div>
@@ -75,8 +90,15 @@
         font-weight: 650;
         line-height: 1.3;
     }
-    .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-    .heading :global(svg) { flex-shrink: 0; }
+    .heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .heading :global(svg) {
+        flex-shrink: 0;
+    }
     .value {
         margin-left: auto;
         text-align: right;
@@ -103,6 +125,13 @@
         margin: 0;
         padding: 9px 12px;
     }
-    p + p { padding-top: 0; }
-    .intro { margin-left: 0; color: inherit; font-size: inherit; font-weight: 700; }
+    p + p {
+        padding-top: 0;
+    }
+    .intro {
+        margin-left: 0;
+        color: inherit;
+        font-size: inherit;
+        font-weight: 700;
+    }
 </style>

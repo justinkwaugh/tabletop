@@ -4,7 +4,11 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { HistoryOperatingOrder } from './historyOperatingOrder.js'
     import { operatingOrderMoves } from './operatingOrderMoves.js'
-    let { order, stations, companyName }: {
+    let {
+        order,
+        stations,
+        companyName
+    }: {
         order: HistoryOperatingOrder
         stations: Readonly<Record<string, StationAppearance>>
         companyName: (id: string) => string
@@ -29,15 +33,24 @@
             >
                 <path
                     d={`M ${move.from * 28 + 14} 10 V 8 Q ${move.from * 28 + 14} 4 ${move.from * 28 + 14 + (move.to > move.from ? 7 : -7)} 4 H ${move.to * 28 + 14 + (move.to > move.from ? -7 : 7)} Q ${move.to * 28 + 14} 4 ${move.to * 28 + 14} 8 V 10`}
-                    fill="none" stroke="#62584b" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"
-                />
+                    fill="none"
+                    stroke="#62584b"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                ></path>
                 <path
                     d={`M ${move.to * 28 + 11.5} 10 L ${move.to * 28 + 14} 13 L ${move.to * 28 + 16.5} 10 Z`}
                     fill="#62584b"
-                />
+                ></path>
                 {#each move.companies as id, index}
                     <g opacity={index === move.from ? 0.3 : 1}>
-                        <CompanyToken appearance={appearance(id)} size={22} x={index * 28 + 3} y={13} />
+                        <CompanyToken
+                            appearance={appearance(id)}
+                            size={22}
+                            x={index * 28 + 3}
+                            y={13}
+                        />
                     </g>
                 {/each}
             </svg>
@@ -50,7 +63,21 @@
 </span>
 
 <style>
-    .order-history { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 7px; grid-column: 1 / -1; }
-    .order { display: flex; gap: 4px; flex-wrap: wrap; }
-    svg { max-width: 100%; height: auto; flex-shrink: 0; }
+    .order-history {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2px 7px;
+        grid-column: 1 / -1;
+    }
+    .order {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+    svg {
+        max-width: 100%;
+        height: auto;
+        flex-shrink: 0;
+    }
 </style>

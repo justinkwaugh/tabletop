@@ -40,10 +40,20 @@
     }
 </script>
 
-<dialog class:depot={depotOnly} bind:this={dialog} aria-labelledby={titleId} {onclose} onclick={closeOutside}>
+<dialog
+    class:depot={depotOnly}
+    bind:this={dialog}
+    aria-labelledby={titleId}
+    {onclose}
+    onclick={closeOutside}
+>
     <header>
         <h2 id={titleId}>{depotOnly ? 'Train Depot' : 'Phase Chart & Train Roster'}</h2>
-        <button class="close" aria-label={depotOnly ? 'Close depot' : 'Close phase chart'} onclick={() => dialog.close()}>
+        <button
+            class="close"
+            aria-label={depotOnly ? 'Close depot' : 'Close phase chart'}
+            onclick={() => dialog.close()}
+        >
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
                 ><path
                     d="m4 4 8 8m0-8-8 8"
@@ -51,7 +61,7 @@
                     stroke="currentColor"
                     stroke-width="1.7"
                     stroke-linecap="round"
-                /></svg
+                ></path></svg
             >
         </button>
     </header>
@@ -71,7 +81,9 @@
         color: var(--rail-text, #463e35);
         box-shadow: 0 20px 70px var(--rail-shadow, #16120d55);
     }
-    dialog.depot { width: min(430px, calc(100vw - 40px)); }
+    dialog.depot {
+        width: min(430px, calc(100vw - 40px));
+    }
     dialog::backdrop {
         background: var(--rail-backdrop, #17141099);
     }

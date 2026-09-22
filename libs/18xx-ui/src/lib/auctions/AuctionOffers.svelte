@@ -20,15 +20,15 @@
         return session.offers.model
     })
     const lots = $derived(auctionLotDetails(session, model.offerIds))
-
 </script>
 
 <section aria-label="Auction offers">
     <table>
         <thead
             ><tr
-                ><th><span class="sr-only">Action</span></th><th>Private / share</th><th class="amount">Income</th><th class="amount">Value</th
-                ></tr
+                ><th><span class="sr-only">Action</span></th><th>Private / share</th><th
+                    class="amount">Income</th
+                ><th class="amount">Value</th></tr
             ></thead
         >
         <tbody>
@@ -43,8 +43,7 @@
                             disabled={!session.offers.canAct ||
                                 !session.myPlayer ||
                                 !model.canOffer(session.myPlayer.id, lot.id)}
-                            onclick={() => session.offers.offerLot(lot.id)}
-                            >Offer</button
+                            onclick={() => session.offers.offerLot(lot.id)}>Offer</button
                         ></td
                     >
 
@@ -62,7 +61,9 @@
                                 {:else}<span class="private-icon" aria-hidden="true">{lot.id}</span
                                     >{/if}
                             </button>
-                            <PrivateDescription {money} phaseColors={session.presentation.phaseColors}
+                            <PrivateDescription
+                                {money}
+                                phaseColors={session.presentation.phaseColors}
                                 {token}
                                 name={lot.name}
                                 description={info.description}
@@ -72,8 +73,9 @@
                         </div></th
                     >
                     <td class="amount income"
-                        >{#if lot.company && lot.company.privateRevenue !== undefined}{money(lot.company
-                                .privateRevenue)}<small> / OR</small>{:else}—{/if}</td
+                        >{#if lot.company && lot.company.privateRevenue !== undefined}{money(
+                                lot.company.privateRevenue
+                            )}<small> / OR</small>{:else}—{/if}</td
                     >
                     <td class="amount value">{money(lot.price)}</td>
                 </tr>
