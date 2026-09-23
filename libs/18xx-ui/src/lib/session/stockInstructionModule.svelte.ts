@@ -2,6 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     SetStockInstruction,
     certificatesInPool,
+    sharesOwned,
     describeStockPositionChange,
     standingStockInstructionFor,
     standingStockInstructions,
@@ -24,6 +25,7 @@ export type StockInstructionSession = ModuleSession<
 export type BuyInstructionTerms = Omit<Extract<StockInstruction, { kind: 'buy' }>, 'kind'>
 
 export type BuyInstructionChoice = { company: Company; pools: CertificatePool[] }
+export type ShareGoalRange = { min: number; max: number }
 
 export class StockInstructionModule {
     constructor(private readonly session: StockInstructionSession) {}
@@ -53,7 +55,9 @@ export class StockInstructionModule {
             : undefined
     )
     buyChoices = $derived.by((): BuyInstructionChoice[] => {
-        const { state } = this.session
+        const { state, rules, playerId } = this.session
+        if (!playerId) return []
+        const buyer = { kind: 'player', playerId } as const
         return state.companies
             .filter((company) => company.shareCount && company.started && !company.closed)
             .map((company) => ({
@@ -63,12 +67,51 @@ export class StockInstructionModule {
                         (certificate) =>
                             certificate.kind === 'share' &&
                             certificate.companyId === company.id &&
-                            !certificate.president
+                            !certificate.president &&
+                            typeof rules.stockRules.purchaseTerms(state, certificate, buyer) !==
+                                'string'
                     )
                 )
             }))
             .filter((choice) => choice.pools.length > 0)
     })
+
+    shareGoalRange(choice: BuyInstructionChoice): ShareGoalRange | undefined {
+        const { state, rules, playerId } = this.session
+        const shareCount = choice.company.shareCount
+        if (!playerId || !shareCount) return undefined
+        const buyer = { kind: 'player', playerId } as const
+        const owned = sharesOwned(state, choice.company.id, buyer)
+        const holdingCeiling = Math.floor(
+            Math.max(
+                (rules.stockRules.ownershipLimit(state, choice.company.id, buyer) * shareCount) /
+                    100,
+                ...state.ownershipLimitExemptions
+                    .filter(
+                        (exemption) =>
+                            exemption.companyId === choice.company.id &&
+                            exemption.owner.kind === 'player' &&
+                            exemption.owner.playerId === playerId
+                    )
+                    .map((exemption) => exemption.maximumShares)
+            )
+        )
+        const purchasable = choice.pools
+            .flatMap((pool) => certificatesInPool(state, pool.id))
+            .reduce(
+                (sum, certificate) =>
+                    sum +
+                    (certificate.kind === 'share' &&
+                    certificate.companyId === choice.company.id &&
+                    !certificate.president &&
+                    typeof rules.stockRules.purchaseTerms(state, certificate, buyer) !== 'string'
+                        ? certificate.shares
+                        : 0),
+                0
+            )
+        const range = { min: owned + 1, max: Math.min(holdingCeiling, owned + purchasable) }
+        return range.max >= range.min ? range : undefined
+    }
 
     async declarePass() {
         await this.set({ kind: 'pass' })
@@ -80,6 +123,13 @@ export class StockInstructionModule {
             choice.pools.some((pool) => pool.id === terms.preferredPoolId),
             'Choose a pool holding shares of the company'
         )
+        if (terms.until.kind === 'shares') {
+            const range = this.shareGoalRange(choice)
+            assert(
+                range && terms.until.count >= range.min && terms.until.count <= range.max,
+                'Choose a share goal the player can reach'
+            )
+        }
         await this.set({ kind: 'buy', ...terms })
     }
     async clear() {

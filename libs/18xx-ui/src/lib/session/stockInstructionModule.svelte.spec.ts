@@ -5,7 +5,11 @@ import {
     minimalPlayState,
     minimalStockRules
 } from '@tabletop/18xx/testing'
-import { isSetStockInstruction, type StandingStockInstruction } from '@tabletop/18xx'
+import {
+    isSetStockInstruction,
+    type StandingStockInstruction,
+    type StockRules
+} from '@tabletop/18xx'
 import {
     StockInstructionModule,
     type StockInstructionSession
@@ -22,9 +26,18 @@ const share = {
 } as const
 
 function instructionState(
-    instructions?: StandingStockInstruction[]
+    instructions?: StandingStockInstruction[],
+    extraIpoShares = 0,
+    exemption?: number
 ): StockInstructionSession['state'] {
     const state = minimalPlayState()
+    const extra = Array.from({ length: extraIpoShares }, (_, index) => ({
+        ...share,
+        id: `R-extra-${index}`,
+        companyId: TestCompanyId,
+        president: false,
+        poolId: 'ipo'
+    }))
     return {
         ...state,
         machineState: 'StockRound',
@@ -35,25 +48,46 @@ function instructionState(
         ],
         certificatePools: [
             { id: 'ipo', name: 'IPO', owner: bank },
-            { id: 'market', name: 'Market', owner: bank }
+            { id: 'market', name: 'Market', owner: bank },
+            { id: 'reserved', name: 'Reserved', owner: bank }
         ],
         certificates: [
             { ...share, id: 'R-1', companyId: TestCompanyId, president: false, poolId: 'ipo' },
             { ...share, id: 'R-P', companyId: TestCompanyId, president: true, poolId: 'market' },
-            { ...share, id: 'S-1', companyId: 'S', president: false, poolId: 'ipo' }
+            { ...share, id: 'R-2', companyId: TestCompanyId, president: false, poolId: 'reserved' },
+            { ...share, id: 'S-1', companyId: 'S', president: false, poolId: 'ipo' },
+            ...extra
         ],
+        ownershipLimitExemptions: exemption
+            ? [
+                  {
+                      companyId: TestCompanyId,
+                      owner: { kind: 'player', playerId: TestPlayerId },
+                      maximumShares: exemption
+                  }
+              ]
+            : [],
         stockRound: { ...state.stockRound, ...(instructions ? { instructions } : {}) }
     }
 }
 
+const purchaseTerms: StockRules['purchaseTerms'] = (_state, certificate) =>
+    certificate.poolId === 'reserved'
+        ? 'Reserved shares are not for sale'
+        : { price: 10, recipient: bank, payers: [] }
+
 function harness(
     valid: string[] = ['SetStockInstruction'],
     availability = {},
-    instructions?: StandingStockInstruction[]
+    instructions?: StandingStockInstruction[],
+    extraIpoShares = 0,
+    exemption?: number
 ) {
     const session = testSession(
-        instructionState(instructions),
-        { stockRules: minimalStockRules },
+        instructionState(instructions, extraIpoShares, exemption),
+        {
+            stockRules: { ...minimalStockRules, purchaseTerms }
+        },
         valid,
         availability
     )
@@ -91,7 +125,7 @@ describe('StockInstructionModule', () => {
         await module.declareBuy({
             companyId: TestCompanyId,
             preferredPoolId: 'ipo',
-            until: { kind: 'shares', count: 2 },
+            until: { kind: 'shares', count: 1 },
             thenPass: true
         })
         await module.clear()
@@ -105,7 +139,7 @@ describe('StockInstructionModule', () => {
             kind: 'buy',
             companyId: TestCompanyId,
             preferredPoolId: 'ipo',
-            until: { kind: 'shares', count: 2 },
+            until: { kind: 'shares', count: 1 },
             thenPass: true
         })
         expect(cleared.outOfTurn).toBe(true)
@@ -125,7 +159,7 @@ describe('StockInstructionModule', () => {
         ).rejects.toThrow()
     })
 
-    it('offers started companies with the pools that hold an ordinary share of them', () => {
+    it('offers started companies with the pools the title lets the player buy from', () => {
         const { module } = harness()
         expect(
             module.buyChoices.map((choice) => [
@@ -142,5 +176,29 @@ describe('StockInstructionModule', () => {
         expect(module.warning).toBe('Railway was started')
         expect(harness().module.mine).toBeUndefined()
         expect(harness().module.warning).toBeUndefined()
+    })
+})
+
+describe('share goal range', () => {
+    it('spans one more than held up to the smaller of the holding ceiling and available shares', () => {
+        const range = (extra: number, exemption?: number) => {
+            const { module } = harness(['SetStockInstruction'], {}, undefined, extra, exemption)
+            return module.shareGoalRange(module.buyChoices[0])
+        }
+        expect(range(0)).toEqual({ min: 1, max: 1 })
+        expect(range(8)).toEqual({ min: 1, max: 6 })
+        expect(range(8, 8)).toEqual({ min: 1, max: 8 })
+    })
+
+    it('refuses a share goal outside the reachable range', async () => {
+        const { module } = harness()
+        await expect(
+            module.declareBuy({
+                companyId: TestCompanyId,
+                preferredPoolId: 'ipo',
+                until: { kind: 'shares', count: 4 },
+                thenPass: false
+            })
+        ).rejects.toThrow('reach')
     })
 })

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getCompany } from '@tabletop/18xx'
+    import { getCompany, type CertificatePool } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { stockInstructionText } from './stockInstructionText.js'
     import SlidingToggle from '../table/SlidingToggle.svelte'
@@ -7,10 +7,15 @@
     let { session }: { session: EighteenXXSession } = $props()
     const gameState = $derived(session.gameState)
     const instructions = $derived(session.instructions)
+    function poolLabel(pool: CertificatePool): string {
+        return session.presentation.poolName?.(pool) ?? pool.name
+    }
     const names = $derived({
         companyName: (id: string) => getCompany(gameState, id).name,
-        poolName: (id: string) =>
-            gameState.certificatePools.find((pool) => pool.id === id)?.name ?? id
+        poolName: (id: string) => {
+            const pool = gameState.certificatePools.find((pool) => pool.id === id)
+            return pool ? poolLabel(pool) : id
+        }
     })
     const disabled = $derived(session.busy || session.isViewingHistory || !instructions.canDeclare)
     let chosenMode = $state<'pass' | 'buy'>()
@@ -43,6 +48,11 @@
         choice?.pools.find((pool) => pool.id === chosenPoolId) ?? choice?.pools[0]
     )
     const poolIndex = $derived(choice?.pools.findIndex((item) => item.id === pool?.id) ?? -1)
+    const shareRange = $derived(choice ? instructions.shareGoalRange(choice) : undefined)
+    const goalKind = $derived(shareRange ? goal : 'floated')
+    const shareGoal = $derived(
+        shareRange ? Math.min(Math.max(shareCount, shareRange.min), shareRange.max) : shareCount
+    )
     function enable() {
         if (mode === 'pass') {
             chosenMode = undefined
@@ -54,7 +64,8 @@
         void instructions.declareBuy({
             companyId: choice.company.id,
             preferredPoolId: pool.id,
-            until: goal === 'floated' ? { kind: 'floated' } : { kind: 'shares', count: shareCount },
+            until:
+                goalKind === 'floated' ? { kind: 'floated' } : { kind: 'shares', count: shareGoal },
             thenPass
         })
     }
@@ -150,40 +161,39 @@
                                             {disabled}
                                             aria-pressed={option.id === pool.id}
                                             onclick={() => (chosenPoolId = option.id)}
-                                            >{option.name}</button
+                                            >{poolLabel(option)}</button
                                         >
                                     {/each}
                                 </SlidingToggle>
                             </div>
-                        {:else}<span class="pool-name">{pool.name}</span>{/if}
+                        {:else}<span class="pool-name">{poolLabel(pool)}</span>{/if}
                         <span class="label">until</span>
                         <div class="segment" role="group" aria-label="Goal">
-                            <SlidingToggle count={2} selectedIndex={goal === 'floated' ? 0 : 1}>
+                            <SlidingToggle count={2} selectedIndex={goalKind === 'floated' ? 0 : 1}>
                                 <button
                                     {disabled}
-                                    aria-pressed={goal === 'floated'}
+                                    aria-pressed={goalKind === 'floated'}
                                     onclick={() => (goal = 'floated')}>Floats</button
                                 >
                                 <button
-                                    {disabled}
-                                    aria-pressed={goal === 'shares'}
+                                    disabled={disabled || !shareRange}
+                                    aria-pressed={goalKind === 'shares'}
                                     onclick={() => (goal = 'shares')}>Shares</button
                                 >
                             </SlidingToggle>
                         </div>
-                        {#if goal === 'shares'}
+                        {#if goalKind === 'shares' && shareRange}
                             <div class="stepper" role="group" aria-label="Share count">
                                 <button
-                                    {disabled}
+                                    disabled={disabled || shareGoal <= shareRange.min}
                                     aria-label="Fewer shares"
-                                    onclick={() => (shareCount = Math.max(1, shareCount - 1))}
-                                    >−</button
+                                    onclick={() => (shareCount = shareGoal - 1)}>−</button
                                 >
-                                <span>{shareCount}</span>
+                                <span>{shareGoal}</span>
                                 <button
-                                    {disabled}
+                                    disabled={disabled || shareGoal >= shareRange.max}
                                     aria-label="More shares"
-                                    onclick={() => (shareCount += 1)}>+</button
+                                    onclick={() => (shareCount = shareGoal + 1)}>+</button
                                 >
                             </div>
                         {/if}
@@ -260,7 +270,7 @@
         gap: 8px;
         padding: 3px 10px 3px 6px;
         border: 1px solid var(--rail-border, #485666);
-        border-radius: 999px;
+        border-radius: 17px;
     }
     .tray.bare {
         padding: 0;

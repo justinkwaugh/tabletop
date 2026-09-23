@@ -313,9 +313,13 @@ the same style as the Buy / Sell strip. Selecting Autopass shows an inline
 Enable button. Selecting Autobuy extends the same line, wrapping only when the pane is narrow,
 with a chevron and a bordered tray that reads as one clause: a single company
 token that opens a popover list of companies and shows a "?" until one is
-chosen, then "from" and a preferred pool segment (or the pool's name when the company's
+chosen, then "from" and a preferred pool segment listing only pools the title's
+purchase rules let the player buy from (or the pool's name when the company's
 shares sit in one pool), "until" and a Floats / Shares goal segment with a
-share stepper, and a "then pass" switch. A green Enable follows the tray and
+share stepper bounded to one more than the player holds up to the smaller of
+the holding ceiling and the shares on offer, and a "then pass" switch. Pool and
+goal segments are sliding toggles whose thumb sizes to the selected segment.
+The tray's corners round fully on one line and soften when it wraps. A green Enable follows the tray and
 stays disabled until a company is chosen.
 With an instruction declared the toggle
 shows its kind pressed and disabled, followed by one summary line ("Autopass for
