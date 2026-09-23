@@ -228,8 +228,8 @@ export function historyDescription(
         }
     if (isContributeTrainFunds(action))
         return {
-            text: `President contributed ${money(action.amount)}`,
-            ledgerText: 'President contributed',
+            text: `Contributed ${money(action.amount)} toward the train`,
+            ledgerText: 'Contributed toward the train',
             important: true
         }
     if (isFundTrain(action))

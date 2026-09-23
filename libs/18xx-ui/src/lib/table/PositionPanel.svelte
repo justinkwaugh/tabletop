@@ -41,8 +41,18 @@
         ) => HistoryDescription | undefined
     } = $props()
     const money = $derived(session.presentation.money)
-    const gameState = $derived(session.gameState)
-    const actions = $derived(session.actions.slice(0, gameState.actionCount))
+    // While the session swaps in a new visible state, its action list already reflects the new
+    // position but its game state does not; hold the last settled pair so the heading and the
+    // summary never describe different positions.
+    let settled: { gameState: typeof session.gameState; actions: readonly GameAction[] } | undefined
+    const position = $derived.by(() => {
+        if (session.updatingVisibleState && settled) return settled
+        const state = session.gameState
+        settled = { gameState: state, actions: session.actions.slice(0, state.actionCount) }
+        return settled
+    })
+    const gameState = $derived(position.gameState)
+    const actions = $derived(position.actions)
     const company = $derived(
         gameState.companies.find((company) => company.id === nextOperatingCompany(gameState))
     )
