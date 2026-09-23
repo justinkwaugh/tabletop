@@ -41,10 +41,10 @@
         ) => HistoryDescription | undefined
     } = $props()
     const money = $derived(session.presentation.money)
-    const state = $derived(session.gameState)
-    const actions = $derived(session.actions.slice(0, state.actionCount))
+    const gameState = $derived(session.gameState)
+    const actions = $derived(session.actions.slice(0, gameState.actionCount))
     const company = $derived(
-        state.companies.find((company) => company.id === nextOperatingCompany(state))
+        gameState.companies.find((company) => company.id === nextOperatingCompany(gameState))
     )
     const statusLabels: Readonly<Record<string, string>> = {
         OfferingLot: 'Auction offerings',
@@ -62,11 +62,11 @@
         Bankrupt: 'Bankruptcy'
     }
     const status = $derived(
-        state.trackConsent
+        gameState.trackConsent
             ? 'Track permission pending'
-            : state.purchaseOffer
+            : gameState.purchaseOffer
               ? 'Purchase offer pending'
-              : state.privateTrackLay
+              : gameState.privateTrackLay
                 ? 'Private tile placement'
                 : [
                         'StockRound',
@@ -76,16 +76,16 @@
                         'RunningTrains',
                         'DistributingEarnings',
                         'BuyingTrains'
-                    ].includes(state.machineState)
+                    ].includes(gameState.machineState)
                   ? undefined
-                  : statusLabels[state.machineState]
+                  : statusLabels[gameState.machineState]
     )
     function companyName(id: string) {
-        return state.companies.find((company) => company.id === id)?.name ?? id
+        return gameState.companies.find((company) => company.id === id)?.name ?? id
     }
     function describe(action: GameAction): HistoryDescription {
         if (isOfferAuctionLot(action) || isBidOnAuctionLot(action)) {
-            const lot = session.auctionLotsFor(state).find((lot) => lot.id === action.lotId)
+            const lot = session.auctionLotsFor(gameState).find((lot) => lot.id === action.lotId)
             assert(lot, 'Recorded auction requires its lot')
             return isOfferAuctionLot(action)
                 ? { text: `offered ${lot.name} for auction at ${money(lot.price)}` }
@@ -96,7 +96,7 @@
             describeAction?.(action, companyName) ??
             historyDescription(
                 action,
-                state,
+                gameState,
                 companyName,
                 (id) => session.getPlayerName(id),
                 undefined,
@@ -134,10 +134,10 @@
             : action
         const lot =
             lotAction && (isOfferAuctionLot(lotAction) || isBidOnAuctionLot(lotAction))
-                ? session.auctionLotsFor(state).find((lot) => lot.id === lotAction.lotId)
+                ? session.auctionLotsFor(gameState).find((lot) => lot.id === lotAction.lotId)
                 : undefined
         const share = lot
-            ? state.certificates.find((item) => item.id === lot.id && item.kind === 'share')
+            ? gameState.certificates.find((item) => item.id === lot.id && item.kind === 'share')
             : undefined
         return {
             station: isPlaceStation(action) ? action : undefined,
@@ -185,12 +185,12 @@
             payout: isDistributeEarnings(action) ? action : undefined
         }
     })
-    const result = $derived(state.routeStep?.result)
-    const turnPlayerId = $derived(state.turnManager.currentTurn()?.playerId)
+    const result = $derived(gameState.routeStep?.result)
+    const turnPlayerId = $derived(gameState.turnManager.currentTurn()?.playerId)
 </script>
 
-{#if state.result}
-    <GameEnding {session} position={state} />
+{#if gameState.result}
+    <GameEnding {session} position={gameState} />
 {:else}
     <section class="position centered-panel" aria-label="Position summary">
         {#if !session.isViewingHistory && turnPlayerId}
@@ -218,7 +218,7 @@
                     {result}
                     {trainColors}
                     label="Recorded train runs"
-                    trains={state.trainInventory.trains.filter((train) =>
+                    trains={gameState.trainInventory.trains.filter((train) =>
                         result.routes.some((route) => route.trainId === train.id)
                     )}
                     trainName={(id) => session.trainDepot.trainDefinition(id).name}
@@ -252,12 +252,12 @@
                     details={latest.payout.metadata}
                     label={latest.description.text}
                     companyId={latest.payout.companyId}
-                    stockMarket={state.stockMarket}
+                    stockMarket={gameState.stockMarket}
                     ownerName={(owner) =>
                         owner.kind === 'player'
                             ? session.getPlayerName(owner.playerId)
                             : owner.kind === 'bank'
-                              ? state.bank.name
+                              ? gameState.bank.name
                               : companyName(owner.companyId)}
                 />
             </div>

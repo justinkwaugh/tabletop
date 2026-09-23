@@ -2,35 +2,35 @@
     import { getCompany, controllingOwner } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session }: { session: EighteenXXSession } = $props()
-    const state = $derived(session.gameState)
+    const gameState = $derived(session.gameState)
 </script>
 
 <section aria-label="Round status">
-    {#if !state.stockRound.completed}
-        <p><strong>{session.getPlayerName(state.activePlayerIds[0])}’s stock turn</strong></p>
+    {#if !gameState.stockRound.completed}
+        <p><strong>{session.getPlayerName(gameState.activePlayerIds[0])}’s stock turn</strong></p>
         <p>
-            Turn order: {state.turnManager.turnOrder
+            Turn order: {gameState.turnManager.turnOrder
                 .map((id) => session.getPlayerName(id))
                 .join(' → ')}
         </p>
         <p>
             {session.passing === 'pass-order' ? 'Pass order' : 'Consecutive passes'}:
-            {state.stockRound.passedPlayerIds.length
-                ? state.stockRound.passedPlayerIds
+            {gameState.stockRound.passedPlayerIds.length
+                ? gameState.stockRound.passedPlayerIds
                       .map((id) => session.getPlayerName(id))
                       .join(' → ')
                 : 'None'}
         </p>
-    {:else if state.operatingSet}
+    {:else if gameState.operatingSet}
         <p>
-            Operating set {state.operatingSet.number} · Round {state.operatingSet.roundNumber} of {state
-                .operatingSet.roundCount}
+            Operating set {gameState.operatingSet.number} · Round {gameState.operatingSet
+                .roundNumber} of {gameState.operatingSet.roundCount}
         </p>
         <ol class="steps" aria-label="Operating steps">
             {#each [['LayingTrack', 'Track'], ['PlacingStation', 'Stations'], ['RunningTrains', 'Run trains'], ['DistributingEarnings', 'Distribute earnings'], ['BuyingTrains', 'Buy trains']] as [step, label]}
                 <li
-                    aria-current={state.machineState === step ||
-                    state.phaseChange?.continuation.machineState === step
+                    aria-current={gameState.machineState === step ||
+                    gameState.phaseChange?.continuation.machineState === step
                         ? 'step'
                         : undefined}
                 >
@@ -39,18 +39,18 @@
             {/each}
         </ol>
         <ol aria-label="Operating order">
-            {#each state.operatingSet.companyOrder as companyId}
-                {@const owner = controllingOwner(state, companyId)}
+            {#each gameState.operatingSet.companyOrder as companyId}
+                {@const owner = controllingOwner(gameState, companyId)}
                 <li>
-                    {getCompany(state, companyId).name}{#if owner}
+                    {getCompany(gameState, companyId).name}{#if owner}
                         · {session.ownerName(owner)}{/if}
-                    {#if state.operatingSet.completedCompanyIds.includes(companyId)}
+                    {#if gameState.operatingSet.completedCompanyIds.includes(companyId)}
                         · Done{/if}
                 </li>
             {/each}
         </ol>
         <p>
-            Next stock round: {state.turnManager.turnOrder
+            Next stock round: {gameState.turnManager.turnOrder
                 .map((id) => session.getPlayerName(id))
                 .join(' → ')}
         </p>

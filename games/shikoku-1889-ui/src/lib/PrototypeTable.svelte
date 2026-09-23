@@ -18,7 +18,7 @@
     let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
         $props()
     const session = $derived(requireEighteenXXSession(gameSession))
-    const state = $derived(requireEighteenXXState(gameSession.gameState))
+    const gameState = $derived(requireEighteenXXState(gameSession.gameState))
 </script>
 
 <GameEnding {session} />
@@ -34,16 +34,16 @@
     <StockMarket
         animation={session.marketAnimation}
         appearances={session.mapView.stations}
-        market={state.stockMarket}
-        companies={state.companies}
+        market={gameState.stockMarket}
+        companies={gameState.companies}
     />
 {/if}
 
 <FinanceInspector
-    stations={state.stations}
-    stationReservations={state.stationReservations}
+    stations={gameState.stations}
+    stationReservations={gameState.stationReservations}
     certificateWeight={session.certificateWeight}
-    {state}
+    {gameState}
     players={gameSession.game.players}
-    playerStates={state.players}
+    playerStates={gameState.players}
 />

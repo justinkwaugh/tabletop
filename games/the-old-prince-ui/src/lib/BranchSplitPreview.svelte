@@ -12,7 +12,7 @@
         session: TheOldPrinceSession
         onFocusLocation?: (locationId: string) => void
     } = $props()
-    const state = $derived(session.gameState)
+    const gameState = $derived(session.gameState)
     const selection = $derived(session.splitSelection)
     const preview = $derived(session.splitPreview?.details)
     const parents = $derived(
@@ -22,7 +22,7 @@
     )
 </script>
 
-{#if state.machineState === 'StockRound' && session.splitModel.branches().length && !session.isViewingHistory && !session.updatingVisibleState}
+{#if gameState.machineState === 'StockRound' && session.splitModel.branches().length && !session.isViewingHistory && !session.updatingVisibleState}
     <section class="centered-panel" aria-label="Branch split preview">
         <h2>
             {!selection.parentId
@@ -39,7 +39,7 @@
                     ><CompanyToken
                         appearance={session.mapView.stations[selection.parentId.value]}
                         size={26}
-                    />{getCompany(state, selection.parentId.value).name}</span
+                    />{getCompany(gameState, selection.parentId.value).name}</span
                 >
                 {#if selection.branchId}
                     <span class="arrow" aria-hidden="true">→</span>
@@ -47,7 +47,7 @@
                         ><CompanyToken
                             appearance={session.mapView.stations[selection.branchId.value]}
                             size={26}
-                        />{getCompany(state, selection.branchId.value).name}</span
+                        />{getCompany(gameState, selection.branchId.value).name}</span
                     >
                 {/if}
                 {#if preview}<span class="selected-price"

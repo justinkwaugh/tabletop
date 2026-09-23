@@ -57,40 +57,42 @@
         poolName?: (pool: CertificatePool) => string
     } = $props()
     const money = $derived(session.presentation.money)
-    const state = $derived(session.gameState)
+    const gameState = $derived(session.gameState)
     const lastRun = $derived(
         vertical
             ? undefined
             : companyLastRun(session.actions, session.gameState.actionCount, company.id)
     )
     const owner = $derived({ kind: 'company', companyId: company.id } as const)
-    const cash = $derived(cashOwnedBy(state, owner))
-    const control = $derived(controllingOwner(state, company.id))
+    const cash = $derived(cashOwnedBy(gameState, owner))
+    const control = $derived(controllingOwner(gameState, company.id))
     function investorTint(entry: { owner: Owner }) {
         const investor = entry.owner
         const playerId =
             investor.kind === 'player'
                 ? investor.playerId
                 : investor.kind === 'company' && !sameOwner(investor, owner)
-                  ? controllingOwner(state, investor.companyId)?.playerId
+                  ? controllingOwner(gameState, investor.companyId)?.playerId
                   : undefined
         return playerId ? session.colors.getPlayerBgColorValue(playerId) : undefined
     }
     const sellers = $derived(
-        state.machineState === 'StockRound' && !state.stockRound.completed
-            ? state.stockRound.sales
+        gameState.machineState === 'StockRound' && !gameState.stockRound.completed
+            ? gameState.stockRound.sales
                   .filter((sale) => sale.companyId === company.id)
                   .map((sale) => sale.owner)
             : []
     )
-    const ownership = $derived(companyOwnership(state, company.id, sellers))
+    const ownership = $derived(companyOwnership(gameState, company.id, sellers))
     const sharePoolsStart = $derived(
         ownership.findIndex((entry) => entry.owner.kind === 'bank' || sameOwner(entry.owner, owner))
     )
     const numberedShares = $derived(ownership.some((row) => row.certificateNumbers.length))
-    const marketPrice = $derived(companySharePrice(state.stockMarket, company.id))
-    const trains = $derived(trainsOwnedBy(state, owner))
-    const stations = $derived(state.stations.filter((station) => station.companyId === company.id))
+    const marketPrice = $derived(companySharePrice(gameState.stockMarket, company.id))
+    const trains = $derived(trainsOwnedBy(gameState, owner))
+    const stations = $derived(
+        gameState.stations.filter((station) => station.companyId === company.id)
+    )
     const remainingStations = $derived(stations.filter((station) => station.status === 'available'))
     const tokenGroups = $derived.by(() => {
         const counts = new Map<number, number>()
@@ -101,7 +103,7 @@
         return [...counts].sort(([a], [b]) => a - b).map(([cost, count]) => ({ cost, count }))
     })
     const investments = $derived(
-        certificatesOwnedBy(state, owner).filter(
+        certificatesOwnedBy(gameState, owner).filter(
             (certificate) => certificate.kind === 'share' && certificate.companyId !== company.id
         )
     )
@@ -110,13 +112,13 @@
     ])
     const privates = $derived(
         session.privates.companies.filter((item) => {
-            const privateCompanyOwner = privateOwner(state, item.id)
+            const privateCompanyOwner = privateOwner(gameState, item.id)
             return privateCompanyOwner && sameOwner(privateCompanyOwner, owner)
         })
     )
     const personalPrivates = $derived(
         session.privates.companies.flatMap((item) => {
-            const privateCompanyOwner = privateOwner(state, item.id)
+            const privateCompanyOwner = privateOwner(gameState, item.id)
             const priceRange = session.decisions.privatePurchasePriceRange(company.id, item.id)
             return !item.closed &&
                 privateCompanyOwner &&
@@ -128,7 +130,7 @@
         })
     )
     function poolLabel(poolId: string): string {
-        const pool = state.certificatePools.find((entry) => entry.id === poolId)
+        const pool = gameState.certificatePools.find((entry) => entry.id === poolId)
         assertExists(pool, 'Unknown certificate pool')
         return poolName(pool)
     }
@@ -282,8 +284,8 @@
                 {#if investmentCompanies.length}
                     <h3 class="section-heading">Investments</h3>
                     {#each investmentCompanies as id}<p class="investment">
-                            {getCompany(state, id).name}<strong
-                                >{sharesOwned(state, id, owner)} shares</strong
+                            {getCompany(gameState, id).name}<strong
+                                >{sharesOwned(gameState, id, owner)} shares</strong
                             >
                         </p>{/each}
                 {/if}
@@ -351,7 +353,7 @@
             >
         </div>
         {#if !vertical && !item.closed && description}<p>{description}</p>{/if}
-        {#if state.usedPrivatePowerIds.includes(item.id)}<span class="status"
+        {#if gameState.usedPrivatePowerIds.includes(item.id)}<span class="status"
                 >One-time power used</span
             >{/if}
     </article>

@@ -12,7 +12,7 @@
     import type { Portfolio as PortfolioModel } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     let {
-        state,
+        gameState,
         owner,
         name,
         cash,
@@ -22,7 +22,7 @@
         certificateDetail,
         certificateWeight = (certificate) => certificate.certificateLimitCount
     }: {
-        state: FinancialState
+        gameState: FinancialState
         owner: Owner
         name: string
         cash?: Cash['amount']
@@ -32,24 +32,24 @@
         certificateDetail?: Snippet<[Certificate]>
         certificateWeight?: (certificate: PortfolioModel[number]) => number
     } = $props()
-    const certificates = $derived(certificatesOwnedBy(state, owner))
+    const certificates = $derived(certificatesOwnedBy(gameState, owner))
     const groups = $derived([
         {
             id: undefined,
             name: undefined,
             certificates: certificates.filter((certificate) => certificate.poolId === undefined)
         },
-        ...state.certificatePools
+        ...gameState.certificatePools
             .filter((pool) => sameOwner(pool.owner, owner))
             .map((pool) => ({
                 id: pool.id,
                 name: pool.name,
-                certificates: certificatesInPool(state, pool.id)
+                certificates: certificatesInPool(gameState, pool.id)
             }))
     ])
     function interest(certificate: Certificate): string {
         if (certificate.kind === 'private') return 'Private'
-        const shareCount = getCompany(state, certificate.companyId).shareCount
+        const shareCount = getCompany(gameState, certificate.companyId).shareCount
         const percentage =
             shareCount === undefined ? '' : `${(certificate.shares / shareCount) * 100}% · `
         const number = certificate.number === undefined ? '' : ` · No. ${certificate.number}`
@@ -67,7 +67,7 @@
                         {#each group.certificates as certificate (certificate.id)}
                             <li data-certificate-id={certificate.id}>
                                 <div class="issuer">
-                                    {getCompany(state, certificate.companyId).name}
+                                    {getCompany(gameState, certificate.companyId).name}
                                     {#if certificate.kind === 'share' && certificate.president}<span
                                             class="badge">President’s certificate</span
                                         >{/if}

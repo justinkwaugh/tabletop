@@ -18,7 +18,7 @@
     import type { Snippet } from 'svelte'
     import Portfolio from './Portfolio.svelte'
     let {
-        state,
+        gameState,
         players,
         playerStates,
         certificateDetail,
@@ -26,7 +26,7 @@
         stations = [],
         stationReservations = []
     }: {
-        state: FinancialState
+        gameState: FinancialState
         players: readonly Player[]
         playerStates: readonly PlayerState[]
         certificateDetail?: Snippet<[Certificate]>
@@ -44,9 +44,9 @@
             case 'player':
                 return playerName(owner.playerId)
             case 'company':
-                return getCompany(state, owner.companyId).name
+                return getCompany(gameState, owner.companyId).name
             case 'bank':
-                return state.bank.name
+                return gameState.bank.name
         }
     }
 </script>
@@ -58,10 +58,10 @@
             {#each playerStates as player (player.playerId)}
                 {@const owner = { kind: 'player', playerId: player.playerId } as const}
                 <Portfolio
-                    {state}
+                    {gameState}
                     {owner}
                     name={playerName(player.playerId)}
-                    cash={cashOwnedBy(state, owner)}
+                    cash={cashOwnedBy(gameState, owner)}
                     color={player.color}
                     {certificateDetail}
                     {certificateWeight}
@@ -72,17 +72,17 @@
     <section aria-label="Company treasuries and control">
         <h2>Companies</h2>
         <div class="portfolios">
-            {#each state.companies as company (company.id)}
-                {@const controllingPlayer = controllingOwner(state, company.id)}
+            {#each gameState.companies as company (company.id)}
+                {@const controllingPlayer = controllingOwner(gameState, company.id)}
                 {@const owner =
-                    company.kind === 'private' ? privateOwner(state, company.id) : undefined}
+                    company.kind === 'private' ? privateOwner(gameState, company.id) : undefined}
                 <div class="company" data-company-id={company.id}>
                     <Portfolio
-                        {state}
+                        {gameState}
                         owner={{ kind: 'company', companyId: company.id }}
                         name={company.name}
                         label="treasury"
-                        cash={getTreasury(state, company.id).cash}
+                        cash={getTreasury(gameState, company.id).cash}
                         {certificateDetail}
                         {certificateWeight}
                     />
@@ -130,11 +130,11 @@
         <h2>Bank</h2>
         <div class="portfolios">
             <Portfolio
-                {state}
+                {gameState}
                 owner={{ kind: 'bank' }}
-                name={state.bank.name}
+                name={gameState.bank.name}
                 label="certificates"
-                cash={cashOwnedBy(state, { kind: 'bank' })}
+                cash={cashOwnedBy(gameState, { kind: 'bank' })}
                 {certificateDetail}
                 {certificateWeight}
             />

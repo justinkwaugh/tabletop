@@ -86,11 +86,11 @@
         session.preferences.values.spreadsheetView === 'company' ? 'Company' : 'Player'
     )
     function soldThisRound(ownerId: string, companyId: string): boolean {
-        const state = session.gameState
+        const gameState = session.gameState
         return (
-            state.machineState === 'StockRound' &&
-            !state.stockRound.completed &&
-            state.stockRound.sales.some(
+            gameState.machineState === 'StockRound' &&
+            !gameState.stockRound.completed &&
+            gameState.stockRound.sales.some(
                 (sale) =>
                     sale.companyId === companyId &&
                     (sale.owner.kind === 'player'

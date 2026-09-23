@@ -20,12 +20,12 @@
         session: EighteenXXSession
     } = $props()
     const { trainColors, poolName, privateTilePrompts } = $derived(session.presentation)
-    const state = $derived(session.gameState)
-    const trainBuying = $derived(state.machineState === 'BuyingTrains')
+    const gameState = $derived(session.gameState)
+    const trainBuying = $derived(gameState.machineState === 'BuyingTrains')
 </script>
 
 {#snippet actionControls()}
-    {#if (state.purchaseOffer && !(trainBuying && state.purchaseOffer.asset.kind === 'train')) || state.trackConsent || state.privateTrackLay || state.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.decisions.privateTileOptions.length || session.decisions.privateTrainOptions.length || session.decisions.selection}
+    {#if (gameState.purchaseOffer && !(trainBuying && gameState.purchaseOffer.asset.kind === 'train')) || gameState.trackConsent || gameState.privateTrackLay || gameState.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.decisions.privateTileOptions.length || session.decisions.privateTrainOptions.length || session.decisions.selection}
         <CompanyDecisions
             {session}
             {trainColors}
@@ -34,25 +34,25 @@
             excludeTrainPurchases={trainBuying}
         />
     {/if}
-    {#if !session.privateActions.selection && !session.privateActions.trackPowerSelection && state.purchaseOffer?.asset.kind !== 'private'}
-        {#if state.machineState === 'StockRound'}
+    {#if !session.privateActions.selection && !session.privateActions.trackPowerSelection && gameState.purchaseOffer?.asset.kind !== 'private'}
+        {#if gameState.machineState === 'StockRound'}
             <StockRoundActions {session} {poolName} />
-        {:else if state.machineState === 'LayingTrack'}<TrackBuilding
+        {:else if gameState.machineState === 'LayingTrack'}<TrackBuilding
                 {session}
                 showUndo={false}
                 mapControls
             />
-        {:else if state.machineState === 'PlacingStation'}<StationBuilding
+        {:else if gameState.machineState === 'PlacingStation'}<StationBuilding
                 {session}
                 showUndo={false}
             />
-        {:else if state.machineState === 'RunningTrains'}<AutomaticRoutes
+        {:else if gameState.machineState === 'RunningTrains'}<AutomaticRoutes
                 {session}
                 {createRouteWorker}
                 {onFocusRoute}
                 {trainColors}
             />
-        {:else if state.machineState === 'DistributingEarnings'}<EarningsDistribution
+        {:else if gameState.machineState === 'DistributingEarnings'}<EarningsDistribution
                 {session}
                 showUndo={false}
             />
@@ -60,8 +60,8 @@
     {/if}
 {/snippet}
 
-{#if state.result}<GameEnding {session} />
-{:else if state.machineState === 'StockRound'}
+{#if gameState.result}<GameEnding {session} />
+{:else if gameState.machineState === 'StockRound'}
     {@render actionControls()}
 {:else}
     <section class="centered-panel" aria-label="Operating actions">

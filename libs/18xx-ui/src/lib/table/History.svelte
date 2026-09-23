@@ -46,17 +46,17 @@
     }
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
     const context = $derived(session.history.visibleContext)
-    const state = $derived(context.state)
-    const orderChanges = $derived(historyOperatingOrder(context.actions, state))
-    const cash = $derived(historyCash(context.actions, state))
-    const companyChanges = $derived(historyCompanyChanges(context.actions, state))
-    const rounds = $derived(historyRounds(context.actions, state, orderChanges, cash))
+    const gameState = $derived(context.state)
+    const orderChanges = $derived(historyOperatingOrder(context.actions, gameState))
+    const cash = $derived(historyCash(context.actions, gameState))
+    const companyChanges = $derived(historyCompanyChanges(context.actions, gameState))
+    const rounds = $derived(historyRounds(context.actions, gameState, orderChanges, cash))
     const currentHeaderId = $derived(session.isViewingHistory ? rounds[0]?.id : undefined)
     function returnToCurrent() {
         if (!jumpDisabled) void session.history.goToEnd()
     }
     function fullCompanyName(id: string) {
-        return state.companies.find((company) => company.id === id)?.name ?? id
+        return gameState.companies.find((company) => company.id === id)?.name ?? id
     }
     function companyName(id: string) {
         return companyNames?.[id]?.history ?? fullCompanyName(id)
@@ -66,7 +66,7 @@
             describeAction?.(action, companyName) ??
             historyDescription(
                 action,
-                state,
+                gameState,
                 companyName,
                 (id) => session.getPlayerName(id),
                 companyChanges.get(action.id),
@@ -129,7 +129,7 @@
                                 : undefined}
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
-                            currentController={(id) => controllingOwner(state, id)?.playerId}
+                            currentController={(id) => controllingOwner(gameState, id)?.playerId}
                             {phaseColors}
                             {phaseTileColors}
                             {tileColors}

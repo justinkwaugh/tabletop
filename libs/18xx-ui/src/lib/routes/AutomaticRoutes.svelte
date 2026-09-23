@@ -20,18 +20,18 @@
     const result = $derived(session.routes.solved?.result)
     const trains = $derived(session.routes.editor.trains)
     type RouteSolve = {
-        state: typeof session.gameState
+        gameState: typeof session.gameState
         companyId: string | undefined
         attempt: number
     }
     const solve = $derived<RouteSolve>({
-        state: session.gameState,
+        gameState: session.gameState,
         companyId: session.routes.canRun ? session.gameState.routeStep?.companyId : undefined,
         attempt
     })
     function solveRoutes(_section: HTMLElement, initial: RouteSolve) {
         let worker: Worker | undefined
-        function start({ state, companyId }: RouteSolve) {
+        function start({ gameState, companyId }: RouteSolve) {
             worker?.terminate()
             worker = undefined
             if (!companyId || session.routes.solved) return
@@ -45,7 +45,7 @@
                     else {
                         try {
                             session.routes.setSolved(
-                                state,
+                                gameState,
                                 event.data.result.result,
                                 event.data.result.exhaustive
                             )

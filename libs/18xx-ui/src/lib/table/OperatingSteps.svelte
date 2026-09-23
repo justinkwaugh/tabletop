@@ -11,11 +11,11 @@
     }: { session: EighteenXXSession; privatePurchaseLabel?: string; readOnly?: boolean } = $props()
     const money = $derived(session.presentation.money)
     const context = $derived(session.history.visibleContext)
-    const state = $derived(readOnly ? context.state : session.gameState)
+    const gameState = $derived(readOnly ? context.state : session.gameState)
     const currentStep = $derived(
         session.isViewingHistory
-            ? historicalOperatingStepIndex(context.actions.at(-1), state.machineState)
-            : operatingStepIndex(state.machineState)
+            ? historicalOperatingStepIndex(context.actions.at(-1), gameState.machineState)
+            : operatingStepIndex(gameState.machineState)
     )
     const steps = ['Track', 'Station', 'Run', 'Payout', 'Trains']
     const statuses = $derived.by(() => {
@@ -30,26 +30,28 @@
         const track = current.findLast(isFinishTrack)
         const station = current.findLast(isFinishStations)
         const run = current.findLast(isRunTrains)
-        const distribution = state.earningsDistribution
-        const purchased = state.trainPurchaseStep?.purchasedTrainIds.length ?? 0
+        const distribution = gameState.earningsDistribution
+        const purchased = gameState.trainPurchaseStep?.purchasedTrainIds.length ?? 0
         return [
-            state.trackStep?.lays.length
-                ? `${state.trackStep.lays.length} laid`
-                : state.trackStep?.completed && track?.companyId === state.trackStep.companyId
+            gameState.trackStep?.lays.length
+                ? `${gameState.trackStep.lays.length} laid`
+                : gameState.trackStep?.completed &&
+                    track?.companyId === gameState.trackStep.companyId
                   ? track.source === ActionSource.System
                       ? 'Not available'
                       : 'Skipped'
                   : undefined,
-            state.stationStep?.placedStationIds.length
+            gameState.stationStep?.placedStationIds.length
                 ? 'Placed'
-                : state.stationStep?.completed && station?.companyId === state.stationStep.companyId
+                : gameState.stationStep?.completed &&
+                    station?.companyId === gameState.stationStep.companyId
                   ? station.source === ActionSource.System
                       ? 'Not available'
                       : 'Skipped'
                   : undefined,
-            state.routeStep?.result?.routes.length
-                ? `Ran for ${money(state.routeStep.result.revenue)}`
-                : state.routeStep?.result && run?.companyId === state.routeStep.companyId
+            gameState.routeStep?.result?.routes.length
+                ? `Ran for ${money(gameState.routeStep.result.revenue)}`
+                : gameState.routeStep?.result && run?.companyId === gameState.routeStep.companyId
                   ? run.source === ActionSource.System
                       ? 'Not available'
                       : 'Skipped'

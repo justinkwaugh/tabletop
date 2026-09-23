@@ -20,7 +20,7 @@
         money,
         showDetails,
         companies,
-        state: gameState,
+        gameState,
         trainDepot,
         trainColors,
         requiresTrain,
@@ -32,7 +32,7 @@
         money: MoneyFormat
         showDetails: boolean
         companies: readonly Company[]
-        state: Pick<FinancialState, 'cash'> & TrainState & StationState
+        gameState: Pick<FinancialState, 'cash'> & TrainState & StationState
         trainColors: Readonly<Record<string, string>>
         trainDepot: TrainDepot
         requiresTrain: (companyId: string) => boolean

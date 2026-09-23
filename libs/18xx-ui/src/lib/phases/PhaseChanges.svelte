@@ -2,25 +2,25 @@
     import { getCompany, controllingOwner } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
-    const state = $derived(session.gameState)
-    const change = $derived(state.phaseChange)
+    const gameState = $derived(session.gameState)
+    const change = $derived(gameState.phaseChange)
     const companyId = $derived(session.discard.companyId)
-    const owner = $derived(companyId ? controllingOwner(state, companyId) : undefined)
+    const owner = $derived(companyId ? controllingOwner(gameState, companyId) : undefined)
 </script>
 
 <section aria-label="Phase changes">
-    <strong>Phase {state.phaseId}</strong>
+    <strong>Phase {gameState.phaseId}</strong>
     {#if change && companyId && owner}
         <div aria-label="Compulsory train discard">
             <h2>
-                {getCompany(state, companyId).name} · Discard {session.discard.excess} excess {session
+                {getCompany(gameState, companyId).name} · Discard {session.discard.excess} excess {session
                     .discard.excess === 1
                     ? 'train'
                     : 'trains'}
             </h2>
             <p>
                 {session.ownerName(owner)} decides. Then {getCompany(
-                    state,
+                    gameState,
                     change.continuation.companyId
                 ).name} resumes {change.continuation.machineState === 'BuyingTrains'
                     ? 'buying trains'
@@ -48,8 +48,8 @@
                 >{/if}
         </div>
     {/if}
-    {#if state.phaseEvents.length}<ol aria-label="Phase history">
-            {#each state.phaseEvents as event (event.id)}<li>
+    {#if gameState.phaseEvents.length}<ol aria-label="Phase history">
+            {#each gameState.phaseEvents as event (event.id)}<li>
                     Phase {event.fromPhaseId} → {event.toPhaseId}
                     {#if event.rustedTrainIds.length}
                         · Rusted: {event.rustedTrainIds.join(', ')}{/if}

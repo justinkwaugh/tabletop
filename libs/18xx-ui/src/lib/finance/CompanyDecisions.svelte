@@ -25,19 +25,19 @@
             (option) => option.request.asset.kind === 'train' && !excludeTrainPurchases
         )
     )
-    const state = $derived(session.gameState)
+    const gameState = $derived(session.gameState)
     const selection = $derived(session.decisions.selection)
     const showPowers = $derived(
         !session.privateActions.purchaseSource &&
             (session.operating.step === undefined ||
                 session.privateActions.selection === 'powers' ||
-                !!state.privateTrackLay ||
-                !!state.privatePowerWindow)
+                !!gameState.privateTrackLay ||
+                !!gameState.privatePowerWindow)
     )
 </script>
 
-{#if state.trackConsent}
-    {@const request = state.trackConsent.details}
+{#if gameState.trackConsent}
+    {@const request = gameState.trackConsent.details}
     {@const definition = session.mapView.tileSet.definitions.find(
         (tile) => tile.id === request.definitionId
     )}
@@ -50,7 +50,7 @@
         onDecline={() => session.decisions.respondToTrackConsent(false)}
     >
         <CompanyToken appearance={session.mapView.stations[request.companyId]} size={24} />
-        <strong>{getCompany(state, request.companyId).name}</strong>
+        <strong>{getCompany(gameState, request.companyId).name}</strong>
         <span>requests permission to lay track at {request.locationId}</span>
         {#if definition}
             <Tile
@@ -65,8 +65,8 @@
     </DecisionResponse>
 {:else}
     <section aria-label="Company decisions" class:private-powers={showPowers}>
-        {#if state.privatePowerWindow}
-            <p>Private powers before {state.privatePowerWindow.companyId} operates.</p>
+        {#if gameState.privatePowerWindow}
+            <p>Private powers before {gameState.privatePowerWindow.companyId} operates.</p>
             <button
                 disabled={!session.decisions.canResolve ||
                     !session.validActionTypes.includes('ContinueOperatingRound')}
@@ -74,8 +74,8 @@
                 >Continue operating round</button
             >
         {/if}
-        {#if state.purchaseOffer}
-            {@const offer = state.purchaseOffer}
+        {#if gameState.purchaseOffer}
+            {@const offer = gameState.purchaseOffer}
             <DecisionResponse
                 label="Purchase response"
                 acceptLabel="Accept"
@@ -86,9 +86,9 @@
             >
                 <CompanyToken appearance={session.mapView.stations[offer.companyId]} size={24} />
                 <span
-                    >{getCompany(state, offer.companyId).name} offers {money(offer.price)} for {offer
+                    >{getCompany(gameState, offer.companyId).name} offers {money(offer.price)} for {offer
                         .asset.kind === 'private'
-                        ? getCompany(state, offer.asset.privateCompanyId).name
+                        ? getCompany(gameState, offer.asset.privateCompanyId).name
                         : offer.asset.trainId}</span
                 >
             </DecisionResponse>
@@ -127,9 +127,9 @@
                             <header class="private-track-prompt">
                                 <span
                                     >{privateTilePrompts[power.privateCompanyId] ??
-                                        `Place a tile using ${getCompany(state, power.privateCompanyId).name}`}</span
+                                        `Place a tile using ${getCompany(gameState, power.privateCompanyId).name}`}</span
                                 >
-                                {#if state.privateTrackLay}
+                                {#if gameState.privateTrackLay}
                                     <span>or</span>
                                     <button
                                         class="action-button inline-action"
@@ -146,7 +146,7 @@
                             {#each session.privateActions.trackPowers as power}
                                 <button
                                     onclick={() => session.privateActions.chooseTrackPower(power)}
-                                    >{getCompany(state, power.privateCompanyId).name}</button
+                                    >{getCompany(gameState, power.privateCompanyId).name}</button
                                 >
                             {/each}
                         {/if}

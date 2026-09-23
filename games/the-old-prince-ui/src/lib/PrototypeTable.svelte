@@ -20,7 +20,7 @@
     let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
         $props()
     const session = $derived(requireTheOldPrinceSession(gameSession))
-    const state = $derived(requireEighteenXXState(gameSession.gameState))
+    const gameState = $derived(requireEighteenXXState(gameSession.gameState))
 </script>
 
 <GameEnding {session} />
@@ -37,36 +37,38 @@
     <StockMarket
         animation={session.marketAnimation}
         appearances={session.mapView.stations}
-        market={state.stockMarket}
-        companies={state.companies}
+        market={gameState.stockMarket}
+        companies={gameState.companies}
     />
 
-    {#if state.tranches.length}<section class="tranches" aria-label="Company tranches">
-            {#each state.tranches as tranche (tranche.id)}<p>
+    {#if gameState.tranches.length}<section class="tranches" aria-label="Company tranches">
+            {#each gameState.tranches as tranche (tranche.id)}<p>
                     {tranche.name}: {tranche.companyIds.join(' · ') || 'Empty'} ({tranche.companyIds
                         .length}/{tranche.capacity})
                 </p>{/each}
         </section>{/if}
     <p class="peir-summary">
-        PEIR: {state.companies.find((company) => company.id === 'PEIR')?.closed ? 'Closed.' : ''}
-        {peirShares(state).length} outstanding shares. President: {gameSession.game.players.find(
-            (player) => player.id === peirPresident(state)
+        PEIR: {gameState.companies.find((company) => company.id === 'PEIR')?.closed
+            ? 'Closed.'
+            : ''}
+        {peirShares(gameState).length} outstanding shares. President: {gameSession.game.players.find(
+            (player) => player.id === peirPresident(gameState)
         )?.name}. Largest shareholding wins; ties go to the lowest numbered share.
     </p>
 {/if}
 
 <FinanceInspector
-    stations={state.stations}
-    stationReservations={state.stationReservations}
+    stations={gameState.stations}
+    stationReservations={gameState.stationReservations}
     certificateWeight={session.certificateWeight}
-    {state}
+    {gameState}
     players={gameSession.game.players}
-    playerStates={state.players}
+    playerStates={gameState.players}
 >
     {#snippet certificateDetail(certificate)}
         {#if certificate.kind === 'share' && certificate.companyId === 'PEIR'}
             <p class="share-income">
-                1/{peirShares(state).length} of PEIR’s distributed earnings
+                1/{peirShares(gameState).length} of PEIR’s distributed earnings
             </p>
         {/if}
     {/snippet}

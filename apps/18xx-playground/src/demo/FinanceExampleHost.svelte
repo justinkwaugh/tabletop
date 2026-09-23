@@ -70,7 +70,7 @@
             } catch (cause) {
                 if (
                     !(cause instanceof Error) ||
-                    cause.message !== 'Complete canonical state is required'
+                    cause.message !== 'Complete canonical gameState is required'
                 )
                     throw cause
             }
@@ -148,9 +148,9 @@
             }
             const { game, actions } = loaded
             assertExists(game, 'Local example is missing')
-            assertExists(game.state, 'Local example has no state')
+            assertExists(game.state, 'Local example has no gameState')
             if (!EighteenXXStateValidator.Check(game.state))
-                throw new Error('Local example has an invalid finance state')
+                throw new Error('Local example has an invalid finance gameState')
             if (migrateCompanyNames(loaded)) {
                 await app.gameService.saveGameLocally({ game, state: game.state, actions })
             }

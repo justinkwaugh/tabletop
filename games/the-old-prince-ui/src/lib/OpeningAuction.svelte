@@ -1,13 +1,13 @@
 <script lang="ts">
     import { OfferAuctionPanel, type EighteenXXSession } from '@tabletop/18xx-ui'
     let { session, showUndo = true }: { session: EighteenXXSession; showUndo?: boolean } = $props()
-    const state = $derived(session.gameState)
+    const gameState = $derived(session.gameState)
 </script>
 
 {#if session.offers.model && !session.offers.model.auction.completed}
     <section class="centered-panel">
         <p class="company-roles">
-            {#each state.companies.filter((company) => company.role) as company}
+            {#each gameState.companies.filter((company) => company.role) as company}
                 <span>
                     {company.role === 'mainline' ? 'Mainline' : 'Shortline'}:
                     <strong>{company.name}</strong>

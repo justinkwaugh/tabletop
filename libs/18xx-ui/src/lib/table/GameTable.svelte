@@ -784,7 +784,7 @@
                                     showDetails={session.preferences.values
                                         .operatingOrderDisplay === 'details'}
                                     companies={companyOrder}
-                                    state={gameState}
+                                    {gameState}
                                     trainDepot={session.trainDepot}
                                     {trainColors}
                                     requiresTrain={(companyId) =>

@@ -51,13 +51,13 @@
     }
     const session = $derived(requireTheOldPrinceSession(gameSession))
     const spreadsheetCompanyOrder = $derived.by(() => {
-        const state = session.gameState
-        const trancheCompanies = state.tranches.flatMap((tranche) => tranche.companyIds)
+        const gameState = session.gameState
+        const trancheCompanies = gameState.tranches.flatMap((tranche) => tranche.companyIds)
         return [
-            ...state.companies
+            ...gameState.companies
                 .filter((company) => company.role === 'mainline')
                 .map((company) => company.id),
-            ...state.companies
+            ...gameState.companies
                 .filter(
                     (company) =>
                         company.started &&
