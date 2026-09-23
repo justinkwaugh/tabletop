@@ -1067,7 +1067,10 @@
         align-items: center;
         justify-content: center;
         height: 14px;
-        background: repeating-linear-gradient(135deg, #18212b 0 10px, #f4e8ce 10px 20px);
+        background:
+            repeating-linear-gradient(90deg, #18212b 0 18px, transparent 18px 26px) center / 100%
+                6px no-repeat,
+            #f4e8ce;
         color: #18212b;
     }
     .history-strip span {

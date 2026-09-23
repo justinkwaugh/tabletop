@@ -1726,9 +1726,10 @@ PEIR last and labels its narrow card PEIR; other card names retain their full na
 Company cards with numbered shares show certificate numbers before share counts
 in each ownership row, keeping the count in the rightmost column.
 
-History View displays a 14px dark-blue-and-cream diagonal striped strip immediately
-above the table header, with VIEWING HISTORY centered on a solid cream label. Each stripe is 10px wide;
-the blue matches the dark-mode table background (#18212b). It spans
+History View displays a 14px cream strip of thick dark-blue horizontal dashes immediately
+above the table header, with VIEWING HISTORY centered on a solid cream label. Each dash is 18px
+wide and 6px tall with an 8px gap, vertically centered; the blue matches the dark-mode table
+background (#18212b). It spans
 the full table width, including the sidebar, in both layouts. The layout height
 accounts for the strip so the table still fits the viewport. It follows the existing session History View flag, uses
 the same colors in both themes, and disappears on return to Live View. This shared
