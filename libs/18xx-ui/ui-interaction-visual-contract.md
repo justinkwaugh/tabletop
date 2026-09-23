@@ -316,9 +316,10 @@ token that opens a popover list of companies and shows a "?" until one is
 chosen, then "from" and a preferred pool segment listing only pools the title's
 purchase rules let the player buy from (or the pool's name when the company's
 shares sit in one pool), "until" and a Float / I own goal segment with a
-share stepper bounded to one more than the player holds up to the smallest of
-the holding ceiling, the shares on offer, and what the player can afford at the
-cheapest current price, and a "then pass" switch. Pool and
+share stepper bounded to one more than the player holds up to the smaller of
+the holding ceiling and what the player could buy by spending current cash on
+the preferred pool first and then the cheapest other pool at each share's own
+price, and a "then pass" switch. Pool and
 goal segments are sliding toggles whose thumb sizes to the selected segment.
 The tray's corners round fully on one line and soften when it wraps. A green Enable follows the tray and
 stays disabled until a company is chosen.

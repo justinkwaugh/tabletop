@@ -62,7 +62,9 @@
         choice?.pools.find((pool) => pool.id === chosenPoolId) ?? choice?.pools[0]
     )
     const poolIndex = $derived(choice?.pools.findIndex((item) => item.id === pool?.id) ?? -1)
-    const shareRange = $derived(choice ? instructions.shareGoalRange(choice) : undefined)
+    const shareRange = $derived(
+        choice && pool ? instructions.shareGoalRange(choice, pool.id) : undefined
+    )
     const floatGoal = $derived(!!choice && !choice.company.floated)
     const goalKind = $derived(!floatGoal ? 'shares' : shareRange ? goal : 'floated')
     const shareGoal = $derived(

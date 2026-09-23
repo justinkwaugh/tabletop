@@ -103,11 +103,17 @@ export class StockInstructionModule {
             .filter(
                 (choice) =>
                     choice.pools.length > 0 &&
-                    (!choice.company.floated || this.shareGoalRange(choice) !== undefined)
+                    (!choice.company.floated ||
+                        choice.pools.some(
+                            (pool) => this.shareGoalRange(choice, pool.id) !== undefined
+                        ))
             )
     })
 
-    shareGoalRange(choice: BuyInstructionChoice): ShareGoalRange | undefined {
+    shareGoalRange(
+        choice: BuyInstructionChoice,
+        preferredPoolId: string
+    ): ShareGoalRange | undefined {
         const { state, rules, playerId } = this.session
         const shareCount = choice.company.shareCount
         if (!playerId || !shareCount) return undefined
@@ -127,28 +133,39 @@ export class StockInstructionModule {
                     .map((exemption) => exemption.maximumShares)
             )
         )
-        let purchasable = 0
-        let cheapest = Infinity
-        for (const pool of choice.pools)
-            for (const certificate of certificatesInPool(state, pool.id)) {
+        const offers = choice.pools.map((pool) => ({
+            pool,
+            shares: certificatesInPool(state, pool.id).flatMap((certificate) => {
                 if (
                     certificate.kind !== 'share' ||
                     certificate.companyId !== choice.company.id ||
                     certificate.president
                 )
-                    continue
+                    return []
                 const terms = rules.stockRules.purchaseTerms(state, certificate, buyer)
-                if (typeof terms === 'string') continue
-                purchasable += certificate.shares
-                cheapest = Math.min(cheapest, terms.price)
-            }
+                return typeof terms === 'string'
+                    ? []
+                    : [{ shares: certificate.shares, price: terms.price }]
+            })
+        }))
+        const preferred = offers.filter((offer) => offer.pool.id === preferredPoolId)
+        const fallback = offers
+            .filter((offer) => offer.pool.id !== preferredPoolId)
+            .toSorted(
+                (left, right) =>
+                    Math.min(...left.shares.map((share) => share.price)) -
+                    Math.min(...right.shares.map((share) => share.price))
+            )
         const cash = cashOwnedBy(state, buyer)
-        const affordable =
-            typeof cash === 'number' && cheapest > 0 ? Math.floor(cash / cheapest) : purchasable
-        const range = {
-            min: owned + 1,
-            max: Math.min(holdingCeiling, owned + purchasable, owned + affordable)
-        }
+        let remaining = typeof cash === 'number' ? cash : Infinity
+        let reachable = owned
+        for (const offer of [...preferred, ...fallback])
+            for (const share of offer.shares.toSorted((left, right) => left.price - right.price)) {
+                if (share.price > remaining) break
+                remaining -= share.price
+                reachable += share.shares
+            }
+        const range = { min: owned + 1, max: Math.min(holdingCeiling, reachable) }
         return range.max >= range.min ? range : undefined
     }
 
@@ -163,7 +180,7 @@ export class StockInstructionModule {
             'Choose a pool holding shares of the company'
         )
         if (terms.until.kind === 'shares') {
-            const range = this.shareGoalRange(choice)
+            const range = this.shareGoalRange(choice, terms.preferredPoolId)
             assert(
                 range && terms.until.count >= range.min && terms.until.count <= range.max,
                 'Choose a share goal the player can reach'

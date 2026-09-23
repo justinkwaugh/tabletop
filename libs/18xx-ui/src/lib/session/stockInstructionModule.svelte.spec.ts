@@ -30,16 +30,26 @@ function instructionState(
     instructions?: StandingStockInstruction[],
     extraIpoShares = 0,
     exemption?: number,
-    cash = 100
+    cash = 100,
+    extraMarketShares = 0
 ): StockInstructionSession['state'] {
     const state = minimalPlayState()
-    const extra = Array.from({ length: extraIpoShares }, (_, index) => ({
-        ...share,
-        id: `R-extra-${index}`,
-        companyId: TestCompanyId,
-        president: false,
-        poolId: 'ipo'
-    }))
+    const extra = [
+        ...Array.from({ length: extraIpoShares }, (_, index) => ({
+            ...share,
+            id: `R-extra-${index}`,
+            companyId: TestCompanyId,
+            president: false,
+            poolId: 'ipo'
+        })),
+        ...Array.from({ length: extraMarketShares }, (_, index) => ({
+            ...share,
+            id: `R-market-${index}`,
+            companyId: TestCompanyId,
+            president: false,
+            poolId: 'market'
+        }))
+    ]
     return {
         ...state,
         machineState: 'StockRound',
@@ -77,7 +87,7 @@ function instructionState(
 const purchaseTerms: StockRules['purchaseTerms'] = (_state, certificate) =>
     certificate.poolId === 'reserved'
         ? 'Reserved shares are not for sale'
-        : { price: 10, recipient: bank, payers: [] }
+        : { price: certificate.poolId === 'market' ? 5 : 10, recipient: bank, payers: [] }
 
 function harness(
     valid: string[] = ['SetStockInstruction'],
@@ -85,10 +95,11 @@ function harness(
     instructions?: StandingStockInstruction[],
     extraIpoShares = 0,
     exemption?: number,
-    cash?: number
+    cash?: number,
+    extraMarketShares = 0
 ) {
     const session = testSession(
-        instructionState(instructions, extraIpoShares, exemption, cash),
+        instructionState(instructions, extraIpoShares, exemption, cash, extraMarketShares),
         {
             stockRules: { ...minimalStockRules, purchaseTerms }
         },
@@ -194,13 +205,22 @@ describe('share goal range', () => {
                 exemption,
                 cash
             )
-            return module.shareGoalRange(module.buyChoices[0])
+            return module.shareGoalRange(module.buyChoices[0], 'ipo')
         }
         expect(range(0)).toEqual({ min: 1, max: 1 })
         expect(range(8)).toEqual({ min: 1, max: 6 })
         expect(range(8, 8)).toEqual({ min: 1, max: 8 })
         expect(range(8, 8, 25)).toEqual({ min: 1, max: 2 })
         expect(range(8, 8, 5)).toBeUndefined()
+    })
+
+    it('spends on the preferred pool first and then on the cheapest fallback', () => {
+        const reach = (preferred: string) => {
+            const { module } = harness(['SetStockInstruction'], {}, undefined, 8, 8, 25, 3)
+            return module.shareGoalRange(module.buyChoices[0], preferred)
+        }
+        expect(reach('ipo')).toEqual({ min: 1, max: 3 })
+        expect(reach('market')).toEqual({ min: 1, max: 4 })
     })
 
     it('refuses a share goal outside the reachable range', async () => {
