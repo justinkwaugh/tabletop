@@ -40,6 +40,20 @@
         const bounds = pickerButton.getBoundingClientRect()
         pickerBounds = { left: bounds.left, bottom: window.innerHeight - bounds.top + 6 }
     }
+    const helpId = `${pickerId}-help`
+    const HelpPanelWidth = 380
+    let helpButton: HTMLButtonElement | undefined = $state()
+    let helpOpen = $state(false)
+    let helpBounds = $state({ left: 0, bottom: 0 })
+    function prepareHelp(event: ToggleEvent) {
+        helpOpen = event.newState === 'open'
+        if (!helpOpen || !helpButton) return
+        const bounds = helpButton.getBoundingClientRect()
+        helpBounds = {
+            left: Math.max(8, Math.min(bounds.left, window.innerWidth - HelpPanelWidth - 8)),
+            bottom: window.innerHeight - bounds.top + 6
+        }
+    }
     function pickCompany(companyId: string) {
         chosenCompanyId = companyId
         pickerPanel?.hidePopover()
@@ -211,6 +225,38 @@
                     >Enable</button
                 >
             {/if}
+            <button
+                class="help"
+                bind:this={helpButton}
+                popovertarget={helpId}
+                aria-expanded={helpOpen}
+                aria-controls={helpId}
+                aria-label="When a standing instruction stops">?</button
+            >
+            <div
+                id={helpId}
+                class="help-panel"
+                popover="auto"
+                onbeforetoggle={prepareHelp}
+                style:left={`${helpBounds.left}px`}
+                style:bottom={`${helpBounds.bottom}px`}
+            >
+                <p>
+                    A standing instruction acts for you on each of your stock turns. It ends with
+                    the stock round, and it stops on its own, before acting, when:
+                </p>
+                <ul>
+                    <li>you must sell shares to meet a limit</li>
+                    <li>a company has been started</li>
+                    <li>a company changed president, other than to you</li>
+                    <li>shares of any company were sold to the bank</li>
+                    <li>a rival gained shares in a company you preside over without a majority</li>
+                    <li>
+                        Autobuy: the goal is met, no shares remain for sale, the preferred pool
+                        offers mixed certificate sizes, or the purchase is not legal
+                    </li>
+                </ul>
+            </div>
         </div>
     </footer>
 {/if}
@@ -275,6 +321,46 @@
     .tray.bare {
         padding: 0;
         border-color: transparent;
+    }
+    .help {
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: 1px solid var(--rail-border, #485666);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 18px;
+        text-align: center;
+    }
+    .help:hover:not(:disabled),
+    .help[aria-expanded='true'] {
+        color: var(--rail-text, #e3e9ef);
+        border-color: var(--rail-focus, #b8cddd);
+    }
+    .help-panel {
+        position: fixed;
+        inset: auto;
+        margin: 0;
+        width: min(380px, calc(100vw - 16px));
+        padding: 10px 12px;
+        border: 1px solid var(--rail-border, #485666);
+        border-radius: 8px;
+        background: var(--rail-surface-raised, #222c37);
+        color: var(--rail-text, #e3e9ef);
+        box-shadow: 0 6px 18px var(--rail-shadow, #00000066);
+        font-size: 12px;
+        line-height: 1.4;
+    }
+    .help-panel p {
+        margin: 0 0 6px;
+    }
+    .help-panel ul {
+        margin: 0;
+        padding-left: 18px;
+    }
+    .help-panel li + li {
+        margin-top: 3px;
     }
     .pool-name {
         line-height: 22px;

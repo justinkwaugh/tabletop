@@ -326,7 +326,8 @@ shows its kind pressed and disabled, followed by one summary line ("Autopass for
 the rest of the round" or "Autobuy <company> · <pool> preferred · until it
 floats · then pass"), a "Stops next turn: <reason>" status when the session's
 `instructions.warning` reports that the instruction would stop at its next
-evaluation, and an inline Cancel button.
+evaluation, and an inline Cancel button. A small "?" icon at the end of the row
+opens a popover listing when an instruction stops on its own.
 
 The toggle's selected kind, company, pool, goal, count and then-pass values are
 local component UI state. They are not staged selections: they are never
