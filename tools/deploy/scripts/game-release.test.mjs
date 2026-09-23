@@ -532,3 +532,27 @@ test('rollback selects the publication before the current one and re-selecting m
         { version: '2.0.0' }
     ])
 })
+
+test('history keeps only the most recent five publications', async () => {
+    const { HISTORY_LENGTH, withFrontendVersion, withGameVersions } =
+        await import('../esm/lib/remoteManifest.js')
+    assert.equal(HISTORY_LENGTH, 5)
+    let manifest = { frontend: { version: '0.0.0' }, games: [] }
+    for (let i = 1; i <= 7; i += 1) {
+        manifest = withGameVersions(
+            manifest,
+            { gameId: 'a', packageId: 'a' },
+            { logicVersion: '1.0.0', uiVersion: `${i}.0.0` },
+            { deployedAt: `t${i}` }
+        )
+        manifest = withFrontendVersion(manifest, `${i}.0.0`, { deployedAt: `t${i}` })
+    }
+    assert.deepEqual(
+        manifest.games[0].history.map((record) => record.uiVersion),
+        ['7.0.0', '6.0.0', '5.0.0', '4.0.0', '3.0.0']
+    )
+    assert.deepEqual(
+        manifest.frontend.history.map((record) => record.version),
+        ['7.0.0', '6.0.0', '5.0.0', '4.0.0', '3.0.0']
+    )
+})

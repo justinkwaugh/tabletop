@@ -68,7 +68,9 @@ locally. The image tag is immutable: a version already in Artifact Registry is r
 
 Every manifest change appends to a publication history: per game a list of logic and UI
 version pairs, for the frontend a list of versions, newest first with the deploy time, commit,
-and tags. A manifest written before history existed is seeded with its current publication.
+and tags. Only the five most recent are kept, which is also how far `rollback` can reach; the
+artifacts themselves stay in the bucket. A manifest written before history existed is seeded
+with its current publication.
 
 ```bash
 node tools/deploy/esm/cli.js list (--game=<id> | --frontend)

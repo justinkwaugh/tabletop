@@ -67,15 +67,19 @@ export type ChangeMetadata = {
 const samePublication = (a: PublicationRecord, b: PublicationRecord) =>
     a.logicVersion === b.logicVersion && a.uiVersion === b.uiVersion
 
-// History lists every Publication that has served, newest first, each pair once. A manifest
-// written before history existed seeds it with the Publication current at that time.
+// History keeps the most recent Publications that have served, newest first, each pair once,
+// so the manifest stays small. A manifest written before history existed seeds it with the
+// Publication current at that time.
+export const HISTORY_LENGTH = 5
+
 const seedGameHistory = (entry: GameManifestEntry): PublicationRecord[] =>
     entry.history ?? [{ logicVersion: entry.logicVersion, uiVersion: entry.uiVersion }]
 
 const withPublicationFirst = (
     history: PublicationRecord[],
     record: PublicationRecord
-): PublicationRecord[] => [record, ...history.filter((entry) => !samePublication(entry, record))]
+): PublicationRecord[] =>
+    [record, ...history.filter((entry) => !samePublication(entry, record))].slice(0, HISTORY_LENGTH)
 
 export const withGameVersions = (
     manifest: SiteManifest,
@@ -141,7 +145,7 @@ export const withFrontendVersion = (
                 ...seedFrontendHistory(manifest.frontend).filter(
                     (entry) => entry.version !== version
                 )
-            ]
+            ].slice(0, HISTORY_LENGTH)
         }
     }
 }
