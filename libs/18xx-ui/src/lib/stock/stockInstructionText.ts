@@ -13,7 +13,7 @@ export function stockInstructionText(
     if (instruction.kind === 'pass') return 'Autopass for the rest of the round'
     const goal =
         instruction.until.kind === 'floated'
-            ? 'until it floats'
+            ? 'until float'
             : `until I own ${instruction.until.count}`
     const follow = instruction.thenPass ? ' · then pass' : ''
     return `Autobuy ${names.companyName(instruction.companyId)} · ${names.poolName(instruction.preferredPoolId)} preferred · ${goal}${follow}`

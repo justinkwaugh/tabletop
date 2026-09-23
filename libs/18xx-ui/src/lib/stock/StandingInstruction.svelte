@@ -205,7 +205,7 @@
                                     <button
                                         {disabled}
                                         aria-pressed={goalKind === 'floated'}
-                                        onclick={() => (goal = 'floated')}>Floats</button
+                                        onclick={() => (goal = 'floated')}>Float</button
                                     >
                                 {/if}
                                 {#if shareRange}

@@ -315,7 +315,7 @@ with a chevron and a bordered tray that reads as one clause: a single company
 token that opens a popover list of companies and shows a "?" until one is
 chosen, then "from" and a preferred pool segment listing only pools the title's
 purchase rules let the player buy from (or the pool's name when the company's
-shares sit in one pool), "until" and a Floats / Shares goal segment with a
+shares sit in one pool), "until" and a Float / I own goal segment with a
 share stepper bounded to one more than the player holds up to the smaller of
 the holding ceiling and the shares on offer, and a "then pass" switch. Pool and
 goal segments are sliding toggles whose thumb sizes to the selected segment.
@@ -323,14 +323,14 @@ The tray's corners round fully on one line and soften when it wraps. A green Ena
 stays disabled until a company is chosen.
 With an instruction declared the toggle
 shows its kind pressed and disabled, followed by one summary line ("Autopass for
-the rest of the round" or "Autobuy <company> · <pool> preferred · until it
-floats · then pass"), a "Stops next turn: <reason>" status when the session's
+the rest of the round" or "Autobuy <company> · <pool> preferred · until float ·
+then pass"), a "Stops next turn: <reason>" status when the session's
 `instructions.warning` reports that the instruction would stop at its next
 evaluation, and an inline Cancel button. A small "?" icon at the end of the row
 opens a popover listing when an instruction stops on its own. After an instruction
 stops, the bar shows "Autopass stopped: <reason>" or "Autobuy stopped: <reason>" in the
 tray outline until the player declares again, clears, or the round ends. The goal
-segment offers Floats only for a company that has not floated, and Autobuy omits a
+segment offers Float only for a company that has not floated, and Autobuy omits a
 floated company with no reachable share goal.
 
 The toggle's selected kind, company, pool, goal, count and then-pass values are
