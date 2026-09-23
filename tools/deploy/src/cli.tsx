@@ -74,6 +74,9 @@ Commands:
                                Build the backend, build its image with Cloud Build tagged with
                                the release version, and deploy it to the backend and tasks
                                services with traffic. Same guards as deploy-game.
+  promote-backend [--service=backend|tasks]
+                               Shift traffic to the latest revision of the backend and tasks
+                               services (after a --no-traffic deploy)
   rollback-backend <revision>  Shift traffic to a backend revision
 
 Release tags:
@@ -280,6 +283,11 @@ const main = async () => {
     if (command === 'deploy-backend') {
         rejectBumpFlags(command, values, 'release-backend')
         await deployBackend(context, backendOptions)
+        return
+    }
+
+    if (command === 'promote-backend') {
+        await promoteBackend(context, backendOptions.services)
         return
     }
 

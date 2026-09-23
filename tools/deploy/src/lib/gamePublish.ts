@@ -9,7 +9,7 @@ import {
 } from './commands.js'
 import { readManifest, writeManifest } from './manifest.js'
 import {
-    assertArtifactsPublishable,
+    checkArtifactsPublishable,
     assertCleanWorkingTree,
     assertDeployConfig,
     commitTagAndPush,
@@ -90,6 +90,7 @@ export type PublishableGame = {
     entry: GameManifestEntry
     manifest: SiteManifest
     artifacts: PublishedArtifact[]
+    pending: PublishedArtifact[]
 }
 
 export const assertGamePublishable = async (
@@ -105,28 +106,33 @@ export const assertGamePublishable = async (
     const artifacts = kinds.map((kind) =>
         gameArtifact(bucket, entry.packageId, kind, versions[kind])
     )
-    await assertArtifactsPublishable(context, artifacts, 'release-game')
-    return { entry, manifest, artifacts }
+    const { pending } = await checkArtifactsPublishable(context, artifacts, 'release-game')
+    return { entry, manifest, artifacts, pending }
 }
 
 const buildAndUpload = async (
     context: PublishContext,
     packageId: string,
     manifest: SiteManifest,
-    includeLogic: boolean
+    pending: PublishedArtifact[]
 ) => {
-    if (includeLogic) {
+    const pendingKinds = pending.map((artifact) => artifact.kind)
+    if (pendingKinds.includes('logic')) {
         await runSpec(context, buildGameLogicPackageCommand(context.repoRoot, packageId))
         await runSpec(context, buildGameLogicCommand(context.repoRoot, packageId))
     }
-    await runSpec(context, buildGameUiPackageCommand(context.repoRoot, packageId))
-    await runSpec(context, buildGameUiCommand(context.repoRoot, packageId))
+    if (pendingKinds.includes('ui')) {
+        await runSpec(context, buildGameUiPackageCommand(context.repoRoot, packageId))
+        await runSpec(context, buildGameUiCommand(context.repoRoot, packageId))
+    }
 
     const deploySpecs = [
-        ...(includeLogic
+        ...(pendingKinds.includes('logic')
             ? [deployGameLogicCommand(context.repoRoot, manifest, packageId, context.deployConfig)]
             : []),
-        deployGameUiCommand(context.repoRoot, manifest, packageId, context.deployConfig)
+        ...(pendingKinds.includes('ui')
+            ? [deployGameUiCommand(context.repoRoot, manifest, packageId, context.deployConfig)]
+            : [])
     ]
     await runDeploysWithDirectoryPlaceholders(context, deploySpecs)
     await publishManifest(context)
@@ -134,13 +140,17 @@ const buildAndUpload = async (
 
 export const deployGame = async (context: PublishContext, options: GameArtifactSelection) => {
     const kinds: ArtifactKind[] = options.includeLogic ? ['logic', 'ui'] : ['ui']
-    const { entry, manifest, artifacts } = await assertGamePublishable(context, options.game, kinds)
+    const { entry, manifest, artifacts, pending } = await assertGamePublishable(
+        context,
+        options.game,
+        kinds
+    )
     await runReportedDeploy(
         context,
         entry.gameId,
         artifacts,
         () => fetchServingVersions(context, entry.packageId),
-        () => buildAndUpload(context, entry.packageId, manifest, options.includeLogic)
+        () => buildAndUpload(context, entry.packageId, manifest, pending)
     )
 }
 

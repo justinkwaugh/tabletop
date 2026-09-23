@@ -18,8 +18,8 @@ no game changed (`docs/adr/0004-game-ui-host-bridge-contract.md`).
 
 The backend is a container image built by Cloud Build and deployed to the `backend` and
 `tasks` Cloud Run services together, serving traffic immediately. `--no-traffic` stages a
-revision instead; `--service=backend|tasks` narrows the deploy; `rollback-backend <revision>`
-reverts. A backend deploy takes several minutes because the image builds remotely.
+revision instead and `promote-backend` later shifts traffic to it; `--service=backend|tasks`
+narrows either; `rollback-backend <revision>` reverts. A backend deploy takes several minutes because the image builds remotely.
 
 ## 1. Preflight
 
@@ -91,6 +91,8 @@ failing step and the error text, and then:
   or `deploy-backend`. A second release command would spend another version. If commits have landed since the release, the
   tag is no longer on HEAD: check out the tag (`git checkout <tag>`), run `deploy-game` there,
   and return to the branch afterwards.
+- A deploy that failed after uploading an artifact is safe to rerun: the tool reuses an
+  existing artifact for the tagged version and continues with the remaining steps.
 - `spawn gcloud ENOENT` or `No credentialed accounts` means this environment cannot upload.
   The Cloud CLI must be installed and logged in (`gcloud auth login --no-launch-browser`);
   that login is interactive, so hand it to the user.

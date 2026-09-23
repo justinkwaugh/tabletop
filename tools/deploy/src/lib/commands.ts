@@ -127,12 +127,49 @@ export const submitBackendImageCommand = (
         image,
         '--project',
         project,
+        // Naming the staging and log locations keeps the deploy account off project-wide
+        // permissions: the default staging lookup lists every bucket in the project, and the
+        // default logs bucket can only be streamed by a project viewer.
+        '--gcs-source-staging-dir',
+        `gs://${project}_cloudbuild/source`,
+        '--gcs-log-dir',
+        `gs://${project}_cloudbuild/logs`,
         '--quiet'
     ],
     cwd: repoRoot,
     logPath: '/tmp/backend-image-cloud-build.log',
     requiresDeploy: true
 })
+
+export const promoteBackendCommand = (
+    repoRoot: string,
+    service: string,
+    config: DeployConfig
+): CommandSpec => {
+    const backend = config.backend
+    if (!backend?.region || !backend.project) {
+        throw new Error('Missing backend config for promote (region/project)')
+    }
+    return {
+        label: `promote-backend:${service}`,
+        command: 'gcloud',
+        args: [
+            'run',
+            'services',
+            'update-traffic',
+            service,
+            '--region',
+            backend.region,
+            '--project',
+            backend.project,
+            '--to-latest',
+            '--quiet'
+        ],
+        cwd: repoRoot,
+        logPath: `/tmp/${service}-promote.log`,
+        requiresDeploy: true
+    }
+}
 
 export const buildBackendImageCommand = (repoRoot: string): CommandSpec => ({
     label: 'build-backend-image',

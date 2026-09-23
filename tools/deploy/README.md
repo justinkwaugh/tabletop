@@ -88,7 +88,8 @@ produces the pruned image context with `pnpm --filter @tabletop/backend run dock
 submits it to Cloud Build tagged `<backend.image>:<version>`, and deploys that image to the
 `backend` and `tasks` Cloud Run services with traffic, setting `BACKEND_VERSION`, `GIT_SHA`,
 and `BUILD_TIME` so the manifest reports what is running. `--no-traffic` stages a revision
-without serving it, and `rollback-backend <revision>` shifts traffic back. No Docker is needed
+without serving it, `promote-backend` shifts both services to their latest revision, and
+`rollback-backend <revision>` shifts traffic back. No Docker is needed
 locally. The image tag is immutable: a version already in Artifact Registry is refused.
 
 `preflight (--game=<gameId|packageId> | --frontend | --backend) [--json]` is read-only. It reports the serving versions
@@ -125,6 +126,8 @@ release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--se
 build-backend                Build the backend
 deploy-backend [--no-traffic] [--service=backend|tasks]
                              Cloud Build the tagged image and deploy it to Cloud Run, with the same guards
+promote-backend [--service=backend|tasks]
+                             Shift traffic to the latest revision after a --no-traffic deploy
 rollback-backend <revision>  Shift traffic to a backend revision
 ```
 
@@ -214,14 +217,16 @@ gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA --ro
 gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA --role=roles/serviceusage.serviceUsageConsumer
 gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA --role=roles/run.admin
 gcloud artifacts repositories add-iam-policy-binding images --project=$PROJECT --location=$REGION --member=serviceAccount:$SA --role=roles/artifactregistry.writer
-gcloud storage buckets add-iam-policy-binding gs://${PROJECT}_cloudbuild --member=serviceAccount:$SA --role=roles/storage.objectAdmin
+gcloud storage buckets add-iam-policy-binding gs://${PROJECT}_cloudbuild --member=serviceAccount:$SA --role=roles/storage.admin
 gcloud iam service-accounts add-iam-policy-binding $RUNTIME_SA --project=$PROJECT --member=serviceAccount:$SA --role=roles/iam.serviceAccountUser
 ```
 
 `roles/run.admin` is granted project-wide because Cloud Run service-level bindings do not cover
 creating revisions. The Cloud Build staging bucket `<project>_cloudbuild` is created by the first
 build; if the binding fails because it does not exist yet, run one build as yourself first or
-create the bucket. Verify with `node tools/deploy/esm/cli.js preflight --backend`, which reads
+create the bucket. Storage admin on that one bucket is needed rather than object admin because
+`gcloud builds submit` reads the bucket's metadata, and the build logs are written there too so
+they stream without the account being a project viewer. Verify with `node tools/deploy/esm/cli.js preflight --backend`, which reads
 the serving revision, and with `gcloud builds list --project=$PROJECT --limit=1`.
 
 Verify from inside the container with `gcloud storage ls gs://$BUCKET/config/` after setting

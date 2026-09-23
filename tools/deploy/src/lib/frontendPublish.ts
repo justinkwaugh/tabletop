@@ -2,7 +2,7 @@ import path from 'node:path'
 import { buildFrontendCommand, deployFrontendCommand } from './commands.js'
 import { readManifest, writeManifest } from './manifest.js'
 import {
-    assertArtifactsPublishable,
+    checkArtifactsPublishable,
     assertCleanWorkingTree,
     assertDeployConfig,
     commitTagAndPush,
@@ -47,7 +47,11 @@ const frontendArtifact = (bucket: string, version: string): PublishedArtifact =>
 export const fetchFrontendServingVersion = (context: PublishContext): Promise<ServingLookup> =>
     fetchServing(context.deployConfig, (manifest) => ({ frontend: manifest.frontend.version }))
 
-type PublishableFrontend = { manifest: SiteManifest; artifacts: PublishedArtifact[] }
+type PublishableFrontend = {
+    manifest: SiteManifest
+    artifacts: PublishedArtifact[]
+    pending: PublishedArtifact[]
+}
 
 const assertFrontendPublishable = async (context: PublishContext): Promise<PublishableFrontend> => {
     const bucket = assertDeployConfig(context.deployConfig)
@@ -55,26 +59,32 @@ const assertFrontendPublishable = async (context: PublishContext): Promise<Publi
     const manifest = await loadManifestAssertingSynced(context, 'release-frontend')
     const version = await readPackageVersion(getFrontendPackagePath(context.repoRoot))
     const artifacts = [frontendArtifact(bucket, version)]
-    await assertArtifactsPublishable(context, artifacts, 'release-frontend')
-    return { manifest, artifacts }
+    const { pending } = await checkArtifactsPublishable(context, artifacts, 'release-frontend')
+    return { manifest, artifacts, pending }
 }
 
-const buildAndUpload = async (context: PublishContext, manifest: SiteManifest) => {
-    await runSpec(context, buildFrontendCommand(context.repoRoot))
-    await runDeploysWithDirectoryPlaceholders(context, [
-        deployFrontendCommand(context.repoRoot, manifest, context.deployConfig)
-    ])
+const buildAndUpload = async (
+    context: PublishContext,
+    manifest: SiteManifest,
+    pending: PublishedArtifact[]
+) => {
+    if (pending.length > 0) {
+        await runSpec(context, buildFrontendCommand(context.repoRoot))
+        await runDeploysWithDirectoryPlaceholders(context, [
+            deployFrontendCommand(context.repoRoot, manifest, context.deployConfig)
+        ])
+    }
     await publishManifest(context)
 }
 
 export const deployFrontend = async (context: PublishContext) => {
-    const { manifest, artifacts } = await assertFrontendPublishable(context)
+    const { manifest, artifacts, pending } = await assertFrontendPublishable(context)
     await runReportedDeploy(
         context,
         'frontend',
         artifacts,
         () => fetchFrontendServingVersion(context),
-        () => buildAndUpload(context, manifest)
+        () => buildAndUpload(context, manifest, pending)
     )
 }
 

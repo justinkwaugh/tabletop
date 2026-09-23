@@ -121,11 +121,14 @@ export const loadManifestAssertingSynced = async (
     return manifest
 }
 
-export const assertArtifactsPublishable = async (
+// A version's artifact is immutable, but a deploy can fail after uploading it. Because the
+// release tag pins the source, an existing artifact for the tagged version is reused so the
+// remaining steps can be retried without spending another version.
+export const checkArtifactsPublishable = async (
     context: PublishContext,
     artifacts: PublishedArtifact[],
     releaseCommand: string
-) => {
+): Promise<{ pending: PublishedArtifact[]; reused: PublishedArtifact[] }> => {
     const headTags = await tagsAtHead(context.repoRoot)
     for (const artifact of artifacts) {
         if (!headTags.includes(artifact.tag)) {
@@ -134,14 +137,19 @@ export const assertArtifactsPublishable = async (
             )
         }
     }
+    const pending: PublishedArtifact[] = []
+    const reused: PublishedArtifact[] = []
     for (const artifact of artifacts) {
         if (await artifact.published()) {
-            throw new Error(
-                `${artifact.destination} is already published; deployed versions are immutable, ` +
-                    'so release a new version instead'
+            context.log(
+                `${artifact.destination} already exists for ${artifact.tag}; reusing it and skipping its build and upload`
             )
+            reused.push(artifact)
+        } else {
+            pending.push(artifact)
         }
     }
+    return { pending, reused }
 }
 
 export const fetchServing = async (

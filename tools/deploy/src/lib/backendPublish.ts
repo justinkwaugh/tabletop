@@ -4,14 +4,16 @@ import {
     buildBackendCommand,
     buildBackendImageContextCommand,
     deployBackendCommand,
+    promoteBackendCommand,
     submitBackendImageCommand
 } from './commands.js'
 import { artifactImageExists } from './gcs.js'
 import { headCommitSha } from './git.js'
 import {
-    assertArtifactsPublishable,
+    checkArtifactsPublishable,
     assertCleanWorkingTree,
     commitTagAndPush,
+    describeServing,
     fetchServing,
     prepareRelease,
     runReportedDeploy,
@@ -107,15 +109,18 @@ const buildAndDeploy = async (
     context: PublishContext,
     target: BackendTarget,
     artifact: PublishedArtifact,
+    pending: PublishedArtifact[],
     serveTraffic: boolean
 ) => {
     const sha = await headCommitSha(context.repoRoot)
-    await runSpec(context, buildBackendCommand(context.repoRoot, { force: true }))
-    await runSpec(context, buildBackendImageContextCommand(context.repoRoot))
-    await runSpec(
-        context,
-        submitBackendImageCommand(context.repoRoot, artifact.destination, target.project)
-    )
+    if (pending.length > 0) {
+        await runSpec(context, buildBackendCommand(context.repoRoot, { force: true }))
+        await runSpec(context, buildBackendImageContextCommand(context.repoRoot))
+        await runSpec(
+            context,
+            submitBackendImageCommand(context.repoRoot, artifact.destination, target.project)
+        )
+    }
     for (const service of target.services) {
         await runSpec(
             context,
@@ -139,14 +144,14 @@ export const deployBackend = async (context: PublishContext, options: BackendDep
     await assertCleanWorkingTree(context.repoRoot)
     const version = await readPackageVersion(getBackendPackagePath(context.repoRoot))
     const artifact = backendArtifact(target, version)
-    await assertArtifactsPublishable(context, [artifact], 'release-backend')
+    const { pending } = await checkArtifactsPublishable(context, [artifact], 'release-backend')
 
     await runReportedDeploy(
         context,
         `backend (${target.services.join(', ')})`,
         [artifact],
         () => fetchBackendServingVersion(context),
-        () => buildAndDeploy(context, target, artifact, options.serveTraffic),
+        () => buildAndDeploy(context, target, artifact, pending, options.serveTraffic),
         { verifyServing: options.serveTraffic }
     )
 }
@@ -177,4 +182,19 @@ export const releaseBackend = async (context: PublishContext, options: BackendRe
             serveTraffic: options.serveTraffic
         })
     }
+}
+
+export const promoteBackend = async (context: PublishContext, services: BackendService[]) => {
+    const target = resolveBackendTarget(context.deployConfig, services)
+    const servingBefore = await fetchBackendServingVersion(context)
+    context.log(`backend serving before promote: ${describeServing(servingBefore)}`)
+    for (const service of target.services) {
+        await runSpec(
+            context,
+            promoteBackendCommand(context.repoRoot, service, context.deployConfig)
+        )
+    }
+    const servingAfter = await fetchBackendServingVersion(context)
+    context.log(`backend (${target.services.join(', ')}) promoted to latest revision`)
+    context.log(`backend serving now: ${describeServing(servingAfter)}`)
 }
