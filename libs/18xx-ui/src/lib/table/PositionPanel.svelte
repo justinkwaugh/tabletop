@@ -6,6 +6,8 @@
         isBidOnAuctionLot,
         isPassAuction,
         isRunTrains,
+        isBuyTrain,
+        isBuyPrivateTrain,
         isPlaceStation,
         isDistributeEarnings,
         isLayTile,
@@ -23,6 +25,7 @@
     import GameEnding from '../ending/GameEnding.svelte'
     import AuctionLotCard from '../auctions/AuctionLotCard.svelte'
     import ShareCardStrip from './ShareCardStrip.svelte'
+    import TrainCardStrip from '../trains/TrainCardStrip.svelte'
     import { shareSign } from './shareCards.js'
 
     let {
@@ -142,6 +145,24 @@
             description,
             actor,
             shareCards: session.shareCards(action),
+            // Published train cards for a purchase; the price is shown only when it differs from the card.
+            trainCards: (description.trainDefinitionIds ?? []).flatMap((id) => {
+                const imageUrl = session.publishedTrainImage(id)
+                if (!imageUrl) return []
+                const definition = session.trainDepot.trainDefinition(id)
+                const paid =
+                    isBuyTrain(action) || isBuyPrivateTrain(action)
+                        ? action.expectedPrice
+                        : undefined
+                return [
+                    {
+                        id,
+                        name: definition.name,
+                        imageUrl,
+                        price: paid !== undefined && paid !== definition.price ? paid : undefined
+                    }
+                ]
+            }),
             shareSign: shareSign(action),
             lot: lot
                 ? {
@@ -259,16 +280,19 @@
                             >{latest.actor}</strong
                         >
                     {/if}{latest.description
-                        .text}{#if !latest.isRun && latest.description.trainDefinitionIds?.length}
+                        .text}{#if !latest.isRun && latest.description.trainDefinitionIds?.length && !latest.trainCards.length}
                         <span class="trains"
                             >{#each latest.description.trainDefinitionIds as id}<TrainBadge
                                     name={session.trainDepot.trainDefinition(id).name}
                                     color={trainColors[id]}
                                 />{/each}</span
                         >
-                    {/if}{#if latest.description.value}
+                    {/if}{#if latest.description.value && !latest.trainCards.length}
                         · {latest.description.value}{/if}
                 </p>
+                {#if latest.trainCards.length}
+                    <TrainCardStrip cards={latest.trainCards} {money} />
+                {/if}
                 {#if latest.description.detail}<p class="detail">
                         {latest.description.detail}
                     </p>{/if}
