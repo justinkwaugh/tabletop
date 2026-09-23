@@ -9,6 +9,7 @@ import {
     type PreferenceResponse,
     type GameCreationOptions,
     type GameCatalogEntry,
+    type AdminAssignableRole,
     assertExists,
     Bookmark,
     CanonicalActionReplay,
@@ -51,7 +52,8 @@ import type {
     TokenResponse,
     UndoActionResponse,
     UsernameSearchResponse,
-    UserResponse
+    UserResponse,
+    UsersResponse
 } from './responseTypes.js'
 import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
@@ -804,6 +806,36 @@ export class TabletopApi {
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .res()
+    }
+
+    async searchUsers(query: string): Promise<User[]> {
+        const response = await this.wretch
+            .get(`/admin/users/search?query=${encodeURIComponent(query.trim())}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UsersResponse>()
+
+        return response.payload.users
+    }
+
+    async assignUserRoles(userId: string, roles: AdminAssignableRole[]): Promise<User> {
+        const response = await this.wretch
+            .post({ roles }, `/admin/users/${encodeURIComponent(userId)}/roles`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
+    async getActiveGamesForTitle(titleId: string): Promise<Game[]> {
+        const response = await this.wretch
+            .get(`/admin/games/active?titleId=${encodeURIComponent(titleId)}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GamesResponse>()
+
+        return response.payload.games.map((game) => this.validateGame(game))
     }
 
     async setGameState(state: GameState): Promise<void> {

@@ -765,6 +765,22 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    async findActiveGamesForTitle(titleId: string): Promise<Game[]> {
+        const query = this.games
+            .where('typeId', '==', titleId)
+            .where('status', 'in', getGameStatusesForCategory(GameStatusCategory.Active))
+
+        try {
+            const querySnapshot = await this.readQuery(query)
+            const games = querySnapshot.docs.map((doc) => doc.data()) as Game[]
+            this.recordRead('game', games.length)
+            return games
+        } catch (error) {
+            this.handleError(error, titleId)
+            throw Error('unreachable')
+        }
+    }
+
     @Timed('store.addActionsToGame')
     async addActionsToGame({
         game,

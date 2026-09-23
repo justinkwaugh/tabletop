@@ -444,6 +444,10 @@ export class GameService {
         return filteredGames
     }
 
+    async getActiveGamesForTitle(titleId: string): Promise<Game[]> {
+        return this.gameStore.findActiveGamesForTitle(titleId)
+    }
+
     async getOpenGamesForTitle(titleId: string): Promise<Game[]> {
         return await this.gameStore.findOpenGamesForTitle(titleId)
     }

@@ -208,6 +208,11 @@
         await goto('/notifications')
     }
 
+    async function gotoAdmin() {
+        showCancelPrompt = false
+        await goto('/admin')
+    }
+
     async function gotoDashboard() {
         await goto('/dashboard')
     }
@@ -494,6 +499,11 @@
                                 <DropdownItem class="w-full text-left" onclick={gotoNotifications}
                                     >Notifications</DropdownItem
                                 >
+                                {#if authorizationService.isAdmin}
+                                    <DropdownItem class="w-full text-left" onclick={gotoAdmin}
+                                        >Admin</DropdownItem
+                                    >
+                                {/if}
                                 <DropdownDivider />
                                 <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
                                     >About us</DropdownItem

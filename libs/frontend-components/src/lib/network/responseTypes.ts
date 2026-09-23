@@ -39,6 +39,16 @@ export const UsernameSearchResponse = Type.Evaluate(
     ])
 )
 
+export type UsersResponse = Static<typeof UsersResponse>
+export const UsersResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: Type.Object({ users: Type.Array(User) })
+        })
+    ])
+)
+
 export type GameResponse = Static<typeof GameResponse>
 export const GameResponse = Type.Evaluate(
     Type.Intersect([

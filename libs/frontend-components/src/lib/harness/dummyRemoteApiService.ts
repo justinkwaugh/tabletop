@@ -1,5 +1,6 @@
 import type Ably from 'ably'
 import type {
+    AdminAssignableRole,
     Bookmark,
     GameCatalogEntry,
     GameHistoryPage,
@@ -295,6 +296,18 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async unsubscribeFromPushNotifications(_endpoint: string): Promise<void> {
         return this.fail('unsubscribeFromPushNotifications')
+    }
+
+    async searchUsers(_query: string): Promise<User[]> {
+        return this.fail('searchUsers')
+    }
+
+    async assignUserRoles(_userId: string, _roles: AdminAssignableRole[]): Promise<User> {
+        return this.fail('assignUserRoles')
+    }
+
+    async getActiveGamesForTitle(_titleId: string): Promise<Game[]> {
+        return this.fail('getActiveGamesForTitle')
     }
 
     async setGameState(_state: GameState): Promise<void> {
