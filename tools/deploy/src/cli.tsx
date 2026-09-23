@@ -18,7 +18,12 @@ import {
     runCommand
 } from './lib/commands.js'
 import type { CommandSpec } from './lib/commands.js'
-import { deployBackend, releaseBackend, type BackendService } from './lib/backendPublish.js'
+import {
+    deployBackend,
+    promoteBackend,
+    releaseBackend,
+    type BackendService
+} from './lib/backendPublish.js'
 import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
 import { assertGamePublishable, deployGame, releaseGame } from './lib/gamePublish.js'
 import { publishManifest, type PublishContext } from './lib/publishCore.js'
