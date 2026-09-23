@@ -10,6 +10,7 @@ import type { GameLoadResult, GetGameOptions } from '$lib/network/tabletopApi.sv
 
 export type GameService = {
     readonly supportsReproductionSeed?: boolean
+    readonly developerHarness?: true
     loading: boolean
     activeGames: Game[]
     waitingGames: Game[]

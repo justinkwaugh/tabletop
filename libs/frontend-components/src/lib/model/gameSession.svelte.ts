@@ -150,6 +150,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             (this.mode === GameSessionMode.Play || this.mode === GameSessionMode.Explore)
     )
     isExploring = $derived(this.mode === GameSessionMode.Explore)
+    get isDeveloperHarness(): boolean {
+        return this.gameService.developerHarness === true
+    }
     get isViewingHost(): boolean {
         return (
             this.representations.hostContext !== undefined &&
