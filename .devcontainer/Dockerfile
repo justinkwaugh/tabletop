@@ -28,7 +28,7 @@ RUN pnpm add --global t3@${T3_VERSION}
 
 USER node
 
-RUN mkdir -p /home/node/.t3 /home/node/.config/gcloud
+RUN mkdir -p /home/node/.t3
 
 RUN curl -fsSL https://chatgpt.com/codex/install.sh | sh
 

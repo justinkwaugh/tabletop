@@ -10,6 +10,10 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
     const backendAdmin = config.backendAdmin
     return {
         gcsBucket: typeof config.gcsBucket === 'string' ? config.gcsBucket : undefined,
+        gcloudCredentialFile:
+            typeof config.gcloudCredentialFile === 'string'
+                ? config.gcloudCredentialFile
+                : undefined,
         backendManifestUrl:
             typeof config.backendManifestUrl === 'string' ? config.backendManifestUrl : undefined,
         backend: isObject(backend)
@@ -17,9 +21,7 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
                   image: typeof backend.image === 'string' ? backend.image : undefined,
                   service: typeof backend.service === 'string' ? backend.service : undefined,
                   tasksService:
-                      typeof backend.tasksService === 'string'
-                          ? backend.tasksService
-                          : undefined,
+                      typeof backend.tasksService === 'string' ? backend.tasksService : undefined,
                   region: typeof backend.region === 'string' ? backend.region : undefined,
                   project: typeof backend.project === 'string' ? backend.project : undefined,
                   deployCommand: Array.isArray(backend.deployCommand)
@@ -73,6 +75,8 @@ export const mergeEnvConfig = (config: DeployConfig): DeployConfig => {
     return {
         ...config,
         gcsBucket: process.env.TABLETOP_GCS_BUCKET ?? config.gcsBucket,
+        gcloudCredentialFile:
+            process.env.TABLETOP_GCLOUD_CREDENTIAL_FILE ?? config.gcloudCredentialFile,
         backendManifestUrl:
             process.env.TABLETOP_BACKEND_MANIFEST_URL ??
             process.env.TABLETOP_MANIFEST_URL ??

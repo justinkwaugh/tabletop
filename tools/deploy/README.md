@@ -167,9 +167,30 @@ Create `tools/deploy/deploy.config.json` (see `tools/deploy/deploy.config.exampl
 }
 ```
 
+`gcloudCredentialFile` points at a service account key, relative to the repository root. When
+set, every `gcloud` call the tool makes uses that key instead of a user login, through the Cloud
+SDK's credential file override. Keep the key under `.secrets/`, which is gitignored and visible
+inside the devcontainer at `/workspace/.secrets/`. The account only needs object admin on the
+bucket. From a host shell logged in to gcloud as yourself:
+
+```bash
+PROJECT=your-gcp-project
+BUCKET=your-gcs-bucket
+SA=tabletop-deploy@$PROJECT.iam.gserviceaccount.com
+gcloud iam service-accounts create tabletop-deploy --project=$PROJECT --display-name="Tabletop deploy"
+gcloud storage buckets add-iam-policy-binding gs://$BUCKET --member=serviceAccount:$SA --role=roles/storage.objectAdmin
+mkdir -p .secrets && gcloud iam service-accounts keys create .secrets/gcloud-deploy-key.json --iam-account=$SA
+chmod 600 .secrets/gcloud-deploy-key.json
+```
+
+Verify from inside the container with `gcloud storage ls gs://$BUCKET/config/` after setting
+`CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=/workspace/.secrets/gcloud-deploy-key.json`, or simply
+run `node tools/deploy/esm/cli.js preflight --game=<gameId>`.
+
 Environment overrides:
 
 - `TABLETOP_GCS_BUCKET`
+- `TABLETOP_GCLOUD_CREDENTIAL_FILE`
 - `TABLETOP_BACKEND_MANIFEST_URL` (or `TABLETOP_MANIFEST_URL`)
 - `TABLETOP_BACKEND_ADMIN_URL`
 - `TABLETOP_BACKEND_ADMIN_USER`

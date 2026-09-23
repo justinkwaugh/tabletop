@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util'
 import App from './app.js'
 import { readManifest, writeManifest } from './lib/manifest.js'
 import { mergeEnvConfig, readDeployConfig } from './lib/config.js'
+import { applyCloudSdkCredentialFile } from './lib/cloudSdkPython.js'
 import {
     buildBackendCommand,
     buildFrontendCommand,
@@ -72,6 +73,7 @@ Release tags:
 
 Environment:
   TABLETOP_GCS_BUCKET           GCS bucket name
+  TABLETOP_GCLOUD_CREDENTIAL_FILE Service account key used for all gcloud calls
   TABLETOP_BACKEND_SERVICE      Cloud Run service name
   TABLETOP_BACKEND_REGION       Cloud Run region
   GCLOUD_PROJECT                GCP project
@@ -161,6 +163,8 @@ const main = async () => {
     }
 
     const command = positionals[0] ?? (values.game !== undefined ? 'deploy-game' : 'tui')
+    const deployConfig = mergeEnvConfig(await readDeployConfig(deployConfigPath))
+    applyCloudSdkCredentialFile(repoRoot, deployConfig.gcloudCredentialFile)
 
     if (command === 'tui') {
         render(<App />)
@@ -172,8 +176,6 @@ const main = async () => {
         console.log(JSON.stringify(manifest, null, 2))
         return
     }
-
-    const deployConfig = mergeEnvConfig(await readDeployConfig(deployConfigPath))
     const context: PublishContext = {
         repoRoot,
         manifestPath,

@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 
 type PythonVersion = {
@@ -83,4 +85,21 @@ export const withCloudSdkPythonEnv = (baseEnv: NodeJS.ProcessEnv): NodeJS.Proces
 export const isCloudSdkCommand = (command: string): boolean => {
     const name = command.split(/[\\/]/).pop() ?? command
     return name === 'gcloud' || name === 'gsutil'
+}
+
+const CREDENTIAL_OVERRIDE_ENV = 'CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE'
+
+export const applyCloudSdkCredentialFile = (
+    repoRoot: string,
+    credentialFile: string | undefined
+): void => {
+    if (!credentialFile || process.env[CREDENTIAL_OVERRIDE_ENV]) return
+    const resolved = path.resolve(repoRoot, credentialFile)
+    if (!fs.existsSync(resolved)) {
+        throw new Error(
+            `Deploy credential file ${resolved} does not exist; ` +
+                'create the service account key there or fix gcloudCredentialFile'
+        )
+    }
+    process.env[CREDENTIAL_OVERRIDE_ENV] = resolved
 }

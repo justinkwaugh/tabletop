@@ -33,6 +33,7 @@ export type BackendAdminConfig = {
 
 export type DeployConfig = {
     gcsBucket?: string
+    gcloudCredentialFile?: string
     backend?: {
         image?: string
         service?: string

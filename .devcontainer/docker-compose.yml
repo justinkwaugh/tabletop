@@ -20,8 +20,6 @@ services:
             - .:/workspace:cached
             - codex-home:/home/node/.codex
             - t3-home:/home/node/.t3
-            # gcloud login state survives container rebuilds, like the codex and t3 homes.
-            - gcloud-config:/home/node/.config/gcloud
             - pnpm-store:/workspace/.pnpm-store
             - sshd-state:/var/lib/tabletop-sshd
             - type: volume
@@ -39,7 +37,6 @@ services:
 volumes:
     codex-home:
     t3-home:
-    gcloud-config:
     node-modules:
     pnpm-store:
     sshd-state:
