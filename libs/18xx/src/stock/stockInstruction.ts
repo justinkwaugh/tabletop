@@ -48,15 +48,47 @@ export const StockPositionSnapshot = Type.Array(
 )
 export type StockPositionSnapshot = Type.Static<typeof StockPositionSnapshot>
 
+export const StockInstructionTitleSnapshot = Type.Record(
+    Type.String(),
+    Type.Union([Type.String(), Type.Number(), Type.Boolean()])
+)
+export type StockInstructionTitleSnapshot = Type.Static<typeof StockInstructionTitleSnapshot>
+
 export const StandingStockInstruction = Type.Object(
     {
         playerId: Type.String(),
         instruction: StockInstruction,
-        snapshot: StockPositionSnapshot
+        snapshot: StockPositionSnapshot,
+        titleSnapshot: Type.Optional(StockInstructionTitleSnapshot)
     },
     { additionalProperties: false }
 )
 export type StandingStockInstruction = Type.Static<typeof StandingStockInstruction>
+
+export interface StockInstructionRules {
+    securePresidency?(state: StockState, companyId: string, owner: Owner): boolean
+    titleSnapshot?(state: StockState, playerId: string): StockInstructionTitleSnapshot
+    positionChange?(
+        state: StockState,
+        standing: StandingStockInstruction,
+        familyChange: () => string | undefined
+    ): string | undefined
+}
+
+export function createStandingStockInstruction(
+    state: StockState,
+    playerId: string,
+    instruction: StockInstruction,
+    rules: StockRules
+): StandingStockInstruction {
+    const titleSnapshot = rules.instructions?.titleSnapshot?.(state, playerId)
+    return {
+        playerId,
+        instruction,
+        snapshot: stockPositionSnapshot(state, playerId),
+        ...(titleSnapshot ? { titleSnapshot } : {})
+    }
+}
 
 type InstructionState = Pick<StockState, 'stockRound'>
 
@@ -119,6 +151,17 @@ export function describeStockPositionChange(
     standing: StandingStockInstruction,
     rules: StockRules
 ): string | undefined {
+    const familyChange = () => describeFamilyPositionChange(state, standing, rules)
+    return rules.instructions?.positionChange
+        ? rules.instructions.positionChange(state, standing, familyChange)
+        : familyChange()
+}
+
+function describeFamilyPositionChange(
+    state: StockState,
+    standing: StandingStockInstruction,
+    rules: StockRules
+): string | undefined {
     const owner: Owner = { kind: 'player', playerId: standing.playerId }
     if (exceedsStockLimits(state, owner, rules)) return 'Shares must be sold to meet the limits'
     for (const current of stockPositionSnapshot(state, standing.playerId)) {
@@ -136,6 +179,7 @@ export function describeStockPositionChange(
         if (current.bankShares > before.bankShares) return `${name} shares were sold`
         const presides = current.president !== undefined && sameOwner(current.president, owner)
         const secure =
+            rules.instructions?.securePresidency?.(state, current.companyId, owner) ??
             current.ownerShares * 2 > (getCompany(state, current.companyId).shareCount ?? 0)
         if (presides && !secure && current.rivalShares > before.rivalShares)
             return `${name} presidency is threatened`

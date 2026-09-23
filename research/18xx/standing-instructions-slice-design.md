@@ -78,6 +78,18 @@ mixed certificate sizes in the target pool, no eligible certificate, or a purcha
 `evaluateSharePurchase` rejects. `BuyShares` now accepts a System source for
 this path; its legality checks are unchanged.
 
+Title extension points live on `StockRules.instructions`, so no runtime wiring
+changes when a title needs them: `securePresidency` replaces the family's
+majority test for "presidency threatened" (1817-style control rules);
+`titleSnapshot` records a flat record of scalar facts next to the family
+snapshot when an instruction is set or converted, for titles whose cancel rules
+depend on data the family snapshot does not carry (loans, phase, tranche
+state); and `positionChange` wraps the family cancel rules, receiving them as a
+thunk so a title can add checks before or after, or replace them. The family
+snapshot rows stay fixed so every title's stored instruction has the same core
+shape. A title needing a new instruction kind adds its own action types and a
+decorator handler in the same pattern rather than widening the family union.
+
 Not implemented now: instructions that survive the round, per-buyer choice,
 private visibility (the field carries a stable player id so the Owner policy
 could apply later), and instructions for auction or merger rounds in other

@@ -10,6 +10,7 @@ import {
 import { companyMarketSpace } from './stockMarket.js'
 import type { StockState } from './stockState.js'
 import type { SharePurchaseTerms, ShareCertificate } from './sharePurchase.js'
+import type { StockInstructionRules } from './stockInstruction.js'
 
 export type ShareSaleTerms = {
     payer: Owner
@@ -22,6 +23,7 @@ export type ShareSaleTerms = {
 }
 export interface StockRules {
     round: StockRoundRules
+    instructions?: StockInstructionRules
     sellers(state: StockState, playerId: string): Owner[]
     buyers(state: StockState, playerId: string): Owner[]
     purchaseTerms(

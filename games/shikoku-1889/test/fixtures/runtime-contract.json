@@ -2776,6 +2776,24 @@
                     "type": "object"
                   },
                   "type": "array"
+                },
+                "titleSnapshot": {
+                  "patternProperties": {
+                    "^.*$": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
+                  },
+                  "type": "object"
                 }
               },
               "required": [

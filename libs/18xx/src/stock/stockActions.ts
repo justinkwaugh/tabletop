@@ -42,12 +42,12 @@ export function stockActions(rules: StockRules): ActionDefinition[] {
         defineAction(
             SetStockInstruction,
             isSetStockInstruction,
-            (action) => new HydratedSetStockInstruction(action)
+            (action) => new HydratedSetStockInstruction(action, rules)
         ),
         defineAction(
             StopStockInstruction,
             isStopStockInstruction,
-            (action) => new HydratedStopStockInstruction(action)
+            (action) => new HydratedStopStockInstruction(action, rules)
         )
     ]
 }

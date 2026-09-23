@@ -14,8 +14,9 @@ import {
     removeStandingStockInstruction,
     setStandingStockInstruction,
     standingStockInstructionFor,
-    stockPositionSnapshot
+    createStandingStockInstruction
 } from './stockInstruction.js'
+import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
 export const StopStockInstruction = Type.Object(
@@ -44,8 +45,10 @@ export class HydratedStopStockInstruction
     declare playerId: string
     declare reason: string
     declare replacement?: StockInstruction
-    constructor(data: StopStockInstruction) {
+    readonly #rules: StockRules
+    constructor(data: StopStockInstruction, rules: StockRules) {
         super(data instanceof HydratedStopStockInstruction ? data.dehydrate() : data, Validator)
+        this.#rules = rules
     }
     apply(state: HydratedGameState & StockState): void {
         assert(this.source === ActionSource.System, 'Instructions stop automatically')
@@ -54,11 +57,10 @@ export class HydratedStopStockInstruction
             'There is no standing instruction to stop'
         )
         if (this.replacement)
-            setStandingStockInstruction(state, {
-                playerId: this.playerId,
-                instruction: this.replacement,
-                snapshot: stockPositionSnapshot(state, this.playerId)
-            })
+            setStandingStockInstruction(
+                state,
+                createStandingStockInstruction(state, this.playerId, this.replacement, this.#rules)
+            )
         else removeStandingStockInstruction(state, this.playerId)
     }
 }
