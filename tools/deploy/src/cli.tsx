@@ -27,6 +27,7 @@ import {
     type PublishContext
 } from './lib/gamePublish.js'
 import { getDeployConfigPath, getManifestPath, getRepoRoot } from './lib/paths.js'
+import { formatPreflightReport, runReleasePreflight } from './lib/releasePreflight.js'
 import { syncManifestFromPackages, type BumpType } from './lib/versions.js'
 
 const repoRoot = getRepoRoot()
@@ -39,6 +40,11 @@ Commands:
   tui                          Launch the TUI (default)
   status                       Print the current manifest
   sync-manifest                Sync site-manifest.json from package versions
+  preflight --game=<id> [--json]
+                               Report the serving and local versions, the last release
+                               baseline per artifact, and which files and commits changed
+                               since it, ending with whether logic and UI or only UI need
+                               a release. Read-only.
   release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
                                Bump the game's package versions, sync the manifest, commit,
                                tag, push, then deploy (unless --no-deploy). Requires a clean
@@ -144,7 +150,8 @@ const main = async () => {
             major: { type: 'boolean' },
             minor: { type: 'boolean' },
             patch: { type: 'boolean' },
-            'no-deploy': { type: 'boolean' }
+            'no-deploy': { type: 'boolean' },
+            json: { type: 'boolean' }
         }
     })
 
@@ -174,6 +181,17 @@ const main = async () => {
         log: (message) => console.log(message)
     }
     const includeLogic = values.logic === true
+
+    if (command === 'preflight') {
+        const report = await runReleasePreflight(
+            repoRoot,
+            manifestPath,
+            deployConfig,
+            requireGame(command, values.game)
+        )
+        console.log(values.json ? JSON.stringify(report, null, 2) : formatPreflightReport(report))
+        return
+    }
 
     if (command === 'release-game') {
         await releaseGame(context, {

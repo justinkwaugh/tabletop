@@ -76,12 +76,22 @@ manifest cache. `deploy-ui` and `deploy-logic` apply the same guards for a singl
 
 Building locally is not gated: `build-ui` and `build-logic` work on any tree.
 
+`preflight --game=<gameId|packageId> [--json]` is read-only. It reports the serving versions
+from the backend manifest, the local versions, the release baseline per artifact (the release
+tag, or the commit that set the current version when no tag exists yet), the files and commits
+changed since that baseline, and whether logic and UI or only UI need a release. Changes are
+counted in the package and its workspace dependencies except the platform packages every game
+shares (`@tabletop/common`, `@tabletop/frontend-components`), so a family library such as
+`libs/18xx` counts as part of an 18xx title's logic while a platform fix does not. Agents use it to decide `--logic` and to report the
+serving state before and after a deploy; see `.agents/skills/release-game/SKILL.md`.
+
 ## Commands
 
 ```text
 tui                          Launch the TUI (default)
 status                       Print the current manifest
 sync-manifest                Sync site-manifest.json from package versions
+preflight --game=<id> [--json] Report serving/local versions and changes since the last release
 release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
                              Bump versions, commit, tag, push, then deploy
 deploy-game --game=<id> [--logic]

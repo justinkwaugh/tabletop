@@ -5,6 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { releaseGame } from '../esm/lib/gamePublish.js'
+import { runReleasePreflight } from '../esm/lib/releasePreflight.js'
 import { assertCleanWorkingTree, tagsAtHead } from '../esm/lib/git.js'
 import { logicReleaseTag, planGameVersionBump, uiReleaseTag } from '../esm/lib/versions.js'
 
@@ -31,10 +32,35 @@ const createRepo = async () => {
     await mkdir(path.join(repoRoot, 'games', 'sample'), { recursive: true })
     await mkdir(path.join(repoRoot, 'games', 'sample-ui'), { recursive: true })
     await mkdir(path.join(repoRoot, 'config', 'config-games', 'src'), { recursive: true })
-    await writeJson(path.join(repoRoot, 'apps', 'frontend', 'package.json'), { version: '1.0.0' })
-    await writeJson(path.join(repoRoot, 'games', 'sample', 'package.json'), { version: '2.3.4' })
+    await mkdir(path.join(repoRoot, 'libs', 'shared'), { recursive: true })
+    await mkdir(path.join(repoRoot, 'libs', 'common'), { recursive: true })
+    await writeFile(path.join(repoRoot, 'package.json'), '{ "name": "root", "private": true }\n')
+    await writeFile(
+        path.join(repoRoot, 'pnpm-workspace.yaml'),
+        'packages:\n  - "apps/*"\n  - "games/*"\n  - "libs/*"\n'
+    )
+    await writeJson(path.join(repoRoot, 'apps', 'frontend', 'package.json'), {
+        name: '@tabletop/frontend',
+        version: '1.0.0'
+    })
+    await writeJson(path.join(repoRoot, 'libs', 'common', 'package.json'), {
+        name: '@tabletop/common',
+        version: '0.0.1'
+    })
+    await writeJson(path.join(repoRoot, 'libs', 'shared', 'package.json'), {
+        name: '@tabletop/shared',
+        version: '0.0.1',
+        dependencies: { '@tabletop/common': 'workspace:*' }
+    })
+    await writeJson(path.join(repoRoot, 'games', 'sample', 'package.json'), {
+        name: '@tabletop/sample',
+        version: '2.3.4',
+        dependencies: { '@tabletop/shared': 'workspace:*', '@tabletop/common': 'workspace:*' }
+    })
     await writeJson(path.join(repoRoot, 'games', 'sample-ui', 'package.json'), {
-        version: '5.6.7'
+        name: '@tabletop/sample-ui',
+        version: '5.6.7',
+        dependencies: { '@tabletop/sample': 'workspace:*' }
     })
     const manifestPath = path.join(repoRoot, 'config', 'config-games', 'src', 'site-manifest.json')
     await writeJson(manifestPath, {
@@ -180,6 +206,84 @@ test('releaseGame refuses when the release tag already exists', async () => {
             /Tag sample-ui-v5.6.8 already exists/
         )
         await assertCleanWorkingTree(repo.repoRoot)
+    } finally {
+        await rm(repo.root, { recursive: true, force: true })
+    }
+})
+
+const commitFile = async (repoRoot, relativePath, content, message) => {
+    await mkdir(path.dirname(path.join(repoRoot, relativePath)), { recursive: true })
+    await writeFile(path.join(repoRoot, relativePath), content, 'utf8')
+    git(repoRoot, 'add', relativePath)
+    git(repoRoot, 'commit', '-q', '-m', message)
+}
+
+const preflight = (repo) => runReleasePreflight(repo.repoRoot, repo.manifestPath, {}, 'sample-game')
+
+test('preflight reports no release needed when nothing changed since the version commit', async () => {
+    const repo = await createRepo()
+    try {
+        await commitFile(repo.repoRoot, 'docs/notes.md', 'unrelated\n', 'Docs only')
+        const report = await preflight(repo)
+        assert.equal(report.releaseNeeded, 'none')
+        assert.equal(report.workingTreeClean, true)
+        assert.equal(report.manifestInSync, true)
+        assert.equal(report.serving, null)
+        assert.equal(report.logic.baseline.kind, 'version-commit')
+        assert.deepEqual(report.logic.sourceDirs, ['games/sample', 'libs/shared'])
+        assert.deepEqual(report.ui.sourceDirs, ['games/sample', 'games/sample-ui', 'libs/shared'])
+    } finally {
+        await rm(repo.root, { recursive: true, force: true })
+    }
+})
+
+test('preflight detects a UI-only change', async () => {
+    const repo = await createRepo()
+    try {
+        await commitFile(repo.repoRoot, 'games/sample-ui/src/index.ts', 'export {}\n', 'UI tweak')
+        const report = await preflight(repo)
+        assert.equal(report.releaseNeeded, 'ui')
+        assert.equal(report.logic.changed, false)
+        assert.deepEqual(report.ui.changedFiles, ['games/sample-ui/src/index.ts'])
+        assert.deepEqual(
+            report.ui.commits.map((commit) => commit.subject),
+            ['UI tweak']
+        )
+    } finally {
+        await rm(repo.root, { recursive: true, force: true })
+    }
+})
+
+test('preflight ignores platform package changes', async () => {
+    const repo = await createRepo()
+    try {
+        await commitFile(repo.repoRoot, 'libs/common/src/index.ts', 'export {}\n', 'Common fix')
+        const report = await preflight(repo)
+        assert.equal(report.releaseNeeded, 'none')
+        assert.deepEqual(report.logic.sourceDirs, ['games/sample', 'libs/shared'])
+        assert.deepEqual(report.logic.platformDirs, ['libs/common'])
+        assert.deepEqual(report.logic.platformChangedFiles, ['libs/common/src/index.ts'])
+    } finally {
+        await rm(repo.root, { recursive: true, force: true })
+    }
+})
+
+test('preflight treats a family dependency change as a logic change and uses tags as baselines', async () => {
+    const repo = await createRepo()
+    try {
+        await releaseGame(repo.context, {
+            game: 'sample',
+            includeLogic: true,
+            bump: 'patch',
+            deploy: false
+        })
+        await commitFile(repo.repoRoot, 'libs/shared/src/index.ts', 'export {}\n', 'Shared fix')
+        const report = await preflight(repo)
+        assert.equal(report.logic.baseline.kind, 'tag')
+        assert.equal(report.logic.baseline.ref, 'sample-v2.3.5')
+        assert.equal(report.ui.baseline.ref, 'sample-ui-v5.6.8')
+        assert.equal(report.releaseNeeded, 'logic and ui')
+        assert.deepEqual(report.logic.changedFiles, ['libs/shared/src/index.ts'])
     } finally {
         await rm(repo.root, { recursive: true, force: true })
     }

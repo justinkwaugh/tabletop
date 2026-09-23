@@ -32,6 +32,10 @@ Before designing or changing any 18xx model, Action, state/handler, logical or v
 
 For staged selection, auto-selection, `Back`, or `Undo` behavior, read `docs/user-interactions.md`.
 
+### Releasing a game
+
+To release, deploy, or publish a game, or to check what is serving for one, use `.agents/skills/release-game/SKILL.md`.
+
 ### Animation
 
 For game UI animation design, implementation, debugging, or review, use `.agents/skills/game-ui-animation/SKILL.md`.

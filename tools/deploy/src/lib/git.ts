@@ -64,3 +64,57 @@ export const pushBranchAndTags = async (
     await git(repoRoot, ['push', 'origin', branch])
     await git(repoRoot, ['push', 'origin', ...tags.map((tag) => `refs/tags/${tag}`)])
 }
+
+export const commitThatSetVersion = async (
+    repoRoot: string,
+    packageJsonPath: string,
+    version: string
+): Promise<string | null> => {
+    const output = await git(repoRoot, [
+        'log',
+        '-1',
+        '--format=%H',
+        `-S"version": "${version}"`,
+        '--',
+        packageJsonPath
+    ])
+    return output || null
+}
+
+export const resolveCommit = (repoRoot: string, ref: string): Promise<string> =>
+    git(repoRoot, ['rev-parse', '--verify', `${ref}^{commit}`])
+
+export const changedFilesSince = async (
+    repoRoot: string,
+    baseline: string,
+    dirs: string[]
+): Promise<string[]> => {
+    const output = await git(repoRoot, ['diff', '--name-only', `${baseline}..HEAD`, '--', ...dirs])
+    return output.split('\n').filter((file) => file.length > 0)
+}
+
+export type CommitSummary = { sha: string; subject: string }
+
+export const commitsSince = async (
+    repoRoot: string,
+    baseline: string,
+    dirs: string[]
+): Promise<CommitSummary[]> => {
+    const output = await git(repoRoot, [
+        'log',
+        '--format=%h%x00%s',
+        `${baseline}..HEAD`,
+        '--',
+        ...dirs
+    ])
+    return output
+        .split('\n')
+        .filter((line) => line.length > 0)
+        .map((line) => {
+            const [sha, subject] = line.split('\u0000')
+            return { sha, subject }
+        })
+}
+
+export const isWorkingTreeClean = async (repoRoot: string): Promise<boolean> =>
+    (await git(repoRoot, ['status', '--porcelain'])) === ''
