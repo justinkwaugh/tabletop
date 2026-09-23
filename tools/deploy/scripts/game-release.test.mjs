@@ -378,3 +378,9 @@ test('backend preflight counts the backend package and its dependencies', async 
         await rm(repo.root, { recursive: true, force: true })
     }
 })
+
+test('revision suffixes are valid Cloud Run names', async () => {
+    const { revisionSuffixForVersion } = await import('../esm/lib/commands.js')
+    assert.equal(revisionSuffixForVersion('1.0.0'), 'v1-0-0')
+    assert.equal(revisionSuffixForVersion('2.10.3-rc.1'), 'v2-10-3-rc-1')
+})

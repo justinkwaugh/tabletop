@@ -141,6 +141,38 @@ export const submitBackendImageCommand = (
     requiresDeploy: true
 })
 
+export const routeTrafficToRevisionCommand = (
+    repoRoot: string,
+    service: string,
+    revision: string,
+    config: DeployConfig
+): CommandSpec => {
+    const backend = config.backend
+    if (!backend?.region || !backend.project) {
+        throw new Error('Missing backend config for traffic routing (region/project)')
+    }
+    return {
+        label: `route-traffic:${service}`,
+        command: 'gcloud',
+        args: [
+            'run',
+            'services',
+            'update-traffic',
+            service,
+            '--region',
+            backend.region,
+            '--project',
+            backend.project,
+            '--to-revisions',
+            `${revision}=100`,
+            '--quiet'
+        ],
+        cwd: repoRoot,
+        logPath: `/tmp/${service}-route-traffic.log`,
+        requiresDeploy: true
+    }
+}
+
 export const promoteBackendCommand = (
     repoRoot: string,
     service: string,
@@ -472,7 +504,12 @@ export type BackendDeployOptions = {
     service?: string
     image?: string
     envVars?: Record<string, string>
+    revisionSuffix?: string
 }
+
+// Cloud Run revision names allow only lowercase letters, digits, and dashes.
+export const revisionSuffixForVersion = (version: string) =>
+    `v${version.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
 
 const envVarArgs = (envVars?: Record<string, string>) =>
     envVars && Object.keys(envVars).length > 0
@@ -546,7 +583,8 @@ export const deployBackendCommand = (
             '--project',
             backend.project,
             '--quiet',
-            ...envVarArgs(options?.envVars)
+            ...envVarArgs(options?.envVars),
+            ...(options?.revisionSuffix ? ['--revision-suffix', options.revisionSuffix] : [])
         ]
 
         if (!allowTraffic) {

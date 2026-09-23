@@ -5,9 +5,11 @@ import {
     buildBackendImageContextCommand,
     deployBackendCommand,
     promoteBackendCommand,
+    revisionSuffixForVersion,
+    routeTrafficToRevisionCommand,
     submitBackendImageCommand
 } from './commands.js'
-import { artifactImageExists } from './gcs.js'
+import { artifactImageExists, cloudRunRevisionExists } from './gcs.js'
 import { headCommitSha } from './git.js'
 import {
     checkArtifactsPublishable,
@@ -121,13 +123,31 @@ const buildAndDeploy = async (
             submitBackendImageCommand(context.repoRoot, artifact.destination, target.project)
         )
     }
+    const revisionSuffix = revisionSuffixForVersion(artifact.version)
     for (const service of target.services) {
+        const revision = `${service}-${revisionSuffix}`
+        if (await cloudRunRevisionExists(revision, target.project, target.region)) {
+            context.log(`${revision} already exists; reusing it`)
+            if (serveTraffic) {
+                await runSpec(
+                    context,
+                    routeTrafficToRevisionCommand(
+                        context.repoRoot,
+                        service,
+                        revision,
+                        context.deployConfig
+                    )
+                )
+            }
+            continue
+        }
         await runSpec(
             context,
             deployBackendCommand(context.repoRoot, context.deployConfig, {
                 service,
                 image: artifact.destination,
                 allowTraffic: serveTraffic,
+                revisionSuffix,
                 envVars: {
                     BACKEND_VERSION: artifact.version,
                     GIT_SHA: sha,

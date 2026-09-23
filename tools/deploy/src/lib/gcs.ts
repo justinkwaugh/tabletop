@@ -46,6 +46,31 @@ export const artifactImageExists = (image: string, project: string): Promise<boo
         child.on('close', (code) => resolve(code === 0))
     })
 
+export const cloudRunRevisionExists = (
+    revision: string,
+    project: string,
+    region: string
+): Promise<boolean> =>
+    new Promise((resolve) => {
+        const child = spawn(
+            'gcloud',
+            [
+                'run',
+                'revisions',
+                'describe',
+                revision,
+                '--project',
+                project,
+                '--region',
+                region,
+                '--quiet'
+            ],
+            { env: withCloudSdkPythonEnv(process.env), stdio: ['ignore', 'ignore', 'ignore'] }
+        )
+        child.on('error', () => resolve(false))
+        child.on('close', (code) => resolve(code === 0))
+    })
+
 export const checkFrontendDeployed = async (
     manifest: SiteManifest,
     config: DeployConfig,

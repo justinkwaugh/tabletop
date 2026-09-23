@@ -86,8 +86,9 @@ The backend follows the same model with `release-backend (--major | --minor | --
 `apps/backend/package.json` and tags `backend-v<version>`. The deploy builds the backend,
 produces the pruned image context with `pnpm --filter @tabletop/backend run docker-context`,
 submits it to Cloud Build tagged `<backend.image>:<version>`, and deploys that image to the
-`backend` and `tasks` Cloud Run services with traffic, setting `BACKEND_VERSION`, `GIT_SHA`,
-and `BUILD_TIME` so the manifest reports what is running. `--no-traffic` stages a revision
+`backend` and `tasks` Cloud Run services with traffic as revisions named `<service>-v<version>`
+with dots replaced by dashes, setting `BACKEND_VERSION`, `GIT_SHA`, and `BUILD_TIME` so the
+manifest reports what is running. A rerun that finds the revision already present reuses it. `--no-traffic` stages a revision
 without serving it, `promote-backend` shifts both services to their latest revision, and
 `rollback-backend <revision>` shifts traffic back. No Docker is needed
 locally. The image tag is immutable: a version already in Artifact Registry is refused.
