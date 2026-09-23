@@ -38,6 +38,13 @@ export const BACKEND_PACKAGE = '@tabletop/backend'
 
 export type BackendService = 'backend' | 'tasks'
 
+// The backend hands work to the tasks service, so tasks must be running the new version before
+// backend is. Every deploy and promotion orders the services this way regardless of input.
+const SERVICE_ROLLOUT_ORDER: BackendService[] = ['tasks', 'backend']
+
+export const orderServices = (services: BackendService[]): BackendService[] =>
+    SERVICE_ROLLOUT_ORDER.filter((service) => services.includes(service))
+
 export type BackendDeployOptions = {
     services: BackendService[]
     serveTraffic: boolean
@@ -67,7 +74,7 @@ export const resolveBackendTarget = (
     if (!deployConfig.backendManifestUrl) {
         throw new Error('Missing backendManifestUrl (needed to verify the serving backend)')
     }
-    const serviceNames = services.map((service) =>
+    const serviceNames = orderServices(services).map((service) =>
         service === 'backend' ? backend.service : (backend.tasksService ?? 'tasks')
     )
     return {

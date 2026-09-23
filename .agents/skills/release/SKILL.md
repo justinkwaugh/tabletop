@@ -16,8 +16,9 @@ The frontend differs from a game in two ways: it has no `--logic` flag, since it
 artifact, and it needs its own release to ship shared Game Client changes to players even when
 no game changed (`docs/adr/0004-game-ui-host-bridge-contract.md`).
 
-The backend is a container image built by Cloud Build and deployed to the `backend` and
-`tasks` Cloud Run services together, serving traffic immediately. `--no-traffic` stages a
+The backend is a container image built by Cloud Build and deployed to the `tasks` and
+`backend` Cloud Run services together, always tasks first because backend hands work to it,
+serving traffic immediately. `--no-traffic` stages a
 revision instead and `promote-backend` later shifts traffic to it; `--service=backend|tasks`
 narrows either; `rollback-backend <revision>` reverts. A backend deploy takes several minutes because the image builds remotely.
 

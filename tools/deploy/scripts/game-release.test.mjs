@@ -384,3 +384,10 @@ test('revision suffixes are valid Cloud Run names', async () => {
     assert.equal(revisionSuffixForVersion('1.0.0'), 'v1-0-0')
     assert.equal(revisionSuffixForVersion('2.10.3-rc.1'), 'v2-10-3-rc-1')
 })
+
+test('backend services roll out tasks first, then backend', async () => {
+    const { orderServices } = await import('../esm/lib/backendPublish.js')
+    assert.deepEqual(orderServices(['backend', 'tasks']), ['tasks', 'backend'])
+    assert.deepEqual(orderServices(['backend']), ['backend'])
+    assert.deepEqual(orderServices(['tasks']), ['tasks'])
+})
