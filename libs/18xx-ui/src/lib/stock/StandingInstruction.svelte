@@ -358,6 +358,7 @@
     .help-panel ul {
         margin: 0;
         padding-left: 18px;
+        list-style: disc;
     }
     .help-panel li + li {
         margin-top: 3px;
