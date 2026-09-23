@@ -6,7 +6,14 @@ import { promisify } from 'node:util'
 import { withCloudSdkPythonEnv } from './cloudSdkPython.js'
 import { manifestObjectUrl } from './commands.js'
 import { parseManifest, writeManifest } from './manifest.js'
-import type { DeployConfig, GameCatalogueEntry, SiteManifest } from './types.js'
+import type {
+    DeployConfig,
+    FrontendVersionRecord,
+    GameCatalogueEntry,
+    GameManifestEntry,
+    PublicationRecord,
+    SiteManifest
+} from './types.js'
 import { updatePriorVersions } from './versions.js'
 
 const execFileAsync = promisify(execFile)
@@ -51,20 +58,42 @@ export type GameVersionUpdate = {
     uiVersion?: string
 }
 
+export type ChangeMetadata = {
+    deployedAt: string
+    commitSha?: string
+    tags?: string[]
+}
+
+const samePublication = (a: PublicationRecord, b: PublicationRecord) =>
+    a.logicVersion === b.logicVersion && a.uiVersion === b.uiVersion
+
+// History lists every Publication that has served, newest first, each pair once. A manifest
+// written before history existed seeds it with the Publication current at that time.
+const seedGameHistory = (entry: GameManifestEntry): PublicationRecord[] =>
+    entry.history ?? [{ logicVersion: entry.logicVersion, uiVersion: entry.uiVersion }]
+
+const withPublicationFirst = (
+    history: PublicationRecord[],
+    record: PublicationRecord
+): PublicationRecord[] => [record, ...history.filter((entry) => !samePublication(entry, record))]
+
 export const withGameVersions = (
     manifest: SiteManifest,
     game: GameCatalogueEntry,
-    update: GameVersionUpdate
+    update: GameVersionUpdate,
+    metadata: ChangeMetadata
 ): SiteManifest => {
     const existing = manifest.games.find((entry) => entry.packageId === game.packageId)
-    const current = existing ?? {
+    const current: GameManifestEntry = existing ?? {
         ...game,
         logicVersion: update.logicVersion ?? '',
-        uiVersion: update.uiVersion ?? ''
+        uiVersion: update.uiVersion ?? '',
+        history: []
     }
     const logicVersion = update.logicVersion ?? current.logicVersion
     const uiVersion = update.uiVersion ?? current.uiVersion
-    const next = {
+    const record: PublicationRecord = { logicVersion, uiVersion, ...metadata }
+    const next: GameManifestEntry = {
         ...current,
         gameId: game.gameId,
         logicVersion,
@@ -74,7 +103,8 @@ export const withGameVersions = (
             : [],
         priorUiVersions: existing
             ? updatePriorVersions(current.uiVersion, uiVersion, current.priorUiVersions)
-            : []
+            : [],
+        history: withPublicationFirst(seedGameHistory(current), record)
     }
     const games = existing
         ? manifest.games.map((entry) => (entry.packageId === game.packageId ? next : entry))
@@ -82,15 +112,57 @@ export const withGameVersions = (
     return { ...manifest, games }
 }
 
-export const withFrontendVersion = (manifest: SiteManifest, version: string): SiteManifest => ({
-    ...manifest,
-    frontend: {
-        ...manifest.frontend,
+const seedFrontendHistory = (frontend: SiteManifest['frontend']): FrontendVersionRecord[] =>
+    frontend.history ?? [{ version: frontend.version }]
+
+export const withFrontendVersion = (
+    manifest: SiteManifest,
+    version: string,
+    metadata: ChangeMetadata
+): SiteManifest => {
+    const record: FrontendVersionRecord = {
         version,
-        priorVersions: updatePriorVersions(
-            manifest.frontend.version,
-            version,
-            manifest.frontend.priorVersions
-        )
+        deployedAt: metadata.deployedAt,
+        commitSha: metadata.commitSha,
+        tag: metadata.tags?.[0]
     }
-})
+    return {
+        ...manifest,
+        frontend: {
+            ...manifest.frontend,
+            version,
+            priorVersions: updatePriorVersions(
+                manifest.frontend.version,
+                version,
+                manifest.frontend.priorVersions
+            ),
+            history: [
+                record,
+                ...seedFrontendHistory(manifest.frontend).filter(
+                    (entry) => entry.version !== version
+                )
+            ]
+        }
+    }
+}
+
+export const gameHistory = (entry: GameManifestEntry): PublicationRecord[] => seedGameHistory(entry)
+
+export const frontendHistory = (manifest: SiteManifest): FrontendVersionRecord[] =>
+    seedFrontendHistory(manifest.frontend)
+
+// Rollback selects the Publication that served before the current one.
+export const previousGamePublication = (entry: GameManifestEntry): PublicationRecord | null => {
+    const history = seedGameHistory(entry)
+    const currentIndex = history.findIndex(
+        (record) =>
+            record.logicVersion === entry.logicVersion && record.uiVersion === entry.uiVersion
+    )
+    return history[currentIndex + 1] ?? null
+}
+
+export const previousFrontendVersion = (manifest: SiteManifest): FrontendVersionRecord | null => {
+    const history = seedFrontendHistory(manifest.frontend)
+    const currentIndex = history.findIndex((record) => record.version === manifest.frontend.version)
+    return history[currentIndex + 1] ?? null
+}

@@ -16,6 +16,7 @@ import {
     type PublishedArtifact,
     type ServingLookup
 } from './publishCore.js'
+import { headCommitSha } from './git.js'
 import { withFrontendVersion } from './remoteManifest.js'
 import {
     bumpVersion,
@@ -70,8 +71,13 @@ const buildAndUpload = async (
             deployFrontendCommand(context.repoRoot, version, context.deployConfig)
         ])
     }
+    const metadata = {
+        deployedAt: new Date().toISOString(),
+        commitSha: await headCommitSha(context.repoRoot),
+        tags: [frontendReleaseTag(version)]
+    }
     await publishManifest(context, `frontend-${version}`, (manifest) =>
-        withFrontendVersion(manifest, version)
+        withFrontendVersion(manifest, version, metadata)
     )
 }
 

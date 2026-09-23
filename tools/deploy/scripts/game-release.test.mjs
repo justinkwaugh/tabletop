@@ -398,10 +398,16 @@ test('manifest updates record versions and prior versions without touching other
             { gameId: 'b', packageId: 'b', logicVersion: '3.0.0', uiVersion: '4.0.0' }
         ]
     }
+    const when = {
+        deployedAt: '2026-09-23T04:05:06.789Z',
+        commitSha: 'abc',
+        tags: ['a-ui-v2.1.0']
+    }
     const uiOnly = withGameVersions(
         manifest,
         { gameId: 'a', packageId: 'a' },
-        { uiVersion: '2.1.0' }
+        { uiVersion: '2.1.0' },
+        when
     )
     assert.deepEqual(uiOnly.games[0], {
         gameId: 'a',
@@ -409,14 +415,19 @@ test('manifest updates record versions and prior versions without touching other
         logicVersion: '1.0.0',
         uiVersion: '2.1.0',
         priorLogicVersions: [],
-        priorUiVersions: ['2.0.0', '1.9.0']
+        priorUiVersions: ['2.0.0', '1.9.0'],
+        history: [
+            { logicVersion: '1.0.0', uiVersion: '2.1.0', ...when },
+            { logicVersion: '1.0.0', uiVersion: '2.0.0' }
+        ]
     })
     assert.deepEqual(uiOnly.games[1], manifest.games[1])
 
     const added = withGameVersions(
         manifest,
         { gameId: 'c', packageId: 'c-package' },
-        { logicVersion: '0.1.0', uiVersion: '0.1.0' }
+        { logicVersion: '0.1.0', uiVersion: '0.1.0' },
+        when
     )
     assert.equal(added.games.length, 3)
     assert.deepEqual(added.games[2], {
@@ -425,15 +436,80 @@ test('manifest updates record versions and prior versions without touching other
         logicVersion: '0.1.0',
         uiVersion: '0.1.0',
         priorLogicVersions: [],
-        priorUiVersions: []
+        priorUiVersions: [],
+        history: [{ logicVersion: '0.1.0', uiVersion: '0.1.0', ...when }]
     })
 
-    const frontend = withFrontendVersion(manifest, '1.1.0')
-    assert.deepEqual(frontend.frontend, { version: '1.1.0', priorVersions: ['1.0.0', '0.9.0'] })
+    const frontend = withFrontendVersion(manifest, '1.1.0', when)
+    assert.deepEqual(frontend.frontend, {
+        version: '1.1.0',
+        priorVersions: ['1.0.0', '0.9.0'],
+        history: [
+            { version: '1.1.0', deployedAt: when.deployedAt, commitSha: 'abc', tag: 'a-ui-v2.1.0' },
+            { version: '1.0.0' }
+        ]
+    })
     assert.deepEqual(frontend.games, manifest.games)
 
     assert.equal(
         manifestBackupUrl({ gcsBucket: 'b' }, 'a ui/2.1.0', new Date('2026-09-23T04:05:06.789Z')),
         'gs://b/config/manifest-backups/site-manifest.20260923-040506789Z.a-ui-2.1.0.json'
     )
+})
+
+test('rollback selects the publication before the current one and re-selecting moves it to the front', async () => {
+    const {
+        previousGamePublication,
+        previousFrontendVersion,
+        withGameVersions,
+        withFrontendVersion
+    } = await import('../esm/lib/remoteManifest.js')
+    const entry = {
+        gameId: 'a',
+        packageId: 'a',
+        logicVersion: '1.0.0',
+        uiVersion: '2.1.0',
+        history: [
+            { logicVersion: '1.0.0', uiVersion: '2.1.0', deployedAt: 't2' },
+            { logicVersion: '1.0.0', uiVersion: '2.0.0', deployedAt: 't1' },
+            { logicVersion: '0.9.0', uiVersion: '1.9.0', deployedAt: 't0' }
+        ]
+    }
+    assert.deepEqual(previousGamePublication(entry), {
+        logicVersion: '1.0.0',
+        uiVersion: '2.0.0',
+        deployedAt: 't1'
+    })
+    const rolledBack = withGameVersions(
+        { frontend: { version: '1.0.0' }, games: [entry] },
+        { gameId: 'a', packageId: 'a' },
+        { logicVersion: '1.0.0', uiVersion: '2.0.0' },
+        { deployedAt: 't3' }
+    ).games[0]
+    assert.deepEqual(
+        rolledBack.history.map((record) => [record.uiVersion, record.deployedAt]),
+        [
+            ['2.0.0', 't3'],
+            ['2.1.0', 't2'],
+            ['1.9.0', 't0']
+        ]
+    )
+    assert.deepEqual(previousGamePublication(rolledBack), entry.history[0])
+
+    const seeded = { gameId: 'b', packageId: 'b', logicVersion: '1.0.0', uiVersion: '1.0.0' }
+    assert.equal(previousGamePublication(seeded), null)
+
+    const frontend = {
+        frontend: {
+            version: '2.0.0',
+            history: [{ version: '2.0.0' }, { version: '1.0.0' }]
+        },
+        games: []
+    }
+    assert.deepEqual(previousFrontendVersion(frontend), { version: '1.0.0' })
+    const back = withFrontendVersion(frontend, '1.0.0', { deployedAt: 't9' })
+    assert.deepEqual(back.frontend.history, [
+        { version: '1.0.0', deployedAt: 't9', commitSha: undefined, tag: undefined },
+        { version: '2.0.0' }
+    ])
 })

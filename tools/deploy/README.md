@@ -64,6 +64,27 @@ without serving it, `promote-backend` shifts both services to their latest revis
 `rollback-backend <revision>` shifts traffic back. No Docker is needed
 locally. The image tag is immutable: a version already in Artifact Registry is refused.
 
+### History, rollback, and switch
+
+Every manifest change appends to a publication history: per game a list of logic and UI
+version pairs, for the frontend a list of versions, newest first with the deploy time, commit,
+and tags. A manifest written before history existed is seeded with its current publication.
+
+```bash
+node tools/deploy/esm/cli.js list (--game=<id> | --frontend)
+node tools/deploy/esm/cli.js rollback (--game=<id> | --frontend)
+node tools/deploy/esm/cli.js switch --game=<id> --ui-version=<v> [--logic-version=<v>]
+node tools/deploy/esm/cli.js switch --frontend --version=<v>
+```
+
+`rollback` selects the publication that served before the current one. `switch` selects
+specific versions; logic can only be selected together with the UI that embeds it. Both verify
+the artifacts still exist in the bucket, back up and rewrite the manifest, invalidate the cache,
+and report the serving versions before and after like a deploy. Selecting older logic prints a
+caution, because games whose state was written by newer logic need explicit reverse
+compatibility. The backend uses Cloud Run revisions instead: `promote-backend` and
+`rollback-backend <revision>`.
+
 `preflight (--game=<gameId|packageId> | --frontend | --backend) [--json]` is read-only. It reports the serving versions
 from the backend manifest, the local versions, the release baseline per artifact (the release
 tag, or the commit that set the current version when no tag exists yet), the files and commits
@@ -77,6 +98,12 @@ serving state before and after a deploy; see `.agents/skills/release/SKILL.md`.
 
 ```text
 status                       Print the manifest the bucket currently serves
+list (--game=<id> | --frontend)
+                             Print the publication history, newest first
+rollback (--game=<id> | --frontend)
+                             Select the publication that served before the current one
+switch --game=<id> --ui-version=<v> [--logic-version=<v>] | --frontend --version=<v>
+                             Select specific published versions
 preflight (--game=<id> | --frontend | --backend) [--json]
                              Report serving/local versions and changes since the last release
 release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]

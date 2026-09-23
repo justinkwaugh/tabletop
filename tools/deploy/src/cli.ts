@@ -20,6 +20,7 @@ import {
 } from './lib/backendPublish.js'
 import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
 import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.js'
+import { listHistory, rollback, switchFrontend, switchGame } from './lib/publicationHistory.js'
 import { type PublishContext } from './lib/publishCore.js'
 import { getCataloguePath, getDeployConfigPath, getRepoRoot } from './lib/paths.js'
 import {
@@ -38,6 +39,14 @@ const usage = `tabletop-deploy <command>
 
 Commands:
   status                       Print the manifest the bucket currently serves
+  list (--game=<id> | --frontend)
+                               Print the publication history, newest first, marking the current
+  rollback (--game=<id> | --frontend)
+                               Select the publication that served before the current one.
+                               Only rewrites the manifest; the artifacts must still exist.
+  switch --game=<id> --ui-version=<v> [--logic-version=<v>]
+  switch --frontend --version=<v>
+                               Select specific published versions. Logic needs its UI too.
   preflight (--game=<id> | --frontend | --backend) [--json]
                                Report the serving and local versions, the last release
                                baseline per artifact, and which files and commits changed
@@ -164,6 +173,9 @@ const main = async () => {
             minor: { type: 'boolean' },
             patch: { type: 'boolean' },
             'no-deploy': { type: 'boolean' },
+            version: { type: 'string' },
+            'logic-version': { type: 'string' },
+            'ui-version': { type: 'string' },
             json: { type: 'boolean' }
         }
     })
@@ -191,6 +203,36 @@ const main = async () => {
     const includeLogic = values.logic === true
 
     const deployByDefault = values['no-deploy'] !== true
+    const historyTarget = () => {
+        if (values.frontend === true && values.game === undefined)
+            return { frontend: true as const }
+        if (values.frontend !== true && values.game !== undefined) return { game: values.game }
+        throw new Error(`${command} takes exactly one of --game=<id> or --frontend`)
+    }
+
+    if (command === 'list') {
+        await listHistory(context, historyTarget())
+        return
+    }
+
+    if (command === 'rollback') {
+        await rollback(context, historyTarget())
+        return
+    }
+
+    if (command === 'switch') {
+        const target = historyTarget()
+        if ('frontend' in target) {
+            if (!values.version) throw new Error('switch --frontend requires --version=<v>')
+            await switchFrontend(context, values.version)
+        } else {
+            await switchGame(context, target.game, {
+                logicVersion: values['logic-version'],
+                uiVersion: values['ui-version']
+            })
+        }
+        return
+    }
 
     if (command === 'preflight') {
         const targets = [

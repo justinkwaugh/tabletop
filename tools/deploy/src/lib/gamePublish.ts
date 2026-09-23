@@ -23,6 +23,7 @@ import {
     type PublishedArtifact,
     type ServingLookup
 } from './publishCore.js'
+import { headCommitSha } from './git.js'
 import { withGameVersions } from './remoteManifest.js'
 import type { GameCatalogueEntry } from './types.js'
 import {
@@ -148,11 +149,21 @@ const buildAndUpload = async (
 
     const deployedKinds = artifacts.map((artifact) => artifact.kind)
     const operation = `${entry.gameId}-${artifacts.map((a) => `${a.kind}-${a.version}`).join('-')}`
+    const metadata = {
+        deployedAt: new Date().toISOString(),
+        commitSha: await headCommitSha(context.repoRoot),
+        tags: artifacts.map((artifact) => artifact.tag)
+    }
     await publishManifest(context, operation, (manifest) =>
-        withGameVersions(manifest, entry, {
-            logicVersion: deployedKinds.includes('logic') ? versions.logic : undefined,
-            uiVersion: deployedKinds.includes('ui') ? versions.ui : undefined
-        })
+        withGameVersions(
+            manifest,
+            entry,
+            {
+                logicVersion: deployedKinds.includes('logic') ? versions.logic : undefined,
+                uiVersion: deployedKinds.includes('ui') ? versions.ui : undefined
+            },
+            metadata
+        )
     )
 }
 

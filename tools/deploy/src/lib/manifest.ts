@@ -24,6 +24,14 @@ export const parseManifest = (raw: string): SiteManifest => {
         throw new Error('Manifest frontend.priorVersions must be a string array')
     }
 
+    if (
+        'history' in frontend &&
+        frontend.history !== undefined &&
+        !Array.isArray(frontend.history)
+    ) {
+        throw new Error('Manifest frontend.history must be an array')
+    }
+
     const games = parsed.games
     if (!Array.isArray(games)) {
         throw new Error('Manifest games must be an array')
@@ -52,6 +60,9 @@ export const parseManifest = (raw: string): SiteManifest => {
                 entry.priorLogicVersions.some((value) => typeof value !== 'string'))
         ) {
             throw new Error(`Manifest ${entry.gameId}.priorLogicVersions must be a string array`)
+        }
+        if ('history' in entry && entry.history !== undefined && !Array.isArray(entry.history)) {
+            throw new Error(`Manifest ${entry.gameId}.history must be an array`)
         }
         if (
             'priorUiVersions' in entry &&

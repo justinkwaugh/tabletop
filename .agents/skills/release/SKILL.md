@@ -113,6 +113,17 @@ Deployed:      <artifacts and versions>
 Serving now:   logic <x> / ui <y>
 ```
 
+## Rolling back or switching
+
+`list --game=<id>` or `list --frontend` prints the publication history with the current one
+marked. `rollback` selects the previous publication; `switch --game=<id> --ui-version=<v>
+[--logic-version=<v>]` or `switch --frontend --version=<v>` selects specific ones. These only
+rewrite the manifest, verify the artifacts exist first, and print the same before, deploying,
+SUCCEEDED or FAILED, and serving lines as a deploy; report them in the same shape. A selection
+that changes logic is a Logic Rollback: relay the caution the tool prints and get explicit
+confirmation before running it, since games whose state was written by the newer logic may not
+load. The backend rolls back by Cloud Run revision with `rollback-backend <revision>`.
+
 ## Boundaries
 
 The release commands are the only paths that change package versions. A shared Game Client
