@@ -46,8 +46,11 @@
     // summary never describe different positions.
     let settled: { gameState: typeof session.gameState; actions: readonly GameAction[] } | undefined
     const position = $derived.by(() => {
-        if (session.updatingVisibleState && settled) return settled
         const state = session.gameState
+        // The visible context's action count leads the exposed state's while a step is applied.
+        const transitioning =
+            session.updatingVisibleState || session.currentActionIndex + 1 !== state.actionCount
+        if (transitioning && settled) return settled
         settled = { gameState: state, actions: session.actions.slice(0, state.actionCount) }
         return settled
     })
