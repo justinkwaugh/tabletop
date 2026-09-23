@@ -9,6 +9,16 @@ import {
 import { BuyShares, HydratedBuyShares, isBuyShares } from './buyShares.js'
 import { SellShares, HydratedSellShares, isSellShares } from './sellShares.js'
 import { FinishStockTurn, HydratedFinishStockTurn, isFinishStockTurn } from './finishStockTurn.js'
+import {
+    SetStockInstruction,
+    HydratedSetStockInstruction,
+    isSetStockInstruction
+} from './setStockInstruction.js'
+import {
+    StopStockInstruction,
+    HydratedStopStockInstruction,
+    isStopStockInstruction
+} from './stopStockInstruction.js'
 
 export function stockActions(rules: StockRules): ActionDefinition[] {
     return [
@@ -28,6 +38,16 @@ export function stockActions(rules: StockRules): ActionDefinition[] {
             FinishStockTurn,
             isFinishStockTurn,
             (action) => new HydratedFinishStockTurn(action, rules)
+        ),
+        defineAction(
+            SetStockInstruction,
+            isSetStockInstruction,
+            (action) => new HydratedSetStockInstruction(action)
+        ),
+        defineAction(
+            StopStockInstruction,
+            isStopStockInstruction,
+            (action) => new HydratedStopStockInstruction(action)
         )
     ]
 }

@@ -25,10 +25,11 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
             assertExists(last, 'Undo target is not in Action History')
             action = last
             if (
-                action.playerId &&
-                action.playerId !== target.playerId &&
-                target.simultaneousGroupId !== undefined &&
-                action.simultaneousGroupId === target.simultaneousGroupId
+                (action.outOfTurn && action.id !== target.id) ||
+                (action.playerId &&
+                    action.playerId !== target.playerId &&
+                    target.simultaneousGroupId !== undefined &&
+                    action.simultaneousGroupId === target.simultaneousGroupId)
             ) {
                 redoActions.unshift(action)
             }

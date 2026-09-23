@@ -6,6 +6,8 @@ import {
     isFinishStations,
     isFinishOperatingTurn,
     isFinishStockTurn,
+    isSetStockInstruction,
+    isStopStockInstruction,
     type BuyShares,
     type FloatCompany
 } from '@tabletop/18xx'
@@ -15,7 +17,9 @@ export function isHistoryBookkeeping(action: GameAction): boolean {
         isFinishTrack(action) ||
         isFinishStations(action) ||
         isFinishOperatingTurn(action) ||
-        (isFinishStockTurn(action) && action.metadata?.passed === false)
+        (isFinishStockTurn(action) && action.metadata?.passed === false) ||
+        isSetStockInstruction(action) ||
+        isStopStockInstruction(action)
     )
 }
 

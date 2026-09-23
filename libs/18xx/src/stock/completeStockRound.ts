@@ -83,6 +83,7 @@ export class HydratedCompleteStockRound
             placeStockMarker(state.stockMarket, move.companyId, move.toMarketSpaceId)
         state.turnManager.turnOrder = [...nextPlayerOrder]
         state.stockRound.completed = true
+        delete state.stockRound.instructions
         this.metadata = { nextPlayerOrder, marketMoves }
     }
 }

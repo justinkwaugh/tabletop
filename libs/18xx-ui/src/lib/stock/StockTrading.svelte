@@ -1,6 +1,7 @@
 <script lang="ts">
     import StockRoundStatus from './StockRoundStatus.svelte'
     import CompanyStarting from './CompanyStarting.svelte'
+    import StandingInstruction from './StandingInstruction.svelte'
     import {
         getCompany,
         isBuyShares,
@@ -51,6 +52,7 @@
         </div>
     </header>
     <StockRoundStatus {session} />
+    <StandingInstruction {session} />
     {#if session.stock.mustSell}<p role="status">
             Sell down to the stock limits before buying or finishing.
         </p>{/if}

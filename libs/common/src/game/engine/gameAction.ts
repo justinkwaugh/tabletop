@@ -65,6 +65,7 @@ export const GameAction = Type.Object({
     simultaneousGroupId: Type.Optional(Type.String()),
     revealsInfo: Type.Optional(Type.Boolean()),
     skipOptimisticExecution: Type.Optional(Type.Literal(true)),
+    outOfTurn: Type.Optional(Type.Literal(true)),
     createdAt: Type.Optional(DateType()),
     updatedAt: Type.Optional(DateType())
 })
@@ -110,6 +111,7 @@ export abstract class HydratableAction<T extends Type.TSchema>
     declare simultaneousGroupId?: string
     declare revealsInfo?: boolean
     declare skipOptimisticExecution?: true
+    declare outOfTurn?: true
     declare createdAt?: Date
     declare updatedAt?: Date
 

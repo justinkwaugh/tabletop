@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { Owner } from '../finance/finance.js'
 import { StockTurn } from './stockTurn.js'
+import { StandingStockInstruction } from './stockInstruction.js'
 import { assert } from '@tabletop/common'
 
 export const StockRound = Type.Object(
@@ -12,7 +13,8 @@ export const StockRound = Type.Object(
         sales: Type.Array(
             Type.Object({ owner: Owner, companyId: Type.String() }, { additionalProperties: false })
         ),
-        companyPurchases: Type.Array(Type.String())
+        companyPurchases: Type.Array(Type.String()),
+        instructions: Type.Optional(Type.Array(StandingStockInstruction))
     },
     { additionalProperties: false }
 )

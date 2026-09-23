@@ -213,7 +213,10 @@ it('1889 exchanges during another stock turn without changing passes, purchases 
         action: action(state, 'FinishStockTurn')
     }).updatedState
     expect(passed.activePlayerIds).toEqual(['blair', 'alex', 'casey'])
-    expect(engine.getValidActionTypesForPlayer(game, passed, 'alex')).toEqual(['ExchangePrivate'])
+    expect(engine.getValidActionTypesForPlayer(game, passed, 'alex')).toEqual([
+        'ExchangePrivate',
+        'SetStockInstruction'
+    ])
     expect(() =>
         engine.executeCanonicalAction({
             game,

@@ -47,7 +47,10 @@ export class HydratedBuyShares extends HydratableAction<typeof BuyShares> implem
         this.#rules = rules
     }
     apply(state: HydratedGameState & StockState): void {
-        assert(this.source === ActionSource.User, 'A share purchase requires a player action')
+        assert(
+            this.source === ActionSource.User || this.source === ActionSource.System,
+            'A share purchase requires a player or standing instruction'
+        )
         const result = evaluateSharePurchase(state, this, this.#rules)
         assert(result.details, result.reason ?? 'Invalid purchase')
         assert(this.expectedPrice === result.details.price, 'The purchase price has changed')

@@ -82,7 +82,7 @@ Advancing a Primary Game Context with a locally processed User Action before hos
 Aligning a Primary Game Context with a host’s canonical accepted Action history after optimistic application or realtime updates.
 
 **Undo Candidate**:
-The User Action currently offered by the Game Client for Undo under its local understanding of identity, Action origin, simultaneous grouping, and information barriers. For a Hosted Game, the candidate remains subject to host authorization.
+The User Action currently offered by the Game Client for Undo under its local understanding of identity, Action origin, simultaneous grouping, and information barriers. Out-of-Turn Actions are never candidates and never block another Player's candidate; a suffix reversal re-applies them. For a Hosted Game, the candidate remains subject to host authorization.
 
 ## Action drafting
 

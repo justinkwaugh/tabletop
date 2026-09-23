@@ -23,6 +23,7 @@ import { StartOperatingTurnHandler } from '../operating/startOperatingTurn.js'
 import { StartOperatingSetHandler } from '../operating/startOperatingSetHandler.js'
 import { TerminalStateHandler, assert, type GameRuntime } from '@tabletop/common'
 import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
+import { StockInstructionHandler } from '../stock/stockInstructionHandler.js'
 import { StockRoundHandler } from '../stock/stockRoundHandler.js'
 import {
     EighteenXXState,
@@ -135,15 +136,18 @@ export function createEighteenXXRuntime(
             decides('RustingTrains', new RustingTrainsHandler(after('RunningTrains')))
         ),
         StockRound: endsGame(
-            allowsCompanyDecisions(
-                new AutomaticStockTurnHandler(
-                    allowsExchange(
-                        decides(
-                            'StockRound',
-                            new StockRoundHandler(rules, 'StartingOperatingSet', companyRules)
+            new StockInstructionHandler(
+                allowsCompanyDecisions(
+                    new AutomaticStockTurnHandler(
+                        allowsExchange(
+                            decides(
+                                'StockRound',
+                                new StockRoundHandler(rules, 'StartingOperatingSet', companyRules)
+                            )
                         )
                     )
-                )
+                ),
+                rules
             )
         ),
         StartingOperatingSet: endsGame(

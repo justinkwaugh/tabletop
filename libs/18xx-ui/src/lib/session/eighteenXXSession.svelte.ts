@@ -12,6 +12,7 @@ import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import { PrivateActionsModule } from './privateActionsModule.svelte.js'
 import { TrackModule } from './trackModule.svelte.js'
 import { StockModule } from './stockModule.svelte.js'
+import { StockInstructionModule } from './stockInstructionModule.svelte.js'
 import { MapModule } from './mapModule.svelte.js'
 import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
 import { LocalSelections } from './localSelections.js'
@@ -167,6 +168,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     get additionalStockMenuCount() {
         return 0
     }
+    readonly instructions = new StockInstructionModule(this.moduleSession)
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
     /**

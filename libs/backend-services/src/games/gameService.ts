@@ -12,6 +12,7 @@ import {
     createGameFork,
     GameForkError,
     findLast,
+    findSupersededOutOfTurnAction,
     findPlayerForUserId,
     Game,
     GameAction,
@@ -102,6 +103,8 @@ import {
     TournamentGameError
 } from './tournamentGames.js'
 import * as Value from 'typebox/value'
+
+const SupersedeLookbackActions = 16
 
 export class GameService {
     constructor(
@@ -910,7 +913,7 @@ export class GameService {
     }): Promise<ActionResultsRepresentation> {
         countTiming('game.action.attempts')
         const gameId = action.gameId
-        const game = await this.getGame({ gameId, withState: true })
+        let game = await this.getGame({ gameId, withState: true })
         if (!game || !game.state) {
             throw new GameNotFoundError({ id: gameId })
         }
@@ -933,9 +936,14 @@ export class GameService {
             this.verifyUserIsActionPlayer(action, game, user)
         }
 
+        if (action.outOfTurn) {
+            game = await this.supersedeOutOfTurnAction({ definition, game, action, user })
+        }
+
         const initialIndex = action.index
 
         const initialState = game.state
+        assertExists(initialState, 'Applying an Action requires current Game State')
         const gameEngine = new GameEngine(definition.runtime)
         const actionResult = measureSync('engine.execute', () =>
             gameEngine.executeCanonicalAction({
@@ -1006,6 +1014,7 @@ export class GameService {
                         }
 
                         if (
+                            !action.outOfTurn &&
                             !missingActions.every(
                                 (missingAction) =>
                                     missingAction.simultaneousGroupId === action.simultaneousGroupId
@@ -1092,6 +1101,36 @@ export class GameService {
         }
 
         return representation
+    }
+
+    private async supersedeOutOfTurnAction({
+        definition,
+        game,
+        action,
+        user
+    }: {
+        definition: GameDefinition
+        game: Game
+        action: GameAction
+        user: User
+    }): Promise<Game & { state: GameState }> {
+        const state = game.state
+        assertExists(state, 'Superseding requires current Game State')
+        const endIndex = state.actionCount
+        const startIndex = Math.max(0, endIndex - SupersedeLookbackActions)
+        const recentActions =
+            endIndex > startIndex
+                ? await this.gameStore.readGameData(game.id, (reader) =>
+                      reader.actionRange(startIndex, endIndex)
+                  )
+                : []
+        const superseded = findSupersededOutOfTurnAction(recentActions ?? [], action)
+        if (!superseded) return { ...game, state }
+        await this.undoAction({ user, definition, gameId: game.id, actionId: superseded.id })
+        const reloaded = await this.getGame({ gameId: game.id, withState: true })
+        const reloadedState = reloaded?.state
+        if (!reloaded || !reloadedState) throw new GameNotFoundError({ id: game.id })
+        return { ...reloaded, state: reloadedState }
     }
 
     @Timed('game.undoAction')
@@ -1191,6 +1230,7 @@ export class GameService {
                 actions.some(
                     (action) =>
                         action.source === ActionSource.User &&
+                        !action.outOfTurn &&
                         action.playerId &&
                         action.playerId !== userPlayer?.id &&
                         !this.isSameSimultaneousGroup(action, actionToUndo)
@@ -1205,7 +1245,7 @@ export class GameService {
         }
 
         for (const action of actions.slice(1)) {
-            if (this.isSameSimultaneousGroup(action, actionToUndo)) {
+            if (action.outOfTurn || this.isSameSimultaneousGroup(action, actionToUndo)) {
                 const redoAction = structuredClone(action)
                 // These fields will be re-assigned by the game engine
                 redoAction.index = undefined

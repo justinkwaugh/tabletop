@@ -31,7 +31,8 @@ const State = Type.Object({
     board: Type.Array(Type.Number()),
     drawPile: DrawBag(Token),
     drawn: Type.Optional(Token),
-    currentAuction: Type.Optional(SimultaneousAuction)
+    currentAuction: Type.Optional(SimultaneousAuction),
+    notes: Type.Optional(Type.Record(Type.String(), Type.String()))
 })
 const CanonicalValidator = Compile(State)
 const ProjectedState = Visibility.createProjectionSchema(State)
@@ -44,6 +45,7 @@ class SyntheticState extends HydratableGameState<typeof ProjectedState, PlayerSt
     declare drawPile: ProjectedState['drawPile']
     declare drawn?: ProjectedState['drawn']
     declare currentAuction?: ProjectedState['currentAuction']
+    declare notes?: Record<string, string>
 
     constructor(state: ProjectedState) {
         super(state, ProjectedValidator)
@@ -126,6 +128,25 @@ class BidAction extends HydratableAction<typeof PlaceBid> {
     }
 }
 
+export const Note = Type.Object({
+    ...PlayerAction.properties,
+    type: Type.Literal('note'),
+    outOfTurn: Type.Literal(true),
+    text: Type.String()
+})
+export type Note = Type.Static<typeof Note>
+const NoteValidator = Compile(Note)
+class NoteAction extends HydratableAction<typeof Note> {
+    declare playerId: string
+    declare text: string
+    constructor(action: Note) {
+        super(action, NoteValidator)
+    }
+    apply(state: SyntheticState) {
+        state.notes = { ...state.notes, [this.playerId]: this.text }
+    }
+}
+
 class Initializer extends BaseGameInitializer<ProjectedState, SyntheticState> {
     readonly supportsStartingPositions = true
     initializeGameState(
@@ -163,23 +184,25 @@ export const SyntheticRuntime = {
             if (DrawValidator.Check(action)) return new DrawAction(action)
             if (OpenAuctionValidator.Check(action)) return new OpenAuctionAction(action)
             if (BidValidator.Check(action)) return new BidAction(action)
+            if (NoteValidator.Check(action)) return new NoteAction(action)
             throw Error('Unknown synthetic Action')
         }
     },
     playerColors: [Color.Red, Color.Blue, Color.Green],
-    apiActions: { step: Step, draw: Draw, bid: PlaceBid },
+    apiActions: { step: Step, draw: Draw, bid: PlaceBid, note: Note },
     stateHandlers: {
         playing: {
             enter() {},
             validActionsForPlayer() {
-                return ['step', 'draw', 'bid']
+                return ['step', 'draw', 'bid', 'note']
             },
             isValidAction(action: GameAction) {
                 return (
                     StepValidator.Check(action) ||
                     DrawValidator.Check(action) ||
                     OpenAuctionValidator.Check(action) ||
-                    BidValidator.Check(action)
+                    BidValidator.Check(action) ||
+                    NoteValidator.Check(action)
                 )
             },
             onAction(action: GameAction, context: MachineContext<SyntheticState>) {
@@ -198,7 +221,8 @@ export const SyntheticRuntime = {
             step: Step,
             draw: Draw,
             openAuction: OpenAuction,
-            bid: PlaceBid
+            bid: PlaceBid,
+            note: Note
         })
     }
 } satisfies GameRuntime<ProjectedState, SyntheticState>

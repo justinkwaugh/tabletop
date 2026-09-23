@@ -6,6 +6,7 @@ import {
 import { getGameVisibility } from '../visibility/gameVisibility.js'
 import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
+import * as Type from 'typebox'
 import { GameAction, type HydratedAction, Patch } from './gameAction.js'
 import { Game, GameStatus } from '../model/game.js'
 import {
@@ -321,13 +322,18 @@ export class GameEngine<
             gameState: runtimeState
         })
 
-        // Simultaneous actions can cause this, otherwise it's bad data
+        assert(
+            !action.outOfTurn || this.declaresOutOfTurn(action),
+            `Action of type ${action.type} is not an out-of-turn Action`
+        )
+
+        // Simultaneous and out-of-turn actions can arrive behind the current count, otherwise it is bad data
         const indexOffset =
             action.index && action.index !== hydratedState.actionCount
                 ? hydratedState.actionCount - action.index
                 : 0
 
-        if (indexOffset !== 0 && !action.simultaneousGroupId) {
+        if (indexOffset !== 0 && !action.simultaneousGroupId && !action.outOfTurn) {
             throw Error(
                 `Action index is not valid, expected ${hydratedState.actionCount}, got ${action.index}`
             )
@@ -444,8 +450,22 @@ export class GameEngine<
         return jsonpatch.applyPatch(structuredClone(state), patch).newDocument
     }
 
+    private declaresOutOfTurn(action: GameAction): boolean {
+        const schema = this.runtime.apiActions[action.type]
+        if (schema === undefined || !Type.IsObject(schema)) return false
+        const marker: unknown = schema.properties.outOfTurn
+        return (
+            Type.IsLiteral(marker) &&
+            marker.const === true &&
+            Array.isArray(schema.required) &&
+            schema.required.includes('outOfTurn')
+        )
+    }
+
     private isPlayerAllowed(action: GameAction, state: HydratedGameState): boolean {
-        return !action.playerId || state.isActivePlayer(action.playerId)
+        return (
+            !action.playerId || action.outOfTurn === true || state.isActivePlayer(action.playerId)
+        )
     }
 
     private getStateHandler(state: GameState): MachineStateHandler<HydratedAction, U> {

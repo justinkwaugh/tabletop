@@ -77,6 +77,10 @@ The stable history identity assigned to a generated System Action. It belongs to
 **Player Action**:
 An Action attributed to a particular Player, regardless of whether its origin is User or System.
 
+**Out-of-Turn Action**:
+A User Action whose registered schema requires the literal `outOfTurn: true`. The Game Runtime accepts it from any seated Player without regard to the Active Players or the current Action count, and its Machine State Handler alone decides validity. It records a standing declaration whose later consequences arrive as System Actions; it does not itself take a turn.
+_Avoid_: Background Action, Programmed Action
+
 **Simultaneous Action Group**:
 A set of Actions that participants may prepare independently from the same starting Game State. A member may remain valid after other members have been processed, but not after an unrelated Action.
 

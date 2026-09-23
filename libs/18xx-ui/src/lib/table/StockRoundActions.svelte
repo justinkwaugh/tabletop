@@ -17,6 +17,7 @@
     import type { CertificatePool } from '@tabletop/18xx'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import StandingInstruction from '../stock/StandingInstruction.svelte'
     let {
         session,
         poolName
@@ -457,6 +458,7 @@
         </aside>
     {/if}
 </section>
+<StandingInstruction {session} />
 
 <style>
     section {

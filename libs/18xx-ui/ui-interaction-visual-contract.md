@@ -303,6 +303,44 @@ still surface. A browser regression seeds the old stock-state shape under the
 current fixture name, verifies recovery, and checks that the old data remains
 unchanged and subsequent reloads reuse the new example.
 
+### Standing instructions
+
+During an open stock round a compact one-line bar pinned to the bottom of the
+stock action body is visible to every seated player whose valid actions include
+SetStockInstruction, regardless of whose turn it is. The prototype trading panel
+embeds the same bar. Its left edge is an Autopass / Autobuy sliding toggle in
+the same style as the Buy / Sell strip. Selecting Autopass shows an inline
+Enable button. Selecting Autobuy extends the same line, wrapping only when the pane is narrow,
+with a chevron and a bordered tray that reads as one clause: a single company
+token that opens a popover list of companies and shows a "?" until one is
+chosen, then "from" and a preferred pool segment (or the pool's name when the company's
+shares sit in one pool), "until" and a Floats / Shares goal segment with a
+share stepper, and a "then pass" switch. A green Enable follows the tray and
+stays disabled until a company is chosen.
+With an instruction declared the toggle
+shows its kind pressed and disabled, followed by one summary line ("Autopass for
+the rest of the round" or "Autobuy <company> · <pool> preferred · until it
+floats · then pass"), a "Stops next turn: <reason>" status when the session's
+`instructions.warning` reports that the instruction would stop at its next
+evaluation, and an inline Cancel button.
+
+The toggle's selected kind, company, pool, goal, count and then-pass values are
+local component UI state. They are not staged selections: they are never
+registered with LocalSelections, `Back` and `Undo` ignore them, and a stale
+company or pool falls back to the first legal option. Only Enable and
+Cancel commit `SetStockInstruction` through the session with `outOfTurn` set.
+Controls disable while the session is busy, while viewing history, or when the
+action is no longer valid. The existing Pass / End turn and Undo buttons keep
+their behavior.
+
+No history surface ever presents a standing instruction: round status, the
+stock panel's history list, the shared game history, the position panel's latest
+line, and history stepping all omit SetStockInstruction and StopStockInstruction,
+which count as bookkeeping for navigation. The runtime's automatic FinishStockTurn
+and BuyShares actions render exactly like the same actions taken by hand, with no
+automatic marker, so history never reveals that an instruction existed. This is a
+presentation rule; Game State itself remains public.
+
 ### Live maps in finance examples
 
 The session derives map drawings, placed stations, current reservations, and tile

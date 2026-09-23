@@ -139,6 +139,10 @@ A company's entitlement to a station location, independently of placing its toke
 **Ownership Limit Exemption**:
 Permission to retain specified shares above the ordinary ownership limit.
 
+**Standing Instruction**:
+A player's declared intent, recorded in Game State as an Out-of-Turn Action, that the runtime should act for them when their Stock Turn arrives: pass for the rest of the stock round, or buy shares of one company, preferring one Certificate Pool, until a goal is met. The runtime performs the resulting pass or purchase as a System Action and stops the instruction, recording why, when the player's position has changed in a way the declaration did not anticipate. A player holds at most one, and it ends with the stock round.
+_Avoid_: Auto-pass, Program, Programmed Action
+
 **Pass**:
 A decision to take no stock action on a turn, contributing to round completion
 under the title's rules.

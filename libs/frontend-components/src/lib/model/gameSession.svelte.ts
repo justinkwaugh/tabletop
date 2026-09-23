@@ -100,7 +100,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     private historyBusy = $derived(
-        this.processingActions || this.updatingVisibleState || this.loadingGameRepresentation || this.applyingSynchronization
+        this.processingActions ||
+            this.updatingVisibleState ||
+            this.loadingGameRepresentation ||
+            this.applyingSynchronization
     )
 
     private authorizationBridge: AuthorizationBridge
@@ -248,8 +251,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 break
             }
 
-            // Skip system actions
-            if (action.source !== ActionSource.User) {
+            // Skip system actions and standing out-of-turn declarations
+            if (action.source !== ActionSource.User || action.outOfTurn) {
                 continue
             }
 
@@ -634,7 +637,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             reload: () => this.loadRecoveryContext(),
             isPaused: () => this.busy,
             recover: () => this.checkSync(),
-            beforeSynchronizationUpdate: () => { this.applyingSynchronization = true },
+            beforeSynchronizationUpdate: () => {
+                this.applyingSynchronization = true
+            },
             acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective)
         })
 

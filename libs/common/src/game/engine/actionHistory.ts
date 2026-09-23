@@ -9,3 +9,18 @@ export function getActionCascadeEndIndex(
     while (end + 1 < actions.length && actions[end + 1].source === ActionSource.System) end += 1
     return end
 }
+
+export function findSupersededOutOfTurnAction(
+    recentActions: readonly GameAction[],
+    action: GameAction
+): GameAction | undefined {
+    if (!action.outOfTurn) return undefined
+    const latestUserAction = recentActions.findLast(
+        (candidate) => candidate.source === ActionSource.User
+    )
+    return latestUserAction?.outOfTurn === true &&
+        latestUserAction.playerId === action.playerId &&
+        latestUserAction.type === action.type
+        ? latestUserAction
+        : undefined
+}

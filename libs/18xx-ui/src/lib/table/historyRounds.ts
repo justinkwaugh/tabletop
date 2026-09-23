@@ -1,5 +1,6 @@
 import {
     isAdvancePhase,
+    isBuyShares,
     isCompleteStockRound,
     isRunTrains,
     isDistributeEarnings,
@@ -8,6 +9,8 @@ import {
     isEndGame,
     isResolveAuction,
     isStartOperatingRound,
+    isSetStockInstruction,
+    isStopStockInstruction,
     type EighteenXXState,
     type AuctionAward
 } from '@tabletop/18xx'
@@ -72,24 +75,26 @@ export function historyRounds(
             assertExists(order, 'Operating round history requires its recorded company order')
             section.operatingOrder = order
         }
-        const entry = startsOperatingRound
-            ? undefined
-            : (entries.get(action.id) ??
-              (orderChanges.has(action.id) ||
-              (cash.has(action.id) && changedCompanyCash(cash.get(action.id)!)) ||
-              isRunTrains(action) ||
-              isDistributeEarnings(action) ||
-              isAdvancePhase(action) ||
-              isFinishStockTurn(action) ||
-              isFloatCompany(action) ||
-              (isCompleteStockRound(action) &&
-                  action.metadata?.marketMoves.some(
-                      (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
-                  )) ||
-              isEndGame(action) ||
-              (isResolveAuction(action) && !state.offerAuction)
-                  ? { kind: 'action' as const, id: action.id, action }
-                  : undefined))
+        const entry =
+            startsOperatingRound || isSetStockInstruction(action) || isStopStockInstruction(action)
+                ? undefined
+                : (entries.get(action.id) ??
+                  (orderChanges.has(action.id) ||
+                  (cash.has(action.id) && changedCompanyCash(cash.get(action.id)!)) ||
+                  isRunTrains(action) ||
+                  isDistributeEarnings(action) ||
+                  isAdvancePhase(action) ||
+                  isFinishStockTurn(action) ||
+                  isBuyShares(action) ||
+                  isFloatCompany(action) ||
+                  (isCompleteStockRound(action) &&
+                      action.metadata?.marketMoves.some(
+                          (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
+                      )) ||
+                  isEndGame(action) ||
+                  (isResolveAuction(action) && !state.offerAuction)
+                      ? { kind: 'action' as const, id: action.id, action }
+                      : undefined))
         if (entry) section.entries.push(entry)
         for (const patch of action.undoPatch ?? []) {
             if (patch.op !== 'add' && patch.op !== 'replace') continue
