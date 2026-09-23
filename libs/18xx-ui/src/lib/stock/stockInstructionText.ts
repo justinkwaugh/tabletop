@@ -41,6 +41,12 @@ export function stopReasonText(
             return `the ${names.companyName(reason.companyId)} goal was met`
         case 'no-shares':
             return `no ${names.companyName(reason.companyId)} shares remain for sale`
+        case 'cannot-afford':
+            return `a ${names.companyName(reason.companyId)} share is no longer affordable`
+        case 'ownership-limit':
+            return `another ${names.companyName(reason.companyId)} share would exceed the ownership limit`
+        case 'certificate-limit':
+            return `another ${names.companyName(reason.companyId)} certificate would exceed the certificate limit`
         case 'mixed-certificates':
             return `${names.poolName(reason.poolId)} offers ${names.companyName(reason.companyId)} certificates of different sizes`
         case 'purchase-rejected':

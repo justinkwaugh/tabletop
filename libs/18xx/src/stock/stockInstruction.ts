@@ -1,14 +1,16 @@
 import * as Type from 'typebox'
 import {
     President,
+    cashOwnedBy,
     certificatesInPool,
     getCompany,
     sameOwner,
     sharesOwned,
+    type OpenShare,
     type Owner
 } from '../finance/finance.js'
 import { evaluateSharePurchase, type PurchaseRequest } from './sharePurchase.js'
-import { exceedsStockLimits, type StockRules } from './stockRules.js'
+import { exceedsStockLimits, stockCertificateCount, type StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
 const BuyUntil = Type.Union([
@@ -84,6 +86,9 @@ export const StockInstructionStopReason = Type.Union([
     CompanyReason('presidency-threatened'),
     CompanyReason('goal-met'),
     CompanyReason('no-shares'),
+    CompanyReason('cannot-afford'),
+    CompanyReason('ownership-limit'),
+    CompanyReason('certificate-limit'),
     PoolReason('mixed-certificates'),
     PoolReason('purchase-rejected'),
     Type.Object(
@@ -286,10 +291,7 @@ export function evaluateStockInstruction(
         const result = evaluateSharePurchase(state, request, rules)
         return result.details
             ? { pool, request, price: result.details.price }
-            : {
-                  pool,
-                  reason: { code: 'purchase-rejected', companyId: company.id, poolId: pool.id }
-              }
+            : { pool, reason: purchaseRejection(state, candidates[0], owner, rules, pool.id) }
     })
     const preferred = evaluated.find((offer) => offer.pool.id === instruction.preferredPoolId)
     if (preferred) return 'reason' in preferred ? stop(preferred.reason) : purchase(preferred)
@@ -301,6 +303,38 @@ export function evaluateStockInstruction(
     if (fallback) return purchase(fallback)
     const failure = evaluated[0]
     return stop('reason' in failure ? failure.reason : { code: 'no-shares', companyId: company.id })
+}
+
+function purchaseRejection(
+    state: StockState,
+    certificate: OpenShare,
+    owner: Owner,
+    rules: StockRules,
+    poolId: string
+): StockInstructionStopReason {
+    const companyId = certificate.companyId
+    const terms = rules.purchaseTerms(state, certificate, owner)
+    if (typeof terms === 'string') return { code: 'purchase-rejected', companyId, poolId }
+    const company = getCompany(state, companyId)
+    const ownershipCeiling = Math.max(
+        rules.ownershipLimit(state, companyId, owner) * (company.shareCount ?? 0),
+        ...state.ownershipLimitExemptions
+            .filter(
+                (exemption) =>
+                    exemption.companyId === companyId && sameOwner(exemption.owner, owner)
+            )
+            .map((exemption) => exemption.maximumShares * 100)
+    )
+    if ((sharesOwned(state, companyId, owner) + certificate.shares) * 100 > ownershipCeiling)
+        return { code: 'ownership-limit', companyId }
+    if (
+        stockCertificateCount(state, owner, rules) + rules.certificateWeight(state, certificate) >
+        rules.certificateLimit(state, owner)
+    )
+        return { code: 'certificate-limit', companyId }
+    const cash = cashOwnedBy(state, owner)
+    if (typeof cash === 'number' && cash < terms.price) return { code: 'cannot-afford', companyId }
+    return { code: 'purchase-rejected', companyId, poolId }
 }
 
 type PurchaseOffer = { pool: { id: string; name: string }; request: PurchaseRequest; price: number }

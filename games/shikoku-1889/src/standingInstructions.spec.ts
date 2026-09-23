@@ -238,9 +238,8 @@ describe('Standing stock instructions', () => {
         })
         const stop = finished.processedActions[1]
         expect(isStopStockInstruction(stop) && stop.reason).toEqual({
-            code: 'purchase-rejected',
-            companyId: 'IR',
-            poolId: 'initial-offering'
+            code: 'cannot-afford',
+            companyId: 'IR'
         })
         expect(currentPlayerId(finished.updatedState)).toBe('blair')
     })
@@ -279,4 +278,60 @@ it('falls back to another pool when the preferred pool holds no shares of the co
     expect(sharesOwned(finished.updatedState, 'IR', blair)).toBe(
         sharesOwned(state, 'IR', blair) + 1
     )
+})
+
+it('reinstates a stopped instruction when the change that stopped it is undone', () => {
+    const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
+    const alex = { kind: 'player', playerId: 'alex' } as const
+    const declared = engine.executeCanonicalAction({
+        game,
+        state,
+        action: setInstruction(game.id, 'blair', { kind: 'pass' })
+    })
+    const sales = [{ companyId: 'AR', shares: 1 }]
+    const terms = evaluateShareSale(
+        declared.updatedState,
+        { playerId: 'alex', seller: alex, sales },
+        Shikoku1889StockRules
+    )
+    const sold = engine.executeCanonicalAction({
+        game,
+        state: declared.updatedState,
+        action: {
+            id: 'alex-sells',
+            gameId: game.id,
+            source: ActionSource.User,
+            type: 'SellShares',
+            playerId: 'alex',
+            seller: alex,
+            sales,
+            expectedProceeds: terms.details!.proceeds
+        }
+    })
+    const finished = engine.executeCanonicalAction({
+        game,
+        state: sold.updatedState,
+        action: finishTurn(game.id, 'alex')
+    })
+    expect(summarize(finished.processedActions)).toEqual([
+        'user:FinishStockTurn:alex',
+        'system:StopStockInstruction:blair'
+    ])
+    expect(standingStockInstructionFor(finished.updatedState, 'blair')).toBeUndefined()
+
+    let undone = finished.updatedState
+    for (const action of [...sold.processedActions, ...finished.processedActions].toReversed())
+        undone = engine.undoProcessedAction({ state: undone, action })
+    expect(undone).toEqual(declared.updatedState)
+    expect(standingStockInstructionFor(undone, 'blair')?.instruction).toEqual({ kind: 'pass' })
+
+    const refinished = engine.executeCanonicalAction({
+        game,
+        state: undone,
+        action: finishTurn(game.id, 'alex')
+    })
+    expect(summarize(refinished.processedActions)).toEqual([
+        'user:FinishStockTurn:alex',
+        'system:FinishStockTurn:blair'
+    ])
 })

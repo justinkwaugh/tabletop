@@ -44,7 +44,7 @@
     "StartOperatingSet": "a4287404c0c4a8916eb4c7d6bc3ac7941966cb4b3216c11b7de2b10a03c5afc7",
     "StartOperatingTurn": "00d6052c6a71cc9ecc6cb387471ed72b6ee2147fdfceb13064ce8d5ffac00b60",
     "StartStockRound": "a94ad7f2884d4c095968b92dae757db6b2806f92a57d26f85311e777697652f9",
-    "StopStockInstruction": "994581f2dffe5dd7d34fbd3d1265315847f8341f6119791fc9d0fd8527b9b2ca"
+    "StopStockInstruction": "ce23328ef3614ee21fa2e0aec3f8603d34f21fc4bedb3b79b39a58ba3030f323"
   },
   "canonicalState": {
     "additionalProperties": false,

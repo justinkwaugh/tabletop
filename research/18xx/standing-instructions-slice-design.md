@@ -79,7 +79,11 @@ scanning history: stock limits exceeded, a company started, a presidency changed
 to someone other than the owner, bank-held shares of any company increased, a
 rival's holding grew in a company the owner presides over without a majority,
 mixed certificate sizes in the target pool, no eligible certificate, or a purchase
-`evaluateSharePurchase` rejects. `BuyShares` now accepts a System source for
+`evaluateSharePurchase` rejects, classified as unaffordable, ownership limit,
+certificate limit, or a source the title does not sell from. Because a stop is a
+System Action in the cascade of the action that brought the owner's turn around,
+undoing the change that caused it reverses the stop with the rest of that suffix
+and the instruction is reinstated; the 1889 suite verifies this. `BuyShares` now accepts a System source for
 this path; its legality checks are unchanged.
 
 Title extension points live on `StockRules.instructions`, so no runtime wiring
