@@ -6,8 +6,8 @@ import {
 import { getGameVisibility } from '../visibility/gameVisibility.js'
 import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
-import * as Type from 'typebox'
 import { GameAction, type HydratedAction, Patch } from './gameAction.js'
+import { isOutOfTurnActionType } from './actionHistory.js'
 import { Game, GameStatus } from '../model/game.js'
 import {
     GameState,
@@ -323,7 +323,7 @@ export class GameEngine<
         })
 
         assert(
-            !action.outOfTurn || this.declaresOutOfTurn(action),
+            !action.outOfTurn || isOutOfTurnActionType(this.runtime.apiActions, action.type),
             `Action of type ${action.type} is not an out-of-turn Action`
         )
 
@@ -447,18 +447,6 @@ export class GameEngine<
 
     private applyStatePatch(state: T, patch: Patch): T {
         return jsonpatch.applyPatch(structuredClone(state), patch).newDocument
-    }
-
-    private declaresOutOfTurn(action: GameAction): boolean {
-        const schema = this.runtime.apiActions[action.type]
-        if (schema === undefined || !Type.IsObject(schema)) return false
-        const marker: unknown = schema.properties.outOfTurn
-        return (
-            Type.IsLiteral(marker) &&
-            marker.const === true &&
-            Array.isArray(schema.required) &&
-            schema.required.includes('outOfTurn')
-        )
     }
 
     private isPlayerAllowed(action: GameAction, state: HydratedGameState): boolean {

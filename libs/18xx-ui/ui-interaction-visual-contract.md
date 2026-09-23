@@ -307,8 +307,10 @@ unchanged and subsequent reloads reuse the new example.
 
 During an open stock round a compact one-line bar pinned to the bottom of the
 stock action body is visible to every seated player whose valid actions include
-SetStockInstruction, regardless of whose turn it is. The prototype trading panel
-embeds the same bar. Its left edge is an Autopass / Autobuy sliding toggle in
+SetStockInstruction, regardless
+of whose turn it is. In local hotseat play the bar is hidden unless the client is
+viewing as a non-active player, where it declares for that player. The prototype
+trading panel embeds the same bar. Its left edge is an Autopass / Autobuy sliding toggle in
 the same style as the Buy / Sell strip. Selecting Autopass shows an inline
 Enable button. Selecting Autobuy extends the same line, wrapping only when the pane is narrow,
 with a chevron and a bordered tray that reads as one clause: a single company

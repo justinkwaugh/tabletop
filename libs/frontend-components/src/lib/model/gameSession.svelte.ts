@@ -5,6 +5,7 @@ import {
     type TitlePreferenceDefinition,
     ActionSource,
     findSupersededOutOfTurnAction,
+    isOutOfTurnActionType,
     Game,
     GameAction,
     GameEngine,
@@ -444,12 +445,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     validActionTypes: string[] = $derived.by(() => {
-        if (this.isViewingAsNonActivePlayer || !this.myPlayer) {
+        if (!this.myPlayer) {
             return []
         }
 
         try {
-            return this.engine.getValidActionTypesForPlayer(
+            const types = this.engine.getValidActionTypesForPlayer(
                 this.primaryGame,
                 this.gameState,
                 this.myPlayer.id,
@@ -457,6 +458,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     perspective: this.projectedExecutionPerspective(this.currentVisibleContext)
                 }
             )
+            return this.isViewingAsNonActivePlayer
+                ? types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
+                : types
         } catch (error) {
             if (!Visibility.isUnavailableProjectedValueError(error)) {
                 throw error

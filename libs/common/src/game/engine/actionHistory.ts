@@ -1,3 +1,4 @@
+import * as Type from 'typebox'
 import { ActionSource, type GameAction } from './gameAction.js'
 
 export function getActionCascadeEndIndex(
@@ -22,4 +23,19 @@ export function findSupersededOutOfTurnAction(
         last.type === action.type
         ? last
         : undefined
+}
+
+export function isOutOfTurnActionType(
+    apiActions: Readonly<Record<string, Type.TSchema>>,
+    type: string
+): boolean {
+    const schema = apiActions[type]
+    if (schema === undefined || !Type.IsObject(schema)) return false
+    const marker: unknown = schema.properties.outOfTurn
+    return (
+        Type.IsLiteral(marker) &&
+        marker.const === true &&
+        Array.isArray(schema.required) &&
+        schema.required.includes('outOfTurn')
+    )
 }

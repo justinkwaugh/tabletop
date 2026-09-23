@@ -9,6 +9,8 @@ export function testSession<State, Rules>(
         publishing?: boolean
         selectionsVisible?: boolean
         interactive?: boolean
+        hotseatPlay?: boolean
+        viewingAsNonActivePlayer?: boolean
         actingPlayerIds?: string[]
         recordedActions?: GameAction[]
     } = {}
@@ -22,6 +24,8 @@ export function testSession<State, Rules>(
         viewingHistory: false,
         selectionsVisible: availability.selectionsVisible ?? true,
         interactive: availability.interactive ?? true,
+        hotseatPlay: availability.hotseatPlay ?? false,
+        viewingAsNonActivePlayer: availability.viewingAsNonActivePlayer ?? false,
         playerId: 'alex',
         actingPlayerIds: availability.actingPlayerIds ?? ['alex'],
         canActFor: (playerId) => (availability.actingPlayerIds ?? ['alex']).includes(playerId),

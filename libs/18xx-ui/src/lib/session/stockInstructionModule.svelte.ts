@@ -45,7 +45,10 @@ export class StockInstructionModule {
             : undefined
     )
     available = $derived.by(
-        () => this.open && this.session.validActionTypes.includes('SetStockInstruction')
+        () =>
+            this.open &&
+            this.session.validActionTypes.includes('SetStockInstruction') &&
+            (!this.session.hotseatPlay || this.session.viewingAsNonActivePlayer)
     )
     canDeclare = $derived.by(() => this.available && this.session.interactive)
     warning = $derived.by(() =>

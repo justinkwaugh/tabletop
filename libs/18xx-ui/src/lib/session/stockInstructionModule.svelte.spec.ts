@@ -319,3 +319,14 @@ describe('floated companies', () => {
         expect(exhausted.buyChoices).toEqual([])
     })
 })
+
+describe('hotseat play', () => {
+    it('hides the declaration in hotseat play unless viewing as another player', () => {
+        expect(harness(['SetStockInstruction'], { hotseatPlay: true }).module.available).toBe(false)
+        expect(
+            harness(['SetStockInstruction'], { hotseatPlay: true, viewingAsNonActivePlayer: true })
+                .module.available
+        ).toBe(true)
+        expect(harness(['SetStockInstruction']).module.available).toBe(true)
+    })
+})

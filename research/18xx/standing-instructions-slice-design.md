@@ -113,7 +113,11 @@ different evaluators.
 ## Presentation and persistence
 
 A compact bar pinned to the bottom of the stock action body offers Autopass and
-Autobuy to any seated player during a stock round and shows only the player's
+Autobuy to any seated player during a stock round in networked play. In local
+hotseat play it is hidden, since one person plays every seat in turn, except
+while the client views as a non-active player, where the Game Client reports
+only that player's out-of-turn actions as valid so the declaration can be made
+for them and shows only the player's
 own standing instruction with any pending stop reason and a Cancel; it never
 presents other players' instructions. The form is local UI
 state outside Back and Undo. Automatic passes and purchases render exactly like
