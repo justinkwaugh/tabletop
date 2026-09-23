@@ -13,22 +13,21 @@ import {
     buildGameLogicPackageCommand,
     buildGameUiCommand,
     deployBackendCommand,
-    deployFrontendCommand,
     deployGameLogicCommand,
     directoryPlaceholderSpecs,
     rollbackBackendCommand,
     runCommand
 } from './lib/commands.js'
 import type { CommandSpec } from './lib/commands.js'
-import {
-    assertGamePublishable,
-    deployGame,
-    publishManifest,
-    releaseGame,
-    type PublishContext
-} from './lib/gamePublish.js'
+import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
+import { assertGamePublishable, deployGame, releaseGame } from './lib/gamePublish.js'
+import { publishManifest, type PublishContext } from './lib/publishCore.js'
 import { getDeployConfigPath, getManifestPath, getRepoRoot } from './lib/paths.js'
-import { formatPreflightReport, runReleasePreflight } from './lib/releasePreflight.js'
+import {
+    formatPreflightReport,
+    runFrontendPreflight,
+    runGamePreflight
+} from './lib/releasePreflight.js'
 import { syncManifestFromPackages, type BumpType } from './lib/versions.js'
 
 const repoRoot = getRepoRoot()
@@ -41,11 +40,10 @@ Commands:
   tui                          Launch the TUI (default)
   status                       Print the current manifest
   sync-manifest                Sync site-manifest.json from package versions
-  preflight --game=<id> [--json]
+  preflight (--game=<id> | --frontend) [--json]
                                Report the serving and local versions, the last release
                                baseline per artifact, and which files and commits changed
-                               since it, ending with whether logic and UI or only UI need
-                               a release. Read-only.
+                               since it, ending with whether a release is needed. Read-only.
   release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
                                Bump the game's package versions, sync the manifest, commit,
                                tag, push, then deploy (unless --no-deploy). Requires a clean
@@ -61,8 +59,12 @@ Commands:
   deploy-ui <gameId>           deploy-game for the UI only, with the same guards
   build-logic <gameId>         Build a game logic bundle (rollup)
   deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
+  release-frontend (--major | --minor | --patch) [--no-deploy]
+                               Bump the frontend package version, sync the manifest, commit,
+                               tag frontend-v<version>, push, then deploy (unless --no-deploy).
   build-frontend               Build the frontend
-  deploy-frontend              Deploy the frontend bundle to GCS
+  deploy-frontend              Build and deploy the frontend at HEAD, publish the manifest, and
+                               invalidate the backend cache. Same guards as deploy-game.
   build-backend                Build the backend
   deploy-backend [--with-traffic] Deploy the backend (Cloud Run)
   rollback-backend <revision>  Shift traffic to a backend revision
@@ -70,6 +72,7 @@ Commands:
 Release tags:
   <packageId>-v<version>       Logic artifact
   <packageId>-ui-v<version>    UI artifact
+  frontend-v<version>          Site frontend
 
 Environment:
   TABLETOP_GCS_BUCKET           GCS bucket name
@@ -123,12 +126,20 @@ const requestedBumps = (values: SemverFlags): BumpType[] => {
     return requested
 }
 
-const resolveBumpType = (values: SemverFlags): BumpType => {
+const resolveBumpType = (command: string, values: SemverFlags): BumpType => {
     const requested = requestedBumps(values)
     if (requested.length !== 1) {
-        throw new Error('release-game requires exactly one of --major, --minor, or --patch')
+        throw new Error(`${command} requires exactly one of --major, --minor, or --patch`)
     }
     return requested[0]
+}
+
+const rejectBumpFlags = (command: string, values: SemverFlags, releaseCommand: string) => {
+    if (requestedBumps(values).length > 0) {
+        throw new Error(
+            `${command} does not bump versions; use ${releaseCommand} with --major, --minor, or --patch`
+        )
+    }
 }
 
 const requireGame = (command: string, game: string | undefined): string => {
@@ -148,6 +159,7 @@ const main = async () => {
             help: { type: 'boolean', short: 'h' },
             'with-traffic': { type: 'boolean' },
             game: { type: 'string' },
+            frontend: { type: 'boolean' },
             logic: { type: 'boolean' },
             major: { type: 'boolean' },
             minor: { type: 'boolean' },
@@ -184,13 +196,16 @@ const main = async () => {
     }
     const includeLogic = values.logic === true
 
+    const deployByDefault = values['no-deploy'] !== true
+
     if (command === 'preflight') {
-        const report = await runReleasePreflight(
-            repoRoot,
-            manifestPath,
-            deployConfig,
-            requireGame(command, values.game)
-        )
+        if (values.frontend === true && values.game !== undefined) {
+            throw new Error('preflight takes either --game=<id> or --frontend, not both')
+        }
+        const report =
+            values.frontend === true
+                ? await runFrontendPreflight(context)
+                : await runGamePreflight(context, requireGame(command, values.game))
         console.log(values.json ? JSON.stringify(report, null, 2) : formatPreflightReport(report))
         return
     }
@@ -199,19 +214,29 @@ const main = async () => {
         await releaseGame(context, {
             game: requireGame(command, values.game),
             includeLogic,
-            bump: resolveBumpType(values),
-            deploy: values['no-deploy'] !== true
+            bump: resolveBumpType(command, values),
+            deploy: deployByDefault
         })
         return
     }
 
     if (command === 'deploy-game') {
-        if (requestedBumps(values).length > 0) {
-            throw new Error(
-                'deploy-game does not bump versions; use release-game with --major, --minor, or --patch'
-            )
-        }
+        rejectBumpFlags(command, values, 'release-game')
         await deployGame(context, { game: requireGame(command, values.game), includeLogic })
+        return
+    }
+
+    if (command === 'release-frontend') {
+        await releaseFrontend(context, {
+            bump: resolveBumpType(command, values),
+            deploy: deployByDefault
+        })
+        return
+    }
+
+    if (command === 'deploy-frontend') {
+        rejectBumpFlags(command, values, 'release-frontend')
+        await deployFrontend(context)
         return
     }
 
@@ -252,13 +277,6 @@ const main = async () => {
     if (command === 'build-frontend') {
         const spec = buildFrontendCommand(repoRoot)
         await runAndReport(spec, () => runCommand(spec))
-        return
-    }
-
-    if (command === 'deploy-frontend') {
-        const manifest = await loadSyncedManifest()
-        const spec = deployFrontendCommand(repoRoot, manifest, deployConfig)
-        await runDeployWithDirectoryPlaceholders(spec)
         return
     }
 

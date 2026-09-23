@@ -5,7 +5,8 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { releaseGame } from '../esm/lib/gamePublish.js'
-import { runReleasePreflight } from '../esm/lib/releasePreflight.js'
+import { releaseFrontend } from '../esm/lib/frontendPublish.js'
+import { runFrontendPreflight, runGamePreflight } from '../esm/lib/releasePreflight.js'
 import { assertCleanWorkingTree, tagsAtHead } from '../esm/lib/git.js'
 import { logicReleaseTag, planGameVersionBump, uiReleaseTag } from '../esm/lib/versions.js'
 
@@ -41,7 +42,8 @@ const createRepo = async () => {
     )
     await writeJson(path.join(repoRoot, 'apps', 'frontend', 'package.json'), {
         name: '@tabletop/frontend',
-        version: '1.0.0'
+        version: '1.0.0',
+        dependencies: { '@tabletop/common': 'workspace:*' }
     })
     await writeJson(path.join(repoRoot, 'libs', 'common', 'package.json'), {
         name: '@tabletop/common',
@@ -218,7 +220,7 @@ const commitFile = async (repoRoot, relativePath, content, message) => {
     git(repoRoot, 'commit', '-q', '-m', message)
 }
 
-const preflight = (repo) => runReleasePreflight(repo.repoRoot, repo.manifestPath, {}, 'sample-game')
+const preflight = (repo) => runGamePreflight(repo.context, 'sample-game')
 
 test('preflight reports no release needed when nothing changed since the version commit', async () => {
     const repo = await createRepo()
@@ -284,6 +286,41 @@ test('preflight treats a family dependency change as a logic change and uses tag
         assert.equal(report.ui.baseline.ref, 'sample-ui-v5.6.8')
         assert.equal(report.releaseNeeded, 'logic and ui')
         assert.deepEqual(report.logic.changedFiles, ['libs/shared/src/index.ts'])
+    } finally {
+        await rm(repo.root, { recursive: true, force: true })
+    }
+})
+
+test('releaseFrontend bumps, commits, tags frontend-v<version>, and pushes', async () => {
+    const repo = await createRepo()
+    try {
+        await releaseFrontend(repo.context, { bump: 'minor', deploy: false })
+        const frontendPackage = await readJson(
+            path.join(repo.repoRoot, 'apps', 'frontend', 'package.json')
+        )
+        assert.equal(frontendPackage.version, '1.1.0')
+        const manifest = await readJson(repo.manifestPath)
+        assert.equal(manifest.frontend.version, '1.1.0')
+        assert.deepEqual(manifest.frontend.priorVersions, ['1.0.0'])
+        await assertCleanWorkingTree(repo.repoRoot)
+        assert.equal(git(repo.repoRoot, 'log', '-1', '--format=%s'), 'Release frontend 1.1.0')
+        assert.deepEqual(await tagsAtHead(repo.repoRoot), ['frontend-v1.1.0'])
+        assert.equal(git(repo.originRoot, 'tag', '--list', 'frontend-v1.1.0'), 'frontend-v1.1.0')
+    } finally {
+        await rm(repo.root, { recursive: true, force: true })
+    }
+})
+
+test('frontend preflight counts the frontend package and all of its dependencies', async () => {
+    const repo = await createRepo()
+    try {
+        await releaseFrontend(repo.context, { bump: 'patch', deploy: false })
+        await commitFile(repo.repoRoot, 'libs/common/src/index.ts', 'export {}\n', 'Common fix')
+        const report = await runFrontendPreflight(repo.context)
+        assert.equal(report.frontend.baseline.ref, 'frontend-v1.0.1')
+        assert.deepEqual(report.frontend.sourceDirs, ['apps/frontend', 'libs/common'])
+        assert.deepEqual(report.frontend.platformDirs, [])
+        assert.equal(report.releaseNeeded, 'frontend')
     } finally {
         await rm(repo.root, { recursive: true, force: true })
     }

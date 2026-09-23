@@ -87,9 +87,15 @@ export const resolveCommit = (repoRoot: string, ref: string): Promise<string> =>
 export const changedFilesSince = async (
     repoRoot: string,
     baseline: string,
-    dirs: string[]
+    pathspecs: string[]
 ): Promise<string[]> => {
-    const output = await git(repoRoot, ['diff', '--name-only', `${baseline}..HEAD`, '--', ...dirs])
+    const output = await git(repoRoot, [
+        'diff',
+        '--name-only',
+        `${baseline}..HEAD`,
+        '--',
+        ...pathspecs
+    ])
     return output.split('\n').filter((file) => file.length > 0)
 }
 
@@ -98,14 +104,14 @@ export type CommitSummary = { sha: string; subject: string }
 export const commitsSince = async (
     repoRoot: string,
     baseline: string,
-    dirs: string[]
+    pathspecs: string[]
 ): Promise<CommitSummary[]> => {
     const output = await git(repoRoot, [
         'log',
         '--format=%h%x00%s',
         `${baseline}..HEAD`,
         '--',
-        ...dirs
+        ...pathspecs
     ])
     return output
         .split('\n')

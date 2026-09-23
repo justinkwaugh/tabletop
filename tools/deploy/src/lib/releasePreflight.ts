@@ -1,4 +1,5 @@
-import { fetchServingVersions, findGameEntry, type ServingVersions } from './gamePublish.js'
+import { fetchFrontendServingVersion, FRONTEND_PACKAGE } from './frontendPublish.js'
+import { fetchServingVersions, findGameEntry, gameReleaseTag } from './gamePublish.js'
 import {
     changedFilesSince,
     commitsSince,
@@ -9,19 +10,29 @@ import {
     type CommitSummary
 } from './git.js'
 import { readManifest } from './manifest.js'
-import type { DeployConfig } from './types.js'
+import type { PublishContext, ServingLookup } from './publishCore.js'
 import {
+    frontendReleaseTag,
+    getFrontendPackagePath,
     getGamePackagePaths,
-    logicReleaseTag,
     readGamePackageVersions,
-    syncManifestFromPackages,
-    uiReleaseTag
+    readPackageVersion,
+    syncManifestFromPackages
 } from './versions.js'
 import { workspaceSourceDirs } from './workspace.js'
 
 // Every game depends on these, so a change to them is a platform change rather than a change to
 // any one game's logic or UI. Family libraries such as @tabletop/18xx are deliberately counted.
+// The frontend bundles them, so its preflight counts them.
 export const PLATFORM_PACKAGES = ['@tabletop/common', '@tabletop/frontend-components'] as const
+
+// Every release commit rewrites the manifest, so counting it would make every target look changed.
+const RELEASE_BOOKKEEPING_FILES = ['config/config-games/src/site-manifest.json']
+
+const changePathspecs = (dirs: string[]) => [
+    ...dirs,
+    ...RELEASE_BOOKKEEPING_FILES.map((file) => `:(exclude)${file}`)
+]
 
 export type ReleaseBaseline = {
     kind: 'tag' | 'version-commit'
@@ -30,7 +41,7 @@ export type ReleaseBaseline = {
 }
 
 export type ArtifactPreflight = {
-    kind: 'logic' | 'ui'
+    kind: string
     localVersion: string
     servingVersion: string | null
     baseline: ReleaseBaseline
@@ -42,18 +53,29 @@ export type ArtifactPreflight = {
     platformChangedFiles: string[]
 }
 
-export type ReleaseNeeded = 'logic and ui' | 'ui' | 'none'
-
-export type PreflightReport = {
-    gameId: string
-    packageId: string
+type PreflightBase = {
+    target: string
     workingTreeClean: boolean
     manifestInSync: boolean
     serving: { source: string; error?: string } | null
+    artifacts: ArtifactPreflight[]
+    releaseNeeded: string
+}
+
+export type GamePreflightReport = PreflightBase & {
+    gameId: string
+    packageId: string
     logic: ArtifactPreflight
     ui: ArtifactPreflight
-    releaseNeeded: ReleaseNeeded
+    releaseNeeded: 'logic and ui' | 'ui' | 'none'
 }
+
+export type FrontendPreflightReport = PreflightBase & {
+    frontend: ArtifactPreflight
+    releaseNeeded: 'frontend' | 'none'
+}
+
+export type PreflightReport = GamePreflightReport | FrontendPreflightReport
 
 const resolveBaseline = async (
     repoRoot: string,
@@ -73,29 +95,45 @@ const resolveBaseline = async (
     return { kind: 'version-commit', ref: sha.slice(0, 7), sha }
 }
 
+type ArtifactSource = {
+    kind: string
+    packageName: string
+    packageJsonPath: string
+    tag: string
+    localVersion: string
+    servingVersion: string | null
+    excludePackages: readonly string[]
+}
+
 const artifactPreflight = async (
     repoRoot: string,
-    kind: 'logic' | 'ui',
-    packageName: string,
-    packageJsonPath: string,
-    tag: string,
-    localVersion: string,
-    servingVersion: string | null
+    source: ArtifactSource
 ): Promise<ArtifactPreflight> => {
-    const baseline = await resolveBaseline(repoRoot, tag, packageJsonPath, localVersion)
-    const sourceDirs = await workspaceSourceDirs(repoRoot, packageName, {
-        exclude: PLATFORM_PACKAGES
+    const baseline = await resolveBaseline(
+        repoRoot,
+        source.tag,
+        source.packageJsonPath,
+        source.localVersion
+    )
+    const sourceDirs = await workspaceSourceDirs(repoRoot, source.packageName, {
+        exclude: source.excludePackages
     })
-    const allDirs = await workspaceSourceDirs(repoRoot, packageName, { exclude: [] })
+    const allDirs = await workspaceSourceDirs(repoRoot, source.packageName, { exclude: [] })
     const platformDirs = allDirs.filter((dir) => !sourceDirs.includes(dir))
-    const changedFiles = await changedFilesSince(repoRoot, baseline.sha, sourceDirs)
-    const commits = await commitsSince(repoRoot, baseline.sha, sourceDirs)
+    const changedFiles = await changedFilesSince(
+        repoRoot,
+        baseline.sha,
+        changePathspecs(sourceDirs)
+    )
+    const commits = await commitsSince(repoRoot, baseline.sha, changePathspecs(sourceDirs))
     const platformChangedFiles =
-        platformDirs.length > 0 ? await changedFilesSince(repoRoot, baseline.sha, platformDirs) : []
+        platformDirs.length > 0
+            ? await changedFilesSince(repoRoot, baseline.sha, changePathspecs(platformDirs))
+            : []
     return {
-        kind,
-        localVersion,
-        servingVersion,
+        kind: source.kind,
+        localVersion: source.localVersion,
+        servingVersion: source.servingVersion,
         baseline,
         sourceDirs,
         changedFiles,
@@ -106,63 +144,96 @@ const artifactPreflight = async (
     }
 }
 
-const servingEntry = async (
-    deployConfig: DeployConfig,
-    packageId: string
-): Promise<{ source: PreflightReport['serving']; versions: ServingVersions | null }> => {
-    const url = deployConfig.backendManifestUrl
-    if (!url) return { source: null, versions: null }
-    const serving = await fetchServingVersions(deployConfig, packageId)
-    if ('error' in serving) {
-        return { source: { source: url, error: serving.error }, versions: null }
-    }
-    return { source: { source: url }, versions: serving }
+const servingSource = (
+    context: PublishContext,
+    serving: ServingLookup
+): PreflightBase['serving'] => {
+    const url = context.deployConfig.backendManifestUrl
+    if (!url) return null
+    return 'error' in serving ? { source: url, error: serving.error } : { source: url }
 }
 
-export const runReleasePreflight = async (
-    repoRoot: string,
-    manifestPath: string,
-    deployConfig: DeployConfig,
+const servingVersion = (serving: ServingLookup, kind: string): string | null =>
+    'error' in serving ? null : (serving[kind] ?? null)
+
+const preflightBase = async (
+    context: PublishContext,
+    serving: ServingLookup
+): Promise<Pick<PreflightBase, 'workingTreeClean' | 'manifestInSync' | 'serving'>> => {
+    const manifest = await readManifest(context.manifestPath)
+    const { changed } = await syncManifestFromPackages(context.repoRoot, manifest)
+    return {
+        workingTreeClean: await isWorkingTreeClean(context.repoRoot),
+        manifestInSync: !changed,
+        serving: servingSource(context, serving)
+    }
+}
+
+export const runGamePreflight = async (
+    context: PublishContext,
     game: string
-): Promise<PreflightReport> => {
-    const manifest = await readManifest(manifestPath)
-    const entry = findGameEntry(manifest, game)
+): Promise<GamePreflightReport> => {
+    const entry = findGameEntry(await readManifest(context.manifestPath), game)
     const packageId = entry.packageId
-    const versions = await readGamePackageVersions(repoRoot, packageId)
-    const paths = getGamePackagePaths(repoRoot, packageId)
-    const { changed: manifestChanged } = await syncManifestFromPackages(repoRoot, manifest)
-    const serving = await servingEntry(deployConfig, packageId)
+    const versions = await readGamePackageVersions(context.repoRoot, packageId)
+    const paths = getGamePackagePaths(context.repoRoot, packageId)
+    const serving = await fetchServingVersions(context, packageId)
+    const base = await preflightBase(context, serving)
 
-    const logic = await artifactPreflight(
-        repoRoot,
-        'logic',
-        `@tabletop/${packageId}`,
-        paths.logic,
-        logicReleaseTag(packageId, versions.logic),
-        versions.logic,
-        serving.versions?.logic ?? null
-    )
-    const ui = await artifactPreflight(
-        repoRoot,
-        'ui',
-        `@tabletop/${packageId}-ui`,
-        paths.ui,
-        uiReleaseTag(packageId, versions.ui),
-        versions.ui,
-        serving.versions?.ui ?? null
-    )
-
-    const releaseNeeded: ReleaseNeeded = logic.changed ? 'logic and ui' : ui.changed ? 'ui' : 'none'
+    const logic = await artifactPreflight(context.repoRoot, {
+        kind: 'logic',
+        packageName: `@tabletop/${packageId}`,
+        packageJsonPath: paths.logic,
+        tag: gameReleaseTag(packageId, 'logic', versions.logic),
+        localVersion: versions.logic,
+        servingVersion: servingVersion(serving, 'logic'),
+        excludePackages: PLATFORM_PACKAGES
+    })
+    const ui = await artifactPreflight(context.repoRoot, {
+        kind: 'ui',
+        packageName: `@tabletop/${packageId}-ui`,
+        packageJsonPath: paths.ui,
+        tag: gameReleaseTag(packageId, 'ui', versions.ui),
+        localVersion: versions.ui,
+        servingVersion: servingVersion(serving, 'ui'),
+        excludePackages: PLATFORM_PACKAGES
+    })
+    const releaseNeeded = logic.changed ? 'logic and ui' : ui.changed ? 'ui' : 'none'
 
     return {
+        ...base,
+        target: `${entry.gameId} (package ${packageId})`,
         gameId: entry.gameId,
         packageId,
-        workingTreeClean: await isWorkingTreeClean(repoRoot),
-        manifestInSync: !manifestChanged,
-        serving: serving.source,
+        artifacts: [logic, ui],
         logic,
         ui,
         releaseNeeded
+    }
+}
+
+export const runFrontendPreflight = async (
+    context: PublishContext
+): Promise<FrontendPreflightReport> => {
+    const packageJsonPath = getFrontendPackagePath(context.repoRoot)
+    const localVersion = await readPackageVersion(packageJsonPath)
+    const serving = await fetchFrontendServingVersion(context)
+    const base = await preflightBase(context, serving)
+    const frontend = await artifactPreflight(context.repoRoot, {
+        kind: 'frontend',
+        packageName: FRONTEND_PACKAGE,
+        packageJsonPath,
+        tag: frontendReleaseTag(localVersion),
+        localVersion,
+        servingVersion: servingVersion(serving, 'frontend'),
+        excludePackages: []
+    })
+    return {
+        ...base,
+        target: 'frontend',
+        artifacts: [frontend],
+        frontend,
+        releaseNeeded: frontend.changed ? 'frontend' : 'none'
     }
 }
 
@@ -189,11 +260,13 @@ const formatArtifact = (artifact: ArtifactPreflight): string[] => {
             lines.push(`    ${commit.sha} ${commit.subject}`)
         }
     }
-    lines.push(
-        `  platform changes: ${artifact.platformChangedFiles.length} files in ${artifact.platformDirs.join(', ') || 'none'} (reported, not counted)`
-    )
-    for (const file of artifact.platformChangedFiles) {
-        lines.push(`    ${file}`)
+    if (artifact.platformDirs.length > 0) {
+        lines.push(
+            `  platform changes: ${artifact.platformChangedFiles.length} files in ${artifact.platformDirs.join(', ')} (reported, not counted)`
+        )
+        for (const file of artifact.platformChangedFiles) {
+            lines.push(`    ${file}`)
+        }
     }
     return lines
 }
@@ -205,13 +278,11 @@ export const formatPreflightReport = (report: PreflightReport): string => {
             : `from ${report.serving.source}`
         : 'not configured (set TABLETOP_BACKEND_MANIFEST_URL or deploy config)'
     return [
-        `${report.gameId} (package ${report.packageId})`,
+        report.target,
         `working tree clean: ${report.workingTreeClean ? 'yes' : 'no'}`,
         `manifest in sync:   ${report.manifestInSync ? 'yes' : 'no'}`,
         `serving manifest:   ${servingLine}`,
-        `platform packages:  ${PLATFORM_PACKAGES.join(', ')} (changes not counted)`,
-        ...formatArtifact(report.logic),
-        ...formatArtifact(report.ui),
+        ...report.artifacts.flatMap(formatArtifact),
         `release needed:     ${report.releaseNeeded}`
     ].join('\n')
 }

@@ -200,3 +200,5 @@ export const syncManifestFromPackages = async (
     const changed = JSON.stringify(manifest) !== JSON.stringify(nextManifest)
     return { manifest: nextManifest, changed }
 }
+
+export const frontendReleaseTag = (version: string) => `frontend-v${version}`
