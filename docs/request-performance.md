@@ -262,3 +262,33 @@ and deferred history, direct navigation, the step-back workaround, and loading
 and disabled-state guards. Republish Fresh Fish's UI Artifact to adopt the fix;
 other titles adopt it through UI-only republication as well. No host contract,
 Site Frontend, Logic, or backend change is required for this correction.
+
+## Cached State for returning players
+
+The most common Game open follows another player's Action. That write cleared `game-<id>`, `csum-<id>` and `etag-<id>`, so the returning player's state-only GET read both the Game and State documents from Firestore. The State is now cached in Redis, and every committed Game write refills the cache in the background after it releases its write markers.
+
+### Caching the State
+
+`state-<id>` is an ordinary cached value under the existing protocol. It is part of `GameCacheKeys.stateWrite`, and `gameWrite` includes those keys, so every State writer places a write marker on it before committing. Readers fill it through `cachingGet` with read tokens, like `game-<id>`. `getActionChecksum` fills `csum-<id>` from the same cached State, so synchronization after an open usually needs no Firestore read either.
+
+`cachingGet` accepts an optional expiry for its fill. State entries use seven days. Production Redis uses `volatile-lru`, which evicts only keys with an expiry. Without one, States would never be evicted, and memory pressure would evict the protocol's read tokens and write markers instead, then reject writes. The expiry makes States the eviction candidates and removes finished and abandoned Games. The entry holds canonical State, including protected fields and any master seed; its Redis trust boundary matches the other backend caches.
+
+### Refill after writes
+
+Every store write except deletion goes through `writeGame`: creation (including started tournament Games), forks and imports (`writeFullGameData`), `updateGame` (starting a Game, joins, declines, invitations and other metadata edits), Actions, Undo, checksum backfill and State replacement. After `lockWhileWriting` returns, `writeGame` starts `store.refillGameCache` without awaiting it. The refill is an ordinary read of `game-<id>`, `state-<id>` and `etag-<id>` through `findGameById`, `findGameState` and `getGameEtag`. It adds no cache behavior of its own: each miss takes a read token, reads Firestore and fills only if the token survives. While another writer holds the markers, the refill still reads Firestore but cannot fill.
+
+Cloud Run allocates CPU only while a request is active (the service does not disable CPU throttling). The refill overlaps the rest of the request, such as notification publishing and turn-notification scheduling. Anything unfinished when the response completes can stall or be lost, which leaves the previous behavior: the next reader fills the cache itself.
+
+### Rollout
+
+Backend revisions that predate `state-<id>` do not mark it when they write. While such a revision still serves writes alongside a revision that caches State, a cached State can outlive the write. This happens only during the first deployment, while old instances finish in-flight requests after promotion, and after a rollback to a revision that predates the cache. After the new revision is fully promoted, and after any such rollback, delete the `state-*` keys (for example, `SCAN` with `MATCH state-*` and `UNLINK` the results). Once every serving revision knows the key, no manual step is needed.
+
+### Measuring it
+
+In `request_timing`, every report that wrote a Game includes a `store.refillGameCache` span. `completed` means the refill finished inside the request; `pending` means it was still running at response time. For the returning player, a warm open shows cache hits and no `firestore.document.get` or `firestore.getAll` under `store.readGameData`. If many refills are `pending`, move the refill to a Cloud Task.
+
+### Deployment and verification
+
+Deploy the backend, then clear `state-*` as described under Rollout. Response shapes, stored documents and Game UI Artifacts are unchanged.
+
+The Redis/Firestore-emulator suite adds six tests. Actions and Undo, starting a Game, State replacement and a metadata-only update each leave the next Game load (and, after Actions, the checksum lookup) with no document reads. A refill cannot fill while another writer holds the Game. A writer that protects the State keys clears the cached State. Disabling the refill fails all six, and removing `state-<id>` from `stateWrite` also fails all six. The coherence audit reports the same result as before the change: its controls and F1–F8 pass, and only the deferred F9 bookmark-key collision fails.

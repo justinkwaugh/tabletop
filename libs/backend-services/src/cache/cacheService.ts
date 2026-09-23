@@ -35,9 +35,15 @@ export type CacheRequest = {
     key: string
     value: unknown | undefined
     lockValue: string | undefined
+    forSeconds?: number
 }
 export type ReadLockRequest = { key: string; value: unknown }
-export type SetValueRequest = { key: string; value: string; lockValue: string }
+export type SetValueRequest = {
+    key: string
+    value: string
+    lockValue: string
+    forSeconds?: number
+}
 export type MissedValueProducer = () => Promise<unknown | undefined>
 export type MissedValuesProducer = (keys: string[]) => Promise<(unknown | undefined)[]>
 export type ValueWriter<T> = (locks: CacheWriteLocks) => Promise<T>
@@ -128,7 +134,8 @@ export class RedisCacheService {
     @Timed('cache.cachingGet')
     public async cachingGet<T>(
         key: string,
-        produceValue: MissedValueProducer
+        produceValue: MissedValueProducer,
+        forSeconds?: number
     ): Promise<T | undefined> {
         // Check the cache
         const { value, cached } = await this.cacheGet(key)
@@ -145,7 +152,7 @@ export class RedisCacheService {
         const newValue = await produceValue()
 
         // Update cache
-        this.cacheSet(key, newValue, lockValue).catch((error) => {
+        this.cacheSet(key, newValue, lockValue, forSeconds).catch((error) => {
             console.log('unable to update cache', key, error)
         })
 
@@ -252,9 +259,10 @@ export class RedisCacheService {
     public async cacheSet(
         key: string,
         value: unknown | undefined,
-        lockValue: string | undefined
+        lockValue: string | undefined,
+        forSeconds?: number
     ): Promise<void> {
-        await this.cacheSetMulti([{ key, value, lockValue }])
+        await this.cacheSetMulti([{ key, value, lockValue, forSeconds }])
     }
 
     // Sets values into the cache using locks for consistency.
@@ -266,7 +274,12 @@ export class RedisCacheService {
             const valueToCache = this.valueForCache(request.value)
             const cacheValue =
                 valueToCache === undefined ? NONE_PREFIX : VALUE_PREFIX + valueToCache
-            return { key: request.key, value: cacheValue, lockValue: request.lockValue! }
+            return {
+                key: request.key,
+                value: cacheValue,
+                lockValue: request.lockValue!,
+                forSeconds: request.forSeconds
+            }
         })
         await this.trySetValues(setRequests)
     }
@@ -501,7 +514,13 @@ export class RedisCacheService {
                     if (currentValue !== request.lockValue) {
                         continue
                     } else {
-                        pipeline.set(request.key, request.value)
+                        pipeline.set(
+                            request.key,
+                            request.value,
+                            request.forSeconds === undefined
+                                ? undefined
+                                : { expiration: { type: 'EX', value: request.forSeconds } }
+                        )
                     }
                 }
                 await measure('redis.exec', () => pipeline.exec())

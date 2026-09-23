@@ -16,6 +16,10 @@ export class GameCacheKeys {
         return `game-${gameId}`
     }
 
+    static state(gameId: string): string {
+        return `state-${gameId}`
+    }
+
     static checksum(gameId: string): string {
         return `csum-${gameId}`
     }
@@ -57,7 +61,7 @@ export class GameCacheKeys {
     }
 
     static stateWrite(gameId: string): string[] {
-        return [this.checksum(gameId), this.revision(gameId)]
+        return [this.state(gameId), this.checksum(gameId), this.revision(gameId)]
     }
 
     static changedLists(before: Game | undefined, after: Game | undefined): string[] {
