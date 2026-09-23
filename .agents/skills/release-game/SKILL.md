@@ -63,7 +63,12 @@ step and the error text, and then:
   fix the cause and rerun the same command;
 - if the failure came after `Pushed`, the release exists. Rerun the deploy only, with
   `deploy-game --game=<gameId> [--logic]` using the same `--logic` choice. A second
-  `release-game` would spend another version.
+  `release-game` would spend another version. If commits have landed since the release, the
+  tag is no longer on HEAD: check out the tag (`git checkout <tag>`), run `deploy-game` there,
+  and return to the branch afterwards.
+- `spawn gcloud ENOENT` or `No credentialed accounts` means this environment cannot upload.
+  The Cloud CLI must be installed and logged in (`gcloud auth login --no-launch-browser`);
+  that login is interactive, so hand it to the user.
 
 ## 4. Report
 
