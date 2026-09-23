@@ -75,6 +75,16 @@ import HunterRiverShare from './images/published/shares/v2/hunter-river-share.we
 import HunterRiverShareThumb from './images/published/shares/v2/hunter-river-share-600.webp'
 import HunterRiverPresident from './images/published/shares/v2/hunter-river-president.webp'
 import HunterRiverPresidentThumb from './images/published/shares/v2/hunter-river-president-600.webp'
+import Train2H from './images/published/trains/2H.webp'
+import Train3H from './images/published/trains/3H.webp'
+import Train4H from './images/published/trains/4H.webp'
+import Train5H from './images/published/trains/5H.webp'
+import Train6H from './images/published/trains/6H.webp'
+import Train2Plus from './images/published/trains/2plus.webp'
+import Train3Plus from './images/published/trains/3plus.webp'
+import Train4Plus from './images/published/trains/4plus.webp'
+import Train7 from './images/published/trains/7.webp'
+import TrainD from './images/published/trains/D.webp'
 import Peir1Card from './images/published/peirs/v2/peir-1-souris.webp'
 import Peir1Thumb from './images/published/peirs/v2/peir-1-souris-600.webp'
 import Peir2Card from './images/published/peirs/v2/peir-2-alberton.webp'
@@ -157,6 +167,18 @@ export const TheOldPrincePresentation: TitlePresentation = {
         'branch:BB': { share: BelfastShareThumb, president: BelfastPresidentThumb },
         'branch:WB': { share: WellingtonShareThumb, president: WellingtonPresidentThumb },
         'branch:HRB': { share: HunterRiverShareThumb, president: HunterRiverPresidentThumb }
+    },
+    publishedTrainImages: {
+        '2H': Train2H,
+        '3H': Train3H,
+        '4H': Train4H,
+        '5H': Train5H,
+        '6H': Train6H,
+        '2+': Train2Plus,
+        '3+': Train3Plus,
+        '4+': Train4Plus,
+        '7': Train7,
+        D: TrainD
     },
     publishedTrainColors: TheOldPrincePublishedTrainColors,
     publishedPhaseColors: TheOldPrincePublishedPhaseColors,

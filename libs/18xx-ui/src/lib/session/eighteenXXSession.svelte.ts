@@ -206,6 +206,11 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
             return card ? [card] : []
         })
     }
+    /** Published train card art for a train definition, when that presentation is on. */
+    publishedTrainImage(definitionId: string): string | undefined {
+        if (!this.publishedArtwork) return undefined
+        return this.presentation.publishedTrainImages?.[definitionId]
+    }
     /** Published card image for a private company or certificate id, when that presentation is on. */
     publishedCardImage(
         id: string | undefined,

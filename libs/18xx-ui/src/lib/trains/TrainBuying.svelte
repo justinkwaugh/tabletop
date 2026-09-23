@@ -73,6 +73,8 @@
             name={definition.name}
             {price}
             color={trainColors[definitionId]}
+            imageUrl={session.publishedTrainImage(definitionId)}
+            listPrice={definition.price}
             {definitionId}
             {market}
             disabled={!(funding ? session.trainFunding.canFund : session.trainBuying.canBuy) ||

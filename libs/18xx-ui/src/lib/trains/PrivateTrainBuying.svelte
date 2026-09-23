@@ -26,6 +26,8 @@
                         name={definition.name}
                         price={option.details.price}
                         color={trainColors[definition.id]}
+                        imageUrl={session.publishedTrainImage(definition.id)}
+                        listPrice={definition.price}
                         definitionId={definition.id}
                         disabled={!session.decisions.canResolve}
                         onclick={() => session.decisions.buyPrivateTrain(option)}

@@ -2,7 +2,7 @@
 
 Extracted from the publisher print files with `tools/art-extraction/extract_top.py`. The tokens
 (`mapView.ts`, `publishedStations`), the private cards and the second-variant PEIR certificates
-(`presentation.ts`, `publishedCardImages`) are shown while the published artwork toggle is on, the
+(`presentation.ts`, `publishedCardImages`) and the train cards (`publishedTrainImages`) are shown while the published artwork toggle is on, the
 cards as a viewport-sized lightbox when clicked and inside the auction bidding panel;
 the tile style (`tileAppearance.ts`, `publishedTileAppearance`, with `tiles/paper-grain.png` as
 the grain overlay) draws laid tiles in the punch-tile look, and the second-variant share and
@@ -15,6 +15,7 @@ and sales in history and the position summary.
 | `privates/` | The 12 private company cards as WebP, 1200 px tall for the lightbox plus a `-600` thumbnail for inline use | `privates+peirs/private companies` |
 | `shares/v2/` | `<company>-share.webp` and `<company>-president.webp` for all 13 charters (second printed art variant), 1100 px tall with `-600` thumbnails | `shares/shares variant 01|02` |
 | `peirs/v2/` | `peir-<n>-<town>.webp` for the seven numbered PEIR certificates plus `peir-back.webp` (second variant), 1200 px tall with `-600` thumbnails | `privates+peirs/peir variant 01|02` |
+| `trains/` | `<id>.webp` train cards (plus trains as `2plus` etc.), 480 x 346 px, shown in place of purchase buttons | `trains/TRAIN-*.pdf` |
 | `tiles/reference/` | Sixteen representative die-cut tiles (one or two per colour tier and marker type) as PNG with hex alpha, half resolution | `hexes/PUNCH-TILES-*.tiff` |
 | `tiles/style.json` | Measured palette, ink, track width and marker conventions for the hand-inked tile style, pre-scaled to the shared tile renderer | same |
 | `tiles/paper-grain.png` | Seamless 240 px paper-grain overlay (white and black with low alpha) cut from a track-free area of a punch tile, used by the published tile appearance | `hexes/PUNCH-TILES-03.tiff` |

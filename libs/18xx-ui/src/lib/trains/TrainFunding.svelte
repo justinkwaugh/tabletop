@@ -108,6 +108,8 @@
                         definitionId={purchase.definitionId}
                         price={purchase.price}
                         color={trainColors[purchase.definitionId]}
+                        imageUrl={session.publishedTrainImage(purchase.definitionId)}
+                        listPrice={session.trainDepot.trainDefinition(purchase.definitionId).price}
                         {disabled}
                         onclick={() => {
                             void session.trainFunding.resolve()

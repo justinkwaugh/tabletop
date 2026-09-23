@@ -5,6 +5,7 @@ Inputs live in artassets/the-old-prince (not committed). Outputs:
   privates/*.webp  one card per private company (1200 px) plus a -600 inline thumbnail
   shares/v2/*.webp  share and president certificates, second art variant (1100 px plus -600 thumbnail)
   peirs/v2/*.webp   the seven PEIR "private-share" certificates (1200 px plus -600 thumbnail)
+  trains/<id>.webp train cards (landscape, 480 px wide), '+' trains written as 2plus etc.
   tokens/*.svg     vector charter tokens: coloured disc + Pantone 9200 icon path
 
 Run: python3 tools/art-extraction/extract_top.py --out <dir>
@@ -49,6 +50,9 @@ PRIVATES = {
     'SHIPBUILDING': 'shipbuilding', 'SHORTLINE': 'shortline-concession', 'UNION': 'union-bank',
     'VERNON': 'vernon-river-bridge-company',
 }
+
+
+TRAINS = {'2H': '2H', '3H': '3H', '4H': '4H', '5H': '5H', '6H': '6H', '2+': '2P', '3+': '3P', '4+': '4P', '7': '7', 'D': 'D'}
 
 
 def page_image(pdf: pathlib.Path, out: pathlib.Path, *, heights=(1200,), quality=78):
@@ -170,6 +174,12 @@ def main():
             size = page_image(src, out / 'peirs' / f'v{variant}' / f'peir-{n}-{town}.webp', heights=(1200, 600))
             print('peir', variant, n, town, size)
         page_image(pfolder / f'private-share-0{variant}-REVERSE.pdf', out / 'peirs' / f'v{variant}' / 'peir-back.webp')
+
+    for train_id, file_key in TRAINS.items():
+        slug = train_id.replace('+', 'plus')
+        # landscape cards: 480 px wide is 346 px tall
+        size = page_image(SRC / 'trains' / f'TRAIN-{file_key}.pdf', out / 'trains' / f'{slug}.webp', heights=(346,))
+        print('train', train_id, size)
 
     tile_reference(out)
 
