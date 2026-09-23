@@ -83,6 +83,16 @@ export const buildGameUiPackageCommand = (repoRoot: string, packageId: string): 
     logPath: `/tmp/${packageId}-ui-build.log`
 })
 
+export const FRONTEND_VERSION_FILE = 'apps/frontend/src/lib/version.ts'
+
+export const writeFrontendVersionCommand = (repoRoot: string): CommandSpec => ({
+    label: 'write-frontend-version',
+    command: 'node',
+    args: ['../../tools/scripts/write-frontend-version.cjs'],
+    cwd: path.join(repoRoot, 'apps', 'frontend'),
+    logPath: '/tmp/frontend-version.log'
+})
+
 export const buildFrontendCommand = (repoRoot: string): CommandSpec => ({
     label: 'build-frontend',
     command: 'turbo',

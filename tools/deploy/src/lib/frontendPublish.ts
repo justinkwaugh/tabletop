@@ -1,5 +1,10 @@
 import path from 'node:path'
-import { buildFrontendCommand, deployFrontendCommand } from './commands.js'
+import {
+    buildFrontendCommand,
+    deployFrontendCommand,
+    FRONTEND_VERSION_FILE,
+    writeFrontendVersionCommand
+} from './commands.js'
 import {
     assertCleanWorkingTree,
     assertDeployConfig,
@@ -104,9 +109,14 @@ export const releaseFrontend = async (context: PublishContext, options: Frontend
 
     await writePackageVersion(packagePath, next)
     context.log(`frontend: ${previous} -> ${next}`)
+    // The frontend build regenerates this tracked file from package.json, so the release commit
+    // carries it; otherwise the first build after a release dirties the tree.
+    await runSpec(context, writeFrontendVersionCommand(context.repoRoot))
 
     await commitTagAndPush(context, branch, {
-        files: [path.relative(context.repoRoot, packagePath)],
+        files: [packagePath, FRONTEND_VERSION_FILE].map((file) =>
+            path.relative(context.repoRoot, path.resolve(context.repoRoot, file))
+        ),
         message: `Release frontend ${next}`,
         tags: [tag]
     })

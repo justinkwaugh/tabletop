@@ -51,6 +51,21 @@ const createRepo = async () => {
         version: '1.0.0',
         dependencies: { '@tabletop/common': 'workspace:*' }
     })
+    await mkdir(path.join(repoRoot, 'apps', 'frontend', 'src', 'lib'), { recursive: true })
+    await writeFile(
+        path.join(repoRoot, 'apps', 'frontend', 'src', 'lib', 'version.ts'),
+        "export const FRONTEND_VERSION = '1.0.0'\n"
+    )
+    await mkdir(path.join(repoRoot, 'tools', 'scripts'), { recursive: true })
+    await writeFile(
+        path.join(repoRoot, 'tools', 'scripts', 'write-frontend-version.cjs'),
+        [
+            "const fs = require('node:fs')",
+            "const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8'))",
+            "fs.writeFileSync('src/lib/version.ts', `export const FRONTEND_VERSION = '${version}'\\n`)",
+            ''
+        ].join('\n')
+    )
     await writeJson(path.join(repoRoot, 'apps', 'backend', 'package.json'), {
         name: '@tabletop/backend',
         version: '0.0.1',
@@ -300,8 +315,12 @@ test('releaseFrontend bumps, commits, tags frontend-v<version>, and pushes', asy
         assert.equal(frontendPackage.version, '1.1.0')
         await assertCleanWorkingTree(repo.repoRoot)
         assert.deepEqual(
-            git(repo.repoRoot, 'show', '--name-only', '--format=', 'HEAD').split('\n'),
-            ['apps/frontend/package.json']
+            git(repo.repoRoot, 'show', '--name-only', '--format=', 'HEAD').split('\n').sort(),
+            ['apps/frontend/package.json', 'apps/frontend/src/lib/version.ts']
+        )
+        assert.equal(
+            await readFile(path.join(repo.repoRoot, 'apps/frontend/src/lib/version.ts'), 'utf8'),
+            "export const FRONTEND_VERSION = '1.1.0'\n"
         )
         assert.equal(git(repo.repoRoot, 'log', '-1', '--format=%s'), 'Release frontend 1.1.0')
         assert.deepEqual(await tagsAtHead(repo.repoRoot), ['frontend-v1.1.0'])
