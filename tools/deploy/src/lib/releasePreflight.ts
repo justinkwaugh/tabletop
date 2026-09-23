@@ -1,5 +1,4 @@
-import { fetchBackendManifest } from './backend.js'
-import { findGameEntry } from './gamePublish.js'
+import { fetchServingVersions, findGameEntry, type ServingVersions } from './gamePublish.js'
 import {
     changedFilesSince,
     commitsSince,
@@ -10,7 +9,7 @@ import {
     type CommitSummary
 } from './git.js'
 import { readManifest } from './manifest.js'
-import type { DeployConfig, GameManifestEntry } from './types.js'
+import type { DeployConfig } from './types.js'
 import {
     getGamePackagePaths,
     logicReleaseTag,
@@ -110,15 +109,14 @@ const artifactPreflight = async (
 const servingEntry = async (
     deployConfig: DeployConfig,
     packageId: string
-): Promise<{ source: PreflightReport['serving']; entry: GameManifestEntry | null }> => {
+): Promise<{ source: PreflightReport['serving']; versions: ServingVersions | null }> => {
     const url = deployConfig.backendManifestUrl
-    if (!url) return { source: null, entry: null }
-    const result = await fetchBackendManifest(url)
-    if (!result.manifest) {
-        return { source: { source: url, error: result.error ?? 'unavailable' }, entry: null }
+    if (!url) return { source: null, versions: null }
+    const serving = await fetchServingVersions(deployConfig, packageId)
+    if ('error' in serving) {
+        return { source: { source: url, error: serving.error }, versions: null }
     }
-    const entry = result.manifest.games.find((game) => game.packageId === packageId) ?? null
-    return { source: { source: url }, entry }
+    return { source: { source: url }, versions: serving }
 }
 
 export const runReleasePreflight = async (
@@ -142,7 +140,7 @@ export const runReleasePreflight = async (
         paths.logic,
         logicReleaseTag(packageId, versions.logic),
         versions.logic,
-        serving.entry?.logicVersion ?? null
+        serving.versions?.logic ?? null
     )
     const ui = await artifactPreflight(
         repoRoot,
@@ -151,7 +149,7 @@ export const runReleasePreflight = async (
         paths.ui,
         uiReleaseTag(packageId, versions.ui),
         versions.ui,
-        serving.entry?.uiVersion ?? null
+        serving.versions?.ui ?? null
     )
 
     const releaseNeeded: ReleaseNeeded = logic.changed ? 'logic and ui' : ui.changed ? 'ui' : 'none'

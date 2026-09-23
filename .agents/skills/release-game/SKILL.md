@@ -55,9 +55,11 @@ must survive the schema change. Say so in the suggestion when it applies.
 
 ## 3. Release
 
-Run `release-game --game=<gameId> [--logic] --<bump>` and wait for it to finish. It prints
-each step with its log path. On failure, read the log it names under `/tmp`, report the failing
-step and the error text, and then:
+Run `release-game --game=<gameId> [--logic] --<bump>` and wait for it to finish. Before it
+uploads anything it prints two lines, `serving before deploy:` and `deploying:`; relay both to
+the user verbatim, as the record of what production had and what is about to replace it. It then
+prints each step with its log path. On failure, read the log it names under `/tmp`, report the
+failing step and the error text, and then:
 
 - if the failure came before `Pushed`, nothing was published and nothing was tagged remotely;
   fix the cause and rerun the same command;
@@ -72,10 +74,18 @@ step and the error text, and then:
 
 ## 4. Report
 
-Run `preflight --game=<gameId>` again and report: the serving versions now, the tags created,
-and the pushed commit. Serving versions that still show the old numbers mean the manifest
-upload or cache invalidation did not take; check the manifest and invalidate logs before
-declaring success.
+The command ends with `deploy SUCCEEDED:` or `deploy FAILED:` followed by `serving now:`, the
+logic and UI versions the backend reports after the run. Relay those two lines verbatim, then
+add the tags created and the pushed commit. The tool itself fails when the backend still
+reports the old versions after the manifest upload, so a `SUCCEEDED` line already means
+production serves the new versions. Report the outcome in exactly this shape:
+
+```
+Result: success | failure (<failing step>)
+Served before: logic <x> / ui <y>
+Deployed:      <artifacts and versions>
+Serving now:   logic <x> / ui <y>
+```
 
 ## Boundaries
 

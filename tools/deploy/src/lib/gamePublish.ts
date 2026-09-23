@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { invalidateBackendManifestCache } from './backend.js'
+import { fetchBackendManifest, invalidateBackendManifestCache } from './backend.js'
 import {
     buildGameLogicCommand,
     buildGameLogicPackageCommand,
@@ -181,6 +181,52 @@ const assertArtifactsPublishable = async (
 const describeVersions = (artifacts: ReleasedArtifact[]) =>
     artifacts.map((artifact) => `${artifact.kind} ${artifact.version}`).join(' / ')
 
+export type ServingVersions = { logic: string; ui: string }
+
+export const fetchServingVersions = async (
+    deployConfig: DeployConfig,
+    packageId: string
+): Promise<ServingVersions | { error: string }> => {
+    const url = deployConfig.backendManifestUrl
+    if (!url) return { error: 'backend manifest URL not configured' }
+    const result = await fetchBackendManifest(url)
+    if (!result.manifest) return { error: result.error ?? 'backend manifest unavailable' }
+    const entry = result.manifest.games.find((game) => game.packageId === packageId)
+    if (!entry) return { error: `backend manifest has no entry for ${packageId}` }
+    return { logic: entry.logicVersion, ui: entry.uiVersion }
+}
+
+const describeServing = (serving: ServingVersions | { error: string }) =>
+    'error' in serving ? `unknown (${serving.error})` : `logic ${serving.logic} / ui ${serving.ui}`
+
+const describeDeployment = (
+    serving: ServingVersions | { error: string },
+    artifacts: ReleasedArtifact[]
+) => {
+    const deploying = describeVersions(artifacts)
+    const logicDeployed = artifacts.some((artifact) => artifact.kind === 'logic')
+    if (logicDeployed || 'error' in serving) return deploying
+    return `${deploying} (logic stays ${serving.logic})`
+}
+
+const assertServingMatches = (
+    serving: ServingVersions | { error: string },
+    artifacts: ReleasedArtifact[]
+) => {
+    if ('error' in serving) {
+        throw new Error(
+            `Deploy finished but the serving versions could not be read: ${serving.error}`
+        )
+    }
+    const stale = artifacts.filter((artifact) => serving[artifact.kind] !== artifact.version)
+    if (stale.length > 0) {
+        throw new Error(
+            `Deploy finished but the backend still serves ${describeServing(serving)}; ` +
+                'check /tmp/manifest-deploy.log and /tmp/manifest-invalidate.log'
+        )
+    }
+}
+
 export type PublishableGame = {
     entry: GameManifestEntry
     manifest: SiteManifest
@@ -201,12 +247,13 @@ export const assertGamePublishable = async (
     return { entry, manifest, artifacts }
 }
 
-export const deployGame = async (context: PublishContext, options: GameArtifactSelection) => {
-    const kinds: ArtifactKind[] = options.includeLogic ? ['logic', 'ui'] : ['ui']
-    const { entry, manifest, artifacts } = await assertGamePublishable(context, options.game, kinds)
-    const packageId = entry.packageId
-
-    if (options.includeLogic) {
+const buildAndUpload = async (
+    context: PublishContext,
+    packageId: string,
+    manifest: SiteManifest,
+    includeLogic: boolean
+) => {
+    if (includeLogic) {
         await runSpec(context, buildGameLogicPackageCommand(context.repoRoot, packageId))
         await runSpec(context, buildGameLogicCommand(context.repoRoot, packageId))
     }
@@ -214,15 +261,39 @@ export const deployGame = async (context: PublishContext, options: GameArtifactS
     await runSpec(context, buildGameUiCommand(context.repoRoot, packageId))
 
     const deploySpecs = [
-        ...(options.includeLogic
+        ...(includeLogic
             ? [deployGameLogicCommand(context.repoRoot, manifest, packageId, context.deployConfig)]
             : []),
         deployGameUiCommand(context.repoRoot, manifest, packageId, context.deployConfig)
     ]
     await runDeploysWithDirectoryPlaceholders(context, deploySpecs)
     await publishManifest(context)
+}
 
-    context.log(`Deployed ${entry.gameId}: ${describeVersions(artifacts)}`)
+export const deployGame = async (context: PublishContext, options: GameArtifactSelection) => {
+    const kinds: ArtifactKind[] = options.includeLogic ? ['logic', 'ui'] : ['ui']
+    const { entry, manifest, artifacts } = await assertGamePublishable(context, options.game, kinds)
+    const packageId = entry.packageId
+
+    const servingBefore = await fetchServingVersions(context.deployConfig, packageId)
+    context.log(`${entry.gameId} serving before deploy: ${describeServing(servingBefore)}`)
+    context.log(`${entry.gameId} deploying: ${describeDeployment(servingBefore, artifacts)}`)
+
+    try {
+        await buildAndUpload(context, packageId, manifest, options.includeLogic)
+    } catch (error) {
+        const servingAfterFailure = await fetchServingVersions(context.deployConfig, packageId)
+        context.log(
+            `${entry.gameId} deploy FAILED: ${error instanceof Error ? error.message : error}`
+        )
+        context.log(`${entry.gameId} serving now: ${describeServing(servingAfterFailure)}`)
+        throw error
+    }
+
+    const servingAfter = await fetchServingVersions(context.deployConfig, packageId)
+    assertServingMatches(servingAfter, artifacts)
+    context.log(`${entry.gameId} deploy SUCCEEDED: ${describeVersions(artifacts)}`)
+    context.log(`${entry.gameId} serving now: ${describeServing(servingAfter)}`)
 }
 
 const releaseCommitMessage = (gameId: string, planned: GameVersionBump) =>
