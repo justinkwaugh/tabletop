@@ -6,7 +6,9 @@ import {
     HydratedTurnManager,
     type Game,
     type PlayerState,
-    type UninitializedGameState
+    type StartingPositionAssignment,
+    type UninitializedGameState,
+    validateStartingPositionAssignment
 } from '@tabletop/common'
 import { createStockRound } from '../stock/stockRound.js'
 import {
@@ -22,6 +24,7 @@ export type InitialStateParts = {
     stockRoundNumber: number
     position: InitialPosition
     titleState?: Opening['titleState']
+    startingPositions?: StartingPositionAssignment
 }
 export type EighteenXXInitializerRules = Pick<
     EighteenXXTitleRules,
@@ -47,19 +50,32 @@ export class EighteenXXInitializer extends BaseGameInitializer<
         Color.Purple,
         Color.Orange
     ]
+    readonly supportsStartingPositions = true
     constructor(protected readonly rules: EighteenXXInitializerRules) {
         super()
     }
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedEighteenXXState {
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        startingPositions?: StartingPositionAssignment
+    ): HydratedEighteenXXState {
+        const players = this.playerStates(game)
+        if (startingPositions !== undefined)
+            validateStartingPositionAssignment(
+                players.map((player) => player.playerId),
+                startingPositions
+            )
         const opening = this.rules.createOpening({
-            players: this.playerStates(game),
+            players,
             prng: new Prng(state.prng),
-            config: game.config
+            config: game.config,
+            startingPositions
         })
         const initialized = this.createInitialState(game, state, {
             stockRoundNumber: 1,
             position: opening.position,
-            titleState: opening.titleState
+            titleState: opening.titleState,
+            startingPositions
         })
         opening.begin(initialized)
         this.applyPhaseEffects(initialized)
@@ -77,21 +93,24 @@ export class EighteenXXInitializer extends BaseGameInitializer<
         parts: InitialStateParts
     ): HydratedEighteenXXState {
         const players = this.playerStates(game)
+        const seatOrder = [
+            ...(parts.startingPositions?.playerIds ?? players.map((player) => player.playerId))
+        ]
         const { map, tileSet, depot } = titleComponents(this.rules)
         return inKnownPhase(
             (this.rules.state ?? FamilyStateDefinition).hydrate(
                 {
                     ...state,
                     players,
-                    activePlayerIds: [players[0].playerId],
+                    activePlayerIds: [seatOrder[0]],
                     example: 'finances',
                     phaseEvents: [],
                     usedPrivatePowerIds: [],
                     machineState: 'StockRound',
                     stockRound: createStockRound(parts.stockRoundNumber),
                     turnManager: new HydratedTurnManager({
-                        series: [{ type: 'turn', playerId: players[0].playerId, start: 0 }],
-                        turnOrder: players.map((player) => player.playerId),
+                        series: [{ type: 'turn', playerId: seatOrder[0], start: 0 }],
+                        turnOrder: seatOrder,
                         turnCounts: Object.fromEntries(
                             players.map((player) => [player.playerId, 0])
                         )

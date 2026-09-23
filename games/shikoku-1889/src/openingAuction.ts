@@ -27,7 +27,7 @@ export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
         settleCashPayments(state, privateIncomePayments(state))
     }
 }
-export function createShikoku1889Opening({ players }: OpeningSetup): Opening {
+export function createShikoku1889Opening({ players, startingPositions }: OpeningSetup): Opening {
     assert(players.length >= 2 && players.length <= 6, '1889 supports two through six players')
     const privates = Shikoku1889Privates.slice(
         0,
@@ -98,5 +98,5 @@ export function createShikoku1889Opening({ players }: OpeningSetup): Opening {
         trainInventory: Shikoku1889TrainDepot.createInventory(),
         phaseId: '2'
     }
-    return { position, begin: beginWaterfallAuction(Shikoku1889AuctionRules) }
+    return { position, begin: beginWaterfallAuction(Shikoku1889AuctionRules, startingPositions) }
 }

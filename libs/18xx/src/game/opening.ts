@@ -1,4 +1,4 @@
-import type { GameConfig, PlayerState, Prng } from '@tabletop/common'
+import type { GameConfig, PlayerState, Prng, StartingPositionAssignment } from '@tabletop/common'
 import { assert } from '@tabletop/common'
 import type { OfferPileAuction } from '../auctions/offerPileAuction.js'
 import type { WaterfallAuctionRules } from '../auctions/waterfallAuction.js'
@@ -12,6 +12,7 @@ export type OpeningSetup = {
     players: readonly PlayerState[]
     prng: Prng
     config: GameConfig
+    startingPositions?: StartingPositionAssignment
 }
 export type InitialPosition = CompanyState &
     MapStateData &
@@ -29,10 +30,26 @@ function beginWith(state: HydratedEighteenXXState, machineState: string, playerI
     state.machineState = machineState
 }
 
-export function beginWaterfallAuction(rules: WaterfallAuctionRules): Opening['begin'] {
+export function drawFirstPlayer(
+    playerIds: readonly string[],
+    prng: Prng,
+    startingPositions?: StartingPositionAssignment
+): string {
+    // The ordinary draw is consumed either way so the rest of the seeded setup is unchanged.
+    const drawnPlayerId = playerIds[prng.randInt(playerIds.length)]
+    return startingPositions?.playerIds[0] ?? drawnPlayerId
+}
+
+export function beginWaterfallAuction(
+    rules: WaterfallAuctionRules,
+    startingPositions?: StartingPositionAssignment
+): Opening['begin'] {
     return (state) => {
-        const order = state.turnManager.turnOrder
-        const firstPlayerId = order[state.getPublicPrng().randInt(order.length)]
+        const firstPlayerId = drawFirstPlayer(
+            state.turnManager.turnOrder,
+            state.getPublicPrng(),
+            startingPositions
+        )
         state.openingAuction = {
             remainingLotIds: rules.lots(state).map((lot) => lot.id),
             reservations: [],

@@ -136,6 +136,7 @@ export * from './ending/gameEnding.js'
 export * from './ending/finalWealth.js'
 export * from './ending/scheduleGameEnd.js'
 export * from './ending/endGame.js'
+export * from './ending/finalScores.js'
 export * from './ending/gameEndingHandler.js'
 
 export * from './routes/routeResources.js'

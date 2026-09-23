@@ -3,6 +3,7 @@ import { Compile, type Validator } from 'typebox/compile'
 import { AutomaticTrackCompletionHandler } from '../construction/automaticTrackCompletionHandler.js'
 import { AutomaticTrainCompletionHandler } from '../trains/automaticTrainCompletionHandler.js'
 import { GameEndingHandler } from '../ending/gameEndingHandler.js'
+import { FinalWealthScoring } from '../ending/finalScores.js'
 import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
 import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
@@ -245,6 +246,8 @@ export function createEighteenXXRuntime(
             Object.keys(stateHandlers)
         ),
         playerColors: EighteenXXInitializer.playerColors,
+        randomnessVersion: 1,
+        scoring: FinalWealthScoring,
         apiActions: actions.schemas,
         stateHandlers
     }

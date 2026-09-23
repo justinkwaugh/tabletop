@@ -1,5 +1,11 @@
 import { expect, it } from 'vitest'
-import { ActionSource, GameResult, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    GameResult,
+    assertExists,
+    validateGameResult,
+    type GameAction
+} from '@tabletop/common'
 import {
     Definition as Top,
     TheOldPrinceEndingRules,
@@ -49,6 +55,14 @@ it.each([Top, Shikoku])(
         expect(after.machineState).toBe('GameOver')
         expect(after.finalWealth).toHaveLength(3)
         expect(after.winningPlayerIds.length).toBeGreaterThan(0)
+        expect(() => validateGameResult(after)).not.toThrow()
+        const scoring = definition.runtime.scoring
+        assertExists(scoring, '18xx titles declare final scores')
+        const scores = scoring.finalScores(after)
+        const highest = Math.max(...Object.values(scores))
+        expect(Object.keys(scores).filter((id) => scores[id] === highest)).toEqual(
+            after.winningPlayerIds
+        )
         expect(after.activePlayerIds).toEqual([])
         for (const player of after.players)
             expect(engine.getValidActionTypesForPlayer(game, after, player.playerId)).toEqual([])

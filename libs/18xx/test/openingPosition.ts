@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
-import { GameEngine, PlayerStatus, type GameDefinition } from '@tabletop/common'
+import { PlayerStatus, type GameDefinition } from '@tabletop/common'
 import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
+import { startFromPublicSeed } from '@tabletop/18xx/scenarios'
 
 function sortedKeys(_key: string, value: unknown): unknown {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return value
@@ -30,9 +31,7 @@ export function openingPositionDigest(
         },
         definition
     )
-    const { id, protectedPrng, masterSeed, ...position } = new GameEngine(runtime).startGame(
-        game
-    ).initialState
+    const { id, protectedPrng, masterSeed, ...position } = startFromPublicSeed(runtime, game)
     return createHash('sha256')
         .update(JSON.stringify(position, sortedKeys))
         .digest('hex')

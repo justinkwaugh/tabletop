@@ -1,4 +1,10 @@
-import { assert, type Game, type PlayerState, type UninitializedGameState } from '@tabletop/common'
+import {
+    assert,
+    type Game,
+    type PlayerState,
+    type StartingPositionAssignment,
+    type UninitializedGameState
+} from '@tabletop/common'
 import { Compile } from 'typebox/compile'
 import { EighteenXXInitializer } from '../game/eighteenXXInitializer.js'
 import type { HydratedEighteenXXState } from '../game/eighteenXXState.js'
@@ -57,11 +63,17 @@ export class ScenarioInitializer extends EighteenXXInitializer {
     }
     override initializeGameState(
         game: Game,
-        state: UninitializedGameState
+        state: UninitializedGameState,
+        startingPositions?: StartingPositionAssignment
     ): HydratedEighteenXXState {
         const requested = game.config?.examplePosition ?? 'opening'
         assert(PositionValidator.Check(requested), 'Unknown scenario position')
-        if (requested === 'opening') return super.initializeGameState(game, state)
+        if (requested === 'opening')
+            return super.initializeGameState(game, state, startingPositions)
+        assert(
+            startingPositions === undefined,
+            'Prepared scenarios do not support assigned starting positions'
+        )
         const position: PreparedPosition = requested === 'ending' ? 'trains' : requested
         assert(
             game.players.length === 3 || game.players.length === 4,

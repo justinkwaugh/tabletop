@@ -14,6 +14,7 @@ import {
     type TrainDepot
 } from '@tabletop/18xx'
 import { Definition as Shikoku, Shikoku1889TitleRules } from './index.js'
+import { startFromPublicSeed } from '@tabletop/18xx/scenarios'
 
 const CharterState = extendEighteenXXState(
     { charterVotes: Type.Optional(Type.Array(Type.String())) },
@@ -78,8 +79,11 @@ function start(definition: typeof Charter) {
         },
         definition
     )
-    const engine = new GameEngine(definition.runtime)
-    return { game, engine, state: engine.startGame(game).initialState }
+    return {
+        game,
+        engine: new GameEngine(definition.runtime),
+        state: startFromPublicSeed(definition.runtime, game)
+    }
 }
 
 function inCharterRound(state: EighteenXXState, charterVotes: string[]) {

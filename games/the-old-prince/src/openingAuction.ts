@@ -9,6 +9,7 @@ import {
     createOrdinaryShareCertificates,
     placeStockMarker,
     beginOfferPileAuction,
+    drawFirstPlayer,
     createCompanyStations,
     type OfferPileAuctionRules,
     type InitialPosition,
@@ -83,7 +84,11 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
         })
     }
 }
-export function createTheOldPrinceOpening({ players, prng }: OpeningSetup): Opening {
+export function createTheOldPrinceOpening({
+    players,
+    prng,
+    startingPositions
+}: OpeningSetup): Opening {
     assert(players.length === 3 || players.length === 4, 'TOP supports three or four players')
     const shuffled = [...TheOldPrinceCompanies]
     shuffle(shuffled, prng.random)
@@ -98,7 +103,11 @@ export function createTheOldPrinceOpening({ players, prng }: OpeningSetup): Open
         ...remaining.map((c) => `PEIR:share:${c.number}`)
     ]
     shuffle(lotIds, prng.random)
-    const auctioneerId = players[prng.randInt(players.length)].playerId
+    const auctioneerId = drawFirstPlayer(
+        players.map((player) => player.playerId),
+        prng,
+        startingPositions
+    )
     const stockMarket = createTheOldPrinceStockMarket()
     placeStockMarker(stockMarket, mainline.companyId, '1:1')
     placeStockMarker(stockMarket, shortline.companyId, '2:1')

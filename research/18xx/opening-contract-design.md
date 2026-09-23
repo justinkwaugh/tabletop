@@ -1,7 +1,8 @@
 # Opening contract
 
-A title supplies one function, `createOpening({ players, prng, config })`, returning an
-`Opening`:
+A title supplies one function, `createOpening({ players, prng, config, startingPositions })`,
+returning an `Opening` (`startingPositions` is optional; see
+[starting positions](starting-positions-design.md)):
 
 - `position`: the typed initial position — finances, companies, stations, tile and train
   inventories, phase and the stock market;

@@ -26,6 +26,14 @@ export function withScenarios(
     }
 }
 
+// Examples are pinned by their numeric public seed, which a generated master seed would replace.
+export function startFromPublicSeed(
+    runtime: ScenarioDefinition['runtime'],
+    game: Game
+): EighteenXXState {
+    return new GameEngine({ ...runtime, randomnessVersion: undefined }).startGame(game).initialState
+}
+
 const FourPlayerPositions: readonly ScenarioPosition[] = [
     'privates',
     'private-events',
@@ -63,8 +71,11 @@ export function exampleGame(
         },
         definition
     )
-    const engine = new GameEngine(definition.runtime)
-    return { game, engine, state: engine.startGame(game).initialState }
+    return {
+        game,
+        engine: new GameEngine(definition.runtime),
+        state: startFromPublicSeed(definition.runtime, game)
+    }
 }
 
 const alex = { kind: 'player', playerId: 'alex' } as const
