@@ -35,6 +35,17 @@ export const gcsPathExists = (target: string): Promise<boolean> =>
         child.on('close', (code) => resolve(code === 0 && hasOutput))
     })
 
+export const artifactImageExists = (image: string, project: string): Promise<boolean> =>
+    new Promise((resolve) => {
+        const child = spawn(
+            'gcloud',
+            ['artifacts', 'docker', 'images', 'describe', image, '--project', project, '--quiet'],
+            { env: withCloudSdkPythonEnv(process.env), stdio: ['ignore', 'ignore', 'ignore'] }
+        )
+        child.on('error', () => resolve(false))
+        child.on('close', (code) => resolve(code === 0))
+    })
+
 export const checkFrontendDeployed = async (
     manifest: SiteManifest,
     config: DeployConfig,

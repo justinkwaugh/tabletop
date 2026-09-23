@@ -14,6 +14,7 @@ import {
     assertDeployConfig,
     commitTagAndPush,
     fetchServing,
+    gcsArtifact,
     loadManifestAssertingSynced,
     prepareRelease,
     publishManifest,
@@ -68,12 +69,13 @@ const gameArtifact = (
     packageId: string,
     kind: ArtifactKind,
     version: string
-): PublishedArtifact => ({
-    kind,
-    version,
-    tag: gameReleaseTag(packageId, kind, version),
-    destination: `gs://${bucket}/games/${packageId}/${kind}/${version}`
-})
+): PublishedArtifact =>
+    gcsArtifact(
+        kind,
+        version,
+        gameReleaseTag(packageId, kind, version),
+        `gs://${bucket}/games/${packageId}/${kind}/${version}`
+    )
 
 export const fetchServingVersions = (
     context: PublishContext,

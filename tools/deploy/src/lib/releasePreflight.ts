@@ -1,3 +1,4 @@
+import { BACKEND_PACKAGE, fetchBackendServingVersion } from './backendPublish.js'
 import { fetchFrontendServingVersion, FRONTEND_PACKAGE } from './frontendPublish.js'
 import { fetchServingVersions, findGameEntry, gameReleaseTag } from './gamePublish.js'
 import {
@@ -12,7 +13,9 @@ import {
 import { readManifest } from './manifest.js'
 import type { PublishContext, ServingLookup } from './publishCore.js'
 import {
+    backendReleaseTag,
     frontendReleaseTag,
+    getBackendPackagePath,
     getFrontendPackagePath,
     getGamePackagePaths,
     readGamePackageVersions,
@@ -75,7 +78,12 @@ export type FrontendPreflightReport = PreflightBase & {
     releaseNeeded: 'frontend' | 'none'
 }
 
-export type PreflightReport = GamePreflightReport | FrontendPreflightReport
+export type BackendPreflightReport = PreflightBase & {
+    backend: ArtifactPreflight
+    releaseNeeded: 'backend' | 'none'
+}
+
+export type PreflightReport = GamePreflightReport | FrontendPreflightReport | BackendPreflightReport
 
 const resolveBaseline = async (
     repoRoot: string,
@@ -234,6 +242,31 @@ export const runFrontendPreflight = async (
         artifacts: [frontend],
         frontend,
         releaseNeeded: frontend.changed ? 'frontend' : 'none'
+    }
+}
+
+export const runBackendPreflight = async (
+    context: PublishContext
+): Promise<BackendPreflightReport> => {
+    const packageJsonPath = getBackendPackagePath(context.repoRoot)
+    const localVersion = await readPackageVersion(packageJsonPath)
+    const serving = await fetchBackendServingVersion(context)
+    const base = await preflightBase(context, serving)
+    const backend = await artifactPreflight(context.repoRoot, {
+        kind: 'backend',
+        packageName: BACKEND_PACKAGE,
+        packageJsonPath,
+        tag: backendReleaseTag(localVersion),
+        localVersion,
+        servingVersion: servingVersion(serving, 'backend'),
+        excludePackages: []
+    })
+    return {
+        ...base,
+        target: 'backend',
+        artifacts: [backend],
+        backend,
+        releaseNeeded: backend.changed ? 'backend' : 'none'
     }
 }
 

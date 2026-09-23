@@ -12,19 +12,20 @@ import {
     buildGameLogicCommand,
     buildGameLogicPackageCommand,
     buildGameUiCommand,
-    deployBackendCommand,
     deployGameLogicCommand,
     directoryPlaceholderSpecs,
     rollbackBackendCommand,
     runCommand
 } from './lib/commands.js'
 import type { CommandSpec } from './lib/commands.js'
+import { deployBackend, releaseBackend, type BackendService } from './lib/backendPublish.js'
 import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
 import { assertGamePublishable, deployGame, releaseGame } from './lib/gamePublish.js'
 import { publishManifest, type PublishContext } from './lib/publishCore.js'
 import { getDeployConfigPath, getManifestPath, getRepoRoot } from './lib/paths.js'
 import {
     formatPreflightReport,
+    runBackendPreflight,
     runFrontendPreflight,
     runGamePreflight
 } from './lib/releasePreflight.js'
@@ -40,7 +41,7 @@ Commands:
   tui                          Launch the TUI (default)
   status                       Print the current manifest
   sync-manifest                Sync site-manifest.json from package versions
-  preflight (--game=<id> | --frontend) [--json]
+  preflight (--game=<id> | --frontend | --backend) [--json]
                                Report the serving and local versions, the last release
                                baseline per artifact, and which files and commits changed
                                since it, ending with whether a release is needed. Read-only.
@@ -65,14 +66,21 @@ Commands:
   build-frontend               Build the frontend
   deploy-frontend              Build and deploy the frontend at HEAD, publish the manifest, and
                                invalidate the backend cache. Same guards as deploy-game.
+  release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--service=backend|tasks]
+                               Bump the backend package version, commit, tag backend-v<version>,
+                               push, then deploy (unless --no-deploy).
   build-backend                Build the backend
-  deploy-backend [--with-traffic] Deploy the backend (Cloud Run)
+  deploy-backend [--no-traffic] [--service=backend|tasks]
+                               Build the backend, build its image with Cloud Build tagged with
+                               the release version, and deploy it to the backend and tasks
+                               services with traffic. Same guards as deploy-game.
   rollback-backend <revision>  Shift traffic to a backend revision
 
 Release tags:
   <packageId>-v<version>       Logic artifact
   <packageId>-ui-v<version>    UI artifact
   frontend-v<version>          Site frontend
+  backend-v<version>           Backend image (also the image tag)
 
 Environment:
   TABLETOP_GCS_BUCKET           GCS bucket name
@@ -142,6 +150,12 @@ const rejectBumpFlags = (command: string, values: SemverFlags, releaseCommand: s
     }
 }
 
+const resolveBackendServices = (service: string | undefined): BackendService[] => {
+    if (service === undefined) return ['backend', 'tasks']
+    if (service === 'backend' || service === 'tasks') return [service]
+    throw new Error('--service must be backend or tasks')
+}
+
 const requireGame = (command: string, game: string | undefined): string => {
     if (!game) throw new Error(`${command} requires --game=<gameId|packageId>`)
     return game
@@ -157,9 +171,11 @@ const main = async () => {
         allowPositionals: true,
         options: {
             help: { type: 'boolean', short: 'h' },
-            'with-traffic': { type: 'boolean' },
+            'no-traffic': { type: 'boolean' },
+            service: { type: 'string' },
             game: { type: 'string' },
             frontend: { type: 'boolean' },
+            backend: { type: 'boolean' },
             logic: { type: 'boolean' },
             major: { type: 'boolean' },
             minor: { type: 'boolean' },
@@ -199,13 +215,20 @@ const main = async () => {
     const deployByDefault = values['no-deploy'] !== true
 
     if (command === 'preflight') {
-        if (values.frontend === true && values.game !== undefined) {
-            throw new Error('preflight takes either --game=<id> or --frontend, not both')
+        const targets = [
+            values.game !== undefined,
+            values.frontend === true,
+            values.backend === true
+        ].filter(Boolean).length
+        if (targets !== 1) {
+            throw new Error('preflight takes exactly one of --game=<id>, --frontend, or --backend')
         }
         const report =
             values.frontend === true
                 ? await runFrontendPreflight(context)
-                : await runGamePreflight(context, requireGame(command, values.game))
+                : values.backend === true
+                  ? await runBackendPreflight(context)
+                  : await runGamePreflight(context, requireGame(command, values.game))
         console.log(values.json ? JSON.stringify(report, null, 2) : formatPreflightReport(report))
         return
     }
@@ -237,6 +260,26 @@ const main = async () => {
     if (command === 'deploy-frontend') {
         rejectBumpFlags(command, values, 'release-frontend')
         await deployFrontend(context)
+        return
+    }
+
+    const backendOptions = {
+        services: resolveBackendServices(values.service),
+        serveTraffic: values['no-traffic'] !== true
+    }
+
+    if (command === 'release-backend') {
+        await releaseBackend(context, {
+            ...backendOptions,
+            bump: resolveBumpType(command, values),
+            deploy: deployByDefault
+        })
+        return
+    }
+
+    if (command === 'deploy-backend') {
+        rejectBumpFlags(command, values, 'release-backend')
+        await deployBackend(context, backendOptions)
         return
     }
 
@@ -282,13 +325,6 @@ const main = async () => {
 
     if (command === 'build-backend') {
         const spec = buildBackendCommand(repoRoot)
-        await runAndReport(spec, () => runCommand(spec))
-        return
-    }
-
-    if (command === 'deploy-backend') {
-        const allowTraffic = values['with-traffic'] === true
-        const spec = deployBackendCommand(repoRoot, deployConfig, { allowTraffic })
         await runAndReport(spec, () => runCommand(spec))
         return
     }

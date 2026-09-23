@@ -17,7 +17,8 @@ export type SiteManifest = {
 
 export type BackendManifest = SiteManifest & {
     backend?: {
-        buildSha?: string
+        version?: string | null
+        buildSha?: string | null
         buildTime?: string
         revision?: string
     }

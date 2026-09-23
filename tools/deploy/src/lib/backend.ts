@@ -88,9 +88,7 @@ const getSetCookieHeaders = (response: Response): string[] => {
 }
 
 const extractCookieHeader = (setCookieHeaders: string[]): string | null => {
-    const cookies = setCookieHeaders
-        .map((header) => header.split(';')[0]?.trim())
-        .filter(Boolean)
+    const cookies = setCookieHeaders.map((header) => header.split(';')[0]?.trim()).filter(Boolean)
     if (cookies.length === 0) return null
     return cookies.join('; ')
 }

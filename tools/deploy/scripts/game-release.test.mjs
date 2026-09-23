@@ -6,7 +6,12 @@ import path from 'node:path'
 import test from 'node:test'
 import { releaseGame } from '../esm/lib/gamePublish.js'
 import { releaseFrontend } from '../esm/lib/frontendPublish.js'
-import { runFrontendPreflight, runGamePreflight } from '../esm/lib/releasePreflight.js'
+import { releaseBackend } from '../esm/lib/backendPublish.js'
+import {
+    runBackendPreflight,
+    runFrontendPreflight,
+    runGamePreflight
+} from '../esm/lib/releasePreflight.js'
 import { assertCleanWorkingTree, tagsAtHead } from '../esm/lib/git.js'
 import { logicReleaseTag, planGameVersionBump, uiReleaseTag } from '../esm/lib/versions.js'
 
@@ -33,6 +38,7 @@ const createRepo = async () => {
     await mkdir(path.join(repoRoot, 'games', 'sample'), { recursive: true })
     await mkdir(path.join(repoRoot, 'games', 'sample-ui'), { recursive: true })
     await mkdir(path.join(repoRoot, 'config', 'config-games', 'src'), { recursive: true })
+    await mkdir(path.join(repoRoot, 'apps', 'backend'), { recursive: true })
     await mkdir(path.join(repoRoot, 'libs', 'shared'), { recursive: true })
     await mkdir(path.join(repoRoot, 'libs', 'common'), { recursive: true })
     await writeFile(path.join(repoRoot, 'package.json'), '{ "name": "root", "private": true }\n')
@@ -43,6 +49,11 @@ const createRepo = async () => {
     await writeJson(path.join(repoRoot, 'apps', 'frontend', 'package.json'), {
         name: '@tabletop/frontend',
         version: '1.0.0',
+        dependencies: { '@tabletop/common': 'workspace:*' }
+    })
+    await writeJson(path.join(repoRoot, 'apps', 'backend', 'package.json'), {
+        name: '@tabletop/backend',
+        version: '0.0.1',
         dependencies: { '@tabletop/common': 'workspace:*' }
     })
     await writeJson(path.join(repoRoot, 'libs', 'common', 'package.json'), {
@@ -321,6 +332,48 @@ test('frontend preflight counts the frontend package and all of its dependencies
         assert.deepEqual(report.frontend.sourceDirs, ['apps/frontend', 'libs/common'])
         assert.deepEqual(report.frontend.platformDirs, [])
         assert.equal(report.releaseNeeded, 'frontend')
+    } finally {
+        await rm(repo.root, { recursive: true, force: true })
+    }
+})
+
+test('releaseBackend bumps only the backend package, tags backend-v<version>, and pushes', async () => {
+    const repo = await createRepo()
+    try {
+        await releaseBackend(repo.context, {
+            bump: 'patch',
+            deploy: false,
+            services: ['backend', 'tasks'],
+            serveTraffic: true
+        })
+        const backendPackage = await readJson(
+            path.join(repo.repoRoot, 'apps', 'backend', 'package.json')
+        )
+        assert.equal(backendPackage.version, '0.0.2')
+        await assertCleanWorkingTree(repo.repoRoot)
+        assert.equal(git(repo.repoRoot, 'log', '-1', '--format=%s'), 'Release backend 0.0.2')
+        assert.deepEqual(await tagsAtHead(repo.repoRoot), ['backend-v0.0.2'])
+        assert.equal(git(repo.originRoot, 'tag', '--list', 'backend-v0.0.2'), 'backend-v0.0.2')
+        assert.deepEqual(
+            git(repo.repoRoot, 'show', '--stat', '--format=', 'HEAD')
+                .split('\n')[0]
+                .trim()
+                .split(' ')[0],
+            'apps/backend/package.json'
+        )
+    } finally {
+        await rm(repo.root, { recursive: true, force: true })
+    }
+})
+
+test('backend preflight counts the backend package and its dependencies', async () => {
+    const repo = await createRepo()
+    try {
+        await commitFile(repo.repoRoot, 'libs/common/src/index.ts', 'export {}\n', 'Common fix')
+        const report = await runBackendPreflight(repo.context)
+        assert.equal(report.backend.baseline.kind, 'version-commit')
+        assert.deepEqual(report.backend.sourceDirs, ['apps/backend', 'libs/common'])
+        assert.equal(report.releaseNeeded, 'backend')
     } finally {
         await rm(repo.root, { recursive: true, force: true })
     }

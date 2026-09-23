@@ -102,6 +102,38 @@ export const buildBackendCommand = (
     logPath: options?.force ? '/tmp/backend-build-force.log' : '/tmp/backend-build.log'
 })
 
+export const BACKEND_IMAGE_CONTEXT_DIR = '/tmp/tabletop-backend-prune'
+
+export const buildBackendImageContextCommand = (repoRoot: string): CommandSpec => ({
+    label: 'backend-image-context',
+    command: 'pnpm',
+    args: ['-w', '--filter', '@tabletop/backend', 'run', 'docker-context'],
+    cwd: repoRoot,
+    logPath: '/tmp/backend-image-context.log'
+})
+
+export const submitBackendImageCommand = (
+    repoRoot: string,
+    image: string,
+    project: string
+): CommandSpec => ({
+    label: 'cloud-build-backend-image',
+    command: 'gcloud',
+    args: [
+        'builds',
+        'submit',
+        BACKEND_IMAGE_CONTEXT_DIR,
+        '--tag',
+        image,
+        '--project',
+        project,
+        '--quiet'
+    ],
+    cwd: repoRoot,
+    logPath: '/tmp/backend-image-cloud-build.log',
+    requiresDeploy: true
+})
+
 export const buildBackendImageCommand = (repoRoot: string): CommandSpec => ({
     label: 'build-backend-image',
     command: 'pnpm',
@@ -398,10 +430,27 @@ export const deployManifestCommand = (manifestPath: string, config: DeployConfig
     }
 }
 
+export type BackendDeployOptions = {
+    allowTraffic?: boolean
+    service?: string
+    image?: string
+    envVars?: Record<string, string>
+}
+
+const envVarArgs = (envVars?: Record<string, string>) =>
+    envVars && Object.keys(envVars).length > 0
+        ? [
+              '--update-env-vars',
+              Object.entries(envVars)
+                  .map(([key, value]) => `${key}=${value}`)
+                  .join(',')
+          ]
+        : []
+
 export const deployBackendCommand = (
     repoRoot: string,
     config: DeployConfig,
-    options?: { allowTraffic?: boolean; service?: string }
+    options?: BackendDeployOptions
 ): CommandSpec => {
     const allowTraffic = options?.allowTraffic === true
     const backend = config.backend
@@ -447,17 +496,20 @@ export const deployBackendCommand = (
         )
     }
 
-    if (backend.image) {
+    const image = options?.image ?? backend.image
+    if (image) {
         const args = [
             'run',
             'deploy',
             service,
             '--image',
-            backend.image,
+            image,
             '--region',
             backend.region,
             '--project',
-            backend.project
+            backend.project,
+            '--quiet',
+            ...envVarArgs(options?.envVars)
         ]
 
         if (!allowTraffic) {

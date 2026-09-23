@@ -34,7 +34,21 @@ export type PublishedArtifact = {
     version: string
     tag: string
     destination: string
+    published: () => Promise<boolean>
 }
+
+export const gcsArtifact = (
+    kind: string,
+    version: string,
+    tag: string,
+    destination: string
+): PublishedArtifact => ({
+    kind,
+    version,
+    tag,
+    destination,
+    published: () => gcsPathExists(destination)
+})
 
 export type ServingVersions = Record<string, string>
 
@@ -121,7 +135,7 @@ export const assertArtifactsPublishable = async (
         }
     }
     for (const artifact of artifacts) {
-        if (await gcsPathExists(artifact.destination)) {
+        if (await artifact.published()) {
             throw new Error(
                 `${artifact.destination} is already published; deployed versions are immutable, ` +
                     'so release a new version instead'
@@ -180,7 +194,8 @@ export const runReportedDeploy = async (
     label: string,
     artifacts: PublishedArtifact[],
     fetchServingVersions: () => Promise<ServingLookup>,
-    deploy: () => Promise<void>
+    deploy: () => Promise<void>,
+    options: { verifyServing: boolean } = { verifyServing: true }
 ) => {
     const servingBefore = await fetchServingVersions()
     context.log(`${label} serving before deploy: ${describeServing(servingBefore)}`)
@@ -196,8 +211,11 @@ export const runReportedDeploy = async (
     }
 
     const servingAfter = await fetchServingVersions()
-    assertServingMatches(servingAfter, artifacts)
-    context.log(`${label} deploy SUCCEEDED: ${describeVersions(artifacts)}`)
+    if (options.verifyServing) {
+        assertServingMatches(servingAfter, artifacts)
+    }
+    const outcome = options.verifyServing ? '' : ' (staged without traffic)'
+    context.log(`${label} deploy SUCCEEDED: ${describeVersions(artifacts)}${outcome}`)
     context.log(`${label} serving now: ${describeServing(servingAfter)}`)
 }
 

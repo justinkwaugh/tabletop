@@ -7,6 +7,7 @@ import {
     assertDeployConfig,
     commitTagAndPush,
     fetchServing,
+    gcsArtifact,
     loadManifestAssertingSynced,
     prepareRelease,
     publishManifest,
@@ -35,12 +36,13 @@ export type FrontendReleaseOptions = {
     deploy: boolean
 }
 
-const frontendArtifact = (bucket: string, version: string): PublishedArtifact => ({
-    kind: 'frontend',
-    version,
-    tag: frontendReleaseTag(version),
-    destination: `gs://${bucket}/frontend/${version}`
-})
+const frontendArtifact = (bucket: string, version: string): PublishedArtifact =>
+    gcsArtifact(
+        'frontend',
+        version,
+        frontendReleaseTag(version),
+        `gs://${bucket}/frontend/${version}`
+    )
 
 export const fetchFrontendServingVersion = (context: PublishContext): Promise<ServingLookup> =>
     fetchServing(context.deployConfig, (manifest) => ({ frontend: manifest.frontend.version }))

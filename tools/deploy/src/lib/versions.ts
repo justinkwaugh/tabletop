@@ -33,6 +33,9 @@ const writeJson = async (filePath: string, data: PackageJson) => {
 export const getFrontendPackagePath = (repoRoot: string) =>
     path.join(repoRoot, 'apps', 'frontend', 'package.json')
 
+export const getBackendPackagePath = (repoRoot: string) =>
+    path.join(repoRoot, 'apps', 'backend', 'package.json')
+
 export const getGamePackagePaths = (repoRoot: string, packageId: string) => ({
     logic: path.join(repoRoot, 'games', packageId, 'package.json'),
     ui: path.join(repoRoot, 'games', `${packageId}-ui`, 'package.json')
@@ -202,3 +205,5 @@ export const syncManifestFromPackages = async (
 }
 
 export const frontendReleaseTag = (version: string) => `frontend-v${version}`
+
+export const backendReleaseTag = (version: string) => `backend-v${version}`
