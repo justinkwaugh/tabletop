@@ -28,8 +28,10 @@ program classes, auto-action generation, and validation mode were not copied.
 Counterexamples considered for the interface:
 
 - Titles where a player can buy for a company they control (TOP's Union Bank,
-  1841 corporate holdings). The instruction buys for the player only; a buyer
-  choice is preserved in `BuyShares` and could be added to the instruction later.
+  1841 corporate holdings). The instruction buys for the player only and must
+  never act for a company buyer: the evaluator fixes the buyer to the player and
+  never consults the title's buyer list, and a TOP test holds that line. A
+  buyer choice remains available on `BuyShares` for hand play.
 - Titles with sell-then-buy versus buy-then-sell ordering and with multiple
   purchases per turn. The evaluator asks the composed handler what is available
   and asks `evaluateSharePurchase` for legality, so it follows whatever the
