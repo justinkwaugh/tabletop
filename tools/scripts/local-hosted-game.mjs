@@ -18,9 +18,9 @@ const usage = `Usage:
   tools/scripts/local-hosted-game.mjs <game>
   tools/scripts/local-hosted-game.mjs --game <game> [--prepare-only]
 
-Builds the selected game's logic and UI, stages the UI at the version selected by
-the local site manifest, checks local infrastructure, and starts the Site Frontend
-and backend.
+Builds the selected game's logic and UI, stages the UI at the package version that
+the local backend's generated manifest selects, checks local infrastructure, and
+starts the Site Frontend and backend.
 
 Options:
   --game <game>    Game package ID or game ID (for example, fresh-fish)
@@ -88,16 +88,16 @@ const normalizeGameName = (gameName) =>
         .replace(/-ui$/, '')
         .toLowerCase()
 
-const resolveGame = (manifest, requestedName) => {
+const resolveGame = (catalogue, requestedName) => {
     const normalizedName = normalizeGameName(requestedName)
-    const game = manifest.games.find(
+    const game = catalogue.find(
         (candidate) =>
             candidate.packageId.toLowerCase() === normalizedName ||
             candidate.gameId.toLowerCase() === normalizedName
     )
 
     if (!game) {
-        const choices = manifest.games
+        const choices = catalogue
             .map((candidate) => candidate.packageId)
             .sort()
             .join(', ')
@@ -114,11 +114,8 @@ const verifyPackage = (packageJson, expectations, filePath) => {
         )
     }
 
-    if (packageJson.version !== expectations.version) {
-        throw new Error(
-            `${packageJson.name} is version ${packageJson.version}, but the local site manifest selects ` +
-                `${expectations.version}. Align the package and manifest before running the hosted site.`
-        )
+    if (typeof packageJson.version !== 'string') {
+        throw new Error(`${filePath} has no version`)
     }
 }
 
@@ -497,24 +494,34 @@ const main = async () => {
         throw new Error('turbo is unavailable. Install workspace dependencies, then retry.')
     }
 
-    const manifestPath = path.join(repoRoot, 'config/config-games/src/site-manifest.json')
-    const manifest = await readJson(manifestPath)
-    const game = resolveGame(manifest, options.gameName)
-    const logicPackagePath = path.join(repoRoot, 'games', game.packageId, 'package.json')
-    const uiPackagePath = path.join(repoRoot, 'games', `${game.packageId}-ui`, 'package.json')
+    const cataloguePath = path.join(repoRoot, 'config/config-games/src/games.json')
+    const catalogue = await readJson(cataloguePath)
+    const catalogueGame = resolveGame(catalogue, options.gameName)
+    const logicPackagePath = path.join(repoRoot, 'games', catalogueGame.packageId, 'package.json')
+    const uiPackagePath = path.join(
+        repoRoot,
+        'games',
+        `${catalogueGame.packageId}-ui`,
+        'package.json'
+    )
     const logicPackage = await readJson(logicPackagePath)
     const uiPackage = await readJson(uiPackagePath)
 
     verifyPackage(
         logicPackage,
-        { name: `@tabletop/${game.packageId}`, version: game.logicVersion },
+        { name: `@tabletop/${catalogueGame.packageId}` },
         path.relative(repoRoot, logicPackagePath)
     )
     verifyPackage(
         uiPackage,
-        { name: `@tabletop/${game.packageId}-ui`, version: game.uiVersion },
+        { name: `@tabletop/${catalogueGame.packageId}-ui` },
         path.relative(repoRoot, uiPackagePath)
     )
+    const game = {
+        ...catalogueGame,
+        logicVersion: logicPackage.version,
+        uiVersion: uiPackage.version
+    }
 
     const backendEnvironmentFile = await parseEnvironmentFile(
         path.join(repoRoot, 'apps/backend/.env.local')

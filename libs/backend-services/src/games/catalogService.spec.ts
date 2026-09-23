@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { GameVisibility, type GameCatalogEntry } from '@tabletop/common'
-import { SiteManifest } from '@tabletop/games-config'
+import type { SiteManifest } from '@tabletop/games-config'
 import { CatalogService } from './catalogService.js'
 
 describe('publication catalog', () => {
@@ -17,7 +17,7 @@ describe('publication catalog', () => {
         priorLogicVersions: [],
         priorUiVersions: []
     }
-    const manifest: SiteManifest = { ...SiteManifest, games: [publication] }
+    const manifest: SiteManifest = { frontend: { version: '1.0.0' }, games: [publication] }
     const entry: GameCatalogEntry = {
         id: 'example',
         thumbnailUrl: '/games/example-package/ui/1.0.0/assets/cover.jpg',
@@ -93,7 +93,10 @@ describe('publication catalog', () => {
     })
 
     it('preserves alpha visibility in catalog metadata', async () => {
-        const alpha = { ...entry, metadata: { ...entry.metadata, beta: true, visibility: GameVisibility.Alpha } }
+        const alpha = {
+            ...entry,
+            metadata: { ...entry.metadata, beta: true, visibility: GameVisibility.Alpha }
+        }
         await publish(publication, alpha)
         expect(await service.getCatalog(manifest)).toEqual([alpha])
     })

@@ -1,16 +1,32 @@
-import siteManifest from './site-manifest.json' with { type: 'json' }
+import games from './games.json' with { type: 'json' }
 
 type GamePackage = [name: string, scope?: string]
 
-export type SiteManifest = typeof siteManifest
-export type SiteManifestGame = SiteManifest['games'][number]
+export type GameCatalogueEntry = {
+    gameId: string
+    packageId: string
+}
+
+export type SiteManifestGame = GameCatalogueEntry & {
+    logicVersion: string
+    uiVersion: string
+    priorLogicVersions?: string[]
+    priorUiVersions?: string[]
+}
+
+export type SiteManifest = {
+    frontend: {
+        version: string
+        priorVersions?: string[]
+    }
+    games: SiteManifestGame[]
+}
 
 const DEFAULT_SCOPE = '@tabletop'
 
-export const SiteManifest = siteManifest
-export const Games = siteManifest.games
+export const GameCatalogue: GameCatalogueEntry[] = games
 
-export const AvailableGames: GamePackage[] = siteManifest.games.map((game) => [
+export const AvailableGames: GamePackage[] = GameCatalogue.map((game) => [
     game.packageId,
     DEFAULT_SCOPE
 ])

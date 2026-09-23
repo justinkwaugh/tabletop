@@ -1,42 +1,44 @@
 import path from 'node:path'
 import { STATIC_ROOT } from '../lib/staticRoot.js'
 import {
-    GameService,
-    PreferenceService,
-    FirestorePreferenceStore,
-    LibraryService,
+    AblyService,
+    AblyTransport,
     CatalogService,
+    ChatService,
     CloudTasksTaskService,
+    createLocalManifest,
+    DefaultNotificationService,
+    DiscordService,
+    DiscordTransport,
     EmailService,
+    EnvSecretsService,
+    EnvService,
+    FirestoreChatStore,
+    FirestoreGameStore,
+    FirestoreNotificationStore,
+    FirestorePreferenceStore,
     FirestoreTokenStore,
+    FirestoreTournamentStore,
     FirestoreUserStore,
+    GameService,
+    LibraryService,
+    LOCAL_WORKSPACE_ROOT,
     LocalTaskService,
+    NotificationService,
+    NullPubSubService,
+    PreferenceService,
+    PubSubService,
+    PubSubTransport,
+    RedisCacheService,
+    RedisPubSubService,
+    RedisService,
+    ResendEmailService,
+    SecretsService,
     TaskService,
     TokenService,
-    UserService,
-    SecretsService,
-    EnvSecretsService,
-    FirestoreGameStore,
-    NotificationService,
-    PubSubService,
-    DiscordService,
-    FirestoreNotificationStore,
-    DefaultNotificationService,
-    DiscordTransport,
-    WebPushTransport,
-    AblyTransport,
-    AblyService,
-    NullPubSubService,
-    RedisPubSubService,
-    RedisCacheService,
-    RedisService,
-    ChatService,
-    FirestoreChatStore,
-    ResendEmailService,
-    PubSubTransport,
-    EnvService,
     TournamentService,
-    FirestoreTournamentStore
+    UserService,
+    WebPushTransport
 } from '@tabletop/backend-services'
 import type { GameDefinition } from '@tabletop/common'
 
@@ -79,7 +81,9 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const libraryService = new LibraryService(redisCacheService, {
         manifestPath: SITE_MANIFEST_PATH,
-        allowFallback: EnvService.isLocal(),
+        fallbackManifest: EnvService.isLocal()
+            ? () => createLocalManifest(LOCAL_WORKSPACE_ROOT)
+            : undefined,
         useCache: !EnvService.isLocal()
     })
 

@@ -9,7 +9,7 @@ Use the repository runner instead of rebuilding its orchestration in ad hoc shel
 
 ## Start the site
 
-1. Resolve the Game's `packageId` from `config/config-games/src/site-manifest.json`. If the request does not identify a Game and the intended one is not unambiguous, ask.
+1. Resolve the Game's `packageId` from the catalogue in `config/config-games/src/games.json`. If the request does not identify a Game and the intended one is not unambiguous, ask.
 2. From the repository root, start `tools/scripts/local-hosted-game.mjs <packageId>` in a persistent terminal session.
 3. Wait for `Local hosted game ready`. Do not report readiness based only on spawned processes; the runner checks both HTTP applications.
 4. Give the user the printed Site Frontend, backend, and Firestore emulator URLs. Keep the terminal session running while they test.

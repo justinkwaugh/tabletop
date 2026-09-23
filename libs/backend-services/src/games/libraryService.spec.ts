@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { setImmediate } from 'node:timers/promises'
 import path from 'node:path'
 import { createClient, type RedisClientType } from 'redis'
-import { SiteManifest } from '@tabletop/games-config'
+import type { SiteManifest } from '@tabletop/games-config'
 import { cacheFixture } from '../cache/tests/cacheFixture.js'
 import { LibraryService } from './libraryService.js'
 
@@ -15,10 +15,10 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
     let manifestPath: string
     let cacheKey: string
     const before: SiteManifest = {
-        ...SiteManifest,
-        frontend: { ...SiteManifest.frontend, version: '1.0.0' },
+        frontend: { version: '1.0.0', priorVersions: [] },
         games: []
     }
+    const fallback: SiteManifest = { frontend: { version: '0.0.0' }, games: [] }
     const after: SiteManifest = {
         ...before,
         frontend: { ...before.frontend, version: '2.0.0' }
@@ -156,14 +156,14 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
         await expectCached(before)
     })
 
-    it('keeps the packaged fallback out of the shared cache', async () => {
+    it('keeps the generated fallback out of the shared cache', async () => {
         await rm(manifestPath)
         const service = new LibraryService(live.cache, {
             manifestPath,
             cacheKey,
-            allowFallback: true
+            fallbackManifest: async () => fallback
         })
-        expect(await service.refreshManifest()).toEqual(SiteManifest)
+        expect(await service.refreshManifest()).toEqual(fallback)
         expect((await live.cache.cacheGet(cacheKey)).cached).toBe(false)
         await writeFile(manifestPath, JSON.stringify(after))
         expect(await service.refreshManifest()).toEqual(after)
@@ -200,12 +200,12 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
         expect(await live.client.get(cacheKey)).toBeNull()
     })
 
-    it('propagates cache protocol errors even when a packaged fallback is allowed', async () => {
+    it('propagates cache protocol errors even when a fallback is available', async () => {
         await live.client.hSet(cacheKey, 'unexpected', 'hash')
         const service = new LibraryService(live.cache, {
             manifestPath,
             cacheKey,
-            allowFallback: true
+            fallbackManifest: async () => fallback
         })
         await expect(service.refreshManifest()).rejects.toThrow('WRONGTYPE')
     })
