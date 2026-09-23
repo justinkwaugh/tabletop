@@ -2,6 +2,10 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     SetStockInstruction,
     certificatesInPool,
+    isCompleteStockRound,
+    isSetStockInstruction,
+    isStartStockRound,
+    isStopStockInstruction,
     sharesOwned,
     describeStockPositionChange,
     standingStockInstructionFor,
@@ -26,6 +30,7 @@ export type BuyInstructionTerms = Omit<Extract<StockInstruction, { kind: 'buy' }
 
 export type BuyInstructionChoice = { company: Company; pools: CertificatePool[] }
 export type ShareGoalRange = { min: number; max: number }
+export type StoppedInstruction = { kind: StockInstruction['kind']; reason: string }
 
 export class StockInstructionModule {
     constructor(private readonly session: StockInstructionSession) {}
@@ -54,6 +59,27 @@ export class StockInstructionModule {
               )
             : undefined
     )
+    lastStop = $derived.by((): StoppedInstruction | undefined => {
+        const { recordedActions, playerId } = this.session
+        if (!this.open || !playerId || this.mine) return undefined
+        let reason: string | undefined
+        for (const action of recordedActions.toReversed()) {
+            if (isCompleteStockRound(action) || isStartStockRound(action)) return undefined
+            if (action.playerId !== playerId) continue
+            if (isStopStockInstruction(action)) {
+                if (reason !== undefined) {
+                    if (action.replacement) return { kind: action.replacement.kind, reason }
+                    continue
+                }
+                if (action.replacement) return undefined
+                reason = action.reason
+            } else if (isSetStockInstruction(action)) {
+                if (reason === undefined || !action.instruction) return undefined
+                return { kind: action.instruction.kind, reason }
+            }
+        }
+        return undefined
+    })
     buyChoices = $derived.by((): BuyInstructionChoice[] => {
         const { state, rules, playerId } = this.session
         if (!playerId) return []
@@ -73,7 +99,11 @@ export class StockInstructionModule {
                     )
                 )
             }))
-            .filter((choice) => choice.pools.length > 0)
+            .filter(
+                (choice) =>
+                    choice.pools.length > 0 &&
+                    (!choice.company.floated || this.shareGoalRange(choice) !== undefined)
+            )
     })
 
     shareGoalRange(choice: BuyInstructionChoice): ShareGoalRange | undefined {

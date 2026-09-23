@@ -10,6 +10,7 @@ export function testSession<State, Rules>(
         selectionsVisible?: boolean
         interactive?: boolean
         actingPlayerIds?: string[]
+        recordedActions?: GameAction[]
     } = {}
 ) {
     const applied: GameAction[] = []
@@ -24,7 +25,7 @@ export function testSession<State, Rules>(
         playerId: 'alex',
         actingPlayerIds: availability.actingPlayerIds ?? ['alex'],
         canActFor: (playerId) => (availability.actingPlayerIds ?? ['alex']).includes(playerId),
-        recordedActions: [],
+        recordedActions: availability.recordedActions ?? [],
         settled: async () => {},
         createPlayerAction: (schema, data) =>
             Object.assign(createAction(schema, data), {

@@ -327,7 +327,11 @@ the rest of the round" or "Autobuy <company> · <pool> preferred · until it
 floats · then pass"), a "Stops next turn: <reason>" status when the session's
 `instructions.warning` reports that the instruction would stop at its next
 evaluation, and an inline Cancel button. A small "?" icon at the end of the row
-opens a popover listing when an instruction stops on its own.
+opens a popover listing when an instruction stops on its own. After an instruction
+stops, the bar shows "Autopass stopped: <reason>" or "Autobuy stopped: <reason>" in the
+tray outline until the player declares again, clears, or the round ends. The goal
+segment offers Floats only for a company that has not floated, and Autobuy omits a
+floated company with no reachable share goal.
 
 The toggle's selected kind, company, pool, goal, count and then-pass values are
 local component UI state. They are not staged selections: they are never

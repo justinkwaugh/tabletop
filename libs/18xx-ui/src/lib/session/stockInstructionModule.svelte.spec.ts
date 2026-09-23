@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ActionSource } from '@tabletop/common'
 import {
     TestCompanyId,
     TestPlayerId,
@@ -200,5 +201,84 @@ describe('share goal range', () => {
                 thenPass: false
             })
         ).rejects.toThrow('reach')
+    })
+})
+
+describe('last stop', () => {
+    const action = (overrides: Record<string, unknown>) => ({
+        id: String(overrides.id ?? Math.random()),
+        gameId: 'game',
+        source: ActionSource.User,
+        playerId: TestPlayerId,
+        ...overrides
+    })
+    const declaredBuy = action({
+        type: 'SetStockInstruction',
+        outOfTurn: true,
+        instruction: {
+            kind: 'buy',
+            companyId: TestCompanyId,
+            preferredPoolId: 'ipo',
+            until: { kind: 'floated' },
+            thenPass: true
+        }
+    })
+    const convertedToPass = action({
+        type: 'StopStockInstruction',
+        source: ActionSource.System,
+        reason: 'Railway has floated',
+        replacement: { kind: 'pass' }
+    })
+    const stopped = action({
+        type: 'StopStockInstruction',
+        source: ActionSource.System,
+        reason: 'Railway shares were sold'
+    })
+
+    it('reports why my instruction stopped and which kind it was', () => {
+        const { module } = harness(['SetStockInstruction'], {
+            recordedActions: [declaredBuy, stopped]
+        })
+        expect(module.lastStop).toEqual({ kind: 'buy', reason: 'Railway shares were sold' })
+        const { module: converted } = harness(['SetStockInstruction'], {
+            recordedActions: [declaredBuy, convertedToPass, stopped]
+        })
+        expect(converted.lastStop).toEqual({ kind: 'pass', reason: 'Railway shares were sold' })
+    })
+
+    it('forgets the stop once I declare again, clear, or the round ends', () => {
+        const cleared = action({ type: 'SetStockInstruction', outOfTurn: true })
+        expect(
+            harness(['SetStockInstruction'], { recordedActions: [declaredBuy, stopped, cleared] })
+                .module.lastStop
+        ).toBeUndefined()
+        const ended = action({
+            type: 'CompleteStockRound',
+            source: ActionSource.System,
+            playerId: undefined
+        })
+        expect(
+            harness(['SetStockInstruction'], { recordedActions: [declaredBuy, stopped, ended] })
+                .module.lastStop
+        ).toBeUndefined()
+        expect(
+            harness(['SetStockInstruction'], { recordedActions: [declaredBuy, convertedToPass] }, [
+                standingPass
+            ]).module.lastStop
+        ).toBeUndefined()
+    })
+})
+
+describe('floated companies', () => {
+    it('drops a floated company with no reachable share goal', () => {
+        const { module } = harness()
+        module['session'].state.companies[0].floated = true
+        expect(module.buyChoices.map((choice) => choice.company.id)).toEqual([TestCompanyId])
+        const { module: exhausted } = harness(['SetStockInstruction'], {}, undefined, 0, 0)
+        exhausted['session'].state.companies[0].floated = true
+        exhausted['session'].state.certificates = exhausted['session'].state.certificates.filter(
+            (certificate) => certificate.id !== 'R-1'
+        )
+        expect(exhausted.buyChoices).toEqual([])
     })
 })

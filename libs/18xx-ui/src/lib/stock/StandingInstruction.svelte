@@ -63,7 +63,8 @@
     )
     const poolIndex = $derived(choice?.pools.findIndex((item) => item.id === pool?.id) ?? -1)
     const shareRange = $derived(choice ? instructions.shareGoalRange(choice) : undefined)
-    const goalKind = $derived(shareRange ? goal : 'floated')
+    const floatGoal = $derived(!!choice && !choice.company.floated)
+    const goalKind = $derived(!floatGoal ? 'shares' : shareRange ? goal : 'floated')
     const shareGoal = $derived(
         shareRange ? Math.min(Math.max(shareCount, shareRange.min), shareRange.max) : shareCount
     )
@@ -115,6 +116,12 @@
                     >{/if}
                 <button class="commit muted" {disabled} onclick={() => instructions.clear()}
                     >Cancel</button
+                >
+            {:else if mode === undefined && instructions.lastStop}
+                <span class="connector" aria-hidden="true">›</span>
+                <span class="tray notice" role="status"
+                    >{instructions.lastStop.kind === 'pass' ? 'Autopass' : 'Autobuy'} stopped: {instructions
+                        .lastStop.reason}</span
                 >
             {:else if mode === 'pass'}
                 <button class="commit" {disabled} onclick={enable}>Enable</button>
@@ -183,17 +190,24 @@
                         {:else}<span class="pool-name">{poolLabel(pool)}</span>{/if}
                         <span class="label">until</span>
                         <div class="segment" role="group" aria-label="Goal">
-                            <SlidingToggle count={2} selectedIndex={goalKind === 'floated' ? 0 : 1}>
-                                <button
-                                    {disabled}
-                                    aria-pressed={goalKind === 'floated'}
-                                    onclick={() => (goal = 'floated')}>Floats</button
-                                >
-                                <button
-                                    disabled={disabled || !shareRange}
-                                    aria-pressed={goalKind === 'shares'}
-                                    onclick={() => (goal = 'shares')}>Shares</button
-                                >
+                            <SlidingToggle
+                                count={floatGoal && shareRange ? 2 : 1}
+                                selectedIndex={goalKind === 'floated' || !floatGoal ? 0 : 1}
+                            >
+                                {#if floatGoal}
+                                    <button
+                                        {disabled}
+                                        aria-pressed={goalKind === 'floated'}
+                                        onclick={() => (goal = 'floated')}>Floats</button
+                                    >
+                                {/if}
+                                {#if shareRange}
+                                    <button
+                                        {disabled}
+                                        aria-pressed={goalKind === 'shares'}
+                                        onclick={() => (goal = 'shares')}>Shares</button
+                                    >
+                                {/if}
                             </SlidingToggle>
                         </div>
                         {#if goalKind === 'shares' && shareRange}
@@ -314,6 +328,11 @@
         padding: 3px 10px 3px 6px;
         border: 1px solid var(--rail-border, #485666);
         border-radius: 17px;
+    }
+    .tray.notice {
+        display: inline-block;
+        padding: 4px 12px;
+        color: var(--rail-muted, #7f8e9e);
     }
     .tray.bare {
         padding: 0;
