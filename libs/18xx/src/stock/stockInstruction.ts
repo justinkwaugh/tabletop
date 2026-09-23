@@ -65,14 +65,46 @@ export const StandingStockInstruction = Type.Object(
 )
 export type StandingStockInstruction = Type.Static<typeof StandingStockInstruction>
 
+const CompanyReason = <Code extends string>(code: Code) =>
+    Type.Object(
+        { code: Type.Literal(code), companyId: Type.String() },
+        { additionalProperties: false }
+    )
+const PoolReason = <Code extends string>(code: Code) =>
+    Type.Object(
+        { code: Type.Literal(code), companyId: Type.String(), poolId: Type.String() },
+        { additionalProperties: false }
+    )
+export const StockInstructionStopReason = Type.Union([
+    Type.Object({ code: Type.Literal('limits') }, { additionalProperties: false }),
+    Type.Object({ code: Type.Literal('cannot-finish') }, { additionalProperties: false }),
+    CompanyReason('company-started'),
+    CompanyReason('president-changed'),
+    CompanyReason('shares-sold'),
+    CompanyReason('presidency-threatened'),
+    CompanyReason('goal-met'),
+    CompanyReason('no-shares'),
+    PoolReason('mixed-certificates'),
+    PoolReason('purchase-rejected'),
+    Type.Object(
+        {
+            code: Type.Literal('title'),
+            key: Type.String(),
+            companyId: Type.Optional(Type.String())
+        },
+        { additionalProperties: false }
+    )
+])
+export type StockInstructionStopReason = Type.Static<typeof StockInstructionStopReason>
+
 export interface StockInstructionRules {
     securePresidency?(state: StockState, companyId: string, owner: Owner): boolean
     titleSnapshot?(state: StockState, playerId: string): StockInstructionTitleSnapshot
     positionChange?(
         state: StockState,
         standing: StandingStockInstruction,
-        familyChange: () => string | undefined
-    ): string | undefined
+        familyChange: () => StockInstructionStopReason | undefined
+    ): StockInstructionStopReason | undefined
 }
 
 export function createStandingStockInstruction(
@@ -146,43 +178,43 @@ export function stockPositionSnapshot(state: StockState, playerId: string): Stoc
     })
 }
 
-export function describeStockPositionChange(
+export function stockPositionChange(
     state: StockState,
     standing: StandingStockInstruction,
     rules: StockRules
-): string | undefined {
-    const familyChange = () => describeFamilyPositionChange(state, standing, rules)
+): StockInstructionStopReason | undefined {
+    const familyChange = () => familyPositionChange(state, standing, rules)
     return rules.instructions?.positionChange
         ? rules.instructions.positionChange(state, standing, familyChange)
         : familyChange()
 }
 
-function describeFamilyPositionChange(
+function familyPositionChange(
     state: StockState,
     standing: StandingStockInstruction,
     rules: StockRules
-): string | undefined {
+): StockInstructionStopReason | undefined {
     const owner: Owner = { kind: 'player', playerId: standing.playerId }
-    if (exceedsStockLimits(state, owner, rules)) return 'Shares must be sold to meet the limits'
+    if (exceedsStockLimits(state, owner, rules)) return { code: 'limits' }
     for (const current of stockPositionSnapshot(state, standing.playerId)) {
         const before = standing.snapshot.find((item) => item.companyId === current.companyId)
         if (!before) continue
-        const name = getCompany(state, current.companyId).name
-        if (!before.started && current.started) return `${name} was started`
+        const companyId = current.companyId
+        if (!before.started && current.started) return { code: 'company-started', companyId }
         const presidentChanged =
             (before.president === undefined) !== (current.president === undefined) ||
             (before.president &&
                 current.president &&
                 !sameOwner(before.president, current.president))
         if (presidentChanged && !(current.president && sameOwner(current.president, owner)))
-            return `${name} changed president`
-        if (current.bankShares > before.bankShares) return `${name} shares were sold`
+            return { code: 'president-changed', companyId }
+        if (current.bankShares > before.bankShares) return { code: 'shares-sold', companyId }
         const presides = current.president !== undefined && sameOwner(current.president, owner)
         const secure =
             rules.instructions?.securePresidency?.(state, current.companyId, owner) ??
             current.ownerShares * 2 > (getCompany(state, current.companyId).shareCount ?? 0)
         if (presides && !secure && current.rivalShares > before.rivalShares)
-            return `${name} presidency is threatened`
+            return { code: 'presidency-threatened', companyId }
     }
     return undefined
 }
@@ -191,9 +223,12 @@ export type StockInstructionOutcome =
     | { kind: 'wait' }
     | { kind: 'pass' }
     | { kind: 'buy'; request: PurchaseRequest; price: number }
-    | { kind: 'stop'; reason: string; replacement?: StockInstruction }
+    | { kind: 'stop'; reason: StockInstructionStopReason; replacement?: StockInstruction }
 
-function stop(reason: string, replacement?: StockInstruction): StockInstructionOutcome {
+function stop(
+    reason: StockInstructionStopReason,
+    replacement?: StockInstruction
+): StockInstructionOutcome {
     return replacement ? { kind: 'stop', reason, replacement } : { kind: 'stop', reason }
 }
 
@@ -204,24 +239,24 @@ export function evaluateStockInstruction(
     availableActions: readonly string[]
 ): StockInstructionOutcome {
     if (availableActions.length === 0) return { kind: 'wait' }
-    const change = describeStockPositionChange(state, standing, rules)
+    const change = stockPositionChange(state, standing, rules)
     if (change) return stop(change)
     const canPass = availableActions.includes('FinishStockTurn')
     const { instruction, playerId } = standing
     if (instruction.kind === 'pass')
-        return canPass ? { kind: 'pass' } : stop('The turn cannot be finished')
+        return canPass ? { kind: 'pass' } : stop({ code: 'cannot-finish' })
     const company = getCompany(state, instruction.companyId)
     const owner: Owner = { kind: 'player', playerId }
     const followUp = instruction.thenPass ? { kind: 'pass' as const } : undefined
     if (instruction.until.kind === 'floated' && company.floated)
-        return stop(`${company.name} has floated`, followUp)
+        return stop({ code: 'goal-met', companyId: company.id }, followUp)
     if (
         instruction.until.kind === 'shares' &&
         sharesOwned(state, company.id, owner) >= instruction.until.count
     )
-        return stop(`Holding ${instruction.until.count} shares of ${company.name}`, followUp)
+        return stop({ code: 'goal-met', companyId: company.id }, followUp)
     if (state.stockRound.turn.bought)
-        return canPass ? { kind: 'pass' } : stop('The turn cannot be finished')
+        return canPass ? { kind: 'pass' } : stop({ code: 'cannot-finish' })
     const offers = state.certificatePools
         .toSorted((left, right) =>
             left.id === instruction.preferredPoolId
@@ -240,18 +275,21 @@ export function evaluateStockInstruction(
             )
             return candidates.length ? [{ pool, candidates }] : []
         })
-    if (offers.length === 0) return stop(`No ${company.name} shares remain for sale`)
+    if (offers.length === 0) return stop({ code: 'no-shares', companyId: company.id })
     const evaluated = offers.map(({ pool, candidates }): PoolOffer => {
         if (new Set(candidates.map((certificate) => certificate.shares)).size > 1)
             return {
                 pool,
-                reason: `${pool.name} offers ${company.name} certificates of different sizes`
+                reason: { code: 'mixed-certificates', companyId: company.id, poolId: pool.id }
             }
         const request = { playerId, buyer: owner, certificateId: candidates[0].id }
         const result = evaluateSharePurchase(state, request, rules)
         return result.details
             ? { pool, request, price: result.details.price }
-            : { pool, reason: result.reason ?? 'Invalid purchase' }
+            : {
+                  pool,
+                  reason: { code: 'purchase-rejected', companyId: company.id, poolId: pool.id }
+              }
     })
     const preferred = evaluated.find((offer) => offer.pool.id === instruction.preferredPoolId)
     if (preferred) return 'reason' in preferred ? stop(preferred.reason) : purchase(preferred)
@@ -262,11 +300,13 @@ export function evaluateStockInstruction(
         >((best, offer) => (best && best.price <= offer.price ? best : offer), undefined)
     if (fallback) return purchase(fallback)
     const failure = evaluated[0]
-    return stop('reason' in failure ? failure.reason : 'No purchase is available')
+    return stop('reason' in failure ? failure.reason : { code: 'no-shares', companyId: company.id })
 }
 
 type PurchaseOffer = { pool: { id: string; name: string }; request: PurchaseRequest; price: number }
-type PoolOffer = PurchaseOffer | { pool: { id: string; name: string }; reason: string }
+type PoolOffer =
+    | PurchaseOffer
+    | { pool: { id: string; name: string }; reason: StockInstructionStopReason }
 
 function purchase(offer: PurchaseOffer): StockInstructionOutcome {
     return { kind: 'buy', request: offer.request, price: offer.price }

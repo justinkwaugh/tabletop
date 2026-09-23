@@ -7,7 +7,7 @@ import {
 } from '../testing/index.js'
 import {
     createStandingStockInstruction,
-    describeStockPositionChange,
+    stockPositionChange,
     type StockInstructionRules
 } from './stockInstruction.js'
 import type { StockRules } from './stockRules.js'
@@ -70,11 +70,12 @@ describe('standing instruction title hooks', () => {
             minimalStockRules
         )
         state.certificates.push({ ...state.certificates[3], id: 'r2', owner: rival })
-        expect(describeStockPositionChange(state, standing, minimalStockRules)).toBe(
-            'Railway presidency is threatened'
-        )
+        expect(stockPositionChange(state, standing, minimalStockRules)).toEqual({
+            code: 'presidency-threatened',
+            companyId: TestCompanyId
+        })
         const secure = withHooks({ securePresidency: () => true })
-        expect(describeStockPositionChange(state, standing, secure)).toBeUndefined()
+        expect(stockPositionChange(state, standing, secure)).toBeUndefined()
     })
 
     it('lets a title wrap the family cancel rules', () => {
@@ -83,10 +84,10 @@ describe('standing instruction title hooks', () => {
             titleSnapshot: () => ({ loans: 0 }),
             positionChange: (current, standing, family) =>
                 current.companies[0].closed
-                    ? 'The company closed'
+                    ? { code: 'title', key: 'company-closed', companyId: TestCompanyId }
                     : standing.titleSnapshot?.loans === 0
                       ? family()
-                      : 'Loans changed'
+                      : { code: 'title', key: 'loans-changed' }
         })
         const standing = createStandingStockInstruction(
             state,
@@ -94,12 +95,17 @@ describe('standing instruction title hooks', () => {
             { kind: 'pass' },
             rules
         )
-        expect(describeStockPositionChange(state, standing, rules)).toBeUndefined()
+        expect(stockPositionChange(state, standing, rules)).toBeUndefined()
         state.certificates.push({ ...state.certificates[3], id: 'r2', owner: rival })
-        expect(describeStockPositionChange(state, standing, rules)).toBe(
-            'Railway presidency is threatened'
-        )
+        expect(stockPositionChange(state, standing, rules)).toEqual({
+            code: 'presidency-threatened',
+            companyId: TestCompanyId
+        })
         state.companies[0].closed = true
-        expect(describeStockPositionChange(state, standing, rules)).toBe('The company closed')
+        expect(stockPositionChange(state, standing, rules)).toEqual({
+            code: 'title',
+            key: 'company-closed',
+            companyId: TestCompanyId
+        })
     })
 })

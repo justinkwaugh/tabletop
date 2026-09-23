@@ -1,4 +1,5 @@
-import type { StockInstruction } from '@tabletop/18xx'
+import type { StockInstruction, StockInstructionStopReason } from '@tabletop/18xx'
+import type { TitleStopReason } from '../session/titlePresentation.js'
 
 export type StockInstructionNames = {
     companyName: (id: string) => string
@@ -16,4 +17,35 @@ export function stockInstructionText(
             : `until ${instruction.until.count} ${instruction.until.count === 1 ? 'share' : 'shares'}`
     const follow = instruction.thenPass ? ' · then pass' : ''
     return `Autobuy ${names.companyName(instruction.companyId)} · ${names.poolName(instruction.preferredPoolId)} preferred · ${goal}${follow}`
+}
+
+export function stopReasonText(
+    reason: StockInstructionStopReason,
+    names: StockInstructionNames,
+    titleText?: (reason: TitleStopReason) => string
+): string {
+    switch (reason.code) {
+        case 'limits':
+            return 'shares must be sold to meet the limits'
+        case 'cannot-finish':
+            return 'the turn cannot be finished'
+        case 'company-started':
+            return `${names.companyName(reason.companyId)} was started`
+        case 'president-changed':
+            return `${names.companyName(reason.companyId)} changed president`
+        case 'shares-sold':
+            return `${names.companyName(reason.companyId)} shares were sold`
+        case 'presidency-threatened':
+            return `${names.companyName(reason.companyId)} presidency is threatened`
+        case 'goal-met':
+            return `the ${names.companyName(reason.companyId)} goal was met`
+        case 'no-shares':
+            return `no ${names.companyName(reason.companyId)} shares remain for sale`
+        case 'mixed-certificates':
+            return `${names.poolName(reason.poolId)} offers ${names.companyName(reason.companyId)} certificates of different sizes`
+        case 'purchase-rejected':
+            return `${names.companyName(reason.companyId)} cannot be bought from ${names.poolName(reason.poolId)}`
+        case 'title':
+            return titleText?.(reason) ?? reason.key
+    }
 }

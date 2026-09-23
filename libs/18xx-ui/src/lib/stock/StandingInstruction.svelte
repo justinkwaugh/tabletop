@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getCompany, type CertificatePool } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    import { stockInstructionText } from './stockInstructionText.js'
+    import { stockInstructionText, stopReasonText } from './stockInstructionText.js'
     import SlidingToggle from '../table/SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let { session }: { session: EighteenXXSession } = $props()
@@ -112,7 +112,11 @@
                     >{stockInstructionText(instructions.mine.instruction, names)}</span
                 >
                 {#if instructions.warning}<span class="warning" role="status"
-                        >Stops next turn: {instructions.warning}</span
+                        >Stops next turn: {stopReasonText(
+                            instructions.warning,
+                            names,
+                            session.presentation.instructionStopText
+                        )}</span
                     >{/if}
                 <button class="commit muted" {disabled} onclick={() => instructions.clear()}
                     >Cancel</button
@@ -120,8 +124,11 @@
             {:else if mode === undefined && instructions.lastStop}
                 <span class="connector" aria-hidden="true">›</span>
                 <span class="tray notice" role="status"
-                    >{instructions.lastStop.kind === 'pass' ? 'Autopass' : 'Autobuy'} stopped: {instructions
-                        .lastStop.reason}</span
+                    >{instructions.lastStop.kind === 'pass' ? 'Autopass' : 'Autobuy'} stopped: {stopReasonText(
+                        instructions.lastStop.reason,
+                        names,
+                        session.presentation.instructionStopText
+                    )}</span
                 >
             {:else if mode === 'pass'}
                 <button class="commit" {disabled} onclick={enable}>Enable</button>

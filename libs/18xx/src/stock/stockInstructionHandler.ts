@@ -49,7 +49,7 @@ export class StockInstructionHandler<
         if (isStopStockInstruction(action))
             return (
                 outcome.kind === 'stop' &&
-                action.reason === outcome.reason &&
+                Value.Equal(action.reason, outcome.reason) &&
                 Value.Equal(action.replacement, outcome.replacement)
             )
         if (isFinishStockTurn(action)) return outcome.kind === 'pass'

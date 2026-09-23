@@ -66,7 +66,9 @@ player. `StockInstructionHandler` decorates the StockRound state outside the
 automatic-turn and company-decision wrappers. On entry, once the inner handler
 has scheduled nothing, it evaluates the current player's instruction and
 schedules `FinishStockTurn` or `BuyShares` as System Actions, or
-`StopStockInstruction` with a reason. It validates a System pass, purchase, or
+`StopStockInstruction` with a structured reason: a code plus the company and pool
+ids it concerns, or a title-owned key. Wording lives in the UI, which maps codes
+to text and lets a title supply text for its own keys. It validates a System pass, purchase, or
 stop only when the evaluator would produce exactly that action. Instructions
 clear when the stock round completes.
 

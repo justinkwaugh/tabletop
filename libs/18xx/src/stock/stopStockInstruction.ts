@@ -11,6 +11,7 @@ import {
 } from '@tabletop/common'
 import {
     StockInstruction,
+    StockInstructionStopReason,
     removeStandingStockInstruction,
     setStandingStockInstruction,
     standingStockInstructionFor,
@@ -23,7 +24,7 @@ export const StopStockInstruction = Type.Object(
     {
         ...PlayerAction.properties,
         type: Type.Literal('StopStockInstruction'),
-        reason: Type.String(),
+        reason: StockInstructionStopReason,
         replacement: Type.Optional(StockInstruction)
     },
     { additionalProperties: false }
@@ -43,7 +44,7 @@ export class HydratedStopStockInstruction
 {
     declare type: 'StopStockInstruction'
     declare playerId: string
-    declare reason: string
+    declare reason: StockInstructionStopReason
     declare replacement?: StockInstruction
     readonly #rules: StockRules
     constructor(data: StopStockInstruction, rules: StockRules) {

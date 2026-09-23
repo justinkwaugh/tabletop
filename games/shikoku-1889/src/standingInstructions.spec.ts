@@ -168,7 +168,10 @@ describe('Standing stock instructions', () => {
             'system:StopStockInstruction:blair'
         ])
         const stop = finished.processedActions[1]
-        expect(isStopStockInstruction(stop) && stop.reason).toBe('Awa Railroad shares were sold')
+        expect(isStopStockInstruction(stop) && stop.reason).toEqual({
+            code: 'shares-sold',
+            companyId: 'AR'
+        })
         expect(standingStockInstructionFor(finished.updatedState, 'blair')).toBeUndefined()
         expect(currentPlayerId(finished.updatedState)).toBe('blair')
     })
@@ -234,7 +237,11 @@ describe('Standing stock instructions', () => {
             action: finishTurn(game.id, 'alex')
         })
         const stop = finished.processedActions[1]
-        expect(isStopStockInstruction(stop) && stop.reason).toBe(expected.reason)
+        expect(isStopStockInstruction(stop) && stop.reason).toEqual({
+            code: 'purchase-rejected',
+            companyId: 'IR',
+            poolId: 'initial-offering'
+        })
         expect(currentPlayerId(finished.updatedState)).toBe('blair')
     })
 })

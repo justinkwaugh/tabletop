@@ -174,7 +174,7 @@ describe('StockInstructionModule', () => {
         const { module } = harness(['SetStockInstruction'], {}, [standingPass])
         expect(module.mine).toEqual(standingPass)
         expect(module.all).toEqual([standingPass])
-        expect(module.warning).toBe('Railway was started')
+        expect(module.warning).toEqual({ code: 'company-started', companyId: TestCompanyId })
         expect(harness().module.mine).toBeUndefined()
         expect(harness().module.warning).toBeUndefined()
     })
@@ -226,24 +226,30 @@ describe('last stop', () => {
     const convertedToPass = action({
         type: 'StopStockInstruction',
         source: ActionSource.System,
-        reason: 'Railway has floated',
+        reason: { code: 'goal-met', companyId: TestCompanyId },
         replacement: { kind: 'pass' }
     })
     const stopped = action({
         type: 'StopStockInstruction',
         source: ActionSource.System,
-        reason: 'Railway shares were sold'
+        reason: { code: 'shares-sold', companyId: TestCompanyId }
     })
 
     it('reports why my instruction stopped and which kind it was', () => {
         const { module } = harness(['SetStockInstruction'], {
             recordedActions: [declaredBuy, stopped]
         })
-        expect(module.lastStop).toEqual({ kind: 'buy', reason: 'Railway shares were sold' })
+        expect(module.lastStop).toEqual({
+            kind: 'buy',
+            reason: { code: 'shares-sold', companyId: TestCompanyId }
+        })
         const { module: converted } = harness(['SetStockInstruction'], {
             recordedActions: [declaredBuy, convertedToPass, stopped]
         })
-        expect(converted.lastStop).toEqual({ kind: 'pass', reason: 'Railway shares were sold' })
+        expect(converted.lastStop).toEqual({
+            kind: 'pass',
+            reason: { code: 'shares-sold', companyId: TestCompanyId }
+        })
     })
 
     it('forgets the stop once I declare again, clear, or the round ends', () => {

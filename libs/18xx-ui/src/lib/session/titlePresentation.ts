@@ -6,6 +6,9 @@ import type {
     CompanyPricePresentation,
     NumberedShareNames
 } from '../table/companyPresentation.js'
+import type { StockInstructionStopReason } from '@tabletop/18xx'
+
+export type TitleStopReason = Extract<StockInstructionStopReason, { code: 'title' }>
 
 export type TitlePresentation = {
     money: MoneyFormat
@@ -23,6 +26,7 @@ export type TitlePresentation = {
     portfolioCompanyIds?: readonly string[]
     includedPortfolioCompanyIds?: readonly string[]
     poolName?: (pool: CertificatePool) => string
+    instructionStopText?: (reason: TitleStopReason) => string
     privatePurchaseLabel?: string
     privatePurchaseHeading?: string
     privateTilePrompts?: Readonly<Record<string, string>>

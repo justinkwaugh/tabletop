@@ -7,18 +7,19 @@ import {
     isStartStockRound,
     isStopStockInstruction,
     sharesOwned,
-    describeStockPositionChange,
+    stockPositionChange,
     standingStockInstructionFor,
     standingStockInstructions,
     type CertificatePool,
     type Company,
     type EighteenXXState,
     type EighteenXXTitleRules,
-    type StockInstruction
+    type StockInstruction,
+    type StockInstructionStopReason
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 
-type InstructionState = Parameters<typeof describeStockPositionChange>[0] &
+type InstructionState = Parameters<typeof stockPositionChange>[0] &
     Pick<EighteenXXState, 'machineState'>
 
 export type StockInstructionSession = ModuleSession<
@@ -30,7 +31,10 @@ export type BuyInstructionTerms = Omit<Extract<StockInstruction, { kind: 'buy' }
 
 export type BuyInstructionChoice = { company: Company; pools: CertificatePool[] }
 export type ShareGoalRange = { min: number; max: number }
-export type StoppedInstruction = { kind: StockInstruction['kind']; reason: string }
+export type StoppedInstruction = {
+    kind: StockInstruction['kind']
+    reason: StockInstructionStopReason
+}
 
 export class StockInstructionModule {
     constructor(private readonly session: StockInstructionSession) {}
@@ -52,17 +56,13 @@ export class StockInstructionModule {
     canDeclare = $derived.by(() => this.available && this.session.interactive)
     warning = $derived.by(() =>
         this.mine
-            ? describeStockPositionChange(
-                  this.session.state,
-                  this.mine,
-                  this.session.rules.stockRules
-              )
+            ? stockPositionChange(this.session.state, this.mine, this.session.rules.stockRules)
             : undefined
     )
     lastStop = $derived.by((): StoppedInstruction | undefined => {
         const { recordedActions, playerId } = this.session
         if (!this.open || !playerId || this.mine) return undefined
-        let reason: string | undefined
+        let reason: StockInstructionStopReason | undefined
         for (const action of recordedActions.toReversed()) {
             if (isCompleteStockRound(action) || isStartStockRound(action)) return undefined
             if (action.playerId !== playerId) continue
