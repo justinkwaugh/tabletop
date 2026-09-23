@@ -14,7 +14,7 @@ export function stockInstructionText(
     const goal =
         instruction.until.kind === 'floated'
             ? 'until it floats'
-            : `until ${instruction.until.count} ${instruction.until.count === 1 ? 'share' : 'shares'}`
+            : `until I own ${instruction.until.count}`
     const follow = instruction.thenPass ? ' · then pass' : ''
     return `Autobuy ${names.companyName(instruction.companyId)} · ${names.poolName(instruction.preferredPoolId)} preferred · ${goal}${follow}`
 }

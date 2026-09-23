@@ -212,7 +212,7 @@
                                     <button
                                         {disabled}
                                         aria-pressed={goalKind === 'shares'}
-                                        onclick={() => (goal = 'shares')}>Shares</button
+                                        onclick={() => (goal = 'shares')}>I own</button
                                     >
                                 {/if}
                             </SlidingToggle>
