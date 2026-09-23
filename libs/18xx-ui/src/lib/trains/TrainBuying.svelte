@@ -193,14 +193,22 @@
                         </div>{/if}
                 {/if}
             {:else}<CompanyTrainBuying {session} {trainColors} />{/if}
-            {#if session.trainBuying.currentPurchaseIds.length}
+            {#if session.trainBuying.currentPurchases.length}
                 <div class="purchased" aria-label="Trains purchased this OR">
                     <span>Purchased</span>
-                    {#each session.gameState.trainInventory.trains.filter( (train) => session.trainBuying.currentPurchaseIds.includes(train.id) ) as train (train.id)}
-                        <TrainBadge
-                            name={session.trainDepot.trainDefinition(train.definitionId).name}
-                            color={trainColors[train.definitionId]}
-                        />
+                    {#each session.trainBuying.currentPurchases as purchase (purchase.trainId)}
+                        <span class="purchased-train">
+                            <TrainBadge
+                                name={session.trainDepot.trainDefinition(purchase.definitionId)
+                                    .name}
+                                color={trainColors[purchase.definitionId]}
+                            />{#if purchase.sellerCompanyId}<span
+                                    >{' '}from {session.ownerName({
+                                        kind: 'company',
+                                        companyId: purchase.sellerCompanyId
+                                    })}</span
+                                >{/if}
+                        </span>
                     {/each}
                 </div>
             {/if}
@@ -288,6 +296,11 @@
     .purchased {
         margin-top: 10px;
         justify-content: center;
+    }
+    .purchased-train {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
     button:hover:not(:disabled) {
         background: var(--rail-surface-raised, #e5d9c8);

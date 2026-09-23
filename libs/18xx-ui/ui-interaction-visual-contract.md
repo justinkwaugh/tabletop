@@ -1105,7 +1105,9 @@ price updates that train selection, so Undo first returns to the train choices,
 then the default depot, then committed history. Commit uses OfferPurchase:
 shared control settles immediately, while a different controlling player accepts
 or declines the offer. Union Bank presidencies use their controlling player for
-this distinction. Purchased badges include accepted intercompany transfers.
+this distinction. Purchased badges include accepted intercompany transfers and
+name the selling company after the badge; depot and Market purchases show only
+the badge.
 
 BuyingTrains automatically completes with a System FinishOperatingTurn when the
 composed title handler offers no decision other than ending the turn. Legal

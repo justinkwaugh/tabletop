@@ -97,10 +97,11 @@ export class TrainBuyingModule {
             : undefined
     })
     purchaseHistory = $derived.by(() => this.session.recordedActions.filter(isBuyTrain))
-    currentPurchaseIds = $derived.by(() => {
+    currentPurchases = $derived.by(() => {
         const step = this.session.state.trainPurchaseStep
         if (!step) return []
         const ids = new Set(step.purchasedTrainIds)
+        const sellerCompanies = new Map<string, string>()
         const actions = this.session.recordedActions
         const start = actions.findLastIndex(
             (action) => isDistributeEarnings(action) && action.companyId === step.companyId
@@ -112,10 +113,19 @@ export class TrainBuyingModule {
                 action.metadata?.accepted &&
                 offer?.companyId === step.companyId &&
                 offer.asset.kind === 'train'
-            )
+            ) {
+                assert(offer.seller.kind === 'company', 'Accepted train requires a company seller')
                 ids.add(offer.asset.trainId)
+                sellerCompanies.set(offer.asset.trainId, offer.seller.companyId)
+            }
         }
-        return [...ids]
+        return this.session.state.trainInventory.trains
+            .filter((train) => ids.has(train.id))
+            .map((train) => ({
+                trainId: train.id,
+                definitionId: train.definitionId,
+                sellerCompanyId: sellerCompanies.get(train.id)
+            }))
     })
 
     selectSource(source: TrainSource) {
