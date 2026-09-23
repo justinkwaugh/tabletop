@@ -42,6 +42,14 @@ _Avoid_: Capability isolation, Game sandbox
 The site’s current selection of one Logic Artifact and one compatible UI Artifact for a Game Title. A Hosted Game uses its Game Title’s current Publication.
 _Avoid_: Game Title Release, deployment
 
+**Site Manifest**:
+The single record of every Game Title’s current Publication and the current Site Frontend Artifact. It exists only where the site serves from; the repository holds no copy of it.
+_Avoid_: Repo manifest, version file
+
+**Game Catalogue**:
+The repository’s list of Game Titles and the package that implements each. It identifies titles without selecting versions.
+_Avoid_: Manifest, catalog (the discovery Catalog is a different thing)
+
 **Logic-changing Publication**:
 A Publication change that selects both a new Logic Artifact and a new UI Artifact embedding that logic. Logic cannot be published without a matching UI Artifact.
 _Avoid_: Logic-only Publication

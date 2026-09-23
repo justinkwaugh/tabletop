@@ -1,23 +1,17 @@
 #!/usr/bin/env node
-import React from 'react'
-import { render } from 'ink'
 import { parseArgs } from 'node:util'
-import App from './app.js'
-import { readManifest, writeManifest } from './lib/manifest.js'
+import { readCatalogue } from './lib/manifest.js'
+import { fetchBucketManifest } from './lib/remoteManifest.js'
 import { mergeEnvConfig, readDeployConfig } from './lib/config.js'
 import { applyCloudSdkCredentialFile } from './lib/cloudSdkPython.js'
 import {
     buildBackendCommand,
     buildFrontendCommand,
     buildGameLogicCommand,
-    buildGameLogicPackageCommand,
     buildGameUiCommand,
-    deployGameLogicCommand,
-    directoryPlaceholderSpecs,
     rollbackBackendCommand,
     runCommand
 } from './lib/commands.js'
-import type { CommandSpec } from './lib/commands.js'
 import {
     deployBackend,
     promoteBackend,
@@ -25,27 +19,25 @@ import {
     type BackendService
 } from './lib/backendPublish.js'
 import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
-import { assertGamePublishable, deployGame, releaseGame } from './lib/gamePublish.js'
-import { publishManifest, type PublishContext } from './lib/publishCore.js'
-import { getDeployConfigPath, getManifestPath, getRepoRoot } from './lib/paths.js'
+import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.js'
+import { type PublishContext } from './lib/publishCore.js'
+import { getCataloguePath, getDeployConfigPath, getRepoRoot } from './lib/paths.js'
 import {
     formatPreflightReport,
     runBackendPreflight,
     runFrontendPreflight,
     runGamePreflight
 } from './lib/releasePreflight.js'
-import { syncManifestFromPackages, type BumpType } from './lib/versions.js'
+import { type BumpType } from './lib/versions.js'
 
 const repoRoot = getRepoRoot()
-const manifestPath = getManifestPath(repoRoot)
+const cataloguePath = getCataloguePath(repoRoot)
 const deployConfigPath = getDeployConfigPath(repoRoot)
 
-const usage = `tabletop-deploy [command]
+const usage = `tabletop-deploy <command>
 
 Commands:
-  tui                          Launch the TUI (default)
-  status                       Print the current manifest
-  sync-manifest                Sync site-manifest.json from package versions
+  status                       Print the manifest the bucket currently serves
   preflight (--game=<id> | --frontend | --backend) [--json]
                                Report the serving and local versions, the last release
                                baseline per artifact, and which files and commits changed
@@ -115,23 +107,6 @@ const runAndReport = async (
     console.log(`${spec.label}: complete`)
 }
 
-const runDeployWithDirectoryPlaceholders = async (spec: CommandSpec) => {
-    const placeholderSpecs = directoryPlaceholderSpecs(repoRoot, spec)
-    for (const placeholder of placeholderSpecs) {
-        await runAndReport(placeholder, () => runCommand(placeholder))
-    }
-    await runAndReport(spec, () => runCommand(spec))
-}
-
-const loadSyncedManifest = async () => {
-    const manifest = await readManifest(manifestPath)
-    const { manifest: syncedManifest, changed } = await syncManifestFromPackages(repoRoot, manifest)
-    if (changed) {
-        await writeManifest(manifestPath, syncedManifest)
-    }
-    return syncedManifest
-}
-
 type SemverFlags = { major?: boolean; minor?: boolean; patch?: boolean }
 
 const requestedBumps = (values: SemverFlags): BumpType[] => {
@@ -198,23 +173,18 @@ const main = async () => {
         return
     }
 
-    const command = positionals[0] ?? (values.game !== undefined ? 'deploy-game' : 'tui')
+    const command = positionals[0] ?? (values.game !== undefined ? 'deploy-game' : 'status')
     const deployConfig = mergeEnvConfig(await readDeployConfig(deployConfigPath))
     applyCloudSdkCredentialFile(repoRoot, deployConfig.gcloudCredentialFile)
 
-    if (command === 'tui') {
-        render(<App />)
+    if (command === 'status') {
+        console.log(JSON.stringify(await fetchBucketManifest(deployConfig), null, 2))
         return
     }
 
-    if (command === 'status' || command === 'sync-manifest') {
-        const manifest = await loadSyncedManifest()
-        console.log(JSON.stringify(manifest, null, 2))
-        return
-    }
     const context: PublishContext = {
         repoRoot,
-        manifestPath,
+        catalogue: await readCatalogue(cataloguePath),
         deployConfig,
         log: (message) => console.log(message)
     }
@@ -305,7 +275,7 @@ const main = async () => {
 
     if (command === 'deploy-ui') {
         const gameId = requirePositionalGame(command, positionals[1])
-        await deployGame(context, { game: gameId, includeLogic: false })
+        await deployGameArtifacts(context, gameId, ['ui'])
         return
     }
 
@@ -318,15 +288,7 @@ const main = async () => {
 
     if (command === 'deploy-logic') {
         const gameId = requirePositionalGame(command, positionals[1])
-        const { entry, manifest } = await assertGamePublishable(context, gameId, ['logic'])
-        const buildSpec = buildGameLogicPackageCommand(repoRoot, entry.packageId)
-        await runAndReport(buildSpec, () => runCommand(buildSpec))
-        const bundleSpec = buildGameLogicCommand(repoRoot, entry.packageId)
-        await runAndReport(bundleSpec, () => runCommand(bundleSpec))
-        await runDeployWithDirectoryPlaceholders(
-            deployGameLogicCommand(repoRoot, manifest, entry.packageId, deployConfig)
-        )
-        await publishManifest(context)
+        await deployGameArtifacts(context, gameId, ['logic'])
         return
     }
 

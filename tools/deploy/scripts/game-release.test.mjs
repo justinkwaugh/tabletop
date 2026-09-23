@@ -75,20 +75,8 @@ const createRepo = async () => {
         version: '5.6.7',
         dependencies: { '@tabletop/sample': 'workspace:*' }
     })
-    const manifestPath = path.join(repoRoot, 'config', 'config-games', 'src', 'site-manifest.json')
-    await writeJson(manifestPath, {
-        frontend: { version: '1.0.0', priorVersions: [] },
-        games: [
-            {
-                gameId: 'sample-game',
-                packageId: 'sample',
-                logicVersion: '2.3.4',
-                uiVersion: '5.6.7',
-                priorLogicVersions: [],
-                priorUiVersions: []
-            }
-        ]
-    })
+    const catalogue = [{ gameId: 'sample-game', packageId: 'sample' }]
+    await writeJson(path.join(repoRoot, 'config', 'config-games', 'src', 'games.json'), catalogue)
     git(repoRoot, 'add', '.')
     git(repoRoot, 'commit', '-q', '-m', 'Initial')
     git(repoRoot, 'push', '-q', 'origin', 'main')
@@ -96,11 +84,11 @@ const createRepo = async () => {
     const logs = []
     const context = {
         repoRoot,
-        manifestPath,
+        catalogue,
         deployConfig: {},
         log: (message) => logs.push(message)
     }
-    return { root, repoRoot, originRoot, manifestPath, context, logs }
+    return { root, repoRoot, originRoot, context, logs }
 }
 
 test('planGameVersionBump computes next versions without writing', async () => {
@@ -140,11 +128,11 @@ test('releaseGame bumps, syncs, commits, tags, and pushes a UI-only release', as
         assert.equal(uiPackage.version, '5.6.8')
         assert.equal(logicPackage.version, '2.3.4')
 
-        const manifest = await readJson(repo.manifestPath)
-        assert.equal(manifest.games[0].uiVersion, '5.6.8')
-        assert.deepEqual(manifest.games[0].priorUiVersions, ['5.6.7'])
-
         await assertCleanWorkingTree(repo.repoRoot)
+        assert.deepEqual(
+            git(repo.repoRoot, 'show', '--name-only', '--format=', 'HEAD').split('\n'),
+            ['games/sample-ui/package.json']
+        )
         assert.equal(git(repo.repoRoot, 'log', '-1', '--format=%s'), 'Release sample-game ui 5.6.8')
         assert.deepEqual(await tagsAtHead(repo.repoRoot), ['sample-ui-v5.6.8'])
         assert.equal(
@@ -174,9 +162,10 @@ test('releaseGame with logic tags both artifacts', async () => {
             git(repo.repoRoot, 'log', '-1', '--format=%s'),
             'Release sample-game logic 3.0.0 and ui 6.0.0'
         )
-        const manifest = await readJson(repo.manifestPath)
-        assert.equal(manifest.games[0].logicVersion, '3.0.0')
-        assert.equal(manifest.games[0].uiVersion, '6.0.0')
+        assert.deepEqual(
+            git(repo.repoRoot, 'show', '--name-only', '--format=', 'HEAD').split('\n').sort(),
+            ['games/sample-ui/package.json', 'games/sample/package.json']
+        )
     } finally {
         await rm(repo.root, { recursive: true, force: true })
     }
@@ -240,7 +229,6 @@ test('preflight reports no release needed when nothing changed since the version
         const report = await preflight(repo)
         assert.equal(report.releaseNeeded, 'none')
         assert.equal(report.workingTreeClean, true)
-        assert.equal(report.manifestInSync, true)
         assert.equal(report.serving, null)
         assert.equal(report.logic.baseline.kind, 'version-commit')
         assert.deepEqual(report.logic.sourceDirs, ['games/sample', 'libs/shared'])
@@ -310,10 +298,11 @@ test('releaseFrontend bumps, commits, tags frontend-v<version>, and pushes', asy
             path.join(repo.repoRoot, 'apps', 'frontend', 'package.json')
         )
         assert.equal(frontendPackage.version, '1.1.0')
-        const manifest = await readJson(repo.manifestPath)
-        assert.equal(manifest.frontend.version, '1.1.0')
-        assert.deepEqual(manifest.frontend.priorVersions, ['1.0.0'])
         await assertCleanWorkingTree(repo.repoRoot)
+        assert.deepEqual(
+            git(repo.repoRoot, 'show', '--name-only', '--format=', 'HEAD').split('\n'),
+            ['apps/frontend/package.json']
+        )
         assert.equal(git(repo.repoRoot, 'log', '-1', '--format=%s'), 'Release frontend 1.1.0')
         assert.deepEqual(await tagsAtHead(repo.repoRoot), ['frontend-v1.1.0'])
         assert.equal(git(repo.originRoot, 'tag', '--list', 'frontend-v1.1.0'), 'frontend-v1.1.0')
@@ -390,4 +379,61 @@ test('backend services roll out tasks first, then backend', async () => {
     assert.deepEqual(orderServices(['backend', 'tasks']), ['tasks', 'backend'])
     assert.deepEqual(orderServices(['backend']), ['backend'])
     assert.deepEqual(orderServices(['tasks']), ['tasks'])
+})
+
+test('manifest updates record versions and prior versions without touching other games', async () => {
+    const { withFrontendVersion, withGameVersions, manifestBackupUrl } =
+        await import('../esm/lib/remoteManifest.js')
+    const manifest = {
+        frontend: { version: '1.0.0', priorVersions: ['0.9.0'] },
+        games: [
+            {
+                gameId: 'a',
+                packageId: 'a',
+                logicVersion: '1.0.0',
+                uiVersion: '2.0.0',
+                priorLogicVersions: [],
+                priorUiVersions: ['1.9.0']
+            },
+            { gameId: 'b', packageId: 'b', logicVersion: '3.0.0', uiVersion: '4.0.0' }
+        ]
+    }
+    const uiOnly = withGameVersions(
+        manifest,
+        { gameId: 'a', packageId: 'a' },
+        { uiVersion: '2.1.0' }
+    )
+    assert.deepEqual(uiOnly.games[0], {
+        gameId: 'a',
+        packageId: 'a',
+        logicVersion: '1.0.0',
+        uiVersion: '2.1.0',
+        priorLogicVersions: [],
+        priorUiVersions: ['2.0.0', '1.9.0']
+    })
+    assert.deepEqual(uiOnly.games[1], manifest.games[1])
+
+    const added = withGameVersions(
+        manifest,
+        { gameId: 'c', packageId: 'c-package' },
+        { logicVersion: '0.1.0', uiVersion: '0.1.0' }
+    )
+    assert.equal(added.games.length, 3)
+    assert.deepEqual(added.games[2], {
+        gameId: 'c',
+        packageId: 'c-package',
+        logicVersion: '0.1.0',
+        uiVersion: '0.1.0',
+        priorLogicVersions: [],
+        priorUiVersions: []
+    })
+
+    const frontend = withFrontendVersion(manifest, '1.1.0')
+    assert.deepEqual(frontend.frontend, { version: '1.1.0', priorVersions: ['1.0.0', '0.9.0'] })
+    assert.deepEqual(frontend.games, manifest.games)
+
+    assert.equal(
+        manifestBackupUrl({ gcsBucket: 'b' }, 'a ui/2.1.0', new Date('2026-09-23T04:05:06.789Z')),
+        'gs://b/config/manifest-backups/site-manifest.20260923-040506789Z.a-ui-2.1.0.json'
+    )
 })

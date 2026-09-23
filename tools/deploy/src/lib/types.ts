@@ -1,6 +1,9 @@
-export type GameManifestEntry = {
+export type GameCatalogueEntry = {
     gameId: string
     packageId: string
+}
+
+export type GameManifestEntry = GameCatalogueEntry & {
     logicVersion: string
     uiVersion: string
     priorLogicVersions?: string[]

@@ -1,5 +1,6 @@
 import { fetchBackendManifest, invalidateBackendManifestCache } from './backend.js'
 import {
+    backupManifestCommand,
     dedupeCommandSpecs,
     deployManifestCommand,
     directoryPlaceholderSpecs,
@@ -16,15 +17,14 @@ import {
     tagExists,
     tagsAtHead
 } from './git.js'
-import { readManifest } from './manifest.js'
-import type { BackendManifest, DeployConfig, SiteManifest } from './types.js'
-import { syncManifestFromPackages } from './versions.js'
+import { fetchBucketManifest, manifestBackupUrl, writeTemporaryManifest } from './remoteManifest.js'
+import type { BackendManifest, DeployConfig, GameCatalogueEntry, SiteManifest } from './types.js'
 
 export { assertCleanWorkingTree } from './git.js'
 
 export type PublishContext = {
     repoRoot: string
-    manifestPath: string
+    catalogue: GameCatalogueEntry[]
     deployConfig: DeployConfig
     log: (message: string) => void
 }
@@ -82,9 +82,20 @@ export const runDeploysWithDirectoryPlaceholders = async (
     }
 }
 
-export const publishManifest = async (context: PublishContext) => {
+// The bucket manifest is the only record of what production serves. Every change reads the
+// current copy, backs it up, writes the changed copy, and invalidates the backend cache.
+export const publishManifest = async (
+    context: PublishContext,
+    operation: string,
+    change: (manifest: SiteManifest) => SiteManifest
+) => {
+    const current = await fetchBucketManifest(context.deployConfig)
+    const next = change(current)
+    const manifestPath = await writeTemporaryManifest(next)
+    const backupUrl = manifestBackupUrl(context.deployConfig, operation, new Date())
     await runDeploysWithDirectoryPlaceholders(context, [
-        deployManifestCommand(context.manifestPath, context.deployConfig)
+        backupManifestCommand(context.repoRoot, context.deployConfig, backupUrl),
+        deployManifestCommand(manifestPath, context.deployConfig)
     ])
     await runStep(
         context,
@@ -104,21 +115,6 @@ export const assertDeployConfig = (deployConfig: DeployConfig): string => {
         )
     }
     return deployConfig.gcsBucket
-}
-
-export const loadManifestAssertingSynced = async (
-    context: PublishContext,
-    releaseCommand: string
-): Promise<SiteManifest> => {
-    const manifest = await readManifest(context.manifestPath)
-    const { changed } = await syncManifestFromPackages(context.repoRoot, manifest)
-    if (changed) {
-        throw new Error(
-            'site-manifest.json does not match the package versions; ' +
-                `run ${releaseCommand} to bump, sync, and commit them together`
-        )
-    }
-    return manifest
 }
 
 // A version's artifact is immutable, but a deploy can fail after uploading it. Because the

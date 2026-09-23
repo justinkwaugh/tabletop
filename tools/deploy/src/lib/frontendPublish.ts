@@ -1,14 +1,12 @@
 import path from 'node:path'
 import { buildFrontendCommand, deployFrontendCommand } from './commands.js'
-import { readManifest, writeManifest } from './manifest.js'
 import {
-    checkArtifactsPublishable,
     assertCleanWorkingTree,
     assertDeployConfig,
+    checkArtifactsPublishable,
     commitTagAndPush,
     fetchServing,
     gcsArtifact,
-    loadManifestAssertingSynced,
     prepareRelease,
     publishManifest,
     runDeploysWithDirectoryPlaceholders,
@@ -18,13 +16,12 @@ import {
     type PublishedArtifact,
     type ServingLookup
 } from './publishCore.js'
-import type { SiteManifest } from './types.js'
+import { withFrontendVersion } from './remoteManifest.js'
 import {
     bumpVersion,
     frontendReleaseTag,
     getFrontendPackagePath,
     readPackageVersion,
-    syncManifestFromPackages,
     writePackageVersion,
     type BumpType
 } from './versions.js'
@@ -48,7 +45,7 @@ export const fetchFrontendServingVersion = (context: PublishContext): Promise<Se
     fetchServing(context.deployConfig, (manifest) => ({ frontend: manifest.frontend.version }))
 
 type PublishableFrontend = {
-    manifest: SiteManifest
+    version: string
     artifacts: PublishedArtifact[]
     pending: PublishedArtifact[]
 }
@@ -56,35 +53,36 @@ type PublishableFrontend = {
 const assertFrontendPublishable = async (context: PublishContext): Promise<PublishableFrontend> => {
     const bucket = assertDeployConfig(context.deployConfig)
     await assertCleanWorkingTree(context.repoRoot)
-    const manifest = await loadManifestAssertingSynced(context, 'release-frontend')
     const version = await readPackageVersion(getFrontendPackagePath(context.repoRoot))
     const artifacts = [frontendArtifact(bucket, version)]
     const { pending } = await checkArtifactsPublishable(context, artifacts, 'release-frontend')
-    return { manifest, artifacts, pending }
+    return { version, artifacts, pending }
 }
 
 const buildAndUpload = async (
     context: PublishContext,
-    manifest: SiteManifest,
+    version: string,
     pending: PublishedArtifact[]
 ) => {
     if (pending.length > 0) {
         await runSpec(context, buildFrontendCommand(context.repoRoot))
         await runDeploysWithDirectoryPlaceholders(context, [
-            deployFrontendCommand(context.repoRoot, manifest, context.deployConfig)
+            deployFrontendCommand(context.repoRoot, version, context.deployConfig)
         ])
     }
-    await publishManifest(context)
+    await publishManifest(context, `frontend-${version}`, (manifest) =>
+        withFrontendVersion(manifest, version)
+    )
 }
 
 export const deployFrontend = async (context: PublishContext) => {
-    const { manifest, artifacts, pending } = await assertFrontendPublishable(context)
+    const { version, artifacts, pending } = await assertFrontendPublishable(context)
     await runReportedDeploy(
         context,
         'frontend',
         artifacts,
         () => fetchFrontendServingVersion(context),
-        () => buildAndUpload(context, manifest, pending)
+        () => buildAndUpload(context, version, pending)
     )
 }
 
@@ -101,14 +99,8 @@ export const releaseFrontend = async (context: PublishContext, options: Frontend
     await writePackageVersion(packagePath, next)
     context.log(`frontend: ${previous} -> ${next}`)
 
-    const manifest = await readManifest(context.manifestPath)
-    const { manifest: syncedManifest } = await syncManifestFromPackages(context.repoRoot, manifest)
-    await writeManifest(context.manifestPath, syncedManifest)
-
     await commitTagAndPush(context, branch, {
-        files: [packagePath, context.manifestPath].map((file) =>
-            path.relative(context.repoRoot, file)
-        ),
+        files: [path.relative(context.repoRoot, packagePath)],
         message: `Release frontend ${next}`,
         tags: [tag]
     })

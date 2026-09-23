@@ -7,15 +7,13 @@ import {
     deployGameLogicCommand,
     deployGameUiCommand
 } from './commands.js'
-import { readManifest, writeManifest } from './manifest.js'
 import {
-    checkArtifactsPublishable,
     assertCleanWorkingTree,
     assertDeployConfig,
+    checkArtifactsPublishable,
     commitTagAndPush,
     fetchServing,
     gcsArtifact,
-    loadManifestAssertingSynced,
     prepareRelease,
     publishManifest,
     runDeploysWithDirectoryPlaceholders,
@@ -25,16 +23,17 @@ import {
     type PublishedArtifact,
     type ServingLookup
 } from './publishCore.js'
-import type { GameManifestEntry, SiteManifest } from './types.js'
+import { withGameVersions } from './remoteManifest.js'
+import type { GameCatalogueEntry } from './types.js'
 import {
     getGamePackagePaths,
     logicReleaseTag,
     planGameVersionBump,
     readGamePackageVersions,
-    syncManifestFromPackages,
     uiReleaseTag,
     writeGameVersionBump,
     type BumpType,
+    type GamePackageVersions,
     type GameVersionBump
 } from './versions.js'
 
@@ -50,12 +49,15 @@ export type GameReleaseOptions = GameArtifactSelection & {
 
 export type ArtifactKind = 'logic' | 'ui'
 
-export const findGameEntry = (manifest: SiteManifest, game: string): GameManifestEntry => {
-    const entry = manifest.games.find(
+export const findGameEntry = (
+    catalogue: GameCatalogueEntry[],
+    game: string
+): GameCatalogueEntry => {
+    const entry = catalogue.find(
         (candidate) => candidate.gameId === game || candidate.packageId === game
     )
     if (!entry) {
-        const known = manifest.games.map((candidate) => candidate.gameId).join(', ')
+        const known = catalogue.map((candidate) => candidate.gameId).join(', ')
         throw new Error(`Unknown game "${game}". Known games: ${known}`)
     }
     return entry
@@ -87,8 +89,8 @@ export const fetchServingVersions = (
     })
 
 export type PublishableGame = {
-    entry: GameManifestEntry
-    manifest: SiteManifest
+    entry: GameCatalogueEntry
+    versions: GamePackageVersions
     artifacts: PublishedArtifact[]
     pending: PublishedArtifact[]
 }
@@ -99,23 +101,24 @@ export const assertGamePublishable = async (
     kinds: ArtifactKind[]
 ): Promise<PublishableGame> => {
     const bucket = assertDeployConfig(context.deployConfig)
-    const entry = findGameEntry(await readManifest(context.manifestPath), game)
+    const entry = findGameEntry(context.catalogue, game)
     await assertCleanWorkingTree(context.repoRoot)
-    const manifest = await loadManifestAssertingSynced(context, 'release-game')
     const versions = await readGamePackageVersions(context.repoRoot, entry.packageId)
     const artifacts = kinds.map((kind) =>
         gameArtifact(bucket, entry.packageId, kind, versions[kind])
     )
     const { pending } = await checkArtifactsPublishable(context, artifacts, 'release-game')
-    return { entry, manifest, artifacts, pending }
+    return { entry, versions, artifacts, pending }
 }
 
 const buildAndUpload = async (
     context: PublishContext,
-    packageId: string,
-    manifest: SiteManifest,
+    entry: GameCatalogueEntry,
+    versions: GamePackageVersions,
+    artifacts: PublishedArtifact[],
     pending: PublishedArtifact[]
 ) => {
+    const packageId = entry.packageId
     const pendingKinds = pending.map((artifact) => artifact.kind)
     if (pendingKinds.includes('logic')) {
         await runSpec(context, buildGameLogicPackageCommand(context.repoRoot, packageId))
@@ -128,21 +131,39 @@ const buildAndUpload = async (
 
     const deploySpecs = [
         ...(pendingKinds.includes('logic')
-            ? [deployGameLogicCommand(context.repoRoot, manifest, packageId, context.deployConfig)]
+            ? [
+                  deployGameLogicCommand(
+                      context.repoRoot,
+                      packageId,
+                      versions.logic,
+                      context.deployConfig
+                  )
+              ]
             : []),
         ...(pendingKinds.includes('ui')
-            ? [deployGameUiCommand(context.repoRoot, manifest, packageId, context.deployConfig)]
+            ? [deployGameUiCommand(context.repoRoot, packageId, versions.ui, context.deployConfig)]
             : [])
     ]
     await runDeploysWithDirectoryPlaceholders(context, deploySpecs)
-    await publishManifest(context)
+
+    const deployedKinds = artifacts.map((artifact) => artifact.kind)
+    const operation = `${entry.gameId}-${artifacts.map((a) => `${a.kind}-${a.version}`).join('-')}`
+    await publishManifest(context, operation, (manifest) =>
+        withGameVersions(manifest, entry, {
+            logicVersion: deployedKinds.includes('logic') ? versions.logic : undefined,
+            uiVersion: deployedKinds.includes('ui') ? versions.ui : undefined
+        })
+    )
 }
 
-export const deployGame = async (context: PublishContext, options: GameArtifactSelection) => {
-    const kinds: ArtifactKind[] = options.includeLogic ? ['logic', 'ui'] : ['ui']
-    const { entry, manifest, artifacts, pending } = await assertGamePublishable(
+export const deployGameArtifacts = async (
+    context: PublishContext,
+    game: string,
+    kinds: ArtifactKind[]
+) => {
+    const { entry, versions, artifacts, pending } = await assertGamePublishable(
         context,
-        options.game,
+        game,
         kinds
     )
     await runReportedDeploy(
@@ -150,9 +171,12 @@ export const deployGame = async (context: PublishContext, options: GameArtifactS
         entry.gameId,
         artifacts,
         () => fetchServingVersions(context, entry.packageId),
-        () => buildAndUpload(context, entry.packageId, manifest, pending)
+        () => buildAndUpload(context, entry, versions, artifacts, pending)
     )
 }
+
+export const deployGame = (context: PublishContext, options: GameArtifactSelection) =>
+    deployGameArtifacts(context, options.game, options.includeLogic ? ['logic', 'ui'] : ['ui'])
 
 const releaseCommitMessage = (gameId: string, planned: GameVersionBump) =>
     planned.logic
@@ -168,7 +192,7 @@ export const releaseGame = async (context: PublishContext, options: GameReleaseO
     if (options.deploy) {
         assertDeployConfig(context.deployConfig)
     }
-    const entry = findGameEntry(await readManifest(context.manifestPath), options.game)
+    const entry = findGameEntry(context.catalogue, options.game)
     const packageId = entry.packageId
 
     const planned = await planGameVersionBump(context.repoRoot, packageId, options.bump, {
@@ -183,16 +207,10 @@ export const releaseGame = async (context: PublishContext, options: GameReleaseO
     }
     context.log(`${entry.gameId} ui: ${planned.ui.previous} -> ${planned.ui.next}`)
 
-    const manifest = await readManifest(context.manifestPath)
-    const { manifest: syncedManifest } = await syncManifestFromPackages(context.repoRoot, manifest)
-    await writeManifest(context.manifestPath, syncedManifest)
-
     const packagePaths = getGamePackagePaths(context.repoRoot, packageId)
-    const files = [
-        ...(planned.logic ? [packagePaths.logic] : []),
-        packagePaths.ui,
-        context.manifestPath
-    ].map((file) => path.relative(context.repoRoot, file))
+    const files = [...(planned.logic ? [packagePaths.logic] : []), packagePaths.ui].map((file) =>
+        path.relative(context.repoRoot, file)
+    )
     await commitTagAndPush(context, branch, {
         files,
         message: releaseCommitMessage(entry.gameId, planned),

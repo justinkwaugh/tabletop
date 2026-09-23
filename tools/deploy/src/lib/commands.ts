@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
-import { DeployConfig, SiteManifest } from './types.js'
+import { DeployConfig } from './types.js'
 import { ensureCloudSdkPython, isCloudSdkCommand, withCloudSdkPythonEnv } from './cloudSdkPython.js'
 
 export type CommandSpec = {
@@ -396,19 +396,15 @@ export const dedupeCommandSpecs = (specs: CommandSpec[]): CommandSpec[] => {
 
 export const deployGameUiCommand = (
     repoRoot: string,
-    manifest: SiteManifest,
     packageId: string,
+    version: string,
     config: DeployConfig
 ): CommandSpec => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
-    const entry = manifest.games.find((game) => game.packageId === packageId)
-    if (!entry) {
-        throw new Error(`Missing manifest entry for ${packageId}`)
-    }
     const sourceDir = path.join(repoRoot, 'games', `${packageId}-ui`, 'bundle')
-    const destination = `gs://${config.gcsBucket}/games/${packageId}/ui/${entry.uiVersion}`
+    const destination = `gs://${config.gcsBucket}/games/${packageId}/ui/${version}`
 
     return {
         label: `deploy-ui:${packageId}`,
@@ -438,19 +434,15 @@ export const buildGameLogicCommand = (repoRoot: string, packageId: string): Comm
 
 export const deployGameLogicCommand = (
     repoRoot: string,
-    manifest: SiteManifest,
     packageId: string,
+    version: string,
     config: DeployConfig
 ): CommandSpec => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
-    const entry = manifest.games.find((game) => game.packageId === packageId)
-    if (!entry) {
-        throw new Error(`Missing manifest entry for ${packageId}`)
-    }
     const sourceDir = path.join(repoRoot, 'games', packageId, 'bundle')
-    const destination = `gs://${config.gcsBucket}/games/${packageId}/logic/${entry.logicVersion}`
+    const destination = `gs://${config.gcsBucket}/games/${packageId}/logic/${version}`
 
     return {
         label: `deploy-logic:${packageId}`,
@@ -464,14 +456,14 @@ export const deployGameLogicCommand = (
 
 export const deployFrontendCommand = (
     repoRoot: string,
-    manifest: SiteManifest,
+    version: string,
     config: DeployConfig
 ): CommandSpec => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
     const sourceDir = path.join(repoRoot, 'apps', 'frontend', 'build')
-    const destination = `gs://${config.gcsBucket}/frontend/${manifest.frontend.version}`
+    const destination = `gs://${config.gcsBucket}/frontend/${version}`
 
     return {
         label: 'deploy-frontend',
@@ -483,11 +475,28 @@ export const deployFrontendCommand = (
     }
 }
 
-export const deployManifestCommand = (manifestPath: string, config: DeployConfig): CommandSpec => {
+export const manifestObjectUrl = (config: DeployConfig) => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
-    const destination = `gs://${config.gcsBucket}/config/site-manifest.json`
+    return `gs://${config.gcsBucket}/config/site-manifest.json`
+}
+
+export const backupManifestCommand = (
+    repoRoot: string,
+    config: DeployConfig,
+    backupUrl: string
+): CommandSpec => ({
+    label: 'backup-manifest',
+    command: 'gcloud',
+    args: ['storage', 'cp', manifestObjectUrl(config), backupUrl],
+    cwd: repoRoot,
+    logPath: '/tmp/manifest-backup.log',
+    requiresDeploy: true
+})
+
+export const deployManifestCommand = (manifestPath: string, config: DeployConfig): CommandSpec => {
+    const destination = manifestObjectUrl(config)
 
     return {
         label: 'deploy-manifest',

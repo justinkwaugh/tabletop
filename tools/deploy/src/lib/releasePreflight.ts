@@ -10,7 +10,6 @@ import {
     tagExists,
     type CommitSummary
 } from './git.js'
-import { readManifest } from './manifest.js'
 import type { PublishContext, ServingLookup } from './publishCore.js'
 import {
     backendReleaseTag,
@@ -19,8 +18,7 @@ import {
     getFrontendPackagePath,
     getGamePackagePaths,
     readGamePackageVersions,
-    readPackageVersion,
-    syncManifestFromPackages
+    readPackageVersion
 } from './versions.js'
 import { workspaceSourceDirs } from './workspace.js'
 
@@ -28,14 +26,6 @@ import { workspaceSourceDirs } from './workspace.js'
 // any one game's logic or UI. Family libraries such as @tabletop/18xx are deliberately counted.
 // The frontend bundles them, so its preflight counts them.
 export const PLATFORM_PACKAGES = ['@tabletop/common', '@tabletop/frontend-components'] as const
-
-// Every release commit rewrites the manifest, so counting it would make every target look changed.
-const RELEASE_BOOKKEEPING_FILES = ['config/config-games/src/site-manifest.json']
-
-const changePathspecs = (dirs: string[]) => [
-    ...dirs,
-    ...RELEASE_BOOKKEEPING_FILES.map((file) => `:(exclude)${file}`)
-]
 
 export type ReleaseBaseline = {
     kind: 'tag' | 'version-commit'
@@ -59,7 +49,6 @@ export type ArtifactPreflight = {
 type PreflightBase = {
     target: string
     workingTreeClean: boolean
-    manifestInSync: boolean
     serving: { source: string; error?: string } | null
     artifacts: ArtifactPreflight[]
     releaseNeeded: string
@@ -128,16 +117,10 @@ const artifactPreflight = async (
     })
     const allDirs = await workspaceSourceDirs(repoRoot, source.packageName, { exclude: [] })
     const platformDirs = allDirs.filter((dir) => !sourceDirs.includes(dir))
-    const changedFiles = await changedFilesSince(
-        repoRoot,
-        baseline.sha,
-        changePathspecs(sourceDirs)
-    )
-    const commits = await commitsSince(repoRoot, baseline.sha, changePathspecs(sourceDirs))
+    const changedFiles = await changedFilesSince(repoRoot, baseline.sha, sourceDirs)
+    const commits = await commitsSince(repoRoot, baseline.sha, sourceDirs)
     const platformChangedFiles =
-        platformDirs.length > 0
-            ? await changedFilesSince(repoRoot, baseline.sha, changePathspecs(platformDirs))
-            : []
+        platformDirs.length > 0 ? await changedFilesSince(repoRoot, baseline.sha, platformDirs) : []
     return {
         kind: source.kind,
         localVersion: source.localVersion,
@@ -167,21 +150,16 @@ const servingVersion = (serving: ServingLookup, kind: string): string | null =>
 const preflightBase = async (
     context: PublishContext,
     serving: ServingLookup
-): Promise<Pick<PreflightBase, 'workingTreeClean' | 'manifestInSync' | 'serving'>> => {
-    const manifest = await readManifest(context.manifestPath)
-    const { changed } = await syncManifestFromPackages(context.repoRoot, manifest)
-    return {
-        workingTreeClean: await isWorkingTreeClean(context.repoRoot),
-        manifestInSync: !changed,
-        serving: servingSource(context, serving)
-    }
-}
+): Promise<Pick<PreflightBase, 'workingTreeClean' | 'serving'>> => ({
+    workingTreeClean: await isWorkingTreeClean(context.repoRoot),
+    serving: servingSource(context, serving)
+})
 
 export const runGamePreflight = async (
     context: PublishContext,
     game: string
 ): Promise<GamePreflightReport> => {
-    const entry = findGameEntry(await readManifest(context.manifestPath), game)
+    const entry = findGameEntry(context.catalogue, game)
     const packageId = entry.packageId
     const versions = await readGamePackageVersions(context.repoRoot, packageId)
     const paths = getGamePackagePaths(context.repoRoot, packageId)
@@ -313,7 +291,6 @@ export const formatPreflightReport = (report: PreflightReport): string => {
     return [
         report.target,
         `working tree clean: ${report.workingTreeClean ? 'yes' : 'no'}`,
-        `manifest in sync:   ${report.manifestInSync ? 'yes' : 'no'}`,
         `serving manifest:   ${servingLine}`,
         ...report.artifacts.flatMap(formatArtifact),
         `release needed:     ${report.releaseNeeded}`

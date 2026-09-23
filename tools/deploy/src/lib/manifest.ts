@@ -1,11 +1,10 @@
 import fs from 'node:fs/promises'
-import { SiteManifest } from './types.js'
+import { GameCatalogueEntry, SiteManifest } from './types.js'
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null
 
-export const readManifest = async (manifestPath: string): Promise<SiteManifest> => {
-    const raw = await fs.readFile(manifestPath, 'utf8')
+export const parseManifest = (raw: string): SiteManifest => {
     const parsed = JSON.parse(raw) as unknown
 
     if (!isObject(parsed)) {
@@ -73,4 +72,21 @@ export const writeManifest = async (
 ): Promise<void> => {
     const json = JSON.stringify(manifest, null, 2) + '\n'
     await fs.writeFile(manifestPath, json, 'utf8')
+}
+
+export const readCatalogue = async (cataloguePath: string): Promise<GameCatalogueEntry[]> => {
+    const parsed = JSON.parse(await fs.readFile(cataloguePath, 'utf8')) as unknown
+    if (!Array.isArray(parsed)) {
+        throw new Error('Game catalogue must be an array')
+    }
+    for (const entry of parsed) {
+        if (
+            !isObject(entry) ||
+            typeof entry.gameId !== 'string' ||
+            typeof entry.packageId !== 'string'
+        ) {
+            throw new Error('Game catalogue entries need gameId and packageId strings')
+        }
+    }
+    return parsed as GameCatalogueEntry[]
 }
