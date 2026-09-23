@@ -251,6 +251,7 @@
                     <li>a company changed president, other than to you</li>
                     <li>shares of any company were sold to the bank</li>
                     <li>a rival gained shares in a company you preside over without a majority</li>
+                    <li>it is no longer possible to meet your Autobuy goal</li>
                 </ul>
             </div>
         </div>
@@ -353,11 +354,25 @@
     }
     .help-panel ul {
         margin: 0;
-        padding-left: 18px;
-        list-style: disc;
+        padding: 0;
+        list-style: none;
+    }
+    .help-panel li {
+        position: relative;
+        padding-left: 16px;
     }
     .help-panel li + li {
-        margin-top: 3px;
+        margin-top: 4px;
+    }
+    .help-panel li::before {
+        content: '';
+        position: absolute;
+        left: 3px;
+        top: 0.55em;
+        width: 5px;
+        height: 5px;
+        border-radius: 999px;
+        background: var(--rail-positive, #2e7d5b);
     }
     .pool-name {
         line-height: 22px;
