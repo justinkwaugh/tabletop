@@ -25,6 +25,12 @@ describe('Out-of-turn Actions', () => {
         ).toThrow('not an out-of-turn Action')
     })
 
+    it('offers a waiting Player only their out-of-turn Action types', () => {
+        const { engine, game, state } = createNoteGame()
+        expect(engine.getValidActionTypesForPlayer(game, state, 'p1')).toEqual(['step', 'note'])
+        expect(engine.getValidActionTypesForPlayer(game, state, 'p3')).toEqual(['note'])
+    })
+
     it('still rejects an ordinary Action from a Player who is not active', () => {
         const { engine, game, state } = createNoteGame()
         expect(() =>

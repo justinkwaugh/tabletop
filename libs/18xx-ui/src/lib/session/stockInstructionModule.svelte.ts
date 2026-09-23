@@ -48,7 +48,7 @@ export class StockInstructionModule {
         () =>
             this.open &&
             this.session.validActionTypes.includes('SetStockInstruction') &&
-            (!this.session.hotseatPlay || this.session.viewingAsNonActivePlayer)
+            (!this.session.ordinaryHotseatPlay || this.session.viewingAsNonActivePlayer)
     )
     canDeclare = $derived.by(() => this.available && this.session.interactive)
     warning = $derived.by(() =>
@@ -98,11 +98,14 @@ export class StockInstructionModule {
             pool,
             shares: purchasableShares(state, pool.id, companyId, buyer, rules.stockRules)
         }))
+        const uniform = (offer: (typeof offers)[number]) =>
+            new Set(offer.shares.map((share) => share.certificate.shares)).size <= 1
         const preferred = offers.filter((offer) => offer.pool.id === preferredPoolId)
+        if (preferred.some((offer) => offer.shares.length && !uniform(offer))) return undefined
         const sequence = preferred.some((offer) => offer.shares.length)
             ? preferred
             : offers
-                  .filter((offer) => offer.pool.id !== preferredPoolId)
+                  .filter((offer) => offer.pool.id !== preferredPoolId && uniform(offer))
                   .toSorted(
                       (left, right) =>
                           Math.min(...left.shares.map((share) => share.price)) -

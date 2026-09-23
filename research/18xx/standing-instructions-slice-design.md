@@ -55,7 +55,10 @@ literal `outOfTurn: true`. The engine accepts it from a seated non-active player
 tolerates an index behind the current count, rejects the marker on undeclared
 types, and leaves validity to the handler. Undo never offers such an action as a
 candidate, does not treat it as another player's blocking action, and reapplies
-it after reversing a suffix that contained it. The backend supersedes the same
+it after reversing a suffix that contained it. When asked for a non-active
+player's valid actions, the engine consults the handler and reports only that
+player's out-of-turn types, which is how the Game Client learns a waiting
+player may declare. The backend supersedes the same
 player's latest unconsumed declaration of the same type at the tail of history
 before applying a replacement, so repeated toggling cannot grow the Canonical
 Action History; growth is bounded by real actions interleaved between toggles.

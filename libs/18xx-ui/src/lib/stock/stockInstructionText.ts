@@ -6,17 +6,22 @@ export type StockInstructionNames = {
     poolName: (id: string) => string
 }
 
+export function stockInstructionKindLabel(kind: StockInstruction['kind']): string {
+    return kind === 'pass' ? 'Autopass' : 'Autobuy'
+}
+
 export function stockInstructionText(
     instruction: StockInstruction,
     names: StockInstructionNames
 ): string {
-    if (instruction.kind === 'pass') return 'Autopass for the rest of the round'
+    if (instruction.kind === 'pass')
+        return `${stockInstructionKindLabel('pass')} for the rest of the round`
     const goal =
         instruction.until.kind === 'floated'
             ? 'until float'
             : `until I own ${instruction.until.count}`
     const follow = instruction.thenPass ? ' · then pass' : ''
-    return `Autobuy ${names.companyName(instruction.companyId)} · ${names.poolName(instruction.preferredPoolId)} preferred · ${goal}${follow}`
+    return `${stockInstructionKindLabel('buy')} ${names.companyName(instruction.companyId)} · ${names.poolName(instruction.preferredPoolId)} preferred · ${goal}${follow}`
 }
 
 export function stopReasonText(

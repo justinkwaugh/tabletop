@@ -335,3 +335,13 @@ it('reinstates a stopped instruction when the change that stopped it is undone',
         'system:FinishStockTurn:blair'
     ])
 })
+
+it('offers the declaration to a waiting player as their only valid action', () => {
+    const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
+    expect(engine.getValidActionTypesForPlayer(game, state, 'blair')).toEqual([
+        'SetStockInstruction'
+    ])
+    expect(engine.getValidActionTypesForPlayer(game, state, 'alex')).toContain(
+        'SetStockInstruction'
+    )
+})

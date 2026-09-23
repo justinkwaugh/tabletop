@@ -11,7 +11,7 @@ export interface ModuleSession<State, Rules> {
     readonly viewingHistory: boolean
     readonly selectionsVisible: boolean
     readonly interactive: boolean
-    readonly hotseatPlay: boolean
+    readonly ordinaryHotseatPlay: boolean
     readonly viewingAsNonActivePlayer: boolean
     readonly playerId: string | undefined
     readonly actingPlayerIds: readonly string[]

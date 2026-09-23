@@ -1,8 +1,10 @@
+import { assertExists } from '@tabletop/common'
 import type { StockRoundRules } from './stockRoundRules.js'
 import {
     sameOwner,
     certificatesInPool,
     certificatesOwnedBy,
+    getCompany,
     sharesOwned,
     type Owner,
     type Portfolio,
@@ -57,10 +59,9 @@ export function purchaseOwnershipCeiling(
     buyer: Owner,
     rules: StockRules
 ): number {
-    const company = state.companies.find((company) => company.id === companyId)
-    return Math.floor(
-        (rules.ownershipLimit(state, companyId, buyer) * (company?.shareCount ?? 0)) / 100
-    )
+    const company = getCompany(state, companyId)
+    assertExists(company.shareCount, 'Ownership limits require a share count')
+    return Math.floor((rules.ownershipLimit(state, companyId, buyer) * company.shareCount) / 100)
 }
 
 export function certificateLimitAllows(

@@ -1071,6 +1071,29 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     // This will only be triggered by the UI and as such we can use the current context
     // internally, rather than having to pass it in.  No server generated actions go through
     // here.
+    private replacementSucceedsWithoutTail(
+        context: GameContext<T, U>,
+        action: GameAction
+    ): boolean {
+        const superseded = findSupersededOutOfTurnAction(context.actions, action)
+        if (!superseded) return false
+        try {
+            const previous = context.engine.undoProcessedAction({
+                action: superseded,
+                state: context.state
+            })
+            this.executeActionInGame(
+                { ...action, index: undefined },
+                structuredClone(context.game),
+                previous,
+                this.projectedExecutionPerspective(context)
+            )
+            return true
+        } catch {
+            return false
+        }
+    }
+
     async applyAction(action: GameAction) {
         if (!this.isPlayable || this.busy) {
             return
@@ -1091,7 +1114,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (
             relevantContext.game.storage === GameStorage.Local &&
             !this.usesHostExecution(relevantContext) &&
-            findSupersededOutOfTurnAction(relevantContext.actions, action)
+            this.replacementSucceedsWithoutTail(relevantContext, action)
         ) {
             relevantContext.undoLastAction()
         }

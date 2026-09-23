@@ -1,7 +1,11 @@
 <script lang="ts">
     import { getCompany, type CertificatePool } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    import { stockInstructionText, stopReasonText } from './stockInstructionText.js'
+    import {
+        stockInstructionKindLabel,
+        stockInstructionText,
+        stopReasonText
+    } from './stockInstructionText.js'
     import { popoverAbove } from '../presentation/popoverPlacement.js'
     import { shareGoalWithin } from '../session/stockInstructionModule.svelte.js'
     import SlidingToggle from '../table/SlidingToggle.svelte'
@@ -119,7 +123,7 @@
             {:else if mode === undefined && instructions.lastStop}
                 <span class="connector" aria-hidden="true">›</span>
                 <span class="tray notice" role="status"
-                    >{instructions.lastStop.kind === 'pass' ? 'Autopass' : 'Autobuy'} stopped: {stopReasonText(
+                    >{stockInstructionKindLabel(instructions.lastStop.kind)} stopped: {stopReasonText(
                         instructions.lastStop.reason,
                         names,
                         session.presentation.instructionStopText
@@ -256,6 +260,7 @@
                 onbeforetoggle={prepareHelp}
                 style:left={`${helpBounds.left}px`}
                 style:bottom={`${helpBounds.bottom}px`}
+                style:width={`min(${HelpPanelWidth}px, calc(100vw - 16px))`}
             >
                 <p>
                     A standing instruction acts for you on each of your stock turns. It ends with
@@ -360,7 +365,6 @@
         position: fixed;
         inset: auto;
         margin: 0;
-        width: min(380px, calc(100vw - 16px));
         padding: 10px 12px;
         border: 1px solid var(--rail-border, #485666);
         border-radius: 8px;

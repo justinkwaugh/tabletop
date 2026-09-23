@@ -176,17 +176,16 @@ export class GameEngine<
 
         const hydratedState = this.runtime.hydrator.hydrateState(state)
         const runtimeState = this.guardStateForPerspective(hydratedState, perspective, game)
-        if (!runtimeState.isActivePlayer(playerId)) {
-            return []
-        }
-
         const machineContext = new MachineContext({
             gameConfig: game.config,
             gameState: runtimeState
         })
 
         const stateHandler = this.getStateHandler(runtimeState)
-        return stateHandler.validActionsForPlayer(playerId, machineContext)
+        const types = stateHandler.validActionsForPlayer(playerId, machineContext)
+        return runtimeState.isActivePlayer(playerId)
+            ? types
+            : types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
     }
 
     executeAction(input: {

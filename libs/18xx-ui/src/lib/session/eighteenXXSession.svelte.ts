@@ -85,7 +85,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
             get interactive() {
                 return !session.busy && !session.updatingVisibleState && !session.isViewingHistory
             },
-            get hotseatPlay() {
+            get ordinaryHotseatPlay() {
                 return session.localHotseat && !session.isDeveloperHarness
             },
             get viewingAsNonActivePlayer() {
