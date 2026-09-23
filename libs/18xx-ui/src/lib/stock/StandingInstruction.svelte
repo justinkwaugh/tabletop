@@ -243,7 +243,7 @@
             >
                 <p>
                     A standing instruction acts for you on each of your stock turns. It ends with
-                    the stock round, and it stops on its own, before acting, when:
+                    the stock round, and it stops on its own when:
                 </p>
                 <ul>
                     <li>you must sell shares to meet a limit</li>
@@ -251,10 +251,6 @@
                     <li>a company changed president, other than to you</li>
                     <li>shares of any company were sold to the bank</li>
                     <li>a rival gained shares in a company you preside over without a majority</li>
-                    <li>
-                        Autobuy: the goal is met, no shares remain for sale, the preferred pool
-                        offers mixed certificate sizes, or the purchase is not legal
-                    </li>
                 </ul>
             </div>
         </div>
