@@ -1,6 +1,7 @@
 import type { CompanyNameVariants } from '@tabletop/18xx-ui'
 
 export const TheOldPrinceCompanyNames: Readonly<Record<string, CompanyNameVariants>> = {
+    UB: { short: 'Bank', initials: 'UB' },
     'branch:CB': { short: 'BR:CB', initials: 'CB' },
     'branch:SB': { short: 'BR:SB', initials: 'SB' },
     'branch:MB': { short: 'BR:MB', initials: 'MB' },

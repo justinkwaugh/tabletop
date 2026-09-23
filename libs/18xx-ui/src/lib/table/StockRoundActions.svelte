@@ -13,6 +13,7 @@
     } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
+    import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
     import type { CertificatePool } from '@tabletop/18xx'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -164,20 +165,15 @@
                             session.stock.menuBuyer?.kind === 'company'
                                 ? [
                                       ...new Set(
-                                          options.map(
-                                              (choice) =>
-                                                  choice.result.details?.payments
-                                                      .filter(
-                                                          (payment) =>
-                                                              payment.from.kind === 'player' &&
-                                                              payment.from.playerId ===
-                                                                  session.myPlayer?.id
-                                                      )
-                                                      .reduce(
-                                                          (total, payment) =>
-                                                              total + payment.amount,
-                                                          0
-                                                      ) ?? 0
+                                          options.flatMap((choice) =>
+                                              choice.result.details
+                                                  ? [
+                                                        playerPurchaseContribution(
+                                                            choice.result.details,
+                                                            session.myPlayer?.id
+                                                        )
+                                                    ]
+                                                  : []
                                           )
                                       )
                                   ]

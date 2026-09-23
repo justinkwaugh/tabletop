@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { cashText } from '../presentation/money.js'
+    import { cashText, optionalMoney } from '../presentation/money.js'
     import './playerTint.css'
     import {
         companySharePrice,
         DefaultCompanyPricePresentation,
         type CompanyPricePresentation
     } from './companyPresentation.js'
-    import type { GameAction } from '@tabletop/common'
+    import { assert, assertExists, type GameAction } from '@tabletop/common'
     import { companyLastRun } from './companyLastRun.js'
     import {
         cashOwnedBy,
@@ -14,10 +14,12 @@
         certificatesInPool,
         controllingOwner,
         getCompany,
+        sameOwner,
         sharesOwned,
         trainsOwnedBy,
         type Company,
         type Owner,
+        type PurchaseRequest,
         type ValuationRules
     } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
@@ -27,6 +29,7 @@
     import OperatingHistory from './OperatingHistory.svelte'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import SpreadsheetOutline from './SpreadsheetOutline.svelte'
+    import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
 
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -58,7 +61,48 @@
         portfolioCompanyIds?: readonly string[]
         includedPortfolioCompanyIds?: readonly string[]
     } = $props()
+    type PendingShareTrade =
+        | { kind: 'buy'; request: PurchaseRequest }
+        | { kind: 'sell'; companyId: string; ownerId: string }
     const money = $derived(session.presentation.money)
+    let shareConfirmation = $state<HTMLDivElement>()
+    let pendingTrade = $state<PendingShareTrade>()
+    let confirmationPosition = $state({ top: 0, left: 0 })
+    const tradingDisabled = $derived(
+        session.busy ||
+            session.updatingVisibleState ||
+            session.isViewingHistory ||
+            !session.myPlayer ||
+            !session.gameState.activePlayerIds.includes(session.myPlayer.id)
+    )
+    const availablePurchases = $derived(
+        tradingDisabled
+            ? []
+            : session.stock.purchaseChoices.filter((choice) => choice.result.details)
+    )
+    const availableSales = $derived(
+        tradingDisabled ? [] : session.stock.saleChoices.filter((choice) => choice.result.details)
+    )
+    const pendingPurchaseChoices = $derived.by(() => {
+        const trade = pendingTrade
+        return trade?.kind === 'buy'
+            ? availablePurchases.filter(
+                  (choice) => choice.request.certificateId === trade.request.certificateId
+              )
+            : []
+    })
+    const pendingPlayerPurchase = $derived(
+        pendingPurchaseChoices.find((choice) => choice.request.buyer.kind === 'player')
+    )
+    const pendingPurchaseChoice = $derived(pendingPlayerPurchase ?? pendingPurchaseChoices[0])
+    const pendingCompanyPurchases = $derived(
+        pendingPurchaseChoices.filter((choice) => choice.request.buyer.kind === 'company')
+    )
+    const pendingSaleChoices = $derived(
+        pendingTrade?.kind === 'sell'
+            ? saleChoicesForCell(pendingTrade.companyId, pendingTrade.ownerId)
+            : []
+    )
     const operatingCompanyId = $derived(
         session.gameState.stockRound.completed &&
             session.gameState.operatingSet &&
@@ -81,6 +125,14 @@
     )
     const periods = ['Current', 'Player income', 'Company payouts'] as const
     let period = $state<(typeof periods)[number]>('Current')
+    $effect(() => {
+        if (
+            period !== 'Current' ||
+            (pendingTrade?.kind === 'buy' && !pendingPurchaseChoice) ||
+            (pendingTrade?.kind === 'sell' && !pendingSaleChoices.length)
+        )
+            shareConfirmation?.hidePopover()
+    })
     let scrolled = $state(false)
     const view = $derived(
         session.preferences.values.spreadsheetView === 'company' ? 'Company' : 'Player'
@@ -91,15 +143,16 @@
             gameState.machineState === 'StockRound' &&
             !gameState.stockRound.completed &&
             gameState.stockRound.sales.some(
-                (sale) =>
-                    sale.companyId === companyId &&
-                    (sale.owner.kind === 'player'
-                        ? `player:${sale.owner.playerId}`
-                        : sale.owner.kind === 'company'
-                          ? `company:${sale.owner.companyId}`
-                          : 'bank') === ownerId
+                (sale) => sale.companyId === companyId && ownerIdFor(sale.owner) === ownerId
             )
         )
+    }
+    function ownerIdFor(owner: Owner): string {
+        return owner.kind === 'player'
+            ? `player:${owner.playerId}`
+            : owner.kind === 'company'
+              ? `company:${owner.companyId}`
+              : 'bank'
     }
     const firstPoolId = 'market'
     const poolColumnLabels: Readonly<Record<string, string>> = {
@@ -121,6 +174,53 @@
                     : 0),
             0
         )
+    }
+    function purchaseForCell(companyId: string, ownerId: string) {
+        return availablePurchases.find(
+            (choice) =>
+                choice.certificate.companyId === companyId &&
+                (ownerId === 'market'
+                    ? choice.certificate.poolId === marketPoolId
+                    : ownerId === 'treasury' &&
+                      choice.certificate.owner.kind === 'company' &&
+                      choice.certificate.owner.companyId === companyId)
+        )
+    }
+    function saleChoicesForCell(companyId: string, ownerId: string) {
+        return availableSales.filter(
+            (choice) =>
+                choice.sale.companyId === companyId && ownerIdFor(choice.request.seller) === ownerId
+        )
+    }
+    function openShareConfirmation(event: MouseEvent, trade: PendingShareTrade) {
+        const target = event.currentTarget
+        assert(target instanceof HTMLElement, 'A share trade requires a source cell')
+        const bounds = target.getBoundingClientRect()
+        pendingTrade = trade
+        confirmationPosition = {
+            top:
+                bounds.bottom + 160 < window.innerHeight
+                    ? bounds.bottom + 6
+                    : Math.max(8, bounds.top - 160),
+            left: Math.max(116, Math.min(bounds.left + bounds.width / 2, window.innerWidth - 116))
+        }
+        shareConfirmation?.showPopover()
+    }
+    function confirmBuy(buyer: Owner) {
+        const choice = pendingPurchaseChoices.find((option) =>
+            sameOwner(option.request.buyer, buyer)
+        )
+        assertExists(choice, 'Choose an available share purchase')
+        shareConfirmation?.hidePopover()
+        session.stock.selectPurchase(choice.request)
+        void session.stock.confirmPurchase()
+    }
+    function confirmSale(shares: number) {
+        const choice = pendingSaleChoices.find((option) => option.sale.shares === shares)
+        assertExists(choice, 'Choose an available share sale')
+        shareConfirmation?.hidePopover()
+        session.stock.selectSale(choice.request)
+        void session.stock.confirmSale()
     }
     const portfolioOwners = $derived(
         portfolioCompanyIds.map((ownerId) => ({
@@ -308,6 +408,8 @@
 
 {#snippet shareCell(
     shares: number,
+    companyId: string,
+    ownerId: string,
     poolStart = false,
     president = false,
     matrix = true,
@@ -316,6 +418,8 @@
     tint: string | undefined = undefined,
     poolAlt = false
 )}
+    {@const purchase = shares > 0 ? purchaseForCell(companyId, ownerId) : undefined}
+    {@const saleChoices = shares > 0 ? saleChoicesForCell(companyId, ownerId) : []}
     <td
         class:operating-column={operating}
         class:sold
@@ -325,13 +429,36 @@
         class:empty={shares === 0}
         class:pool-start={poolStart}
         class:player-tinted-cell={!!tint}
+        class:tradable={!!purchase || saleChoices.length > 0}
         style:--player-color={tint}
     >
-        <span class="share-value" class:president
-            >{shares === 0 ? '' : shares}{#if president}<span class="badge" aria-label="President"
-                    >P</span
-                >{/if}</span
-        >
+        {#if purchase}
+            <button
+                class="share-trade"
+                aria-label={`Buy ${getCompany(session.gameState, companyId).name} from ${ownerId === 'market' ? 'Market' : 'Treasury'}`}
+                onclick={(event) =>
+                    openShareConfirmation(event, { kind: 'buy', request: purchase.request })}
+                ><span class="share-value">{shares}</span></button
+            >
+        {:else if saleChoices.length}
+            <button
+                class="share-trade"
+                aria-label={`Sell ${getCompany(session.gameState, companyId).name} shares`}
+                onclick={(event) =>
+                    openShareConfirmation(event, { kind: 'sell', companyId, ownerId })}
+                ><span class="share-value" class:president
+                    >{shares}{#if president}<span class="badge" aria-label="President">P</span
+                        >{/if}</span
+                ></button
+            >
+        {:else}
+            <span class="share-value" class:president
+                >{shares === 0 ? '' : shares}{#if president}<span
+                        class="badge"
+                        aria-label="President">P</span
+                    >{/if}</span
+            >
+        {/if}
     </td>
 {/snippet}
 
@@ -486,6 +613,8 @@
                                         >
                                         {#each row.shares as shares, index}{@render shareCell(
                                                 shares,
+                                                row.company.id,
+                                                owners[index].id,
                                                 owners[index].id === firstPoolId,
                                                 row.presidentId === owners[index].id,
                                                 !(owners[index].id in poolColumnLabels),
@@ -561,6 +690,8 @@
                                         >
                                         {#each rows as row (row.company.id)}{@render shareCell(
                                                 row.shares[index],
+                                                row.company.id,
+                                                owner.id,
                                                 false,
                                                 row.presidentId === owner.id,
                                                 !(owner.id in poolColumnLabels),
@@ -671,9 +802,212 @@
             {/each}
         {/if}
     </div>
+    <div
+        class="share-confirmation"
+        popover="auto"
+        role="dialog"
+        aria-label="Confirm share trade"
+        bind:this={shareConfirmation}
+        style:top={`${confirmationPosition.top}px`}
+        style:left={`${confirmationPosition.left}px`}
+        ontoggle={(event) => {
+            if (event.newState === 'closed') pendingTrade = undefined
+        }}
+    >
+        {#if pendingPurchaseChoice?.result.details && pendingPurchaseChoice.certificate.kind === 'share'}
+            <div class="trade-question">
+                Buy {pendingPurchaseChoice.certificate.shares}
+                <CompanyToken
+                    appearance={session.mapView.stations[
+                        pendingPurchaseChoice.certificate.companyId
+                    ]}
+                    size={24}
+                />
+                for {money(pendingPurchaseChoice.result.details.price)}?
+            </div>
+            <div class="trade-answer">
+                {#if pendingPlayerPurchase}<button
+                        class="confirm-trade"
+                        disabled={tradingDisabled}
+                        onclick={() => confirmBuy(pendingPlayerPurchase.request.buyer)}>Yes</button
+                    >{/if}
+                <button onclick={() => shareConfirmation?.hidePopover()}>No</button>
+                {#if pendingCompanyPurchases.length}
+                    <div class="company-buy-row">
+                        {#each pendingCompanyPurchases as choice (ownerIdFor(choice.request.buyer))}
+                            {#if choice.result.details}
+                                {@const contribution = playerPurchaseContribution(
+                                    choice.result.details,
+                                    session.myPlayer?.id
+                                )}
+                                <button
+                                    class="company-buy"
+                                    disabled={tradingDisabled}
+                                    data-purchase-buyer={ownerIdFor(choice.request.buyer)}
+                                    onclick={() => confirmBuy(choice.request.buyer)}
+                                >
+                                    As {choice.request.buyer.kind === 'company'
+                                        ? (companyNames[choice.request.buyer.companyId]?.short ??
+                                          session.ownerName(choice.request.buyer))
+                                        : session.ownerName(
+                                              choice.request.buyer
+                                          )}{#if contribution > 0}{' + '}{money(contribution)}{/if}
+                                </button>
+                            {/if}
+                        {/each}
+                    </div>
+                {/if}
+            </div>
+        {:else if pendingTrade?.kind === 'sell' && pendingSaleChoices.length}
+            {@const maximumSale = Math.max(
+                ...pendingSaleChoices.map((choice) => choice.sale.shares)
+            )}
+            <div class="trade-question">
+                Sell
+                <CompanyToken
+                    appearance={session.mapView.stations[pendingTrade.companyId]}
+                    size={24}
+                />
+                {maximumSale === 1 ? 'share' : 'shares'}?
+            </div>
+            {#if maximumSale === 1}
+                <div class="sale-proceeds">
+                    Proceeds {optionalMoney(money, pendingSaleChoices[0].result.details?.proceeds)}
+                </div>
+                <div class="trade-answer">
+                    <button
+                        class="confirm-trade"
+                        disabled={tradingDisabled}
+                        onclick={() => confirmSale(1)}>Yes</button
+                    >
+                    <button onclick={() => shareConfirmation?.hidePopover()}>No</button>
+                </div>
+            {:else}
+                <div class="sale-options">
+                    {#each pendingSaleChoices as choice (choice.sale.shares)}
+                        <button
+                            disabled={tradingDisabled}
+                            aria-label={`Sell ${choice.sale.shares} ${choice.sale.shares === 1 ? 'share' : 'shares'} for ${optionalMoney(money, choice.result.details?.proceeds)}`}
+                            data-sale-shares={choice.sale.shares}
+                            onclick={() => confirmSale(choice.sale.shares)}
+                        >
+                            <span
+                                >{choice.sale.shares}
+                                {choice.sale.shares === 1 ? 'share' : 'shares'}</span
+                            >
+                            <strong>{optionalMoney(money, choice.result.details?.proceeds)}</strong>
+                        </button>
+                    {/each}
+                </div>
+                <div class="trade-answer">
+                    <button onclick={() => shareConfirmation?.hidePopover()}>No</button>
+                </div>
+            {/if}
+        {/if}
+    </div>
 </div>
 
 <style>
+    .share-confirmation {
+        position: fixed;
+        inset: auto;
+        transform: translateX(-50%);
+        margin: 0;
+        padding: 10px 12px;
+        border: 1px solid var(--rail-border, #c7b8a6);
+        border-radius: 8px;
+        background: var(--rail-surface, #fffdf8);
+        color: var(--rail-text, #514536);
+        box-shadow: 0 6px 18px #0005;
+        font-size: 13px;
+    }
+    .trade-question,
+    .trade-answer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    .trade-question {
+        white-space: nowrap;
+    }
+    .trade-answer {
+        margin-top: 8px;
+        flex-wrap: wrap;
+    }
+    .company-buy-row {
+        display: flex;
+        flex: 1 1 100%;
+        justify-content: center;
+        gap: 6px;
+    }
+    .trade-answer button,
+    .sale-options button {
+        border: 1px solid var(--rail-border, #c7b8a6);
+        border-radius: 4px;
+        padding: 3px 14px;
+        background: var(--rail-surface-raised, #efe7db);
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+    }
+    .trade-answer .confirm-trade,
+    .sale-options button {
+        border-color: #236147;
+        background: #287452;
+        color: #fff;
+        font-weight: 700;
+    }
+    .trade-answer .confirm-trade:hover:not(:disabled),
+    .sale-options button:hover:not(:disabled) {
+        background: #1d6043;
+    }
+    .trade-answer .company-buy {
+        border-color: var(--rail-solid, #2c4652);
+        background: var(--rail-solid, #2c4652);
+        color: #fff;
+    }
+    .trade-answer .company-buy:hover:not(:disabled) {
+        filter: brightness(1.15);
+    }
+    .sale-proceeds {
+        margin-top: 6px;
+        text-align: center;
+        color: var(--rail-muted, #95816a);
+    }
+    .sale-options {
+        display: grid;
+        gap: 4px;
+        margin-top: 8px;
+    }
+    .sale-options button {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        min-width: 150px;
+    }
+    .trade-answer button:focus-visible,
+    .sale-options button:focus-visible,
+    .share-trade:focus-visible {
+        outline: 2px solid var(--rail-focus, #a87948);
+        outline-offset: -2px;
+    }
+    td.tradable {
+        padding: 0;
+    }
+    .share-trade {
+        display: block;
+        width: 100%;
+        border: 0;
+        padding: 4px var(--cell-padding-inline);
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+    }
+    .share-trade:hover {
+        background: var(--rail-surface-selected, #dfd1be);
+    }
     .included-net-worth {
         color: var(--rail-muted, #998b79);
     }
