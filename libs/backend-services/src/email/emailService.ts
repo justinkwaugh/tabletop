@@ -1,4 +1,4 @@
-import { Game, GameDefinition, User } from '@tabletop/common'
+import { Game, GameDefinition, TournamentDetail, User } from '@tabletop/common'
 
 export enum AccountChangeType {
     Email = 'email',
@@ -37,6 +37,19 @@ export interface EmailService {
         winners: User[]
         game: Game
         definition: GameDefinition
+        url: string
+        toEmail: string
+    }): Promise<void>
+    sendTournamentResultsEmail({
+        detail,
+        definition,
+        recipientId,
+        url,
+        toEmail
+    }: {
+        detail: TournamentDetail
+        definition: GameDefinition
+        recipientId: string
         url: string
         toEmail: string
     }): Promise<void>

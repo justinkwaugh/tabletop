@@ -5,12 +5,13 @@ import {
     PasswordReset,
     AccountChangeNotification,
     GameInvitation,
-    GameEnd
+    GameEnd,
+    TournamentResults
 } from '@tabletop/email'
 
 import { Resend } from 'resend'
 import { SecretsService } from '../secrets/secretsService'
-import { Game, GameDefinition, User } from '@tabletop/common'
+import { Game, GameDefinition, TournamentDetail, User } from '@tabletop/common'
 import { AccountChangeType, EmailService } from './emailService.js'
 import { NullEmailService } from './nullEmailService.js'
 
@@ -134,6 +135,52 @@ export class ResendEmailService implements EmailService {
             from: 'noreply@boardtogether.games',
             to: toEmail,
             subject: `Your game of ${definition.info.metadata.name} ${game.name} has ended`,
+            html: emailHTML,
+            headers: {
+                'X-Entity-Ref-ID': nanoid()
+            }
+        })
+    }
+
+    async sendTournamentResultsEmail({
+        detail,
+        definition,
+        recipientId,
+        url,
+        toEmail
+    }: {
+        detail: TournamentDetail
+        definition: GameDefinition
+        recipientId: string
+        url: string
+        toEmail: string
+    }): Promise<void> {
+        const standings = detail.standings ?? []
+        if (detail.tournament.status !== 'finished' || !standings.length) {
+            console.log('Tournament results are unavailable for results email')
+            return
+        }
+        const name = (userId: string) => detail.usernames[userId] ?? 'A Player'
+        const emailHTML = await render(
+            TournamentResults({
+                tournamentName: detail.tournament.name,
+                title: definition.info.metadata.name,
+                winners: standings.filter((row) => row.rank === 1).map((row) => name(row.userId)),
+                standings: standings.map((row) => ({
+                    rank: row.rank,
+                    name: name(row.userId),
+                    wins: row.wins,
+                    score: row.score,
+                    ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {}),
+                    recipient: row.userId === recipientId
+                })),
+                url
+            })
+        )
+        await this.resend.emails.send({
+            from: 'noreply@boardtogether.games',
+            to: toEmail,
+            subject: `Final results for ${detail.tournament.name}`,
             html: emailHTML,
             headers: {
                 'X-Entity-Ref-ID': nanoid()

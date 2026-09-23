@@ -42,6 +42,9 @@
             ? (detail?.standings?.filter((row) => row.rank === 1) ?? [])
             : []
     )
+    let showTiebreak = $derived(
+        detail?.standings?.some((row) => row.tiebreak !== undefined) ?? false
+    )
     let scheduleFirst = $derived(Boolean(tournament?.stages[0]?.scheduleId))
     let title = $derived(
         tournament ? libraryService.titlesById[tournament.rules.titleId] : undefined
@@ -364,6 +367,13 @@
                                 {#if showStandings}
                                     <th class="w-16 pb-2 text-right font-normal">Wins</th>
                                     <th class="w-20 pb-2 text-right font-normal">Score</th>
+                                    {#if showTiebreak}
+                                        <th
+                                            class="w-24 pb-2 text-right font-normal"
+                                            title="Sum of final scores from each game"
+                                            >Tiebreak</th
+                                        >
+                                    {/if}
                                 {:else if joined && registrationOpen}
                                     <th class="w-16 pb-2"><span class="sr-only">Action</span></th>
                                 {/if}
@@ -412,6 +422,15 @@
                                                 maximumFractionDigits: 3
                                             }) ?? '—'}</td
                                         >
+                                        {#if showTiebreak}
+                                            <td
+                                                class="py-2.5 text-right tabular-nums text-gray-400"
+                                                aria-label="Tiebreak"
+                                                >{standing?.tiebreak?.toLocaleString(undefined, {
+                                                    maximumFractionDigits: 3
+                                                }) ?? '—'}</td
+                                            >
+                                        {/if}
                                     {:else if joined && registrationOpen}
                                         <td class="py-2.5 text-right">
                                             {#if entrant.userId === user?.id}

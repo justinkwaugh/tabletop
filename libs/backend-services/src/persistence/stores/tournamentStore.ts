@@ -1,4 +1,5 @@
 import type {
+    GameState,
     Tournament,
     CorrectTournamentResultRequest,
     TournamentList,
@@ -7,6 +8,11 @@ import type {
     TournamentGameLink,
     User
 } from '@tabletop/common'
+
+export type FinalScoreResolver = (
+    typeId: string,
+    readState: () => Promise<GameState>
+) => Promise<Record<string, number> | undefined>
 
 export interface TournamentStore {
     create(tournament: Tournament, user: User): Promise<Tournament>
@@ -32,6 +38,12 @@ export interface TournamentStore {
         user: User,
         now: number
     ): Promise<Tournament>
-    rebuildStandings(id: string, revision: number, user: User, now: number): Promise<Tournament>
+    rebuildStandings(
+        id: string,
+        revision: number,
+        user: User,
+        now: number,
+        finalScores: FinalScoreResolver
+    ): Promise<Tournament>
     administratorIds(): Promise<string[]>
 }

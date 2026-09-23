@@ -29,7 +29,8 @@ import {
 
 import { TournamentDispatcher } from './tournamentDispatcher.js'
 import { updateTournamentRegistration } from './tournamentRegistration.js'
-import type { TournamentTask } from './tournamentTasks.js'
+import { compareTournamentScores } from './tournamentScoring.js'
+import { enqueueTournamentResultsEmail, type TournamentTask } from './tournamentTasks.js'
 import type { TaskService } from '../tasks/taskService.js'
 
 import type { GameService } from '../games/gameService.js'
@@ -39,10 +40,10 @@ export class TournamentService {
     constructor(
         private readonly store: TournamentStore,
         private readonly users: Pick<UserService, 'getUser'>,
-        private readonly titles: Record<string, Pick<GameDefinition, 'info'>>,
+        private readonly titles: Record<string, Pick<GameDefinition, 'info' | 'runtime'>>,
         private readonly notifications: Pick<NotificationService, 'sendNotification'>,
         private readonly games: Pick<GameService, 'provisionTournamentGame'>,
-        tasks: Pick<TaskService, 'createPushTask'>,
+        private readonly tasks: Pick<TaskService, 'createPushTask'>,
         private readonly now: () => number = Date.now
     ) {
         this.dispatcher = new TournamentDispatcher(
@@ -52,6 +53,7 @@ export class TournamentService {
                 await this.provisionTable({ tournamentId, stageId, tableId })
             },
             (tournament) => this.notify(tournament),
+            (tournament) => this.emailResults(tournament),
             now
         )
     }
@@ -257,7 +259,7 @@ export class TournamentService {
                 : undefined
         const ordered = (stage?.standings ?? [])
             .map((row, index) => ({ ...row, userId: tournament.entrants[index].userId }))
-            .sort((a, b) => b.score - a.score || a.userId.localeCompare(b.userId))
+            .sort((a, b) => compareTournamentScores(a, b) || a.userId.localeCompare(b.userId))
         const activeTables = new Set(stage?.dispatch?.active ?? [])
         const activeCounts = new Map<string, number>()
         for (const table of schedule?.tables ?? []) {
@@ -266,7 +268,7 @@ export class TournamentService {
         }
         const standings = ordered.map((row) => ({
             ...row,
-            rank: ordered.findIndex((other) => other.score === row.score) + 1,
+            rank: ordered.findIndex((other) => compareTournamentScores(other, row) === 0) + 1,
             active: activeCounts.get(row.userId) ?? 0,
             remaining: (tournament.format.stages[0]?.gamesPerEntrant ?? 0) - row.completed
         }))
@@ -282,9 +284,43 @@ export class TournamentService {
 
     async rebuildStandings(id: string, revision: number, user: User) {
         this.requireAdmin(user)
-        const tournament = await this.store.rebuildStandings(id, revision, user, this.now())
+        const before = await this.store.read(id)
+        let tournament = await this.store.rebuildStandings(
+            id,
+            revision,
+            user,
+            this.now(),
+            async (typeId, readState) => {
+                const scoring = this.titles[typeId]?.runtime.scoring
+                return scoring ? scoring.finalScores(await readState()) : undefined
+            }
+        )
+        if (before?.status !== 'finished') tournament = await this.emailResults(tournament)
         await this.notify(tournament)
         return tournament
+    }
+
+    private async emailResults(tournament: Tournament): Promise<Tournament> {
+        if (tournament.status !== 'finished' || tournament.resultsEmailedAt !== undefined)
+            return tournament
+        let claimed = false
+        const current = await this.store.update(tournament.id, undefined, false, (value) => {
+            claimed = value.status === 'finished' && value.resultsEmailedAt === undefined
+            if (!claimed) return
+            value.resultsEmailedAt = this.now()
+            this.touch(value)
+        })
+        if (!claimed) return current
+        for (const { userId } of current.entrants) {
+            const account = await this.users.getUser(userId)
+            if (account?.status !== UserStatus.Active || !account.email) continue
+            await enqueueTournamentResultsEmail(this.tasks, {
+                tournamentId: current.id,
+                userId,
+                toEmail: account.email
+            })
+        }
+        return current
     }
 
     async provisionTable({

@@ -877,6 +877,7 @@ export class FirestoreGameStore implements GameStore {
                     gameUpdates.finishedAt = undefined
                     gameUpdates.result = undefined
                     gameUpdates.winningPlayerIds = []
+                    gameUpdates.finalScores = undefined
                 }
             }
 
@@ -949,7 +950,7 @@ export class FirestoreGameStore implements GameStore {
         if (!stage.dispatch || stage.dispatch.finished.includes(reference.tableId)) return
         const listKeys = this.tournamentCacheKeys.lists(data)
         stage.standings ??= createTournamentStandings(data)
-        applyTournamentGameScore(data, stage.standings, game)
+        applyTournamentGameScore(data, stage.standings, game, 1, game.finalScores)
         stage.dispatch.active = stage.dispatch.active.filter((id) => id !== reference.tableId)
         stage.dispatch.reserved = stage.dispatch.reserved.filter((id) => id !== reference.tableId)
         stage.dispatch.finished.push(reference.tableId)
@@ -1200,6 +1201,7 @@ export class FirestoreGameStore implements GameStore {
                 gameUpdates.finishedAt = undefined
                 gameUpdates.result = undefined
                 gameUpdates.winningPlayerIds = []
+                gameUpdates.finalScores = undefined
             }
 
             Object.assign(updatedGame, gameUpdates)

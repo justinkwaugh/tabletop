@@ -12,6 +12,7 @@ import type { GameConfigurator } from './gameConfigurator.js'
 import type { Color } from '../model/colors.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 import type { GameVisibility } from '../visibility/gameVisibility.js'
+import type { GameScoring } from './gameScoring.js'
 
 export interface GameInfo {
     id: string
@@ -34,6 +35,7 @@ export interface GameRuntime<
     stateHandlers: Record<string, MachineStateHandler<HydratedAction, U>>
     stateLogger?: GameStateLogger
     visibility?: GameVisibility<T, T>
+    scoring?: GameScoring<T>
 }
 
 export interface GameDefinition<

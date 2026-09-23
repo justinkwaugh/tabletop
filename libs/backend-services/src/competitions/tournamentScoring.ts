@@ -24,11 +24,16 @@ export function withTournamentCredit(
     }
 }
 
+export function compareTournamentScores(a: TournamentScore, b: TournamentScore): number {
+    return b.score - a.score || (b.tiebreak ?? 0) - (a.tiebreak ?? 0)
+}
+
 export function applyTournamentGameScore(
     tournament: Tournament,
     standings: TournamentScore[],
     game: Pick<Game, 'players' | 'result' | 'winningPlayerIds'>,
-    direction: 1 | -1 = 1
+    direction: 1 | -1 = 1,
+    finalScores?: Record<string, number>
 ): void {
     assert(game.result !== undefined && game.result !== GameResult.Abandoned, 'Game is unresolved')
     assert(
@@ -40,6 +45,10 @@ export function applyTournamentGameScore(
         'Winner is not in the game'
     )
     assert(game.winningPlayerIds.length > 0, 'Finished game must declare winners')
+    assert(
+        !finalScores || game.players.every((player) => finalScores[player.id] !== undefined),
+        'Final scores must cover every game player'
+    )
     let scale = 1
     for (let divisor = 2; divisor <= tournament.rules.tableSize; divisor++) {
         let a = scale
@@ -57,6 +66,7 @@ export function applyTournamentGameScore(
             row.wins += direction
             row.score = (Math.round(row.score * scale) + direction * points) / scale
         }
+        if (finalScores) row.tiebreak = (row.tiebreak ?? 0) + direction * finalScores[player.id]
     }
 }
 

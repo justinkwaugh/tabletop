@@ -30,6 +30,8 @@ Tournament scoring will consume the authoritative Game State's existing `result`
 
 Sol records shared victories as Draw with winner IDs; Urbino can use Win with multiple winner IDs. Both declare the winners directly. Indonesia contains a defensive Draw branch with no winner IDs; tournament validation rejects it as an invalid result, and its terminal handler requires review during catalog adoption. Its normal ties already resolve through its title-owned turn-order tiebreak. If a title records an incorrect result, fix its terminal handler rather than introducing another interpretation layer.
 
+A title may additionally declare `GameRuntime.scoring` with `finalScores(state)` returning each Game Player ID's final in-game score from a finished canonical state. Tournament scoring uses it only as a tiebreak total between entrants with equal tournament score; see [results and standings](tournament-scoring.md). Fresh Fish declares it from the scores its terminal handler records. Other titles opt in by adding the capability; nothing is inferred from player state fields.
+
 The frozen tournament scoring policy remains `splitWinsV1`. Game results are sporting facts; points, settlement and standings belong to the tournament service. Complete finishing positions are not required, and the existing tournament schema rejects placement policies. A future optional placement capability must be validated before opening registration and must not be inferred from scores.
 
 ## Catalog adoption audit

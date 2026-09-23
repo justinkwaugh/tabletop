@@ -24,6 +24,7 @@ export * from './game/definition/gameHydrator.js'
 export * from './game/definition/gameInitializer.js'
 export * from './game/model/startingPositionAssignment.js'
 export * from './game/definition/gameExploration.js'
+export * from './game/definition/gameScoring.js'
 export * from './game/definition/gameStateLogger.js'
 
 export * from './game/model/gameState.js'
