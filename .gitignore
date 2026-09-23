@@ -63,3 +63,6 @@ tools/deploy/deploy.config.json
 
 # raw publisher art (source material for tools/art-extraction, multi-GB)
 artassets/
+
+# scratch checkouts and throwaway work
+tmp/
