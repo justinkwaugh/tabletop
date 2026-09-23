@@ -81,7 +81,17 @@ The frontend follows the same model with `release-frontend (--major | --minor | 
 `apps/frontend/package.json`, tags `frontend-v<version>`, and the deploy uploads the build to
 `frontend/<version>` in the bucket before publishing the manifest.
 
-`preflight (--game=<gameId|packageId> | --frontend) [--json]` is read-only. It reports the serving versions
+The backend follows the same model with `release-backend (--major | --minor | --patch)
+[--no-deploy] [--no-traffic] [--service=backend|tasks]` and `deploy-backend`. The release bumps
+`apps/backend/package.json` and tags `backend-v<version>`. The deploy builds the backend,
+produces the pruned image context with `pnpm --filter @tabletop/backend run docker-context`,
+submits it to Cloud Build tagged `<backend.image>:<version>`, and deploys that image to the
+`backend` and `tasks` Cloud Run services with traffic, setting `BACKEND_VERSION`, `GIT_SHA`,
+and `BUILD_TIME` so the manifest reports what is running. `--no-traffic` stages a revision
+without serving it, and `rollback-backend <revision>` shifts traffic back. No Docker is needed
+locally. The image tag is immutable: a version already in Artifact Registry is refused.
+
+`preflight (--game=<gameId|packageId> | --frontend | --backend) [--json]` is read-only. It reports the serving versions
 from the backend manifest, the local versions, the release baseline per artifact (the release
 tag, or the commit that set the current version when no tag exists yet), the files and commits
 changed since that baseline, and whether logic and UI or only UI need a release. Changes are
@@ -96,7 +106,7 @@ serving state before and after a deploy; see `.agents/skills/release/SKILL.md`.
 tui                          Launch the TUI (default)
 status                       Print the current manifest
 sync-manifest                Sync site-manifest.json from package versions
-preflight (--game=<id> | --frontend) [--json]
+preflight (--game=<id> | --frontend | --backend) [--json]
                              Report serving/local versions and changes since the last release
 release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
                              Bump versions, commit, tag, push, then deploy
@@ -106,10 +116,15 @@ build-ui <gameId>            Build a game UI bundle (rollup)
 deploy-ui <gameId>           deploy-game for the UI only, with the same guards
 build-logic <gameId>         Build a game logic bundle (rollup)
 deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
+release-frontend (--major | --minor | --patch) [--no-deploy]
+                             Bump the frontend version, commit, tag, push, then deploy
 build-frontend               Build the frontend
-  deploy-frontend              Deploy the frontend bundle to GCS
-  build-backend                Build the backend
-  deploy-backend [--with-traffic] Deploy the backend (Cloud Run)
+deploy-frontend              Build and deploy a tagged frontend HEAD, with the same guards
+release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--service=backend|tasks]
+                             Bump the backend version, commit, tag, push, then deploy
+build-backend                Build the backend
+deploy-backend [--no-traffic] [--service=backend|tasks]
+                             Cloud Build the tagged image and deploy it to Cloud Run, with the same guards
 rollback-backend <revision>  Shift traffic to a backend revision
 ```
 
@@ -188,6 +203,26 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET --member=serviceAccou
 mkdir -p .secrets && gcloud iam service-accounts keys create .secrets/gcloud-deploy-key.json --iam-account=$SA
 chmod 600 .secrets/gcloud-deploy-key.json
 ```
+
+For backend deploys the same account also needs, once:
+
+```bash
+REGION=us-central1
+RUNTIME_SA=$(gcloud run services describe backend --project=$PROJECT --region=$REGION --format='value(spec.template.spec.serviceAccountName)')
+RUNTIME_SA=${RUNTIME_SA:-$(gcloud projects describe $PROJECT --format='value(projectNumber)')-compute@developer.gserviceaccount.com}
+gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA --role=roles/cloudbuild.builds.editor
+gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA --role=roles/serviceusage.serviceUsageConsumer
+gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA --role=roles/run.admin
+gcloud artifacts repositories add-iam-policy-binding images --project=$PROJECT --location=$REGION --member=serviceAccount:$SA --role=roles/artifactregistry.writer
+gcloud storage buckets add-iam-policy-binding gs://${PROJECT}_cloudbuild --member=serviceAccount:$SA --role=roles/storage.objectAdmin
+gcloud iam service-accounts add-iam-policy-binding $RUNTIME_SA --project=$PROJECT --member=serviceAccount:$SA --role=roles/iam.serviceAccountUser
+```
+
+`roles/run.admin` is granted project-wide because Cloud Run service-level bindings do not cover
+creating revisions. The Cloud Build staging bucket `<project>_cloudbuild` is created by the first
+build; if the binding fails because it does not exist yet, run one build as yourself first or
+create the bucket. Verify with `node tools/deploy/esm/cli.js preflight --backend`, which reads
+the serving revision, and with `gcloud builds list --project=$PROJECT --limit=1`.
 
 Verify from inside the container with `gcloud storage ls gs://$BUCKET/config/` after setting
 `CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=/workspace/.secrets/gcloud-deploy-key.json`, or simply

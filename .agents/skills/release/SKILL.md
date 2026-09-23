@@ -1,12 +1,13 @@
 ---
 name: release
-description: Release and deploy a game or the site frontend to production with tools/deploy. Use when asked to release, deploy, publish, or ship a game or the frontend, or to check what is currently serving.
+description: Release and deploy a game, the site frontend, or the backend to production with tools/deploy. Use when asked to release, deploy, publish, or ship any of them, or to check what is currently serving.
 ---
 
 # Release
 
-Publishing is one command, `release-game` for a game or `release-frontend` for the site
-frontend. Each bumps versions, commits, tags, pushes, and deploys. The work of this skill is
+Publishing is one command, `release-game` for a game, `release-frontend` for the site frontend,
+or `release-backend` for the Cloud Run backend. Each bumps versions, commits, tags, pushes, and
+deploys. The work of this skill is
 choosing the flags correctly and confirming them with the user. Run every command from the
 repository root as `node tools/deploy/esm/cli.js <command>`; build the tool first with
 `pnpm --filter @tabletop/deploy run build` if `esm/` is missing.
@@ -15,10 +16,15 @@ The frontend differs from a game in two ways: it has no `--logic` flag, since it
 artifact, and it needs its own release to ship shared Game Client changes to players even when
 no game changed (`docs/adr/0004-game-ui-host-bridge-contract.md`).
 
+The backend is a container image built by Cloud Build and deployed to the `backend` and
+`tasks` Cloud Run services together, serving traffic immediately. `--no-traffic` stages a
+revision instead; `--service=backend|tasks` narrows the deploy; `rollback-backend <revision>`
+reverts. A backend deploy takes several minutes because the image builds remotely.
+
 ## 1. Preflight
 
-Run `preflight --game=<gameId>` or `preflight --frontend` and report to the user, before
-anything else:
+Run `preflight --game=<gameId>`, `preflight --frontend`, or `preflight --backend` and report
+to the user, before anything else:
 
 - the serving logic and UI versions, or that the serving manifest is unavailable and why;
 - the local versions and whether they match serving;
@@ -63,13 +69,17 @@ usage, **minor** for new interactions or screens, **patch** for fixes and stylin
 For the frontend: **major** for a host bridge contract change that older UI Artifacts cannot
 tolerate, **minor** for new site features, **patch** for fixes and styling.
 
+For the backend: **major** for an API or persistence change that a deployed frontend or stored
+game cannot survive, **minor** for new endpoints or behaviour, **patch** for fixes. The backend
+loads game logic from the bucket, so a game logic change never needs a backend release.
+
 A hosted game exists for The Old Prince, so a logic major there means an already-running game
 must survive the schema change. Say so in the suggestion when it applies.
 
 ## 3. Release
 
-Run `release-game --game=<gameId> [--logic] --<bump>` or `release-frontend --<bump>` and wait
-for it to finish. Before it uploads anything it prints two lines, `serving before deploy:` and `deploying:`; relay both to
+Run `release-game --game=<gameId> [--logic] --<bump>`, `release-frontend --<bump>`, or
+`release-backend --<bump>` and wait for it to finish. Before it uploads anything it prints two lines, `serving before deploy:` and `deploying:`; relay both to
 the user verbatim, as the record of what production had and what is about to replace it. It then
 prints each step with its log path. On failure, read the log it names under `/tmp`, report the
 failing step and the error text, and then:
@@ -77,8 +87,8 @@ failing step and the error text, and then:
 - if the failure came before `Pushed`, nothing was published and nothing was tagged remotely;
   fix the cause and rerun the same command;
 - if the failure came after `Pushed`, the release exists. Rerun the deploy only, with
-  `deploy-game --game=<gameId> [--logic]` using the same `--logic` choice, or
-  `deploy-frontend`. A second release command would spend another version. If commits have landed since the release, the
+  `deploy-game --game=<gameId> [--logic]` using the same `--logic` choice, `deploy-frontend`,
+  or `deploy-backend`. A second release command would spend another version. If commits have landed since the release, the
   tag is no longer on HEAD: check out the tag (`git checkout <tag>`), run `deploy-game` there,
   and return to the branch afterwards.
 - `spawn gcloud ENOENT` or `No credentialed accounts` means this environment cannot upload.
@@ -102,7 +112,7 @@ Serving now:   logic <x> / ui <y>
 
 ## Boundaries
 
-`release-game` and `release-frontend` are the only paths that change package versions. Backend
-deploys use `deploy-backend` and are outside this skill. A shared Game Client change reaches an
-already-published game only when that game's UI is republished, so after a frontend release
-check which games' UI Artifacts must follow (`docs/adr/0004-game-ui-host-bridge-contract.md`).
+The release commands are the only paths that change package versions. A shared Game Client
+change reaches an already-published game only when that game's UI is republished, so after a
+frontend release check which games' UI Artifacts must follow
+(`docs/adr/0004-game-ui-host-bridge-contract.md`).
