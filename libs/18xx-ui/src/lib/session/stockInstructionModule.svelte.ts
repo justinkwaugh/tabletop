@@ -1,6 +1,7 @@
 import { assert, assertExists } from '@tabletop/common'
 import {
     SetStockInstruction,
+    cashOwnedBy,
     certificatesInPool,
     isCompleteStockRound,
     isSetStockInstruction,
@@ -126,20 +127,28 @@ export class StockInstructionModule {
                     .map((exemption) => exemption.maximumShares)
             )
         )
-        const purchasable = choice.pools
-            .flatMap((pool) => certificatesInPool(state, pool.id))
-            .reduce(
-                (sum, certificate) =>
-                    sum +
-                    (certificate.kind === 'share' &&
-                    certificate.companyId === choice.company.id &&
-                    !certificate.president &&
-                    typeof rules.stockRules.purchaseTerms(state, certificate, buyer) !== 'string'
-                        ? certificate.shares
-                        : 0),
-                0
-            )
-        const range = { min: owned + 1, max: Math.min(holdingCeiling, owned + purchasable) }
+        let purchasable = 0
+        let cheapest = Infinity
+        for (const pool of choice.pools)
+            for (const certificate of certificatesInPool(state, pool.id)) {
+                if (
+                    certificate.kind !== 'share' ||
+                    certificate.companyId !== choice.company.id ||
+                    certificate.president
+                )
+                    continue
+                const terms = rules.stockRules.purchaseTerms(state, certificate, buyer)
+                if (typeof terms === 'string') continue
+                purchasable += certificate.shares
+                cheapest = Math.min(cheapest, terms.price)
+            }
+        const cash = cashOwnedBy(state, buyer)
+        const affordable =
+            typeof cash === 'number' && cheapest > 0 ? Math.floor(cash / cheapest) : purchasable
+        const range = {
+            min: owned + 1,
+            max: Math.min(holdingCeiling, owned + purchasable, owned + affordable)
+        }
         return range.max >= range.min ? range : undefined
     }
 

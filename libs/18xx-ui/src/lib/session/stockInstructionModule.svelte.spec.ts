@@ -29,7 +29,8 @@ const share = {
 function instructionState(
     instructions?: StandingStockInstruction[],
     extraIpoShares = 0,
-    exemption?: number
+    exemption?: number,
+    cash = 100
 ): StockInstructionSession['state'] {
     const state = minimalPlayState()
     const extra = Array.from({ length: extraIpoShares }, (_, index) => ({
@@ -52,6 +53,7 @@ function instructionState(
             { id: 'market', name: 'Market', owner: bank },
             { id: 'reserved', name: 'Reserved', owner: bank }
         ],
+        cash: [...state.cash, { owner: { kind: 'player', playerId: TestPlayerId }, amount: cash }],
         certificates: [
             { ...share, id: 'R-1', companyId: TestCompanyId, president: false, poolId: 'ipo' },
             { ...share, id: 'R-P', companyId: TestCompanyId, president: true, poolId: 'market' },
@@ -82,10 +84,11 @@ function harness(
     availability = {},
     instructions?: StandingStockInstruction[],
     extraIpoShares = 0,
-    exemption?: number
+    exemption?: number,
+    cash?: number
 ) {
     const session = testSession(
-        instructionState(instructions, extraIpoShares, exemption),
+        instructionState(instructions, extraIpoShares, exemption, cash),
         {
             stockRules: { ...minimalStockRules, purchaseTerms }
         },
@@ -182,13 +185,22 @@ describe('StockInstructionModule', () => {
 
 describe('share goal range', () => {
     it('spans one more than held up to the smaller of the holding ceiling and available shares', () => {
-        const range = (extra: number, exemption?: number) => {
-            const { module } = harness(['SetStockInstruction'], {}, undefined, extra, exemption)
+        const range = (extra: number, exemption?: number, cash?: number) => {
+            const { module } = harness(
+                ['SetStockInstruction'],
+                {},
+                undefined,
+                extra,
+                exemption,
+                cash
+            )
             return module.shareGoalRange(module.buyChoices[0])
         }
         expect(range(0)).toEqual({ min: 1, max: 1 })
         expect(range(8)).toEqual({ min: 1, max: 6 })
         expect(range(8, 8)).toEqual({ min: 1, max: 8 })
+        expect(range(8, 8, 25)).toEqual({ min: 1, max: 2 })
+        expect(range(8, 8, 5)).toBeUndefined()
     })
 
     it('refuses a share goal outside the reachable range', async () => {
