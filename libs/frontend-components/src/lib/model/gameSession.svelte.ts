@@ -4,6 +4,7 @@ import * as Value from 'typebox/value'
 import {
     type TitlePreferenceDefinition,
     ActionSource,
+    findSupersededOutOfTurnAction,
     Game,
     GameAction,
     GameEngine,
@@ -251,7 +252,6 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 break
             }
 
-            // Skip system actions and standing out-of-turn declarations
             if (action.source !== ActionSource.User || action.outOfTurn) {
                 continue
             }
@@ -1079,11 +1079,18 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         // Clone to avoid mutation issues
         action = structuredClone($state.snapshot(action))
 
-        const gameSnapshot = structuredClone(relevantContext.game)
-        const stateSnapshot = structuredClone(relevantContext.state)
-
         // Make copy of original state to allow rollback
         const priorContext = relevantContext.clone()
+        if (
+            relevantContext.game.storage === GameStorage.Local &&
+            !this.usesHostExecution(relevantContext) &&
+            findSupersededOutOfTurnAction(relevantContext.actions, action)
+        ) {
+            relevantContext.undoLastAction()
+        }
+
+        const gameSnapshot = structuredClone(relevantContext.game)
+        const stateSnapshot = structuredClone(relevantContext.state)
         try {
             // Block server actions while we are processing
             if (this.mode === GameSessionMode.Play) {

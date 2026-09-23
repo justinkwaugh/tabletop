@@ -317,9 +317,9 @@ chosen, then "from" and a preferred pool segment listing only pools the title's
 purchase rules let the player buy from (or the pool's name when the company's
 shares sit in one pool), "until" and a Float / I own goal segment with a
 share stepper bounded to one more than the player holds up to the smaller of
-the holding ceiling and what the player could buy by spending current cash on
-the preferred pool first and then the cheapest other pool at each share's own
-price, and a "then pass" switch. Pool and
+the ordinary ownership ceiling and what the player could buy by spending
+current cash on the preferred pool while it holds shares, or otherwise on the
+cheapest other pool, at each share's own price, and a "then pass" switch. Pool and
 goal segments are sliding toggles whose thumb sizes to the selected segment.
 The tray's corners round fully on one line and soften when it wraps. A green Enable follows the tray and
 stays disabled until a company is chosen.
@@ -350,8 +350,9 @@ No history surface ever presents a standing instruction: round status, the
 stock panel's history list, the shared game history, the position panel's latest
 line, and history stepping all omit SetStockInstruction and StopStockInstruction,
 which count as bookkeeping for navigation. The runtime's automatic FinishStockTurn
-and BuyShares actions render exactly like the same actions taken by hand, with no
-automatic marker, so history never reveals that an instruction existed. This is a
+and BuyShares actions render and step exactly like the same actions taken by
+hand, with no automatic marker, so history never reveals that an instruction
+existed. This is a
 presentation rule; Game State itself remains public.
 
 ### Live maps in finance examples

@@ -2,6 +2,8 @@
     import { getCompany, type CertificatePool } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { stockInstructionText, stopReasonText } from './stockInstructionText.js'
+    import { popoverAbove } from '../presentation/popoverPlacement.js'
+    import { shareGoalWithin } from '../session/stockInstructionModule.svelte.js'
     import SlidingToggle from '../table/SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let { session }: { session: EighteenXXSession } = $props()
@@ -36,9 +38,7 @@
     let pickerBounds = $state({ left: 0, bottom: 0 })
     function preparePicker(event: ToggleEvent) {
         pickerOpen = event.newState === 'open'
-        if (!pickerOpen || !pickerButton) return
-        const bounds = pickerButton.getBoundingClientRect()
-        pickerBounds = { left: bounds.left, bottom: window.innerHeight - bounds.top + 6 }
+        if (pickerOpen && pickerButton) pickerBounds = popoverAbove(pickerButton)
     }
     const helpId = `${pickerId}-help`
     const HelpPanelWidth = 380
@@ -47,12 +47,7 @@
     let helpBounds = $state({ left: 0, bottom: 0 })
     function prepareHelp(event: ToggleEvent) {
         helpOpen = event.newState === 'open'
-        if (!helpOpen || !helpButton) return
-        const bounds = helpButton.getBoundingClientRect()
-        helpBounds = {
-            left: Math.max(8, Math.min(bounds.left, window.innerWidth - HelpPanelWidth - 8)),
-            bottom: window.innerHeight - bounds.top + 6
-        }
+        if (helpOpen && helpButton) helpBounds = popoverAbove(helpButton, HelpPanelWidth)
     }
     function pickCompany(companyId: string) {
         chosenCompanyId = companyId
@@ -67,9 +62,7 @@
     )
     const floatGoal = $derived(!!choice && !choice.company.floated)
     const goalKind = $derived(!floatGoal ? 'shares' : shareRange ? goal : 'floated')
-    const shareGoal = $derived(
-        shareRange ? Math.min(Math.max(shareCount, shareRange.min), shareRange.max) : shareCount
-    )
+    const shareGoal = $derived(shareRange ? shareGoalWithin(shareRange, shareCount) : shareCount)
     function enable() {
         if (mode === 'pass') {
             chosenMode = undefined

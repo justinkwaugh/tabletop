@@ -221,6 +221,16 @@ describe('Out-of-turn Actions on the host', () => {
         expect(host.state().actionCount).toBe(2)
     })
 
+    it('keeps the declaration when the replacement would be invalid without it', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        await host.apply(host.note('n1', 'p3', 'first'))
+        await expect(host.apply(host.note('n2', 'p3', 'invalid', 2))).rejects.toThrow()
+        expect(vi.mocked(host.store.undoActionsFromGame)).not.toHaveBeenCalled()
+        expect(host.summary()).toEqual(['0:s1', '1:n1'])
+        expect(Reflect.get(host.state(), 'notes')).toEqual({ p3: 'first' })
+    })
+
     it('appends rather than supersedes once another Action follows the declaration', async () => {
         const host = createHost()
         await host.apply(host.step('s1', 'p1'))

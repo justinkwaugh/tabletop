@@ -1,6 +1,7 @@
 import type { StockRoundRules } from './stockRoundRules.js'
 import {
     sameOwner,
+    certificatesInPool,
     certificatesOwnedBy,
     sharesOwned,
     type Owner,
@@ -50,6 +51,49 @@ export function stockCertificateCount(state: StockState, owner: Owner, rules: St
         0
     )
 }
+export function purchaseOwnershipCeiling(
+    state: StockState,
+    companyId: string,
+    buyer: Owner,
+    rules: StockRules
+): number {
+    const company = state.companies.find((company) => company.id === companyId)
+    return Math.floor(
+        (rules.ownershipLimit(state, companyId, buyer) * (company?.shareCount ?? 0)) / 100
+    )
+}
+
+export function certificateLimitAllows(
+    state: StockState,
+    owner: Owner,
+    certificate: Portfolio[number],
+    rules: StockRules
+): boolean {
+    return (
+        stockCertificateCount(state, owner, rules) + rules.certificateWeight(state, certificate) <=
+        rules.certificateLimit(state, owner)
+    )
+}
+
+export function purchasableShares(
+    state: StockState,
+    poolId: string,
+    companyId: string,
+    buyer: Owner,
+    rules: StockRules
+): { certificate: ShareCertificate; price: number }[] {
+    return certificatesInPool(state, poolId).flatMap((certificate) => {
+        if (
+            certificate.kind !== 'share' ||
+            certificate.companyId !== companyId ||
+            certificate.president
+        )
+            return []
+        const terms = rules.purchaseTerms(state, certificate, buyer)
+        return typeof terms === 'string' ? [] : [{ certificate, price: terms.price }]
+    })
+}
+
 export function exceedsStockLimits(state: StockState, owner: Owner, rules: StockRules): boolean {
     return (
         stockCertificateCount(state, owner, rules) > rules.certificateLimit(state, owner) ||

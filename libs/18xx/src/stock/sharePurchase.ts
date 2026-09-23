@@ -12,7 +12,12 @@ import {
 import type { StockState } from './stockState.js'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { PresidencyChange, evaluatePresidency, applyPresidencyChange } from './presidency.js'
-import { stockCertificateCount, exceedsStockLimits, type StockRules } from './stockRules.js'
+import {
+    certificateLimitAllows,
+    exceedsStockLimits,
+    purchaseOwnershipCeiling,
+    type StockRules
+} from './stockRules.js'
 
 export type ShareCertificate = Extract<Portfolio[number], { kind: 'share' }>
 export type PurchaseRequest = { playerId: string; buyer: Owner; certificateId: string }
@@ -78,14 +83,11 @@ export function evaluateShareAcquisition(
     const company = getCompany(state, certificate.companyId)
     assertExists(company.shareCount, 'Priced shares require a share count')
     if (
-        (sharesOwned(state, company.id, buyer) + certificate.shares) * 100 >
-        rules.ownershipLimit(state, company.id, buyer) * company.shareCount
+        sharesOwned(state, company.id, buyer) + certificate.shares >
+        purchaseOwnershipCeiling(state, company.id, buyer, rules)
     )
         return { reason: 'The purchase exceeds the ownership limit.' }
-    if (
-        stockCertificateCount(state, buyer, rules) + rules.certificateWeight(state, certificate) >
-        rules.certificateLimit(state, buyer)
-    )
+    if (!certificateLimitAllows(state, buyer, certificate, rules))
         return { reason: 'The purchase exceeds the certificate limit.' }
     assert(
         Number.isSafeInteger(terms.price) && terms.price > 0,

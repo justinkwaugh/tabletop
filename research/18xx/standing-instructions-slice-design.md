@@ -59,6 +59,12 @@ it after reversing a suffix that contained it. The backend supersedes the same
 player's latest unconsumed declaration of the same type at the tail of history
 before applying a replacement, so repeated toggling cannot grow the Canonical
 Action History; growth is bounded by real actions interleaved between toggles.
+Supersede applies only while the declaration is the last action, so a
+declaration the machine has already acted on is never reversed, and the host
+validates the replacement against the reversed state before persisting the
+reversal, so an invalid replacement such as clearing at the tail leaves history
+intact and fails as an ordinary invalid action. Local games supersede in the
+Game Client the same way.
 
 `@tabletop/18xx` records a `StandingStockInstruction` per player in
 `stockRound.instructions`: the instruction (pass, or buy company from pool until

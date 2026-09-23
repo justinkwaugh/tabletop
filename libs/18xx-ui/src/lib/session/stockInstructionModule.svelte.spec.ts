@@ -184,10 +184,9 @@ describe('StockInstructionModule', () => {
         ).toEqual([[TestCompanyId, ['ipo']]])
     })
 
-    it('exposes my standing instruction, everyone’s, and the reason it would stop', () => {
+    it('exposes my standing instruction and the reason it would stop', () => {
         const { module } = harness(['SetStockInstruction'], {}, [standingPass])
         expect(module.mine).toEqual(standingPass)
-        expect(module.all).toEqual([standingPass])
         expect(module.warning).toEqual({ code: 'company-started', companyId: TestCompanyId })
         expect(harness().module.mine).toBeUndefined()
         expect(harness().module.warning).toBeUndefined()
@@ -195,7 +194,7 @@ describe('StockInstructionModule', () => {
 })
 
 describe('share goal range', () => {
-    it('spans one more than held up to the smaller of the holding ceiling and available shares', () => {
+    it('spans one more than held up to the smaller of the ownership ceiling and reachable shares', () => {
         const range = (extra: number, exemption?: number, cash?: number) => {
             const { module } = harness(
                 ['SetStockInstruction'],
@@ -209,18 +208,18 @@ describe('share goal range', () => {
         }
         expect(range(0)).toEqual({ min: 1, max: 1 })
         expect(range(8)).toEqual({ min: 1, max: 6 })
-        expect(range(8, 8)).toEqual({ min: 1, max: 8 })
+        expect(range(8, 8)).toEqual({ min: 1, max: 6 })
         expect(range(8, 8, 25)).toEqual({ min: 1, max: 2 })
         expect(range(8, 8, 5)).toBeUndefined()
     })
 
-    it('spends on the preferred pool first and then on the cheapest fallback', () => {
+    it('spends only on the preferred pool while it holds shares, otherwise on the cheapest fallback', () => {
         const reach = (preferred: string) => {
             const { module } = harness(['SetStockInstruction'], {}, undefined, 8, 8, 25, 3)
             return module.shareGoalRange(module.buyChoices[0], preferred)
         }
-        expect(reach('ipo')).toEqual({ min: 1, max: 3 })
-        expect(reach('market')).toEqual({ min: 1, max: 4 })
+        expect(reach('ipo')).toEqual({ min: 1, max: 2 })
+        expect(reach('market')).toEqual({ min: 1, max: 3 })
     })
 
     it('refuses a share goal outside the reachable range', async () => {

@@ -15,12 +15,11 @@ export function findSupersededOutOfTurnAction(
     action: GameAction
 ): GameAction | undefined {
     if (!action.outOfTurn) return undefined
-    const latestUserAction = recentActions.findLast(
-        (candidate) => candidate.source === ActionSource.User
-    )
-    return latestUserAction?.outOfTurn === true &&
-        latestUserAction.playerId === action.playerId &&
-        latestUserAction.type === action.type
-        ? latestUserAction
+    const last = recentActions.at(-1)
+    return last?.source === ActionSource.User &&
+        last.outOfTurn === true &&
+        last.playerId === action.playerId &&
+        last.type === action.type
+        ? last
         : undefined
 }

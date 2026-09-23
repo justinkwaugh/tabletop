@@ -2,15 +2,21 @@ import * as Type from 'typebox'
 import {
     President,
     cashOwnedBy,
-    certificatesInPool,
     getCompany,
     sameOwner,
     sharesOwned,
+    type CertificatePool,
     type OpenShare,
     type Owner
 } from '../finance/finance.js'
 import { evaluateSharePurchase, type PurchaseRequest } from './sharePurchase.js'
-import { exceedsStockLimits, stockCertificateCount, type StockRules } from './stockRules.js'
+import {
+    certificateLimitAllows,
+    exceedsStockLimits,
+    purchasableShares,
+    purchaseOwnershipCeiling,
+    type StockRules
+} from './stockRules.js'
 import type { StockState } from './stockState.js'
 
 const BuyUntil = Type.Union([
@@ -271,27 +277,22 @@ export function evaluateStockInstruction(
                   : 0
         )
         .flatMap((pool) => {
-            const candidates = certificatesInPool(state, pool.id).flatMap((certificate) =>
-                certificate.kind === 'share' &&
-                certificate.companyId === company.id &&
-                !certificate.president
-                    ? [certificate]
-                    : []
-            )
-            return candidates.length ? [{ pool, candidates }] : []
+            const shares = purchasableShares(state, pool.id, company.id, owner, rules)
+            return shares.length ? [{ pool, shares }] : []
         })
     if (offers.length === 0) return stop({ code: 'no-shares', companyId: company.id })
-    const evaluated = offers.map(({ pool, candidates }): PoolOffer => {
-        if (new Set(candidates.map((certificate) => certificate.shares)).size > 1)
+    const evaluated = offers.map(({ pool, shares }): PoolOffer => {
+        if (new Set(shares.map((share) => share.certificate.shares)).size > 1)
             return {
                 pool,
                 reason: { code: 'mixed-certificates', companyId: company.id, poolId: pool.id }
             }
-        const request = { playerId, buyer: owner, certificateId: candidates[0].id }
+        const [{ certificate }] = shares
+        const request = { playerId, buyer: owner, certificateId: certificate.id }
         const result = evaluateSharePurchase(state, request, rules)
         return result.details
             ? { pool, request, price: result.details.price }
-            : { pool, reason: purchaseRejection(state, candidates[0], owner, rules, pool.id) }
+            : { pool, reason: purchaseRejection(state, certificate, owner, rules, pool.id) }
     })
     const preferred = evaluated.find((offer) => offer.pool.id === instruction.preferredPoolId)
     if (preferred) return 'reason' in preferred ? stop(preferred.reason) : purchase(preferred)
@@ -315,32 +316,20 @@ function purchaseRejection(
     const companyId = certificate.companyId
     const terms = rules.purchaseTerms(state, certificate, owner)
     if (typeof terms === 'string') return { code: 'purchase-rejected', companyId, poolId }
-    const company = getCompany(state, companyId)
-    const ownershipCeiling = Math.max(
-        rules.ownershipLimit(state, companyId, owner) * (company.shareCount ?? 0),
-        ...state.ownershipLimitExemptions
-            .filter(
-                (exemption) =>
-                    exemption.companyId === companyId && sameOwner(exemption.owner, owner)
-            )
-            .map((exemption) => exemption.maximumShares * 100)
-    )
-    if ((sharesOwned(state, companyId, owner) + certificate.shares) * 100 > ownershipCeiling)
-        return { code: 'ownership-limit', companyId }
     if (
-        stockCertificateCount(state, owner, rules) + rules.certificateWeight(state, certificate) >
-        rules.certificateLimit(state, owner)
+        sharesOwned(state, companyId, owner) + certificate.shares >
+        purchaseOwnershipCeiling(state, companyId, owner, rules)
     )
+        return { code: 'ownership-limit', companyId }
+    if (!certificateLimitAllows(state, owner, certificate, rules))
         return { code: 'certificate-limit', companyId }
     const cash = cashOwnedBy(state, owner)
     if (typeof cash === 'number' && cash < terms.price) return { code: 'cannot-afford', companyId }
     return { code: 'purchase-rejected', companyId, poolId }
 }
 
-type PurchaseOffer = { pool: { id: string; name: string }; request: PurchaseRequest; price: number }
-type PoolOffer =
-    | PurchaseOffer
-    | { pool: { id: string; name: string }; reason: StockInstructionStopReason }
+type PurchaseOffer = { pool: CertificatePool; request: PurchaseRequest; price: number }
+type PoolOffer = PurchaseOffer | { pool: CertificatePool; reason: StockInstructionStopReason }
 
 function purchase(offer: PurchaseOffer): StockInstructionOutcome {
     return { kind: 'buy', request: offer.request, price: offer.price }

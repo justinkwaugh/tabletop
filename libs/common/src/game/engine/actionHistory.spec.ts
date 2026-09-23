@@ -10,9 +10,15 @@ const standing = action({ id: 'standing', outOfTurn: true })
 const replacement = action({ id: 'replacement', outOfTurn: true })
 
 describe('findSupersededOutOfTurnAction', () => {
-    it('finds the same player’s latest out-of-turn Action of the same type at the tail', () => {
+    it('finds the same player’s unconsumed out-of-turn Action of the same type at the tail', () => {
+        expect(findSupersededOutOfTurnAction([action({ id: 'turn' }), standing], replacement)).toBe(
+            standing
+        )
+    })
+
+    it('leaves a declaration alone once the machine has acted on it', () => {
         const cascade = action({ id: 'auto', source: ActionSource.System, type: 'auto' })
-        expect(findSupersededOutOfTurnAction([standing, cascade], replacement)).toBe(standing)
+        expect(findSupersededOutOfTurnAction([standing, cascade], replacement)).toBeUndefined()
     })
 
     it('ignores ordinary Actions and other players’ or other types’ declarations', () => {

@@ -327,7 +327,6 @@ export class GameEngine<
             `Action of type ${action.type} is not an out-of-turn Action`
         )
 
-        // Simultaneous and out-of-turn actions can arrive behind the current count, otherwise it is bad data
         const indexOffset =
             action.index && action.index !== hydratedState.actionCount
                 ? hydratedState.actionCount - action.index

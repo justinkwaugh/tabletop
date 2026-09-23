@@ -202,7 +202,7 @@ export const SyntheticRuntime = {
                     DrawValidator.Check(action) ||
                     OpenAuctionValidator.Check(action) ||
                     BidValidator.Check(action) ||
-                    NoteValidator.Check(action)
+                    (NoteValidator.Check(action) && action.text !== 'invalid')
                 )
             },
             onAction(action: GameAction, context: MachineContext<SyntheticState>) {

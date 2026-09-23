@@ -14,7 +14,7 @@ import {
     type EighteenXXState,
     type AuctionAward
 } from '@tabletop/18xx'
-import { assertExists, type GameAction } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import { historyOperatingOrder, type HistoryOperatingOrder } from './historyOperatingOrder.js'
 import { historyCash, changedCompanyCash, type HistoryCash } from './historyCash.js'
 import { auctionHistory, type ActionHistoryEntry } from './auctionHistory.js'
@@ -27,6 +27,10 @@ export type HistoryRound = {
     endActionIndex?: number
     operatingOrder?: HistoryOperatingOrder
     entries: ActionHistoryEntry[]
+}
+
+function changedCompanyCashOf(cash: HistoryCash | undefined): boolean {
+    return cash !== undefined && changedCompanyCash(cash)
 }
 
 export function historyRounds(
@@ -80,12 +84,12 @@ export function historyRounds(
                 ? undefined
                 : (entries.get(action.id) ??
                   (orderChanges.has(action.id) ||
-                  (cash.has(action.id) && changedCompanyCash(cash.get(action.id)!)) ||
+                  changedCompanyCashOf(cash.get(action.id)) ||
                   isRunTrains(action) ||
                   isDistributeEarnings(action) ||
                   isAdvancePhase(action) ||
                   isFinishStockTurn(action) ||
-                  isBuyShares(action) ||
+                  (isBuyShares(action) && action.source === ActionSource.System) ||
                   isFloatCompany(action) ||
                   (isCompleteStockRound(action) &&
                       action.metadata?.marketMoves.some(

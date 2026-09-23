@@ -2,21 +2,19 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     SetStockInstruction,
     cashOwnedBy,
-    certificatesInPool,
-    isCompleteStockRound,
-    isSetStockInstruction,
-    isStartStockRound,
-    isStopStockInstruction,
+    lastStoppedStockInstruction,
+    purchasableShares,
+    purchaseOwnershipCeiling,
     sharesOwned,
-    stockPositionChange,
     standingStockInstructionFor,
-    standingStockInstructions,
+    stockPositionChange,
     type CertificatePool,
     type Company,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type StockInstruction,
-    type StockInstructionStopReason
+    type StockInstructionStopReason,
+    type StoppedStockInstruction
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 
@@ -32,10 +30,6 @@ export type BuyInstructionTerms = Omit<Extract<StockInstruction, { kind: 'buy' }
 
 export type BuyInstructionChoice = { company: Company; pools: CertificatePool[] }
 export type ShareGoalRange = { min: number; max: number }
-export type StoppedInstruction = {
-    kind: StockInstruction['kind']
-    reason: StockInstructionStopReason
-}
 
 export class StockInstructionModule {
     constructor(private readonly session: StockInstructionSession) {}
@@ -45,7 +39,6 @@ export class StockInstructionModule {
             this.session.state.machineState === 'StockRound' &&
             !this.session.state.stockRound.completed
     )
-    all = $derived.by(() => (this.open ? standingStockInstructions(this.session.state) : []))
     mine = $derived.by(() =>
         this.open && this.session.playerId
             ? standingStockInstructionFor(this.session.state, this.session.playerId)
@@ -60,26 +53,10 @@ export class StockInstructionModule {
             ? stockPositionChange(this.session.state, this.mine, this.session.rules.stockRules)
             : undefined
     )
-    lastStop = $derived.by((): StoppedInstruction | undefined => {
+    lastStop = $derived.by((): StoppedStockInstruction | undefined => {
         const { recordedActions, playerId } = this.session
         if (!this.open || !playerId || this.mine) return undefined
-        let reason: StockInstructionStopReason | undefined
-        for (const action of recordedActions.toReversed()) {
-            if (isCompleteStockRound(action) || isStartStockRound(action)) return undefined
-            if (action.playerId !== playerId) continue
-            if (isStopStockInstruction(action)) {
-                if (reason !== undefined) {
-                    if (action.replacement) return { kind: action.replacement.kind, reason }
-                    continue
-                }
-                if (action.replacement) return undefined
-                reason = action.reason
-            } else if (isSetStockInstruction(action)) {
-                if (reason === undefined || !action.instruction) return undefined
-                return { kind: action.instruction.kind, reason }
-            }
-        }
-        return undefined
+        return lastStoppedStockInstruction(recordedActions, playerId)
     })
     buyChoices = $derived.by((): BuyInstructionChoice[] => {
         const { state, rules, playerId } = this.session
@@ -89,15 +66,10 @@ export class StockInstructionModule {
             .filter((company) => company.shareCount && company.started && !company.closed)
             .map((company) => ({
                 company,
-                pools: state.certificatePools.filter((pool) =>
-                    certificatesInPool(state, pool.id).some(
-                        (certificate) =>
-                            certificate.kind === 'share' &&
-                            certificate.companyId === company.id &&
-                            !certificate.president &&
-                            typeof rules.stockRules.purchaseTerms(state, certificate, buyer) !==
-                                'string'
-                    )
+                pools: state.certificatePools.filter(
+                    (pool) =>
+                        purchasableShares(state, pool.id, company.id, buyer, rules.stockRules)
+                            .length > 0
                 )
             }))
             .filter(
@@ -115,57 +87,40 @@ export class StockInstructionModule {
         preferredPoolId: string
     ): ShareGoalRange | undefined {
         const { state, rules, playerId } = this.session
-        const shareCount = choice.company.shareCount
-        if (!playerId || !shareCount) return undefined
+        if (!playerId) return undefined
         const buyer = { kind: 'player', playerId } as const
-        const owned = sharesOwned(state, choice.company.id, buyer)
-        const holdingCeiling = Math.floor(
-            Math.max(
-                (rules.stockRules.ownershipLimit(state, choice.company.id, buyer) * shareCount) /
-                    100,
-                ...state.ownershipLimitExemptions
-                    .filter(
-                        (exemption) =>
-                            exemption.companyId === choice.company.id &&
-                            exemption.owner.kind === 'player' &&
-                            exemption.owner.playerId === playerId
-                    )
-                    .map((exemption) => exemption.maximumShares)
-            )
-        )
+        const companyId = choice.company.id
+        const owned = sharesOwned(state, companyId, buyer)
         const offers = choice.pools.map((pool) => ({
             pool,
-            shares: certificatesInPool(state, pool.id).flatMap((certificate) => {
-                if (
-                    certificate.kind !== 'share' ||
-                    certificate.companyId !== choice.company.id ||
-                    certificate.president
-                )
-                    return []
-                const terms = rules.stockRules.purchaseTerms(state, certificate, buyer)
-                return typeof terms === 'string'
-                    ? []
-                    : [{ shares: certificate.shares, price: terms.price }]
-            })
+            shares: purchasableShares(state, pool.id, companyId, buyer, rules.stockRules)
         }))
         const preferred = offers.filter((offer) => offer.pool.id === preferredPoolId)
-        const fallback = offers
-            .filter((offer) => offer.pool.id !== preferredPoolId)
-            .toSorted(
-                (left, right) =>
-                    Math.min(...left.shares.map((share) => share.price)) -
-                    Math.min(...right.shares.map((share) => share.price))
-            )
+        const sequence = preferred.some((offer) => offer.shares.length)
+            ? preferred
+            : offers
+                  .filter((offer) => offer.pool.id !== preferredPoolId)
+                  .toSorted(
+                      (left, right) =>
+                          Math.min(...left.shares.map((share) => share.price)) -
+                          Math.min(...right.shares.map((share) => share.price))
+                  )
         const cash = cashOwnedBy(state, buyer)
         let remaining = typeof cash === 'number' ? cash : Infinity
         let reachable = owned
-        for (const offer of [...preferred, ...fallback])
+        walk: for (const offer of sequence)
             for (const share of offer.shares.toSorted((left, right) => left.price - right.price)) {
-                if (share.price > remaining) break
+                if (share.price > remaining) break walk
                 remaining -= share.price
-                reachable += share.shares
+                reachable += share.certificate.shares
             }
-        const range = { min: owned + 1, max: Math.min(holdingCeiling, reachable) }
+        const range = {
+            min: owned + 1,
+            max: Math.min(
+                purchaseOwnershipCeiling(state, companyId, buyer, rules.stockRules),
+                reachable
+            )
+        }
         return range.max >= range.min ? range : undefined
     }
 
@@ -202,4 +157,8 @@ export class StockInstructionModule {
             })
         )
     }
+}
+
+export function shareGoalWithin(range: ShareGoalRange, count: number): number {
+    return Math.min(Math.max(count, range.min), range.max)
 }

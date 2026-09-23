@@ -31,6 +31,7 @@ export * from './stock/stockInstruction.js'
 export * from './stock/setStockInstruction.js'
 export * from './stock/stopStockInstruction.js'
 export * from './stock/stockInstructionHandler.js'
+export * from './stock/stockInstructionHistory.js'
 export * from './finance/cashPayments.js'
 
 export * from './map/station.js'

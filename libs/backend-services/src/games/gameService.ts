@@ -104,8 +104,6 @@ import {
 } from './tournamentGames.js'
 import * as Value from 'typebox/value'
 
-const SupersedeLookbackActions = 16
-
 export class GameService {
     constructor(
         private readonly gameStore: GameStore,
@@ -1116,21 +1114,39 @@ export class GameService {
     }): Promise<Game & { state: GameState }> {
         const state = game.state
         assertExists(state, 'Superseding requires current Game State')
-        const endIndex = state.actionCount
-        const startIndex = Math.max(0, endIndex - SupersedeLookbackActions)
-        const recentActions =
-            endIndex > startIndex
-                ? await this.gameStore.readGameData(game.id, (reader) =>
-                      reader.actionRange(startIndex, endIndex)
-                  )
-                : []
-        const superseded = findSupersededOutOfTurnAction(recentActions ?? [], action)
-        if (!superseded) return { ...game, state }
+        if (state.actionCount === 0) return { ...game, state }
+        const lastActions = await this.gameStore.readGameData(game.id, (reader) =>
+            reader.actionRange(state.actionCount - 1, state.actionCount)
+        )
+        const superseded = findSupersededOutOfTurnAction(lastActions ?? [], action)
+        if (!superseded || !this.replacementIsValid(definition, game, state, superseded, action))
+            return { ...game, state }
         await this.undoAction({ user, definition, gameId: game.id, actionId: superseded.id })
         const reloaded = await this.getGame({ gameId: game.id, withState: true })
         const reloadedState = reloaded?.state
         if (!reloaded || !reloadedState) throw new GameNotFoundError({ id: game.id })
         return { ...reloaded, state: reloadedState }
+    }
+
+    private replacementIsValid(
+        definition: GameDefinition,
+        game: Game,
+        state: GameState,
+        superseded: GameAction,
+        replacement: GameAction
+    ): boolean {
+        const gameEngine = new GameEngine(definition.runtime)
+        try {
+            const previous = gameEngine.undoProcessedAction({ action: superseded, state })
+            gameEngine.executeCanonicalAction({
+                action: { ...structuredClone(replacement), index: undefined },
+                state: previous,
+                game
+            })
+            return true
+        } catch {
+            return false
+        }
     }
 
     @Timed('game.undoAction')
