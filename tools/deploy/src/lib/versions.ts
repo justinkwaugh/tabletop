@@ -71,6 +71,71 @@ export const writePackageVersion = async (filePath: string, version: string) => 
     await writeJson(filePath, data)
 }
 
+export type VersionChange = { previous: string; next: string }
+
+export type GameVersionBump = {
+    logic?: VersionChange
+    ui: VersionChange
+}
+
+export type GamePackageVersions = { logic: string; ui: string }
+
+export const readGamePackageVersions = async (
+    repoRoot: string,
+    packageId: string
+): Promise<GamePackageVersions> => {
+    const paths = getGamePackagePaths(repoRoot, packageId)
+    const [logic, ui] = await Promise.all([
+        readPackageVersion(paths.logic),
+        readPackageVersion(paths.ui)
+    ])
+    return { logic, ui }
+}
+
+export const planGameVersionBump = async (
+    repoRoot: string,
+    packageId: string,
+    bump: BumpType,
+    options: { includeLogic: boolean }
+): Promise<GameVersionBump> => {
+    const current = await readGamePackageVersions(repoRoot, packageId)
+    const change = (previous: string): VersionChange => ({
+        previous,
+        next: bumpVersion(previous, bump)
+    })
+    return {
+        logic: options.includeLogic ? change(current.logic) : undefined,
+        ui: change(current.ui)
+    }
+}
+
+export const writeGameVersionBump = async (
+    repoRoot: string,
+    packageId: string,
+    planned: GameVersionBump
+): Promise<void> => {
+    const paths = getGamePackagePaths(repoRoot, packageId)
+    if (planned.logic) {
+        await writePackageVersion(paths.logic, planned.logic.next)
+    }
+    await writePackageVersion(paths.ui, planned.ui.next)
+}
+
+export const bumpGameVersions = async (
+    repoRoot: string,
+    packageId: string,
+    bump: BumpType,
+    options: { includeLogic: boolean }
+): Promise<GameVersionBump> => {
+    const planned = await planGameVersionBump(repoRoot, packageId, bump, options)
+    await writeGameVersionBump(repoRoot, packageId, planned)
+    return planned
+}
+
+export const logicReleaseTag = (packageId: string, version: string) => `${packageId}-v${version}`
+
+export const uiReleaseTag = (packageId: string, version: string) => `${packageId}-ui-v${version}`
+
 export const readPackageVersions = async (
     repoRoot: string,
     manifest: SiteManifest

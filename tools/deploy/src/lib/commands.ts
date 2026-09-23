@@ -3,11 +3,7 @@ import path from 'node:path'
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
 import { DeployConfig, SiteManifest } from './types.js'
-import {
-    ensureCloudSdkPython,
-    isCloudSdkCommand,
-    withCloudSdkPythonEnv
-} from './cloudSdkPython.js'
+import { ensureCloudSdkPython, isCloudSdkCommand, withCloudSdkPythonEnv } from './cloudSdkPython.js'
 
 export type CommandSpec = {
     label: string
@@ -36,9 +32,7 @@ const ensureDir = (dirPath: string) => {
 export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Promise<void> => {
     ensureDir(path.dirname(spec.logPath))
     const logStream = fs.createWriteStream(spec.logPath, { flags: 'w' })
-    const env = isCloudSdkCommand(spec.command)
-        ? withCloudSdkPythonEnv(process.env)
-        : process.env
+    const env = isCloudSdkCommand(spec.command) ? withCloudSdkPythonEnv(process.env) : process.env
 
     return new Promise((resolve, reject) => {
         const child = spawn(spec.command, spec.args, {
@@ -185,8 +179,7 @@ const listLocalDirectories = (sourceDir: string): string[] => {
 
     while (queue.length > 0) {
         const relativeDir = queue.shift() as string
-        const absoluteDir =
-            relativeDir.length > 0 ? path.join(sourceDir, relativeDir) : sourceDir
+        const absoluteDir = relativeDir.length > 0 ? path.join(sourceDir, relativeDir) : sourceDir
         let entries: fs.Dirent[]
         try {
             entries = fs.readdirSync(absoluteDir, { withFileTypes: true })
@@ -208,10 +201,7 @@ const listLocalDirectories = (sourceDir: string): string[] => {
 const splitPathSegments = (value: string): string[] =>
     value.split(path.sep).filter((segment) => segment.length > 0)
 
-const gcsDirectoryUrlsForRsyncDestination = (
-    sourceDir: string,
-    destination: string
-): string[] => {
+const gcsDirectoryUrlsForRsyncDestination = (sourceDir: string, destination: string): string[] => {
     const { bucket, pathSegments } = parseGcsUrl(destination)
     const destinationDirectories = gcsDirectoryUrlsForDestination(destination)
     const sourceDirectories = listLocalDirectories(sourceDir)
@@ -271,6 +261,38 @@ export const gcsRsyncDirectoryPlaceholderCommands = (
     }))
 }
 
+export const directoryPlaceholderSpecs = (repoRoot: string, spec: CommandSpec): CommandSpec[] => {
+    if (spec.command !== 'gcloud') return []
+    if (spec.args[0] !== 'storage') return []
+    if (spec.args.length < 2) return []
+    const operation = spec.args[1]
+    if (operation !== 'rsync' && operation !== 'cp') return []
+    const source = spec.args[spec.args.length - 2]
+    const destination = spec.args[spec.args.length - 1]
+    if (!destination.startsWith('gs://')) return []
+    if (operation === 'rsync' && !source.startsWith('gs://')) {
+        return gcsRsyncDirectoryPlaceholderCommands(repoRoot, source, destination, {
+            labelPrefix: spec.label,
+            logPrefix: spec.logPath
+        })
+    }
+    return gcsDirectoryPlaceholderCommands(repoRoot, destination, {
+        treatDestinationAsObject: operation === 'cp',
+        labelPrefix: spec.label,
+        logPrefix: spec.logPath
+    })
+}
+
+export const dedupeCommandSpecs = (specs: CommandSpec[]): CommandSpec[] => {
+    const seen = new Set<string>()
+    return specs.filter((spec) => {
+        const key = `${spec.command}\u0000${spec.args.join('\u0000')}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+    })
+}
+
 export const deployGameUiCommand = (
     repoRoot: string,
     manifest: SiteManifest,
@@ -297,10 +319,7 @@ export const deployGameUiCommand = (
     }
 }
 
-export const buildGameLogicPackageCommand = (
-    repoRoot: string,
-    packageId: string
-): CommandSpec => ({
+export const buildGameLogicPackageCommand = (repoRoot: string, packageId: string): CommandSpec => ({
     label: `build-logic:${packageId}`,
     command: 'turbo',
     args: ['build', `--filter=@tabletop/${packageId}`],
@@ -363,10 +382,7 @@ export const deployFrontendCommand = (
     }
 }
 
-export const deployManifestCommand = (
-    manifestPath: string,
-    config: DeployConfig
-): CommandSpec => {
+export const deployManifestCommand = (manifestPath: string, config: DeployConfig): CommandSpec => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }

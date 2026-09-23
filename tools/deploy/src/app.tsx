@@ -20,21 +20,17 @@ import {
     deployGameLogicCommand,
     deployManifestCommand,
     deployGameUiCommand,
-    gcsDirectoryPlaceholderCommands,
-    gcsRsyncDirectoryPlaceholderCommands,
+    dedupeCommandSpecs,
+    directoryPlaceholderSpecs as commandDirectoryPlaceholderSpecs,
     tagBackendImageCommand,
     rollbackBackendCommand,
     runCommand
 } from './lib/commands.js'
 import type { CommandSpec } from './lib/commands.js'
-import {
-    getDeployConfigPath,
-    getManifestPath,
-    getRepoRoot,
-    getStaticRoot
-} from './lib/paths.js'
+import { getDeployConfigPath, getManifestPath, getRepoRoot, getStaticRoot } from './lib/paths.js'
 import { BackendManifest, DeployConfig, SiteManifest } from './lib/types.js'
 import {
+    bumpGameVersions,
     bumpVersion,
     getFrontendPackagePath,
     getGamePackagePaths,
@@ -185,13 +181,14 @@ export default function App() {
     const [pendingDeploy, setPendingDeploy] = useState<PendingDeploy | null>(null)
     const [pendingOverwrite, setPendingOverwrite] = useState<PendingOverwrite | null>(null)
     const [pendingPostBump, setPendingPostBump] = useState<PendingPostBump | null>(null)
-    const [pendingMismatchReset, setPendingMismatchReset] =
-        useState<PendingMismatchReset | null>(null)
+    const [pendingMismatchReset, setPendingMismatchReset] = useState<PendingMismatchReset | null>(
+        null
+    )
     const [pendingDeployAll, setPendingDeployAll] = useState<PendingDeployAll | null>(null)
-    const [pendingBackendDeploy, setPendingBackendDeploy] =
-        useState<PendingBackendDeploy | null>(null)
-    const [backendDeployTarget, setBackendDeployTarget] =
-        useState<BackendDeployTarget>('backend')
+    const [pendingBackendDeploy, setPendingBackendDeploy] = useState<PendingBackendDeploy | null>(
+        null
+    )
+    const [backendDeployTarget, setBackendDeployTarget] = useState<BackendDeployTarget>('backend')
     const [activeDeployContext, setActiveDeployContext] = useState<ActiveDeployContext | null>(null)
     const [checkingBackend, setCheckingBackend] = useState(false)
     const [checkingGcsTarget, setCheckingGcsTarget] = useState<string | null>(null)
@@ -395,9 +392,7 @@ export default function App() {
         Math.max(6, Math.floor(terminalRows * 0.7)),
         Math.max(4, terminalRows - 2)
     )
-    const tasksPaneWidth = taskState
-        ? Math.min(30, Math.max(18, Math.floor(modalWidth * 0.3)))
-        : 0
+    const tasksPaneWidth = taskState ? Math.min(30, Math.max(18, Math.floor(modalWidth * 0.3))) : 0
     const modalInnerLines = Math.max(1, modalHeight - 2 - modalPaddingY * 2)
     const outputHeaderLines = 1 + (runningLogPath ? 1 : 0) + (outputHold ? 1 : 0)
     const outputContentLines = Math.max(1, modalInnerLines - outputHeaderLines)
@@ -411,11 +406,7 @@ export default function App() {
     )
     const maxOutputScroll = Math.max(0, outputLines.length - outputContentLines)
     const clampedOutputScroll = Math.min(outputScroll, maxOutputScroll)
-    const outputModeLabel = outputHold
-        ? 'failed'
-        : clampedOutputScroll === 0
-          ? 'follow'
-          : 'scroll'
+    const outputModeLabel = outputHold ? 'failed' : clampedOutputScroll === 0 ? 'follow' : 'scroll'
     const formatRunningLabel = (label?: string | null) => {
         if (!label) return 'task'
         const afterColon = label.includes(':') ? label.split(':').slice(1).join(':') : label
@@ -424,7 +415,7 @@ export default function App() {
     const displayRunningLabel = formatRunningLabel(runningLabel)
     const activeDeployLabel =
         activeDeployContext?.type === 'game'
-            ? activeDeployContext.gameId ?? activeDeployContext.label
+            ? (activeDeployContext.gameId ?? activeDeployContext.label)
             : activeDeployContext?.type === 'games'
               ? activeDeployContext.label
               : displayRunningLabel
@@ -522,14 +513,12 @@ export default function App() {
         options?: { withTraffic?: boolean }
     ): DeployStep[] => {
         const steps = options?.withTraffic
-            ? target.stepsWithTraffic ?? target.steps
+            ? (target.stepsWithTraffic ?? target.steps)
             : target.steps
         if (steps && steps.length > 0) {
             return steps
         }
-        const spec = options?.withTraffic
-            ? target.specWithTraffic ?? target.spec
-            : target.spec
+        const spec = options?.withTraffic ? (target.specWithTraffic ?? target.spec) : target.spec
         return spec ? [{ spec, taskIndex: target.taskIndex }] : []
     }
     const confirmDeploySteps =
@@ -553,36 +542,8 @@ export default function App() {
         const destination = spec.args[spec.args.length - 1]
         return `${source} -> ${destination}`
     }
-    const directoryPlaceholderSpecs = (spec: CommandSpec): CommandSpec[] => {
-        if (spec.command !== 'gcloud') return []
-        if (spec.args[0] !== 'storage') return []
-        if (spec.args.length < 2) return []
-        const operation = spec.args[1]
-        if (operation !== 'rsync' && operation !== 'cp') return []
-        const source = spec.args[spec.args.length - 2]
-        const destination = spec.args[spec.args.length - 1]
-        if (!destination.startsWith('gs://')) return []
-        if (operation === 'rsync' && !source.startsWith('gs://')) {
-            return gcsRsyncDirectoryPlaceholderCommands(repoRoot, source, destination, {
-                labelPrefix: spec.label,
-                logPrefix: spec.logPath
-            })
-        }
-        return gcsDirectoryPlaceholderCommands(repoRoot, destination, {
-            treatDestinationAsObject: operation === 'cp',
-            labelPrefix: spec.label,
-            logPrefix: spec.logPath
-        })
-    }
-    const dedupeCommandSpecs = (specs: CommandSpec[]): CommandSpec[] => {
-        const seen = new Set<string>()
-        return specs.filter((spec) => {
-            const key = `${spec.command}\u0000${spec.args.join('\u0000')}`
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
-        })
-    }
+    const directoryPlaceholderSpecs = (spec: CommandSpec) =>
+        commandDirectoryPlaceholderSpecs(repoRoot, spec)
     const resolveBackendImage = () => {
         const configured = deployConfig.backend?.image
         if (configured) return configured
@@ -796,16 +757,12 @@ export default function App() {
             if (!ensureNoRunningCommand('Deploy')) {
                 return
             }
-            const localEntry = currentManifest.games.find(
-                (game) => game.packageId === packageId
-            )
+            const localEntry = currentManifest.games.find((game) => game.packageId === packageId)
             if (!localEntry) {
                 setStatus(formatStatus(`Missing manifest entry for ${packageId}`, 'error'))
                 return
             }
-            const remoteEntry = backendManifest?.games?.find(
-                (game) => game.packageId === packageId
-            )
+            const remoteEntry = backendManifest?.games?.find((game) => game.packageId === packageId)
             const logicMatches =
                 remoteEntry?.logicVersion != null &&
                 remoteEntry.logicVersion === localEntry.logicVersion
@@ -1067,7 +1024,7 @@ export default function App() {
                     const versionChanged = previousEntry?.uiVersion !== entry.uiVersion
                     nextGames[entry.packageId] = versionChanged
                         ? null
-                        : current.games[entry.packageId] ?? null
+                        : (current.games[entry.packageId] ?? null)
                 }
                 const frontendChanged =
                     manifest?.frontend.version !== syncedManifest.frontend.version
@@ -1191,27 +1148,13 @@ export default function App() {
                 }
             }
 
-            if (target === 'logic' && selectedGame) {
-                const paths = getGamePackagePaths(repoRoot, selectedGame.packageId)
-                const currentLogic = await readPackageVersion(paths.logic)
-                const nextLogic = bumpVersion(currentLogic, bump)
-                const currentUi = await readPackageVersion(paths.ui)
-                const nextUi = bumpVersion(currentUi, bump)
-                await writePackageVersion(paths.logic, nextLogic)
-                await writePackageVersion(paths.ui, nextUi)
-                statusMessage = `Logic bumped to ${nextLogic} (${bump}); UI bumped to ${nextUi} (${bump})`
-                postBump = {
-                    targetLabel: `Game (${selectedGame.gameId})`,
-                    onConfirm: () => queueGameDeploy(selectedGame.packageId, manifest)
-                }
-            }
-
-            if (target === 'ui' && selectedGame) {
-                const paths = getGamePackagePaths(repoRoot, selectedGame.packageId)
-                const currentUi = await readPackageVersion(paths.ui)
-                const nextUi = bumpVersion(currentUi, bump)
-                await writePackageVersion(paths.ui, nextUi)
-                statusMessage = `UI bumped to ${nextUi} (${bump})`
+            if ((target === 'logic' || target === 'ui') && selectedGame) {
+                const bumped = await bumpGameVersions(repoRoot, selectedGame.packageId, bump, {
+                    includeLogic: target === 'logic'
+                })
+                statusMessage = bumped.logic
+                    ? `Logic bumped to ${bumped.logic.next} (${bump}); UI bumped to ${bumped.ui.next} (${bump})`
+                    : `UI bumped to ${bumped.ui.next} (${bump})`
                 postBump = {
                     targetLabel: `Game (${selectedGame.gameId})`,
                     onConfirm: () => queueGameDeploy(selectedGame.packageId, manifest)
@@ -1342,9 +1285,7 @@ export default function App() {
         if (selected.type === 'game') {
             const packageId = selected.packageId
             if (!packageId) return
-            const localEntry = currentManifest.games.find(
-                (game) => game.packageId === packageId
-            )
+            const localEntry = currentManifest.games.find((game) => game.packageId === packageId)
             if (!localEntry) {
                 setStatus(formatStatus(`Missing manifest entry for ${packageId}`, 'error'))
                 return
@@ -1514,7 +1455,11 @@ export default function App() {
             spec.logPath
         )
 
-    const runAction = (action: (signal: AbortSignal) => Promise<void>, label: string, logPath?: string) => {
+    const runAction = (
+        action: (signal: AbortSignal) => Promise<void>,
+        label: string,
+        logPath?: string
+    ) => {
         const controller = new AbortController()
         runningAbortRef.current = controller
         return runWithStatus(() => action(controller.signal), label, logPath).finally(() => {
@@ -1579,8 +1524,7 @@ export default function App() {
         taskIndex?: number,
         options?: { clearTasks?: boolean }
     ) => {
-        const ok =
-            taskIndex == null ? await runSpecs(specs) : await runTaskGroup(taskIndex, specs)
+        const ok = taskIndex == null ? await runSpecs(specs) : await runTaskGroup(taskIndex, specs)
         if (ok && options?.clearTasks !== false) {
             setTaskState(null)
         }
@@ -2016,8 +1960,7 @@ export default function App() {
         if (input === 'd') {
             if (!canDeploy) return
             if (!ensureNoRunningCommand('Deploy')) return
-            const mismatchesExist =
-                !!mismatchState.frontend || mismatchState.games.length > 0
+            const mismatchesExist = !!mismatchState.frontend || mismatchState.games.length > 0
             const selectedIsMismatchedGame =
                 selected.type === 'game' &&
                 selected.packageId &&
@@ -2062,7 +2005,6 @@ export default function App() {
             void handleDeploy()
             return
         }
-
     })
 
     const handleSubmit = async () => {
@@ -2128,7 +2070,8 @@ export default function App() {
                             !isAllGames &&
                             gcsStatus.games[packageId] !== null &&
                             gcsStatus.games[packageId] !== undefined
-                        const deployedMissing = deployedKnown && gcsStatus.games[packageId] === false
+                        const deployedMissing =
+                            deployedKnown && gcsStatus.games[packageId] === false
                         const warn = !isAllGames && (serveMismatch || deployedMissing)
                         const itemColor =
                             selectionIndex === selectedIndex ? 'cyan' : warn ? 'red' : undefined
@@ -2141,10 +2084,7 @@ export default function App() {
                                     checkingGcsTarget === `game:${packageId}`
                                 )
                         return (
-                            <Text
-                                key={`game-${item.key}`}
-                                color={itemColor}
-                            >
+                            <Text key={`game-${item.key}`} color={itemColor}>
                                 {selectionIndex === selectedIndex ? '› ' : '  '}
                                 {item.label} {indicator}
                             </Text>
@@ -2184,9 +2124,7 @@ export default function App() {
                             <Text color="gray">
                                 target: all games ({pendingDeployAll.gameCount})
                             </Text>
-                            <Text color="yellow">
-                                Build/bundle and deploy every game package?
-                            </Text>
+                            <Text color="yellow">Build/bundle and deploy every game package?</Text>
                         </Box>
                     ) : mode === 'select-backend-service' && pendingBackendDeploy ? (
                         <Box flexDirection="column" borderStyle="round" paddingX={1} paddingY={1}>
@@ -2209,19 +2147,15 @@ export default function App() {
                             <Text color="magenta">Details</Text>
                             {selected?.type === 'frontend' ? (
                                 <>
-                                    <Text>
-                                        local: {manifest?.frontend.version ?? 'unknown'}
-                                    </Text>
+                                    <Text>local: {manifest?.frontend.version ?? 'unknown'}</Text>
                                     <Text color={frontendServingMismatch ? 'red' : 'gray'}>
-                                        {checkingBackend ? (
-                                            'serving: checking...'
-                                        ) : frontendServing ? (
-                                            `serving: ${frontendServing}${
-                                                frontendServingMismatch ? ' <-- mismatch' : ''
-                                            }`
-                                        ) : (
-                                            'serving: unknown'
-                                        )}
+                                        {checkingBackend
+                                            ? 'serving: checking...'
+                                            : frontendServing
+                                              ? `serving: ${frontendServing}${
+                                                    frontendServingMismatch ? ' <-- mismatch' : ''
+                                                }`
+                                              : 'serving: unknown'}
                                     </Text>
                                     <Text color={frontendDeployedColor}>
                                         deployed:{' '}
@@ -2267,13 +2201,11 @@ export default function App() {
                                         {selectedGame.uiVersion}
                                     </Text>
                                     <Text color={selectedServingMismatch ? 'red' : 'gray'}>
-                                        {checkingBackend ? (
-                                            'serving: checking...'
-                                        ) : selectedServing ? (
-                                            `serving: logic ${selectedServing.logicVersion} / ui ${selectedServing.uiVersion}${selectedServingMismatch ? ' <-- mismatch' : ''}`
-                                        ) : (
-                                            'serving: unknown'
-                                        )}
+                                        {checkingBackend
+                                            ? 'serving: checking...'
+                                            : selectedServing
+                                              ? `serving: logic ${selectedServing.logicVersion} / ui ${selectedServing.uiVersion}${selectedServingMismatch ? ' <-- mismatch' : ''}`
+                                              : 'serving: unknown'}
                                     </Text>
                                     <Text color={selectedDeployedColor}>
                                         deployed:{' '}
@@ -2295,9 +2227,7 @@ export default function App() {
             </Box>
             <Box flexDirection="column">
                 {mode === 'view' ? (
-                    <Text color={status.tone === 'error' ? 'red' : 'green'}>
-                        {status.message}
-                    </Text>
+                    <Text color={status.tone === 'error' ? 'red' : 'green'}>{status.message}</Text>
                 ) : mode === 'confirm-overwrite' ? (
                     <Text color="yellow">Confirm overwrite in the right panel</Text>
                 ) : mode === 'confirm-reset-mismatch' ? (
@@ -2315,11 +2245,11 @@ export default function App() {
                                 ? 'Bump frontend version: 1=major 2=minor 3=patch'
                                 : mode === 'bump-game-target'
                                   ? `Select game version to bump (${selectedGame?.gameId ?? selectedGame?.packageId ?? ''}): l=logic u=ui`
-                                : mode === 'bump-logic'
-                                  ? `Bump logic version (${selectedGame?.gameId ?? selectedGame?.packageId ?? ''}): 1=major 2=minor 3=patch`
-                                  : mode === 'bump-ui'
-                                    ? `Bump UI version (${selectedGame?.gameId ?? selectedGame?.packageId ?? ''}): 1=major 2=minor 3=patch`
-                                    : 'Rollback to revision:'}
+                                  : mode === 'bump-logic'
+                                    ? `Bump logic version (${selectedGame?.gameId ?? selectedGame?.packageId ?? ''}): 1=major 2=minor 3=patch`
+                                    : mode === 'bump-ui'
+                                      ? `Bump UI version (${selectedGame?.gameId ?? selectedGame?.packageId ?? ''}): 1=major 2=minor 3=patch`
+                                      : 'Rollback to revision:'}
                         </Text>
                         {mode === 'rollback' ? <Text>{inputValue}</Text> : null}
                     </Box>
@@ -2436,50 +2366,50 @@ export default function App() {
                                             : null}
                                         {pendingDeploy.type === 'backend' ? (
                                             <>
-                                                {confirmDeployCommands.length > 1
-                                                    ? confirmDeployCommands.map((spec, index) => (
-                                                          <Text
-                                                              key={`backend-command-${index}`}
-                                                              color="gray"
-                                                              wrap="wrap"
-                                                          >
-                                                              command {index + 1}:{' '}
-                                                              {commandString(spec)}
-                                                          </Text>
-                                                      ))
-                                                    : (
-                                                          <Text color="gray" wrap="wrap">
-                                                              command:{' '}
-                                                              {confirmDeployCommands[0]
-                                                                  ? commandString(
-                                                                        confirmDeployCommands[0]
-                                                                    )
-                                                                  : 'unknown'}
-                                                          </Text>
-                                                      )}
-                                                {confirmDeployCommandsWithTraffic.length > 1
-                                                    ? confirmDeployCommandsWithTraffic.map(
-                                                          (spec, index) => (
-                                                              <Text
-                                                                  key={`backend-command-traffic-${index}`}
-                                                                  color="gray"
-                                                                  wrap="wrap"
-                                                              >
-                                                                  command (with traffic) {index + 1}:{' '}
-                                                                  {commandString(spec)}
-                                                              </Text>
-                                                          )
-                                                      )
-                                                    : (
-                                                          <Text color="gray" wrap="wrap">
-                                                              command (with traffic):{' '}
-                                                              {confirmDeployCommandsWithTraffic[0]
-                                                                  ? commandString(
-                                                                        confirmDeployCommandsWithTraffic[0]
-                                                                    )
-                                                                  : 'unknown'}
-                                                          </Text>
-                                                      )}
+                                                {confirmDeployCommands.length > 1 ? (
+                                                    confirmDeployCommands.map((spec, index) => (
+                                                        <Text
+                                                            key={`backend-command-${index}`}
+                                                            color="gray"
+                                                            wrap="wrap"
+                                                        >
+                                                            command {index + 1}:{' '}
+                                                            {commandString(spec)}
+                                                        </Text>
+                                                    ))
+                                                ) : (
+                                                    <Text color="gray" wrap="wrap">
+                                                        command:{' '}
+                                                        {confirmDeployCommands[0]
+                                                            ? commandString(
+                                                                  confirmDeployCommands[0]
+                                                              )
+                                                            : 'unknown'}
+                                                    </Text>
+                                                )}
+                                                {confirmDeployCommandsWithTraffic.length > 1 ? (
+                                                    confirmDeployCommandsWithTraffic.map(
+                                                        (spec, index) => (
+                                                            <Text
+                                                                key={`backend-command-traffic-${index}`}
+                                                                color="gray"
+                                                                wrap="wrap"
+                                                            >
+                                                                command (with traffic) {index + 1}:{' '}
+                                                                {commandString(spec)}
+                                                            </Text>
+                                                        )
+                                                    )
+                                                ) : (
+                                                    <Text color="gray" wrap="wrap">
+                                                        command (with traffic):{' '}
+                                                        {confirmDeployCommandsWithTraffic[0]
+                                                            ? commandString(
+                                                                  confirmDeployCommandsWithTraffic[0]
+                                                              )
+                                                            : 'unknown'}
+                                                    </Text>
+                                                )}
                                             </>
                                         ) : confirmDeployCommands.length > 1 ? (
                                             confirmDeployCommands.map((spec, index) => (

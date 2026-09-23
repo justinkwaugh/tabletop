@@ -17,7 +17,7 @@ const pathExists = (target: string) => {
     }
 }
 
-const gcsPathExists = (target: string): Promise<boolean> =>
+export const gcsPathExists = (target: string): Promise<boolean> =>
     new Promise((resolve) => {
         const child = spawn('gcloud', ['storage', 'ls', target], {
             env: withCloudSdkPythonEnv(process.env),

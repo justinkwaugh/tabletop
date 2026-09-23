@@ -28,6 +28,7 @@ Or use the root script:
 ```bash
 pnpm run deploy:tui
 ```
+
 Note: the root script runs the compiled file; run `pnpm --filter @tabletop/deploy run build` first if needed.
 
 ## TUI capabilities
@@ -45,16 +46,50 @@ Note: the root script runs the compiled file; run `pnpm --filter @tabletop/deplo
 - Backend deploy defaults to no-traffic; confirm with `y` to deploy with traffic or `n`/Enter to deploy without traffic.
 - Backend deploy prompts for service: backend (default), tasks, or all.
 
+## Releasing and deploying a game
+
+Publishing is split into a release, which changes versions in git, and a deploy, which builds
+and uploads whatever HEAD is. Both run non-interactively and exit non-zero on the first failure,
+printing each step's log path.
+
+```bash
+node tools/deploy/esm/cli.js release-game --game=<gameId|packageId> [--logic] (--major | --minor | --patch) [--no-deploy]
+node tools/deploy/esm/cli.js deploy-game --game=<gameId|packageId> [--logic]
+```
+
+`release-game`:
+
+1. refuses to run on a dirty working tree or a detached HEAD;
+2. bumps the UI package version, and the logic package version too with `--logic`;
+3. syncs `site-manifest.json` from the package versions;
+4. commits those files, tags the commit per artifact, and pushes the branch and tags to `origin`;
+5. runs `deploy-game` for the same artifacts unless `--no-deploy` is given.
+
+Release tags are `<packageId>-v<version>` for logic and `<packageId>-ui-v<version>` for UI, for
+example `the-old-prince-v0.12.0` and `the-old-prince-ui-v0.59.0`.
+
+`deploy-game` checks, before building anything, that the working tree is clean, that
+`site-manifest.json` matches the package versions, that HEAD carries the release tag for every
+artifact being published, and that no version directory already exists in the bucket. It then
+builds and bundles, uploads the artifacts, uploads the manifest, and invalidates the backend
+manifest cache. `deploy-ui` and `deploy-logic` apply the same guards for a single artifact.
+
+Building locally is not gated: `build-ui` and `build-logic` work on any tree.
+
 ## Commands
 
 ```text
 tui                          Launch the TUI (default)
 status                       Print the current manifest
 sync-manifest                Sync site-manifest.json from package versions
+release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
+                             Bump versions, commit, tag, push, then deploy
+deploy-game --game=<id> [--logic]
+                             Build and deploy a tagged HEAD, publish the manifest, invalidate cache
 build-ui <gameId>            Build a game UI bundle (rollup)
-deploy-ui <gameId>           Build + bundle a game UI and deploy to GCS
+deploy-ui <gameId>           deploy-game for the UI only, with the same guards
 build-logic <gameId>         Build a game logic bundle (rollup)
-deploy-logic <gameId>        Build + bundle game logic and deploy to GCS
+deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
 build-frontend               Build the frontend
   deploy-frontend              Deploy the frontend bundle to GCS
   build-backend                Build the backend
@@ -140,6 +175,7 @@ Environment overrides:
 - `TABLETOP_GCS_ACCESS_TOKEN` (optional; used for directory-placeholder API calls)
 
 Notes:
+
 - `backend.image` is required for backend deploy in the TUI; it is used for the docker build/tag/push flow.
 - `backendAdmin` is required to invalidate the manifest cache after deploys; provide a cookie, token, or username/password.
 - When `CLOUDSDK_PYTHON` is unset, deploy commands automatically pick the first supported local Python (`python3.12`, `python3.11`, `python3.10`, then `python3`) and use it for `gcloud`/`gsutil`.
