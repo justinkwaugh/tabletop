@@ -125,11 +125,14 @@ export default fp(async (fastify: FastifyInstance) => {
     )
 
     const discordService = new DiscordService(notificationService, userService)
+    const catalogService = new CatalogService(path.join(STATIC_ROOT, 'games'))
 
     if (process.env['DISCORD_BOT_TOKEN']) {
         const discordTransport = await DiscordTransport.createDiscordTransport(
             secretsService,
-            gameService
+            gameService,
+            libraryService,
+            catalogService
         )
         notificationService.addTransport(discordTransport)
     }
@@ -175,7 +178,7 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate('secretsService', secretsService)
     fastify.decorate('gameService', gameService)
     fastify.decorate('libraryService', libraryService)
-    fastify.decorate('catalogService', new CatalogService(path.join(STATIC_ROOT, 'games')))
+    fastify.decorate('catalogService', catalogService)
     fastify.decorate('pubSubService', pubSubService)
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)

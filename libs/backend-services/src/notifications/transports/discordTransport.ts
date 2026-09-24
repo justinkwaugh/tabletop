@@ -1,18 +1,16 @@
 import { SecretsService } from '../../secrets/secretsService.js'
-import {
-    Notification,
-    NotificationCategory,
-    UserNotification,
-    UserNotificationAction
-} from '@tabletop/common'
+import { Notification, NotificationCategory, UserNotification } from '@tabletop/common'
 
+import { CatalogService } from '../../games/catalogService.js'
 import { GameService } from '../../games/gameService.js'
+import { LibraryService } from '../../games/libraryService.js'
 import { DiscordSubscription } from '../subscriptions/discordSubscription.js'
 import {
     NotificationResult,
     NotificationTransport,
     TransportType
 } from './notificationTransport.js'
+import { discordNotificationMessage } from './discordNotificationMessage.js'
 
 import {
     RESTPostAPIChannelMessageJSONBody,
@@ -29,22 +27,26 @@ export class DiscordTransport implements NotificationTransport {
 
     constructor(
         private readonly gameService: GameService,
+        private readonly libraryService: LibraryService,
+        private readonly catalogService: CatalogService,
         private readonly botToken: string
     ) {}
 
     static async createDiscordTransport(
         secretsService: SecretsService,
-        gameService: GameService
+        gameService: GameService,
+        libraryService: LibraryService,
+        catalogService: CatalogService
     ): Promise<DiscordTransport> {
         const botToken = await secretsService.getSecret('DISCORD_BOT_TOKEN')
-        return new DiscordTransport(gameService, botToken)
+        return new DiscordTransport(gameService, libraryService, catalogService, botToken)
     }
 
     async sendNotification(
         subscription: DiscordSubscription,
         notification: Notification
     ): Promise<NotificationResult> {
-        const message = this.generateMessage(notification)
+        const message = await this.generateMessage(notification)
         if (!message) {
             return {
                 success: false,
@@ -59,7 +61,13 @@ export class DiscordTransport implements NotificationTransport {
         }
     }
 
-    async sendMessage({ userId, message }: { userId: string; message: string }) {
+    async sendMessage({
+        userId,
+        message
+    }: {
+        userId: string
+        message: RESTPostAPIChannelMessageJSONBody
+    }) {
         const channelId = await this.getDmChannelId(userId)
         if (!channelId) {
             console.error('Could not get DM channel for user', userId)
@@ -72,14 +80,10 @@ export class DiscordTransport implements NotificationTransport {
             Accept: 'application/json'
         }
 
-        const messageData: RESTPostAPIChannelMessageJSONBody = {
-            content: message
-        }
-
         const messageResponse = await fetch(`${API_ENDPOINT}/channels/${channelId}/messages`, {
             method: 'POST',
             headers,
-            body: JSON.stringify(messageData)
+            body: JSON.stringify(message)
         })
 
         if (!messageResponse.ok) {
@@ -120,33 +124,20 @@ export class DiscordTransport implements NotificationTransport {
         return channelId
     }
 
-    private generateMessage(notification: Notification): string | undefined {
+    private async generateMessage(
+        notification: Notification
+    ): Promise<RESTPostAPIChannelMessageJSONBody | undefined> {
         if (!this.isUserNotification(notification)) {
             return
         }
 
-        if (notification.action === UserNotificationAction.PlayerJoined) {
-            const url = `${FRONTEND_HOST}/dashboard`
-            const title = this.gameTitle(notification.data.game.typeId)
-            return `${notification.data.player.name} joined your ${title} game [${notification.data.game.name}](${url})`
-        } else if (notification.action === UserNotificationAction.PlayerDeclined) {
-            const url = `${FRONTEND_HOST}/dashboard`
-            const title = this.gameTitle(notification.data.game.typeId)
-            return `${notification.data.player.name} has declined to join your ${title} game [${notification.data.game.name}](${url})`
-        } else if (notification.action === UserNotificationAction.GameStarted) {
-            const url = `${FRONTEND_HOST}/game/${notification.data.game.id}`
-            const title = this.gameTitle(notification.data.game.typeId)
-            return `Your ${title} game [${notification.data.game.name}](${url}) has begun!`
-        } else if (notification.action === UserNotificationAction.WasInvited) {
-            const url = `${FRONTEND_HOST}/dashboard`
-            const title = this.gameTitle(notification.data.game.typeId)
-            return `${notification.data.owner.username} invited you to join their ${title} game [${notification.data.game.name}](${url})`
-        } else if (notification.action === UserNotificationAction.IsYourTurn) {
-            const url = `${FRONTEND_HOST}/game/${notification.data.game.id}`
-            const title = this.gameTitle(notification.data.game.typeId)
-            return `It's your turn in your ${title} game [${notification.data.game.name}](${url})`
-        }
-        return
+        const typeId = notification.data.game.typeId
+        return discordNotificationMessage(notification, {
+            frontendHost: FRONTEND_HOST,
+            gameTitle: this.gameTitle(typeId),
+            coverImageUrl: await this.coverImageUrl(typeId),
+            sentAt: new Date()
+        })
     }
 
     private isUserNotification(notification: Notification): notification is UserNotification {
@@ -155,5 +146,12 @@ export class DiscordTransport implements NotificationTransport {
 
     private gameTitle(typeId: string): string | undefined {
         return this.gameService.getTitle(typeId)?.info.metadata.name
+    }
+
+    private async coverImageUrl(typeId: string): Promise<string | undefined> {
+        const manifest = await this.libraryService.getManifest()
+        const catalog = await this.catalogService.getCatalog(manifest)
+        const thumbnailUrl = catalog.find((entry) => entry.id === typeId)?.thumbnailUrl
+        return thumbnailUrl && `${FRONTEND_HOST}${thumbnailUrl}`
     }
 }
