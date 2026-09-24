@@ -907,7 +907,7 @@ Round interstitials retain square ends; no combined segment geometry is used.
 
 Round contents use a light ledger: stock-turn actors share the first action line,
 company operations have a token header, and consecutive stock passes share a row. Stock-turn player names appear inline before the first action, using the full available width and natural wrapping rather than a fixed name column; long unbroken names wrap without hiding action details.
-Groups are newest first, with events chronological inside each group. Recorded
+Groups follow the selected history order, with events chronological inside each turn or operation. Consecutive stock passes represent separate turns, so their individual rows also follow the selected history order. Recorded
 turn completion ends a group even if the same player acts next. A funding sale's
 company identifies the shares sold, not the operating company; it remains with
 that company's funding sequence. Actor changes within an operation remain visible.

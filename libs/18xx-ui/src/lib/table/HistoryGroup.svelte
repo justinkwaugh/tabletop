@@ -29,6 +29,7 @@
     let {
         money,
         group,
+        newestFirst = false,
         onJump,
         onReturn,
         jumpDisabled = false,
@@ -52,6 +53,7 @@
         shareCards = () => []
     }: {
         money: MoneyFormat
+        newestFirst?: boolean
         onPreviewMap: (action: GameAction) => void
         previewActionId?: string
         cash: ReadonlyMap<string, HistoryCash>
@@ -160,7 +162,9 @@
 >
     {#if group.kind === 'passes'}
         <div class="passes">
-            {#each group.actions as action (action.id)}<div class="history-entry stock-action">
+            {#each newestFirst ? group.actions.toReversed() : group.actions as action (action.id)}<div
+                    class="history-entry stock-action"
+                >
                     {#if action.playerId}<span
                             class="player-tinted-name"
                             style:--player-color={playerColor(action.playerId)}

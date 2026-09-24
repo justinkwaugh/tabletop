@@ -115,6 +115,7 @@
                     <li>
                         <HistoryGroup
                             {money}
+                            {newestFirst}
                             group={entry}
                             onReturn={round.id === currentHeaderId &&
                             entry.id === groups.find((group) => group.kind === 'operation')?.id
