@@ -3,7 +3,6 @@
     import GateMask from '$lib/images/gateMask.svelte'
     import BoardSvg from './BoardSvg.svelte'
     import { getCirclePoint, toRadians, type GatePosition } from '$lib/utils/boardGeometry.js'
-    import type { Point } from '@tabletop/common'
 
     let {
         color,
@@ -14,7 +13,6 @@
         width?: number
         height?: number
         color: string
-        location?: Point
         position?: GatePosition
     } = $props()
 </script>

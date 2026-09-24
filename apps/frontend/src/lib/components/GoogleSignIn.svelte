@@ -44,6 +44,8 @@
 
     $effect(() => {
         if (initialized && buttonElement && targetWidth > 0) {
+            // Google renders its button into this element; clear any previous render first.
+            // eslint-disable-next-line svelte/no-dom-manipulating
             buttonElement.innerHTML = ''
             google.accounts.id.renderButton(buttonElement, {
                 type: 'standard',

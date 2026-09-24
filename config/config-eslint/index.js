@@ -5,8 +5,9 @@ import prettier from 'eslint-config-prettier'
 import turbo from 'eslint-config-turbo/flat'
 import svelte from 'eslint-plugin-svelte'
 import globals from 'globals'
-import { readdirSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const tsFiles = ['**/*.ts', '**/*.tsx']
@@ -46,6 +47,12 @@ function filesOutsideTsconfig(root) {
 
 const untypedTsFiles = filesOutsideTsconfig(process.cwd())
 
+// eslint-plugin-svelte reads the package's compiler options (runes mode etc.) from svelte.config.js
+const svelteConfigPath = path.join(process.cwd(), 'svelte.config.js')
+const svelteConfig = existsSync(svelteConfigPath)
+    ? (await import(pathToFileURL(svelteConfigPath).href)).default
+    : undefined
+
 export default [
     {
         ignores: [
@@ -67,12 +74,29 @@ export default [
             }
         }
     },
-    ...svelte.configs.base,
+    ...svelte.configs.recommended,
+    ...svelte.configs.prettier,
+    {
+        rules: {
+            // Flags every mutable Map/Set/Date/URL. Here those are almost always local
+            // builders or non-rendered registries (listeners, element refs, timelines).
+            'svelte/prefer-svelte-reactivity': 'off',
+            // No app sets a base path yet; resolve() would add typed routes when adopted.
+            'svelte/no-navigation-without-resolve': 'warn',
+            // Also reports whitespace holders like {' '}, which prettier-plugin-svelte writes
+            // itself to keep spaces next to tags; there is no option to exempt them.
+            'svelte/no-useless-mustaches': 'off'
+        }
+    },
     {
         files: ['**/*.svelte'],
         languageOptions: {
             parserOptions: {
-                parser: tsParser
+                parser: tsParser,
+                projectService: true,
+                tsconfigRootDir: process.cwd(),
+                extraFileExtensions: ['.svelte'],
+                svelteConfig
             }
         }
     },

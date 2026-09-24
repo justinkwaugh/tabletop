@@ -46,7 +46,7 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
             receiveShadow
         >
             <T.MeshPhysicalMaterial
-                color={'#AAAAAA'}
+                color="#AAAAAA"
                 clearcoat={1}
                 clearcoatRoughness={0.33}
             /></T.Mesh
@@ -63,7 +63,7 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
                 geometry={gltf.nodes.blankblockerv2001.geometry}
             >
                 <T.MeshPhysicalMaterial
-                    color={'#EEEEEE'}
+                    color="#EEEEEE"
                     clearcoat={1}
                     clearcoatRoughness={0.33}
                 /></T.Mesh
@@ -82,7 +82,7 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
                 geometry={gltf.nodes.blankblockerv2001.geometry}
             >
                 <T.MeshPhysicalMaterial
-                    color={'#EEEEEE'}
+                    color="#EEEEEE"
                     clearcoat={1}
                     clearcoatRoughness={0.33}
                 /></T.Mesh
@@ -101,7 +101,7 @@ Command: npx @threlte/gltf@2.0.3 public/singleblocker.gltf --types --debug
                 geometry={gltf.nodes.blankblockerv2001.geometry}
             >
                 <T.MeshPhysicalMaterial
-                    color={'#EEEEEE'}
+                    color="#EEEEEE"
                     clearcoat={1}
                     clearcoatRoughness={0.33}
                 /></T.Mesh

@@ -41,5 +41,7 @@
 </script>
 
 <svelte:head>
+    <!-- The props come from game UI code, never from user input. -->
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html fontFaceTag}
 </svelte:head>

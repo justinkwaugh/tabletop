@@ -22,7 +22,8 @@
 
 <section aria-label="Stock market">
     <h2>Stock market</h2>
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus the scrollable market.) -->
+    <!-- Keyboard users need to focus the scrollable market. -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <div class="scroll" tabindex="0" role="region" aria-label="Stock market spaces">
         <StockMarketScene {market} {companies} {appearances} {animation} />
     </div>

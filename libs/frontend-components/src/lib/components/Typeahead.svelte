@@ -164,7 +164,7 @@
         bind:isOpen
         reference={`#${inputId}`}
         triggeredBy={`#${hiddenTriggerId}`}
-        trigger={'click'}
+        trigger="click"
         offset={0}
         class="mt-2 border-2 dark:border-gray-700 dark:bg-gray-800"
         strategy="fixed"

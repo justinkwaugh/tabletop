@@ -253,7 +253,7 @@
                                 size="xs">Unlink</Button
                             >
                         {:else}
-                            <GoogleSignIn mode={'link'} />
+                            <GoogleSignIn mode="link" />
                         {/if}
                     </div>
                 {/if}
@@ -276,7 +276,7 @@
                                 size="xs">Unlink</Button
                             >
                         {:else}
-                            <DiscordSignIn mode={'link'} />
+                            <DiscordSignIn mode="link" />
                         {/if}
                     </div>
                 {/if}

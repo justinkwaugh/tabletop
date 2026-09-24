@@ -23,7 +23,7 @@
             {#if invitationGame}
                 <GameCard
                     game={invitationGame}
-                    expanded={'always'}
+                    expanded="always"
                     ondecline={gotoDashboard}
                     onjoin={gotoDashboard}
                 />
