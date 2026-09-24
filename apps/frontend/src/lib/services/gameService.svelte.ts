@@ -39,8 +39,9 @@ import { isUsersGameTurn } from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
 import type { LibraryService } from './libraryService.svelte'
+import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
 
-const SavedCurrentGames = Type.Object({ userId: Type.String(), games: Type.Array(Game) })
+const StoredCurrentGames = Type.Object({ userId: Type.String(), games: Type.Array(Game) })
 
 export class GameService implements GameServiceInterface {
     get supportsReproductionSeed(): boolean {
@@ -54,7 +55,7 @@ export class GameService implements GameServiceInterface {
     loading = $state(false)
     private loadingPromise: Promise<void> | null = null
     private currentGamesFetched = false
-    private static readonly savedCurrentGamesKey = 'currentGames'
+    private static readonly storedCurrentGamesKey = 'currentGames'
 
     currentGameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
 
@@ -126,9 +127,8 @@ export class GameService implements GameServiceInterface {
     }
 
     async hasActiveGames() {
-        const savedGames = this.readSavedCurrentGames()
-        if (savedGames) {
-            return savedGames.length > 0
+        if (this.readStoredCurrentGames()?.length) {
+            return true
         }
         return this.api.hasActiveGames()
     }
@@ -146,13 +146,16 @@ export class GameService implements GameServiceInterface {
 
     private async loadCurrentGames() {
         if (!this.currentGamesFetched) {
-            this.applySavedCurrentGames()
+            this.applyStoredCurrentGames()
         }
         const sessionUser = this.authorizationService.getSessionUser()
         const [games, localGames] = await Promise.all([
             this.api.getMyGames('current'),
             sessionUser ? this.localGameStore.findGamesForUser(sessionUser) : []
         ])
+        if (this.authorizationService.getSessionUser()?.id !== sessionUser?.id) {
+            return
+        }
 
         const ids = new Set(games.map((game) => game.id))
         games.forEach((game) => {
@@ -169,37 +172,22 @@ export class GameService implements GameServiceInterface {
         })
         this.currentGamesFetched = true
         if (sessionUser) {
-            this.saveCurrentGames(sessionUser.id, games)
+            writeStoredValue(GameService.storedCurrentGamesKey, { userId: sessionUser.id, games })
         }
     }
 
-    private applySavedCurrentGames() {
-        this.readSavedCurrentGames()?.forEach((game) => {
+    private applyStoredCurrentGames() {
+        this.readStoredCurrentGames()?.forEach((game) => {
             if (!this.gamesById.has(game.id)) {
                 this.gamesById.set(game.id, game)
             }
         })
     }
 
-    private readSavedCurrentGames(): Game[] | undefined {
+    private readStoredCurrentGames(): Game[] | undefined {
         const sessionUser = this.authorizationService.getSessionUser()
-        const stored = localStorage.getItem(GameService.savedCurrentGamesKey)
-        if (!sessionUser || !stored) {
-            return undefined
-        }
-        try {
-            const saved = Value.Convert(SavedCurrentGames, JSON.parse(stored))
-            if (!Value.Check(SavedCurrentGames, saved) || saved.userId !== sessionUser.id) {
-                return undefined
-            }
-            return saved.games
-        } catch {
-            return undefined
-        }
-    }
-
-    private saveCurrentGames(userId: string, games: Game[]) {
-        localStorage.setItem(GameService.savedCurrentGamesKey, JSON.stringify({ userId, games }))
+        const stored = readStoredValue(GameService.storedCurrentGamesKey, StoredCurrentGames)
+        return sessionUser && stored?.userId === sessionUser.id ? stored.games : undefined
     }
 
     // Should debounce this
@@ -453,7 +441,7 @@ export class GameService implements GameServiceInterface {
     clear() {
         this.gamesById.clear()
         this.currentGamesFetched = false
-        localStorage.removeItem(GameService.savedCurrentGamesKey)
+        removeStoredValue(GameService.storedCurrentGamesKey)
     }
 
     private NotificationListener = async (event: NotificationEvent) => {

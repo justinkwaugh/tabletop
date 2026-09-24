@@ -1,5 +1,4 @@
 import { Role, User, UserStatus } from '@tabletop/common'
-import * as Value from 'typebox/value'
 import { goto, invalidateAll } from '$app/navigation'
 import { redirect } from '@sveltejs/kit'
 import { AuthorizationCategory, type TabletopApi } from '@tabletop/frontend-components'
@@ -8,6 +7,7 @@ import {
     saveLoginContinuation,
     takeLoginContinuation
 } from '$lib/utils/loginContinuation'
+import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
 
 /**
  *
@@ -45,7 +45,8 @@ export class AuthorizationService {
 
     constructor(
         private api: TabletopApi,
-        private readonly onSessionUserSet: () => void
+        private readonly onSessionUserSet: () => void,
+        private readonly onSessionUserCleared: () => void
     ) {}
 
     public async initialize(): Promise<void> {
@@ -53,7 +54,7 @@ export class AuthorizationService {
             return
         }
 
-        const storedUser = this.readStoredSessionUser()
+        const storedUser = readStoredValue(AuthorizationService.storageKey, User)
         if (storedUser) {
             this.setSessionUser(storedUser)
             this.initialized = true
@@ -124,13 +125,14 @@ export class AuthorizationService {
 
     public setSessionUser(user: User) {
         this.sessionUser = user
-        localStorage.setItem(AuthorizationService.storageKey, JSON.stringify(user))
+        writeStoredValue(AuthorizationService.storageKey, user)
         this.onSessionUserSet()
     }
 
     public clearSessionUser() {
         this.sessionUser = undefined
-        localStorage.removeItem(AuthorizationService.storageKey)
+        removeStoredValue(AuthorizationService.storageKey)
+        this.onSessionUserCleared()
     }
 
     public async onLogin(user: User) {
@@ -180,19 +182,6 @@ export class AuthorizationService {
             // do nothing
         }
         return undefined
-    }
-
-    private readStoredSessionUser(): User | undefined {
-        const stored = localStorage.getItem(AuthorizationService.storageKey)
-        if (!stored) {
-            return undefined
-        }
-        try {
-            const storedUser = Value.Convert(User, JSON.parse(stored))
-            return Value.Check(User, storedUser) ? storedUser : undefined
-        } catch {
-            return undefined
-        }
     }
 
     private redirect(user?: User) {

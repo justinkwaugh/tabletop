@@ -31,7 +31,7 @@ describe('AuthorizationService developer tools', () => {
         { roles: [Role.Admin], expected: true },
         { roles: [Role.User], expected: false }
     ])('allows developer tools for $roles', ({ roles, expected }) => {
-        const service = new AuthorizationService(new TabletopApi(), vi.fn())
+        const service = new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn())
         service.setSessionUser(createUser(roles))
 
         expect(service.canUseDeveloperTools).toBe(expected)
@@ -41,7 +41,7 @@ describe('AuthorizationService developer tools', () => {
     })
 
     it('does not grant admin capabilities to a developer', () => {
-        const service = new AuthorizationService(new TabletopApi(), vi.fn())
+        const service = new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn())
         service.setSessionUser(createUser([Role.Developer]))
         service.adminCapabilitiesEnabled = true
 
@@ -54,7 +54,7 @@ describe('AuthorizationService developer tools', () => {
 describe('AuthorizationService session lifecycle', () => {
     it('notifies after establishing a session and after signing out and back in', () => {
         const onSessionUserSet = vi.fn()
-        const service = new AuthorizationService(new TabletopApi(), onSessionUserSet)
+        const service = new AuthorizationService(new TabletopApi(), onSessionUserSet, vi.fn())
         expect(onSessionUserSet).not.toHaveBeenCalled()
         service.setSessionUser(createUser([Role.User]))
         expect(onSessionUserSet).toHaveBeenCalledTimes(1)
@@ -73,7 +73,7 @@ describe('AuthorizationService session lifecycle', () => {
                 signedIn ? createUser([Role.User]) : undefined
             )
             const onSessionUserSet = vi.fn()
-            const service = new AuthorizationService(api, onSessionUserSet)
+            const service = new AuthorizationService(api, onSessionUserSet, vi.fn())
             await Promise.all([service.initialize(), service.initialize()])
             expect(onSessionUserSet).toHaveBeenCalledTimes(signedIn ? 1 : 0)
             expect(api.getSelf).toHaveBeenCalledTimes(1)
@@ -83,7 +83,7 @@ describe('AuthorizationService session lifecycle', () => {
 
 describe('AuthorizationService stored session user', () => {
     function storeUser(user: User) {
-        new AuthorizationService(new TabletopApi(), vi.fn()).setSessionUser(user)
+        new AuthorizationService(new TabletopApi(), vi.fn(), vi.fn()).setSessionUser(user)
     }
 
     function pendingSelf(api: TabletopApi) {
@@ -100,7 +100,7 @@ describe('AuthorizationService stored session user', () => {
         storeUser(createUser([Role.User]))
         const api = new TabletopApi()
         pendingSelf(api)
-        const service = new AuthorizationService(api, vi.fn())
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
 
         await service.initialize()
 
@@ -112,7 +112,7 @@ describe('AuthorizationService stored session user', () => {
         storeUser(createUser([Role.User]))
         const api = new TabletopApi()
         const resolveSelf = pendingSelf(api)
-        const service = new AuthorizationService(api, vi.fn())
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
         await service.initialize()
 
         resolveSelf(createUser([Role.User, Role.Admin]))
@@ -126,7 +126,7 @@ describe('AuthorizationService stored session user', () => {
         storeUser(createUser([Role.User]))
         const api = new TabletopApi()
         const resolveSelf = pendingSelf(api)
-        const service = new AuthorizationService(api, vi.fn())
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
         await service.initialize()
 
         resolveSelf(undefined)
@@ -141,7 +141,7 @@ describe('AuthorizationService stored session user', () => {
         storeUser(createUser([Role.User]))
         const api = new TabletopApi()
         const resolveSelf = pendingSelf(api)
-        const service = new AuthorizationService(api, vi.fn())
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
         await service.initialize()
 
         resolveSelf({ ...createUser([Role.User]), status: UserStatus.Incomplete })
@@ -155,7 +155,7 @@ describe('AuthorizationService stored session user', () => {
         localStorage.setItem('sessionUser', '{"id":1}')
         const api = new TabletopApi()
         const resolveSelf = pendingSelf(api)
-        const service = new AuthorizationService(api, vi.fn())
+        const service = new AuthorizationService(api, vi.fn(), vi.fn())
 
         const initialization = service.initialize()
         expect(service.getSessionUser()).toBeUndefined()
@@ -165,12 +165,14 @@ describe('AuthorizationService stored session user', () => {
         expect(service.getSessionUser()?.id).toBe('user-id')
     })
 
-    it('forgets the stored user when the session is cleared', () => {
-        const service = new AuthorizationService(new TabletopApi(), vi.fn())
+    it('forgets the stored user and notifies when the session is cleared', () => {
+        const onSessionUserCleared = vi.fn()
+        const service = new AuthorizationService(new TabletopApi(), vi.fn(), onSessionUserCleared)
         service.setSessionUser(createUser([Role.User]))
 
         service.clearSessionUser()
 
         expect(localStorage.getItem('sessionUser')).toBeNull()
+        expect(onSessionUserCleared).toHaveBeenCalledTimes(1)
     })
 })
