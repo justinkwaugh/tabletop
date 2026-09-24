@@ -136,7 +136,7 @@ function getFlightLegs(
     board: HydratedSolGameBoard,
     transcend: boolean = false
 ): OffsetCoordinates[][] {
-    let flightLegs: OffsetCoordinates[][] = []
+    const flightLegs: OffsetCoordinates[][] = []
 
     let currentFlightLeg: OffsetCoordinates[] = []
     for (const coord of pathCoords) {

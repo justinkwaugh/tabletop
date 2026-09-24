@@ -46,7 +46,7 @@ async function registerGame(
             })
 
             instance.addHook('onSend', async (_request, reply, payload) => {
-                let logicVersion = definition.info.metadata.version ?? '0.0.0'
+                const logicVersion = definition.info.metadata.version ?? '0.0.0'
                 let uiVersion = '0.0.0'
                 try {
                     const manifest = await instance.libraryService.getManifest()

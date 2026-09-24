@@ -83,7 +83,7 @@ function* pointyDirectionOffsetIterator(
     initialDirection: PointyHexDirection,
     rotationDirection: RotationDirection
 ): Iterable<AxialCoordinates> {
-    let directions =
+    const directions =
         rotationDirection === RotationDirection.Clockwise
             ? ClockwisePointyHexDirections
             : ClockwisePointyHexDirections.toReversed()
@@ -99,7 +99,7 @@ function* flatDirectionOffsetIterator(
     initialDirection: FlatHexDirection,
     rotationDirection: RotationDirection
 ): Iterable<AxialCoordinates> {
-    let directions =
+    const directions =
         rotationDirection === RotationDirection.Clockwise
             ? Object.values(FlatHexDirection)
             : Object.values(FlatHexDirection).toReversed()

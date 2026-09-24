@@ -42,7 +42,6 @@ const SESSION_SECRET = process.env['SESSION_SECRET']
     : 'youneedtosetthevalueintheenv.localfiletosomethingelse'
 const SESSION_SALT = process.env['SESSION_SALT'] ?? ''
 
-/* eslint-disable-next-line */
 export interface AppOptions {
     prefix?: string
 }

@@ -154,7 +154,7 @@ export class HydratedChain extends HydratableAction<typeof Chain> implements Cha
             return false
         }
 
-        let chainEnds = [chain[0]]
+        const chainEnds = [chain[0]]
         if (chain.length > 1) {
             chainEnds.push(chain.at(-1)!)
         }

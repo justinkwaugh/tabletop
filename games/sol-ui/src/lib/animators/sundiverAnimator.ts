@@ -1179,7 +1179,7 @@ export class SundiverAnimator extends StateAnimator<
         const toBoard = toState.board
 
         let diverLocation: Point | undefined
-        let startOffset = 0
+        const startOffset = 0
 
         // Activating sundiver starts in cell
         const diverCoords = fromBoard.findSundiverCoords(sundiverId)

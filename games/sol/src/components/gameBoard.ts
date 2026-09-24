@@ -320,8 +320,8 @@ export class HydratedSolGameBoard
             path.push(...pathThroughGates.slice(1))
         }
 
-        let remainingRange = range !== undefined ? range - (path.length - 1) : undefined
-        let current = path.at(-1)!
+        const remainingRange = range !== undefined ? range - (path.length - 1) : undefined
+        const current = path.at(-1)!
 
         if (!sameCoordinates(current, destination)) {
             if (portal) {
@@ -526,14 +526,14 @@ export class HydratedSolGameBoard
     }
 
     public addStationAt(station: Station, coords: OffsetCoordinates) {
-        let cell = this.cellAt(coords)
+        const cell = this.cellAt(coords)
         station.coords = coords
         cell.station = station
         this.setCell(cell)
     }
 
     public removeStationAt(coords: OffsetCoordinates): Station | undefined {
-        let cell = this.cellAt(coords)
+        const cell = this.cellAt(coords)
         const station = cell.station
         if (!station) {
             return undefined
@@ -555,7 +555,7 @@ export class HydratedSolGameBoard
             sundiversByPlayer[sundiver.playerId].push(sundiver)
         }
 
-        let cell = this.cellAt(coords)
+        const cell = this.cellAt(coords)
 
         for (const [playerId, sundivers] of Object.entries(sundiversByPlayer)) {
             if (!this.canAddSundiversToCell(playerId, sundivers.length, coords)) {

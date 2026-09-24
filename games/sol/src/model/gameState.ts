@@ -193,7 +193,7 @@ export class HydratedSolGameState
     }
 
     getActivatingStation(playerId: string): Station {
-        let activation = this.getActivationForPlayer(playerId)
+        const activation = this.getActivationForPlayer(playerId)
         assertExists(activation, 'No activation for player')
         assertExists(activation.currentStationId, 'No activating station')
 
@@ -203,7 +203,7 @@ export class HydratedSolGameState
     }
 
     hasActivatedStation(playerId: string, stationId: string): boolean {
-        let activation = this.getActivationForPlayer(playerId)
+        const activation = this.getActivationForPlayer(playerId)
         return activation?.activatedIds.includes(stationId) ?? false
     }
 
