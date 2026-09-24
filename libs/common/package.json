@@ -17,7 +17,8 @@
     "scripts": {
         "clean": "rimraf esm",
         "build": "tsgo",
-        "test": "vitest"
+        "test": "vitest",
+        "lint": "eslint ."
     },
     "dependencies": {
         "@noble/ciphers": "2.4.0",

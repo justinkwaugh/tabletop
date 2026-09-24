@@ -10,7 +10,8 @@
     "scripts": {
         "clean": "rimraf esm",
         "build": "tsgo",
-        "dev": "email dev -p 3001"
+        "dev": "email dev -p 3001",
+        "lint": "eslint ."
     },
     "dependencies": {
         "@tabletop/common": "workspace:*",
@@ -23,6 +24,7 @@
         "react-dom": "^19.2.3",
         "react-email": "5.2.5",
         "rimraf": "^6.1.0",
-        "typescript": "5.9.3"
+        "typescript": "5.9.3",
+        "@tabletop/eslint-config": "workspace:*"
     }
 }

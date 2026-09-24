@@ -76,6 +76,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^6.2.4
         version: 6.2.4(svelte@5.49.0)(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0))
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -363,6 +366,9 @@ importers:
 
   config/config-eslint:
     dependencies:
+      '@eslint/js':
+        specifier: ^9.39.2
+        version: 9.39.2
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.53.1
         version: 8.53.1(@typescript-eslint/parser@8.53.1(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
@@ -378,6 +384,12 @@ importers:
       eslint-plugin-svelte:
         specifier: ^3.14.0
         version: 3.14.0(eslint@9.39.2(jiti@2.6.1))(svelte@5.49.0)(ts-node@10.9.2(@types/node@25.1.0)(typescript@5.9.3))
+      globals:
+        specifier: ^16.5.0
+        version: 16.5.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   config/config-games:
     devDependencies:
@@ -2012,6 +2024,9 @@ importers:
       '@tabletop/18xx-autorouter':
         specifier: workspace:*
         version: link:../../libs/18xx-autorouter
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2070,6 +2085,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^6.2.4
         version: 6.2.4(svelte@5.49.0)(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0))
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2280,6 +2298,9 @@ importers:
       '@tabletop/18xx-autorouter':
         specifier: workspace:*
         version: link:../../libs/18xx-autorouter
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2335,6 +2356,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^6.2.4
         version: 6.2.4(svelte@5.49.0)(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0))
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@tabletop/rollup-config':
         specifier: workspace:*
         version: link:../../config/config-rollup
@@ -2542,6 +2566,9 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79
     devDependencies:
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2570,6 +2597,9 @@ importers:
         specifier: ^1.0.79
         version: 1.0.79
     devDependencies:
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2616,6 +2646,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^6.2.4
         version: 6.2.4(svelte@5.49.0)(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0))
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -2781,6 +2814,9 @@ importers:
       '@react-email/preview-server':
         specifier: ^5.2.5
         version: 5.2.5(@opentelemetry/api@1.9.0)(@playwright/test@1.58.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260203.1
         version: 7.0.0-dev.20260203.1
@@ -2985,6 +3021,9 @@ importers:
         specifier: workspace:*
         version: link:../../config/config-games
     devDependencies:
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
       '@types/node':
         specifier: ^24.3.1
         version: 24.10.9

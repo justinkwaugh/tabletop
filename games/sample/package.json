@@ -10,7 +10,8 @@
     "private": true,
     "scripts": {
         "clean": "rimraf esm",
-        "build": "node ../../tools/scripts/write-game-version.cjs && tsgo"
+        "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
+        "lint": "eslint ."
     },
     "dependencies": {
         "@tabletop/common": "workspace:*",

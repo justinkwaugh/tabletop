@@ -22,7 +22,8 @@
         "build": "pnpm run package",
         "package": "svelte-kit sync && svelte-package",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-        "test": "vitest run && vitest run --config vitest.runes.config.ts"
+        "test": "vitest run && vitest run --config vitest.runes.config.ts",
+        "lint": "eslint ."
     },
     "peerDependencies": {
         "@sveltejs/kit": "^2.48.4",
@@ -47,6 +48,7 @@
         "svelte-check": "^4.3.5",
         "typescript": "5.9.3",
         "vite": "^7.3.1",
-        "vitest": "^4.0.12"
+        "vitest": "^4.0.12",
+        "@tabletop/eslint-config": "workspace:*"
     }
 }

@@ -5,7 +5,8 @@
     "private": true,
     "scripts": {
         "deploy-discord": "dotenvx run -f .env.local -- tsx src/deployDiscord.ts",
-        "init-project": "tsx src/initProject.ts"
+        "init-project": "tsx src/initProject.ts",
+        "lint": "eslint ."
     },
     "dependencies": {
         "@dotenvx/dotenvx": "^1.51.4",

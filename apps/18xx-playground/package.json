@@ -14,7 +14,8 @@
         "test:browser": "playwright test",
         "test": "pnpm run test:unit && pnpm run test:browser",
         "benchmark:routes": "node scripts/benchmark-routes.mjs",
-        "test:hosted": "playwright test --config playwright.hosted.config.ts"
+        "test:hosted": "playwright test --config playwright.hosted.config.ts",
+        "lint": "eslint ."
     },
     "dependencies": {
         "@tabletop/18xx": "workspace:*",
@@ -43,6 +44,7 @@
         "tailwindcss": "^4.1.18",
         "@tailwindcss/postcss": "^4.1.18",
         "typebox": "^1.0.79",
-        "@types/node": "^25.0.9"
+        "@types/node": "^25.0.9",
+        "@tabletop/eslint-config": "workspace:*"
     }
 }

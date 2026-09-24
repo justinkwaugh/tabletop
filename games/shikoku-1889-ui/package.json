@@ -23,7 +23,8 @@
         "package": "svelte-kit sync && svelte-package",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
         "bundle": "rimraf bundle && rollup -c ./rollup.config.ts",
-        "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs"
+        "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
+        "lint": "eslint ."
     },
     "peerDependencies": {
         "@sveltejs/kit": "^2.48.4",
@@ -49,6 +50,7 @@
         "@tabletop/rollup-config": "workspace:*",
         "rollup": "4.55.2",
         "tslib": "^2.8.1",
-        "prettier-plugin-svelte": "^3.4.1"
+        "prettier-plugin-svelte": "^3.4.1",
+        "@tabletop/eslint-config": "workspace:*"
     }
 }

@@ -25,7 +25,8 @@
         "clean": "rimraf esm",
         "build": "tsgo",
         "check": "tsgo --noEmit",
-        "test": "vitest run"
+        "test": "vitest run",
+        "lint": "eslint ."
     },
     "dependencies": {
         "@tabletop/common": "workspace:*",
@@ -36,6 +37,7 @@
         "rimraf": "^6.1.0",
         "typescript": "5.9.3",
         "@tabletop/vitest-config": "workspace:*",
-        "vitest": "^4.0.12"
+        "vitest": "^4.0.12",
+        "@tabletop/eslint-config": "workspace:*"
     }
 }

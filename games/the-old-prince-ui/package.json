@@ -25,7 +25,8 @@
         "bundle": "rimraf bundle && rollup -c ./rollup.config.ts",
         "test": "pnpm run bundle && node --test tests/bundledStyles.test.mjs",
         "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
-        "dev": "vite dev"
+        "dev": "vite dev",
+        "lint": "eslint ."
     },
     "peerDependencies": {
         "@sveltejs/kit": "^2.48.4",
@@ -56,6 +57,7 @@
         "tslib": "^2.8.1",
         "typescript": "5.9.3",
         "vite": "^7.3.1",
-        "prettier-plugin-svelte": "^3.4.1"
+        "prettier-plugin-svelte": "^3.4.1",
+        "@tabletop/eslint-config": "workspace:*"
     }
 }

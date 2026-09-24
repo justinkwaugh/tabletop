@@ -11,7 +11,8 @@
     "scripts": {
         "clean": "rimraf esm",
         "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
-        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rollup -c ./rollup.config.ts"
+        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rollup -c ./rollup.config.ts",
+        "lint": "eslint ."
     },
     "dependencies": {
         "@tabletop/common": "workspace:*",

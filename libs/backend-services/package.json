@@ -19,7 +19,8 @@
     "private": true,
     "scripts": {
         "clean": "rimraf esm",
-        "build": "tsgo"
+        "build": "tsgo",
+        "lint": "eslint ."
     },
     "dependencies": {
         "@google-cloud/firestore": "^7.9.0",
