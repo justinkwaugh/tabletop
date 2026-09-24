@@ -9,7 +9,11 @@ export const load: PageLoad = async ({ url }) => {
         category: AuthorizationCategory.ActiveUser,
         intendedUrl: url
     })
-    if (authorized && !authorizationService.isAdmin) {
+    if (!authorized) {
+        return
+    }
+    await authorizationService.whenSessionVerified()
+    if (!authorizationService.isAdmin) {
         redirect(302, '/library')
     }
 }

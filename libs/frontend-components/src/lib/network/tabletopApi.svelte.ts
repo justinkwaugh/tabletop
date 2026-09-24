@@ -90,7 +90,8 @@ export class TabletopApi {
     constructor(
         host: string = DEFAULT_HOST,
         sseHost: string = DEFAULT_HOST,
-        private readonly version?: string
+        private readonly version?: string,
+        private readonly onUnauthorized?: () => void
     ) {
         this.host = host
         this.sseHost = sseHost
@@ -940,7 +941,8 @@ export class TabletopApi {
         }
     }
 
-    private async on401() {
+    private on401 = async () => {
+        this.onUnauthorized?.()
         toast.error('Your session has timed out.  Rerouting to login page.')
         window.location.reload()
         // let the window reload
