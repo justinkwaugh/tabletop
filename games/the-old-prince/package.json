@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/the-old-prince",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "private": true,
     "type": "module",
     "exports": {
@@ -19,10 +19,10 @@
     ],
     "scripts": {
         "clean": "rimraf esm",
-        "build": "tsgo",
+        "build": "node ../../tools/scripts/write-game-version.cjs src/version.ts && tsgo",
         "check": "tsgo --noEmit",
         "test": "vitest run",
-        "bundle": "rimraf bundle && rollup -c ./rollup.config.ts"
+        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs src/version.ts && rollup -c ./rollup.config.ts"
     },
     "dependencies": {
         "@tabletop/18xx": "workspace:*",

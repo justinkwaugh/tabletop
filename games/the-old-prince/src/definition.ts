@@ -1,4 +1,5 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
+import { GAME_VERSION } from './version.js'
 import { TheOldPrinceEndingRules } from './endingRules.js'
 import { TheOldPrinceStockRoundHandler } from './stockRoundHandler.js'
 import { SplitCompany, HydratedSplitCompany, isSplitCompany } from './splitCompany.js'
@@ -61,7 +62,7 @@ export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState
             minPlayers: 3,
             maxPlayers: 4,
             defaultPlayerCount: 3,
-            version: '0.0.1',
+            version: GAME_VERSION,
             beta: true,
             visibility: GameVisibility.Alpha
         }
