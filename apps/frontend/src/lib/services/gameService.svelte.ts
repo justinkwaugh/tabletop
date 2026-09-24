@@ -30,8 +30,7 @@ import {
     GameStorage,
     GameCategory,
     PlayerStatus,
-    type IsYourTurnNotification,
-    UserNotificationAction
+    isYourTurnNotification
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
@@ -457,7 +456,7 @@ export class GameService implements GameServiceInterface {
     private NotificationListener = async (event: NotificationEvent) => {
         if (isDataEvent(event)) {
             const notification = event.notification
-            if (this.isTurnNotification(notification)) {
+            if (isYourTurnNotification(notification)) {
                 await this.loadGames()
                 return
             }
@@ -477,13 +476,6 @@ export class GameService implements GameServiceInterface {
         } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
             await this.loadGames()
         }
-    }
-
-    private isTurnNotification(notification: Notification): notification is IsYourTurnNotification {
-        return (
-            notification.type === NotificationCategory.User &&
-            notification.action === UserNotificationAction.IsYourTurn
-        )
     }
 
     private isGameNotification(notification: Notification): notification is GameNotification {

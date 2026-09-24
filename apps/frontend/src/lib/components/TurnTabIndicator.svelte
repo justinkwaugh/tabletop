@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { showFaviconVariant } from '$lib/utils/favicon'
+    import { restoreDefaultFavicon, showTurnFavicon } from '$lib/utils/favicon'
 
     let { gameId, gameName }: { gameId: string; gameName: string } = $props()
 
@@ -22,7 +22,7 @@
         if (!isMyTurn) {
             return
         }
-        showFaviconVariant('favicon-turn')
-        return () => showFaviconVariant('favicon')
+        showTurnFavicon()
+        return restoreDefaultFavicon
     })
 </script>

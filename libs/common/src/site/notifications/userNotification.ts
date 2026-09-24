@@ -90,6 +90,15 @@ export const IsYourTurnNotification = Type.Evaluate(
     ])
 )
 
+export function isYourTurnNotification(
+    notification: Notification
+): notification is IsYourTurnNotification {
+    return (
+        notification.type === NotificationCategory.User &&
+        notification.action === UserNotificationAction.IsYourTurn
+    )
+}
+
 export type UserNotification =
     | PlayerJoinedNotification
     | PlayerDeclinedNotification
