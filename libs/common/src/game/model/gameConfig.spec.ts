@@ -35,11 +35,11 @@ describe('presentedBooleanValue', () => {
         expect(presentedBooleanValue(inverted, false)).toBe(true)
     })
 
-    it('falls back to the default for a missing or non-boolean value, then presents that', () => {
+    it('falls back to the default for a missing value, then presents that', () => {
         expect(presentedBooleanValue(plain, undefined)).toBe(false)
         expect(presentedBooleanValue(plain, null)).toBe(false)
         expect(presentedBooleanValue(inverted, undefined)).toBe(false)
-        expect(presentedBooleanValue(inverted, 'yes')).toBe(false)
+        expect(presentedBooleanValue(inverted, null)).toBe(false)
     })
 })
 
@@ -61,8 +61,6 @@ describe('storedBooleanValue', () => {
 })
 
 describe('defaultGameConfig with an inverted option', () => {
-    // The guarantee that existing games are untouched: presentation never reaches storage, so
-    // a fresh game still records the raw default the readers expect.
     it('still records the raw stored default', () => {
         expect(defaultGameConfig([inverted])).toEqual({ publicMoney: true })
     })

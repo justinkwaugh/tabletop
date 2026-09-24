@@ -21,10 +21,8 @@ export const BooleanConfigOption = Type.Object({
     ...BaseConfigOption.properties,
     type: Type.Literal(ConfigOptionType.Boolean),
     default: Type.Boolean(),
-    // Shown to the player as the negation of the stored value, so the toggle can read as the
-    // variant and start off while stored `true` stays the ordinary behaviour. Storage, defaults
-    // and every reader of the config are untouched by it - only presentedBooleanValue and
-    // storedBooleanValue below look at it.
+    // Shown as the negation of the stored value; storage and readers never see it. Interpreted
+    // by the site frontend, so the site must ship before any game artifact that sets it.
     invertPresentation: Type.Optional(Type.Boolean())
 })
 
@@ -104,7 +102,10 @@ export function normalizeGameConfig(config: GameConfig): GameConfig {
     return Object.fromEntries(Object.entries(config).filter(([, value]) => value !== null))
 }
 
-export function presentedBooleanValue(option: BooleanConfigOption, stored: unknown): boolean {
+export function presentedBooleanValue(
+    option: BooleanConfigOption,
+    stored: GameConfig[string] | undefined
+): boolean {
     const value = typeof stored === 'boolean' ? stored : option.default
     return option.invertPresentation ? !value : value
 }

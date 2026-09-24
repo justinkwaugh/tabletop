@@ -1,9 +1,8 @@
 import * as Type from 'typebox'
 import { GameConfigOptions, BooleanConfigOption, ConfigOptionType } from '@tabletop/common'
 
-// All three are presented inverted: the toggle names the variant and starts off, while the
-// stored value keeps its original sense with `true` as the ordinary game. That leaves every
-// existing game record and every `!== false` reader of these keys exactly as they were.
+// All three are presented inverted (see BooleanConfigOption.invertPresentation): the toggle
+// names the variant and starts off, while the stored key keeps `true` as the ordinary game.
 const publicMoneyOption: BooleanConfigOption = {
     id: 'publicMoney',
     type: ConfigOptionType.Boolean,
