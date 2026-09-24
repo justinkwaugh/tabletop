@@ -152,9 +152,14 @@ describe('Mergers auto-pass sequencing', () => {
             return
         }
 
-        state.getPlayerState(announcerId).cash = 203
-        state.getPlayerState(secondBidderId).cash = 214
-        state.getPlayerState(thirdBidderId).cash = 102
+        // Cash follows the merger's value (which depends on the drawn deeds). Nobody can bid past
+        // the second bid: the announcer can only open, the second bidder can only make that bid,
+        // and the third bidder cannot bid at all. So once the others pass, the remaining high
+        // bidder is also unable to raise, which must not queue an auto-pass for them.
+        const secondBid = option.nominalValue + option.bidIncrement
+        state.getPlayerState(announcerId).cash = secondBid + option.bidIncrement - 1
+        state.getPlayerState(secondBidderId).cash = secondBid
+        state.getPlayerState(thirdBidderId).cash = secondBid + option.bidIncrement - 1
 
         const proposeAction = new HydratedProposeMerger(
             createAction(ProposeMerger, {
@@ -191,7 +196,7 @@ describe('Mergers auto-pass sequencing', () => {
                 gameId: state.gameId,
                 source: ActionSource.User,
                 playerId: secondBidderId,
-                amount: option.nominalValue + option.bidIncrement
+                amount: secondBid
             })
         )
         secondBidAction.apply(state, context)
@@ -214,6 +219,23 @@ describe('Mergers auto-pass sequencing', () => {
         state.machineState = nextState
         handler.enter(context)
 
+        // The announcer gets their turn, but cannot outbid the second bidder either.
+        const queuedAnnouncerPass = context.nextPendingAction()
+        expect(queuedAnnouncerPass).toBeDefined()
+        expect(isPassMergerBid(queuedAnnouncerPass)).toBe(true)
+        if (!queuedAnnouncerPass || !isPassMergerBid(queuedAnnouncerPass)) {
+            return
+        }
+        expect(queuedAnnouncerPass.playerId).toBe(announcerId)
+
+        const announcerPass = new HydratedPassMergerBid(queuedAnnouncerPass)
+        announcerPass.apply(state, context)
+        nextState = handler.onAction(announcerPass, context)
+        state.machineState = nextState
+        handler.enter(context)
+
+        // Only the second bidder remains: the merge is queued and no further auto-pass is.
+        expect(context.getPendingActions().some((action) => isPassMergerBid(action))).toBe(false)
         const nextPendingAction = context.nextPendingAction()
         expect(nextPendingAction).toBeDefined()
         expect(isMergeCompanies(nextPendingAction)).toBe(true)
