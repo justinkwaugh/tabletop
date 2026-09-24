@@ -13,7 +13,7 @@ const shown: ShownNotification[] = []
 const posted: unknown[] = []
 const subscribed: PushSubscriptionOptionsInit[] = []
 let subscribeError: Error | undefined
-let permission: NotificationPermission
+let permission: PermissionState
 
 const workerScope = {
     addEventListener: (type: string, listener: Listener) => listeners.set(type, listener),
@@ -22,6 +22,7 @@ const workerScope = {
             shown.push({ title, options })
         },
         pushManager: {
+            permissionState: async () => permission,
             subscribe: async (options: PushSubscriptionOptionsInit) => {
                 if (subscribeError) throw subscribeError
                 subscribed.push(options)
@@ -37,11 +38,6 @@ const workerScope = {
 }
 
 vi.stubGlobal('self', workerScope)
-vi.stubGlobal('Notification', {
-    get permission() {
-        return permission
-    }
-})
 
 await import('../service-worker')
 

@@ -117,10 +117,13 @@ async function generateLocalNotification(
 // A rotation can fire without any tab open; tabs register the new subscription now, or the
 // next page load does through the normal subscribe path.
 async function resubscribeAndNotifyWindows(oldSubscription: PushSubscription | null) {
-    if (globalThis.Notification.permission !== 'granted') {
-        return
-    }
     try {
+        const permission = await sw.registration.pushManager.permissionState({
+            userVisibleOnly: true
+        })
+        if (permission !== 'granted') {
+            return
+        }
         await sw.registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey:
