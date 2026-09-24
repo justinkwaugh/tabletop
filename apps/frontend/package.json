@@ -13,7 +13,7 @@
         "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
         "lint": "eslint .",
         "test:integration": "playwright test",
-        "test:unit": "vitest"
+        "test:unit": "vitest run && vitest run --config vitest.runes.config.ts"
     },
     "dependencies": {
         "@tabletop/common": "workspace:*",

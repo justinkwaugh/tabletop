@@ -3,16 +3,12 @@ import { Role, UserStatus, type User } from '@tabletop/common'
 import { TabletopApi } from '@tabletop/frontend-components'
 import { invalidateAll } from '$app/navigation'
 import { AuthorizationService } from './authorizationService.svelte.js'
+import { stubLocalStorage } from '$lib/test/localStorageStub'
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
 
 beforeEach(() => {
-    const entries = new Map<string, string>()
-    vi.stubGlobal('localStorage', {
-        getItem: (key: string) => entries.get(key) ?? null,
-        setItem: (key: string, value: string) => entries.set(key, value),
-        removeItem: (key: string) => entries.delete(key)
-    })
+    stubLocalStorage()
     vi.mocked(invalidateAll).mockClear()
 })
 
