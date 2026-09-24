@@ -68,6 +68,6 @@ describe('Fresh Fish Game Board Tests', () => {
         const dehydrated = board.dehydrate()
         console.log(dehydrated)
         expect(dehydrated.cells.length).toEqual(3)
-        expect((dehydrated as any).internalGraph).toBeUndefined()
+        expect((dehydrated as Record<string, unknown>).internalGraph).toBeUndefined()
     })
 })

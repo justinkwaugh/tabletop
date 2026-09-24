@@ -89,13 +89,14 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         }
 
         if (!rep.sent) {
-            const anyError = error as any
+            // Fastify passes whatever was thrown; it is almost always an Error
+            const thrown = error as Partial<Error> & Record<string, unknown>
             const outError = {
                 // Pull all enumerable properties, supporting properties on custom Errors
-                ...anyError,
+                ...thrown,
                 // Explicitly pull Error's non-enumerable properties
-                name: anyError.name,
-                message: anyError.message
+                name: thrown.name,
+                message: thrown.message
             }
             await rep.send({ status: 'error', error: outError })
         }

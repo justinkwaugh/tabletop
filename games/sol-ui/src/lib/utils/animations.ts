@@ -208,7 +208,7 @@ export function animate({
     onComplete
 }: {
     object?: SVGElement | HTMLElement
-    params?: object
+    params?: gsap.TweenVars
     duration?: number
     ease?: gsap.EaseString | gsap.EaseFunction
     position?: gsap.Position
@@ -269,7 +269,7 @@ function performAnimation({
     timeline
 }: {
     object?: SVGElement | HTMLElement
-    params?: any
+    params: gsap.TweenVars
     position?: gsap.Position
     timeline?: gsap.core.Timeline
 }): gsap.core.Timeline | undefined {

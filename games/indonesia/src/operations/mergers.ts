@@ -1,4 +1,4 @@
-import { HydratedAuction } from '@tabletop/common'
+import { HydratedAuction, type Auction } from '@tabletop/common'
 import {
     Company,
     isProductionCompany,
@@ -366,7 +366,7 @@ export function buildMergerBidOrder(
     return bidOrder
 }
 
-export function highestBidderId(auction: HydratedAuction<any>): string | null {
+export function highestBidderId(auction: Auction): string | null {
     const highBid = auction.highBid
     if (highBid === undefined) {
         return null
@@ -380,14 +380,14 @@ export function highestBidderId(auction: HydratedAuction<any>): string | null {
     return participant.playerId
 }
 
-export function activeAuctionParticipantCount(auction: HydratedAuction<any>): number {
+export function activeAuctionParticipantCount(auction: Auction): number {
     return auction.participants.filter((participant) => !participant.passed).length
 }
 
 export function nextMergerBidderId(
     bidOrder: readonly string[],
     currentBidderId: string,
-    auction: HydratedAuction<any>
+    auction: Auction
 ): string | null {
     if (bidOrder.length === 0) {
         return null
