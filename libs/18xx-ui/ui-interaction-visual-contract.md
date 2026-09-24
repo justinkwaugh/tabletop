@@ -1661,10 +1661,10 @@ has no 18xx dependency; its v1 saved layout format remains unchanged.
 Auction history headers use a subtle 15% tint of the offering player’s color over
 the theme surface; auction names have no dots. Auction history cards have no outer
 border and use square corners, including the tinted header. Each player-attributed
-stock-round action and pass has its own line with the player's name in the same
-regular-weight typography as the description, no dot or colon, and a 15% tint of
-that player's color over the theme surface. Values in these lines are also regular
-weight. A player-attributed stock description starts with a lowercase verb after
+stock-round action and pass has its own line, untinted, with the player's name as a
+medium-weight rounded badge: a 45% mix of that player's color over the theme surface
+behind the name only, with no dot or colon. The description and its values stay
+regular weight. A player-attributed stock description starts with a lowercase verb after
 the player name. History descriptions use full company names unless a title provides a
 history-specific name. Automatic flotation names the company without a player
 name or player tint and places its company token beside both the flotation

@@ -160,14 +160,12 @@
 >
     {#if group.kind === 'passes'}
         <div class="passes">
-            {#each group.actions as action (action.id)}<div
-                    class="history-entry stock-action"
-                    class:player-tinted-header={!!action.playerId}
-                    style:--player-color={action.playerId
-                        ? playerColor(action.playerId)
-                        : undefined}
-                >
-                    {#if action.playerId}{playerName(action.playerId)}{' '}{/if}passed
+            {#each group.actions as action (action.id)}<div class="history-entry stock-action">
+                    {#if action.playerId}<span
+                            class="player-tinted-name"
+                            style:--player-color={playerColor(action.playerId)}
+                            >{playerName(action.playerId)}</span
+                        >{' '}{/if}passed
                 </div>{/each}
         </div>
     {:else if group.kind === 'turn'}
@@ -175,10 +173,6 @@
             <div class="stock-row">
                 <div
                     class="history-entry stock-action"
-                    class:player-tinted-header={!!row.stockPlayerId}
-                    style:--player-color={row.stockPlayerId
-                        ? playerColor(row.stockPlayerId)
-                        : undefined}
                     class:phase-change={!!row.phase}
                     class:flotation={isFloatCompany(row.action)}
                     style:--phase-color={row.phase?.color}
@@ -193,7 +187,11 @@
                                 size={23}
                             /></span
                         >{/if}
-                    {#if row.stockPlayerId}<span>{playerName(row.stockPlayerId)}</span>{' '}{/if}
+                    {#if row.stockPlayerId}<span
+                            class="player-tinted-name"
+                            style:--player-color={playerColor(row.stockPlayerId)}
+                            >{playerName(row.stockPlayerId)}</span
+                        >{' '}{/if}
                     <span
                         >{row.stockPlayerId
                             ? row.text.charAt(0).toLowerCase() + row.text.slice(1)
@@ -350,9 +348,6 @@
     }
     .stock-action.flotation > small {
         grid-column: 2;
-    }
-    .stock-action.player-tinted-header {
-        background: var(--player-tinted-background);
     }
     .stock-value {
         font-variant-numeric: tabular-nums;

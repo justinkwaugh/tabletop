@@ -12,7 +12,7 @@ test('compact stock rows and operating groups retain details and action navigati
     })
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const stockRound = page.getByRole('list', { name: 'SR 6 actions', exact: true })
-    const playerLines = stockRound.locator('.stock-action.player-tinted-header')
+    const playerLines = stockRound.locator('.stock-action:has(.player-tinted-name)')
     expect(await playerLines.count()).toBeGreaterThan(1)
     const firstLine = playerLines.first()
     await expect(firstLine).toContainText(/^\s*Player \d+\s+\S/)
@@ -20,27 +20,30 @@ test('compact stock rows and operating groups retain details and action navigati
     await expect(
         page
             .getByRole('list', { name: 'Action history', exact: true })
-            .locator('.stock-action.player-tinted-header')
+            .locator('.stock-action:has(.player-tinted-name)')
             .filter({ hasText: /bought 1/ })
             .first()
     ).toContainText(/Player \d+\s+bought 1/)
     await expect(firstLine.locator('.color-dot')).toHaveCount(0)
     const typography = await firstLine.evaluate((line) => {
-        const name = line.querySelector('span')
+        const name = line.querySelector('.player-tinted-name')
         const description = name?.nextElementSibling
         return {
-            name: name && `${getComputedStyle(name).fontSize} ${getComputedStyle(name).fontWeight}`,
-            description:
-                description &&
-                `${getComputedStyle(description).fontSize} ${getComputedStyle(description).fontWeight}`,
-            background: getComputedStyle(line).backgroundColor
+            nameSize: name && getComputedStyle(name).fontSize,
+            nameWeight: name && getComputedStyle(name).fontWeight,
+            nameBackground: name && getComputedStyle(name).backgroundColor,
+            descriptionSize: description && getComputedStyle(description).fontSize,
+            descriptionWeight: description && getComputedStyle(description).fontWeight,
+            lineBackground: getComputedStyle(line).backgroundColor
         }
     })
-    expect(typography.name).toBe(typography.description)
-    expect(typography.name).toMatch(/ 400$/)
-    expect(typography.background).not.toBe('rgba(0, 0, 0, 0)')
+    expect(typography.nameSize).toBe(typography.descriptionSize)
+    expect(typography.nameWeight).toBe('500')
+    expect(typography.descriptionWeight).toBe('400')
+    expect(typography.nameBackground).not.toBe('rgba(0, 0, 0, 0)')
+    expect(typography.lineBackground).toBe('rgba(0, 0, 0, 0)')
     await expect(stockRound.locator('.stock-action strong')).toHaveCount(0)
-    const passes = stockRound.locator('.passes .stock-action.player-tinted-header')
+    const passes = stockRound.locator('.passes .stock-action:has(.player-tinted-name)')
     expect(await passes.count()).toBeGreaterThan(0)
     await expect(passes.first()).toHaveText(/^Player \d+ passed$/)
     await expect(passes.first().locator('.color-dot')).toHaveCount(0)
@@ -51,7 +54,7 @@ test('compact stock rows and operating groups retain details and action navigati
         .first()
     await expect(flotation).toContainText('floated')
     await expect(flotation).not.toContainText(/Player \d/)
-    await expect(flotation).not.toHaveClass(/player-tinted-header/)
+    await expect(flotation.locator('.player-tinted-name')).toHaveCount(0)
     await expect(
         page
             .getByRole('list', { name: 'Action history', exact: true })
