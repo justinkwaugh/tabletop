@@ -8,7 +8,7 @@ import {
 export type DiscordNotificationContext = {
     frontendHost: string
     gameTitle?: string
-    coverImageUrl?: string
+    thumbnailUrl?: string
     sentAt: Date
 }
 
@@ -23,6 +23,13 @@ type NotificationCopy = {
 const SITE_NAME = 'BoardTogether'
 const DASHBOARD_PATH = '/dashboard'
 
+// Discord rejects the whole message when any of these fields is over its limit.
+const Limit = {
+    Content: 2000,
+    EmbedTitle: 256,
+    EmbedAuthorName: 256
+} as const
+
 const Color = {
     Turn: 0x22c55e,
     Started: 0x3b82f6,
@@ -36,19 +43,21 @@ export function discordNotificationMessage(
     context: DiscordNotificationContext
 ): RESTPostAPIChannelMessageJSONBody {
     const copy = notificationCopy(notification)
-    const url = `${context.frontendHost}${copy.path}`
+    const url = siteUrl(copy.path, context.frontendHost)
 
     return {
         // Push notifications show only the plain content, never the embed.
-        content: copy.summary,
+        content: truncate(copy.summary, Limit.Content),
         embeds: [
             {
-                author: { name: copy.heading },
-                title: notification.data.game.name,
+                author: { name: truncate(copy.heading, Limit.EmbedAuthorName) },
+                title: truncate(notification.data.game.name, Limit.EmbedTitle),
                 url,
                 description: context.gameTitle,
                 color: copy.color,
-                thumbnail: context.coverImageUrl ? { url: context.coverImageUrl } : undefined,
+                thumbnail: context.thumbnailUrl
+                    ? { url: siteUrl(context.thumbnailUrl, context.frontendHost) }
+                    : undefined,
                 footer: { text: SITE_NAME },
                 timestamp: context.sentAt.toISOString()
             }
@@ -116,4 +125,12 @@ function notificationCopy(notification: UserNotification): NotificationCopy {
                 buttonLabel: 'Open dashboard'
             }
     }
+}
+
+function siteUrl(pathOrUrl: string, frontendHost: string): string {
+    return new URL(pathOrUrl, frontendHost).href
+}
+
+function truncate(text: string, maxLength: number): string {
+    return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text
 }

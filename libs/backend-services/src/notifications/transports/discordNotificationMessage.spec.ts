@@ -22,7 +22,7 @@ describe('discordNotificationMessage', () => {
         const message = discordNotificationMessage(notification, {
             frontendHost: 'https://example.com',
             gameTitle: 'Löwenherz',
-            coverImageUrl: 'https://example.com/games/lowenherz/cover.jpg',
+            thumbnailUrl: '/games/lowenherz/ui/2.5.0/assets/cover.jpg',
             sentAt
         })
 
@@ -35,7 +35,9 @@ describe('discordNotificationMessage', () => {
                     url: 'https://example.com/game/game-1',
                     description: 'Löwenherz',
                     color: 0x22c55e,
-                    thumbnail: { url: 'https://example.com/games/lowenherz/cover.jpg' },
+                    thumbnail: {
+                        url: 'https://example.com/games/lowenherz/ui/2.5.0/assets/cover.jpg'
+                    },
                     footer: { text: 'BoardTogether' },
                     timestamp: '2026-09-24T21:14:00.000Z'
                 }
@@ -80,5 +82,40 @@ describe('discordNotificationMessage', () => {
         expect(message.components?.[0]).toMatchObject({
             components: [{ label: 'View invitation', url: 'https://example.com/dashboard' }]
         })
+    })
+
+    it('keeps a cover that is already a full URL', () => {
+        const notification: UserNotification = {
+            id: 'n-3',
+            type: NotificationCategory.User,
+            action: UserNotificationAction.GameStarted,
+            data: { user: { id: 'u-1' }, game }
+        }
+
+        const message = discordNotificationMessage(notification, {
+            frontendHost: 'https://example.com',
+            thumbnailUrl: 'https://images.example.org/cover.jpg',
+            sentAt
+        })
+
+        expect(message.embeds?.[0].thumbnail).toEqual({
+            url: 'https://images.example.org/cover.jpg'
+        })
+    })
+
+    it('shortens a game name that is longer than an embed title allows', () => {
+        const notification: UserNotification = {
+            id: 'n-4',
+            type: NotificationCategory.User,
+            action: UserNotificationAction.IsYourTurn,
+            data: { user: { id: 'u-1' }, game: { ...game, name: 'x'.repeat(300) } }
+        }
+
+        const message = discordNotificationMessage(notification, {
+            frontendHost: 'https://example.com',
+            sentAt
+        })
+
+        expect(message.embeds?.[0].title).toBe(`${'x'.repeat(255)}…`)
     })
 })

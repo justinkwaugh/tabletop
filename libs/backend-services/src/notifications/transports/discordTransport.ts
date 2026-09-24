@@ -1,8 +1,12 @@
 import { SecretsService } from '../../secrets/secretsService.js'
-import { Notification, NotificationCategory, UserNotification } from '@tabletop/common'
+import {
+    GameCatalogEntry,
+    Notification,
+    NotificationCategory,
+    UserNotification
+} from '@tabletop/common'
 
 import { CatalogService } from '../../games/catalogService.js'
-import { GameService } from '../../games/gameService.js'
 import { LibraryService } from '../../games/libraryService.js'
 import { DiscordSubscription } from '../subscriptions/discordSubscription.js'
 import {
@@ -26,7 +30,6 @@ export class DiscordTransport implements NotificationTransport {
     private dmCache: Map<string, string> = new Map()
 
     constructor(
-        private readonly gameService: GameService,
         private readonly libraryService: LibraryService,
         private readonly catalogService: CatalogService,
         private readonly botToken: string
@@ -34,12 +37,11 @@ export class DiscordTransport implements NotificationTransport {
 
     static async createDiscordTransport(
         secretsService: SecretsService,
-        gameService: GameService,
         libraryService: LibraryService,
         catalogService: CatalogService
     ): Promise<DiscordTransport> {
         const botToken = await secretsService.getSecret('DISCORD_BOT_TOKEN')
-        return new DiscordTransport(gameService, libraryService, catalogService, botToken)
+        return new DiscordTransport(libraryService, catalogService, botToken)
     }
 
     async sendNotification(
@@ -131,11 +133,11 @@ export class DiscordTransport implements NotificationTransport {
             return
         }
 
-        const typeId = notification.data.game.typeId
+        const catalogEntry = await this.catalogEntry(notification.data.game.typeId)
         return discordNotificationMessage(notification, {
             frontendHost: FRONTEND_HOST,
-            gameTitle: this.gameTitle(typeId),
-            coverImageUrl: await this.coverImageUrl(typeId),
+            gameTitle: catalogEntry?.metadata.name,
+            thumbnailUrl: catalogEntry?.thumbnailUrl,
             sentAt: new Date()
         })
     }
@@ -144,14 +146,14 @@ export class DiscordTransport implements NotificationTransport {
         return notification.type === NotificationCategory.User
     }
 
-    private gameTitle(typeId: string): string | undefined {
-        return this.gameService.getTitle(typeId)?.info.metadata.name
-    }
-
-    private async coverImageUrl(typeId: string): Promise<string | undefined> {
-        const manifest = await this.libraryService.getManifest()
-        const catalog = await this.catalogService.getCatalog(manifest)
-        const thumbnailUrl = catalog.find((entry) => entry.id === typeId)?.thumbnailUrl
-        return thumbnailUrl && `${FRONTEND_HOST}${thumbnailUrl}`
+    private async catalogEntry(typeId: string): Promise<GameCatalogEntry | undefined> {
+        try {
+            const manifest = await this.libraryService.getManifest()
+            const catalog = await this.catalogService.getCatalog(manifest)
+            return catalog.find((entry) => entry.id === typeId)
+        } catch (error) {
+            console.error('Could not load the game catalog for a Discord notification', error)
+            return undefined
+        }
     }
 }

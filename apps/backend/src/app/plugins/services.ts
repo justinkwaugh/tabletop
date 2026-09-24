@@ -130,7 +130,6 @@ export default fp(async (fastify: FastifyInstance) => {
     if (process.env['DISCORD_BOT_TOKEN']) {
         const discordTransport = await DiscordTransport.createDiscordTransport(
             secretsService,
-            gameService,
             libraryService,
             catalogService
         )
