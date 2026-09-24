@@ -1,4 +1,10 @@
-import { ConfigOptionType, type GameConfig, type GameConfigOptions } from '@tabletop/common'
+import {
+    ConfigOptionType,
+    isBooleanConfigOption,
+    presentedBooleanValue,
+    type GameConfig,
+    type GameConfigOptions
+} from '@tabletop/common'
 
 export function configuredGameOptions(config: GameConfig, definitions: GameConfigOptions) {
     return Object.entries(config).map(([id, value]) => {
@@ -7,17 +13,21 @@ export function configuredGameOptions(config: GameConfig, definitions: GameConfi
             option?.type === ConfigOptionType.List
                 ? option.options.find((choice) => choice.value === value)?.name
                 : undefined
+        const shown =
+            option && isBooleanConfigOption(option) && typeof value === 'boolean'
+                ? presentedBooleanValue(option, value)
+                : value
         return {
             name: option?.name ?? id,
             value:
                 selected ??
-                (typeof value === 'boolean'
-                    ? value
+                (typeof shown === 'boolean'
+                    ? shown
                         ? 'Yes'
                         : 'No'
-                    : value === null
+                    : shown === null
                       ? 'None'
-                      : String(value))
+                      : String(shown))
         }
     })
 }

@@ -26,12 +26,12 @@ async function createPrivateMoneyGame(page: Page) {
     await page
         .getByPlaceholder('optional reproduction seed')
         .fill('0123456789abcdef0123456789abcdef')
+    // Both toggles present their variant and start off; switching one on stores `false`.
     for (const id of ['publicMoney', 'playerPlacedCastles']) {
-        await page
-            .locator('label')
-            .filter({ has: page.locator(`#${id}`) })
-            .click()
-        await expect(page.locator(`#${id}`)).not.toBeChecked()
+        const toggle = page.locator(`#${id}`)
+        await expect(toggle).not.toBeChecked()
+        await page.locator('label').filter({ has: toggle }).click()
+        await expect(toggle).toBeChecked()
     }
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)

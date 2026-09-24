@@ -20,7 +20,12 @@ export type BooleanConfigOption = Type.Static<typeof BooleanConfigOption>
 export const BooleanConfigOption = Type.Object({
     ...BaseConfigOption.properties,
     type: Type.Literal(ConfigOptionType.Boolean),
-    default: Type.Boolean()
+    default: Type.Boolean(),
+    // Shown to the player as the negation of the stored value, so the toggle can read as the
+    // variant and start off while stored `true` stays the ordinary behaviour. Storage, defaults
+    // and every reader of the config are untouched by it - only presentedBooleanValue and
+    // storedBooleanValue below look at it.
+    invertPresentation: Type.Optional(Type.Boolean())
 })
 
 export type ListConfigOption = Type.Static<typeof ListConfigOption>
@@ -97,4 +102,13 @@ export function defaultGameConfig(options: GameConfigOptions): GameConfig {
 
 export function normalizeGameConfig(config: GameConfig): GameConfig {
     return Object.fromEntries(Object.entries(config).filter(([, value]) => value !== null))
+}
+
+export function presentedBooleanValue(option: BooleanConfigOption, stored: unknown): boolean {
+    const value = typeof stored === 'boolean' ? stored : option.default
+    return option.invertPresentation ? !value : value
+}
+
+export function storedBooleanValue(option: BooleanConfigOption, presented: boolean): boolean {
+    return option.invertPresentation ? !presented : presented
 }

@@ -68,4 +68,29 @@ describe('configured game options', () => {
         ])
         expect(gameCardOptions({ expert: true }, [])).toEqual([])
     })
+    it('shows an inverted option as the variant while hiding on the stored default', () => {
+        const definitions: GameConfigOptions = [
+            {
+                id: 'publicMoney',
+                name: 'Private money',
+                description: '',
+                type: ConfigOptionType.Boolean,
+                default: true,
+                invertPresentation: true
+            }
+        ]
+        expect(configuredGameOptions({ publicMoney: true }, definitions)).toEqual([
+            { name: 'Private money', value: 'No' }
+        ])
+        expect(configuredGameOptions({ publicMoney: false }, definitions)).toEqual([
+            { name: 'Private money', value: 'Yes' }
+        ])
+        expect(gameCardOptions(defaultGameConfig(definitions), definitions)).toEqual([])
+        expect(gameCardOptions({ publicMoney: false }, definitions)).toEqual([
+            { name: 'Private money', value: 'Yes' }
+        ])
+        expect(
+            gameCardOptions({ publicMoney: true }, [{ ...definitions[0], alwaysShow: true }])
+        ).toEqual([{ name: 'Private money', value: 'No' }])
+    })
 })

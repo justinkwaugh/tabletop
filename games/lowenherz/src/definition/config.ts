@@ -1,12 +1,16 @@
 import * as Type from 'typebox'
 import { GameConfigOptions, BooleanConfigOption, ConfigOptionType } from '@tabletop/common'
 
+// All three are presented inverted: the toggle names the variant and starts off, while the
+// stored value keeps its original sense with `true` as the ordinary game. That leaves every
+// existing game record and every `!== false` reader of these keys exactly as they were.
 const publicMoneyOption: BooleanConfigOption = {
     id: 'publicMoney',
     type: ConfigOptionType.Boolean,
-    name: 'Public Money',
-    description: 'Turn off to keep balances private until game end. Exploration then requires Debug or Admin access to complete state.',
-    default: true
+    name: 'Private money',
+    description: 'Keep balances private until the end of the game.',
+    default: true,
+    invertPresentation: true
 }
 
 // The rulebook's two ways to start a game: "variable construction rules" (each player
@@ -14,29 +18,31 @@ const publicMoneyOption: BooleanConfigOption = {
 // flow - the A-lettered action cards are shuffled in on top since they're only used
 // with this mode) versus the "basic game" (a fixed board/castle/knight/wall layout
 // exactly as printed in the rulebook's setup diagram, skipping manual placement
-// entirely and discarding the A-lettered cards, starting from B instead). Defaults to
+// entirely and discarding the A-lettered cards, starting from B instead). Stored as
 // on (player-placed), matching this implementation's only mode before this option
-// existed.
+// existed; presented as the standard setup being switched on.
 const playerPlacedCastlesOption: BooleanConfigOption = {
     id: 'playerPlacedCastles',
     type: ConfigOptionType.Boolean,
-    name: 'Player-Placed Castles',
+    name: 'Standard rulebook setup',
     description:
-        'Allow the players to place their own castles and knights. Turn off to begin with the standard setup in the rulebook. Ignored in a 2-player game, whose variant is built on player placement (4 castles each, plus 2 of a neutral color).',
-    default: true
+        'Begin from the fixed board layout printed in the rulebook instead of players placing their own castles and knights. Ignored in a 2-player game, whose variant is built on player placement.',
+    default: true,
+    invertPresentation: true
 }
 
 // The rulebook settles a tie by having the two princes bargain, and a bargain in which
 // nothing changes hands is not much of one - so an offer has to move at least a single
-// ducat. Turning this off allows a zero-ducat offer, which is really a way of saying
-// "you take it, I want nothing", reached through the same propose/accept exchange
-// rather than by declining into a duel.
+// ducat. Allowing a zero-ducat offer is really a way of saying "you take it, I want
+// nothing", reached through the same propose/accept exchange rather than by declining
+// into a duel.
 const minimumOneDucatOption: BooleanConfigOption = {
     id: 'minimumOneDucat',
     type: ConfigOptionType.Boolean,
-    name: 'One or more ducats during negotiation',
-    description: 'Turn off to allow offers of zero ducats during negotiations.',
-    default: true
+    name: 'Allow zero-ducat offers',
+    description: 'Allow negotiation offers of zero ducats.',
+    default: true,
+    invertPresentation: true
 }
 
 export type LowenherzGameConfig = Type.Static<typeof LowenherzGameConfig>

@@ -16,6 +16,8 @@
         getTitleVisibility,
         defaultGameConfig,
         normalizeGameConfig,
+        presentedBooleanValue,
+        storedBooleanValue,
         type GameCreationOptions,
         assertExists,
         BooleanConfigOption,
@@ -127,7 +129,7 @@
     function onOptionChange(option: ConfigOption, event: Event) {
         let value: string | boolean | number | null | undefined = undefined
         if (isBooleanConfigOption(option)) {
-            value = (event.target as HTMLInputElement).checked
+            value = storedBooleanValue(option, (event.target as HTMLInputElement).checked)
         } else if (isListConfigOption(option)) {
             value = (event.target as HTMLSelectElement).value
         } else if (isStringInputConfigOption(option)) {
@@ -314,7 +316,7 @@
     <Toggle
         onchange={(event: Event) => onOptionChange(option, event)}
         id={option.id}
-        checked={(config[option.id] as boolean) ?? option.default}
+        checked={presentedBooleanValue(option, config[option.id])}
         ><div class="flex flex-col leading-tight justify-center items-start">
             {option.name}
             <Helper class="text-[.65rem] dark:text-gray-400 leading-tight">

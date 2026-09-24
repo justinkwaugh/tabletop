@@ -18,6 +18,8 @@
         getMiniTournamentDefaults,
         miniTournamentDefaults,
         ConfigOptionType,
+        presentedBooleanValue,
+        storedBooleanValue,
         type Tournament,
         type TournamentDraft,
         type GameConfig,
@@ -226,9 +228,12 @@
                         {#if option.type === ConfigOptionType.Boolean}
                             <Toggle
                                 id={`tournament-option-${option.id}`}
-                                checked={config[option.id] === true}
+                                checked={presentedBooleanValue(option, config[option.id])}
                                 onchange={(event) =>
-                                    updateOption(option, event.currentTarget.checked)}
+                                    updateOption(
+                                        option,
+                                        storedBooleanValue(option, event.currentTarget.checked)
+                                    )}
                             >
                                 <div class="flex flex-col items-start leading-tight">
                                     {option.name}
