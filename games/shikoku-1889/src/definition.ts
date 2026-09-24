@@ -1,4 +1,5 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
+import { GAME_VERSION } from './version.js'
 import { Shikoku1889EndingRules } from './endingRules.js'
 import { Shikoku1889AuctionRules, createShikoku1889Opening } from './openingAuction.js'
 import { Shikoku1889TrainFundingRules } from './trainFundingRules.js'
@@ -54,7 +55,7 @@ export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState
             minPlayers: 2,
             maxPlayers: 6,
             defaultPlayerCount: 3,
-            version: '0.0.1',
+            version: GAME_VERSION,
             beta: true
         }
     },
