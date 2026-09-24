@@ -155,6 +155,10 @@ export class NotificationService {
 
     onMounted() {
         this.mounted = true
+        // Service workers are unavailable in insecure contexts
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', this.handleServiceWorkerMessage)
+        }
     }
 
     isUserChannelReady(): boolean {
@@ -224,6 +228,14 @@ export class NotificationService {
         } catch (e) {
             console.error('Failed to unsubscribe from push notifications', e)
         }
+    }
+
+    private handleServiceWorkerMessage = async (event: MessageEvent) => {
+        await this.handleEvent({
+            type: RealtimeEventType.Data,
+            channel: NotificationChannel.User,
+            data: event.data
+        })
     }
 
     private handleEvent = async (event: RealtimeEvent) => {

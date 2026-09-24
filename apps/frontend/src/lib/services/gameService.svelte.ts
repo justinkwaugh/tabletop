@@ -29,7 +29,9 @@ import {
     GameForkError,
     GameStorage,
     GameCategory,
-    PlayerStatus
+    PlayerStatus,
+    type IsYourTurnNotification,
+    UserNotificationAction
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
@@ -124,6 +126,15 @@ export class GameService implements GameServiceInterface {
     ) {
         notificationService.addListener(this.NotificationListener)
         this.localGameStore = new IndexedDbGameStore()
+    }
+
+    isSessionUsersTurn(gameId: string): boolean {
+        const game = this.gamesById.get(gameId)
+        return (
+            game !== undefined &&
+            !game.hotseat &&
+            isUsersGameTurn(game, this.authorizationService.getSessionUser()?.id)
+        )
     }
 
     async hasActiveGames() {
@@ -447,6 +458,10 @@ export class GameService implements GameServiceInterface {
     private NotificationListener = async (event: NotificationEvent) => {
         if (isDataEvent(event)) {
             const notification = event.notification
+            if (this.isTurnNotification(notification)) {
+                await this.loadGames()
+                return
+            }
             if (!this.isGameNotification(notification)) {
                 return
             }
@@ -463,6 +478,13 @@ export class GameService implements GameServiceInterface {
         } else if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
             await this.loadGames()
         }
+    }
+
+    private isTurnNotification(notification: Notification): notification is IsYourTurnNotification {
+        return (
+            notification.type === NotificationCategory.User &&
+            notification.action === UserNotificationAction.IsYourTurn
+        )
     }
 
     private isGameNotification(notification: Notification): notification is GameNotification {
