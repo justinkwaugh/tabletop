@@ -8,6 +8,6 @@ export default defineProject({
     test: {
         name: '18xx-ui-runes',
         include: ['src/**/*.svelte.spec.ts'],
-        environment: './test/clientRunesEnvironment.ts'
+        environment: '../../config/config-vitest/clientRunesEnvironment.ts'
     }
 })

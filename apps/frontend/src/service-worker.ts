@@ -11,6 +11,9 @@ import {
     type IsYourTurnNotification,
     isYourTurnNotification
 } from '@tabletop/common'
+import { PUBLIC_VAPID_KEY } from '$env/static/public'
+import { pushSubscriptionChangedMessage } from '$lib/network/pushSubscriptionChangedMessage'
+import { applicationServerKeyFromVapid } from '$lib/network/applicationServerKey'
 
 const sw = self as unknown as ServiceWorkerGlobalScope
 
@@ -36,6 +39,10 @@ sw.addEventListener('push', async (event) => {
     } catch (e) {
         console.error('Error handling push data', e)
     }
+})
+
+sw.addEventListener('pushsubscriptionchange', (event) => {
+    event.waitUntil(resubscribeAndNotifyWindows(event.oldSubscription))
 })
 
 sw.addEventListener('notificationclick', async (event) => {
@@ -105,6 +112,29 @@ async function generateLocalNotification(
     if (title && options) {
         return { title, options }
     }
+}
+
+// A rotation can fire without any tab open; tabs register the new subscription now, or the
+// next page load does through the normal subscribe path.
+async function resubscribeAndNotifyWindows(oldSubscription: PushSubscription | null) {
+    if (globalThis.Notification.permission !== 'granted') {
+        return
+    }
+    try {
+        await sw.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey:
+                oldSubscription?.options.applicationServerKey ??
+                applicationServerKeyFromVapid(PUBLIC_VAPID_KEY)
+        })
+    } catch (e) {
+        console.error('Error resubscribing after push subscription change', e)
+        return
+    }
+    const windows = await findWindows()
+    windows.forEach((client) =>
+        client.postMessage(pushSubscriptionChangedMessage(oldSubscription?.endpoint))
+    )
 }
 
 async function forwardToWindows(notification: IsYourTurnNotification) {
