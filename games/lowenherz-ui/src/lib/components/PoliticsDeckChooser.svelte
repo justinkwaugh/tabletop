@@ -189,16 +189,11 @@
         activeResolve = undefined
         if (destroyed) return
 
-        // Measured where the deck actually came to rest, rather than reused from the point the
-        // slide was aimed at: the two part company if the row is resized while the exit plays -
-        // a phone rotating - since the tween above is still carrying the deck to a distance
-        // computed against the old layout. Measuring the element itself is right either way,
-        // and the deal has to start from where the deck visibly is.
-        const restingRect = clickedEl.getBoundingClientRect()
-        gameSession.politicsPileOrigin = {
-            x: restingRect.left + restingRect.width / 2,
-            y: restingRect.top + restingRect.height / 2
-        }
+        // The deck element itself, not its rect: it goes on holding this slot until the cards
+        // are ready, so where it is gets decided when the deal starts rather than here (see
+        // GameSession.politicsPileOrigin). A row resized in between - a phone rotating - moves
+        // the deck, and a rect captured now would not have moved with it.
+        gameSession.setPoliticsPileOriginElement(clickedEl)
         gameSession.politicsRowWidth = rowEl?.getBoundingClientRect().width
 
         // Dispatched once the exit has played, not alongside it. LookAtPoliticsPile is a

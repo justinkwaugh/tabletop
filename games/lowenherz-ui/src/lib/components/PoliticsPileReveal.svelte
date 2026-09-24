@@ -23,7 +23,7 @@
     // Real server state (LookAtPoliticsPile), not local UI state - survives reload/undo. See
     // GameSession.selectedPoliticsPile's own comment for why that matters. Rendered above the
     // board (see GameTable.svelte), right where PoliticsDeckChooser sat before a deck was picked -
-    // politicsPileOrigin (below) is whichever deck card in that chooser was clicked, so the deal
+    // the origin (below) is whichever deck card in that chooser was clicked, so the deal
     // reads as that same deck flying open in place.
     const pile = $derived(gameSession.selectedPoliticsPile)
     const cards = $derived(
@@ -40,9 +40,11 @@
     // it was last set to across a `pile` transition - and since `pile` is only ever 'A' or
     // 'undefined' or 'B', a stale measurement from a PREVIOUS 'A' reveal would satisfy an
     // `=== pile` check just as well as a fresh one for a new 'A' reveal, without actually being
-    // one. politicsPileOrigin is a fresh object every single time PoliticsDeckChooser hands off a
-    // new choice (see that component's own choosePile), so comparing THAT by reference is what
-    // actually tells two reveals of the same letter apart.
+    // one. politicsPileOriginSource is a fresh handle every single time PoliticsDeckChooser hands
+    // off a new choice - the deck element of that choice, its block having been remounted since
+    // the last one - so comparing THAT by reference is what actually tells two reveals of the
+    // same letter apart. The source rather than the resolved point, which is measured per read
+    // and so is a different object every time (see GameSession.politicsPileOrigin).
     //
     // Measured with a plain ResizeObserver in an attachment rather than bind:clientWidth for the
     // same reason: bind:clientWidth's first callback only fires a frame or more after mount, by
@@ -64,10 +66,10 @@
     }
 
     let measuredWidth: number = $state(0)
-    let measuredWidthOrigin: { x: number; y: number } | undefined = $state(undefined)
+    let measuredWidthOrigin: unknown = $state(undefined)
 
     function measureWidth(el: HTMLElement) {
-        const origin = gameSession.politicsPileOrigin
+        const origin = gameSession.politicsPileOriginSource
         const observer = new ResizeObserver((entries) => {
             const entry = entries[0]
             if (!entry) return
@@ -79,7 +81,7 @@
     }
 
     const rowWidth = $derived(
-        measuredWidthOrigin === gameSession.politicsPileOrigin && measuredWidth > 0
+        measuredWidthOrigin === gameSession.politicsPileOriginSource && measuredWidth > 0
             ? measuredWidth
             : (gameSession.politicsRowWidth ?? 0)
     )
