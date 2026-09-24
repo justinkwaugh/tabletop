@@ -37,6 +37,11 @@ async function createPrivateMoneyGame(page: Page) {
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
     await expect.poll(() => page.evaluate(() => !!window.lowenherzSession)).toBe(true)
+    // What the toggles actually saved: the two switched on store `false`, the untouched one keeps
+    // its raw default - the presentation is inverted, the stored sense is not.
+    await expect
+        .poll(() => page.evaluate(() => window.lowenherzSession.game.config))
+        .toEqual({ publicMoney: false, playerPlacedCastles: false, minimumOneDucat: true })
 }
 
 test('private-money exploration requires Host View and preserves its source through play and Undo', async ({
