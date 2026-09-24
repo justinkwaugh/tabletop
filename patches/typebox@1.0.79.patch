@@ -1,0 +1,13 @@
+diff --git a/build/schema/build.mjs b/build/schema/build.mjs
+index 86ee4a298d1fa32aa950436bc9ff04ce66f31148..38f42df1693afeff6c147b22c05252da34ca48b2 100644
+--- a/build/schema/build.mjs
++++ b/build/schema/build.mjs
+@@ -14,7 +14,7 @@ function CreateCode(build) {
+     const statements = build.UseUnevaluated()
+         ? ['const context = new CheckContext({}, {})', `return ${build.Call()}`]
+         : [`return ${build.Call()}`];
+-    return `${functions}; return (value) => { ${statements.join('; ')} }`;
++    return [functions, '; return (value) => { ', statements.join('; '), ' }'].join('');
+ }
+ // ------------------------------------------------------------------
+ // CreateEvaluatedCheck

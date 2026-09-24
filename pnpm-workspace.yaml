@@ -6,3 +6,6 @@ packages:
   - "tools/*"
 onlyBuiltDependencies:
   - "camera-controls"
+
+patchedDependencies:
+  typebox@1.0.79: patches/typebox@1.0.79.patch

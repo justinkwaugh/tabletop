@@ -4,6 +4,10 @@ import { createClient, RedisClientType } from 'redis'
 export class RedisService {
     private constructor(readonly client: RedisClientType) {}
 
+    destroy(): void {
+        if (this.client.isOpen) this.client.destroy()
+    }
+
     static async createRedisService(secretsService: SecretsService): Promise<RedisService> {
         const client = await this.createClient(secretsService)
         const service = new RedisService(client)

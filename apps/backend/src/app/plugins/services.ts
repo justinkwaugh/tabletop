@@ -77,7 +77,9 @@ export default fp(async (fastify: FastifyInstance) => {
     const secretsService = new EnvSecretsService()
     const emailService = await ResendEmailService.createEmailService(secretsService)
     const redisService = await RedisService.createRedisService(secretsService)
+    fastify.addHook('onClose', async () => redisService.destroy())
     const redisCacheService = new RedisCacheService(redisService)
+    fastify.addHook('onClose', async () => redisCacheService.destroy())
 
     const libraryService = new LibraryService(redisCacheService, {
         manifestPath: SITE_MANIFEST_PATH,
@@ -106,7 +108,9 @@ export default fp(async (fastify: FastifyInstance) => {
 
     let pubSubService: PubSubService = new NullPubSubService()
     if (!useAbly) {
-        pubSubService = await RedisPubSubService.createPubSubService(redisService)
+        const redisPubSubService = await RedisPubSubService.createPubSubService(redisService)
+        fastify.addHook('onClose', async () => redisPubSubService.destroy())
+        pubSubService = redisPubSubService
     }
 
     const notificationService = await DefaultNotificationService.createNotificationService(

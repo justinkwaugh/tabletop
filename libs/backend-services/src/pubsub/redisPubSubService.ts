@@ -20,6 +20,11 @@ export class RedisPubSubService implements PubSubService {
         this.subClient = this.pubClient.duplicate()
     }
 
+    destroy(): void {
+        if (this.subClient.isOpen) this.subClient.destroy()
+        this.subscribersById = {}
+    }
+
     static async createPubSubService(redisService: RedisService): Promise<RedisPubSubService> {
         const service = new RedisPubSubService(redisService)
         await service.initialize()
