@@ -19,6 +19,7 @@ services:
             # mounts are relative to the first file in the list, which is a level up.
             - .:/workspace:cached
             - codex-home:/home/node/.codex
+            - claude-home:/home/node/.claude
             - t3-home:/home/node/.t3
             - pnpm-store:/workspace/.pnpm-store
             - sshd-state:/var/lib/tabletop-sshd
@@ -36,6 +37,7 @@ services:
 
 volumes:
     codex-home:
+    claude-home:
     t3-home:
     node-modules:
     pnpm-store:

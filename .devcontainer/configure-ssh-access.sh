@@ -58,7 +58,7 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin no
 AllowUsers node
-SetEnv PATH=${SSH_SESSION_PATH}
+SetEnv PATH=${SSH_SESSION_PATH} CLAUDE_CONFIG_DIR=/home/node/.claude
 EOF
 sudo chmod 644 "${SSHD_CONFIG_DROP_IN}"
 sudo sshd -t

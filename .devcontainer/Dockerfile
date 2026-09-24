@@ -21,6 +21,10 @@ RUN npm install -g \
     pnpm@10.28.2 \
     turbo
 
+# Keep all Claude Code state, including the .claude.json that normally sits in $HOME,
+# inside the claude-home volume so auth and conversations survive rebuilds.
+ENV CLAUDE_CONFIG_DIR="/home/node/.claude"
+
 ENV PNPM_HOME="/opt/pnpm"
 ENV PATH="${PNPM_HOME}:${PATH}"
 ARG T3_VERSION=0.0.42
@@ -28,9 +32,13 @@ RUN pnpm add --global t3@${T3_VERSION}
 
 USER node
 
-RUN mkdir -p /home/node/.t3
+RUN mkdir -p /home/node/.t3 /home/node/.claude
 
 RUN curl -fsSL https://chatgpt.com/codex/install.sh | sh
+
+# Native installer: binary in ~/.local/bin, versions in ~/.local/share/claude, self-updating.
+RUN curl -fsSL https://claude.ai/install.sh | bash
+ENV PATH="/home/node/.local/bin:${PATH}"
 
 # rustup only: libs/18xx-autorouter/rust/rust-toolchain.toml pins the compiler and wasm target.
 RUN curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs \
