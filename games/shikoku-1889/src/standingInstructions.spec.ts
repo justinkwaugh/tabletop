@@ -384,3 +384,53 @@ it('refuses to replace a declaration the machine has already acted on', () => {
     })
     expect(unconsumed.kind).toBe('replace')
 })
+
+it('lets a player change an instruction that has already acted by declaring afresh', () => {
+    const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
+    const blair = { kind: 'player', playerId: 'blair' } as const
+    const declared = engine.executeCanonicalAction({
+        game,
+        state,
+        action: setInstruction(game.id, 'blair', {
+            kind: 'buy',
+            companyId: 'IR',
+            preferredPoolId: 'initial-offering',
+            until: { kind: 'shares', count: 10 },
+            thenPass: true
+        })
+    })
+    const acted = engine.executeCanonicalAction({
+        game,
+        state: declared.updatedState,
+        action: finishTurn(game.id, 'alex')
+    })
+    expect(summarize(acted.processedActions)).toEqual([
+        'user:FinishStockTurn:alex',
+        'system:BuyShares:blair',
+        'system:FinishStockTurn:blair'
+    ])
+    const consumed = replaceSupersededAction({
+        engine,
+        apiActions: Shikoku.runtime.apiActions,
+        game,
+        state: acted.updatedState,
+        window: [...declared.processedActions, ...acted.processedActions],
+        replacement: {
+            ...setInstruction(game.id, 'blair', { kind: 'pass' }),
+            id: 'blair-change',
+            supersedesActionId: declared.processedActions[0].id
+        }
+    })
+    expect(consumed.kind).toBe('invalid')
+
+    const changed = engine.executeCanonicalAction({
+        game,
+        state: acted.updatedState,
+        action: { ...setInstruction(game.id, 'blair', { kind: 'pass' }), id: 'blair-change' }
+    })
+    expect(summarize(changed.processedActions)).toEqual(['user:SetStockInstruction:blair'])
+    expect(standingStockInstructionFor(changed.updatedState, 'blair')?.instruction).toEqual({
+        kind: 'pass'
+    })
+    expect(sharesOwned(changed.updatedState, 'IR', blair)).toBe(sharesOwned(state, 'IR', blair) + 1)
+})
