@@ -5,6 +5,7 @@ Implementation contradictions, defects, deferred decisions, and disproved concer
 ## Confirmed contexts
 
 - [Game Runtime](./libs/common/CONTEXT.md): initializes and deterministically executes the finite state machine representing a Game Title’s rules
+- [18xx Game Family](./libs/18xx/CONTEXT.md): shared company, ownership, railway map, and tile vocabulary across 18xx titles
 - [Game Client](./libs/frontend-components/CONTEXT.md): maintains responsive client interaction, Game Contexts, Action drafting, history, exploration, presentation, and reconciliation
 - [Game Lifecycle](./docs/contexts/game-lifecycle/CONTEXT.md): governs Game Instances, participation, lifecycle, canonical Action history, synchronization, Fork, Undo, and deletion
 - [Identity and Access](./docs/contexts/identity-and-access/CONTEXT.md): governs User Accounts, authentication methods, sessions, Account status, and administrative role assignment

@@ -1,8 +1,15 @@
 import fastifyAuth from '@fastify/auth'
+import { setTimeout as delay } from 'node:timers/promises'
+import { EnvService } from '@tabletop/backend-services'
 import { Role, type User, UserStatus, Visibility } from '@tabletop/common'
 import Fastify from 'fastify'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import getGameRoute from './get.js'
+import requestTimings from '../../../plugins/requestTimings.js'
+
+vi.mock('@tabletop/backend-services', () => ({ EnvService: { isLocal: vi.fn(() => true) } }))
+
+vi.mock('node:timers/promises', () => ({ setTimeout: vi.fn(async () => undefined) }))
 
 const user: User = {
     id: 'user-1',
@@ -19,7 +26,17 @@ async function createServer(
     perspective: Visibility.Perspective | undefined,
     requestUser: User = user
 ) {
-    const server = Fastify()
+    const logs: Record<string, unknown>[] = []
+    const server = Fastify({
+        logger: {
+            stream: {
+                write(line: string) {
+                    logs.push(JSON.parse(line))
+                }
+            }
+        }
+    })
+    await server.register(requestTimings, { enabled: true })
     await server.register(fastifyAuth)
 
     Reflect.set(server, 'verifyActiveUser', async (request: { user?: User }) => {
@@ -46,7 +63,7 @@ async function createServer(
     })
 
     await server.register(getGameRoute)
-    return { server, canAccessHostView, getGameEtagForUser, getGameForUser }
+    return { server, canAccessHostView, getGameEtagForUser, getGameForUser, logs }
 }
 
 describe('GET /get/:gameId', () => {
@@ -55,7 +72,112 @@ describe('GET /get/:gameId', () => {
     afterEach(async () => {
         await Promise.all([...servers].map((server) => server.close()))
         servers.clear()
+        vi.restoreAllMocks()
+        vi.unstubAllEnvs()
+        vi.mocked(delay).mockClear()
     })
+
+    it.each([
+        { local: true, includeActions: true, delayed: true },
+        { local: true, includeActions: false, delayed: false },
+        { local: false, includeActions: true, delayed: false }
+    ])(
+        'applies the test delay only to local history loads: %j',
+        async ({ local, includeActions, delayed }) => {
+            vi.spyOn(EnvService, 'isLocal').mockReturnValue(local)
+            vi.stubEnv('LOCAL_GAME_HISTORY_DELAY_MS', '3000')
+            const { server } = await createServer(playerPerspective)
+            servers.add(server)
+            const response = await server.inject({
+                method: 'GET',
+                url: `/get/game-1?includeActions=${includeActions}`
+            })
+            expect(response.statusCode).toBe(200)
+            if (delayed) expect(delay).toHaveBeenCalledExactlyOnceWith(3000)
+            else expect(delay).not.toHaveBeenCalled()
+        }
+    )
+
+    it('loads State without Actions and uses a distinct ETag', async () => {
+        const { server, getGameForUser } = await createServer(playerPerspective)
+        servers.add(server)
+        const response = await server.inject({
+            method: 'GET',
+            url: '/get/game-1?includeActions=false',
+            headers: { 'if-none-match': 'W/"player-1-revision-1:full"' }
+        })
+        expect(response.statusCode).toBe(200)
+        expect(response.headers.etag).toBe('W/"player-1-revision-1:state-only"')
+        expect(getGameForUser).toHaveBeenCalledWith({
+            gameId: 'game-1',
+            hostView: false,
+            user,
+            includeActions: false
+        })
+        const cached = await server.inject({
+            method: 'GET',
+            url: '/get/game-1?includeActions=false',
+            headers: { 'if-none-match': 'W/"player-1-revision-1:state-only"' }
+        })
+        expect(cached.statusCode).toBe(304)
+    })
+
+    it.each([
+        ['/get/game-1', 'W/"player-1-revision-1"', 'full'],
+        ['/get/game-1', 'W/"player-1-revision-1:state-only"', 'full'],
+        ['/get/game-1?includeActions=false', 'W/"player-1-revision-1:state"', 'state-only']
+    ])('refreshes incompatible cached representations for %s with %s', async (url, etag, suffix) => {
+        const { server, getGameForUser } = await createServer(playerPerspective)
+        servers.add(server)
+        const response = await server.inject({
+            method: 'GET',
+            url,
+            headers: { 'if-none-match': etag }
+        })
+        expect(response.statusCode).toBe(200)
+        expect(response.headers.etag).toBe(`W/"player-1-revision-1:${suffix}"`)
+        expect(getGameForUser).toHaveBeenCalledOnce()
+    })
+
+    it.each([
+        {
+            etag: undefined,
+            validator: 'missing',
+            statusCode: 200,
+            spans: ['game.load.etag', 'game.load.representation']
+        },
+        {
+            etag: 'W/"older-revision"',
+            validator: 'mismatched',
+            statusCode: 200,
+            spans: ['game.load.etag', 'game.load.representation']
+        },
+        { etag: 'W/"revision-1:full"', validator: 'matched', statusCode: 304, spans: ['game.load.etag'] }
+    ])(
+        'reports the work performed for a $statusCode game load',
+        async ({ etag, validator, statusCode, spans }) => {
+            const { server, logs } = await createServer(undefined)
+            servers.add(server)
+            const response = await server.inject({
+                method: 'GET',
+                url: '/get/game-1',
+                headers: etag === undefined ? {} : { 'if-none-match': etag }
+            })
+            expect(response.statusCode).toBe(statusCode)
+            const reports = logs.filter((entry) => entry.event === 'request_timing')
+            expect(reports).toHaveLength(1)
+            expect(reports[0]).toMatchObject({
+                route: '/get/:gameId',
+                statusCode,
+                counters: { [`game.load.validator.${validator}`]: 1 },
+                spans: spans.map((name) => expect.objectContaining({ name, status: 'ok' }))
+            })
+            expect(JSON.stringify(reports)).not.toContain('user-1')
+            expect(JSON.stringify(reports)).not.toContain('game-1')
+            expect(JSON.stringify(reports)).not.toContain('revision-1')
+            expect(JSON.stringify(reports)).not.toContain('older-revision')
+        }
+    )
 
     it('returns and privately revalidates a projected representation when given the canonical ETag', async () => {
         const { server, getGameForUser } = await createServer(playerPerspective)
@@ -64,12 +186,12 @@ describe('GET /get/:gameId', () => {
         const response = await server.inject({
             method: 'GET',
             url: '/get/game-1',
-            headers: { 'if-none-match': 'W/"revision-1"' }
+            headers: { 'if-none-match': 'W/"revision-1:full"' }
         })
 
         expect(response.statusCode).toBe(200)
         expect(response.headers['cache-control']).toBe('private, no-cache')
-        expect(response.headers.etag).toBe('W/"player-1-revision-1"')
+        expect(response.headers.etag).toBe('W/"player-1-revision-1:full"')
         expect(response.json()).toEqual({
             status: 'ok',
             payload: {
@@ -79,6 +201,7 @@ describe('GET /get/:gameId', () => {
             }
         })
         expect(getGameForUser).toHaveBeenCalledWith({
+            includeActions: true,
             gameId: 'game-1',
             hostView: false,
             user
@@ -92,12 +215,12 @@ describe('GET /get/:gameId', () => {
         const response = await server.inject({
             method: 'GET',
             url: '/get/game-1',
-            headers: { 'if-none-match': 'W/"player-1-revision-1"' }
+            headers: { 'if-none-match': 'W/"player-1-revision-1:full"' }
         })
 
         expect(response.statusCode).toBe(304)
         expect(response.body).toBe('')
-        expect(response.headers.etag).toBe('W/"player-1-revision-1"')
+        expect(response.headers.etag).toBe('W/"player-1-revision-1:full"')
         expect(response.headers['cache-control']).toBe('private, no-cache')
         expect(getGameEtagForUser).toHaveBeenCalledWith({
             gameId: 'game-1',
@@ -114,7 +237,7 @@ describe('GET /get/:gameId', () => {
         const response = await server.inject({
             method: 'GET',
             url: '/get/game-1',
-            headers: { 'if-none-match': 'W/"revision-1"' }
+            headers: { 'if-none-match': 'W/"revision-1:full"' }
         })
 
         expect(response.statusCode).toBe(304)
@@ -139,7 +262,7 @@ describe('GET /get/:gameId', () => {
         })
 
         expect(response.statusCode).toBe(200)
-        expect(response.headers.etag).toBe('W/"revision-1"')
+        expect(response.headers.etag).toBe('W/"revision-1:full"')
         expect(response.headers['cache-control']).toBe('private, no-cache')
     })
 
@@ -159,13 +282,14 @@ describe('GET /get/:gameId', () => {
             })
 
             expect(response.statusCode).toBe(200)
-            expect(response.headers.etag).toBe('W/"revision-1"')
+            expect(response.headers.etag).toBe('W/"revision-1:full"')
             expect(getGameEtagForUser).toHaveBeenCalledWith({
                 gameId: 'game-1',
                 hostView: true,
                 user: privilegedUser
             })
             expect(getGameForUser).toHaveBeenCalledWith({
+                includeActions: true,
                 gameId: 'game-1',
                 hostView: true,
                 user: privilegedUser
@@ -200,7 +324,7 @@ describe('GET /get/:gameId', () => {
         })
 
         expect(response.statusCode).toBe(200)
-        expect(response.headers.etag).toBe('W/"player-1-revision-1"')
+        expect(response.headers.etag).toBe('W/"player-1-revision-1:full"')
         expect(getGameEtagForUser).toHaveBeenCalledWith({
             gameId: 'game-1',
             hostView: false,

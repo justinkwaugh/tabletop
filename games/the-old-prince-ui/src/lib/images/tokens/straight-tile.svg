@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-53 -53 106 106">
+    <polygon points="-25,-43.3 25,-43.3 50,0 25,43.3 -25,43.3 -50,0" fill="#ffdf00" stroke="#453e32" stroke-width="0.65"/>
+    <path d="M 0 43.3 L 0 -43.3" fill="none" stroke="#ffffff" stroke-width="8"/>
+    <path d="M 0 43.3 L 0 -43.3" fill="none" stroke="#161616" stroke-width="6"/>
+</svg>

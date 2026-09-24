@@ -35,6 +35,8 @@ export function isDiscontinuityEvent(event: NotificationEvent): event is Discont
 export type NotificationListener = (event: NotificationEvent) => Promise<void>
 
 export type NotificationService = {
+    readonly synchronizesOnSubscribe?: boolean
+    isUserChannelReady?(): boolean
     listenToGame(gameId: string): void
     stopListeningToGame(gameId: string): void
     addListener(listener: NotificationListener): void

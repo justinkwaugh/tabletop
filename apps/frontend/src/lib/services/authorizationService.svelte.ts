@@ -1,7 +1,13 @@
-import { Role, UserStatus, type User } from '@tabletop/common'
-import { goto } from '$app/navigation'
+import { Role, User, UserStatus } from '@tabletop/common'
+import * as Value from 'typebox/value'
+import { goto, invalidateAll } from '$app/navigation'
 import { redirect } from '@sveltejs/kit'
-import type { TabletopApi } from '@tabletop/frontend-components'
+import { AuthorizationCategory, type TabletopApi } from '@tabletop/frontend-components'
+import {
+    clearLoginContinuation,
+    saveLoginContinuation,
+    takeLoginContinuation
+} from '$lib/utils/loginContinuation'
 
 /**
  *
@@ -19,18 +25,14 @@ import type { TabletopApi } from '@tabletop/frontend-components'
  * but can also be called directly if desired.
  **/
 
-export enum AuthorizationCategory {
-    ActiveUser = 'activeUser',
-    NoUser = 'noUser',
-    Onboarding = 'onboarding'
-}
+export { AuthorizationCategory }
 
 export class AuthorizationService {
     private sessionUser?: User | undefined = $state(undefined)
     private initialized: boolean = false
     private initializationPromise: Promise<void> | null = null
-
-    private continueUrl: string | undefined
+    private verification: Promise<boolean> = Promise.resolve(false)
+    private static readonly storageKey = 'sessionUser'
 
     isAdmin: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Admin)))
     isDeveloper: boolean = $derived(Boolean(this.sessionUser?.roles.includes(Role.Developer)))
@@ -48,6 +50,19 @@ export class AuthorizationService {
 
     public async initialize(): Promise<void> {
         if (this.initialized) {
+            return
+        }
+
+        const storedUser = this.readStoredSessionUser()
+        if (storedUser) {
+            this.setSessionUser(storedUser)
+            this.initialized = true
+            this.verification = this.verifyStoredSessionUser(storedUser)
+            void this.verification.then(async (sessionChanged) => {
+                if (sessionChanged) {
+                    await invalidateAll()
+                }
+            })
             return
         }
 
@@ -90,10 +105,17 @@ export class AuthorizationService {
         }
 
         if (shouldRedirect) {
-            this.redirect({ user, url: intendedUrl })
+            if (category === AuthorizationCategory.ActiveUser) {
+                saveLoginContinuation(`${intendedUrl.pathname}${intendedUrl.search}`)
+            }
+            this.redirect(user)
             return false
         }
         return true
+    }
+
+    public async whenSessionVerified(): Promise<void> {
+        await this.verification
     }
 
     public getSessionUser(): User | undefined {
@@ -102,30 +124,49 @@ export class AuthorizationService {
 
     public setSessionUser(user: User) {
         this.sessionUser = user
+        localStorage.setItem(AuthorizationService.storageKey, JSON.stringify(user))
         this.onSessionUserSet()
     }
 
     public clearSessionUser() {
         this.sessionUser = undefined
+        localStorage.removeItem(AuthorizationService.storageKey)
     }
 
     public async onLogin(user: User) {
         this.setSessionUser(user)
 
-        if (this.continueUrl) {
-            await goto(this.continueUrl)
-            this.continueUrl = undefined
-        } else {
-            await goto('/library')
+        if (user.status === UserStatus.Incomplete) {
+            await goto('/onboarding')
+            return
         }
+        await goto(takeLoginContinuation() ?? '/library')
     }
 
     public async onLogout() {
+        clearLoginContinuation()
         this.clearSessionUser()
         await goto('/')
     }
 
     private async loadSessionUser() {
+        const sessionUser = await this.fetchSessionUser()
+        if (sessionUser) {
+            this.setSessionUser(sessionUser)
+        }
+    }
+
+    private async verifyStoredSessionUser(storedUser: User): Promise<boolean> {
+        const sessionUser = await this.fetchSessionUser()
+        if (sessionUser) {
+            this.setSessionUser(sessionUser)
+        } else {
+            this.clearSessionUser()
+        }
+        return sessionUser?.id !== storedUser.id || sessionUser.status !== storedUser.status
+    }
+
+    private async fetchSessionUser(): Promise<User | undefined> {
         try {
             const sessionUser = await this.api.getSelf()
             if (
@@ -133,27 +174,36 @@ export class AuthorizationService {
                 sessionUser.status !== UserStatus.Deleted &&
                 sessionUser.status !== UserStatus.Inactive
             ) {
-                this.setSessionUser(sessionUser)
+                return sessionUser
             }
         } catch {
             // do nothing
         }
+        return undefined
     }
 
-    private redirect({ user, url }: { user?: User | null; url: URL }) {
+    private readStoredSessionUser(): User | undefined {
+        const stored = localStorage.getItem(AuthorizationService.storageKey)
+        if (!stored) {
+            return undefined
+        }
+        try {
+            const storedUser = Value.Convert(User, JSON.parse(stored))
+            return Value.Check(User, storedUser) ? storedUser : undefined
+        } catch {
+            return undefined
+        }
+    }
+
+    private redirect(user?: User) {
         switch (user?.status) {
             case UserStatus.Incomplete:
                 redirect(302, '/onboarding')
                 break
             case UserStatus.Active:
-                redirect(302, '/activeGamesCheck')
+                redirect(302, takeLoginContinuation() ?? '/activeGamesCheck')
                 break
             default:
-                // If we are trying to go somewhere but get sent to login due to the user
-                // not being in the session at all, we store the url for post login
-                if (!user) {
-                    this.continueUrl = `${url.pathname}${url.search}`
-                }
                 redirect(302, '/login')
                 break
         }

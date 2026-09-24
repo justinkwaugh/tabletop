@@ -20,6 +20,7 @@ import {
 import { createHash } from 'node:crypto'
 
 export interface GameRepresentation {
+    readonly historyComplete?: boolean
     readonly game: Game
     readonly actions: GameAction[]
     readonly perspective: Visibility.Perspective | undefined
@@ -80,6 +81,7 @@ export function createGameRepresentation({
     game,
     actions,
     hostView = false,
+    includeActions = true,
     runtime,
     visibility: registeredVisibility,
     user
@@ -87,16 +89,18 @@ export function createGameRepresentation({
     game: Game
     actions: GameAction[]
     hostView?: boolean
+    includeActions?: boolean
     runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     user: User
 }): GameRepresentation {
+    const historyStatus = includeActions ? {} : { historyComplete: false }
     const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (game.state !== undefined && runtime !== undefined) {
         new GameEngine(runtime).validateCanonicalState(game.state)
     }
     if (hostView || game.hotseat || visibility === undefined) {
-        return { game, actions, perspective: undefined }
+        return { game, actions, perspective: undefined, ...historyStatus }
     }
 
     const perspective = derivePerspective({ game, user })
@@ -105,12 +109,13 @@ export function createGameRepresentation({
             actions.length === 0,
             `Cannot project Game ${game.id} Action History without its current state`
         )
-        return { game: structuredClone(game), actions: [], perspective }
+        return { game: structuredClone(game), actions: [], perspective, ...historyStatus }
     }
 
     const history = Visibility.projectActionHistory({
         game: game,
         currentState: game.state,
+        startIndex: includeActions ? 0 : game.state.actionCount,
         actions,
         visibility,
         perspective,
@@ -122,7 +127,8 @@ export function createGameRepresentation({
     return {
         game: projectedGame,
         actions: [...history.actions],
-        perspective
+        perspective,
+        ...historyStatus
     }
 }
 

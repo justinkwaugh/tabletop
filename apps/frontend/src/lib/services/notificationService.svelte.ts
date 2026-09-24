@@ -19,6 +19,7 @@ import {
 } from '$lib/network/realtimeConnection'
 
 export class NotificationService {
+    readonly synchronizesOnSubscribe = true
     private applicationServerKey
 
     private listeners: Set<NotificationListener> = new Set()
@@ -27,6 +28,7 @@ export class NotificationService {
     private promptShown = $state(false)
 
     private currentSessionUserId: string | undefined = $state(undefined)
+    private userChannelReady = false
 
     private shouldConnectRealtime: boolean = $derived.by(() => {
         return this.currentSessionUserId !== undefined && this.visibilityService.visible
@@ -50,6 +52,7 @@ export class NotificationService {
                 const user = this.authorizationService.getSessionUser()
                 if (user && user.status === UserStatus.Active) {
                     if (user.id !== this.currentSessionUserId) {
+                        this.userChannelReady = false
                         this.currentSessionUserId = user.id
                         this.realtimeConnection
                             .addChannel(
@@ -71,6 +74,7 @@ export class NotificationService {
                         })
                     }
                 } else {
+                    this.userChannelReady = false
                     this.realtimeConnection
                         .removeChannel(
                             new ChannelIdentifier(
@@ -99,6 +103,7 @@ export class NotificationService {
                         console.error('Failed to connect to realtime connection', e)
                     })
                 } else {
+                    this.userChannelReady = false
                     this.realtimeConnection.disconnect()
                 }
             })
@@ -152,6 +157,9 @@ export class NotificationService {
         this.mounted = true
     }
 
+    isUserChannelReady(): boolean {
+        return this.userChannelReady && this.currentSessionUserId === this.authorizationService.getSessionUser()?.id
+    }
     hasWebNotificationPermission(): boolean {
         return window.Notification.permission === 'granted'
     }
@@ -240,6 +248,7 @@ export class NotificationService {
                 }
                 notificationEvent = dataEvent
             } else if (event.type === RealtimeEventType.Discontinuity) {
+                if (event.channel === NotificationChannel.User) this.userChannelReady = true
                 const discontinuityEvent: DiscontinuityEvent = {
                     eventType: NotificationEventType.Discontinuity,
                     channel: event.channel

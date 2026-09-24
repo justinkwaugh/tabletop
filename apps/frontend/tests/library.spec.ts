@@ -293,7 +293,7 @@ test('the game page shows current games, joinable tables and paginated tournamen
         })
     )
     await page.route('**/api/v1/games/open/landing-0', (route) =>
-        route.fulfill({ json: { payload: { games: [open, mine] } } })
+        route.fulfill({ json: { payload: { games: [open] } } })
     )
     await page.route('**/api/v1/tournaments/**', (route) => {
         const query = new URL(route.request().url()).searchParams
@@ -316,7 +316,7 @@ test('the game page shows current games, joinable tables and paginated tournamen
     const openSection = page.getByRole('region', { name: 'Open games' })
     await expect(mySection.getByText('Friday game')).toBeVisible()
     await expect(mySection.getByText('Other title')).toHaveCount(0)
-    await expect(mySection.getByRole('button', { name: 'Your Turn', exact: true })).toBeVisible()
+    await expect(mySection.getByRole('button', { name: 'Enter', exact: true })).toBeVisible()
     await expect(openSection.getByText('Friday game')).toHaveCount(0)
     await expect(openSection.getByRole('button', { name: 'Join', exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: /Tournament one/ })).toHaveAttribute(
@@ -436,6 +436,32 @@ test('a direct game link survives signing in', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Game 02', exact: true })).toBeVisible()
 })
 
+test('open public games remain visible to owners and joined players', async ({ page }) => {
+    const owned = {
+        ...game('owned', 'My public table', true),
+        status: GameStatus.WaitingForPlayers
+    }
+    const joined = {
+        ...owned,
+        id: 'joined',
+        name: 'A table I joined',
+        ownerId: 'other-player'
+    }
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({ json: { payload: { games: [owned, joined] } } })
+    )
+    await page.route('**/api/v1/games/open/landing-0', (route) =>
+        route.fulfill({ json: { payload: { games: [owned, joined] } } })
+    )
+    await page.goto('/library/landing-0')
+    for (const name of ['Your games', 'Open games']) {
+        const section = page.getByRole('region', { name })
+        await expect(section.getByText(owned.name, { exact: true })).toBeVisible()
+        await expect(section.getByText(joined.name, { exact: true })).toBeVisible()
+        await expect(section.getByRole('button', { name: 'Join', exact: true })).toHaveCount(0)
+    }
+})
+
 test('joining an open game moves it into your games on the same page', async ({ page }) => {
     const open = game('join-me', 'Take a seat', false)
     await page.route('**/api/v1/games/open/landing-0', (route) =>
@@ -483,6 +509,9 @@ test('creating a game refreshes the game page without sending you away', async (
     await page.route('**/api/v1/games/mine*', (route) =>
         route.fulfill({ json: { payload: { games: created ? [newGame] : [] } } })
     )
+    await page.route('**/api/v1/games/open/landing-0', (route) =>
+        route.fulfill({ json: { payload: { games: created ? [newGame] : [] } } })
+    )
     await page.route('**/api/v1/game/landing-0/create', (route) => {
         const request = route.request().postDataJSON()
         expect(request.game.typeId).toBe('landing-0')
@@ -499,6 +528,9 @@ test('creating a game refreshes the game page without sending you away', async (
     await expect(dialog).toHaveCount(0)
     await expect(
         page.getByRole('region', { name: 'Your games' }).getByText('A new table', { exact: true })
+    ).toBeVisible()
+    await expect(
+        page.getByRole('region', { name: 'Open games' }).getByText('A new table', { exact: true })
     ).toBeVisible()
     await expect(page.getByRole('status')).toContainText('Game created')
     await expect(page).toHaveURL(/\/library\/landing-0$/)

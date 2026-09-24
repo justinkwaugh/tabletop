@@ -25,7 +25,7 @@ The project is setup as a monorepo using [pnpm workspaces](https://pnpm.io/works
 |--/email - React Email project for email editing / previewing
 |--/frontend-components - Shared frontend components
 /tools
-|--/deploy - A TUI for deployment to GCP
+|--/deploy - Release and deployment CLI for GCP
 |--/scripts - Some useful scripts
 ```
 

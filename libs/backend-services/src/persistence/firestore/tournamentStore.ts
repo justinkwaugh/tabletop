@@ -1,4 +1,10 @@
-import { FieldPath, Firestore, Transaction, type DocumentData } from '@google-cloud/firestore'
+import {
+    FieldPath,
+    Firestore,
+    Transaction,
+    type DocumentData,
+    type DocumentReference
+} from '@google-cloud/firestore'
 import {
     assert,
     assertExists,
@@ -22,7 +28,7 @@ import * as Value from 'typebox/value'
 import * as Type from 'typebox'
 import { nanoid } from 'nanoid'
 import { RedisCacheService, type CacheWriteLocks } from '../../cache/cacheService.js'
-import type { TournamentStore } from '../stores/tournamentStore.js'
+import type { FinalScoreResolver, TournamentStore } from '../stores/tournamentStore.js'
 import {
     StoredTournamentSchedule,
     storeTournamentSchedule,
@@ -43,11 +49,20 @@ import { tournamentGameId } from '../../games/tournamentGames.js'
 import { TournamentCacheKeys } from './tournamentCacheKeys.js'
 
 const ScoringGame = Type.Pick(Game, [
+    'typeId',
     'players',
     'result',
     'winningPlayerIds',
+    'finalScores',
     'status',
     'tournament'
+])
+const TournamentLinkGame = Type.Pick(Game, [
+    'tournament',
+    'result',
+    'players',
+    'winningPlayerIds',
+    'status'
 ])
 
 const CachedTournamentPage = Type.Object({ generation: Type.String(), page: TournamentList })
@@ -108,7 +123,7 @@ export class FirestoreTournamentStore implements TournamentStore {
                     .get()
                 return snapshot.docs.map((document) => {
                     const data = document.data()
-                    Value.Assert(ScoringGame, data)
+                    Value.Assert(TournamentLinkGame, data)
                     const reference = data.tournament
                     Value.Assert(TournamentGameReference, reference)
                     return {
@@ -306,13 +321,8 @@ export class FirestoreTournamentStore implements TournamentStore {
                 })
                 const gameRef = this.firestore.collection('games').doc(gameId)
                 const game = (await transaction.get(gameRef)).data()
-                const storedState = (
-                    await transaction.get(gameRef.collection('states').doc(gameId))
-                ).data()
+                const state = await this.readState(transaction, gameRef, gameId)
                 Value.Assert(ScoringGame, game)
-                Value.Assert(StoredState, storedState)
-                const state: unknown = JSON.parse(storedState.data)
-                Value.Assert(GameState, state)
                 validateGameResult(state)
                 if (game.status !== GameStatus.Finished || state.result === GameResult.Abandoned)
                     throw new TournamentError('Only normally finished games can be corrected')
@@ -372,7 +382,8 @@ export class FirestoreTournamentStore implements TournamentStore {
         id: string,
         revision: number,
         user: User,
-        now: number
+        now: number,
+        finalScores: FinalScoreResolver
     ): Promise<Tournament> {
         return this.cache.lockWhileWriting([this.cacheKeys.key('event', id)], (locks) =>
             this.firestore.runTransaction(async (transaction) => {
@@ -399,7 +410,15 @@ export class FirestoreTournamentStore implements TournamentStore {
                         .collection('games')
                         .where('tournament.tournamentId', '==', id)
                         .where('tournament.stageId', '==', stage.id)
-                        .select('players', 'result', 'winningPlayerIds', 'status', 'tournament')
+                        .select(
+                            'typeId',
+                            'players',
+                            'result',
+                            'winningPlayerIds',
+                            'finalScores',
+                            'status',
+                            'tournament'
+                        )
                 )
                 const standings = createTournamentStandings(tournament)
                 const finished: string[] = []
@@ -420,7 +439,12 @@ export class FirestoreTournamentStore implements TournamentStore {
                     applyTournamentGameScore(
                         tournament,
                         standings,
-                        correction ? withTournamentCredit(game, correction.winningUserIds) : game
+                        correction ? withTournamentCredit(game, correction.winningUserIds) : game,
+                        1,
+                        game.finalScores ??
+                            (await finalScores(game.typeId, () =>
+                                this.readState(transaction, document.ref, document.id)
+                            ))
                     )
                     finished.push(game.tournament.tableId)
                 }
@@ -462,6 +486,18 @@ export class FirestoreTournamentStore implements TournamentStore {
 
     private document(id: string) {
         return this.firestore.collection('tournaments').doc(id)
+    }
+
+    private async readState(
+        transaction: Transaction,
+        gameRef: DocumentReference,
+        gameId: string
+    ): Promise<GameState> {
+        const stored = (await transaction.get(gameRef.collection('states').doc(gameId))).data()
+        Value.Assert(StoredState, stored)
+        const state: unknown = JSON.parse(stored.data)
+        Value.Assert(GameState, state)
+        return state
     }
 
     private serialize(tournament: Tournament) {

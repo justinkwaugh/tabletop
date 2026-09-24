@@ -1,0 +1,41 @@
+{
+    "name": "@tabletop/18xx",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./esm/index.d.ts",
+            "import": "./esm/index.js"
+        },
+        "./testing": {
+            "types": "./esm/testing/index.d.ts",
+            "import": "./esm/testing/index.js"
+        },
+        "./scenarios": {
+            "types": "./esm/scenarios/index.d.ts",
+            "import": "./esm/scenarios/index.js"
+        }
+    },
+    "sideEffects": false,
+    "files": [
+        "esm"
+    ],
+    "scripts": {
+        "clean": "rimraf esm",
+        "build": "tsgo",
+        "check": "tsgo --noEmit",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "@tabletop/common": "workspace:*",
+        "typebox": "^1.0.79"
+    },
+    "devDependencies": {
+        "@typescript/native-preview": "7.0.0-dev.20260203.1",
+        "rimraf": "^6.1.0",
+        "typescript": "5.9.3",
+        "@tabletop/vitest-config": "workspace:*",
+        "vitest": "^4.0.12"
+    }
+}

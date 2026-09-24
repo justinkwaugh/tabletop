@@ -20,6 +20,7 @@ import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
+import { STATIC_ROOT } from './lib/staticRoot.js'
 
 const __dirname = import.meta.dirname
 
@@ -31,7 +32,6 @@ const TASKS_PREFIX = '/tasks'
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
-const STATIC_ROOT = process.env['STATIC_ROOT'] ?? path.join(__dirname, '../../../../.local-static')
 const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
 const MIN_RESTART_INTERVAL_MS = 30_000
 const SESSION_EXPIRY_SECONDS = 30 * 24 * 60 * 60
@@ -124,7 +124,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         origin: [FRONTEND_HOST],
         credentials: true,
         methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-        exposedHeaders: ['X-Tabletop-Version']
+        exposedHeaders: ['X-Tabletop-Version', 'ETag']
     })
 
     await fastify.register(SecureSession, {
@@ -224,12 +224,21 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             pathName.endsWith('service-worker.js.br') ||
             pathName.endsWith('service-worker.js.gz')
 
+        const isWebManifestAsset = (pathName: string) =>
+            pathName.endsWith('.webmanifest') ||
+            pathName.endsWith('.webmanifest.br') ||
+            pathName.endsWith('.webmanifest.gz')
+
         const setFrontendCacheHeaders = (
             res: { setHeader: (name: string, value: string) => void },
             pathName: string,
             maxAgeSeconds: number
         ) => {
-            if (isHtmlAsset(pathName) || isServiceWorkerAsset(pathName)) {
+            if (
+                isHtmlAsset(pathName) ||
+                isServiceWorkerAsset(pathName) ||
+                isWebManifestAsset(pathName)
+            ) {
                 res.setHeader('Cache-Control', 'no-store, max-age=0')
                 res.setHeader('Pragma', 'no-cache')
                 res.setHeader('Expires', '0')

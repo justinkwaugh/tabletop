@@ -115,3 +115,180 @@ The local benchmark used one fixed generated four-player state, 10 warmup reques
 Regression coverage checks shared union references under different definition sets, changing values and viewer policies, and ambiguous matching branches. Existing privacy, replay, and hosted-representation tests continue to apply.
 
 This change lives in the shared projector implementation bundled into each Game Runtime. Existing Logic/UI Artifacts retain their old projector. Republish a game's Logic and matching UI Artifacts to adopt the optimization; a backend-only or Site Frontend-only deployment does not update those bundled projectors. Response shapes, stored schemas, and host bridge contracts are unchanged, so existing artifacts remain compatible.
+
+## Fresh Fish game opening, 2026-09-18
+
+A supplied `GET /api/v1/game/get/:gameId` capture from `backend-00524-jkh` took 2,663 ms: 308 ms loading Game data and 2,342 ms in `projection.response.game`. An earlier capture on the same revision spent only 3 ms projecting its response. The slow capture establishes server-side response preparation as the bottleneck for that request; the fast capture does not rule it out for other Games.
+
+An offline reproduction used the supplied current State and 118 ordered Actions, restoring Action timestamps to Dates and substituting synthetic account metadata. The local CPU profile attributed roughly 80% of projection time to `canReplayCascade`. Its two replay proofs repeatedly execute Fresh Fish rules, including expropriation. The board search previously recomputed neighbors and looked up cells for every edge of every candidate's traversal.
+
+Expropriation now builds indexed adjacency from the current board once per calculation, then counts reachable cells for each blocked candidate. Blocked candidates and hypothetical placements remain reachable endpoints but cannot be traversed through. Trucks and stalls retain the same endpoint behavior. The adjacency is discarded after the calculation so subsequent board changes are reflected. State projection, canonical validation, both replay proofs, Action patches, and visibility policies are unchanged.
+
+Verification includes a deterministic lookup-budget regression (the old search made 71,581 cell lookups on a 100-cell empty board), board mutation and terminal-cell cases, all Fresh Fish tests, and 17,000 seeded board/placement comparisons with the original algorithm. The supplied State and Actions remain outside the repository. Five runs for each of the four player perspectives and a spectator produced identical complete response payloads before and after the change. Median projection times fell from 542–568 ms to 388–417 ms (26–29%) on Node 24.19.0 in the local workspace; these are not production latency estimates.
+
+This is a reduction in measured work, not evidence that the entire deployed 2–3 second wait is eliminated. History replay and serialization still cost time, and production latency needs a new capture after publication. The change is bundled into Fresh Fish's Game Runtime: republish its Logic Artifact and matching UI Artifact. A backend-only deployment does not adopt it. No response schema or host bridge changes are required; existing UI Artifacts consume the same representations.
+
+## Always supply projected transition patches, 2026-09-18
+
+The board-search optimization did not address the main source of work. The same 118-Action snapshot caused 106 user-cascade execution attempts (34 threw during the replay probe), 64 processed-action applications, and 225 state projections each time its full response was generated. Those execution attempts existed to decide whether forward patches could be omitted.
+
+Projection now retains every compatible transition's forward and undo patches and performs no execution proofs. The same snapshot makes zero `executeAction` or `applyProcessedAction` calls during response construction. Historical reconstruction, 225 state projections, canonical validation, and historical incompatibility handling remain. Player/spectator output matches the earlier response after excluding the newly retained forward patches; all 118 transitions round-trip through backward and forward navigation for every perspective.
+
+Across five runs per perspective on the same local Node 24.19.0 environment, median response projection fell to 93–98 ms, compared with 542–568 ms before either optimization and 388–417 ms after the board-search change. This is approximately 82–83% less projection time than the original. Responses grew from 133,589–135,238 bytes to 174,188–174,273 bytes. Offline gzip sizes grew from 12,972–13,012 bytes to 15,715–15,751 bytes; this measures compressibility, not the deployed transfer configuration. Production improvement still requires a new capture.
+
+Client reconciliation now compares the accepted patched state with the optimistic result instead of inferring agreement from Action identities and patch absence. Matching predictions retain their displayed state; corrections still apply from the confirmed starting state. Inherited hypothetical Undo establishes authoritative execution eligibility through canonical validation and replay at the point of use. It no longer treats forward patches or optimistic-execution flags as execution barriers. Projected simultaneous Undo remains speculative and is confirmed by the host.
+
+### Publication and mixed artifacts
+
+The backend must be rebuilt to adopt the simplified response projection. The shared Game Client and Exploration history changes are bundled into UI Artifacts: publishing only the Site Frontend does not update them. Rebuild and publish matching Logic/UI Artifacts for protected titles (currently Fresh Fish, Sol, The Estates, Santiago, Kaivai, and Lowenherz); rebuilding other titles adopts the shared reconciliation change as well. The Fresh Fish board-search improvement also requires its new Logic Artifact.
+
+The response shape and host bridge interface are unchanged. New clients continue accepting legacy records without forward patches. Old clients already consume forward patches, so authoritative delivery remains supported, but they conservatively reject inherited hypothetical Undo when those patches are present and replace matching optimistic states unnecessarily. To preserve the complete experience, use the established frontend major-version forced-reload rollout with the updated UI publications before exposing unconditional patches to old sessions. Rehearse already-open clients as well as fresh navigation; this change does not modify versions, the site manifest, or deploy artifacts. The legacy `replay` projection input remains accepted for independently bundled callers; only its game configuration is used.
+
+## State-first Game opening
+
+The game route first requests `GET /api/v1/game/get/:gameId?includeActions=false`. The backend reads a consistent Game/State snapshot and validates and projects only the current State. It returns an empty Actions array with `historyComplete: false`; the default request retains its existing complete-history behavior. State-only responses use a distinct ETag. Legacy States lacking an Action checksum still require a history read to backfill that checksum.
+
+A supporting Game UI Artifact displays that State and requests the ordinary full response after its notification listener starts. The initial State's Action count and checksum define a client history checkpoint. Subsequent Actions retain their absolute indices, and checksum validation starts at the checkpoint. Live submissions, optimistic processing, and notifications do not wait for the older history download. Initial synchronization covers updates between snapshot retrieval and notification subscription.
+
+Background history is verified against the checkpoint and retained live Actions, then attached without replacing State or animating old Actions. Attachment waits for active submissions and visible transitions to finish. A response for a disposed session or obsolete perspective is discarded. An incompatible history branch triggers full resync. Undo/reconciliation that requires Actions before the checkpoint also falls back to full resync; notification payloads are unchanged.
+
+History navigation and exploration remain unavailable until complete history is present. Undo can target eligible retained Actions. History-dependent descriptions may initially be incomplete. The history controls show loading/failure status and allow retry; a failed history request does not block live play. Failed synchronization pauses action submission until recovery succeeds.
+
+Deploy the backend before the updated Site Frontend. Rebuild and publish each title's UI Artifact to adopt checkpoint-aware sessions and the history controls; no Logic Artifact change is required for this feature. The Site Frontend checks the session class's optional `supportsDeferredHistory` capability and fetches complete history before constructing an older session. An older Site Frontend continues constructing updated sessions with complete history. Local games continue loading their complete local data.
+
+Measure time to visible board separately from time to complete history. This moves historical reads and projection off the initial page-load path; it does not remove UI Artifact loading, current-State projection, or the eventual full-history request.
+
+### Scenario regression coverage
+
+| Scenario | Regression coverage |
+| --- | --- |
+| Show the projected board before history arrives | `pageLoad.spec.ts` returns a modern session after only the State request; deferred-history browser tests compare its displayed State with the host projection |
+| Initiate and optimistically execute Actions without earlier history | `gameReconciliation.spec.ts` checkpoint submission; browser delayed-history and failed-history scenarios |
+| Receive ordinary notifications | Checkpoint tests exercise canonical execution and projected patches; the failed-history browser scenario receives a live notification |
+| Duplicate, missing, or out-of-order notifications | Checkpoint tests cover retained duplicates, unknown duplicates before the checkpoint, and incremental recovery with complete and incomplete history |
+| Undo within retained history | Replacement-notification tests exercise rollback boundaries available in complete and incomplete contexts |
+| Undo crossing before the checkpoint | Reconciliation and browser tests require full reload; browser tests also initiate Undo of a retained Action whose server replay requires earlier history |
+| Full resync failure and retry | The `resync-failure` browser scenario verifies that play pauses and resumes only after successful recovery |
+| Partial action descriptions and unavailable old history | Browser tests verify an initially empty retained log, absent last Action and Undo candidate, and blocked history navigation |
+| History navigation and exploration | Deferred-history browser tests verify gating and re-enabling; existing complete-history navigation, replay, exploration, and optimistic Undo browser tests remain in the run |
+| Attach history while play advances | Tests cover attachment during a pending optimistic submission, older and newer history responses, branch mismatch, and no board transition on successful attachment |
+| Session disposal or perspective change during loading | Deferred-history browser scenarios reject late attachment to disposed or differently represented sessions |
+| Mixed UI Artifact versions and complete local results | Page-loader tests cover modern sessions, legacy sessions, and already-complete data without an additional request |
+| State-only transport and privacy | Route, API, service, and representation tests cover the query flag, distinct ETag, skipped Action reads, and projected State |
+
+The proposed self-contained before/after Undo patch is not introduced by this change. Tests exercise the existing notification contracts and their resync fallback. Exploration before full history is deliberately unavailable in this implementation; its gate is tested rather than claiming history-independent exploration support.
+
+For an interactive delayed-history rehearsal, run `LOCAL_GAME_HISTORY_DELAY_MS=3000 node tools/scripts/local-hosted-game.mjs fresh-fish`. In local backend mode only, full Game loads (including cache revalidation and full resync) wait three seconds; State-only requests, submissions, and notifications are unaffected. Omit the environment variable to restore normal timing.
+
+Both Game response variants have explicit weak ETag suffixes: `:full` for Game, State, and Actions, and `:state-only` for Game and State. Older suffixless or `:state` validators receive a fresh `200` response once, then revalidate against the new tag.
+
+### Production conditional-request comparison, 2026-09-18
+
+An authenticated regular-account probe reproduced unchanged TOP responses returning
+200 through `boardtogether.games`. Each conditional request sent the exact ETag
+from its preceding response. Using the same session and validator against the
+direct Cloud Run backend returned 304. Both paths reported Site Frontend version
+22.1.0; that header does not identify the backend revision.
+
+| Representation | Public site conditional response | Direct Cloud Run conditional response |
+| --- | --- | --- |
+| State-only | 200, 48,041 body bytes, unchanged ETag | 304, no body |
+| Full history | 200, 89,543 body bytes, unchanged ETag | 304, no body |
+
+The direct comparison initially used the `latest` revision-tag URL. Repeating the
+state-only comparison against the untagged Cloud Run service also returned 304,
+while the public site still returned 200. Explicit request `Cache-Control:
+no-cache` did not change that result. Body sizes are decoded response sizes, not
+compressed wire measurements. No Game Actions or preference writes were made.
+
+This isolates a difference in the public hosting/proxy path; it is not evidence
+of a broken ETag comparison in the route or of browser-only status normalization.
+Whether the intermediary removes `If-None-Match` before forwarding or transforms
+the origin response still needs origin-side evidence. Do not change private
+Game responses to public caching to work around it. The hosting route must
+preserve conditional revalidation, or use an authenticated API path that does.
+No production routing or application changes were deployed by this investigation.
+
+The subsequent production timing log reported 200 at the backend, ruling out
+transformation of an origin 304 for that request. The Game GET route now records
+one of `game.load.validator.missing`, `game.load.validator.matched`, or
+`game.load.validator.mismatched` as a counter in the existing `request_timing`
+log. These diagnostics require a backend deployment; no UI publication is needed.
+They record neither validator values nor cookies and leave response behavior
+unchanged. With request timings enabled, repeat a conditional request through
+the public URL and inspect `jsonPayload.counters`: `missing: 1` means no
+`If-None-Match` reached the route, `mismatched: 1` means one arrived but failed
+the route's comparison, and `matched: 1` accompanies a 304. Compare the direct
+backend request using the same validator. Remove these targeted counters once
+the production forwarding behavior has been established.
+
+### Subscription-first reads and unchanged synchronization
+
+The Site Frontend now waits for the User notification subscription before the
+initial Conversation and Read Position reads. Both reads run concurrently. An
+already attached User subscription permits an immediate load. Reattachment still
+reconciles; a relevant Message arriving during a read requests a follow-up
+snapshot instead of being lost. Responses for a Game that has been left cannot
+replace the current Conversation or Read Position.
+
+The host advertises optional `synchronizesOnSubscribe` and `isUserChannelReady`
+capabilities on its Notification Service. Updated Game Clients use the
+subscription event as their startup synchronization trigger instead of issuing
+an additional pre-subscription check. Projected Games synchronize on the User
+channel that delivers their updates; canonical Games use the Game Instance
+channel. Opening a projected Game with an already attached User channel performs
+one immediate check. Older hosts retain the previous startup behavior, and older
+UI Artifacts ignore the optional host capabilities.
+
+History navigation no longer disables during a read-only sync check. It still
+disables when synchronization applies changes or replaces State, during Action
+processing, and during visible transitions. Action-submission guards are unchanged.
+The host chat changes require a Site Frontend deployment. The Game Client changes
+require UI-only republication for each adopting title, including TOP and 1889;
+no Logic or backend changes are required. These changes are not deployed here.
+
+### Previous-player-turn navigation after deferred history
+
+The previous-player-turn command treated its initial `actionIndex` of -1 as the
+beginning of History View even when still in Live View. A state-only session
+constructs history with no Actions, so that cursor remains -1 after history
+attachment until another navigation command initializes it. This made the first
+previous-player-turn click a no-op; stepping backward once made it work.
+
+The command now uses the shared `hasPreviousAction` check, which resolves the
+available position from Live View or History View and retains disabled and
+irreversible-history boundaries. Chromium and Firefox regressions cover complete
+and deferred history, direct navigation, the step-back workaround, and loading
+and disabled-state guards. Republish Fresh Fish's UI Artifact to adopt the fix;
+other titles adopt it through UI-only republication as well. No host contract,
+Site Frontend, Logic, or backend change is required for this correction.
+
+## Cached State for returning players
+
+The most common Game open follows another player's Action. That write cleared `game-<id>`, `csum-<id>` and `etag-<id>`, so the returning player's state-only GET read both the Game and State documents from Firestore. The State is now cached in Redis, and every committed Game write refills the cache in the background after it releases its write markers.
+
+### Caching the State
+
+`state-<id>` is an ordinary cached value under the existing protocol. It is part of `GameCacheKeys.stateWrite`, and `gameWrite` includes those keys, so every State writer places a write marker on it before committing. Readers fill it through `cachingGet` with read tokens, like `game-<id>`. `getActionChecksum` fills `csum-<id>` from the same cached State, so synchronization after an open usually needs no Firestore read either.
+
+`cachingGet` accepts an optional expiry for its fill. State entries use seven days. Production Redis uses `volatile-lru`, which evicts only keys with an expiry. Without one, States would never be evicted, and memory pressure would evict the protocol's read tokens and write markers instead, then reject writes. The expiry makes States the eviction candidates and removes finished and abandoned Games. The entry holds canonical State, including protected fields and any master seed; its Redis trust boundary matches the other backend caches.
+
+### Refill after writes
+
+Every store write except deletion goes through `writeGame`: creation (including started tournament Games), forks and imports (`writeFullGameData`), `updateGame` (starting a Game, joins, declines, invitations and other metadata edits), Actions, Undo, checksum backfill and State replacement. After `lockWhileWriting` returns, `writeGame` starts `store.refillGameCache` without awaiting it. The refill is an ordinary read of `game-<id>`, `state-<id>` and `etag-<id>` through `findGameById`, `findGameState` and `getGameEtag`. It adds no cache behavior of its own: each miss takes a read token, reads Firestore and fills only if the token survives. While another writer holds the markers, the refill still reads Firestore but cannot fill.
+
+Cloud Run allocates CPU only while a request is active (the service does not disable CPU throttling). The refill overlaps the rest of the request, such as notification publishing and turn-notification scheduling. Anything unfinished when the response completes can stall or be lost, which leaves the previous behavior: the next reader fills the cache itself.
+
+### Rollout
+
+Backend revisions that predate `state-<id>` do not mark it when they write. While such a revision still serves writes alongside a revision that caches State, a cached State can outlive the write. This happens only during the first deployment, while old instances finish in-flight requests after promotion, and after a rollback to a revision that predates the cache. After the new revision is fully promoted, and after any such rollback, delete the `state-*` keys (for example, `SCAN` with `MATCH state-*` and `UNLINK` the results). Once every serving revision knows the key, no manual step is needed.
+
+### Measuring it
+
+In `request_timing`, every report that wrote a Game includes a `store.refillGameCache` span. `completed` means the refill finished inside the request; `pending` means it was still running at response time. For the returning player, a warm open shows cache hits and no `firestore.document.get` or `firestore.getAll` under `store.readGameData`. If many refills are `pending`, move the refill to a Cloud Task.
+
+### Deployment and verification
+
+Deploy the backend, then clear `state-*` as described under Rollout. Response shapes, stored documents and Game UI Artifacts are unchanged.
+
+The Redis/Firestore-emulator suite adds six tests. Actions and Undo, starting a Game, State replacement and a metadata-only update each leave the next Game load (and, after Actions, the checksum lookup) with no document reads. A refill cannot fill while another writer holds the Game. A writer that protects the State keys clears the cached State. Disabling the refill fails all six, and removing `state-<id>` from `stateWrite` also fails all six. The coherence audit reports the same result as before the change: its controls and F1–F8 pass, and only the deferred F9 bookmark-key collision fails.

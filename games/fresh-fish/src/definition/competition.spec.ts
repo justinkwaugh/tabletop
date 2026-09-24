@@ -134,6 +134,15 @@ describe.each([2, 3, 4, 5])('Fresh Fish tournaments with %i players', (count) =>
             expect(state.result).toBe(tied ? GameResult.Draw : GameResult.Win)
             expect(state.winningPlayerIds).toEqual(tied ? ['p0', 'p1'] : ['p0'])
             expect(() => validateGameResult(state.dehydrate())).not.toThrow()
+            const finalScores = FreshFishRuntime.scoring.finalScores(state.dehydrate())
+            expect(finalScores).toEqual(
+                Object.fromEntries(state.players.map((player) => [player.playerId, player.score]))
+            )
+            const best = Math.max(...Object.values(finalScores))
+            expect(
+                Object.keys(finalScores).filter((playerId) => finalScores[playerId] === best)
+            ).toEqual(state.winningPlayerIds)
+            expect(finalScores.p1 === finalScores.p0).toBe(tied)
         }
     )
 })

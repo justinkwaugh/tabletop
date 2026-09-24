@@ -1,14 +1,21 @@
+import { Compile } from 'typebox/compile'
 import wretch, { type Wretch, type WretchError } from 'wretch'
 import * as Value from 'typebox/value'
 import { Type, type Static, type TSchema } from 'typebox'
 import {
+    TitlePreferenceData,
+    PreferenceError,
+    type PreferenceChange,
+    type PreferenceResponse,
     type GameCreationOptions,
     type GameCatalogEntry,
+    type AdminAssignableRole,
     assertExists,
     Bookmark,
     CanonicalActionReplay,
     ProcessedActionReplay,
     Game,
+    PublicGamePreview,
     GameAction,
     GameChat,
     GameChatMessage,
@@ -45,7 +52,8 @@ import type {
     TokenResponse,
     UndoActionResponse,
     UsernameSearchResponse,
-    UserResponse
+    UserResponse,
+    UsersResponse
 } from './responseTypes.js'
 import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
@@ -55,7 +63,14 @@ import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
 
+export type GameLoadResult = {
+    game?: Game
+    actions: GameAction[]
+    historyComplete?: boolean
+}
+
 export type GetGameOptions = {
+    includeActions?: boolean
     hostView?: boolean
 }
 
@@ -75,7 +90,8 @@ export class TabletopApi {
     constructor(
         host: string = DEFAULT_HOST,
         sseHost: string = DEFAULT_HOST,
-        private readonly version?: string
+        private readonly version?: string,
+        private readonly onUnauthorized?: () => void
     ) {
         this.host = host
         this.sseHost = sseHost
@@ -102,6 +118,48 @@ export class TabletopApi {
             .url(this.baseUrl)
             .middlewares([versionCheckerMiddleware, gameUiVersionChecker])
             .options({ credentials: 'include' })
+    }
+
+    getTitlePreferences?: (titleId: string, userId: string) => Promise<PreferenceResponse> =
+        async (titleId, userId) => {
+            const response = await this.wretch.get(this.preferenceUrl(titleId, userId)).res()
+            return this.preferenceResponse(response)
+        }
+
+    updateTitlePreferences?: (
+        titleId: string,
+        userId: string,
+        change: PreferenceChange,
+        etag: string
+    ) => Promise<PreferenceResponse> = async (titleId, _userId, change, etag) => {
+        const response = await this.wretch
+            .url(`/game/${encodeURIComponent(titleId)}/updateTitlePreferences`)
+            .headers({ 'If-Match': etag })
+            .post(change)
+            .error(412, () => {
+                throw new PreferenceError('Preferences changed', 412)
+            })
+            .res()
+        return this.preferenceResponse(response)
+    }
+
+    private preferenceUrl(titleId: string, userId: string) {
+        return `/game/${encodeURIComponent(titleId)}/preferences?account=${encodeURIComponent(userId)}`
+    }
+
+    private async preferenceResponse(response: Response): Promise<PreferenceResponse> {
+        const body: unknown = await response.json()
+        const etag = response.headers.get('ETag')
+        if (
+            !etag ||
+            typeof body !== 'object' ||
+            body === null ||
+            !('payload' in body) ||
+            !Compile(TitlePreferenceData).Check(body.payload)
+        ) {
+            throw new Error('Invalid preference response')
+        }
+        return { data: body.payload, etag }
     }
 
     async getGameCatalog(): Promise<GameCatalogEntry[]> {
@@ -407,11 +465,22 @@ export class TabletopApi {
             {}
         )
     }
+    async getPublicGamePreview(gameId: string): Promise<PublicGamePreview | undefined> {
+        const response = await this.wretch
+            .get(`/game/public/${encodeURIComponent(gameId)}`)
+            .notFound(() => undefined)
+            .json<{ payload: unknown } | undefined>()
+        return response ? Value.Parse(PublicGamePreview, response.payload) : undefined
+    }
+
     async getGame(
         gameId: string,
         options: GetGameOptions = {}
-    ): Promise<{ game: Game; actions: GameAction[] }> {
-        const path = `/game/get/${gameId}${options.hostView ? '?view=host' : ''}`
+    ): Promise<GameLoadResult & { game: Game }> {
+        const query = new URLSearchParams()
+        if (options.hostView) query.set('view', 'host')
+        if (options.includeActions === false) query.set('includeActions', 'false')
+        const path = `/game/get/${gameId}${query.size ? `?${query}` : ''}`
         const response = await this.wretch
             .get(path)
             .unauthorized(this.on401)
@@ -424,7 +493,7 @@ export class TabletopApi {
         const game = this.validateGame(response.payload.game)
         const actions = this.convertGameActions(response.payload.actions)
 
-        return { game: game, actions }
+        return { game: game, actions, historyComplete: response.payload.historyComplete }
     }
 
     async updateGame(game: Partial<Game>): Promise<Game> {
@@ -740,6 +809,36 @@ export class TabletopApi {
             .res()
     }
 
+    async searchUsers(query: string): Promise<User[]> {
+        const response = await this.wretch
+            .get(`/admin/users/search?query=${encodeURIComponent(query.trim())}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UsersResponse>()
+
+        return response.payload.users
+    }
+
+    async assignUserRoles(userId: string, roles: AdminAssignableRole[]): Promise<User> {
+        const response = await this.wretch
+            .post({ roles }, `/admin/users/${encodeURIComponent(userId)}/roles`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
+    async getActiveGamesForTitle(titleId: string): Promise<Game[]> {
+        const response = await this.wretch
+            .get(`/admin/games/active?titleId=${encodeURIComponent(titleId)}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GamesResponse>()
+
+        return response.payload.games.map((game) => this.validateGame(game))
+    }
+
     async setGameState(state: GameState): Promise<void> {
         await this.wretch
             .post({ state }, '/admin/setGameState')
@@ -842,7 +941,8 @@ export class TabletopApi {
         }
     }
 
-    private async on401() {
+    private on401 = async () => {
+        this.onUnauthorized?.()
         toast.error('Your session has timed out.  Rerouting to login page.')
         window.location.reload()
         // let the window reload

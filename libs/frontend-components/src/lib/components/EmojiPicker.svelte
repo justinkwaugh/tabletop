@@ -7,6 +7,7 @@
 
     const picker = new EmojiButton({
         theme: 'auto',
+        zIndex: 50,
         initialCategory: 'recents',
         showPreview: false,
         showCategoryButtons: false,

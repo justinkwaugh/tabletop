@@ -411,6 +411,183 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(lock).toHaveBeenCalledTimes(2)
         })
 
+        async function startWithAction() {
+            game.status = GameStatus.Started
+            await store.writeFullGameData(game, state, [])
+            const action: GameAction = {
+                id: 'action',
+                gameId: game.id,
+                source: ActionSource.User,
+                type: 'synthetic',
+                index: 0
+            }
+            await store.addActionsToGame({
+                game,
+                actions: [action],
+                state: { ...state, actionCount: 1, actionChecksum: 7 },
+                validator: async () => UpdateValidationResult.Proceed
+            })
+            return action
+        }
+
+        async function expectRefilled() {
+            await vi.waitFor(async () => {
+                for (const key of [
+                    GameCacheKeys.game(game.id),
+                    GameCacheKeys.state(game.id),
+                    GameCacheKeys.revision(game.id)
+                ])
+                    expect((await live.cache.cacheGet(key)).cached, key).toBe(true)
+            })
+        }
+
+        function countDocumentReads() {
+            const single = vi.spyOn(DocumentReference.prototype, 'get')
+            const batch = vi.spyOn(db, 'getAll')
+            return () => single.mock.calls.length + batch.mock.calls.length
+        }
+
+        it('refills Game, State and revision after Actions and Undo for the next reader', async () => {
+            const action = await startWithAction()
+            await expectRefilled()
+            const stateTtl = await client.ttl(GameCacheKeys.state(game.id))
+            expect(stateTtl).toBeGreaterThan(0)
+            expect(stateTtl).toBeLessThanOrEqual(7 * 24 * 60 * 60)
+            const reads = countDocumentReads()
+            const loaded = await store.readGameData(game.id, async (reader) => reader.game)
+            expect(loaded?.status).toBe(GameStatus.Started)
+            expect(loaded?.state?.actionCount).toBe(1)
+            expect(await store.getActionChecksum(game.id)).toBe(7)
+            expect(reads()).toBe(0)
+            vi.restoreAllMocks()
+
+            await store.undoActionsFromGame({
+                gameId: game.id,
+                actions: [action],
+                redoneActions: [],
+                state,
+                validator: async () => UpdateValidationResult.Proceed
+            })
+            await expectRefilled()
+            const afterUndo = countDocumentReads()
+            const undone = await store.readGameData(game.id, async (reader) => reader.game)
+            expect(undone?.state?.actionCount).toBe(0)
+            expect(afterUndo()).toBe(0)
+        })
+
+        async function expectWarmState(machineState: string) {
+            const stateKey = GameCacheKeys.state(game.id)
+            await vi.waitFor(async () =>
+                expect((await live.cache.get<GameState>(stateKey)).value?.machineState).toBe(
+                    machineState
+                )
+            )
+            const reads = countDocumentReads()
+            const loaded = await store.readGameData(game.id, async (reader) => reader.game)
+            expect(loaded?.state?.machineState).toBe(machineState)
+            expect(reads()).toBe(0)
+            vi.restoreAllMocks()
+        }
+
+        it('does not fill while another writer protects the Game', async () => {
+            game.status = GameStatus.Started
+            await store.writeFullGameData(game, state, [])
+            await expectWarmState('test')
+            let releaseWriter!: () => void
+            const writerHeld = new Promise<void>((resolve) => (releaseWriter = resolve))
+            let writerStarted!: () => void
+            const started = new Promise<void>((resolve) => (writerStarted = resolve))
+            const writer = live.cache.lockWhileWriting(
+                GameCacheKeys.gameWrite(game.id),
+                async () => {
+                    writerStarted()
+                    await writerHeld
+                }
+            )
+            await started
+            const tokens = vi.spyOn(live.cache, 'acquireReadLock')
+            await store.addActionsToGame({
+                game,
+                actions: [
+                    {
+                        id: 'action',
+                        gameId: game.id,
+                        source: ActionSource.User,
+                        type: 'synthetic',
+                        index: 0
+                    }
+                ],
+                state: { ...state, actionCount: 1 },
+                validator: async () => UpdateValidationResult.Proceed
+            })
+            await vi.waitFor(() => expect(tokens).toHaveBeenCalledTimes(3))
+            expect(await Promise.all(tokens.mock.results.map((result) => result.value))).toEqual([
+                undefined,
+                undefined,
+                undefined
+            ])
+            releaseWriter()
+            await writer
+            expect((await live.cache.cacheGet(GameCacheKeys.state(game.id))).cached).toBe(false)
+            const loaded = await store.readGameData(game.id, async (reader) => reader.game)
+            expect(loaded?.state?.actionCount).toBe(1)
+        })
+
+        it.each([
+            {
+                write: 'starting the Game',
+                apply: () =>
+                    store.updateGame({
+                        game,
+                        fields: {
+                            status: GameStatus.Started,
+                            state: { ...state, machineState: 'started' }
+                        }
+                    }),
+                machineState: 'started'
+            },
+            {
+                write: 'replacing the State',
+                apply: () =>
+                    store.setGameState({
+                        gameId: game.id,
+                        state: { ...state, machineState: 'started' }
+                    }),
+                machineState: 'started'
+            },
+            {
+                write: 'a metadata-only update',
+                apply: () => store.updateGame({ game, fields: { name: 'Renamed' } }),
+                machineState: 'test'
+            }
+        ])('warms the next load after $write', async ({ apply, machineState }) => {
+            game.status = GameStatus.WaitingToStart
+            await store.writeFullGameData(game, state, [])
+            await expectWarmState('test')
+            await apply()
+            await expectWarmState(machineState)
+        })
+
+        it('clears the cached State for any writer that protects the State keys', async () => {
+            game.status = GameStatus.Started
+            await store.writeFullGameData(game, state, [])
+            await expectWarmState('test')
+            const stateKey = GameCacheKeys.state(game.id)
+            await live.cache.lockWhileWriting(GameCacheKeys.stateWrite(game.id), async () => {
+                await db
+                    .doc(`games/${game.id}/states/${game.id}`)
+                    .set({ data: JSON.stringify({ ...state, machineState: 'replaced' }) })
+            })
+            expect((await live.cache.cacheGet(stateKey)).cached).toBe(false)
+            const loaded = await store.readGameData(game.id, async (reader) => reader.game)
+            expect(loaded?.state?.machineState).toBe('replaced')
+            await vi.waitFor(async () =>
+                expect((await live.cache.get<GameState>(stateKey)).value?.machineState).toBe(
+                    'replaced'
+                )
+            )
+        })
+
         it('completion and undo protect both category lists before committing', async () => {
             game.status = GameStatus.Started
             await store.writeFullGameData(game, state, [])

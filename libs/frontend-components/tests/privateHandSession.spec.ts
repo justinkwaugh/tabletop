@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test'
 
 for (const scenario of [
     'runPrivateHandPlayAndUndo',
+    'runPatchedSubmissionCorrection',
     'runPrivateHandDelivery',
+    'runSpectatorChatReadPosition',
     'runPrivateHandDrawAndReload',
     'runPrivateHandExploration',
     'runPrivateHandHostView',
@@ -43,5 +45,26 @@ for (const mode of [
             return fixture.runOptimisticUndoScenario(mode)
         }, mode)
         expect(result).toEqual({ optimistic: true, reconciled: true })
+    })
+}
+
+for (const mode of [
+    'delayed',
+    'failed',
+    'disposed',
+    'undo',
+    'resync-failure',
+    'perspective-change'
+] as const) {
+    test(`deferred history: ${mode}`, async ({ page }) => {
+        await page.goto('/session-test.html')
+        const result = await page.evaluate(async (mode) => {
+            const fixture = await import(
+                new URL('/src/lib/model/tests/privateHandSession.fixture.ts', window.location.href)
+                    .href
+            )
+            return fixture.runDeferredHistory(mode)
+        }, mode)
+        expect(Object.values(result).every((value) => value === true)).toBe(true)
     })
 }

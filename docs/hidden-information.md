@@ -50,7 +50,7 @@ V0 = projectState(C0, P)
 V1 = projectState(C1, P)
 Av = projectActionRecord(A, P)
 Av.undoPatch = diff(V1, V0)
-Av.forwardPatch = diff(V0, V1)  // retained when replay cannot be proven
+Av.forwardPatch = diff(V0, V1)
 ```
 
 Both patch directions are calculated from permitted states. Filtering canonical patches is unsafe: canonical array positions, movements, and replacement values can disclose secrets or produce invalid projected operations.
@@ -137,9 +137,11 @@ A client attempts Optimistic Application when the Action permits it. The guard r
 
 Action-type discovery uses the same guarded projected state for the Acting Player. Concrete choices are title UI derivations from known data. If discovery accesses an unavailable value, the client advertises no Actions. Titles must expose sufficient public aggregates or permitted values for legal discovery. No second rules implementation or host-calculated legal-choice endpoint is required by the supported owner-hand flow.
 
-For each Perspective, the host classifies the complete initiating User Action and System Action cascade. It removes all forward patches only when isolated projected execution reproduces the authoritative projected Action trace and every state boundary, and flattened Processed Action replay also matches. Otherwise every record retains a forward patch. Probe errors safely select patches. Rules must remain pure and deterministic; the probe must have no ambient access to secrets or external side effects.
+For each Perspective, the host supplies forward and undo patches for every compatible recorded transition, including empty patches for no visible change. Projection reconstructs historical states and derives patches without executing game rules. Canonical state and Actions remain the only persisted representation; no projections or replay classifications are persisted. Patch presence describes a recorded transition, not eligibility for optimistic or authoritative execution.
 
 `applyProcessedAction` applies an existing forward patch without hydrating or executing the Action. Without a patch it replays exactly that supplied record, without recursively executing generated children. `undoProcessedAction` reverses its supplied undo patch. Delivery never reprocesses authoritative children as new Actions.
+
+Optimistic submission reconciliation applies the accepted records to an isolated confirmed starting state and compares the result with the prediction. Matching predictions remain published while their records are replaced with the accepted patches; differing predictions are corrected. Action identities and checksums alone do not establish state equality. Legacy records without forward patches continue through processed-action replay. Projected simultaneous Undo may use recorded patches as a speculative preview; only the host establishes the resulting authoritative history. Local authoritative re-execution continues through canonical validation.
 
 Initial loading, Action responses, incremental synchronization, Realtime cascades, and direct/Realtime Hosted Undo use permitted representations. Generic Game notifications and the start response carry no Game State. Realtime delivery sends the spectator view to the Game topic and each Player view to the associated User topic. Clients accept their selected Perspective and preserve checksum continuity.
 

@@ -1,3 +1,4 @@
+import jsonpatch from 'fast-json-patch'
 import { describe, expect, it } from 'vitest'
 import { assert, assertExists } from '../../util/assertions.js'
 import { getPrng } from '../../util/prng.js'
@@ -197,6 +198,9 @@ describe('Exploration boundary patches', () => {
                 action: firstPlay
             })
             const source = result.updatedState
+            assertExists(result.processedActions[0])
+            result.processedActions[0].forwardPatch = jsonpatch.compare(initial, source)
+            result.processedActions[0].skipOptimisticExecution = true
             const hypothetical = structuredClone(source)
             hypothetical.secretBonus = 5
             hypothetical.drawPile.items.reverse()

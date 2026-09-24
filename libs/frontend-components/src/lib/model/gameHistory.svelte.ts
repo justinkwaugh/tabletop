@@ -70,7 +70,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
 
     hasPreviousAction: boolean = $derived.by(() => {
         const index = this.inHistory ? this.actionIndex : this.gameContext.actions.length - 1
-        return index > this.earliestActionIndex
+        return !this.disabled && index > this.earliestActionIndex
     })
 
     hasNextAction: boolean = $derived.by(() => {
@@ -81,7 +81,10 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     playing: boolean = $state(false)
-    private disabled = $state(false)
+    private explicitlyDisabled = $state(false)
+    private disabled = $derived.by(
+        () => this.explicitlyDisabled || !this.gameContext.hasCompleteHistory
+    )
     private stepping: boolean = false
     private playTimer: ReturnType<typeof setTimeout> | null = null
     private playOnEnable: boolean = false
@@ -152,11 +155,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     disable() {
-        this.disabled = true
+        this.explicitlyDisabled = true
     }
 
     enable() {
-        this.disabled = false
+        this.explicitlyDisabled = false
 
         // Resume playing if needed
         if (this.playOnEnable) {
@@ -466,7 +469,9 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         this.onHistoryAction(this.historyContext.actions[this.actionIndex], animationIntent)
         this.historyContext.updateGameState(stateSnapshot)
 
-        const skippableLastAction = this.shouldAutoStepAction(nextAction)
+        const skippableLastAction =
+            this.actionIndex === this.historyContext.actions.length - 1 &&
+            this.shouldAutoStepAction(nextAction)
         if (stopPlayback || skippableLastAction) {
             this.stopHistoryPlayback()
         }
@@ -565,12 +570,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     public async goToPlayersPreviousTurn(playerId: string) {
-        if (
-            this.disabled ||
-            this.stepping ||
-            this.gameContext.actions.length === 0 ||
-            this.actionIndex === -1
-        ) {
+        if (this.stepping || !this.hasPreviousAction) {
             return
         }
         await this.stepUntil('backward', () => {

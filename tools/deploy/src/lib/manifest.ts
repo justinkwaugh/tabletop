@@ -1,11 +1,10 @@
 import fs from 'node:fs/promises'
-import { SiteManifest } from './types.js'
+import { GameCatalogueEntry, SiteManifest } from './types.js'
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null
 
-export const readManifest = async (manifestPath: string): Promise<SiteManifest> => {
-    const raw = await fs.readFile(manifestPath, 'utf8')
+export const parseManifest = (raw: string): SiteManifest => {
     const parsed = JSON.parse(raw) as unknown
 
     if (!isObject(parsed)) {
@@ -23,6 +22,14 @@ export const readManifest = async (manifestPath: string): Promise<SiteManifest> 
             frontend.priorVersions.some((value) => typeof value !== 'string'))
     ) {
         throw new Error('Manifest frontend.priorVersions must be a string array')
+    }
+
+    if (
+        'history' in frontend &&
+        frontend.history !== undefined &&
+        !Array.isArray(frontend.history)
+    ) {
+        throw new Error('Manifest frontend.history must be an array')
     }
 
     const games = parsed.games
@@ -54,6 +61,9 @@ export const readManifest = async (manifestPath: string): Promise<SiteManifest> 
         ) {
             throw new Error(`Manifest ${entry.gameId}.priorLogicVersions must be a string array`)
         }
+        if ('history' in entry && entry.history !== undefined && !Array.isArray(entry.history)) {
+            throw new Error(`Manifest ${entry.gameId}.history must be an array`)
+        }
         if (
             'priorUiVersions' in entry &&
             entry.priorUiVersions !== undefined &&
@@ -73,4 +83,21 @@ export const writeManifest = async (
 ): Promise<void> => {
     const json = JSON.stringify(manifest, null, 2) + '\n'
     await fs.writeFile(manifestPath, json, 'utf8')
+}
+
+export const readCatalogue = async (cataloguePath: string): Promise<GameCatalogueEntry[]> => {
+    const parsed = JSON.parse(await fs.readFile(cataloguePath, 'utf8')) as unknown
+    if (!Array.isArray(parsed)) {
+        throw new Error('Game catalogue must be an array')
+    }
+    for (const entry of parsed) {
+        if (
+            !isObject(entry) ||
+            typeof entry.gameId !== 'string' ||
+            typeof entry.packageId !== 'string'
+        ) {
+            throw new Error('Game catalogue entries need gameId and packageId strings')
+        }
+    }
+    return parsed as GameCatalogueEntry[]
 }

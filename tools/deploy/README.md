@@ -1,64 +1,132 @@
 # Tabletop Deploy
 
-Ink-based TUI and CLI for managing `site-manifest.json`, version bumps, builds, and deploys.
+Command-line tool for releasing and deploying games, the site frontend, and the backend. It
+owns the site manifest in the bucket, which is the only record of what production serves; the
+repository keeps a game catalogue (`config/config-games/src/games.json`) and package versions.
+See `docs/adr/0006-site-manifest-lives-in-the-bucket.md`.
 
-## Install
-
-From repo root (installs dependencies; build is still required to create the bin entrypoint):
+## Install and build
 
 ```bash
 pnpm install
-```
-
-## Quick start
-
-```bash
 pnpm --filter @tabletop/deploy run build
-pnpm --filter @tabletop/deploy exec -- tabletop-deploy tui
+node tools/deploy/esm/cli.js --help
 ```
 
-Or run the compiled file directly:
+The root `pnpm run deploy -- <command>` runs the compiled file.
+
+## Releasing and deploying a game
+
+Publishing is split into a release, which changes versions in git, and a deploy, which builds
+and uploads whatever HEAD is. Both run non-interactively and exit non-zero on the first failure,
+printing each step's log path.
 
 ```bash
-node tools/deploy/esm/cli.js tui
+node tools/deploy/esm/cli.js release-game --game=<gameId|packageId> [--logic] (--major | --minor | --patch) [--no-deploy]
+node tools/deploy/esm/cli.js deploy-game --game=<gameId|packageId> [--logic]
 ```
 
-Or use the root script:
+`release-game`:
+
+1. refuses to run on a dirty working tree or a detached HEAD;
+2. bumps the UI package version, and the logic package version too with `--logic`;
+3. commits those files, tags the commit per artifact, and pushes the branch and tags to `origin`;
+4. runs `deploy-game` for the same artifacts unless `--no-deploy` is given.
+
+Release tags are `<packageId>-v<version>` for logic and `<packageId>-ui-v<version>` for UI, for
+example `the-old-prince-v0.12.0` and `the-old-prince-ui-v0.59.0`.
+
+`deploy-game` checks, before building anything, that the working tree is clean and that HEAD
+carries the release tag for every artifact being published. An artifact whose version directory
+already exists in the bucket is reused rather than rebuilt, so a failed deploy can be rerun. It
+then builds and bundles, uploads the artifacts, and publishes the manifest: it reads the bucket
+manifest, copies it to `config/manifest-backups/site-manifest.<timestamp>.<operation>.json`,
+uploads the changed copy with only this game's versions updated, and invalidates the backend
+manifest cache. `deploy-ui` and `deploy-logic` apply the same flow for a single artifact.
+
+Building locally is not gated: `build-ui` and `build-logic` work on any tree.
+
+The frontend follows the same model with `release-frontend (--major | --minor | --patch)
+[--no-deploy]` and `deploy-frontend`. There is no `--logic` flag; the release bumps
+`apps/frontend/package.json`, tags `frontend-v<version>`, and the deploy uploads the build to
+`frontend/<version>` in the bucket before publishing the manifest.
+
+The backend follows the same model with `release-backend (--major | --minor | --patch)
+[--no-deploy] [--no-traffic] [--service=backend|tasks]` and `deploy-backend`. The release bumps
+`apps/backend/package.json` and tags `backend-v<version>`. The deploy builds the backend,
+produces the pruned image context with `pnpm --filter @tabletop/backend run docker-context`,
+submits it to Cloud Build tagged `<backend.image>:<version>`, and deploys that image to the
+`tasks` and then the `backend` Cloud Run services, in that order because backend depends on
+tasks, with traffic as revisions named `<service>-v<version>`
+with dots replaced by dashes, setting `BACKEND_VERSION`, `GIT_SHA`, and `BUILD_TIME` so the
+manifest reports what is running. A rerun that finds the revision already present reuses it. `--no-traffic` stages a revision
+without serving it, `promote-backend` shifts both services to their latest revision, tasks first, and
+`rollback-backend <revision>` shifts traffic back. No Docker is needed
+locally. The image tag is immutable: a version already in Artifact Registry is refused.
+
+### History, rollback, and switch
+
+Every manifest change appends to a publication history: per game a list of logic and UI
+version pairs, for the frontend a list of versions, newest first with the deploy time, commit,
+and tags. Only the five most recent are kept, which is also how far `rollback` can reach; the
+artifacts themselves stay in the bucket. A manifest written before history existed is seeded
+with its current publication.
 
 ```bash
-pnpm run deploy:tui
+node tools/deploy/esm/cli.js list (--game=<id> | --frontend)
+node tools/deploy/esm/cli.js rollback (--game=<id> | --frontend)
+node tools/deploy/esm/cli.js switch --game=<id> --ui-version=<v> [--logic-version=<v>]
+node tools/deploy/esm/cli.js switch --frontend --version=<v>
 ```
-Note: the root script runs the compiled file; run `pnpm --filter @tabletop/deploy run build` first if needed.
 
-## TUI capabilities
+`rollback` selects the publication that served before the current one. `switch` selects
+specific versions; logic can only be selected together with the UI that embeds it. Both verify
+the artifacts still exist in the bucket, back up and rewrite the manifest, invalidate the cache,
+and report the serving versions before and after like a deploy. Selecting older logic prints a
+caution, because games whose state was written by newer logic need explicit reverse
+compatibility. The backend uses Cloud Run revisions instead: `promote-backend` and
+`rollback-backend <revision>`.
 
-- Target selection: Frontend, Backend, All games, or a specific game.
-- Version bump: `v` to bump frontend or game logic/UI (major/minor/patch).
-- Deploy: `d` runs build/bundle + deploy with confirmation.
-- All games deploy builds/bundles logic + UI for all games, then deploys both, then deploys the manifest and invalidates cache.
-- Manifest cache invalidate: `i` (requires backend admin config).
-- Reset mismatched versions to serving: `s`.
-- Refresh view: `r`.
-- Backend rollback: `k` (enter revision).
-- Quit: `q` or `Esc`.
-- Deploy output shows in a modal; logs are also written to `/tmp`.
-- Backend deploy defaults to no-traffic; confirm with `y` to deploy with traffic or `n`/Enter to deploy without traffic.
-- Backend deploy prompts for service: backend (default), tasks, or all.
+`preflight (--game=<gameId|packageId> | --frontend | --backend) [--json]` is read-only. It reports the serving versions
+from the backend manifest, the local versions, the release baseline per artifact (the release
+tag, or the commit that set the current version when no tag exists yet), the files and commits
+changed since that baseline, and whether logic and UI or only UI need a release. Changes are
+counted in the package and its workspace dependencies except the platform packages every game
+shares (`@tabletop/common`, `@tabletop/frontend-components`), so a family library such as
+`libs/18xx` counts as part of an 18xx title's logic while a platform fix does not. Agents use it to decide `--logic` and to report the
+serving state before and after a deploy; see `.agents/skills/release/SKILL.md`.
 
 ## Commands
 
 ```text
-tui                          Launch the TUI (default)
-status                       Print the current manifest
-sync-manifest                Sync site-manifest.json from package versions
+status                       Print the manifest the bucket currently serves
+list (--game=<id> | --frontend)
+                             Print the publication history, newest first
+rollback (--game=<id> | --frontend)
+                             Select the publication that served before the current one
+switch --game=<id> --ui-version=<v> [--logic-version=<v>] | --frontend --version=<v>
+                             Select specific published versions
+preflight (--game=<id> | --frontend | --backend) [--json]
+                             Report serving/local versions and changes since the last release
+release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
+                             Bump versions, commit, tag, push, then deploy
+deploy-game --game=<id> [--logic]
+                             Build and deploy a tagged HEAD, publish the manifest, invalidate cache
 build-ui <gameId>            Build a game UI bundle (rollup)
-deploy-ui <gameId>           Build + bundle a game UI and deploy to GCS
+deploy-ui <gameId>           deploy-game for the UI only, with the same guards
 build-logic <gameId>         Build a game logic bundle (rollup)
-deploy-logic <gameId>        Build + bundle game logic and deploy to GCS
+deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
+release-frontend (--major | --minor | --patch) [--no-deploy]
+                             Bump the frontend version, commit, tag, push, then deploy
 build-frontend               Build the frontend
-  deploy-frontend              Deploy the frontend bundle to GCS
-  build-backend                Build the backend
-  deploy-backend [--with-traffic] Deploy the backend (Cloud Run)
+deploy-frontend              Build and deploy a tagged frontend HEAD, with the same guards
+release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--service=backend|tasks]
+                             Bump the backend version, commit, tag, push, then deploy
+build-backend                Build the backend
+deploy-backend [--no-traffic] [--service=backend|tasks]
+                             Cloud Build the tagged image and deploy it to Cloud Run, with the same guards
+promote-backend [--service=backend|tasks]
+                             Shift traffic to the latest revision after a --no-traffic deploy
 rollback-backend <revision>  Shift traffic to a backend revision
 ```
 
@@ -122,9 +190,52 @@ Create `tools/deploy/deploy.config.json` (see `tools/deploy/deploy.config.exampl
 }
 ```
 
+`gcloudCredentialFile` points at a service account key, relative to the repository root. When
+set, every `gcloud` call the tool makes uses that key instead of a user login, through the Cloud
+SDK's credential file override. Keep the key under `.secrets/`, which is gitignored and visible
+inside the devcontainer at `/workspace/.secrets/`. The account only needs object admin on the
+bucket. From a host shell logged in to gcloud as yourself:
+
+```bash
+PROJECT=your-gcp-project
+BUCKET=your-gcs-bucket
+SA=tabletop-deploy@$PROJECT.iam.gserviceaccount.com
+gcloud iam service-accounts create tabletop-deploy --project=$PROJECT --display-name="Tabletop deploy"
+gcloud storage buckets add-iam-policy-binding gs://$BUCKET --member=serviceAccount:$SA --role=roles/storage.objectAdmin
+mkdir -p .secrets && gcloud iam service-accounts keys create .secrets/gcloud-deploy-key.json --iam-account=$SA
+chmod 600 .secrets/gcloud-deploy-key.json
+```
+
+For backend deploys the same account also needs, once:
+
+```bash
+REGION=us-central1
+RUNTIME_SA=$(gcloud run services describe backend --project=$PROJECT --region=$REGION --format='value(spec.template.spec.serviceAccountName)')
+RUNTIME_SA=${RUNTIME_SA:-$(gcloud projects describe $PROJECT --format='value(projectNumber)')-compute@developer.gserviceaccount.com}
+gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA --role=roles/cloudbuild.builds.editor
+gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA --role=roles/serviceusage.serviceUsageConsumer
+gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:$SA --role=roles/run.admin
+gcloud artifacts repositories add-iam-policy-binding images --project=$PROJECT --location=$REGION --member=serviceAccount:$SA --role=roles/artifactregistry.writer
+gcloud storage buckets add-iam-policy-binding gs://${PROJECT}_cloudbuild --member=serviceAccount:$SA --role=roles/storage.admin
+gcloud iam service-accounts add-iam-policy-binding $RUNTIME_SA --project=$PROJECT --member=serviceAccount:$SA --role=roles/iam.serviceAccountUser
+```
+
+`roles/run.admin` is granted project-wide because Cloud Run service-level bindings do not cover
+creating revisions. The Cloud Build staging bucket `<project>_cloudbuild` is created by the first
+build; if the binding fails because it does not exist yet, run one build as yourself first or
+create the bucket. Storage admin on that one bucket is needed rather than object admin because
+`gcloud builds submit` reads the bucket's metadata, and the build logs are written there too so
+they stream without the account being a project viewer. Verify with `node tools/deploy/esm/cli.js preflight --backend`, which reads
+the serving revision, and with `gcloud builds list --project=$PROJECT --limit=1`.
+
+Verify from inside the container with `gcloud storage ls gs://$BUCKET/config/` after setting
+`CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=/workspace/.secrets/gcloud-deploy-key.json`, or simply
+run `node tools/deploy/esm/cli.js preflight --game=<gameId>`.
+
 Environment overrides:
 
 - `TABLETOP_GCS_BUCKET`
+- `TABLETOP_GCLOUD_CREDENTIAL_FILE`
 - `TABLETOP_BACKEND_MANIFEST_URL` (or `TABLETOP_MANIFEST_URL`)
 - `TABLETOP_BACKEND_ADMIN_URL`
 - `TABLETOP_BACKEND_ADMIN_USER`
@@ -140,7 +251,8 @@ Environment overrides:
 - `TABLETOP_GCS_ACCESS_TOKEN` (optional; used for directory-placeholder API calls)
 
 Notes:
-- `backend.image` is required for backend deploy in the TUI; it is used for the docker build/tag/push flow.
+
+- `backend.image` is required for backend deploys; the release version becomes its tag.
 - `backendAdmin` is required to invalidate the manifest cache after deploys; provide a cookie, token, or username/password.
 - When `CLOUDSDK_PYTHON` is unset, deploy commands automatically pick the first supported local Python (`python3.12`, `python3.11`, `python3.10`, then `python3`) and use it for `gcloud`/`gsutil`.
 
@@ -152,7 +264,7 @@ Notes:
 - Backend image logs write to `/tmp/backend-image-*.log`.
 - Deploy logs write to `/tmp/*-deploy.log`.
 - A frontend deploy publishes only the Site Frontend Artifact. Each game needs a separate UI-only Publication to adopt shared Game Client changes bundled into its UI Artifact; see the [Game UI Host Bridge Contract](../../docs/adr/0004-game-ui-host-bridge-contract.md).
-- Package versions are the source of truth; the manifest is synced from package.json on refresh/deploy.
+- Package versions and release tags are the source of truth for what a checkout is; the bucket manifest is the source of truth for what production serves.
 - GCS deploys create explicit placeholder objects for each destination directory path, including nested subdirectories under rsync sources (for non-HNS buckets / explicit-directory gcsfuse mounts).
 - Placeholder creation uses a direct Cloud Storage API call and requests the current credential from `gcloud auth print-access-token` on every invocation unless `TABLETOP_GCS_ACCESS_TOKEN` is provided. The helper does not cache tokens across invocations, so `gcloud config configurations activate` takes effect on the next call. Explicit Cloud SDK environment overrides and `TABLETOP_GCS_ACCESS_TOKEN` still take precedence.
 - Run credential-selection regression tests with `pnpm --filter @tabletop/deploy test`; these use fake credentials and do not contact Google Cloud.

@@ -1,0 +1,108 @@
+<script lang="ts">
+    import { getCompany, controllingOwner } from '@tabletop/18xx'
+    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
+    const gameState = $derived(session.gameState)
+    const change = $derived(gameState.phaseChange)
+    const companyId = $derived(session.discard.companyId)
+    const owner = $derived(companyId ? controllingOwner(gameState, companyId) : undefined)
+</script>
+
+<section aria-label="Phase changes">
+    <strong>Phase {gameState.phaseId}</strong>
+    {#if change && companyId && owner}
+        <div aria-label="Compulsory train discard">
+            <h2>
+                {getCompany(gameState, companyId).name} · Discard {session.discard.excess} excess {session
+                    .discard.excess === 1
+                    ? 'train'
+                    : 'trains'}
+            </h2>
+            <p>
+                {session.ownerName(owner)} decides. Then {getCompany(
+                    gameState,
+                    change.continuation.companyId
+                ).name} resumes {change.continuation.machineState === 'BuyingTrains'
+                    ? 'buying trains'
+                    : change.continuation.machineState}.
+            </p>
+            <div class="choices">
+                {#each session.discard.trains as train}<button
+                        disabled={!session.discard.canDiscard}
+                        aria-pressed={session.discard.selection === train.id}
+                        onclick={() => session.discard.select(train.id)}
+                        >Discard {session.trainDepot.trainDefinition(train.definitionId).name} ({train.id})</button
+                    >{/each}
+            </div>
+            {#if session.discard.selection}<button onclick={() => session.discard.choice.clear()}
+                    >Back</button
+                ><button
+                    disabled={!session.discard.canDiscard}
+                    onclick={() => session.discard.confirm()}>Confirm discard</button
+                >{/if}
+            {#if showUndo}<button
+                    disabled={session.busy ||
+                        session.updatingVisibleState ||
+                        session.isViewingHistory}
+                    onclick={() => session.undo()}>Undo</button
+                >{/if}
+        </div>
+    {/if}
+    {#if gameState.phaseEvents.length}<ol aria-label="Phase history">
+            {#each gameState.phaseEvents as event (event.id)}<li>
+                    Phase {event.fromPhaseId} → {event.toPhaseId}
+                    {#if event.rustedTrainIds.length}
+                        · Rusted: {event.rustedTrainIds.join(', ')}{/if}
+                    {#if event.pendingRustTrainIds.length}
+                        · Rusts after its next operation: {event.pendingRustTrainIds.join(
+                            ', '
+                        )}{/if}
+                    {#each event.privateEffects as effect}
+                        <div>
+                            {#if effect.kind === 'close'}Closed {effect.privateCompanyId}
+                            {:else if effect.kind === 'income'}{effect.privateCompanyId} revenue becomes
+                                {effect.revenue}
+                            {:else}Exchanged {effect.privateCompanyId} for {effect.certificateId}{/if}
+                        </div>
+                    {/each}
+                </li>{/each}
+        </ol>{/if}
+</section>
+
+<style>
+    section {
+        padding: 16px;
+        margin-bottom: 16px;
+        border: 1px solid var(--rail-border, #c9d2cb);
+        border-radius: 7px;
+        background: var(--rail-surface, #fffefa);
+        font:
+            13px/1.5 ui-sans-serif,
+            system-ui,
+            sans-serif;
+    }
+    h2 {
+        font-size: 17px;
+        margin: 10px 0;
+    }
+    .choices {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    button {
+        padding: 7px 12px;
+        font: inherit;
+        cursor: pointer;
+        background: var(--rail-surface, #fffefa);
+        border: 1px solid var(--rail-border, #b5c3ba);
+        border-radius: 4px;
+    }
+    button:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+    button[aria-pressed='true'] {
+        outline: 2px solid #d67910;
+    }
+</style>

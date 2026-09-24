@@ -1,0 +1,21 @@
+{
+  "$comment": "Tile rendering style measured from the Boda Games The Old Prince punch sheets (artassets/the-old-prince/hexes, 300 dpi CMYK raster). Hex is 520 px flat-to-flat; 'renderer' values are scaled to the shared TileArtwork hex (86.6 units flat-to-flat).",
+  "hex": { "flatToFlatPx": 520, "rendererScale": 0.1665 },
+  "style": {
+    "description": "Hand-inked look on speckled paper: rough-edged near-black track without casing, off-white station circles with a heavy ink ring, white pill revenue badges with bold numerals, black blob town markers on the track, faint tone-on-tone rings or hex outlines marking special tiles. Tile backs are black speckled paper.",
+    "colors": { "yellow": "#dfbf7a", "green": "#a3c082", "brown": "#cba09d", "gray": "#bab7b3" },
+    "colorsSource": "punch sheets converted through their embedded U.S. Web Coated (SWOP) v2 profile to sRGB",
+    "markerColors": { "yellow": "#cfa661", "green": "#7ea169", "brown": "#b5807c", "gray": "#9a9692" },
+    "boardColors": { "yellow": "#debc73", "green": "#a5b980", "plainHex": "#e6dbce" },
+    "colorsNote": "Brown-tier tiles are printed dusty rose; gray-tier tiles are pale sage gray. boardColors are sampled from MAP-AUGUST-01.jpg and are what the published tile appearance uses so laid tiles match the preprinted hexes.",
+    "ink": "#252121",
+    "paper": "#f7f3ed",
+    "track": { "inkWidthPx": 37, "casing": "none", "edge": "rough (displaced), speckle overlay" },
+    "renderer": { "trackWidth": 6.2, "trackBorderWidth": 0, "townMarker": "dot" },
+    "city": { "fill": "#f4f2ea", "ring": "#070707", "ringWidthPx": 9 },
+    "town": { "marker": "blob on track", "fill": "#070707" },
+    "revenue": { "shape": "pill", "fill": "#f6f4ee", "textColor": "#070707", "textWeight": "bold condensed" },
+    "specialMarkers": { "ring": "X tiles: tone-on-tone circle, radius 30 units (28.8-31.3), 2.5 wide, markerColors", "hexOutline": "T tiles: tone-on-tone flat-top hex at 0.69 of the tile outline (apothem 29.8), 2.7 wide, rounded corners, markerColors" },
+    "texture": "fine paper grain plus dark and light speckles across the whole tile; a mid-grey texture can be overlaid at ~8% opacity"
+  }
+}

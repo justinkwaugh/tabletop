@@ -11,10 +11,16 @@ export const load: PageLoad = async ({ params, url }) => {
         intendedUrl: url
     })
 
+    void appContext.gameService.loadGames().catch((error) => {
+        console.error('Error loading games for turn navigation', error)
+    })
+
     const { id } = params
 
     try {
-        const { game, actions } = await appContext.gameService.loadGame(id)
+        let { game, actions, historyComplete } = await appContext.gameService.loadGame(id, {
+            includeActions: false
+        })
         if (!game) {
             error(404, 'The specified game was not found')
         }
@@ -31,6 +37,13 @@ export const load: PageLoad = async ({ params, url }) => {
 
         const runtime = await definition.runtime()
         const sessionClass = runtime.sessionClass
+        if (historyComplete === false && !sessionClass.supportsDeferredHistory) {
+            const complete = await appContext.gameService.loadGame(id)
+            game = complete.game
+            actions = complete.actions
+            historyComplete = complete.historyComplete
+            if (!game?.state) error(409, 'The specified game is no longer available')
+        }
 
         const bridgedContext = new BridgedContext({
             authorizationService: appContext.authorizationService,
@@ -48,7 +61,8 @@ export const load: PageLoad = async ({ params, url }) => {
                 runtime: runtime,
                 game,
                 state: game.state,
-                actions
+                actions,
+                historyComplete
             })
         }
     } catch (e) {

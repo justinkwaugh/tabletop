@@ -6,7 +6,8 @@ export enum Role {
     User = 'user',
     Developer = 'developer',
     Admin = 'admin',
-    BetaTester = 'betatester'
+    BetaTester = 'betatester',
+    AlphaTester = 'alphatester'
 }
 
 export enum UserStatus {
@@ -47,3 +48,19 @@ export const User = Type.Object({
     createdAt: Type.Optional(DateType()),
     updatedAt: Type.Optional(DateType())
 })
+
+export const ADMIN_ASSIGNABLE_ROLES = [Role.AlphaTester, Role.BetaTester, Role.Developer] as const
+export type AdminAssignableRole = (typeof ADMIN_ASSIGNABLE_ROLES)[number]
+
+export function isAdminAssignableRole(role: Role): role is AdminAssignableRole {
+    return ADMIN_ASSIGNABLE_ROLES.some((assignable) => assignable === role)
+}
+
+export function withAssignedRoles(
+    existingRoles: readonly Role[],
+    assignedRoles: readonly AdminAssignableRole[]
+): Role[] {
+    const retained = existingRoles.filter((role) => !isAdminAssignableRole(role))
+    const assigned = ADMIN_ASSIGNABLE_ROLES.filter((role) => assignedRoles.includes(role))
+    return [...retained, ...assigned]
+}

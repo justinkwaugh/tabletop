@@ -1,5 +1,5 @@
 <script lang="ts">
-import {
+    import {
         ActionType,
         isCelebrate,
         isDeliver,
@@ -24,7 +24,7 @@ import {
     let gameSession = getGameSession() as KaivaiGameSession
 
     let lastAction = $derived.by(() => {
-        const actionIndex = gameSession.currentActionIndex
+        const actionIndex = gameSession.actions.length - 1
         if (actionIndex < 0) {
             return undefined
         }

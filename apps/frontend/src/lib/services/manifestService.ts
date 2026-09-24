@@ -1,15 +1,16 @@
 import { TabletopApi, type GameVersionProvider } from '@tabletop/frontend-components'
-import { SiteManifest } from '@tabletop/games-config'
+import type { SiteManifest, SiteManifestGame } from '@tabletop/games-config'
 
-export type ManifestResponse = typeof SiteManifest & {
+export type ManifestResponse = SiteManifest & {
     backend?: {
+        version?: string | null
         buildSha?: string | null
         buildTime?: string | null
         revision?: string | null
     }
 }
 
-export type ManifestGame = (typeof SiteManifest)['games'][number]
+export type ManifestGame = SiteManifestGame
 
 export class ManifestService implements GameVersionProvider {
     private manifest: ManifestResponse | null = null
@@ -18,6 +19,7 @@ export class ManifestService implements GameVersionProvider {
 
     constructor(private readonly api: TabletopApi) {
         this.loadPromise = this.load()
+        this.loadPromise.catch(() => undefined)
     }
 
     async whenReady(): Promise<ManifestResponse> {
@@ -41,20 +43,9 @@ export class ManifestService implements GameVersionProvider {
     }
 
     private async load(): Promise<ManifestResponse> {
-        if (typeof window === 'undefined') {
-            this.applyManifest(SiteManifest)
-            return SiteManifest
-        }
-
-        try {
-            const manifest = await this.api.manifest<ManifestResponse>()
-            this.applyManifest(manifest)
-            return manifest
-        } catch (error) {
-            console.error('Failed to load manifest. Falling back to local manifest.', error)
-            this.applyManifest(SiteManifest)
-            return SiteManifest
-        }
+        const manifest = await this.api.manifest<ManifestResponse>()
+        this.applyManifest(manifest)
+        return manifest
     }
 
     private applyManifest(manifest: ManifestResponse) {

@@ -68,6 +68,7 @@ Those assumptions are not enforced by this implementation. In particular, timeou
 | `game-<id>`                | Game metadata, excluding State / Game document                     | Single/batch Game lookup                      | Create, full write, metadata changes, Action/Undo metadata changes, delete       |
 | `csum-<id>`                | Action checksum / State document                                   | Synchronization                               | Initialization, Actions, Undo, State replacement, checksum backfill, delete      |
 | `etag-<id>`                | Random Redis-resident revision, not a persisted database revision  | Conditional Game GET                          | Every change to the represented Game data                                        |
+| `state-<id>`               | Game State, seven-day expiry / State document                      | Game data reads and checksum fills            | Initialization, Actions, Undo, State replacement, checksum backfill, delete      |
 | `games-active-<user>`      | Matching Game IDs / query on `userIds` and status                  | Active lists and cached-presence optimization | Membership changes, creation/deletion, all status transitions into/out of active |
 | `games-completed-<user>`   | Matching Game IDs / same query with finished status                | Completed lists                               | Membership changes, completion, Undo of completion, deletion, finished imports   |
 | `games-public-<title>`     | Matching Game IDs / public + Recruiting query                      | Open Game discovery                           | Publicness, recruiting status, creation/fork/import, deletion                    |
@@ -76,7 +77,7 @@ Those assumptions are not enforced by this implementation. In particular, timeou
 | `bookmark-<game>-<player>` | Read timestamp or default epoch / bookmark document                | Read Position lookup                          | Read Position writes and parent deletion                                         |
 | `site-manifest`            | Publication manifest / configured file and deployment selection    | LibraryService                                | Publication change; currently raw GET/SET/DELETE outside the barrier protocol    |
 
-`csum-<game>-chat` is invalidated by Conversation writes but has no cache reader in the reviewed code. Game State, Action chunks, Conversation content, username/email/external-ID queries, authentication-token records, and notification subscription records are otherwise read directly from Firestore. NotificationStore uses Redis only for database-read counters. The `turn-notification-...` values are scheduling/deduplication state, not cached database records.
+`csum-<game>-chat` is invalidated by Conversation writes but has no cache reader in the reviewed code. Game State was later added as `state-<id>` (see [Cached State](request-performance.md#cached-state-for-returning-players)). Action chunks, Conversation content, username/email/external-ID queries, authentication-token records, and notification subscription records are otherwise read directly from Firestore. NotificationStore uses Redis only for database-read counters. The `turn-notification-...` values are scheduling/deduplication state, not cached database records.
 
 ## Findings
 

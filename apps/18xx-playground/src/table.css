@@ -1,0 +1,4 @@
+@import 'tailwindcss';
+@source '../../../libs/frontend-components/src/lib';
+@source '../../../libs/18xx-ui/src/lib/table';
+@source '../../../libs/frontend-components/node_modules/flowbite-svelte/dist';

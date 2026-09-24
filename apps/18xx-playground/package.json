@@ -1,0 +1,48 @@
+{
+    "name": "@tabletop/18xx-playground",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "clean": "rimraf .svelte-kit build",
+        "dev": "vite --host 0.0.0.0 --port 4188 --strictPort",
+        "dev:scenarios": "pnpm run dev --open /table",
+        "build": "vite build",
+        "preview": "vite preview",
+        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.hosted.json",
+        "test:unit": "vitest run",
+        "test:browser": "playwright test",
+        "test": "pnpm run test:unit && pnpm run test:browser",
+        "benchmark:routes": "node scripts/benchmark-routes.mjs",
+        "test:hosted": "playwright test --config playwright.hosted.config.ts"
+    },
+    "dependencies": {
+        "@tabletop/18xx": "workspace:*",
+        "@tabletop/18xx-ui": "workspace:*",
+        "@tabletop/18xx-autorouter": "workspace:*",
+        "@tabletop/common": "workspace:*",
+        "@tabletop/the-old-prince": "workspace:*",
+        "@tabletop/shikoku-1889": "workspace:*",
+        "@tabletop/frontend-components": "workspace:*",
+        "@tabletop/the-old-prince-ui": "workspace:*",
+        "@tabletop/shikoku-1889-ui": "workspace:*"
+    },
+    "devDependencies": {
+        "@sveltejs/kit": "^2.48.4",
+        "@sveltejs/vite-plugin-svelte": "^6.2.4",
+        "rimraf": "^6.1.0",
+        "svelte": "^5.0.0",
+        "svelte-check": "^4.3.5",
+        "typescript": "5.9.3",
+        "vite": "^7.3.1",
+        "@tabletop/vitest-config": "workspace:*",
+        "vitest": "^4.0.12",
+        "prettier-plugin-svelte": "^3.4.1",
+        "@sveltejs/adapter-static": "^3.0.10",
+        "@playwright/test": "^1.42.1",
+        "tailwindcss": "^4.1.18",
+        "@tailwindcss/postcss": "^4.1.18",
+        "typebox": "^1.0.79",
+        "@types/node": "^25.0.9"
+    }
+}

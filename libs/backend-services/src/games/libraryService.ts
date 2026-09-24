@@ -2,7 +2,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { access, readFile } from 'node:fs/promises'
 import { GameDefinition } from '@tabletop/common'
-import { SiteManifest } from '@tabletop/games-config'
+import type { SiteManifest } from '@tabletop/games-config'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
 
@@ -10,7 +10,8 @@ const DEFAULT_CACHE_KEY = 'site-manifest'
 
 const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '.local-static'
 const DEFAULT_GAMES_ROOT = path.join(STATIC_ROOT, 'games')
-const LOCAL_WORKSPACE_GAMES_ROOT = path.join(process.cwd(), '../../games')
+export const LOCAL_WORKSPACE_ROOT = path.join(process.cwd(), '../..')
+const LOCAL_WORKSPACE_GAMES_ROOT = path.join(LOCAL_WORKSPACE_ROOT, 'games')
 const GAMES_ROOT =
     process.env['GAME_LOGIC_ROOT'] ??
     (EnvService.isLocal() ? LOCAL_WORKSPACE_GAMES_ROOT : DEFAULT_GAMES_ROOT)
@@ -36,7 +37,7 @@ export type LibraryServiceOptions = {
     cacheKey?: string
     cacheSeconds?: number
     useCache?: boolean
-    allowFallback?: boolean
+    fallbackManifest?: () => Promise<SiteManifest>
     logicRoot?: string
 }
 
@@ -44,7 +45,7 @@ export class LibraryService {
     private readonly manifestPath: string
     private readonly manifestCacheKey: string
     private readonly useCache: boolean
-    private readonly allowFallback: boolean
+    private readonly fallbackManifest?: () => Promise<SiteManifest>
     private readonly logicRoot: string
 
     private manifestSnapshot?: SiteManifest
@@ -61,7 +62,7 @@ export class LibraryService {
         this.manifestPath = options.manifestPath ?? MANIFEST_PATH
         this.manifestCacheKey = options.cacheKey ?? DEFAULT_CACHE_KEY
         this.useCache = options.useCache ?? true
-        this.allowFallback = options.allowFallback ?? false
+        this.fallbackManifest = options.fallbackManifest
         this.logicRoot = options.logicRoot ?? GAMES_ROOT
     }
 
@@ -182,7 +183,7 @@ export class LibraryService {
                         gameModule = await import(pathToFileURL(logicPath).href)
                     }
                 } catch (error) {
-                    if (!this.allowFallback) {
+                    if (!this.fallbackManifest) {
                         throw error
                     }
 
@@ -260,8 +261,8 @@ export class LibraryService {
             if (error !== unavailable) throw error
         }
 
-        if (this.allowFallback) {
-            return SiteManifest
+        if (this.fallbackManifest) {
+            return this.fallbackManifest()
         }
         if (this.manifestSnapshot) {
             return this.manifestSnapshot

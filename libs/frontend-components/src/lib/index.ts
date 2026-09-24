@@ -52,9 +52,22 @@ export * from './definition/gameColorizer.js'
 export * from './utils/colorblindPalette.js'
 export * from './utils/animations.js'
 export * from './utils/trimInput.js'
+export * from './utils/clipboard.js'
 export * from './utils/timeAgo.js'
 export * from './utils/dynamicComponent.js'
 export * from './utils/publishCssVarFromRect.js'
 export * from './utils/runeBackedStore.svelte.js'
 
 export * from './utils/validateLocalGameState.js'
+
+export { TitlePreferences } from './preferences/titlePreferences.svelte.js'
+
+export { default as TabWorkspace } from './components/TabWorkspace.svelte'
+export type { WorkspaceTab, WorkspaceFixedPane } from './components/workspaceTypes.js'
+export type { WorkspaceInitialSplit, SplitAxis } from './components/tabWorkspace.js'
+export type { SavedWorkspace, SavedPane } from './components/workspacePersistence.js'
+
+export { DebouncedLayout } from './preferences/debouncedLayout.svelte.js'
+
+export { restoreWorkspace, saveWorkspace } from './components/workspacePersistence.js'
+export { workspaceLayout } from './components/tabWorkspace.js'

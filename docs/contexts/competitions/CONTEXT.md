@@ -44,6 +44,10 @@ A Game Title-defined position occupied by an Entrant at Game Initialization. It 
 **Concurrency Limit**:
 The maximum number of active Tables an Entrant may occupy within an event at once. It is separate from the total number of Tables assigned to the Entrant.
 
+**Tiebreak Total**:
+The sum of an Entrant's final in-game scores across their completed Tables, supplied by the Game Title's scoring capability. It orders Entrants whose tournament scores are equal; it never outranks tournament score.
+_Avoid_: Game Score when referring to the tournament tiebreak rather than one Game's result
+
 **Final Table Result**:
 The accepted outcome of a completed Table, final immediately when its Hosted Game finishes. Players cannot reopen that Game Instance through Undo; an Administrator may make an explicitly attributed correction.
 

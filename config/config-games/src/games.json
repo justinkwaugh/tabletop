@@ -1,0 +1,46 @@
+[
+  {
+    "gameId": "bridges",
+    "packageId": "bridges-of-shangri-la"
+  },
+  {
+    "gameId": "estates",
+    "packageId": "estates"
+  },
+  {
+    "gameId": "freshfish",
+    "packageId": "fresh-fish"
+  },
+  {
+    "gameId": "kaivai",
+    "packageId": "kaivai"
+  },
+  {
+    "gameId": "sol",
+    "packageId": "sol"
+  },
+  {
+    "gameId": "bus",
+    "packageId": "bus"
+  },
+  {
+    "gameId": "indonesia",
+    "packageId": "indonesia"
+  },
+  {
+    "gameId": "urbino",
+    "packageId": "urbino"
+  },
+  {
+    "gameId": "santiago",
+    "packageId": "santiago"
+  },
+  {
+    "gameId": "lowenherz",
+    "packageId": "lowenherz"
+  },
+  {
+    "gameId": "the-old-prince",
+    "packageId": "the-old-prince"
+  }
+]

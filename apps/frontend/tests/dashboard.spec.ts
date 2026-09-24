@@ -57,6 +57,206 @@ test.beforeEach(async ({ page }) => {
     })
 })
 
+test('an installed PWA offers a header refresh for a minor frontend update', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.addInitScript(() => {
+        const browserMatchMedia = window.matchMedia.bind(window)
+        window.matchMedia = (query) =>
+            query === '(display-mode: standalone)'
+                ? {
+                      matches: true,
+                      media: query,
+                      onchange: null,
+                      addListener: () => {},
+                      removeListener: () => {},
+                      addEventListener: () => {},
+                      removeEventListener: () => {},
+                      dispatchEvent: () => false
+                  }
+                : browserMatchMedia(query)
+    })
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({
+            headers: { 'X-Tabletop-Version': '21.1.0' },
+            json: { payload: { games: [] } }
+        })
+    )
+
+    await page.goto('/dashboard')
+
+    await expect(page.getByText(/please refresh the page when you have a moment/i)).toBeVisible()
+    const games = page.getByRole('button', { name: 'Games', exact: true })
+    const refresh = page.getByRole('button', { name: 'Refresh to update' })
+    const menu = page.getByRole('button', { name: 'Open account menu' })
+    await expect(refresh).toBeVisible()
+    await expect(refresh).toHaveCSS('width', '40px')
+    await expect(refresh).toHaveCSS('height', '40px')
+    await expect(refresh.locator('svg')).toHaveCSS('width', '24px')
+    await expect(refresh.locator('svg')).toHaveCSS('height', '24px')
+    expect(
+        await games.evaluate((element) => {
+            const refreshButton = document.querySelector('.pwa-refresh')
+            return refreshButton
+                ? Boolean(element.compareDocumentPosition(refreshButton) & 4)
+                : false
+        })
+    ).toBe(true)
+    expect(
+        await refresh.evaluate((element) => {
+            const menuButton = document.querySelector('#user-drop')
+            return menuButton ? Boolean(element.compareDocumentPosition(menuButton) & 4) : false
+        })
+    ).toBe(true)
+    await expect(menu).toBeVisible()
+})
+
+test('a browser tab does not show the PWA refresh for a minor frontend update', async ({ page }) => {
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({
+            headers: { 'X-Tabletop-Version': '21.1.0' },
+            json: { payload: { games: [] } }
+        })
+    )
+
+    await page.goto('/dashboard')
+
+    await expect(page.getByText(/please refresh the page when you have a moment/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Refresh to update' })).toHaveCount(0)
+})
+
+test('the browser install offer exposes a one-shot PWA install control', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/dashboard')
+    await expect(page.getByRole('button', { name: 'Install BoardTogether' })).toHaveCount(0)
+    const games = page.locator('button:has(.my-games-label)')
+    const menu = page.getByRole('button', { name: 'Open account menu' })
+    await expect(games).toBeVisible()
+    await expect(menu).toBeVisible()
+
+    await page.evaluate(() => {
+        class InstallPromptEvent extends Event {
+            readonly platforms = ['web']
+            readonly userChoice = Promise.resolve({
+                outcome: 'accepted' as const,
+                platform: 'web'
+            })
+
+            async prompt() {
+                document.documentElement.dataset.installPrompted = 'true'
+            }
+        }
+
+        window.dispatchEvent(new InstallPromptEvent('beforeinstallprompt', { cancelable: true }))
+    })
+
+    const install = page.getByRole('button', { name: 'Install BoardTogether' })
+    await expect(install).toBeVisible()
+    await expect(install).toHaveCSS('width', '40px')
+    await expect(install).toHaveCSS('height', '40px')
+    await expect(install.locator('svg')).toHaveCSS('width', '24px')
+    await expect(install.locator('svg')).toHaveCSS('height', '24px')
+    await expect(page.getByRole('link', { name: 'GitHub' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Discord' })).toBeVisible()
+    expect(
+        await games.evaluate((element) => {
+            const installButton = document.querySelector('.pwa-install')
+            return installButton
+                ? Boolean(element.compareDocumentPosition(installButton) & 4)
+                : false
+        })
+    ).toBe(true)
+    expect(
+        await install.evaluate((element) => {
+            const menuButton = document.querySelector('#user-drop')
+            return menuButton ? Boolean(element.compareDocumentPosition(menuButton) & 4) : false
+        })
+    ).toBe(true)
+
+    await install.click()
+
+    await expect(page.locator('html')).toHaveAttribute('data-install-prompted', 'true')
+    await expect(install).toHaveCount(0)
+    await expect(menu).toBeVisible()
+})
+
+test('the dashboard lists games before the game library finishes loading', async ({ page }) => {
+    const released = Promise.withResolvers<void>()
+    await page.route('**/games/landing-*/ui/1.0.0/index.js', async (route) => {
+        await released.promise
+        await route.fallback()
+    })
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({ json: { payload: { games: [game(0, GameStatus.WaitingForPlayers)] } } })
+    )
+
+    await page.goto('/dashboard')
+
+    const card = page.locator('.dashboard-game-list > li').first()
+    await expect(card.getByRole('heading', { name: 'Table 00', exact: true })).toBeVisible()
+    await expect(page.getByText('Unknown Game')).toHaveCount(0)
+    await expect(card.getByAltText('cover thumbnail')).toHaveCount(0)
+
+    released.resolve()
+
+    await expect(card.getByText('Game 01', { exact: true })).toBeVisible()
+    await expect(card.getByAltText('cover thumbnail')).toBeVisible()
+})
+
+test('the game library requests every title module at once', async ({ page }) => {
+    const released = Promise.withResolvers<void>()
+    const requested = new Set<string>()
+    await page.route('**/games/landing-*/ui/1.0.0/index.js', async (route) => {
+        requested.add(route.request().url())
+        await released.promise
+        await route.fallback()
+    })
+
+    await page.goto('/dashboard')
+
+    await expect.poll(() => requested.size).toBe(13)
+    released.resolve()
+})
+
+for (const expanded of [false, true]) {
+    test(`game entry shows a spinner while navigation waits, expanded ${expanded}`, async ({
+        page
+    }) => {
+        const requested = Promise.withResolvers<void>()
+        const released = Promise.withResolvers<void>()
+        await page.route('**/api/v1/game/get/dashboard-0', async (route) => {
+            requested.resolve()
+            await released.promise
+            await route.fulfill({ status: 500, json: { message: 'Unavailable' } })
+        })
+        await page.goto('/dashboard')
+        const card = page.locator('.dashboard-game-list > li').first()
+        if (expanded) {
+            await card.getByRole('heading', { name: 'Table 00', exact: true }).click()
+        }
+        const button = card.getByRole('button', {
+            name: expanded ? 'Play Game' : 'Enter',
+            exact: true
+        })
+        const before = await button.boundingBox()
+        await button.click()
+        await requested.promise
+        try {
+            await expect(button).toBeDisabled()
+            await expect(button).toHaveAttribute('aria-busy', 'true')
+            await expect(button.getByRole('status')).toBeVisible()
+            await expect(button.locator('span.invisible')).toBeHidden()
+            const after = await button.boundingBox()
+            expect(after?.width).toBe(before?.width)
+            expect(after?.height).toBe(before?.height)
+        } finally {
+            released.resolve()
+        }
+        await expect(page.getByText('Unable to load the game', { exact: true })).toBeVisible()
+        await expect(page).toHaveURL(/\/dashboard$/)
+        await expect(card.getByRole('button', { name: 'Enter', exact: true })).toBeEnabled()
+    })
+}
+
 for (const entry of ['/', '/login']) {
     for (const hasActive of [false, true]) {
         test(`returning user entering ${entry} with active games ${hasActive} reaches the right page`, async ({
@@ -239,7 +439,7 @@ for (const width of [360, 390, 768, 1280]) {
     })
 }
 
-test('loads local and hosted games together before showing the initial sorted list', async ({
+test('loads local and hosted games together with hotseat after other active games', async ({
     page
 }) => {
     const requested = Promise.withResolvers<void>()
@@ -247,7 +447,7 @@ test('loads local and hosted games together before showing the initial sorted li
     await page.route('**/api/v1/games/mine*', async (route) => {
         requested.resolve()
         await released.promise
-        await route.fulfill({ json: { payload: { games: [game(0)] } } })
+        await route.fulfill({ json: { payload: { games: [{ ...game(0), activePlayerIds: ['p2'] }] } } })
     })
     await page.goto('/about')
     await page.evaluate(
@@ -277,7 +477,7 @@ test('loads local and hosted games together before showing the initial sorted li
                 db.close()
             }
         },
-        { ...game(99), hotseat: true, activePlayerIds: [] }
+        { ...game(99), hotseat: true }
     )
     await page.getByRole('button', { name: 'My Games', exact: true }).click()
     await requested.promise
@@ -396,3 +596,21 @@ for (const tab of ['Current', 'History']) {
         await expect(panel.locator('button').first()).not.toHaveCSS('box-shadow', 'none')
     })
 }
+
+test('keeps your-turn games marked after refreshing the dashboard', async ({ page }) => {
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({
+            json: { payload: { games: [game(0), { ...game(1), activePlayerIds: ['p2'] }] } }
+        })
+    )
+    await page.goto('/dashboard')
+    await expect(page.getByRole('button', { name: 'Your turn 1', exact: true })).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('button', { name: 'Your turn 1', exact: true })).toBeVisible()
+    const mine = page.locator('.dashboard-game-list li').filter({ hasText: 'Table 00' })
+    const opponent = page.locator('.dashboard-game-list li').filter({ hasText: 'Table 01' })
+    await expect(mine.getByRole('button', { name: 'Your Turn', exact: true })).toBeVisible()
+    await expect(opponent.getByRole('button', { name: 'Enter', exact: true })).toBeVisible()
+    await mine.getByRole('heading', { name: 'Table 00', exact: true }).click()
+    await expect(mine.getByRole('button', { name: 'Take Your Turn', exact: true })).toBeVisible()
+})

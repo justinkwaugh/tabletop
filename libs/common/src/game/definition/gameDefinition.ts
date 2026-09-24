@@ -1,3 +1,4 @@
+import type { TitlePreferenceDefinition } from '../../preferences/preferences.js'
 import type * as Type from 'typebox'
 import type { Validator } from 'typebox/compile'
 import type { GameHydrator } from './gameHydrator.js'
@@ -11,11 +12,13 @@ import type { GameConfigurator } from './gameConfigurator.js'
 import type { Color } from '../model/colors.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 import type { GameVisibility } from '../visibility/gameVisibility.js'
+import type { GameScoring } from './gameScoring.js'
 
 export interface GameInfo {
     id: string
     metadata: GameMetadata
     configurator?: GameConfigurator
+    preferences?: TitlePreferenceDefinition
 }
 
 export interface GameRuntime<
@@ -32,6 +35,7 @@ export interface GameRuntime<
     stateHandlers: Record<string, MachineStateHandler<HydratedAction, U>>
     stateLogger?: GameStateLogger
     visibility?: GameVisibility<T, T>
+    scoring?: GameScoring<T>
 }
 
 export interface GameDefinition<

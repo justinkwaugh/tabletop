@@ -1,8 +1,9 @@
 <script lang="ts">
     import { GameChatMessage } from '@tabletop/common'
     import { Button } from 'flowbite-svelte'
-    import { nanoid } from 'nanoid'
+    import { StarSolid } from 'flowbite-svelte-icons'
     import { onMount } from 'svelte'
+    import { adminChatAuthorBgColor } from './chatPresentation.js'
     import { createTimeAgo } from '$lib/utils/timeAgo.js'
     import { flip } from 'svelte/animate'
     import { fade } from 'svelte/transition'
@@ -13,6 +14,7 @@
     import { getGameSession } from '$lib/model/gameSessionContext.js'
 
     let {
+        framed = true,
         height = 'h-full min-h-0',
         timeColor = 'text-gray-600',
         messageTextColor = 'text-gray-200',
@@ -23,6 +25,7 @@
         inputBorderColor = 'border-gray-500',
         borderColor = 'border-gray-700'
     }: {
+        framed?: boolean
         height?: string
         timeColor?: string
         messageTextColor?: string
@@ -41,6 +44,8 @@
     let input: HTMLTextAreaElement
     let messagePanel: HTMLDivElement | undefined = $state()
     let lastCursorPosition: number = -1
+
+    let canCompose: boolean = $derived(gameSession.chatAuthor !== undefined)
 
     let messages: GameChatMessage[] = $derived.by(() => {
         return (gameSession.currentGameChat?.messages ?? []).toSorted(
@@ -75,8 +80,7 @@
     }
 
     function sendMessage() {
-        const player = gameSession.chatMessagePlayer
-        if (!player) {
+        if (!canCompose) {
             return
         }
 
@@ -86,21 +90,12 @@
             return
         }
 
-        const message: GameChatMessage = {
-            id: nanoid(),
-            playerId: player.id,
-            timestamp: new Date(),
-            text
-        }
-        try {
-            chatService.sendGameChatMessage(message, gameSession.primaryGame.id)
-
-            input.value = ''
-            text = ''
-            setHiddenValue('')
-        } catch (error) {
+        gameSession.sendChatMessage(text).catch((error) => {
             console.error(error)
-        }
+        })
+        input.value = ''
+        text = ''
+        setHiddenValue('')
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -123,13 +118,13 @@
 
     async function chatListener(event: ChatEvent) {
         if (messagePanel?.scrollTop === 0) {
-            chatService.setGameChatBookmark(event.message.timestamp)
+            gameSession.advanceChatReadPosition(event.message.timestamp)
         }
     }
 
     onMount(() => {
         chatService.addListener(chatListener)
-        chatService.markLatestRead()
+        gameSession.markChatRead()
 
         return () => {
             chatService.removeListener(chatListener)
@@ -143,7 +138,7 @@
     function onScroll(event: Event) {
         if ((event.target as HTMLDivElement).scrollTop === 0) {
             if (messages.length > 0) {
-                chatService.setGameChatBookmark(messages[0]?.timestamp)
+                gameSession.advanceChatReadPosition(messages[0].timestamp)
             }
         }
     }
@@ -203,17 +198,27 @@
 
 {#snippet chatMessage(message: GameChatMessage)}
     <div class="flex flex-row justify-start items-start gap-x-2 py-2 {messageHoverColor}">
-        <div
-            class="shrink-0 grow-0 flex justify-center items-center rounded-full w-[36px] h-[36px] text-xl font-bold"
-            style:background-color={gameSession.colors.getPlayerBgColorValue(message.playerId)}
-            style:color={gameSession.colors.getPlayerTextColorValue(message.playerId)}
-        >
-            {playerInitials[message.playerId ?? 'unknown'] ?? ''}
-        </div>
+        {#if message.admin}
+            <div
+                class="shrink-0 grow-0 flex justify-center items-center w-[36px] h-[36px]"
+                style:color={adminChatAuthorBgColor}
+                aria-label="Admin"
+            >
+                <StarSolid class="w-8 h-8" />
+            </div>
+        {:else}
+            <div
+                class="shrink-0 grow-0 flex justify-center items-center rounded-full w-[36px] h-[36px] text-xl font-bold"
+                style:background-color={gameSession.colors.getPlayerBgColorValue(message.playerId)}
+                style:color={gameSession.colors.getPlayerTextColorValue(message.playerId)}
+            >
+                {playerInitials[message.playerId ?? 'unknown'] ?? ''}
+            </div>
+        {/if}
         <div class="flex flex-col justify-center items-start">
             <p class="text-xs {timeColor}">{timeAgo.format(message.timestamp)}</p>
             {#each textSplit(message.text) as text}
-                <p class={messageTextColor}>
+                <p class="{messageTextColor} {message.admin ? 'font-bold' : ''}">
                     {#each getSpansForText(text) as span}
                         {#if span[1]}
                             <span class="text-2xl leading-none align-middle">{span[0]}</span>
@@ -228,7 +233,7 @@
 {/snippet}
 
 <div
-    class="relative flex min-h-0 flex-col justify-end items-center w-full p-2 rounded-lg {borderColor} border gap-y-2 text-sm {bgColor} {height} overflow-hidden"
+    class="relative flex min-h-0 flex-col justify-end items-center w-full p-2 {framed ? 'rounded-lg border' : ''} {borderColor} gap-y-2 text-sm {bgColor} {height} overflow-hidden"
 >
     {#if gameSession.hasUnreadMessages && messagePanel && messagePanel.scrollTop !== 0}
         <div class="absolute top-4 left-0 w-full z-10 flex justify-center">
@@ -257,7 +262,7 @@
     <div
         class="grow-0 flex flex-row justify-between items-center w-full gap-x-2 text-sm {composerTextColor}"
     >
-        {#if gameSession.myPlayer !== undefined}
+        {#if canCompose}
             <EmojiPicker onPick={onEmojiPick} onHidden={onEmojiHide} />
         {/if}
         <div class="grow-wrap w-full {composerTextColor}">
@@ -274,7 +279,7 @@
                 rows="1"
                 name="message"
                 placeholder=""
-                disabled={gameSession.myPlayer === undefined}
+                disabled={!canCompose}
             ></textarea>
         </div>
 
@@ -282,7 +287,7 @@
             onclick={() => sendMessage()}
             size="sm"
             class="px-2 w-[50px]"
-            disabled={gameSession.myPlayer === undefined}
+            disabled={!canCompose}
             ><svg
                 class="w-6 h-6 text-gray-800 dark:text-white"
                 aria-hidden="true"

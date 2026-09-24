@@ -1,0 +1,41 @@
+{
+    "name": "@tabletop/18xx-autorouter",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./esm/index.d.ts",
+            "import": "./esm/index.js"
+        },
+        "./solver.wasm": "./esm/solver.wasm",
+        "./testing": {
+            "types": "./esm/testing/index.d.ts",
+            "import": "./esm/testing/index.js"
+        }
+    },
+    "sideEffects": false,
+    "files": [
+        "esm"
+    ],
+    "scripts": {
+        "clean": "rimraf esm rust/target",
+        "build": "node build.mjs && tsgo",
+        "check": "tsgo --noEmit",
+        "test": "vitest run",
+        "build:native": "cargo build --manifest-path rust/Cargo.toml --release --locked",
+        "test:rust": "cargo test --manifest-path rust/Cargo.toml --locked"
+    },
+    "dependencies": {
+        "@tabletop/common": "workspace:*",
+        "typebox": "^1.0.79",
+        "@tabletop/18xx": "workspace:*"
+    },
+    "devDependencies": {
+        "@typescript/native-preview": "7.0.0-dev.20260203.1",
+        "rimraf": "^6.1.0",
+        "typescript": "5.9.3",
+        "@tabletop/vitest-config": "workspace:*",
+        "vitest": "^4.0.12"
+    }
+}

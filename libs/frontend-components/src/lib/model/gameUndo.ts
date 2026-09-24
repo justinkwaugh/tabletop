@@ -25,10 +25,11 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
             assertExists(last, 'Undo target is not in Action History')
             action = last
             if (
-                action.playerId &&
-                action.playerId !== target.playerId &&
-                target.simultaneousGroupId !== undefined &&
-                action.simultaneousGroupId === target.simultaneousGroupId
+                (action.outOfTurn && action.id !== target.id) ||
+                (action.playerId &&
+                    action.playerId !== target.playerId &&
+                    target.simultaneousGroupId !== undefined &&
+                    action.simultaneousGroupId === target.simultaneousGroupId)
             ) {
                 redoActions.unshift(action)
             }
@@ -38,7 +39,7 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
         state = history.afterUndo(
             this.context.state,
             state,
-            this.context.actions.slice(state.actionCount)
+            this.context.actions.slice(state.actionCount - this.context.historyStartIndex)
         )
         if (perspective === undefined) result.engine.validateCanonicalState(state)
         result.updateGameState(state)
@@ -54,7 +55,7 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
         perspective?: Visibility.Perspective
     ): void {
         const action = structuredClone(original)
-        action.index = context.actions.length
+        action.index = context.nextActionIndex
         delete action.undoPatch
         const state = context.state
         if (perspective !== undefined && action.forwardPatch !== undefined) {

@@ -107,3 +107,13 @@ An explicit, recently authenticated session mode in which an Administrator may e
 **Beta Catalog Visibility Grant**:
 An additive grant that makes Beta Game Titles visible to an Active Account in catalog discovery. It does not authorize access to a Game or confer administrative authority.
 _Avoid_: Beta entitlement, Beta access role
+
+**Alpha Catalog Visibility Grant**:
+An additive grant that makes Alpha Game Titles visible to an Active Account in catalog discovery. Like the Beta grant, it authorizes neither Game access nor administrative authority.
+_Avoid_: Alpha entitlement, Alpha access role
+
+**Developer Role**:
+An additive grant exposing developer tooling, such as debug views and the host view of a Game, to an Active Account. It confers no administrative authority.
+
+**Assignable Role**:
+A Role Assignment an Administrator may grant or revoke for another User Account: the Alpha Catalog Visibility Grant, the Beta Catalog Visibility Grant, and the Developer Role. The Admin Role is not assignable through this path.

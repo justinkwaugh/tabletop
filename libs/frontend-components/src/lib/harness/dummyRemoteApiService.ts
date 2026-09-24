@@ -1,8 +1,12 @@
 import type Ably from 'ably'
 import type {
+    AdminAssignableRole,
     Bookmark,
+    GameCatalogEntry,
+    GameHistoryPage,
     CanonicalActionReplay,
     Game,
+    PublicGamePreview,
     GameAction,
     GameChat,
     GameChatMessage,
@@ -24,6 +28,10 @@ import type { VersionChange } from '$lib/network/versionChecker.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
 export class DummyRemoteApiService implements RemoteApiService {
+    async getPublicGamePreview(_gameId: string): Promise<PublicGamePreview | undefined> {
+        return this.fail('getPublicGamePreview')
+    }
+
     readonly supportsHostView?: boolean = true
     private fail(method: string): never {
         throw new Error(`DummyRemoteApiService.${method} is not implemented`)
@@ -35,6 +43,22 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     set versionChange(_value: VersionChange | undefined) {
         return
+    }
+
+    async getGameCatalog(): Promise<GameCatalogEntry[]> {
+        return this.fail('getGameCatalog')
+    }
+
+    async getMyGameHistory(): Promise<GameHistoryPage> {
+        return this.fail('getMyGameHistory')
+    }
+
+    async correctTournamentResult(): Promise<Tournament> {
+        return this.fail('correctTournamentResult')
+    }
+
+    async rebuildTournamentStandings(): Promise<Tournament> {
+        return this.fail('rebuildTournamentStandings')
     }
 
     async listTournaments(): Promise<TournamentList> {
@@ -272,6 +296,18 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async unsubscribeFromPushNotifications(_endpoint: string): Promise<void> {
         return this.fail('unsubscribeFromPushNotifications')
+    }
+
+    async searchUsers(_query: string): Promise<User[]> {
+        return this.fail('searchUsers')
+    }
+
+    async assignUserRoles(_userId: string, _roles: AdminAssignableRole[]): Promise<User> {
+        return this.fail('assignUserRoles')
+    }
+
+    async getActiveGamesForTitle(_titleId: string): Promise<Game[]> {
+        return this.fail('getActiveGamesForTitle')
     }
 
     async setGameState(_state: GameState): Promise<void> {

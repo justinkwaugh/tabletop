@@ -1,0 +1,185 @@
+<script lang="ts">
+    import { onMount, onDestroy, untrack } from 'svelte'
+    import { migrateOperatingIncome } from './migrateOperatingIncome.js'
+    import { TheOldPrinceEndingRules } from '@tabletop/the-old-prince'
+    import { Shikoku1889EndingRules } from '@tabletop/shikoku-1889'
+    import { migrateCompanyNames } from './migrateCompanyNames.js'
+    import { Compile } from 'typebox/compile'
+    import {
+        assertExists,
+        GameEngine,
+        GameStorage,
+        PlayerStatus,
+        type GameState,
+        type HydratedGameState
+    } from '@tabletop/common'
+    import {
+        EighteenXXStateValidator,
+        type EighteenXXState,
+        type HydratedEighteenXXState
+    } from '@tabletop/18xx'
+    import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
+    import {
+        createHarnessAppContext,
+        setAppContext,
+        BridgedContext,
+        GameUI,
+        type GameSession,
+        type GameUiDefinition
+    } from '@tabletop/frontend-components'
+
+    let {
+        definition,
+        position = 'trading',
+        playerCount
+    }: {
+        definition: GameUiDefinition<EighteenXXState, HydratedEighteenXXState>
+        position?: ScenarioPosition | 'finished'
+        playerCount?: number
+    } = $props()
+    const app = untrack(() =>
+        createHarnessAppContext(
+            definition as unknown as GameUiDefinition<GameState, HydratedGameState>
+        )
+    )
+    setAppContext(app)
+    let session: GameSession<EighteenXXState, HydratedEighteenXXState> | undefined = $state.raw()
+    let error = $state<string>()
+    let bridge: BridgedContext | undefined
+    let disposed = false
+    const exampleName = untrack(
+        () => `Finances example · 26 · ${position} · ${playerCount ?? 'default'}`
+    )
+
+    onMount(() => {
+        void load()
+    })
+    onDestroy(() => {
+        disposed = true
+        session?.dispose()
+        bridge?.dispose()
+    })
+
+    async function loadCompatibleExample() {
+        for (const game of [
+            ...app.gameService.activeGames,
+            ...app.gameService.finishedGames
+        ].filter((game) => game.name === exampleName)) {
+            try {
+                return await app.gameService.loadGame(game.id)
+            } catch (cause) {
+                if (
+                    !(cause instanceof Error) ||
+                    cause.message !== 'Complete canonical gameState is required'
+                )
+                    throw cause
+            }
+        }
+        return undefined
+    }
+
+    async function load() {
+        try {
+            const runtime = await definition.runtime()
+            await app.gameService.loadGames()
+            const owner = app.authorizationService.getSessionUser()
+            assertExists(owner, 'The local harness requires a user')
+            let loaded = await loadCompatibleExample()
+            if (
+                loaded?.game?.state &&
+                migrateOperatingIncome(
+                    loaded.game.state,
+                    loaded.actions,
+                    new GameEngine(runtime),
+                    definition.info.id === 'the-old-prince'
+                        ? TheOldPrinceEndingRules
+                        : Shikoku1889EndingRules
+                )
+            ) {
+                await app.gameService.saveGameLocally({
+                    game: loaded.game,
+                    state: loaded.game.state,
+                    actions: loaded.actions
+                })
+            }
+            if (loaded && position === 'finished') {
+                const validators = new Map(
+                    Object.entries(runtime.apiActions).map(([type, schema]) => [
+                        type,
+                        Compile(schema)
+                    ])
+                )
+                if (
+                    loaded.actions.some(
+                        (action) => validators.get(action.type)?.Check(action) === false
+                    )
+                )
+                    loaded = undefined
+            }
+            if (!loaded && position === 'finished') {
+                const { finishedGame } = await import('./finishedGame.js')
+                const completed = await finishedGame(owner.id, exampleName)
+                await app.gameService.saveGameLocally(completed)
+                loaded = await app.gameService.loadGame(completed.game.id)
+            }
+            if (!loaded) {
+                const created = await app.gameService.createGame({
+                    id: crypto.randomUUID(),
+                    typeId: definition.info.id,
+                    name: exampleName,
+                    ownerId: owner.id,
+                    storage: GameStorage.Local,
+                    hotseat: true,
+                    players: (playerCount
+                        ? ['Alex', 'Blair', 'Casey', 'Drew', 'Elliot', 'Fran'].slice(0, playerCount)
+                        : ['privates', 'private-events', 'transfers', 'powers'].includes(position)
+                          ? ['Alex', 'Blair', 'Casey', 'Drew']
+                          : ['Alex', 'Blair', 'Casey']
+                    ).map((name) => ({
+                        id: crypto.randomUUID(),
+                        name,
+                        isHuman: true,
+                        status: PlayerStatus.Joined
+                    })),
+                    config: { examplePosition: position },
+                    seed: 1889
+                })
+                loaded = await app.gameService.loadGame(created.id)
+            }
+            const { game, actions } = loaded
+            assertExists(game, 'Local example is missing')
+            assertExists(game.state, 'Local example has no gameState')
+            if (!EighteenXXStateValidator.Check(game.state))
+                throw new Error('Local example has an invalid finance gameState')
+            if (migrateCompanyNames(loaded)) {
+                await app.gameService.saveGameLocally({ game, state: game.state, actions })
+            }
+            if (disposed) return
+            app.chatService.setGame(game)
+            bridge = new BridgedContext({
+                authorizationService: app.authorizationService,
+                gameService: app.gameService,
+                chatService: app.chatService,
+                gameId: game.id
+            })
+            session = new runtime.sessionClass({
+                gameService: app.gameService,
+                bridgedContext: bridge,
+                notificationService: app.notificationService,
+                chatService: app.chatService,
+                api: app.api,
+                runtime,
+                game,
+                state: game.state,
+                actions
+            })
+        } catch (cause) {
+            if (!disposed)
+                error = cause instanceof Error ? cause.message : 'Could not load the example'
+        }
+    }
+</script>
+
+{#if error}<p role="alert">{error}</p>
+{:else if session}<GameUI gameSession={session} />
+{:else}<p role="status">Loading example…</p>{/if}

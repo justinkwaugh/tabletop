@@ -18,6 +18,7 @@ import { generateTournamentSchedule } from './tournamentScheduler.js'
 import { GameService } from '../games/gameService.js'
 import { TournamentService } from './tournamentService.js'
 import { FirestoreTournamentStore } from '../persistence/firestore/tournamentStore.js'
+import { SyntheticRuntime } from '../games/tests/syntheticGame.js'
 
 class Configurator extends BaseConfigurator {
     schema = Type.Object(
@@ -64,7 +65,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         )
         const admin = users[0]
         let now = Date.now()
-        const title: Pick<GameDefinition, 'info'> = {
+        const title: Pick<GameDefinition, 'info' | 'runtime'> = {
+            runtime: SyntheticRuntime,
             info: {
                 id: 'test',
                 metadata: {
@@ -184,6 +186,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 { getUser: async (id) => users.find((user) => user.id === id) },
                 {
                     test: {
+                        ...title,
                         info: {
                             ...title.info,
                             metadata: { ...title.info.metadata, minPlayers: 3, maxPlayers: 4 }

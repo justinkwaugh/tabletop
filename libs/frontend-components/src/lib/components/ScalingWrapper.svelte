@@ -1,9 +1,11 @@
 <script lang="ts">
-    import { onDestroy, onMount, type Snippet } from 'svelte'
+    import { onDestroy, onMount, untrack, type Snippet } from 'svelte'
 
     const DISCRETE_ZOOM_STEP = 0.15
     const VIEW_ANIMATION_MS = 180
     const EPSILON = 0.001
+    const MOUSE_WHEEL_ZOOM_SENSITIVITY = 0.003
+    const TRACKPAD_PINCH_ZOOM_SENSITIVITY = 0.006
     const PINCH_ZOOM_SENSITIVITY = 1
     const GESTURE_ZOOM_SENSITIVITY = 1.2
     const TOUCH_INERTIA_DECAY_PER_FRAME = 0.92
@@ -54,14 +56,24 @@
 
     let {
         children,
+        overlay,
+        toolbar,
         justify = 'center',
         controls = 'top-left',
-        expandable = false
+        expandable = false,
+        allowFullscreenShortcut,
+        maxScale = 1,
+        onManualViewChange
     }: {
         children: Snippet
+        overlay?: Snippet<[HTMLDivElement]>
+        toolbar?: Snippet
         justify?: 'center' | 'left' | 'right'
         controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
+        maxScale?: number
         expandable?: boolean
+        allowFullscreenShortcut?: () => boolean
+        onManualViewChange?: () => void
     } = $props()
 
     let baseScale = $state(1)
@@ -70,24 +82,31 @@
 
     let wrapperWidth = $state(0)
     let wrapperHeight = $state(0)
+    let toolbarHeight = $state(0)
 
     let contentWidth = $state(0)
     let contentHeight = $state(0)
 
     let scroller: HTMLElement
-    let viewport: HTMLElement
+    let viewport: HTMLDivElement | undefined = $state()
     let content: HTMLElement
     let measuredContent: HTMLElement
 
     let initialized = false
-    let syncingView = false
     let activeFocusTarget = $state<FocusTarget | null>(null)
     let viewAnimationFrame: number | undefined
-    let pendingDimensionSyncFrame: number | undefined
+    let viewRenderFrame: number | undefined
     let viewAnimationRequestId = 0
     let currentTranslateX = $state(0)
     let currentTranslateY = $state(0)
     let isExpanded = $state(false)
+    let fullscreenLayer: HTMLDialogElement | undefined = $state()
+    $effect(() => {
+        if (!fullscreenLayer) return
+        fullscreenLayer.close()
+        if (isExpanded) fullscreenLayer.showModal()
+        else fullscreenLayer.open = true
+    })
     let pinchDistance: number | null = null
     let pinchStartDistance: number | null = null
     let pinchStartScale: number | null = null
@@ -103,17 +122,68 @@
     let scrollVelocityY = 0
     let scrollInertiaFrame: number | undefined
     let gestureStartScale: number | null = null
+    let mouseStartPoint: Point | null = null
+    let mouseLastPoint: Point | null = null
+    let mouseDragging = $state(false)
+    let suppressMouseClick = false
+    let lastWheelTimestamp = 0
+    let smoothWheelGesture = false
+
+    function handleMouseDown(event: MouseEvent) {
+        suppressMouseClick = false
+        if (event.button !== 0 || (event.target instanceof Element &&
+            event.target.closest('input, textarea, select, [contenteditable="true"]'))) return
+        event.preventDefault()
+        mouseStartPoint = mouseLastPoint = { x: event.clientX, y: event.clientY }
+    }
+
+    function handleMouseMove(event: MouseEvent) {
+        if (!mouseStartPoint || !mouseLastPoint) return
+        if (!(event.buttons & 1)) {
+            endMouseDrag()
+            return
+        }
+        if (!mouseDragging && Math.hypot(event.clientX - mouseStartPoint.x,
+            event.clientY - mouseStartPoint.y) < 5) return
+        mouseDragging = true
+        suppressMouseClick = true
+        event.preventDefault()
+        cancelViewAnimation()
+        cancelPanInertia()
+        cancelScrollInertia()
+        clearActiveFocus()
+        const next = clampTranslation(currentScale,
+            currentTranslateX + event.clientX - mouseLastPoint.x,
+            currentTranslateY + event.clientY - mouseLastPoint.y)
+        mouseLastPoint = { x: event.clientX, y: event.clientY }
+        notifyManualViewChange(currentScale, next.translateX, next.translateY)
+        applyView(currentScale, next.translateX, next.translateY)
+    }
+
+    function endMouseDrag() {
+        mouseStartPoint = mouseLastPoint = null
+        mouseDragging = false
+    }
+
+    function handleMouseClick(event: MouseEvent) {
+        if (!suppressMouseClick || event.detail === 0) return
+        suppressMouseClick = false
+        event.preventDefault()
+        event.stopImmediatePropagation()
+    }
+
+    function preventNativeDrag(event: DragEvent) {
+        event.preventDefault()
+    }
 
     $effect(() => {
+        isExpanded
         wrapperWidth
         wrapperHeight
         contentWidth
         contentHeight
 
-        if (!syncingView) {
-            // Schedule outside the reactive effect so view-sync reads do not become dependencies.
-            scheduleDimensionSync()
-        }
+        untrack(syncToDimensions)
     })
 
     function clamp(value: number, min: number, max: number) {
@@ -148,11 +218,11 @@
     }
 
     function updateDiscreteLevels(fitScale: number) {
-        zoomLevels = fitScale === 1 ? 0 : Math.floor((1 - fitScale) / DISCRETE_ZOOM_STEP)
+        zoomLevels = fitScale === maxScale ? 0 : Math.floor((maxScale - fitScale) / DISCRETE_ZOOM_STEP)
     }
 
     function clampScale(scale: number) {
-        return clamp(scale, baseScale, 1)
+        return clamp(scale, baseScale, maxScale)
     }
 
     function getOffsetX(scaledWidth: number) {
@@ -160,7 +230,7 @@
             return 0
         }
 
-        switch (justify) {
+        switch (isExpanded ? 'center' : justify) {
             case 'left':
                 return 0
             case 'right':
@@ -176,7 +246,7 @@
         const scaledWidth = contentWidth * clampedScale
         const scaledHeight = contentHeight * clampedScale
         const defaultTranslateX = getOffsetX(scaledWidth)
-        const defaultTranslateY = 0
+        const defaultTranslateY = isExpanded ? Math.max(0, (wrapperHeight - scaledHeight) / 2) : 0
         const minTranslateX = scaledWidth > wrapperWidth ? wrapperWidth - scaledWidth : defaultTranslateX
         const maxTranslateX = scaledWidth > wrapperWidth ? 0 : defaultTranslateX
         const minTranslateY = scaledHeight > wrapperHeight ? wrapperHeight - scaledHeight : defaultTranslateY
@@ -205,7 +275,25 @@
         }
     }
 
-    function applyView(scale: number, translateX: number, translateY: number) {
+    function notifyManualViewChange(scale: number, translateX: number, translateY: number) {
+        if (Math.abs(scale - currentScale) > EPSILON ||
+            Math.abs(translateX - currentTranslateX) > EPSILON ||
+            Math.abs(translateY - currentTranslateY) > EPSILON) {
+            onManualViewChange?.()
+        }
+    }
+
+    function renderView() {
+        if (viewRenderFrame !== undefined) {
+            cancelAnimationFrame(viewRenderFrame)
+            viewRenderFrame = undefined
+        }
+        if (content && contentWidth && contentHeight) {
+            content.style.transform = `translate3d(${currentTranslateX}px, ${currentTranslateY}px, 0) scale(${currentScale})`
+        }
+    }
+
+    function applyView(scale: number, translateX: number, translateY: number, deferRender = false) {
         const { metrics, translateX: clampedTranslateX, translateY: clampedTranslateY } =
             clampTranslation(scale, translateX, translateY)
 
@@ -213,8 +301,10 @@
         currentTranslateX = clampedTranslateX
         currentTranslateY = clampedTranslateY
 
-        if (content && contentWidth && contentHeight) {
-            content.style.transform = `translate(${clampedTranslateX}px, ${clampedTranslateY}px) scale(${metrics.scale})`
+        if (deferRender) {
+            viewRenderFrame ??= requestAnimationFrame(renderView)
+        } else {
+            renderView()
         }
 
         return {
@@ -334,17 +424,6 @@
 
     function clearActiveFocus() {
         activeFocusTarget = null
-    }
-
-    function scheduleDimensionSync() {
-        if (pendingDimensionSyncFrame) {
-            cancelAnimationFrame(pendingDimensionSyncFrame)
-        }
-
-        pendingDimensionSyncFrame = requestAnimationFrame(() => {
-            pendingDimensionSyncFrame = undefined
-            syncToDimensions()
-        })
     }
 
     function cancelViewAnimation() {
@@ -522,7 +601,7 @@
         viewAnimationFrame = requestAnimationFrame(step)
     }
 
-    function zoomToScaleKeepingCenter(scale: number, animate = false) {
+    function zoomToScaleKeepingCenter(scale: number, animate = false, deferRender = false) {
         if (!scroller || !contentWidth || !contentHeight) {
             return
         }
@@ -532,14 +611,15 @@
             ? getViewportCenterContentPoint()
             : { x: contentWidth / 2, y: contentHeight / 2 }
 
-        zoomToScaleKeepingContentPoint(centerPoint.x, centerPoint.y, targetScale, animate)
+        zoomToScaleKeepingContentPoint(centerPoint.x, centerPoint.y, targetScale, animate, deferRender)
     }
 
     function zoomToScaleKeepingContentPoint(
         contentX: number,
         contentY: number,
         scale: number,
-        animate = false
+        animate = false,
+        deferRender = false
     ) {
         if (!contentWidth || !contentHeight) {
             return
@@ -554,13 +634,15 @@
             scale
         )
 
+        notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
+
         if (animate) {
             animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
             return
         }
 
         cancelViewAnimation()
-        applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        applyView(targetView.scale, targetView.translateX, targetView.translateY, deferRender)
     }
 
     function syncToDimensions() {
@@ -568,44 +650,42 @@
             return
         }
 
-        syncingView = true
-        try {
-            const nextBaseScale = computeFitScale()
-            const previousBaseScale = baseScale
-            const wasAtFitScale = initialized && Math.abs(currentScale - baseScale) < EPSILON
-            const centerPoint = initialized
-                ? getViewportCenterContentPoint()
-                : { x: contentWidth / 2, y: contentHeight / 2 }
+        const nextBaseScale = computeFitScale()
+        const previousBaseScale = baseScale
+        const wasAtFitScale = initialized && Math.abs(currentScale - baseScale) < EPSILON
+        const centerPoint = initialized
+            ? getViewportCenterContentPoint()
+            : { x: contentWidth / 2, y: contentHeight / 2 }
 
-            baseScale = nextBaseScale
-            updateDiscreteLevels(nextBaseScale)
+        baseScale = nextBaseScale
+        updateDiscreteLevels(nextBaseScale)
 
-            if (activeFocusTarget) {
-                const targetView = getViewForFocusTarget(activeFocusTarget)
-                cancelViewAnimation()
+        if (activeFocusTarget) {
+            const targetView = getViewForFocusTarget(activeFocusTarget)
+            if (viewAnimationFrame !== undefined) {
+                animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
+            } else {
                 applyView(targetView.scale, targetView.translateX, targetView.translateY)
-                initialized = true
-                return
             }
-
-            const targetScale =
-                !initialized || wasAtFitScale || Math.abs(currentScale - previousBaseScale) < EPSILON
-                    ? nextBaseScale
-                    : clampScale(currentScale)
-            const targetView = getViewForContentPointAtViewportPoint(
-                centerPoint.x,
-                centerPoint.y,
-                wrapperWidth / 2,
-                wrapperHeight / 2,
-                targetScale
-            )
-
-            cancelViewAnimation()
-            applyView(targetView.scale, targetView.translateX, targetView.translateY)
             initialized = true
-        } finally {
-            syncingView = false
+            return
         }
+
+        const targetScale =
+            !initialized || wasAtFitScale || Math.abs(currentScale - previousBaseScale) < EPSILON
+                ? nextBaseScale
+                : clampScale(currentScale)
+        const targetView = getViewForContentPointAtViewportPoint(
+            centerPoint.x,
+            centerPoint.y,
+            wrapperWidth / 2,
+            wrapperHeight / 2,
+            targetScale
+        )
+
+        cancelViewAnimation()
+        applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        initialized = true
     }
 
     function getDiscreteScaleStep() {
@@ -613,7 +693,7 @@
             return 0
         }
 
-        return (1 - baseScale) / zoomLevels
+        return (maxScale - baseScale) / zoomLevels
     }
 
     function getNextDiscreteScale(direction: 'in' | 'out') {
@@ -656,11 +736,33 @@
         zoomToScaleKeepingCenter(targetScale, true)
     }
 
+    export function isVisible() {
+        return !!viewport && viewport.getBoundingClientRect().width > 0 &&
+            getComputedStyle(viewport).visibility === 'visible'
+    }
+
+    function handleFullscreenKey(event: KeyboardEvent) {
+        if (event.defaultPrevented || event.repeat) return
+        if (event.key === 'Escape' && isExpanded) {
+            event.preventDefault()
+            collapse()
+            return
+        }
+        if (
+            event.key.toLowerCase() !== 'f' || !expandable ||
+            event.ctrlKey || event.metaKey || event.altKey ||
+            !isVisible() || (allowFullscreenShortcut && !allowFullscreenShortcut())
+        ) return
+        const target = event.target
+        if (target instanceof HTMLElement && (
+            target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]')
+        )) return
+        event.preventDefault()
+        toggleExpanded()
+    }
+
     function setExpanded(nextExpanded: boolean) {
         isExpanded = nextExpanded
-        requestAnimationFrame(() => {
-            scheduleDimensionSync()
-        })
     }
 
     export function expand() {
@@ -673,6 +775,18 @@
 
     export function toggleExpanded() {
         setExpanded(!isExpanded)
+    }
+
+    export function captureView() {
+        const scale = currentScale
+        const rect = {
+            x: -currentTranslateX / scale,
+            y: -currentTranslateY / scale,
+            width: wrapperWidth / scale,
+            height: wrapperHeight / scale
+        }
+        return (options: FitOptions = {}) =>
+            focusRect(rect, { maxScale: scale, padding: 0, animate: options.animate })
     }
 
     export function fitToContent(options: FitOptions = {}) {
@@ -773,6 +887,7 @@
 
             cancelViewAnimation()
             clearActiveFocus()
+            notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
             applyView(targetView.scale, targetView.translateX, targetView.translateY)
         })
     }
@@ -849,6 +964,7 @@
 
         if (didPanX || didPanY) {
             cancelViewAnimation()
+            notifyManualViewChange(currentScale, nextView.translateX, nextView.translateY)
             applyView(currentScale, nextView.translateX, nextView.translateY)
         }
 
@@ -943,47 +1059,47 @@
             return
         }
 
-        if (event.ctrlKey) {
-            event.preventDefault()
-            cancelViewAnimation()
-            const nextScale = currentScale * Math.exp(-event.deltaY * 0.003)
-            const contentPoint = getContentPointForClientPoint(event.clientX, event.clientY)
-            const rect = scroller.getBoundingClientRect()
-            const viewportX = event.clientX - rect.left
-            const viewportY = event.clientY - rect.top
-            const targetView = getViewForContentPointAtViewportPoint(
-                contentPoint.x,
-                contentPoint.y,
-                viewportX,
-                viewportY,
-                nextScale
-            )
-            applyView(targetView.scale, targetView.translateX, targetView.translateY)
-            return
-        }
-
-        const metrics = getMetrics(currentScale)
-        const canPan =
-            metrics.minTranslateX !== metrics.maxTranslateX || metrics.minTranslateY !== metrics.maxTranslateY
-        if (!canPan) {
-            return
-        }
-
-        const nextView = clampTranslation(
-            currentScale,
-            currentTranslateX - event.deltaX,
-            currentTranslateY - event.deltaY
-        )
-        const didPan =
-            Math.abs(nextView.translateX - currentTranslateX) > EPSILON ||
-            Math.abs(nextView.translateY - currentTranslateY) > EPSILON
-        if (!didPan) {
-            return
-        }
-
         event.preventDefault()
         cancelViewAnimation()
-        applyView(currentScale, nextView.translateX, nextView.translateY)
+        cancelPanInertia()
+        cancelScrollInertia()
+        clearActiveFocus()
+        const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
+            : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? wrapperHeight : 1
+        if (!event.ctrlKey) {
+            if (event.timeStamp - lastWheelTimestamp > 250) smoothWheelGesture = false
+            lastWheelTimestamp = event.timeStamp
+            const smoothDelta = event.deltaMode === WheelEvent.DOM_DELTA_PIXEL &&
+                (event.deltaX !== 0 || Math.abs(event.deltaY) < 50 ||
+                    !Number.isInteger(event.deltaY))
+            smoothWheelGesture ||= smoothDelta
+            if (smoothWheelGesture) {
+                const deltaX = -event.deltaX * unit
+                const deltaY = -event.deltaY * unit
+                const next = clampTranslation(currentScale,
+                    currentTranslateX + deltaX,
+                    currentTranslateY + deltaY)
+                const residualX = deltaX - (next.translateX - currentTranslateX)
+                const residualY = deltaY - (next.translateY - currentTranslateY)
+                notifyManualViewChange(currentScale, next.translateX, next.translateY)
+                applyView(currentScale, next.translateX, next.translateY, true)
+                if (Math.abs(residualX) > EPSILON || Math.abs(residualY) > EPSILON) {
+                    scrollAncestorBy(residualX, residualY)
+                }
+                return
+            }
+        }
+        const sensitivity = event.ctrlKey
+            ? TRACKPAD_PINCH_ZOOM_SENSITIVITY
+            : MOUSE_WHEEL_ZOOM_SENSITIVITY
+        const nextScale = currentScale * Math.exp(-event.deltaY * unit * sensitivity)
+        const contentPoint = getContentPointForClientPoint(event.clientX, event.clientY)
+        const rect = scroller.getBoundingClientRect()
+        const targetView = getViewForContentPointAtViewportPoint(
+            contentPoint.x, contentPoint.y,
+            event.clientX - rect.left, event.clientY - rect.top, nextScale)
+        notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
+        applyView(targetView.scale, targetView.translateX, targetView.translateY, true)
     }
 
     function handleGestureStart(event: Event) {
@@ -991,8 +1107,7 @@
             return
         }
 
-        const gestureEvent = event as Event & { scale?: number }
-        if (gestureEvent.scale === undefined) {
+        if (!('scale' in event) || typeof event.scale !== 'number') {
             return
         }
 
@@ -1006,15 +1121,15 @@
             return
         }
 
-        const gestureEvent = event as Event & { scale?: number }
-        if (gestureEvent.scale === undefined || gestureStartScale === null) {
+        if (!('scale' in event) || typeof event.scale !== 'number' || gestureStartScale === null) {
             return
         }
 
         event.preventDefault()
         zoomToScaleKeepingCenter(
-            gestureStartScale * Math.pow(gestureEvent.scale, GESTURE_ZOOM_SENSITIVITY),
-            false
+            gestureStartScale * Math.pow(event.scale, GESTURE_ZOOM_SENSITIVITY),
+            false,
+            true
         )
     }
 
@@ -1036,18 +1151,14 @@
     })
 
     onDestroy(() => {
+        if (viewRenderFrame !== undefined) cancelAnimationFrame(viewRenderFrame)
         cancelViewAnimation()
         cancelPinchAnimation()
         cancelPanInertia()
         cancelScrollInertia()
-        if (pendingDimensionSyncFrame) {
-            cancelAnimationFrame(pendingDimensionSyncFrame)
-        }
     })
 
     onMount(() => {
-        scheduleDimensionSync()
-
         if (!scroller) {
             return
         }
@@ -1059,6 +1170,12 @@
         const gestureChangeListener = (event: Event) => handleGestureChange(event)
         const gestureEndListener = () => handleGestureEnd()
 
+        scroller.addEventListener('mousedown', handleMouseDown)
+        scroller.addEventListener('click', handleMouseClick, true)
+        scroller.addEventListener('dragstart', preventNativeDrag)
+        window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('mouseup', endMouseDrag)
+        window.addEventListener('blur', endMouseDrag)
         scroller.addEventListener('touchstart', touchStartListener, { passive: false })
         scroller.addEventListener('touchmove', touchMoveListener, { passive: false })
         scroller.addEventListener('touchend', touchEndListener, { passive: false })
@@ -1068,6 +1185,12 @@
         scroller.addEventListener('gestureend', gestureEndListener)
 
         return () => {
+            scroller?.removeEventListener('mousedown', handleMouseDown)
+            scroller?.removeEventListener('click', handleMouseClick, true)
+            scroller?.removeEventListener('dragstart', preventNativeDrag)
+            window.removeEventListener('mousemove', handleMouseMove)
+            window.removeEventListener('mouseup', endMouseDrag)
+            window.removeEventListener('blur', endMouseDrag)
             scroller?.removeEventListener('touchstart', touchStartListener)
             scroller?.removeEventListener('touchmove', touchMoveListener)
             scroller?.removeEventListener('touchend', touchEndListener)
@@ -1079,26 +1202,38 @@
     })
 </script>
 
-<div
+<svelte:window onkeydown={handleFullscreenKey} />
+
+<dialog
+    bind:this={fullscreenLayer}
+    role={isExpanded ? 'dialog' : 'presentation'}
+    aria-label={isExpanded ? 'Full screen view' : undefined}
+    oncancel={(event) => { event.preventDefault(); collapse() }}
+    onkeydown={(event) => {
+        if (!isExpanded) return
+        handleFullscreenKey(event)
+        event.stopPropagation()
+    }}
     class="relative overflow-hidden"
     class:w-full={!isExpanded}
     class:h-full={!isExpanded}
     style={isExpanded
-        ? 'position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(1px);'
-        : undefined}
+        ? 'position: fixed; inset: 0; margin: 0; border: 0; padding: 0; width: auto; height: auto; max-width: none; max-height: none; color: inherit; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(1px);'
+        : 'margin: 0; border: 0; padding: 0; max-width: none; max-height: none; color: inherit; background: transparent;'}
 >
+    {#if toolbar}<div bind:clientHeight={toolbarHeight}>{@render toolbar()}</div>{/if}
     <div
         bind:this={scroller}
-        class="overflow-hidden box-border"
+        class="scaling-surface overflow-hidden box-border"
         class:w-full={!isExpanded}
         class:h-full={!isExpanded}
-        style={`${isExpanded ? 'width: 100%; height: 100%; padding: 8px;' : ''} touch-action: none;`}
+        style={`${isExpanded ? 'width: 100%; padding: 8px;' : ''} height: calc(100% - ${toolbar ? toolbarHeight : 0}px); touch-action: none; user-select: none; cursor: ${mouseDragging ? 'grabbing' : 'grab'};`}
         onwheel={handleWheel}
     >
         <div bind:this={viewport} bind:clientWidth={wrapperWidth} bind:clientHeight={wrapperHeight} class="relative w-full h-full">
             <div
                 bind:this={content}
-                class="absolute top-0 left-0 box-border will-change-transform"
+                class="absolute top-0 left-0 box-border"
                 style="transform-origin: top left;"
             >
                 <div
@@ -1110,6 +1245,7 @@
                     {@render children()}
                 </div>
             </div>
+            {#if viewport && overlay}{@render overlay(viewport)}{/if}
         </div>
     </div>
     <div
@@ -1190,4 +1326,13 @@
             </button>
         {/if}
     </div>
-</div>
+</dialog>
+
+<style>
+    dialog { visibility: inherit; }
+    .scaling-surface,
+    .scaling-surface :global(*) {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+</style>

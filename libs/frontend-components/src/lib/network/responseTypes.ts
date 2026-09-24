@@ -39,6 +39,16 @@ export const UsernameSearchResponse = Type.Evaluate(
     ])
 )
 
+export type UsersResponse = Static<typeof UsersResponse>
+export const UsersResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: Type.Object({ users: Type.Array(User) })
+        })
+    ])
+)
+
 export type GameResponse = Static<typeof GameResponse>
 export const GameResponse = Type.Evaluate(
     Type.Intersect([
@@ -57,6 +67,7 @@ export const GameWithActionsResponse = Type.Evaluate(
             payload: Type.Object({
                 game: Game,
                 actions: Type.Array(GameAction),
+                historyComplete: Type.Optional(Type.Boolean()),
                 perspective: Type.Optional(Visibility.Perspective)
             })
         })

@@ -21,15 +21,7 @@
             authorizationService.getSessionUser()?.id
         ).filter((game) => game.typeId === titleId)
     )
-    let openGames = $derived(
-        (gameService.openGamesByTitleId.get(titleId) ?? []).filter((game) => {
-            const user = authorizationService.getSessionUser()
-            return (
-                game.ownerId !== user?.id &&
-                !game.players.some((player) => player.userId === user?.id)
-            )
-        })
-    )
+    let openGames = $derived(gameService.openGamesByTitleId.get(titleId) ?? [])
     const sections: { scope: Scope; title: string; empty: string }[] = [
         { scope: 'mine', title: 'Your games', empty: 'Your games of this title will appear here.' },
         {

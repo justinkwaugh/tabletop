@@ -87,6 +87,11 @@ class Remote extends DummyRemoteApiService {
     pendingAcceptance?: Promise<void>
     onSubmit?: () => void
     pendingUndo?: Promise<void>
+    pendingHistory?: Promise<void>
+    pendingSync?: Promise<void>
+    syncChecks = 0
+    failSync = false
+    failHistory = false
 
     constructor(
         private readonly host: PrivateHandHost,
@@ -96,14 +101,22 @@ class Remote extends DummyRemoteApiService {
     }
     async getGame(_id: string, options?: { hostView?: boolean }) {
         const history = this.host.history(options?.hostView ? undefined : this.perspective)
+        if (this.failHistory) throw Error('History unavailable')
+        await this.pendingHistory
         return {
             game: { ...structuredClone(this.host.game), state: history.currentState },
             actions: [...history.actions]
         }
     }
-    async checkSync() {
+    async checkSync(_id?: string, checksum?: number) {
+        this.syncChecks++
+        await this.pendingSync
+        if (this.failSync) throw Error('Sync unavailable')
         return {
-            status: GameSyncStatus.InSync,
+            status:
+                checksum === undefined || checksum === this.host.state.actionChecksum
+                    ? GameSyncStatus.InSync
+                    : GameSyncStatus.OutOfSync,
             checksum: this.host.state.actionChecksum,
             actions: []
         }
@@ -151,7 +164,13 @@ class Remote extends DummyRemoteApiService {
 function client(
     host: PrivateHandHost,
     perspective: Visibility.Perspective = p1,
-    transformActions?: (actions: readonly GameAction[]) => void
+    transformActions?: (actions: readonly GameAction[]) => void,
+    options: {
+        historyComplete?: boolean
+        pendingHistory?: Promise<void>
+        failHistory?: boolean
+        modernNotifications?: boolean
+    } = {}
 ) {
     host.game.storage = GameStorage.Remote
     const authorization = new Authorization(perspective)
@@ -161,8 +180,14 @@ function client(
     })
     const gameService = new HarnessGameService(library, authorization)
     const chatService = new HarnessChatService()
-    const notifications = new DummyNotificationService()
+    class Notifications extends DummyNotificationService {
+        readonly synchronizesOnSubscribe = options.modernNotifications ?? false
+        isUserChannelReady() { return false }
+    }
+    const notifications = new Notifications()
     const api = new Remote(host, perspective)
+    api.pendingHistory = options.pendingHistory
+    api.failHistory = options.failHistory ?? false
     const bridge = new BridgedContext({
         authorizationService: authorization,
         gameService,
@@ -180,13 +205,16 @@ function client(
         runtime: { ...uiRuntime, ...host.engine.runtime },
         game: structuredClone(host.game),
         state: history.currentState,
-        actions: [...history.actions]
+        actions: options.historyComplete === false ? [] : [...history.actions],
+        historyComplete: options.historyComplete
     })
     session.listenToGame()
     return {
         session,
         api,
+        notifications,
         authorization,
+        chatService,
         async notify(result: ReturnType<PrivateHandHost['apply']>) {
             assertExists(runtime.visibility, 'Expected private-hand visibility')
             const projected = Visibility.projectActionCascade(result.actionCascade, {
@@ -244,10 +272,20 @@ export async function runPrivateHandPlayAndUndo() {
         await received
         assert(host.state.players[0].hand.cards.length === 2, 'Host accepted too early')
         assert(c.session.actions.length === 1, 'Owner play was not optimistic')
+        await settle(c.session)
+        const optimisticState = c.session.gameState
         assertExists(accept, 'Expected acceptance control')
         accept()
         await pending
         await settle(c.session)
+        assert(
+            c.session.gameState === optimisticState,
+            'Matching patches replaced the optimistic state'
+        )
+        assert(
+            c.session.actions.every((action) => action.forwardPatch !== undefined),
+            'Authoritative patches were not retained'
+        )
         assert(
             Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
             'Accepted state differs'
@@ -326,6 +364,39 @@ export async function runPrivateHandDelivery() {
     } finally {
         owner.dispose()
         opponent.dispose()
+        observer.dispose()
+    }
+}
+
+export async function runSpectatorChatReadPosition() {
+    const host = new PrivateHandHost()
+    const owner = client(host, p1),
+        observer = client(host, spectator)
+    try {
+        for (const c of [owner, observer]) {
+            c.chatService.setGame(host.game)
+            await settle(c.session)
+        }
+        assert(
+            observer.session.currentGameChat?.messages.length === 4,
+            'Spectator chat fixture has no messages'
+        )
+        assert(!observer.session.isChatParticipant, 'Spectator counts as chat participant')
+        assert(!observer.chatService.hasUnreadMessages, 'Spectator chat service tracks unread')
+        assert(!observer.session.hasUnreadMessages, 'Spectator sees unread indicator')
+        await observer.session.markChatRead()
+        await observer.session.advanceChatReadPosition(new Date())
+        await settle(observer.session)
+        assert(!observer.session.hasUnreadMessages, 'Spectator read position changed state')
+
+        assert(owner.session.isChatParticipant, 'Player is not a chat participant')
+        assert(owner.session.hasUnreadMessages, 'Player misses unread indicator')
+        await owner.session.markChatRead()
+        await settle(owner.session)
+        assert(!owner.session.hasUnreadMessages, 'Player read position did not advance')
+        return { spectator: true, player: true }
+    } finally {
+        owner.dispose()
         observer.dispose()
     }
 }
@@ -742,6 +813,272 @@ export async function runOptimisticUndoScenario(
             assert(Value.Equal(c.session.gameState.dehydrate(), expected), 'History changed state')
         }
         return { optimistic: true, reconciled: true }
+    } finally {
+        c.dispose()
+    }
+}
+
+export async function runPatchedSubmissionCorrection() {
+    const host = new PrivateHandHost()
+    const c = client(host)
+    try {
+        const apply = c.api.applyAction.bind(c.api)
+        c.api.applyAction = async (game, action) => {
+            const response = await apply(game, action)
+            const accepted = response.actions.at(-1)
+            assertExists(accepted?.forwardPatch, 'Expected authoritative forward patch')
+            accepted.forwardPatch.push({ op: 'replace', path: '/table/0/rank', value: 4 })
+            return response
+        }
+        await settle(c.session)
+        await c.session.play('r1')
+        await settle(c.session)
+        assert(c.session.gameState.table[0].rank === 4, 'Authoritative correction was discarded')
+        assert(c.session.actions.length === 1, 'Patched response was applied twice')
+        assert(c.session.gameState.actionChecksum === host.state.actionChecksum, 'Checksum differs')
+        return { corrected: true, appliedOnce: true }
+    } finally {
+        c.dispose()
+    }
+}
+
+export async function runDeferredHistory(
+    mode: 'delayed' | 'failed' | 'disposed' | 'undo' | 'resync-failure' | 'perspective-change'
+) {
+    const host = new PrivateHandHost()
+    host.apply({
+        id: 'before-load',
+        gameId: host.game.id,
+        source: ActionSource.User,
+        playerId: 'p1',
+        type: 'draw',
+        revealsInfo: true
+    })
+    host.apply(
+        createAction(PlaySchema, {
+            id: 'before-load-p2',
+            gameId: host.game.id,
+            source: ActionSource.User,
+            playerId: 'p2',
+            type: 'play',
+            cardId: 'r2'
+        })
+    )
+    const history = Promise.withResolvers<void>()
+    const c = client(host, p1, undefined, {
+        historyComplete: false,
+        pendingHistory: history.promise,
+        failHistory: mode === 'failed' || mode === 'undo' || mode === 'resync-failure'
+    })
+    let disposed = false
+    try {
+        await settle(c.session)
+        assert(!c.session.hasCompleteHistory, 'Checkpoint unexpectedly has history')
+        assert(
+            Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
+            'Initial board differs from the projected snapshot'
+        )
+        assert(c.session.isPlayable, 'History loading blocked gameplay')
+        assert(c.session.history.isDisabled(), 'History navigation requires complete history')
+        assert(!c.session.canExplore, 'Exploration requires complete history')
+        assert(
+            c.session.actions.length === 0 && c.session.currentAction === undefined,
+            'Unavailable history was presented as retained Actions'
+        )
+        assert(c.session.undoableAction === undefined, 'Undo targeted an unavailable Action')
+        await c.session.history.goToBeginning()
+        assert(!c.session.isViewingHistory, 'Entered history without earlier Actions')
+        await c.session.startExploring()
+        assert(!c.session.isExploring, 'Entered exploration without complete history')
+        if (mode === 'perspective-change') {
+            const changed = c.session.setPrivilegedGameViewEnabled(true)
+            history.resolve()
+            await changed
+            await settle(c.session)
+            assert(c.session.isViewingHost, 'Late player history replaced Host View')
+            assert(c.session.hasCompleteHistory, 'Host View did not load its own history')
+            assert(
+                CanonicalValidator.Check(c.session.gameState.dehydrate()),
+                'Late history changed the displayed perspective'
+            )
+            return { perspective: true }
+        }
+        if (mode === 'disposed') {
+            c.dispose()
+            disposed = true
+            history.resolve()
+            await settle(c.session)
+            assert(!c.session.hasCompleteHistory, 'Disposed session attached late history')
+            return { disposed: true }
+        }
+        if (mode === 'failed') assert(c.session.historyLoadFailed, 'History failure is not exposed')
+        const acceptance = Promise.withResolvers<void>()
+        c.api.pendingAcceptance = acceptance.promise
+        const submitted = Promise.withResolvers<void>()
+        c.api.onSubmit = submitted.resolve
+        assert(!c.session.busy, 'Checkpoint session remained busy after initial synchronization')
+        const play = c.session.play('r1')
+        await Promise.race([
+            submitted.promise,
+            play.then(() => {
+                throw Error('Play ended without submission')
+            })
+        ])
+        await settle(c.session)
+        assert(c.session.actions.length > 0, 'No optimistic Action after checkpoint')
+        const optimisticState = c.session.gameState
+        if (mode === 'delayed') {
+            history.resolve()
+            await settle(c.session)
+            assert(!c.session.hasCompleteHistory, 'History attached during optimistic submission')
+        }
+        acceptance.resolve()
+        await play
+        await settle(c.session)
+        assert(
+            Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
+            'Accepted checkpoint play differs from host'
+        )
+        if (mode === 'delayed')
+            assert(
+                c.session.gameState === optimisticState,
+                'History hydration replaced the optimistic displayed State'
+            )
+        if (mode === 'undo' || mode === 'resync-failure') {
+            history.resolve()
+            c.api.pendingHistory = undefined
+            c.api.failHistory = mode === 'resync-failure'
+            await c.session.undo()
+            await settle(c.session)
+            assert(c.api.undos === 1, 'Retained Action could not be undone')
+            if (mode === 'resync-failure') {
+                assert(c.session.synchronizationFailed, 'Resync failure was not exposed')
+                assert(!c.session.isPlayable, 'Play continued from uncertain State')
+                const submissions = c.api.submissions
+                await c.session.play('b1')
+                assert(c.api.submissions === submissions, 'Paused session submitted an Action')
+                c.api.failHistory = false
+                await c.session.retrySynchronization()
+                await settle(c.session)
+            }
+            assert(c.session.hasCompleteHistory, 'Undo did not recover complete history')
+            assert(c.session.isPlayable, 'Recovered session is not playable')
+            assert(
+                Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
+                'Undo recovery differs from host'
+            )
+            return { undo: true, recovered: true }
+        }
+        if (mode === 'failed') {
+            assert(!c.session.hasCompleteHistory, 'Failed history unexpectedly hydrated')
+            const result = host.apply({
+                id: 'after-failed-history',
+                gameId: host.game.id,
+                source: ActionSource.User,
+                playerId: 'p2',
+                type: 'draw',
+                revealsInfo: true
+            })
+            await c.notify(result)
+            await settle(c.session)
+            assert(
+                Value.Equal(c.session.gameState.dehydrate(), host.history(p1).currentState),
+                'Notification failed without history'
+            )
+            c.api.failHistory = false
+            history.resolve()
+            const displayedState = c.session.gameState
+            let transitions = 0
+            c.session.addGameStateChangeListener(async () => {
+                transitions++
+            })
+            await c.session.loadHistory()
+            await settle(c.session)
+            assert(
+                c.session.gameState === displayedState && transitions === 0,
+                'Attaching history triggered a board transition'
+            )
+        }
+        assert(c.session.hasCompleteHistory, 'History did not attach after submission/retry')
+        assert(c.session.actions.length === host.actions.length, 'Hydration lost live Actions')
+        assert(c.session.canExplore, 'Hydrated history did not enable exploration')
+        await c.session.history.goToBeginning()
+        await settle(c.session)
+        assert(c.session.isViewingHistory, 'Hydrated history cannot be navigated')
+        return { playable: true, hydrated: true }
+    } finally {
+        if (!disposed) c.dispose()
+    }
+}
+
+export async function mountHistoryControls() {
+    const { mount } = await import('svelte')
+    const { default: Fixture } = await import('../../components/tests/HistoryControls.fixture.svelte')
+    const pending = Promise.withResolvers<void>()
+    const host = new PrivateHandHost()
+    host.apply({ id: "history-controls-draw", gameId: host.game.id, source: ActionSource.User, playerId: "p1", type: "draw", revealsInfo: true })
+    const c = client(host, p1, undefined, {
+        historyComplete: false,
+        pendingHistory: pending.promise
+    })
+    mount(Fixture, {
+        target: document.body,
+        props: { session: c.session, complete: () => pending.resolve() }
+    })
+}
+
+export async function verifyHistoryDuringSynchronization() {
+    const host = new PrivateHandHost()
+    host.apply({ id: 'history-sync-draw', gameId: host.game.id, source: ActionSource.User, playerId: 'p1', type: 'draw', revealsInfo: true })
+    const c = client(host)
+    try {
+        await settle(c.session)
+        for (let index = 0; index < 2; index++) {
+            const pending = Promise.withResolvers<void>()
+            c.api.pendingSync = pending.promise
+            const sync = c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+            await tick()
+            assert(!c.session.history.isDisabled(), 'A read-only sync check disabled history navigation')
+            await c.session.history.goToBeginning()
+            await settle(c.session)
+            assert(c.session.isViewingHistory, 'History navigation was blocked during a sync check')
+            pending.resolve()
+            await sync
+            await settle(c.session)
+            assert(c.session.isViewingHistory, 'An unchanged sync moved the history cursor')
+            c.session.history.goToEnd()
+            await settle(c.session)
+        }
+        const replacement = Promise.withResolvers<void>()
+        c.api.pendingHistory = replacement.promise
+        c.api.failSync = true
+        const recovering = c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+        await settle(c.session)
+        assert(c.session.history.isDisabled(), 'History stayed enabled during state replacement')
+        replacement.resolve()
+        await recovering
+        await settle(c.session)
+        assert(!c.session.history.isDisabled(), 'History stayed disabled after replacement')
+        return true
+    } finally {
+        c.dispose()
+    }
+}
+
+export async function verifySubscribedStartup() {
+    const host = new PrivateHandHost()
+    const c = client(host, p1, undefined, { historyComplete: false, modernNotifications: true })
+    try {
+        await tick()
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        assert(c.api.syncChecks === 0, 'Startup checked sync before subscription')
+        for (let count = 1; count <= 2; count++) {
+            await c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.User })
+            await c.notifications.emit({ eventType: NotificationEventType.Discontinuity, channel: NotificationChannel.GameInstance })
+            await settle(c.session)
+            assert(Number(c.api.syncChecks) === count, 'Subscription performed duplicate sync checks')
+        }
+        return true
     } finally {
         c.dispose()
     }

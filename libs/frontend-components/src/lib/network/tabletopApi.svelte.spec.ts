@@ -175,6 +175,33 @@ describe('TabletopApi Game views', () => {
         await expect(api.getGame(game.id, { hostView: true })).rejects.toThrow('projected')
     })
 
+    test('requests State-only loading and preserves the incomplete-history marker', async () => {
+        const game = Value.Create(Game)
+        game.id = 'state-first'
+        const requestedUrls: string[] = []
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (input: string | URL | Request) => {
+                requestedUrls.push(input instanceof Request ? input.url : String(input))
+                return new Response(
+                    JSON.stringify({
+                        status: 'ok',
+                        payload: { game, actions: [], historyComplete: false }
+                    }),
+                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                )
+            })
+        )
+        const result = await new TabletopApi().getGame(game.id, {
+            includeActions: false,
+            hostView: true
+        })
+        expect(result.historyComplete).toBe(false)
+        expect(requestedUrls).toEqual([
+            'http://localhost:3000/api/v1/game/get/state-first?view=host&includeActions=false'
+        ])
+    })
+
     test('requests Host View explicitly', async () => {
         const game = Value.Create(Game)
         game.id = 'game-id'

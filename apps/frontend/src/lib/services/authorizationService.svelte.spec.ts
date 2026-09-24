@@ -1,7 +1,20 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Role, UserStatus, type User } from '@tabletop/common'
 import { TabletopApi } from '@tabletop/frontend-components'
+import { invalidateAll } from '$app/navigation'
 import { AuthorizationService } from './authorizationService.svelte.js'
+
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
+
+beforeEach(() => {
+    const entries = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+        getItem: (key: string) => entries.get(key) ?? null,
+        setItem: (key: string, value: string) => entries.set(key, value),
+        removeItem: (key: string) => entries.delete(key)
+    })
+    vi.mocked(invalidateAll).mockClear()
+})
 
 function createUser(roles: Role[]): User {
     return {
@@ -66,4 +79,98 @@ describe('AuthorizationService session lifecycle', () => {
             expect(api.getSelf).toHaveBeenCalledTimes(1)
         }
     )
+})
+
+describe('AuthorizationService stored session user', () => {
+    function storeUser(user: User) {
+        new AuthorizationService(new TabletopApi(), vi.fn()).setSessionUser(user)
+    }
+
+    function pendingSelf(api: TabletopApi) {
+        let resolveSelf: (user: User | undefined) => void = () => {}
+        vi.spyOn(api, 'getSelf').mockReturnValue(
+            new Promise((resolve) => {
+                resolveSelf = resolve
+            })
+        )
+        return (user: User | undefined) => resolveSelf(user)
+    }
+
+    it('initializes from the stored user without waiting for the server', async () => {
+        storeUser(createUser([Role.User]))
+        const api = new TabletopApi()
+        pendingSelf(api)
+        const service = new AuthorizationService(api, vi.fn())
+
+        await service.initialize()
+
+        expect(service.getSessionUser()?.id).toBe('user-id')
+        expect(api.getSelf).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps an unchanged session without rerunning route loads', async () => {
+        storeUser(createUser([Role.User]))
+        const api = new TabletopApi()
+        const resolveSelf = pendingSelf(api)
+        const service = new AuthorizationService(api, vi.fn())
+        await service.initialize()
+
+        resolveSelf(createUser([Role.User, Role.Admin]))
+        await service.whenSessionVerified()
+
+        expect(service.isAdmin).toBe(true)
+        expect(invalidateAll).not.toHaveBeenCalled()
+    })
+
+    it('clears an expired session and reruns route loads', async () => {
+        storeUser(createUser([Role.User]))
+        const api = new TabletopApi()
+        const resolveSelf = pendingSelf(api)
+        const service = new AuthorizationService(api, vi.fn())
+        await service.initialize()
+
+        resolveSelf(undefined)
+        await service.whenSessionVerified()
+
+        expect(service.getSessionUser()).toBeUndefined()
+        expect(localStorage.getItem('sessionUser')).toBeNull()
+        await vi.waitFor(() => expect(invalidateAll).toHaveBeenCalledTimes(1))
+    })
+
+    it('reruns route loads when the verified status differs', async () => {
+        storeUser(createUser([Role.User]))
+        const api = new TabletopApi()
+        const resolveSelf = pendingSelf(api)
+        const service = new AuthorizationService(api, vi.fn())
+        await service.initialize()
+
+        resolveSelf({ ...createUser([Role.User]), status: UserStatus.Incomplete })
+        await service.whenSessionVerified()
+
+        expect(service.getSessionUser()?.status).toBe(UserStatus.Incomplete)
+        await vi.waitFor(() => expect(invalidateAll).toHaveBeenCalledTimes(1))
+    })
+
+    it('waits for the server when the stored user is unreadable', async () => {
+        localStorage.setItem('sessionUser', '{"id":1}')
+        const api = new TabletopApi()
+        const resolveSelf = pendingSelf(api)
+        const service = new AuthorizationService(api, vi.fn())
+
+        const initialization = service.initialize()
+        expect(service.getSessionUser()).toBeUndefined()
+        resolveSelf(createUser([Role.User]))
+        await initialization
+
+        expect(service.getSessionUser()?.id).toBe('user-id')
+    })
+
+    it('forgets the stored user when the session is cleared', () => {
+        const service = new AuthorizationService(new TabletopApi(), vi.fn())
+        service.setSessionUser(createUser([Role.User]))
+
+        service.clearSessionUser()
+
+        expect(localStorage.getItem('sessionUser')).toBeNull()
+    })
 })

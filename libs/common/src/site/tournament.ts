@@ -106,7 +106,8 @@ export type TournamentDispatch = Type.Static<typeof TournamentDispatch>
 export const TournamentScore = Type.Object({
     wins: Type.Integer({ minimum: 0 }),
     score: Type.Number({ minimum: 0 }),
-    completed: Type.Integer({ minimum: 0 })
+    completed: Type.Integer({ minimum: 0 }),
+    tiebreak: Type.Optional(Type.Number())
 })
 export type TournamentScore = Type.Static<typeof TournamentScore>
 
@@ -182,6 +183,7 @@ export const Tournament = Type.Object(
         paused: Type.Optional(Type.Boolean()),
         schedulingError: Type.Optional(Type.String({ maxLength: 512 })),
         finishedAt: Type.Optional(Type.Integer()),
+        resultsEmailedAt: Type.Optional(Type.Integer()),
         cancelledAt: Type.Optional(Type.Integer()),
         cancellationReason: Type.Optional(
             Type.Union([Type.Literal('undersubscribed'), Type.Literal('administrator')])

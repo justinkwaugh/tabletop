@@ -190,6 +190,26 @@ describe('HydratedPlaceWall', () => {
         })
     })
 
+    it('records zero points for a completed region whose castle belongs to no player', () => {
+        const board = blankBoard()
+        board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'neutral' }
+        board.walls = [{ col: 0, row: 1, edge: WallEdge.North }]
+
+        const state = buildState({ board, regions: [] })
+        const action = makePlaceWall('p1', 0, 0, 1, 0)
+        expect(action.isValidPlaceWall(state)).toBe(true)
+        action.apply(state)
+
+        expect(state.players.map((p) => p.powerPoints)).toEqual([0, 0])
+        expect(action.metadata?.completedRegions).toContainEqual({
+            owner: 'neutral',
+            spaceCount: 1,
+            townCount: 0,
+            points: 0,
+            anchorSquareKey: '0,0'
+        })
+    })
+
     it('records no completedRegions in metadata when the placement seals nothing', () => {
         // Castles elsewhere so the wide-open remainder has 2+ castles and isn't itself
         // misidentified as a single-castle region (see the first test in this file).

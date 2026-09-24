@@ -21,6 +21,7 @@ import type { AuthorizationService } from '$lib/services/authorizationService.js
 import type { LibraryService } from '$lib/services/libraryService.js'
 
 export class HarnessGameService implements GameService {
+    readonly developerHarness = true
     readonly supportsReproductionSeed = true
     private gamesById: Map<string, Game> = new SvelteMap()
     private localGameStore: GameStore

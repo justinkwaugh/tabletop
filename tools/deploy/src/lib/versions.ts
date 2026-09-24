@@ -1,6 +1,5 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { SiteManifest } from './types.js'
 
 type PackageJson = {
     version?: string
@@ -8,12 +7,7 @@ type PackageJson = {
 
 export type BumpType = 'major' | 'minor' | 'patch'
 
-export type PackageVersions = {
-    frontendVersion: string
-    games: Record<string, { logicVersion: string; uiVersion: string }>
-}
-
-const updatePriorVersions = (current: string, next: string, prior?: string[]) => {
+export const updatePriorVersions = (current: string, next: string, prior?: string[]) => {
     if (current === next) {
         return prior ?? []
     }
@@ -32,6 +26,9 @@ const writeJson = async (filePath: string, data: PackageJson) => {
 
 export const getFrontendPackagePath = (repoRoot: string) =>
     path.join(repoRoot, 'apps', 'frontend', 'package.json')
+
+export const getBackendPackagePath = (repoRoot: string) =>
+    path.join(repoRoot, 'apps', 'backend', 'package.json')
 
 export const getGamePackagePaths = (repoRoot: string, packageId: string) => ({
     logic: path.join(repoRoot, 'games', packageId, 'package.json'),
@@ -71,67 +68,71 @@ export const writePackageVersion = async (filePath: string, version: string) => 
     await writeJson(filePath, data)
 }
 
-export const readPackageVersions = async (
-    repoRoot: string,
-    manifest: SiteManifest
-): Promise<PackageVersions> => {
-    const frontendVersion = await readPackageVersion(getFrontendPackagePath(repoRoot))
-    const games: Record<string, { logicVersion: string; uiVersion: string }> = {}
+export type VersionChange = { previous: string; next: string }
 
-    for (const entry of manifest.games) {
-        const paths = getGamePackagePaths(repoRoot, entry.packageId)
-        const [logicVersion, uiVersion] = await Promise.all([
-            readPackageVersion(paths.logic),
-            readPackageVersion(paths.ui)
-        ])
-        games[entry.packageId] = { logicVersion, uiVersion }
-    }
-
-    return { frontendVersion, games }
+export type GameVersionBump = {
+    logic?: VersionChange
+    ui: VersionChange
 }
 
-export const syncManifestFromPackages = async (
+export type GamePackageVersions = { logic: string; ui: string }
+
+export const readGamePackageVersions = async (
     repoRoot: string,
-    manifest: SiteManifest
-): Promise<{ manifest: SiteManifest; changed: boolean }> => {
-    const versions = await readPackageVersions(repoRoot, manifest)
-    const frontendPrior = updatePriorVersions(
-        manifest.frontend.version,
-        versions.frontendVersion,
-        manifest.frontend.priorVersions
-    )
-    const nextManifest: SiteManifest = {
-        frontend: {
-            ...manifest.frontend,
-            version: versions.frontendVersion,
-            priorVersions: frontendPrior
-        },
-        games: []
-    }
-
-    for (const entry of manifest.games) {
-        const gameVersions = versions.games[entry.packageId]
-        const nextLogicVersion = gameVersions?.logicVersion ?? entry.logicVersion
-        const nextUiVersion = gameVersions?.uiVersion ?? entry.uiVersion
-        const priorLogicVersions = updatePriorVersions(
-            entry.logicVersion,
-            nextLogicVersion,
-            entry.priorLogicVersions
-        )
-        const priorUiVersions = updatePriorVersions(
-            entry.uiVersion,
-            nextUiVersion,
-            entry.priorUiVersions
-        )
-        nextManifest.games.push({
-            ...entry,
-            logicVersion: nextLogicVersion,
-            uiVersion: nextUiVersion,
-            priorLogicVersions,
-            priorUiVersions
-        })
-    }
-
-    const changed = JSON.stringify(manifest) !== JSON.stringify(nextManifest)
-    return { manifest: nextManifest, changed }
+    packageId: string
+): Promise<GamePackageVersions> => {
+    const paths = getGamePackagePaths(repoRoot, packageId)
+    const [logic, ui] = await Promise.all([
+        readPackageVersion(paths.logic),
+        readPackageVersion(paths.ui)
+    ])
+    return { logic, ui }
 }
+
+export const planGameVersionBump = async (
+    repoRoot: string,
+    packageId: string,
+    bump: BumpType,
+    options: { includeLogic: boolean }
+): Promise<GameVersionBump> => {
+    const current = await readGamePackageVersions(repoRoot, packageId)
+    const change = (previous: string): VersionChange => ({
+        previous,
+        next: bumpVersion(previous, bump)
+    })
+    return {
+        logic: options.includeLogic ? change(current.logic) : undefined,
+        ui: change(current.ui)
+    }
+}
+
+export const writeGameVersionBump = async (
+    repoRoot: string,
+    packageId: string,
+    planned: GameVersionBump
+): Promise<void> => {
+    const paths = getGamePackagePaths(repoRoot, packageId)
+    if (planned.logic) {
+        await writePackageVersion(paths.logic, planned.logic.next)
+    }
+    await writePackageVersion(paths.ui, planned.ui.next)
+}
+
+export const bumpGameVersions = async (
+    repoRoot: string,
+    packageId: string,
+    bump: BumpType,
+    options: { includeLogic: boolean }
+): Promise<GameVersionBump> => {
+    const planned = await planGameVersionBump(repoRoot, packageId, bump, options)
+    await writeGameVersionBump(repoRoot, packageId, planned)
+    return planned
+}
+
+export const logicReleaseTag = (packageId: string, version: string) => `${packageId}-v${version}`
+
+export const uiReleaseTag = (packageId: string, version: string) => `${packageId}-ui-v${version}`
+
+export const frontendReleaseTag = (version: string) => `frontend-v${version}`
+
+export const backendReleaseTag = (version: string) => `backend-v${version}`

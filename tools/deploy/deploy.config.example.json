@@ -1,5 +1,6 @@
 {
   "gcsBucket": "your-gcs-bucket",
+  "gcloudCredentialFile": ".secrets/gcloud-deploy-key.json",
   "backendManifestUrl": "https://your-backend.example.com/api/v1/manifest",
   "backendAdmin": {
     "url": "https://your-backend.example.com/api/v1/admin/manifest/invalidate",

@@ -87,6 +87,7 @@ class LocalRehearsalStore {
                     status: 'active',
                     roles: index === 0 ? ['user', 'admin'] : ['user'],
                     externalIds: [],
+                    email: `${account.username}@example.invalid`,
                     emailVerified: true,
                     passwordHash: hash
                 })

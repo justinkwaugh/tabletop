@@ -60,3 +60,12 @@ tools/deploy/deploy.config.json
 .worktrees/
 
 .local-rehearsals/
+
+# raw publisher art (source material for tools/art-extraction, multi-GB)
+artassets/
+
+# scratch checkouts and throwaway work
+tmp/
+
+# local credentials such as the deploy service account key (see tools/deploy/README.md)
+.secrets/

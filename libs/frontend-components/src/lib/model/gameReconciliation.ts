@@ -1,3 +1,4 @@
+import * as Value from 'typebox/value'
 import {
     ActionSource,
     assertExists,
@@ -44,6 +45,7 @@ export interface ReconciliationRemote<T extends GameState, U extends HydratedGam
     isPaused(): boolean
     recover(): Promise<void>
     acceptsPerspective(perspective: Visibility.Perspective): boolean
+    beforeSynchronizationUpdate?(): void
 }
 
 export interface OptimisticSubmission<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -119,7 +121,8 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         }
     }
 
-    async synchronize(isCurrent: () => boolean): Promise<'current' | 'stale'> {
+    async synchronize(isCurrent: () => boolean, forceReload = false): Promise<'current' | 'stale'> {
+        if (forceReload) return this.reload(isCurrent)
         const remote = this.remote
         assertExists(remote, 'Synchronization requires a remote host')
         const prior = this.context.clone()
@@ -127,12 +130,13 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             const { status, actions, checksum } = await remote.checkSync(
                 this.context.game.id,
                 this.context.state.actionChecksum,
-                this.context.actions.length - 1
+                this.context.state.actionCount - 1
             )
             if (!isCurrent()) {
                 return 'stale'
             }
             let needsResync = status !== GameSyncStatus.InSync
+            if (needsResync || actions.length > 0) remote.beforeSynchronizationUpdate?.()
             if (!needsResync && actions.length > 0) {
                 this.apply(
                     actions,
@@ -152,7 +156,16 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         if (!isCurrent()) {
             return 'stale'
         }
+        remote.beforeSynchronizationUpdate?.()
         this.context.restoreFrom(prior)
+        return this.reload(isCurrent)
+    }
+
+    private async reload(isCurrent: () => boolean): Promise<'current' | 'stale'> {
+        const remote = this.remote
+        assertExists(remote, 'Reload requires a remote host')
+        if (!isCurrent()) return 'stale'
+        remote.beforeSynchronizationUpdate?.()
         const replacement = await remote.reload()
         if (!isCurrent()) {
             return 'stale'
@@ -183,10 +196,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         )
         assertExists(localAction, `Optimistic Action ${actionId} is unavailable`)
         let applyAccepted = optimistic.result.revealing
-        if (
-            !applyAccepted &&
-            !this.canKeepOptimisticResult(optimistic.result.processedActions, response.actions)
-        ) {
+        if (!applyAccepted && !this.canKeepOptimisticResult(optimistic, response.actions)) {
             this.context.restoreFrom(before)
             applyAccepted = true
         }
@@ -227,10 +237,15 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             if (this.context.hasAction(action.id)) {
                 continue
             }
+            if (handling === ServerActionHandling.Execute && action.source !== ActionSource.User)
+                continue
+            if (action.index === undefined || action.index < this.context.historyStartIndex) {
+                throw new Error('Server update predates the local checkpoint')
+            }
+            if (action.index !== state.actionCount) {
+                throw new Error('Server update does not continue the current State')
+            }
             if (handling === ServerActionHandling.Execute) {
-                if (action.source !== ActionSource.User) {
-                    continue
-                }
                 const result = this.context.engine.executeAction({
                     action,
                     game: gameSnapshot,
@@ -262,20 +277,23 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         before: GameContext<T, U> = this.context
     ): void {
         const replacement = before.clone()
-        if (replay.startIndex > replacement.actions.length) {
+        if (
+            replay.startIndex < replacement.historyStartIndex ||
+            replay.startIndex > replacement.nextActionIndex
+        ) {
             throw new Error('Processed Action replay starts beyond local Action History')
         }
         this.rollbackTo(replacement, replay.startIndex - 1)
         if (
-            replacement.actions.length !== replay.startIndex ||
+            replacement.nextActionIndex !== replay.startIndex ||
             replacement.state.actionCount !== replay.startIndex
         ) {
             throw new Error('Processed Action replay did not reach its starting state')
         }
         for (const action of replay.actions) {
-            if (action.index !== replacement.actions.length) {
+            if (action.index !== replacement.nextActionIndex) {
                 throw new Error(
-                    `Processed Action replay has Action ${action.id} at index ${action.index}, expected ${replacement.actions.length}`
+                    `Processed Action replay has Action ${action.id} at index ${action.index}, expected ${replacement.nextActionIndex}`
                 )
             }
             this.applyProcessedAction(replacement, structuredClone(action))
@@ -311,8 +329,8 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
         const matchedActionIndex = findLastIndex(serverActions, (action) => {
             if (
                 action.index === undefined ||
-                action.index < 0 ||
-                action.index >= this.context.actions.length
+                action.index < this.context.historyStartIndex ||
+                action.index >= this.context.nextActionIndex
             ) {
                 return false
             }
@@ -345,11 +363,11 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
     }
 
     private canKeepOptimisticResult(
-        localActions: readonly GameAction[],
+        optimistic: OptimisticSubmission<T, U>,
         serverActions: readonly GameAction[]
     ): boolean {
-        return (
-            !serverActions.some((action) => action.forwardPatch !== undefined) &&
+        const localActions = optimistic.result.processedActions
+        const sameActions =
             localActions.length === serverActions.length &&
             localActions.every((local, index) => {
                 const server = serverActions[index]
@@ -361,11 +379,23 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
                     local.type === server.type
                 )
             })
-        )
+        if (!sameActions) return false
+        let confirmedState = optimistic.before.state
+        for (const action of serverActions) {
+            confirmedState = this.context.engine.applyProcessedAction({
+                action,
+                state: confirmedState,
+                game: optimistic.before.game
+            })
+        }
+        return Value.Equal(confirmedState, optimistic.result.updatedState)
     }
 
     private rollbackTo(context: GameContext<T, U>, index: number): void {
-        while (context.actions.length > 0 && context.actions.length - 1 !== index) {
+        if (index < context.historyStartIndex - 1 || index >= context.nextActionIndex) {
+            throw new Error('Rollback requires unavailable Action History')
+        }
+        while (context.actions.length > 0 && context.nextActionIndex - 1 !== index) {
             context.undoLastAction()
         }
     }

@@ -272,6 +272,23 @@ function createService(source: ReturnType<typeof createSource>) {
 
 const owner: User = { id: 'owner', status: UserStatus.Active, roles: [Role.User], externalIds: [] }
 
+describe('State-only Game loading', () => {
+    it('does not read Action History when the State has its checksum', async () => {
+        const source = createSource()
+        const { service, store } = createService(source)
+        const readActions = vi.mocked(store.findActionsForGame)
+        const result = await service.getGameForUser({
+            gameId: source.game.id,
+            user: owner,
+            includeActions: false
+        })
+        expect(readActions).not.toHaveBeenCalled()
+        expect(result?.historyComplete).toBe(false)
+        expect(result?.actions).toEqual([])
+        expect(result?.game.state?.actionCount).toBe(source.state.actionCount)
+    })
+})
+
 describe('Hosted Fork service', () => {
     it('rejects an incomplete Undo result before persistence', async () => {
         const source = createSource()

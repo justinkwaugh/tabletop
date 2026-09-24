@@ -1,0 +1,28 @@
+import { expect, test } from '@playwright/test'
+
+test('players, history and chat stay in the sidebar at every desktop width', async ({ page }) => {
+    await page.setViewportSize({ width: 2200, height: 1100 })
+    await page.goto('/table')
+    const players = page.getByRole('tab', { name: 'Players', exact: true })
+    const history = page.getByRole('tab', { name: 'History', exact: true })
+    const chat = page.getByRole('tab', { name: 'Chat', exact: true })
+    await expect(players).toHaveAttribute('aria-selected', 'true')
+    const sidebarBox = await players.boundingBox()
+    const actionBox = await page.getByRole('region', { name: 'Current action' }).boundingBox()
+    if (!sidebarBox || !actionBox) throw new Error('Sidebar and actions must be visible')
+    expect(sidebarBox.x).toBeLessThan(actionBox.x)
+    await expect(page.getByRole('separator', { name: 'Upper panel height' })).toHaveCount(0)
+    await page.keyboard.press('h')
+    await expect(history).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press('c')
+    await expect(chat).toHaveAttribute('aria-selected', 'true')
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await expect(chat).toHaveAttribute('aria-selected', 'true')
+    await page.setViewportSize({ width: 2200, height: 1100 })
+    await expect(chat).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press('p')
+    await expect(players).toHaveAttribute('aria-selected', 'true')
+    await expect(
+        page.getByRole('button', { name: 'Pane options for Table views pane 1', exact: true })
+    ).toBeVisible()
+})

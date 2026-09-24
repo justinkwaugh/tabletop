@@ -466,6 +466,15 @@
         armedAllianceId = undefined
     }
 
+    // A mouse click would leave the clicked button focused, and Chrome paints the focus ring on
+    // it later - a stray key press or Alt-Tab back into the window flips it into keyboard mode,
+    // and the last-clicked square lights up blue. Focusing is mousedown's default action, so
+    // cancelling it here keeps mouse clicks from focusing any board button while Tab focus,
+    // and its ring, work exactly as before.
+    function keepMouseFromFocusingButtons(event: MouseEvent) {
+        if (event.target instanceof Element && event.target.closest('button')) event.preventDefault()
+    }
+
     function disarmUnlessPressingAllianceControl(event: PointerEvent) {
         if (event.target instanceof Element && event.target.closest('[data-alliance-control]')) return
         armedAllianceId = undefined
@@ -1005,6 +1014,7 @@
                 hoverPoint = boardPointFromEvent(e.currentTarget, e.clientX, e.clientY)
             }}
             onmouseleave={() => (hoverPoint = undefined)}
+            onmousedown={keepMouseFromFocusingButtons}
             onpointerdown={disarmUnlessPressingAllianceControl}
         >
         {#if tileLayout.length > 0}

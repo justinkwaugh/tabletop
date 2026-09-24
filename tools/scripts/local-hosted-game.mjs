@@ -18,14 +18,19 @@ const usage = `Usage:
   tools/scripts/local-hosted-game.mjs <game>
   tools/scripts/local-hosted-game.mjs --game <game> [--prepare-only]
 
-Builds the selected game's logic and UI, stages the UI at the version selected by
-the local site manifest, checks local infrastructure, and starts the Site Frontend
-and backend.
+Builds the selected game's logic and UI, stages the UI at the package version that
+the local backend's generated manifest selects, checks local infrastructure, and
+starts the Site Frontend and backend.
 
 Options:
   --game <game>    Game package ID or game ID (for example, fresh-fish)
   --prepare-only   Build and stage the game without checking or starting services
   --help           Show this help
+
+Environment:
+  LOCAL_HOSTED_FRONTEND_PORT  Site port (default 5173)
+  PORT                        Backend port (default 3000)
+  LOCAL_GAME_HISTORY_DELAY_MS  Artificial delay for full Game loads in local mode
 `
 
 const parseArguments = (arguments_) => {
@@ -83,16 +88,16 @@ const normalizeGameName = (gameName) =>
         .replace(/-ui$/, '')
         .toLowerCase()
 
-const resolveGame = (manifest, requestedName) => {
+const resolveGame = (catalogue, requestedName) => {
     const normalizedName = normalizeGameName(requestedName)
-    const game = manifest.games.find(
+    const game = catalogue.find(
         (candidate) =>
             candidate.packageId.toLowerCase() === normalizedName ||
             candidate.gameId.toLowerCase() === normalizedName
     )
 
     if (!game) {
-        const choices = manifest.games
+        const choices = catalogue
             .map((candidate) => candidate.packageId)
             .sort()
             .join(', ')
@@ -109,11 +114,8 @@ const verifyPackage = (packageJson, expectations, filePath) => {
         )
     }
 
-    if (packageJson.version !== expectations.version) {
-        throw new Error(
-            `${packageJson.name} is version ${packageJson.version}, but the local site manifest selects ` +
-                `${expectations.version}. Align the package and manifest before running the hosted site.`
-        )
+    if (typeof packageJson.version !== 'string') {
+        throw new Error(`${filePath} has no version`)
     }
 }
 
@@ -305,10 +307,10 @@ const ensureInfrastructure = async (configuredServices) => {
     return services
 }
 
-const assertApplicationsAreStopped = async (backendPort) => {
+const assertApplicationsAreStopped = async (backendPort, frontendPort) => {
     const applications = [
         { name: 'backend', port: backendPort },
-        { name: 'Site Frontend', port: 5173 }
+        { name: 'Site Frontend', port: frontendPort }
     ]
     const running = []
 
@@ -365,13 +367,22 @@ const waitForApplications = async (applications, child, timeoutMilliseconds) => 
     )
 }
 
-const runApplications = async (backendPort, game, infrastructure) => {
+const runApplications = async (backendPort, frontendPort, game, infrastructure) => {
     const firestore = infrastructure.find((service) => service.name === 'Firestore')
     const redis = infrastructure.find((service) => service.name === 'Redis')
     const applicationEnvironment = {
         ...commandEnvironment,
         FIRESTORE_EMULATOR_HOST: `${firestore.host}:${firestore.port}`,
         HOST: '0.0.0.0',
+        PORT: String(backendPort),
+        LOCAL_HOSTED_FRONTEND_PORT: String(frontendPort),
+        ...(process.env.LOCAL_HOSTED_FRONTEND_PORT
+            ? {
+                  PUBLIC_API_HOST: process.env.PUBLIC_API_HOST ?? `http://localhost:${backendPort}`,
+                  PUBLIC_SSE_HOST: process.env.PUBLIC_SSE_HOST ?? `http://localhost:${backendPort}`,
+                  FRONTEND_HOST: process.env.FRONTEND_HOST ?? `http://localhost:${frontendPort}`
+              }
+            : {}),
         REDIS_HOST: redis.host,
         REDIS_PORT: String(redis.port)
     }
@@ -425,13 +436,13 @@ const runApplications = async (backendPort, game, infrastructure) => {
                     },
                     {
                         name: 'Site Frontend',
-                        urls: ['http://127.0.0.1:5173/', 'http://[::1]:5173/']
+                        urls: [`http://127.0.0.1:${frontendPort}/`, `http://[::1]:${frontendPort}/`]
                     },
                     {
                         name: `${game.packageId} UI Artifact`,
                         urls: [
-                            `http://127.0.0.1:5173/games/${game.packageId}/ui/${game.uiVersion}/index.js`,
-                            `http://[::1]:5173/games/${game.packageId}/ui/${game.uiVersion}/index.js`
+                            `http://127.0.0.1:${frontendPort}/games/${game.packageId}/ui/${game.uiVersion}/index.js`,
+                            `http://[::1]:${frontendPort}/games/${game.packageId}/ui/${game.uiVersion}/index.js`
                         ]
                     }
                 ],
@@ -447,7 +458,7 @@ const runApplications = async (backendPort, game, infrastructure) => {
 
         console.log('')
         console.log(`Local hosted game ready: ${game.packageId}`)
-        console.log('Site: http://localhost:5173')
+        console.log(`Site: http://localhost:${frontendPort}`)
         console.log(`Backend: http://localhost:${backendPort}`)
         console.log('Firestore emulator: http://localhost:4000')
         console.log('Stop all local app processes with Ctrl-C.')
@@ -483,24 +494,34 @@ const main = async () => {
         throw new Error('turbo is unavailable. Install workspace dependencies, then retry.')
     }
 
-    const manifestPath = path.join(repoRoot, 'config/config-games/src/site-manifest.json')
-    const manifest = await readJson(manifestPath)
-    const game = resolveGame(manifest, options.gameName)
-    const logicPackagePath = path.join(repoRoot, 'games', game.packageId, 'package.json')
-    const uiPackagePath = path.join(repoRoot, 'games', `${game.packageId}-ui`, 'package.json')
+    const cataloguePath = path.join(repoRoot, 'config/config-games/src/games.json')
+    const catalogue = await readJson(cataloguePath)
+    const catalogueGame = resolveGame(catalogue, options.gameName)
+    const logicPackagePath = path.join(repoRoot, 'games', catalogueGame.packageId, 'package.json')
+    const uiPackagePath = path.join(
+        repoRoot,
+        'games',
+        `${catalogueGame.packageId}-ui`,
+        'package.json'
+    )
     const logicPackage = await readJson(logicPackagePath)
     const uiPackage = await readJson(uiPackagePath)
 
     verifyPackage(
         logicPackage,
-        { name: `@tabletop/${game.packageId}`, version: game.logicVersion },
+        { name: `@tabletop/${catalogueGame.packageId}` },
         path.relative(repoRoot, logicPackagePath)
     )
     verifyPackage(
         uiPackage,
-        { name: `@tabletop/${game.packageId}-ui`, version: game.uiVersion },
+        { name: `@tabletop/${catalogueGame.packageId}-ui` },
         path.relative(repoRoot, uiPackagePath)
     )
+    const game = {
+        ...catalogueGame,
+        logicVersion: logicPackage.version,
+        uiVersion: uiPackage.version
+    }
 
     const backendEnvironmentFile = await parseEnvironmentFile(
         path.join(repoRoot, 'apps/backend/.env.local')
@@ -516,9 +537,11 @@ const main = async () => {
     }
     const backendPort = Number(configuredEnvironment.PORT ?? 3000)
 
+    const frontendPort = Number(process.env.LOCAL_HOSTED_FRONTEND_PORT ?? 5173)
+
     let infrastructure
     if (!options.prepareOnly) {
-        await assertApplicationsAreStopped(backendPort)
+        await assertApplicationsAreStopped(backendPort, frontendPort)
         infrastructure = await ensureInfrastructure([
             { name: 'Firestore', composeHost: 'firebase', ...firestore },
             { name: 'Redis', composeHost: 'cache', ...redis }
@@ -531,7 +554,20 @@ const main = async () => {
     )
     await runCommand('turbo', ['stage-ui', `--filter=${uiPackage.name}`, '--ui=stream'])
 
-    const logicEntry = path.join(repoRoot, 'games', game.packageId, 'esm/index.js')
+    await runCommand('turbo', ['bundle', `--filter=${logicPackage.name}`, '--ui=stream'])
+    const logicDirectory = path.join(
+        repoRoot,
+        '.local-static/games',
+        game.packageId,
+        'logic',
+        game.logicVersion
+    )
+    await fs.rm(logicDirectory, { recursive: true, force: true })
+    await fs.mkdir(logicDirectory, { recursive: true })
+    await fs.cp(path.join(repoRoot, 'games', game.packageId, 'bundle'), logicDirectory, {
+        recursive: true
+    })
+    const logicEntry = path.join(logicDirectory, 'index.js')
     const stagedUiEntry = path.join(
         repoRoot,
         '.local-static/games',
@@ -550,7 +586,7 @@ const main = async () => {
         return
     }
 
-    await runApplications(backendPort, game, infrastructure)
+    await runApplications(backendPort, frontendPort, game, infrastructure)
 }
 
 try {

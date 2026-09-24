@@ -1,0 +1,15 @@
+User-agent: *
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /email/
+Disallow: /game/
+Disallow: /invitation/
+Disallow: /join/
+Disallow: /library
+Disallow: /notifications
+Disallow: /oauth/
+Disallow: /onboarding
+Disallow: /preferences
+Disallow: /profile
+Disallow: /tournaments

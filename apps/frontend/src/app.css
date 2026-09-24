@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @plugin 'flowbite/plugin';
 
+/* Published Game UI artifacts still use these layout heights. Keep them even
+   when the current shared layout uses different utilities. */
+@source inline("sm:h-[calc(100dvh-16px-var(--app-shell-height))] max-sm:h-[calc(100dvh-16px-44px-var(--app-shell-height))]");
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @font-face {

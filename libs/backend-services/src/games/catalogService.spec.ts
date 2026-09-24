@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import type { GameCatalogEntry } from '@tabletop/common'
-import { SiteManifest } from '@tabletop/games-config'
+import { GameVisibility, type GameCatalogEntry } from '@tabletop/common'
+import type { SiteManifest } from '@tabletop/games-config'
 import { CatalogService } from './catalogService.js'
 
 describe('publication catalog', () => {
@@ -17,7 +17,7 @@ describe('publication catalog', () => {
         priorLogicVersions: [],
         priorUiVersions: []
     }
-    const manifest: SiteManifest = { ...SiteManifest, games: [publication] }
+    const manifest: SiteManifest = { frontend: { version: '1.0.0' }, games: [publication] }
     const entry: GameCatalogEntry = {
         id: 'example',
         thumbnailUrl: '/games/example-package/ui/1.0.0/assets/cover.jpg',
@@ -92,6 +92,15 @@ describe('publication catalog', () => {
         expect(await service.getCatalog({ ...manifest, games: [] })).toEqual([])
     })
 
+    it('preserves alpha visibility in catalog metadata', async () => {
+        const alpha = {
+            ...entry,
+            metadata: { ...entry.metadata, beta: true, visibility: GameVisibility.Alpha }
+        }
+        await publish(publication, alpha)
+        expect(await service.getCatalog(manifest)).toEqual([alpha])
+    })
+
     it.each(['missing', 'malformed'])(
         'isolates a %s entry and retries without discarding healthy entries',
         async (failure) => {
@@ -113,6 +122,7 @@ describe('publication catalog', () => {
         ['missing name', { metadata: { ...entry.metadata, name: undefined } }],
         ['non-string name', { metadata: { ...entry.metadata, name: 123 } }],
         ['non-numeric player count', { metadata: { ...entry.metadata, minPlayers: 'two' } }],
+        ['invalid visibility', { metadata: { ...entry.metadata, visibility: 'unknown' } }],
         ['non-boolean beta', { metadata: { ...entry.metadata, beta: 'false' } }],
         ['missing cover', { thumbnailUrl: undefined }],
         ['empty cover', { thumbnailUrl: '' }]

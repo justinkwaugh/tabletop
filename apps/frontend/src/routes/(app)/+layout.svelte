@@ -1,5 +1,6 @@
 <script lang="ts">
     import '../../app.css'
+    import { nextTurnGame, otherTurnGames } from '$lib/utils/dashboardGames'
     import {
         Navbar,
         NavBrand,
@@ -25,7 +26,7 @@
     import { setLoginModal } from '$lib/stores/loginModal'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
-    import { UserStatus } from '@tabletop/common'
+    import { UserStatus, GameVisibility, getTitleVisibility } from '@tabletop/common'
     import {
         VersionChange,
         GameEditForm,
@@ -34,7 +35,11 @@
     } from '@tabletop/frontend-components'
     import { toast } from 'svelte-sonner'
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
-    import { BellSolid } from 'flowbite-svelte-icons'
+    import { BellSolid, DownloadOutline, RefreshOutline } from 'flowbite-svelte-icons'
+    import {
+        pwaInstallPrompt,
+        registerPwaInstallPrompt
+    } from '$lib/stores/pwaInstallPrompt.svelte.js'
 
     let {
         api,
@@ -51,10 +56,34 @@
     let { children } = $props()
 
     let sessionUser = $derived(authorizationService.getSessionUser())
+    let otherTurnCount = $derived(
+        gameService.currentGameSession
+            ? otherTurnGames(
+                  gameService.activeGames,
+                  gameService.currentGameSession.primaryGame.id,
+                  sessionUser?.id
+              ).length
+            : 0
+    )
+    let nextGame = $derived(
+        gameService.currentGameSession
+            ? nextTurnGame(
+                  gameService.activeGames,
+                  gameService.currentGameSession.primaryGame.id,
+                  sessionUser?.id
+              )
+            : undefined
+    )
+    let accountMenuOpen = $state(false)
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
     let showLoginModal = $state(false)
     let loginView = $state<LoginView>('signin')
+    let isInstalledPwa = $state(false)
+    let showPwaRefresh = $derived(
+        isInstalledPwa && api.versionChange === VersionChange.MinorUpgrade
+    )
+    let canInstallPwa = $derived(pwaInstallPrompt.available)
 
     const openLoginModal = setLoginModal(() => {
         loginView = 'signin'
@@ -143,6 +172,12 @@
         return titlesById[gameService.currentGameSession.primaryGame.typeId]
     })
 
+    let currentVisibility = $derived(
+        currentDefinition
+            ? getTitleVisibility(currentDefinition.info.metadata)
+            : GameVisibility.Public
+    )
+
     async function onLogout() {
         await api.logout()
         gameService.clear()
@@ -173,12 +208,21 @@
         await goto('/notifications')
     }
 
+    async function gotoAdmin() {
+        showCancelPrompt = false
+        await goto('/admin')
+    }
+
     async function gotoDashboard() {
         await goto('/dashboard')
     }
 
     async function gotoAbout() {
         await goto('/about')
+    }
+
+    async function installPwa() {
+        await pwaInstallPrompt.prompt()
     }
 
     function setAdminCapabilities(event: Event) {
@@ -231,6 +275,8 @@
     }
 
     onMount(() => {
+        registerPwaInstallPrompt()
+        isInstalledPwa = window.matchMedia('(display-mode: standalone)').matches
         notificationService.onMounted()
         visibilityService.setDocument(document)
         if (/mobile/i.test(navigator.userAgent ?? '') && !location.hash) {
@@ -282,8 +328,10 @@
             class="text-nowrap text-center mt-2 sm:mt-0 max-w-[320px] dark:text-gray-200 font-medium tight overflow-clip text-ellipsis"
             style=""
             tag="h4"
-            >{currentDefinition?.info.metadata.beta ? 'BETA: ' : ''}{gameService.currentGameSession
-                .primaryGame.name}</Heading
+            >{currentVisibility === GameVisibility.Public
+                ? ''
+                : `${currentVisibility.toUpperCase()}: `}{gameService.currentGameSession.primaryGame
+                .name}</Heading
         >
     {/if}
 {/snippet}
@@ -297,26 +345,33 @@
     {/if}
 {/snippet}
 
-<div {@attach attachGlobalCssVarFromRect('--app-navbar-height')}>
+<div
+    class:game-session-header={!!gameService.currentGameSession}
+    class:mobile-game-header={!!gameService.currentGameSession || showPwaRefresh || canInstallPwa}
+    {@attach attachGlobalCssVarFromRect('--app-navbar-height')}
+>
     <Navbar
         fluid={true}
-        class="{currentDefinition?.info.metadata.beta ? 'dark:bg-red-900' : 'dark:bg-gray-800'} "
+        class="site-navbar {currentVisibility !== GameVisibility.Public
+            ? 'dark:bg-red-900'
+            : 'dark:bg-gray-800'} "
     >
         <div class="flex flex-col w-full">
             <div class="flex flex-row justify-between items-center w-full">
-                <div class="flex justify-center items-center">
+                <div class="header-brand flex justify-center items-center">
                     <NavBrand href={sessionUser ? '/library' : '/'} class="shrink-0 cursor-pointer">
-                        <img src={darkLogo} alt="Board Together" class="h-8 w-auto" />
+                        <img src={darkLogo} alt="Board Together" class="full-logo h-8 w-auto" />
+                        <img src="/android-chrome-192x192.png" alt="Board Together" class="game-logo" />
                     </NavBrand>
 
                     <div
-                        class="hidden sm:block rounded-lg py-2 px-2 md:px-4 flex flex-col justify-start items-start ml-4"
+                        class="header-title hidden sm:block rounded-lg py-2 px-2 md:px-4 flex flex-col justify-start items-start ml-4"
                     >
                         {@render gameName()}
                     </div>
                 </div>
-                <div class="flex items-center">
-                    <div class="flex items-center gap-3 mr-4">
+                <div class="header-actions flex items-center">
+                    <div class="header-links flex items-center gap-3 mr-4">
                         <a
                             href="/about"
                             class="hidden md:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
@@ -369,9 +424,27 @@
                             <Button
                                 size="xs"
                                 color="blue"
-                                class="me-4 h-[30px]"
-                                onclick={gotoDashboard}>My Games</Button
+                                class="{showPwaRefresh || canInstallPwa ? 'me-1' : 'me-4'} h-[30px]"
+                                onclick={gotoDashboard}><span class="my-games-label">My&nbsp;</span>Games</Button
                             >
+                            {#if showPwaRefresh}
+                                <button
+                                    class="pwa-refresh me-1 cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                                    aria-label="Refresh to update"
+                                    onclick={() => location.reload()}
+                                >
+                                    <RefreshOutline class="h-6 w-6" aria-hidden="true" />
+                                </button>
+                            {/if}
+                            {#if canInstallPwa}
+                                <button
+                                    class="pwa-install cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                                    aria-label="Install BoardTogether"
+                                    onclick={installPwa}
+                                >
+                                    <DownloadOutline class="h-6 w-6" aria-hidden="true" />
+                                </button>
+                            {/if}
                             <a
                                 href="/tournaments"
                                 class="hidden sm:inline-flex me-4 text-sm text-blue-700 dark:text-blue-300"
@@ -379,15 +452,38 @@
                             >
                         {/if}
 
-                        <Avatar id="user-drop" class="cursor-pointer" />
-                        <Dropdown triggeredBy="#user-drop">
+                        <button id="user-drop" class="account-menu cursor-pointer text-gray-700 dark:text-gray-300" aria-label="Open account menu">
+                            <span class="account-avatar"><Avatar /></span>
+                            <svg class="game-menu-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <path d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <Dropdown
+                            triggeredBy="#user-drop"
+                            bind:isOpen={accountMenuOpen}
+                            onclick={() => accountMenuOpen = false}
+                        >
                             <DropdownGroup class="py-1">
                                 <DropdownHeader class="py-2">
                                     <span class="block text-sm"
                                         >{sessionUser.username || 'username not assigned'}</span
                                     >
                                 </DropdownHeader>
-                                <DropdownDivider />
+                                <DropdownDivider class={nextGame ? 'mb-0' : ''} />
+                                {#if nextGame}
+                                    <DropdownItem
+                                        href={`/game/${nextGame.id}`}
+                                        class="w-full bg-blue-50 text-left hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50"
+                                    >
+                                        <span class="inline-flex items-center gap-2 whitespace-nowrap">
+                                            Next turn
+                                            <span
+                                                class="inline-flex min-w-5 items-center justify-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                            >{otherTurnCount}</span>
+                                        </span>
+                                    </DropdownItem>
+                                    <DropdownDivider class="mt-0" />
+                                {/if}
                                 {#if sessionUser.status === UserStatus.Active}
                                     <DropdownItem
                                         href="/tournaments"
@@ -403,6 +499,11 @@
                                 <DropdownItem class="w-full text-left" onclick={gotoNotifications}
                                     >Notifications</DropdownItem
                                 >
+                                {#if authorizationService.isAdmin}
+                                    <DropdownItem class="w-full text-left" onclick={gotoAdmin}
+                                        >Admin</DropdownItem
+                                    >
+                                {/if}
                                 <DropdownDivider />
                                 <DropdownItem onclick={gotoAbout} class="md:hidden w-full text-left"
                                     >About us</DropdownItem
@@ -458,11 +559,20 @@
                             </DropdownGroup>
                         </Dropdown>
                     {:else}
+                        {#if canInstallPwa}
+                            <button
+                                class="pwa-install me-1 cursor-pointer text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                                aria-label="Install BoardTogether"
+                                onclick={installPwa}
+                            >
+                                <DownloadOutline class="h-6 w-6" aria-hidden="true" />
+                            </button>
+                        {/if}
                         <Button onclick={openLoginModal} size="sm" color="blue">Sign in</Button>
                     {/if}
                 </div>
             </div>
-            <div class="flex justify-center sm:hidden w-full overflow-hidden text-ellipsis">
+            <div class="mobile-game-title flex justify-center sm:hidden w-full overflow-hidden text-ellipsis">
                 {@render gameName()}
             </div>
         </div>
@@ -554,3 +664,30 @@
     >
 {/if}
 {@render children()}
+
+
+<style>
+    .game-logo,
+    .game-menu-icon { display: none; }
+    .account-menu { display: grid; place-items: center; border-radius: 4px; }
+    .account-menu:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+    .pwa-refresh,
+    .pwa-install { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 4px; }
+    .pwa-refresh:focus-visible,
+    .pwa-install:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+    @media (width < 640px) {
+        .mobile-game-header :global(.site-navbar) { padding-block: 4px; }
+        .mobile-game-header .header-brand { flex: 1; min-width: 0; justify-content: flex-start; padding-left: 8px; }
+        .mobile-game-header .header-actions { flex-shrink: 0; margin-left: 8px; }
+        .mobile-game-header .header-title { display: block; flex: 1; min-width: 0; margin-left: 12px; padding: 0; }
+        .mobile-game-header .header-title :global(h4) { margin: 0; max-width: none; font-size: 14px; line-height: 20px; text-align: left; }
+        .mobile-game-header .mobile-game-title,
+        .mobile-game-header .my-games-label,
+        .mobile-game-header .full-logo,
+        .mobile-game-header .account-avatar { display: none; }
+        .game-session-header .header-links { display: none; }
+        .mobile-game-header .game-logo { display: block; width: 28px; height: 28px; }
+        .mobile-game-header .game-menu-icon { display: block; }
+        .mobile-game-header .account-menu { width: 40px; height: 40px; }
+    }
+</style>

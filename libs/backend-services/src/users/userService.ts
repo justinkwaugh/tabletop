@@ -1,11 +1,13 @@
 import { UserStore } from '../persistence/stores/userStore.js'
 import {
+    type AdminAssignableRole,
     ExternalAuthService,
     remove,
     Role,
     User,
     UserPreferences,
-    UserStatus
+    UserStatus,
+    withAssignedRoles
 } from '@tabletop/common'
 import { TokenType, TokenService } from '../tokens/tokenService.js'
 import { TaskService } from '../tasks/taskService.js'
@@ -19,6 +21,7 @@ import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
 import { AuthenticationTokenData, VerificationTokenData } from '../tokens/tokenData.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
+import { NotFoundError } from '../persistence/stores/errors.js'
 import uFuzzy from '@leeoniya/ufuzzy'
 
 export class UserService {
@@ -376,6 +379,32 @@ export class UserService {
         })
 
         await this.taskService.sendAuthVerificationEmail({ userId, token })
+    }
+
+    async searchUsers(query: string): Promise<User[]> {
+        const trimmed = query.trim()
+        if (!trimmed) return []
+        if (trimmed.includes('@')) {
+            const user = await this.userStore.findByEmail(trimmed)
+            return user ? [user] : []
+        }
+        const usernames = await this.searchUsernames(trimmed)
+        const users = await Promise.all(
+            usernames.map((username) => this.userStore.findByUsername(username))
+        )
+        return users.filter((user) => user !== undefined)
+    }
+
+    async assignRoles(userId: string, assignedRoles: AdminAssignableRole[]): Promise<User> {
+        const user = await this.userStore.findById(userId)
+        if (!user) {
+            throw new NotFoundError({ type: 'User', id: userId })
+        }
+        const [updatedUser] = await this.userStore.updateUser({
+            userId,
+            fields: { roles: withAssignedRoles(user.roles, assignedRoles) }
+        })
+        return updatedUser
     }
 
     async searchUsernames(query: string): Promise<string[]> {

@@ -65,6 +65,7 @@ export interface GameStore {
     findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]>
     findGameHistory(user: User, before?: GameHistoryCursor): Promise<GameHistoryPage>
     findOpenGamesForTitle(titleId: string): Promise<Game[]>
+    findActiveGamesForTitle(titleId: string): Promise<Game[]>
     findGameById(gameId: string, includeState: boolean): Promise<Game | undefined>
     findUndoActionWindow({
         game,

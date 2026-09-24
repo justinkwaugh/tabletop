@@ -1,6 +1,14 @@
+import type * as Type from 'typebox'
+import { TitlePreferences } from '../preferences/titlePreferences.svelte.js'
 import * as Value from 'typebox/value'
 import {
+    type TitlePreferenceDefinition,
     ActionSource,
+    findStandingAction,
+    replaceSupersededAction,
+    unnamedDuplicateReason,
+    isSupersedableActionType,
+    isOutOfTurnActionType,
     Game,
     GameAction,
     GameEngine,
@@ -13,6 +21,7 @@ import {
     createAction,
     type User,
     type GameChat,
+    type GameChatMessage,
     Visibility
 } from '@tabletop/common'
 import { watch } from 'runed'
@@ -24,7 +33,7 @@ import type { AuthorizationBridge } from '$lib/services/bridges/authorizationBri
 import type { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
 import type { ChatServiceBridge } from '$lib/services/bridges/chatServiceBridge.svelte.js'
 import type { GameUIRuntime } from '$lib/definition/gameUiDefinition'
-import type { ChatService } from '$lib/services/chatService'
+import type { ChatAuthor, ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
 import { GameSessionBridge } from '$lib/services/bridges/gameSessionBridge.svelte.js'
 import { GameContext } from './gameContext.svelte.js'
@@ -67,6 +76,20 @@ export type GameStateChangeListener<U extends HydratedGameState> = ({
 type PlayerStateOf<U extends HydratedGameState> = U['players'][number]
 
 export class GameSession<T extends GameState, U extends HydratedGameState<T> & T> {
+    static readonly supportsDeferredHistory = true
+    historyLoading = $state(false)
+    historyLoadFailed = $state(false)
+    private disposed = false
+    private initialSynchronizationNeeded: boolean
+    synchronizationFailed = $state(false)
+    private synchronizingGame = $state(false)
+    private applyingSynchronization = $state(false)
+    private pendingHistory?: { context: GameContext<T, U>; isCurrent: () => boolean }
+
+    get hasCompleteHistory(): boolean {
+        return this.currentVisibleContext.hasCompleteHistory
+    }
+
     private debug? = false
 
     processingActions = $state(false)
@@ -78,8 +101,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         const state = this.updatingVisibleState
         const representation = this.loadingGameRepresentation
 
-        return actions || state || representation
+        return actions || state || representation || this.synchronizingGame
     })
+
+    private historyBusy = $derived(
+        this.processingActions ||
+            this.updatingVisibleState ||
+            this.loadingGameRepresentation ||
+            this.applyingSynchronization
+    )
 
     private authorizationBridge: AuthorizationBridge
     private chatBridge: ChatServiceBridge
@@ -119,9 +149,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     mode: GameSessionMode = $state(GameSessionMode.Play)
 
     isPlayable = $derived(
-        this.mode === GameSessionMode.Play || this.mode === GameSessionMode.Explore
+        !this.synchronizationFailed &&
+            (this.mode === GameSessionMode.Play || this.mode === GameSessionMode.Explore)
     )
     isExploring = $derived(this.mode === GameSessionMode.Explore)
+    get isDeveloperHarness(): boolean {
+        return this.gameService.developerHarness === true
+    }
     get isViewingHost(): boolean {
         return (
             this.representations.hostContext !== undefined &&
@@ -164,7 +198,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     currentActionIndex = $derived.by(() => {
-        return this.actions.length - 1
+        return this.currentVisibleContext.state.actionCount - 1
     })
 
     // Switches between the contexts to show in the UI
@@ -197,11 +231,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     undoableAction: GameAction | undefined = $derived.by(() => {
         const superUserAccess =
             (this.isActingAdmin || this.isExploring) && !this.isViewingAsNonActivePlayer
+        const localHotseatAccess =
+            this.game.hotseat &&
+            !this.usesHostExecution(this.currentModifiableContext) &&
+            !this.isViewingAsNonActivePlayer
 
         // No spectators, must have actions, not viewing history
         if (
             this.history.inHistory ||
-            (!superUserAccess && !this.myPlayer) ||
+            (!superUserAccess && !localHotseatAccess && !this.myPlayer) ||
             this.actions.length === 0
         ) {
             return undefined
@@ -221,17 +259,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 break
             }
 
-            // Skip system actions
-            if (action.source !== ActionSource.User) {
+            if (action.source !== ActionSource.User || action.outOfTurn) {
                 continue
             }
 
-            if (
-                superUserAccess ||
-                (this.game.hotseat &&
-                    !this.usesHostExecution(this.currentModifiableContext) &&
-                    !this.isViewingAsNonActivePlayer)
-            ) {
+            if (superUserAccess || localHotseatAccess) {
                 undoableUserAction = action
                 break
             }
@@ -299,11 +331,13 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         new Map(this.game.players.map((player) => [player.id, player.name]))
     )
 
-    activePlayers: Player[] = $derived.by(() => {
+    activePlayers: Player[] = $derived.by(() => this.getActivePlayers())
+
+    protected getActivePlayers(): Player[] {
         return this.game.players.filter((player) =>
             this.gameState.activePlayerIds.includes(player.id)
         )
-    })
+    }
 
     private nonActivePlayer: Player | undefined = $derived.by(() =>
         this.findNonActivePlayer(this.gameState)
@@ -368,6 +402,19 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.primaryGame.hotseat && this.chatAvailable ? this.myPlayer : this.myPrimaryPlayer
     )
 
+    isChatParticipant: boolean = $derived(this.chatMessagePlayer !== undefined)
+
+    chatAuthor: ChatAuthor | undefined = $derived.by(() => {
+        if (!this.chatAvailable) {
+            return undefined
+        }
+        if (!this.primaryGame.hotseat && this.isActingAdmin) {
+            return { kind: 'admin' }
+        }
+        const player = this.chatMessagePlayer
+        return player ? { kind: 'player', player } : undefined
+    })
+
     myPlayerState: PlayerStateOf<U> | undefined = $derived.by(() =>
         this.gameState.findPlayerState(this.myPlayer?.id)
     )
@@ -404,12 +451,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     validActionTypes: string[] = $derived.by(() => {
-        if (this.isViewingAsNonActivePlayer || !this.myPlayer) {
+        if (!this.myPlayer) {
             return []
         }
 
         try {
-            return this.engine.getValidActionTypesForPlayer(
+            const types = this.engine.getValidActionTypesForPlayer(
                 this.primaryGame,
                 this.gameState,
                 this.myPlayer.id,
@@ -417,6 +464,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     perspective: this.projectedExecutionPerspective(this.currentVisibleContext)
                 }
             )
+            return this.isViewingAsNonActivePlayer
+                ? types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
+                : types
         } catch (error) {
             if (!Visibility.isUnavailableProjectedValueError(error)) {
                 throw error
@@ -491,8 +541,33 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     })
 
     hasUnreadMessages = $derived.by(() => {
-        return this.hasUnreadMessagesStore.current
+        return this.isChatParticipant && this.hasUnreadMessagesStore.current
     })
+
+    async sendChatMessage(text: string): Promise<void> {
+        const author = this.chatAuthor
+        assertExists(author, 'No chat author for this session')
+        const attribution: Pick<GameChatMessage, 'playerId' | 'admin'> =
+            author.kind === 'admin' ? { admin: true } : { playerId: author.player.id }
+        await this.chatService.sendGameChatMessage(
+            { id: nanoid(), timestamp: new Date(), text, ...attribution },
+            this.primaryGame.id
+        )
+    }
+
+    async markChatRead(): Promise<void> {
+        if (!this.isChatParticipant) {
+            return
+        }
+        await this.chatService.markLatestRead()
+    }
+
+    async advanceChatReadPosition(lastReadTimestamp: Date): Promise<void> {
+        if (!this.isChatParticipant) {
+            return
+        }
+        await this.chatService.setGameChatBookmark(lastReadTimestamp)
+    }
 
     readonly chatAvailable: boolean
 
@@ -508,6 +583,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         game,
         state,
         actions,
+        historyComplete = true,
         debug = false,
         hostPerspective
     }: {
@@ -520,9 +596,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         game: Game
         state: T
         actions: GameAction[]
+        historyComplete?: boolean
         debug?: boolean
         hostPerspective?: Visibility.Perspective
     }) {
+        this.initialSynchronizationNeeded = !historyComplete
         this.authorizationBridge = bridgedContext.authorization
         this.chatBridge = bridgedContext.chatService
         this.showDebugStore = fromStore(this.authorizationBridge.showDebug)
@@ -548,7 +626,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             runtime,
             game,
             state,
-            actions
+            actions,
+            historyComplete
         })
 
         this.representations = new GameRepresentations(this.gameContext, {
@@ -568,6 +647,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             reload: () => this.loadRecoveryContext(),
             isPaused: () => this.busy,
             recover: () => this.checkSync(),
+            beforeSynchronizationUpdate: () => {
+                this.applyingSynchronization = true
+            },
             acceptsPerspective: (perspective) => this.matchesPrimaryPerspective(perspective)
         })
 
@@ -633,7 +715,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.bridge = new GameSessionBridge(this)
 
         if (!game.hotseat) {
-            this.chatService.setGameId(game.id)
+            this.chatService.setGameId(game.id, { trackReadPosition: this.isChatParticipant })
         }
 
         // Add self as a listener for game state changes for subclasses to override
@@ -663,15 +745,21 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             )
 
             watch(
-                () => this.busy,
-                (newBusy, oldBusy) => {
+                () => this.historyBusy,
+                (newBusy) => {
                     if (newBusy) {
                         this.history.disable()
                     } else {
                         this.history.enable()
                     }
-                    // console.log('Busy changed from', oldBusy, 'to', newBusy)
+                }
+            )
+
+            watch(
+                () => this.busy,
+                (newBusy, oldBusy) => {
                     if (oldBusy === true && newBusy === false) {
+                        this.applyLoadedHistory()
                         this.reconciliation.resume().catch((error) => {
                             console.error('Error applying queued server updates:', error)
                         })
@@ -702,7 +790,25 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     }
 
+    private preferenceDisposers: (() => void)[] = []
+
+    protected createPreferences<P extends Type.TObject>(definition: TitlePreferenceDefinition<P>) {
+        const preferences = new TitlePreferences(
+            definition,
+            this.game.typeId,
+            this.api,
+            () => this.sessionUserStore.current?.id,
+            (message) => toast.error(`Preferences: ${message}`)
+        )
+        this.preferenceDisposers.push(() => preferences.dispose())
+        return preferences
+    }
+
     dispose() {
+        this.disposed = true
+        this.pendingHistory = undefined
+        this.reconciliation.clearPending()
+        for (const dispose of this.preferenceDisposers) dispose()
         this.notifications.stop()
         this.representations.dispose()
         this.effectDisposer()
@@ -772,7 +878,14 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
         if (!this.suppressStateChangeActions && oldState && newState.gameId === oldState.gameId) {
             if (newState.actionCount >= oldState.actionCount) {
-                actions.push(...this.actions.slice(oldState.actionCount, newState.actionCount))
+                actions.push(
+                    ...this.actions.filter(
+                        (action) =>
+                            action.index !== undefined &&
+                            action.index >= oldState.actionCount &&
+                            action.index < newState.actionCount
+                    )
+                )
             }
         }
         this.suppressStateChangeActions = false
@@ -843,6 +956,46 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     listenToGame() {
         this.notifications.start()
+        if (!this.gameContext.hasCompleteHistory) void this.loadHistory()
+        if (this.initialSynchronizationNeeded) {
+            this.initialSynchronizationNeeded = false
+            if (!this.notifications.handlesInitialSynchronization) {
+                void this.reconciliation.enqueue({ kind: 'synchronize' })
+            }
+        }
+    }
+
+    async loadHistory(): Promise<void> {
+        if (this.historyLoading || this.gameContext.hasCompleteHistory || this.disposed) return
+        this.historyLoading = true
+        this.historyLoadFailed = false
+        const isCurrent = this.representations.captureValidity()
+        try {
+            const complete = await this.loadRecoveryContext()
+            if (this.disposed || !isCurrent()) return
+            this.pendingHistory = { context: complete, isCurrent }
+            this.applyLoadedHistory()
+        } catch (error) {
+            if (this.disposed || !isCurrent()) return
+            console.error('Unable to load Action History:', error)
+            this.historyLoadFailed = true
+        } finally {
+            this.historyLoading = false
+        }
+    }
+
+    private applyLoadedHistory(): void {
+        if (this.busy || !this.pendingHistory) return
+        const pending = this.pendingHistory
+        this.pendingHistory = undefined
+        if (this.disposed || !pending.isCurrent()) return
+        if (!this.gameContext.hydrateHistory(pending.context)) {
+            void this.checkSync(true)
+        }
+    }
+
+    async retrySynchronization(): Promise<void> {
+        if (!this.busy) await this.checkSync()
     }
 
     stopListeningToGame() {
@@ -870,8 +1023,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     get canExplore(): boolean {
         return (
-            this.explorationPerspective() === undefined ||
-            this.runtime.exploration?.createFromProjectedState !== undefined
+            this.hasCompleteHistory &&
+            (this.explorationPerspective() === undefined ||
+                this.runtime.exploration?.createFromProjectedState !== undefined)
         )
     }
 
@@ -920,6 +1074,48 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     // This will only be triggered by the UI and as such we can use the current context
     // internally, rather than having to pass it in.  No server generated actions go through
     // here.
+    withSupersededAction(action: GameAction): GameAction {
+        const context = this.currentModifiableContext
+        if (!isSupersedableActionType(this.runtime.apiActions, action.type)) return action
+        const standing = findStandingAction(context.actions, action)
+        if (!standing) return action
+        const named = { ...action, supersedesActionId: standing.id }
+        const outcome = replaceSupersededAction({
+            engine: context.engine,
+            apiActions: this.runtime.apiActions,
+            game: context.game,
+            state: context.state,
+            window: context.actions.slice(context.actions.indexOf(standing)),
+            replacement: named
+        })
+        return outcome.kind === 'replace' ? named : action
+    }
+
+    private reverseSupersededAction(context: GameContext<T, U>, action: GameAction): void {
+        const apiActions = this.runtime.apiActions
+        if (action.supersedesActionId === undefined) {
+            const duplicate = unnamedDuplicateReason(apiActions, context.actions, action)
+            if (duplicate) throw new Error(duplicate)
+            return
+        }
+        const position = context.actions.findIndex(
+            (candidate) => candidate.id === action.supersedesActionId
+        )
+        if (position < 0) throw new Error('The Action it replaces is not in Action History')
+        const window = context.actions.slice(position)
+        const outcome = replaceSupersededAction({
+            engine: context.engine,
+            apiActions,
+            game: context.game,
+            state: context.state,
+            window,
+            replacement: action
+        })
+        if (outcome.kind === 'invalid') throw new Error(outcome.reason)
+        for (const _ of window) context.undoLastAction()
+        context.applyActionResults(new GameActionResults(outcome.redone, outcome.state))
+    }
+
     async applyAction(action: GameAction) {
         if (!this.isPlayable || this.busy) {
             return
@@ -935,11 +1131,17 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         // Clone to avoid mutation issues
         action = structuredClone($state.snapshot(action))
 
-        const gameSnapshot = structuredClone(relevantContext.game)
-        const stateSnapshot = structuredClone(relevantContext.state)
-
         // Make copy of original state to allow rollback
         const priorContext = relevantContext.clone()
+        if (
+            relevantContext.game.storage === GameStorage.Local &&
+            !this.usesHostExecution(relevantContext)
+        ) {
+            this.reverseSupersededAction(relevantContext, action)
+        }
+
+        const gameSnapshot = structuredClone(relevantContext.game)
+        const stateSnapshot = structuredClone(relevantContext.state)
         try {
             // Block server actions while we are processing
             if (this.mode === GameSessionMode.Play) {
@@ -1087,7 +1289,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     async undo() {
-        if (this.isViewingHistory || !this.undoableAction || this.busy) {
+        if (!this.isPlayable || this.isViewingHistory || !this.undoableAction || this.busy) {
             return
         }
 
@@ -1220,30 +1422,36 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     // For primary game context only
-    private async checkSync() {
+    private async checkSync(forceReload = false) {
+        if (this.disposed) return
         if (!this.usesHostExecution(this.gameContext)) {
             return
         }
 
-        if (this.representations.hostContext !== undefined) {
-            await this.representations.refreshHost()
-            return
-        }
-
-        if (this.representations.inspectionRequested) {
-            await this.representations.reload()
-            return
-        }
-
         const isRepresentationCurrent = this.representations.captureValidity()
+        this.synchronizingGame = true
         try {
-            const result = await this.reconciliation.synchronize(isRepresentationCurrent)
-            if (result === 'stale') {
+            if (this.representations.hostContext !== undefined) {
+                await this.representations.refreshHost()
+            } else if (this.representations.inspectionRequested) {
                 await this.representations.reload()
+            } else {
+                const result = await this.reconciliation.synchronize(
+                    () => !this.disposed && isRepresentationCurrent(),
+                    forceReload
+                )
+                if (this.disposed) return
+                if (result === 'stale') await this.representations.reload()
             }
+            if (!this.disposed) this.synchronizationFailed = false
         } catch (error) {
+            if (this.disposed) return
+            this.synchronizationFailed = true
             console.error('Unable to synchronize game:', error)
             toast.error('Unable to load game, try refreshing')
+        } finally {
+            this.applyingSynchronization = false
+            this.synchronizingGame = false
         }
     }
 

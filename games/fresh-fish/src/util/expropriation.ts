@@ -1,34 +1,20 @@
 import {
-    breadthFirstTraverser,
-    sameCoordinates,
-    offsetTupleToOffset,
+    assertExists,
+    areOrthogonal,
     offsetToOffsetTuple,
-    areOrthogonal
+    offsetTupleToOffset,
+    sameCoordinates,
+    type OffsetTupleCoordinates
 } from '@tabletop/common'
-import type {
-    OffsetCoordinates,
-    OffsetTupleCoordinates,
-    RectilinearGridNode
-} from '@tabletop/common'
-import {
-    canBeBlocked,
-    Cell,
-    isDiskCell,
-    isTraversable,
-    mustBeReachable
-} from '../components/cells.js'
+import { canBeBlocked, isDiskCell, isTraversable, mustBeReachable } from '../components/cells.js'
 import type { HydratedGameBoard } from '../components/gameBoard.js'
 import { FreshFishGraph } from './freshFishGraph.js'
 
 export type ReturnedDisks = Record<string, number>
 
-type TraversalOptions = {
-    blocked: OffsetCoordinates
-    placement?: OffsetCoordinates
-}
-
 export class Expropriator {
     graph: FreshFishGraph
+
     constructor(private readonly board: HydratedGameBoard) {
         this.graph = board.graph
     }
@@ -37,84 +23,68 @@ export class Expropriator {
         expropriatedCoords: OffsetTupleCoordinates[]
         returnedDisks: ReturnedDisks
     } {
-        const expectedCount = Array.from(this.graph).filter((node) => {
-            return mustBeReachable(this.board.cellAt(node.coords))
-        }).length
-
-        const expropriated: { cell: Cell; coords: OffsetTupleCoordinates }[] = []
-        for (const node of this.graph) {
+        const nodes = Array.from(this.graph)
+        const cells = nodes.map((node) => {
             const cell = this.board.cellAt(node.coords)
-
-            if (!cell || !canBeBlocked(cell)) {
+            assertExists(cell, 'Expropriation graph node must have a board cell')
+            return cell
+        })
+        const indices = new Map(nodes.map((node, index) => [node.id, index]))
+        const traversable = cells.map(isTraversable)
+        const expectedCount = cells.filter(mustBeReachable).length
+        const placementIndex = nodes.findIndex(
+            (node) =>
+                placement !== undefined &&
+                sameCoordinates(node.coords, offsetTupleToOffset(placement))
+        )
+        const neighbors = nodes.map((node, index) => {
+            if (!traversable[index]) return []
+            return this.graph.neighborsOf(node).flatMap((neighbor) => {
+                const neighborIndex = indices.get(neighbor.id)
+                assertExists(neighborIndex, 'Expropriation neighbor must be in the graph')
+                return areOrthogonal(node.coords, neighbor.coords) &&
+                    mustBeReachable(cells[neighborIndex])
+                    ? [neighborIndex]
+                    : []
+            })
+        })
+        const expropriatedCoords: OffsetTupleCoordinates[] = []
+        const returnedDisks: ReturnedDisks = {}
+        for (const [blocked, cell] of cells.entries()) {
+            if (!canBeBlocked(cell)) continue
+            const start = traversable.findIndex(
+                (canTraverse, index) => canTraverse && index !== blocked && index !== placementIndex
+            )
+            if (this.countReachable(neighbors, start, blocked, placementIndex) === expectedCount) {
                 continue
             }
-
-            const traverser = this.traverser({
-                blocked: node.coords,
-                placement: placement ? offsetTupleToOffset(placement) : undefined
-            })
-            const traversedNodes = Array.from(this.graph.traverse(traverser))
-
-            if (traversedNodes.length !== expectedCount) {
-                expropriated.push({ cell, coords: offsetToOffsetTuple(node.coords) })
-            }
-        }
-
-        const expropriatedCoords = expropriated.map((location) => location.coords)
-        const returnedDisks: ReturnedDisks = {}
-        for (const location of expropriated) {
-            if (isDiskCell(location.cell)) {
-                returnedDisks[location.cell.playerId] =
-                    (returnedDisks[location.cell.playerId] ?? 0) + 1
+            expropriatedCoords.push(offsetToOffsetTuple(nodes[blocked].coords))
+            if (isDiskCell(cell)) {
+                returnedDisks[cell.playerId] = (returnedDisks[cell.playerId] ?? 0) + 1
             }
         }
         return { expropriatedCoords, returnedDisks }
     }
 
-    private traverser(options: TraversalOptions) {
-        const startNode = Iterator.from(this.graph).find((node) => {
-            const cell = this.board.cellAt(node.coords)
-            return this.isValidStartCell(node.coords, options, cell)
-        })
-
-        if (!startNode) {
-            return () => []
+    private countReachable(
+        neighbors: readonly (readonly number[])[],
+        start: number,
+        blocked: number,
+        placement: number
+    ): number {
+        if (start === -1) return 0
+        const visited = new Uint8Array(neighbors.length)
+        const queue = [start]
+        visited[start] = 1
+        for (let index = 0; index < queue.length; index++) {
+            const current = queue[index]
+            if (current === blocked || current === placement) continue
+            for (const neighbor of neighbors[current]) {
+                if (visited[neighbor]) continue
+                visited[neighbor] = 1
+                queue.push(neighbor)
+            }
         }
-
-        return breadthFirstTraverser({
-            start: startNode,
-            canTraverse: this.canTraverse.bind(this, options)
-        })
-    }
-
-    private isValidStartCell(coords: OffsetCoordinates, options: TraversalOptions, cell?: Cell) {
-        return (
-            cell &&
-            isTraversable(cell) &&
-            !sameCoordinates(coords, options.blocked) &&
-            (!options.placement || !sameCoordinates(coords, options.placement))
-        )
-    }
-
-    private canTraverse(
-        options: TraversalOptions,
-        from: RectilinearGridNode,
-        to: RectilinearGridNode
-    ) {
-        if (
-            !areOrthogonal(from.coords, to.coords) ||
-            sameCoordinates(from.coords, options.blocked) ||
-            (options.placement && sameCoordinates(from.coords, options.placement))
-        ) {
-            return false
-        }
-
-        const fromCell = this.board.cellAt(from.coords)
-        const toCell = this.board.cellAt(to.coords)
-        if (!fromCell || !toCell) {
-            return false
-        }
-        const traversable = isTraversable(fromCell) && mustBeReachable(toCell)
-        return traversable
+        return queue.length
     }
 }

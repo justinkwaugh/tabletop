@@ -4,6 +4,7 @@ import {
     type GameService as GameServiceInterface,
     TabletopApi,
     type GetGameOptions,
+    type GameLoadResult,
     type AuthorizationService,
     type GameStore,
     type NotificationEvent,
@@ -33,6 +34,7 @@ import {
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
+import { isUsersGameTurn } from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
 import type { LibraryService } from './libraryService.svelte'
@@ -63,18 +65,13 @@ export class GameService implements GameServiceInterface {
                     game.status === GameStatus.Started && game.category !== GameCategory.Exploration
             )
             .toSorted((a, b) => {
-                const myBPlayerId = b.players.find(
-                    (player) => player.userId === sessionUser?.id
-                )?.id
-                const myAPlayerId = a.players.find(
-                    (player) => player.userId === sessionUser?.id
-                )?.id
-                const isMyBTurn = myBPlayerId ? b.activePlayerIds?.includes(myBPlayerId) : false
-                const isMyATurn = myAPlayerId ? a.activePlayerIds?.includes(myAPlayerId) : false
+                const isMyBTurn = isUsersGameTurn(b, sessionUser.id)
+                const isMyATurn = isUsersGameTurn(a, sessionUser.id)
                 const activityOrder =
                     (a.lastActionAt ?? a.createdAt).getTime() -
                     (b.lastActionAt ?? b.createdAt).getTime()
                 return (
+                    Number(a.hotseat) - Number(b.hotseat) ||
                     (isMyBTurn ? 1 : 0) - (isMyATurn ? 1 : 0) ||
                     (isMyATurn ? activityOrder : -activityOrder)
                 )
@@ -139,7 +136,6 @@ export class GameService implements GameServiceInterface {
     }
 
     private async loadCurrentGames() {
-        await this.libraryService.whenReady()
         const sessionUser = this.authorizationService.getSessionUser()
         const [games, localGames] = await Promise.all([
             this.api.getMyGames('current'),
@@ -163,16 +159,11 @@ export class GameService implements GameServiceInterface {
 
     // Should debounce this
     async loadOpenGames(titleId: string) {
-        await this.libraryService.whenReady()
         const response = await this.api.getOpenGames(titleId)
         this.openGamesByTitleId.set(titleId, response)
     }
 
-    async loadGame(
-        id: string,
-        options: GetGameOptions = {}
-    ): Promise<{ game?: Game; actions: GameAction[] }> {
-        await this.libraryService.whenReady()
+    async loadGame(id: string, options: GetGameOptions = {}): Promise<GameLoadResult> {
         // First check local hotseat games
         if (!this.localGamesById.has(id)) {
             const localGame = await this.localGameStore.findGameById(id)
@@ -190,11 +181,11 @@ export class GameService implements GameServiceInterface {
         }
 
         // Check remote games
-        const { game, actions } = await this.api.getGame(id, options)
+        const { game, actions, historyComplete } = await this.api.getGame(id, options)
         if (game) {
             this.gamesById.set(game.id, game)
         }
-        return { game, actions }
+        return { game, actions, historyComplete }
     }
 
     getExplorations(gameId: string): Game[] {

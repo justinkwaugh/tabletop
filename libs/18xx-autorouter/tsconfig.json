@@ -1,0 +1,33 @@
+{
+    "compilerOptions": {
+        "target": "es2022",
+        "lib": [
+            "dom",
+            "dom.iterable",
+            "esnext"
+        ],
+        "types": [],
+        "allowJs": false,
+        "skipLibCheck": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "outDir": "esm",
+        "rootDir": "src"
+    },
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "node_modules",
+        "esm",
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts"
+    ]
+}

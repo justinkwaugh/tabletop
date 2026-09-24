@@ -13,6 +13,7 @@ import { FreshFishActionSchemas } from './actionSchemas.js'
 import { FreshFishApiActions } from './apiActions.js'
 import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
+import { FreshFishScoring } from './scoring.js'
 
 export const FreshFishRuntime = {
     randomnessVersion: 1,
@@ -24,6 +25,7 @@ export const FreshFishRuntime = {
     apiActions: FreshFishApiActions,
     playerColors: FreshFishColors,
     stateLogger: new FreshFishStateLogger(),
+    scoring: new FreshFishScoring(),
     visibility: {
         state: Visibility.createProjector(FreshFishGameState),
         actions: Visibility.createActionProjector(FreshFishActionSchemas)

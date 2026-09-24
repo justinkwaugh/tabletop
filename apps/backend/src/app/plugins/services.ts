@@ -1,39 +1,44 @@
 import path from 'node:path'
+import { STATIC_ROOT } from '../lib/staticRoot.js'
 import {
+    AblyService,
+    AblyTransport,
+    CatalogService,
+    ChatService,
+    CloudTasksTaskService,
+    createLocalManifest,
+    DefaultNotificationService,
+    DiscordService,
+    DiscordTransport,
+    EmailService,
+    EnvSecretsService,
+    EnvService,
+    FirestoreChatStore,
+    FirestoreGameStore,
+    FirestoreNotificationStore,
+    FirestorePreferenceStore,
+    FirestoreTokenStore,
+    FirestoreTournamentStore,
+    FirestoreUserStore,
     GameService,
     LibraryService,
-    CatalogService,
-    CloudTasksTaskService,
-    EmailService,
-    FirestoreTokenStore,
-    FirestoreUserStore,
+    LOCAL_WORKSPACE_ROOT,
     LocalTaskService,
+    NotificationService,
+    NullPubSubService,
+    PreferenceService,
+    PubSubService,
+    PubSubTransport,
+    RedisCacheService,
+    RedisPubSubService,
+    RedisService,
+    ResendEmailService,
+    SecretsService,
     TaskService,
     TokenService,
-    UserService,
-    SecretsService,
-    EnvSecretsService,
-    FirestoreGameStore,
-    NotificationService,
-    PubSubService,
-    DiscordService,
-    FirestoreNotificationStore,
-    DefaultNotificationService,
-    DiscordTransport,
-    WebPushTransport,
-    AblyTransport,
-    AblyService,
-    NullPubSubService,
-    RedisPubSubService,
-    RedisCacheService,
-    RedisService,
-    ChatService,
-    FirestoreChatStore,
-    ResendEmailService,
-    PubSubTransport,
-    EnvService,
     TournamentService,
-    FirestoreTournamentStore
+    UserService,
+    WebPushTransport
 } from '@tabletop/backend-services'
 import type { GameDefinition } from '@tabletop/common'
 
@@ -45,6 +50,7 @@ declare module 'fastify' {
         taskService: TaskService
         tokenService: TokenService
         userService: UserService
+        preferenceService: PreferenceService
         emailService: EmailService
         secretsService: SecretsService
         gameService: GameService
@@ -62,7 +68,6 @@ declare module 'fastify' {
 
 const service: string = process.env['K_SERVICE'] ?? 'local'
 const TASKS_HOST = process.env['TASKS_HOST'] ?? ''
-const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '.local-static'
 const SITE_MANIFEST_PATH =
     process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
 
@@ -76,7 +81,9 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const libraryService = new LibraryService(redisCacheService, {
         manifestPath: SITE_MANIFEST_PATH,
-        allowFallback: EnvService.isLocal(),
+        fallbackManifest: EnvService.isLocal()
+            ? () => createLocalManifest(LOCAL_WORKSPACE_ROOT)
+            : undefined,
         useCache: !EnvService.isLocal()
     })
 
@@ -160,6 +167,10 @@ export default fp(async (fastify: FastifyInstance) => {
     })
     fastify.decorate('tokenService', tokenService)
     fastify.decorate('userService', userService)
+    fastify.decorate(
+        'preferenceService',
+        new PreferenceService(new FirestorePreferenceStore(fastify.firestore), redisCacheService)
+    )
     fastify.decorate('emailService', emailService)
     fastify.decorate('secretsService', secretsService)
     fastify.decorate('gameService', gameService)

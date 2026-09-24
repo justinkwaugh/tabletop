@@ -1,5 +1,11 @@
 import * as Type from 'typebox'
 
+export enum GameVisibility {
+    Public = 'public',
+    Beta = 'beta',
+    Alpha = 'alpha'
+}
+
 export const GameMetadata = Type.Object({
     name: Type.String(),
     designer: Type.String(),
@@ -9,6 +15,7 @@ export const GameMetadata = Type.Object({
     maxPlayers: Type.Number(),
     defaultPlayerCount: Type.Number(),
     version: Type.String(),
-    beta: Type.Boolean()
+    beta: Type.Boolean(),
+    visibility: Type.Optional(Type.Enum(GameVisibility))
 })
 export type GameMetadata = Type.Static<typeof GameMetadata>

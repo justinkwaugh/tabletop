@@ -7,10 +7,14 @@ import {
     normalizeMasterSeed,
     assert,
     ActionSource,
+    GameResult,
     calculateActionChecksum,
     createGameFork,
     GameForkError,
     findLast,
+    isSupersedableActionType,
+    replaceSupersededAction,
+    unnamedDuplicateReason,
     findPlayerForUserId,
     Game,
     GameAction,
@@ -50,6 +54,7 @@ import {
     NotificationService
 } from '../notifications/notificationService.js'
 import {
+    DisallowedActionError,
     DisallowedUndoError,
     DuplicatePlayerError,
     GameAlreadyStartedError,
@@ -389,15 +394,24 @@ export class GameService {
     async getGameForUser({
         gameId,
         hostView = false,
+        includeActions = true,
         user
     }: {
         gameId: string
         hostView?: boolean
+        includeActions?: boolean
         user: User
     }): Promise<GameRepresentation | undefined> {
         this.assertHostViewAccess({ gameId, hostView, user })
 
-        const data = await this.gameStore.loadGameData(gameId)
+        const data = await this.gameStore.readGameData(gameId, async (reader) => ({
+            game: reader.game,
+            actions:
+                includeActions ||
+                (reader.game.state !== undefined && reader.game.state.actionChecksum === undefined)
+                    ? await reader.actions()
+                    : []
+        }))
         if (!data) return undefined
         const { game, actions } = data
         const definition = this.getRequiredTitle(game)
@@ -407,14 +421,17 @@ export class GameService {
             game.state.actionChecksum = checksum
         }
 
-        return createGameRepresentation({
-            game,
-            actions,
-            hostView,
-            runtime: definition.runtime,
-            visibility: definition.runtime.visibility,
-            user
-        })
+        return measureSync('projection.response.game', () =>
+            createGameRepresentation({
+                game,
+                actions: includeActions ? actions : [],
+                includeActions,
+                hostView,
+                runtime: definition.runtime,
+                visibility: definition.runtime.visibility,
+                user
+            })
+        )
     }
 
     async userHasCachedActiveGames(user: User): Promise<boolean> {
@@ -430,6 +447,10 @@ export class GameService {
                 game.status === GameStatus.WaitingForPlayers
         )
         return filteredGames
+    }
+
+    async getActiveGamesForTitle(titleId: string): Promise<Game[]> {
+        return this.gameStore.findActiveGamesForTitle(titleId)
     }
 
     async getOpenGamesForTitle(titleId: string): Promise<Game[]> {
@@ -893,7 +914,7 @@ export class GameService {
     }): Promise<ActionResultsRepresentation> {
         countTiming('game.action.attempts')
         const gameId = action.gameId
-        const game = await this.getGame({ gameId, withState: true })
+        let game = await this.getGame({ gameId, withState: true })
         if (!game || !game.state) {
             throw new GameNotFoundError({ id: gameId })
         }
@@ -916,9 +937,12 @@ export class GameService {
             this.verifyUserIsActionPlayer(action, game, user)
         }
 
+        game = await this.supersedeDeclaration({ definition, game, action, user })
+
         const initialIndex = action.index
 
         const initialState = game.state
+        assertExists(initialState, 'Applying an Action requires current Game State')
         const gameEngine = new GameEngine(definition.runtime)
         const actionResult = measureSync('engine.execute', () =>
             gameEngine.executeCanonicalAction({
@@ -989,6 +1013,7 @@ export class GameService {
                         }
 
                         if (
+                            !action.outOfTurn &&
                             !missingActions.every(
                                 (missingAction) =>
                                     missingAction.simultaneousGroupId === action.simultaneousGroupId
@@ -1005,6 +1030,14 @@ export class GameService {
                     const lastPlayerAction = findLast(actions, (a) => a.playerId != undefined)
                     if (lastPlayerAction) {
                         gameUpdates.lastActionPlayerId = lastPlayerAction.playerId
+                    }
+                    if (
+                        !existingState.result &&
+                        newState.result &&
+                        newState.result !== GameResult.Abandoned &&
+                        definition.runtime.scoring
+                    ) {
+                        gameUpdates.finalScores = definition.runtime.scoring.finalScores(newState)
                     }
 
                     return UpdateValidationResult.Proceed
@@ -1067,6 +1100,73 @@ export class GameService {
         }
 
         return representation
+    }
+
+    private async supersedeDeclaration({
+        definition,
+        game,
+        action,
+        user
+    }: {
+        definition: GameDefinition
+        game: Game
+        action: GameAction
+        user: User
+    }): Promise<Game & { state: GameState }> {
+        const state = game.state
+        assertExists(state, 'Superseding requires current Game State')
+        const apiActions = definition.runtime.apiActions
+        const disallowed = (reason: string) =>
+            new DisallowedActionError({ gameId: game.id, actionId: action.id, reason })
+        if (action.supersedesActionId === undefined) {
+            if (!isSupersedableActionType(apiActions, action.type)) return { ...game, state }
+            const lastActions =
+                state.actionCount === 0
+                    ? []
+                    : await this.gameStore.readGameData(game.id, (reader) =>
+                          reader.actionRange(state.actionCount - 1, state.actionCount)
+                      )
+            const duplicate = unnamedDuplicateReason(apiActions, lastActions ?? [], action)
+            if (duplicate) throw disallowed(duplicate)
+            return { ...game, state }
+        }
+        const supersedesActionId = action.supersedesActionId
+        const data = await this.gameStore.readGameData(game.id, async (reader) => ({
+            undoWindow: await reader.undoWindow(supersedesActionId)
+        }))
+        const undoWindow = data?.undoWindow
+        const targetPosition =
+            undoWindow?.actions.findIndex((candidate) => candidate.id === supersedesActionId) ?? -1
+        if (!undoWindow || targetPosition < 0)
+            throw disallowed('the Action it replaces is not in Action History')
+        const window = undoWindow.actions.slice(targetPosition)
+        const gameEngine = new GameEngine(definition.runtime)
+        const outcome = replaceSupersededAction({
+            engine: gameEngine,
+            apiActions,
+            game,
+            state,
+            window,
+            replacement: action
+        })
+        if (outcome.kind === 'invalid') throw disallowed(outcome.reason)
+        await this.persistReversal({
+            definition,
+            gameId: game.id,
+            user,
+            actionToUndo: window[0],
+            startIndex: undoWindow.startIndex,
+            retainedActions: undoWindow.actions.slice(0, targetPosition),
+            actions: window,
+            redoneActions: outcome.redone,
+            updatedState: outcome.state,
+            priorActionCount: state.actionCount,
+            priorChecksum: state.actionChecksum
+        })
+        const reloaded = await this.getGame({ gameId: game.id, withState: true })
+        const reloadedState = reloaded?.state
+        if (!reloaded || !reloadedState) throw new GameNotFoundError({ id: game.id })
+        return { ...reloaded, state: reloadedState }
     }
 
     @Timed('game.undoAction')
@@ -1166,6 +1266,7 @@ export class GameService {
                 actions.some(
                     (action) =>
                         action.source === ActionSource.User &&
+                        !action.outOfTurn &&
                         action.playerId &&
                         action.playerId !== userPlayer?.id &&
                         !this.isSameSimultaneousGroup(action, actionToUndo)
@@ -1180,7 +1281,7 @@ export class GameService {
         }
 
         for (const action of actions.slice(1)) {
-            if (this.isSameSimultaneousGroup(action, actionToUndo)) {
+            if (action.outOfTurn || this.isSameSimultaneousGroup(action, actionToUndo)) {
                 const redoAction = structuredClone(action)
                 // These fields will be re-assigned by the game engine
                 redoAction.index = undefined
@@ -1211,10 +1312,48 @@ export class GameService {
             gameState = updatedState
         }
 
-        // store the updated state
-        const updatedState = gameState
-        measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
+        return this.persistReversal({
+            definition,
+            gameId,
+            user,
+            actionToUndo,
+            startIndex: undoWindow.startIndex,
+            retainedActions,
+            actions,
+            redoneActions,
+            updatedState: gameState,
+            priorActionCount,
+            priorChecksum
+        })
+    }
 
+    private async persistReversal({
+        definition,
+        gameId,
+        user,
+        actionToUndo,
+        startIndex,
+        retainedActions,
+        actions,
+        redoneActions,
+        updatedState,
+        priorActionCount,
+        priorChecksum
+    }: {
+        definition: GameDefinition
+        gameId: string
+        user: User
+        actionToUndo: GameAction
+        startIndex: number
+        retainedActions: GameAction[]
+        actions: GameAction[]
+        redoneActions: GameAction[]
+        updatedState: GameState
+        priorActionCount: number
+        priorChecksum: number
+    }): Promise<UndoResultsRepresentation> {
+        const gameEngine = new GameEngine(definition.runtime)
+        measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
         const {
             undoneActions,
             updatedGame,
@@ -1267,7 +1406,7 @@ export class GameService {
         })
         const replayActions = [...retainedActions, ...processedRedoneActions]
         const actionReplay = {
-            startIndex: undoWindow.startIndex,
+            startIndex,
             actions: replayActions.map((action) => structuredClone(action))
         }
         const representation = measureSync('projection.response.undo', () =>

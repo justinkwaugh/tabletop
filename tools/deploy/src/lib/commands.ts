@@ -2,12 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
-import { DeployConfig, SiteManifest } from './types.js'
-import {
-    ensureCloudSdkPython,
-    isCloudSdkCommand,
-    withCloudSdkPythonEnv
-} from './cloudSdkPython.js'
+import { DeployConfig } from './types.js'
+import { ensureCloudSdkPython, isCloudSdkCommand, withCloudSdkPythonEnv } from './cloudSdkPython.js'
 
 export type CommandSpec = {
     label: string
@@ -36,9 +32,7 @@ const ensureDir = (dirPath: string) => {
 export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Promise<void> => {
     ensureDir(path.dirname(spec.logPath))
     const logStream = fs.createWriteStream(spec.logPath, { flags: 'w' })
-    const env = isCloudSdkCommand(spec.command)
-        ? withCloudSdkPythonEnv(process.env)
-        : process.env
+    const env = isCloudSdkCommand(spec.command) ? withCloudSdkPythonEnv(process.env) : process.env
 
     return new Promise((resolve, reject) => {
         const child = spawn(spec.command, spec.args, {
@@ -89,6 +83,16 @@ export const buildGameUiPackageCommand = (repoRoot: string, packageId: string): 
     logPath: `/tmp/${packageId}-ui-build.log`
 })
 
+export const FRONTEND_VERSION_FILE = 'apps/frontend/src/lib/version.ts'
+
+export const writeFrontendVersionCommand = (repoRoot: string): CommandSpec => ({
+    label: 'write-frontend-version',
+    command: 'node',
+    args: ['../../tools/scripts/write-frontend-version.cjs'],
+    cwd: path.join(repoRoot, 'apps', 'frontend'),
+    logPath: '/tmp/frontend-version.log'
+})
+
 export const buildFrontendCommand = (repoRoot: string): CommandSpec => ({
     label: 'build-frontend',
     command: 'turbo',
@@ -107,6 +111,107 @@ export const buildBackendCommand = (
     cwd: repoRoot,
     logPath: options?.force ? '/tmp/backend-build-force.log' : '/tmp/backend-build.log'
 })
+
+export const BACKEND_IMAGE_CONTEXT_DIR = '/tmp/tabletop-backend-prune'
+
+export const buildBackendImageContextCommand = (repoRoot: string): CommandSpec => ({
+    label: 'backend-image-context',
+    command: 'pnpm',
+    args: ['-w', '--filter', '@tabletop/backend', 'run', 'docker-context'],
+    cwd: repoRoot,
+    logPath: '/tmp/backend-image-context.log'
+})
+
+export const submitBackendImageCommand = (
+    repoRoot: string,
+    image: string,
+    project: string
+): CommandSpec => ({
+    label: 'cloud-build-backend-image',
+    command: 'gcloud',
+    args: [
+        'builds',
+        'submit',
+        BACKEND_IMAGE_CONTEXT_DIR,
+        '--tag',
+        image,
+        '--project',
+        project,
+        // Naming the staging and log locations keeps the deploy account off project-wide
+        // permissions: the default staging lookup lists every bucket in the project, and the
+        // default logs bucket can only be streamed by a project viewer.
+        '--gcs-source-staging-dir',
+        `gs://${project}_cloudbuild/source`,
+        '--gcs-log-dir',
+        `gs://${project}_cloudbuild/logs`,
+        '--quiet'
+    ],
+    cwd: repoRoot,
+    logPath: '/tmp/backend-image-cloud-build.log',
+    requiresDeploy: true
+})
+
+export const routeTrafficToRevisionCommand = (
+    repoRoot: string,
+    service: string,
+    revision: string,
+    config: DeployConfig
+): CommandSpec => {
+    const backend = config.backend
+    if (!backend?.region || !backend.project) {
+        throw new Error('Missing backend config for traffic routing (region/project)')
+    }
+    return {
+        label: `route-traffic:${service}`,
+        command: 'gcloud',
+        args: [
+            'run',
+            'services',
+            'update-traffic',
+            service,
+            '--region',
+            backend.region,
+            '--project',
+            backend.project,
+            '--to-revisions',
+            `${revision}=100`,
+            '--quiet'
+        ],
+        cwd: repoRoot,
+        logPath: `/tmp/${service}-route-traffic.log`,
+        requiresDeploy: true
+    }
+}
+
+export const promoteBackendCommand = (
+    repoRoot: string,
+    service: string,
+    config: DeployConfig
+): CommandSpec => {
+    const backend = config.backend
+    if (!backend?.region || !backend.project) {
+        throw new Error('Missing backend config for promote (region/project)')
+    }
+    return {
+        label: `promote-backend:${service}`,
+        command: 'gcloud',
+        args: [
+            'run',
+            'services',
+            'update-traffic',
+            service,
+            '--region',
+            backend.region,
+            '--project',
+            backend.project,
+            '--to-latest',
+            '--quiet'
+        ],
+        cwd: repoRoot,
+        logPath: `/tmp/${service}-promote.log`,
+        requiresDeploy: true
+    }
+}
 
 export const buildBackendImageCommand = (repoRoot: string): CommandSpec => ({
     label: 'build-backend-image',
@@ -185,8 +290,7 @@ const listLocalDirectories = (sourceDir: string): string[] => {
 
     while (queue.length > 0) {
         const relativeDir = queue.shift() as string
-        const absoluteDir =
-            relativeDir.length > 0 ? path.join(sourceDir, relativeDir) : sourceDir
+        const absoluteDir = relativeDir.length > 0 ? path.join(sourceDir, relativeDir) : sourceDir
         let entries: fs.Dirent[]
         try {
             entries = fs.readdirSync(absoluteDir, { withFileTypes: true })
@@ -208,10 +312,7 @@ const listLocalDirectories = (sourceDir: string): string[] => {
 const splitPathSegments = (value: string): string[] =>
     value.split(path.sep).filter((segment) => segment.length > 0)
 
-const gcsDirectoryUrlsForRsyncDestination = (
-    sourceDir: string,
-    destination: string
-): string[] => {
+const gcsDirectoryUrlsForRsyncDestination = (sourceDir: string, destination: string): string[] => {
     const { bucket, pathSegments } = parseGcsUrl(destination)
     const destinationDirectories = gcsDirectoryUrlsForDestination(destination)
     const sourceDirectories = listLocalDirectories(sourceDir)
@@ -271,21 +372,49 @@ export const gcsRsyncDirectoryPlaceholderCommands = (
     }))
 }
 
+export const directoryPlaceholderSpecs = (repoRoot: string, spec: CommandSpec): CommandSpec[] => {
+    if (spec.command !== 'gcloud') return []
+    if (spec.args[0] !== 'storage') return []
+    if (spec.args.length < 2) return []
+    const operation = spec.args[1]
+    if (operation !== 'rsync' && operation !== 'cp') return []
+    const source = spec.args[spec.args.length - 2]
+    const destination = spec.args[spec.args.length - 1]
+    if (!destination.startsWith('gs://')) return []
+    if (operation === 'rsync' && !source.startsWith('gs://')) {
+        return gcsRsyncDirectoryPlaceholderCommands(repoRoot, source, destination, {
+            labelPrefix: spec.label,
+            logPrefix: spec.logPath
+        })
+    }
+    return gcsDirectoryPlaceholderCommands(repoRoot, destination, {
+        treatDestinationAsObject: operation === 'cp',
+        labelPrefix: spec.label,
+        logPrefix: spec.logPath
+    })
+}
+
+export const dedupeCommandSpecs = (specs: CommandSpec[]): CommandSpec[] => {
+    const seen = new Set<string>()
+    return specs.filter((spec) => {
+        const key = `${spec.command}\u0000${spec.args.join('\u0000')}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+    })
+}
+
 export const deployGameUiCommand = (
     repoRoot: string,
-    manifest: SiteManifest,
     packageId: string,
+    version: string,
     config: DeployConfig
 ): CommandSpec => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
-    const entry = manifest.games.find((game) => game.packageId === packageId)
-    if (!entry) {
-        throw new Error(`Missing manifest entry for ${packageId}`)
-    }
     const sourceDir = path.join(repoRoot, 'games', `${packageId}-ui`, 'bundle')
-    const destination = `gs://${config.gcsBucket}/games/${packageId}/ui/${entry.uiVersion}`
+    const destination = `gs://${config.gcsBucket}/games/${packageId}/ui/${version}`
 
     return {
         label: `deploy-ui:${packageId}`,
@@ -297,10 +426,7 @@ export const deployGameUiCommand = (
     }
 }
 
-export const buildGameLogicPackageCommand = (
-    repoRoot: string,
-    packageId: string
-): CommandSpec => ({
+export const buildGameLogicPackageCommand = (repoRoot: string, packageId: string): CommandSpec => ({
     label: `build-logic:${packageId}`,
     command: 'turbo',
     args: ['build', `--filter=@tabletop/${packageId}`],
@@ -318,19 +444,15 @@ export const buildGameLogicCommand = (repoRoot: string, packageId: string): Comm
 
 export const deployGameLogicCommand = (
     repoRoot: string,
-    manifest: SiteManifest,
     packageId: string,
+    version: string,
     config: DeployConfig
 ): CommandSpec => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
-    const entry = manifest.games.find((game) => game.packageId === packageId)
-    if (!entry) {
-        throw new Error(`Missing manifest entry for ${packageId}`)
-    }
     const sourceDir = path.join(repoRoot, 'games', packageId, 'bundle')
-    const destination = `gs://${config.gcsBucket}/games/${packageId}/logic/${entry.logicVersion}`
+    const destination = `gs://${config.gcsBucket}/games/${packageId}/logic/${version}`
 
     return {
         label: `deploy-logic:${packageId}`,
@@ -344,14 +466,14 @@ export const deployGameLogicCommand = (
 
 export const deployFrontendCommand = (
     repoRoot: string,
-    manifest: SiteManifest,
+    version: string,
     config: DeployConfig
 ): CommandSpec => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
     const sourceDir = path.join(repoRoot, 'apps', 'frontend', 'build')
-    const destination = `gs://${config.gcsBucket}/frontend/${manifest.frontend.version}`
+    const destination = `gs://${config.gcsBucket}/frontend/${version}`
 
     return {
         label: 'deploy-frontend',
@@ -363,14 +485,28 @@ export const deployFrontendCommand = (
     }
 }
 
-export const deployManifestCommand = (
-    manifestPath: string,
-    config: DeployConfig
-): CommandSpec => {
+export const manifestObjectUrl = (config: DeployConfig) => {
     if (!config.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
-    const destination = `gs://${config.gcsBucket}/config/site-manifest.json`
+    return `gs://${config.gcsBucket}/config/site-manifest.json`
+}
+
+export const backupManifestCommand = (
+    repoRoot: string,
+    config: DeployConfig,
+    backupUrl: string
+): CommandSpec => ({
+    label: 'backup-manifest',
+    command: 'gcloud',
+    args: ['storage', 'cp', manifestObjectUrl(config), backupUrl],
+    cwd: repoRoot,
+    logPath: '/tmp/manifest-backup.log',
+    requiresDeploy: true
+})
+
+export const deployManifestCommand = (manifestPath: string, config: DeployConfig): CommandSpec => {
+    const destination = manifestObjectUrl(config)
 
     return {
         label: 'deploy-manifest',
@@ -382,10 +518,32 @@ export const deployManifestCommand = (
     }
 }
 
+export type BackendDeployOptions = {
+    allowTraffic?: boolean
+    service?: string
+    image?: string
+    envVars?: Record<string, string>
+    revisionSuffix?: string
+}
+
+// Cloud Run revision names allow only lowercase letters, digits, and dashes.
+export const revisionSuffixForVersion = (version: string) =>
+    `v${version.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+
+const envVarArgs = (envVars?: Record<string, string>) =>
+    envVars && Object.keys(envVars).length > 0
+        ? [
+              '--update-env-vars',
+              Object.entries(envVars)
+                  .map(([key, value]) => `${key}=${value}`)
+                  .join(',')
+          ]
+        : []
+
 export const deployBackendCommand = (
     repoRoot: string,
     config: DeployConfig,
-    options?: { allowTraffic?: boolean; service?: string }
+    options?: BackendDeployOptions
 ): CommandSpec => {
     const allowTraffic = options?.allowTraffic === true
     const backend = config.backend
@@ -431,17 +589,21 @@ export const deployBackendCommand = (
         )
     }
 
-    if (backend.image) {
+    const image = options?.image ?? backend.image
+    if (image) {
         const args = [
             'run',
             'deploy',
             service,
             '--image',
-            backend.image,
+            image,
             '--region',
             backend.region,
             '--project',
-            backend.project
+            backend.project,
+            '--quiet',
+            ...envVarArgs(options?.envVars),
+            ...(options?.revisionSuffix ? ['--revision-suffix', options.revisionSuffix] : [])
         ]
 
         if (!allowTraffic) {

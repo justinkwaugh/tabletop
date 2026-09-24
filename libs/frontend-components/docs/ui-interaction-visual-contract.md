@@ -11,7 +11,8 @@ This contract records shared Game Client perspective and Acting Player presentat
 | Admin Acting Player selection    | Enable Admin Mode                                       | With multiple active Players, the existing perspective remains until an active Acting Player is chosen; with one active Player, that Player is resolved synchronously                                                         | Debug presentation remains independent                                                                                                            |
 | Hosted Admin control             | Enable Admin Mode in a Networked Game                   | A hotseat-style banner, colored for the current perspective when one exists, presents the Acting Player control in the center and Undo at the right                                                                           | The Game remains hosted and uses its ordinary transport and authorization behavior                                                                |
 | Compact harness controls         | Reduce the dev harness below the medium viewport        | The persistent Options menu continues to contain Non-active view, Preferred colors, and Colorblind palette; Debug and Admin move from the inline navbar into that menu while retaining their current state and enabled status | The combined active-and-finished Games selector and adjacent new-game action, Player Perspective, actionability, and loaded Game remain unchanged |
-| Harness conversation preview     | Load any Game in the dev harness                        | The game UI's ordinary Chat tab renders representative in-memory messages and accepts locally composed messages so its conversation presentation can be inspected                                                             | The Local Game remains Hotseat Play; production hotseat visibility, persistence, transport, and author identity rules remain unchanged            |
+| Harness conversation preview     | Load any Game in the dev harness                        | The game UI's ordinary Chat tab renders representative in-memory messages, including one Administrative Message, and accepts locally composed messages so its conversation presentation can be inspected                    | The Local Game remains Hotseat Play; production hotseat visibility, persistence, transport, and author identity rules remain unchanged            |
+| Administrative Message           | Enable Admin Mode in a Hosted Game and send a message   | The composer is enabled for the Administrator; the sent message and any Administrative Message in history show a solid amber star in place of the Player initial, bold text, and an "Admin" toast label                    | Player Messages keep their Player initial, colors, and weight; the Administrator's own Read Position and unread presentation follow their Player membership |
 | Harness color preference preview | Toggle Preferred colors or Colorblind palette           | The loaded Game renders through the ordinary player-color preference and colorblind presentation paths using deterministic mock preferences                                                                                   | The Local Game remains Hotseat Play; production preference, Admin suppression, persistence, and Game State colors remain unchanged                |
 
 The toggles and Acting Player chooser use semantic controls and retain their equivalent pointer, keyboard, focus, and touch paths.
@@ -94,6 +95,7 @@ The current visual verification method is manual exercise unless a focused autom
 | Switch away from and return to the harness browser tab               | A closed Options menu remains closed even when the browser restores focus to its trigger                                                                                 | The menu still opens through its ordinary pointer and keyboard interactions                                                       | Automated browser verification                   |
 | Load a Game in the dev harness and open Chat                         | Representative Player avatars, timestamps, multiline and wrapping text, and emoji render through the game's ordinary chat styling                                        | Sending appends under the current Player Perspective; loading another Game replaces the fixtures and browser reload discards them | Automated service tests; manual presentation     |
 | Open a production Local Hotseat Game                                 | Chat remains hidden because Local Hotseat Games have no persisted Game Conversation                                                                                      | Hosted Game chat remains available through its existing service and transport                                                     | Manual                                           |
+| Open a Hosted Game as a spectator and view Chat                      | Messages render read-only with no unread badge or new-message indicator, and opening, scrolling, or receiving messages never advances a Read Position                    | Players in the same Game keep their own Read Positions and unread presentation                                                    | Automated session tests; manual presentation     |
 | Toggle Preferred colors in the dev harness                           | The harness Player receives a different supported preferred color when available and any conflict is resolved through the ordinary swap behavior                         | Disabling restores canonical Player colors; switching Games reapplies a valid preview order                                       | Automated color-model tests; manual presentation |
 | Toggle Colorblind palette in the dev harness                         | Shared and game-specific colorblind presentation responds through the ordinary `GameColors` paths                                                                        | Disabling restores the Game's normal palette                                                                                      | Automated color-model tests; manual presentation |
 
@@ -109,7 +111,7 @@ Starting Exploration from inside a cascade advances only a copied context throug
 
 Compatible source History is read-only and remains navigable in both directions through the selected source position. At that position it displays the original permitted source state. Continuing into simulated Actions uses the populated Exploration checkpoint; returning to Live restores the same hypothetical world. Existing `state-only`, `full-action`, and silent restoration intents retain their animation lifecycle and ownership.
 
-Playable inherited Undo stops at the first forward-patched or non-optimistic cascade, or where reconstruction against the hypothetical world cannot be verified. That barrier does not disable recorded History. Exploration-generated Actions retain local Undo. Saving/loading and switching Explorations preserve each branch's sampled information, History source, and Undo eligibility.
+Playable inherited Undo stops at a redacted cascade or where reconstruction and authoritative execution against the hypothetical world cannot be verified. Recorded forward patches and optimistic-execution flags do not determine that eligibility. That barrier does not disable recorded History. Exploration-generated Actions retain local Undo. Saving/loading and switching Explorations preserve each branch's sampled information, History source, and Undo eligibility.
 
 A primary representation refresh while Exploration is open updates the primary context without replacing the Exploration's History or displayed state. Ending Exploration restores the exact original History snapshot/index when entered from History, or the latest primary state when entered from Live. A changed primary Perspective invalidates the old return snapshot, so closing uses the current permitted representation. Transient action selections continue to reset through the existing visible-state transition lifecycle.
 
@@ -152,3 +154,199 @@ The session keeps action controls blocked until the host request and visible tra
 If local replay fails, the displayed state stays unchanged while the host processes Undo. Rejection restores the prior state and invokes synchronization. A concurrent representation replacement must never be overwritten by that rollback.
 
 Browser regression scenarios in `tests/privateHandSession.spec.ts` hold acceptance pending and verify visible reversal, retained-action ordering, equal-checksum state correction, replay failure, rejection, canonical Admin Undo of a reveal, acting-player privacy, perspective changes, queued notifications, subsequent history navigation, v2 public games, and a response arriving during an optimistic animation.
+
+## Local hotseat Undo after the last decision
+
+Local hotseat Undo remains available when a terminal Game State has no active
+players. The local hotseat authorization rule applies before the spectator check
+as well as when selecting the latest User Action. No active-player identity is
+invented for a terminal state. History, information-reveal barriers, unavailable
+records, and non-active-player views retain their existing restrictions. Hosted
+execution and networked spectator authorization are unchanged.
+
+The paired 18xx bankruptcy browser cases exercise this through the real Game
+Session, including reload, the final System Action, and restoration of the prior
+state. The fix is bundled with each newly published UI Artifact; existing UI
+Artifacts retain their previous Game Session implementation. No host bridge fields
+or injected capabilities change.
+
+## Title preference controls
+
+Game Sessions may create a typed TitlePreferences model using their injected API.
+Controls optimistically update it without creating game actions. The model owns
+explicit overrides, inheritance, save serialization, conflict retry, error
+reporting, account changes, and disposal. Host API methods are optional so older
+hosts continue to support session-local presentation choices. The ordinary dev
+harness supplies localStorage persistence through the same preference contract.
+
+## Manual camera movement
+
+ScalingWrapper's optional `onManualViewChange` callback reports effective wheel,
+zoom-button, touch-pan, pinch, and gesture changes. Programmatic focus, viewport
+restoration, and resize adjustments do not report manual movement. Inspection
+views can use this distinction to relinquish a saved viewport when the user takes
+control of the camera.
+
+Desktop wheel pan, wheel pinch, and Safari gesture zoom retain every input delta
+and clamp the logical camera immediately, but coalesce transform writes into one
+animation-frame update. Ancestor scroll handoff still receives each residual
+delta, including momentum. Immediate camera changes supersede a pending render;
+destruction cancels it. Touch pinch and inertia retain their existing frame loops.
+This changes bundled rendering only, with no host-bridge interface change; each
+consuming Game UI Artifact must be republished to adopt it, including TOP and 1889.
+
+The camera uses a `translate3d` transform so browsers can composite the board during movement. This preserves its two-dimensional coordinates and clipping while avoiding repeated painting of masked SVG artwork during pan and zoom, especially in WebKit.
+
+## Tab workspace
+
+`TabWorkspace` takes stable tab definitions (`id`, `label`, optional `shortLabel`),
+a content snippet receiving the tab ID and whether it is active in its own pane, and an optional bound selected tab ID.
+An optional `initialSplit` supplies an axis and the tab IDs for the first pane;
+remaining tabs start in the second pane, with a 50/50 divider. Without it the
+workspace starts as one pane.
+It owns a local binary split tree, permitting repeated splits in either direction
+with a global limit of eight panes. Deleting a pane restores split capacity. Splits start at 50%, have draggable
+dividers that keep each side at least 100px (5–95% for restored or keyboard ratios), and create empty drop targets. Each tab belongs to exactly one
+pane and each nonempty pane has an active tab. Drag/drop or Alt+Shift+Left/Right
+moves tabs; standard tab arrow/Home/End navigation selects within a pane. Splitter
+arrow/Home/End controls resize, and cancelled pointer drags restore their ratio.
+
+Content snippets are mounted once per stable tab ID, outside the changing split
+tree; only their absolute rectangles and visibility change. This preserves DOM,
+focusable content state, and embedded scaling wrappers. Inactive panels are inert.
+The component exposes workspace color variables, falling back to railway theme
+variables and light defaults. Tab definitions must remain stable for its lifetime.
+Workspace layout survives responsive resizing; optional savedLayout restores it on remount; callers may
+activate a tab by updating the bound selection. No host contract changes.
+
+Dropping on a tab inserts before it, including reordering within the same pane;
+dropping on remaining pane space appends. Every pane exposes Delete while more than one pane exists. Deletion appends its
+tabs to its sibling (the first surviving leaf if that sibling is split), then
+collapses the split. The selected tab remains visible.
+The surviving subtree retains its contents and divider positions, and split-button
+availability follows the total pane count. The last pane cannot be deleted. Pane headers are 35px high.
+
+Native tab drops record a pending move and commit it at `dragend`, keeping the
+source tab mounted through the browser's drag lifecycle. Removing it during `drop`
+can suppress WebKit's drag completion and interfere with subsequent pointer input.
+Mouse divider resizing uses mouse down with window-level move/up listeners;
+WebKit can omit the next pointerdown after native drag/drop while still delivering
+mousedown. Touch and pen resizing use pointer capture. Blur cancels resizing.
+
+Setting `splittable={false}` provides an ordinary fixed tab bar without pane
+controls or tab dragging. It is intended for an unsplit initial layout.
+
+An optional `fixedPane` supplies a target element, label, and allowed initial tab
+IDs. Its header and panels render into that target, outside the split tree; it
+cannot split or close and does not consume main-pane capacity. Only its allowed
+tabs can enter, while they may leave for any main pane. Empty fixed panes remain
+drop targets. Content nodes stay mounted across transfers. The optional
+`tabTitle` snippet adds icons or indicators before a tab label.
+
+`onLayoutChange` emits compact v1 arrangements only when tab order, ownership,
+splits or committed divider percentages change. Active-tab changes do not emit.
+`workspacePersistence` bounds and normalizes untrusted layouts; unknown versions
+fall back without an implicit save. `DebouncedLayout` owns five-second idle saves,
+account-scoped recovery and status; `TitlePreferences.save` resolves true only on
+an acknowledged persisted write, false on failure, account change or a local-only
+host. The existing set/unset API and injected host interfaces remain unchanged.
+
+Each divider offers Swap sides, exchanging whole branches (including nested
+panes) while preserving their sizes. The resulting layout is saved normally.
+
+Swap sides is hidden and does not intercept clicks until its divider is hovered
+or focused. It stays visible while hovering the button and is keyboard focusable.
+
+Pane content has an explicit stacking level above pane header/drop-target shells,
+with dividers and swap controls above both. Newly inserted pane shells must never
+intercept clicks intended for content moved into them.
+
+Pane headers offer Add tab or widget. The catalog moves existing tabs without
+duplicating them, and adds absent optional tabs. Fixed-pane restrictions apply.
+Optional tabs are excluded from defaults and missing-tab recovery, but retained
+when present in saved layouts. Operating Order is the first optional widget; in
+the wide layout it replaces the Actions footer and is absent until added. The
+original narrow layout retains its operating-order strip.
+
+Pane headers consolidate splitting and adding/moving tabs into a compact options
+popover anchored below an ellipsis button. Delete remains the far-right control.
+The fixed pane exposes only allowed tab choices; it cannot split or close.
+
+The options popup uses a consistent compact width, with split icons followed by
+Current tabs and Add tabs sections. Add tabs is always visible when tabs can be added;
+there is no separate plus button.
+
+The Add list contains only tabs absent from every pane. Already placed tabs move
+via dragging, not the catalog. Hide Add tabs when no allowed absent tabs remain;
+the fixed pane needs no options button when it has no current or available tabs.
+
+The options dropdown lists the pane’s current tabs with individual close buttons.
+Actions is protected and never closeable. Closed tabs become available in Add.
+An optional `closed` list in saved layouts distinguishes deliberate closures from
+missing newly introduced tabs; protected tabs ignore entries in that list.
+
+TabWorkspace is game-independent base frontend functionality. Its public catalog,
+fixed-pane, initial-split, and saved-layout types are exported from the package.
+Neutral workspace theme variables control all chrome, including popovers and
+swap buttons; game-specific theme names never enter the base module. See
+[the usage contract](tab-workspace.md). A standalone browser fixture verifies
+splitting, transfer without remounting, resizing, optional tabs, and pane merging.
+
+Callers may supply a nested initialLayout. A valid saved layout takes precedence;
+invalid saved data restores this caller-defined default. DefaultTableLayout can
+omit its fixed sidebar so one workspace can occupy the full available width.
+
+A pane with exactly one tab renders its label at regular weight with no selection
+underline. When another tab enters, normal selected-tab emphasis returns.
+
+ScalingWrapper callers may gate the F shortcut with allowFullscreenShortcut,
+evaluated at keypress time. isVisible reports current rendered visibility. This
+does not disable fullscreen buttons or Escape handling.
+
+ScalingWrapper fullscreen uses a modal dialog in the browser top layer, escaping
+ancestor stacking contexts and overflow. The same wrapper/content stay mounted;
+Escape or the fullscreen control returns it to normal flow. Pane shells, content,
+and dividers must never intercept pointer input intended for the expanded view.
+Background content is inert while expanded, focus stays within the modal, and
+keyboard events from fullscreen do not trigger background table shortcuts.
+
+Fullscreen centers content on both axes when it fits within the viewport. Content larger than an axis retains its pan range. Embedded views retain their configured horizontal alignment and top alignment.
+
+Dimension changes and fullscreen alignment are fitted before paint as soon as the measured dimensions publish. Modal mounts honor pending focus targets on that first fitted frame, without exposing an unscaled or stale-position frame.
+
+The Site Frontend header uses compact chrome below 640px while a Game Session is active: a 28px BT app icon replaces the wordmark, social links are hidden, and a three-bar account-menu button replaces the avatar. The game title fills the space between the icon and controls in a single row, truncating when necessary. The icon has an additional 8px left inset, and My Games reads Games. Vertical padding is 4px, giving a 48px header while preserving the 40px menu touch target. The existing account dropdown remains available; desktop and non-game headers retain their usual presentation.
+
+When the Site Frontend detects a minor-version upgrade, an installed PWA shows a refresh icon in the header between Games and the account menu while the persistent informational toast is active. On narrow screens this state uses the same compact header chrome as an active Game Session so the new control does not crowd the header. Activating it reloads the page immediately. Browser-tab sessions continue to receive only the toast, and major upgrades or rollbacks retain their automatic reload behavior.
+
+When the browser reports that the site is installable, the header shows a 40px Install BoardTogether control with a 24px download icon. It appears before the account menu for signed-in users and before Sign in for visitors; narrow screens use the compact app icon while it is present. GitHub and Discord remain visible on non-game pages and are hidden only while a Game Session is active. Activating the install control opens the browser-owned installation confirmation exactly once. The control disappears after the user responds or installation completes, never appears merely from user-agent detection, and is absent when the browser does not offer installation or the PWA is already installed.
+
+## Optimistic submission acceptance
+
+A newly submitted Action may publish its predicted state before host acceptance. If applying the accepted transitions to the confirmed starting state produces that same prediction, acceptance retains the displayed state and replaces the speculative records with authoritative records. Receiving forward patches alone must not reset selection, republish the board, or replay its transition. If the accepted result differs, reconciliation publishes the corrected state through the existing state-change lifecycle. The host remains authoritative for Hosted Game consequences.
+
+Browser coverage holds acceptance pending, verifies immediate play, preserves the displayed-state identity for matching patches, and checks that a differing patched result is applied once. Recorded History and Undo retain the accepted patches.
+
+## Deferred history loading
+
+### Visual intents
+
+A Hosted Game may open in Live View from a current State before earlier Actions are available. The board and ordinary play controls operate from that State. The entire history control area stays blank while history is incomplete, preserving its configured height. After 300 ms it shows only “Loading history...” and a spinner, both in the configured enabled color. Fast loads never show the indicator; completion restores controls immediately. The loading timer is canceled on unmount, and the spinner respects reduced-motion preferences. History navigation and exploration stay disabled until full history is attached. Undo eligibility considers only retained Actions. Descriptions derived from older Actions may remain incomplete. A history-download failure leaves play available and exposes a retry button in the history controls. Failed synchronization instead pauses play and exposes synchronization retry.
+
+### Coexistence and precedence
+
+An unchanged synchronization check does not disable history navigation or dim its
+arrows, including checks after returning to the browser tab. History navigation
+remains usable against its current snapshot while the check is pending. If the
+check discovers changes or requires recovery, navigation disables for applying
+those changes or replacing State, and remains disabled during visible transitions.
+Action submission retains the session's synchronization guard.
+
+History loading coexists with live Action submission, notification delivery, and visible transitions. History attachment waits until the session is idle and never replaces the displayed State or initiates historical animation. Actions received after the initial checkpoint retain normal per-Action transition presentation. If downloaded history belongs to another branch, full synchronization takes precedence. History View and exploration cannot begin while history is incomplete.
+
+### Shared visual state
+
+The Game Session owns history availability, download status, and synchronization failure. History controls render those values; game-specific descriptions consume the retained Actions. A completed history download must match the initial checkpoint and retained Actions. Disposal or a perspective change invalidates pending attachment. Synchronization may replace the checkpoint and supply complete history.
+
+### Render ownership
+
+The existing game table owns State presentation. Shared history controls own loading, failure, and retry presentation. Downloading historical Actions alone does not change the displayed Game State, clear local selections, or trigger a board transition.

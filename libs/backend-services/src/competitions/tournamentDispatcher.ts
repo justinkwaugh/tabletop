@@ -21,6 +21,7 @@ export class TournamentDispatcher {
             tableId: string
         ) => Promise<void>,
         private readonly notify: (tournament: Tournament) => Promise<void>,
+        private readonly finished: (tournament: Tournament) => Promise<Tournament>,
         private readonly now: () => number
     ) {}
 
@@ -41,6 +42,7 @@ export class TournamentDispatcher {
         if (!tournament || tournament.status === 'cancelled' || tournament.status === 'draft')
             return
         if (tournament.status === 'finished' || tournament.paused) {
+            if (tournament.status === 'finished') tournament = await this.finished(tournament)
             await this.notify(tournament)
             return
         }

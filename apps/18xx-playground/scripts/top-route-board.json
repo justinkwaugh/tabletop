@@ -1,0 +1,231 @@
+{
+  "tileInventory": {
+    "tileSetId": "the-old-prince:prototype",
+    "placements": {
+      "K17": {
+        "pieceId": "the-old-prince:prototype/629/1",
+        "definitionId": "18xx:629",
+        "rotation": 4
+      },
+      "K19": {
+        "pieceId": "the-old-prince:prototype/PEI2/1",
+        "definitionId": "the-old-prince:PEI2",
+        "rotation": 0
+      },
+      "J20": {
+        "pieceId": "the-old-prince:prototype/143/2",
+        "definitionId": "18xx:143",
+        "rotation": 3
+      },
+      "J18": {
+        "pieceId": "the-old-prince:prototype/70/1",
+        "definitionId": "18xx:70",
+        "rotation": 3
+      },
+      "L16": {
+        "pieceId": "the-old-prince:prototype/PEI15/1",
+        "definitionId": "the-old-prince:PEI15",
+        "rotation": 0
+      },
+      "L14": {
+        "pieceId": "the-old-prince:prototype/28/1",
+        "definitionId": "18xx:28",
+        "rotation": 1
+      },
+      "K15": {
+        "pieceId": "the-old-prince:prototype/1/1",
+        "definitionId": "18xx:1",
+        "rotation": 4
+      },
+      "J14": {
+        "pieceId": "the-old-prince:prototype/PEI9/1",
+        "definitionId": "the-old-prince:PEI9",
+        "rotation": 5
+      },
+      "J16": {
+        "pieceId": "the-old-prince:prototype/7/3",
+        "definitionId": "18xx:7",
+        "rotation": 3
+      },
+      "N16": {
+        "pieceId": "the-old-prince:prototype/7/4",
+        "definitionId": "18xx:7",
+        "rotation": 2
+      },
+      "N14": {
+        "pieceId": "the-old-prince:prototype/1/2",
+        "definitionId": "18xx:1",
+        "rotation": 2
+      },
+      "M13": {
+        "pieceId": "the-old-prince:prototype/PEI16/1",
+        "definitionId": "the-old-prince:PEI16",
+        "rotation": 3
+      },
+      "M15": {
+        "pieceId": "the-old-prince:prototype/46/1",
+        "definitionId": "18xx:46",
+        "rotation": 5
+      },
+      "I13": {
+        "pieceId": "the-old-prince:prototype/3/2",
+        "definitionId": "18xx:3",
+        "rotation": 5
+      },
+      "I15": {
+        "pieceId": "the-old-prince:prototype/43/1",
+        "definitionId": "18xx:43",
+        "rotation": 2
+      },
+      "J12": {
+        "pieceId": "the-old-prince:prototype/7/6",
+        "definitionId": "18xx:7",
+        "rotation": 0
+      },
+      "L12": {
+        "pieceId": "the-old-prince:prototype/143/1",
+        "definitionId": "18xx:143",
+        "rotation": 5
+      },
+      "N12": {
+        "pieceId": "the-old-prince:prototype/28/2",
+        "definitionId": "18xx:28",
+        "rotation": 2
+      },
+      "K13": {
+        "pieceId": "the-old-prince:prototype/45/1",
+        "definitionId": "18xx:45",
+        "rotation": 2
+      },
+      "H14": {
+        "pieceId": "the-old-prince:prototype/56/1",
+        "definitionId": "18xx:56",
+        "rotation": 5
+      },
+      "G15": {
+        "pieceId": "the-old-prince:prototype/8/2",
+        "definitionId": "18xx:8",
+        "rotation": 2
+      },
+      "E15": {
+        "pieceId": "the-old-prince:prototype/7/5",
+        "definitionId": "18xx:7",
+        "rotation": 3
+      },
+      "E13": {
+        "pieceId": "the-old-prince:prototype/7/9",
+        "definitionId": "18xx:7",
+        "rotation": 0
+      },
+      "D14": {
+        "pieceId": "the-old-prince:prototype/PEI2/2",
+        "definitionId": "the-old-prince:PEI2",
+        "rotation": 2
+      },
+      "D12": {
+        "pieceId": "the-old-prince:prototype/8/3",
+        "definitionId": "18xx:8",
+        "rotation": 4
+      },
+      "E11": {
+        "pieceId": "the-old-prince:prototype/56/2",
+        "definitionId": "18xx:56",
+        "rotation": 1
+      },
+      "E9": {
+        "pieceId": "the-old-prince:prototype/39/1",
+        "definitionId": "18xx:39",
+        "rotation": 5
+      },
+      "D10": {
+        "pieceId": "the-old-prince:prototype/7/11",
+        "definitionId": "18xx:7",
+        "rotation": 4
+      },
+      "F10": {
+        "pieceId": "the-old-prince:prototype/7/12",
+        "definitionId": "18xx:7",
+        "rotation": 1
+      },
+      "F14": {
+        "pieceId": "the-old-prince:prototype/PEI14/1",
+        "definitionId": "the-old-prince:PEI14",
+        "rotation": 4
+      },
+      "G13": {
+        "pieceId": "the-old-prince:prototype/8/4",
+        "definitionId": "18xx:8",
+        "rotation": 1
+      },
+      "H12": {
+        "pieceId": "the-old-prince:prototype/8/5",
+        "definitionId": "18xx:8",
+        "rotation": 0
+      },
+      "F12": {
+        "pieceId": "the-old-prince:prototype/8/6",
+        "definitionId": "18xx:8",
+        "rotation": 0
+      },
+      "P14": {
+        "pieceId": "the-old-prince:prototype/7/1",
+        "definitionId": "18xx:7",
+        "rotation": 1
+      }
+    },
+    "retiredPieceIds": []
+  },
+  "stations": [
+    {
+      "id": "So:home",
+      "companyId": "So",
+      "status": "placed",
+      "position": {
+        "locationId": "T12",
+        "nodeId": "city",
+        "slot": 0
+      }
+    },
+    {
+      "id": "ML:home",
+      "companyId": "ML",
+      "status": "placed",
+      "position": {
+        "locationId": "L16",
+        "nodeId": "city",
+        "slot": 0
+      }
+    },
+    {
+      "id": "ML:station:1",
+      "companyId": "ML",
+      "status": "available"
+    },
+    {
+      "id": "ML:station:2",
+      "companyId": "ML",
+      "status": "available"
+    },
+    {
+      "id": "ML:station:3",
+      "companyId": "ML",
+      "status": "available"
+    },
+    {
+      "id": "So:station:1",
+      "companyId": "So",
+      "status": "available"
+    },
+    {
+      "id": "So:station:2",
+      "companyId": "So",
+      "status": "available"
+    },
+    {
+      "id": "So:station:3",
+      "companyId": "So",
+      "status": "available"
+    }
+  ],
+  "stationReservations": []
+}

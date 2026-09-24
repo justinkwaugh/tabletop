@@ -32,6 +32,10 @@ interface NotificationDelivery {
 export class GameNotifications {
     private listening = false
 
+    get handlesInitialSynchronization(): boolean {
+        return this.service.synchronizesOnSubscribe === true
+    }
+
     constructor(
         private readonly game: Pick<Game, 'id' | 'hotseat'>,
         private readonly service: NotificationService,
@@ -43,6 +47,9 @@ export class GameNotifications {
         this.listening = true
         this.service.addListener(this.onEvent)
         this.service.listenToGame(this.game.id)
+        if (this.handlesInitialSynchronization && this.delivery.usesProjection && this.service.isUserChannelReady?.()) {
+            void this.delivery.enqueue({ kind: 'synchronize' }).catch(() => this.delivery.recover())
+        }
     }
 
     stop(): void {
@@ -63,8 +70,10 @@ export class GameNotifications {
             }
         } else if (
             isDiscontinuityEvent(event) &&
-            (event.channel === NotificationChannel.GameInstance ||
-                (event.channel === NotificationChannel.User && this.delivery.usesProjection))
+            (this.handlesInitialSynchronization
+                ? event.channel === (this.delivery.usesProjection ? NotificationChannel.User : NotificationChannel.GameInstance)
+                : event.channel === NotificationChannel.GameInstance ||
+                  (event.channel === NotificationChannel.User && this.delivery.usesProjection))
         ) {
             await this.delivery.enqueue({ kind: 'synchronize' })
         }

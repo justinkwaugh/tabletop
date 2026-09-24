@@ -1,13 +1,23 @@
 <script lang="ts">
-    import { Card, Hr, Button, Modal } from 'flowbite-svelte'
-    import { Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
+    import { Card, Hr, Button, Modal, Spinner, type ButtonProps } from 'flowbite-svelte'
+    import { LinkOutline } from 'flowbite-svelte-icons'
+    import { assertExists, Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
+    import { isUsersGameTurn } from '$lib/utils/dashboardGames'
     import { gameCardOptions } from '$lib/utils/gameOptions'
+    import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
+    import { publicGameShareLink } from '$lib/utils/publicGameInvitation'
+    import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
-    import { createTimeAgo, GameEditForm, getAppContext } from '@tabletop/frontend-components'
+    import {
+        copyTextToClipboard,
+        createTimeAgo,
+        GameEditForm,
+        getAppContext
+    } from '@tabletop/frontend-components'
 
     const timeAgo = createTimeAgo()
 
@@ -34,10 +44,12 @@
     let loading = $derived(libraryService.loading)
 
     let editing = $state(false)
+    let openingGame = $state(false)
     let canToggle = $derived(expanded !== 'always')
     let isExpanded = $derived(expanded ? true : false)
 
-    let sessionUser = authorizationService.getSessionUser()
+    let sessionUser = $derived(authorizationService.getSessionUser())
+    let shareLink = $derived(publicGameShareLink(game))
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
     let sortedPlayers = $derived(
         game.players.toSorted(
@@ -104,10 +116,7 @@
             myPlayer?.status === PlayerStatus.Joined
     )
 
-    let isMyTurn = $derived(
-        game.status === GameStatus.Started &&
-            game.activePlayerIds?.find((id) => id === myPlayer?.id) != undefined
-    )
+    let isMyTurn = $derived(!game.hotseat && isUsersGameTurn(game, sessionUser?.id))
 
     let openSeats = $derived(
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
@@ -134,6 +143,19 @@
         event.stopPropagation()
         game = await gameService.joinGame(game.id)
         onjoin?.(game)
+    }
+
+    async function copyShareLink(event: Event) {
+        event.stopPropagation()
+        assertExists(shareLink, 'A shareable game is required to copy its link')
+        const url = new URL(shareLink.path, window.location.origin).href
+        const kind = shareLink.kind
+        try {
+            await copyTextToClipboard(url)
+            toast.success(kind === 'invite' ? 'Invite link copied' : 'Game link copied')
+        } catch {
+            toast.error('Unable to copy the link. Please try again.')
+        }
     }
 
     async function declineGame(event: Event) {
@@ -174,7 +196,13 @@
 
     async function playGame(event: Event) {
         event.stopPropagation()
-        await goto(`/game/${game.id}`)
+        if (openingGame) return
+        openingGame = true
+        try {
+            await goto(`/game/${game.id}`)
+        } finally {
+            openingGame = false
+        }
     }
 
     function isActive(playerId: string) {
@@ -230,19 +258,47 @@
     )
 </script>
 
+{#snippet gameEntryButton(label: string, color: ButtonProps['color'], buttonClass: string)}
+    <Button
+        size="xs"
+        {color}
+        class={buttonClass}
+        disabled={openingGame}
+        aria-busy={openingGame}
+        aria-label={label}
+        onclick={playGame}
+    >
+        <span class="relative inline-flex items-center justify-center">
+            <span class:invisible={openingGame}>{label}</span>
+            {#if openingGame}
+                <Spinner size="4" class="absolute" aria-label="Loading game" />
+            {/if}
+        </span>
+    </Button>
+{/snippet}
+
 <Card
     onclick={toggleExpand}
-    class={`min-w-[310px] mx-2 mb-1 bg-[#0d56ad] dark:border-gray-800 border-4 rounded-md overflow-hidden shadow-none ${className}`}
+    class={`min-w-[310px] mx-2 mb-1 ${gameCardAppearance} ${className}`}
     size="sm"
 >
     <div class="flex flex-col">
         <div class="flex flex-row">
             <div class="shrink-0">
-                <img
-                    class="h-[80px] w-[80px] object-contain"
-                    alt="cover thumbnail"
-                    src={title?.info.thumbnailUrl ?? ''}
-                />
+                {#if title}
+                    <img
+                        class="h-[80px] w-[80px] object-contain"
+                        alt="cover thumbnail"
+                        src={title.info.thumbnailUrl}
+                    />
+                {:else if loading}
+                    <div
+                        class="cover-skeleton h-[80px] w-[80px] rounded-md"
+                        aria-hidden="true"
+                    ></div>
+                {:else}
+                    <div class="h-[80px] w-[80px]"></div>
+                {/if}
             </div>
             <div class="pl-4 pr-2 py-0 w-full">
                 <div class="flex flex-col justify-between h-full">
@@ -257,56 +313,62 @@
                                     onclick={(event) => event.stopPropagation()}>Tournament</a
                                 >{/if}
                         </div>
-                        {#if !isExpanded}
-                            <div class="ms-2 text-nowrap">
-                                {#if canJoin}
-                                    <Button
-                                        size="xs"
-                                        color="green"
-                                        class="h-[20px]"
-                                        onclick={joinGame}>Join</Button
-                                    >
-                                {:else if canStart}
-                                    <Button
-                                        size="xs"
-                                        color="primary"
-                                        class="h-[20px]"
-                                        onclick={startGame}>Start</Button
-                                    >
-                                {:else if canEdit}
-                                    <Button
-                                        size="xs"
-                                        color="blue"
-                                        class="h-[20px]"
-                                        onclick={editGame}>Edit</Button
-                                    >
-                                {:else if canPlay || canWatch}
-                                    <Button
-                                        size="xs"
-                                        color={isMyTurn ? 'yellow' : 'primary'}
-                                        class="h-[20px]"
-                                        onclick={playGame}
-                                        >{isMyTurn
-                                            ? 'Your Turn'
-                                            : canPlay
-                                              ? 'Enter'
-                                              : 'Watch'}</Button
-                                    >
-                                {:else if canRevisit}
-                                    <Button
-                                        size="xs"
-                                        color="light"
-                                        class="h-[20px] dark:text-gray-200"
-                                        onclick={playGame}>Revisit</Button
-                                    >
-                                {/if}
-                            </div>
-                            {#if waitingToStart}
-                                <div class="text-xs text-right text-gray-400">
-                                    Waiting<br />to start
-                                </div>
+                        <div class="ms-2 flex shrink-0 items-center gap-1">
+                            {#if shareLink}
+                                <button
+                                    type="button"
+                                    aria-label={`Copy ${shareLink.kind} link`}
+                                    title={`Copy ${shareLink.kind} link`}
+                                    class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-700 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                                    onclick={copyShareLink}
+                                >
+                                    <LinkOutline class="h-4 w-4" aria-hidden="true" />
+                                </button>
                             {/if}
-                        {/if}
+                            {#if !isExpanded}
+                                <div class="text-nowrap">
+                                    {#if canJoin}
+                                        <Button
+                                            size="xs"
+                                            color="green"
+                                            class="h-[20px]"
+                                            onclick={joinGame}>Join</Button
+                                        >
+                                    {:else if canStart}
+                                        <Button
+                                            size="xs"
+                                            color="primary"
+                                            class="h-[20px]"
+                                            onclick={startGame}>Start</Button
+                                        >
+                                    {:else if canEdit}
+                                        <Button
+                                            size="xs"
+                                            color="blue"
+                                            class="h-[20px]"
+                                            onclick={editGame}>Edit</Button
+                                        >
+                                    {:else if canPlay || canWatch}
+                                        {@render gameEntryButton(
+                                            isMyTurn ? 'Your Turn' : canPlay ? 'Enter' : 'Watch',
+                                            isMyTurn ? 'yellow' : 'primary',
+                                            'h-[20px]'
+                                        )}
+                                    {:else if canRevisit}
+                                        {@render gameEntryButton(
+                                            'Revisit',
+                                            'light',
+                                            'h-[20px] dark:text-gray-200'
+                                        )}
+                                    {/if}
+                                </div>
+                                {#if waitingToStart}
+                                    <div class="text-xs text-right text-gray-400">
+                                        Waiting<br />to start
+                                    </div>
+                                {/if}
+                            {/if}
+                        </div>
                     </div>
                     <div class="flex flex-row justify-between items-start text-white">
                         {#if game.status === GameStatus.Started}
@@ -339,7 +401,7 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    {title?.info.metadata.name ?? 'Unknown Game'}
+                                    {title?.info.metadata.name ?? (loading ? '' : 'Unknown Game')}
                                 </div>
                                 <div class="text-xs text-gray-400">
                                     {totalSeats} player
@@ -491,22 +553,23 @@
                                     >Start Game</Button
                                 >
                             {/if}
-                            {#if isMyTurn}
-                                <Button size="xs" color="yellow" class="mx-2" onclick={playGame}
-                                    >Take Your Turn</Button
-                                >
-                            {:else if canPlay || canWatch}
-                                <Button size="xs" color="primary" class="mx-2" onclick={playGame}
-                                    >{canPlay ? 'Play' : 'Watch'}&nbsp;Game</Button
-                                >
+                            {#if canPlay || canWatch}
+                                {@render gameEntryButton(
+                                    isMyTurn
+                                        ? 'Take Your Turn'
+                                        : canPlay
+                                          ? 'Play Game'
+                                          : 'Watch Game',
+                                    isMyTurn ? 'yellow' : 'primary',
+                                    'mx-2'
+                                )}
                             {/if}
                             {#if canRevisit}
-                                <Button
-                                    size="xs"
-                                    color="light"
-                                    class="mx-2 dark:text-gray-200"
-                                    onclick={playGame}>Revisit</Button
-                                >
+                                {@render gameEntryButton(
+                                    'Revisit',
+                                    'light',
+                                    'mx-2 dark:text-gray-200'
+                                )}
                             {/if}
                             {#if canDelete}
                                 <Button size="xs" color="red" class="mx-2" onclick={deleteGame}
@@ -596,3 +659,32 @@
         />
     </Modal>
 {/if}
+
+<style>
+    .cover-skeleton {
+        background: linear-gradient(
+                100deg,
+                transparent 30%,
+                rgb(255 255 255 / 0.12) 50%,
+                transparent 70%
+            )
+            rgb(255 255 255 / 0.06);
+        background-size: 200% 100%;
+        animation: cover-shimmer 1.4s ease-in-out infinite;
+    }
+
+    @keyframes cover-shimmer {
+        from {
+            background-position: 150% 0;
+        }
+        to {
+            background-position: -50% 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .cover-skeleton {
+            animation: none;
+        }
+    }
+</style>

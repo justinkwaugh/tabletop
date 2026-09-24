@@ -4,11 +4,8 @@ import { fileURLToPath } from 'node:url'
 export const getRepoRoot = () =>
     path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..')
 
-export const getManifestPath = (repoRoot: string) =>
-    path.join(repoRoot, 'config/config-games/src/site-manifest.json')
+export const getCataloguePath = (repoRoot: string) =>
+    path.join(repoRoot, 'config/config-games/src/games.json')
 
 export const getDeployConfigPath = (repoRoot: string) =>
     path.join(repoRoot, 'tools/deploy/deploy.config.json')
-
-export const getStaticRoot = () =>
-    process.env.STATIC_ROOT ?? process.env.GCS_MOUNT_ROOT ?? '/mnt/gcs'

@@ -78,6 +78,7 @@ export const Game = Type.Object({
     lastActionAt: Type.Optional(DateType()),
     result: Type.Optional(Type.Enum(GameResult)),
     winningPlayerIds: Type.Array(Type.String()),
+    finalScores: Type.Optional(Type.Record(Type.String(), Type.Number())),
     seed: Type.Optional(Type.Number()),
     storage: Type.Optional(Type.Enum(GameStorage, { default: GameStorage.Remote })),
     parentId: Type.Optional(Type.String()),

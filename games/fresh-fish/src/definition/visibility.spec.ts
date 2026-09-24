@@ -703,7 +703,7 @@ describe('Fresh Fish visibility', () => {
         expect(projected).toEqual(unchangedProjection)
     })
 
-    it('omits forward patches after proving a public cascade replayable', () => {
+    it('retains forward patches for public cascades and recorded history', () => {
         const state = generateTestState({ numPlayers: 3 })
         const playerId = state.turnManager.startNextTurn(state.actionCount)
         state.activePlayerIds = [playerId]
@@ -734,7 +734,7 @@ describe('Fresh Fish visibility', () => {
         }
 
         expect(visibleResult.processedActions).toHaveLength(1)
-        expect(visibleAction.forwardPatch).toBeUndefined()
+        expect(visibleAction.forwardPatch).toBeDefined()
         expect(visibleAction.undoPatch).toBeDefined()
         expect(
             engine.applyProcessedAction({
@@ -773,7 +773,7 @@ describe('Fresh Fish visibility', () => {
         expect(projectedHistory.actions).toHaveLength(2)
         expect(
             projectedHistory.actions.every(
-                (historyAction) => historyAction.forwardPatch === undefined
+                (historyAction) => historyAction.forwardPatch !== undefined
             )
         ).toBe(true)
     })

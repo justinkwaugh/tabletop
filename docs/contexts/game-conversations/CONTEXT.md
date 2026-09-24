@@ -19,7 +19,7 @@ _Avoid_: Chat message
 A Conversation Message sent by a Joined Player while the Game is In Progress or Finished. The Player is its visible author, while the submitting User Account is retained as private audit attribution.
 
 **Administrative Message**:
-A Conversation Message sent by an Administrator in Admin Mode for explicit moderation. The Administrator is visibly attributed and cannot impersonate a Player or owner.
+A Conversation Message sent by an Administrator in Admin Mode. It carries no Player and is presented with a distinct administrative attribution instead of a Player identity, so the Administrator cannot impersonate a Player or owner. It advances no Read Position for the Administrator.
 
 **Conversation History**:
 The canonical Message collection ordered by accepted timestamp, with persisted append order breaking ties. It remains readable after the Game finishes, is removed with permanent Game deletion, and is not copied into a Fork.
@@ -33,11 +33,11 @@ An auditable administrative replacement of visible Message content that preserve
 ## Reading
 
 **Read Position**:
-The furthest canonical Message read by one User Account in one Game Conversation, anchored by that Message’s ID. It advances only forward through existing Conversation History and is shared across the Account’s devices.
+The furthest canonical Message read by one User Account in one Game Conversation, anchored by that Message’s ID. It advances only forward through existing Conversation History and is shared across the Account’s devices. Only a Joined Player’s Account holds a Read Position; Audience members who are not Players read the Conversation without one and never advance it.
 _Avoid_: Bookmark, read timestamp
 
 **Unread Message**:
-A Conversation Message occurring after a User Account’s Read Position. Game Client may derive counts and indicators without storing a separate unread counter.
+A Conversation Message occurring after a User Account’s Read Position. Game Client may derive counts and indicators without storing a separate unread counter, and derives none for an Account without a Read Position.
 
 ## Consistency
 

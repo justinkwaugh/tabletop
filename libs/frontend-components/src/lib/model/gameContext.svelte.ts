@@ -19,12 +19,27 @@ export type CloneInterceptor<T extends GameState> = {
     interceptActions?: (actions: GameAction[]) => void
 }
 
+export type HistoryCheckpoint = Pick<GameState, 'actionCount' | 'actionChecksum'>
+
 export class GameContext<T extends GameState, U extends HydratedGameState<T> & T> {
     runtime: GameUIRuntime<T, U>
     game: Game
     state: T
     actions: GameAction[]
     engine: GameEngine<T, U>
+    private historyCheckpoint: HistoryCheckpoint = $state.raw({ actionCount: 0, actionChecksum: 0 })
+
+    get historyStartIndex(): number {
+        return this.historyCheckpoint.actionCount
+    }
+
+    get hasCompleteHistory(): boolean {
+        return this.historyStartIndex === 0
+    }
+
+    get nextActionIndex(): number {
+        return this.historyStartIndex + this.actions.length
+    }
 
     private actionsById: Map<string, GameAction> = new Map([])
 
@@ -32,13 +47,22 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
         runtime,
         game,
         state,
-        actions
+        actions,
+        historyComplete = true,
+        historyCheckpoint
     }: {
         runtime: GameUIRuntime<T, U>
         game: Game
         state: T
         actions: GameAction[]
+        historyComplete?: boolean
+        historyCheckpoint?: HistoryCheckpoint
     }) {
+        this.historyCheckpoint =
+            historyCheckpoint ??
+            (historyComplete
+                ? { actionCount: 0, actionChecksum: 0 }
+                : { actionCount: state.actionCount, actionChecksum: state.actionChecksum })
         this.runtime = runtime
         this.game = $state.raw(game)
         this.state = $state.raw(state)
@@ -74,11 +98,13 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
             runtime: this.runtime,
             game,
             state,
-            actions
+            actions,
+            historyCheckpoint: this.historyCheckpoint
         })
     }
 
     restoreFrom(context: GameContext<T, U>) {
+        this.historyCheckpoint = context.historyCheckpoint
         this.game = context.game
         this.actions = context.actions
         this.actionsById = new Map(context.actionsById)
@@ -87,15 +113,11 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
 
     addActions(actions: GameAction[]) {
         actions.forEach((action) => {
-            if (
-                action.index === undefined ||
-                action.index < 0 ||
-                action.index > this.actions.length
-            ) {
+            if (action.index === undefined || action.index !== this.nextActionIndex) {
                 throw new Error(`Action ${action.id} has an invalid index ${action.index}`)
             }
             deepFreeze(action)
-            this.actions.splice(action.index, 0, action)
+            this.actions.push(action)
             this.actionsById.set(action.id, action)
         })
 
@@ -111,22 +133,23 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
         const actionClone = deepFreeze(structuredClone(action))
         if (
             actionClone.index === undefined ||
-            actionClone.index < 0 ||
-            actionClone.index > this.actions.length
+            actionClone.index < this.historyStartIndex ||
+            actionClone.index > this.nextActionIndex
         ) {
             throw new Error(`Action ${actionClone.id} has an invalid index ${actionClone.index}`)
         }
 
-        if (actionClone.index === this.actions.length) {
+        const localIndex = actionClone.index - this.historyStartIndex
+        if (actionClone.index === this.nextActionIndex) {
             this.actions.push(actionClone)
         } else {
-            const priorAction = this.actions[actionClone.index]
+            const priorAction = this.actions[localIndex]
             if (priorAction.id !== actionClone.id) {
                 this.actionsById.delete(priorAction.id)
             }
-            this.actions[actionClone.index] = actionClone
-            this.actionsById.set(actionClone.id, actionClone)
+            this.actions[localIndex] = actionClone
         }
+        this.actionsById.set(actionClone.id, actionClone)
 
         // Make it reactive
         this.actions = structuredClone(this.actions)
@@ -172,7 +195,15 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     verifyFullChecksum() {
-        const checksum = calculateActionChecksum(0, this.actions)
+        for (const [offset, action] of this.actions.entries()) {
+            if (action.index !== this.historyStartIndex + offset) {
+                throw new Error('Action History must be contiguous from its checkpoint')
+            }
+        }
+        const checksum = calculateActionChecksum(
+            this.historyCheckpoint.actionChecksum,
+            this.actions
+        )
         if (checksum !== this.state?.actionChecksum) {
             throw new Error(
                 'Full checksum validation failed, got ' +
@@ -181,6 +212,24 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
                     this.state?.actionChecksum
             )
         }
+    }
+
+    hydrateHistory(source: GameContext<T, U>): boolean {
+        if (this.hasCompleteHistory) return true
+        if (!source.hasCompleteHistory || source.state.actionCount < this.historyStartIndex)
+            return false
+        const prefix = source.actions.slice(0, this.historyStartIndex)
+        if (calculateActionChecksum(0, prefix) !== this.historyCheckpoint.actionChecksum)
+            return false
+        for (const action of this.actions) {
+            const other = source.actions[action.index!]
+            if (other !== undefined && other.id !== action.id) return false
+        }
+        this.actions = [...prefix, ...this.actions]
+        this.actionsById = new Map(this.actions.map((action) => [action.id, action]))
+        this.historyCheckpoint = { actionCount: 0, actionChecksum: 0 }
+        this.verifyFullChecksum()
+        return true
     }
 
     undoLastAction(): GameAction | undefined {

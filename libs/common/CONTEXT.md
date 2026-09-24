@@ -42,6 +42,14 @@ The stable identity of one Player within a Game Instance. A relationship to that
 **Active Player**:
 A Player to whom an Action may currently be attributed under the Game State Machine. Multiple Players may be active simultaneously.
 
+## Execution authority
+
+**Authoritative Execution**:
+Execution that establishes the consequences of a new Action in a Game Context whose authority and complete, valid state permit it. A hypothetical Game Context establishes its own consequences, not those of its source Hosted Game.
+
+**Recorded Transition**:
+The already-established change between two Game States in an Action history, represented for a particular viewer. Possessing that transition does not establish authority or sufficient information to execute new Actions.
+
 ## Actions
 
 **Action**:
@@ -68,6 +76,14 @@ The stable history identity assigned to a generated System Action. It belongs to
 
 **Player Action**:
 An Action attributed to a particular Player, regardless of whether its origin is User or System.
+
+**Out-of-Turn Action**:
+A User Action whose registered schema requires the literal `outOfTurn: true`. The Game Runtime accepts it from any seated Player without regard to the Active Players or the current Action count, and its Machine State Handler alone decides validity. It records a standing declaration whose later consequences arrive as System Actions; it does not itself take a turn.
+_Avoid_: Background Action, Programmed Action
+
+**Supersedable Action**:
+A User Action whose registered schema requires the literal `supersedable: true`. A later Action of the same type by the same Player may name it in `supersedesActionId`; the host or Local Game reverses the named Action and re-executes the Actions after it, honouring the replacement only when every later Action replays unchanged, which proves no later Action depended on it. An unnamed Action of a supersedable type is rejected while such an Action stands at the tail.
+_Avoid_: Replaceable Action, Amendment
 
 **Simultaneous Action Group**:
 A set of Actions that participants may prepare independently from the same starting Game State. A member may remain valid after other members have been processed, but not after an unrelated Action.

@@ -63,7 +63,11 @@ import {
     GameDataReader,
     UndoActionWindow
 } from '../stores/gameStore.js'
-import { RedisCacheService, type CacheWriteLocks } from '../../cache/cacheService.js'
+import {
+    RedisCacheService,
+    type CacheWriteLocks,
+    type ValueWriter
+} from '../../cache/cacheService.js'
 import { GameCacheKeys, gameUserIds } from './gameCacheKeys.js'
 import { gameChatBookmarks } from './gameChatDocuments.js'
 import { nanoid } from 'nanoid'
@@ -87,6 +91,9 @@ import {
 } from '../model/storedTournamentSchedule.js'
 
 const ACTION_CHUNK_SIZE = 200
+// Production Redis uses volatile-lru, which evicts only expiring keys; without an expiry, large
+// States would crowd out the protocol's short-lived markers instead of being evicted themselves.
+const STATE_CACHE_SECONDS = 7 * 24 * 60 * 60
 
 export class FirestoreGameStore implements GameStore {
     readonly games: CollectionReference<Game>
@@ -123,7 +130,7 @@ export class FirestoreGameStore implements GameStore {
                 : [])
         ]
         try {
-            return await this.cacheService.lockWhileWriting(cacheKeys, async (locks) =>
+            return await this.writeGame(game.id, cacheKeys, async (locks) =>
                 this.runTransaction(async (transaction) => {
                     if (game.tournament) {
                         assert(
@@ -382,7 +389,8 @@ export class FirestoreGameStore implements GameStore {
         this.addActionsToChunks(storedActions, chunks, storedGame.actionChunkSize)
 
         try {
-            return await this.cacheService.lockWhileWriting(
+            return await this.writeGame(
+                gameId,
                 [
                     ...GameCacheKeys.gameWrite(gameId),
                     ...GameCacheKeys.changedLists(undefined, storedGame)
@@ -502,12 +510,12 @@ export class FirestoreGameStore implements GameStore {
         }
 
         try {
-            const { updatedGame, updatedFields, existingGame } =
-                await this.cacheService.lockWhileWriting(
-                    GameCacheKeys.gameWrite(gameId),
-                    async (locks) =>
-                        this.runTransaction((transaction) => transactionBody(transaction, locks))
-                )
+            const { updatedGame, updatedFields, existingGame } = await this.writeGame(
+                gameId,
+                GameCacheKeys.gameWrite(gameId),
+                async (locks) =>
+                    this.runTransaction((transaction) => transactionBody(transaction, locks))
+            )
 
             return [updatedGame, updatedFields, existingGame]
         } catch (error) {
@@ -542,7 +550,7 @@ export class FirestoreGameStore implements GameStore {
         const readData = async (transaction?: Transaction): Promise<T | undefined> => {
             const [game, state] = transaction
                 ? await this.readGameAndState(gameId, transaction)
-                : await Promise.all([this.findGameById(gameId, false), this.getGameState(gameId)])
+                : await Promise.all([this.findGameById(gameId, false), this.findGameState(gameId)])
             if (!game) return undefined
             if (transaction) this.normalizeGame(game)
             if (state) game.state = state
@@ -765,6 +773,22 @@ export class FirestoreGameStore implements GameStore {
         }
     }
 
+    async findActiveGamesForTitle(titleId: string): Promise<Game[]> {
+        const query = this.games
+            .where('typeId', '==', titleId)
+            .where('status', 'in', getGameStatusesForCategory(GameStatusCategory.Active))
+
+        try {
+            const querySnapshot = await this.readQuery(query)
+            const games = querySnapshot.docs.map((doc) => doc.data()) as Game[]
+            this.recordRead('game', games.length)
+            return games
+        } catch (error) {
+            this.handleError(error, titleId)
+            throw Error('unreachable')
+        }
+    }
+
     @Timed('store.addActionsToGame')
     async addActionsToGame({
         game,
@@ -861,6 +885,7 @@ export class FirestoreGameStore implements GameStore {
                     gameUpdates.finishedAt = undefined
                     gameUpdates.result = undefined
                     gameUpdates.winningPlayerIds = []
+                    gameUpdates.finalScores = undefined
                 }
             }
 
@@ -907,10 +932,8 @@ export class FirestoreGameStore implements GameStore {
         }
 
         try {
-            return await this.cacheService.lockWhileWriting(
-                GameCacheKeys.gameWrite(gameId),
-                async (locks) =>
-                    this.runTransaction((transaction) => transactionBody(transaction, locks))
+            return await this.writeGame(gameId, GameCacheKeys.gameWrite(gameId), async (locks) =>
+                this.runTransaction((transaction) => transactionBody(transaction, locks))
             )
         } catch (error) {
             this.handleError(error, gameId)
@@ -933,7 +956,7 @@ export class FirestoreGameStore implements GameStore {
         if (!stage.dispatch || stage.dispatch.finished.includes(reference.tableId)) return
         const listKeys = this.tournamentCacheKeys.lists(data)
         stage.standings ??= createTournamentStandings(data)
-        applyTournamentGameScore(data, stage.standings, game)
+        applyTournamentGameScore(data, stage.standings, game, 1, game.finalScores)
         stage.dispatch.active = stage.dispatch.active.filter((id) => id !== reference.tableId)
         stage.dispatch.reserved = stage.dispatch.reserved.filter((id) => id !== reference.tableId)
         stage.dispatch.finished.push(reference.tableId)
@@ -1184,6 +1207,7 @@ export class FirestoreGameStore implements GameStore {
                 gameUpdates.finishedAt = undefined
                 gameUpdates.result = undefined
                 gameUpdates.winningPlayerIds = []
+                gameUpdates.finalScores = undefined
             }
 
             Object.assign(updatedGame, gameUpdates)
@@ -1219,10 +1243,8 @@ export class FirestoreGameStore implements GameStore {
         }
 
         try {
-            return await this.cacheService.lockWhileWriting(
-                GameCacheKeys.gameWrite(gameId),
-                async (locks) =>
-                    this.runTransaction((transaction) => transactionBody(transaction, locks))
+            return await this.writeGame(gameId, GameCacheKeys.gameWrite(gameId), async (locks) =>
+                this.runTransaction((transaction) => transactionBody(transaction, locks))
             )
         } catch (error) {
             this.handleError(error, gameId)
@@ -1541,7 +1563,7 @@ export class FirestoreGameStore implements GameStore {
         const cacheKey = GameCacheKeys.checksum(gameId)
 
         const lookupChecksum = async () => {
-            const gameState = await this.getGameState(gameId)
+            const gameState = await this.findGameState(gameId)
             return gameState?.actionChecksum
         }
 
@@ -1551,7 +1573,8 @@ export class FirestoreGameStore implements GameStore {
     async setChecksum({ gameId, checksum }: { gameId: string; checksum: number }): Promise<number> {
         const stateCollection = this.getStateCollection(gameId)
         try {
-            return await this.cacheService.lockWhileWriting(
+            return await this.writeGame(
+                gameId,
                 GameCacheKeys.stateWrite(gameId),
                 async () =>
                     await this.runTransaction(async (transaction) => {
@@ -1581,7 +1604,8 @@ export class FirestoreGameStore implements GameStore {
     async setGameState({ gameId, state }: { gameId: string; state: GameState }): Promise<void> {
         const stateCollection = this.getStateCollection(gameId)
         try {
-            return await this.cacheService.lockWhileWriting(
+            return await this.writeGame(
+                gameId,
                 GameCacheKeys.stateWrite(gameId),
                 async () =>
                     await this.runTransaction(async (transaction) => {
@@ -1646,6 +1670,33 @@ export class FirestoreGameStore implements GameStore {
         return transaction
             ? transaction.getAll(...references)
             : this.firestore.getAll(...references)
+    }
+
+    private async findGameState(gameId: string): Promise<GameState | undefined> {
+        return this.cacheService.cachingGet<GameState>(
+            GameCacheKeys.state(gameId),
+            () => this.getGameState(gameId),
+            STATE_CACHE_SECONDS
+        )
+    }
+
+    // Warms the next reader's Game load without delaying the writer's response.
+    private async writeGame<T>(gameId: string, keys: string[], writer: ValueWriter<T>): Promise<T> {
+        const result = await this.cacheService.lockWhileWriting(keys, writer)
+        this.refillGameCache(gameId)
+        return result
+    }
+
+    private refillGameCache(gameId: string): void {
+        measure('store.refillGameCache', () =>
+            Promise.all([
+                this.findGameById(gameId),
+                this.findGameState(gameId),
+                this.getGameEtag(gameId)
+            ])
+        ).catch((error) => {
+            console.error('Game cache refill failed', { gameId, error })
+        })
     }
 
     private async getGameState(

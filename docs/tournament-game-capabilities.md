@@ -30,6 +30,8 @@ Tournament scoring will consume the authoritative Game State's existing `result`
 
 Sol records shared victories as Draw with winner IDs; Urbino can use Win with multiple winner IDs. Both declare the winners directly. Indonesia contains a defensive Draw branch with no winner IDs; tournament validation rejects it as an invalid result, and its terminal handler requires review during catalog adoption. Its normal ties already resolve through its title-owned turn-order tiebreak. If a title records an incorrect result, fix its terminal handler rather than introducing another interpretation layer.
 
+A title may additionally declare `GameRuntime.scoring` with `finalScores(state)` returning each Game Player ID's final in-game score from a finished canonical state. Tournament scoring uses it only as a tiebreak total between entrants with equal tournament score; see [results and standings](tournament-scoring.md). Fresh Fish declares it from the scores its terminal handler records. Other titles opt in by adding the capability; nothing is inferred from player state fields.
+
 The frozen tournament scoring policy remains `splitWinsV1`. Game results are sporting facts; points, settlement and standings belong to the tournament service. Complete finishing positions are not required, and the existing tournament schema rejects placement policies. A future optional placement capability must be validated before opening registration and must not be inferred from scores.
 
 ## Catalog adoption audit
@@ -48,9 +50,17 @@ This is a source-code audit, not certification of the unadopted titles or a new 
 | Indonesia | 3–5 | Ordered players and setup cards; terminal ties resolve in current turn order. Empty-winner Draw branch requires explicit handling. | #67 |
 | Kaivai | 3–4 | Initial bidding order, ruleset-dependent setup and later auction ordering; terminal handler chooses one winner from wealth ordering. | #67 |
 | Lowenherz | 2–4 | Initial `firstPlayerId` and separate fixed seating order; protected cards, final power/wealth scoring and shared ties. | #67 |
+| The Old Prince (18xx) | 3–4 | Seating and first auctioneer; random Mainline, Shortline and lot piles keep their seeded draws. `EndGame` declares the highest final wealth, shared on ties. | Implemented and tested |
+| Shikoku 1889 (18xx) | 2–6 | Seating and first waterfall bidder; `EndGame` declares the highest final wealth, shared on ties. | Implemented and tested |
 | Santiago | 3–5 | Initial overseer is randomized separately; fixed seating, first bidder and optional manual spring placement must be assigned consistently. Terminal ties retain all winners. | #67 |
 
 The sample game is a development template, not a catalog adoption target. Future title adoption should include requested position permutations, actual first actor/setup decisions, unchanged ordinary setup, deterministic PRNG behavior, hidden-information projections where applicable, and actual terminal results.
+
+## 18xx adoption
+
+The shared 18xx initializer supports assigned positions for every 18xx title. The assignment becomes the seat order, and the title's opening decides what position zero means. TOP and 1889 both draw their first actor, so position zero takes that role through `drawFirstPlayer`, which still consumes the ordinary draw. Colors, the position and every later draw match an unassigned Game with the same master seed. Prepared playground scenarios reject an assignment. The family runtime also declares `randomnessVersion: 1`, and it declares `scoring` from the final wealth recorded by `EndGame`. See the [18xx design note](../research/18xx/starting-positions-design.md).
+
+`games/*/src/competition.spec.ts` covers every supported player count through the shared `libs/18xx/test/startingPositions.ts` suite. The existing opening digests, runtime-contract snapshots and deployed TOP replay are unchanged; seeded fixtures initialize through `startFromPublicSeed` so a numeric seed still pins the same setup. The existing TOP Game keeps its numeric cursors. Every published TOP artifact already bundles ChaCha20 support. Publish matching Logic and UI artifacts for each 18xx title to adopt this change.
 
 ## Publication compatibility
 

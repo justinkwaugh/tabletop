@@ -1,5 +1,5 @@
 import {
-    Role,
+    canDiscoverTitle,
     type GameCatalogEntry,
     type GameState,
     type HydratedGameState,
@@ -26,12 +26,7 @@ export function availableCatalogEntries(
     user?: User
 ): GameCatalogEntry[] {
     return entries
-        .filter(
-            (entry) =>
-                !entry.metadata.beta ||
-                user?.roles.includes(Role.Admin) ||
-                user?.roles.includes(Role.BetaTester)
-        )
+        .filter((entry) => canDiscoverTitle(entry.metadata, user?.roles ?? []))
         .sort((a, b) =>
             titleSortName(a.metadata.name).localeCompare(titleSortName(b.metadata.name))
         )
