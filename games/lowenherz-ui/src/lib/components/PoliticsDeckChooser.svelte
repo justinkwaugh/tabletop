@@ -20,6 +20,7 @@
     onDestroy(() => {
         destroyed = true
         endExit()
+        gameSession.abandonPoliticsPileOrigin()
     })
 
     // Also the deck row's own teardown (see the attachment in the template): the row can leave
@@ -97,7 +98,7 @@
     // for brings actionCount back to the very value it was captured at, so a count comparison
     // reads that as "still this attempt" and leaves the chooser hidden - gameState itself is a
     // freshly hydrated object on every transition, forward or back, so identity can't collide
-    // that way (same trick as politicsPileOrigin's own reveal-to-reveal comparison, below).
+    // that way (same trick as PoliticsPileReveal's comparison of the origin handle).
     let takingPileTag: 'A' | 'B' | undefined = $state(undefined)
     let attemptGameState: unknown = $state(undefined)
     const attemptIsCurrent = $derived(attemptGameState === gameSession.gameState)
@@ -210,6 +211,7 @@
         if (gameSession.selectedPoliticsPile !== pile) {
             const stuck = [clickedEl, otherEl].filter((el) => el?.isConnected)
             if (stuck.length > 0) gsap.set(stuck, { clearProps: 'transform,opacity' })
+            gameSession.abandonPoliticsPileOrigin()
             takingPileTag = undefined
         }
     }

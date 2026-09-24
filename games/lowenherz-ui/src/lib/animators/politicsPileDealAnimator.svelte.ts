@@ -8,7 +8,8 @@ import { FALLBACK_DURATION, StateAnimator, type StateChange } from './stateAnima
 /**
  * The politics pile's cards flying in once LookAtPoliticsPile opens it, plus the leftover deck
  * stand-in sliding in alongside them and fading to a dashed placeholder - both starting from
- * wherever PoliticsDeckChooser's own exit animation left off (gameSession.politicsPileOrigin).
+ * wherever PoliticsDeckChooser's own exit animation left off - settled to a fixed point here,
+ * as the deal starts (gameSession.settlePoliticsPileOrigin).
  *
  * Renders its own transient slot layout (Pattern B), same reason as AllianceFormAnimator: the
  * real cards only exist in `to`, which the board doesn't render until the session assigns the
@@ -51,10 +52,11 @@ export class PoliticsPileDealAnimator extends StateAnimator {
         const cards = to.inspectedPoliticsCards(this.gameSession.myPlayer?.id ?? '') ?? []
         if (cards.length === 0) return
 
-        // No handoff point to fly from - a page reload landing mid-reveal, or a replay with no
-        // live click behind it. Falling through with `dealing` left false lets PoliticsPileReveal
-        // just render the real row directly, cards already in place - the same degenerate case
-        // the old mount-triggered dealIn silently accepted.
+        // Settles the handoff to a point - this is the moment the deck's position is authoritative
+        // - and reads it back. Nothing to settle means no handoff point to fly from: a page reload
+        // landing mid-reveal, or a replay with no live click behind it. Falling through with
+        // `dealing` left false lets PoliticsPileReveal just render the real row directly, cards
+        // already in place - the same degenerate case the old mount-triggered dealIn accepted.
         const origin = this.gameSession.settlePoliticsPileOrigin()
         if (!origin) return
 

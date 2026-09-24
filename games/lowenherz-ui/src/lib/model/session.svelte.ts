@@ -1624,7 +1624,18 @@ export class LowenherzGameSession extends GameSession<
     }
 
     setPoliticsPileOriginElement(element: HTMLElement) {
-        this.politicsOriginHandle = { element }
+        this.beginPoliticsPileOrigin({ element })
+    }
+
+    // Drops a handle whose element was never settled - a pick that was abandoned or rejected - so
+    // the session does not keep a node that is about to leave the page. A settled handle is kept:
+    // its point is what history navigation deals from once the deck has gone.
+    abandonPoliticsPileOrigin() {
+        if (this.politicsOriginHandle?.element) this.politicsOriginHandle = undefined
+    }
+
+    private beginPoliticsPileOrigin(handle: PoliticsPileOriginHandle) {
+        this.politicsOriginHandle = handle
     }
 
     // The real, already-measured width of the row PoliticsDeckChooser's own decks sit in - set
@@ -1681,7 +1692,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     showMyPoliticsCards(origin: Point) {
-        this.politicsOriginHandle = { point: origin }
+        this.beginPoliticsPileOrigin({ point: origin })
         this.viewingMyPoliticsCards = true
     }
 
