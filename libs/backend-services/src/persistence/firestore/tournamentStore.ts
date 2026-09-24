@@ -57,6 +57,13 @@ const ScoringGame = Type.Pick(Game, [
     'status',
     'tournament'
 ])
+const TournamentLinkGame = Type.Pick(Game, [
+    'tournament',
+    'result',
+    'players',
+    'winningPlayerIds',
+    'status'
+])
 
 const CachedTournamentPage = Type.Object({ generation: Type.String(), page: TournamentList })
 
@@ -116,7 +123,7 @@ export class FirestoreTournamentStore implements TournamentStore {
                     .get()
                 return snapshot.docs.map((document) => {
                     const data = document.data()
-                    Value.Assert(ScoringGame, data)
+                    Value.Assert(TournamentLinkGame, data)
                     const reference = data.tournament
                     Value.Assert(TournamentGameReference, reference)
                     return {
