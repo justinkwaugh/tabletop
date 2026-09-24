@@ -285,11 +285,20 @@
     <div class="flex flex-col">
         <div class="flex flex-row">
             <div class="shrink-0">
-                <img
-                    class="h-[80px] w-[80px] object-contain"
-                    alt="cover thumbnail"
-                    src={title?.info.thumbnailUrl ?? ''}
-                />
+                {#if title}
+                    <img
+                        class="h-[80px] w-[80px] object-contain"
+                        alt="cover thumbnail"
+                        src={title.info.thumbnailUrl}
+                    />
+                {:else if loading}
+                    <div
+                        class="cover-skeleton h-[80px] w-[80px] rounded-md"
+                        aria-hidden="true"
+                    ></div>
+                {:else}
+                    <div class="h-[80px] w-[80px]"></div>
+                {/if}
             </div>
             <div class="pl-4 pr-2 py-0 w-full">
                 <div class="flex flex-col justify-between h-full">
@@ -392,7 +401,7 @@
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    {title?.info.metadata.name ?? 'Unknown Game'}
+                                    {title?.info.metadata.name ?? (loading ? '' : 'Unknown Game')}
                                 </div>
                                 <div class="text-xs text-gray-400">
                                     {totalSeats} player
@@ -650,3 +659,32 @@
         />
     </Modal>
 {/if}
+
+<style>
+    .cover-skeleton {
+        background: linear-gradient(
+                100deg,
+                transparent 30%,
+                rgb(255 255 255 / 0.12) 50%,
+                transparent 70%
+            )
+            rgb(255 255 255 / 0.06);
+        background-size: 200% 100%;
+        animation: cover-shimmer 1.4s ease-in-out infinite;
+    }
+
+    @keyframes cover-shimmer {
+        from {
+            background-position: 150% 0;
+        }
+        to {
+            background-position: -50% 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .cover-skeleton {
+            animation: none;
+        }
+    }
+</style>

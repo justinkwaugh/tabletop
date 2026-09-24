@@ -179,6 +179,44 @@ test('the browser install offer exposes a one-shot PWA install control', async (
     await expect(menu).toBeVisible()
 })
 
+test('the dashboard lists games before the game library finishes loading', async ({ page }) => {
+    const released = Promise.withResolvers<void>()
+    await page.route('**/games/landing-*/ui/1.0.0/index.js', async (route) => {
+        await released.promise
+        await route.fallback()
+    })
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({ json: { payload: { games: [game(0, GameStatus.WaitingForPlayers)] } } })
+    )
+
+    await page.goto('/dashboard')
+
+    const card = page.locator('.dashboard-game-list > li').first()
+    await expect(card.getByRole('heading', { name: 'Table 00', exact: true })).toBeVisible()
+    await expect(page.getByText('Unknown Game')).toHaveCount(0)
+    await expect(card.getByAltText('cover thumbnail')).toHaveCount(0)
+
+    released.resolve()
+
+    await expect(card.getByText('Game 01', { exact: true })).toBeVisible()
+    await expect(card.getByAltText('cover thumbnail')).toBeVisible()
+})
+
+test('the game library requests every title module at once', async ({ page }) => {
+    const released = Promise.withResolvers<void>()
+    const requested = new Set<string>()
+    await page.route('**/games/landing-*/ui/1.0.0/index.js', async (route) => {
+        requested.add(route.request().url())
+        await released.promise
+        await route.fallback()
+    })
+
+    await page.goto('/dashboard')
+
+    await expect.poll(() => requested.size).toBe(13)
+    released.resolve()
+})
+
 for (const expanded of [false, true]) {
     test(`game entry shows a spinner while navigation waits, expanded ${expanded}`, async ({
         page

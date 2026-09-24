@@ -136,7 +136,6 @@ export class GameService implements GameServiceInterface {
     }
 
     private async loadCurrentGames() {
-        await this.libraryService.whenReady()
         const sessionUser = this.authorizationService.getSessionUser()
         const [games, localGames] = await Promise.all([
             this.api.getMyGames('current'),
@@ -160,13 +159,11 @@ export class GameService implements GameServiceInterface {
 
     // Should debounce this
     async loadOpenGames(titleId: string) {
-        await this.libraryService.whenReady()
         const response = await this.api.getOpenGames(titleId)
         this.openGamesByTitleId.set(titleId, response)
     }
 
     async loadGame(id: string, options: GetGameOptions = {}): Promise<GameLoadResult> {
-        await this.libraryService.whenReady()
         // First check local hotseat games
         if (!this.localGamesById.has(id)) {
             const localGame = await this.localGameStore.findGameById(id)

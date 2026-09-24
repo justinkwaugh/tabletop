@@ -37,31 +37,34 @@ export class LibraryService {
     private async loadDefinitions() {
         try {
             const manifest = await this.manifestService.whenReady()
-            const definitions: GameUiDefinition<GameState, HydratedGameState>[] = []
-
-            for (const game of manifest.games) {
-                try {
-                    const url = new URL(
-                        /* @vite-ignore */ `/games/${game.packageId}/ui/${game.uiVersion}/index.js`,
-                        import.meta.url
-                    )
-                    const gameModule = await import(url.href)
-                    const gameDefinition = gameModule[`UiDefinition` as keyof typeof gameModule] as
-                        | GameUiDefinition<GameState, HydratedGameState>
-                        | undefined
-                    if (!gameDefinition) {
-                        throw new Error('Missing UiDefinition export')
+            const definitions = await Promise.all(
+                manifest.games.map(async (game) => {
+                    try {
+                        const url = new URL(
+                            /* @vite-ignore */ `/games/${game.packageId}/ui/${game.uiVersion}/index.js`,
+                            import.meta.url
+                        )
+                        const gameModule = await import(url.href)
+                        const gameDefinition = gameModule[
+                            `UiDefinition` as keyof typeof gameModule
+                        ] as GameUiDefinition<GameState, HydratedGameState> | undefined
+                        if (!gameDefinition) {
+                            throw new Error('Missing UiDefinition export')
+                        }
+                        return gameDefinition
+                    } catch {
+                        console.log(
+                            `Could not load game module for ${game.gameId} (${game.packageId}) at ${game.uiVersion}`
+                        )
+                        return undefined
                     }
-                    definitions.push(gameDefinition)
-                } catch {
-                    console.log(
-                        `Could not load game module for ${game.gameId} (${game.packageId}) at ${game.uiVersion}`
-                    )
-                }
-            }
+                })
+            )
 
             this.titlesById = Object.fromEntries(
-                definitions.map((definition) => [definition.info.id, definition])
+                definitions
+                    .filter((definition) => definition !== undefined)
+                    .map((definition) => [definition.info.id, definition])
             )
         } finally {
             this.loading = false
