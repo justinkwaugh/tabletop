@@ -1,6 +1,7 @@
 import {
     assertExists,
     type GameInitializer,
+    type StartingPositionAssignment,
     BaseGameInitializer,
     Prng,
     type UninitializedGameState
@@ -33,15 +34,21 @@ export class LowenherzGameInitializer
     extends BaseGameInitializer<LowenherzProjectedState, HydratedLowenherzGameState>
     implements GameInitializer<LowenherzProjectedState, HydratedLowenherzGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedLowenherzGameState {
+    readonly supportsStartingPositions = true
+
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedLowenherzGameState {
         // Initialize a pseudo random number generator for the state
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
 
         // Every game state has a turn manager to track whose turn it is
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
 
-        // Put players array in our randomly generated turn order
+        // Put players array in turn order
         const orderedPlayers: HydratedLowenherzPlayerState[] = []
         for (const playerId of turnManager.turnOrder) {
             const player = players.find((p) => p.playerId === playerId)
