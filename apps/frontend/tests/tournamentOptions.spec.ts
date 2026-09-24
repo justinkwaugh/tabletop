@@ -4,6 +4,8 @@ import {
     Role,
     UserStatus,
     type GameConfigOptions,
+    type Tournament,
+    type TournamentDraft,
     type User
 } from '@tabletop/common'
 import { mockLibrary } from './fixtures/library'
@@ -43,13 +45,16 @@ async function openCreateForm(page: Page) {
     )
     await page.route(
         (url) => url.pathname === '/api/v1/tournaments/',
-        (route) =>
-            route.fulfill({
-                json: {
-                    status: 'ok',
-                    payload: route.request().method() === 'GET' ? { tournaments: [] } : {}
-                }
-            })
+        (route) => {
+            const request = route.request()
+            if (request.method() === 'GET') {
+                return route.fulfill({ json: { status: 'ok', payload: { tournaments: [] } } })
+            }
+            // A schema-valid Tournament, so the client accepts the save and the form completes
+            // rather than showing a save error the request assertions would never notice.
+            const { id, draft } = request.postDataJSON() as { id: string; draft: TournamentDraft }
+            return route.fulfill({ json: { status: 'ok', payload: savedTournament(id, draft) } })
+        }
     )
     // Registered after mockLibrary, so it wins: the same title, now with a configurator. The
     // definition is served as a module, which is what lets it carry the configurator's methods.
@@ -87,12 +92,34 @@ async function openCreateForm(page: Page) {
     await expect(page.locator('#tournament-option-publicMoney')).toBeVisible()
 }
 
+function savedTournament(id: string, draft: TournamentDraft): Tournament {
+    const now = Date.now()
+    return {
+        ...draft,
+        id,
+        organizerId: admin.id,
+        status: 'draft',
+        revision: 1,
+        entrants: [],
+        stages: [],
+        createdAt: now,
+        updatedAt: now
+    }
+}
+
 function savedDraft(page: Page): Promise<Request> {
     return page.waitForRequest(
         (request) =>
             request.method() === 'POST' &&
             new URL(request.url()).pathname === '/api/v1/tournaments/'
     )
+}
+
+// The page closes the form and navigates to the new tournament once the client has accepted
+// the response - a save error leaves the form open on /tournaments instead.
+async function expectSaveCompleted(page: Page, id: string) {
+    await expect(page).toHaveURL(new RegExp(`/tournaments/${id}$`))
+    await expect(page.getByRole('button', { name: 'Create draft' })).toBeHidden()
 }
 
 test('an untouched inverted toggle shows off and the draft keeps the raw default', async ({
@@ -104,8 +131,9 @@ test('an untouched inverted toggle shows off and the draft keeps the raw default
 
     const request = savedDraft(page)
     await page.getByRole('button', { name: 'Create draft' }).click()
-    const { draft } = (await request).postDataJSON()
+    const { id, draft } = (await request).postDataJSON()
     expect(draft.rules.gameConfig).toEqual({ publicMoney: true, expert: false })
+    await expectSaveCompleted(page, id)
 })
 
 test('switching an inverted toggle on saves false in the draft', async ({ page }) => {
@@ -116,6 +144,7 @@ test('switching an inverted toggle on saves false in the draft', async ({ page }
 
     const request = savedDraft(page)
     await page.getByRole('button', { name: 'Create draft' }).click()
-    const { draft } = (await request).postDataJSON()
+    const { id, draft } = (await request).postDataJSON()
     expect(draft.rules.gameConfig).toEqual({ publicMoney: false, expert: false })
+    await expectSaveCompleted(page, id)
 })
