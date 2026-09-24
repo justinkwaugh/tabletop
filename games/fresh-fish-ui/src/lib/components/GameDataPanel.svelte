@@ -28,7 +28,7 @@ import type { FreshFishGameSession } from '$lib/stores/FreshFishGameSession.svel
             <div class="flex flex-row justify-center items-center space-x-2">
                 <h1 class="text-md mr-2">Final<br />Stalls</h1>
 
-                {#each gameSession.gameState.finalStalls as stall}
+                {#each gameSession.gameState.finalStalls as stall (stall.goodsType)}
                     <StallTile
                         size={56}
                         playerId={playerForFinalStall(stall.goodsType)?.playerId}

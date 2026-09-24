@@ -327,7 +327,7 @@
                         <div class="pt-2 flex flex-col text-xs text-gray-400">
                             <Hr class="mt-1 mb-1" />
                             <dl aria-label="Game options">
-                                {#each options as option}
+                                {#each options as option, i (i)}
                                     <div class="flex justify-between gap-3">
                                         <dt>{option.name}</dt>
                                         <dd class="text-right">

@@ -63,7 +63,7 @@
                         {#if action.playerId}
                             <PlayerNameChip playerId={action.playerId} />
                         {/if}
-                        {#each getDescriptionForAction(action, { allActions: session.actions }) as part}
+                        {#each getDescriptionForAction(action, { allActions: session.actions }) as part, i (i)}
                             {#if typeof part === 'string'}
                                 {part}
                             {:else}

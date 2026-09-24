@@ -86,7 +86,7 @@
     class="inline-grid border-[10px] border-[#b3b3b3] bg-[#b3b3b3]"
     style="grid-template-columns: repeat({BOARD_SIZE}, 1fr); gap: 2px;"
 >
-    {#each squares as pos}
+    {#each squares as pos (pos)}
         {@const building = gameState.board[pos]}
         {@const architectIndex = gameState.architects.indexOf(pos)}
         {@const isValid = validSquares.has(pos)}

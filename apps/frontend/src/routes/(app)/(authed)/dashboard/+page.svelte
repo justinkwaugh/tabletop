@@ -43,7 +43,7 @@
     </header>
     <div class="navigation">
         <div class="collection-tabs" role="tablist" aria-label="My games">
-            {#each ['current', 'history'] as choice}
+            {#each ['current', 'history'] as choice (choice)}
                 {@const selected = choice === 'current' ? 'current' : 'history'}
                 <button
                     class="collection-tab"

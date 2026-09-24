@@ -80,7 +80,7 @@
             </TileArtwork>
         </svg>
         <div class="sizes" aria-label="Tile size comparison">
-            {#each [64, 110, 180] as size}<Tile
+            {#each [64, 110, 180] as size (size)}<Tile
                     face={overlayTile.face}
                     printedNumber="14"
                     {orientation}
@@ -92,7 +92,7 @@
     <section aria-label="Preprinted tiles">
         <h2>Preprinted tiles</h2>
         <div class="preprinted-tiles">
-            {#each PreprintedTileExamples as example}
+            {#each PreprintedTileExamples as example, i (i)}
                 <figure>
                     <Tile
                         face={example.face}
@@ -106,11 +106,11 @@
             {/each}
         </div>
     </section>
-    {#each TileReplacementExamples as example}
+    {#each TileReplacementExamples as example, i (i)}
         <section aria-label={`${example.title} replacement`}>
             <h2>{example.title} · Supply replacement</h2>
             <div class="replacement">
-                {#each example.stages as stage}
+                {#each example.stages as stage, i (i)}
                     <figure>
                         <Tile
                             face={stage.face}
@@ -129,7 +129,7 @@
         <section aria-label={tile.id}>
             <h2>{tile.printedNumber} <small>{tile.scope}</small></h2>
             <div class="rotations">
-                {#each rotations as rotation}<figure>
+                {#each rotations as rotation (rotation)}<figure>
                         <Tile
                             face={tile.face}
                             printedNumber={tile.printedNumber}

@@ -78,7 +78,7 @@
                 required
             >
                 <option value="">Choose a finished table</option>
-                {#each schedule?.tables.filter( (table) => finished.includes(table.id) ) ?? [] as table}
+                {#each schedule?.tables.filter( (table) => finished.includes(table.id) ) ?? [] as table (table.id)}
                     <option value={table.id}>Table {table.id}</option>
                 {/each}
             </Select>
@@ -88,7 +88,7 @@
                 <legend class="mb-2 text-xs text-gray-500"
                     >Credited winners — choose one or more</legend
                 >
-                {#each table.entrantIds as id}
+                {#each table.entrantIds as id, entrantIndex (entrantIndex)}
                     <label class="flex items-center gap-2 text-sm"
                         ><input type="checkbox" value={id} bind:group={winners} />{detail.usernames[
                             id

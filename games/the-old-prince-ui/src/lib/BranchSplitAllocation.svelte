@@ -16,7 +16,7 @@
 
 {#if preview && allocation}
     <div class="allocation" aria-label="Split asset allocation">
-        {#each [false, true] as branch}
+        {#each [false, true] as branch (branch)}
             {@const companyId = branch ? preview.request.branchId : preview.request.parentId}
             {@const stations = preview.stations.filter(
                 ({ station }) => allocation.stationIds.includes(station.id) === branch

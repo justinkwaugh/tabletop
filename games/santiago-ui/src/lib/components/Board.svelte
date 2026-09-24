@@ -408,8 +408,8 @@
     <!-- Cell grid — inset to match board image's stone border -->
     <div class="absolute grid"
          style="left: {BORDER_X}px; top: {BORDER_Y}px; width: {FIELD_W}px; height: {FIELD_H}px; grid-template-columns: {GRID_TEMPLATE_COLUMNS}; grid-template-rows: {GRID_TEMPLATE_ROWS}">
-        {#each Array(6) as _, row}
-            {#each Array(8) as _, col}
+        {#each Array(6) as _, row (row)}
+            {#each Array(8) as _, col (col)}
                 {@const sq = session.gameState.board.squares[col][row]}
                 {@const highlight = fieldHighlight(col, row)}
                 {@const neutralOk = isValidNeutralPlacement(col, row)}
@@ -445,7 +445,7 @@
                         <!-- Farmer cubes — only for owned fields -->
                         {#if sq.playerId}
                             <div class="absolute flex gap-[2px]" style="left: calc(20% - 7px); bottom: calc(20% - 6px)">
-                                {#each Array(sq.farmerCount) as _, i}
+                                {#each Array(sq.farmerCount) as _, i (i)}
                                     <div class="w-[18px] h-[18px] rounded-[4px]"
                                          style="background-color: {playerColor(sq.playerId)}; border: 1px solid rgba(0,0,0,0.85); box-shadow: 1px 2px 3px rgba(0,0,0,0.65); transform: rotate({cubeRotation(col, row, i)}deg)">
                                     </div>
@@ -517,7 +517,7 @@
                  canal overlay — a natural look for a rounded canal bend. -->
             <mask id="canalCornerMask" maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
                 <rect x="0" y="0" width={W} height={H} fill="white" />
-                {#each canalCornerFillets as f}
+                {#each canalCornerFillets as f, i (i)}
                     <rect x={Math.min(f.cx, f.cx + f.ox * CANAL_FILLET_RADIUS)}
                           y={Math.min(f.cy, f.cy + f.oy * CANAL_FILLET_RADIUS)}
                           width={CANAL_FILLET_RADIUS} height={CANAL_FILLET_RADIUS}
@@ -534,7 +534,7 @@
              The mask then softens each junction's one genuinely exposed corner with a
              small curve (see canalCornerMask above). -->
         <g mask="url(#canalCornerMask)">
-            {#each session.gameState.board.canals as seg}
+            {#each session.gameState.board.canals as seg, i (i)}
                 {@const isH = seg.orientation === 'H'}
                 {@const d = canalPathD(seg, canalJunctionKeys)}
                 <path {d} fill={isH ? 'url(#canalH)' : 'url(#canalV)'}/>
@@ -580,7 +580,7 @@
                   fill={textColor} font-size="16" font-weight="bold"
                   style="font-family:sans-serif; {extraStyle}">{amount}</text>
         {/snippet}
-        {#each proposedSegments as ps}
+        {#each proposedSegments as ps, psIndex (psIndex)}
             {@const c = segCoords(ps.segment)}
             {@const isH = ps.segment.orientation === 'H'}
             {@const mx = (c.x1 + c.x2) / 2}
@@ -593,7 +593,7 @@
                    onclick={() => session.acceptProposal(ps.segment)}
                    onmouseenter={() => hoveredLabelKey = key}
                    onmouseleave={() => hoveredLabelKey = null}>
-                    {#each ps.contributions as contrib, i}
+                    {#each ps.contributions as contrib, i (i)}
                         {@const cx = isH ? mx + (i - (n - 1) / 2) * 48 : c.x1 + 28}
                         {@const cy = isH ? c.y1 - 28 : my + (i - (n - 1) / 2) * 36}
                         {@const isYellow = isYellowPlayer(contrib.playerId)}
@@ -602,7 +602,7 @@
                     {/each}
                 </g>
             {:else}
-                {#each ps.contributions as contrib, i}
+                {#each ps.contributions as contrib, i (i)}
                     {@const cx = isH ? mx + (i - (n - 1) / 2) * 48 : c.x1 + 28}
                     {@const cy = isH ? c.y1 - 28 : my + (i - (n - 1) / 2) * 36}
                     {@const isYellow = isYellowPlayer(contrib.playerId)}
@@ -612,7 +612,7 @@
         {/each}
 
         <!-- Unbribed canal locations — overseer can click to reject all bribes and build here for a penalty -->
-        {#each unbribedSegments as seg}
+        {#each unbribedSegments as seg, i (i)}
             {@const c = segCoords(seg)}
             {@const isH = seg.orientation === 'H'}
             {@const cx = isH ? (c.x1 + c.x2) / 2 : c.x1 + 44}
@@ -641,7 +641,7 @@
              proposing, picking a location just selects it (see selectedBribeSegment) —
              it's drawn as a solid gold line instead of the usual animated dashed one,
              so it's clear which spot is currently chosen versus still just available. -->
-        {#each session.visibleSegments as seg}
+        {#each session.visibleSegments as seg, i (i)}
             {@const c = segCoords(seg)}
             {@const dir = segFlowDir(seg)}
             {@const isSelectedBribe = session.selectedBribeSegment !== undefined && isSameSegment(seg, session.selectedBribeSegment)}
@@ -701,7 +701,7 @@
             /> -->
         {:else if session.isSpringPlacementTurn}
             <!-- Spring placement — click any highlighted intersection (corners excluded) -->
-            {#each [...session.validSpringSpots] as key}
+            {#each [...session.validSpringSpots] as key (key)}
                 {@const [col, row] = key.split(',').map(Number)}
                 {@const px = intersectionX(col)}
                 {@const py = intersectionY(row)}

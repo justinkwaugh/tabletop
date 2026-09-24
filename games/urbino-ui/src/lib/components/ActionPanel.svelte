@@ -54,7 +54,7 @@
 
     {#if session.canChooseFirstPlayer}
         <div class="flex flex-wrap gap-2">
-            {#each gameState.players as player}
+            {#each gameState.players as player (player.playerId)}
                 <button
                     class="rounded border border-[#6b3a2a] bg-white px-3 py-1.5 text-sm font-medium text-[#2c1810] transition-colors hover:bg-gray-100"
                     onclick={() => session.chooseFirstPlayer(player.playerId)}
@@ -69,7 +69,7 @@
     {#if session.isMyTurn && !session.canChooseFirstPlayer}
         <div class="flex flex-wrap items-center gap-2">
             {#if session.canPlaceBuilding}
-                {#each buildingTypes as type}
+                {#each buildingTypes as type (type)}
                     {#if hasBuildingType(type)}
                         <button
                             class="flex items-center gap-1.5 rounded border border-[#6b3a2a] px-3 py-1.5 text-sm font-medium transition-colors"
@@ -102,7 +102,7 @@
             {/if}
 
             {#if session.canRepositionArchitect}
-                {#each [0, 1] as idx}
+                {#each [0, 1] as idx (idx)}
                     {#if session.architectsWithValidMoves.has(idx)}
                     <button
                         class="rounded border border-[#c87941] px-3 py-1.5 text-sm font-medium transition-colors"

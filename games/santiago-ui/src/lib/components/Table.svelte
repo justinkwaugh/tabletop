@@ -176,7 +176,7 @@
                                          (which would re-break the board's top-edge alignment
                                          with the player panel). -->
                                     <div class="flex flex-col gap-2 shrink-0 mt-5">
-                                        {#each displayTiles as { tile, isSelected }, i}
+                                        {#each displayTiles as { tile, isSelected }, i (i)}
                                             {#if isSelected}
                                                 <div class="rounded-md overflow-hidden tile-selected shrink-0"
                                                      style="width:{CELL_W}px; height:{CELL_H}px">

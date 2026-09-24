@@ -7,7 +7,7 @@
 {#if session.offers.model && !session.offers.model.auction.completed}
     <section class="centered-panel">
         <p class="company-roles">
-            {#each gameState.companies.filter((company) => company.role) as company}
+            {#each gameState.companies.filter((company) => company.role) as company (company.id)}
                 <span>
                     {company.role === 'mainline' ? 'Mainline' : 'Shortline'}:
                     <strong>{company.name}</strong>

@@ -7,7 +7,7 @@
 {#if !winnerOnly}
     <div class="p-2 ms-4 text-sm">
         <div class="text-xs text-white flex flex-col justify-center items-left space-y-1">
-            {#each (action as EndAuction).metadata?.participants ?? [] as participant}
+            {#each (action as EndAuction).metadata?.participants ?? [] as participant (participant.playerId)}
                 <div>
                     <PlayerName playerId={participant.playerId} />
                     bid ${participant.bid}

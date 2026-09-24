@@ -217,9 +217,9 @@
         {/if}
         <div class="flex flex-col justify-center items-start">
             <p class="text-xs {timeColor}">{timeAgo.format(message.timestamp)}</p>
-            {#each textSplit(message.text) as text}
+            {#each textSplit(message.text) as text, i (i)}
                 <p class="{messageTextColor} {message.admin ? 'font-bold' : ''}">
-                    {#each getSpansForText(text) as span}
+                    {#each getSpansForText(text) as span, j (j)}
                         {#if span[1]}
                             <span class="text-2xl leading-none align-middle">{span[0]}</span>
                         {:else}

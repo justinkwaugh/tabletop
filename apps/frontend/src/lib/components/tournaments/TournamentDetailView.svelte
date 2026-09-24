@@ -132,7 +132,7 @@
         class="text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
         href="/tournaments">← Tournaments</a
     >
-    {#each [loadError, actionError].filter(Boolean) as message}
+    {#each [loadError, actionError].filter(Boolean) as message, i (i)}
         <p role="alert" class="mt-3 text-sm text-red-600 dark:text-red-300">{message}</p>
     {/each}
     {#if tournament && detail}
@@ -280,7 +280,7 @@
                     class="mt-3 font-tournament text-xl font-semibold text-gray-600 dark:text-gray-300"
                 >
                     <span class="mr-3">{winners.length === 1 ? 'Winner' : 'Shared winners'}:</span>
-                    {#each winners as winner, index}
+                    {#each winners as winner, index (winner.userId)}
                         {#if index > 0},
                         {/if}<span
                             class={winner.userId === user?.id
@@ -505,7 +505,7 @@
                     >Result corrections ({tournament.stages[0].corrections.length})</summary
                 >
                 <ul class="mt-2 space-y-2">
-                    {#each tournament.stages[0].corrections as correction}
+                    {#each tournament.stages[0].corrections as correction, i (i)}
                         <li>
                             Table {correction.tableId}: {correction.winningUserIds
                                 .map((id) => detail?.usernames[id] ?? id)

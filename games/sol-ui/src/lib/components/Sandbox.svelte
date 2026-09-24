@@ -282,7 +282,7 @@
     </defs>
 
     {#if !hideStuff}
-        {#each spaceLabels as { point, label }}
+        {#each spaceLabels as { point, label }, i (i)}
             <text
                 transform={translateFromCenter(point.x + 1, point.y + 1)}
                 text-anchor="middle"
@@ -304,7 +304,7 @@
     {/if}
 
     {#if ships}
-        {#each blueLocations as locationTransformation}
+        {#each blueLocations as locationTransformation, i (i)}
             <g transform={locationTransformation}>
                 <g transform={blueShapeTransformation}>
                     <BlueShip />
@@ -312,7 +312,7 @@
             </g>
         {/each}
 
-        {#each grayLocations as locationTransformation}
+        {#each grayLocations as locationTransformation, i (i)}
             <g transform={locationTransformation}>
                 <g transform={grayShapeTransformation}>
                     <SilverShip />
@@ -320,7 +320,7 @@
             </g>
         {/each}
 
-        {#each greenLocations as locationTransformation}
+        {#each greenLocations as locationTransformation, i (i)}
             <g transform={locationTransformation}>
                 <g transform={greenShapeTransformation}>
                     <GreenShip />
@@ -328,7 +328,7 @@
             </g>
         {/each}
 
-        {#each purpleLocations as locationTransformation}
+        {#each purpleLocations as locationTransformation, i (i)}
             <g transform={locationTransformation}>
                 <g transform={purpleShapeTransformation}>
                     <PurpleShip />
@@ -336,7 +336,7 @@
             </g>
         {/each}
 
-        {#each blackLocations as locationTransformation}
+        {#each blackLocations as locationTransformation, i (i)}
             <g transform={locationTransformation}>
                 <g transform={blackShapeTransformation}>
                     <BlackShip />
@@ -346,10 +346,10 @@
     {/if}
 
     <g>
-        {#each divers as { playerId, point }}
+        {#each divers as { playerId, point }, i (i)}
             <UISundiver color={colorPerPlayerId[playerId]} quantity={1} location={point} />
         {/each}
-        {#each gatePositions as gatePosition}
+        {#each gatePositions as gatePosition, i (i)}
             <Gate color="blue" position={gatePosition} />
         {/each}
         {#each stations as stationInfo (stationInfo.station.id)}
@@ -364,7 +364,7 @@
         {/each}
         <rect onclick={onClick} x="0" y="0" width="1280" height="1280" fill="transparent"></rect>
 
-        {#each tempDiversLocations as { id, point }}
+        {#each tempDiversLocations as { id, point } (id)}
             <UISundiver
                 onclick={() => {
                     diverClick(id)
@@ -403,7 +403,7 @@
             </g>
         {/each}
 
-        {#each tempTowersLocations as { id, point }}
+        {#each tempTowersLocations as { id, point } (id)}
             <!-- <Tower
             onclick={() => {
                 towerClick(id)

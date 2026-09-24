@@ -185,7 +185,7 @@
                     <div class="widget-menu" id={`${instanceId}-add-${item.pane.id}`} popover style:top={`${menuPosition.top}px`} style:right={`${menuPosition.right}px`}>
                         {#if item.pane.id !== 'fixed'}
                         <div class="pane-actions">
-                            {#each ['horizontal', 'vertical'] as const as axis}
+                            {#each ['horizontal', 'vertical'] as const as axis (axis)}
                                 <button aria-label={`Split pane ${layout.panes.indexOf(item) + 1} ${axis === 'horizontal' ? 'horizontally' : 'vertically'}`}
                                     title={axis === 'horizontal' ? 'Split top / bottom' : 'Split left / right'} disabled={!item.available.includes(axis)} popovertarget={`${instanceId}-add-${item.pane.id}`} popovertargetaction="hide"
                                     onclick={() => root = splitPane(root, item.pane.id, axis)}>

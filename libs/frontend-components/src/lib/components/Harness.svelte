@@ -217,7 +217,7 @@
                             ms-2 text-white dark:text-white"
                         /></Button
                     ><Dropdown simple={true} class="min-w-[100px]">
-                        {#each availableGames as game}
+                        {#each availableGames as game (game.id)}
                             {@render gameDropdownItem(game)}
                         {/each}
                     </Dropdown>
@@ -303,7 +303,7 @@
                         disabled={gameSession.busy || gameSession.isExploring || sessions.loading}
                         onchange={setProtectedView}
                     >
-                        {#each gameSession.primaryGame.players as player}
+                        {#each gameSession.primaryGame.players as player, i (i)}
                             <option value={player.id}>{player.name}</option>
                         {/each}
                         <option value="spectator">Spectator</option>

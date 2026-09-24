@@ -31,7 +31,7 @@
     </button>
     <Dropdown bind:isOpen={dropdownOpen} triggeredBy={`#${triggerId}`} placement="bottom">
         <DropdownGroup class="py-1">
-            {#each otherActivePlayers as player}
+            {#each otherActivePlayers as player, i (i)}
                 <DropdownItem
                     onclick={() => setActingPlayer(player.id)}
                     class="w-full text-left font-medium py-2 px-4 text-xs hover:bg-gray-100 dark:hover:bg-gray-600"

@@ -20,7 +20,7 @@
 </script>
 
 <div class="flex flex-col gap-3 p-3">
-    {#each state.players as player}
+    {#each state.players as player (player.playerId)}
         {@const uiColor = session.colors.getPlayerUiColor(player.playerId)}
         <div
             class="rounded-lg border-2 p-3 transition-all"
@@ -39,7 +39,7 @@
             </div>
             <div class="mb-2 text-xl font-bold text-[#2c1810]">{liveScores.get(player.playerId) ?? 0} pts</div>
             <div class="flex gap-3 text-sm">
-                {#each [{ type: BuildingType.House, count: player.houses, label: 'Houses' }, { type: BuildingType.Palace, count: player.palaces, label: 'Palaces' }, { type: BuildingType.Tower, count: player.towers, label: 'Towers' }] as { type, count, label }}
+                {#each [{ type: BuildingType.House, count: player.houses, label: 'Houses' }, { type: BuildingType.Palace, count: player.palaces, label: 'Palaces' }, { type: BuildingType.Tower, count: player.towers, label: 'Towers' }] as { type, count, label } (type)}
                     <span class="flex items-center gap-1" style:color={uiColor} title="{label}: {count}">
                         <svg viewBox="0 0 20 20" width="17" height="17" fill={uiColor} stroke="#483737" stroke-width="1" stroke-linejoin="round">
                             {#if type === BuildingType.House}
@@ -68,10 +68,10 @@
         <div class="rounded-lg border border-[#c8bfaf] bg-[#f5f0e8] p-3">
             <div class="mb-2 text-[15px] font-semibold uppercase tracking-wide text-[#6b5040]">Monuments</div>
             <div class="flex flex-col gap-2">
-                {#each MONUMENTS as m}
+                {#each MONUMENTS as m (m.name)}
                     <div class="flex items-center gap-2">
                         <div class="flex gap-0.5">
-                            {#each m.sequence as type}
+                            {#each m.sequence as type, i (i)}
                                 <svg
                                     viewBox="0 0 20 20"
                                     width="23"

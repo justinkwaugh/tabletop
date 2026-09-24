@@ -16,7 +16,7 @@
 <div class="paper-texture bg-stone-900/90 rounded-xl p-4 text-white space-y-3 min-w-64">
     <p class="text-green-400 font-bold text-lg text-center">Final Scores</p>
     <ul class="space-y-1">
-        {#each sortedPlayers as p, i}
+        {#each sortedPlayers as p, i (p.playerId)}
             <li class="flex justify-between text-sm"
                 class:text-amber-300={state.winningPlayerIds.includes(p.playerId)}>
                 <span>{i + 1}. {playerName(p.playerId)}</span>

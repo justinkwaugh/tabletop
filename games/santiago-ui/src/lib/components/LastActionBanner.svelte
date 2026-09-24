@@ -40,12 +40,12 @@
                 <div class="flex flex-col items-center"
                      in:fade={{ duration: 200, easing: quartIn }}>
                     {#if lastAction}
-                        {#each descriptionSegments as segment, i}
+                        {#each descriptionSegments as segment, i (i)}
                             <p class="text-[16px] text-amber-200 truncate">
                                 {#if i === 0 && lastAction.playerId}
                                     <PlayerNameChip playerId={lastAction.playerId} />
                                 {/if}
-                                {#each segment as part}
+                                {#each segment as part, j (j)}
                                     {#if typeof part === 'string'}
                                         {part}
                                     {:else}

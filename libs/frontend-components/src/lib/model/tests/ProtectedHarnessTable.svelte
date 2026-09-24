@@ -12,7 +12,7 @@
 
 {#if state}
     <div data-testid="table">
-        {#each state.players as player}
+        {#each state.players as player (player.playerId)}
             <p data-testid={player.playerId}>
                 {player.hand ? player.hand.cards.map((card) => card.id).join(',') : 'Hidden'}
             </p>

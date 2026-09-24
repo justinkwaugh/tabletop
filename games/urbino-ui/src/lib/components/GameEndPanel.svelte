@@ -21,7 +21,7 @@
         {/if}
     </div>
     <div class="flex gap-4">
-        {#each state.players.toSorted((a, b) => b.score - a.score) as player}
+        {#each state.players.toSorted((a, b) => b.score - a.score) as player (player.playerId)}
             <div class="flex items-center gap-2">
                 <div
                     class="h-3 w-3 rounded-full border border-gray-400"

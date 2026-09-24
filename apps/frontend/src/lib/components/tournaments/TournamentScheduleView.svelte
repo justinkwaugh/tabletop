@@ -126,7 +126,7 @@
                             class="sticky left-0 z-10 bg-gray-50 px-3 py-2 font-normal dark:bg-gray-800"
                             >Table</th
                         >
-                        {#each Array.from({ length: schedule.tableSize }, (_, index) => index + 1) as position}<th
+                        {#each Array.from({ length: schedule.tableSize }, (_, index) => index + 1) as position (position)}<th
                                 class="px-3 py-2 font-normal whitespace-nowrap">Seat {position}</th
                             >{/each}
                         <th class="w-0 p-0"><span class="sr-only">Game</span></th>
@@ -172,7 +172,7 @@
                                         >{page * 20 + index + 1}</span
                                     >{/if}
                             </td>
-                            {#each table.entrantIds as entrant}
+                            {#each table.entrantIds as entrant, entrantIndex (entrantIndex)}
                                 {#snippet playerName()}
                                     <span
                                         class="truncate {entrant === user?.id

@@ -54,7 +54,7 @@
             <div class="flex flex-col justify-center items-center">
                 <div class="" style="font-size:.7rem; line-height:.8rem">unplaced stalls</div>
                 <div class="flex flex-row justify-start items-center space-x-2">
-                    {#each playerState.stalls as stall}
+                    {#each playerState.stalls as stall (stall.goodsType)}
                         {#if !stall.placed}
                             <div class="text-sm">
                                 {letterForGoodsType(stall.goodsType)}

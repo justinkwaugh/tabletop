@@ -22,7 +22,7 @@
     <div class="intro">
         <label
             >Browse a collection<select bind:value={group}
-                >{#each Object.keys(TileSpecimenGroups) as name}<option>{name}</option
+                >{#each Object.keys(TileSpecimenGroups) as name (name)}<option>{name}</option
                     >{/each}</select
             ></label
         >
@@ -34,7 +34,7 @@
     />
     <section class="style-preview" aria-label="Appearance comparison">
         <h2>Tile styles</h2>
-        {#each [ClassicTileAppearance, MutedTileAppearance] as appearance}<figure>
+        {#each [ClassicTileAppearance, MutedTileAppearance] as appearance (appearance.name)}<figure>
                 <Tile
                     face={example.face}
                     printedNumber={example.printedNumber}

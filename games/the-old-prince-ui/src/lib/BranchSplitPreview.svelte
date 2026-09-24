@@ -57,7 +57,7 @@
         {/if}
         <div class="controls">
             {#if !selection.parentId}
-                {#each parents as { company }}
+                {#each parents as { company } (company.id)}
                     <button
                         class="company-choice"
                         aria-label={`Split ${company.name}`}
@@ -71,7 +71,7 @@
                 {/each}
                 {#if !parents.length}<p>No companies can split.</p>{/if}
             {:else if !selection.branchId}
-                {#each session.splitModel.branches() as company}
+                {#each session.splitModel.branches() as company (company.id)}
                     <button
                         class="company-choice"
                         aria-label={`Choose ${company.name}`}
@@ -84,7 +84,7 @@
                     </button>
                 {/each}
             {:else if !selection.marketSpaceId}
-                {#each session.splitModel.prices() as price}
+                {#each session.splitModel.prices() as price (price.id)}
                     <button
                         class="price-choice"
                         style:background={marketColors[price.color] ?? price.color}
@@ -141,7 +141,7 @@
                     </tr>
                 </thead>
                 <tbody
-                    >{#each preview.ownership as row}<tr>
+                    >{#each preview.ownership as row, i (i)}<tr>
                             <th
                                 >{row.reserved
                                     ? 'Reserved exchanges'

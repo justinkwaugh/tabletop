@@ -1037,7 +1037,7 @@
                                     />
                                 </span>
                                 <span class="justify-self-end text-right text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Cost</span>
-                                {#each shippingPayouts as payout}
+                                {#each shippingPayouts as payout (payout.ownerPlayerId)}
                                     <span class="min-w-0 flex items-center">
                                         <PlayerName playerId={payout.ownerPlayerId} />
                                     </span>
@@ -1103,7 +1103,7 @@
                                     {/if}
                                 </span>
                                 <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Amount</span>
-                                {#each mergeAction.metadata.ownerPayments as payout}
+                                {#each mergeAction.metadata.ownerPayments as payout, i (i)}
                                     <span class="flex items-center">
                                         <PlayerName playerId={payout.ownerId} />
                                     </span>
@@ -1239,7 +1239,7 @@
             <span>New turn order</span>
             {#if action.metadata?.newOrder?.length}
                 <span class={`mt-1 inline-flex flex-col gap-0.5 leading-tight ${summaryAlignClass}`}>
-                    {#each action.metadata.newOrder as playerId}
+                    {#each action.metadata.newOrder as playerId (playerId)}
                         <span><PlayerName {playerId} /></span>
                     {/each}
                 </span>
@@ -1297,7 +1297,7 @@
                         {/if}
                     </span>
                     <span class="text-[0.82em] uppercase tracking-[0.08em] text-[#7a5d3f]">Amount</span>
-                    {#each action.metadata.ownerPayments as payout}
+                    {#each action.metadata.ownerPayments as payout, i (i)}
                         <span class="flex items-center">
                             <PlayerName playerId={payout.ownerId} />
                         </span>

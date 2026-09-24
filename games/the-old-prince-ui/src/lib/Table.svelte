@@ -133,7 +133,7 @@
                     aria-label={`${tranche.name}${closed ? ': closed' : ''}`}
                     title={closed ? `${tranche.name}: closed` : tranche.name}
                 >
-                    {#each Array.from({ length: tranche.capacity }, (_, index) => tranche.companyIds[index]) as companyId}
+                    {#each Array.from({ length: tranche.capacity }, (_, index) => tranche.companyIds[index]) as companyId, i (i)}
                         <span class="tranche-slot" class:empty={!companyId}>
                             {#if companyId}<CompanyToken
                                     appearance={session.mapView.stations[companyId]}

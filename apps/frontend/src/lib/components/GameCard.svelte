@@ -468,7 +468,7 @@
         {#if displayableConfigs.length > 0}
             <div class="p-2 flex flex-col text-xs text-gray-400">
                 <Hr class="mt-1 mb-1" />
-                {#each displayableConfigs as option}
+                {#each displayableConfigs as option, i (i)}
                     <div class="flex flex-row justify-between">
                         <div>{option.name}</div>
                         <div>{option.value}</div>

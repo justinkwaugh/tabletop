@@ -366,7 +366,7 @@
             />
         {/if}
     {/each}
-    {#each RowOffsets as offset, row}
+    {#each RowOffsets as offset, row (offset)}
         <GlowingCircle
             onpointerenter={(event: any) => {
                 if (!showMayorHighlights) return

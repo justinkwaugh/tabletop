@@ -112,7 +112,7 @@
                 >
             {/if}
             {#if showActions}
-                {#each gameSession.validActionTypes as action}
+                {#each gameSession.validActionTypes as action (action)}
                     <Button
                         onclick={async () => chooseAction(action)}
                         size="xs"

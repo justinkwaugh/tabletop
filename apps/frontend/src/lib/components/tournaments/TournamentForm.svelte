@@ -205,7 +205,7 @@
             <div>
                 <Label class="mb-2">Players per game</Label>
                 <ButtonGroup aria-label="Players per game">
-                    {#each range(title.info.metadata.minPlayers, title.info.metadata.maxPlayers - title.info.metadata.minPlayers + 1) as count}
+                    {#each range(title.info.metadata.minPlayers, title.info.metadata.maxPlayers - title.info.metadata.minPlayers + 1) as count (count)}
                         <RadioButton
                             value={count}
                             bind:group={tableSize}

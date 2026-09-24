@@ -171,7 +171,7 @@
     >
         <div style="width: {inputWidth}px">
             <DropdownGroup class="py-1">
-                {#each items as item, i}
+                {#each items as item, i (i)}
                     <DropdownItem
                         onclick={onItemClick}
                         onmouseenter={() => highlight(i)}
