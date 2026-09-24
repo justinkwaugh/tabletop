@@ -1,7 +1,7 @@
-export function deepFreeze(object: any) {
-    const occurrences = new WeakSet()
+export function deepFreeze<T extends object>(object: T): Readonly<T> {
+    const occurrences = new WeakSet<object>()
 
-    function deepFreezeCircularlySafe(object: any) {
+    function deepFreezeCircularlySafe<U extends object>(object: U): Readonly<U> {
         if (occurrences.has(object)) {
             return object
         }
@@ -12,7 +12,7 @@ export function deepFreeze(object: any) {
 
         // Freeze properties before freezing self
         for (const name of propNames) {
-            const value = object[name]
+            const value: unknown = Reflect.get(object, name)
 
             if ((value && typeof value === 'object') || typeof value === 'function') {
                 deepFreezeCircularlySafe(value)

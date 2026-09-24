@@ -30,8 +30,8 @@ export function isRectangleDimensions(dimensions: unknown): dimensions is Rectan
         dimensions !== null &&
         'width' in dimensions &&
         'height' in dimensions &&
-        typeof (dimensions as any).width === 'number' &&
-        typeof (dimensions as any).height === 'number'
+        typeof dimensions.width === 'number' &&
+        typeof dimensions.height === 'number'
     )
 }
 
@@ -42,9 +42,9 @@ export function isCubeDimensions(dimensions: unknown): dimensions is CubeDimensi
         'width' in dimensions &&
         'height' in dimensions &&
         'depth' in dimensions &&
-        typeof (dimensions as any).width === 'number' &&
-        typeof (dimensions as any).height === 'number' &&
-        typeof (dimensions as any).depth === 'number'
+        typeof dimensions.width === 'number' &&
+        typeof dimensions.height === 'number' &&
+        typeof dimensions.depth === 'number'
     )
 }
 
@@ -54,8 +54,8 @@ export function isEllipseDimensions(dimensions: unknown): dimensions is EllipseD
         dimensions !== null &&
         'xRadius' in dimensions &&
         'yRadius' in dimensions &&
-        typeof (dimensions as any).xRadius === 'number' &&
-        typeof (dimensions as any).yRadius === 'number'
+        typeof dimensions.xRadius === 'number' &&
+        typeof dimensions.yRadius === 'number'
     )
 }
 
@@ -64,6 +64,6 @@ export function isCircleDimensions(dimensions: unknown): dimensions is CircleDim
         typeof dimensions === 'object' &&
         dimensions !== null &&
         'radius' in dimensions &&
-        typeof (dimensions as any).radius === 'number'
+        typeof dimensions.radius === 'number'
     )
 }

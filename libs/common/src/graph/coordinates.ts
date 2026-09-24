@@ -63,8 +63,8 @@ export function isOffset(value: unknown): value is OffsetCoordinates {
         value !== null &&
         'col' in value &&
         'row' in value &&
-        typeof (value as any).col === 'number' &&
-        typeof (value as any).row === 'number'
+        typeof value.col === 'number' &&
+        typeof value.row === 'number'
     )
 }
 
@@ -83,8 +83,8 @@ export function isAxial(value: unknown): value is AxialCoordinates {
         value !== null &&
         'q' in value &&
         'r' in value &&
-        typeof (value as any).q === 'number' &&
-        typeof (value as any).r === 'number'
+        typeof value.q === 'number' &&
+        typeof value.r === 'number'
     )
 }
 
@@ -95,9 +95,9 @@ export function isCube(value: unknown): value is CubeCoordinates {
         'q' in value &&
         'r' in value &&
         's' in value &&
-        typeof (value as any).q === 'number' &&
-        typeof (value as any).r === 'number' &&
-        typeof (value as any).s === 'number'
+        typeof value.q === 'number' &&
+        typeof value.r === 'number' &&
+        typeof value.s === 'number'
     )
 }
 
