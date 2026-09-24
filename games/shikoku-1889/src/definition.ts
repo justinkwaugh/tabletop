@@ -1,5 +1,3 @@
-import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
-import { GAME_VERSION } from './version.js'
 import { Shikoku1889EndingRules } from './endingRules.js'
 import { Shikoku1889AuctionRules, createShikoku1889Opening } from './openingAuction.js'
 import { Shikoku1889TrainFundingRules } from './trainFundingRules.js'
@@ -16,6 +14,7 @@ import { Shikoku1889OperatingRules } from './roundRules.js'
 import { Shikoku1889CompanyRules } from './companyRules.js'
 import { Shikoku1889StockRules } from './stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
+import { Shikoku1889Info } from './info.js'
 import {
     createEighteenXXRuntime,
     type EighteenXXState,
@@ -44,20 +43,6 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules = {
 }
 
 export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
-    info: {
-        preferences: EighteenXXPreferenceDefinition,
-        id: 'shikoku-1889',
-        metadata: {
-            name: 'Shikoku 1889',
-            designer: 'Yasutaka Ikeda',
-            year: '',
-            description: 'Railway companies on Shikoku, with a prototype interface.',
-            minPlayers: 2,
-            maxPlayers: 6,
-            defaultPlayerCount: 3,
-            version: GAME_VERSION,
-            beta: true
-        }
-    },
+    info: Shikoku1889Info,
     runtime: createEighteenXXRuntime(Shikoku1889TitleRules)
 }

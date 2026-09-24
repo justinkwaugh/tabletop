@@ -2,6 +2,7 @@ export { TheOldPrinceTiles, TheOldPrinceTileSet } from './tiles.js'
 export { TheOldPrincePreprintedTiles } from './preprintedTiles.js'
 export { TheOldPrinceMap } from './map.js'
 export * from './peir.js'
+export { TheOldPrinceInfo } from './info.js'
 export { Definition, TheOldPrinceTitleRules } from './definition.js'
 
 export * from './stockRules.js'

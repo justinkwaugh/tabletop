@@ -1,10 +1,10 @@
 import coverImg from './images/top-cover.jpg'
-import { Definition } from '@tabletop/the-old-prince'
+import { TheOldPrinceInfo } from '@tabletop/the-old-prince'
 import type { GameUiDefinition } from '@tabletop/frontend-components'
 import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
 
 export const UiDefinition: GameUiDefinition<EighteenXXState, HydratedEighteenXXState> = {
-    info: { ...Definition.info, thumbnailUrl: coverImg },
+    info: { ...TheOldPrinceInfo, thumbnailUrl: coverImg },
     runtime: async () => (await import('./runtime.js')).UiRuntime
 }
 

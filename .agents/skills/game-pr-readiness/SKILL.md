@@ -5,7 +5,7 @@ description: Audit a tabletop game implementation for pull-request acceptance an
 
 # Game PR Readiness
 
-Perform a read-only, exhaustive gate review of one game's logic module and UI module. A single violation makes the result **NOT READY**. Finish all seven gates even after finding a failure; the report must contain every violation found, not merely representative examples.
+Perform a read-only, exhaustive gate review of one game's logic module and UI module. A single violation makes the result **NOT READY**. Finish all eight gates even after finding a failure; the report must contain every violation found, not merely representative examples.
 
 ## Establish scope
 
@@ -92,17 +92,25 @@ Review every applicable design area, including package and state boundaries, run
 
 Fail this gate for every violated invariant, missing required integration point, unresolved ambiguity that prevents the affected behavior from being proven, or applicable verification command that fails or cannot be completed. Treat recommendations as findings only when the authoritative guidance makes them required or the implementation causes a concrete architectural defect.
 
-Assign thumbnail violations to gate 2, `$effect` violations to gate 3, animation violations to gates 4 or 5, and changed-path violations to gate 6. Report their architectural impact in those gates without duplicating them in gate 7. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
+Assign thumbnail violations to gate 2, `$effect` violations to gate 3, animation violations to gates 4 or 5, changed-path violations to gate 6, and UI entry weight violations to gate 8. Report their architectural impact in those gates without duplicating them in gate 7. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
+
+### 8. Metadata-only UI entry
+
+The site imports every published title's UI entry (`index.js`) to list the library, on every signed-in page load, so each entry must stay **metadata-only**: `info` and the cover asset, with the game itself reached only through the `runtime()` dynamic import.
+
+In source, the module exporting `UiDefinition` builds `info` from the logic package's lightweight `<Title>Info` export (as `BridgesInfo` and `EstatesInfo` do), in a logic-package module whose imports are metadata only. Fail when it imports the logic package's `Definition`, or any other value whose module evaluates runtime construction such as `createEighteenXXRuntime(...)`, handlers, or the engine, even when only `.info` is read: that import carries the whole runtime into the entry chunk.
+
+Prove it in the built artifact. Run the UI package's `bundle` script, then follow the static `import`/`export … from` graph from `bundle/index.js`, excluding dynamic `import()`. Record the files and total bytes. Fail if that graph contains the chunk that `runtime()` imports, game components, or logic runtime code. For reference, lightweight entries measure from about 1 KB to 90 KB, while The Old Prince's pre-fix entry, which imported `Definition`, pulled in 501 KB.
 
 ## Report
 
 Return a self-contained Markdown report with:
 
 1. `READY` or `NOT READY`, the game, base ref, and merge-base commit;
-2. a seven-row gate summary with `PASS` or `FAIL` and violation count;
+2. an eight-row gate summary with `PASS` or `FAIL` and violation count;
 3. every violation, grouped by gate, with a stable ID such as `IMG-001` or `ANIM-003`;
 4. for each violation: file and line or asset path, observed evidence, violated rule, user-visible or deployment impact, and a concrete remediation;
-5. verification details for passing gates, including the searches/files examined and image/title dimensions;
+5. verification details for passing gates, including the searches/files examined, image/title dimensions, and the UI entry's static graph files and bytes;
 6. strong recommendations in a separate non-blocking section, excluded from gate violation counts and the readiness verdict;
 7. an uncertainty section. Any unresolved uncertainty that prevents proving a gate passes makes that gate fail.
 
