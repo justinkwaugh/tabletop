@@ -7,7 +7,9 @@ import {
     Notification,
     NotificationCategory,
     type UserNotification,
-    UserNotificationAction
+    UserNotificationAction,
+    type IsYourTurnNotification,
+    isYourTurnNotification
 } from '@tabletop/common'
 
 const sw = self as unknown as ServiceWorkerGlobalScope
@@ -24,6 +26,9 @@ sw.addEventListener('push', async (event) => {
     }
     try {
         const pushData = pushEvent.data.json() as Notification
+        if (isYourTurnNotification(pushData)) {
+            event.waitUntil(forwardToWindows(pushData))
+        }
         const { title, options } = (await generateLocalNotification(pushData)) || {}
         if (title && options) {
             event.waitUntil(sw.registration.showNotification(title, options))
@@ -102,7 +107,16 @@ async function generateLocalNotification(
     }
 }
 
+async function forwardToWindows(notification: IsYourTurnNotification) {
+    const windows = await findWindows()
+    windows.forEach((client) => client.postMessage(notification))
+}
+
 async function findGameWindows(url: string) {
-    const clients = await sw.clients.matchAll({ includeUncontrolled: true, type: 'window' })
-    return Array.from(clients).filter((client) => client.url.includes(url))
+    const windows = await findWindows()
+    return windows.filter((client) => client.url.includes(url))
+}
+
+async function findWindows() {
+    return sw.clients.matchAll({ includeUncontrolled: true, type: 'window' })
 }

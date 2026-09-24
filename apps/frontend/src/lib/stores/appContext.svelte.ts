@@ -45,6 +45,7 @@ const gameService = new GameService(libraryService, authorizationService, notifi
 const appContext: AppContext & {
     catalogService: CatalogService
     authorizationService: AuthorizationService
+    gameService: GameService
 } = {
     catalogService: new CatalogService(api),
     manifestService,

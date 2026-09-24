@@ -2,7 +2,7 @@
     import { Card, Hr, Button, Modal, Spinner, type ButtonProps } from 'flowbite-svelte'
     import { LinkOutline } from 'flowbite-svelte-icons'
     import { assertExists, Game, GameStatus, PlayerStatus, GameResult } from '@tabletop/common'
-    import { isUsersGameTurn } from '$lib/utils/dashboardGames'
+    import { isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
@@ -116,7 +116,7 @@
             myPlayer?.status === PlayerStatus.Joined
     )
 
-    let isMyTurn = $derived(!game.hotseat && isUsersGameTurn(game, sessionUser?.id))
+    let isMyTurn = $derived(isUsersNonHotseatTurn(game, sessionUser?.id))
 
     let openSeats = $derived(
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)

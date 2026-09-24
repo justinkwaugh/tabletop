@@ -29,13 +29,14 @@ import {
     GameForkError,
     GameStorage,
     GameCategory,
-    PlayerStatus
+    PlayerStatus,
+    isYourTurnNotification
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
-import { isUsersGameTurn } from '$lib/utils/dashboardGames'
+import { isUsersGameTurn, isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
 import type { LibraryService } from './libraryService.svelte'
@@ -124,6 +125,14 @@ export class GameService implements GameServiceInterface {
     ) {
         notificationService.addListener(this.NotificationListener)
         this.localGameStore = new IndexedDbGameStore()
+    }
+
+    isSessionUsersTurn(gameId: string): boolean {
+        const game = this.gamesById.get(gameId)
+        return (
+            game !== undefined &&
+            isUsersNonHotseatTurn(game, this.authorizationService.getSessionUser()?.id)
+        )
     }
 
     async hasActiveGames() {
@@ -447,6 +456,10 @@ export class GameService implements GameServiceInterface {
     private NotificationListener = async (event: NotificationEvent) => {
         if (isDataEvent(event)) {
             const notification = event.notification
+            if (isYourTurnNotification(notification)) {
+                await this.loadGames()
+                return
+            }
             if (!this.isGameNotification(notification)) {
                 return
             }
