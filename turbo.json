@@ -34,12 +34,40 @@
         "dev": {
             "dependsOn": ["^build"],
             "cache": false,
-            "persistent": true
+            "persistent": true,
+            "passThroughEnv": [
+                "BACKEND_VERSION",
+                "BUILD_TIME",
+                "BUILD_TIMESTAMP",
+                "COMMIT_SHA",
+                "FRONTEND_VERSION",
+                "GAME_LOGIC_ROOT",
+                "GIT_SHA",
+                "K_REVISION",
+                "LOCAL_GAME_HISTORY_DELAY_MS",
+                "REQUEST_TIMINGS_ENABLED",
+                "SITE_MANIFEST_PATH",
+                "VAPID_ADMIN_EMAIL"
+            ]
         },
         "start": {
             "dependsOn": ["^build"],
             "cache": false,
-            "persistent": true
+            "persistent": true,
+            "passThroughEnv": [
+                "BACKEND_VERSION",
+                "BUILD_TIME",
+                "BUILD_TIMESTAMP",
+                "COMMIT_SHA",
+                "FRONTEND_VERSION",
+                "GAME_LOGIC_ROOT",
+                "GIT_SHA",
+                "K_REVISION",
+                "LOCAL_GAME_HISTORY_DELAY_MS",
+                "REQUEST_TIMINGS_ENABLED",
+                "SITE_MANIFEST_PATH",
+                "VAPID_ADMIN_EMAIL"
+            ]
         },
         "clean": {
             "dependsOn": ["^clean"],
@@ -51,7 +79,7 @@
         },
         "test": {
             "dependsOn": ["^test"],
-            "env": ["FIRESTORE_EMULATOR_HOST", "CACHE_TEST_REDIS_HOST"],
+            "env": ["FIRESTORE_EMULATOR_HOST", "CACHE_TEST_REDIS_HOST", "CACHE_TEST_REDIS_PORT"],
             "cache": false
         },
         "docker-build": {
