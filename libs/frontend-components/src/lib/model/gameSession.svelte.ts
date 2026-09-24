@@ -4,8 +4,9 @@ import * as Value from 'typebox/value'
 import {
     type TitlePreferenceDefinition,
     ActionSource,
-    checkDeclaredSupersede,
-    findSupersededAction,
+    findStandingAction,
+    replaceSupersededAction,
+    unnamedDuplicateReason,
     isSupersedableActionType,
     isOutOfTurnActionType,
     Game,
@@ -1073,36 +1074,46 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     // This will only be triggered by the UI and as such we can use the current context
     // internally, rather than having to pass it in.  No server generated actions go through
     // here.
-    supersededAction(type: string): GameAction | undefined {
-        const playerId = this.myPlayer?.id
-        return playerId === undefined || !isSupersedableActionType(this.runtime.apiActions, type)
-            ? undefined
-            : findSupersededAction(this.currentModifiableContext.actions, { playerId, type })
+    withSupersededAction(action: GameAction): GameAction {
+        const context = this.currentModifiableContext
+        if (!isSupersedableActionType(this.runtime.apiActions, action.type)) return action
+        const standing = findStandingAction(context.actions, action)
+        if (!standing) return action
+        const named = { ...action, supersedesActionId: standing.id }
+        const outcome = replaceSupersededAction({
+            engine: context.engine,
+            apiActions: this.runtime.apiActions,
+            game: context.game,
+            state: context.state,
+            window: context.actions.slice(context.actions.indexOf(standing)),
+            replacement: named
+        })
+        return outcome.kind === 'replace' ? named : action
     }
 
-    private replacementSucceedsWithoutTail(
-        context: GameContext<T, U>,
-        action: GameAction
-    ): boolean {
-        const declared = checkDeclaredSupersede(this.runtime.apiActions, context.actions, action)
-        if (declared.kind === 'invalid') throw new Error(declared.reason)
-        if (declared.kind === 'none') return false
-        const superseded = declared.superseded
-        try {
-            const previous = context.engine.undoProcessedAction({
-                action: superseded,
-                state: context.state
-            })
-            this.executeActionInGame(
-                { ...action, index: undefined },
-                structuredClone(context.game),
-                previous,
-                this.projectedExecutionPerspective(context)
-            )
-            return true
-        } catch {
-            return false
+    private reverseSupersededAction(context: GameContext<T, U>, action: GameAction): void {
+        const apiActions = this.runtime.apiActions
+        if (action.supersedesActionId === undefined) {
+            const duplicate = unnamedDuplicateReason(apiActions, context.actions, action)
+            if (duplicate) throw new Error(duplicate)
+            return
         }
+        const position = context.actions.findIndex(
+            (candidate) => candidate.id === action.supersedesActionId
+        )
+        if (position < 0) throw new Error('The Action it replaces is not in Action History')
+        const window = context.actions.slice(position)
+        const outcome = replaceSupersededAction({
+            engine: context.engine,
+            apiActions,
+            game: context.game,
+            state: context.state,
+            window,
+            replacement: action
+        })
+        if (outcome.kind === 'invalid') throw new Error(outcome.reason)
+        for (const _ of window) context.undoLastAction()
+        context.applyActionResults(new GameActionResults(outcome.redone, outcome.state))
     }
 
     async applyAction(action: GameAction) {
@@ -1124,10 +1135,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         const priorContext = relevantContext.clone()
         if (
             relevantContext.game.storage === GameStorage.Local &&
-            !this.usesHostExecution(relevantContext) &&
-            this.replacementSucceedsWithoutTail(relevantContext, action)
+            !this.usesHostExecution(relevantContext)
         ) {
-            relevantContext.undoLastAction()
+            this.reverseSupersededAction(relevantContext, action)
         }
 
         const gameSnapshot = structuredClone(relevantContext.game)

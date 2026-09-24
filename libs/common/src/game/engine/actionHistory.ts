@@ -36,7 +36,7 @@ export function isSupersedableActionType(
     return hasRequiredTrueLiteral(apiActions[type], 'supersedable')
 }
 
-export function findSupersededAction(
+export function standingActionAtTail(
     recentActions: readonly GameAction[],
     declaration: Pick<GameAction, 'playerId' | 'type'>
 ): GameAction | undefined {
@@ -48,32 +48,26 @@ export function findSupersededAction(
         : undefined
 }
 
-export type DeclaredSupersede =
-    | { kind: 'none' }
-    | { kind: 'replace'; superseded: GameAction }
-    | { kind: 'invalid'; reason: string }
+export function findStandingAction(
+    actions: readonly GameAction[],
+    declaration: Pick<GameAction, 'playerId' | 'type'>
+): GameAction | undefined {
+    return actions.findLast(
+        (action) =>
+            action.source === ActionSource.User &&
+            action.playerId === declaration.playerId &&
+            action.type === declaration.type
+    )
+}
 
-export function checkDeclaredSupersede(
+export function unnamedDuplicateReason(
     apiActions: Readonly<Record<string, Type.TSchema>>,
     recentActions: readonly GameAction[],
     action: GameAction
-): DeclaredSupersede {
-    if (!isSupersedableActionType(apiActions, action.type))
-        return action.supersedesActionId === undefined
-            ? { kind: 'none' }
-            : { kind: 'invalid', reason: `Actions of type ${action.type} cannot supersede` }
-    const standing = findSupersededAction(recentActions, action)
-    if (action.supersedesActionId === undefined)
-        return standing
-            ? {
-                  kind: 'invalid',
-                  reason: 'A declaration of this type already stands and must be named to be replaced'
-              }
-            : { kind: 'none' }
-    return standing?.id === action.supersedesActionId
-        ? { kind: 'replace', superseded: standing }
-        : {
-              kind: 'invalid',
-              reason: 'The declaration being replaced is no longer the latest Action'
-          }
+): string | undefined {
+    if (action.supersedesActionId !== undefined) return undefined
+    if (!isSupersedableActionType(apiActions, action.type)) return undefined
+    return standingActionAtTail(recentActions, action)
+        ? 'a declaration of this type already stands and must be named to be replaced'
+        : undefined
 }

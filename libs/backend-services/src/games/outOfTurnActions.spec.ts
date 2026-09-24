@@ -248,7 +248,20 @@ describe('Out-of-turn Actions on the host', () => {
         expect(Reflect.get(host.state(), 'notes')).toEqual({ p3: 'first' })
     })
 
-    it('appends rather than supersedes once another Action follows the declaration', async () => {
+    it('replaces a declaration farther back when the Actions after it did not depend on it', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        await host.apply(host.note('n1', 'p3', 'first'))
+        await host.apply(host.step('s2', 'p2'))
+        expect(host.summary()).toEqual(['0:s1', '1:n1', '2:s2'])
+        await host.apply(host.note('n2', 'p3', 'second', 3, 'n1'))
+        expect(vi.mocked(host.store.undoActionsFromGame)).toHaveBeenCalledTimes(1)
+        expect(host.summary()).toEqual(['0:s1', '1:s2', '2:n2'])
+        expect(Reflect.get(host.state(), 'notes')).toEqual({ p3: 'second' })
+        expect(host.state().activePlayerIds).toEqual(['p3'])
+    })
+
+    it('appends an unnamed declaration once another Action follows the standing one', async () => {
         const host = createHost()
         await host.apply(host.step('s1', 'p1'))
         await host.apply(host.note('n1', 'p3', 'first'))
@@ -256,9 +269,6 @@ describe('Out-of-turn Actions on the host', () => {
         await host.apply(host.note('n2', 'p3', 'second', 1))
         expect(vi.mocked(host.store.undoActionsFromGame)).not.toHaveBeenCalled()
         expect(host.summary()).toEqual(['0:s1', '1:n1', '2:s2', '3:n2'])
-        await expect(host.apply(host.note('n3', 'p3', 'third', 4, 'n1'))).rejects.toBeInstanceOf(
-            DisallowedActionError
-        )
     })
 
     it('does not let a declaration block another Player’s Undo and re-applies it afterwards', async () => {

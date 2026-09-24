@@ -63,12 +63,13 @@ a replacement names the unconsumed declaration it supersedes, which the Game
 Client looks up at the tail of history when composing it, and the host or Local
 Game reverses that declaration before applying the replacement, so repeated
 toggling cannot grow the Canonical Action History; growth is bounded by real
-actions interleaved between toggles. A declaration the machine has already acted
-on is no longer the last action, so it can never be named, and the replacement
-is validated against the reversed state before the reversal is persisted, so an
-invalid replacement such as clearing at the tail leaves history intact and is
-rejected. An unnamed duplicate while a declaration still stands is rejected
-too.
+actions interleaved between toggles. The named declaration may sit anywhere in
+history: the replay check reverses it, re-executes every later action, and
+rejects the replacement if any later cascade changes, which is exactly what
+happens when the machine has already acted on the declaration. Nothing is
+persisted before that check passes, so an invalid replacement such as clearing
+at the tail leaves history intact and is rejected. An unnamed duplicate while a
+declaration still stands at the tail is rejected too.
 
 `@tabletop/18xx` records a `StandingStockInstruction` per player in
 `stockRound.instructions`: the instruction (pass, or buy company from pool until

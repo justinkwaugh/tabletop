@@ -82,7 +82,7 @@ A User Action whose registered schema requires the literal `outOfTurn: true`. Th
 _Avoid_: Background Action, Programmed Action
 
 **Supersedable Action**:
-A User Action whose registered schema requires the literal `supersedable: true`. A later Action of the same type by the same Player may name it in `supersedesActionId`, and the host or Local Game reverses the named Action before applying the replacement, provided the named Action is still the latest Processed Action. An unnamed Action of a supersedable type is rejected while such an Action stands at the tail.
+A User Action whose registered schema requires the literal `supersedable: true`. A later Action of the same type by the same Player may name it in `supersedesActionId`; the host or Local Game reverses the named Action and re-executes the Actions after it, honouring the replacement only when every later Action replays unchanged, which proves no later Action depended on it. An unnamed Action of a supersedable type is rejected while such an Action stands at the tail.
 _Avoid_: Replaceable Action, Amendment
 
 **Simultaneous Action Group**:

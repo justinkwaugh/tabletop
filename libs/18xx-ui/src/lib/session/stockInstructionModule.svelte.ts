@@ -156,14 +156,14 @@ export class StockInstructionModule {
 
     private async set(instruction: StockInstruction | undefined) {
         assert(this.canDeclare, 'Standing instructions are unavailable')
-        const superseded = this.session.supersededAction(SetStockInstruction.properties.type.const)
         await this.session.applyAction(
-            this.session.createPlayerAction(SetStockInstruction, {
-                outOfTurn: true,
-                supersedable: true,
-                ...(superseded ? { supersedesActionId: superseded.id } : {}),
-                ...(instruction ? { instruction } : {})
-            })
+            this.session.withSupersededAction(
+                this.session.createPlayerAction(SetStockInstruction, {
+                    outOfTurn: true,
+                    supersedable: true,
+                    ...(instruction ? { instruction } : {})
+                })
+            )
         )
     }
 }

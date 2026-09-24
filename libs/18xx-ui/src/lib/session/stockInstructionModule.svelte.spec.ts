@@ -349,7 +349,8 @@ describe('replacing a declaration', () => {
             instruction: { kind: 'pass' }
         }
         const { module, applied } = harness(['SetStockInstruction'], {
-            recordedActions: [standing]
+            recordedActions: [standing],
+            supersedes: 'standing'
         })
         await module.declarePass()
         expect(applied[0].supersedesActionId).toBe('standing')

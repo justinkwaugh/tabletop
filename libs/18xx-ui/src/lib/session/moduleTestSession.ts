@@ -1,4 +1,4 @@
-import { createAction, findSupersededAction, type GameAction } from '@tabletop/common'
+import { createAction, type GameAction } from '@tabletop/common'
 import type { ModuleSession } from './moduleSession.js'
 
 export function testSession<State, Rules>(
@@ -13,6 +13,7 @@ export function testSession<State, Rules>(
         viewingAsNonActivePlayer?: boolean
         actingPlayerIds?: string[]
         recordedActions?: GameAction[]
+        supersedes?: string
     } = {}
 ) {
     const applied: GameAction[] = []
@@ -30,11 +31,10 @@ export function testSession<State, Rules>(
         actingPlayerIds: availability.actingPlayerIds ?? ['alex'],
         canActFor: (playerId) => (availability.actingPlayerIds ?? ['alex']).includes(playerId),
         recordedActions: availability.recordedActions ?? [],
-        supersededAction: (type) =>
-            findSupersededAction(availability.recordedActions ?? [], {
-                playerId: 'alex',
-                type
-            }),
+        withSupersededAction: (action) =>
+            availability.supersedes
+                ? { ...action, supersedesActionId: availability.supersedes }
+                : action,
         settled: async () => {},
         createPlayerAction: (schema, data) =>
             Object.assign(createAction(schema, data), {

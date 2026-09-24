@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, replaceSupersededAction, type GameAction } from '@tabletop/common'
 import {
     evaluateSharePurchase,
     evaluateShareSale,
@@ -14,7 +14,7 @@ import {
     type StockInstruction
 } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
-import { Shikoku1889StockRules } from './index.js'
+import { Definition as Shikoku, Shikoku1889StockRules } from './index.js'
 import { Shikoku1889Scenarios } from './scenarios/index.js'
 
 function setInstruction(
@@ -345,4 +345,42 @@ it('offers the declaration to a waiting player as their only valid action', () =
     expect(engine.getValidActionTypesForPlayer(game, state, 'alex')).toContain(
         'SetStockInstruction'
     )
+})
+
+it('refuses to replace a declaration the machine has already acted on', () => {
+    const { game, engine, state } = exampleGame(Shikoku1889Scenarios, 'trading')
+    const declared = engine.executeCanonicalAction({
+        game,
+        state,
+        action: setInstruction(game.id, 'blair', { kind: 'pass' })
+    })
+    const finished = engine.executeCanonicalAction({
+        game,
+        state: declared.updatedState,
+        action: finishTurn(game.id, 'alex')
+    })
+    const window = [...declared.processedActions, ...finished.processedActions]
+    const replacement = {
+        ...setInstruction(game.id, 'blair', { kind: 'pass' }),
+        id: 'blair-again',
+        supersedesActionId: declared.processedActions[0].id
+    }
+    const consumed = replaceSupersededAction({
+        engine,
+        apiActions: Shikoku.runtime.apiActions,
+        game,
+        state: finished.updatedState,
+        window,
+        replacement
+    })
+    expect(consumed.kind).toBe('invalid')
+    const unconsumed = replaceSupersededAction({
+        engine,
+        apiActions: Shikoku.runtime.apiActions,
+        game,
+        state: declared.updatedState,
+        window: declared.processedActions,
+        replacement
+    })
+    expect(unconsumed.kind).toBe('replace')
 })

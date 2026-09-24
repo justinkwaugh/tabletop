@@ -12,8 +12,9 @@ import {
     createGameFork,
     GameForkError,
     findLast,
-    checkDeclaredSupersede,
     isSupersedableActionType,
+    replaceSupersededAction,
+    unnamedDuplicateReason,
     findPlayerForUserId,
     Game,
     GameAction,
@@ -1115,58 +1116,57 @@ export class GameService {
         const state = game.state
         assertExists(state, 'Superseding requires current Game State')
         const apiActions = definition.runtime.apiActions
-        if (
-            action.supersedesActionId === undefined &&
-            !isSupersedableActionType(apiActions, action.type)
-        )
+        const disallowed = (reason: string) =>
+            new DisallowedActionError({ gameId: game.id, actionId: action.id, reason })
+        if (action.supersedesActionId === undefined) {
+            if (!isSupersedableActionType(apiActions, action.type)) return { ...game, state }
+            const lastActions =
+                state.actionCount === 0
+                    ? []
+                    : await this.gameStore.readGameData(game.id, (reader) =>
+                          reader.actionRange(state.actionCount - 1, state.actionCount)
+                      )
+            const duplicate = unnamedDuplicateReason(apiActions, lastActions ?? [], action)
+            if (duplicate) throw disallowed(duplicate)
             return { ...game, state }
-        const lastActions =
-            state.actionCount === 0
-                ? []
-                : await this.gameStore.readGameData(game.id, (reader) =>
-                      reader.actionRange(state.actionCount - 1, state.actionCount)
-                  )
-        const declared = checkDeclaredSupersede(apiActions, lastActions ?? [], action)
-        if (declared.kind === 'invalid')
-            throw new DisallowedActionError({
-                gameId: game.id,
-                actionId: action.id,
-                reason: declared.reason
-            })
-        if (declared.kind === 'none') return { ...game, state }
-        const { superseded } = declared
-        if (!this.replacementIsValid(definition, game, state, superseded, action))
-            throw new DisallowedActionError({
-                gameId: game.id,
-                actionId: action.id,
-                reason: 'it is not valid once the declaration it replaces is reversed'
-            })
-        await this.undoAction({ user, definition, gameId: game.id, actionId: superseded.id })
+        }
+        const supersedesActionId = action.supersedesActionId
+        const data = await this.gameStore.readGameData(game.id, async (reader) => ({
+            undoWindow: await reader.undoWindow(supersedesActionId)
+        }))
+        const undoWindow = data?.undoWindow
+        const targetPosition =
+            undoWindow?.actions.findIndex((candidate) => candidate.id === supersedesActionId) ?? -1
+        if (!undoWindow || targetPosition < 0)
+            throw disallowed('the Action it replaces is not in Action History')
+        const window = undoWindow.actions.slice(targetPosition)
+        const gameEngine = new GameEngine(definition.runtime)
+        const outcome = replaceSupersededAction({
+            engine: gameEngine,
+            apiActions,
+            game,
+            state,
+            window,
+            replacement: action
+        })
+        if (outcome.kind === 'invalid') throw disallowed(outcome.reason)
+        await this.persistReversal({
+            definition,
+            gameId: game.id,
+            user,
+            actionToUndo: window[0],
+            startIndex: undoWindow.startIndex,
+            retainedActions: undoWindow.actions.slice(0, targetPosition),
+            actions: window,
+            redoneActions: outcome.redone,
+            updatedState: outcome.state,
+            priorActionCount: state.actionCount,
+            priorChecksum: state.actionChecksum
+        })
         const reloaded = await this.getGame({ gameId: game.id, withState: true })
         const reloadedState = reloaded?.state
         if (!reloaded || !reloadedState) throw new GameNotFoundError({ id: game.id })
         return { ...reloaded, state: reloadedState }
-    }
-
-    private replacementIsValid(
-        definition: GameDefinition,
-        game: Game,
-        state: GameState,
-        superseded: GameAction,
-        replacement: GameAction
-    ): boolean {
-        const gameEngine = new GameEngine(definition.runtime)
-        try {
-            const previous = gameEngine.undoProcessedAction({ action: superseded, state })
-            gameEngine.executeCanonicalAction({
-                action: { ...structuredClone(replacement), index: undefined },
-                state: previous,
-                game
-            })
-            return true
-        } catch {
-            return false
-        }
     }
 
     @Timed('game.undoAction')
@@ -1312,10 +1312,48 @@ export class GameService {
             gameState = updatedState
         }
 
-        // store the updated state
-        const updatedState = gameState
-        measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
+        return this.persistReversal({
+            definition,
+            gameId,
+            user,
+            actionToUndo,
+            startIndex: undoWindow.startIndex,
+            retainedActions,
+            actions,
+            redoneActions,
+            updatedState: gameState,
+            priorActionCount,
+            priorChecksum
+        })
+    }
 
+    private async persistReversal({
+        definition,
+        gameId,
+        user,
+        actionToUndo,
+        startIndex,
+        retainedActions,
+        actions,
+        redoneActions,
+        updatedState,
+        priorActionCount,
+        priorChecksum
+    }: {
+        definition: GameDefinition
+        gameId: string
+        user: User
+        actionToUndo: GameAction
+        startIndex: number
+        retainedActions: GameAction[]
+        actions: GameAction[]
+        redoneActions: GameAction[]
+        updatedState: GameState
+        priorActionCount: number
+        priorChecksum: number
+    }): Promise<UndoResultsRepresentation> {
+        const gameEngine = new GameEngine(definition.runtime)
+        measureSync('engine.validate', () => gameEngine.validateCanonicalState(updatedState))
         const {
             undoneActions,
             updatedGame,
@@ -1368,7 +1406,7 @@ export class GameService {
         })
         const replayActions = [...retainedActions, ...processedRedoneActions]
         const actionReplay = {
-            startIndex: undoWindow.startIndex,
+            startIndex,
             actions: replayActions.map((action) => structuredClone(action))
         }
         const representation = measureSync('projection.response.undo', () =>
