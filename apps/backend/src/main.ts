@@ -75,7 +75,8 @@ if (service === 'backend') {
         createHttpApp,
         {
             logger: true,
-            ajv: visibilitySchemaValidationOptions
+            ajv: visibilitySchemaValidationOptions,
+            pluginTimeout: 20000
         } as FastifyHttpOptions<http.Server>,
         Fastify
     )
