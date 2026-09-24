@@ -66,8 +66,15 @@ export abstract class StateAnimator<
     }
 }
 
+// The lifecycle the attach helpers drive. Picked from StateAnimator so any animator fits,
+// whatever its game's state types (the full class type is invariant in them).
+type AttachableAnimator = Pick<
+    StateAnimator<GameState, HydratedGameState, GameSession<GameState, HydratedGameState>>,
+    'setElement' | 'onAttach' | 'onDetach' | 'register' | 'unregister'
+>
+
 export function attachAnimator(
-    animator: StateAnimator<any, any, any>
+    animator: AttachableAnimator
 ): (element: HTMLElement | SVGElement) => () => void {
     return (element: HTMLElement | SVGElement) => {
         animator.setElement(element)
