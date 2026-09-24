@@ -81,6 +81,10 @@ An Action attributed to a particular Player, regardless of whether its origin is
 A User Action whose registered schema requires the literal `outOfTurn: true`. The Game Runtime accepts it from any seated Player without regard to the Active Players or the current Action count, and its Machine State Handler alone decides validity. It records a standing declaration whose later consequences arrive as System Actions; it does not itself take a turn.
 _Avoid_: Background Action, Programmed Action
 
+**Supersedable Action**:
+A User Action whose registered schema requires the literal `supersedable: true`. A later Action of the same type by the same Player may name it in `supersedesActionId`, and the host or Local Game reverses the named Action before applying the replacement, provided the named Action is still the latest Processed Action. An unnamed Action of a supersedable type is rejected while such an Action stands at the tail.
+_Avoid_: Replaceable Action, Amendment
+
 **Simultaneous Action Group**:
 A set of Actions that participants may prepare independently from the same starting Game State. A member may remain valid after other members have been processed, but not after an unrelated Action.
 

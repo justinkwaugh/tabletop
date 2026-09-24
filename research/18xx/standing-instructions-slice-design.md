@@ -58,16 +58,17 @@ candidate, does not treat it as another player's blocking action, and reapplies
 it after reversing a suffix that contained it. When asked for a non-active
 player's valid actions, the engine consults the handler and reports only that
 player's out-of-turn types, which is how the Game Client learns a waiting
-player may declare. The backend supersedes the same
-player's latest unconsumed declaration of the same type at the tail of history
-before applying a replacement, so repeated toggling cannot grow the Canonical
-Action History; growth is bounded by real actions interleaved between toggles.
-Supersede applies only while the declaration is the last action, so a
-declaration the machine has already acted on is never reversed, and the host
-validates the replacement against the reversed state before persisting the
-reversal, so an invalid replacement such as clearing at the tail leaves history
-intact and fails as an ordinary invalid action. Local games supersede in the
-Game Client the same way.
+player may declare. The declaration is also a Supersedable Action (ADR 0008):
+a replacement names the unconsumed declaration it supersedes, which the Game
+Client looks up at the tail of history when composing it, and the host or Local
+Game reverses that declaration before applying the replacement, so repeated
+toggling cannot grow the Canonical Action History; growth is bounded by real
+actions interleaved between toggles. A declaration the machine has already acted
+on is no longer the last action, so it can never be named, and the replacement
+is validated against the reversed state before the reversal is persisted, so an
+invalid replacement such as clearing at the tail leaves history intact and is
+rejected. An unnamed duplicate while a declaration still stands is rejected
+too.
 
 `@tabletop/18xx` records a `StandingStockInstruction` per player in
 `stockRound.instructions`: the instruction (pass, or buy company from pool until
@@ -139,7 +140,7 @@ title and a republished Site Frontend for the supersede and undo behavior.
 
 - Common: `outOfTurnAction.spec.ts` (accepted from a non-active player, stale
   index tolerated, marker rejected on undeclared types) and
-  `actionHistory.spec.ts` (supersede lookup).
+  `actionHistory.spec.ts` (supersede lookup and declared-replacement checks).
 - 1889: `standingInstructions.spec.ts` covers out-of-turn declaration, automatic
   pass on the next turn with undo restoring the declared state, automatic
   purchase with the follow-up pass, a stop after another player's sale, immediate

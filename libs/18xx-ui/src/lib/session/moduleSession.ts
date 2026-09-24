@@ -18,6 +18,7 @@ export interface ModuleSession<State, Rules> {
     canActFor(playerId: string): boolean
     readonly recordedActions: readonly GameAction[]
     settled(): Promise<void>
+    supersededAction(type: string): GameAction | undefined
     createPlayerAction: BaseSession['createPlayerAction']
     applyAction: BaseSession['applyAction']
 }

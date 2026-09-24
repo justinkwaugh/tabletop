@@ -31,6 +31,7 @@ it('skips turn completion while retaining a player pass as a history stop', () =
         source: ActionSource.User,
         type: 'SetStockInstruction',
         outOfTurn: true,
+        supersedable: true,
         instruction: { kind: 'pass' }
     }
     expect(isHistoryBookkeeping(instruction)).toBe(true)

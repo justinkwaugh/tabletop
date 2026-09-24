@@ -18,7 +18,7 @@ import {
     type Step
 } from './tests/syntheticGame.js'
 import { GameService } from './gameService.js'
-import { DisallowedUndoError } from './errors.js'
+import { DisallowedActionError, DisallowedUndoError } from './errors.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { UserService } from '../users/userService.js'
@@ -185,15 +185,23 @@ function createHost() {
         playerId,
         index: state.actionCount
     })
-    const note = (id: string, playerId: string, text: string, index = state.actionCount): Note => ({
+    const note = (
+        id: string,
+        playerId: string,
+        text: string,
+        index = state.actionCount,
+        supersedesActionId?: string
+    ): Note => ({
         id,
         gameId: game.id,
         type: 'note',
         source: ActionSource.User,
         playerId,
         outOfTurn: true,
+        supersedable: true,
         text,
-        index
+        index,
+        ...(supersedesActionId ? { supersedesActionId } : {})
     })
     const apply = (action: GameAction) =>
         service.applyActionToGame({ definition: Definition, action, user: user(action.playerId!) })
@@ -204,7 +212,7 @@ function createHost() {
 }
 
 describe('Out-of-turn Actions on the host', () => {
-    it('accepts a declaration from a waiting Player and supersedes a repeated one', async () => {
+    it('accepts a declaration from a waiting Player and replaces the one it names', async () => {
         const host = createHost()
         await host.apply(host.step('s1', 'p1'))
         expect(host.state().activePlayerIds).toEqual(['p2'])
@@ -213,7 +221,14 @@ describe('Out-of-turn Actions on the host', () => {
         expect(host.state().activePlayerIds).toEqual(['p2'])
 
         const undo = vi.mocked(host.store.undoActionsFromGame)
-        const replaced = await host.apply(host.note('n2', 'p3', 'second', 2))
+        await expect(host.apply(host.note('dup', 'p3', 'unnamed', 2))).rejects.toBeInstanceOf(
+            DisallowedActionError
+        )
+        await expect(host.apply(host.note('stale', 'p3', 'stale', 2, 's1'))).rejects.toBeInstanceOf(
+            DisallowedActionError
+        )
+        expect(undo).not.toHaveBeenCalled()
+        const replaced = await host.apply(host.note('n2', 'p3', 'second', 2, 'n1'))
         expect(undo).toHaveBeenCalledTimes(1)
         expect(host.summary()).toEqual(['0:s1', '1:n2'])
         expect(replaced.actions.map((action) => action.index)).toEqual([1])
@@ -225,7 +240,9 @@ describe('Out-of-turn Actions on the host', () => {
         const host = createHost()
         await host.apply(host.step('s1', 'p1'))
         await host.apply(host.note('n1', 'p3', 'first'))
-        await expect(host.apply(host.note('n2', 'p3', 'invalid', 2))).rejects.toThrow()
+        await expect(host.apply(host.note('n2', 'p3', 'invalid', 2, 'n1'))).rejects.toBeInstanceOf(
+            DisallowedActionError
+        )
         expect(vi.mocked(host.store.undoActionsFromGame)).not.toHaveBeenCalled()
         expect(host.summary()).toEqual(['0:s1', '1:n1'])
         expect(Reflect.get(host.state(), 'notes')).toEqual({ p3: 'first' })
@@ -239,6 +256,9 @@ describe('Out-of-turn Actions on the host', () => {
         await host.apply(host.note('n2', 'p3', 'second', 1))
         expect(vi.mocked(host.store.undoActionsFromGame)).not.toHaveBeenCalled()
         expect(host.summary()).toEqual(['0:s1', '1:n1', '2:s2', '3:n2'])
+        await expect(host.apply(host.note('n3', 'p3', 'third', 4, 'n1'))).rejects.toBeInstanceOf(
+            DisallowedActionError
+        )
     })
 
     it('does not let a declaration block another Player’s Undo and re-applies it afterwards', async () => {

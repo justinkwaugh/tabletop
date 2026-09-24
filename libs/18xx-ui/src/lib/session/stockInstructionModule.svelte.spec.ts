@@ -246,6 +246,7 @@ describe('last stop', () => {
     const declaredBuy = action({
         type: 'SetStockInstruction',
         outOfTurn: true,
+        supersedable: true,
         instruction: {
             kind: 'buy',
             companyId: TestCompanyId,
@@ -284,7 +285,7 @@ describe('last stop', () => {
     })
 
     it('forgets the stop once I declare again, clear, or the round ends', () => {
-        const cleared = action({ type: 'SetStockInstruction', outOfTurn: true })
+        const cleared = action({ type: 'SetStockInstruction', outOfTurn: true, supersedable: true })
         expect(
             harness(['SetStockInstruction'], { recordedActions: [declaredBuy, stopped, cleared] })
                 .module.lastStop
@@ -332,5 +333,28 @@ describe('hotseat play', () => {
             }).module.available
         ).toBe(true)
         expect(harness(['SetStockInstruction']).module.available).toBe(true)
+    })
+})
+
+describe('replacing a declaration', () => {
+    it('names the standing declaration it replaces', async () => {
+        const standing = {
+            id: 'standing',
+            gameId: 'game',
+            type: 'SetStockInstruction',
+            source: ActionSource.User,
+            playerId: TestPlayerId,
+            outOfTurn: true,
+            supersedable: true,
+            instruction: { kind: 'pass' }
+        }
+        const { module, applied } = harness(['SetStockInstruction'], {
+            recordedActions: [standing]
+        })
+        await module.declarePass()
+        expect(applied[0].supersedesActionId).toBe('standing')
+        const { module: fresh, applied: freshApplied } = harness()
+        await fresh.declarePass()
+        expect(freshApplied[0].supersedesActionId).toBeUndefined()
     })
 })

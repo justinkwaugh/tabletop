@@ -1,0 +1,5 @@
+# Supersedable Actions replace a standing declaration in place
+
+A Game Title may declare an Action type as supersedable by requiring the literal `supersedable: true` in its registered Action schema. A new Action of that type may name, in `supersedesActionId`, the Processed Action it replaces. The replacement is honoured only when the named Action is the latest Processed Action, is a User Action by the same Player of the same type, and the replacement is valid against the Game State reached by reversing it; the host or Local Game then reverses the named Action before applying the replacement, reusing Action Reversal rather than a second mechanism. A replacement that names anything else is rejected, as is an unnamed Action of a supersedable type while a same-player Action of that type still stands at the tail, so a supersedable type can never accumulate more than one unconsumed record per Player.
+
+The mechanism is independent of Out-of-Turn Actions. The stock-round standing instruction is both, but a turn-taking declaration could be supersedable alone.

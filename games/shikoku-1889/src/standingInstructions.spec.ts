@@ -29,6 +29,7 @@ function setInstruction(
         type: 'SetStockInstruction',
         playerId,
         outOfTurn: true,
+        supersedable: true,
         ...(instruction ? { instruction } : {})
     }
 }

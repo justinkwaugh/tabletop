@@ -1,46 +1,84 @@
 import { describe, expect, it } from 'vitest'
+import * as Type from 'typebox'
 import { ActionSource, type GameAction } from './gameAction.js'
-import { findSupersededOutOfTurnAction } from './actionHistory.js'
+import { checkDeclaredSupersede, findSupersededAction } from './actionHistory.js'
 
 function action(overrides: Partial<GameAction> & { id: string }): GameAction {
     return { gameId: 'g', type: 'note', source: ActionSource.User, playerId: 'p1', ...overrides }
 }
 
-const standing = action({ id: 'standing', outOfTurn: true })
-const replacement = action({ id: 'replacement', outOfTurn: true })
+const apiActions = {
+    note: Type.Object({ type: Type.Literal('note'), supersedable: Type.Literal(true) }),
+    turn: Type.Object({ type: Type.Literal('turn') })
+}
+const standing = action({ id: 'standing' })
+const replacement = action({ id: 'replacement', supersedesActionId: 'standing' })
 
-describe('findSupersededOutOfTurnAction', () => {
-    it('finds the same player’s unconsumed out-of-turn Action of the same type at the tail', () => {
-        expect(findSupersededOutOfTurnAction([action({ id: 'turn' }), standing], replacement)).toBe(
-            standing
-        )
+describe('findSupersededAction', () => {
+    it('finds the same player’s unconsumed Action of the same type at the tail', () => {
+        expect(
+            findSupersededAction([action({ id: 'turn', type: 'turn' }), standing], replacement)
+        ).toBe(standing)
     })
 
-    it('leaves a declaration alone once the machine has acted on it', () => {
+    it('ignores a consumed declaration and other players’ or other types’ Actions', () => {
         const cascade = action({ id: 'auto', source: ActionSource.System, type: 'auto' })
-        expect(findSupersededOutOfTurnAction([standing, cascade], replacement)).toBeUndefined()
-    })
-
-    it('ignores ordinary Actions and other players’ or other types’ declarations', () => {
-        expect(findSupersededOutOfTurnAction([action({ id: 'turn' })], replacement)).toBeUndefined()
+        expect(findSupersededAction([standing, cascade], replacement)).toBeUndefined()
         expect(
-            findSupersededOutOfTurnAction(
-                [action({ id: 'other', outOfTurn: true, playerId: 'p2' })],
-                replacement
-            )
+            findSupersededAction([action({ id: 'other', playerId: 'p2' })], replacement)
         ).toBeUndefined()
         expect(
-            findSupersededOutOfTurnAction(
-                [action({ id: 'kind', outOfTurn: true, type: 'other' })],
-                replacement
-            )
-        ).toBeUndefined()
-        expect(
-            findSupersededOutOfTurnAction([standing, action({ id: 'turn' })], replacement)
+            findSupersededAction([action({ id: 'kind', type: 'turn' })], replacement)
         ).toBeUndefined()
     })
+})
 
-    it('never supersedes for an ordinary submission', () => {
-        expect(findSupersededOutOfTurnAction([standing], action({ id: 'turn' }))).toBeUndefined()
+describe('checkDeclaredSupersede', () => {
+    it('replaces only the declaration the Action names', () => {
+        expect(checkDeclaredSupersede(apiActions, [standing], replacement)).toEqual({
+            kind: 'replace',
+            superseded: standing
+        })
+        expect(
+            checkDeclaredSupersede(apiActions, [action({ id: 'turn', type: 'turn' })], replacement)
+                .kind
+        ).toBe('invalid')
+        expect(
+            checkDeclaredSupersede(apiActions, [standing], {
+                ...replacement,
+                supersedesActionId: 'other'
+            }).kind
+        ).toBe('invalid')
+    })
+
+    it('rejects an unnamed duplicate and allows an ordinary declaration', () => {
+        expect(checkDeclaredSupersede(apiActions, [standing], action({ id: 'again' })).kind).toBe(
+            'invalid'
+        )
+        expect(
+            checkDeclaredSupersede(
+                apiActions,
+                [action({ id: 'turn', type: 'turn' })],
+                action({ id: 'again' })
+            )
+        ).toEqual({
+            kind: 'none'
+        })
+    })
+
+    it('leaves non-supersedable types alone and refuses their naming a predecessor', () => {
+        const turn = action({ id: 'turn', type: 'turn' })
+        expect(
+            checkDeclaredSupersede(apiActions, [turn], action({ id: 'next', type: 'turn' }))
+        ).toEqual({
+            kind: 'none'
+        })
+        expect(
+            checkDeclaredSupersede(
+                apiActions,
+                [turn],
+                action({ id: 'next', type: 'turn', supersedesActionId: 'turn' })
+            ).kind
+        ).toBe('invalid')
     })
 })

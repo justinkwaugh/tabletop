@@ -4,7 +4,9 @@ import * as Value from 'typebox/value'
 import {
     type TitlePreferenceDefinition,
     ActionSource,
-    findSupersededOutOfTurnAction,
+    checkDeclaredSupersede,
+    findSupersededAction,
+    isSupersedableActionType,
     isOutOfTurnActionType,
     Game,
     GameAction,
@@ -1071,12 +1073,21 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     // This will only be triggered by the UI and as such we can use the current context
     // internally, rather than having to pass it in.  No server generated actions go through
     // here.
+    supersededAction(type: string): GameAction | undefined {
+        const playerId = this.myPlayer?.id
+        return playerId === undefined || !isSupersedableActionType(this.runtime.apiActions, type)
+            ? undefined
+            : findSupersededAction(this.currentModifiableContext.actions, { playerId, type })
+    }
+
     private replacementSucceedsWithoutTail(
         context: GameContext<T, U>,
         action: GameAction
     ): boolean {
-        const superseded = findSupersededOutOfTurnAction(context.actions, action)
-        if (!superseded) return false
+        const declared = checkDeclaredSupersede(this.runtime.apiActions, context.actions, action)
+        if (declared.kind === 'invalid') throw new Error(declared.reason)
+        if (declared.kind === 'none') return false
+        const superseded = declared.superseded
         try {
             const previous = context.engine.undoProcessedAction({
                 action: superseded,

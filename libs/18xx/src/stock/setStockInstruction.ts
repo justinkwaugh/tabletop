@@ -23,6 +23,7 @@ export const SetStockInstruction = Type.Object(
         ...PlayerAction.properties,
         type: Type.Literal('SetStockInstruction'),
         outOfTurn: Type.Literal(true),
+        supersedable: Type.Literal(true),
         instruction: Type.Optional(StockInstruction)
     },
     { additionalProperties: false }
@@ -63,6 +64,7 @@ export class HydratedSetStockInstruction
     declare type: 'SetStockInstruction'
     declare playerId: string
     declare outOfTurn: true
+    declare supersedable: true
     declare instruction?: StockInstruction
     readonly #rules: StockRules
     constructor(data: SetStockInstruction, rules: StockRules) {

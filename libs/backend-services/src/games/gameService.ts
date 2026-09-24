@@ -12,7 +12,8 @@ import {
     createGameFork,
     GameForkError,
     findLast,
-    findSupersededOutOfTurnAction,
+    checkDeclaredSupersede,
+    isSupersedableActionType,
     findPlayerForUserId,
     Game,
     GameAction,
@@ -52,6 +53,7 @@ import {
     NotificationService
 } from '../notifications/notificationService.js'
 import {
+    DisallowedActionError,
     DisallowedUndoError,
     DuplicatePlayerError,
     GameAlreadyStartedError,
@@ -934,9 +936,7 @@ export class GameService {
             this.verifyUserIsActionPlayer(action, game, user)
         }
 
-        if (action.outOfTurn) {
-            game = await this.supersedeOutOfTurnAction({ definition, game, action, user })
-        }
+        game = await this.supersedeDeclaration({ definition, game, action, user })
 
         const initialIndex = action.index
 
@@ -1101,7 +1101,7 @@ export class GameService {
         return representation
     }
 
-    private async supersedeOutOfTurnAction({
+    private async supersedeDeclaration({
         definition,
         game,
         action,
@@ -1114,13 +1114,33 @@ export class GameService {
     }): Promise<Game & { state: GameState }> {
         const state = game.state
         assertExists(state, 'Superseding requires current Game State')
-        if (state.actionCount === 0) return { ...game, state }
-        const lastActions = await this.gameStore.readGameData(game.id, (reader) =>
-            reader.actionRange(state.actionCount - 1, state.actionCount)
+        const apiActions = definition.runtime.apiActions
+        if (
+            action.supersedesActionId === undefined &&
+            !isSupersedableActionType(apiActions, action.type)
         )
-        const superseded = findSupersededOutOfTurnAction(lastActions ?? [], action)
-        if (!superseded || !this.replacementIsValid(definition, game, state, superseded, action))
             return { ...game, state }
+        const lastActions =
+            state.actionCount === 0
+                ? []
+                : await this.gameStore.readGameData(game.id, (reader) =>
+                      reader.actionRange(state.actionCount - 1, state.actionCount)
+                  )
+        const declared = checkDeclaredSupersede(apiActions, lastActions ?? [], action)
+        if (declared.kind === 'invalid')
+            throw new DisallowedActionError({
+                gameId: game.id,
+                actionId: action.id,
+                reason: declared.reason
+            })
+        if (declared.kind === 'none') return { ...game, state }
+        const { superseded } = declared
+        if (!this.replacementIsValid(definition, game, state, superseded, action))
+            throw new DisallowedActionError({
+                gameId: game.id,
+                actionId: action.id,
+                reason: 'it is not valid once the declaration it replaces is reversed'
+            })
         await this.undoAction({ user, definition, gameId: game.id, actionId: superseded.id })
         const reloaded = await this.getGame({ gameId: game.id, withState: true })
         const reloadedState = reloaded?.state

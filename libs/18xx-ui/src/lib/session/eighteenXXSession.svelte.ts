@@ -106,6 +106,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
                 return session.actions.slice(0, session.gameState.actionCount)
             },
             settled: () => session.waitForVisibleTransitionSettled(),
+            supersededAction: (type) => session.supersededAction(type),
             createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
             applyAction: (action) => session.applyAction(action)
         }))(this)

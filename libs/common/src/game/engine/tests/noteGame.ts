@@ -56,6 +56,7 @@ export const Note = Type.Object({
     ...PlayerAction.properties,
     type: Type.Literal('note'),
     outOfTurn: Type.Literal(true),
+    supersedable: Type.Literal(true),
     text: Type.String()
 })
 export type Note = Type.Static<typeof Note>
@@ -188,6 +189,7 @@ export function note(
         source: ActionSource.User,
         playerId,
         outOfTurn: true,
+        supersedable: true,
         text,
         index
     }

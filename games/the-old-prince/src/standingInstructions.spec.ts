@@ -26,6 +26,7 @@ it('buys as the player and never on behalf of the Union Bank', () => {
         type: 'SetStockInstruction',
         playerId: 'alex',
         outOfTurn: true,
+        supersedable: true,
         instruction: {
             kind: 'buy',
             companyId: 'ML',
@@ -55,6 +56,7 @@ it('falls back from an emptied market to the treasury and stops when the share i
         type: 'SetStockInstruction',
         playerId: 'alex',
         outOfTurn: true,
+        supersedable: true,
         instruction: {
             kind: 'buy',
             companyId: 'ML',

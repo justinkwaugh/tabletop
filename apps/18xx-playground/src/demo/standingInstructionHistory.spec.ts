@@ -16,6 +16,7 @@ it('keeps standing instructions out of the history and shows the automatic pass 
         source: ActionSource.User,
         playerId: 'blair',
         outOfTurn: true,
+        supersedable: true,
         instruction: { kind: 'pass' }
     }
     const declared = run.engine.executeCanonicalAction({
@@ -63,6 +64,7 @@ it('lists an automatic purchase exactly like a purchase made by hand', () => {
         source: ActionSource.User,
         playerId: 'alex',
         outOfTurn: true,
+        supersedable: true,
         instruction: {
             kind: 'buy',
             companyId: 'IR',
