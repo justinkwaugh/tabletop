@@ -25,10 +25,10 @@ describe('Hex Utils Tests', () => {
         }
         const grid = new HexGrid<CustomHexNode>({ hexDefinition })
         const minMaxCoords = grid.minMaxCoords
-        expect(minMaxCoords.minX).toBeUndefined
-        expect(minMaxCoords.minY).toBeUndefined
-        expect(minMaxCoords.maxX).toBeUndefined
-        expect(minMaxCoords.maxY).toBeUndefined
+        expect(minMaxCoords.minX).toBeUndefined()
+        expect(minMaxCoords.minY).toBeUndefined()
+        expect(minMaxCoords.maxX).toBeUndefined()
+        expect(minMaxCoords.maxY).toBeUndefined()
 
         const pattern = hexSpiralPattern({ radius: 0, orientation: HexOrientation.Pointy })
         grid.populateFromPattern(pattern, createCustomHexNode)
@@ -54,10 +54,10 @@ describe('Hex Utils Tests', () => {
         }
         const grid = new HexGrid({ hexDefinition })
         const minMaxCoords = grid.minMaxCoords
-        expect(minMaxCoords.minX).toBeUndefined
-        expect(minMaxCoords.minY).toBeUndefined
-        expect(minMaxCoords.maxX).toBeUndefined
-        expect(minMaxCoords.maxY).toBeUndefined
+        expect(minMaxCoords.minX).toBeUndefined()
+        expect(minMaxCoords.minY).toBeUndefined()
+        expect(minMaxCoords.maxX).toBeUndefined()
+        expect(minMaxCoords.maxY).toBeUndefined()
 
         const pattern = hexSpiralPattern({ radius: 0, orientation: HexOrientation.Flat })
         grid.populateFromPattern(pattern, createCoordinatedNode)
