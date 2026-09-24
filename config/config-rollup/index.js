@@ -144,6 +144,8 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
     const publicAssetsPath = `/games/${gameId}/ui/${uiVersion}/assets/`
     const analyze = process.env.ROLLUP_ANALYZE === '1'
     const minify = process.env.ROLLUP_TERSER !== '0'
+    const terserWorkers = process.env.ROLLUP_TERSER_WORKERS
+    const terserOptions = terserWorkers ? { maxWorkers: Number(terserWorkers) } : {}
 
     return {
         input: path.join(packageRoot, 'src/lib/index.ts'),
@@ -193,7 +195,7 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
                 limit: 0
             }),
             analyzeBundle(analyze),
-            ...(minify ? [terser()] : []),
+            ...(minify ? [terser(terserOptions)] : []),
             brotli(),
             {
                 name: 'game-catalog',
