@@ -12,7 +12,7 @@ import {
     isSameSegment,
     maxSegmentTotal
 } from '@tabletop/santiago'
-import type { ProposeCanal } from '@tabletop/santiago'
+import type { OverseerDecision, PlaceBid, ProposeCanal } from '@tabletop/santiago'
 
 export type ActionDescriptionContext = {
     allActions?: GameAction[]
@@ -30,12 +30,12 @@ export type DescriptionPart = string | { playerId: string }
 // per Justin's request not to run multi-part end-of-round summaries together with dashes.
 export function getDescriptionSegments(action: GameAction, ctx?: ActionDescriptionContext): DescriptionPart[][] {
     if (isPlaceBid(action)) {
-        const amount = (action as any).amount ?? 0
+        const amount = action.amount ?? 0
         const bidText = `bid ${amount} escudo${amount !== 1 ? 's' : ''}`
         // metadata.overseerId is only set on the round's last bid, once resolveBids() has
         // determined who won the canal overseer role — the winner may be an earlier bidder
         // than this one, so it's reported as a distinct segment rather than assumed.
-        const overseerId = (action as any).metadata?.overseerId
+        const overseerId = action.metadata?.overseerId
         if (!overseerId) {
             return [[bidText]]
         }
@@ -46,18 +46,18 @@ export function getDescriptionSegments(action: GameAction, ctx?: ActionDescripti
     }
     if (isPlaceField(action)) {
         if (ctx?.allActions && action.playerId) {
-            const placeTime = (action as any).createdAt?.getTime() ?? 0
+            const placeTime = action.createdAt?.getTime() ?? 0
             const lastRoundEndTime = ctx.allActions
                 .filter(a => isEndRoundEvent(a))
                 .map(a => a.createdAt?.getTime() ?? 0)
                 .filter(t => t < placeTime)
                 .reduce((max, t) => Math.max(max, t), 0)
-            const bid = ctx.allActions.find(a =>
+            const bid = ctx.allActions.find((a): a is PlaceBid =>
                 isPlaceBid(a) &&
                 a.playerId === action.playerId &&
-                ((a as any).createdAt?.getTime() ?? 0) > lastRoundEndTime &&
-                ((a as any).createdAt?.getTime() ?? 0) < placeTime
-            ) as any
+                (a.createdAt?.getTime() ?? 0) > lastRoundEndTime &&
+                (a.createdAt?.getTime() ?? 0) < placeTime
+            )
             if (bid?.amount === 0) return [['planted a field (−1 farmer penalty)']]
         }
         return [['planted a field']]
@@ -72,11 +72,11 @@ export function getDescriptionSegments(action: GameAction, ctx?: ActionDescripti
         return [['placed a personal canal']]
     }
     if (isProposeCanal(action)) {
-        const a = action as any
+        const a = action
         return [[`offered ${a.amount} escudo${a.amount !== 1 ? 's' : ''} for a canal`]]
     }
     if (isOverseerDecision(action)) {
-        const a = action as any
+        const a = action
         if (a.accepting) {
             if (ctx?.allActions) {
                 const proposals = getProposalsForDecision(a, ctx.allActions)
@@ -116,13 +116,13 @@ export function getDescriptionSegments(action: GameAction, ctx?: ActionDescripti
         return [['passed']]
     }
     if (isEndRoundEvent(action)) {
-        const e = action as any
+        const e = action
         const segments: DescriptionPart[][] = [[`End of round ${e.round}`]]
         if (e.escudosEarned > 0) {
             segments.push([`everyone collected ${e.escudosEarned} escudos`])
         }
         if (e.driedSquares?.length > 0) {
-            const fieldList = e.driedSquares.map((s: any) => s.crop).join(', ')
+            const fieldList = e.driedSquares.map((s) => s.crop).join(', ')
             segments.push([`drought: ${fieldList} dried out`])
         }
         if (e.farmerLosses?.length > 0) {
@@ -181,7 +181,7 @@ function getPassPhase(action: GameAction, allActions: GameAction[]): 'canalBuild
     return overseerDecidedBeforePass ? 'extraIrrigation' : 'canalBuilding'
 }
 
-function getAllProposalsThisRound(decision: any, allActions: GameAction[]): ProposeCanal[] {
+function getAllProposalsThisRound(decision: OverseerDecision, allActions: GameAction[]): ProposeCanal[] {
     const decisionTime = decision.createdAt?.getTime() ?? 0
 
     // Only look at proposals from the same canal-building phase (after the last round end)
@@ -198,7 +198,7 @@ function getAllProposalsThisRound(decision: any, allActions: GameAction[]): Prop
     ) as ProposeCanal[]
 }
 
-function getProposalsForDecision(decision: any, allActions: GameAction[]): ProposeCanal[] {
+function getProposalsForDecision(decision: OverseerDecision, allActions: GameAction[]): ProposeCanal[] {
     const decisionTime = decision.createdAt?.getTime() ?? 0
 
     // Only look at proposals from the same canal-building phase (after the last round end)
