@@ -17,9 +17,13 @@ console.log('Initialized API with frontend version:', FRONTEND_VERSION)
 const manifestService = new ManifestService(api)
 api.setGameVersionProvider(manifestService)
 const libraryService = new LibraryService(manifestService)
-const authorizationService = new AuthorizationService(api, () => {
-    void libraryService.whenReady()
-})
+const authorizationService = new AuthorizationService(
+    api,
+    () => {
+        void libraryService.whenReady()
+    },
+    () => gameService.clear()
+)
 
 const visibilityService = new VisibilityService()
 let realtimeConnection
@@ -36,6 +40,7 @@ const notificationService = new NotificationService(
     api
 )
 const chatService = new ChatService(authorizationService, notificationService, api)
+const gameService = new GameService(libraryService, authorizationService, notificationService, api)
 
 const appContext: AppContext & {
     catalogService: CatalogService
@@ -46,7 +51,7 @@ const appContext: AppContext & {
     libraryService,
     authorizationService,
     notificationService,
-    gameService: new GameService(libraryService, authorizationService, notificationService, api),
+    gameService,
     chatService: chatService,
     visibilityService,
     api

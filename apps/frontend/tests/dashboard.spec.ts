@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { GameStatus, PlayerStatus, Role, UserStatus, type Game, type User } from '@tabletop/common'
 import { mockLibrary } from './fixtures/library'
 
@@ -278,6 +278,128 @@ for (const entry of ['/', '/login']) {
         })
     }
 }
+
+function storedCurrentGames(page: Page) {
+    return page.evaluate(() => localStorage.getItem('currentGames'))
+}
+
+async function storeCurrentGames(page: Page) {
+    await page.goto('/dashboard')
+    await expect.poll(() => storedCurrentGames(page)).not.toBeNull()
+}
+
+test('a returning user sees stored games until the fresh list replaces them', async ({ page }) => {
+    await storeCurrentGames(page)
+
+    const released = Promise.withResolvers<void>()
+    await page.route('**/api/v1/games/mine*', async (route) => {
+        await released.promise
+        await route.fulfill({ json: { payload: { games: [game(0)] } } })
+    })
+    await page.reload()
+
+    await expect(page.getByRole('heading', { name: 'Table 11', exact: true })).toBeVisible()
+    released.resolve()
+    await expect(page.getByRole('heading', { name: 'Table 11', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Table 00', exact: true })).toBeVisible()
+})
+
+test('a returning user with stored games enters / without checking for active games', async ({
+    page
+}) => {
+    await storeCurrentGames(page)
+    let checks = 0
+    await page.route('**/api/v1/games/hasActive', (route) => {
+        checks += 1
+        return route.fulfill({ json: { payload: { hasActive: false } } })
+    })
+
+    await page.goto('/')
+
+    await expect(page).toHaveURL(/\/dashboard$/)
+    expect(checks).toBe(0)
+})
+
+test('a returning user with no stored games asks the server where to go', async ({ page }) => {
+    await page.route('**/api/v1/games/mine*', (route) =>
+        route.fulfill({ json: { payload: { games: [] } } })
+    )
+    await storeCurrentGames(page)
+    let checks = 0
+    await page.route('**/api/v1/games/hasActive', (route) => {
+        checks += 1
+        return route.fulfill({ json: { payload: { hasActive: true } } })
+    })
+
+    await page.goto('/')
+
+    await expect(page).toHaveURL(/\/dashboard$/)
+    expect(checks).toBe(1)
+})
+
+test('stored games belonging to another user are not shown', async ({ page }) => {
+    await page.addInitScript(
+        (stored) => localStorage.setItem('currentGames', JSON.stringify(stored)),
+        { userId: 'someone-else', games: [{ ...game(0), id: 'other-game', name: 'Other Table' }] }
+    )
+    const released = Promise.withResolvers<void>()
+    await page.route('**/api/v1/games/mine*', async (route) => {
+        await released.promise
+        await route.fallback()
+    })
+
+    await page.goto('/dashboard')
+
+    await expect(page.getByRole('heading', { name: 'Your games.' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Other Table', exact: true })).toHaveCount(0)
+    released.resolve()
+    await expect(page.getByRole('heading', { name: 'Table 00', exact: true })).toBeVisible()
+})
+
+test('signing out forgets the stored games', async ({ page }) => {
+    await storeCurrentGames(page)
+
+    await page.getByRole('button', { name: 'Open account menu' }).click()
+    await page.getByText('Sign out', { exact: true }).click()
+
+    await expect.poll(() => storedCurrentGames(page)).toBeNull()
+})
+
+test('an expired session forgets the stored games', async ({ page }) => {
+    await storeCurrentGames(page)
+    await page.route('**/api/v1/user/self', (route) =>
+        route.fulfill({ status: 401, json: { message: 'Unauthorized' } })
+    )
+
+    await page.reload()
+
+    await expect(page).toHaveURL(/\/login$/)
+    await expect.poll(() => storedCurrentGames(page)).toBeNull()
+})
+
+test('games that arrive after signing out are not stored', async ({ page }) => {
+    await storeCurrentGames(page)
+    const requested = Promise.withResolvers<void>()
+    const released = Promise.withResolvers<void>()
+    await page.route('**/api/v1/games/mine*', async (route) => {
+        requested.resolve()
+        await released.promise
+        await route.fallback()
+    })
+    await page.reload()
+    await requested.promise
+
+    await page.getByRole('button', { name: 'Open account menu' }).click()
+    await page.getByText('Sign out', { exact: true }).click()
+    await expect.poll(() => storedCurrentGames(page)).toBeNull()
+    const finished = page.waitForEvent('requestfinished', (request) =>
+        request.url().includes('/api/v1/games/mine')
+    )
+    released.resolve()
+    await finished
+
+    expect(await storedCurrentGames(page)).toBeNull()
+})
 
 test('loads multiplayer history without runtime errors and reuses loaded pages when switching tabs', async ({
     page

@@ -180,7 +180,6 @@
 
     async function onLogout() {
         await api.logout()
-        gameService.clear()
         await authorizationService.onLogout()
     }
 

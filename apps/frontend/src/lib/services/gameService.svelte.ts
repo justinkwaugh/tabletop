@@ -31,6 +31,7 @@ import {
     GameCategory,
     PlayerStatus
 } from '@tabletop/common'
+import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
@@ -38,6 +39,9 @@ import { isUsersGameTurn } from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
 import type { LibraryService } from './libraryService.svelte'
+import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
+
+const StoredCurrentGames = Type.Object({ userId: Type.String(), games: Type.Array(Game) })
 
 export class GameService implements GameServiceInterface {
     get supportsReproductionSeed(): boolean {
@@ -50,6 +54,8 @@ export class GameService implements GameServiceInterface {
 
     loading = $state(false)
     private loadingPromise: Promise<void> | null = null
+    private currentGamesFetched = false
+    private static readonly storedCurrentGamesKey = 'currentGames'
 
     currentGameSession: GameSession<GameState, HydratedGameState> | undefined = $state(undefined)
 
@@ -121,6 +127,9 @@ export class GameService implements GameServiceInterface {
     }
 
     async hasActiveGames() {
+        if (this.readStoredCurrentGames()?.length) {
+            return true
+        }
         return this.api.hasActiveGames()
     }
 
@@ -136,11 +145,17 @@ export class GameService implements GameServiceInterface {
     }
 
     private async loadCurrentGames() {
+        if (!this.currentGamesFetched) {
+            this.applyStoredCurrentGames()
+        }
         const sessionUser = this.authorizationService.getSessionUser()
         const [games, localGames] = await Promise.all([
             this.api.getMyGames('current'),
             sessionUser ? this.localGameStore.findGamesForUser(sessionUser) : []
         ])
+        if (this.authorizationService.getSessionUser()?.id !== sessionUser?.id) {
+            return
+        }
 
         const ids = new Set(games.map((game) => game.id))
         games.forEach((game) => {
@@ -155,6 +170,24 @@ export class GameService implements GameServiceInterface {
         localGames.forEach((game) => {
             this.localGamesById.set(game.id, game)
         })
+        this.currentGamesFetched = true
+        if (sessionUser) {
+            writeStoredValue(GameService.storedCurrentGamesKey, { userId: sessionUser.id, games })
+        }
+    }
+
+    private applyStoredCurrentGames() {
+        this.readStoredCurrentGames()?.forEach((game) => {
+            if (!this.gamesById.has(game.id)) {
+                this.gamesById.set(game.id, game)
+            }
+        })
+    }
+
+    private readStoredCurrentGames(): Game[] | undefined {
+        const sessionUser = this.authorizationService.getSessionUser()
+        const stored = readStoredValue(GameService.storedCurrentGamesKey, StoredCurrentGames)
+        return sessionUser && stored?.userId === sessionUser.id ? stored.games : undefined
     }
 
     // Should debounce this
@@ -407,6 +440,8 @@ export class GameService implements GameServiceInterface {
 
     clear() {
         this.gamesById.clear()
+        this.currentGamesFetched = false
+        removeStoredValue(GameService.storedCurrentGamesKey)
     }
 
     private NotificationListener = async (event: NotificationEvent) => {
