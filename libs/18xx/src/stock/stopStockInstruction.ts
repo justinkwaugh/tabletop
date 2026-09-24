@@ -14,9 +14,9 @@ import {
     StockInstructionStopReason,
     removeStandingStockInstruction,
     setStandingStockInstruction,
-    standingStockInstructionFor,
-    createStandingStockInstruction
+    standingStockInstructionFor
 } from './stockInstruction.js'
+import { createStandingStockInstruction } from './stockInstructionSnapshot.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 

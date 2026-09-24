@@ -5,11 +5,8 @@ import {
     minimalPlayState,
     minimalStockRules
 } from '../testing/index.js'
-import {
-    createStandingStockInstruction,
-    stockPositionChange,
-    type StockInstructionRules
-} from './stockInstruction.js'
+import type { StockInstructionRules } from './stockInstruction.js'
+import { createStandingStockInstruction, stockPositionChange } from './stockInstructionSnapshot.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 

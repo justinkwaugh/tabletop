@@ -10,12 +10,11 @@ import { BuyShares, isBuyShares } from './buyShares.js'
 import { FinishStockTurn, isFinishStockTurn } from './finishStockTurn.js'
 import { isSetStockInstruction, stockInstructionProblem } from './setStockInstruction.js'
 import { StopStockInstruction, isStopStockInstruction } from './stopStockInstruction.js'
+import { standingStockInstructionFor, type StandingStockInstruction } from './stockInstruction.js'
 import {
     evaluateStockInstruction,
-    standingStockInstructionFor,
-    type StandingStockInstruction,
     type StockInstructionOutcome
-} from './stockInstruction.js'
+} from './stockInstructionEvaluation.js'
 import { sameOwner } from '../finance/finance.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'

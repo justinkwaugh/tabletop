@@ -71,7 +71,10 @@ persisted before that check passes, so an invalid replacement such as clearing
 at the tail leaves history intact and is rejected. An unnamed duplicate while a
 declaration still stands at the tail is rejected too.
 
-`@tabletop/18xx` records a `StandingStockInstruction` per player in
+`@tabletop/18xx` keeps the instruction model and state access in
+`stockInstruction.ts`, snapshot capture and cancel rules in
+`stockInstructionSnapshot.ts`, and the per-turn evaluator in
+`stockInstructionEvaluation.ts`. It records a `StandingStockInstruction` per player in
 `stockRound.instructions`: the instruction (pass, or buy company from pool until
 floated or until N shares, optionally then pass) and a position snapshot taken
 when it was set. `SetStockInstruction` sets or clears it; at most one per
