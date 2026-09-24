@@ -8,6 +8,7 @@ import {
     parseWhere,
     permissionHint,
     redact,
+    redactDoc,
     summarizeTask
 } from '../src/lib.mjs'
 
@@ -28,6 +29,18 @@ test('redact masks secret keys, reduces endpoints to hosts, expands stored data,
         createdAt: '2026-09-24T00:00:00.000Z',
         passwordHash: '<REDACTED>',
         owner: 'ref:users/u1'
+    })
+})
+
+test('redactDoc masks document IDs that are themselves secrets', () => {
+    assert.deepEqual(redactDoc('tokens/live-token', { id: 'live-token', type: 'verify' }), {
+        path: 'tokens/<REDACTED>',
+        data: { id: '<REDACTED>', type: 'verify' }
+    })
+    assert.deepEqual(redactDoc('tokens/live-token'), { path: 'tokens/<REDACTED>' })
+    assert.deepEqual(redactDoc('users/u1', { id: 'u1', passwordHash: 'hash' }), {
+        path: 'users/u1',
+        data: { id: 'u1', passwordHash: '<REDACTED>' }
     })
 })
 

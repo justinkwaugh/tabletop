@@ -18,6 +18,23 @@ export function redact(value, key = '') {
     return value
 }
 
+// The token store keys each token document by the token value, so its ID is itself a secret.
+const SECRET_ID_COLLECTIONS = new Set(['tokens'])
+
+export function redactDoc(docPath, data) {
+    const segments = docPath.split('/')
+    const secretId = SECRET_ID_COLLECTIONS.has(segments.at(-2))
+    const path = segments
+        .map((segment, i) =>
+            i % 2 === 1 && SECRET_ID_COLLECTIONS.has(segments[i - 1]) ? '<REDACTED>' : segment
+        )
+        .join('/')
+    if (data === undefined) return { path }
+    const redacted = redact(data)
+    if (secretId && 'id' in redacted) redacted.id = '<REDACTED>'
+    return { path, data: redacted }
+}
+
 // A push endpoint URL is a send capability, so only its host is ever shown.
 function endpointHost(endpoint) {
     try {

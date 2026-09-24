@@ -13,6 +13,7 @@ import {
     permissionHint,
     protoTimestampToIso,
     redact,
+    redactDoc,
     summarizeTask
 } from './lib.mjs'
 
@@ -39,7 +40,8 @@ Commands (all read-only):
 
 Config: tools/deploy/deploy.config.json backend.project / backend.region / backend.service /
 backend.tasksService and investigateCredentialFile (default ${defaultCredentialFile}).
-Env overrides: GCLOUD_PROJECT, TABLETOP_BACKEND_REGION, TABLETOP_INVESTIGATE_CREDENTIAL_FILE.`
+Env overrides: GCLOUD_PROJECT, TABLETOP_BACKEND_REGION, TABLETOP_BACKEND_SERVICE,
+TABLETOP_TASKS_SERVICE, TABLETOP_INVESTIGATE_CREDENTIAL_FILE.`
 
 function loadConfig() {
     const config = existsSync(deployConfigPath)
@@ -65,7 +67,10 @@ function loadConfig() {
     return {
         project,
         region: process.env.TABLETOP_BACKEND_REGION ?? backend.region ?? 'us-central1',
-        services: { backend: backend.service ?? 'backend', tasks: backend.tasksService ?? 'tasks' },
+        services: {
+            backend: process.env.TABLETOP_BACKEND_SERVICE ?? backend.service ?? 'backend',
+            tasks: process.env.TABLETOP_TASKS_SERVICE ?? backend.tasksService ?? 'tasks'
+        },
         credentialFile,
         usesDeployKey: deployCredentialFile === credentialFile,
         serviceAccount: JSON.parse(readFileSync(credentialFile, 'utf8')).client_email
@@ -185,21 +190,31 @@ async function listTasks(config, options) {
     }
     const queuePath = client.queuePath(config.project, config.region, options.queue)
     const limit = parseCount(options.limit, 50)
-    let tasks
-    try {
-        ;[tasks] = await client.listTasks(
-            { parent: queuePath, responseView: 'FULL', pageSize: limit },
-            { autoPaginate: false }
-        )
-    } catch (error) {
-        if (error.code !== 7) throw error
-        ;[tasks] = await client.listTasks(
-            { parent: queuePath, responseView: 'BASIC', pageSize: limit },
-            { autoPaginate: false }
-        )
+    // Cloud Tasks may return a short page with a token even when nothing remains, so pages are
+    // followed until one task past the limit shows whether more remain.
+    let responseView = 'FULL'
+    const tasks = []
+    let request = { parent: queuePath, pageSize: Math.min(limit + 1, 1000) }
+    while (request && tasks.length <= limit) {
+        let page, nextRequest
+        try {
+            ;[page, nextRequest] = await client.listTasks(
+                { ...request, responseView },
+                { autoPaginate: false }
+            )
+        } catch (error) {
+            if (error.code !== 7 || responseView === 'BASIC') throw error
+            responseView = 'BASIC'
+            continue
+        }
+        tasks.push(...page)
+        request = nextRequest
     }
     const now = new Date()
-    return tasks.slice(0, limit).map((task) => summarizeTask(task, now))
+    return {
+        tasks: tasks.slice(0, limit).map((task) => summarizeTask(task, now)),
+        moreRemain: tasks.length > limit
+    }
 }
 
 async function listCollections(config, docPath) {
@@ -212,8 +227,9 @@ async function listCollections(config, docPath) {
 async function getDoc(config, docPath) {
     const firestore = await firestoreClient(config)
     const snapshot = await firestore.doc(docPath).get()
-    if (!snapshot.exists) return { path: docPath, exists: false }
-    return { path: docPath, exists: true, data: redact(snapshot.data()) }
+    if (!snapshot.exists) return { ...redactDoc(docPath), exists: false }
+    const { path, data } = redactDoc(docPath, snapshot.data())
+    return { path, exists: true, data }
 }
 
 async function listDocs(config, collection, options) {
@@ -229,7 +245,7 @@ async function listDocs(config, collection, options) {
     if (options.count) return { count: (await query.count().get()).data().count }
     if (options.select) query = query.select(...options.select.split(','))
     const snapshot = await query.limit(parseCount(options.limit, 20)).get()
-    return snapshot.docs.map((doc) => ({ path: doc.ref.path, data: redact(doc.data()) }))
+    return snapshot.docs.map((doc) => redactDoc(doc.ref.path, doc.data()))
 }
 
 const STATE_SUMMARY_FIELDS = [
@@ -248,8 +264,9 @@ async function inspectGame(config, gameId, options) {
     if (!game.exists) return { id: gameId, exists: false }
     const states = await gameRef.collection('states').limit(5).get()
     const actionCount = parseCount(options.actions, 10)
-    const actions = game.data().actionChunkSize
-        ? await latestChunkedActions(gameRef, actionCount)
+    const { actionChunkSize } = game.data()
+    const actions = actionChunkSize
+        ? await latestChunkedActions(gameRef, actionCount, actionChunkSize)
         : await latestUnchunkedActions(gameRef, actionCount)
     return {
         id: gameId,
@@ -261,11 +278,12 @@ async function inspectGame(config, gameId, options) {
     }
 }
 
-async function latestChunkedActions(gameRef, count) {
+async function latestChunkedActions(gameRef, count, chunkSize) {
+    // The newest chunk may be partly filled, so one extra chunk covers the remainder.
     const chunks = await gameRef
         .collection('actionChunks')
         .orderBy('endIndex', 'desc')
-        .limit(2)
+        .limit(Math.ceil(count / chunkSize) + 1)
         .get()
     return chunks.docs
         .flatMap((doc) => parseJsonOr(doc.data().actionsData ?? '[]', []))
@@ -293,12 +311,14 @@ function summarizeState(doc) {
 async function findUser(config, needle) {
     const firestore = await firestoreClient(config)
     const users = firestore.collection('users')
+    // The user store trims and lowercases emails and usernames before storing them.
+    const clean = needle.trim().toLowerCase()
     let snapshot
-    if (needle.includes('@')) snapshot = await users.where('email', '==', needle).limit(5).get()
+    if (clean.includes('@')) snapshot = await users.where('email', '==', clean).limit(5).get()
     else {
-        snapshot = await users.where('cleanUsername', '==', needle.toLowerCase()).limit(5).get()
+        snapshot = await users.where('cleanUsername', '==', clean).limit(5).get()
         if (snapshot.empty) {
-            const byId = await users.doc(needle).get()
+            const byId = await users.doc(needle.trim()).get()
             if (byId.exists) snapshot = { docs: [byId] }
         }
     }
@@ -337,10 +357,13 @@ async function check(config) {
     console.log(`region: ${config.region}`)
     console.log(`service account: ${config.serviceAccount}`)
     console.log(`services: ${Object.values(config.services).join(', ')}`)
-    if (config.usesDeployKey)
+    let ok = true
+    if (config.usesDeployKey) {
+        ok = false
         console.log(
-            'WARNING: credential file is the deploy key, which can write; use a viewer-only key'
+            'credential FAIL the credential file is the deploy key, which can write; use a viewer-only key'
         )
+    }
     const probes = [
         [
             'logs',
@@ -354,7 +377,6 @@ async function check(config) {
             async () => `${(await listDocs(config, 'users', { limit: '1' })).length} user read`
         ]
     ]
-    let ok = true
     for (const [capability, probe] of probes) {
         try {
             console.log(`${capability.padEnd(10)} ok   ${await probe()}`)
