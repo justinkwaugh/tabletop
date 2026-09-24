@@ -1617,6 +1617,14 @@ export class LowenherzGameSession extends GameSession<
     // to measuring for itself.
     politicsRowWidth: number | undefined = $state(undefined)
 
+    // True for as long as PoliticsPileReveal has anything on screen - its deal-in, or the real
+    // splay that follows it. PoliticsDeckChooser holds the clicked deck in its slid-into-place
+    // position until this turns true, so the slot is never empty in between: LookAtPoliticsPile
+    // is a revealsInfo action, which is never applied optimistically (see
+    // GameSession.requiresServerAuthoritativeProcessing), so the cards cannot exist until a full
+    // server round trip has come back.
+    politicsRevealShowing: boolean = $state(false)
+
     async selectPoliticsPile(pile: 'A' | 'B') {
         if (!this.canTakePoliticsCard || this.selectedPoliticsPile) return
         this.viewingMyPoliticsCards = false

@@ -54,6 +54,15 @@
     // mounts, so there's no guess to correct on the very first render; measuredWidth only needs
     // to take over once it's confirmed fresh, which the origin check above establishes without an
     // effect or any other reset-by-hand.
+    // PoliticsDeckChooser keeps the clicked deck holding this slot until this block is really
+    // on screen - see GameSession.politicsRevealShowing for why the gap it closes exists at all.
+    function holdPoliticsSlot() {
+        gameSession.politicsRevealShowing = true
+        return () => {
+            gameSession.politicsRevealShowing = false
+        }
+    }
+
     let measuredWidth: number = $state(0)
     let measuredWidthOrigin: { x: number; y: number } | undefined = $state(undefined)
 
@@ -122,7 +131,7 @@
          above this once a pile is opened, the same way it handles PoliticsDeckChooser's own
          instruction. Keeping it there means this row's own height never has to agree with
          that component's, which local, per-component headings kept drifting out of sync on. -->
-    <div class="px-3 py-2 flex flex-col items-center gap-2">
+    <div class="px-3 py-2 flex flex-col items-center gap-2" {@attach holdPoliticsSlot}>
         {#if gameSession.errorMessage}
             <div
                 class="max-w-full rounded-md bg-red-900/90 border border-red-300/50 px-3 py-2 text-center text-white text-sm"
