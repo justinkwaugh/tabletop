@@ -18,6 +18,8 @@ Hovering or touch-holding a face-up card shows a magnified copy. The magnifier s
 
 The session supplies the measured row width and click origin for the deal. Both transient and interactive layouts use the same slot calculation. Reloading into an inspection can render the cards directly after measuring, without a prior click origin.
 
+The origin is the clicked deck element itself, measured when the deal starts rather than captured when the slide lands, so a row resized in between - a phone rotating - cannot leave the cards dealing from somewhere the deck is not. It resolves to nothing once that element has left the page, and the reveal then renders its row without a deal. A hand peek, which has no element of its own to follow, still supplies a fixed point. The row width is still handed over measured. The request goes out after the slide, because opening a pile reveals information and is therefore never applied optimistically: the cards exist only once the host has answered. The chooser holds the clicked deck in its destination slot for that whole wait, until the reveal reports something on screen, so the two never both occupy the slot and never both leave it empty.
+
 Committed actions use the shared animation timeline. Actionless History navigation and Undo use the existing fast fallback, at most 200 ms; silent restoration contributes no animation. Restored inspections remain selectable. Hand keys and jitter belong to local rendering slots and never enter Game State, Action payloads, or saved History.
 
 ## Render ownership

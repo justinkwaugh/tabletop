@@ -91,6 +91,10 @@ export type KnightPlan = 'knight' | 'expand'
 
 export type AllianceBreakingPayment = { treasureValue?: number; ducats: number }
 
+// Where a politics splay looks like it is coming from: the deck element the player clicked, or a
+// fixed point for a hand peek, which has no element of its own to follow.
+type PoliticsOriginSource = HTMLElement | { x: number; y: number }
+
 export class LowenherzGameSession extends GameSession<
     LowenherzProjectedState,
     HydratedLowenherzGameState
@@ -1603,7 +1607,36 @@ export class LowenherzGameSession extends GameSession<
     // won pile (see PoliticsDeckChooser's own choosePile, used by PoliticsPileReveal) - purely a
     // visual cue so those components can animate their cards as if being dealt out from that
     // spot. Has no bearing on game state.
-    politicsPileOrigin: { x: number; y: number } | undefined = $state(undefined)
+    private politicsOriginSource: PoliticsOriginSource | undefined = $state(undefined)
+
+    // The source itself, for telling one splay from the next. Identity-stable, which the point
+    // resolved below deliberately is not - PoliticsPileReveal compares this to know whether a
+    // measurement it is holding belongs to the splay currently on screen.
+    get politicsPileOriginSource(): PoliticsOriginSource | undefined {
+        return this.politicsOriginSource
+    }
+
+    // Resolved on read, so an element source reports where it is now rather than where it was
+    // when it was handed over. Undefined once an element source has left the page: the deal
+    // animator reads that as having no handoff point and lets the reveal render its row
+    // directly, which beats flying the cards in from the (0, 0) a detached element reports.
+    get politicsPileOrigin(): { x: number; y: number } | undefined {
+        const source = this.politicsOriginSource
+        if (!source) return undefined
+        if (!('getBoundingClientRect' in source)) return source
+        if (!source.isConnected) return undefined
+
+        const rect = source.getBoundingClientRect()
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+    }
+
+    // Follows the element instead of snapshotting it, because the deck the player clicked holds
+    // its slot until the cards are ready, and a row resized during that wait - a phone rotating -
+    // moves the deck without moving a point captured before it. Same shape as the magnifier's
+    // anchor; see this game's ui-interaction-visual-contract.
+    setPoliticsPileOriginElement(element: HTMLElement) {
+        this.politicsOriginSource = element
+    }
 
     // The real, already-measured width of the row PoliticsDeckChooser's own decks sit in - set
     // alongside politicsPileOrigin, right before selectPoliticsPile below hands off to
@@ -1616,6 +1649,14 @@ export class LowenherzGameSession extends GameSession<
     // reload landing mid-reveal, say), which is the one case PoliticsPileReveal still falls back
     // to measuring for itself.
     politicsRowWidth: number | undefined = $state(undefined)
+
+    // True for as long as PoliticsPileReveal has anything on screen - its deal-in, or the real
+    // splay that follows it. PoliticsDeckChooser holds the clicked deck in its slid-into-place
+    // position until this turns true, so the slot is never empty in between: LookAtPoliticsPile
+    // is a revealsInfo action, which is never applied optimistically (see
+    // GameSession.requiresServerAuthoritativeProcessing), so the cards cannot exist until a full
+    // server round trip has come back.
+    politicsRevealShowing: boolean = $state(false)
 
     async selectPoliticsPile(pile: 'A' | 'B') {
         if (!this.canTakePoliticsCard || this.selectedPoliticsPile) return
@@ -1653,7 +1694,7 @@ export class LowenherzGameSession extends GameSession<
     }
 
     showMyPoliticsCards(origin: { x: number; y: number }) {
-        this.politicsPileOrigin = origin
+        this.politicsOriginSource = origin
         this.viewingMyPoliticsCards = true
     }
 

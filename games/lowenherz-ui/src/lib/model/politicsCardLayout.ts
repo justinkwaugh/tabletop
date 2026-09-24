@@ -62,6 +62,21 @@ export function rowContentWidth(count: number, cardWidth: number = CARD_W): numb
     return count > 0 ? count * cardWidth + (count - 1) * CARD_GAP : 0
 }
 
+// Where the deck ends up once it is part of the dealt row: the centre of slot 0, which
+// buildSlotRows below always fills with the deck. PoliticsDeckChooser slides its clicked deck to
+// this point and hands the same point over as the deal's origin, both before the pile has been
+// opened and so before there is any dealt row to measure - so this has to agree with what
+// buildSlotRows lays out once the cards arrive, which politicsCardLayout.test.ts pins down.
+export function deckSlotCenterX(
+    rowLeft: number,
+    rowWidth: number,
+    cardCount: number,
+    cardWidth: number
+): number {
+    const firstRowSize = rowSizes(cardCount + 1, rowWidth, cardWidth)[0] ?? 1
+    return rowLeft + (rowWidth - rowContentWidth(firstRowSize, cardWidth)) / 2 + cardWidth / 2
+}
+
 export type PileSlot<TCard> =
     | { kind: 'deck'; card: TCard }
     | { kind: 'card'; card: TCard; index: number }
