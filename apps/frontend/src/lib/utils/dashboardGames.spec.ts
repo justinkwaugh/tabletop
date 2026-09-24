@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GameCategory, GameStatus, PlayerStatus, type Game } from '@tabletop/common'
-import { nextTurnGame } from './dashboardGames'
+import { isUsersNonHotseatTurn, nextTurnGame } from './dashboardGames'
 
 function game(id: string, overrides: Partial<Game> = {}): Game {
     return {
@@ -58,5 +58,17 @@ describe('next turn navigation', () => {
         expect(nextTurnGame(games, 'a', 'user')).toBeUndefined()
         expect(nextTurnGame(games, 'outside', 'spectator')).toBeUndefined()
         expect(nextTurnGame(games, 'outside')).toBeUndefined()
+    })
+})
+
+describe('non-hotseat turn', () => {
+    it('is the user’s turn only in a started non-hotseat game where they are active', () => {
+        expect(isUsersNonHotseatTurn(game('a'), 'user')).toBe(true)
+        expect(isUsersNonHotseatTurn(game('a', { hotseat: true }), 'user')).toBe(false)
+        expect(isUsersNonHotseatTurn(game('a', { activePlayerIds: ['opponent'] }), 'user')).toBe(
+            false
+        )
+        expect(isUsersNonHotseatTurn(game('a'), 'spectator')).toBe(false)
+        expect(isUsersNonHotseatTurn(game('a'))).toBe(false)
     })
 })

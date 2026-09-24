@@ -52,6 +52,7 @@ export const load: PageLoad = async ({ params, url }) => {
             gameId: game.id
         })
         return {
+            game,
             gameSession: new sessionClass({
                 gameService: appContext.gameService,
                 bridgedContext: bridgedContext,

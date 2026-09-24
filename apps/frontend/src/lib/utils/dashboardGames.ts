@@ -15,13 +15,16 @@ export function isUsersGameTurn(game: Game, userId?: string): boolean {
     )
 }
 
+export function isUsersNonHotseatTurn(game: Game, userId?: string): boolean {
+    return !game.hotseat && isUsersGameTurn(game, userId)
+}
+
 export function otherTurnGames(games: Game[], currentGameId: string, userId?: string): Game[] {
     return games.filter(
         (game) =>
             game.id !== currentGameId &&
-            !game.hotseat &&
             game.category !== GameCategory.Exploration &&
-            isUsersGameTurn(game, userId)
+            isUsersNonHotseatTurn(game, userId)
     )
 }
 

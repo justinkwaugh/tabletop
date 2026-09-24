@@ -13,7 +13,6 @@
 
     import { onMount, untrack } from 'svelte'
     import type { GameState, HydratedGameState } from '@tabletop/common'
-    import TurnTabIndicator from './TurnTabIndicator.svelte'
 
     let props: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
     const gameSession = untrack(() => props.gameSession)
@@ -43,7 +42,6 @@
 </script>
 
 <HistoryKeyControls />
-<TurnTabIndicator gameId={gameSession.game.id} gameName={gameSession.game.name} />
 
 <div class="flex flex-col w-screen overflow-auto">
     <div {@attach attachGlobalCssVarFromRect('--app-banner-height')}>

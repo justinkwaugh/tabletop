@@ -37,7 +37,7 @@ import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import { SvelteMap } from 'svelte/reactivity'
 import { NotificationService } from './notificationService.svelte'
-import { isUsersGameTurn } from '$lib/utils/dashboardGames'
+import { isUsersGameTurn, isUsersNonHotseatTurn } from '$lib/utils/dashboardGames'
 import { compareGameInvitations } from '$lib/utils/gameInvitation'
 
 import type { LibraryService } from './libraryService.svelte'
@@ -132,8 +132,7 @@ export class GameService implements GameServiceInterface {
         const game = this.gamesById.get(gameId)
         return (
             game !== undefined &&
-            !game.hotseat &&
-            isUsersGameTurn(game, this.authorizationService.getSessionUser()?.id)
+            isUsersNonHotseatTurn(game, this.authorizationService.getSessionUser()?.id)
         )
     }
 

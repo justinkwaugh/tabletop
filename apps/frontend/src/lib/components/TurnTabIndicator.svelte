@@ -6,6 +6,17 @@
 
     const { gameService } = getAppContext()
     const isMyTurn = $derived(gameService.isSessionUsersTurn(gameId))
+    const title = $derived(isMyTurn ? `Your turn · ${gameName}` : gameName)
+
+    $effect(() => {
+        document.title = title
+        return () => {
+            // Pages without their own title would keep this one; skip if the next page set its own
+            if (document.title === title) {
+                document.title = 'Board Together'
+            }
+        }
+    })
 
     $effect(() => {
         if (!isMyTurn) {
@@ -15,7 +26,3 @@
         return () => showFaviconVariant('favicon')
     })
 </script>
-
-<svelte:head>
-    <title>{isMyTurn ? 'Your turn · ' : ''}{gameName} — Board Together</title>
-</svelte:head>
