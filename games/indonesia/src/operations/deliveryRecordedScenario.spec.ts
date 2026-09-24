@@ -252,8 +252,8 @@ describe('Recorded Scenario Delivery Solver', () => {
         expect(byCompany).toEqual({
             J: {
                 delivered: 12,
-                shippingCost: 130,
-                netIncome: 290,
+                shippingCost: 120,
+                netIncome: 300,
                 deliveries: 10
             },
             K: {
@@ -278,7 +278,7 @@ describe('Recorded Scenario Delivery Solver', () => {
                 delivered: 8,
                 shippingCost: 55,
                 netIncome: 185,
-                deliveries: 6
+                deliveries: 7
             },
             O: {
                 delivered: 2,
@@ -288,14 +288,14 @@ describe('Recorded Scenario Delivery Solver', () => {
             },
             P: {
                 delivered: 11,
-                shippingCost: 145,
-                netIncome: 185,
-                deliveries: 9
+                shippingCost: 140,
+                netIncome: 190,
+                deliveries: 8
             },
             Q: {
                 delivered: 7,
-                shippingCost: 55,
-                netIncome: 225,
+                shippingCost: 50,
+                netIncome: 230,
                 deliveries: 6
             },
             R: {

@@ -272,11 +272,13 @@ describe('projected hosted Actions', () => {
                     action.id
                 )
                 expect(representedActions).not.toEqual([])
+                // Projected records always carry their recorded transition patches; patch presence
+                // no longer signals whether the Action could be replayed.
                 expect(
                     representedActions.every(
-                        (representedAction) => representedAction.forwardPatch === undefined
+                        (representedAction) => representedAction.forwardPatch !== undefined
                     )
-                ).toBe(classifyReplay)
+                ).toBe(true)
 
                 if (releaseServer === undefined) {
                     throw Error('The server response gate was not initialized')

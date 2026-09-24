@@ -579,7 +579,7 @@ describe('simultaneous auction projected synchronization', () => {
         const host = createAuctionHost()
         host.apply(createBid('bid-b-01', PLAYER_B_ID, 2))
         const initialHistory = projectHostHistory(host, PLAYER_B_PERSPECTIVE)
-        expect(initialHistory.actions[0]?.forwardPatch).toBeUndefined()
+        expect(initialHistory.actions[0]?.forwardPatch).toBeDefined()
         const initialChecksum = host.state.actionChecksum
         const client = createClient(
             host,
@@ -621,7 +621,7 @@ describe('simultaneous auction projected synchronization', () => {
             const endAuction = context.actions.find(
                 (action) => action.type === ActionType.EndAuction
             )
-            expect(ownBid?.forwardPatch).toBeUndefined()
+            expect(ownBid?.forwardPatch).toBeDefined()
             expect(opponentBid).not.toHaveProperty('amount')
             expect(opponentBid?.forwardPatch).toBeDefined()
             expect(endAuction).toHaveProperty('metadata.participants', [
