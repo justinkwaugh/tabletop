@@ -650,7 +650,7 @@ export class HydratedSolGameBoard
     }
 
     public findSundiverCoords(sundiverId: string): OffsetCoordinates | undefined {
-        for (const [key, cell] of Object.entries(this.cells)) {
+        for (const cell of Object.values(this.cells)) {
             if (cell.sundivers.find((diver) => diver.id === sundiverId)) {
                 return cell.coords
             }
@@ -670,7 +670,7 @@ export class HydratedSolGameBoard
     }
 
     public findStation(stationId: string): Station | undefined {
-        for (const [key, cell] of Object.entries(this.cells)) {
+        for (const cell of Object.values(this.cells)) {
             if (cell.station?.id === stationId) {
                 return cell.station
             }
@@ -712,7 +712,6 @@ export class HydratedSolGameBoard
     }
 
     public gateConversionDestinations(coords: OffsetCoordinates): OffsetCoordinates[] {
-        const destinations: OffsetCoordinates[] = []
         return this.graph
             .neighborsAt(coords, Direction.In)
             .filter((neighbor) => {

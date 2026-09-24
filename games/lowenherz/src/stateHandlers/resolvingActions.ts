@@ -19,7 +19,7 @@ export class ResolvingActionsStateHandler
 {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedLowenherzGameState>
+        _context: MachineContext<HydratedLowenherzGameState>
     ): action is ResolvingActionsAction {
         return action instanceof HydratedAdvanceResolution
     }

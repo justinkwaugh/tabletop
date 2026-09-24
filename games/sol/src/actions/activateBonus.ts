@@ -172,7 +172,7 @@ export class HydratedActivateBonus
         return false
     }
 
-    static canActivateEnergyNodeBonus(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateEnergyNodeBonus(_state: HydratedSolGameState, _playerId: string): boolean {
         return true
     }
 

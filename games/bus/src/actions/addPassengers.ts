@@ -46,7 +46,7 @@ export class HydratedAddPassengers
         super(data, AddPassengersValidator)
     }
 
-    apply(state: HydratedBusGameState, context?: MachineContext) {
+    apply(state: HydratedBusGameState, _context?: MachineContext) {
         if (!this.isValidAddPassengers(state)) {
             throw Error('Invalid AddPassengers action')
         }
@@ -68,7 +68,7 @@ export class HydratedAddPassengers
         return BUS_STATION_IDS.includes(stationId as BusStationId)
     }
 
-    static canAddPassengers(state: HydratedBusGameState, playerId: string): boolean {
+    static canAddPassengers(state: HydratedBusGameState, _playerId: string): boolean {
         return state.passengers.length > 0
     }
 }

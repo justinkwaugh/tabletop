@@ -19,7 +19,7 @@ export class AddingPassengersStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedBusGameState>
+        _context: MachineContext<HydratedBusGameState>
     ): action is AddingPassengersAction {
         // Leave this comment if you want the template to generate code for valid actions
         return isAddPassengers(action) || isPass(action)

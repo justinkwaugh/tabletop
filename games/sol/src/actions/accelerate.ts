@@ -1,9 +1,8 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { Ring } from '../utils/solGraph.js'
 
 export type AccelerateMetadata = Type.Static<typeof AccelerateMetadata>
 export const AccelerateMetadata = Type.Object({

@@ -13,7 +13,6 @@ import {
     type EighteenXXState,
     type EighteenXXTitleRules,
     type StockInstruction,
-    type StockInstructionStopReason,
     type StoppedStockInstruction
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'

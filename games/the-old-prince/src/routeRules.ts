@@ -6,7 +6,7 @@ export const TheOldPrinceRouteRules: RouteRules = {
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
     depot: TheOldPrinceTrainDepot,
-    revenueStage(state, train) {
+    revenueStage(state, _train) {
         return TheOldPrincePhases.phase(state.phaseId).tileColors
     },
     requiresCity: (train) => train.distance.measure === 'cities-and-offboards'

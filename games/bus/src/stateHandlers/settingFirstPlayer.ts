@@ -22,15 +22,15 @@ export class SettingFirstPlayerStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedBusGameState>
+        _context: MachineContext<HydratedBusGameState>
     ): action is SettingFirstPlayerAction {
         // Leave this comment if you want the template to generate code for valid actions
         return isSetFirstPlayer(action)
     }
 
     validActionsForPlayer(
-        playerId: string,
-        context: MachineContext<HydratedBusGameState>
+        _playerId: string,
+        _context: MachineContext<HydratedBusGameState>
     ): ActionType[] {
         return [ActionType.SetFirstPlayer]
     }

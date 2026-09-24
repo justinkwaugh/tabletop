@@ -935,12 +935,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         animationContext.runAfterAnimations()
     }
 
-    async onGameStateChange({
-        to,
-        from,
-        action,
-        animationContext
-    }: {
+    async onGameStateChange(_args: {
         to: U
         from?: U
         action?: GameAction
@@ -1377,7 +1372,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.gameStateChangeListeners.delete(listener)
     }
 
-    public shouldAutoStepAction(action: GameAction, next?: GameAction) {
+    public shouldAutoStepAction(action: GameAction, _next?: GameAction) {
         return action.source === ActionSource.System
     }
 

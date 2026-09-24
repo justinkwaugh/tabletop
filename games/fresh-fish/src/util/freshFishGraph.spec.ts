@@ -1,5 +1,4 @@
-import { CardinalDirection, sameCoordinates } from '@tabletop/common'
-import { Cell, CellType, isStallCell } from '../components/cells.js'
+import { Cell, CellType } from '../components/cells.js'
 import { describe, expect, it } from 'vitest'
 import { GoodsType } from '../definition/goodsType.js'
 import { FreshFishGraph } from './freshFishGraph.js'

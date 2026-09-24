@@ -87,7 +87,6 @@ export class AuctioningTileStateHandler implements MachineStateHandler<
             }
             case ActionType.EndAuction: {
                 // The winner has to place a stall
-                const winningPlayer = gameState.getPlayerState(action.winnerId)
                 gameState.activePlayerIds = [action.winnerId]
 
                 const chosenTile = gameState.chosenTile

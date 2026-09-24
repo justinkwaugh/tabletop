@@ -10,5 +10,5 @@ export const Shikoku1889RouteRules: RouteRules = {
         const colors = Shikoku1889Phases.phase(state.phaseId).tileColors
         return train.id === 'D' ? [...colors, 'diesel'] : colors
     },
-    requiresCity: (train) => false
+    requiresCity: (_train) => false
 }

@@ -12,7 +12,7 @@ export class InitialBusLinePlacementStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedBusGameState>
+        _context: MachineContext<HydratedBusGameState>
     ): action is InitialBusLinePlacementAction {
         // Leave this comment if you want the template to generate code for valid actions
         return isPlaceBusLine(action)

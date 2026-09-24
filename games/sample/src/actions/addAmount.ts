@@ -51,7 +51,7 @@ export class HydratedAddAmount extends HydratableAction<typeof AddAmount> implem
 
     // This method applies the action to the game state, it's also given a context which can provide additional information
     // such as the game config, and can be used to add more actions as a result of this action
-    apply(state: HydratedSampleGameState, context?: MachineContext) {
+    apply(state: HydratedSampleGameState, _context?: MachineContext) {
         if (!this.isValidAddAmount(state)) {
             throw Error('Invalid add amount action')
         }

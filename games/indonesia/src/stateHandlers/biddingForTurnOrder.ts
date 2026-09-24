@@ -28,7 +28,7 @@ export class BiddingForTurnOrderStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedIndonesiaGameState>
+        _context: MachineContext<HydratedIndonesiaGameState>
     ): action is BiddingForTurnOrderAction {
         // Leave this comment if you want the template to generate code for valid actions
         return isPlaceTurnOrderBid(action) || isSetTurnOrder(action) || isRemoveCompanyDeed(action)

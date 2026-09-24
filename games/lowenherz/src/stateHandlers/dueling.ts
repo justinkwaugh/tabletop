@@ -6,7 +6,7 @@ import {
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { Duel, HydratedLowenherzGameState } from '../model/gameState.js'
+import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { HydratedSubmitDuelBid } from '../actions/submitDuelBid.js'
 import { PoliticsCardType, removePoliticsCard } from '../definition/politicsCards.js'
 import { routeAfterSlotResolved } from '../util/resolutionHelpers.js'

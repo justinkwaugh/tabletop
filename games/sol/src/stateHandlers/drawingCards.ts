@@ -1,11 +1,8 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
-    ActionSource,
-    assert,
     assertExists,
-    MachineContext,
-    Prng
+    MachineContext
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
@@ -13,7 +10,6 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedDrawCards, isDrawCards } from '../actions/drawCards.js'
 import { Suit } from '../components/cards.js'
 import { SolarFlare } from '../actions/solarFlare.js'
-import { nanoid } from 'nanoid'
 import { PassContext } from '../actions/pass.js'
 import { queueCardChoicePass } from '../utils/automaticActions.js'
 import { EffectType } from '../components/effects.js'
@@ -27,7 +23,7 @@ import { onActivateEffect } from './postActionHelper.js'
 type DrawingCardsActions = HydratedDrawCards | HydratedActivateEffect
 
 export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCardsActions, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is DrawingCardsActions {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is DrawingCardsActions {
         if (!action.playerId) return false
         return isDrawCards(action) || isActivateEffect(action)
     }

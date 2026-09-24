@@ -1,8 +1,7 @@
 import { TheOldPrinceKingsMail } from '../index.js'
-import { assert, assertExists, type PlayerState } from '@tabletop/common'
+import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
-    sameOwner,
     type Certificate,
     type Owner,
     type President,

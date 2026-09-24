@@ -12,7 +12,7 @@ async function fileExists(path: string): Promise<boolean> {
         await fs.access(path)
         console.log('File exists.')
         return true
-    } catch (error) {
+    } catch {
         console.log('File does not exist.')
         return false
     }

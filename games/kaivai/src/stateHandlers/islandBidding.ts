@@ -1,5 +1,4 @@
 import {
-    ActionSource,
     type HydratedAction,
     MachineContext,
     type MachineStateHandler,
@@ -8,7 +7,6 @@ import {
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { HydratedPlaceScoringBid, isPlaceScoringBid } from '../actions/placeScoringBid.js'
 import { MachineState } from '../definition/states.js'
-import { nanoid } from 'nanoid'
 import { ActionType } from '../definition/actions.js'
 import { ScoreIsland } from '../actions/scoreIsland.js'
 

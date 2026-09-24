@@ -4,7 +4,7 @@ import { HydratedLowenherzGameState, LowenherzGameState } from '../model/gameSta
 import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType } from '../model/board.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { PoliticsCardType, type PoliticsCard } from '../definition/politicsCards.js'
+import { PoliticsCardType } from '../definition/politicsCards.js'
 import { HydratedLookAtPoliticsPile } from '../actions/lookAtPoliticsPile.js'
 import { HydratedTakePoliticsCard } from '../actions/takePoliticsCard.js'
 import { TakingPoliticsCardStateHandler } from './takingPoliticsCard.js'

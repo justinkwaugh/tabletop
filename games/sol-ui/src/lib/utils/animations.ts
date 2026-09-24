@@ -233,8 +233,7 @@ export function call({
     callback,
     duration,
     position,
-    timeline,
-    onComplete
+    timeline
 }: {
     callback: gsap.Callback
     params?: object

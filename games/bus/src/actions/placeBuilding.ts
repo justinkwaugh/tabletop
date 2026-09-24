@@ -46,7 +46,7 @@ export class HydratedPlaceBuilding
         super(data, PlaceBuildingValidator)
     }
 
-    apply(state: HydratedBusGameState, context?: MachineContext) {
+    apply(state: HydratedBusGameState, _context?: MachineContext) {
         if (!this.isValidPlaceBuilding(state)) {
             throw Error('Invalid PlaceBuilding action')
         }
@@ -71,7 +71,7 @@ export class HydratedPlaceBuilding
         return isSiteId(this.siteId) && !state.board.hasBuildingAt(this.siteId)
     }
 
-    static canPlaceBuilding(state: HydratedBusGameState, playerId: string): boolean {
+    static canPlaceBuilding(state: HydratedBusGameState, _playerId: string): boolean {
         return state.currentBuildingPhase < 4 || state.numSitesRemainingForCurrentPhase() > 0
     }
 }

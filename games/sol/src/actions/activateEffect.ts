@@ -314,7 +314,7 @@ export class HydratedActivateEffect
         return true
     }
 
-    static canActivateCluster(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateCluster(state: HydratedSolGameState, _playerId: string): boolean {
         return state.machineState === MachineState.Moving
     }
 
@@ -361,7 +361,7 @@ export class HydratedActivateEffect
         return true
     }
 
-    static canActivateHyperdrive(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateHyperdrive(state: HydratedSolGameState, _playerId: string): boolean {
         return state.machineState === MachineState.Moving && !state.moved
     }
 
@@ -380,7 +380,7 @@ export class HydratedActivateEffect
         )
     }
 
-    static canActivatePillar(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivatePillar(state: HydratedSolGameState, _playerId: string): boolean {
         return (
             (state.machineState === MachineState.DrawingCards ||
                 state.machineState === MachineState.CheckEffect) &&
@@ -396,11 +396,11 @@ export class HydratedActivateEffect
         return HydratedInvade.canInvade(state, playerId)
     }
 
-    static canActivateFestival(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateFestival(state: HydratedSolGameState, _playerId: string): boolean {
         return state.machineState === MachineState.Activating && !state.activations?.length
     }
 
-    static canActivatePortal(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivatePortal(state: HydratedSolGameState, _playerId: string): boolean {
         return state.machineState === MachineState.Moving
     }
 
@@ -438,11 +438,11 @@ export class HydratedActivateEffect
         return hasStation
     }
 
-    static canActivateTranscend(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateTranscend(state: HydratedSolGameState, _playerId: string): boolean {
         return state.machineState === MachineState.Moving
     }
 
-    static canActivateSacrifice(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateSacrifice(state: HydratedSolGameState, _playerId: string): boolean {
         if (state.machineState !== MachineState.Activating) {
             return false
         }
@@ -461,7 +461,7 @@ export class HydratedActivateEffect
         return HydratedFly.canTeleport(state, playerId)
     }
 
-    static canActivateSynchronize(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateSynchronize(state: HydratedSolGameState, _playerId: string): boolean {
         return state.machineState === MachineState.Activating
     }
 
@@ -473,7 +473,7 @@ export class HydratedActivateEffect
         return HydratedBlight.canBlight(state, playerId)
     }
 
-    static canActivateAccelerate(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateAccelerate(_state: HydratedSolGameState, _playerId: string): boolean {
         return true
     }
 
@@ -508,7 +508,7 @@ export class HydratedActivateEffect
         })
     }
 
-    static canActivateCatapult(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateCatapult(state: HydratedSolGameState, _playerId: string): boolean {
         return state.machineState === MachineState.Moving
     }
 
@@ -564,13 +564,13 @@ export class HydratedActivateEffect
         return false
     }
 
-    static canActivateChain(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivateChain(state: HydratedSolGameState, _playerId: string): boolean {
         return Iterator.from(state.board).some((cell) =>
             HydratedChain.canInitiateChainAt(state, cell.coords)
         )
     }
 
-    static canActivatePassage(state: HydratedSolGameState, playerId: string): boolean {
+    static canActivatePassage(state: HydratedSolGameState, _playerId: string): boolean {
         return state.machineState === MachineState.Moving
     }
 

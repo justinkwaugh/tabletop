@@ -19,7 +19,7 @@ export class ChoosingActionsStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedBusGameState>
+        _context: MachineContext<HydratedBusGameState>
     ): action is ChoosingActionsAction {
         // Leave this comment if you want the template to generate code for valid actions
         return isChooseWorkerAction(action) || isPass(action)

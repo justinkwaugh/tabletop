@@ -183,7 +183,7 @@ export class DeedPlacementAnimator {
 export function attachDeedPlacementAnimator(
     animator: DeedPlacementAnimator
 ): (element: HTMLElement | SVGElement) => () => void {
-    return (element: HTMLElement | SVGElement) => {
+    return (_element: HTMLElement | SVGElement) => {
         untrack(() => {
             animator.register()
         })

@@ -14,7 +14,6 @@ import { gsap } from 'gsap'
 import { type GameAction } from '@tabletop/common'
 import { animate, fadeIn, fadeOut } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
-import { getGatePosition } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import { getFlightDuration } from '$lib/utils/flight.js'
 
@@ -165,12 +164,6 @@ export class GateAnimator extends StateAnimator<
         if (!action.innerCoords) {
             return
         }
-
-        const gatePosition = getGatePosition(
-            this.gameSession.numPlayers,
-            action.innerCoords,
-            action.coords
-        )
 
         // Trigger rendering/attachment of the converted station
         if (this.callback) {

@@ -19,7 +19,7 @@ export class IncreaseBusesStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedBusGameState>
+        _context: MachineContext<HydratedBusGameState>
     ): action is IncreaseBusesAction {
         // Leave this comment if you want the template to generate code for valid actions
         return isAddBus(action) || isPass(action)

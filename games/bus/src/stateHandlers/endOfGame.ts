@@ -16,15 +16,15 @@ export class EndOfGameStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedBusGameState>
+        _context: MachineContext<HydratedBusGameState>
     ): action is EndOfGameAction {
         // Leave this comment if you want the template to generate code for valid actions
         return false
     }
 
     validActionsForPlayer(
-        playerId: string,
-        context: MachineContext<HydratedBusGameState>
+        _playerId: string,
+        _context: MachineContext<HydratedBusGameState>
     ): ActionType[] {
         return []
     }
@@ -66,7 +66,7 @@ export class EndOfGameStateHandler implements MachineStateHandler<
         gameState.activePlayerIds = []
     }
 
-    onAction(action: EndOfGameAction, context: MachineContext<HydratedBusGameState>): MachineState {
+    onAction(_action: EndOfGameAction, _context: MachineContext<HydratedBusGameState>): MachineState {
         switch (true) {
             // Leave this comment if you want the template to generate code for valid actions
             default: {

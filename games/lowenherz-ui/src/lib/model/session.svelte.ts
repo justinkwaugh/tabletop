@@ -35,7 +35,6 @@ import {
     legalKnightSquares,
     legalWallEdges,
     getSquare,
-    HydratedCancelAlliance,
     HydratedChooseAction,
     HydratedDrawActionCard,
     HydratedLowenherzGameState,

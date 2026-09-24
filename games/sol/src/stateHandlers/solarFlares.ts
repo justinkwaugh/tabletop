@@ -1,11 +1,8 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
-    ActionSource,
-    assert,
     assertExists,
-    MachineContext,
-    Prng
+    MachineContext
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
@@ -13,12 +10,10 @@ import { HydratedSolGameState } from '../model/gameState.js'
 import { HydratedSolarFlare, isSolarFlare, SolarFlare } from '../actions/solarFlare.js'
 import { HydratedActivate, isActivate } from '../actions/activate.js'
 import { Ring } from '../utils/solGraph.js'
-import { nanoid } from 'nanoid'
 import { Activation } from '../model/activation.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { queueCardChoicePass } from '../utils/automaticActions.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
-import { EffectType } from '../components/effects.js'
 import { onActivateEffect } from './postActionHelper.js'
 
 // Transition from SolarFlares(SolarFlare) -> SolarFlares | ChoosingCard
@@ -38,7 +33,7 @@ export class SolarFlaresStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedSolGameState>
+        _context: MachineContext<HydratedSolGameState>
     ): action is SolarFlaresActions {
         return (
             isSolarFlare(action) || isActivate(action) || isPass(action) || isActivateEffect(action)

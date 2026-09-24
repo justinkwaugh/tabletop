@@ -40,7 +40,7 @@ export class HydratedChooseWorkerAction
         super(data, ChooseWorkerActionValidator)
     }
 
-    apply(state: HydratedBusGameState, context?: MachineContext) {
+    apply(state: HydratedBusGameState, _context?: MachineContext) {
         if (!this.isValidChooseWorkerAction(state)) {
             throw Error('Invalid ChooseWorkerAction action')
         }

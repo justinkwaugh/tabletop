@@ -2,7 +2,6 @@ import {
     Card,
     DrawCards,
     HydratedSolGameState,
-    isActivate,
     isDrawCards,
     isSolarFlare,
     MachineState,
@@ -108,8 +107,8 @@ export class CardPickerAnimator extends StateAnimator<
     async animateDrawCards(
         action: DrawCards,
         timeline: gsap.core.Timeline,
-        toState: HydratedSolGameState,
-        fromState?: HydratedSolGameState
+        _toState: HydratedSolGameState,
+        _fromState?: HydratedSolGameState
     ) {
         // Set the drawn cards so that the card picker will render them
         const drawnCards = action.metadata?.drawnCards ?? []

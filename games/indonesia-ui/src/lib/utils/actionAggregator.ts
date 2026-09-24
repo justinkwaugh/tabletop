@@ -11,7 +11,6 @@ import {
     isPassMergerBid,
     isPlaceTurnOrderBid,
     isPlaceMergerBid,
-    isProposeMerger,
     isRemoveSiapSajiArea
 } from '@tabletop/indonesia'
 import { nanoid } from 'nanoid'

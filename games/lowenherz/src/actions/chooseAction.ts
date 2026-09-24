@@ -52,7 +52,7 @@ export class HydratedChooseAction
         super(data, ChooseActionValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidChooseAction(state)) {
             throw Error('Invalid ChooseAction action')
         }

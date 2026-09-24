@@ -12,7 +12,7 @@ export class InitialPlacementStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedBusGameState>
+        _context: MachineContext<HydratedBusGameState>
     ): action is InitialBuildingPlacementAction {
         // Leave this comment if you want the template to generate code for valid actions
         return isPlaceBuilding(action)

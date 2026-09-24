@@ -38,7 +38,7 @@ export class HydratedChooseActivate
         super(data, ChooseActivateValidator)
     }
 
-    apply(state: HydratedSolGameState, _context?: MachineContext) {
+    apply(_state: HydratedSolGameState, _context?: MachineContext) {
         // This action does not directly modify the game state
         // though it could
     }

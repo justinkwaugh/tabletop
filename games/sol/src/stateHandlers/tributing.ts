@@ -8,12 +8,12 @@ import { drawCardsOrEndTurn } from './postActionHelper.js'
 // Transition from Tributing(Tribute) -> PREVIOUS STATE
 
 export class TributingStateHandler implements MachineStateHandler<HydratedTribute, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is HydratedTribute {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is HydratedTribute {
         if (!action.playerId) return false
         return isTribute(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedSolGameState>): ActionType[] {
         return [ActionType.Tribute]
     }
 

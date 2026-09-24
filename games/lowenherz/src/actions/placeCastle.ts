@@ -7,7 +7,6 @@ import {
     castleSquaresForOwner,
     getSquare,
     manhattanDistance,
-    neighbors,
     SquareType,
     totalCastlesPlaced
 } from '../model/board.js'
@@ -73,7 +72,7 @@ export class HydratedPlaceCastle extends HydratableAction<typeof PlaceCastle> im
         super(data, PlaceCastleValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidPlaceCastle(state)) {
             throw Error('Invalid PlaceCastle action')
         }

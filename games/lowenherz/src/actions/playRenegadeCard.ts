@@ -77,7 +77,7 @@ export class HydratedPlayRenegadeCard
         super(data, PlayRenegadeCardValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidPlayRenegadeCard(state)) {
             throw Error('Invalid PlayRenegadeCard action')
         }

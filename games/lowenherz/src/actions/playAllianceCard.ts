@@ -57,7 +57,7 @@ export class HydratedPlayAllianceCard
         super(data, PlayAllianceCardValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidPlayAllianceCard(state)) {
             throw Error('Invalid PlayAllianceCard action')
         }

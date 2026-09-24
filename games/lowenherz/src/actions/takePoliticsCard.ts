@@ -49,7 +49,7 @@ export class HydratedTakePoliticsCard
         super(data, TakePoliticsCardValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidTakePoliticsCard(state)) {
             throw Error('Invalid TakePoliticsCard action')
         }

@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext, OffsetCoordinates } from 
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Station, StationType } from '../components/stations.js'
-import { Direction, Ring } from '../utils/solGraph.js'
+import { Direction } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
 import { SolarGate } from '../components/solarGate.js'
 import { EffectType } from '../components/effects.js'
@@ -155,8 +155,6 @@ export class HydratedConvert extends HydratableAction<typeof Convert> implements
     }
 
     static isValidConversion(state: HydratedSolGameState, convert: Convert): boolean {
-        const playerState = state.getPlayerState(convert.playerId)
-
         if (convert.isGate) {
             return HydratedConvert.isValidGateConversion(state, convert)
         } else if (convert.stationType === StationType.EnergyNode) {

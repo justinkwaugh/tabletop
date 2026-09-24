@@ -57,7 +57,7 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
         super(data, PassValidator)
     }
 
-    apply(state: HydratedIndonesiaGameState, context?: MachineContext) {
+    apply(state: HydratedIndonesiaGameState, _context?: MachineContext) {
         if (!this.isValidPass(state)) {
             throw Error('Invalid Pass action')
         }

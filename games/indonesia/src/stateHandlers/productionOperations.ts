@@ -23,10 +23,6 @@ import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { buildDeliveryProblem } from '../operations/deliveryProblemBuilder.js'
 import { buildResidualDeliveryProblem } from '../operations/deliveryCandidateContext.js'
 import type { DeliveryPlan, ShipUse, ShippingPayment } from '../operations/deliveryPlan.js'
-import {
-    describeProductionOperation,
-    ProductionOperationStage
-} from '../operations/productionOperationProgress.js'
 import { solveDeliveryProblem } from '../operations/deliverySolver.js'
 import { isIndonesiaNodeId } from '../utils/indonesiaNodes.js'
 import { finishOperatingCompany } from './operationsFlow.js'

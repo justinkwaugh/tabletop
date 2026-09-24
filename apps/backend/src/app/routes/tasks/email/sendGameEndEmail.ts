@@ -20,7 +20,7 @@ export default async function (fastify: FastifyInstance) {
             schema: { body: SendGameEndEmailRequest }
         },
         async function (request, reply) {
-            const { userId, gameId, toEmail } = request.body
+            const { gameId, toEmail } = request.body
 
             const game = await fastify.gameService.getGame({ gameId })
             if (!game) {

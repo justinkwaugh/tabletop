@@ -1,7 +1,6 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
-    ActionSource,
     MachineContext
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
@@ -10,7 +9,6 @@ import { HydratedKaivaiGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { HydratedLoseValue, isLoseValue } from '../actions/loseValue.js'
 import { ScoreHuts } from '../actions/scoreHuts.js'
-import { nanoid } from 'nanoid'
 
 // Transition from LosingValue(LoseValue) -> Bidding
 export class LosingValueStateHandler implements MachineStateHandler<HydratedLoseValue, HydratedKaivaiGameState> {

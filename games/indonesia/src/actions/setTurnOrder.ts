@@ -39,7 +39,7 @@ export class HydratedSetTurnOrder
         super(data, SetTurnOrderValidator)
     }
 
-    apply(state: HydratedIndonesiaGameState, context?: MachineContext) {
+    apply(state: HydratedIndonesiaGameState, _context?: MachineContext) {
         if (!this.isValidSetTurnOrder(state)) {
             throw Error('Invalid SetTurnOrder action')
         }

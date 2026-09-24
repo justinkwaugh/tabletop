@@ -4,7 +4,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { totalCastlesPlaced } from '../model/board.js'
 import { HydratedPlaceCastle } from '../actions/placeCastle.js'
-import { buildPlacementPlan, currentPlacementSlot, isSetupComplete } from '../util/placementPlan.js'
+import { buildPlacementPlan, currentPlacementSlot } from '../util/placementPlan.js'
 
 type PlacingCastlesAction = HydratedPlaceCastle
 
@@ -51,7 +51,7 @@ export class PlacingCastlesStateHandler
 
     onAction(
         action: PlacingCastlesAction,
-        context: MachineContext<HydratedLowenherzGameState>
+        _context: MachineContext<HydratedLowenherzGameState>
     ): MachineState {
         switch (true) {
             case action instanceof HydratedPlaceCastle: {

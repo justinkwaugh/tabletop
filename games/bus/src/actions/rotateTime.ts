@@ -35,7 +35,7 @@ export class HydratedRotateTime extends HydratableAction<typeof RotateTime> impl
         super(data, RotateTimeValidator)
     }
 
-    apply(state: HydratedBusGameState, context: MachineContext) {
+    apply(state: HydratedBusGameState, _context: MachineContext) {
         if (!this.isValidRotateTime(state)) {
             throw Error('Invalid RotateTime action')
         }
@@ -49,11 +49,11 @@ export class HydratedRotateTime extends HydratableAction<typeof RotateTime> impl
         }
     }
 
-    isValidRotateTime(state: HydratedBusGameState): boolean {
+    isValidRotateTime(_state: HydratedBusGameState): boolean {
         return true
     }
 
-    static canRotateTime(state: HydratedBusGameState, playerId: string): boolean {
+    static canRotateTime(_state: HydratedBusGameState, _playerId: string): boolean {
         return true
     }
 }

@@ -106,7 +106,6 @@ export class StartCompanyAnimator {
     }
 
     private async onGameStateChange({
-        to,
         from,
         action,
         animationContext

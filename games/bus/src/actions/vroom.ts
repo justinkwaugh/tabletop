@@ -44,7 +44,7 @@ export class HydratedVroom extends HydratableAction<typeof Vroom> implements Vro
         super(data, VroomValidator)
     }
 
-    apply(state: HydratedBusGameState, context?: MachineContext) {
+    apply(state: HydratedBusGameState, _context?: MachineContext) {
         if (!this.isValidVroom(state)) {
             throw Error('Invalid Vroom action')
         }

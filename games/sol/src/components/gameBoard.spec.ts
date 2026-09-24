@@ -108,7 +108,6 @@ describe('Sol Game Board Tests', () => {
         board.addGateAt(gate5, { row: Ring.Core, col: 1 }, { row: Ring.Radiative, col: 2 })
 
         const start = { row: Ring.Radiative, col: 7 }
-        const end = { row: Ring.Outer, col: 4 }
 
         const localGates = board.findGatesLocalToRing(start.row)
 

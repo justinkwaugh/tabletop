@@ -3,11 +3,9 @@ import {
     getPrng,
     assertExists,
     type Visibility,
-    GameAction,
     GameCategory,
     GameStorage,
     GameStatus,
-    type Game,
     type GameState,
     type HydratedGameState,
     type User

@@ -338,7 +338,6 @@ export class KaivaiGameSession extends GameSession<KaivaiProjectedState, Hydrate
     override async onGameStateChange({
         to,
         from,
-        action,
         animationContext
     }: {
         to: HydratedKaivaiGameState

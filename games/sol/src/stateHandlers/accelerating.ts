@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineStateHandler, assert, assertExists, MachineContext } from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, assertExists, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -8,12 +8,12 @@ import { drawCardsOrEndTurn } from './postActionHelper.js'
 // Transition from Accelerating(Accelerate) -> PREVIOUS STATE
 
 export class AcceleratingStateHandler implements MachineStateHandler<HydratedAccelerate, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is HydratedAccelerate {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is HydratedAccelerate {
         if (!action.playerId) return false
         return isAccelerate(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedSolGameState>): ActionType[] {
         return [ActionType.Accelerate]
     }
 

@@ -1,7 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
-    assert,
     assertExists,
     GameAction,
     HydratableAction,
@@ -177,8 +176,8 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
 
     static canActivateEnergyNode(
         state: HydratedSolGameState,
-        playerId: string,
-        coords: OffsetCoordinates
+        _playerId: string,
+        _coords: OffsetCoordinates
     ): boolean {
         return state.instability > 0
     }

@@ -1,7 +1,6 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
-    assert,
     MachineContext
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
@@ -20,15 +19,15 @@ export class TimeMachineStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedBusGameState>
+        _context: MachineContext<HydratedBusGameState>
     ): action is TimeMachineAction {
         // Leave this comment if you want the template to generate code for valid actions
         return isStopTime(action) || isPass(action) || isRotateTime(action)
     }
 
     validActionsForPlayer(
-        playerId: string,
-        context: MachineContext<HydratedBusGameState>
+        _playerId: string,
+        _context: MachineContext<HydratedBusGameState>
     ): ActionType[] {
         return [ActionType.StopTime, ActionType.Pass]
     }

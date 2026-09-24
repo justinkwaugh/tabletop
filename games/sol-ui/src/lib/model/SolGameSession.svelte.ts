@@ -231,10 +231,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     skipReset = false
 
     override async onGameStateChange({
-        to,
-        from,
-        action,
-        animationContext
+        action
     }: {
         to: HydratedSolGameState
         from?: HydratedSolGameState

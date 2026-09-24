@@ -1,5 +1,4 @@
 import {
-    assert,
     assertExists,
     GameResult,
     GameState,

@@ -36,7 +36,7 @@ export class HydratedChooseMove extends HydratableAction<typeof ChooseMove> impl
         super(data, ChooseMoveValidator)
     }
 
-    apply(state: HydratedSolGameState, _context?: MachineContext) {
+    apply(_state: HydratedSolGameState, _context?: MachineContext) {
         // This action does not directly modify the game state
         // though it could
     }

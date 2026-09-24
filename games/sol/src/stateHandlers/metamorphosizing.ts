@@ -10,13 +10,13 @@ import { ActivatingStateHandler } from './activating.js'
 export class MetamorphosizingStateHandler implements MachineStateHandler<HydratedMetamorphosize, HydratedSolGameState> {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedSolGameState>
+        _context: MachineContext<HydratedSolGameState>
     ): action is HydratedMetamorphosize {
         if (!action.playerId) return false
         return isMetamorphosize(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedSolGameState>): ActionType[] {
         return [ActionType.Metamorphosize]
     }
 

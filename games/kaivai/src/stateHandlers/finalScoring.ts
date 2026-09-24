@@ -14,7 +14,6 @@ import {
     isChooseScoringIsland
 } from '../actions/chooseScoringIsland.js'
 import { HydratedScoreIsland, isScoreIsland, ScoreIsland } from '../actions/scoreIsland.js'
-import { nanoid } from 'nanoid'
 import { PhaseName } from '../definition/phases.js'
 
 // Transition from FinalScoring(ScoreHuts) -> FinalScoring

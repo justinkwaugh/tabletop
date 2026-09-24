@@ -241,28 +241,6 @@ export function hasAnyValidPlacementAfterReposition(
     return false
 }
 
-function findBestMonumentInDistrict(board: BoardSquare[], district: Set<number>): Monument | null {
-    let best: Monument | null = null
-    for (const p of district) {
-        const [r, c] = posToRowCol(p)
-        if (c + 2 < BOARD_SIZE) {
-            const p1 = rowColToPos(r, c + 1), p2 = rowColToPos(r, c + 2)
-            if (district.has(p1) && district.has(p2)) {
-                const m = checkMonument(board, p, p1, p2)
-                if (m && (!best || m.value > best.value)) best = m
-            }
-        }
-        if (r + 2 < BOARD_SIZE) {
-            const p1 = rowColToPos(r + 1, c), p2 = rowColToPos(r + 2, c)
-            if (district.has(p1) && district.has(p2)) {
-                const m = checkMonument(board, p, p1, p2)
-                if (m && (!best || m.value > best.value)) best = m
-            }
-        }
-    }
-    return best
-}
-
 export type DistrictPlayerStats = {
     total: number
     monumentValue: number

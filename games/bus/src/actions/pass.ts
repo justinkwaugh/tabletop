@@ -49,11 +49,10 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
         super(data, PassValidator)
     }
 
-    apply(state: HydratedBusGameState, context?: MachineContext) {
+    apply(state: HydratedBusGameState, _context?: MachineContext) {
         if (!this.isValidPass(state)) {
             throw Error('Invalid Pass action')
         }
-        const playerState = state.getPlayerState(this.playerId)
         state.passedPlayers.push(this.playerId)
 
         this.metadata = {

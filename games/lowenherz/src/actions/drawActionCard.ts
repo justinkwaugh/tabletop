@@ -59,7 +59,7 @@ export class HydratedDrawActionCard
         super(data, DrawActionCardValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidDrawActionCard(state)) {
             throw Error('Invalid DrawActionCard action')
         }

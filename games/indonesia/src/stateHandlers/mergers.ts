@@ -49,7 +49,7 @@ type MergersAction =
 export class MergersStateHandler implements MachineStateHandler<MergersAction, HydratedIndonesiaGameState> {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedIndonesiaGameState>
+        _context: MachineContext<HydratedIndonesiaGameState>
     ): action is MergersAction {
         return (
             isProposeMerger(action) ||

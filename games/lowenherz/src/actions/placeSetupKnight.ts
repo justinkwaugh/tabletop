@@ -46,7 +46,7 @@ export class HydratedPlaceSetupKnight
         super(data, PlaceSetupKnightValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidPlaceSetupKnight(state)) {
             throw Error('Invalid PlaceSetupKnight action')
         }

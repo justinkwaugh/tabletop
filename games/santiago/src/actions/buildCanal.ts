@@ -3,7 +3,7 @@ import { GameAction, HydratableAction } from '@tabletop/common'
 import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSantiagoGameState } from '../model/gameState.js'
-import { CanalSegment, isSameSegment } from '../model/board.js'
+import { CanalSegment } from '../model/board.js'
 import { isConnectedToSpring, isCanalPlaced } from '../util/irrigation.js'
 
 export type BuildCanal = Type.Static<typeof BuildCanal>

@@ -34,7 +34,7 @@ export class NewEraStateHandler implements MachineStateHandler<
 > {
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedIndonesiaGameState>
+        _context: MachineContext<HydratedIndonesiaGameState>
     ): action is NewEraAction {
         // Leave this comment if you want the template to generate code for valid actions
         return (

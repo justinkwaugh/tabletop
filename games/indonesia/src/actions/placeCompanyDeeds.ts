@@ -36,7 +36,7 @@ export class HydratedPlaceCompanyDeeds extends HydratableAction<typeof PlaceComp
         super(data, PlaceCompanyDeedsValidator)
     }
 
-    apply(state: HydratedIndonesiaGameState, context?: MachineContext) {
+    apply(state: HydratedIndonesiaGameState, _context?: MachineContext) {
         if (!this.isValidPlaceCompanyDeeds(state)) {
             throw Error('Invalid PlaceCompanyDeeds action')
         }

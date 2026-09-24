@@ -1,6 +1,5 @@
 import type { AnimationContext } from '@tabletop/frontend-components'
 import type { GameAction } from '@tabletop/common'
-import { gsap } from 'gsap'
 import {
     isPlaceBusLine,
     isBusNodeId,

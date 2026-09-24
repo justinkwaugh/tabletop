@@ -89,7 +89,6 @@ export class MovingStateHandler implements MachineStateHandler<MovingAction, Hyd
 
     onAction(action: MovingAction, context: MachineContext<HydratedSolGameState>): MachineState {
         const gameState = context.gameState
-        const playerState = gameState.getPlayerState(action.playerId)
 
         switch (true) {
             case isLaunch(action):

@@ -1,6 +1,5 @@
 import {
     type HydratedAction,
-    TerminalStateHandler,
     type MachineStateHandler
 } from '@tabletop/common'
 import { MachineState } from './states.js'

@@ -15,10 +15,7 @@ export class HarnessAuthorizationService implements AuthorizationService {
 
     async initialize() {}
 
-    async authorizeRoute({
-        category,
-        intendedUrl
-    }: {
+    async authorizeRoute(_args: {
         category: AuthorizationCategory
         intendedUrl: URL
     }): Promise<boolean> {
@@ -34,8 +31,8 @@ export class HarnessAuthorizationService implements AuthorizationService {
             externalIds: []
         }
     }
-    setSessionUser(user: User) {}
+    setSessionUser(_user: User) {}
     clearSessionUser() {}
-    async onLogin(user: User) {}
+    async onLogin(_user: User) {}
     async onLogout() {}
 }

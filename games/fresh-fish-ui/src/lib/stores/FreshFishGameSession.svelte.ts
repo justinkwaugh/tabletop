@@ -45,12 +45,7 @@ export class FreshFishGameSession extends GameSession<
         this.manualAction = undefined
     }
 
-    override async onGameStateChange({
-        to,
-        from,
-        action,
-        animationContext
-    }: {
+    override async onGameStateChange(_args: {
         to: HydratedFreshFishGameState
         from?: HydratedFreshFishGameState
         action?: GameAction

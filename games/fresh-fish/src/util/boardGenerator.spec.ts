@@ -6,13 +6,13 @@ describe('Fresh Fish Board Generator Tests', () => {
     it('Handles square corner checking when no on board actual corners', () => {
         const seed = 1959822602
         const prng = new Prng({ seed: seed, invocations: 0 })
-        const { board, numMarketTiles } = generateBoard(4, prng.random)
+        generateBoard(4, prng.random)
     })
 
     it('Builds a board correctly', () => {
         const seed = 1325337393
         const prng = new Prng({ seed: seed, invocations: 0 })
-        const { board, numMarketTiles } = generateBoard(4, prng.random)
+        const { board } = generateBoard(4, prng.random)
 
         const correctCells = [
             [

@@ -2,7 +2,6 @@ import { assertExists } from '@tabletop/common'
 import {
     dividendEntitlements,
     dividendMarketMove,
-    companyMarketSpace,
     getCompany,
     type EarningsRules
 } from '@tabletop/18xx'

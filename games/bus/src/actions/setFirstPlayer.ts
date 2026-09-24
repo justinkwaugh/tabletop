@@ -37,7 +37,7 @@ export class HydratedSetFirstPlayer
         super(data, SetFirstPlayerValidator)
     }
 
-    apply(state: HydratedBusGameState, context?: MachineContext) {
+    apply(state: HydratedBusGameState, _context?: MachineContext) {
         if (!this.isValidSetFirstPlayer(state)) {
             throw Error('Invalid SetFirstPlayer action')
         }
@@ -45,11 +45,11 @@ export class HydratedSetFirstPlayer
         this.metadata = {}
     }
 
-    isValidSetFirstPlayer(state: HydratedBusGameState): boolean {
+    isValidSetFirstPlayer(_state: HydratedBusGameState): boolean {
         return true
     }
 
-    static canSetFirstPlayer(state: HydratedBusGameState, playerId: string): boolean {
+    static canSetFirstPlayer(_state: HydratedBusGameState, _playerId: string): boolean {
         return true
     }
 }

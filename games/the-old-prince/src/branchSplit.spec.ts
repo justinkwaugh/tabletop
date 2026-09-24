@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Definition as Top, TheOldPrinceBranchSplit, TheOldPrinceBranches } from './index.js'
+import { TheOldPrinceBranchSplit, TheOldPrinceBranches } from './index.js'
 import {
     getCompany,
     sameOwner,

@@ -16,9 +16,8 @@ import { HydratedInvade, isInvade } from '../actions/invade.js'
 type ConvertingAction = HydratedConvert | HydratedPass | HydratedActivateEffect | HydratedInvade
 
 export class ConvertingStateHandler implements MachineStateHandler<ConvertingAction, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is ConvertingAction {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is ConvertingAction {
         if (!action.playerId) return false
-        const gameState = context.gameState
 
         return isPass(action) || isConvert(action) || isActivateEffect(action) || isInvade(action)
     }

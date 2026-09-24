@@ -1,7 +1,6 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
-    ActionSource,
     MachineContext
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
@@ -16,7 +15,6 @@ import { HydratedCelebrate, isCelebrate } from '../actions/celebrate.js'
 import { HydratedIncrease, isIncrease } from '../actions/increase.js'
 import { HydratedMove, isMove } from '../actions/move.js'
 import { LoseValue } from '../actions/loseValue.js'
-import { nanoid } from 'nanoid'
 import { isSacrifice } from '../actions/sacrifice.js'
 
 // Transition from TakingActions(Build) -> Building | TakingActions

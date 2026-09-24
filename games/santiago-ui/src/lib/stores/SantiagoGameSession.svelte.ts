@@ -11,8 +11,6 @@ import {
     Pass,
     ProposeCanal,
     OverseerDecision,
-    isProposeCanal,
-    isOverseerDecision,
     isSameSegment,
     type CanalProposal,
     type SantiagoProjectedState,

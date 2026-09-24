@@ -4,8 +4,7 @@ import {
     type HydratedIndonesiaGameState,
     type GrowCity,
     isGrowCity,
-    isPlaceCity,
-    type IndonesiaGameState
+    isPlaceCity
 } from '@tabletop/indonesia'
 import { gsap } from 'gsap'
 import { tick, untrack } from 'svelte'
@@ -203,7 +202,7 @@ export class CityPlacementAnimator {
 export function attachCityPlacementAnimator(
     animator: CityPlacementAnimator
 ): (element: HTMLElement | SVGElement) => () => void {
-    return (element: HTMLElement | SVGElement) => {
+    return (_element: HTMLElement | SVGElement) => {
         untrack(() => {
             animator.register()
         })

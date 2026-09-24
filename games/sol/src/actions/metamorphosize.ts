@@ -5,8 +5,7 @@ import {
     assertExists,
     GameAction,
     HydratableAction,
-    MachineContext,
-    OffsetCoordinates
+    MachineContext
 } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'

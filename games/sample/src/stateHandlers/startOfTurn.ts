@@ -13,7 +13,7 @@ type StartOfTurnAction = HydratedAddAmount | HydratedPass
 // a new state after an action has happened.
 export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedSampleGameState> {
     // Type guard to ensure action is one of the valid types for this state
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedSampleGameState>): action is StartOfTurnAction {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSampleGameState>): action is StartOfTurnAction {
         // Types are not the only thing that has to be checked here
         if (!action.playerId) return false
 

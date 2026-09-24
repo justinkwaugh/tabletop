@@ -1,6 +1,6 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
-import type { Color, GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import { isExpandRegion, isPlaceWall, squareKey } from '@tabletop/lowenherz'
 import { scaled } from '$lib/model/boardMetrics.js'
 import { StateAnimator, type StateChange } from './stateAnimator.js'

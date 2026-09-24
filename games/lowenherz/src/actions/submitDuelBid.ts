@@ -2,7 +2,6 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     Visibility,
-    assertExists,
     GameAction,
     HydratableAction,
     MachineContext
@@ -79,7 +78,7 @@ export class HydratedSubmitDuelBid
         super(data, SubmitDuelBidValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(state: HydratedLowenherzGameState, _context?: MachineContext) {
         if (!this.isValidSubmitDuelBid(state)) {
             throw Error('Invalid SubmitDuelBid action')
         }

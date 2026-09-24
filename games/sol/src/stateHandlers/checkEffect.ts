@@ -1,8 +1,6 @@
 import {
     type HydratedAction,
     type MachineStateHandler,
-    ActionSource,
-    assert,
     assertExists,
     MachineContext
 } from '@tabletop/common'
@@ -14,7 +12,6 @@ import { drawCardsOrEndTurn } from './postActionHelper.js'
 import { HydratedActivateEffect, isActivateEffect } from '../actions/activateEffect.js'
 import { EffectType } from '../components/effects.js'
 import { queueMotivatedActivation } from '../utils/automaticActions.js'
-import { nanoid } from 'nanoid'
 import { ActivatingStateHandler } from './activating.js'
 import { Ring } from '../utils/solGraph.js'
 
@@ -24,9 +21,8 @@ import { Ring } from '../utils/solGraph.js'
 type CheckEffectAction = HydratedPass | HydratedActivateEffect
 
 export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectAction, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedSolGameState>): action is CheckEffectAction {
+    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is CheckEffectAction {
         if (!action.playerId) return false
-        const gameState = context.gameState
 
         return isPass(action) || isActivateEffect(action)
     }

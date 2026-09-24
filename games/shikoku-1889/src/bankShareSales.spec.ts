@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { ActionSource } from '@tabletop/common'
-import { Definition as Shikoku, Shikoku1889StockRules } from './index.js'
+import { Shikoku1889StockRules } from './index.js'
 import { cashOwnedBy, evaluateShareSale, type SellShares } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import { Shikoku1889Scenarios } from './scenarios/index.js'

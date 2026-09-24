@@ -76,7 +76,7 @@ export class HydratedPlaceBusLine
         super(data, PlaceBusLineValidator)
     }
 
-    apply(state: HydratedBusGameState, context?: MachineContext) {
+    apply(state: HydratedBusGameState, _context?: MachineContext) {
         if (!this.isValidPlaceBusLine(state)) {
             throw Error('Invalid PlaceBusLine action')
         }

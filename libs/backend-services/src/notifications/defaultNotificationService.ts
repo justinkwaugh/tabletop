@@ -158,7 +158,7 @@ export class DefaultNotificationService implements NotificationService {
         for (const listener of listeners) {
             try {
                 await listener.onMessage({ message: notification, topic })
-            } catch (e) {
+            } catch {
                 // log error
             }
         }

@@ -80,7 +80,7 @@ export class HydratedAdvanceResolution
         super(data, AdvanceResolutionValidator)
     }
 
-    apply(state: HydratedLowenherzGameState, context?: MachineContext) {
+    apply(_state: HydratedLowenherzGameState, _context?: MachineContext) {
         // All the real work happens in ResolvingActionsStateHandler.onAction, which has
         // access to the MachineContext needed to enqueue further cascaded actions.
         this.metadata = {}

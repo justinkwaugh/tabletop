@@ -1,7 +1,6 @@
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import type { OffsetCoordinates, Point } from '@tabletop/common'
 import {
-    EffectType,
     type Fly,
     type Hurl,
     type HydratedSolGameBoard,

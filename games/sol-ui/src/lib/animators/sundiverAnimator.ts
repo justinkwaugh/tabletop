@@ -3,7 +3,6 @@ import {
     ActivateBonus,
     ActivateEffect,
     Blight,
-    CENTER_COORDS,
     Chain,
     Convert,
     DrawCards,
@@ -35,7 +34,6 @@ import { StateAnimator } from './stateAnimator.js'
 import {
     GameAction,
     OffsetCoordinates,
-    sameCoordinates,
     samePoint,
     type Point
 } from '@tabletop/common'
@@ -54,7 +52,6 @@ import { gsap } from 'gsap'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import {
     getFlightDuration,
-    getFlightPath,
     getFlightPaths,
     TELEPORT_TIMINGS
 } from '$lib/utils/flight.js'
@@ -1176,7 +1173,6 @@ export class SundiverAnimator extends StateAnimator<
         }
 
         const fromBoard = fromState.board
-        const toBoard = toState.board
 
         let diverLocation: Point | undefined
         const startOffset = 0

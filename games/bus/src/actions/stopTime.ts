@@ -34,7 +34,7 @@ export class HydratedStopTime extends HydratableAction<typeof StopTime> implemen
         super(data, StopTimeValidator)
     }
 
-    apply(state: HydratedBusGameState, context?: MachineContext) {
+    apply(state: HydratedBusGameState, _context?: MachineContext) {
         if (!this.isValidStopTime(state)) {
             throw Error('Invalid StopTime action')
         }
@@ -46,13 +46,11 @@ export class HydratedStopTime extends HydratableAction<typeof StopTime> implemen
         this.metadata = {}
     }
 
-    isValidStopTime(state: HydratedBusGameState): boolean {
-        const playerState = state.getPlayerState(this.playerId)
+    isValidStopTime(_state: HydratedBusGameState): boolean {
         return true
     }
 
-    static canStopTime(state: HydratedBusGameState, playerId: string): boolean {
-        const playerState = state.getPlayerState(playerId)
+    static canStopTime(_state: HydratedBusGameState, _playerId: string): boolean {
         return true
     }
 }

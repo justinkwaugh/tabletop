@@ -38,8 +38,6 @@ export class AnimationContext {
         this.masterTimeline.add(this.actionTimeline, 0)
         this.masterTimeline.add(this.finalTimeline, this.actionTimeline.duration())
 
-        const animations = this.masterTimeline.getChildren()
-        // console.log(`Playing ${animations.length} animations for action state change: `, animations)
         await this.masterTimeline.play()
         // console.log('Finished playing animations')
     }

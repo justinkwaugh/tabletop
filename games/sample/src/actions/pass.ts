@@ -38,7 +38,7 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
 
     // This method applies the action to the game state, it's also given a context which can provide additional information
     // such as the game config, and can be used to add more actions as a result of this action
-    apply(state: HydratedSampleGameState, context?: MachineContext) {
+    apply(state: HydratedSampleGameState, _context?: MachineContext) {
         if (!this.isValidPass(state)) {
             throw Error('Invalid pass action')
         }
@@ -46,11 +46,11 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
         // Passing is a no-op in this example
     }
 
-    isValidPass(state: HydratedSampleGameState): boolean {
+    isValidPass(_state: HydratedSampleGameState): boolean {
         return true // You can always pass
     }
 
-    static canPass(state: HydratedSampleGameState, playerId: string): boolean {
+    static canPass(_state: HydratedSampleGameState, _playerId: string): boolean {
         return true // Anyone can always pass
     }
 }

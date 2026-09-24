@@ -142,7 +142,6 @@ export class HydratedIndonesiaBoard
     }
 
     public coastalAreasForRegion(regionId: string): LandArea[] {
-        const graph = this.graph
         return this.areasForRegion(regionId).filter((area) => this.isCoastalArea(area))
     }
 
