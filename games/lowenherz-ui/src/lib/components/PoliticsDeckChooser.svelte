@@ -157,16 +157,6 @@
             ? deckSlotCenterX(areaRect.left, areaRect.width, totalCount, cardWidth)
             : undefined
 
-        // Computed from where the slide is aimed rather than measured once it lands: the two are
-        // the same point (the row itself doesn't resize - only the deck buttons inside it move),
-        // and reading the DOM here keeps the measurement away from the teardown that hiding this
-        // block used to race with.
-        gameSession.politicsPileOrigin = {
-            x: slideTargetCenterX ?? clickedCenterX,
-            y: clickedRect.top + clickedRect.height / 2
-        }
-        gameSession.politicsRowWidth = areaRect?.width
-
         const tl = gsap.timeline()
         activeTimeline = tl
         if (otherEl) {
@@ -198,6 +188,18 @@
         activeTimeline = undefined
         activeResolve = undefined
         if (destroyed) return
+
+        // Measured where the deck actually came to rest, rather than reused from the point the
+        // slide was aimed at: the two part company if the row is resized while the exit plays -
+        // a phone rotating - since the tween above is still carrying the deck to a distance
+        // computed against the old layout. Measuring the element itself is right either way,
+        // and the deal has to start from where the deck visibly is.
+        const restingRect = clickedEl.getBoundingClientRect()
+        gameSession.politicsPileOrigin = {
+            x: restingRect.left + restingRect.width / 2,
+            y: restingRect.top + restingRect.height / 2
+        }
+        gameSession.politicsRowWidth = rowEl?.getBoundingClientRect().width
 
         // Dispatched once the exit has played, not alongside it. LookAtPoliticsPile is a
         // revealsInfo action, so it is never applied optimistically (see
