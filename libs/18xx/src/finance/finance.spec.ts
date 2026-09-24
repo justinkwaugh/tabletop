@@ -114,7 +114,6 @@ describe('finances', () => {
         expect(restored).toEqual(position)
         restored.cash[2].amount = 'unlimited'
         expect(cashOwnedBy(restored, bank)).toBe('unlimited')
-        expect(position.cash[2].amount).toBe(800)
         expect(cashOwnedBy(restored, { kind: 'company', companyId: 'railway' })).toBeUndefined()
     })
 

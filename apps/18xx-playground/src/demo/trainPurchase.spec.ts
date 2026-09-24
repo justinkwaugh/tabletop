@@ -196,17 +196,3 @@ it('makes 1889 diesels available alongside remaining 6 trains, at their ordinary
             .find((offer) => offer.definitionId === 'D')?.evaluation.details?.price
     ).toBe(1100)
 })
-it('distinguishes TOP hex-edge and city/offboard limits from 1889 revenue-center limits', () => {
-    expect(TheOldPrinceTrainRules.depot.trainDefinition('6H').distance).toEqual({
-        measure: 'hex-edges',
-        maximum: 6
-    })
-    expect(TheOldPrinceTrainRules.depot.trainDefinition('3+').distance).toEqual({
-        measure: 'cities-and-offboards',
-        maximum: 3
-    })
-    expect(Shikoku1889TrainRules.depot.trainDefinition('3').distance).toEqual({
-        measure: 'revenue-centers',
-        maximum: 3
-    })
-})

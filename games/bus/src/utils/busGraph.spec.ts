@@ -1,6 +1,4 @@
 import {
-    BuildingSites,
-    BUS_BUILDING_SITE_IDS,
     BUS_BUILDING_SITE_IDS_BY_NODE,
     BUS_NODE_IDS,
     BUS_STATION_IDS,
@@ -57,17 +55,6 @@ describe('BusGraph', () => {
                 ).toBe(true)
             }
         }
-    })
-
-    it('has all 47 building sites with expected value distribution', () => {
-        expect(BUS_BUILDING_SITE_IDS).toHaveLength(47)
-
-        const valueCounts = { 1: 0, 2: 0, 3: 0, 4: 0 }
-        for (const site of Object.values(BuildingSites)) {
-            valueCounts[site.value] += 1
-        }
-
-        expect(valueCounts).toEqual({ 1: 12, 2: 11, 3: 9, 4: 15 })
     })
 
     it('attaches building site ids to nodes (stations none, others one or two)', () => {

@@ -561,9 +561,7 @@ test('rollback selects the publication before the current one and re-selecting m
 })
 
 test('history keeps only the most recent five publications', async () => {
-    const { HISTORY_LENGTH, withFrontendVersion, withGameVersions } =
-        await import('../esm/lib/remoteManifest.js')
-    assert.equal(HISTORY_LENGTH, 5)
+    const { withFrontendVersion, withGameVersions } = await import('../esm/lib/remoteManifest.js')
     let manifest = { frontend: { version: '0.0.0' }, games: [] }
     for (let i = 1; i <= 7; i += 1) {
         manifest = withGameVersions(

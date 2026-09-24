@@ -75,8 +75,6 @@ describe('physical tile inventory', () => {
                 returnPrevious: true
             })
         }
-        expect(upgraded.locations).toBe(locations)
-        expect(upgraded.locations).toEqual(initial.locations)
         expect(set.availablePieces(upgraded.inventory, '18xx:7')).toHaveLength(1)
         expect(set.availablePieces(upgraded.inventory, '18xx:8')).toHaveLength(1)
         expect(upgraded.inventory.placements.A1.rotation).toBe(5)

@@ -509,7 +509,6 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await service.join(id, users[1])
             await Promise.allSettled([service.leave(id, users[1]), service.join(id, users[2])])
             const detail = await service.get(id, admin)
-            expect(detail.tournament.entrants.length).toBe(detail.tournament.entrants.length)
             expect(detail.tournament.status).toBe(
                 detail.tournament.entrants.length === 2 ? 'locked' : 'open'
             )

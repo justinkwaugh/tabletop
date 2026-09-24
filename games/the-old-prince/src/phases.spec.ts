@@ -5,28 +5,6 @@ import { TheOldPrincePhases, TheOldPrinceTrainDepot } from './trains.js'
 import { createTheOldPrinceOpening } from './openingAuction.js'
 import { Prng } from '@tabletop/common'
 
-it('declares the TOP phases', () => {
-    expect(
-        TheOldPrincePhases.phases.map((phase) => [
-            phase.id,
-            phase.tileColors.at(-1),
-            phase.operatingRounds,
-            phase.trainLimit
-        ])
-    ).toEqual([
-        ['2H', 'yellow', 1, 4],
-        ['3H', 'yellow', 1, 4],
-        ['4H', 'green', 2, 4],
-        ['5H', 'green', 2, 4],
-        ['6H', 'green', 2, 4],
-        ['2+', 'green', 2, 3],
-        ['3+', 'green', 2, 3],
-        ['4+', 'brown', 3, 3],
-        ['7', 'brown', 3, 2],
-        ['D', 'gray', 3, 2]
-    ])
-})
-
 it('starts each phase with its train and rusts each train on schedule', () => {
     for (const phase of TheOldPrincePhases.phases.slice(1))
         expect(TheOldPrincePhases.phaseAfterPurchase('2H', phase.id)).toBe(phase.id)

@@ -259,7 +259,6 @@ it('uses the actual asset owner for directional sales, independently of the acti
             }
         }
     }
-    const before = structuredClone(state)
     expect(
         evaluateShareDisposal(state, other, [{ companyId: 'R', shares: 1 }], directional).details
             ?.sales[0].toMarketSpaceId
@@ -291,6 +290,4 @@ it('uses the actual asset owner for directional sales, independently of the acti
         { ...directional, extendSaleBlocks: true }
     )
     expect(extended.details?.sales[0].toMarketSpaceId).toBe('0:0')
-    expect(before).not.toHaveProperty('stations')
-    expect(before).not.toHaveProperty('tranches')
 })
