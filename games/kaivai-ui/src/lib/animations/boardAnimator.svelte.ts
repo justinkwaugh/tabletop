@@ -30,14 +30,12 @@ export class BoardAnimator {
     private previewGeneration = 0
     private disposed = false
     private movingIds = $state.raw(new Set<string>())
-    private animatedPlacements: BoatPlacement[] | undefined = $derived.by(() => {
-        this.session.gameState
-        return undefined
-    })
-    private animatedCells: KaivaiGameBoard['cells'] | undefined = $derived.by(() => {
-        this.session.gameState
-        return undefined
-    })
+    // What the board draws. Animations overwrite these with in-between positions; they reset to
+    // the live values whenever those change (a new game state, perspective or boat choice).
+    private displayedPlacements: BoatPlacement[] = $derived.by(() => this.livePlacements)
+    private displayedCells: KaivaiGameBoard['cells'] = $derived.by(
+        () => this.session.gameState.board.cells
+    )
     private godCoords = $derived.by(() => this.session.gameState.godLocation?.coords)
     private livePlacements = $derived.by(() => {
         const placements = this.placementsInState(this.session.gameState)
@@ -55,7 +53,7 @@ export class BoardAnimator {
     constructor(private readonly session: KaivaiGameSession) {}
 
     boatsAt(coords: AxialCoordinates): BoatPlacement[] {
-        return (this.animatedPlacements ?? this.livePlacements).filter((boat) =>
+        return this.displayedPlacements.filter((boat) =>
             sameCoordinates(boat.coords, coords)
         )
     }
@@ -65,7 +63,7 @@ export class BoardAnimator {
     }
 
     get raisedCoordinates(): AxialCoordinates[] {
-        const coords = (this.animatedPlacements ?? this.livePlacements)
+        const coords = this.displayedPlacements
             .filter((boat) => this.isAboveMask(boat.id))
             .map((boat) => boat.coords)
         if (this.movingIds.has('god') && this.godCoords) coords.push(this.godCoords)
@@ -73,9 +71,7 @@ export class BoardAnimator {
     }
 
     cellAt(coords: AxialCoordinates) {
-        return (this.animatedCells ?? this.session.gameState.board.cells)[
-            coordinatesToNumber(coords)
-        ]
+        return this.displayedCells[coordinatesToNumber(coords)]
     }
 
     hasGodAt(coords: AxialCoordinates): boolean {
@@ -126,7 +122,7 @@ export class BoardAnimator {
         to: HydratedKaivaiGameState,
         animationContext: AnimationContext
     ) {
-        const previous = this.animatedPlacements ?? this.livePlacements
+        const previous = this.displayedPlacements
         const toPlacements = this.placementsInState(to)
         const previousById = new Map(previous.map((boat) => [boat.id, boat]))
         const fromById = new Map(this.placementsInState(from).map((boat) => [boat.id, boat]))
@@ -150,13 +146,11 @@ export class BoardAnimator {
         const targetIds = new Set(toPlacements.map((boat) => boat.id))
         const departing = previous.filter((boat) => !targetIds.has(boat.id))
         const previousIds = new Set(previous.map((boat) => boat.id))
-        const previousTiles = this.tilesInCells(
-            this.animatedCells ?? this.session.gameState.board.cells
-        )
+        const previousTiles = this.tilesInCells(this.displayedCells)
         const toTiles = this.tilesInCells(to.board.cells)
         const departingTiles = [...previousTiles].filter(([id]) => !toTiles.has(id))
-        this.animatedPlacements = [...toPlacements, ...departing]
-        this.animatedCells = { ...to.board.cells, ...Object.fromEntries(departingTiles) }
+        this.displayedPlacements = [...toPlacements, ...departing]
+        this.displayedCells = { ...to.board.cells, ...Object.fromEntries(departingTiles) }
         this.godCoords = toGod ?? fromGod
         await tick()
         if (this.disposed) return
@@ -192,8 +186,8 @@ export class BoardAnimator {
             this.timelines.delete(timeline)
             if (!this.disposed) {
                 this.movingIds = new Set()
-                this.animatedPlacements = toPlacements
-                this.animatedCells = to.board.cells
+                this.displayedPlacements = toPlacements
+                this.displayedCells = to.board.cells
                 this.godCoords = toGod
             }
         })

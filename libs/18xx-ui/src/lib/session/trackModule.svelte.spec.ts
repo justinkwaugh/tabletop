@@ -92,6 +92,7 @@ describe('TrackModule', () => {
         expect(module.preview?.definitionId).toBe('18xx:9')
         module.back()
         expect(module.selection).toEqual({})
+        expect(module.tileInFlight).toBe(false)
     })
 
     it('Back unwinds rotation, tile and location one at a time, and Undo clears the whole selection', () => {

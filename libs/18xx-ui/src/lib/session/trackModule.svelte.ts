@@ -115,10 +115,14 @@ export class TrackModule {
             ? this.construction.evaluate(this.selection.placement.value).details
             : undefined
     )
-    tileInFlight = $derived.by(() => {
-        this.selection
-        return false
-    })
+    // The selection a tile animation started on; it no longer counts once the selection changes.
+    private tileFlightSelection = $state.raw<object>()
+    get tileInFlight() {
+        return this.tileFlightSelection !== undefined && this.tileFlightSelection === this.selection
+    }
+    set tileInFlight(inFlight: boolean) {
+        this.tileFlightSelection = inFlight ? this.selection : undefined
+    }
     displayedPreview = $derived.by(() => this.session.state.trackConsent?.details ?? this.preview)
     constructionActions = $derived.by(() =>
         this.session.recordedActions.flatMap((action) => {

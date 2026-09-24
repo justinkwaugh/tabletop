@@ -304,11 +304,20 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return undoableUserAction
     })
 
-    private chosenAdminPlayerId: string | undefined = $derived.by(() => {
-        // A writable derived keeps an explicit choice only for the current Admin activation.
-        this.isActingAdmin
-        return undefined
-    })
+    // A new object each time Admin mode turns on, so an explicit acting-player choice only lasts
+    // for the Admin activation it was made in.
+    private adminActivation: object | undefined = $derived.by(() =>
+        this.isActingAdmin ? {} : undefined
+    )
+    private adminChoice = $state.raw<{ activation: object | undefined; playerId: string }>()
+    private get chosenAdminPlayerId(): string | undefined {
+        const choice = this.adminChoice
+        return choice && choice.activation === this.adminActivation ? choice.playerId : undefined
+    }
+    private set chosenAdminPlayerId(playerId: string | undefined) {
+        this.adminChoice =
+            playerId === undefined ? undefined : { activation: this.adminActivation, playerId }
+    }
     adminPlayerId: string | undefined = $derived.by(() => {
         if (!this.isActingAdmin) {
             return undefined

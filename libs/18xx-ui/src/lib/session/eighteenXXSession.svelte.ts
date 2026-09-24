@@ -354,22 +354,32 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         return this.rules.stockRules.round.passing
     }
     private readonly historicalMaps: HistoricalMaps
-    historicalMap: HistoricalMap | undefined = $derived.by(() => {
-        this.gameState
-        this.updatingVisibleState
-        return undefined
+    // A new object whenever the visible state changes or starts/stops updating. A preview map is
+    // only shown for the visible state it was opened on.
+    private visibleStateKey = $derived({
+        state: this.gameState,
+        updating: this.updatingVisibleState
     })
+    private historicalMapPreview = $state.raw<{ visibleState: object; map: HistoricalMap }>()
+    historicalMap: HistoricalMap | undefined = $derived(
+        this.historicalMapPreview?.visibleState === this.visibleStateKey
+            ? this.historicalMapPreview.map
+            : undefined
+    )
     previewHistoryMap(action: GameAction) {
         if (this.busy || this.updatingVisibleState) return
         if (this.historicalMap?.actionId === action.id) {
-            this.historicalMap = undefined
+            this.historicalMapPreview = undefined
             return
         }
         const context = this.history.visibleContext
-        this.historicalMap = this.historicalMaps.preview(context.state, context.actions, action)
+        this.historicalMapPreview = {
+            visibleState: this.visibleStateKey,
+            map: this.historicalMaps.preview(context.state, context.actions, action)
+        }
     }
     closeHistoricalMap() {
-        this.historicalMap = undefined
+        this.historicalMapPreview = undefined
     }
     sharesToFloat(companyId: string) {
         return this.rules.companyRules.sharesToFloat?.(this.gameState, companyId)
