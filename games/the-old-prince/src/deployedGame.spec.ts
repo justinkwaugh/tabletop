@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { GameEngine, PlayerStatus, type GameAction } from '@tabletop/common'
 import type { EighteenXXState } from '@tabletop/18xx'
-import { Definition } from './definition.js'
+import { Definition } from './definition/gameDefinition.js'
 
 function readFixture(name: string) {
     return JSON.parse(

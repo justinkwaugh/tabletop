@@ -1,5 +1,5 @@
 import { withScenarios } from '@tabletop/18xx/scenarios'
-import { Definition, TheOldPrinceTitleRules } from '../definition.js'
+import { Definition, TheOldPrinceTitleRules } from '../definition/gameDefinition.js'
 import { createTheOldPrinceCompanyExample } from './companyExamples.js'
 import { prepareTheOldPrinceEnding } from './endingExample.js'
 import { createTheOldPrinceScenarioMarket } from './market.js'

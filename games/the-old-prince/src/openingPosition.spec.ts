@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { openingPositionDigest } from '../../../libs/18xx/test/openingPosition.js'
-import { Definition } from './definition.js'
+import { Definition } from './definition/gameDefinition.js'
 
 it('sets up the same opening position for the same seed and player count', () => {
     expect(

@@ -1,5 +1,5 @@
 import { withScenarios } from '@tabletop/18xx/scenarios'
-import { Definition, Shikoku1889TitleRules } from '../definition.js'
+import { Definition, Shikoku1889TitleRules } from '../definition/gameDefinition.js'
 import { createShikoku1889CompanyExample } from './companyExamples.js'
 import { prepareShikoku1889Ending } from './endingExample.js'
 import { createShikoku1889ScenarioMarket } from './market.js'

@@ -3,7 +3,7 @@ export { TheOldPrincePreprintedTiles } from './preprintedTiles.js'
 export { TheOldPrinceMap } from './map.js'
 export * from './peir.js'
 export { TheOldPrinceInfo } from './definition/info.js'
-export { Definition, TheOldPrinceTitleRules } from './definition.js'
+export { Definition, TheOldPrinceTitleRules } from './definition/gameDefinition.js'
 
 export * from './stockRules.js'
 export * from './stockMarket.js'
