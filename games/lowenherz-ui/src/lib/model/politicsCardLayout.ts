@@ -1,3 +1,5 @@
+import { assertExists } from '@tabletop/common'
+
 // Shared sizing/row-splitting for the dealt politics-card row - PoliticsPileReveal (which
 // actually lays the cards out) and PoliticsDeckChooser (which needs to know, before any of that
 // exists, exactly where the leftmost dealt card will land so its own leftover-deck placeholder
@@ -73,7 +75,8 @@ export function deckSlotCenterX(
     cardCount: number,
     cardWidth: number
 ): number {
-    const firstRowSize = rowSizes(cardCount + 1, rowWidth, cardWidth)[0] ?? 1
+    const [firstRowSize] = rowSizes(cardCount + 1, rowWidth, cardWidth)
+    assertExists(firstRowSize, 'rowSizes always yields a first row for one or more slots')
     return rowLeft + (rowWidth - rowContentWidth(firstRowSize, cardWidth)) / 2 + cardWidth / 2
 }
 

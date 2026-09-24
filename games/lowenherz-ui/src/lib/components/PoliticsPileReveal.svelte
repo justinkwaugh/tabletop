@@ -7,6 +7,7 @@
     import { PoliticsPileDealAnimator } from '$lib/animators/politicsPileDealAnimator.svelte.js'
     import { PoliticsPileTakeAnimator } from '$lib/animators/politicsPileTakeAnimator.svelte.js'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
+    import type { PoliticsPileOriginHandle } from '$lib/model/politicsPileOrigin.js'
 
     const gameSession = getGameSession()
 
@@ -40,11 +41,9 @@
     // it was last set to across a `pile` transition - and since `pile` is only ever 'A' or
     // 'undefined' or 'B', a stale measurement from a PREVIOUS 'A' reveal would satisfy an
     // `=== pile` check just as well as a fresh one for a new 'A' reveal, without actually being
-    // one. politicsPileOriginSource is a fresh handle every single time PoliticsDeckChooser hands
-    // off a new choice - the deck element of that choice, its block having been remounted since
-    // the last one - so comparing THAT by reference is what actually tells two reveals of the
-    // same letter apart. The source rather than the resolved point, which is measured per read
-    // and so is a different object every time (see GameSession.politicsPileOrigin).
+    // one. politicsPileOriginHandle is a fresh handle every time PoliticsDeckChooser hands off a
+    // new choice and the same one for the whole of that reveal, so comparing it by reference is
+    // what actually tells two reveals of the same letter apart.
     //
     // Measured with a plain ResizeObserver in an attachment rather than bind:clientWidth for the
     // same reason: bind:clientWidth's first callback only fires a frame or more after mount, by
@@ -66,10 +65,10 @@
     }
 
     let measuredWidth: number = $state(0)
-    let measuredWidthOrigin: unknown = $state(undefined)
+    let measuredWidthOrigin: PoliticsPileOriginHandle | undefined = $state(undefined)
 
     function measureWidth(el: HTMLElement) {
-        const origin = gameSession.politicsPileOriginSource
+        const origin = gameSession.politicsPileOriginHandle
         const observer = new ResizeObserver((entries) => {
             const entry = entries[0]
             if (!entry) return
@@ -81,7 +80,7 @@
     }
 
     const rowWidth = $derived(
-        measuredWidthOrigin === gameSession.politicsPileOriginSource && measuredWidth > 0
+        measuredWidthOrigin === gameSession.politicsPileOriginHandle && measuredWidth > 0
             ? measuredWidth
             : (gameSession.politicsRowWidth ?? 0)
     )

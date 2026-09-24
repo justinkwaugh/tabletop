@@ -55,7 +55,7 @@ export class PoliticsPileDealAnimator extends StateAnimator {
         // live click behind it. Falling through with `dealing` left false lets PoliticsPileReveal
         // just render the real row directly, cards already in place - the same degenerate case
         // the old mount-triggered dealIn silently accepted.
-        const origin = this.gameSession.politicsPileOrigin
+        const origin = this.gameSession.settlePoliticsPileOrigin()
         if (!origin) return
 
         const cinematic = !!action

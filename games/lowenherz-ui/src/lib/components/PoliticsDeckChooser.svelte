@@ -22,20 +22,14 @@
         endExit()
     })
 
+    // Also the deck row's own teardown (see the attachment in the template): the row can leave
+    // while this component stays - opening the history view mid-exit flips choosingPolitics - and
+    // a timeline must not outlive its nodes.
     function endExit() {
         activeTimeline?.kill()
         activeTimeline = undefined
         activeResolve?.()
         activeResolve = undefined
-    }
-
-    // The decks can now go away mid-exit without this component itself unmounting: the reveal
-    // takes the slot the moment it has cards, which - with the request sent before the animation
-    // rather than after it - can land while the slide is still running. Killing the timeline
-    // there keeps it from tweening a detached node, and resolves the awaiter that choosePile is
-    // parked on, the same as onDestroy does.
-    function endExitOnUnmount() {
-        return () => endExit()
     }
 
     // Same card size PoliticsPileReveal deals out, so the deck you're choosing between visually
@@ -109,12 +103,9 @@
     const attemptIsCurrent = $derived(attemptGameState === gameSession.gameState)
     const takingPile = $derived(choosingPolitics && attemptIsCurrent ? takingPileTag : undefined)
 
-    // Hidden the moment PoliticsPileReveal actually has something on screen, and not before:
-    // this used to hide itself when the exit animation below finished, which left the slot empty
-    // for the whole server round trip that opening a pile needs (see
-    // GameSession.politicsRevealShowing), collapsing the row and then expanding it again once
-    // the cards arrived. Holding the clicked deck until the reveal paints makes the handoff
-    // continuous - the deck is already sitting exactly where the reveal draws its own.
+    // Hidden only once PoliticsPileReveal has something on screen, so the clicked deck holds the
+    // slot through the server round trip that opening a pile needs (see
+    // GameSession.politicsRevealShowing) - it is already sitting where the reveal draws its own.
     const committed = $derived(takingPile !== undefined && gameSession.politicsRevealShowing)
 
     // Whichever element is actually occupying each slot right now - the deck button, or the
@@ -136,8 +127,7 @@
     // out from its edge how much room the deck itself needs beside it. That separate calculation
     // used to drift at higher card counts: a row centered around the cards alone sits at a
     // different center than one that already has the deck sharing it. Only once the slide lands
-    // does the deck's own final position become the deal-in origin (PoliticsPileReveal keeps its
-    // own placeholder there - so the handoff is seamless), and the pick is actually dispatched.
+    // is the deck element handed over as the deal-in origin, and the pick actually dispatched.
     // Mirrors PoliticsPileReveal's own chooseCard, which plays its exit before dispatching too,
     // for the same reason.
     async function choosePile(pile: 'A' | 'B', event: MouseEvent) {
@@ -189,20 +179,14 @@
         activeResolve = undefined
         if (destroyed) return
 
-        // The deck element itself, not its rect: it goes on holding this slot until the cards
-        // are ready, so where it is gets decided when the deal starts rather than here (see
-        // GameSession.politicsPileOrigin). A row resized in between - a phone rotating - moves
-        // the deck, and a rect captured now would not have moved with it.
+        // The element rather than its rect: the deck holds this slot until the deal starts, which
+        // is when its position is read (see GameSession.politicsPileOrigin).
         gameSession.setPoliticsPileOriginElement(clickedEl)
         gameSession.politicsRowWidth = rowEl?.getBoundingClientRect().width
 
-        // Dispatched once the exit has played, not alongside it. LookAtPoliticsPile is a
-        // revealsInfo action, so it is never applied optimistically (see
-        // GameSession.requiresServerAuthoritativeProcessing) and its cards cannot exist until
-        // the host answers - but starting that round trip early only buys overlap by letting the
-        // reveal take the slot mid-slide, which cut the slide short on a fast host. The wait is
-        // instead spent with the clicked deck resting in the slot the cards deal from, which is
-        // what keeps it from reading as a hiccup (see GameSession.politicsRevealShowing).
+        // After the exit, not alongside it: LookAtPoliticsPile reveals information, so it is never
+        // applied optimistically (see GameSession.requiresServerAuthoritativeProcessing), and
+        // overlapping its round trip with the slide let the reveal take the slot mid-slide.
         await gameSession.selectPoliticsPile(pile)
 
         // selectPoliticsPile's own await settles once the action is applied/sent, but
@@ -220,11 +204,9 @@
         // selectedPoliticsPile simply not being `pile` afterward - without checking, takingPileTag
         // stayed set forever and choosingPolitics stayed true throughout (never having a reason to
         // change), leaving both decks disabled with no way to retry a choice the player still has
-        // to make. The decks are still mounted on this path - nothing hid them, since the reveal
-        // never appeared - so the exit has to be undone here, which the old
-        // remount-from-scratch version got for free. clearProps rather than a list of the
-        // properties the tweens above happen to set, so adding one to either can't leave a
-        // deck stuck half-faded on a retry.
+        // to make. The decks are still mounted on this path - the reveal never appeared to hide
+        // them - so the exit is undone here; clearProps rather than a list of the properties the
+        // tweens above happen to set, so adding one to either can't leave a deck half-faded.
         if (gameSession.selectedPoliticsPile !== pile) {
             const stuck = [clickedEl, otherEl].filter((el) => el?.isConnected)
             if (stuck.length > 0) gsap.set(stuck, { clearProps: 'transform,opacity' })
@@ -255,7 +237,7 @@
             class="flex items-center justify-center gap-3"
             bind:this={rowEl}
             bind:clientWidth={rowWidth}
-            {@attach endExitOnUnmount}
+            {@attach () => endExit}
         >
             {#if pileACount > 0}
                 <button
