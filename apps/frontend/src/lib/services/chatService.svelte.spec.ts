@@ -3,6 +3,11 @@ import { TabletopApi, NotificationChannel, NotificationEventType, type Notificat
 import { NotificationCategory, GameNotificationAction, Role, UserStatus, type Bookmark, type GameChat, type User } from '@tabletop/common'
 import { ChatService } from './chatService.svelte.js'
 
+// ChatService pulls in NotificationService, which reads SvelteKit's generated env and navigation
+// modules; Vitest runs without the SvelteKit plugin, so provide them here like the other specs.
+vi.mock('$env/static/public', () => ({ PUBLIC_VAPID_KEY: '' }))
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }))
+
 const user: User = { id: 'user', status: UserStatus.Active, roles: [Role.User], externalIds: [] }
 const chat: GameChat = { id: 'chat', gameId: 'game', messages: [], checksum: 0 }
 
