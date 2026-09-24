@@ -14,7 +14,7 @@ import { Shikoku1889OperatingRules } from './roundRules.js'
 import { Shikoku1889CompanyRules } from './companyRules.js'
 import { Shikoku1889StockRules } from './stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
-import { Shikoku1889Info } from './info.js'
+import { Shikoku1889Info } from './definition/info.js'
 import {
     createEighteenXXRuntime,
     type EighteenXXState,

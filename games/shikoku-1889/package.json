@@ -19,10 +19,10 @@
     ],
     "scripts": {
         "clean": "rimraf esm",
-        "build": "node ../../tools/scripts/write-game-version.cjs src/version.ts && tsgo",
+        "build": "node ../../tools/scripts/write-game-version.cjs && tsgo",
         "check": "tsgo --noEmit",
         "test": "vitest run",
-        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs src/version.ts && rollup -c ./rollup.config.ts"
+        "bundle": "rimraf bundle && node ../../tools/scripts/write-game-version.cjs && rollup -c ./rollup.config.ts"
     },
     "dependencies": {
         "@tabletop/18xx": "workspace:*",

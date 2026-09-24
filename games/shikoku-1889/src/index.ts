@@ -1,7 +1,7 @@
 export { Shikoku1889Tiles, Shikoku1889TileSet, Shikoku1889BeginnerTileSet } from './tiles.js'
 export { Shikoku1889PreprintedTiles } from './preprintedTiles.js'
 export { Shikoku1889Map } from './map.js'
-export { Shikoku1889Info } from './info.js'
+export { Shikoku1889Info } from './definition/info.js'
 export { Definition, Shikoku1889TitleRules } from './definition.js'
 
 export * from './stockRules.js'

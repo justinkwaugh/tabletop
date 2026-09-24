@@ -80,6 +80,21 @@ const createRepo = async () => {
         version: '0.0.1',
         dependencies: { '@tabletop/common': 'workspace:*' }
     })
+    await writeFile(
+        path.join(repoRoot, 'tools', 'scripts', 'write-game-version.cjs'),
+        [
+            "const fs = require('node:fs')",
+            "const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8'))",
+            "fs.mkdirSync('src/definition', { recursive: true })",
+            "fs.writeFileSync('src/definition/version.ts', `export const GAME_VERSION = '${version}'\\n`)",
+            ''
+        ].join('\n')
+    )
+    await mkdir(path.join(repoRoot, 'games', 'sample', 'src', 'definition'), { recursive: true })
+    await writeFile(
+        path.join(repoRoot, 'games', 'sample', 'src', 'definition', 'version.ts'),
+        "export const GAME_VERSION = '2.3.4'\n"
+    )
     await writeJson(path.join(repoRoot, 'games', 'sample', 'package.json'), {
         name: '@tabletop/sample',
         version: '2.3.4',
@@ -179,8 +194,20 @@ test('releaseGame with logic tags both artifacts', async () => {
         )
         assert.deepEqual(
             git(repo.repoRoot, 'show', '--name-only', '--format=', 'HEAD').split('\n').sort(),
-            ['games/sample-ui/package.json', 'games/sample/package.json']
+            [
+                'games/sample-ui/package.json',
+                'games/sample/package.json',
+                'games/sample/src/definition/version.ts'
+            ]
         )
+        assert.equal(
+            await readFile(
+                path.join(repo.repoRoot, 'games/sample/src/definition/version.ts'),
+                'utf8'
+            ),
+            "export const GAME_VERSION = '3.0.0'\n"
+        )
+        await assertCleanWorkingTree(repo.repoRoot)
     } finally {
         await rm(repo.root, { recursive: true, force: true })
     }

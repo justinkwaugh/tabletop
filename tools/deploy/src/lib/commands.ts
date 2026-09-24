@@ -85,6 +85,17 @@ export const buildGameUiPackageCommand = (repoRoot: string, packageId: string): 
 
 export const FRONTEND_VERSION_FILE = 'apps/frontend/src/lib/version.ts'
 
+export const gameVersionFile = (packageId: string) =>
+    path.join('games', packageId, 'src', 'definition', 'version.ts')
+
+export const writeGameVersionCommand = (repoRoot: string, packageId: string): CommandSpec => ({
+    label: `write-game-version:${packageId}`,
+    command: 'node',
+    args: ['../../tools/scripts/write-game-version.cjs'],
+    cwd: path.join(repoRoot, 'games', packageId),
+    logPath: `/tmp/${packageId}-version.log`
+})
+
 export const writeFrontendVersionCommand = (repoRoot: string): CommandSpec => ({
     label: 'write-frontend-version',
     command: 'node',

@@ -5,7 +5,9 @@ import {
     buildGameUiCommand,
     buildGameUiPackageCommand,
     deployGameLogicCommand,
-    deployGameUiCommand
+    deployGameUiCommand,
+    gameVersionFile,
+    writeGameVersionCommand
 } from './commands.js'
 import {
     assertCleanWorkingTree,
@@ -218,10 +220,17 @@ export const releaseGame = async (context: PublishContext, options: GameReleaseO
     }
     context.log(`${entry.gameId} ui: ${planned.ui.previous} -> ${planned.ui.next}`)
 
+    if (planned.logic) {
+        await runSpec(context, writeGameVersionCommand(context.repoRoot, packageId))
+    }
+
     const packagePaths = getGamePackagePaths(context.repoRoot, packageId)
-    const files = [...(planned.logic ? [packagePaths.logic] : []), packagePaths.ui].map((file) =>
-        path.relative(context.repoRoot, file)
-    )
+    const files = [
+        ...(planned.logic
+            ? [path.relative(context.repoRoot, packagePaths.logic), gameVersionFile(packageId)]
+            : []),
+        path.relative(context.repoRoot, packagePaths.ui)
+    ]
     await commitTagAndPush(context, branch, {
         files,
         message: releaseCommitMessage(entry.gameId, planned),

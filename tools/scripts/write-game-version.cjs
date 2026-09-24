@@ -3,7 +3,7 @@ const path = require('path')
 
 const packageRoot = process.cwd()
 const packageJsonPath = path.join(packageRoot, 'package.json')
-const outPath = path.join(packageRoot, process.argv[2] ?? path.join('src', 'definition', 'version.ts'))
+const outPath = path.join(packageRoot, 'src', 'definition', 'version.ts')
 
 if (!fs.existsSync(packageJsonPath)) {
     console.error(`No package.json found at ${packageJsonPath}`)

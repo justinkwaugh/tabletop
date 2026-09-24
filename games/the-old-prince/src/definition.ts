@@ -16,7 +16,7 @@ import { TheOldPrinceOperatingRules } from './roundRules.js'
 import { TheOldPrinceCompanyRules } from './companyRules.js'
 import { TheOldPrinceStockRules } from './stockRules.js'
 import type { GameDefinition } from '@tabletop/common'
-import { TheOldPrinceInfo } from './info.js'
+import { TheOldPrinceInfo } from './definition/info.js'
 import {
     createEighteenXXRuntime,
     defineAction,
