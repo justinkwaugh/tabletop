@@ -108,12 +108,16 @@ export class CheckEffectStateHandler implements MachineStateHandler<CheckEffectA
                 } else if (gameState.activeEffect === EffectType.Hatch) {
                     return MachineState.Hatching
                 } else if (action.effect === EffectType.Procreate) {
+                    // Procreate resolves immediately and clears activeEffect, so match on the action
                     return drawCardsOrEndTurn(gameState, context)
                 } else if (gameState.activeEffect === EffectType.Accelerate) {
                     return MachineState.Accelerating
                 } else if (gameState.activeEffect === EffectType.Tribute) {
                     return MachineState.Tributing
                 }
+                throw Error(
+                    `Unhandled effect ${gameState.activeEffect ?? action.effect} in CheckEffect`
+                )
             }
             default: {
                 throw Error('Invalid action type')

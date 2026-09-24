@@ -34,7 +34,7 @@ export function mountDynamicComponent<T = Component>(
         component: mountedComponent,
         props: config.props,
         destroy: () => {
-            unmount(mountedComponent)
+            void unmount(mountedComponent)
         }
     }
 }

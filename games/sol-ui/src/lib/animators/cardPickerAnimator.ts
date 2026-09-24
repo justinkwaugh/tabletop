@@ -249,7 +249,7 @@ export class CardPickerAnimator extends StateAnimator<
                 this.gameSession.drawnCards = this.gameSession.drawnCards.filter(
                     (card) => card.suit === Suit.Flare
                 )
-                tick().then(() => {
+                void tick().then(() => {
                     Flip.from(state, {
                         duration: flipDuration,
                         ease: 'power2.in',

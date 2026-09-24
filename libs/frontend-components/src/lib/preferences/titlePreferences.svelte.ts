@@ -62,7 +62,7 @@ export class TitlePreferences<T extends Type.TObject> {
     }
 
     set(values: Partial<Type.Static<T>>, scope: 'title' | 'family' = 'title') {
-        this.change(scope, values, [])
+        void this.change(scope, values, [])
     }
 
     storageKey(scope: 'title' | 'family') {
@@ -75,7 +75,7 @@ export class TitlePreferences<T extends Type.TObject> {
     }
 
     unset(keys: (keyof Type.Static<T> & string)[], scope: 'title' | 'family' = 'title') {
-        this.change(scope, {}, keys)
+        void this.change(scope, {}, keys)
     }
 
     private change(scope: 'title' | 'family', set: Partial<Type.Static<T>>, unset: string[]) {

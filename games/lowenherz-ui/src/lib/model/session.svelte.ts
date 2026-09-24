@@ -2054,7 +2054,7 @@ export class LowenherzGameSession extends GameSession<
         // waiting on a click that could not go anywhere else.
         const enemyRegions = this.legalAllianceEnemyRegions
         if (enemyRegions.length === 1) {
-            this.selectAllianceEnemyRegion(enemyRegions[0].id)
+            void this.selectAllianceEnemyRegion(enemyRegions[0].id)
         }
     }
 
