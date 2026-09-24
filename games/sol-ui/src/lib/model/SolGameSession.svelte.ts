@@ -498,7 +498,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
             this.gameState.board.requiresGateBetween(this.chosenSource, this.chosenDestination)
         ) {
             // console.log('checking gates')
-            do {
+            for (;;) {
                 const choiceData = this.getGateChoices(
                     this.chosenSource,
                     this.chosenDestination,
@@ -528,7 +528,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 } else {
                     break
                 }
-            } while (true)
+            }
         }
 
         const playerDivers = this.gameState.board

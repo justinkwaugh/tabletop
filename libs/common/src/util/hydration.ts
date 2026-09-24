@@ -2,9 +2,9 @@ import type * as Type from 'typebox'
 import { Validator } from 'typebox/compile'
 
 export abstract class Hydratable<T extends Type.TSchema> {
-    private _validator: Validator<{}, T>
+    private _validator: Validator<Record<never, never>, T>
 
-    constructor(data: Type.Static<T>, validator: Validator<{}, T>) {
+    constructor(data: Type.Static<T>, validator: Validator<Record<never, never>, T>) {
         this._validator = validator
 
         if (!validator.Check(data)) {

@@ -83,7 +83,7 @@ export abstract class HydratableGameState<T extends Type.TSchema, P extends Play
     declare result?: GameResult
     declare winningPlayerIds: string[]
 
-    constructor(data: Type.Static<T>, validator: Validator<{}, T>) {
+    constructor(data: Type.Static<T>, validator: Validator<Record<never, never>, T>) {
         super(data, validator)
 
         // Hydrate the turn manager

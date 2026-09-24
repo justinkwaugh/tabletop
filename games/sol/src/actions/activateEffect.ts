@@ -108,7 +108,7 @@ export class HydratedActivateEffect
                     playerState.energyCubes += additionalReward
                     this.metadata.energyAdded = additionalReward
                     break
-                case StationType.SundiverFoundry:
+                case StationType.SundiverFoundry: {
                     const awardedSundivers = playerState.reserveSundivers.splice(
                         -additionalReward,
                         additionalReward
@@ -116,6 +116,7 @@ export class HydratedActivateEffect
                     playerState.addSundiversToHold(awardedSundivers)
                     this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                     break
+                }
                 case StationType.TransmitTower:
                     playerState.momentum += additionalReward
                     this.metadata.momentumAdded = additionalReward

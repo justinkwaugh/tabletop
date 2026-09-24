@@ -104,11 +104,11 @@ export const EighteenXXState: Type.TObject<
 )
 export type EighteenXXMachineState = Type.Static<typeof FamilyMachineState>
 type TitleMachineState = { machineState: Type.TUnsafe<string> }
-type TitleStateSchema<Fields extends Type.TProperties = {}> = Type.TObject<
+type TitleStateSchema<Fields extends Type.TProperties = Record<never, never>> = Type.TObject<
     Omit<typeof EighteenXXState.properties, 'machineState'> & Fields & TitleMachineState
 >
 export type EighteenXXState = Type.Static<TitleStateSchema>
-export type EighteenXXStateValidator = Validator<{}, TitleStateSchema>
+export type EighteenXXStateValidator = Validator<Record<never, never>, TitleStateSchema>
 
 export function extendEighteenXXState<Fields extends Type.TProperties>(
     fields: Fields,

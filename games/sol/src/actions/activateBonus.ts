@@ -72,7 +72,7 @@ export class HydratedActivateBonus
 
         this.metadata = {
             stationId: station.id,
-            coords: activation?.currentStationCoords!,
+            coords: activation.currentStationCoords!,
             energyAdded: 0,
             createdSundiverIds: [],
             momentumAdded: 0
@@ -86,7 +86,7 @@ export class HydratedActivateBonus
                 playerState.energyCubes += award
                 this.metadata.energyAdded = award
                 break
-            case StationType.SundiverFoundry:
+            case StationType.SundiverFoundry: {
                 const awardCost = award
                 playerState.energyCubes -= awardCost
                 const numToBuild =
@@ -101,6 +101,7 @@ export class HydratedActivateBonus
                 playerState.addSundiversToHold(awardedSundivers)
                 this.metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
+            }
             case StationType.TransmitTower:
                 playerState.energyCubes -= award
                 playerState.momentum += award

@@ -83,21 +83,24 @@ export class HydratedMetamorphosize
         }
 
         switch (this.stationType) {
-            case StationType.EnergyNode:
+            case StationType.EnergyNode: {
                 const playerNode = playerState.removeEnergyNode()
                 state.board.addStationAt(playerNode, coords)
                 this.metadata = { priorStation: removedStation, newStation: playerNode }
                 break
-            case StationType.SundiverFoundry:
+            }
+            case StationType.SundiverFoundry: {
                 const playerFoundry = playerState.removeSundiverFoundry()
                 state.board.addStationAt(playerFoundry, coords)
                 this.metadata = { priorStation: removedStation, newStation: playerFoundry }
                 break
-            case StationType.TransmitTower:
+            }
+            case StationType.TransmitTower: {
                 const playerTower = playerState.removeTransmitTower()
                 state.board.addStationAt(playerTower, coords)
                 this.metadata = { priorStation: removedStation, newStation: playerTower }
                 break
+            }
         }
 
         state.activeEffect = undefined

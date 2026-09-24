@@ -177,11 +177,8 @@ export function getGatePosition(
     coordsA: OffsetCoordinates,
     coordsB: OffsetCoordinates
 ): GatePosition {
-    let innerCoords: OffsetCoordinates
-    let outerCoords: OffsetCoordinates
-
-    innerCoords = coordsA.row < coordsB.row ? coordsA : coordsB
-    outerCoords = coordsA.row < coordsB.row ? coordsB : coordsA
+    const innerCoords = coordsA.row < coordsB.row ? coordsA : coordsB
+    const outerCoords = coordsA.row < coordsB.row ? coordsB : coordsA
 
     const innerDimensions = dimensionsForSpace(numPlayers, innerCoords)
     const outerDimensions = dimensionsForSpace(numPlayers, outerCoords)

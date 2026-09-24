@@ -145,7 +145,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 playerState.energyCubes += award
                 metadata.energyAdded = award
                 break
-            case StationType.SundiverFoundry:
+            case StationType.SundiverFoundry: {
                 playerState.energyCubes -= award
 
                 const buildAmount = duplicate ? 2 * award : award
@@ -156,6 +156,7 @@ export class HydratedActivate extends HydratableAction<typeof Activate> implemen
                 playerState.addSundiversToHold(awardedSundivers)
                 metadata.createdSundiverIds = awardedSundivers.map((diver) => diver.id)
                 break
+            }
             case StationType.TransmitTower:
                 playerState.energyCubes -= award
                 playerState.momentum += award

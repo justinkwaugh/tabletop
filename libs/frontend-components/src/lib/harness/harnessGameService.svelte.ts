@@ -116,7 +116,6 @@ export class HarnessGameService implements GameService {
     }
 
     async createGame(game: Partial<Game>, options?: GameCreationOptions): Promise<Game> {
-        let newGame: Game
         if (!game.typeId) {
             throw new Error('Game typeId is required to create a game')
         }
@@ -143,7 +142,7 @@ export class HarnessGameService implements GameService {
 
         startedGame.activePlayerIds = initialState.activePlayerIds
 
-        newGame = await this.localGameStore.createGame(startedGame, initialState)
+        const newGame = await this.localGameStore.createGame(startedGame, initialState)
         this.gamesById.set(newGame.id, newGame)
 
         return newGame

@@ -1174,13 +1174,12 @@ export class SundiverAnimator extends StateAnimator<
 
         const fromBoard = fromState.board
 
-        let diverLocation: Point | undefined
         const startOffset = 0
 
         // Activating sundiver starts in cell
         const diverCoords = fromBoard.findSundiverCoords(sundiverId)
         const diverCell = fromBoard.cellAt(diverCoords!)
-        diverLocation = this.gameSession.locationForDiverInCell(activate.playerId, diverCell)
+        const diverLocation = this.gameSession.locationForDiverInCell(activate.playerId, diverCell)
 
         const targetLocation = this.getMothershipLocationForPlayer(fromState, activate.playerId)
 
