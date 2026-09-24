@@ -295,7 +295,7 @@
                     {/if}{latest.description
                         .text}{#if !latest.isRun && latest.description.trainDefinitionIds?.length && !latest.trainCards.length}
                         <span class="trains"
-                            >{#each latest.description.trainDefinitionIds as id}<TrainBadge
+                            >{#each latest.description.trainDefinitionIds as id, i (i)}<TrainBadge
                                     name={session.trainDepot.trainDefinition(id).name}
                                     color={trainColors[id]}
                                 />{/each}</span

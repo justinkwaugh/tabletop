@@ -34,7 +34,7 @@
         </header>
         {#if !step.result}
             <div class="trains" aria-label="Route trains">
-                {#each editor.trains as train}
+                {#each editor.trains as train (train.id)}
                     <button
                         disabled={!session.routes.canRun ||
                             (visible && editor.routes.some((route) => route.trainId === train.id))}
@@ -60,7 +60,8 @@
                             }}
                         >
                             <option value="" disabled>Choose a center</option>
-                            {#each editor.centers as center}<option value={JSON.stringify(center)}
+                            {#each editor.centers as center, index (index)}<option
+                                    value={JSON.stringify(center)}
                                     >{editor.rules.map.location(center.locationId).name ??
                                         center.locationId} · {center.locationId}
                                     {center.nodeId}</option
@@ -70,11 +71,11 @@
                     {#if editor.start}
                         <p>
                             Path: {editor.start.locationId}
-                            {editor.start.nodeId}{#each editor.paths as path}
+                            {editor.start.nodeId}{#each editor.paths as path, index (index)}
                                 → {path.locationId} {path.pathId}{/each}
                         </p>
                         <div class="extensions" aria-label="Next track">
-                            {#each editor.extensions as path}<button
+                            {#each editor.extensions as path (path.pathId)}<button
                                     disabled={!session.routes.canRun}
                                     onclick={() => session.routes.appendPath(path)}
                                     >Add {path.locationId} {path.pathId}</button
@@ -103,7 +104,10 @@
             {/if}
         {/if}
         <div aria-label="Route results">
-            {#each results as route}<div class="result" data-route-train={route.trainId}>
+            {#each results as route (route.trainId)}<div
+                    class="result"
+                    data-route-train={route.trainId}
+                >
                     <strong
                         >{editor.rules.depot.trainDefinition(
                             editor.state.trainInventory.trains.find(

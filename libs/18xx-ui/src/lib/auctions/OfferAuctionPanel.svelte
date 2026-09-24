@@ -67,7 +67,7 @@
                     The first bidder may re-enter if the second bidder bids.
                 </p>{/if}
             <ul>
-                {#each bidding.auction.participants as participant}<li>
+                {#each bidding.auction.participants as participant (participant.playerId)}<li>
                         {playerName(participant.playerId)}: {participant.bid ??
                             'No bid'}{participant.passed ? ' · Passed' : ''}
                     </li>{/each}
@@ -82,11 +82,11 @@
         </article>
     {/if}
     <div class="piles">
-        {#each model.auction.piles as pile}<article
+        {#each model.auction.piles as pile, index (index)}<article
                 aria-label={`${playerName(pile.playerId)} offer pile`}
             >
                 <h3>{playerName(pile.playerId)}</h3>
-                {#each pile.lotIds as lotId}{@const lot = model.lots.find(
+                {#each pile.lotIds as lotId (lotId)}{@const lot = model.lots.find(
                         (lot) => lot.id === lotId
                     )!}
                     <div class="lot">
@@ -119,7 +119,7 @@
     {#if showUndo}<button onclick={onUndo} disabled={!canUndo}>Undo</button>{/if}
     {#if model.auction.awards.length}<h3>Awarded</h3>
         <ul>
-            {#each model.auction.awards as award}<li>
+            {#each model.auction.awards as award, index (index)}<li>
                     {model.lots.find((lot) => lot.id === award.lotId)?.name} — {playerName(
                         award.playerId
                     )}, {award.price}

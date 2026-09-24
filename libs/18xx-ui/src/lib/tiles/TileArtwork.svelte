@@ -198,7 +198,7 @@
                         stroke-linejoin="round"
                     ></path>
                 {/if}
-                {#each slots as point, index}
+                {#each slots as point, index (index)}
                     <circle
                         data-station-slot={index}
                         cx={point.x}
@@ -309,7 +309,7 @@
                             <text font-size="10" font-weight="750">{node.revenue.amount}</text>
                         {/if}
                     {:else}
-                        {#each revenueCells as cell}
+                        {#each revenueCells as cell (cell.stage)}
                             {@const color =
                                 revenueStageColors[cell.stage] ??
                                 appearance.colors[cell.stage] ??

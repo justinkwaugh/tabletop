@@ -55,7 +55,7 @@
                                             .map((color) => tileColorNames[color] ?? color)
                                             .join(', ')}
                                     >
-                                        {#each phase.tileColors as color}<span
+                                        {#each phase.tileColors as color (color)}<span
                                                 class="tile-color"
                                                 style:background={tileColors[color]}
                                                 title={tileColorNames[color] ?? color}
@@ -66,7 +66,7 @@
                                 <td class="number">{phase.trainLimit}</td>
                                 <td
                                     ><span class="badges">
-                                        {#each chart.trains.filter((train) => train.rustPhaseId === phase.id) as train}
+                                        {#each chart.trains.filter((train) => train.rustPhaseId === phase.id) as train (train.id)}
                                             <TrainBadge
                                                 name={train.id}
                                                 color={trainColors[train.id]}
@@ -126,10 +126,10 @@
         </section>
     </div>
     <div class="notes">
-        {#each chart.trains.filter((train) => train.rustNote) as train}<p>
+        {#each chart.trains.filter((train) => train.rustNote) as train (train.id)}<p>
                 * {train.rustNote}
             </p>{/each}
-        {#if !depotOnly}{#each chart.notes as note}<p>{note}</p>{/each}{/if}
+        {#if !depotOnly}{#each chart.notes as note, index (index)}<p>{note}</p>{/each}{/if}
     </div>
 </div>
 

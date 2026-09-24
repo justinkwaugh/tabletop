@@ -72,7 +72,7 @@
         >
         <label
             >Color<select bind:value={color}
-                ><option value="">All colors</option>{#each colors as value}<option {value}
+                ><option value="">All colors</option>{#each colors as value (value)}<option {value}
                         >{value}</option
                     >{/each}</select
             ></label

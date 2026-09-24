@@ -27,7 +27,7 @@
                 .roundNumber} of {gameState.operatingSet.roundCount}
         </p>
         <ol class="steps" aria-label="Operating steps">
-            {#each [['LayingTrack', 'Track'], ['PlacingStation', 'Stations'], ['RunningTrains', 'Run trains'], ['DistributingEarnings', 'Distribute earnings'], ['BuyingTrains', 'Buy trains']] as [step, label]}
+            {#each [['LayingTrack', 'Track'], ['PlacingStation', 'Stations'], ['RunningTrains', 'Run trains'], ['DistributingEarnings', 'Distribute earnings'], ['BuyingTrains', 'Buy trains']] as [step, label] (step)}
                 <li
                     aria-current={gameState.machineState === step ||
                     gameState.phaseChange?.continuation.machineState === step
@@ -39,7 +39,7 @@
             {/each}
         </ol>
         <ol aria-label="Operating order">
-            {#each gameState.operatingSet.companyOrder as companyId}
+            {#each gameState.operatingSet.companyOrder as companyId (companyId)}
                 {@const owner = controllingOwner(gameState, companyId)}
                 <li>
                     {getCompany(gameState, companyId).name}{#if owner}

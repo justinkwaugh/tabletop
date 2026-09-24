@@ -183,7 +183,7 @@
                     </div>
                     {#if session.trainBuying.exchanges.length}<h3>Train exchange</h3>
                         <div class="trains">
-                            {#each session.trainBuying.exchanges as exchange}<button
+                            {#each session.trainBuying.exchanges as exchange, i (i)}<button
                                     disabled={!session.trainBuying.canBuy}
                                     onclick={() => session.trainBuying.buy(exchange)}
                                     >Exchange {exchange.exchangeTrainId} for {session.trainDepot.trainDefinition(

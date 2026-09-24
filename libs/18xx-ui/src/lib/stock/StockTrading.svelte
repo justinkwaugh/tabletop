@@ -67,7 +67,7 @@
                 from {session.ownerName(details.seller)} for {details.price}.
             </p>
             <ul>
-                {#each details.payments as payment}<li>
+                {#each details.payments as payment, i (i)}<li>
                         {session.ownerName(payment.from)} pays {payment.amount} to {session.ownerName(
                             payment.to
                         )}.
@@ -77,7 +77,7 @@
             {#if session.stock.selectedPurchaseFlotation}
                 <div aria-label="Flotation preview">
                     <p>{getCompany(gameState, details.companyId).name} will float.</p>
-                    {#each session.stock.selectedPurchaseFlotation.payments as payment}<p>
+                    {#each session.stock.selectedPurchaseFlotation.payments as payment, i (i)}<p>
                             {session.ownerName(payment.from)} pays {payment.amount} to {session.ownerName(
                                 payment.to
                             )} as initial capital.
@@ -206,7 +206,7 @@
                 {:else if isCompleteStockRound(trade) && trade.metadata}
                     <li>
                         Stock round complete.
-                        {#each trade.metadata.marketMoves as move}
+                        {#each trade.metadata.marketMoves as move (move.companyId)}
                             <span
                                 >{getCompany(gameState, move.companyId).name} sold out: {stockMarketSpace(
                                     gameState.stockMarket,
@@ -234,7 +234,7 @@
                 {:else if isFloatCompany(trade) && trade.metadata}
                     <li>
                         {getCompany(gameState, trade.companyId).name} floated.
-                        {#each trade.metadata.payments as payment}<span
+                        {#each trade.metadata.payments as payment, i (i)}<span
                                 >{session.ownerName(payment.from)} paid {payment.amount} to {session.ownerName(
                                     payment.to
                                 )} as initial capital.</span
@@ -247,7 +247,7 @@
                             gameState,
                             details.companyId
                         ).name} for {details.price}.
-                        {#each details.payments as payment}<span
+                        {#each details.payments as payment, i (i)}<span
                                 >{session.ownerName(payment.from)} paid {payment.amount} to {session.ownerName(
                                     payment.to
                                 )}.</span
@@ -258,7 +258,7 @@
                     {@const details = trade.metadata}
                     <li>
                         {session.ownerName(details.seller)} sold shares for {details.proceeds}.
-                        {#each details.sales as sale}<span
+                        {#each details.sales as sale (sale.companyId)}<span
                                 >{getCompany(gameState, sale.companyId).name}: {sale.shares} shares at
                                 {sale.price}; market price {stockMarketSpace(
                                     gameState.stockMarket,

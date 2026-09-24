@@ -13,11 +13,11 @@
 </script>
 
 <div class="private-trains">
-    {#each privateIds as privateId}
+    {#each privateIds as privateId (privateId)}
         <section aria-label={`Use ${getCompany(session.gameState, privateId).name}`}>
             <p>Buy a train and close {getCompany(session.gameState, privateId).name}</p>
             <div class="trains">
-                {#each session.decisions.privateTrainOptions.filter((option) => option.privateCompanyId === privateId) as option}
+                {#each session.decisions.privateTrainOptions.filter((option) => option.privateCompanyId === privateId) as option (option.details.trainId)}
                     {@const definition = session.trainDepot.trainDefinition(
                         option.details.definitionId
                     )}

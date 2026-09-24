@@ -108,7 +108,7 @@
                             }}
                         >
                             <option value="">Choose asset</option>
-                            {#each purchaseOptions as option, index}<option value={index}
+                            {#each purchaseOptions as option, index (index)}<option value={index}
                                     >{option.request.asset.kind === 'train'
                                         ? option.request.asset.trainId
                                         : option.request.asset.privateCompanyId} · {session.ownerName(
@@ -143,7 +143,7 @@
                                 {/if}
                             </header>
                         {:else}
-                            {#each session.privateActions.trackPowers as power}
+                            {#each session.privateActions.trackPowers as power, index (index)}
                                 <button
                                     onclick={() => session.privateActions.chooseTrackPower(power)}
                                     >{getCompany(gameState, power.privateCompanyId).name}</button

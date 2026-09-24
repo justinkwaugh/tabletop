@@ -74,7 +74,7 @@
                     disabled={!session.track.canBuild}
                 >
                     <option value="">Select a highlighted hex</option>
-                    {#each session.track.locationIds as id}<option value={id}
+                    {#each session.track.locationIds as id (id)}<option value={id}
                             >{id} {session.mapView.map.location(id).name ?? ''}</option
                         >{/each}
                 </select></label
@@ -109,7 +109,7 @@
                 </div>
             {:else}
                 <div class="rotations" aria-label="Tile rotations">
-                    {#each session.track.placements as choice, index}
+                    {#each session.track.placements as choice, index (index)}
                         <button
                             data-track-rotation={choice.rotation}
                             aria-pressed={preview?.rotation === choice.rotation &&

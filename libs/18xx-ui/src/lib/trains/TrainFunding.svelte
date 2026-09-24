@@ -52,7 +52,7 @@
                     )}.
                 </p>
             {/each}
-            {#each plan.contributions as contribution}
+            {#each plan.contributions as contribution, index (index)}
                 <p>
                     {session.ownerName(contribution.owner)} contributes {money(
                         contribution.amount
@@ -68,7 +68,7 @@
                     {:else}must sell shares to meet the ownership limit.{/if}
                 </p>
                 <div class="choices" aria-label="Funding share sales">
-                    {#each session.trainFunding.sales as sale}
+                    {#each session.trainFunding.sales as sale, index (index)}
                         {@const companyId = sale.sales[0].companyId}
                         <button
                             class="sale-choice"

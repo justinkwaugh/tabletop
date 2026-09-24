@@ -96,7 +96,7 @@
                                 : 'Not operated'}
                         </p>
                     {/if}
-                    {#each stationReservations.filter((reservation) => reservation.companyId === company.id) as reservation}
+                    {#each stationReservations.filter((reservation) => reservation.companyId === company.id) as reservation, i (i)}
                         <p class="authority">Reserved home: {reservation.locationId}</p>
                     {/each}
                     {#each stations.filter((station) => station.companyId === company.id && station.status === 'placed') as station (station.id)}

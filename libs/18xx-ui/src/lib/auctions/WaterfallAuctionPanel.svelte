@@ -68,12 +68,12 @@
                 <h3>{lot.name} <small>{lot.id}</small></h3>
                 <p>Price {model.price(lot.id)}</p>
                 <ul aria-label="Reserved bids">
-                    {#each commitments.filter((bid) => bid.lotId === lot.id) as bid}<li>
+                    {#each commitments.filter((bid) => bid.lotId === lot.id) as bid (bid.playerId)}<li>
                             {playerName(bid.playerId)}: {bid.amount}
                         </li>{:else}<li>No bids</li>{/each}
                 </ul>
                 {#if bidding?.lotId === lot.id}
-                    {#each bidding.auction.participants.filter((bidder) => bidder.passed) as bidder}<p
+                    {#each bidding.auction.participants.filter((bidder) => bidder.passed) as bidder (bidder.playerId)}<p
                         >
                             {playerName(bidder.playerId)} passed
                         </p>{/each}
@@ -120,7 +120,7 @@
     {#if model.auction.awards.length}
         <h3>Awarded</h3>
         <ul>
-            {#each model.auction.awards as award}<li>
+            {#each model.auction.awards as award (award.lotId)}<li>
                     {model.lots.find((lot) => lot.id === award.lotId)?.name} — {playerName(
                         award.playerId
                     )}, {award.price}

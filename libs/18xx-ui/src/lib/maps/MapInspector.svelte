@@ -58,21 +58,21 @@
                 </p>
             {/if}
         {/each}
-        {#each tokens.filter((token) => token.locationId === entry.location.id) as token}<p>
+        {#each tokens.filter((token) => token.locationId === entry.location.id) as token (token.id)}<p>
                 Station: {token.label} · {token.nodeId} · Space {token.slot + 1}
             </p>{/each}
-        {#each currentReservations.filter((reservation) => reservation.locationId === entry.location.id) as reservation}<p
+        {#each currentReservations.filter((reservation) => reservation.locationId === entry.location.id) as reservation, i (i)}<p
             >
                 Home reservation: {reservation.companyId} · {reservation.nodeId}
             </p>{/each}
-        {#each entry.location.upgradeLabels ?? [] as label}<p>
+        {#each entry.location.upgradeLabels ?? [] as label, i (i)}<p>
                 Upgrade label: {label.label} from {label.color}
             </p>{/each}
         {#each entry.location.markers ?? [] as marker (marker.id)}<p>
                 <strong>{marker.label}:</strong>
                 {marker.description}
             </p>{/each}
-        {#each entry.location.borders ?? [] as border}<p>
+        {#each entry.location.borders ?? [] as border (border.edge)}<p>
                 Edge {border.edge}: {border.kind}{border.cost !== undefined
                     ? ` · ${border.cost}`
                     : ''}

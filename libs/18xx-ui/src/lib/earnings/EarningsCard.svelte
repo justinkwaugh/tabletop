@@ -63,7 +63,7 @@
         {#if details.bonusPerShare}<small>Includes {money(details.bonusPerShare)}/share bonus</small
             >{/if}
         {#if choice !== 'withhold'}<span class="payments">
-                {#each details.payments.toSorted((a, b) => paymentOrder(a.to) - paymentOrder(b.to)) as payment}
+                {#each details.payments.toSorted((a, b) => paymentOrder(a.to) - paymentOrder(b.to)) as payment, i (i)}
                     <span
                         ><span>{isTreasury(payment.to) ? 'Treasury' : ownerName(payment.to)}</span
                         ><b>{money(payment.amount)}</b></span

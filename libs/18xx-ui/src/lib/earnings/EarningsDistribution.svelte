@@ -15,7 +15,7 @@
 {#if result && session.gameState.machineState === 'DistributingEarnings'}
     <section aria-label="Earnings distribution">
         <div class="choices">
-            {#each session.earnings.choices as { choice, evaluation }}
+            {#each session.earnings.choices as { choice, evaluation }, index (index)}
                 {@const details = evaluation.details}
                 <EarningsCard
                     {money}

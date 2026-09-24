@@ -32,7 +32,7 @@
                         ></thead
                     >
                     <tbody>
-                        {#each standings as player}
+                        {#each standings as player (player.playerId)}
                             <tr class:winner={gameState.winningPlayerIds.includes(player.playerId)}>
                                 <th scope="row"
                                     ><span class="rank"

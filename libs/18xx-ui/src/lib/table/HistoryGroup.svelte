@@ -274,7 +274,7 @@
                                 ? (row.ledgerText ?? row.text)
                                 : row.text}{#if row.trainDefinitionIds?.length}<span
                                     class="run-trains"
-                                    >{#each row.trainDefinitionIds as id}<TrainBadge
+                                    >{#each row.trainDefinitionIds as id, index (index)}<TrainBadge
                                             name={trainName(id)}
                                             color={trainColors[id]}
                                         />{/each}</span

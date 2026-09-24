@@ -67,8 +67,8 @@
                     onchange={(event) =>
                         session.map.inspectCompanyNetwork(event.currentTarget.value)}
                 >
-                    {#each session.map.networkCompanies as company}<option value={company.id}
-                            >{company.name}</option
+                    {#each session.map.networkCompanies as company (company.id)}<option
+                            value={company.id}>{company.name}</option
                         >{/each}
                 </select></label
             >

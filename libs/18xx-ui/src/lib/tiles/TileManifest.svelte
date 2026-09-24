@@ -46,7 +46,7 @@
 
 <section class="manifest" aria-label="Tile manifest">
     <div class="filters" role="group" aria-label="Tile colors">
-        {#each ['', ...colors] as value}
+        {#each ['', ...colors] as value (value)}
             <button
                 aria-pressed={color === value}
                 style:background={value ? appearance.colors[value] : '#faf7f1'}

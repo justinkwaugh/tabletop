@@ -59,7 +59,7 @@
         </mask>
     </defs>
     <g mask={`url(#${maskId})`} fill="none" stroke-linecap="round" stroke-linejoin="round">
-        {#each [9, 6.5] as width}
+        {#each [9, 6.5] as width (width)}
             {#each locations as location (location.id)}
                 <g transform={`translate(${location.center.x} ${location.center.y})`}>
                     {#each location.paths as path (path.id)}

@@ -12,7 +12,7 @@
     <g data-map-layer="track-joins" pointer-events="none" aria-hidden="true">
         <defs>
             <mask id={maskId} maskUnits="userSpaceOnUse" {...scene.bounds}>
-                {#each joins as point}
+                {#each joins as point, index (index)}
                     <rect
                         x="-1"
                         y={-(appearance.trackWidth + appearance.trackBorderWidth) / 2 - 2}
@@ -25,7 +25,7 @@
             </mask>
         </defs>
         <g mask={`url(#${maskId})`} fill="none" stroke-linecap="round">
-            {#each [true, false] as border}
+            {#each [true, false] as border (border)}
                 {#each scene.locations as entry (entry.location.id)}
                     <g transform={`translate(${entry.center.x} ${entry.center.y})`}>
                         {#each entry.drawing.paths as path (path.id)}

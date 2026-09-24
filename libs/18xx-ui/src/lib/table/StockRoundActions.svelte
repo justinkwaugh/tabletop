@@ -131,7 +131,7 @@
                         count={purchasingOwners.length}
                         selectedIndex={selectedOwnerIndex}
                     >
-                        {#each purchasingOwners as buyer, index}
+                        {#each purchasingOwners as buyer, index (index)}
                             <button
                                 {disabled}
                                 aria-pressed={index === selectedOwnerIndex}
@@ -259,7 +259,7 @@
                 {:else if menu === 'start'}
                     <div class="start-selection">
                         <div class="choices start-choices">
-                            {#each buyerStarts as choice}
+                            {#each buyerStarts as choice, index (index)}
                                 <button
                                     class="company-choice start-company-choice"
                                     {disabled}
@@ -278,7 +278,7 @@
                                 session.stock.selectedStartCompany.companyId
                             )}
                             <div class="choices par-choices">
-                                {#each session.stock.selectedStartPrices as price}
+                                {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}
                                         {@const space = stockMarketSpace(
                                             session.gameState.stockMarket,
@@ -372,7 +372,7 @@
                         {#if session.stock.selectedSaleCompany}
                             <div class="quantity-heading">HOW MANY</div>
                             <div class="choices">
-                                {#each sales.filter((choice) => choice.sale.companyId === session.stock.selectedSaleCompany) as choice}
+                                {#each sales.filter((choice) => choice.sale.companyId === session.stock.selectedSaleCompany) as choice, index (index)}
                                     <button
                                         class="sale-quantity"
                                         {disabled}
@@ -406,7 +406,7 @@
                         {/if}
                     </div>
                 {:else if menu === 'exchange'}
-                    {#each session.privates.exchangeOptions as offer}
+                    {#each session.privates.exchangeOptions as offer, index (index)}
                         {@const company = exchangeCompany(offer.certificateId)}
                         <button
                             class="exchange-choice"

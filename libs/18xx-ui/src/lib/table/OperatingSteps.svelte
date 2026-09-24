@@ -79,7 +79,7 @@
             : 'var(--rail-surface-raised, #e8ded4)'}
     >
         <div class="steps">
-            {#each steps as step, index}
+            {#each steps as step, index (step)}
                 <button
                     class:current={index === currentStep}
                     class:completed={index < currentStep}

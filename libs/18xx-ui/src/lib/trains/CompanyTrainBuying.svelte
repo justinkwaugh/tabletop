@@ -108,7 +108,7 @@
                         <strong>{getCompany(session.gameState, companyId).name}</strong>
                     </div>
                     <div class="company-roster">
-                        {#each trains as choice}
+                        {#each trains as choice (choice.request.asset.kind === 'train' ? choice.request.asset.trainId : choice.request.asset.privateCompanyId)}
                             <button
                                 class="train"
                                 disabled={!session.decisions.canResolve}

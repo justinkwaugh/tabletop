@@ -16,7 +16,7 @@
                 Starting price: {details.parPrice}.
             </p>
             <ul>
-                {#each details.payments as payment}<li>
+                {#each details.payments as payment, index (index)}<li>
                         {session.ownerName(payment.from)} pays {payment.amount} to {session.ownerName(
                             payment.to
                         )}.

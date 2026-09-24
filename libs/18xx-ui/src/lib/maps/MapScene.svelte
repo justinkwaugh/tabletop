@@ -195,7 +195,7 @@
             >
                 {#snippet selectedTrack()}
                     {#if selected && selection?.kind === 'path'}
-                        {#each entry.drawing.paths.filter((path) => path.id === selectedPath) as path}
+                        {#each entry.drawing.paths.filter((path) => path.id === selectedPath) as path (path.id)}
                             <path d={path.d} fill="none" stroke="#d52f83" stroke-width="3"></path>
                         {/each}
                     {/if}
@@ -224,7 +224,7 @@
                         )
                         .map((reservation) => reservation.companyId)
                         .join('/')}
-                    {#each node.slots as point, slot}
+                    {#each node.slots as point, slot (slot)}
                         {@const token = tokens.find(
                             (token) =>
                                 token.locationId === id &&
@@ -274,7 +274,7 @@
                                 data-map-terrain
                                 transform={`translate(${-(iconWidth + labelWidth) / 2} ${(entry.face.nodes.length || entry.face.paths.length ? 19 : 0) + (terrain.kinds.includes('water') && entry.face.nodes.some((node) => node.kind === 'city' || node.kind === 'town') ? 3 : 0)})`}
                             >
-                                {#each terrain.kinds as kind, index}
+                                {#each terrain.kinds as kind, index (kind)}
                                     <g transform={`translate(${index * 19} 0)`} stroke="none">
                                         {#if kind === 'mountain'}
                                             <path d="M0 5 L6 -6 L10 0 L13 -4 L19 5 Z" fill="#936039"
@@ -374,7 +374,7 @@
                             onkeydown={(event) => select(event, nodeTarget)}
                         ></circle>
                     {/if}
-                    {#each node.slots as point, slot}
+                    {#each node.slots as point, slot (slot)}
                         {@const slotTarget: MapSelection = { kind: 'slot', locationId: id, nodeId: node.node.id, slot }}
                         <circle
                             data-map-slot={`${node.node.id}:${slot}`}
@@ -417,7 +417,7 @@
         <g data-map-layer="borders" pointer-events="none" aria-hidden="true">
             {#each entries as entry (entry.location.id)}
                 <g transform={`translate(${entry.center.x} ${entry.center.y})`}>
-                    {#each entry.borders as { start, end, border }}
+                    {#each entry.borders as { start, end, border } (border.edge)}
                         <line
                             data-map-border={border.edge}
                             x1={start.x}
@@ -454,7 +454,8 @@
                     stroke-width="1.7"
                 >
                     <text font-size="5" font-weight="650"
-                        >{#each lines as line, index}<tspan x="0" y={-35 + index * 6}>{line}</tspan
+                        >{#each lines as line, index (index)}<tspan x="0" y={-35 + index * 6}
+                                >{line}</tspan
                             >{/each}</text
                     >
                 </g>

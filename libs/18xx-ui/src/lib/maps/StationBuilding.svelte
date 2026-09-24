@@ -25,7 +25,7 @@
         {:else if !session.isViewingHistory && !selection.stationId}
             {#if session.stations.requiresTokenChoice}
                 <div class="choices">
-                    {#each session.stations.available as station, index}
+                    {#each session.stations.available as station, index (station.id)}
                         <button
                             data-station-id={station.id}
                             onclick={() => session.stations.select(station.id)}

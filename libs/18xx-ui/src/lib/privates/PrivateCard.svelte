@@ -62,11 +62,11 @@
             {/if}
         </header>
         {#if description}
-            {#each paragraphs as paragraph, index}
+            {#each paragraphs as paragraph, index (index)}
                 <p>
                     {#if paragraph.startsWith('**') && paragraph.endsWith('**')}<strong
                             class="intro">{paragraph.slice(2, -2)}</strong
-                        >{:else}{#each paragraph.split(/(\b\d+(?:H|\+)?)/g) as part}{#if index === paragraphs.length - 1 && phaseColors[part]}<TrainBadge
+                        >{:else}{#each paragraph.split(/(\b\d+(?:H|\+)?)/g) as part, partIndex (partIndex)}{#if index === paragraphs.length - 1 && phaseColors[part]}<TrainBadge
                                     name={part}
                                     color={phaseColors[part]}
                                 />{:else}{part}{/if}{/each}{/if}

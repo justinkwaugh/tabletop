@@ -104,7 +104,7 @@
                     </p>{/if}
             {:else}
                 <div class="privates">
-                    {#each choices as option}
+                    {#each choices as option, i (i)}
                         {#if option.request.asset.kind === 'private'}
                             {@const company = getCompany(
                                 session.gameState,

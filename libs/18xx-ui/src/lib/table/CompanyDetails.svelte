@@ -224,7 +224,7 @@
             {#if ownership.length}
                 <table aria-label={`${company.name} share ownership`}>
                     <tbody>
-                        {#each ownership as entry, index}
+                        {#each ownership as entry, index (index)}
                             {@const president =
                                 company.president && sameOwner(entry.owner, company.president)}
                             <tr
@@ -283,7 +283,7 @@
                 </section>
                 {#if investmentCompanies.length}
                     <h3 class="section-heading">Investments</h3>
-                    {#each investmentCompanies as id}<p class="investment">
+                    {#each investmentCompanies as id (id)}<p class="investment">
                             {getCompany(gameState, id).name}<strong
                                 >{sharesOwned(gameState, id, owner)} shares</strong
                             >

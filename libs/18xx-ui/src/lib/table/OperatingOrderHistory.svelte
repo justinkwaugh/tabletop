@@ -23,7 +23,7 @@
 
 <span class="order-history">
     {#if moves.length}
-        {#each moves as move}
+        {#each moves as move, moveIndex (moveIndex)}
             <svg
                 width={move.companies.length * 28}
                 height="37"
@@ -43,7 +43,7 @@
                     d={`M ${move.to * 28 + 11.5} 10 L ${move.to * 28 + 14} 13 L ${move.to * 28 + 16.5} 10 Z`}
                     fill="#62584b"
                 ></path>
-                {#each move.companies as id, index}
+                {#each move.companies as id, index (index)}
                     <g opacity={index === move.from ? 0.3 : 1}>
                         <CompanyToken
                             appearance={appearance(id)}
@@ -57,7 +57,10 @@
         {/each}
     {:else}
         <span class="order" aria-label={order.after.map(companyName).join(', ')}>
-            {#each order.after as id}<CompanyToken appearance={appearance(id)} size={22} />{/each}
+            {#each order.after as id, index (index)}<CompanyToken
+                    appearance={appearance(id)}
+                    size={22}
+                />{/each}
         </span>
     {/if}
 </span>

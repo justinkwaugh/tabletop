@@ -27,7 +27,7 @@
                     : change.continuation.machineState}.
             </p>
             <div class="choices">
-                {#each session.discard.trains as train}<button
+                {#each session.discard.trains as train (train.id)}<button
                         disabled={!session.discard.canDiscard}
                         aria-pressed={session.discard.selection === train.id}
                         onclick={() => session.discard.select(train.id)}
@@ -57,7 +57,7 @@
                         · Rusts after its next operation: {event.pendingRustTrainIds.join(
                             ', '
                         )}{/if}
-                    {#each event.privateEffects as effect}
+                    {#each event.privateEffects as effect, index (index)}
                         <div>
                             {#if effect.kind === 'close'}Closed {effect.privateCompanyId}
                             {:else if effect.kind === 'income'}{effect.privateCompanyId} revenue becomes

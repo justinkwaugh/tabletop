@@ -481,7 +481,7 @@
             style:--selected={periods.indexOf(period)}
         >
             <span class="thumb" aria-hidden="true"></span>
-            {#each periods as option}
+            {#each periods as option (option)}
                 <button aria-pressed={period === option} onclick={() => (period = option)}
                     >{option === 'Player income'
                         ? 'Income'
@@ -594,7 +594,7 @@
                                             >{@render companyLabel(company)}</th
                                         >
                                     {/each}
-                                    {#each statisticLabels as label, index}<th
+                                    {#each statisticLabels as label, index (label)}<th
                                             scope="col"
                                             class:stat-start={index === 0}>{label}</th
                                         >{/each}
@@ -611,7 +611,7 @@
                                         <th scope="row" aria-label={row.company.name}
                                             >{@render companyLabel(row.company)}</th
                                         >
-                                        {#each row.shares as shares, index}{@render shareCell(
+                                        {#each row.shares as shares, index (index)}{@render shareCell(
                                                 shares,
                                                 row.company.id,
                                                 owners[index].id,
@@ -645,7 +645,7 @@
                                         >
                                     </tr>
                                 {/each}
-                                {#each statisticLabels as label, index}
+                                {#each statisticLabels as label, index (label)}
                                     <tr class="financial-row" class:stat-start={index === 0}>
                                         <th scope="row">{label}</th>
                                         {#each owners as owner (owner.id)}
@@ -664,7 +664,7 @@
                                                     )}{/if}</td
                                             >
                                         {/each}
-                                        {#each { length: pricePresentation.showInSpreadsheet ? 5 : 4 } as _, column}<td
+                                        {#each { length: pricePresentation.showInSpreadsheet ? 5 : 4 } as _, column (column)}<td
                                                 class="void"
                                             ></td>{/each}
                                     </tr>
@@ -700,7 +700,7 @@
                                                 ownerTintColor(owner.id),
                                                 poolAlternate(owner.id)
                                             )}{/each}
-                                        {#each statisticLabels as _, statIndex}
+                                        {#each statisticLabels as _, statIndex (statIndex)}
                                             <td
                                                 class:stat-start={statIndex === 0}
                                                 class:bright-cell={statistics.has(owner.id)}
@@ -729,7 +729,7 @@
                                                     ? '—'
                                                     : row.value.toLocaleString('en-US')}</td
                                             >{/each}
-                                        {#each statisticLabels as _, index}<td
+                                        {#each statisticLabels as _, index (index)}<td
                                                 class:stat-start={index === 0}
                                                 class="void"
                                             ></td>{/each}
@@ -742,7 +742,7 @@
                                                 operatingCompanyId}
                                             class="bright-cell">{@render companyCash(row.cash)}</td
                                         >{/each}
-                                    {#each statisticLabels as _, index}<td
+                                    {#each statisticLabels as _, index (index)}<td
                                             class:stat-start={index === 0}
                                             class="void"
                                         ></td>{/each}
@@ -755,7 +755,7 @@
                                             class="bright-cell"
                                             >{@render companyTrains(row.company.id)}</td
                                         >{/each}
-                                    {#each statisticLabels as _, index}<td
+                                    {#each statisticLabels as _, index (index)}<td
                                             class:stat-start={index === 0}
                                             class="void"
                                         ></td>{/each}
@@ -772,7 +772,7 @@
                                             ).length}/{row.stations.length}</td
                                         >
                                     {/each}
-                                    {#each statisticLabels as _, index}<td
+                                    {#each statisticLabels as _, index (index)}<td
                                             class:stat-start={index === 0}
                                             class="void"
                                         ></td>{/each}
@@ -784,7 +784,7 @@
                                                 operatingCompanyId}
                                             >{@render lastRunCell(row.company)}</td
                                         >{/each}
-                                    {#each statisticLabels as _, index}<td
+                                    {#each statisticLabels as _, index (index)}<td
                                             class:stat-start={index === 0}
                                             class="void"
                                         ></td>{/each}
