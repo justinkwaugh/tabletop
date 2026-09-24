@@ -279,6 +279,60 @@ for (const entry of ['/', '/login']) {
     }
 }
 
+test('a returning user sees saved games until the fresh list replaces them', async ({ page }) => {
+    await page.goto('/dashboard')
+    await expect(page.getByRole('heading', { name: 'Table 11', exact: true })).toBeVisible()
+
+    const released = Promise.withResolvers<void>()
+    await page.route('**/api/v1/games/mine*', async (route) => {
+        await released.promise
+        await route.fulfill({ json: { payload: { games: [game(0)] } } })
+    })
+    await page.reload()
+
+    await expect(page.getByRole('heading', { name: 'Table 11', exact: true })).toBeVisible()
+    released.resolve()
+    await expect(page.getByRole('heading', { name: 'Table 11', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Table 00', exact: true })).toBeVisible()
+})
+
+for (const hasActive of [false, true]) {
+    test(`a returning user with saved games ${hasActive} enters / without checking for active games`, async ({
+        page
+    }) => {
+        await page.route('**/api/v1/games/mine*', (route) =>
+            route.fulfill({ json: { payload: { games: hasActive ? [game(0)] : [] } } })
+        )
+        await page.goto('/dashboard')
+        await expect
+            .poll(() => page.evaluate(() => localStorage.getItem('currentGames')))
+            .not.toBeNull()
+
+        let checks = 0
+        await page.route('**/api/v1/games/hasActive', (route) => {
+            checks += 1
+            return route.fulfill({ json: { payload: { hasActive: !hasActive } } })
+        })
+        await page.goto('/')
+
+        await expect(page).toHaveURL(hasActive ? /\/dashboard$/ : /\/library$/)
+        expect(checks).toBe(0)
+    })
+}
+
+test('signing out forgets the saved games', async ({ page }) => {
+    await page.goto('/dashboard')
+    await expect(page.getByRole('heading', { name: 'Table 00', exact: true })).toBeVisible()
+    await expect
+        .poll(() => page.evaluate(() => localStorage.getItem('currentGames')))
+        .not.toBeNull()
+
+    await page.getByRole('button', { name: 'Open account menu' }).click()
+    await page.getByText('Sign out', { exact: true }).click()
+
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('currentGames'))).toBeNull()
+})
+
 test('loads multiplayer history without runtime errors and reuses loaded pages when switching tabs', async ({
     page
 }) => {
