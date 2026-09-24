@@ -228,6 +228,9 @@ create the bucket. Storage admin on that one bucket is needed rather than object
 they stream without the account being a project viewer. Verify with `node tools/deploy/esm/cli.js preflight --backend`, which reads
 the serving revision, and with `gcloud builds list --project=$PROJECT --limit=1`.
 
+`investigateCredentialFile` is read only by `tools/investigate` (see its README) and names the
+separate viewer-only key used for production investigation.
+
 Verify from inside the container with `gcloud storage ls gs://$BUCKET/config/` after setting
 `CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=/workspace/.secrets/gcloud-deploy-key.json`, or simply
 run `node tools/deploy/esm/cli.js preflight --game=<gameId>`.

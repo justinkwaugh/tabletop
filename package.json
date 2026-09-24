@@ -15,6 +15,7 @@
         "start:backend": "turbo run start --filter=@tabletop/backend",
         "update-games": "turbo update-games",
         "deploy": "node tools/deploy/esm/cli.js",
+        "investigate": "node tools/investigate/src/cli.mjs",
         "rehearse": "pnpm --filter @tabletop/tools exec tsx src/rehearsal/cli.mjs"
     },
     "devDependencies": {
