@@ -1,42 +1,6 @@
 import { storedFamilyPreference } from './preferenceStorage.js'
 import { expect, test } from '@playwright/test'
 
-test('operating-order preference survives reload and follows the player between titles', async ({
-    page
-}) => {
-    const errors: string[] = []
-    page.on('pageerror', (error) => errors.push(error.message))
-    await page.goto('/table')
-    await page.getByLabel('Position', { exact: true }).selectOption('routes')
-    const showOperatingOrder = async () => {
-        await page
-            .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
-            .click()
-        await page.getByRole('button', { name: 'Operating Order', exact: true }).click()
-        await page.getByRole('tab', { name: 'Operating Order', exact: true }).click()
-    }
-    await showOperatingOrder()
-    const tokens = page.getByRole('button', { name: 'Tokens only', exact: true })
-    const details = page.getByRole('button', { name: 'Detailed chips', exact: true })
-    await expect(details).toHaveAttribute('aria-pressed', 'true')
-    await tokens.click()
-    await expect(tokens).toHaveAttribute('aria-pressed', 'true')
-    await expect.poll(() => storedFamilyPreference(page, 'operatingOrderDisplay')).toBe('tokens')
-    await page.reload()
-    await page.getByRole('tab', { name: 'Operating Order', exact: true }).click()
-    await expect(tokens).toHaveAttribute('aria-pressed', 'true')
-    await page.getByLabel('Game', { exact: true }).selectOption('1889')
-    await page.getByRole('tab', { name: 'Operating Order', exact: true }).click()
-    await expect(tokens).toHaveAttribute('aria-pressed', 'true')
-    await details.click()
-    await expect(details).toHaveAttribute('aria-pressed', 'true')
-    await expect.poll(() => storedFamilyPreference(page, 'operatingOrderDisplay')).toBe('details')
-    await page.getByLabel('Game', { exact: true }).selectOption('TOP')
-    await page.getByRole('tab', { name: 'Operating Order', exact: true }).click()
-    await expect(details).toHaveAttribute('aria-pressed', 'true')
-    expect(errors).toEqual([])
-})
-
 test('history order defaults to newest last and follows the player between titles', async ({
     page
 }) => {

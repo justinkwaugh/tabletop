@@ -32,7 +32,6 @@
     import CompanyCardLayout from './CompanyCardLayout.svelte'
     import CompanyOrder from './CompanyOrder.svelte'
     import CompanyOrderOverview from './CompanyOrderOverview.svelte'
-    import CompanyOrderToggle from './CompanyOrderToggle.svelte'
     import { untrack, tick, type Snippet } from 'svelte'
     import { MediaQuery } from 'svelte/reactivity'
     import {
@@ -256,9 +255,11 @@
     const paneLayout = new MediaQuery('(min-width: 64rem)')
     const boardAvailable = untrack(() => !!session.mapView.boardAreas)
     const boardMode = $derived(boardAvailable && !paneLayout.current)
+    let orderChipsShown = $state(false)
     let orderOverflowing = $state(false)
     let orderFirstVisible = $state(-1)
     let orderLastVisible = $state(-1)
+    const orderWindowShown = $derived(orderChipsShown && orderOverflowing)
     const boardAreas = $derived(session.mapView.boardAreas)
     const boardExtents = $derived(
         [boardAreas?.market, boardAreas?.depot].filter((area) => area !== undefined)
@@ -549,6 +550,9 @@
         headerState.activePlayerIds.length === 1 ? headerState.activePlayerIds[0] : undefined
     )
     const operating = $derived(gameState.stockRound.completed && !!gameState.operatingSet)
+    const operatedCompanyIds = $derived(
+        operating ? (gameState.operatingSet?.completedCompanyIds ?? []) : []
+    )
     const operatingCompanyId = $derived(
         operating && !gameState.result ? nextOperatingCompany(gameState) : undefined
     )
@@ -919,58 +923,50 @@
                         {#if operating && !gameState.result && companyOrder.length}
                             <div class="operating-order-footer">
                                 <div class="order-display">
-                                    {#if orderOverflowing}<CompanyOrderOverview
+                                    <button
+                                        class="order-overview-toggle"
+                                        aria-label="Operating order chips"
+                                        aria-expanded={orderChipsShown}
+                                        onclick={() => (orderChipsShown = !orderChipsShown)}
+                                    >
+                                        <CompanyOrderOverview
                                             companies={companyOrder}
                                             appearances={session.mapView.stations}
-                                            firstVisible={orderFirstVisible}
-                                            lastVisible={orderLastVisible}
-                                        />{/if}
-                                    <CompanyOrderToggle
-                                        showDetails={session.preferences.values
-                                            .operatingOrderDisplay === 'details'}
-                                        onDisplayChange={(details) =>
-                                            session.preferences.set(
-                                                {
-                                                    operatingOrderDisplay: details
-                                                        ? 'details'
-                                                        : 'tokens'
-                                                },
-                                                'family'
-                                            )}
-                                    />
-                                </div>
-                                <CompanyOrder
-                                    overview={false}
-                                    bind:overflowing={orderOverflowing}
-                                    bind:firstVisible={orderFirstVisible}
-                                    bind:lastVisible={orderLastVisible}
-                                    {money}
-                                    showDetails={session.preferences.values
-                                        .operatingOrderDisplay === 'details'}
-                                    companies={companyOrder}
-                                    {gameState}
-                                    trainDepot={session.trainDepot}
-                                    {trainColors}
-                                    requiresTrain={(companyId) =>
-                                        session.companyRequiresTrain(companyId)}
-                                    appearances={session.mapView.stations}
-                                    completedCompanyIds={operating
-                                        ? gameState.operatingSet?.completedCompanyIds
-                                        : []}
-                                    currentCompanyId={operatingCompanyId}
-                                >
-                                    {#snippet companyDetails(company)}
-                                        <CompanyDetails
-                                            pricePresentation={companyPricePresentation}
-                                            onPreviewMap={previewHistoryMap}
-                                            {trainColors}
-                                            {session}
-                                            {company}
-                                            {poolName}
-                                            {privateOperationDescription}
+                                            firstVisible={orderWindowShown ? orderFirstVisible : -1}
+                                            lastVisible={orderWindowShown ? orderLastVisible : -1}
+                                            completedCompanyIds={operatedCompanyIds}
                                         />
-                                    {/snippet}
-                                </CompanyOrder>
+                                    </button>
+                                </div>
+                                {#if orderChipsShown}<CompanyOrder
+                                        overview={false}
+                                        bind:overflowing={orderOverflowing}
+                                        bind:firstVisible={orderFirstVisible}
+                                        bind:lastVisible={orderLastVisible}
+                                        {money}
+                                        showDetails
+                                        companies={companyOrder}
+                                        {gameState}
+                                        trainDepot={session.trainDepot}
+                                        {trainColors}
+                                        requiresTrain={(companyId) =>
+                                            session.companyRequiresTrain(companyId)}
+                                        appearances={session.mapView.stations}
+                                        completedCompanyIds={operatedCompanyIds}
+                                        currentCompanyId={operatingCompanyId}
+                                    >
+                                        {#snippet companyDetails(company)}
+                                            <CompanyDetails
+                                                pricePresentation={companyPricePresentation}
+                                                onPreviewMap={previewHistoryMap}
+                                                {trainColors}
+                                                {session}
+                                                {company}
+                                                {poolName}
+                                                {privateOperationDescription}
+                                            />
+                                        {/snippet}
+                                    </CompanyOrder>{/if}
                             </div>
                         {/if}
                     {/snippet}
@@ -1367,16 +1363,20 @@
         color: var(--rail-muted, #887969);
     }
     .order-display {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-        align-items: center;
+        display: flex;
+        justify-content: center;
+        padding-top: 6px;
     }
-    .order-display > :global(*) {
-        grid-column: 2;
+    .order-overview-toggle {
+        padding: 0;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        cursor: pointer;
     }
-    .order-display > :global(:last-child) {
-        grid-column: 3;
-        justify-self: end;
+    .order-overview-toggle:focus-visible {
+        outline: 2px solid var(--rail-focus, #796047);
+        outline-offset: 1px;
     }
     .railway-table {
         --workspace-text: var(--rail-text, #443c34);

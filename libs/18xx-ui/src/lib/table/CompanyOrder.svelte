@@ -90,6 +90,12 @@
             }
         }
     }
+    function scrollCurrentCompanyToStart(area: HTMLOListElement) {
+        const current = [...area.children].find(
+            (child) => child instanceof HTMLElement && child.dataset.companyId === currentCompanyId
+        )
+        if (current instanceof HTMLElement) area.scrollLeft = current.offsetLeft - area.offsetLeft
+    }
     const detailsId = $props.id()
     let expandedCompanyId = $state<string>()
     const expandedCompany = $derived(companies.find((company) => company.id === expandedCompanyId))
@@ -123,7 +129,7 @@
             <CompanyOrderOverview {companies} {appearances} {firstVisible} {lastVisible} />
         </div>
     {/if}
-    <ol use:trackVisibleCompanies>
+    <ol use:trackVisibleCompanies use:scrollCurrentCompanyToStart>
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
             {@const detailed = showDetails || currentCompanyId === company.id}

@@ -827,7 +827,7 @@ Offer-list location icons focus the Map tab using ScalingWrapper and select the 
 
 Location focus frames a wider neighborhood around the hex. Repeating the same location-icon click fits the full map; a different icon focuses its location. The local focus toggle resets when the displayed financial state changes.
 
-When operating pills overflow horizontally, a miniature token row appears beside the order label. A subtle window encloses only the fully visible pills' tokens, following scroll and resize; partially clipped pills remain outside the window. It disappears when the pills fit. The overview is decorative, mirrors canonical order, and never changes selection or game state. Measurement uses passive scroll events and ResizeObserver, coalesced with requestAnimationFrame; its short local window transition respects reduced motion.
+Operating order collapses by default to a row of 21px miniature tokens in canonical order, with no window. Companies that have already operated in the current operating round are grayscale and darkened; other tokens are at full strength. Clicking the row toggles the operating pills beneath it. Showing them scrolls the operating company's pill as far toward the start as the row allows; collapsing hides them and closes any expanded company card. While the pills are shown and overflow horizontally, a subtle window on the miniature row encloses only the fully visible pills' tokens, following scroll and resize; partially clipped pills remain outside the window and are dimmed. The window disappears when the pills fit. Showing or hiding pills is local UI state and never changes selection or game state. Measurement uses passive scroll events and ResizeObserver, coalesced with requestAnimationFrame; its short local window transition respects reduced motion.
 
 ScalingWrapper keyboard shortcuts toggle fullscreen with F and exit with Escape. F is ignored in editable fields and with command modifiers; hidden map/market views do not handle it. This is local wrapper behavior, with no host bridge contract change. Deployed UI artifacts that bundle ScalingWrapper need republishing to adopt the shortcuts; old artifacts remain compatible.
 
@@ -868,7 +868,7 @@ Current ownership cells show the shared President badge for the company's canoni
 
 Where a title has a reserved exchange pool, Exchange appears immediately before Treasury in either orientation. The owners/pools divider precedes Exchange, and its financial-summary cells are dashes. Counts come from the supplied exchange pool and follow visible state and Undo.
 
-Operating order offers Tokens only / Detailed chips icons beside its heading, separated by a slash. Detailed chips remain the default. Tokens-only retains company order, completion status and the same click-to-toggle company details. Switching style preserves the expanded card; overflow and the miniature visible-window overview remeasure the changed chip widths. This local display preference creates no game action.
+Operating pills always render as detailed chips. The Tokens only / Detailed chips control is removed for now; the table ignores the stored display preference.
 
 Company cash follows Market, separated by the same stronger divider as the ownership pools. It is a column in Company view and a row in Player view, sourced from displayed company cash accounts. Intersections with owner statistics are not applicable and show dashes.
 
@@ -1102,7 +1102,8 @@ neither the source state nor recorded undo patches are mutated.
 
 ## Operating-order display preference
 
-The existing tokens/details control updates the session's user preference at
+The table currently offers no tokens/details control and always renders detailed
+chips; the family preference remains in the schema. When offered, the control updates the session's user preference at
 18xx family scope. CompanyOrder renders that resolved choice; it owns no saved
 preference state. The change is immediate, survives game-instance changes and
 reload, and carries between TOP and 1889 for the same account. It leaves the
@@ -1137,7 +1138,7 @@ Design review: the ownership/certificate survey includes TOP’s Union Bank, 184
 
 Stock purchase source rows label Treasury shares as Treasury. The stock action panel has no separate Back button; the existing staged-selection-aware history controls own stepping back through manual choices.
 
-The operating-order display-style toggle is right-aligned in its heading row; the overflow overview stays beside the heading.
+The miniature token row is centered above the operating pills.
 
 After an acted stock turn, the outer stock handler evaluates the fully composed legal-action set, including title extensions and private exchanges. If only FinishStockTurn remains, it appends that action as a system consequence. Pass remains explicit on an untouched turn, and ownership/certificate-limit sales cannot be bypassed. Undo restores the initiating transaction and automatic completion together. The outer placement preserves optional actions across TOP branch splits, Union Bank purchases, 1889 exchanges, and differing sell/buy sequences; no title’s purchase count is treated as a universal end-of-turn rule.
 
@@ -1161,7 +1162,7 @@ When a selected track hex has exactly one legal tile definition, its tile and in
 
 After a track lay, construction automatically finishes if the composed action handlers offer no further ordinary, private, or consent-based track placement. The system completion is part of the lay’s action cascade. The map prompt reads “Choose a space or” with a Skip button; skipped/finished construction advances through the canonical FinishTrack action.
 
-The currently operating company always displays its detailed chip. The operating-order display preference continues to control every other company and is not modified by this override. Station placement presents “Choose a city to place a station or” followed by Skip.
+The currently operating company always displays its detailed chip. Station placement presents “Choose a city to place a station or” followed by Skip.
 
 Entering station placement with no legal token/location choice automatically finishes the step. This uses full placement validation, including available tokens, costs, connectivity, reservations and the title’s placement limit.
 
@@ -1474,7 +1475,7 @@ Offered-lot auctions distinguish the auctioneer and initial value from a bidder 
 
 Tile selection, placement previews, legal tile hover, and history tile focus use a solid orange (#f07818), eight-unit outline with rounded joins.
 
-The operating-order chips are centered when they fit and scroll from the start when they overflow, without left padding. Their display toggle sits at the right edge of the map toolbar, outside the view tablist.
+The operating-order chips are centered when they fit and scroll from the start when they overflow, without left padding.
 
 Live and historical table maps allow manual zoom to twice native size. ScalingWrapper keeps its original maximum for callers that do not opt in; no host-bridge contract changes are required. TOP and 1889 UI artifacts need republication to adopt the increased map zoom.
 

@@ -72,3 +72,25 @@ test('tabs can close and reopen while Actions stays protected', async ({ page })
     await page.getByRole('button', { name: 'Tiles', exact: true }).click()
     await expect(page.getByRole('tab', { name: 'Tiles', exact: true })).toBeVisible()
 })
+
+test('operating order starts as miniature tokens and toggles its detailed chips', async ({
+    page
+}) => {
+    await page.goto('/table')
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
+    await page.getByRole('button', { name: 'Operating Order', exact: true }).click()
+    const panel = page.getByRole('tabpanel', { name: 'Operating Order', exact: true })
+    const chips = panel.getByRole('button', { name: 'Operating order chips', exact: true })
+    const companyOrder = panel.getByRole('region', { name: 'Company order', exact: true })
+    await expect(chips).toHaveAttribute('aria-expanded', 'false')
+    await expect(companyOrder).toHaveCount(0)
+    await chips.click()
+    await expect(chips).toHaveAttribute('aria-expanded', 'true')
+    await expect(companyOrder.locator('.details').first()).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Tokens only', exact: true })).toHaveCount(0)
+    await chips.click()
+    await expect(chips).toHaveAttribute('aria-expanded', 'false')
+    await expect(companyOrder).toHaveCount(0)
+})

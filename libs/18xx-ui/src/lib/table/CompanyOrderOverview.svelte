@@ -7,13 +7,19 @@
         companies,
         appearances,
         firstVisible,
-        lastVisible
+        lastVisible,
+        completedCompanyIds = []
     }: {
         companies: readonly Company[]
         appearances: Readonly<Record<string, StationAppearance>>
         firstVisible: number
         lastVisible: number
+        completedCompanyIds?: readonly string[]
     } = $props()
+    const tokenSize = 21
+    const tokenGap = 6
+    const inset = 4
+    const tokenStep = tokenSize + tokenGap
     const tokens = $derived(
         companies.map((company) => {
             const appearance = appearances[company.id]
@@ -23,21 +29,29 @@
     )
 </script>
 
-<div class="overview" aria-hidden="true">
+<div
+    class="overview"
+    aria-hidden="true"
+    style:gap={`${tokenGap}px`}
+    style:padding={`${inset}px`}
+    style:height={`${tokenSize + 2 * inset}px`}
+>
     {#if firstVisible >= 0}
         <span
             class="visible-window"
-            style:transform={`translateX(${firstVisible * 18}px)`}
-            style:width={`${(lastVisible - firstVisible + 1) * 18 + 2}px`}
+            style:transform={`translateX(${firstVisible * tokenStep}px)`}
+            style:width={`${(lastVisible - firstVisible + 1) * tokenStep - tokenGap + 2 * inset}px`}
         ></span>
     {/if}
     {#each tokens as { id, appearance }, index (id)}
         <span
             class="mini-token"
-            class:fully-visible={index >= firstVisible && index <= lastVisible}
+            class:outside-window={firstVisible >= 0 &&
+                (index < firstVisible || index > lastVisible)}
+            class:completed={completedCompanyIds.includes(id)}
             data-overview-company={id}
         >
-            <CompanyToken {appearance} size={14} />
+            <CompanyToken {appearance} size={tokenSize} />
         </span>
     {/each}
 </div>
@@ -47,17 +61,14 @@
         position: relative;
         display: flex;
         align-items: center;
-        gap: 4px;
-        padding: 3px;
-        height: 20px;
     }
     .visible-window {
         position: absolute;
         left: 0;
         top: 0;
-        height: 20px;
+        height: 100%;
         border: 1px solid var(--rail-border, #b8a38b);
-        border-radius: 6px;
+        border-radius: 8px;
         background: var(--rail-surface-raised, #f5eee4);
         transition:
             transform 100ms ease-out,
@@ -67,10 +78,12 @@
     .mini-token {
         position: relative;
         display: flex;
+    }
+    .mini-token.outside-window {
         opacity: 0.45;
     }
-    .mini-token.fully-visible {
-        opacity: 1;
+    .mini-token.completed {
+        filter: grayscale(1) brightness(0.75);
     }
     @media (prefers-reduced-motion: reduce) {
         .visible-window {
