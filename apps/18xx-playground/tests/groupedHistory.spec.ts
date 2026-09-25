@@ -12,7 +12,7 @@ test('compact stock rows and operating groups retain details and action navigati
     })
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const stockRound = page.getByRole('list', { name: 'SR 6 actions', exact: true })
-    const playerLines = stockRound.locator('.stock-action:has(.player-tinted-name)')
+    const playerLines = stockRound.locator('.stock-action:has(.stock-player-name)')
     expect(await playerLines.count()).toBeGreaterThan(1)
     const firstLine = playerLines.first()
     await expect(firstLine).toContainText(/^\s*Player \d+\s+\S/)
@@ -20,13 +20,13 @@ test('compact stock rows and operating groups retain details and action navigati
     await expect(
         page
             .getByRole('list', { name: 'Action history', exact: true })
-            .locator('.stock-action:has(.player-tinted-name)')
+            .locator('.stock-action:has(.stock-player-name)')
             .filter({ hasText: /bought 1/ })
             .first()
     ).toContainText(/Player \d+\s+bought 1/)
     await expect(firstLine.locator('.color-dot')).toHaveCount(0)
     const typography = await firstLine.evaluate((line) => {
-        const name = line.querySelector('.player-tinted-name')
+        const name = line.querySelector('.stock-player-name')
         const description = name?.nextElementSibling
         return {
             nameSize: name && getComputedStyle(name).fontSize,
@@ -43,7 +43,7 @@ test('compact stock rows and operating groups retain details and action navigati
     expect(typography.nameBackground).not.toBe('rgba(0, 0, 0, 0)')
     expect(typography.lineBackground).toBe('rgba(0, 0, 0, 0)')
     await expect(stockRound.locator('.stock-action strong')).toHaveCount(0)
-    const passes = stockRound.locator('.passes .stock-action:has(.player-tinted-name)')
+    const passes = stockRound.locator('.passes .stock-action:has(.stock-player-name)')
     expect(await passes.count()).toBeGreaterThan(0)
     await expect(passes.first()).toHaveText(/^Player \d+ passed$/)
     await expect(passes.first().locator('.color-dot')).toHaveCount(0)
@@ -54,7 +54,7 @@ test('compact stock rows and operating groups retain details and action navigati
         .first()
     await expect(flotation).toContainText('floated')
     await expect(flotation).not.toContainText(/Player \d/)
-    await expect(flotation.locator('.player-tinted-name')).toHaveCount(0)
+    await expect(flotation.locator('.stock-player-name')).toHaveCount(0)
     await expect(
         page
             .getByRole('list', { name: 'Action history', exact: true })

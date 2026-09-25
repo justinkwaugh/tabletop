@@ -169,6 +169,7 @@
                     {#if action.playerId}<PlayerName
                             playerId={action.playerId}
                             backgroundOpacity={0.45}
+                            additionalClasses="stock-player-name"
                         />{' '}{/if}passed
                 </div>{/each}
         </div>
@@ -194,6 +195,7 @@
                     {#if row.stockPlayerId}<PlayerName
                             playerId={row.stockPlayerId}
                             backgroundOpacity={0.45}
+                            additionalClasses="stock-player-name"
                         />{' '}{/if}
                     <span
                         >{row.stockPlayerId
