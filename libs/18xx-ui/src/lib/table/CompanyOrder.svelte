@@ -51,18 +51,23 @@
         firstVisible?: number
         lastVisible?: number
     } = $props()
+    function companyStart(area: HTMLElement, company: HTMLElement) {
+        return company.offsetLeft - area.offsetLeft
+    }
+    function fullyVisible(area: HTMLElement, company: HTMLElement) {
+        const start = companyStart(area, company)
+        return (
+            start >= area.scrollLeft - 0.5 &&
+            start + company.offsetWidth <= area.scrollLeft + area.clientWidth + 0.5
+        )
+    }
     function trackVisibleCompanies(area: HTMLOListElement) {
         let frame: number | undefined
         function measure() {
             frame = undefined
             overflowing = area.scrollWidth > area.clientWidth + 1
             const visible = [...area.children].flatMap((child, index) =>
-                child instanceof HTMLElement &&
-                child.offsetLeft - area.offsetLeft >= area.scrollLeft - 0.5 &&
-                child.offsetLeft - area.offsetLeft + child.offsetWidth <=
-                    area.scrollLeft + area.clientWidth + 0.5
-                    ? [index]
-                    : []
+                child instanceof HTMLElement && fullyVisible(area, child) ? [index] : []
             )
             firstVisible = visible[0] ?? -1
             lastVisible = visible.at(-1) ?? -1
@@ -90,12 +95,24 @@
             }
         }
     }
-    function scrollCurrentCompanyToStart(area: HTMLOListElement) {
-        const current = [...area.children].find(
-            (child) => child instanceof HTMLElement && child.dataset.companyId === currentCompanyId
-        )
-        if (current instanceof HTMLElement) area.scrollLeft = current.offsetLeft - area.offsetLeft
-    }
+    let orderList = $state<HTMLOListElement>()
+    let currentCompanyRevealed = false
+    $effect(() => {
+        const area = orderList
+        const current =
+            area &&
+            [...area.children].find(
+                (child) =>
+                    child instanceof HTMLElement && child.dataset.companyId === currentCompanyId
+            )
+        if (!area || !(current instanceof HTMLElement)) return
+        if (currentCompanyRevealed && fullyVisible(area, current)) return
+        area.scrollTo({
+            left: companyStart(area, current) - parseFloat(getComputedStyle(area).paddingLeft),
+            behavior: currentCompanyRevealed && !prefersReducedMotion.current ? 'smooth' : 'instant'
+        })
+        currentCompanyRevealed = true
+    })
     const detailsId = $props.id()
     let expandedCompanyId = $state<string>()
     const expandedCompany = $derived(companies.find((company) => company.id === expandedCompanyId))
@@ -129,7 +146,7 @@
             <CompanyOrderOverview {companies} {appearances} {firstVisible} {lastVisible} />
         </div>
     {/if}
-    <ol use:trackVisibleCompanies use:scrollCurrentCompanyToStart>
+    <ol bind:this={orderList} use:trackVisibleCompanies>
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
             {@const detailed = showDetails || currentCompanyId === company.id}
@@ -145,6 +162,7 @@
                     id={`${detailsId}-${company.id}`}
                     class="pill"
                     class:token-only={!detailed}
+                    class:current={currentCompanyId === company.id}
                     aria-label={company.name}
                     aria-expanded={expandedCompanyId === company.id}
                     aria-controls={`${detailsId}-panel`}
@@ -152,7 +170,7 @@
                         (expandedCompanyId =
                             expandedCompanyId === company.id ? undefined : company.id)}
                 >
-                    <CompanyToken {appearance} size={38} />
+                    <span class="pill-token"><CompanyToken {appearance} size={38} /></span>
                     {#if detailed}<div class="details">
                             <div class="summary">
                                 <span class="cash"
@@ -228,7 +246,7 @@
         scrollbar-width: thin;
         scrollbar-color: var(--rail-muted, #9b8874) transparent;
         list-style: none;
-        padding: 0 2px 0 0;
+        padding: 4px 8px 10px 4px;
         margin: 0;
     }
     li {
@@ -252,6 +270,21 @@
     .pill:hover {
         background: var(--rail-surface, #fffaf3);
         border-color: var(--rail-border, #ae9983);
+    }
+    .pill.current {
+        zoom: 1.1;
+        box-shadow: 0 4px 10px rgb(0 0 0 / 0.6);
+    }
+    .pill-token {
+        display: flex;
+        border-radius: 50%;
+    }
+    .completed .pill-token {
+        filter: grayscale(1) brightness(0.75);
+    }
+    .pill.current .pill-token {
+        outline: 2px solid var(--rail-text, #5e4937);
+        outline-offset: 1px;
     }
     .pill.token-only {
         padding: 0;

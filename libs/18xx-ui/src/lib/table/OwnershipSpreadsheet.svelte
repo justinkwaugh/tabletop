@@ -415,7 +415,6 @@
     matrix = true,
     sold = false,
     operating = false,
-    tint: string | undefined = undefined,
     poolAlt = false
 )}
     {@const purchase = shares > 0 ? purchaseForCell(companyId, ownerId) : undefined}
@@ -428,9 +427,7 @@
         class:pool-alt={poolAlt}
         class:empty={shares === 0}
         class:pool-start={poolStart}
-        class:player-tinted-cell={!!tint}
         class:tradable={!!purchase || saleChoices.length > 0}
-        style:--player-color={tint}
     >
         {#if purchase}
             <button
@@ -620,7 +617,6 @@
                                                 !(owners[index].id in poolColumnLabels),
                                                 soldThisRound(owners[index].id, row.company.id),
                                                 false,
-                                                ownerTintColor(owners[index].id),
                                                 poolAlternate(owners[index].id)
                                             )}{/each}
                                         {#if pricePresentation.showInSpreadsheet}<td
@@ -697,7 +693,6 @@
                                                 !(owner.id in poolColumnLabels),
                                                 soldThisRound(owner.id, row.company.id),
                                                 row.company.id === operatingCompanyId,
-                                                ownerTintColor(owner.id),
                                                 poolAlternate(owner.id)
                                             )}{/each}
                                         {#each statisticLabels as _, statIndex (statIndex)}
@@ -1061,7 +1056,6 @@
     td:has(.last-run) {
         --cell-fill: var(--sheet-financial);
     }
-    td.player-tinted-cell,
     td.player-financial {
         --cell-fill: color-mix(in srgb, var(--player-color) 15%, var(--sheet-cell));
     }

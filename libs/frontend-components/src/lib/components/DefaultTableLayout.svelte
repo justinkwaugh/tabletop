@@ -55,7 +55,8 @@
                 </div>{/if}
                 <div
                     class:ms-2={showSidebar}
-                    class="pe-2 sm:pe-0 shrink grow sm:min-w-[320px] min-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass} flex flex-col overflow-auto"
+                    class="game-column shrink grow sm:min-w-[320px] min-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass} flex flex-col overflow-auto"
+                    style:--table-inline-padding={`${horizontalPadding}px`}
                 >
                     {#if gameContent}
                         {@render gameContent()}
@@ -74,3 +75,11 @@
         </div>
     </div>
 </div>
+
+<style>
+    @media (width < 40rem) {
+        .game-column {
+            padding-inline-end: var(--table-inline-padding);
+        }
+    }
+</style>

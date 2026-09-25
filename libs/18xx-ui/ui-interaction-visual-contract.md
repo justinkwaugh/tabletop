@@ -827,7 +827,7 @@ Offer-list location icons focus the Map tab using ScalingWrapper and select the 
 
 Location focus frames a wider neighborhood around the hex. Repeating the same location-icon click fits the full map; a different icon focuses its location. The local focus toggle resets when the displayed financial state changes.
 
-Operating order collapses by default to a row of 21px miniature tokens in canonical order, with no window. Companies that have already operated in the current operating round are grayscale and darkened; other tokens are at full strength. Clicking the row toggles the operating pills beneath it. Showing them scrolls the operating company's pill as far toward the start as the row allows; collapsing hides them and closes any expanded company card. While the pills are shown and overflow horizontally, a subtle window on the miniature row encloses only the fully visible pills' tokens, following scroll and resize; partially clipped pills remain outside the window and are dimmed. The window disappears when the pills fit. Showing or hiding pills is local UI state and never changes selection or game state. Measurement uses passive scroll events and ResizeObserver, coalesced with requestAnimationFrame; its short local window transition respects reduced motion.
+Operating order collapses by default to a row of 21px miniature tokens in canonical order, with no window. Companies that have already operated in the current operating round are grayscale and darkened, both as miniature tokens and as the token on their dimmed pill; other tokens are at full strength. The operating company is marked in both rows: its miniature token has a light ring in the table text colour, and its pill is 10% larger with a drop shadow and the same ring around the pill's token. Clicking the row toggles the operating pills beneath it. Showing them scrolls the operating company's pill as far toward the start as the row allows. While they are shown, a change of operating company (including history navigation) that leaves its pill not fully visible scrolls it to the start the same way, smoothly unless reduced motion is preferred; collapsing hides them and closes any expanded company card. While the pills are shown and overflow horizontally, a subtle window on the miniature row encloses only the fully visible pills' tokens, following scroll and resize; partially clipped pills remain outside the window and are dimmed. The window disappears when the pills fit. Showing or hiding pills is local UI state and never changes selection or game state. Measurement uses passive scroll events and ResizeObserver, coalesced with requestAnimationFrame; its short local window transition respects reduced motion.
 
 ScalingWrapper keyboard shortcuts toggle fullscreen with F and exit with Escape. F is ignored in editable fields and with command modifiers; hidden map/market views do not handle it. This is local wrapper behavior, with no host bridge contract change. Deployed UI artifacts that bundle ScalingWrapper need republishing to adopt the shortcuts; old artifacts remain compatible.
 
@@ -1475,7 +1475,7 @@ Offered-lot auctions distinguish the auctioneer and initial value from a bidder 
 
 Tile selection, placement previews, legal tile hover, and history tile focus use a solid orange (#f07818), eight-unit outline with rounded joins.
 
-The operating-order chips are centered when they fit and scroll from the start when they overflow, without left padding.
+The operating-order chips are centered when they fit and scroll from the start when they overflow, inset by enough padding to show the operating chip's shadow and token ring.
 
 Live and historical table maps allow manual zoom to twice native size. ScalingWrapper keeps its original maximum for callers that do not opt in; no host-bridge contract changes are required. TOP and 1889 UI artifacts need republication to adopt the increased map zoom.
 
@@ -1577,6 +1577,12 @@ Artifacts, with no Site Frontend publication, Logic, or host API change.
 At every viewport width, Players/History/Chat remain in the existing left sidebar,
 with history controls and phase/depot/title information above them. Player cards
 remain stacked vertically. P/H/C select those sidebar tabs. The action area belongs to the tab workspace.
+
+Below 1024px the view tabs stack beneath the action area and keep at least half the
+viewport height, so the board stays usable when the action area or an expanded
+operating-order card grows; the game column scrolls to reach it instead of
+squeezing the board. On phone widths (below 640px) the game column has no
+horizontal padding and reaches the screen edge.
 
 ### Splittable table workspace
 
@@ -1736,8 +1742,9 @@ the neutral surface.
 
 Spreadsheet player-name header cells use the shared 15% player-color tint: row
 and column headers in ownership views and player-group headers in income history.
-In ownership views that tint runs across the player's whole row or column,
-holdings and financials alike, and a player header carries a 3px bar of the
+In ownership views that tint runs across the player's financial cells; share
+holdings where company rows or columns cross the player's stay neutral like other
+holdings. A player header carries a 3px bar of the
 player's color on its leading edge instead of a dot. A controlled portfolio such
 as Union Bank takes its controller's tint without the bar. Income history tints
 each player's data columns; its metric header row stays neutral.

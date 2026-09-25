@@ -82,6 +82,7 @@
         letter-spacing: 0.04em;
     }
     select {
+        min-width: 0;
         background: transparent;
         color: inherit;
         border: 0;

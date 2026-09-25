@@ -253,6 +253,7 @@
     }
     const displayedScene = $derived(session.map.displayedScene)
     const paneLayout = new MediaQuery('(min-width: 64rem)')
+    const phoneLayout = new MediaQuery('(width < 40rem)')
     const boardAvailable = untrack(() => !!session.mapView.boardAreas)
     const boardMode = $derived(boardAvailable && !paneLayout.current)
     let orderChipsShown = $state(false)
@@ -864,7 +865,7 @@
         <div class="table-layout" style:--app-navbar-height="var(--table-header-offset)">
             <DefaultTableLayout
                 topPadding={0}
-                horizontalPadding={paneLayout.current ? 0 : 8}
+                horizontalPadding={paneLayout.current || phoneLayout.current ? 0 : 8}
                 showSidebar={!paneLayout.current}
             >
                 {#snippet mobileControlsContent()}
@@ -935,6 +936,7 @@
                                             firstVisible={orderWindowShown ? orderFirstVisible : -1}
                                             lastVisible={orderWindowShown ? orderLastVisible : -1}
                                             completedCompanyIds={operatedCompanyIds}
+                                            currentCompanyId={operatingCompanyId}
                                         />
                                     </button>
                                 </div>
@@ -1188,23 +1190,25 @@
                         </div>
                     {:else}
                         <div class="original-actions">{@render actionContent()}</div>
-                        <TabWorkspace
-                            tabs={workspaceTabs
-                                .filter(
-                                    (tab) =>
-                                        tab.id !== 'Actions' &&
-                                        !(boardAvailable && tab.id === 'Market')
-                                )
-                                .map((tab) =>
-                                    boardAvailable && tab.id === 'Map'
-                                        ? { ...tab, label: 'Board' }
-                                        : tab
-                                )}
-                            bind:selected={selectedView}
-                            label="Table views"
-                            splittable={false}
-                            {children}
-                        />
+                        <div class="stacked-workspace">
+                            <TabWorkspace
+                                tabs={workspaceTabs
+                                    .filter(
+                                        (tab) =>
+                                            tab.id !== 'Actions' &&
+                                            !(boardAvailable && tab.id === 'Market')
+                                    )
+                                    .map((tab) =>
+                                        boardAvailable && tab.id === 'Map'
+                                            ? { ...tab, label: 'Board' }
+                                            : tab
+                                    )}
+                                bind:selected={selectedView}
+                                label="Table views"
+                                splittable={false}
+                                {children}
+                            />
+                        </div>
                     {/if}
                 {/snippet}
             </DefaultTableLayout>
@@ -1287,6 +1291,12 @@
         flex-direction: column;
         flex: 1;
         min-height: 0;
+    }
+    .stacked-workspace {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 50dvh;
     }
     .workspace-heading {
         padding-inline: 8px;

@@ -8,13 +8,15 @@
         appearances,
         firstVisible,
         lastVisible,
-        completedCompanyIds = []
+        completedCompanyIds = [],
+        currentCompanyId
     }: {
         companies: readonly Company[]
         appearances: Readonly<Record<string, StationAppearance>>
         firstVisible: number
         lastVisible: number
         completedCompanyIds?: readonly string[]
+        currentCompanyId?: string
     } = $props()
     const tokenSize = 21
     const tokenGap = 6
@@ -49,6 +51,7 @@
             class:outside-window={firstVisible >= 0 &&
                 (index < firstVisible || index > lastVisible)}
             class:completed={completedCompanyIds.includes(id)}
+            class:current={currentCompanyId === id}
             data-overview-company={id}
         >
             <CompanyToken {appearance} size={tokenSize} />
@@ -81,6 +84,11 @@
     }
     .mini-token.outside-window {
         opacity: 0.45;
+    }
+    .mini-token.current {
+        border-radius: 50%;
+        outline: 2px solid var(--rail-text, #5e4937);
+        outline-offset: 2px;
     }
     .mini-token.completed {
         filter: grayscale(1) brightness(0.75);

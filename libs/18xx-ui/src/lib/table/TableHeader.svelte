@@ -260,6 +260,8 @@
         font-weight: 650;
     }
     strong {
+        position: relative;
+        overflow-x: clip;
         white-space: nowrap;
         letter-spacing: 0.06em;
         text-transform: uppercase;
