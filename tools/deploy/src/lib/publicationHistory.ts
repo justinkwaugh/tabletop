@@ -1,6 +1,7 @@
 import { fetchFrontendServingVersion } from './frontendPublish.js'
 import { fetchServingVersions, findGameEntry } from './gamePublish.js'
-import { gcsPathExists } from './gcs.js'
+import { gcsPathExists, readGcsText } from './gcs.js'
+import { isObject } from './json.js'
 import {
     assertDeployConfig,
     publishManifest,
@@ -89,6 +90,26 @@ const assertArtifactsExist = async (artifacts: PublishedArtifact[]) => {
     }
 }
 
+export const assertGameUiPairing = (
+    gameId: string,
+    target: { logicVersion: string; uiVersion: string },
+    catalog: unknown
+): void => {
+    if (
+        !isObject(catalog) ||
+        catalog.id !== gameId ||
+        !isObject(catalog.metadata) ||
+        typeof catalog.metadata.version !== 'string'
+    ) {
+        throw new Error(`Cannot verify embedded logic for ${gameId} UI ${target.uiVersion}`)
+    }
+    if (catalog.metadata.version !== target.logicVersion) {
+        throw new Error(
+            `${gameId} UI ${target.uiVersion} embeds logic ${catalog.metadata.version}, not selected logic ${target.logicVersion}`
+        )
+    }
+}
+
 const LOGIC_ROLLBACK_CAUTION =
     'selecting older logic: games whose state was written by newer logic need explicit ' +
     'reverse compatibility (docs/contexts/game-distribution/CONTEXT.md, Logic Rollback)'
@@ -117,6 +138,16 @@ const applyGamePublication = async (
         existingArtifact('ui', target.uiVersion, `${base}/ui/${target.uiVersion}`, 'index.js')
     ]
     await assertArtifactsExist(artifacts)
+    const catalogUrl = `${base}/ui/${target.uiVersion}/catalog.json`
+    let catalog: unknown
+    try {
+        catalog = JSON.parse(await readGcsText(catalogUrl))
+    } catch {
+        throw new Error(
+            `Cannot verify embedded logic: unable to read ${catalogUrl}; publication unchanged`
+        )
+    }
+    assertGameUiPairing(game.gameId, target, catalog)
     if (target.logicVersion !== entry.logicVersion) {
         context.log(`${game.gameId} ${LOGIC_ROLLBACK_CAUTION}`)
     }

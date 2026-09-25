@@ -1,8 +1,6 @@
+import { isObject } from './json.js'
 import fs from 'node:fs/promises'
 import { DeployConfig } from './types.js'
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null
 
 const coerceDeployConfig = (config: unknown): DeployConfig => {
     if (!isObject(config)) return {}

@@ -102,8 +102,11 @@ memory limit; this bounds version accumulation, not peak memory for two heaps.
 
 Failed startup leaves the existing child serving and retries after 30 seconds.
 Startup is bounded to 120 seconds. A serving-child crash also triggers replacement;
-requests receive 503 while no child is ready, and a broken upstream request receives
-502. Initial startup failure exits the container instead of exposing an empty app.
+new requests wait in a recovery queue (up to 500 waiters and 120 seconds per
+request). Client cancellation removes a queued request. Only an exhausted queue,
+expired wait or shutdown returns a generic service-unavailable response; internal
+startup status is never returned as a user-facing page. A broken upstream request
+receives 502 without replaying it. Initial startup failure exits the container instead of exposing an empty app.
 Container SIGTERM closes ingress and all children with an eight-second deadline,
 inside Cloud Run's ten-second shutdown window. Children also exit if parent IPC
 is disconnected.
@@ -118,6 +121,29 @@ during replacement. No Cloud Run resource or billing setting is changed here.
 A game-only worker would require moving all version-owned imports, including
 schemas and route registration, into its isolate. The complete-backend child
 avoids introducing a separate message protocol for game actions and projections.
+
+## Static serving incident and readiness
+
+The first 1.6.0 rollout exposed an error in handler tracking: wrapping every
+handler with `async` turned a synchronous callback-based static-file handler's
+`undefined` return into a resolved Promise. Fastify completed the response before
+static-file headers arrived, then `ERR_HTTP_HEADERS_SENT` terminated the child.
+The fix preserves the handler's original return value and observes only existing
+thenables. A real Fastify static-file child regression checks the body and cache
+headers before and after handoff. The isolated failing reproduction returned an
+empty body or crashed; removing the wrapper restored the asset response.
+
+A dedicated HTTP/1 health listener on port 8081 now checks that ingress is listening
+and that the active child answers `/__health/ready` within one second. It fails
+before startup, during child absence, for an unresponsive child, and at shutdown.
+The public ingress also supports that path for direct revision checks. Cloud Run
+startup, readiness and liveness probes use this endpoint; a parent that remains
+alive without a working child no longer satisfies readiness. A normal overlapping
+replacement stays ready through the old child until the new child takes over.
+
+See [Cloud Run health checks](https://docs.cloud.google.com/run/docs/configuring/healthchecks).
+Probe-based traffic removal is not instantaneous; the bounded recovery queue
+covers requests arriving between child loss and Cloud Run observing failed readiness.
 
 ## Handoff verification
 

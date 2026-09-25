@@ -1,7 +1,8 @@
 import * as http from 'node:http'
 import * as http2 from 'node:http2'
 import type { Socket } from 'node:net'
-import type { BackendTarget } from './backendSupervisor.js'
+import type { BackendSupervisor } from './backendSupervisor.js'
+import { probeBackend } from './backendHealth.js'
 
 function forwardingHeaders(headers: http.IncomingHttpHeaders): http.OutgoingHttpHeaders {
     const excluded = new Set([
@@ -23,22 +24,40 @@ function forwardingHeaders(headers: http.IncomingHttpHeaders): http.OutgoingHttp
     )
 }
 
-export function createBackendGateway(
-    http2Enabled: boolean,
-    acquire: () => BackendTarget | undefined
-) {
+export function createBackendGateway(http2Enabled: boolean, supervisor: BackendSupervisor) {
     const agent = new http.Agent({ keepAlive: true })
     const sockets = new Set<Socket>()
     const sessions = new Set<http2.ServerHttp2Session>()
-    const forward = (
+    const forward = async (
         request: http.IncomingMessage | http2.Http2ServerRequest,
         response: http.ServerResponse | http2.Http2ServerResponse
     ) => {
-        const target = acquire()
-        if (!target) {
-            response.statusCode = 503
-            response.setHeader('retry-after', '1')
-            response.end('Backend is starting')
+        if (request.url === '/__health/ready') {
+            response.statusCode = (await probeBackend(supervisor)) ? 200 : 503
+            response.setHeader('cache-control', 'no-store')
+            response.end()
+            return
+        }
+        const cancellation = new AbortController()
+        const cancel = () => cancellation.abort()
+        response.once('close', cancel)
+        let target
+        try {
+            target = await supervisor.acquireWhenReady(
+                AbortSignal.any([cancellation.signal, AbortSignal.timeout(120_000)])
+            )
+        } catch {
+            if (!response.destroyed) {
+                response.statusCode = 503
+                response.setHeader('retry-after', '1')
+                response.end('Service temporarily unavailable')
+            }
+            return
+        } finally {
+            response.removeListener('close', cancel)
+        }
+        if (response.destroyed) {
+            target.release()
             return
         }
         const headers = forwardingHeaders(request.headers)

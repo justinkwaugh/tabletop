@@ -8,6 +8,7 @@ import * as http from 'node:http'
 import { connect } from 'node:net'
 import { BackendSupervisor } from './backendSupervisor.js'
 import { createBackendGateway } from './backendGateway.js'
+import { createBackendHealthServer } from './backendHealth.js'
 
 describe('supervised backend handoff', () => {
     let directory: string
@@ -15,14 +16,20 @@ describe('supervised backend handoff', () => {
     let supervisor: BackendSupervisor
     let gateway: ReturnType<typeof createBackendGateway>
     let origin: string
+    let health: http.Server | undefined
+    let healthOrigin: string
 
     beforeEach(async () => {
+        health = undefined
         directory = await mkdtemp(join(tmpdir(), 'backend-handoff-'))
         config = join(directory, 'config.json')
         await writeFile(config, '{}')
+        await writeFile(join(directory, 'asset.js'), 'console.log("loaded")')
         vi.stubEnv('BACKEND_FIXTURE_CONFIG', config)
     })
     afterEach(async () => {
+        health?.close()
+        health?.closeAllConnections()
         await Promise.all([gateway?.close(), supervisor?.close()])
         vi.unstubAllEnvs()
         await rm(directory, { recursive: true, force: true })
@@ -35,12 +42,19 @@ describe('supervised backend handoff', () => {
             retryDelayMs: 100
         })
         await supervisor.start()
-        gateway = createBackendGateway(http2Enabled, () => supervisor.acquire())
+        gateway = createBackendGateway(http2Enabled, supervisor)
         gateway.server.listen(0, '127.0.0.1')
         await once(gateway.server, 'listening')
         const address = gateway.server.address()
         if (!address || typeof address === 'string') throw new Error('No listener')
         origin = `http://127.0.0.1:${address.port}`
+        health = createBackendHealthServer(supervisor, () => gateway.server.listening)
+        health.listen(0, '127.0.0.1')
+        await once(health, 'listening')
+        const healthAddress = health.address()
+        if (!healthAddress || typeof healthAddress === 'string')
+            throw new Error('No health listener')
+        healthOrigin = `http://127.0.0.1:${healthAddress.port}`
     }
     async function get(path = '/') {
         const response = await fetch(origin + path)
@@ -56,6 +70,72 @@ describe('supervised backend handoff', () => {
     async function expectExited(pid: number) {
         await vi.waitFor(() => expect(() => process.kill(pid, 0)).toThrow(), { timeout: 3_000 })
     }
+
+    it('fails readiness and holds requests during child recovery, then restores readiness', async () => {
+        await start()
+        const old = await get()
+        expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(200)
+        await writeFile(config, JSON.stringify({ startupDelay: 400 }))
+        expect((await fetch(origin + '/crash')).status).toBe(502)
+        expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(503)
+        expect((await fetch(origin + '/__health/ready')).status).toBe(503)
+        let finished = false
+        const waiting = get().then((result) => {
+            finished = true
+            return result
+        })
+        await new Promise((resolve) => setTimeout(resolve, 30))
+        expect(finished).toBe(false)
+        expect((await waiting).pid).not.toBe(old.pid)
+        expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(200)
+        await supervisor.close()
+        expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(503)
+    })
+
+    it('fails readiness when the child is alive but unresponsive', async () => {
+        await start()
+        const child = await get()
+        process.kill(child.pid, 'SIGSTOP')
+        try {
+            expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(503)
+        } finally {
+            process.kill(child.pid, 'SIGCONT')
+        }
+        expect((await fetch(healthOrigin + '/__health/ready')).status).toBe(200)
+    })
+
+    it('bounds the recovery queue and releases canceled waiters', async () => {
+        supervisor = new BackendSupervisor({
+            entry: new URL('./fixtures/backend.mjs', import.meta.url)
+        })
+        const controller = new AbortController()
+        const waiting = Array.from({ length: 500 }, () =>
+            supervisor.acquireWhenReady(controller.signal)
+        )
+        const settled = Promise.allSettled(waiting)
+        await expect(supervisor.acquireWhenReady(controller.signal)).rejects.toThrow(
+            'queue is full'
+        )
+        controller.abort()
+        expect((await settled).every((result) => result.status === 'rejected')).toBe(true)
+        const next = supervisor.acquireWhenReady(AbortSignal.timeout(10))
+        await expect(next).rejects.toThrow('canceled')
+    })
+
+    it('serves static assets without prematurely sending the response or crashing the child', async () => {
+        await start(false, 2_000, 'fastifyBackend.mjs')
+        const old = await get()
+        const response = await fetch(origin + '/assets/asset.js')
+        expect(response.status).toBe(200)
+        expect(await response.text()).toBe('console.log("loaded")')
+        expect(response.headers.get('cache-control')).toBe('public,max-age=300')
+        expect((await get()).pid).toBe(old.pid)
+        await get('/reload')
+        await vi.waitFor(async () => expect((await get()).pid).not.toBe(old.pid))
+        expect(await (await fetch(origin + '/assets/asset.js')).text()).toBe(
+            'console.log("loaded")'
+        )
+    })
 
     it('rejects a missing Host header without losing the public listener', async () => {
         await start()

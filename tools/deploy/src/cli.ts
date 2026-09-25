@@ -9,7 +9,6 @@ import {
     buildFrontendCommand,
     buildGameLogicCommand,
     buildGameUiCommand,
-    rollbackBackendCommand,
     runCommand
 } from './lib/commands.js'
 import {
@@ -18,6 +17,7 @@ import {
     releaseBackend,
     type BackendService
 } from './lib/backendPublish.js'
+import { listBackendHistory, switchBackend } from './lib/backendHistory.js'
 import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
 import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.js'
 import { listHistory, rollback, switchFrontend, switchGame } from './lib/publicationHistory.js'
@@ -39,12 +39,13 @@ const usage = `tabletop-deploy <command>
 
 Commands:
   status                       Print the manifest the bucket currently serves
-  list (--game=<id> | --frontend)
+  list (--game=<id> | --frontend | --backend)
                                Print the publication history, newest first, marking the current
-  rollback (--game=<id> | --frontend)
-                               Select the publication that served before the current one.
-                               Only rewrites the manifest; the artifacts must still exist.
+  rollback (--game=<id> | --frontend | --backend)
+                               Select the previous publication (or earlier ready backend revision).
+                               Frontend/games update the manifest; backend switches traffic.
   switch --game=<id> --ui-version=<v> [--logic-version=<v>]
+  switch --backend --version=<v> [--service=backend|tasks]
   switch --frontend --version=<v>
                                Select specific published versions. Logic needs its UI too.
   preflight (--game=<id> | --frontend | --backend) [--json]
@@ -83,7 +84,7 @@ Commands:
   promote-backend [--service=backend|tasks]
                                Shift traffic to the latest revision of the backend and tasks
                                services (after a --no-traffic deploy)
-  rollback-backend <revision>  Shift traffic to a backend revision
+  rollback-backend [revision] [--service=backend|tasks]  Restore prior revision or select one
 
 Release tags:
   <packageId>-v<version>       Logic artifact
@@ -208,6 +209,22 @@ const main = async () => {
             return { frontend: true as const }
         if (values.frontend !== true && values.game !== undefined) return { game: values.game }
         throw new Error(`${command} takes exactly one of --game=<id> or --frontend`)
+    }
+
+    if (values.backend && ['list', 'switch', 'rollback'].includes(command)) {
+        if (values.frontend || values.game) throw new Error('Choose exactly one target')
+        const services = resolveBackendServices(values.service)
+        if (command === 'list') await listBackendHistory(context, services)
+        else {
+            if (command === 'switch' && !values.version)
+                throw new Error('switch --backend requires --version=<v>')
+            await switchBackend(
+                context,
+                services,
+                command === 'switch' ? { version: values.version } : {}
+            )
+        }
+        return
     }
 
     if (command === 'list') {
@@ -348,9 +365,10 @@ const main = async () => {
 
     if (command === 'rollback-backend') {
         const revision = positionals[1]
-        if (!revision) throw new Error('rollback-backend requires a revision name')
-        const spec = rollbackBackendCommand(repoRoot, revision, deployConfig)
-        await runAndReport(spec, () => runCommand(spec))
+        const services = resolveBackendServices(
+            values.service ?? (revision ? 'backend' : undefined)
+        )
+        await switchBackend(context, services, revision ? { revision } : {})
         return
     }
 

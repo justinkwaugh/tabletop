@@ -61,7 +61,8 @@ tasks, with traffic as revisions named `<service>-v<version>`
 with dots replaced by dashes, setting `BACKEND_VERSION`, `GIT_SHA`, and `BUILD_TIME` so the
 manifest reports what is running. A rerun that finds the revision already present reuses it. `--no-traffic` stages a revision
 without serving it, `promote-backend` shifts both services to their latest revision, tasks first, and
-`rollback-backend <revision>` shifts traffic back. No Docker is needed
+`rollback-backend` restores the earlier ready revision of both services;
+`rollback-backend <revision> --service=backend|tasks` selects a particular service revision. No Docker is needed
 locally. The image tag is immutable: a version already in Artifact Registry is refused.
 
 ### History, rollback, and switch
@@ -73,10 +74,11 @@ artifacts themselves stay in the bucket. A manifest written before history exist
 with its current publication.
 
 ```bash
-node tools/deploy/esm/cli.js list (--game=<id> | --frontend)
-node tools/deploy/esm/cli.js rollback (--game=<id> | --frontend)
+node tools/deploy/esm/cli.js list (--game=<id> | --frontend | --backend)
+node tools/deploy/esm/cli.js rollback (--game=<id> | --frontend | --backend)
 node tools/deploy/esm/cli.js switch --game=<id> --ui-version=<v> [--logic-version=<v>]
 node tools/deploy/esm/cli.js switch --frontend --version=<v>
+node tools/deploy/esm/cli.js switch --backend --version=<v> [--service=backend|tasks]
 ```
 
 `rollback` selects the publication that served before the current one. `switch` selects
@@ -84,8 +86,35 @@ specific versions; logic can only be selected together with the UI that embeds i
 the artifacts still exist in the bucket, back up and rewrite the manifest, invalidate the cache,
 and report the serving versions before and after like a deploy. Selecting older logic prints a
 caution, because games whose state was written by newer logic need explicit reverse
-compatibility. The backend uses Cloud Run revisions instead: `promote-backend` and
-`rollback-backend <revision>`.
+compatibility. A UI's `catalog.json` identifies its embedded logic through
+`metadata.version`. Multiple UI-only releases can pair with the same logic version;
+the UI published with the following logic version cannot. Both game switch and
+rollback validate this metadata before writing the manifest. Missing metadata or
+an incompatible pair leaves the publication unchanged, even if both bundles exist.
+
+Backend history comes from Cloud Run. `list --backend` marks revisions receiving
+traffic and shows readiness; `switch --backend --version=1.5.1` switches both services
+to their existing `v1-5-1` revisions. Use `--service=tasks` or `--service=backend` to
+narrow any backend history operation. `rollback --backend` (also `rollback-backend`)
+selects the most recently created ready revision older than the currently serving
+revision; newer staged revisions are not rollback targets. Cloud Run revision
+history does not prove that an older staged revision previously served traffic.
+Use an explicit version or revision when that distinction matters. Automatic
+rollback rejects split traffic or differing release histories across selected services;
+choose a version or one service explicitly in those cases. Every service's target is checked before any
+traffic changes, then each change is verified against Cloud Run traffic status.
+Switching is not atomic across services; an error after the first switch is a
+partial operation and requires inspecting the reported traffic state.
+
+Backend deployments configure HTTP startup, readiness and liveness probes on
+port 8081 at `/__health/ready`, separately from the HTTP/2 ingress. The endpoint
+requires the public listener and an answering child. Session affinity is disabled
+because it bypasses failed readiness checks. Startup allows 240 seconds, readiness
+fails after one unsuccessful two-second check, and liveness allows roughly two
+minutes for child recovery. The public `/__health/ready` endpoint also exposes the
+child check for direct revision verification. These checks require the supervised
+backend image; selecting an existing older revision retains that revision's own
+probe settings.
 
 `preflight (--game=<gameId|packageId> | --frontend | --backend) [--json]` is read-only. It reports the serving versions
 from the backend manifest, the local versions, the release baseline per artifact (the release
@@ -100,9 +129,9 @@ serving state before and after a deploy; see `.agents/skills/release/SKILL.md`.
 
 ```text
 status                       Print the manifest the bucket currently serves
-list (--game=<id> | --frontend)
+list (--game=<id> | --frontend | --backend)
                              Print the publication history, newest first
-rollback (--game=<id> | --frontend)
+rollback (--game=<id> | --frontend | --backend)
                              Select the publication that served before the current one
 switch --game=<id> --ui-version=<v> [--logic-version=<v>] | --frontend --version=<v>
                              Select specific published versions
@@ -127,7 +156,7 @@ deploy-backend [--no-traffic] [--service=backend|tasks]
                              Cloud Build the tagged image and deploy it to Cloud Run, with the same guards
 promote-backend [--service=backend|tasks]
                              Shift traffic to the latest revision after a --no-traffic deploy
-rollback-backend <revision>  Shift traffic to a backend revision
+rollback-backend [revision] [--service=backend|tasks]  Restore an earlier ready revision
 ```
 
 ## Configuration

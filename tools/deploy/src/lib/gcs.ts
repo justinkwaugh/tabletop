@@ -1,4 +1,5 @@
-import { spawn } from 'node:child_process'
+import { spawn, execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { withCloudSdkPythonEnv } from './cloudSdkPython.js'
 
 export const gcsPathExists = (target: string): Promise<boolean> =>
@@ -54,3 +55,13 @@ export const cloudRunRevisionExists = (
         child.on('error', () => resolve(false))
         child.on('close', (code) => resolve(code === 0))
     })
+
+const execFileAsync = promisify(execFile)
+
+export const readGcsText = async (url: string): Promise<string> => {
+    const { stdout } = await execFileAsync('gcloud', ['storage', 'cat', url], {
+        env: withCloudSdkPythonEnv(process.env),
+        maxBuffer: 16 * 1024 * 1024
+    })
+    return stdout
+}

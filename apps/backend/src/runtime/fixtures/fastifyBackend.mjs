@@ -1,4 +1,6 @@
 import Fastify from 'fastify'
+import Static from '@fastify/static'
+import { dirname } from 'node:path'
 import { appendFileSync } from 'node:fs'
 import { tsImport } from 'tsx/esm/api'
 
@@ -11,8 +13,18 @@ const record = (event) =>
 const server = Fastify()
 installHandlerDrain(server)
 record('started')
+await server.register(Static, {
+    root: dirname(process.env['BACKEND_FIXTURE_CONFIG']),
+    prefix: '/assets/',
+    preCompressed: true,
+    cacheControl: false,
+    setHeaders(response) {
+        response.setHeader('Cache-Control', 'public,max-age=300')
+    }
+})
 process.on('exit', () => record('exited'))
 process.on('disconnect', () => process.exit(1))
+server.get('/__health/ready', () => ({ status: 'ready' }))
 server.get('/', async () => ({ pid: process.pid }))
 server.get('/reload', async () => {
     process.send('reload')

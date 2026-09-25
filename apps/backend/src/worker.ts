@@ -14,6 +14,7 @@ const server = Fastify({
     pluginTimeout: 20_000
 })
 installHandlerDrain(server)
+server.get('/__health/ready', () => ({ status: 'ready' }))
 let closing = false
 const shutdown = async () => {
     if (closing) return

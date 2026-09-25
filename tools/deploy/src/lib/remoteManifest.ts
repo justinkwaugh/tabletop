@@ -1,9 +1,7 @@
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-import { withCloudSdkPythonEnv } from './cloudSdkPython.js'
+import { readGcsText } from './gcs.js'
 import { manifestObjectUrl } from './commands.js'
 import { parseManifest, writeManifest } from './manifest.js'
 import type {
@@ -16,15 +14,10 @@ import type {
 } from './types.js'
 import { updatePriorVersions } from './versions.js'
 
-const execFileAsync = promisify(execFile)
-
 export const fetchBucketManifest = async (config: DeployConfig): Promise<SiteManifest> => {
     const url = manifestObjectUrl(config)
     try {
-        const { stdout } = await execFileAsync('gcloud', ['storage', 'cat', url], {
-            env: withCloudSdkPythonEnv(process.env),
-            maxBuffer: 16 * 1024 * 1024
-        })
+        const stdout = await readGcsText(url)
         return parseManifest(stdout)
     } catch (error) {
         const stderr =

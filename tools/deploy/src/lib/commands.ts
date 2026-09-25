@@ -551,6 +551,16 @@ const envVarArgs = (envVars?: Record<string, string>) =>
           ]
         : []
 
+const backendHealthProbeArgs = [
+    '--startup-probe',
+    'httpGet.path=/__health/ready,httpGet.port=8081,periodSeconds=2,timeoutSeconds=2,failureThreshold=120',
+    '--readiness-probe',
+    'httpGet.path=/__health/ready,httpGet.port=8081,periodSeconds=2,timeoutSeconds=2,failureThreshold=1,successThreshold=1',
+    '--liveness-probe',
+    'httpGet.path=/__health/ready,httpGet.port=8081,periodSeconds=10,timeoutSeconds=2,failureThreshold=12',
+    '--no-session-affinity'
+]
+
 export const deployBackendCommand = (
     repoRoot: string,
     config: DeployConfig,
@@ -562,6 +572,7 @@ export const deployBackendCommand = (
         const command = backend.deployCommand[0]
         const args = backend.deployCommand.slice(1)
         const serviceOverride = options?.service
+        if (command === 'gcloud') args.push(...backendHealthProbeArgs)
 
         if (
             !allowTraffic &&
@@ -613,6 +624,7 @@ export const deployBackendCommand = (
             '--project',
             backend.project,
             '--quiet',
+            ...backendHealthProbeArgs,
             ...envVarArgs(options?.envVars),
             ...(options?.revisionSuffix ? ['--revision-suffix', options.revisionSuffix] : [])
         ]
@@ -640,7 +652,8 @@ export const deployBackendCommand = (
         '--region',
         backend.region,
         '--project',
-        backend.project
+        backend.project,
+        ...backendHealthProbeArgs
     ]
 
     if (!allowTraffic) {
@@ -653,37 +666,6 @@ export const deployBackendCommand = (
         args,
         cwd: repoRoot,
         logPath: '/tmp/backend-deploy.log',
-        requiresDeploy: true
-    }
-}
-
-export const rollbackBackendCommand = (
-    repoRoot: string,
-    revision: string,
-    config: DeployConfig
-): CommandSpec => {
-    const backend = config.backend
-    if (!backend?.service || !backend.region || !backend.project) {
-        throw new Error('Missing backend config for rollback (service/region/project)')
-    }
-
-    return {
-        label: 'rollback-backend',
-        command: 'gcloud',
-        args: [
-            'run',
-            'services',
-            'update-traffic',
-            backend.service,
-            '--region',
-            backend.region,
-            '--project',
-            backend.project,
-            '--to-revisions',
-            `${revision}=100`
-        ],
-        cwd: repoRoot,
-        logPath: '/tmp/backend-rollback.log',
         requiresDeploy: true
     }
 }

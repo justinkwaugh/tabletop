@@ -4,17 +4,27 @@ export function installHandlerDrain(server: FastifyInstance): void {
     const pending = new Set<Promise<void>>()
     server.addHook('onRoute', (route) => {
         const handler = route.handler
-        route.handler = async function (request, reply) {
-            let finish = () => {}
-            const completed = new Promise<void>((resolve) => {
-                finish = resolve
-            })
-            pending.add(completed)
+        route.handler = function (request, reply) {
+            const { promise, resolve } = Promise.withResolvers<void>()
+            pending.add(promise)
+            const finish = () => {
+                pending.delete(promise)
+                resolve()
+            }
             try {
-                return await handler.call(this, request, reply)
-            } finally {
-                pending.delete(completed)
+                const result = handler.call(this, request, reply)
+                if (
+                    result !== null &&
+                    (typeof result === 'object' || typeof result === 'function') &&
+                    'then' in result &&
+                    typeof result.then === 'function'
+                ) {
+                    void Promise.resolve(result).then(finish, finish)
+                } else finish()
+                return result
+            } catch (error) {
                 finish()
+                throw error
             }
         }
     })

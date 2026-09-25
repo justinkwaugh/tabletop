@@ -21,6 +21,7 @@ export class BackendSupervisor {
     private reloadPending = false
     private stopping = false
     private retry?: NodeJS.Timeout
+    private readonly readinessWaiters = new Set<() => void>()
 
     constructor(private readonly options: SupervisorOptions) {}
 
@@ -31,6 +32,35 @@ export class BackendSupervisor {
     acquire(): BackendTarget | undefined {
         if (!this.active || !this.activePort || this.stopping) return undefined
         return { port: this.activePort, release: this.active.retain() }
+    }
+
+    async acquireWhenReady(signal: AbortSignal): Promise<BackendTarget> {
+        signal.throwIfAborted()
+        const target = this.acquire()
+        if (target) return target
+        if (this.stopping) throw new Error('Backend is shutting down')
+        if (this.readinessWaiters.size >= 500) throw new Error('Backend recovery queue is full')
+        return new Promise((resolve, reject) => {
+            const cleanup = () => {
+                this.readinessWaiters.delete(check)
+                signal.removeEventListener('abort', check)
+            }
+            const check = () => {
+                if (signal.aborted || this.stopping) {
+                    cleanup()
+                    reject(new Error('Backend request canceled'))
+                    return
+                }
+                const ready = this.acquire()
+                if (ready) {
+                    cleanup()
+                    resolve(ready)
+                }
+            }
+            this.readinessWaiters.add(check)
+            signal.addEventListener('abort', check, { once: true })
+            check()
+        })
     }
 
     async start(): Promise<void> {
@@ -90,6 +120,7 @@ export class BackendSupervisor {
             this.starting = undefined
             this.active = candidate
             this.activePort = port
+            for (const check of this.readinessWaiters) check()
             console.log('Backend ready; routing requests to port', port)
             if (previous) await previous.stop(this.options.drainTimeoutMs ?? 30_000)
         } catch (error) {
@@ -103,6 +134,7 @@ export class BackendSupervisor {
         this.stopping = true
         clearTimeout(this.retry)
         this.activePort = undefined
+        for (const check of this.readinessWaiters) check()
         await Promise.all([...this.children].map((child) => child.stop(8_000)))
         await this.replacement
     }

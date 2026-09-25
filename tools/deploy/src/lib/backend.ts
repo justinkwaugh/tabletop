@@ -1,3 +1,4 @@
+import { isObject } from './json.js'
 import { BackendManifest, DeployConfig } from './types.js'
 
 export type BackendManifestResult = {
@@ -10,9 +11,6 @@ type ManifestEnvelope = {
     payload?: unknown
     message?: string
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null
 
 const isBackendManifest = (value: unknown): value is BackendManifest => {
     if (!isObject(value)) return false

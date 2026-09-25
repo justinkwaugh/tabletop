@@ -1,8 +1,6 @@
+import { isObject } from './json.js'
 import fs from 'node:fs/promises'
 import { GameCatalogueEntry, SiteManifest } from './types.js'
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null
 
 export const parseManifest = (raw: string): SiteManifest => {
     const parsed = JSON.parse(raw) as unknown
