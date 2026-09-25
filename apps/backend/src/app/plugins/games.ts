@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin'
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import { GameDefinition } from '@tabletop/common'
 
 import Preferences from '../routes/titleSpecific/preferences.js'
@@ -9,13 +9,12 @@ import ApplyAction from '../routes/titleSpecific/action.js'
 import UndoAction from '../routes/titleSpecific/undo.js'
 import ForkGame from '../routes/titleSpecific/fork.js'
 
-import { AppOptions } from '../app.js'
 import { GameVersionMismatchError } from '../lib/errors.js'
 
 async function registerGame(
     definition: GameDefinition,
     fastify: FastifyInstance,
-    opts: AppOptions
+    opts: FastifyPluginOptions
 ) {
     const prefix = `${opts.prefix || ''}/game/${definition.info.id}`
 
@@ -29,11 +28,7 @@ async function registerGame(
                     : requestHeader
                 const serverMajor = parseMajorVersion(logicVersion)
                 const requestMajor = parseMajorVersion(requestVersion)
-                if (
-                    serverMajor != null &&
-                    requestMajor != null &&
-                    serverMajor !== requestMajor
-                ) {
+                if (serverMajor != null && requestMajor != null && serverMajor !== requestMajor) {
                     console.warn(
                         `Game logic major version mismatch for ${definition.info.id}: server=${logicVersion} client=${requestVersion}`
                     )
@@ -89,14 +84,8 @@ const parseMajorVersion = (version?: string) => {
     return match ? Number(match[1]) : null
 }
 
-const Games = async (fastify: FastifyInstance, opts: AppOptions) => {
-    let titles: GameDefinition[] = []
-    try {
-        titles = await fastify.libraryService.getTitles()
-    } catch (error) {
-        console.warn('Unable to register game routes from manifest', error)
-        return
-    }
+const Games = async (fastify: FastifyInstance, opts: FastifyPluginOptions) => {
+    const titles = await fastify.libraryService.getTitles()
 
     for (const title of titles) {
         await registerGame(title, fastify, opts)

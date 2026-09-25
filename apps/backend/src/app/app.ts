@@ -33,7 +33,6 @@ const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
 const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
-const MIN_RESTART_INTERVAL_MS = 30_000
 const SESSION_EXPIRY_SECONDS = 30 * 24 * 60 * 60
 let firebaseAppIndex = 0
 
@@ -44,6 +43,7 @@ const SESSION_SALT = process.env['SESSION_SALT'] ?? ''
 
 export interface AppOptions {
     prefix?: string
+    requestRestart: () => void
 }
 
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
@@ -183,16 +183,11 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         })
     }
 
-    let lastRestartAt = 0
-    fastify.libraryService.onManifestMismatch(() => {
-        const now = Date.now()
-        if (now - lastRestartAt < MIN_RESTART_INTERVAL_MS) {
-            return
-        }
-        lastRestartAt = now
-        console.log('Manifest mismatch detected, restarting server...')
-        void fastify.restart()
+    const unsubscribeManifest = fastify.libraryService.onManifestMismatch(() => {
+        console.log('Manifest mismatch detected, replacing backend process...')
+        opts.requestRestart()
     })
+    fastify.addHook('onClose', async () => unsubscribeManifest())
 
     await fastify.register(GamesPlugin, { prefix: API_PREFIX })
 
