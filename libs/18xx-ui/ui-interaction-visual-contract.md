@@ -1453,6 +1453,10 @@ Routes render above tile artwork and map borders as continuous round-ended strok
 
 The zoom wrapper does not permanently promote its content with `will-change: transform`, allowing vector content to repaint at the settled zoom scale. This is an internal rendering change with no host-bridge API change; UI artifacts bundling ScalingWrapper must be republished to adopt it.
 
+The track picker keeps its entire overlay in a persistent compositing layer above the transformed map, including tile choices, placement cost, and accept/cancel controls. Its stacking order must remain stable during and after entry animations, dragging, and fullscreen transitions. TOP and 1889 UI artifacts need republication to adopt this Safari rendering workaround; game logic and the host bridge are unchanged.
+
+In the non-pane layout, the phase and Undo header stays within the same column as the action panel and map. Phase and turn controls wrap when they cannot fit together, and long company/player names wrap within their group. Pane-layout header alignment is unchanged.
+
 Wheel-event trackpad pinch (Ctrl-marked wheel events) uses a 0.006 zoom coefficient, independently of ordinary mouse-wheel zoom at 0.003. Touch-distance pinch and native Safari gesture scaling are unchanged. This internal shared-wrapper change requires republication of consuming UI artifacts to adopt it, without host-bridge changes.
 
 TOP imports its Tailwind stylesheet from the production runtime, with generated rules scoped to `[data-game-ui="the-old-prince"]`, matching the independent artifact pattern used by Bus and Indonesia. The development page must not be the only stylesheet entry. Republishing the TOP UI artifact adopts this fix without a Site Frontend or host-bridge change.

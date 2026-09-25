@@ -330,6 +330,8 @@
         pointer-events: none;
         z-index: 5;
         overflow: hidden;
+        /* Keep the overlay composited above the map after Safari finishes its animations. */
+        transform: translateZ(0);
     }
     button {
         pointer-events: auto;

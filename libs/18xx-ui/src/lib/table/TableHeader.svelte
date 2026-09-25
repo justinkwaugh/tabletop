@@ -211,6 +211,26 @@
     header.borderless {
         border-bottom: 0;
     }
+    header:not(.centered) {
+        width: 100%;
+        flex-wrap: wrap;
+        row-gap: 0;
+    }
+    header:not(.centered) .phase,
+    header:not(.centered) .turn {
+        max-width: 100%;
+        flex-wrap: wrap;
+    }
+    header:not(.centered) .turn {
+        margin-left: auto;
+        justify-content: flex-end;
+    }
+    header:not(.centered) .company,
+    header:not(.centered) .player-name {
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
     header.centered {
         display: grid;
         grid-template-columns: minmax(0, 1fr) max-content minmax(max-content, 1fr);
