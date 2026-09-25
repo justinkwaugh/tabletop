@@ -227,10 +227,13 @@
     }
     input {
         width: 76px;
+        margin-left: 4px;
         font: inherit;
         padding: 4px;
         border: 1px solid var(--rail-border, #b8a995);
         border-radius: 3px;
+        background: var(--rail-surface, white);
+        color: inherit;
     }
     .commit {
         background: var(--rail-solid, #443c34);

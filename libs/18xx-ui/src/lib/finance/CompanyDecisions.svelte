@@ -266,6 +266,8 @@
         padding: 0.4rem 2rem 0.4rem 0.5rem;
         border: 1px solid #94a3b8;
         border-radius: 0.3rem;
+        background: var(--rail-surface, white);
+        color: inherit;
     }
     button {
         border: 1px solid #94a3b8;
