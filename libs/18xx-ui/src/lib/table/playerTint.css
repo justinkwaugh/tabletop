@@ -11,10 +11,3 @@ th.player-tinted-header,
 div.player-tinted-header {
     background: var(--player-tinted-background);
 }
-
-.player-tinted-name {
-    border-radius: 0.25rem;
-    padding: 0 0.35em;
-    background: color-mix(in srgb, var(--player-color) 45%, var(--rail-surface, #faf7f1));
-    font-weight: 500;
-}

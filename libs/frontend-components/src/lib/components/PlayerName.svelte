@@ -8,6 +8,7 @@
         plainSelfPossessive = false,
         capitalization = 'capitalize',
         fontFamily = 'inherit',
+        backgroundOpacity = 1,
         additionalClasses = ''
     }: {
         playerId?: string
@@ -16,6 +17,7 @@
         plainSelfPossessive?: boolean
         capitalization?: 'none' | 'capitalize' | 'uppercase' | 'lowercase'
         fontFamily?: string
+        backgroundOpacity?: number
         additionalClasses?: string
     } = $props()
 
@@ -57,8 +59,12 @@
 {:else}
     <span
         style="font-family:{fontFamily}"
-        style:background-color={gameSession.colors.getPlayerBgColorValue(playerId)}
-        style:color={gameSession.colors.getPlayerTextColorValue(playerId)}
+        style:background-color={backgroundOpacity < 1
+            ? `color-mix(in srgb, ${gameSession.colors.getPlayerBgColorValue(playerId)} ${backgroundOpacity * 100}%, transparent)`
+            : gameSession.colors.getPlayerBgColorValue(playerId)}
+        style:color={backgroundOpacity < 1
+            ? undefined
+            : gameSession.colors.getPlayerTextColorValue(playerId)}
         class="rounded px-2 font-medium {transformClass} {additionalClasses}"
     >
         {#if capitalization === 'capitalize'}

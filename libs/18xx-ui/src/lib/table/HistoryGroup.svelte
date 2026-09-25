@@ -5,6 +5,7 @@
     import HistoryHeaderJump from './HistoryHeaderJump.svelte'
     import './playerTint.css'
     import { assertExists, type GameAction } from '@tabletop/common'
+    import { PlayerName } from '@tabletop/frontend-components'
     import {
         isAdvancePhase,
         isStartOperatingRound,
@@ -165,11 +166,10 @@
             {#each newestFirst ? group.actions.toReversed() : group.actions as action (action.id)}<div
                     class="history-entry stock-action"
                 >
-                    {#if action.playerId}<span
-                            class="player-tinted-name"
-                            style:--player-color={playerColor(action.playerId)}
-                            >{playerName(action.playerId)}</span
-                        >{' '}{/if}passed
+                    {#if action.playerId}<PlayerName
+                            playerId={action.playerId}
+                            backgroundOpacity={0.45}
+                        />{' '}{/if}passed
                 </div>{/each}
         </div>
     {:else if group.kind === 'turn'}
@@ -191,11 +191,10 @@
                                 size={23}
                             /></span
                         >{/if}
-                    {#if row.stockPlayerId}<span
-                            class="player-tinted-name"
-                            style:--player-color={playerColor(row.stockPlayerId)}
-                            >{playerName(row.stockPlayerId)}</span
-                        >{' '}{/if}
+                    {#if row.stockPlayerId}<PlayerName
+                            playerId={row.stockPlayerId}
+                            backgroundOpacity={0.45}
+                        />{' '}{/if}
                     <span
                         >{row.stockPlayerId
                             ? row.text.charAt(0).toLowerCase() + row.text.slice(1)
