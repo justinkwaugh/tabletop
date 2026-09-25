@@ -63,6 +63,7 @@
         expandable = false,
         allowFullscreenShortcut,
         maxScale = 1,
+        insetTop = 0,
         onManualViewChange
     }: {
         children: Snippet
@@ -71,6 +72,8 @@
         justify?: 'center' | 'left' | 'right'
         controls: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none'
         maxScale?: number
+        /** Screen pixels at the top kept clear when fitting, focusing and resting the content, for overlaid controls. */
+        insetTop?: number
         expandable?: boolean
         allowFullscreenShortcut?: () => boolean
         onManualViewChange?: () => void
@@ -180,6 +183,7 @@
         isExpanded
         wrapperWidth
         wrapperHeight
+        insetTop
         contentWidth
         contentHeight
 
@@ -209,12 +213,20 @@
         }
     }
 
+    function availableHeight() {
+        return Math.max(1, wrapperHeight - insetTop)
+    }
+
+    function viewportCenterY() {
+        return insetTop + availableHeight() / 2
+    }
+
     function computeFitScale() {
         if (!wrapperWidth || !wrapperHeight || !contentWidth || !contentHeight) {
             return 1
         }
 
-        return Math.min(wrapperWidth / contentWidth, wrapperHeight / contentHeight, 1)
+        return Math.min(wrapperWidth / contentWidth, availableHeight() / contentHeight, 1)
     }
 
     function updateDiscreteLevels(fitScale: number) {
@@ -246,11 +258,11 @@
         const scaledWidth = contentWidth * clampedScale
         const scaledHeight = contentHeight * clampedScale
         const defaultTranslateX = getOffsetX(scaledWidth)
-        const defaultTranslateY = isExpanded ? Math.max(0, (wrapperHeight - scaledHeight) / 2) : 0
+        const defaultTranslateY = insetTop + (isExpanded ? Math.max(0, (availableHeight() - scaledHeight) / 2) : 0)
         const minTranslateX = scaledWidth > wrapperWidth ? wrapperWidth - scaledWidth : defaultTranslateX
         const maxTranslateX = scaledWidth > wrapperWidth ? 0 : defaultTranslateX
-        const minTranslateY = scaledHeight > wrapperHeight ? wrapperHeight - scaledHeight : defaultTranslateY
-        const maxTranslateY = scaledHeight > wrapperHeight ? 0 : defaultTranslateY
+        const minTranslateY = scaledHeight > availableHeight() ? wrapperHeight - scaledHeight : defaultTranslateY
+        const maxTranslateY = scaledHeight > availableHeight() ? insetTop : defaultTranslateY
 
         return {
             scale: clampedScale,
@@ -362,7 +374,7 @@
     function getViewportCenterContentPoint() {
         return {
             x: clamp((wrapperWidth / 2 - currentTranslateX) / currentScale, 0, contentWidth),
-            y: clamp((wrapperHeight / 2 - currentTranslateY) / currentScale, 0, contentHeight)
+            y: clamp((viewportCenterY() - currentTranslateY) / currentScale, 0, contentHeight)
         }
     }
 
@@ -402,11 +414,11 @@
 
     function getViewForFocusTarget(target: FocusTarget) {
         const availableWidth = Math.max(1, wrapperWidth - target.paddingX * 2)
-        const availableHeight = Math.max(1, wrapperHeight - target.paddingY * 2)
+        const focusHeight = Math.max(1, availableHeight() - target.paddingY * 2)
         const scale = clampScale(
             Math.min(
                 availableWidth / target.rect.width,
-                availableHeight / target.rect.height,
+                focusHeight / target.rect.height,
                 target.maxScale
             )
         )
@@ -417,7 +429,7 @@
             centerX,
             centerY,
             wrapperWidth / 2,
-            wrapperHeight / 2,
+            viewportCenterY(),
             scale
         )
     }
@@ -630,7 +642,7 @@
             contentX,
             contentY,
             wrapperWidth / 2,
-            wrapperHeight / 2,
+            viewportCenterY(),
             scale
         )
 
@@ -679,7 +691,7 @@
             centerPoint.x,
             centerPoint.y,
             wrapperWidth / 2,
-            wrapperHeight / 2,
+            viewportCenterY(),
             targetScale
         )
 
@@ -781,9 +793,9 @@
         const scale = currentScale
         const rect = {
             x: -currentTranslateX / scale,
-            y: -currentTranslateY / scale,
+            y: (insetTop - currentTranslateY) / scale,
             width: wrapperWidth / scale,
-            height: wrapperHeight / scale
+            height: availableHeight() / scale
         }
         return (options: FitOptions = {}) =>
             focusRect(rect, { maxScale: scale, padding: 0, animate: options.animate })
@@ -800,7 +812,7 @@
             contentWidth / 2,
             contentHeight / 2,
             wrapperWidth / 2,
-            wrapperHeight / 2,
+            viewportCenterY(),
             baseScale
         )
 

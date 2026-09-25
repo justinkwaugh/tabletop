@@ -16,6 +16,7 @@
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import CompanyOrderOverview from './CompanyOrderOverview.svelte'
     let {
         money,
         showDetails,
@@ -27,7 +28,11 @@
         appearances,
         currentCompanyId,
         completedCompanyIds = [],
-        companyDetails
+        companyDetails,
+        overview = true,
+        overflowing = $bindable(false),
+        firstVisible = $bindable(-1),
+        lastVisible = $bindable(-1)
     }: {
         money: MoneyFormat
         showDetails: boolean
@@ -40,10 +45,12 @@
         currentCompanyId?: string
         completedCompanyIds?: readonly string[]
         companyDetails: Snippet<[Company]>
+        /** Whether the overflow overview renders here; off when the host shows it elsewhere. */
+        overview?: boolean
+        overflowing?: boolean
+        firstVisible?: number
+        lastVisible?: number
     } = $props()
-    let overflowing = $state(false)
-    let firstVisible = $state(-1)
-    let lastVisible = $state(-1)
     function trackVisibleCompanies(area: HTMLOListElement) {
         let frame: number | undefined
         function measure() {
@@ -111,26 +118,9 @@
 </script>
 
 <section aria-label="Company order" class="company-order">
-    {#if overflowing}
+    {#if overview && overflowing}
         <div class="order-heading">
-            <div class="overview" aria-hidden="true">
-                {#if firstVisible >= 0}
-                    <span
-                        class="visible-window"
-                        style:transform={`translateX(${firstVisible * 18}px)`}
-                        style:width={`${(lastVisible - firstVisible + 1) * 18 + 2}px`}
-                    ></span>
-                {/if}
-                {#each entries as { company, appearance }, index (company.id)}
-                    <span
-                        class="mini-token"
-                        class:fully-visible={index >= firstVisible && index <= lastVisible}
-                        data-overview-company={company.id}
-                    >
-                        <CompanyToken {appearance} size={14} />
-                    </span>
-                {/each}
-            </div>
+            <CompanyOrderOverview {companies} {appearances} {firstVisible} {lastVisible} />
         </div>
     {/if}
     <ol use:trackVisibleCompanies>
@@ -218,40 +208,6 @@
         align-items: center;
         gap: 10px;
         max-width: 100%;
-    }
-    .overview {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px;
-        height: 20px;
-    }
-    .visible-window {
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 20px;
-        border: 1px solid var(--rail-border, #b8a38b);
-        border-radius: 6px;
-        background: var(--rail-surface-raised, #f5eee4);
-        transition:
-            transform 100ms ease-out,
-            width 100ms ease-out;
-        pointer-events: none;
-    }
-    .mini-token {
-        position: relative;
-        display: flex;
-        opacity: 0.45;
-    }
-    .mini-token.fully-visible {
-        opacity: 1;
-    }
-    @media (prefers-reduced-motion: reduce) {
-        .visible-window {
-            transition: none;
-        }
     }
     ol {
         display: flex;

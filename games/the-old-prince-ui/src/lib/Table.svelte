@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { availableTheOldPrinceTranche } from '@tabletop/the-old-prince'
     import {
         isSplitCompany,
         TheOldPrinceCompanies,
@@ -9,14 +8,15 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
     import {
-        CompanyToken,
         GameTable,
+        MarketTokenSize,
         OperatingActions,
         AuctionOffers,
         OfferAuctionBidding
     } from '@tabletop/18xx-ui'
     import { requireTheOldPrinceSession } from './session.svelte.js'
     import BranchSplitPreview from './BranchSplitPreview.svelte'
+    import Tranches from './Tranches.svelte'
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
@@ -68,7 +68,6 @@
             ...trancheCompanies
         ]
     })
-    const availableTranche = $derived(availableTheOldPrinceTranche(session.gameState))
     const privateOperationDescription = (id: string, companyId: string) =>
         id === 'HS' && companyId !== 'PEIR'
             ? 'Close to buy one depot train during the company’s turn, paying the normal train price.'
@@ -123,38 +122,15 @@
     {#snippet gameInformation()}
         <div class="tranches" aria-label="Company tranches">
             <span class="tranches-label">Tranches</span>
-            {#each session.gameState.tranches.filter((tranche) => tranche.id !== 'initial') as tranche (tranche.id)}
-                {@const closed =
-                    tranche.companyIds.length < tranche.capacity &&
-                    tranche.id !== availableTranche?.id}
-                <div
-                    class="tranche"
-                    class:closed
-                    aria-label={`${tranche.name}${closed ? ': closed' : ''}`}
-                    title={closed ? `${tranche.name}: closed` : tranche.name}
-                >
-                    {#each Array.from({ length: tranche.capacity }, (_, index) => tranche.companyIds[index]) as companyId, i (i)}
-                        <span class="tranche-slot" class:empty={!companyId}>
-                            {#if companyId}<CompanyToken
-                                    appearance={session.mapView.stations[companyId]}
-                                    size={22}
-                                />
-                            {:else if closed}<svg
-                                    width="12"
-                                    height="12"
-                                    viewBox="0 0 16 16"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="1.5"
-                                    aria-hidden="true"
-                                    ><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path
-                                        d="M5 7V5a3 3 0 0 1 6 0v2"
-                                    ></path></svg
-                                >{/if}
-                        </span>
-                    {/each}
-                </div>
-            {/each}
+            <Tranches {session} spread />
+        </div>
+    {/snippet}
+    {#snippet boardInformation()}
+        <div class="board-tranches" aria-label="Company tranches">
+            <span class="board-tranches-label">Tranches</span>
+            <div class="board-tranche-groups">
+                <Tranches {session} slotSize={MarketTokenSize} named />
+            </div>
         </div>
     {/snippet}
 </GameTable>
@@ -178,36 +154,21 @@
         line-height: 1;
         margin-right: 3px;
     }
-    .tranche:last-child {
-        padding-right: 0;
-    }
-    .tranche {
+    .board-tranches {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        flex-grow: 1;
-        gap: 5px;
-        padding: 0 8px;
+        gap: 10px;
     }
-    .tranche + .tranche {
-        border-left: 1px solid var(--rail-border, #b8a995);
+    .board-tranches-label {
+        color: var(--rail-text, #e3e9ef);
+        font-size: 15px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
     }
-    .tranche-slot.empty {
-        border-style: dashed;
-        background: transparent;
-    }
-    .closed .tranche-slot.empty {
-        color: var(--rail-text, #776657);
-        opacity: 0.55;
-    }
-    .tranche-slot {
+    .board-tranche-groups {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        border: 1px solid var(--rail-border, #b8a995);
-        border-radius: 50%;
-        background: var(--rail-surface-raised, #dfd3c8);
+        align-items: flex-start;
     }
 </style>

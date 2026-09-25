@@ -252,7 +252,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
             ...definition,
             stations: { ...definition.stations, ...definition.publishedStations },
             layouts: { ...definition.layouts, ...definition.publishedLayouts },
-            placements: definition.publishedPlacements
+            placements: { ...definition.placements, ...definition.publishedPlacements }
         }
     })
     /** The title presentation for the current mode: published badge colours replace the generic ones when selected. */

@@ -12,7 +12,8 @@
         expandedMarketStack,
         MarketCellWidth,
         MarketCellHeight,
-        MarketTokenSize
+        MarketTokenSize,
+        MarketScenePadding
     } from './marketTokenLayout.js'
 
     let {
@@ -157,6 +158,7 @@
     aria-label="Stock market board"
     aria-busy={animation?.updatingVisibleState ?? false}
     style:--render-scale={renderScale}
+    style:padding={`${MarketScenePadding * renderScale}px`}
 >
     <div
         class="grid"
@@ -258,7 +260,6 @@
 <style>
     .market {
         width: max-content;
-        padding: calc(6px * var(--render-scale));
         --price-ink: light-dark(#253b35, #b4bfca);
         color: light-dark(#253b35, var(--rail-text, #e3e9ef));
         font:

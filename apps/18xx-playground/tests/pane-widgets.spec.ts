@@ -23,6 +23,12 @@ test('only absent widgets can be added and the add section disappears once all a
     await expect(depot.getByRole('columnheader', { name: 'Remaining', exact: true })).toBeVisible()
     await expect(depot.locator('tbody .number').first()).toHaveText(/^(\d+|∞)\/(\d+|∞)$/)
     await expect(depot.locator('tr.current').first()).toBeVisible()
+    await page.keyboard.press('Escape')
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
+    await page.getByRole('button', { name: 'Board', exact: true }).click()
+    await expect(page.getByRole('tabpanel', { name: 'Board', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Layout unsaved', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeVisible()
     await page.reload()

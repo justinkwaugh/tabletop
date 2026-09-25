@@ -3,6 +3,7 @@
     import MapRoutes from './MapRoutes.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { StationReservation } from '@tabletop/18xx'
+    import type { BoundingBox } from '@tabletop/common'
     import TileArtwork from '../tiles/TileArtwork.svelte'
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
     import {
@@ -31,6 +32,7 @@
         revenueStageColors,
         hexDiameter = 100,
         artwork,
+        extents,
         onselect
     }: {
         scene: MapDrawing
@@ -47,10 +49,11 @@
         appearance?: TileAppearance
         hexDiameter?: number
         artwork?: BoardArtwork
+        extents?: readonly BoundingBox[]
         onselect?: (selection: MapSelection) => void
     } = $props()
     const tokenSize = $derived(appearance.mapTokenSize ?? 18)
-    const viewport = $derived(mapViewport(scene, hexDiameter, artwork))
+    const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
     const perimeterMaskId = $props.id()
     const perimeterRoundingId = `${perimeterMaskId}-rounding`
     const currentReservations = $derived(reservations ?? printedMapReservations(scene))

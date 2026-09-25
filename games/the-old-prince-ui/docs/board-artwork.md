@@ -30,7 +30,11 @@ placements that move each affected hex to its printed cell and remap its track e
 (England: the four-hex group is printed rotated one side clockwise, so semantic
 H10 → G9 → H8 → H6 becomes printed H10 → H8 → I9 → J8; Îles de la Madeleine: U15 → U17 → V16 becomes U15 → V14 → W15; Pictou
 Landing: P24 → O25 → P26 becomes P24 → Q23 → R24). Path ids are unchanged, so route
-segments still resolve, and each chain's drawn track meets edge to edge. Printed city circles were measured against the generic
+segments still resolve, and each chain's drawn track meets edge to edge. The
+England placement also applies to the generic presentation, which draws England
+turned east as printed so the northern sea stays clear for the Board tab; the
+other two groups keep their semantic cells there. Placements only redraw untiled
+hexes, so no State, Action, route identity or saved game changes. Printed city circles were measured against the generic
 node layout (ring detection on the image, offsets in map units of hex radius 50):
 Wellington D14 sits at (9.9, -7.5), Summerside F14 at (-0.3, 11.3) and Charlottetown
 L16 at (0.7, 11.6); every other preprinted city is within two units of the hex
@@ -48,7 +52,14 @@ board's preprinted yellow and green within a few points. The X ring sits at 30 u
 the measured per-tier marker colours in `tileAppearance.ts`. The file's rules-edition equivalence has not
 been established by its filename; this is an alignment preview, not a claim of
 complete published-edition fidelity. The existing market and phase panels display current game facts; the updated
-image omits the old printed reference tables.
+image omits the old printed reference tables. The optional Board tab draws the live
+stock market in the empty sea north of the island's eastern half, with the
+tranches in the market's empty lower-right corner, and the train depot to the
+market's left, top-aligned with it and above the England group. Both
+presentations share these areas, declared in map units in `mapView.ts`; the
+market spans image pixels (997, 24) to (1955, 520). The generic view's bounds grow
+to include the areas, so each area includes a 20-unit margin above its panel to
+keep the top margin the published image has.
 
 Verification covers natural image dimensions, unbuilt hex transparency, placed
 tiles, pointer selection, draft retention when toggling, History View and Undo,

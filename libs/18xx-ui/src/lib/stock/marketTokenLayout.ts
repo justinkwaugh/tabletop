@@ -1,9 +1,34 @@
 import { stockMarketSpace, type StockMarket } from '@tabletop/18xx'
-import type { Point } from '@tabletop/common'
+import type { BoundingBox, Point } from '@tabletop/common'
 
 export const MarketCellWidth = 62
 export const MarketCellHeight = 68
 export const MarketTokenSize = 26
+export const MarketScenePadding = 6
+
+/**
+ * The largest empty rectangle in the market's lower-right corner, in unscaled scene pixels, or
+ * undefined when the bottom row reaches the last column.
+ */
+export function marketLowerRightSpace(market: StockMarket): BoundingBox | undefined {
+    const columns = Math.max(...market.spaces.map((space) => space.column)) + 1
+    const rows = Math.max(...market.spaces.map((space) => space.row)) + 1
+    let firstEmptyColumn = 0
+    let largest: BoundingBox | undefined
+    for (let top = rows - 1; top >= 0; top--) {
+        const occupied = market.spaces.filter((space) => space.row === top)
+        firstEmptyColumn = Math.max(firstEmptyColumn, ...occupied.map((space) => space.column + 1))
+        if (firstEmptyColumn >= columns) break
+        const space = {
+            x: MarketScenePadding + firstEmptyColumn * MarketCellWidth,
+            y: MarketScenePadding + top * MarketCellHeight,
+            width: (columns - firstEmptyColumn) * MarketCellWidth,
+            height: (rows - top) * MarketCellHeight
+        }
+        if (!largest || space.width * space.height > largest.width * largest.height) largest = space
+    }
+    return largest
+}
 
 export function marketTokenLayout(market: StockMarket) {
     return market.stacks.flatMap((stack) => {

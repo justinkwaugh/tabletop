@@ -41,6 +41,13 @@ export const TheOldPrinceMapView: MapViewDefinition = {
         origin: { x: 55.5, y: 105.5 },
         scale: 1.173
     },
+    // Empty sea around the island, in map units; see docs/board-artwork.md. Each area includes a
+    // 20-unit margin above its panel, so the generic view, whose bounds grow to include the areas,
+    // keeps the top margin the published image has.
+    boardAreas: {
+        market: { x: 803, y: -90, width: 817, height: 463 },
+        depot: { x: 371, y: -90, width: 381, height: 350 }
+    },
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
     markerImages: { 'vernon-river-bridge': VernonRiver },
@@ -50,13 +57,16 @@ export const TheOldPrinceMapView: MapViewDefinition = {
     // The printed board rearranges three offboard groups. Each semantic hex is moved to its
     // printed cell (axial q = column index, r = (row - q - 1) / 2) and its track edges remapped
     // to the printed ones (edge 0 = S, 1 = SW, 2 = NW, 3 = N, 4 = NE, 5 = SE).
-    publishedPlacements: {
-        // England: the four-hex group is printed rotated one side clockwise about H10, so
-        // semantic H10 → G9 → H8 → H6 becomes printed H10 → H8 → I9 → J8.
+    // England: the four-hex group is printed rotated one side clockwise about H10, so semantic
+    // H10 → G9 → H8 → H6 becomes printed H10 → H8 → I9 → J8. Both presentations draw it this
+    // way, clearing the northern sea for the board view's panels.
+    placements: {
         H10: { edges: { 2: 3 } },
         G9: { at: { q: 7, r: 0 }, edges: { 5: 0, 4: 5 } }, // printed H8
         H8: { at: { q: 8, r: 0 }, edges: { 1: 2, 3: 4 } }, // printed I9
-        H6: { at: { q: 9, r: -1 }, edges: { 0: 1 } }, // printed J8
+        H6: { at: { q: 9, r: -1 }, edges: { 0: 1 } } // printed J8
+    },
+    publishedPlacements: {
         // Îles de la Madeleine: printed T14 → U15 → V14 → W15; semantic T14 → U15 → U17 → V16.
         U15: { edges: { 0: 4 } },
         U17: { at: { q: 21, r: -4 }, edges: { 3: 1, 4: 5 } }, // printed V14

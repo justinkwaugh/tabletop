@@ -78,7 +78,12 @@ export type BoardArtwork = {
     scale: number
 }
 
-export function mapViewport(scene: MapDrawing, hexDiameter: number, artwork?: BoardArtwork) {
+export function mapViewport(
+    scene: MapDrawing,
+    hexDiameter: number,
+    artwork?: BoardArtwork,
+    extents: readonly BoundingBox[] = []
+) {
     const scale = artwork?.scale ?? hexDiameter / 100
     const bounds = artwork
         ? {
@@ -87,8 +92,30 @@ export function mapViewport(scene: MapDrawing, hexDiameter: number, artwork?: Bo
               width: artwork.width / scale,
               height: artwork.height / scale
           }
-        : scene.bounds
+        : extents.reduce(enclosingBounds, scene.bounds)
     return { bounds, scale, width: bounds.width * scale, height: bounds.height * scale }
+}
+
+export type MapViewport = ReturnType<typeof mapViewport>
+
+export function viewportRect(viewport: MapViewport, rect: BoundingBox): BoundingBox {
+    return {
+        x: (rect.x - viewport.bounds.x) * viewport.scale,
+        y: (rect.y - viewport.bounds.y) * viewport.scale,
+        width: rect.width * viewport.scale,
+        height: rect.height * viewport.scale
+    }
+}
+
+function enclosingBounds(first: BoundingBox, second: BoundingBox): BoundingBox {
+    const x = Math.min(first.x, second.x)
+    const y = Math.min(first.y, second.y)
+    return {
+        x,
+        y,
+        width: Math.max(first.x + first.width, second.x + second.width) - x,
+        height: Math.max(first.y + first.height, second.y + second.height) - y
+    }
 }
 
 export type MapDrawing = {
@@ -285,10 +312,11 @@ export function mapSelectionRect(
     selection: MapSelection,
     hexDiameter: number,
     radius = 60,
-    artwork?: BoardArtwork
+    artwork?: BoardArtwork,
+    extents: readonly BoundingBox[] = []
 ) {
     const point = mapSelectionPoint(scene, selection)
-    const { bounds, scale } = mapViewport(scene, hexDiameter, artwork)
+    const { bounds, scale } = mapViewport(scene, hexDiameter, artwork, extents)
     return {
         x: (point.x - bounds.x - radius) * scale,
         y: (point.y - bounds.y - radius) * scale,

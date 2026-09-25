@@ -202,7 +202,7 @@ test('map tile picker opens after another tab moves to a different pane', async 
     await expect(page.locator('.picker')).toBeVisible()
 })
 
-test('below 1024px actions sit above four fixed tabs and the sidebar stays intact', async ({
+test('below 1024px actions sit above the board tabs and the sidebar stays intact', async ({
     page
 }) => {
     await page.setViewportSize({ width: 1023, height: 900 })
@@ -211,14 +211,17 @@ test('below 1024px actions sit above four fixed tabs and the sidebar stays intac
         page.getByRole('button', { name: /^Split pane /, includeHidden: true })
     ).toHaveCount(0)
     await expect(page.getByRole('tab', { name: 'Actions', exact: true })).toHaveCount(0)
-    await expect(
-        page.getByRole('tablist', { name: 'Table views tabs 1' }).getByRole('tab')
-    ).toHaveCount(6)
+    const tabs = page.getByRole('tablist', { name: 'Table views tabs 1' }).getByRole('tab')
+    await expect(tabs).toHaveCount(5)
+    await expect(tabs.first()).toHaveText('Board')
+    await expect(tabs.first()).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('tab', { name: 'Map', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('tab', { name: 'Market', exact: true })).toHaveCount(0)
     const action = page.getByRole('region', { name: 'Current action', exact: true })
     await expect(action).toBeVisible()
-    await page.getByRole('tab', { name: 'Market', exact: true }).click()
+    await page.getByRole('tab', { name: 'Companies', exact: true }).click()
     await expect(action).toBeVisible()
-    await expect(page.getByRole('tabpanel', { name: 'Market', exact: true })).toBeVisible()
+    await expect(page.getByRole('tabpanel', { name: 'Companies', exact: true })).toBeVisible()
     for (const name of ['Players', 'History', 'Chat'])
         await expect(page.getByRole('tab', { name, exact: true })).toBeVisible()
     await page.setViewportSize({ width: 1024, height: 900 })

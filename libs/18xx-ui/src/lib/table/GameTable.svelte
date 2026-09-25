@@ -31,6 +31,7 @@
     import CompanyDetails from './CompanyDetails.svelte'
     import CompanyCardLayout from './CompanyCardLayout.svelte'
     import CompanyOrder from './CompanyOrder.svelte'
+    import CompanyOrderOverview from './CompanyOrderOverview.svelte'
     import CompanyOrderToggle from './CompanyOrderToggle.svelte'
     import { untrack, tick, type Snippet } from 'svelte'
     import { MediaQuery } from 'svelte/reactivity'
@@ -48,19 +49,24 @@
     import {
         isMapSelectionValid,
         mapSelectionRect,
+        mapViewport,
         routeLocationIds,
+        viewportRect,
         type MapRoute
     } from '../maps/mapDrawing.js'
     import MapScene from '../maps/MapScene.svelte'
     import HistoricalMapViewer from '../maps/HistoricalMapViewer.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
+    import { marketLowerRightSpace } from '../stock/marketTokenLayout.js'
+    import BoardInset from '../maps/BoardInset.svelte'
+    import BoardFocus from './BoardFocus.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
-    import type { GameAction } from '@tabletop/common'
+    import type { BoundingBox, GameAction } from '@tabletop/common'
     import type { HistoryDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
@@ -72,6 +78,7 @@
         session,
         additionalStockActions = [],
         gameInformation,
+        boardInformation,
         spreadsheetCompanyOrder,
         auctionLotDescription,
         numberedShareLocation,
@@ -82,6 +89,7 @@
         session: EighteenXXSession
         additionalStockActions?: readonly StockMenuOption[]
         gameInformation?: Snippet
+        boardInformation?: Snippet
         spreadsheetCompanyOrder?: readonly string[]
         auctionLotDescription?: (id: string) => string
         numberedShareLocation?: (companyId: string, number: number) => string | undefined
@@ -148,10 +156,29 @@
         session.toggleArtwork()
         restoreRouteView = undefined
         await tick()
-        mapWrapper?.fitToContent()
+        fitMaps()
     }
 
     let mapWrapper = $state<ScalingWrapper>()
+    let boardWrapper = $state<ScalingWrapper>()
+    function mapViewers() {
+        return [
+            ...(mapWrapper ? [{ wrapper: mapWrapper, extents: mapExtents }] : []),
+            ...(boardWrapper ? [{ wrapper: boardWrapper, extents: boardExtents }] : [])
+        ]
+    }
+    function fitMaps(options?: { animate?: boolean }) {
+        for (const { wrapper } of mapViewers()) wrapper.fitToContent(options)
+    }
+    function captureMaps(): ReturnType<ScalingWrapper['captureView']> {
+        const restores = mapViewers().map(({ wrapper }) => wrapper.captureView())
+        return (options) => {
+            for (const restore of restores) restore(options)
+        }
+    }
+    function showMap() {
+        if (!boardWrapper?.isVisible()) selectedView = 'Map'
+    }
     let focusedLocation: string | undefined = $derived.by(() => {
         session.gameState
         return undefined
@@ -162,20 +189,14 @@
         focusedCompany = undefined
         const restore = focusedLocation === locationId
         focusedLocation = restore ? undefined : locationId
-        selectedView = 'Map'
+        showMap()
         session.map.inspect({ kind: 'hex', locationId })
         await tick()
         if (restore) {
-            mapWrapper?.fitToContent({ animate: true })
+            fitMaps({ animate: true })
             return
         }
-        const scene = session.map.displayedScene
-        mapWrapper?.focusRect(
-            mapSelectionRect(scene, { kind: 'hex', locationId }, 140, 220, boardArtwork),
-            {
-                animate: true
-            }
-        )
+        focusLocations([locationId])
     }
     let focusedCompany: string | undefined = $derived.by(() => {
         session.gameState
@@ -187,10 +208,10 @@
         const restore = focusedCompany === companyId
         focusedCompany = restore ? undefined : companyId
         focusedLocation = undefined
-        selectedView = 'Map'
+        showMap()
         await tick()
         if (restore) {
-            mapWrapper?.fitToContent({ animate: true })
+            fitMaps({ animate: true })
             return
         }
         const locations = companyNetworkFocusLocations(
@@ -220,10 +241,10 @@
         focusedRoute = restore ? undefined : trainId
         focusedLocation = undefined
         focusedCompany = undefined
-        selectedView = 'Map'
+        showMap()
         await tick()
         if (restore) {
-            mapWrapper?.fitToContent({ animate: true })
+            fitMaps({ animate: true })
             return
         }
         focusLocations([...new Set(route.paths.map((path) => path.locationId))])
@@ -232,15 +253,74 @@
         session.previewHistoryMap(action)
     }
     const displayedScene = $derived(session.map.displayedScene)
+    const paneLayout = new MediaQuery('(min-width: 64rem)')
+    const boardAvailable = untrack(() => !!session.mapView.boardAreas)
+    const boardMode = $derived(boardAvailable && !paneLayout.current)
+    let orderOverflowing = $state(false)
+    let orderFirstVisible = $state(-1)
+    let orderLastVisible = $state(-1)
+    const boardAreas = $derived(session.mapView.boardAreas)
+    const boardExtents = $derived(
+        [boardAreas?.market, boardAreas?.depot].filter((area) => area !== undefined)
+    )
+    const boardViewport = $derived(mapViewport(displayedScene, 140, boardArtwork, boardExtents))
+    const mapExtents = $derived(boardMode ? boardExtents : [])
+    type BoardFocusTarget = 'Full' | 'Market' | 'Depot'
+    let boardFocus = $state<{
+        target: BoardFocusTarget
+        restore: ReturnType<ScalingWrapper['captureView']>
+    }>()
+    function focusBoard(target: BoardFocusTarget, area?: BoundingBox) {
+        const wrapper = boardMode ? mapWrapper : boardWrapper
+        if (!wrapper) return
+        if (boardFocus?.target === target) {
+            const { restore } = boardFocus
+            boardFocus = undefined
+            restore({ animate: true })
+            return
+        }
+        boardFocus = { target, restore: boardFocus?.restore ?? wrapper.captureView() }
+        if (area) wrapper.focusRect(viewportRect(boardViewport, area), { animate: true })
+        else wrapper.fitToContent({ animate: true })
+    }
+    const boardFocusOptions = $derived(
+        (
+            [
+                ['Full', undefined],
+                ['Market', boardAreas?.market],
+                ['Depot', boardAreas?.depot]
+            ] as const
+        )
+            .filter(([target, area]) => target === 'Full' || area)
+            .map(([target, area]) => ({
+                label: target,
+                selected: boardFocus?.target === target,
+                onSelect: () => focusBoard(target, area)
+            }))
+    )
     function focusLocations(locations: readonly string[], animate = true) {
+        for (const viewer of mapViewers()) focusViewerLocations(viewer, locations, animate)
+    }
+    function focusViewerLocations(
+        { wrapper, extents }: ReturnType<typeof mapViewers>[number],
+        locations: readonly string[],
+        animate: boolean
+    ) {
         const rectangles = locations.map((locationId) =>
-            mapSelectionRect(displayedScene, { kind: 'hex', locationId }, 140, 220, boardArtwork)
+            mapSelectionRect(
+                displayedScene,
+                { kind: 'hex', locationId },
+                140,
+                220,
+                boardArtwork,
+                extents
+            )
         )
         const x = Math.min(...rectangles.map((rect) => rect.x))
         const y = Math.min(...rectangles.map((rect) => rect.y))
         const right = Math.max(...rectangles.map((rect) => rect.x + rect.width))
         const bottom = Math.max(...rectangles.map((rect) => rect.y + rect.height))
-        mapWrapper?.focusRect({ x, y, width: right - x, height: bottom - y }, { animate })
+        wrapper.focusRect({ x, y, width: right - x, height: bottom - y }, { animate })
     }
     const consentPreview = $derived(session.gameState.trackConsent)
     const maskPlacementLocations = $derived(
@@ -275,7 +355,7 @@
                 ? [consentPreview.details.locationId]
                 : [...highlightedPlacementLocationIds]
             if (!locations.length) return
-            selectedView = 'Map'
+            showMap()
             void tick().then(() => {
                 if (current === request) focusLocations(locations)
             })
@@ -318,13 +398,13 @@
             focusedRoute = undefined
             focusedLocation = undefined
             focusedCompany = undefined
-            selectedView = 'Map'
+            showMap()
             void tick().then(() => {
                 if (current !== request) return
                 const locations = preview.result.routes.flatMap((route) =>
                     route.paths.map((path) => path.locationId)
                 )
-                restoreRouteView ??= mapWrapper?.captureView()
+                restoreRouteView ??= captureMaps()
                 focusLocations([...new Set(locations)])
             })
         }
@@ -360,9 +440,9 @@
                 })
                 return
             }
-            returnTo ??= { view, restore: mapWrapper?.captureView() }
+            returnTo ??= { view, restore: captureMaps() }
             session.closeHistoricalMap()
-            selectedView = 'Map'
+            showMap()
             void tick().then(() => {
                 if (current !== request) return
                 const locations = companyFocusLocations(
@@ -432,7 +512,7 @@
         }
     )
     const settledHistoricalFocus = $derived(
-        historyMapSettled && mapWrapper ? historicalFocus : undefined
+        historyMapSettled && (mapWrapper || boardWrapper) ? historicalFocus : undefined
     )
     function frameHistory(_table: HTMLElement, initial: typeof settledHistoricalFocus) {
         let request = 0
@@ -442,7 +522,7 @@
             void tick().then(() => {
                 if (current !== request) return
                 if (target.locations.length) focusLocations(target.locations, false)
-                else mapWrapper?.fitToContent()
+                else fitMaps()
             })
         }
         frame(initial)
@@ -487,7 +567,6 @@
         }),
         (value) => session.preferences.save({ paneLayout: value }, 'family')
     )
-    const paneLayout = new MediaQuery('(min-width: 64rem)')
     const views = [
         'Map',
         'Market',
@@ -511,6 +590,7 @@
         ...workspaceTabs,
         { id: 'Depot', label: 'Depot', optional: true },
         { id: 'Operating Order', label: 'Operating Order', optional: true },
+        ...(boardAvailable ? [{ id: 'Board', label: 'Board', optional: true }] : []),
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
     ]
@@ -599,6 +679,80 @@
         {companyNames}
         describeAction={historyDescription}
     />{/snippet}
+
+{#snippet mapScene(interactive: boolean, extents: readonly BoundingBox[] = [])}
+    <MapScene
+        revenueStageColors={session.mapView.revenueStageColors}
+        scene={displayedScene}
+        artwork={boardArtwork}
+        tokens={session.map.displayedTokens}
+        reservations={session.track.displayedPreview?.stationReservations ??
+            session.stations.displayState.stationReservations}
+        routes={mapRoutes}
+        selection={session.isViewingHistory
+            ? historyMapSettled
+                ? historicalFocus?.selection
+                : undefined
+            : session.map.selection}
+        maskUnavailableLocations={!!mapMask}
+        legalLocationIds={mapMask?.legalLocationIds}
+        highlightedLocationIds={mapMask?.highlightedLocationIds}
+        previewLocationId={session.track.displayedPreview?.locationId ??
+            session.stations.preview?.position.locationId}
+        translucentLocationId={consentPreview?.details.locationId}
+        appearance={tileAppearance}
+        hexDiameter={140}
+        {extents}
+        onselect={interactive && !consentPreview
+            ? (selection) => session.map.select(selection, false)
+            : undefined}
+    />
+{/snippet}
+
+{#snippet boardInsets()}
+    {#if boardAreas?.market}<BoardInset
+            label="Stock market"
+            area={viewportRect(boardViewport, boardAreas.market)}
+        >
+            {@const corner = boardInformation
+                ? marketLowerRightSpace(session.gameState.stockMarket)
+                : undefined}
+            <div class="board-market">
+                <StockMarketScene
+                    animation={session.marketAnimation}
+                    appearances={session.mapView.stations}
+                    market={session.gameState.stockMarket}
+                    companies={session.gameState.companies}
+                />
+                {#if boardInformation && corner}<div
+                        class="market-corner"
+                        style:left={`${corner.x}px`}
+                        style:top={`${corner.y}px`}
+                        style:width={`${corner.width}px`}
+                        style:height={`${corner.height}px`}
+                    >
+                        {@render boardInformation()}
+                    </div>{/if}
+            </div>
+        </BoardInset>{/if}
+    {#if boardAreas?.depot}<BoardInset
+            label="Train depot"
+            area={viewportRect(boardViewport, boardAreas.depot)}
+        >
+            <div class="board-depot">
+                <PhaseChartContent
+                    {money}
+                    {depotState}
+                    depotOnly
+                    chart={phaseChart}
+                    currentPhaseId={session.gameState.phaseId}
+                    {trainColors}
+                    tileColors={tileAppearance.colors}
+                    tileColorNames={tileAppearance.colorNames}
+                />
+            </div>
+        </BoardInset>{/if}
+{/snippet}
 
 {#snippet historyControls(bordered = true)}
     <HistoryControls
@@ -765,6 +919,12 @@
                         {#if operating && !gameState.result && companyOrder.length}
                             <div class="operating-order-footer">
                                 <div class="order-display">
+                                    {#if orderOverflowing}<CompanyOrderOverview
+                                            companies={companyOrder}
+                                            appearances={session.mapView.stations}
+                                            firstVisible={orderFirstVisible}
+                                            lastVisible={orderLastVisible}
+                                        />{/if}
                                     <CompanyOrderToggle
                                         showDetails={session.preferences.values
                                             .operatingOrderDisplay === 'details'}
@@ -780,6 +940,10 @@
                                     />
                                 </div>
                                 <CompanyOrder
+                                    overview={false}
+                                    bind:overflowing={orderOverflowing}
+                                    bind:firstVisible={orderFirstVisible}
+                                    bind:lastVisible={orderLastVisible}
                                     {money}
                                     showDetails={session.preferences.values
                                         .operatingOrderDisplay === 'details'}
@@ -883,45 +1047,60 @@
                             </div>
                         {:else if id === 'Actions'}<div class="workspace-view actions-area">
                                 {@render actionContent()}
-                            </div>{:else if id === 'Map'}<div class="workspace-view map-area">
+                            </div>{:else if id === 'Map'}<div
+                                class="workspace-view map-area"
+                                class:board-area={boardMode}
+                            >
+                                {#if boardMode}<div class="board-focus-strip">
+                                        <BoardFocus options={boardFocusOptions} />
+                                    </div>{/if}
                                 <ScalingWrapper
                                     bind:this={mapWrapper}
                                     maxScale={2}
                                     onManualViewChange={() => {
                                         restoreRouteView = undefined
+                                        boardFocus = undefined
                                     }}
                                     justify="center"
                                     controls="bottom-left"
                                     expandable={true}
                                 >
-                                    <MapScene
-                                        revenueStageColors={session.mapView.revenueStageColors}
-                                        scene={displayedScene}
-                                        artwork={boardArtwork}
-                                        tokens={session.map.displayedTokens}
-                                        reservations={session.track.displayedPreview
-                                            ?.stationReservations ??
-                                            session.stations.displayState.stationReservations}
-                                        routes={mapRoutes}
-                                        selection={session.isViewingHistory
-                                            ? historyMapSettled
-                                                ? historicalFocus?.selection
-                                                : undefined
-                                            : session.map.selection}
-                                        maskUnavailableLocations={!!mapMask}
-                                        legalLocationIds={mapMask?.legalLocationIds}
-                                        highlightedLocationIds={mapMask?.highlightedLocationIds}
-                                        previewLocationId={session.track.displayedPreview
-                                            ?.locationId ??
-                                            session.stations.preview?.position.locationId}
-                                        translucentLocationId={consentPreview?.details.locationId}
-                                        appearance={tileAppearance}
-                                        hexDiameter={140}
-                                        onselect={consentPreview
-                                            ? undefined
-                                            : (selection) => session.map.select(selection, false)}
-                                    />
+                                    {#if boardMode}<div class="board-view">
+                                            {@render mapScene(true, boardExtents)}
+                                            {@render boardInsets()}
+                                        </div>
+                                    {:else}{@render mapScene(true)}{/if}
                                     {#snippet overlay(viewport)}
+                                        {#if active && session.track.canBuild && session.track.selection.locationId}
+                                            <TrackTilePicker
+                                                {session}
+                                                {viewport}
+                                                appearance={tileAppearance}
+                                            />
+                                        {/if}
+                                    {/snippet}
+                                </ScalingWrapper>
+                            </div>{:else if id === 'Board'}<div class="workspace-view map-area">
+                                <ScalingWrapper
+                                    bind:this={boardWrapper}
+                                    insetTop={44}
+                                    justify="center"
+                                    controls="bottom-left"
+                                    expandable={true}
+                                    allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
+                                    onManualViewChange={() => {
+                                        restoreRouteView = undefined
+                                        boardFocus = undefined
+                                    }}
+                                >
+                                    <div class="board-view">
+                                        {@render mapScene(true, boardExtents)}
+                                        {@render boardInsets()}
+                                    </div>
+                                    {#snippet overlay(viewport)}
+                                        <div class="board-focus-overlay">
+                                            <BoardFocus options={boardFocusOptions} />
+                                        </div>
                                         {#if active && session.track.canBuild && session.track.selection.locationId}
                                             <TrackTilePicker
                                                 {session}
@@ -1014,7 +1193,17 @@
                     {:else}
                         <div class="original-actions">{@render actionContent()}</div>
                         <TabWorkspace
-                            tabs={workspaceTabs.filter((tab) => tab.id !== 'Actions')}
+                            tabs={workspaceTabs
+                                .filter(
+                                    (tab) =>
+                                        tab.id !== 'Actions' &&
+                                        !(boardAvailable && tab.id === 'Market')
+                                )
+                                .map((tab) =>
+                                    boardAvailable && tab.id === 'Map'
+                                        ? { ...tab, label: 'Board' }
+                                        : tab
+                                )}
                             bind:selected={selectedView}
                             label="Table views"
                             splittable={false}
@@ -1178,8 +1367,16 @@
         color: var(--rail-muted, #887969);
     }
     .order-display {
-        display: flex;
-        justify-content: flex-end;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+    }
+    .order-display > :global(*) {
+        grid-column: 2;
+    }
+    .order-display > :global(:last-child) {
+        grid-column: 3;
+        justify-self: end;
     }
     .railway-table {
         --workspace-text: var(--rail-text, #443c34);
@@ -1388,6 +1585,51 @@
     .map-area {
         background: var(--rail-map-background, #cbdfe8);
         position: relative;
+    }
+    .map-area.board-area {
+        display: flex;
+        flex-direction: column;
+    }
+    .board-area > :global(:last-child) {
+        flex: 1;
+        min-height: 0;
+    }
+    .board-focus-strip {
+        display: flex;
+        flex: none;
+        justify-content: center;
+        border-bottom: 1px solid var(--rail-border, #b8a995);
+    }
+    .board-focus-strip > :global(:first-child button) {
+        padding: 2px 12px;
+        font-size: 11px;
+    }
+    .board-focus-overlay {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 2;
+        border-radius: 999px;
+        box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+    }
+    .board-view {
+        position: relative;
+        width: max-content;
+    }
+    .board-view > :global(svg) {
+        display: block;
+    }
+    .board-depot {
+        width: 420px;
+    }
+    .board-market {
+        position: relative;
+    }
+    .market-corner {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     .map-area,
     .market-area {

@@ -69,3 +69,4 @@ export { createPhaseChart, type PhaseChartData } from './phases/phaseChart.js'
 export * from './stock/marketAnimationSource.js'
 
 export { marketColors } from './stock/marketColors.js'
+export { MarketTokenSize } from './stock/marketTokenLayout.js'

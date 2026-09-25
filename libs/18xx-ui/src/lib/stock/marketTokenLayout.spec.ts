@@ -5,7 +5,9 @@ import {
     expandedMarketStack,
     MarketCellHeight,
     MarketCellWidth,
-    MarketTokenSize
+    MarketScenePadding,
+    MarketTokenSize,
+    marketLowerRightSpace
 } from './marketTokenLayout.js'
 
 it('centers one token and stacks two vertically without overlap', () => {
@@ -67,4 +69,24 @@ it('keeps stack layer order when a marker arrives in an occupied cell', () => {
     const tokens = marketTokenLayout(market)
     expect(tokens.map((item) => item.companyId)).toEqual(['B', 'A'])
     expect(tokens[0].z).toBeGreaterThan(tokens[1].z)
+})
+it('finds the largest empty lower-right rectangle of a staircase market', () => {
+    const market = createRectangularStockMarket(
+        [
+            [100, 110, 120, 130, 140],
+            [90, 100, 110, 120, null],
+            [80, 90, 100, null, null],
+            [70, 80, null, null, null]
+        ],
+        () => 'white'
+    )
+    expect(marketLowerRightSpace(market)).toEqual({
+        x: MarketScenePadding + 3 * MarketCellWidth,
+        y: MarketScenePadding + 2 * MarketCellHeight,
+        width: 2 * MarketCellWidth,
+        height: 2 * MarketCellHeight
+    })
+    expect(
+        marketLowerRightSpace(createRectangularStockMarket([[100, 110]], () => 'white'))
+    ).toBeUndefined()
 })

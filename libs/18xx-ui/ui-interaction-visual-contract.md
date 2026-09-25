@@ -664,6 +664,37 @@ with no market heading, order summary or nested scroll frame. The scene owns onl
 the market spaces and company markers; the prototype StockMarket view composes
 that same scene with its existing inspection chrome. Map and Market retain separate
 pan/zoom positions while mounted; their shared tab strip remains outside both.
+A title that declares board areas gets a Board view: the same map scene as Map,
+interactive in the same way, in the current generic or published presentation,
+with table panels drawn into those areas: the StockMarketScene in the market area
+and the Depot tab's train table in the depot area. Each panel keeps its natural
+layout and is scaled as a whole to fit its area, centered, so it zooms with the
+map. Areas are in map units, so they lie at the same place relative to the hexes
+in both presentations; the generic view extends its bounds to include them. A
+title may also supply board information, drawn inside the market panel in the
+largest empty rectangle of the market's lower-right corner so it shares the
+market's scale; TOP shows its named tranches there with slots the size of market
+tokens. The panels behave as in their own tabs, including market hover and move
+animations.
+
+In the paned layout Board is an optional tab added from the pane menu; Map, Market
+and Depot are unchanged. Below the paned breakpoint the Map tab shows the board
+instead, labelled Board and selected by default, and Market is not offered.
+
+Map framing (placement choices, route previews, company starts, hex, company and
+route focus, history steps and their restores) applies to every open map view,
+Map and Board, each with its own bounds. A flow that brings the map forward
+selects Map only when Board is not already visible.
+
+A Full / Market / Depot sliding toggle, listing Market and Depot only when their
+areas exist, focuses the board. In the paned Board tab it overlays the upper-left
+corner at a fixed size, and the view keeps a 44px screen-space inset at the top so
+the fitted board rests below it; the board still pans beneath it when zoomed.
+Below the paned breakpoint it sits centered in a tight strip above the board.
+Choosing one animates the view to fit the whole board or that area and marks it
+selected; choosing the selected one again animates back to the view captured
+before the first focus, even after switching between targets. A manual pan or
+zoom clears the selection and forgets that view. Focus never changes Game State.
 Market cells share single-width borders with values at the upper left. In the
 dark table, neutral (white) cells use the raised table surface and table borders,
 while colored cells keep each market color's hue at dark-surface lightness,

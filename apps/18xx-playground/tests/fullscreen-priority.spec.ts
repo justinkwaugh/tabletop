@@ -114,7 +114,7 @@ test('phone fullscreen vertically centers content and restores embedded position
 }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/table')
-    const map = page.getByRole('tabpanel', { name: 'Map', exact: true })
+    const map = page.getByRole('tabpanel', { name: 'Board', exact: true })
     const surface = map.locator('.scaling-surface')
     const offsets = () =>
         surface.evaluate((element) => {
