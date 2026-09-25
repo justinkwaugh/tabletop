@@ -8,11 +8,7 @@ for (const title of ['TOP', '1889']) {
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         const header = page.getByRole('banner', { name: 'Game phase' })
         await expect(header).toContainText(title === 'TOP' ? 'Charlottetown' : 'Iyo Railway')
-        await header.locator('.player-name').evaluate((element) => {
-            const name = [...element.childNodes].find((node) => node.nodeType === Node.TEXT_NODE)
-            if (!name) throw new Error('Missing player name')
-            name.textContent = 'AlexanderthegreatofCharlottetown'
-        })
+        await expect(header.locator('.player-name')).toHaveCount(0)
         for (const width of [320, 393, 640, 900]) {
             await page.setViewportSize({ width, height: 900 })
             await expect
@@ -24,9 +20,7 @@ for (const title of ['TOP', '1889']) {
                     if (!action || !map) throw new Error('Missing action or map column')
                     return header.evaluate(
                         (element, bounds) => {
-                            const visible = [
-                                ...element.querySelectorAll('.phase, .turn, .player-name, button')
-                            ]
+                            const visible = [...element.querySelectorAll('.phase, .turn, button')]
                             return (
                                 visible.every((child) => {
                                     const rect = child.getBoundingClientRect()

@@ -144,7 +144,6 @@
         {#if centered}<span class="separator" aria-hidden="true">/</span>{@render turnLabel()}{/if}
     </div>
     <div class="turn">
-        {#if !centered}{@render turnLabel()}{/if}
         <button
             onclick={() => session.undo()}
             disabled={session.busy ||
@@ -225,8 +224,7 @@
         margin-left: auto;
         justify-content: flex-end;
     }
-    header:not(.centered) .company,
-    header:not(.centered) .player-name {
+    header:not(.centered) .company {
         min-width: 0;
         white-space: normal;
         overflow-wrap: anywhere;
