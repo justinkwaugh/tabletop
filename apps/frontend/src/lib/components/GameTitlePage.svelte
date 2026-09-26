@@ -82,13 +82,18 @@
 
 <Modal
     bind:open={creating}
-    title="Start a game"
+    title={metadata.name}
     size="xs"
     outsideclose
     class="backdrop:bg-black/70 dark:bg-gray-900 border border-highlight-border dark:border-highlight-border divide-y-0"
     classes={{ header: "font-['Inter'] text-2xl" }}
 >
-    <GameEditForm {title} oncancel={() => (creating = false)} onsave={onGameCreated} />
+    <GameEditForm
+        {title}
+        showHeading={false}
+        oncancel={() => (creating = false)}
+        onsave={onGameCreated}
+    />
 </Modal>
 
 <style>

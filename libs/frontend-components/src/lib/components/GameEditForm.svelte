@@ -59,12 +59,14 @@
         game,
         title,
         hotseatOnly = false,
+        showHeading = true,
         oncancel,
         onsave
     }: {
         game?: Game
         title?: GameUiDefinition<GameState, HydratedGameState>
         hotseatOnly?: boolean
+        showHeading?: boolean
         oncancel: () => void
         onsave: (game: Game) => void
     } = $props()
@@ -108,7 +110,9 @@
     let unexpectedError = $state(false)
     let errors: Record<string, string[]> = $state({})
     let name = $state(editedGame.name)
-    let config = $state(untrack(() => normalizeGameConfig(editedGame.config, gameTitle.info.configurator)))
+    let config = $state(
+        untrack(() => normalizeGameConfig(editedGame.config, gameTitle.info.configurator))
+    )
     let seed = $state('')
     let numPlayers = $state(
         mode === EditMode.Edit
@@ -118,6 +122,12 @@
     let players: Player[] = $state(editedGame.players)
     let isPublic: boolean = $state(editedGame.isPublic)
     let isHotseat: boolean = $state(hotseatOnly || editedGame.hotseat)
+    let showPublicToggle = $derived(
+        getTitleVisibility(gameTitle.info.metadata) === GameVisibility.Public &&
+            mode === EditMode.Create &&
+            !isHotseat
+    )
+    let showHotseatToggle = $derived(!hotseatOnly && !isPublic)
     let minPlayers: number = $derived(gameTitle?.info.metadata.minPlayers ?? 1)
     let maxPlayers: number = $derived(gameTitle?.info.metadata.maxPlayers ?? 1)
 
@@ -340,20 +350,11 @@
     />
 {/snippet}
 
-<div class="flex flex-row w-full justify-between items-center mb-4">
-    <div>
-        <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200">
-            {gameTitle.info.metadata.name}
-        </h1>
-    </div>
-    <div>
-        {#if !hotseatOnly && !isPublic}
-            <Toggle bind:checked={isHotseat} classes={{ span: 'me-0' }}
-                >{#snippet offLabel()}Hotseat{/snippet}</Toggle
-            >
-        {/if}
-    </div>
-</div>
+{#if showHeading}
+    <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200 mb-4">
+        {gameTitle.info.metadata.name}
+    </h1>
+{/if}
 {#if unexpectedError}
     <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
         <span class="font-bold text-lg">Oops...</span><br />
@@ -471,8 +472,15 @@
             {/if}
         {/each}
     </div>
-    {#if getTitleVisibility(gameTitle.info.metadata) === GameVisibility.Public && mode === EditMode.Create}
-        <Toggle bind:checked={isPublic}>Public</Toggle>
+    {#if showPublicToggle || showHotseatToggle}
+        <div class="flex flex-row items-center gap-6">
+            {#if showPublicToggle}
+                <Toggle bind:checked={isPublic}>Public</Toggle>
+            {/if}
+            {#if showHotseatToggle}
+                <Toggle bind:checked={isHotseat}>Hotseat</Toggle>
+            {/if}
+        </div>
     {/if}
     {#if gameTitle.info.configurator && gameTitle.info.configurator.options.length > 0}
         <div
