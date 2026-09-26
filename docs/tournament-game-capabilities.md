@@ -71,12 +71,14 @@ Hosted games continue to follow the current Publication (ADR-0003). No runtime v
 | Artifact combination | Behavior |
 | --- | --- |
 | New engine, older initializer without `supportsStartingPositions` | Ordinary games continue; assigned initialization rejects explicitly. Existing result fields remain usable. |
-| Existing engine, updated Sol/Urbino runtime | Ordinary initializer calls remain valid because the assignment is optional. The options-object form requires the new engine. |
-| New engine, updated Sol/Urbino runtime | Supports assigned setup and retains existing result fields. |
-| Existing Site Frontend, new Sol/Urbino UI Artifact | No new injected host capability is required. |
+| Existing engine, updated title runtime | Ordinary initializer calls remain valid because the assignment is optional. The options-object form requires the new engine. |
+| New engine, updated title runtime | Supports assigned setup and retains existing result fields. |
+| Existing Site Frontend, updated title UI Artifact | No new injected host capability is required. |
 | New Site Frontend, older UI Artifact | Existing host contract remains compatible; updating the site does not add setup options to the old bundled engine. |
 
-Sol, Urbino and Fresh Fish require matching Logic and UI Publications to adopt the initializer/runtime changes. Rebuild and publish both artifacts for each title; publishing only the Site Frontend is insufficient. Other titles need no republishing solely because the optional initializer argument exists, but each needs its own matching publication when it adopts assigned initialization. An already-loaded old client can continue playing an assigned game because the resulting state and action contracts are unchanged; it need not initialize or score the tournament itself.
+Every title that adopts assigned initialization or `scoring` requires matching Logic and UI Publications; publishing only the Site Frontend is insufficient. Bridges of Shangri-La, Bus, The Estates and Indonesia need them for their new initializers and final scores; Kaivai, Lowenherz, Santiago, Sol and Urbino need them for final scores. The backend reads both capabilities from the served Logic runtime, so until a title's new Logic is published it stays out of the tournament form and its finished games record no final scores. Titles need no republishing solely because the optional initializer argument exists.
+
+The Site Frontend's eligible-title request adds `listTournamentTitles` to `TabletopApi`. Game Sessions receive that API as `RemoteApiService` but do not call the new method, so older UI Artifacts remain compatible and none needs republishing for it. An already-loaded old client can continue playing an assigned game because the resulting state and action contracts are unchanged; it need not initialize or score the tournament itself.
 
 Tests cover absent-capability rejection and ordinary initialization without the new capability, canonical initialization, existing replay/visibility behavior, and unchanged title actions. The mixed-artifact matrix above follows the unchanged interfaces; production artifact rollout and full hosted tournament execution remain later work. No production Publication is changed by this slice.
 
