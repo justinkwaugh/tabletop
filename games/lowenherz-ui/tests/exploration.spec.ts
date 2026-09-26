@@ -26,17 +26,22 @@ async function createPrivateMoneyGame(page: Page) {
     await page
         .getByPlaceholder('optional reproduction seed')
         .fill('0123456789abcdef0123456789abcdef')
-    for (const id of ['publicMoney', 'playerPlacedCastles']) {
+    for (const id of ['privateMoney', 'standardSetup']) {
         await page
             .locator('label')
             .filter({ has: page.locator(`#${id}`) })
             .click()
-        await expect(page.locator(`#${id}`)).not.toBeChecked()
+        await expect(page.locator(`#${id}`)).toBeChecked()
     }
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
     await expect.poll(() => page.evaluate(() => !!window.lowenherzSession)).toBe(true)
+    await expect.poll(() => page.evaluate(() => window.lowenherzSession.game.config)).toEqual({
+        privateMoney: true,
+        standardSetup: true,
+        allowZeroDucatOffers: false
+    })
 }
 
 test('private-money exploration requires Host View and preserves its source through play and Undo', async ({

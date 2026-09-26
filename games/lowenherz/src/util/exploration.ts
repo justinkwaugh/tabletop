@@ -43,7 +43,7 @@ export function populateLowenherzExploration({
         actions,
         random
     )
-    const usesConstruction = game.players.length === 2 || game.config.playerPlacedCastles !== false
+    const usesConstruction = game.players.length === 2 || game.config.standardSetup !== true
     const remaining = ActionCardDeck.filter((card) => usesConstruction || card.back !== CardBack.A)
     for (const action of actions) {
         if (!isDrawActionCard(action)) continue

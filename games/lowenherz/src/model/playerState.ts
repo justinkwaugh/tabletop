@@ -7,7 +7,7 @@ import { MachineState } from '../definition/states.js'
 
 const moneyPolicy = Visibility.Policy.anyOf(
     Visibility.Policy.Owner,
-    Visibility.Policy.configEquals('publicMoney', true, { defaultValue: true }),
+    Visibility.Policy.configEquals('privateMoney', false, { defaultValue: false }),
     Visibility.Policy.stateEquals('machineState', MachineState.EndOfGame)
 )
 

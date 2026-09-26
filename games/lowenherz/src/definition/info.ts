@@ -1,7 +1,7 @@
 
 import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
-import { LowenherzConfigurator } from './configurator.js'
+import { lowenherzConfigurator } from './configurator.js'
 
 export const LowenherzInfo: GameInfo = {
     id: 'lowenherz',
@@ -21,5 +21,5 @@ export const LowenherzInfo: GameInfo = {
         version: GAME_VERSION,
         beta: true
     },
-    configurator: new LowenherzConfigurator()
+    configurator: lowenherzConfigurator
 }

@@ -261,8 +261,7 @@
                 {@const thumbnail = libraryService.getThumbnailForTitle(tournament.rules.titleId)}
                 {@const options = gameCardOptions(
                     tournament.rules.gameConfig,
-                    libraryService.getTitle(tournament.rules.titleId)?.info.configurator?.options ??
-                        []
+                    libraryService.getTitle(tournament.rules.titleId)?.info.configurator ?? []
                 )}
                 <a
                     href={`/tournaments/${tournament.id}`}

@@ -254,7 +254,7 @@
 
     let title = $derived.by(() => titlesById[game.typeId])
     let displayableConfigs = $derived(
-        gameCardOptions(game.config ?? {}, title?.info.configurator?.options ?? [])
+        gameCardOptions(game.config ?? {}, title?.info.configurator ?? [])
     )
 </script>
 

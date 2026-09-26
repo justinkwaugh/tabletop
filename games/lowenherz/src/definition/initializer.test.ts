@@ -3,7 +3,7 @@ import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { PoliticsCardType } from './politicsCards.js'
 import { describe, expect, it } from 'vitest'
 import { Game, GameConfig, GameStatus, GameStorage, PlayerStatus } from '@tabletop/common'
-import { LowenherzGameInitializer } from './initializer.js'
+import { LowenherzRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 import { CardBack } from './actionCards.js'
 import { RULEBOOK_CASTLE_MIN_DISTANCE } from '../model/gameState.js'
@@ -33,7 +33,7 @@ function buildGame(playerCount: number, config: GameConfig = {}): Game {
 
 describe('LowenherzGameInitializer', () => {
     it('keeps turnOrder stable even after turnManager.turnOrder is rotated in place', () => {
-        const initializer = new LowenherzGameInitializer()
+        const initializer = LowenherzRuntime.initializer
         const game = buildGame(4)
 
         const state = initializer.initializeGameState(game, {
@@ -60,7 +60,7 @@ describe('LowenherzGameInitializer', () => {
     })
 
     it('records the rulebook castle distance so the game keeps it even if the rule is read differently later', () => {
-        const initializer = new LowenherzGameInitializer()
+        const initializer = LowenherzRuntime.initializer
         const game = buildGame(4)
 
         const state = initializer.initializeGameState(game, {
@@ -78,7 +78,7 @@ describe('LowenherzGameInitializer', () => {
     })
 
     it('deals all 13 politics cards across the two piles with the printed multiplicities, and gives every player an empty hand', () => {
-        const initializer = new LowenherzGameInitializer()
+        const initializer = LowenherzRuntime.initializer
         const game = buildGame(4)
 
         const state = initializer.initializeGameState(game, {
@@ -102,7 +102,7 @@ describe('LowenherzGameInitializer', () => {
     })
 
     it('defaults to the player-placed-castles flow, with the A-deck stacked on top', () => {
-        const initializer = new LowenherzGameInitializer()
+        const initializer = LowenherzRuntime.initializer
         const game = buildGame(4)
 
         const state = initializer.initializeGameState(game, {
@@ -132,7 +132,7 @@ describe('LowenherzGameInitializer', () => {
     })
 
     it('switches to the fixed basic-game setup when playerPlacedCastles is off', () => {
-        const initializer = new LowenherzGameInitializer()
+        const initializer = LowenherzRuntime.initializer
         const game = buildGame(4, { playerPlacedCastles: false })
 
         const state = initializer.initializeGameState(game, {
@@ -159,7 +159,7 @@ describe('LowenherzGameInitializer', () => {
     })
 
     it('ignores playerPlacedCastles=off at 2 players, since that variant IS manual placement', () => {
-        const initializer = new LowenherzGameInitializer()
+        const initializer = LowenherzRuntime.initializer
         const game = buildGame(2, { playerPlacedCastles: false })
 
         const state = initializer.initializeGameState(game, {
@@ -194,7 +194,7 @@ describe('LowenherzGameInitializer', () => {
         // The piles are unordered - a player commits to a pile and takes whichever card in it
         // they like - so shuffling each in place conceals nothing. What has to be randomized is
         // which pile a card is in.
-        const initializer = new LowenherzGameInitializer()
+        const initializer = LowenherzRuntime.initializer
         const state = initializer.initializeGameState(buildGame(3), {
             id: 'game-1',
             gameId: 'game-1',
@@ -236,5 +236,45 @@ describe('LowenherzGameInitializer', () => {
 
         // Forty redeals of a 13-card deck: an in-place shuffle would never move one across.
         expect(anyCardMoved).toBe(true)
+    })
+})
+
+describe('configuration format compatibility', () => {
+    it.each([2, 3, 4])('initializes equivalent states for all options with %i players', (count) => {
+        const initializer = LowenherzRuntime.initializer
+        for (const privateMoney of [false, true]) {
+            for (const standardSetup of [false, true]) {
+                for (const allowZeroDucatOffers of [false, true]) {
+                    const initial = {
+                        id: 'game-1',
+                        gameId: 'game-1',
+                        activePlayerIds: [],
+                        actionCount: 0,
+                        actionChecksum: 0,
+                        prng: { seed: 1, invocations: 0 },
+                        protectedPrng: { seed: 2, invocations: 0 },
+                        systemVersion: 3,
+                        winningPlayerIds: []
+                    }
+                    const legacy = initializer.initializeGameState(
+                        buildGame(count, {
+                            publicMoney: !privateMoney,
+                            playerPlacedCastles: !standardSetup,
+                            minimumOneDucat: !allowZeroDucatOffers
+                        }),
+                        structuredClone(initial)
+                    )
+                    const current = initializer.initializeGameState(
+                        buildGame(count, {
+                            privateMoney,
+                            standardSetup,
+                            allowZeroDucatOffers
+                        }),
+                        structuredClone(initial)
+                    )
+                    expect(current.dehydrate()).toEqual(legacy.dehydrate())
+                }
+            }
+        }
     })
 })

@@ -1,5 +1,12 @@
+import * as Type from 'typebox'
 import { describe, expect, it } from 'vitest'
-import { ConfigOptionType, defaultGameConfig, type GameConfigOptions } from '@tabletop/common'
+import {
+    ConfigOptionType,
+    defaultGameConfig,
+    normalizeGameConfig,
+    type GameConfigurator,
+    type GameConfigOptions
+} from '@tabletop/common'
 import { configuredGameOptions, gameCardOptions } from './gameOptions'
 
 describe('configured game options', () => {
@@ -68,4 +75,66 @@ describe('configured game options', () => {
         ])
         expect(gameCardOptions({ expert: true }, [])).toEqual([])
     })
+})
+
+it('normalizes legacy options before filtering game cards and displaying tournament rules', () => {
+    const configurator: GameConfigurator = {
+        schema: Type.Object({ privateMoney: Type.Optional(Type.Boolean()) }),
+        options: [
+            {
+                id: 'privateMoney',
+                name: 'Private money',
+                description: '',
+                type: ConfigOptionType.Boolean,
+                default: false
+            }
+        ],
+        normalizeConfig(config) {
+            return { privateMoney: config.privateMoney ?? config.publicMoney === false }
+        },
+        validateConfig() {},
+        updateConfig(config, update) {
+            config[update.id] = update.value
+        }
+    }
+    expect(gameCardOptions({ publicMoney: false }, configurator)).toEqual([
+        { name: 'Private money', value: 'Yes' }
+    ])
+    expect(gameCardOptions({ publicMoney: true }, configurator)).toEqual([])
+    expect(configuredGameOptions({ publicMoney: false }, configurator)).toEqual([
+        { name: 'Private money', value: 'Yes' }
+    ])
+})
+
+it('uses runtime null semantics for summaries and preserves older configurator behavior', () => {
+    const options: GameConfigOptions = [
+        {
+            id: 'enabled',
+            type: ConfigOptionType.Boolean,
+            name: 'Enabled',
+            description: '',
+            default: true
+        }
+    ]
+    const legacyConfigurator: GameConfigurator = {
+        schema: Type.Object({}),
+        options,
+        validateConfig() {},
+        updateConfig() {}
+    }
+    const configurator: GameConfigurator = {
+        ...legacyConfigurator,
+        normalizeConfig(config) {
+            const { legacyMode, ...current } = config
+            return { ...current, enabled: current.enabled ?? legacyMode === null }
+        }
+    }
+    const stored = { legacyMode: null }
+    expect(normalizeGameConfig(stored, configurator)).toEqual({ enabled: false })
+    expect(configuredGameOptions(stored, configurator)).toEqual([{ name: 'Enabled', value: 'No' }])
+    expect(gameCardOptions(stored, configurator)).toEqual([{ name: 'Enabled', value: 'No' }])
+    expect(configuredGameOptions({ enabled: null }, legacyConfigurator)).toEqual(
+        configuredGameOptions({ enabled: null }, options)
+    )
+    expect(stored).toEqual({ legacyMode: null })
 })

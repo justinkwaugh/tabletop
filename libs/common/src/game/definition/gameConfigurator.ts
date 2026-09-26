@@ -2,7 +2,14 @@ import type * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import type { GameConfig, GameConfigOptions } from '../model/gameConfig.js'
 
-export interface GameConfigurator {
+export interface GameConfigNormalizer<C extends GameConfig = GameConfig> {
+    // Receives null-stripped stored values and returns canonical config; pure and idempotent.
+    normalizeConfig(config: GameConfig): C
+}
+
+export interface GameConfigurator<C extends GameConfig = GameConfig> extends Partial<
+    GameConfigNormalizer<C>
+> {
     schema: Type.TSchema
     options: GameConfigOptions
 
@@ -13,7 +20,9 @@ export interface GameConfigurator {
     ): void
 }
 
-export abstract class BaseConfigurator implements GameConfigurator {
+export abstract class BaseConfigurator<
+    C extends GameConfig = GameConfig
+> implements GameConfigurator<C> {
     abstract schema: Type.TSchema
     abstract options: GameConfigOptions
 

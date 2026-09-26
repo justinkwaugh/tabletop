@@ -486,7 +486,7 @@
                 </section>
                 <TournamentGameOptions
                     config={tournament.rules.gameConfig}
-                    definitions={title?.info.configurator?.options}
+                    configurator={title?.info.configurator}
                 />
                 <section
                     class="border-t border-gray-200 pt-3 dark:border-gray-700/60"

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { GameStatus, type PublicGamePreview } from '@tabletop/common'
+import { GameStatus, normalizeGameConfig, type PublicGamePreview } from '@tabletop/common'
 import { Type, type Static } from 'typebox'
 
 const Params = Type.Object({ gameId: Type.String({ minLength: 1 }) })
@@ -33,7 +33,7 @@ export default async function (fastify: FastifyInstance) {
                 ownerId,
                 status,
                 players,
-                config,
+                config: normalizeGameConfig(config, definition.info.configurator),
                 titleName: definition.info.metadata.name,
                 configOptions: definition.info.configurator?.options ?? []
             }
