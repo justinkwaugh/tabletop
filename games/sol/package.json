@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/sol",
-    "version": "5.8.1",
+    "version": "5.8.2",
     "type": "module",
     "exports": {
         "import": "./esm/index.js",
