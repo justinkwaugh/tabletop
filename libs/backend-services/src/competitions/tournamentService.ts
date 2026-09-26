@@ -35,6 +35,9 @@ import type { TaskService } from '../tasks/taskService.js'
 
 import type { GameService } from '../games/gameService.js'
 
+const seatsAssignedStartingOrder = (title: Pick<GameDefinition, 'runtime'>) =>
+    title.runtime.initializer.supportsStartingPositions === true
+
 export class TournamentService {
     private readonly dispatcher: TournamentDispatcher
     constructor(
@@ -396,10 +399,9 @@ export class TournamentService {
         return tournament
     }
 
-    // Tournament tables are seated from an assigned starting order.
     tournamentTitleIds(): string[] {
         return Object.entries(this.titles)
-            .filter(([, title]) => title.runtime.initializer.supportsStartingPositions)
+            .filter(([, title]) => seatsAssignedStartingOrder(title))
             .map(([titleId]) => titleId)
     }
 
@@ -448,7 +450,7 @@ export class TournamentService {
         const gamesPerEntrant = draft.format.stages[0].gamesPerEntrant
         const title = this.titles[rules.titleId]
         if (!title) throw new TournamentError('This game title is unavailable', 400)
-        if (!title.runtime.initializer.supportsStartingPositions)
+        if (!seatsAssignedStartingOrder(title))
             throw new TournamentError('This game is not available for tournaments yet', 400)
         rules.gameConfig = normalizeGameConfig({
             ...defaultGameConfig(title.info.configurator?.options ?? []),
