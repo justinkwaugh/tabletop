@@ -40,6 +40,7 @@ const admin: User = {
 }
 
 function createService(supportsStartingPositions = true) {
+    const { initializer } = SyntheticRuntime
     const store: TournamentStore = {
         create: vi.fn(async (tournament) => tournament),
         read: vi.fn(),
@@ -76,14 +77,8 @@ function createService(supportsStartingPositions = true) {
                     ...SyntheticRuntime,
                     initializer: {
                         supportsStartingPositions,
-                        initializeGame: (game, definition) =>
-                            SyntheticRuntime.initializer.initializeGame(game, definition),
-                        initializeGameState: (game, state, assignment) =>
-                            SyntheticRuntime.initializer.initializeGameState(
-                                game,
-                                state,
-                                assignment
-                            )
+                        initializeGame: initializer.initializeGame.bind(initializer),
+                        initializeGameState: initializer.initializeGameState.bind(initializer)
                     }
                 }
             }
