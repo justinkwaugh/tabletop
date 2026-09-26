@@ -27,6 +27,10 @@ export const IndonesiaPlayerState = Type.Evaluate(
 
 export const IndonesiaPlayerStateValidator = Compile(IndonesiaPlayerState)
 
+export function totalMoney(player: IndonesiaPlayerState): number {
+    return player.cash + player.bank
+}
+
 export class HydratedIndonesiaPlayerState
     extends Hydratable<typeof IndonesiaPlayerState>
     implements IndonesiaPlayerState
