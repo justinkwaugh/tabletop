@@ -1,4 +1,5 @@
 import type { Tournament } from '@tabletop/common'
+import { startCountdownText } from './startCountdown'
 
 export function tournamentFormatText(format: Tournament['format']): string {
     return format.kind === 'mini' ? 'Mini tournament' : 'Multi-stage tournament'
@@ -54,10 +55,7 @@ export function tournamentStatusText(tournament: Tournament, now = Date.now()): 
     if (tournament.paused) return 'Scheduling paused'
     if (tournament.schedulingError && ['open', 'locked'].includes(tournament.status))
         return 'Start delayed'
-    if (tournament.startsAt !== undefined) {
-        const seconds = Math.max(0, Math.ceil((tournament.startsAt - now) / 1000))
-        return seconds > 0 ? `Starting in ${seconds}s` : 'Starting…'
-    }
+    if (tournament.startsAt !== undefined) return startCountdownText(tournament.startsAt, now)
     switch (tournament.status) {
         case 'draft':
             return 'Draft'

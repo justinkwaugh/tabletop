@@ -106,6 +106,7 @@ import {
     TournamentGameError
 } from './tournamentGames.js'
 import * as Value from 'typebox/value'
+import { enqueueGameAutoStart, type GameAutoStartTask } from './publicGameAutoStart.js'
 
 export class GameService {
     constructor(
@@ -688,6 +689,7 @@ export class GameService {
         } else {
             await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
         }
+        await this.ensureAutoStartScheduled(updatedGame)
 
         return updatedGame
     }
@@ -735,6 +737,7 @@ export class GameService {
         })
 
         if (updatedFields.length === 0) {
+            await this.ensureAutoStartScheduled(updatedGame)
             return updatedGame
         }
         const player = this.findValidPlayerForUser({ user, game: updatedGame })
@@ -744,6 +747,7 @@ export class GameService {
             await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
         }
         await this.notifyJoined(user, updatedGame, player)
+        await this.ensureAutoStartScheduled(updatedGame)
         return updatedGame
     }
 
@@ -846,56 +850,107 @@ export class GameService {
             throw new UnauthorizedAccessError({ user, gameId })
         }
 
-        let updatedGame: Game
+        const startedGame = await this.startReadyGame(definition, game, (existingGame) => {
+            if (existingGame.status !== GameStatus.WaitingToStart) {
+                throw new GameNotWaitingToStartError({ id: gameId })
+            }
+            return UpdateValidationResult.Proceed
+        })
+        assertExists(startedGame, `Game ${gameId} start was cancelled`)
+        await this.notifyStartedGame(startedGame)
+        return startedGame
+    }
 
+    async autoStartGame({ gameId, autoStartAt }: GameAutoStartTask): Promise<void> {
+        const game = await this.getGame({ gameId })
+        if (game?.autoStartAt?.getTime() !== autoStartAt) {
+            return
+        }
+
+        const startedGame = await this.startReadyGame(
+            this.getRequiredTitle(game),
+            game,
+            (existingGame) =>
+                existingGame.autoStartAt?.getTime() === autoStartAt
+                    ? UpdateValidationResult.Proceed
+                    : UpdateValidationResult.Cancel
+        )
+        if (!startedGame) {
+            return
+        }
+        try {
+            await this.notifyStartedGame(startedGame)
+        } catch (error) {
+            // A retried task would find the game started and could not resend these notifications.
+            console.error(`Failed to notify players that game ${gameId} started`, error)
+        }
+    }
+
+    private async ensureAutoStartScheduled(game: Game): Promise<void> {
+        if (game.autoStartAt) {
+            await enqueueGameAutoStart(this.taskService, game.id, game.autoStartAt)
+        }
+    }
+
+    private async startReadyGame(
+        definition: GameDefinition,
+        game: Game,
+        validateReady: (existingGame: Game) => UpdateValidationResult
+    ): Promise<Game | undefined> {
+        let readiness = UpdateValidationResult.Proceed
+        const validateCurrentReadyGame = (existingGame: Game) => {
+            readiness = validateReady(existingGame)
+            if (
+                readiness === UpdateValidationResult.Proceed &&
+                existingGame.updatedAt?.getTime() !== game.updatedAt?.getTime()
+            ) {
+                throw new GameUpdateCollisionError({ id: game.id })
+            }
+            return readiness
+        }
+
+        let startedGame: Game
         if (game.parentId) {
             // Forked games just need the status to be updated
-            ;[updatedGame] = await this.gameStore.updateGame({
+            ;[startedGame] = await this.gameStore.updateGame({
                 game,
                 fields: { startedAt: new Date(), status: GameStatus.Started },
-                validator: (existingGame) => {
-                    if (existingGame.status !== GameStatus.WaitingToStart) {
-                        throw new GameNotWaitingToStartError({ id: gameId })
-                    }
-                    return UpdateValidationResult.Proceed
-                }
+                validator: validateCurrentReadyGame
             })
         } else {
             const masterSeed =
                 definition.runtime.randomnessVersion === 1
-                    ? await this.gameStore.getMasterSeed(gameId)
+                    ? await this.gameStore.getMasterSeed(game.id)
                     : undefined
-            const { startedGame, initialState } = new GameEngine(definition.runtime).startGame(
-                game,
-                masterSeed
-            )
-            startedGame.state = initialState
-            ;[updatedGame] = await this.gameStore.updateGame({
+            const { startedGame: initializedGame, initialState } = new GameEngine(
+                definition.runtime
+            ).startGame(game, masterSeed)
+            ;[startedGame] = await this.gameStore.updateGame({
                 game,
                 fields: {
                     startedAt: new Date(),
                     status: GameStatus.Started,
-                    seed: startedGame.seed,
-                    ...(startedGame.protectedInformation ? { protectedInformation: true } : {}),
+                    seed: initializedGame.seed,
+                    ...(initializedGame.protectedInformation ? { protectedInformation: true } : {}),
                     state: initialState
                 },
                 validator: (existingGame, fieldsToUpdate) => {
-                    if (existingGame.status !== GameStatus.WaitingToStart) {
-                        throw new GameNotWaitingToStartError({ id: gameId })
+                    const result = validateCurrentReadyGame(existingGame)
+                    if (result === UpdateValidationResult.Proceed) {
+                        fieldsToUpdate.activePlayerIds = initialState?.activePlayerIds ?? []
                     }
-
-                    fieldsToUpdate.activePlayerIds = initialState?.activePlayerIds ?? []
-
-                    return UpdateValidationResult.Proceed
+                    return result
                 }
             })
         }
 
-        //TODO: Send game started email
-        await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
-        await this.notifyGameStarted(updatedGame)
+        return readiness === UpdateValidationResult.Proceed ? startedGame : undefined
+    }
 
-        return updatedGame
+    private async notifyStartedGame(game: Game): Promise<void> {
+        //TODO: Send game started email
+        await this.notifyGamePlayers(GameNotificationAction.Update, { game })
+        await this.notifyGameStarted(game)
     }
 
     @Retryable({
