@@ -9,6 +9,7 @@ import { BusGameInitializer } from './initializer.js'
 import { BusApiActions } from './apiActions.js'
 import { BusStateHandlers } from './stateHandlers.js'
 import { BusColors } from './colors.js'
+import { BusScoring } from './scoring.js'
 
 export const BusRuntime: GameRuntime<BusGameState, HydratedBusGameState> = {
     initializer: new BusGameInitializer(),
@@ -17,5 +18,6 @@ export const BusRuntime: GameRuntime<BusGameState, HydratedBusGameState> = {
     stateHandlers: BusStateHandlers,
     apiActions: BusApiActions,
     playerColors: BusColors,
+    scoring: new BusScoring(),
     stateLogger: new DefaultStateLogger() // This never really got used, but it could do some custom logging if desired
 }

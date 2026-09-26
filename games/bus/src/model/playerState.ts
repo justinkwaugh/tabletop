@@ -21,6 +21,11 @@ export const BusPlayerState = Type.Evaluate(
 
 export const BusPlayerStateValidator = Compile(BusPlayerState)
 
+// Rulebook time-stone penalty: each stone taken costs one point at game end.
+export function finalScore(player: BusPlayerState): number {
+    return player.score - player.stones
+}
+
 export class HydratedBusPlayerState
     extends Hydratable<typeof BusPlayerState>
     implements BusPlayerState
