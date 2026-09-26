@@ -14,6 +14,7 @@ import { KaivaiColors } from './colors.js'
 
 import { KaivaiActionSchemas } from './actionSchemas.js'
 import { KaivaiGameExploration } from './gameExploration.js'
+import { KaivaiScoring } from './scoring.js'
 
 export const KaivaiRuntime = {
     randomnessVersion: 1,
@@ -25,6 +26,7 @@ export const KaivaiRuntime = {
     apiActions: KaivaiApiActions,
     playerColors: KaivaiColors,
     stateLogger: new DefaultStateLogger(),
+    scoring: new KaivaiScoring(),
     visibility: {
         state: Visibility.createProjector(KaivaiGameState),
         actions: Visibility.createActionProjector(KaivaiActionSchemas)

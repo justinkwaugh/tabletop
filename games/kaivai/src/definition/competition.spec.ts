@@ -9,6 +9,7 @@ import {
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import type { PlaceBid } from '../actions/placeBid.js'
+import type { ScoreIsland } from '../actions/scoreIsland.js'
 import { KaivaiGameStateValidator } from '../model/gameState.js'
 import { ActionType } from './actions.js'
 import { Ruleset, type KaivaiGameConfig } from './gameConfig.js'
@@ -125,5 +126,65 @@ describe.each([3, 4])('Kaivai tournaments with %i players', (count) => {
             expect(state.winningPlayerIds).toEqual(['p0'])
             expect(() => validateGameResult(state)).not.toThrow()
         })
+
+        it.each([
+            { tied: false, scores: [14, 9, 11, 6], shells: [0, 0, 0, 0] },
+            { tied: true, scores: [12, 12, 8, 5], shells: [0, 3, 0, 0] }
+        ])(
+            'reports every final score and a top scorer as winner (primary tie $tied)',
+            ({ tied, scores, shells }) => {
+                const game = createGame(count, { ruleset, lucklessFishing: false })
+                const { startedGame, initialState } = engine.startGame(game, {
+                    masterSeed,
+                    startingPositions: {
+                        playerIds: game.players.map((player) => player.id).reverse()
+                    }
+                })
+                const scoring = KaivaiRuntime.hydrator.hydrateState(initialState)
+                const [islandId] = Object.keys(scoring.board.islands)
+                scoring.machineState = MachineState.FinalScoring
+                scoring.hutsScored = true
+                scoring.islandsToScore = [islandId]
+                scoring.chosenIsland = islandId
+                for (const [index, player] of scoring.players.entries()) {
+                    player.score = scores[index]
+                    player.shells = [shells[index], 0, 0, 0, 0]
+                }
+                const action: ScoreIsland = {
+                    id: 'score-last-island',
+                    gameId: game.id,
+                    source: ActionSource.System,
+                    type: ActionType.ScoreIsland,
+                    islandId
+                }
+                const finished = engine.executeCanonicalAction({
+                    game: startedGame,
+                    state: scoring.dehydrate(),
+                    action
+                }).updatedState
+
+                expect(finished.machineState).toBe(MachineState.EndOfGame)
+                expect(finished.result).toBe(GameResult.Win)
+                expect(finished.winningPlayerIds).toHaveLength(1)
+                expect(() => validateGameResult(finished)).not.toThrow()
+
+                const finalScores = KaivaiRuntime.scoring.finalScores(finished)
+                expect(Object.keys(finalScores).toSorted()).toEqual(
+                    game.players.map((player) => player.id).toSorted()
+                )
+                expect(finalScores).toEqual(
+                    Object.fromEntries(
+                        finished.players.map((player) => [player.playerId, player.score])
+                    )
+                )
+                const best = Math.max(...Object.values(finalScores))
+                const topScorers = Object.keys(finalScores).filter(
+                    (playerId) => finalScores[playerId] === best
+                )
+                expect(topScorers).toEqual(expect.arrayContaining(finished.winningPlayerIds))
+                expect(topScorers.length > 1).toBe(tied)
+                expect(finished.winningPlayerIds).toEqual([tied ? 'p1' : 'p0'])
+            }
+        )
     })
 })
