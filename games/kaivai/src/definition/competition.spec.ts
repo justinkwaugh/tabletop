@@ -140,13 +140,13 @@ describe.each([3, 4])('Kaivai tournaments with %i players', (count) => {
                         playerIds: game.players.map((player) => player.id).reverse()
                     }
                 })
-                const scoring = KaivaiRuntime.hydrator.hydrateState(initialState)
-                const [islandId] = Object.keys(scoring.board.islands)
-                scoring.machineState = MachineState.FinalScoring
-                scoring.hutsScored = true
-                scoring.islandsToScore = [islandId]
-                scoring.chosenIsland = islandId
-                for (const [index, player] of scoring.players.entries()) {
+                const finalRound = KaivaiRuntime.hydrator.hydrateState(initialState)
+                const [islandId] = Object.keys(finalRound.board.islands)
+                finalRound.machineState = MachineState.FinalScoring
+                finalRound.hutsScored = true
+                finalRound.islandsToScore = [islandId]
+                finalRound.chosenIsland = islandId
+                for (const [index, player] of finalRound.players.entries()) {
                     player.score = scores[index]
                     player.shells = [shells[index], 0, 0, 0, 0]
                 }
@@ -159,7 +159,7 @@ describe.each([3, 4])('Kaivai tournaments with %i players', (count) => {
                 }
                 const finished = engine.executeCanonicalAction({
                     game: startedGame,
-                    state: scoring.dehydrate(),
+                    state: finalRound.dehydrate(),
                     action
                 }).updatedState
 
