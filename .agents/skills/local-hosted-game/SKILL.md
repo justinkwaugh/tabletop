@@ -1,6 +1,6 @@
 ---
 name: local-hosted-game
-description: Run and verify a Game through the full local hosted site, including manifest-selected Logic and UI Artifacts, Firestore, Redis, the backend, the Site Frontend, and multiple client accounts. Use when hosted behavior such as authorization, notifications, persistence, or hidden-information projections cannot be exercised faithfully in the single-game development harness.
+description: Run the full local hosted site (Site Frontend, backend, Firestore, Redis, local task queue) with manifest-selected Game artifacts and multiple accounts. Use to verify a backend or Site Frontend change end to end, such as lobby, lifecycle, scheduled tasks, notifications, or persistence, or hosted Game behavior the single-game harness cannot exercise, such as authorization or hidden-information projections.
 ---
 
 # Local Hosted Game
@@ -9,7 +9,7 @@ Use the repository runner instead of rebuilding its orchestration in ad hoc shel
 
 ## Start the site
 
-1. Resolve the Game's `packageId` from the catalogue in `config/config-games/src/games.json`. If the request does not identify a Game and the intended one is not unambiguous, ask.
+1. Resolve the Game's `packageId` from the catalogue in `config/config-games/src/games.json`. For a site-level change, pick any catalogue Game whose player count suits the scenario. For Game-specific work where the request does not identify the Game and the intended one is not unambiguous, ask.
 2. From the repository root, start `tools/scripts/local-hosted-game.mjs <packageId>` in a persistent terminal session.
 3. Wait for `Local hosted game ready`. Do not report readiness based only on spawned processes; the runner checks both HTTP applications.
 4. Give the user the printed Site Frontend, backend, and Firestore emulator URLs. Keep the terminal session running while they test.

@@ -69,6 +69,9 @@ The pre-play state in which at least one configured Player is not Joined.
 **Ready**:
 The pre-play state in which every configured Player is Joined. Readiness is derived from Player participation.
 
+**Automatic Start**:
+A Public Game starts one minute after it becomes Ready. The countdown is cancelled if the game stops being Ready or public first, and restarts in full if it becomes Ready again. The Game Owner may start it sooner. Changing Game Configuration does not affect the countdown.
+
 **In Progress**:
 The lifecycle state of a Game Instance after it starts and before its Game State contains a result.
 

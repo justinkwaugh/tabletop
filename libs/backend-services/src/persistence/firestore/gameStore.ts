@@ -85,6 +85,7 @@ import {
     TournamentGameError
 } from '../../games/tournamentGames.js'
 import { TournamentCacheKeys } from './tournamentCacheKeys.js'
+import { publicGameAutoStartChange } from '../../games/publicGameAutoStart.js'
 import {
     StoredTournamentSchedule,
     loadTournamentSchedule
@@ -485,6 +486,13 @@ export class FirestoreGameStore implements GameStore {
                 updatedGame.status = GameStatus.WaitingForPlayers
                 fieldsToUpdate.status = updatedGame.status
                 updatedFields.push('status')
+            }
+
+            const autoStart = publicGameAutoStartChange(existingGame, updatedGame, Date.now())
+            if (autoStart) {
+                Object.assign(updatedGame, autoStart)
+                Object.assign(fieldsToUpdate, autoStart)
+                updatedFields.push('autoStartAt')
             }
 
             if (updatedFields.length > 0 || stateToUpdate) {
@@ -1832,6 +1840,7 @@ const gameConverter = {
         data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
         data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
         data.deletedAt = data.deletedAt ? (data.deletedAt as Timestamp).toDate() : undefined
+        data.autoStartAt = data.autoStartAt ? (data.autoStartAt as Timestamp).toDate() : undefined
         data.startedAt = data.startedAt ? (data.startedAt as Timestamp).toDate() : undefined
         data.finishedAt = data.finishedAt ? (data.finishedAt as Timestamp).toDate() : undefined
         data.lastActionAt = data.lastActionAt

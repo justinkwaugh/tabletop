@@ -69,6 +69,7 @@ export const Game = Type.Object({
     hotseat: Type.Boolean(),
     protectedInformation: Type.Optional(Type.Literal(true)),
     state: Type.Optional(GameState),
+    autoStartAt: Type.Optional(DateType()),
     startedAt: Type.Optional(DateType()),
     finishedAt: Type.Optional(DateType()),
     createdAt: DateType(),
