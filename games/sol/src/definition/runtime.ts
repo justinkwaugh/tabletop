@@ -13,6 +13,7 @@ import { SolApiActions } from './apiActions.js'
 import { SolStateHandlers } from './stateHandlers.js'
 import { SolColors } from './colors.js'
 import { SolActionSchemas } from './actionSchemas.js'
+import { SolScoring } from './scoring.js'
 
 export const SolRuntime = {
     randomnessVersion: 1,
@@ -24,6 +25,7 @@ export const SolRuntime = {
     apiActions: SolApiActions,
     playerColors: SolColors,
     stateLogger: new DefaultStateLogger(),
+    scoring: new SolScoring(),
     visibility: {
         state: Visibility.createProjector(SolGameState),
         actions: Visibility.createActionProjector(SolActionSchemas)
