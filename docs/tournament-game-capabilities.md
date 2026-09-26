@@ -1,6 +1,6 @@
 # Tournament game capabilities
 
-Slice 03 (#60) extends the existing `GameInitializer.initializeGameState` method with an optional starting-position assignment. This is general game setup, usable without a tournament. Results remain the existing `GameState.result` and `winningPlayerIds`; no parallel result model or outcome capability is introduced. Sol, Urbino and Fresh Fish adopt assigned setup; other titles require setup adoption and verification in #67. Registration still does not launch games. Balanced scheduling, managed provisioning and result settlement remain #61–#64.
+Slice 03 (#60) extends the existing `GameInitializer.initializeGameState` method with an optional starting-position assignment. This is general game setup, usable without a tournament. Results remain the existing `GameState.result` and `winningPlayerIds`; no parallel result model or outcome capability is introduced. Every published title except Container now adopts assigned setup; Container remains for #67. Registration still does not launch games. Balanced scheduling, managed provisioning and result settlement remain #61–#64.
 
 ## Setup contract
 
@@ -30,7 +30,7 @@ Tournament scoring will consume the authoritative Game State's existing `result`
 
 Sol records shared victories as Draw with winner IDs; Urbino can use Win with multiple winner IDs. Both declare the winners directly. Indonesia contains a defensive Draw branch with no winner IDs; tournament validation rejects it as an invalid result, and its terminal handler requires review during catalog adoption. Its normal ties already resolve through its title-owned turn-order tiebreak. If a title records an incorrect result, fix its terminal handler rather than introducing another interpretation layer.
 
-A title may additionally declare `GameRuntime.scoring` with `finalScores(state)` returning each Game Player ID's final in-game score from a finished canonical state. Tournament scoring uses it only as a tiebreak total between entrants with equal tournament score; see [results and standings](tournament-scoring.md). Fresh Fish declares it from the scores its terminal handler records. Other titles opt in by adding the capability; nothing is inferred from player state fields.
+A title may additionally declare `GameRuntime.scoring` with `finalScores(state)` returning each Game Player ID's final in-game score from a finished canonical state. Tournament scoring uses it only as a tiebreak total between entrants with equal tournament score; see [results and standings](tournament-scoring.md). Each title that declares it reports the primary value its terminal handler ranks by, never a tiebreak value, so a player who loses only on a title's own tiebreak still carries the top score. Container does not declare it yet. Titles opt in by adding the capability; nothing is inferred from player state fields.
 
 The frozen tournament scoring policy remains `splitWinsV1`. Game results are sporting facts; points, settlement and standings belong to the tournament service. Complete finishing positions are not required, and the existing tournament schema rejects placement policies. A future optional placement capability must be validated before opening registration and must not be inferred from scores.
 
@@ -42,17 +42,17 @@ This is a source-code audit, not certification of the unadopted titles or a new 
 | --- | --- | --- | --- |
 | Sol | 2–5 | Mothership seating, first turn, protected deck; momentum ties retain all winners. | Implemented and tested |
 | Urbino | 2 | Architect placement and first-position choice of first building player; terminal handler declares one or multiple winners. | Implemented and tested |
-| Bridges of Shangri-La | 3–4 | Initial turn order; score then occupied-village tiebreak, possibly shared winners. | #67 |
-| Bus | 3–5 | Ordered players and initial `scoreOrder`; time-stone penalties and final order-dependent tiebreak. | #67 |
+| Bridges of Shangri-La | 3–4 | Position zero acts first and play continues in the assigned order. Final score is masters on the board; occupied villages break ties and remaining ties share the win. No reproduction seed. | Implemented and tested |
+| Bus | 3–5 | Position zero places initial buildings and the first line segment, takes the first worker choice and leads the initial `scoreOrder`. Final score is score minus time stones; ties go to more stones, then earlier `scoreOrder`, so one player always wins. No reproduction seed. | Implemented and tested |
 | Container | 3–5 | Ordered setup distributes machines/value cards and optional broker state; final factory-store tiebreak can leave shared winners. | #67 |
-| The Estates | 2–5 | Initial auction actor, protected roofs and optional hidden money; money tiebreak can leave shared winners. | #67 |
+| The Estates | 2–5 | Position zero runs the first auction; the cube shuffle and protected roof bag are unchanged. Final score is the terminal score; money breaks ties and remaining ties share the win. | Implemented and tested |
 | Fresh Fish | 2–5 | Assigned initial actor and turn order; independent board seed and protected tile bag; terminal scoring declares tied winners. | Implemented and tested |
-| Indonesia | 3–5 | Ordered players and setup cards; terminal ties resolve in current turn order. Empty-winner Draw branch requires explicit handling. | #67 |
-| Kaivai | 3–4 | Initial bidding order, ruleset-dependent setup and later auction ordering; terminal handler chooses one winner from wealth ordering. | #67 |
-| Lowenherz | 2–4 | Initial `firstPlayerId` and separate fixed seating order; protected cards, final power/wealth scoring and shared ties. | #67 |
+| Indonesia | 3–5 | Position zero places the first city and acts first; city cards stay dealt by player, as in ordinary setup. Final score is cash plus bank; ties go to the earlier player in current turn order. The empty-winner branch is now an invariant. No reproduction seed. | Implemented and tested |
+| Kaivai | 3–4 | Position zero leads the initial bidding order. Final score is `score`; money, fish, boats and tiles break ties in that order, and the handler always declares one winner. | Implemented and tested |
+| Lowenherz | 2–4 | Position zero is the first player and the assigned order is the fixed seating. Final score is power points after the end-of-game Parchment award; wealth breaks ties and remaining ties share the win. | Implemented and tested |
 | The Old Prince (18xx) | 3–4 | Seating and first auctioneer; random Mainline, Shortline and lot piles keep their seeded draws. `EndGame` declares the highest final wealth, shared on ties. | Implemented and tested |
 | Shikoku 1889 (18xx) | 2–6 | Seating and first waterfall bidder; `EndGame` declares the highest final wealth, shared on ties. | Implemented and tested |
-| Santiago | 3–5 | Initial overseer is randomized separately; fixed seating, first bidder and optional manual spring placement must be assigned consistently. Terminal ties retain all winners. | #67 |
+| Santiago | 3–5 | Position zero is the initial overseer, with seating clockwise from it; the ordinary overseer draw is still consumed. Final score is plantation points plus remaining money; ties share the win. | Implemented and tested |
 
 The sample game is a development template, not a catalog adoption target. Future title adoption should include requested position permutations, actual first actor/setup decisions, unchanged ordinary setup, deterministic PRNG behavior, hidden-information projections where applicable, and actual terminal results.
 
