@@ -44,6 +44,16 @@ The UI package exports a `GameUiDefinition`. Its info adds the thumbnail, and it
 
 Every action type that may cross the serialized boundary must be registered in the API action schema and hydrator. Every machine-state value must have a handler.
 
+## Configuration at runtime
+
+A title with configuration compatibility rules defines a pure, idempotent `GameConfigurator<CanonicalConfig>.normalizeConfig`. Its input is stored `GameConfig`, including legacy keys; its output is the current title configuration. Shared `normalizeGameConfig` removes null-valued entries before invoking the hook, consistently across forms, summaries, and execution. Invalid stored values must be rejected rather than silently converted to defaults.
+
+Register the configurator once in `info.configurator`, then construct the definition with `defineGame({ info, runtime })`. This installs normalization for both engine execution and direct runtime capabilities together. The runtime configuration capability is created by this helper; assigning a configurator directly cannot enable only part of the contract. Info remains independently exportable for lazy UI loading. Older artifacts without this capability retain their existing behavior without loader changes.
+
+The engine normalizes a copy of incoming Game configuration before initialization, Action availability, and rule execution. User and generated System Actions, all State Handler callbacks, unpatched replay, and Exploration execution receive this configuration through `MachineContext.gameConfig`. Patch-only History Navigation and Undo do not execute rules and need no configuration conversion. `defineGame` also normalizes direct initializer calls, projected Exploration population, and configuration supplied to state projection, execution guards, and Action projection. Missing visibility configuration stays missing so the projector can reject it.
+
+Client `GameContext` normalizes configuration on construction and Game updates, including contexts created for History Navigation and Exploration. Session code can read current keys directly. Normalization does not mutate the supplied Game or rewrite saved State and Action history. Titles without a normalization hook retain their existing configuration behavior. Game implementations consume normalized values; compatibility conversion belongs only in the title's configurator.
+
 ## Deterministic execution
 
 Given the same initial configuration, state, and ordered processed actions, the runtime must produce the same game state and the same cascade of system actions. Random game-rule values and domain-object identifiers that affect Game State must come from a persisted state PRNG. System Action identities use the public PRNG from system version 2 onward; its durable cursor preserves generation across flattened replay and undo. System version 3 adds a separate protected stream for secret game randomness; follow the [hidden-information contract](hidden-information.md) and explicitly register visibility before relying on concealed delivery.

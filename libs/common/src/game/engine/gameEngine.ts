@@ -1,3 +1,4 @@
+import { normalizeGame } from '../model/gameConfig.js'
 import type { GameCreationOptions } from '../../util/gameSeeds.js'
 import {
     validateStartingPositionAssignment,
@@ -114,6 +115,7 @@ export class GameEngine<
         game: Game,
         options: GameStartOptions | string = {}
     ): { startedGame: Game; initialState: T } {
+        game = normalizeGame(game, this.runtime.configuration)
         const { masterSeed, startingPositions: assignment } =
             typeof options === 'string' ? { masterSeed: options } : options
         if (game.startedAt !== null && game.startedAt !== undefined) {
@@ -166,6 +168,7 @@ export class GameEngine<
         playerId: string,
         options: ActionAvailabilityOptions = {}
     ): string[] {
+        game = normalizeGame(game, this.runtime.configuration)
         const perspective = options.perspective
         if (
             perspective !== undefined &&
@@ -302,6 +305,7 @@ export class GameEngine<
         perspective?: Perspective
         canonical?: boolean
     }): RuntimeExecution<T> {
+        game = normalizeGame(game, this.runtime.configuration)
         if (isRedactedAction(action)) {
             throw Error('Redacted Action records cannot be executed by game rules')
         }

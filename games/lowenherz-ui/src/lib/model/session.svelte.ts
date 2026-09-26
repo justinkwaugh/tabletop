@@ -103,7 +103,7 @@ export class LowenherzGameSession extends GameSession<
         return (
             (((this.showDebug || this.isActingAdmin || this.isViewingHost) &&
                 this.explorationPerspective() === undefined) ||
-                (this.game.config?.publicMoney !== false && this.gameState.publicMoney !== false)) &&
+                (this.game.config.privateMoney !== true && this.gameState.publicMoney !== false)) &&
             super.canExplore
         )
     }
@@ -111,7 +111,7 @@ export class LowenherzGameSession extends GameSession<
     canShowMoney(playerId: string): boolean {
         return (
             this.gameState.machineState === MachineState.EndOfGame ||
-            this.game.config?.publicMoney !== false ||
+            this.game.config.privateMoney !== true ||
             this.myPlayer?.id === playerId
         )
     }

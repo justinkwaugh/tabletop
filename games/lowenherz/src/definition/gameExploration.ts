@@ -36,7 +36,7 @@ export class LowenherzGameExploration implements GameExploration<LowenherzProjec
         input: ExplorationPopulation<LowenherzProjectedState>
     ): LowenherzGameState {
         assert(
-            input.game.config?.publicMoney !== false && input.state.publicMoney !== false,
+            input.game.config.privateMoney !== true && input.state.publicMoney !== false,
             'Exploration is unavailable with private money'
         )
         if ((input.state.systemVersion ?? 1) < 3) {

@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import type { GameConfigNormalizer } from '../definition/gameConfigurator.js'
 
 export enum ConfigOptionType {
     Boolean = 'Boolean',
@@ -95,6 +96,39 @@ export function defaultGameConfig(options: GameConfigOptions): GameConfig {
     return Object.fromEntries(options.map((option) => [option.id, option.default ?? null]))
 }
 
-export function normalizeGameConfig(config: GameConfig): GameConfig {
-    return Object.fromEntries(Object.entries(config).filter(([, value]) => value !== null))
+export function normalizeGameConfig<C extends GameConfig>(
+    config: GameConfig,
+    normalizer: GameConfigNormalizer<C>
+): C
+export function normalizeGameConfig(
+    config: GameConfig,
+    normalizer?: Partial<GameConfigNormalizer>
+): GameConfig
+export function normalizeGameConfig(
+    config: GameConfig,
+    normalizer?: Partial<GameConfigNormalizer>
+): GameConfig {
+    const values = Object.fromEntries(Object.entries(config).filter(([, value]) => value !== null))
+    return normalizer?.normalizeConfig?.(values) ?? values
+}
+
+export function normalizeGame<G extends { config?: GameConfig }, C extends GameConfig>(
+    game: G,
+    normalizer: GameConfigNormalizer<C>
+): Omit<G, 'config'> & { config: C }
+export function normalizeGame<G extends { config: GameConfig }>(
+    game: G,
+    normalizer?: Partial<GameConfigNormalizer>
+): Omit<G, 'config'> & { config: GameConfig }
+export function normalizeGame<G extends { config?: GameConfig }>(
+    game: G,
+    normalizer?: Partial<GameConfigNormalizer>
+): Omit<G, 'config'> & { config?: GameConfig }
+export function normalizeGame<G extends { config?: GameConfig }>(
+    game: G,
+    normalizer?: Partial<GameConfigNormalizer>
+): Omit<G, 'config'> & { config?: GameConfig } {
+    if (normalizer?.normalizeConfig === undefined) return game
+    const { config, ...rest } = game
+    return { ...rest, config: normalizeGameConfig(config ?? {}, normalizer) }
 }

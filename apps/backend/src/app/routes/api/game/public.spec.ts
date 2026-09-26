@@ -3,6 +3,7 @@ import {
     GameStatus,
     PlayerStatus,
     type Game,
+    type GameConfig,
     type GameConfigOptions
 } from '@tabletop/common'
 import Fastify from 'fastify'
@@ -43,13 +44,13 @@ describe('public game invitation preview', () => {
         await Promise.all(servers.splice(0).map((server) => server.close()))
     })
 
-    async function setup(stored: Game | undefined) {
+    async function setup(stored: Game | undefined, normalizeConfig?: (config: GameConfig) => GameConfig) {
         const server = Fastify()
         servers.push(server)
         const getGame = vi.fn(async () => stored)
         Reflect.set(server, 'gameService', {
             getGame,
-            getTitle: () => ({ info: { metadata: { name: 'Sample' }, configurator: { options } } })
+            getTitle: () => ({ info: { metadata: { name: 'Sample' }, configurator: { options, normalizeConfig } } })
         })
         await server.register(publicGameRoute)
         return { server, getGame }
@@ -75,6 +76,15 @@ describe('public game invitation preview', () => {
             }
         })
         expect(getGame).toHaveBeenCalledWith({ gameId: game.id })
+    })
+
+    it('normalizes legacy configuration for invitation previews without changing the stored game', async () => {
+        const stored = { ...game, config: { publicMoney: false } }
+        const { server } = await setup(stored, config => ({ privateMoney: config.publicMoney === false }))
+        const response = await server.inject('/public/public-table')
+        expect(response.statusCode).toBe(200)
+        expect(response.json().payload.config).toEqual({ privateMoney: true })
+        expect(stored.config).toEqual({ publicMoney: false })
     })
 
     it.each([

@@ -1,7 +1,18 @@
-import { ConfigOptionType, type GameConfig, type GameConfigOptions } from '@tabletop/common'
+import {
+    ConfigOptionType,
+    normalizeGameConfig,
+    type GameConfig,
+    type GameConfigOptions,
+    type GameConfigurator
+} from '@tabletop/common'
 
-export function configuredGameOptions(config: GameConfig, definitions: GameConfigOptions) {
-    return Object.entries(config).map(([id, value]) => {
+export function configuredGameOptions(
+    config: GameConfig,
+    definition: GameConfigOptions | GameConfigurator
+) {
+    const resolved = resolveConfiguration(config, definition)
+    const definitions = resolved.definitions
+    return Object.entries(resolved.config).map(([id, value]) => {
         const option = definitions.find((candidate) => candidate.id === id)
         const selected =
             option?.type === ConfigOptionType.List
@@ -22,12 +33,32 @@ export function configuredGameOptions(config: GameConfig, definitions: GameConfi
     })
 }
 
-export function gameCardOptions(config: GameConfig, definitions: GameConfigOptions) {
+export function gameCardOptions(
+    config: GameConfig,
+    definition: GameConfigOptions | GameConfigurator
+) {
+    const resolved = resolveConfiguration(config, definition)
+    const definitions = resolved.definitions
     const visibleConfig = Object.fromEntries(
-        Object.entries(config).filter(([id, value]) => {
+        Object.entries(resolved.config).filter(([id, value]) => {
             const option = definitions.find((candidate) => candidate.id === id)
             return option && (option.alwaysShow || value !== (option.default ?? null))
         })
     )
     return configuredGameOptions(visibleConfig, definitions)
+}
+
+function resolveConfiguration(
+    config: GameConfig,
+    definition: GameConfigOptions | GameConfigurator
+) {
+    return Array.isArray(definition)
+        ? { config, definitions: definition }
+        : {
+              config:
+                  definition.normalizeConfig === undefined
+                      ? config
+                      : normalizeGameConfig(config, definition),
+              definitions: definition.options
+          }
 }

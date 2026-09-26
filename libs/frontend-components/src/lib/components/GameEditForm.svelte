@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { untrack } from 'svelte'
     import {
         Toggle,
         Label,
@@ -107,7 +108,7 @@
     let unexpectedError = $state(false)
     let errors: Record<string, string[]> = $state({})
     let name = $state(editedGame.name)
-    let config = $state(editedGame.config)
+    let config = $state(untrack(() => normalizeGameConfig(editedGame.config, gameTitle.info.configurator)))
     let seed = $state('')
     let numPlayers = $state(
         mode === EditMode.Edit

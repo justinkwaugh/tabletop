@@ -443,7 +443,7 @@ export class TournamentService {
         if (!title) throw new TournamentError('This game title is unavailable', 400)
         rules.gameConfig = normalizeGameConfig({
             ...defaultGameConfig(title.info.configurator?.options ?? []),
-            ...rules.gameConfig
+            ...normalizeGameConfig(rules.gameConfig, title.info.configurator)
         })
         const metadata = title.info.metadata
         if (rules.tableSize < metadata.minPlayers || rules.tableSize > metadata.maxPlayers)

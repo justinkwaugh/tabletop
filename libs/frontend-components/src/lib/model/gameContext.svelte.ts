@@ -1,6 +1,7 @@
 import type { GameUIRuntime } from '$lib/definition/gameUiDefinition.js'
 import {
     calculateActionChecksum,
+    normalizeGame,
     type Game,
     type GameAction,
     GameEngine,
@@ -64,7 +65,7 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
                 ? { actionCount: 0, actionChecksum: 0 }
                 : { actionCount: state.actionCount, actionChecksum: state.actionChecksum })
         this.runtime = runtime
-        this.game = $state.raw(game)
+        this.game = $state.raw(normalizeGame(game, runtime.configuration))
         this.state = $state.raw(state)
         this.actions = $state.raw(this.initializeActions(actions))
         this.actionsById = new Map(this.actions.map((action) => [action.id, action]))
@@ -88,19 +89,20 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
             interceptor.interceptActions(actions)
         }
 
-        deepFreeze(game)
         deepFreeze(state)
         for (const action of actions) {
             deepFreeze(action)
         }
 
-        return new GameContext({
+        const cloned = new GameContext({
             runtime: this.runtime,
             game,
             state,
             actions,
             historyCheckpoint: this.historyCheckpoint
         })
+        deepFreeze(cloned.game)
+        return cloned
     }
 
     restoreFrom(context: GameContext<T, U>) {
@@ -179,7 +181,7 @@ export class GameContext<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     updateGame(game: Game) {
-        this.game = deepFreeze(structuredClone(game))
+        this.game = deepFreeze(normalizeGame(structuredClone(game), this.runtime.configuration))
     }
 
     updateGameState(gameState?: T) {

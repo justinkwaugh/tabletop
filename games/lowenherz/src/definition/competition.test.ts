@@ -1,6 +1,5 @@
-import { GameEngine, PlayerStatus } from '@tabletop/common'
+import { GameEngine, PlayerStatus, type GameConfig } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import type { LowenherzGameConfig } from './config.js'
 import { Definition } from './definition.js'
 import { LowenherzRuntime } from './runtime.js'
 import { MachineState } from './states.js'
@@ -8,7 +7,7 @@ import { MachineState } from './states.js'
 const engine = new GameEngine(LowenherzRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
 
-function createGame(count: number, config: LowenherzGameConfig) {
+function createGame(count: number, config: GameConfig) {
     return LowenherzRuntime.initializer.initializeGame(
         {
             id: 'lowenherz-competition',

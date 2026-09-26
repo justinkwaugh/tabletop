@@ -1,53 +1,54 @@
 import * as Type from 'typebox'
-import { GameConfigOptions, BooleanConfigOption, ConfigOptionType } from '@tabletop/common'
-
-const publicMoneyOption: BooleanConfigOption = {
-    id: 'publicMoney',
-    type: ConfigOptionType.Boolean,
-    name: 'Public Money',
-    description: 'Turn off to keep balances private until game end. Exploration then requires Debug or Admin access to complete state.',
-    default: true
-}
-
-// The rulebook's two ways to start a game: "variable construction rules" (each player
-// manually places 3 castles/knights of their own at the start, using the PlacingCastles
-// flow - the A-lettered action cards are shuffled in on top since they're only used
-// with this mode) versus the "basic game" (a fixed board/castle/knight/wall layout
-// exactly as printed in the rulebook's setup diagram, skipping manual placement
-// entirely and discarding the A-lettered cards, starting from B instead). Defaults to
-// on (player-placed), matching this implementation's only mode before this option
-// existed.
-const playerPlacedCastlesOption: BooleanConfigOption = {
-    id: 'playerPlacedCastles',
-    type: ConfigOptionType.Boolean,
-    name: 'Player-Placed Castles',
-    description:
-        'Allow the players to place their own castles and knights. Turn off to begin with the standard setup in the rulebook. Ignored in a 2-player game, whose variant is built on player placement (4 castles each, plus 2 of a neutral color).',
-    default: true
-}
-
-// The rulebook settles a tie by having the two princes bargain, and a bargain in which
-// nothing changes hands is not much of one - so an offer has to move at least a single
-// ducat. Turning this off allows a zero-ducat offer, which is really a way of saying
-// "you take it, I want nothing", reached through the same propose/accept exchange
-// rather than by declining into a duel.
-const minimumOneDucatOption: BooleanConfigOption = {
-    id: 'minimumOneDucat',
-    type: ConfigOptionType.Boolean,
-    name: 'One or more ducats during negotiation',
-    description: 'Turn off to allow offers of zero ducats during negotiations.',
-    default: true
-}
+import { assert, type GameConfig, type GameConfigOptions, ConfigOptionType } from '@tabletop/common'
 
 export type LowenherzGameConfig = Type.Static<typeof LowenherzGameConfig>
 export const LowenherzGameConfig = Type.Object({
-    publicMoney: Type.Optional(Type.Boolean({ default: true })),
-    playerPlacedCastles: Type.Optional(Type.Boolean({ default: true })),
-    minimumOneDucat: Type.Optional(Type.Boolean({ default: true }))
+    privateMoney: Type.Boolean({ default: false }),
+    standardSetup: Type.Boolean({ default: false }),
+    allowZeroDucatOffers: Type.Boolean({ default: false })
 })
 
 export const LowenherzGameConfigOptions: GameConfigOptions = [
-    publicMoneyOption,
-    playerPlacedCastlesOption,
-    minimumOneDucatOption
+    {
+        id: 'privateMoney',
+        type: ConfigOptionType.Boolean,
+        name: 'Private money',
+        description: 'Keep balances private until the end of the game.',
+        default: false
+    },
+    {
+        id: 'standardSetup',
+        type: ConfigOptionType.Boolean,
+        name: 'Standard rulebook setup',
+        description:
+            'Begin from the fixed board layout printed in the rulebook instead of players placing their own castles and knights. Ignored in a 2-player game, whose variant is built on player placement.',
+        default: false
+    },
+    {
+        id: 'allowZeroDucatOffers',
+        type: ConfigOptionType.Boolean,
+        name: 'Allow zero-ducat offers',
+        description: 'Allow negotiation offers of zero ducats.',
+        default: false
+    }
 ]
+
+export function normalizeLowenherzConfig(config: GameConfig): LowenherzGameConfig {
+    const { publicMoney, playerPlacedCastles, minimumOneDucat, ...current } = config
+    return {
+        ...current,
+        privateMoney: resolveBooleanOption(current.privateMoney, publicMoney),
+        standardSetup: resolveBooleanOption(current.standardSetup, playerPlacedCastles),
+        allowZeroDucatOffers: resolveBooleanOption(current.allowZeroDucatOffers, minimumOneDucat)
+    }
+}
+
+function resolveBooleanOption(
+    current: GameConfig[string] | undefined,
+    legacy: GameConfig[string] | undefined
+): boolean {
+    // Older site forms can add current defaults to legacy configs without translating them.
+    const value = legacy ?? current ?? false
+    assert(typeof value === 'boolean', 'Configuration option must be a boolean')
+    return legacy !== undefined && legacy !== null ? !value : value
+}

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionSource,
     assert,
+    assertExists,
     GameEngine,
     GameStatus,
     PlayerStatus,
@@ -32,6 +33,19 @@ import type { SubmitDuelBid } from '../actions/submitDuelBid.js'
 import { populatePoliticsCards } from '../util/politicsExploration.js'
 import { negotiationProposalIsValid } from '../util/legality.js'
 import { HydratedNegotiationMove, NegotiationMoveKind, type NegotiationMove } from '../actions/negotiationMove.js'
+
+assertExists(LowenherzRuntime.visibility)
+assertExists(LowenherzRuntime.exploration)
+assertExists(LowenherzRuntime.exploration.createFromProjectedState)
+const visibility = LowenherzRuntime.visibility
+const gameExploration = LowenherzRuntime.exploration
+const populate = LowenherzRuntime.exploration.createFromProjectedState
+
+function createFromProjectedState(input: Parameters<typeof populate>[0]): LowenherzGameState {
+    const state = populate(input)
+    assert(LowenherzGameStateValidator.Check(state), 'Exploration must produce canonical state')
+    return state
+}
 
 const game: Game = {
     id: 'privacy',
@@ -114,7 +128,7 @@ function take(state: LowenherzGameState, card: PoliticsCard) {
     return execute(state, action)
 }
 function view(state: LowenherzGameState, perspective: Visibility.Perspective = owner) {
-    return LowenherzRuntime.visibility.state.project(state, perspective, { config: game.config })
+    return visibility.state.project(state, perspective, { config: game.config })
 }
 function sorted(cards: PoliticsCard[]) {
     return cards.map((card) => `${card.type}:${card.value ?? ''}`).sort()
@@ -133,7 +147,7 @@ describe('Lowenherz privacy', () => {
         assert(LowenherzGameStateValidator.Check(first), 'Expected canonical seeded state')
         expect(first.protectedPrng).toMatchObject({ algorithm: 'chacha20-v1' })
         expect(
-            LowenherzRuntime.visibility.state.project(first, { kind: 'spectator' }, { config: game.config })
+            visibility.state.project(first, { kind: 'spectator' }, { config: game.config })
         ).not.toHaveProperty('masterSeed')
     })
 
@@ -160,7 +174,7 @@ describe('Lowenherz privacy', () => {
         const state = initialize(version)
         expect(state.protectedPrng).toBeUndefined()
         expect(state.privateInformation).toBeUndefined()
-        const sample = LowenherzRuntime.exploration.createFromProjectedState({
+        const sample = createFromProjectedState({
             game,
             state,
             actions: [],
@@ -208,7 +222,7 @@ describe('Lowenherz privacy', () => {
         const history = Visibility.projectActionHistory({
             currentState: result.updatedState,
             actions: result.processedActions,
-            visibility: LowenherzRuntime.visibility,
+            visibility,
             perspective: other,
             replay: { game, runtime: LowenherzRuntime }
         })
@@ -226,7 +240,7 @@ describe('Lowenherz privacy', () => {
         ).toContain(ActionType.TakePoliticsCard)
         const taken = take(result.updatedState, result.updatedState.politicsCardPileA[0])
         expect(
-            LowenherzRuntime.visibility.actions.project(taken.processedActions[0], other)
+            visibility.actions.project(taken.processedActions[0], other)
         ).not.toHaveProperty('card')
         expect(
             view(taken.updatedState).players.find((player) => player.playerId === 'p1')
@@ -269,7 +283,7 @@ describe('Lowenherz privacy', () => {
         }
         const first = execute(state, bid)
         state = first.updatedState
-        const hidden = LowenherzRuntime.visibility.actions.project(first.processedActions[0], other)
+        const hidden = visibility.actions.project(first.processedActions[0], other)
         expect(hidden).not.toHaveProperty('amount')
         expect(hidden).not.toHaveProperty('treasureValues')
         expect(view(state, other).duel?.bids).toEqual([{ playerId: 'p1' }])
@@ -281,7 +295,7 @@ describe('Lowenherz privacy', () => {
             treasureValues: []
         }
         const last = execute(state, finalBid)
-        const publicLast = LowenherzRuntime.visibility.actions.project(
+        const publicLast = visibility.actions.project(
             last.processedActions[0],
             spectator
         )
@@ -322,8 +336,8 @@ describe('Lowenherz privacy', () => {
             revealsInfo: true,
             metadata: { card: state.actionDeck[0] }
         })
-        const projected = LowenherzRuntime.visibility.state.project(result.updatedState, spectator, { config: game.config })
-        const sample = LowenherzRuntime.exploration.createFromProjectedState({
+        const projected = visibility.state.project(result.updatedState, spectator, { config: game.config })
+        const sample = createFromProjectedState({
             game,
             state: projected,
             actions: result.processedActions,
@@ -352,11 +366,11 @@ describe('Lowenherz hypothetical politics', () => {
         actions.push(...result.processedActions)
         const projected = view(state)
         const history = actions.map((action) =>
-            LowenherzRuntime.visibility.actions.project(action, owner)
+            visibility.actions.project(action, owner)
         )
         const samples = new Set<string>()
         for (let seed = 0; seed < 20; seed++) {
-            const sample = LowenherzRuntime.exploration.createFromProjectedState({
+            const sample = createFromProjectedState({
                 game,
                 state: projected,
                 actions: history,
@@ -386,7 +400,7 @@ describe('Lowenherz hypothetical politics', () => {
         state = result.updatedState
         actions.push(...result.processedActions)
         const secondHistory = actions.map((action) =>
-            LowenherzRuntime.visibility.actions.project(action, owner)
+            visibility.actions.project(action, owner)
         )
         const sample = populatePoliticsCards(view(state), secondHistory, getPrng(33))
         expect(sorted(sample.politicsCardPileA)).toEqual(sorted(state.politicsCardPileA))
@@ -437,11 +451,11 @@ describe('Lowenherz hypothetical politics', () => {
             ]
         }
         const history = actions.map((action) =>
-            LowenherzRuntime.visibility.actions.project(action, owner)
+            visibility.actions.project(action, owner)
         )
         const projected = view(state)
         for (let seed = 0; seed < 10; seed++) {
-            const sample = LowenherzRuntime.exploration.createFromProjectedState({
+            const sample = createFromProjectedState({
                 game,
                 state: projected,
                 actions: history,
@@ -466,7 +480,7 @@ describe('Lowenherz hypothetical politics', () => {
         const result = inspect(initialize())
         const projected = view(result.updatedState)
         expect(() =>
-            LowenherzRuntime.exploration.createFromProjectedState({
+            createFromProjectedState({
                 game,
                 state: projected,
                 actions: [],
@@ -475,10 +489,10 @@ describe('Lowenherz hypothetical politics', () => {
             })
         ).toThrow(/complete permitted history/)
         const hiddenHistory = result.processedActions.map((action) =>
-            LowenherzRuntime.visibility.actions.project(action, spectator)
+            visibility.actions.project(action, spectator)
         )
         expect(() =>
-            LowenherzRuntime.exploration.createFromProjectedState({
+            createFromProjectedState({
                 game,
                 state: projected,
                 actions: hiddenHistory,
@@ -501,9 +515,19 @@ describe('Lowenherz hypothetical politics', () => {
     })
 })
 
-describe('Lowenherz private money', () => {
-    const privateGame = { ...game, config: { ...game.config, publicMoney: false } }
+describe.each<Game['config']>([{ publicMoney: false }, { privateMoney: true }])('Lowenherz private money %j', (config) => {
+    const privateGame = { ...game, config: { ...game.config, ...config } }
     const context = { config: privateGame.config }
+
+    it('requires configuration for projection and execution even with default options', () => {
+        const state = initialize(3, 31, privateGame)
+        expect(() => visibility.state.project(state, spectator)).toThrow(
+            'requires Game configuration'
+        )
+        expect(() => visibility.state.guardForExecution(state, spectator)).toThrow(
+            'requires Game configuration'
+        )
+    })
 
     it.each([1, 2, 3])(
         'keeps unmarked legacy version %i negotiation on complete-state delivery',
@@ -556,7 +580,7 @@ describe('Lowenherz private money', () => {
         (perspective) => {
             const state = initialize(3, 31, privateGame)
             expect(state.publicMoney).toBe(false)
-            const projected = LowenherzRuntime.visibility.state.project(state, perspective, context)
+            const projected = visibility.state.project(state, perspective, context)
             for (const player of projected.players) {
                 if (perspective.kind === 'player' && player.playerId === perspective.playerId) {
                     expect(player.money).toBe(12)
@@ -567,16 +591,16 @@ describe('Lowenherz private money', () => {
             expect(() => LowenherzRuntime.hydrator.hydrateState(projected)).not.toThrow()
             state.machineState = MachineState.EndOfGame
             expect(
-                LowenherzRuntime.visibility.state
+                visibility.state
                     .project(state, spectator, context)
                     .players.map((player) => player.money)
             ).toEqual([12, 12, 12])
         }
     )
 
-    const publicConfigs: Game['config'][] = [{}, { publicMoney: true }]
+    const publicConfigs: Game['config'][] = [{}, { publicMoney: true }, { privateMoney: false }]
     it.each(publicConfigs)('keeps money public with config %j', (config) => {
-        const projected = LowenherzRuntime.visibility.state.project(initialize(), spectator, {
+        const projected = visibility.state.project(initialize(), spectator, {
             config
         })
         expect(projected.players.map((player) => player.money)).toEqual([12, 12, 12])
@@ -584,18 +608,18 @@ describe('Lowenherz private money', () => {
 
     it('guards private balances while permitting the owner and public-money execution', () => {
         const state = initialize(3, 31, privateGame)
-        const projected = LowenherzRuntime.visibility.state.project(state, owner, context)
-        const guarded = LowenherzRuntime.visibility.state.guardForExecution(
+        const projected = visibility.state.project(state, owner, context)
+        const guarded = visibility.state.guardForExecution(
             LowenherzRuntime.hydrator.hydrateState(projected),
             owner,
             context
         )
         expect(guarded.getPlayerState('p1').getMoney()).toBe(12)
         expect(() => guarded.getPlayerState('p2').getMoney()).toThrow(/protected value/)
-        const publicState = LowenherzRuntime.visibility.state.project(state, owner, {
+        const publicState = visibility.state.project(state, owner, {
             config: { publicMoney: true }
         })
-        const publicGuard = LowenherzRuntime.visibility.state.guardForExecution(
+        const publicGuard = visibility.state.guardForExecution(
             LowenherzRuntime.hydrator.hydrateState(publicState),
             owner,
             { config: { publicMoney: true } }
@@ -608,7 +632,7 @@ describe('Lowenherz private money', () => {
         (version) => {
             const state = initialize(version, 31, privateGame)
             expect(() =>
-                LowenherzRuntime.exploration.createFromProjectedState({
+                createFromProjectedState({
                     game: privateGame,
                     state,
                     actions: [],
@@ -621,7 +645,7 @@ describe('Lowenherz private money', () => {
 
     it.each([1, 2, 3])('allows canonical exploration with private money in version %i', (version) => {
         const state = initialize(version, 31, privateGame)
-        const exploration = LowenherzRuntime.exploration.createFromCanonicalState(state)
+        const exploration = gameExploration.createFromCanonicalState(state)
         expect(LowenherzGameStateValidator.Check(exploration)).toBe(true)
         expect(exploration.publicMoney).toBe(state.publicMoney)
         expect(exploration.players.map((player) => player.money)).toEqual(
@@ -635,7 +659,7 @@ describe('Lowenherz private money', () => {
     it('preserves the private-money restriction for projected exploration in state', () => {
         const state = initialize(3, 31, privateGame)
         expect(() =>
-            LowenherzRuntime.exploration.createFromProjectedState({
+            createFromProjectedState({
                 game,
                 state,
                 actions: [],
@@ -661,8 +685,8 @@ describe('Lowenherz private money', () => {
             amount: 20
         })
         const hydrated = LowenherzRuntime.hydrator.hydrateState(state)
-        const projected = LowenherzRuntime.visibility.state.project(state, owner, context)
-        const guarded = LowenherzRuntime.visibility.state.guardForExecution(
+        const projected = visibility.state.project(state, owner, context)
+        const guarded = visibility.state.guardForExecution(
             LowenherzRuntime.hydrator.hydrateState(projected),
             owner,
             context
@@ -715,7 +739,7 @@ describe('Lowenherz private money', () => {
             currentState: result.updatedState,
             actions: result.processedActions,
             game: privateGame,
-            visibility: LowenherzRuntime.visibility,
+            visibility,
             perspective: spectator,
             replay: { game: privateGame, runtime: LowenherzRuntime }
         })

@@ -15,7 +15,6 @@ import {
 import { HydratedLowenherzPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
-import { LowenherzGameConfig } from './config.js'
 import { LowenherzColors } from './colors.js'
 import { assembleBoard } from '../util/boardAssembly.js'
 import {
@@ -57,20 +56,9 @@ export class LowenherzGameInitializer
             }
         }
 
-        const config = game.config as LowenherzGameConfig
-        // Defaults to on (player-placed castles/knights, via the PlacingCastles flow) -
-        // turning it off uses the rulebook's fixed "basic game" board/castle/knight/
-        // wall layout instead, skipping manual placement entirely.
-        //
-        // Except at 2 players, where the variant is built on manual placement: "each
-        // player places 4 castles and 4 knights in his color using the variable
-        // construction rules", then 2 castles and 2 knights of the neutral color. The
-        // basic game's printed layout is a 4-color, 1-castle-each diagram with no neutral
-        // prince at all, so honoring the option here would quietly discard the whole
-        // 2-player variant. Enforced at initialization rather than in the setup UI because
-        // the platform's configurator only ever sees the config (validateConfig takes no
-        // player list), and players can join after it's been set anyway.
-        const playerPlacedCastles = players.length === 2 || config.playerPlacedCastles !== false
+        const config = game.config
+        // The two-player rulebook variant requires player placement, regardless of setup choice.
+        const playerPlacedCastles = players.length === 2 || config.standardSetup !== true
 
         // 2- and 3-player games use one of the unused colors as a neutral color (an
         // obstacle-only "prince" in 3p, or the 2-player variant's dedicated neutral
@@ -99,8 +87,8 @@ export class LowenherzGameInitializer
             turnOrder: [...turnManager.turnOrder],
             firstPlayerId: turnManager.turnOrder[0],
             neutralColor,
-            minimumOneDucat: config.minimumOneDucat !== false,
-            ...(privateInformation ? { publicMoney: config.publicMoney !== false } : {}),
+            minimumOneDucat: config.allowZeroDucatOffers !== true,
+            ...(privateInformation ? { publicMoney: config.privateMoney !== true } : {}),
             minimumCastleDistance: RULEBOOK_CASTLE_MIN_DISTANCE,
 
             actionDeck: playerPlacedCastles

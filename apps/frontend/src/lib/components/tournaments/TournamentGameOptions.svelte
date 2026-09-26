@@ -1,9 +1,9 @@
 <script lang="ts">
-    import type { GameConfig, GameConfigOptions } from '@tabletop/common'
+    import type { GameConfig, GameConfigurator } from '@tabletop/common'
     import { configuredGameOptions } from '$lib/utils/gameOptions'
-    let { config, definitions = [] }: { config: GameConfig; definitions?: GameConfigOptions } =
+    let { config, configurator }: { config: GameConfig; configurator?: GameConfigurator } =
         $props()
-    let options = $derived(configuredGameOptions(config, definitions))
+    let options = $derived(configuredGameOptions(config, configurator ?? []))
 </script>
 
 <section

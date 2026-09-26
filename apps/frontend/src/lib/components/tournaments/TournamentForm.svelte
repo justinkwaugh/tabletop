@@ -14,6 +14,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         defaultGameConfig,
+        normalizeGameConfig,
         range,
         getMiniTournamentDefaults,
         miniTournamentDefaults,
@@ -62,7 +63,7 @@
     let concurrency = $state(
         initial?.rules.concurrency ?? miniTournamentDefaults[4].gamesPerEntrant
     )
-    let config: GameConfig = $state({ ...initial?.rules.gameConfig })
+    let rawConfig: GameConfig = $state({ ...initial?.rules.gameConfig })
     const initialDeadline = new Date(
         initial?.rules.registration.kind === 'deadline'
             ? initial.rules.registration.closesAt
@@ -76,6 +77,7 @@
     let busy = $state(false)
     let error = $state('')
     let title = $derived(libraryService.titlesById[titleId])
+    let config = $derived(normalizeGameConfig(rawConfig, title?.info.configurator))
     let titles = $derived(
         Object.values(libraryService.titlesById).sort((a, b) =>
             a.info.metadata.name.localeCompare(b.info.metadata.name)
@@ -87,7 +89,7 @@
         const selected = libraryService.titlesById[titleId]
         if (!selected) return
         setTableSize(selected.info.metadata.defaultPlayerCount)
-        config = defaultGameConfig(selected.info.configurator?.options ?? [])
+        rawConfig = defaultGameConfig(selected.info.configurator?.options ?? [])
     }
 
     function setTableSize(value: number) {
@@ -107,7 +109,9 @@
     }
 
     function updateOption(option: ConfigOption, value: string | number | boolean | null) {
-        title?.info.configurator?.updateConfig(config, { id: option.id, value })
+        const updated = { ...config }
+        title?.info.configurator?.updateConfig(updated, { id: option.id, value })
+        rawConfig = updated
     }
 
     async function save() {

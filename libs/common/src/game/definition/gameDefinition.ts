@@ -9,6 +9,7 @@ import type { MachineStateHandler } from '../engine/machineStateHandler.js'
 import type { HydratedAction } from '../engine/gameAction.js'
 import type { GameStateLogger } from './gameStateLogger.js'
 import type { GameConfigurator } from './gameConfigurator.js'
+import type { RuntimeConfiguration } from './defineGame.js'
 import type { Color } from '../model/colors.js'
 import type { GameState, HydratedGameState } from '../model/gameState.js'
 import type { GameVisibility } from '../visibility/gameVisibility.js'
@@ -25,6 +26,7 @@ export interface GameRuntime<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
 > {
+    readonly configuration?: RuntimeConfiguration
     randomnessVersion?: 1
     initializer: GameInitializer<T, U>
     exploration?: GameExploration<T>
