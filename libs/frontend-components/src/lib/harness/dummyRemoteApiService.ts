@@ -19,6 +19,7 @@ import type {
     Tournament,
     TournamentDetail,
     TournamentList,
+    TournamentTitles,
     TournamentSchedule
 } from '@tabletop/common'
 import type { GameVersionProvider, GetGameOptions } from '$lib/network/tabletopApi.svelte.js'
@@ -63,6 +64,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async listTournaments(): Promise<TournamentList> {
         return this.fail('listTournaments')
+    }
+
+    async listTournamentTitles(): Promise<TournamentTitles> {
+        return this.fail('listTournamentTitles')
     }
 
     async getTournament(): Promise<TournamentDetail> {
