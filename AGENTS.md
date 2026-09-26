@@ -32,6 +32,14 @@ Before designing or changing any 18xx model, Action, state/handler, logical or v
 
 For staged selection, auto-selection, `Back`, or `Undo` behavior, read `docs/user-interactions.md`.
 
+### Local infrastructure
+
+The Firestore emulator and Redis run as the `firebase` and `cache` Docker Compose services, reachable from the devcontainer at `firebase:8080` and `cache:6379`. Emulator-backed specs run only when their hosts are set:
+
+`FIRESTORE_EMULATOR_HOST=firebase:8080 CACHE_TEST_REDIS_HOST=cache pnpm exec vitest run <path>`
+
+For end-to-end verification through the hosted site, use `.agents/skills/local-hosted-game/SKILL.md`.
+
 ### Releasing
 
 To release, deploy, or publish a game or the site frontend, or to check what is serving, use `.agents/skills/release/SKILL.md`.
