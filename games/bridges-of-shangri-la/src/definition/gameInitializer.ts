@@ -3,6 +3,7 @@ import {
     type RandomFunction,
     BaseGameInitializer,
     Prng,
+    type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
@@ -19,11 +20,17 @@ export class BridgesGameInitializer
     extends BaseGameInitializer<BridgesGameState, HydratedBridgesGameState>
     implements GameInitializer<BridgesGameState, HydratedBridgesGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedBridgesGameState {
+    readonly supportsStartingPositions = true
+
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedBridgesGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng.random)
         const numPlayers = game.players.length
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
 
         const board = this.initializeBoard(numPlayers)
 
