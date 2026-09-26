@@ -10,7 +10,7 @@ import {
     marketLowerRightSpace
 } from './marketTokenLayout.js'
 
-it('centers one token and stacks two vertically without overlap', () => {
+it('centers one token and stacks two vertically, right of the price, without overlap', () => {
     const market = createRectangularStockMarket([[100]], () => 'white')
     placeStockMarker(market, 'A', '0:0')
     expect(marketTokenLayout(market)[0]).toMatchObject({
@@ -21,6 +21,8 @@ it('centers one token and stacks two vertically without overlap', () => {
     placeStockMarker(market, 'B', '0:0')
     const [a, b] = marketTokenLayout(market)
     expect(a.x).toBe(b.x)
+    expect(a.x).toBeGreaterThan(MarketCellWidth / 2)
+    expect(a.x + MarketTokenSize / 2).toBeLessThanOrEqual(MarketCellWidth)
     expect(b.y - a.y).toBeGreaterThanOrEqual(MarketTokenSize)
     expect(a.z).toBeGreaterThan(b.z)
 })
@@ -89,4 +91,18 @@ it('finds the largest empty lower-right rectangle of a staircase market', () => 
     expect(
         marketLowerRightSpace(createRectangularStockMarket([[100, 110]], () => 'white'))
     ).toBeUndefined()
+})
+it('spreads a crowded stack from where the stack sits', () => {
+    const market = createRectangularStockMarket(
+        [
+            [100, 110, 120],
+            [90, 100, 110],
+            [80, 90, 100],
+            [70, 80, 90]
+        ],
+        () => 'white'
+    )
+    for (const companyId of ['A', 'B', 'C', 'D']) placeStockMarker(market, companyId, '1:1')
+    const stackX = marketTokenLayout(market)[0].x
+    expect(expandedMarketStack(market, '1:1').every((point) => point.x === stackX)).toBe(true)
 })

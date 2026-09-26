@@ -5,6 +5,8 @@ export const MarketCellWidth = 62
 export const MarketCellHeight = 68
 export const MarketTokenSize = 26
 export const MarketScenePadding = 6
+// Stacked tokens sit against the cell's right edge, clear of the price at the upper left.
+const MarketStackInset = 4
 
 /**
  * The largest empty rectangle in the market's lower-right corner, in unscaled scene pixels, or
@@ -30,6 +32,12 @@ export function marketLowerRightSpace(market: StockMarket): BoundingBox | undefi
     return largest
 }
 
+function stackOffsetX(count: number) {
+    return count > 1
+        ? MarketCellWidth - MarketStackInset - MarketTokenSize / 2
+        : MarketCellWidth / 2
+}
+
 export function marketTokenLayout(market: StockMarket) {
     return market.stacks.flatMap((stack) => {
         const space = stockMarketSpace(market, stack.spaceId)
@@ -40,10 +48,11 @@ export function marketTokenLayout(market: StockMarket) {
                       (MarketCellHeight - MarketTokenSize - 8) / (stack.companyIds.length - 1)
                   )
                 : 0
+        const x = stackOffsetX(stack.companyIds.length)
         return stack.companyIds.map((companyId, index) => ({
             companyId,
             spaceId: space.id,
-            x: space.column * MarketCellWidth + MarketCellWidth / 2,
+            x: space.column * MarketCellWidth + x,
             y:
                 space.row * MarketCellHeight +
                 MarketCellHeight / 2 +
@@ -67,7 +76,10 @@ export function expandedMarketStack(market: StockMarket, spaceId: string): Point
     const radius = MarketTokenSize / 2
     const x = Math.max(
         radius,
-        Math.min(width - radius - spanX, (space.column + 0.5) * MarketCellWidth - spanX / 2)
+        Math.min(
+            width - radius - spanX,
+            space.column * MarketCellWidth + stackOffsetX(count) - spanX / 2
+        )
     )
     const y = Math.max(
         radius,
