@@ -31,7 +31,15 @@ class Configurator extends BaseConfigurator {
     }
 }
 
-it('translates a legacy tournament draft before merging current defaults', async () => {
+const admin: User = {
+    id: 'admin',
+    username: 'Admin',
+    status: UserStatus.Active,
+    roles: [Role.Admin],
+    externalIds: []
+}
+
+function createService(supportsStartingPositions = true) {
     const store: TournamentStore = {
         create: vi.fn(async (tournament) => tournament),
         read: vi.fn(),
@@ -44,14 +52,7 @@ it('translates a legacy tournament draft before merging current defaults', async
         rebuildStandings: vi.fn(),
         administratorIds: vi.fn(async () => [])
     }
-    const admin: User = {
-        id: 'admin',
-        username: 'Admin',
-        status: UserStatus.Active,
-        roles: [Role.Admin],
-        externalIds: []
-    }
-    const service = new TournamentService(
+    return new TournamentService(
         store,
         { getUser: vi.fn() },
         {
@@ -71,14 +72,30 @@ it('translates a legacy tournament draft before merging current defaults', async
                     },
                     configurator: new Configurator()
                 },
-                runtime: SyntheticRuntime
+                runtime: {
+                    ...SyntheticRuntime,
+                    initializer: {
+                        supportsStartingPositions,
+                        initializeGame: (game, definition) =>
+                            SyntheticRuntime.initializer.initializeGame(game, definition),
+                        initializeGameState: (game, state, assignment) =>
+                            SyntheticRuntime.initializer.initializeGameState(
+                                game,
+                                state,
+                                assignment
+                            )
+                    }
+                }
             }
         },
         { sendNotification: vi.fn() },
         { provisionTournamentGame: vi.fn() },
         { createPushTask: vi.fn() }
     )
-    const draft: TournamentDraft = {
+}
+
+function draft(): TournamentDraft {
+    return {
         name: 'Legacy draft',
         description: '',
         format: { kind: 'mini', stages: [{ id: 'opening', name: 'Main', gamesPerEntrant: 2 }] },
@@ -91,7 +108,20 @@ it('translates a legacy tournament draft before merging current defaults', async
             gameConfig: { publicMoney: false }
         }
     }
-    const saved = await service.create('event', draft, admin)
+}
+
+it('translates a legacy tournament draft before merging current defaults', async () => {
+    const input = draft()
+    const saved = await createService().create('event', input, admin)
     expect(saved.rules.gameConfig).toEqual({ privateMoney: true })
-    expect(draft.rules.gameConfig).toEqual({ publicMoney: false })
+    expect(input.rules.gameConfig).toEqual({ publicMoney: false })
+})
+
+it('offers only titles that support assigned starting positions', async () => {
+    expect(createService().tournamentTitleIds()).toEqual(['test'])
+    const unsupported = createService(false)
+    expect(unsupported.tournamentTitleIds()).toEqual([])
+    await expect(unsupported.create('event', draft(), admin)).rejects.toThrow(
+        'This game is not available for tournaments yet'
+    )
 })

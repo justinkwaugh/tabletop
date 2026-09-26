@@ -30,6 +30,7 @@ import {
     TournamentDetail,
     type CorrectTournamentResultRequest,
     TournamentList,
+    TournamentTitles,
     TournamentSchedule,
     type CommitTournamentScheduleRequest,
     type TournamentScheduleRequest,
@@ -389,6 +390,10 @@ export class TabletopApi {
         if (query.after) params.set('after', query.after)
         if (query.titleId) params.set('titleId', query.titleId)
         return this.requestTournament(`/tournaments/?${params}`, TournamentList)
+    }
+
+    listTournamentTitles() {
+        return this.requestTournament('/tournaments/titles', TournamentTitles)
     }
 
     getTournament(id: string) {

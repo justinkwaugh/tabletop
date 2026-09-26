@@ -7,6 +7,7 @@ import {
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedBusGameState } from '../model/gameState.js'
+import { finalScore } from '../model/playerState.js'
 
 type EndOfGameAction = HydratedAction
 
@@ -37,11 +38,10 @@ export class EndOfGameStateHandler implements MachineStateHandler<
             gameState.scoreOrder.map((playerId, index) => [playerId, index])
         )
 
-        // Final score uses the rulebook time-stone penalty:
-        // score - stones. Tie-breaks are: more stones, then earlier in scoreOrder.
+        // Tie-breaks are: more stones, then earlier in scoreOrder.
         const rankedPlayers = [...gameState.players].toSorted((a, b) => {
-            const aFinalScore = a.score - a.stones
-            const bFinalScore = b.score - b.stones
+            const aFinalScore = finalScore(a)
+            const bFinalScore = finalScore(b)
             if (aFinalScore !== bFinalScore) {
                 return bFinalScore - aFinalScore
             }

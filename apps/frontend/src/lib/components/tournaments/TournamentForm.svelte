@@ -24,7 +24,7 @@
         type GameConfig,
         type ConfigOption
     } from '@tabletop/common'
-    import { untrack } from 'svelte'
+    import { onMount, untrack } from 'svelte'
     import { nanoid } from 'nanoid'
 
     let {
@@ -78,11 +78,24 @@
     let error = $state('')
     let title = $derived(libraryService.titlesById[titleId])
     let config = $derived(normalizeGameConfig(rawConfig, title?.info.configurator))
+    let tournamentTitleIds: Set<string> | undefined = $state()
+    let titlesError = $state('')
     let titles = $derived(
-        Object.values(libraryService.titlesById).sort((a, b) =>
-            a.info.metadata.name.localeCompare(b.info.metadata.name)
-        )
+        Object.values(libraryService.titlesById)
+            .filter(
+                (item) =>
+                    tournamentTitleIds?.has(item.info.id) || item.info.id === initial?.rules.titleId
+            )
+            .sort((a, b) => a.info.metadata.name.localeCompare(b.info.metadata.name))
     )
+
+    onMount(async () => {
+        try {
+            tournamentTitleIds = new Set((await api.listTournamentTitles()).titleIds)
+        } catch {
+            titlesError = 'Could not load the games available for tournaments.'
+        }
+    })
 
     function selectTitle(selectedTitleId: string) {
         titleId = selectedTitleId
@@ -200,7 +213,9 @@
                 }))}
                 onchange={selectTitle}
             />
-            {#if libraryService.loading}<Helper class="mt-1">Loading game titles…</Helper
+            {#if titlesError}<Helper color="red" class="mt-1">{titlesError}</Helper
+                >{:else if libraryService.loading || !tournamentTitleIds}<Helper class="mt-1"
+                    >Loading game titles…</Helper
                 >{:else if !titles.length}<Helper color="red" class="mt-1"
                     >Game titles are unavailable.</Helper
                 >{/if}

@@ -16,11 +16,11 @@ import { SantiagoApiActions } from './apiActions.js'
 import { ActionType } from './actions.js'
 import { MachineState } from './states.js'
 import { SantiagoGameStateValidator, type SantiagoProjectedState } from '../model/gameState.js'
-import { SquareType, isFieldSquare } from '../model/board.js'
-import { validCanalPlacements, validNeutralTilePlacements } from '../util/placement.js'
+import { isFieldSquare } from '../model/board.js'
 import { buildTileBag } from '../util/tileBag.js'
 import { isPlaceBid } from '../actions/placeBid.js'
 import legacy from './tests/v2-continuation.json'
+import { nextAction } from './tests/autoplay.js'
 
 const game: Game = {
     ...legacy.game,
@@ -69,56 +69,6 @@ function populate(state: SantiagoProjectedState, source = game, seed = 42) {
     })
 }
 
-function nextAction(state: SantiagoProjectedState) {
-    const playerId = state.activePlayerIds[0]
-    const action = {
-        id: `action-${state.actionCount}`,
-        gameId: game.id,
-        playerId,
-        source: ActionSource.User
-    }
-    switch (state.machineState) {
-        case MachineState.SpringPlacement:
-            return { ...action, type: ActionType.PlaceSpring, col: 2, row: 1 }
-        case MachineState.Bidding:
-            return { ...action, type: ActionType.PlaceBid, amount: 0 }
-        case MachineState.PlantingPhase: {
-            if (state.planterIndex >= state.plantersOrder.length) {
-                const placement = validNeutralTilePlacements(state.board)[0]
-                assert(placement, 'Neutral tile requires a placement')
-                return { ...action, type: ActionType.PlaceNeutralTile, ...placement }
-            }
-            for (let col = 0; col < 8; col++) {
-                for (let row = 0; row < 6; row++) {
-                    if (state.board.squares[col][row].type === SquareType.Empty)
-                        return { ...action, type: ActionType.PlaceField, col, row, tileIndex: 0 }
-                }
-            }
-            return { ...action, type: ActionType.Pass }
-        }
-        case MachineState.CanalBuilding: {
-            const segment = validCanalPlacements(state.board)[0]
-            assert(segment, 'Canal building requires a segment')
-            if (state.canalProposalIndex < state.canalProposalOrder.length) {
-                const player = SantiagoRuntime.hydrator.hydrateState(state).getPlayerState(playerId)
-                return player.getMoney() > 0
-                    ? { ...action, type: ActionType.ProposeCanal, segment, amount: 1 }
-                    : { ...action, type: ActionType.Pass }
-            }
-            return {
-                ...action,
-                type: ActionType.OverseerDecision,
-                segment: state.canalProposals[0]?.segment ?? segment,
-                accepting: state.canalProposals.length > 0
-            }
-        }
-        case MachineState.ExtraIrrigation:
-            return { ...action, type: ActionType.Pass }
-        default:
-            throw new Error('No action after game end')
-    }
-}
-
 function scenario(source = game, version = 3) {
     const initial = initialize(source, version)
     let state: SantiagoProjectedState = initial
@@ -129,7 +79,7 @@ function scenario(source = game, version = 3) {
         get state() {
             return state
         },
-        act(action: GameAction = nextAction(state)) {
+        act(action: GameAction = nextAction(state, game.id)) {
             const result = engine.executeCanonicalAction({ game: source, state, action })
             state = result.updatedState
             actions.push(...result.processedActions)
@@ -244,7 +194,7 @@ describe('Santiago visibility', () => {
         expect(engine.getValidActionTypesForPlayer(source, visible, perspective.playerId)).toEqual([
             ActionType.PlaceBid
         ])
-        const action = { ...nextAction(state), amount: 2 }
+        const action = { ...nextAction(state, game.id), amount: 2 }
         const result = engine.executeAction({ game: source, state: visible, action, perspective })
         expect(
             result.updatedState.players.find((p) => p.playerId === perspective.playerId)?.money
@@ -255,7 +205,7 @@ describe('Santiago visibility', () => {
     it('registers every action and strips canonical patches without sealing public bids', () => {
         expect(Object.keys(SantiagoApiActions).sort()).toEqual(Object.values(ActionType).sort())
         const s = scenario()
-        const bid = { ...nextAction(s.state), amount: 3 }
+        const bid = { ...nextAction(s.state, game.id), amount: 3 }
         const action = s.act(bid).processedActions[0]
         const visible = SantiagoRuntime.visibility.actions.project(action, spectator)
         expect(visible.type).toBe(ActionType.PlaceBid)
@@ -309,7 +259,7 @@ describe('Santiago visibility', () => {
                 engine.executeCanonicalAction({
                     game: source,
                     state: sample,
-                    action: nextAction(sample)
+                    action: nextAction(sample, game.id)
                 })
             ).not.toThrow()
         }
@@ -331,7 +281,7 @@ describe('Santiago visibility', () => {
             engine.executeCanonicalAction({
                 game: source,
                 state: project(state, source),
-                action: nextAction(state)
+                action: nextAction(state, game.id)
             })
         ).toThrow()
     })

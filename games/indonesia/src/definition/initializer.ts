@@ -1,5 +1,6 @@
 import {
     type GameInitializer,
+    type StartingPositionAssignment,
     BaseGameInitializer,
     Prng,
     type UninitializedGameState,
@@ -22,17 +23,23 @@ export class IndonesiaGameInitializer
     extends BaseGameInitializer<IndonesiaGameState, HydratedIndonesiaGameState>
     implements GameInitializer<IndonesiaGameState, HydratedIndonesiaGameState>
 {
+    readonly supportsStartingPositions = true
+
     // When an exploration state is created, in order to avoid allowing the player to discover
     // hidden information, this method can be used to modify the game state to hide such information.
     // Shuffling the remaining cards in a deck would be a reasonable example.
     // Initialize the game state based on things like the number of players and the game config
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedIndonesiaGameState {
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedIndonesiaGameState {
         // Initialize a pseudo random number generator for the state
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
 
         // Every game state has a turn manager to track whose turn it is
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
 
         // We've got phases in this game, can be easier to track with a phase manager
         const phaseManager = HydratedPhaseManager.generate()

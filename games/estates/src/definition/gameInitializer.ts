@@ -5,6 +5,7 @@ import {
     Prng,
     assertExists,
     Color,
+    type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
 import { Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
@@ -26,10 +27,16 @@ export class EstatesGameInitializer
     extends BaseGameInitializer<EstatesProjectedState, HydratedEstatesGameState>
     implements GameInitializer<EstatesProjectedState, HydratedEstatesGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedEstatesGameState {
+    readonly supportsStartingPositions = true
+
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedEstatesGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game)
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
 
         const board = this.initializeBoard()
         const roofPrngState = (state.systemVersion ?? 1) >= 3 ? state.protectedPrng : state.prng

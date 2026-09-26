@@ -145,6 +145,17 @@ describe('Sol competition', () => {
             expect(state.result).toBe(winners.length === 1 ? GameResult.Win : GameResult.Draw)
             expect(state.winningPlayerIds).toEqual(winners)
             expect(() => validateGameResult(state.dehydrate())).not.toThrow()
+            const finalScores = SolRuntime.scoring.finalScores(state.dehydrate())
+            expect(finalScores).toEqual({
+                p0: momentum[0],
+                p1: momentum[1],
+                p2: momentum[2],
+                p3: momentum[3]
+            })
+            const best = Math.max(...Object.values(finalScores))
+            for (const winner of state.winningPlayerIds) {
+                expect(finalScores[winner]).toBe(best)
+            }
         }
     )
 

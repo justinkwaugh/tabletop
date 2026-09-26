@@ -1,6 +1,6 @@
 # Tournament game capabilities
 
-Slice 03 (#60) extends the existing `GameInitializer.initializeGameState` method with an optional starting-position assignment. This is general game setup, usable without a tournament. Results remain the existing `GameState.result` and `winningPlayerIds`; no parallel result model or outcome capability is introduced. Sol, Urbino and Fresh Fish adopt assigned setup; other titles require setup adoption and verification in #67. Registration still does not launch games. Balanced scheduling, managed provisioning and result settlement remain #61–#64.
+Slice 03 (#60) extends the existing `GameInitializer.initializeGameState` method with an optional starting-position assignment. This is general game setup, usable without a tournament. Results remain the existing `GameState.result` and `winningPlayerIds`; no parallel result model or outcome capability is introduced. Every published title except Container now adopts assigned setup; Container remains for #67. Registration still does not launch games. Balanced scheduling, managed provisioning and result settlement remain #61–#64.
 
 ## Setup contract
 
@@ -11,6 +11,8 @@ Player counts and game options use the existing title definition. GameService va
 Call `GameEngine.startGame(game, { startingPositions: assignment, masterSeed })` through the current Publication's runtime. Given an already validated Game, it rejects an initializer that does not support assigned positions or an invalid identity permutation before initialization. It invokes the same title initializer used for ordinary games, enters the initial machine state, validates canonical state and applies the same protected-information marker as ordinary initialization. This is a runtime operation, not an authenticated provisioning API; the managed-game service in #62 must authorize its use.
 
 `GameEngine.startGame(game)` keeps ordinary randomized behavior. Existing `startGame(game, masterSeed)` calls remain supported for independently published callers; new calls can use the options object for a seed, starting positions, or both. The host-facing `GameCreationOptions` schema is unchanged, so this does not add user-controlled ordering to a hosted API yet. An initializer declares `supportsStartingPositions: true` only when it honors the optional assignment; this prevents older two-argument implementations from silently ignoring it. Adopted initializers pass the assignment to `HydratedTurnManager.generate` before creating any order-dependent board or player state. That helper still consumes the normal shuffle's random draws before replacing the order, keeping later random draws and player colors independent of the assignment. Do not reorder or patch completed states to simulate assigned positions.
+
+Tournament creation and editing reject a title whose initializer does not declare `supportsStartingPositions`, and the tournament form lists only the titles returned by the administrator-only `GET /tournaments/titles`, which reads the served Logic runtimes. An existing draft keeps its title visible so it can still be edited; saving it reports that the game is unavailable for tournaments.
 
 Sol uses the assigned order for clockwise mothership seating and the initial turn. Urbino uses it for architect placement; the first position retains the normal decision about who takes the first building turn. Starting-position assignments do not override subsequent choices, auctions, turn-order changes or title-specific tiebreaks.
 
@@ -30,7 +32,7 @@ Tournament scoring will consume the authoritative Game State's existing `result`
 
 Sol records shared victories as Draw with winner IDs; Urbino can use Win with multiple winner IDs. Both declare the winners directly. Indonesia contains a defensive Draw branch with no winner IDs; tournament validation rejects it as an invalid result, and its terminal handler requires review during catalog adoption. Its normal ties already resolve through its title-owned turn-order tiebreak. If a title records an incorrect result, fix its terminal handler rather than introducing another interpretation layer.
 
-A title may additionally declare `GameRuntime.scoring` with `finalScores(state)` returning each Game Player ID's final in-game score from a finished canonical state. Tournament scoring uses it only as a tiebreak total between entrants with equal tournament score; see [results and standings](tournament-scoring.md). Fresh Fish declares it from the scores its terminal handler records. Other titles opt in by adding the capability; nothing is inferred from player state fields.
+A title may additionally declare `GameRuntime.scoring` with `finalScores(state)` returning each Game Player ID's final in-game score from a finished canonical state. Tournament scoring uses it only as a tiebreak total between entrants with equal tournament score; see [results and standings](tournament-scoring.md). Each title that declares it reports the primary value its terminal handler ranks by, never a tiebreak value, so a player who loses only on a title's own tiebreak still carries the top score. Container does not declare it yet. Titles opt in by adding the capability; nothing is inferred from player state fields.
 
 The frozen tournament scoring policy remains `splitWinsV1`. Game results are sporting facts; points, settlement and standings belong to the tournament service. Complete finishing positions are not required, and the existing tournament schema rejects placement policies. A future optional placement capability must be validated before opening registration and must not be inferred from scores.
 
@@ -42,17 +44,17 @@ This is a source-code audit, not certification of the unadopted titles or a new 
 | --- | --- | --- | --- |
 | Sol | 2–5 | Mothership seating, first turn, protected deck; momentum ties retain all winners. | Implemented and tested |
 | Urbino | 2 | Architect placement and first-position choice of first building player; terminal handler declares one or multiple winners. | Implemented and tested |
-| Bridges of Shangri-La | 3–4 | Initial turn order; score then occupied-village tiebreak, possibly shared winners. | #67 |
-| Bus | 3–5 | Ordered players and initial `scoreOrder`; time-stone penalties and final order-dependent tiebreak. | #67 |
+| Bridges of Shangri-La | 3–4 | Position zero acts first and play continues in the assigned order. Final score is masters on the board; occupied villages break ties and remaining ties share the win. No reproduction seed. | Implemented and tested |
+| Bus | 3–5 | Position zero places initial buildings and the first line segment, takes the first worker choice and leads the initial `scoreOrder`. Final score is score minus time stones; ties go to more stones, then earlier `scoreOrder`, so one player always wins. No reproduction seed. | Implemented and tested |
 | Container | 3–5 | Ordered setup distributes machines/value cards and optional broker state; final factory-store tiebreak can leave shared winners. | #67 |
-| The Estates | 2–5 | Initial auction actor, protected roofs and optional hidden money; money tiebreak can leave shared winners. | #67 |
+| The Estates | 2–5 | Position zero runs the first auction; the cube shuffle and protected roof bag are unchanged. Final score is the terminal score; money breaks ties and remaining ties share the win. | Implemented and tested |
 | Fresh Fish | 2–5 | Assigned initial actor and turn order; independent board seed and protected tile bag; terminal scoring declares tied winners. | Implemented and tested |
-| Indonesia | 3–5 | Ordered players and setup cards; terminal ties resolve in current turn order. Empty-winner Draw branch requires explicit handling. | #67 |
-| Kaivai | 3–4 | Initial bidding order, ruleset-dependent setup and later auction ordering; terminal handler chooses one winner from wealth ordering. | #67 |
-| Lowenherz | 2–4 | Initial `firstPlayerId` and separate fixed seating order; protected cards, final power/wealth scoring and shared ties. | #67 |
+| Indonesia | 3–5 | Position zero places the first city and acts first; city cards stay dealt by player, as in ordinary setup. Final score is cash plus bank; ties go to the earlier player in current turn order. The empty-winner branch is now an invariant. No reproduction seed. | Implemented and tested |
+| Kaivai | 3–4 | Position zero leads the initial bidding order. Final score is `score`; money, fish, boats and tiles break ties in that order, and the handler always declares one winner. | Implemented and tested |
+| Lowenherz | 2–4 | Position zero is the first player and the assigned order is the fixed seating. Final score is power points after the end-of-game Parchment award; wealth breaks ties and remaining ties share the win. | Implemented and tested |
 | The Old Prince (18xx) | 3–4 | Seating and first auctioneer; random Mainline, Shortline and lot piles keep their seeded draws. `EndGame` declares the highest final wealth, shared on ties. | Implemented and tested |
 | Shikoku 1889 (18xx) | 2–6 | Seating and first waterfall bidder; `EndGame` declares the highest final wealth, shared on ties. | Implemented and tested |
-| Santiago | 3–5 | Initial overseer is randomized separately; fixed seating, first bidder and optional manual spring placement must be assigned consistently. Terminal ties retain all winners. | #67 |
+| Santiago | 3–5 | Position zero is the initial overseer, with seating clockwise from it; the ordinary overseer draw is still consumed. Final score is plantation points plus remaining money; ties share the win. | Implemented and tested |
 
 The sample game is a development template, not a catalog adoption target. Future title adoption should include requested position permutations, actual first actor/setup decisions, unchanged ordinary setup, deterministic PRNG behavior, hidden-information projections where applicable, and actual terminal results.
 
@@ -69,12 +71,14 @@ Hosted games continue to follow the current Publication (ADR-0003). No runtime v
 | Artifact combination | Behavior |
 | --- | --- |
 | New engine, older initializer without `supportsStartingPositions` | Ordinary games continue; assigned initialization rejects explicitly. Existing result fields remain usable. |
-| Existing engine, updated Sol/Urbino runtime | Ordinary initializer calls remain valid because the assignment is optional. The options-object form requires the new engine. |
-| New engine, updated Sol/Urbino runtime | Supports assigned setup and retains existing result fields. |
-| Existing Site Frontend, new Sol/Urbino UI Artifact | No new injected host capability is required. |
+| Existing engine, updated title runtime | Ordinary initializer calls remain valid because the assignment is optional. The options-object form requires the new engine. |
+| New engine, updated title runtime | Supports assigned setup and retains existing result fields. |
+| Existing Site Frontend, updated title UI Artifact | No new injected host capability is required. |
 | New Site Frontend, older UI Artifact | Existing host contract remains compatible; updating the site does not add setup options to the old bundled engine. |
 
-Sol, Urbino and Fresh Fish require matching Logic and UI Publications to adopt the initializer/runtime changes. Rebuild and publish both artifacts for each title; publishing only the Site Frontend is insufficient. Other titles need no republishing solely because the optional initializer argument exists, but each needs its own matching publication when it adopts assigned initialization. An already-loaded old client can continue playing an assigned game because the resulting state and action contracts are unchanged; it need not initialize or score the tournament itself.
+Every title that adopts assigned initialization or `scoring` requires matching Logic and UI Publications; publishing only the Site Frontend is insufficient. Bridges of Shangri-La, Bus, The Estates and Indonesia need them for their new initializers and final scores; Kaivai, Lowenherz, Santiago, Sol and Urbino need them for final scores. The backend reads both capabilities from the served Logic runtime, so until a title's new Logic is published it stays out of the tournament form and its finished games record no final scores. Titles need no republishing solely because the optional initializer argument exists.
+
+The Site Frontend's eligible-title request adds `listTournamentTitles` to `TabletopApi`. Game Sessions receive that API as `RemoteApiService` but do not call the new method, so older UI Artifacts remain compatible and none needs republishing for it. An already-loaded old client can continue playing an assigned game because the resulting state and action contracts are unchanged; it need not initialize or score the tournament itself.
 
 Tests cover absent-capability rejection and ordinary initialization without the new capability, canonical initialization, existing replay/visibility behavior, and unchanged title actions. The mixed-artifact matrix above follows the unchanged interfaces; production artifact rollout and full hosted tournament execution remain later work. No production Publication is changed by this slice.
 

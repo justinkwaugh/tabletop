@@ -215,6 +215,11 @@ export const TournamentList = Type.Object({
 })
 export type TournamentList = Type.Static<typeof TournamentList>
 
+export const TournamentTitles = Type.Object({
+    titleIds: Type.Array(Type.String())
+})
+export type TournamentTitles = Type.Static<typeof TournamentTitles>
+
 export const TournamentListQuery = Type.Object(
     {
         scope: Type.Union([

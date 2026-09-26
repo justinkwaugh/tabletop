@@ -13,6 +13,7 @@ import { LowenherzApiActions } from './apiActions.js'
 import { LowenherzStateHandlers } from './stateHandlers.js'
 import { LowenherzActionSchemas } from './actionSchemas.js'
 import { LowenherzColors } from './colors.js'
+import { LowenherzScoring } from './scoring.js'
 
 import { normalizeLowenherzState } from '../util/normalizePoliticsCards.js'
 
@@ -30,6 +31,7 @@ export const Definition = defineGame<LowenherzProjectedState, HydratedLowenherzG
         apiActions: LowenherzApiActions,
         playerColors: LowenherzColors,
         stateLogger: new DefaultStateLogger(),
+        scoring: new LowenherzScoring(),
         visibility: {
             state: {
                 schema: stateProjector.schema,

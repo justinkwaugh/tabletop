@@ -1,4 +1,5 @@
 import {
+    assertExists,
     GameResult,
     type HydratedAction,
     type MachineStateHandler,
@@ -7,6 +8,7 @@ import {
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
+import { totalMoney } from '../model/playerState.js'
 
 type EndOfGameAction = HydratedAction
 
@@ -36,19 +38,14 @@ export class EndOfGameStateHandler implements MachineStateHandler<
         let winnerId: string | undefined
         let winnerTotal = Number.NEGATIVE_INFINITY
         for (const playerId of gameState.turnManager.turnOrder) {
-            const player = gameState.getPlayerState(playerId)
-            const total = player.cash + player.bank
+            const total = totalMoney(gameState.getPlayerState(playerId))
             if (total > winnerTotal) {
                 winnerTotal = total
                 winnerId = playerId
             }
         }
 
-        if (!winnerId) {
-            gameState.result = GameResult.Draw
-            gameState.winningPlayerIds = []
-            return
-        }
+        assertExists(winnerId, 'End of game requires at least one player in turn order')
 
         gameState.result = GameResult.Win
         gameState.winningPlayerIds = [winnerId]

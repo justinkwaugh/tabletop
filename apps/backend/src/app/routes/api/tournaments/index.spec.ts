@@ -42,7 +42,8 @@ async function setup(roles: Role[]) {
         previewSchedule: change,
         correctResult: change,
         rebuildStandings: change,
-        commitSchedule: change
+        commitSchedule: change,
+        tournamentTitleIds: () => ['sol']
     })
     await server.register(authorization)
     await server.register(tournaments, { prefix: '/tournaments' })
@@ -93,6 +94,17 @@ describe('tournament administrator authorization', () => {
             })
             expect(edited.statusCode).toBe(200)
             expect(change).toHaveBeenLastCalledWith('event', input, 1, user)
+        }
+    )
+
+    it.each([true, false])(
+        'lists tournament titles only for administrators: %s',
+        async (admin) => {
+            const { server, cookies } = await setup(admin ? [Role.User, Role.Admin] : [Role.User])
+            const response = await server.inject({ url: '/tournaments/titles', cookies })
+            expect(response.statusCode).toBe(admin ? 200 : 403)
+            if (admin)
+                expect(response.json()).toEqual({ status: 'ok', payload: { titleIds: ['sol'] } })
         }
     )
 
