@@ -86,7 +86,7 @@
     size="xs"
     outsideclose
     class="backdrop:bg-black/70 dark:bg-gray-900 border border-highlight-border dark:border-highlight-border divide-y-0"
-    classes={{ header: "font-['Inter'] text-2xl" }}
+    classes={{ header: "font-['Inter'] text-2xl pb-0 md:pb-0" }}
 >
     <GameEditForm
         {title}
