@@ -1,3 +1,5 @@
+import { assertExists } from '@tabletop/common'
+
 // Shared sizing/row-splitting for the dealt politics-card row - PoliticsPileReveal (which
 // actually lays the cards out) and PoliticsDeckChooser (which needs to know, before any of that
 // exists, exactly where the leftmost dealt card will land so its own leftover-deck placeholder
@@ -64,8 +66,8 @@ export function rowContentWidth(count: number, cardWidth: number = CARD_W): numb
 
 // Where the deck ends up once it is part of the dealt row: the centre of slot 0, which
 // buildSlotRows below always fills with the deck. PoliticsDeckChooser slides its clicked deck to
-// this point and hands the same point over as the deal's origin, both before the pile has been
-// opened and so before there is any dealt row to measure - so this has to agree with what
+// this point before the pile has been opened - so before there is any dealt row to measure - and
+// then hands the deck itself over as the deal's origin, so this has to agree with what
 // buildSlotRows lays out once the cards arrive, which politicsCardLayout.test.ts pins down.
 export function deckSlotCenterX(
     rowLeft: number,
@@ -73,7 +75,8 @@ export function deckSlotCenterX(
     cardCount: number,
     cardWidth: number
 ): number {
-    const firstRowSize = rowSizes(cardCount + 1, rowWidth, cardWidth)[0] ?? 1
+    const [firstRowSize] = rowSizes(cardCount + 1, rowWidth, cardWidth)
+    assertExists(firstRowSize, 'rowSizes always yields a first row for one or more slots')
     return rowLeft + (rowWidth - rowContentWidth(firstRowSize, cardWidth)) / 2 + cardWidth / 2
 }
 
