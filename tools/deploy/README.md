@@ -59,8 +59,11 @@ submits it to Cloud Build tagged `<backend.image>:<version>`, and deploys that i
 `tasks` and then the `backend` Cloud Run services, in that order because backend depends on
 tasks, with traffic as revisions named `<service>-v<version>`
 with dots replaced by dashes, setting `BACKEND_VERSION`, `GIT_SHA`, and `BUILD_TIME` so the
-manifest reports what is running. A rerun that finds the revision already present reuses it. `--no-traffic` stages a revision
-without serving it, `promote-backend` shifts both services to their latest revision, tasks first, and
+manifest reports what is running. Unless `--no-traffic` is given, each service's traffic is then routed to its new revision and
+checked against the service's Cloud Run traffic status, because a service pinned to a named revision by an earlier rollback keeps
+that revision through a plain deploy, and the `latest---` manifest URL reaches the newest revision whatever the traffic split.
+A rerun that finds the revision already present reuses it. `--no-traffic` stages a revision
+without serving it, `promote-backend` shifts both services to their latest revision, tasks first, and verifies each, and
 `rollback-backend` restores the earlier ready revision of both services;
 `rollback-backend <revision> --service=backend|tasks` selects a particular service revision. No Docker is needed
 locally. The image tag is immutable: a version already in Artifact Registry is refused.

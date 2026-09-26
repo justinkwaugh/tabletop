@@ -104,7 +104,9 @@ The command ends with `deploy SUCCEEDED:` or `deploy FAILED:` followed by `servi
 logic and UI versions the backend reports after the run. Relay those two lines verbatim, then
 add the tags created and the pushed commit. The tool itself fails when the backend still
 reports the old versions after the manifest upload, so a `SUCCEEDED` line already means
-production serves the new versions. Report the outcome in exactly this shape:
+production serves the new versions. For the backend it also fails unless each service's Cloud Run
+traffic is 100% on the new revision; the version it reports comes from the `latest---` URL, which
+reaches the newest revision whatever the traffic split, so it cannot show this on its own. Report the outcome in exactly this shape:
 
 ```
 Result: success | failure (<failing step>)

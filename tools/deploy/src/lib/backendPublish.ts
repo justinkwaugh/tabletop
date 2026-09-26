@@ -6,10 +6,10 @@ import {
     deployBackendCommand,
     promoteBackendCommand,
     revisionSuffixForVersion,
-    routeTrafficToRevisionCommand,
     submitBackendImageCommand
 } from './commands.js'
 import { artifactImageExists, cloudRunRevisionExists } from './gcs.js'
+import { assertServesOnly, readBackendHistory, routeTrafficAndVerify } from './backendTraffic.js'
 import { headCommitSha } from './git.js'
 import {
     checkArtifactsPublishable,
@@ -135,33 +135,24 @@ const buildAndDeploy = async (
         const revision = `${service}-${revisionSuffix}`
         if (await cloudRunRevisionExists(revision, target.project, target.region)) {
             context.log(`${revision} already exists; reusing it`)
-            if (serveTraffic) {
-                await runSpec(
-                    context,
-                    routeTrafficToRevisionCommand(
-                        context.repoRoot,
-                        service,
-                        revision,
-                        context.deployConfig
-                    )
-                )
-            }
-            continue
+        } else {
+            await runSpec(
+                context,
+                deployBackendCommand(context.repoRoot, context.deployConfig, {
+                    service,
+                    image: artifact.destination,
+                    allowTraffic: serveTraffic,
+                    revisionSuffix,
+                    envVars: {
+                        BACKEND_VERSION: artifact.version,
+                        GIT_SHA: sha,
+                        BUILD_TIME: new Date().toISOString()
+                    }
+                })
+            )
         }
-        await runSpec(
-            context,
-            deployBackendCommand(context.repoRoot, context.deployConfig, {
-                service,
-                image: artifact.destination,
-                allowTraffic: serveTraffic,
-                revisionSuffix,
-                envVars: {
-                    BACKEND_VERSION: artifact.version,
-                    GIT_SHA: sha,
-                    BUILD_TIME: new Date().toISOString()
-                }
-            })
-        )
+        // A deploy leaves traffic where it is when the service is pinned to a named revision.
+        if (serveTraffic) await routeTrafficAndVerify(context, service, revision)
     }
 }
 
@@ -220,6 +211,11 @@ export const promoteBackend = async (context: PublishContext, services: BackendS
             context,
             promoteBackendCommand(context.repoRoot, service, context.deployConfig)
         )
+        const latest = (await readBackendHistory(context, service)).revisions.find(
+            (revision) => revision.ready
+        )
+        if (!latest) throw new Error(`${service} has no ready revision`)
+        await assertServesOnly(context, service, latest.name)
     }
     const servingAfter = await fetchBackendServingVersion(context)
     context.log(`backend (${target.services.join(', ')}) promoted to latest revision`)

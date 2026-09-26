@@ -1,99 +1,12 @@
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-import { withCloudSdkPythonEnv } from './cloudSdkPython.js'
 import { resolveBackendTarget, type BackendService } from './backendPublish.js'
-import { routeTrafficToRevisionCommand, revisionSuffixForVersion } from './commands.js'
-import { runSpec, type PublishContext } from './publishCore.js'
-import { isObject } from './json.js'
-
-const execFileAsync = promisify(execFile)
-
-export interface BackendRevision {
-    name: string
-    created: string
-    ready: boolean
-}
-export interface BackendServiceHistory {
-    service: string
-    traffic: Array<{ revision: string; percent: number }>
-    revisions: BackendRevision[]
-}
-
-const readJson = async (context: PublishContext, args: string[]): Promise<unknown> => {
-    const backend = context.deployConfig.backend
-    if (!backend?.project || !backend.region) throw new Error('Backend project and region required')
-    const { stdout } = await execFileAsync(
-        'gcloud',
-        ['run', ...args, '--project', backend.project, '--region', backend.region, '--quiet'],
-        {
-            cwd: context.repoRoot,
-            env: withCloudSdkPythonEnv(process.env),
-            maxBuffer: 8 * 1024 * 1024
-        }
-    )
-    return JSON.parse(stdout)
-}
-
-export const readBackendHistory = async (
-    context: PublishContext,
-    service: string
-): Promise<BackendServiceHistory> => {
-    const description = await readJson(context, [
-        'services',
-        'describe',
-        service,
-        '--format=json(status.traffic)'
-    ])
-    if (
-        !isObject(description) ||
-        !isObject(description.status) ||
-        !Array.isArray(description.status.traffic)
-    ) {
-        throw new Error(`Missing traffic status for ${service}`)
-    }
-    const traffic = description.status.traffic.flatMap((entry: unknown) => {
-        if (!isObject(entry) || typeof entry.percent !== 'number' || entry.percent <= 0) return []
-        if (typeof entry.revisionName !== 'string')
-            throw new Error(`Unresolved serving revision for ${service}`)
-        return [{ revision: entry.revisionName, percent: entry.percent }]
-    })
-    const revisions = await readJson(context, [
-        'revisions',
-        'list',
-        '--service',
-        service,
-        '--format=json(metadata.name,metadata.creationTimestamp,status.conditions)'
-    ])
-    if (!Array.isArray(revisions)) throw new Error(`Missing revisions for ${service}`)
-    return {
-        service,
-        traffic,
-        revisions: revisions
-            .map((entry: unknown) => {
-                if (
-                    !isObject(entry) ||
-                    !isObject(entry.metadata) ||
-                    typeof entry.metadata.name !== 'string' ||
-                    typeof entry.metadata.creationTimestamp !== 'string' ||
-                    !isObject(entry.status) ||
-                    !Array.isArray(entry.status.conditions)
-                ) {
-                    throw new Error(`Invalid revision data for ${service}`)
-                }
-                return {
-                    name: entry.metadata.name,
-                    created: entry.metadata.creationTimestamp,
-                    ready: entry.status.conditions.some(
-                        (condition: unknown) =>
-                            isObject(condition) &&
-                            condition.type === 'Ready' &&
-                            condition.status === 'True'
-                    )
-                }
-            })
-            .sort((a, b) => b.created.localeCompare(a.created))
-    }
-}
+import {
+    readBackendHistory,
+    routeTrafficAndVerify,
+    type BackendRevision,
+    type BackendServiceHistory
+} from './backendTraffic.js'
+import { revisionSuffixForVersion } from './commands.js'
+import type { PublishContext } from './publishCore.js'
 
 export const previousBackendRevision = (history: BackendServiceHistory): BackendRevision => {
     if (history.traffic.length !== 1 || history.traffic[0].percent !== 100) {
@@ -169,25 +82,7 @@ export const switchBackend = async (
             `${plan.service}: ${plan.before.map((entry) => `${entry.revision} (${entry.percent}%)`).join(', ')} -> ${plan.revision} (100%)`
         )
     for (const plan of plans) {
-        await runSpec(
-            context,
-            routeTrafficToRevisionCommand(
-                context.repoRoot,
-                plan.service,
-                plan.revision,
-                context.deployConfig
-            )
-        )
-        const current = await readBackendHistory(context, plan.service)
-        if (
-            current.traffic.length !== 1 ||
-            current.traffic[0].revision !== plan.revision ||
-            current.traffic[0].percent !== 100
-        ) {
-            throw new Error(
-                `${plan.service}: traffic verification failed; earlier services may already have switched`
-            )
-        }
+        await routeTrafficAndVerify(context, plan.service, plan.revision)
         context.log(`${plan.service} serving now: ${plan.revision} (100%)`)
     }
 }
