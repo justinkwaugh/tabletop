@@ -19,7 +19,7 @@ export const LowenherzInfo: GameInfo = {
         maxPlayers: 4,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true
+        beta: false
     },
     configurator: lowenherzConfigurator
 }
