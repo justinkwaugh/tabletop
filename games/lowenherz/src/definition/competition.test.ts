@@ -5,6 +5,7 @@ import {
     GameResult,
     PlayerStatus,
     validateGameResult,
+    type Game,
     type GameConfig
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
@@ -15,6 +16,10 @@ import { ActionType } from './actions.js'
 import { ActionCardType } from './actionCards.js'
 import { PoliticsCardType, type PoliticsCard } from './politicsCards.js'
 import type { DrawActionCard } from '../actions/drawActionCard.js'
+import { HydratedPlaceCastle, type PlaceCastle } from '../actions/placeCastle.js'
+import type { PlaceSetupKnight } from '../actions/placeSetupKnight.js'
+import { legalSetupKnightSquares } from '../util/setupKnightSquares.js'
+import type { LowenherzProjectedState } from '../model/gameState.js'
 import { awardHillPowerPoints } from '../util/hillPowerPoints.js'
 
 const engine = new GameEngine(LowenherzRuntime)
@@ -100,13 +105,57 @@ describe.each([2, 3, 4])('Lowenherz tournaments with %i players', (count) => {
 
 type FinalStanding = { finalPowerPoints: number; money: number; politicsCards: PoliticsCard[] }
 
+function legalCastleAndKnight(state: LowenherzProjectedState, playerId: string) {
+    const hydrated = LowenherzRuntime.hydrator.hydrateState(state)
+    for (const [castleRow, row] of hydrated.board.squares.entries()) {
+        for (const castleCol of row.keys()) {
+            if (!HydratedPlaceCastle.isValidCastleSquare(hydrated, playerId, castleCol, castleRow))
+                continue
+            const [knight] = legalSetupKnightSquares(hydrated, castleCol, castleRow)
+            if (knight) return { castleCol, castleRow, knight }
+        }
+    }
+    throw new Error(`No legal castle placement for ${playerId}`)
+}
+
+function completeCastleSetup(game: Game, initialState: LowenherzProjectedState) {
+    let state = initialState
+    for (let placement = 0; state.machineState === MachineState.PlacingCastles; placement++) {
+        const [playerId] = state.activePlayerIds
+        const { castleCol, castleRow, knight } = legalCastleAndKnight(state, playerId)
+        const castle: PlaceCastle = {
+            id: `castle-${placement}`,
+            gameId: game.id,
+            source: ActionSource.User,
+            type: ActionType.PlaceCastle,
+            playerId,
+            castleCol,
+            castleRow
+        }
+        state = engine.executeCanonicalAction({ game, state, action: castle }).updatedState
+        const setupKnight: PlaceSetupKnight = {
+            id: `knight-${placement}`,
+            gameId: game.id,
+            source: ActionSource.User,
+            type: ActionType.PlaceSetupKnight,
+            playerId,
+            knightCol: knight.col,
+            knightRow: knight.row
+        }
+        state = engine.executeCanonicalAction({ game, state, action: setupKnight }).updatedState
+    }
+    return state
+}
+
 function finishGame(count: number, standings: Record<string, FinalStanding>) {
     const game = createGame(count, { playerPlacedCastles: false })
-    const { initialState } = engine.startGame(game, {
+    const { initialState, startedGame } = engine.startGame(game, {
         masterSeed,
         startingPositions: { playerIds: game.players.map((player) => player.id).reverse() }
     })
-    const state = LowenherzRuntime.hydrator.hydrateState(initialState)
+    const state = LowenherzRuntime.hydrator.hydrateState(
+        completeCastleSetup(startedGame, initialState)
+    )
     expect(state.machineState).toBe(MachineState.StartOfTurn)
 
     const deck = state.getActionDeck()
@@ -139,7 +188,7 @@ function finishGame(count: number, standings: Record<string, FinalStanding>) {
         playerId: state.firstPlayerId
     }
     const finished = engine.executeCanonicalAction({
-        game,
+        game: startedGame,
         state: state.dehydrate(),
         action
     }).updatedState
@@ -147,7 +196,7 @@ function finishGame(count: number, standings: Record<string, FinalStanding>) {
     return finished
 }
 
-describe.each([3, 4])('Lowenherz final scores with %i players', (count) => {
+describe.each([2, 3, 4])('Lowenherz final scores with %i players', (count) => {
     const standing = (
         finalPowerPoints: number,
         money: number,
