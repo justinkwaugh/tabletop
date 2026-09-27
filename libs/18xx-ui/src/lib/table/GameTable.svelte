@@ -1334,12 +1334,6 @@
         --stock-buy-wrap: nowrap;
         --stock-buy-overflow: auto;
         flex: none;
-        max-height: 50dvh;
-        overflow: auto;
-    }
-    .original-actions:has(.action-panel :global(.centered-panel)) {
-        max-height: none;
-        overflow: visible;
     }
     .workspace-view {
         height: 100%;
@@ -1353,7 +1347,7 @@
         box-sizing: border-box;
     }
     .actions-area {
-        container: stock-actions / inline-size;
+        container: action-pane / size;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -1556,7 +1550,7 @@
     .action-panel :global(.centered-panel) {
         margin-block: auto;
     }
-    @container stock-actions (min-width: 500px) {
+    @container action-pane (min-width: 500px) {
         .action-panel:has(:global(.sales-sidebar)) {
             display: flex;
             flex-direction: column;

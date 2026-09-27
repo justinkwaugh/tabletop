@@ -106,16 +106,21 @@
         width: 300px;
         max-width: 100%;
     }
-    /* Fill the action pane and contain the size so the published card can measure the pane. */
-    article {
-        container-type: size;
-        flex: 1 1 auto;
-        min-height: 196px;
-    }
     .lot.image {
         width: auto;
-        /* Published card art shrinks with the pane, with a floor so it stays legible. */
-        --auction-card-height: clamp(180px, 100cqh - 16px, 360px);
+    }
+    /* Size containment ignores content height, so fill only a pane whose height is fixed. */
+    @container action-pane (min-height: 196px) {
+        article {
+            flex: 1 1 auto;
+            min-height: 196px;
+        }
+        article:has(.lot.image) {
+            container-type: size;
+        }
+        .lot.image {
+            --auction-card-height: clamp(180px, 100cqh - 16px, 360px);
+        }
     }
     .bid-summary {
         display: flex;

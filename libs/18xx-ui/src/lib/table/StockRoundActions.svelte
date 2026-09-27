@@ -465,7 +465,7 @@
         container-type: inline-size;
         padding: 4px 0;
     }
-    @container stock-actions (min-width: 500px) {
+    @container action-pane (min-width: 500px) {
         section:has(.sales-sidebar) {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 168px;

@@ -1323,8 +1323,8 @@ the action content whenever that area scrolls vertically.
 The Buy panel centers its contents vertically in available pane space and keeps
 share choices horizontally centered. When content exceeds the pane height, the
 action body scrolls with the beginning of the content still reachable. In the
-non-paned layout, Buy expands the action area to its content height without an
-vertical internal scroll area or viewport-height cap. Buy cards form a single
+non-paned layout, Buy expands the action area to its content height like every
+other action state (see Sidebar layout). Buy cards form a single
 horizontally scrollable row in the non-paned layout, centered when they fit and
 starting at the first card when they overflow. In panes, cards wrap into rows. Corporate share offers show a cream
 YOU PAY amount beneath the share box when the purchase preview requires cash from
@@ -1581,7 +1581,9 @@ remain stacked vertically. P/H/C select those sidebar tabs. The action area belo
 Below 1024px the view tabs stack beneath the action area and keep at least half the
 viewport height, so the board stays usable when the action area or an expanded
 operating-order card grows; the game column scrolls to reach it instead of
-squeezing the board. On phone widths (below 640px) the game column has no
+squeezing the board. In every action state the stacked action area takes its
+content height, with no viewport-height cap or internal vertical scroll area, and
+no action content extends over the view tabs. On phone widths (below 640px) the game column has no
 horizontal padding and reaches the screen edge.
 
 ### Splittable table workspace
