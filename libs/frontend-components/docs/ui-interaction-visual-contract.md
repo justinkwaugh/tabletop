@@ -201,8 +201,8 @@ The camera uses a `translate3d` transform so browsers can composite the board du
 
 A host may let zoomed content travel past its edges far enough to bring any edge
 point to the viewport centre, so an edge target can be centred like any other.
-The allowance eases in over the first zoom step from fit, so a fitted view never
-moves and zooming back to fit glides home. `overpan` selects who may use it:
+The allowance eases in over the first 5% of zoom beyond fit, so a fitted view
+never moves and zooming back to fit glides home. `overpan` selects who may use it:
 `none` keeps hard edges; any other value lets programmatic focus, fit, and view
 restoration use it; `x`, `y`, or `both` also let drag, wheel, pinch, gesture, and
 zoom-button changes use it on those axes, as does full screen on every axis since

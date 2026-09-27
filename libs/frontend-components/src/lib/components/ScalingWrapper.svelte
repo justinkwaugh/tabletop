@@ -2,6 +2,7 @@
     import { onDestroy, onMount, untrack, type Snippet } from 'svelte'
 
     const DISCRETE_ZOOM_STEP = 0.15
+    const OVERPAN_EASE_RELATIVE_ZOOM = 0.05
     const VIEW_ANIMATION_MS = 180
     const EPSILON = 0.001
     const MOUSE_WHEEL_ZOOM_SENSITIVITY = 0.003
@@ -291,7 +292,7 @@
     }
 
     function getOverpanFraction(scale: number) {
-        return overpan === 'none' ? 0 : clamp((scale - baseScale) / DISCRETE_ZOOM_STEP, 0, 1)
+        return overpan === 'none' ? 0 : clamp((scale / baseScale - 1) / OVERPAN_EASE_RELATIVE_ZOOM, 0, 1)
     }
 
     function getOverpanRange(range: PanRange, scaledSize: number, viewportCenter: number, fraction: number): PanRange {
