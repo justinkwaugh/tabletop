@@ -122,14 +122,14 @@
     {#snippet gameInformation()}
         <div class="tranches" aria-label="Company tranches">
             <span class="tranches-label">Tranches</span>
-            <Tranches {session} spread />
+            <Tranches {session} layout="row" />
         </div>
     {/snippet}
     {#snippet boardInformation()}
         <div class="board-tranches" aria-label="Company tranches">
             <span class="board-tranches-label">Tranches</span>
             <div class="board-tranche-groups">
-                <Tranches {session} slotSize={MarketTokenSize} named />
+                <Tranches {session} slotSize={MarketTokenSize * 1.42} layout="stacked" />
             </div>
         </div>
     {/snippet}
@@ -157,18 +157,22 @@
     .board-tranches {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 10px;
+        align-items: flex-start;
+        gap: 11px;
+        margin-right: auto;
+        padding-left: 62px;
     }
     .board-tranches-label {
-        color: var(--rail-text, #e3e9ef);
-        font-size: 15px;
+        color: var(--rail-muted, #7f8e9e);
+        font-size: 18px;
         font-weight: 650;
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
     .board-tranche-groups {
         display: flex;
+        flex-direction: column;
         align-items: flex-start;
+        gap: 16px;
     }
 </style>

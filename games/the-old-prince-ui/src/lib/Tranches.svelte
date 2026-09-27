@@ -5,13 +5,11 @@
     let {
         session,
         slotSize = 22,
-        spread = false,
-        named = false
+        layout
     }: {
         session: TheOldPrinceSession
         slotSize?: number
-        spread?: boolean
-        named?: boolean
+        layout: 'row' | 'stacked'
     } = $props()
     const availableTranche = $derived(availableTheOldPrinceTranche(session.gameState))
 </script>
@@ -21,7 +19,8 @@
         tranche.companyIds.length < tranche.capacity && tranche.id !== availableTranche?.id}
     <div
         class="tranche"
-        class:spread
+        class:row={layout === 'row'}
+        class:stacked={layout === 'stacked'}
         class:closed
         aria-label={`${tranche.name}${closed ? ': closed' : ''}`}
         title={closed ? `${tranche.name}: closed` : tranche.name}
@@ -49,7 +48,6 @@
                 </span>
             {/each}
         </div>
-        {#if named}<span class="tranche-name" aria-hidden="true">{tranche.name}</span>{/if}
     </div>
 {/each}
 
@@ -62,32 +60,37 @@
         gap: calc(var(--slot-size) / 4);
         padding: 0 8px;
     }
-    .tranche.spread {
+    .row {
         flex-grow: 1;
     }
-    .tranche:last-child {
+    .row:last-child {
         padding-right: 0;
     }
-    .tranche + .tranche {
+    .row + .row {
         border-left: 1px solid var(--rail-border, #b8a995);
+    }
+    .stacked {
+        padding: 0;
+    }
+    .stacked.closed {
+        opacity: 0.55;
     }
     .slots {
         display: flex;
         gap: calc(var(--slot-size) / 4.4);
     }
-    .tranche-name {
-        color: var(--rail-muted, #887969);
-        font-size: calc(var(--slot-size) * 0.46);
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        white-space: nowrap;
-    }
     .tranche-slot.empty {
-        border-style: dashed;
-        background: transparent;
+        background: color-mix(in srgb, var(--rail-muted, #887969) 35%, transparent);
     }
     .closed .tranche-slot.empty {
+        border-style: dashed;
+        background: transparent;
         color: var(--rail-text, #776657);
+    }
+    .stacked .tranche-slot.empty {
+        border-color: var(--rail-muted, #887969);
+    }
+    .row.closed .tranche-slot.empty {
         opacity: 0.55;
     }
     .tranche-slot {

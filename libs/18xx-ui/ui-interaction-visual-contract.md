@@ -673,17 +673,22 @@ A title that declares board areas gets a Board view: the same map scene as Map,
 interactive in the same way, in the current generic or published presentation,
 with table panels drawn into those areas: the StockMarketScene in the market area
 and the Depot tab's train table in the depot area. Each panel keeps its natural
-layout and is scaled as a whole to fit its area, centered, so it zooms with the
-map. Areas are in map units, so they lie at the same place relative to the hexes
-in both presentations; the generic view extends its bounds to include them. A
-title may also supply board information, drawn inside the market panel in the
-largest empty rectangle of the market's lower-right corner so it shares the
-market's scale; TOP shows its named tranches there with slots the size of market
-tokens. The panels behave as in their own tabs, including market hover and move
-animations.
+layout and is scaled as a whole to fit its area, horizontally centered and aligned
+to the area's top, so it zooms with the map. The board's depot panel sizes to its
+roster and stacks the current phase and train limit, enlarged, to the roster's
+left, flush with its top. Areas are in map units, so they lie at the same place
+relative to the hexes in both presentations; the generic view extends its bounds
+to include them. A title may also supply board information, drawn inside the
+market panel in the largest empty rectangle of the market's lower-right corner so
+it shares the market's scale; TOP stacks its tranches there, one row per tranche
+(one, two, then three slots), with slots about 1.4 times the size of market
+tokens and empty slots outlined in the muted text colour. A locked tranche's row
+is dimmed, with a lock in each empty slot. The panels behave as in their own tabs,
+including market hover and move animations.
 
 In the paned layout Board is an optional tab added from the pane menu; Map, Market
-and Depot are unchanged. Below the paned breakpoint the Map tab shows the board
+and Depot are unchanged. When the paned workspace opens with Board and Map in the
+same pane and Map still the initial selection, Board is selected instead. Below the paned breakpoint the Map tab shows the board
 instead, labelled Board and selected by default, and Market is not offered.
 
 Map framing (placement choices, route previews, company starts, hex, company and
@@ -691,8 +696,8 @@ route focus, history steps and their restores) applies to every open map view,
 Map and Board, each with its own bounds. A flow that brings the map forward
 selects Map only when Board is not already visible.
 
-A Full / Market / Depot sliding toggle, listing Market and Depot only when their
-areas exist, focuses the board. In the paned Board tab it overlays the upper-left
+A Full / Market / Depot sliding toggle, labelled in sentence case and listing
+Market and Depot only when their areas exist, focuses the board. In the paned Board tab it overlays the upper-left
 corner at a fixed size, and the view keeps a 44px screen-space inset at the top so
 the fitted board rests below it; the board still pans beneath it when zoomed.
 Below the paned breakpoint it sits centered in a tight strip above the board.
@@ -1279,7 +1284,7 @@ Titles may supply additional compact game information below that row. TOP shows
 its three non-initial tranches as grouped station-token slots, populated from the
 visible state's tranche assignments; unfilled slots remain visible.
 TOP's unavailable unfilled tranche slots show empty dashed circles with lock icons;
-currently available slots retain empty dashed circles. Availability follows the
+currently available slots show empty solid circles with a light muted fill. Availability follows the
 title's tranche rule, including the preceding companies' operation/sold-out condition.
 
 Keyboard shortcuts M/K/S/T select Map/Market/Spreadsheet/Tiles. P/H/C activate
@@ -1368,7 +1373,8 @@ Sidebar game information pairs train limit with depot availability. Each current
 available depot type uses the title's train badge and canonical remaining count
 (infinity for unlimited supply); sold-out types are omitted. Clicking Depot opens
 a depot-only roster with live remaining counts and the same current-row highlight
-as the phase chart. All available types are highlighted; exhausted rows are muted. Title-specific company roles share the compact information row; TOP labels them
+as the phase chart. All available types are highlighted; exhausted rows are muted.
+Title-specific company roles share the compact information row; TOP labels them
 Main and Short. Additional title information such as tranches follows below.
 
 Expanded operating-order company cards show Cash, Par (if present), Market, and
@@ -1760,14 +1766,16 @@ player's color on its leading edge instead of a dot. A controlled portfolio such
 as Union Bank takes its controller's tint without the bar. Income history tints
 each player's data columns; its metric header row stays neutral.
 
-Company/pool headers use the raised label surface. The available pool is neutral
-like untinted holdings, with every second pool row or column one step lighter in
-its data cells only. Share value uses a faint turquoise as market-derived data,
-and company cash, trains, tokens, and last run sit on a recessed darker fill.
+Company/pool headers use the raised label surface. The available pool is neutral,
+with every second pool row or column one step lighter in its data cells only.
+Share value uses a faint turquoise as market-derived data. Shares held by players
+and controlled portfolios, and company cash, trains, tokens, and last run, sit on
+a recessed darker fill.
 Sold-share rose takes precedence over any fill, and hover lightens whatever fill
 is beneath it. Cells where player financials would cross the pool or company
 financials are never populated: they show bare table background with no dashes or
-rules, bounded only by the section dividers that border real data.
+rules, bounded only by the section dividers that border real data. The table's
+bottom edge uses the same section divider beneath populated cells only.
 
 Section dividers are 2px and cell rules are faint 1px lines; a header receiving
 an ownership connector omits its leading rule. Row headers stay pinned during

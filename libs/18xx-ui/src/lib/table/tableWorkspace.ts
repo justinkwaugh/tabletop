@@ -1,5 +1,6 @@
 import {
     restoreWorkspace,
+    restoreWorkspaceTabs,
     saveWorkspace,
     workspaceLayout,
     type SavedPane,
@@ -52,4 +53,16 @@ export function restoreTableWorkspace(value: unknown, tabs: readonly WorkspaceTa
             ? ['Game info', ...saved.sidebar]
             : ['rows', 25, ['Game info'], saved.sidebar]
     return saveTableWorkspace({ ...saved, sidebar: [], main: ['cols', 20, left, saved.main] })
+}
+
+export function defaultTableView(
+    savedLayout: unknown,
+    tabs: readonly WorkspaceTab[]
+): 'Board' | 'Map' {
+    const { root } = restoreWorkspaceTabs(savedLayout, tabs, [], undefined, initialTableLayout)
+    return workspaceLayout(root).panes.some(
+        ({ pane }) => pane.tabs.includes('Board') && pane.tabs.includes('Map')
+    )
+        ? 'Board'
+        : 'Map'
 }

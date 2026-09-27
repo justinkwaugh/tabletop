@@ -1,6 +1,11 @@
 import { expect, it } from 'vitest'
 import { restoreWorkspace, workspaceLayout, type SavedPane } from '@tabletop/frontend-components'
-import { initialTableLayout, restoreTableWorkspace, saveTableWorkspace } from './tableWorkspace.js'
+import {
+    defaultTableView,
+    initialTableLayout,
+    restoreTableWorkspace,
+    saveTableWorkspace
+} from './tableWorkspace.js'
 const tabs = [
     'Game info',
     'Players',
@@ -67,4 +72,12 @@ it('never exceeds eight panes when promoting a full legacy layout', () => {
 it('does not reintroduce an intentionally closed Game info tab in the new layout', () => {
     const saved = saveTableWorkspace({ v: 1, sidebar: [], main: ['Map'], closed: ['Game info'] })
     expect(restoreTableWorkspace(saved, tabs)).toBe(saved)
+})
+it('defaults to Board only when it shares a pane with Map', () => {
+    const withBoard = [...tabs, { id: 'Board', label: 'Board', optional: true }]
+    const layout = (main: SavedPane) => saveTableWorkspace({ v: 1, sidebar: [], main })
+    expect(defaultTableView(layout(['Map', 'Market', 'Board']), withBoard)).toBe('Board')
+    expect(defaultTableView(layout(['cols', 50, ['Map'], ['Board']]), withBoard)).toBe('Map')
+    expect(defaultTableView(layout(['Map', 'Market']), withBoard)).toBe('Map')
+    expect(defaultTableView(null, withBoard)).toBe('Map')
 })

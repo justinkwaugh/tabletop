@@ -69,5 +69,5 @@ export type { SavedWorkspace, SavedPane } from './components/workspacePersistenc
 
 export { DebouncedLayout } from './preferences/debouncedLayout.svelte.js'
 
-export { restoreWorkspace, saveWorkspace } from './components/workspacePersistence.js'
+export { restoreWorkspace, restoreWorkspaceTabs, saveWorkspace } from './components/workspacePersistence.js'
 export { workspaceLayout } from './components/tabWorkspace.js'

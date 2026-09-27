@@ -30,8 +30,6 @@
         font: inherit;
         font-size: 12px;
         line-height: 16px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
         cursor: pointer;
     }
     button:hover {

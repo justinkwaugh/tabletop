@@ -8,6 +8,7 @@
         chart,
         depotState,
         depotOnly = false,
+        onBoard = false,
         currentPhaseId,
         trainColors,
         tileColors = TileColors,
@@ -16,15 +17,17 @@
         money: MoneyFormat
         depotState: PhaseChartDepotState
         depotOnly?: boolean
+        onBoard?: boolean
         chart: PhaseChartData
         currentPhaseId: string
         trainColors: Readonly<Record<string, string>>
         tileColors?: Readonly<Record<string, string>>
         tileColorNames?: Readonly<Record<string, string>>
     } = $props()
+    const currentPhase = $derived(chart.phases.find((phase) => phase.id === currentPhaseId))
 </script>
 
-<div class="phase-chart-content" class:depot={depotOnly}>
+<div class="phase-chart-content" class:depot={depotOnly} class:on-board={onBoard}>
     <div class="charts">
         {#if !depotOnly}
             <section aria-label="Phases">
@@ -81,6 +84,19 @@
                 </table>
             </section>
         {/if}
+        {#if onBoard && currentPhase}<div class="phase-summary">
+                <span class="summary-item"
+                    ><span class="summary-label">Phase</span><TrainBadge
+                        name={currentPhase.id}
+                        color={trainColors[currentPhase.id]}
+                    /></span
+                >
+                <span class="summary-item"
+                    ><span class="summary-label">Train limit</span><span class="summary-value"
+                        >{currentPhase.trainLimit}</span
+                    ></span
+                >
+            </div>{/if}
         <section aria-label="Train roster">
             <table>
                 <thead
@@ -140,6 +156,40 @@
     }
     .depot .charts {
         grid-template-columns: minmax(0, 1fr);
+    }
+    .on-board {
+        container-type: normal;
+    }
+    .on-board .charts {
+        grid-template-columns: auto auto;
+        align-items: start;
+        padding-top: 0;
+    }
+    .on-board .notes {
+        contain: inline-size;
+    }
+    .phase-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        --train-badge-font: 18px;
+    }
+    .summary-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--rail-muted, #817261);
+    }
+    .summary-value {
+        font-size: 24px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
     }
     .exhausted {
         color: var(--rail-muted, #958878);

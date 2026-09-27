@@ -15,7 +15,7 @@
     bind:offsetWidth={width}
     bind:offsetHeight={height}
     style:left={`${area.x + (area.width - width * scale) / 2}px`}
-    style:top={`${area.y + (area.height - height * scale) / 2}px`}
+    style:top={`${area.y}px`}
     style:transform={`scale(${scale})`}
 >
     {@render children()}

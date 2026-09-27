@@ -32,6 +32,14 @@ test('only absent widgets can be added and the add section disappears once all a
     await page.getByRole('button', { name: 'Layout unsaved', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeVisible()
     await page.reload()
+    await expect(page.getByRole('tab', { name: 'Board', exact: true })).toHaveAttribute(
+        'aria-selected',
+        'true'
+    )
+    await expect(page.getByRole('tab', { name: 'Map', exact: true })).toHaveAttribute(
+        'aria-selected',
+        'false'
+    )
     await page.getByRole('tab', { name: 'Operating Order', exact: true }).click()
     await expect(page.getByRole('tabpanel', { name: 'Operating Order', exact: true })).toBeVisible()
     await page

@@ -6,6 +6,7 @@
     } from './companyPresentation.js'
     import { tableHeaderState } from './tableHeaderState.js'
     import {
+        defaultTableView,
         initialTableLayout,
         restoreTableWorkspace,
         saveTableWorkspace
@@ -584,7 +585,8 @@
     ] as const
     const sidebarViews = ['Players', 'History', 'Chat']
     let sidebar: HTMLDivElement
-    let selectedView = $state('Map')
+    const initialView = 'Map'
+    let selectedView = $state<string>(initialView)
     const view = $derived(selectedView)
     const workspaceTabs = views.map((id) => ({
         id,
@@ -600,6 +602,13 @@
         { id: 'Game info', label: 'Game info' },
         ...sidebarViews.map((id) => ({ id, label: id }))
     ]
+    const savedTableLayout = $derived(restoreTableWorkspace(layoutPreference.value, paneTabs))
+    function preferBoard() {
+        untrack(() => {
+            if (selectedView !== initialView) return
+            selectedView = defaultTableView(savedTableLayout, paneTabs)
+        })
+    }
 
     function navigateByShortcut(event: KeyboardEvent) {
         if (
@@ -745,18 +754,17 @@
             label="Train depot"
             area={viewportRect(boardViewport, boardAreas.depot)}
         >
-            <div class="board-depot">
-                <PhaseChartContent
-                    {money}
-                    {depotState}
-                    depotOnly
-                    chart={phaseChart}
-                    currentPhaseId={session.gameState.phaseId}
-                    {trainColors}
-                    tileColors={tileAppearance.colors}
-                    tileColorNames={tileAppearance.colorNames}
-                />
-            </div>
+            <PhaseChartContent
+                {money}
+                {depotState}
+                depotOnly
+                onBoard
+                chart={phaseChart}
+                currentPhaseId={session.gameState.phaseId}
+                {trainColors}
+                tileColors={tileAppearance.colors}
+                tileColorNames={tileAppearance.colorNames}
+            />
         </BoardInset>{/if}
 {/snippet}
 
@@ -1175,13 +1183,10 @@
                             </div>{/if}
                     {/snippet}
                     {#if paneLayout.current}
-                        <div class="pane-workspace">
+                        <div class="pane-workspace" {@attach preferBoard}>
                             <TabWorkspace
                                 tabs={paneTabs}
-                                savedLayout={restoreTableWorkspace(
-                                    layoutPreference.value,
-                                    paneTabs
-                                )}
+                                savedLayout={savedTableLayout}
                                 onLayoutChange={(value) =>
                                     layoutPreference.change(saveTableWorkspace(value))}
                                 tabTitle={sidebarTabIcon}
@@ -1625,9 +1630,6 @@
     }
     .board-view > :global(svg) {
         display: block;
-    }
-    .board-depot {
-        width: 420px;
     }
     .board-market {
         position: relative;

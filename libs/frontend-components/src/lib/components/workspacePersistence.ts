@@ -1,3 +1,4 @@
+import type { WorkspaceTab } from './workspaceTypes.js'
 import { clampSplitRatio, createWorkspace, workspaceLayout, MAX_WORKSPACE_PANES, type WorkspaceNode, type WorkspacePane, type WorkspaceInitialSplit } from './tabWorkspace.js'
 
 export type SavedPane = string[] | ['rows' | 'cols', number, SavedPane, SavedPane]
@@ -10,6 +11,10 @@ export function saveWorkspace(root: WorkspaceNode, fixed: WorkspacePane, closabl
     const present = new Set([...fixed.tabs, ...workspaceLayout(root).panes.flatMap(item => item.pane.tabs)])
     const closed = closableTabs.filter(id => !present.has(id))
     return { ...(closed.length ? { closed } : {}), v: 1, sidebar: [...fixed.tabs], main: encode(root) }
+}
+
+export function restoreWorkspaceTabs(value: unknown, tabs: readonly WorkspaceTab[], sidebar: readonly string[] = [], initialSplit?: WorkspaceInitialSplit, initialLayout?: SavedPane) {
+    return restoreWorkspace(value, tabs.map(tab => tab.id), sidebar, initialSplit, tabs.filter(tab => tab.optional).map(tab => tab.id), tabs.filter(tab => tab.closable !== false).map(tab => tab.id), initialLayout)
 }
 
 export function restoreWorkspace(value: unknown, tabs: readonly string[], sidebar: readonly string[], initialSplit?: WorkspaceInitialSplit, optionalTabs: readonly string[] = [], closableTabs: readonly string[] = [], initialLayout?: SavedPane): { root: WorkspaceNode; fixed: WorkspacePane } {

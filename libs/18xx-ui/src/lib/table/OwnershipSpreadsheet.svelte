@@ -1038,7 +1038,7 @@
         --sheet-divider: #5b6d80;
     }
     .share-cell {
-        --cell-fill: var(--sheet-cell);
+        --cell-fill: var(--sheet-financial);
     }
     .available-pool {
         --cell-fill: var(--sheet-pool);
@@ -1406,6 +1406,9 @@
     }
     tr.stat-start > td.void {
         border-top: 2px solid var(--sheet-divider);
+    }
+    tbody tr:last-child > :not(.void) {
+        border-bottom: 2px solid var(--sheet-divider);
     }
     @container (max-width: 800px) {
         table {

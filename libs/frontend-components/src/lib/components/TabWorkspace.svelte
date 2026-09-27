@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { WorkspaceTab, WorkspaceFixedPane } from './workspaceTypes.js'
-    import { restoreWorkspace, saveWorkspace, type SavedWorkspace, type SavedPane } from './workspacePersistence.js'
+    import { restoreWorkspaceTabs, saveWorkspace, type SavedWorkspace, type SavedPane } from './workspacePersistence.js'
     import { tick, untrack, type Snippet } from 'svelte'
     import { type WorkspaceInitialSplit, activateTab, closeTab, addTab, deletePane, maxSplitRatio, minSplitRatio, moveTab, resizeSplit, splitPane, swapSplit, workspaceLayout, type DividerLayout, type WorkspaceNode, type WorkspacePane, type PaneLayout } from './tabWorkspace.js'
     let { tabs, children, selected = $bindable<string | undefined>(), label = 'Workspace', splittable = true, initialSplit, initialLayout, fixedPane, tabTitle, savedLayout, onLayoutChange }: {
@@ -18,7 +18,7 @@
     } = $props()
     const instanceId = $props.id()
     const closableTabs = $derived(tabs.filter(tab => tab.closable !== false).map(tab => tab.id))
-    const initial = untrack(() => restoreWorkspace(savedLayout, tabs.map(tab => tab.id), fixedPane?.tabs ?? [], initialSplit, tabs.filter(tab => tab.optional).map(tab => tab.id), closableTabs, initialLayout))
+    const initial = untrack(() => restoreWorkspaceTabs(savedLayout, tabs, fixedPane?.tabs, initialSplit, initialLayout))
     let root: WorkspaceNode = $state(initial.root)
     let fixed: WorkspacePane = $state(initial.fixed)
     let lastLayout = JSON.stringify(saveWorkspace(initial.root, initial.fixed, closableTabs.filter(id => !tabs.find(tab => tab.id === id)?.optional)))
