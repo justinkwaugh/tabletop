@@ -21,6 +21,12 @@ it('starts a different header descending', () => {
     })
 })
 
+it('toggles an ascending-only header between ascending and unsorted', () => {
+    const ascending = nextSpreadsheetSort(undefined, 'order', ['ascending'])
+    expect(ascending).toEqual({ key: 'order', direction: 'ascending' })
+    expect(nextSpreadsheetSort(ascending, 'order', ['ascending'])).toBeUndefined()
+})
+
 it('keeps ties in item order and missing values last in either direction', () => {
     const items = [
         { id: 'A', value: 20 },

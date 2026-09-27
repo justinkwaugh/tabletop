@@ -24,11 +24,12 @@
         type ValuationRules
     } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    import type { CompanyNameVariants } from './companyPresentation.js'
+    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
     import PlayerName from './PlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
+    import { numberedSharesOwned } from './numberedShares.js'
     import SpreadsheetOutline from './SpreadsheetOutline.svelte'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
     import {
@@ -56,6 +57,8 @@
         valuationRules,
         trainColors,
         companyNames = {},
+        numberedShareNames = {},
+        includedCompanyIds = [],
         includedPortfolioCompanyIds = [],
         portfolioCompanyIds = []
     }: {
@@ -69,6 +72,8 @@
         trainColors: Readonly<Record<string, string>>
         valuationRules: ValuationRules
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
+        numberedShareNames?: NumberedShareNames
+        includedCompanyIds?: readonly string[]
         portfolioCompanyIds?: readonly string[]
         includedPortfolioCompanyIds?: readonly string[]
     } = $props()
@@ -131,7 +136,8 @@
             session.gameState,
             session.actions,
             session.gameState.actionCount,
-            companyOrder
+            companyOrder,
+            includedCompanyIds
         )
     )
     const periods = ['Current', 'Player income', 'Company payouts'] as const
@@ -184,6 +190,14 @@
                     ? certificate.shares
                     : 0),
             0
+        )
+    }
+    function playerShareNumbers(ownerId: string, companyId: string): number[] {
+        if (!numberedShareNames[companyId] || !ownerId.startsWith('player:')) return []
+        return numberedSharesOwned(
+            session.gameState,
+            { kind: 'player', playerId: ownerId.slice(7) },
+            companyId
         )
     }
     function purchaseForCell(companyId: string, ownerId: string) {
@@ -252,6 +266,8 @@
         )
     )
     type OwnerStatistics = {
+        order?: number
+        nextOrder?: number
         cash: number
         shares: number
         netWorth: number
@@ -261,13 +277,19 @@
         const { cash, netWorth, shares } = ownerPortfolio(session.gameState, owner, valuationRules)
         return { cash, shares, netWorth, certs }
     }
-    const ownerStatisticKeys = ['cash', 'shares', 'certs', 'netWorth'] as const
+    const ownerStatisticKeys = ['order', 'cash', 'shares', 'certs', 'netWorth'] as const
     type OwnerStatistic = (typeof ownerStatisticKeys)[number]
     type OwnerStatisticColumn = SpreadsheetSortColumn<OwnerStatistics> & {
         label: string
         text: (values: OwnerStatistics) => string
     }
     const ownerStatisticColumns: Record<OwnerStatistic, OwnerStatisticColumn> = {
+        order: {
+            label: 'Order',
+            value: (values) => values.order,
+            text: (values) => (values.order === undefined ? '—' : String(values.order)),
+            directions: ['ascending']
+        },
         cash: {
             label: 'Cash',
             value: (values) => values.cash,
@@ -292,14 +314,32 @@
     type CompanyStatistic = 'value' | 'cash' | 'lastRun'
     let playerSort = $state<SpreadsheetSort<OwnerStatistic>>()
     let companySort = $state<SpreadsheetSort<CompanyStatistic>>()
+    const passOrderStockRound = $derived(
+        session.passing === 'pass-order' &&
+            session.gameState.machineState === 'StockRound' &&
+            !session.gameState.stockRound.completed
+    )
+    // A pass-order player's next stock round position is settled once they pass.
+    function nextOrderFor(playerId: string) {
+        return passOrderStockRound &&
+            session.gameState.stockRound.passedPlayerIds.includes(playerId)
+            ? session.playerPriorityOrder.indexOf(playerId) + 1
+            : undefined
+    }
     const seatedPlayers = $derived(
-        seatOrder.map((playerId) => ({
-            playerId,
-            ...ownerStatisticsFor(
-                { kind: 'player', playerId },
-                session.playerCertificates(playerId)
-            )
-        }))
+        seatOrder.map((playerId) => {
+            const turn = session.gameState.turnManager.turnOrder.indexOf(playerId)
+            assert(turn >= 0, 'Every seated player has a turn position')
+            return {
+                playerId,
+                ...ownerStatisticsFor(
+                    { kind: 'player', playerId },
+                    session.playerCertificates(playerId)
+                ),
+                order: turn + 1,
+                nextOrder: nextOrderFor(playerId)
+            }
+        })
     )
     const playerOrder = $derived(
         sortedForSpreadsheet(seatedPlayers, playerSort, ownerStatisticColumns).map(
@@ -383,7 +423,8 @@
                     : company.president?.kind === 'company'
                       ? `company:${company.president.companyId}`
                       : undefined,
-            shares: owners.map((owner) => owner.count(company.id))
+            shares: owners.map((owner) => owner.count(company.id)),
+            shareNumbers: owners.map((owner) => playerShareNumbers(owner.id, company.id))
         }))
     )
     type CompanyRow = (typeof companyRows)[number]
@@ -440,12 +481,24 @@
     {@const values = statistics.get(ownerId)}
     {@const included =
         key === 'netWorth' && includedPortfolioOwners.some((owner) => owner.id === ownerId)}
-    <span
-        class:included-net-worth={included}
-        aria-describedby={included ? `${footnoteId}-${ownerId}` : undefined}
-        >{values ? ownerStatisticColumns[key].text(values) : '—'}{#if included}<sup>*</sup
-            >{/if}</span
-    >
+    {@const nextOrder =
+        key === 'order' && values?.nextOrder !== values?.order ? values?.nextOrder : undefined}
+    {#if values && nextOrder !== undefined}
+        {@const note = ` (${nextOrder})`}
+        <span class="noted-value" data-note={note}
+            >{ownerStatisticColumns[key].text(values)}<span
+                class="value-note"
+                title={`Next stock round position ${nextOrder}`}>{note}</span
+            ></span
+        >
+    {:else}
+        <span
+            class:included-net-worth={included}
+            aria-describedby={included ? `${footnoteId}-${ownerId}` : undefined}
+            >{values ? ownerStatisticColumns[key].text(values) : '—'}{#if included}<sup>*</sup
+                >{/if}</span
+        >
+    {/if}
 {/snippet}
 
 {#snippet sortButton(
@@ -469,7 +522,12 @@
         >{@render sortButton(
             label,
             direction,
-            () => (companySort = nextSpreadsheetSort(companySort, key))
+            () =>
+                (companySort = nextSpreadsheetSort(
+                    companySort,
+                    key,
+                    companySortColumns[key].directions
+                ))
         )}</th
     >
 {/snippet}
@@ -480,7 +538,12 @@
         >{@render sortButton(
             ownerStatisticColumns[key].label,
             direction,
-            () => (playerSort = nextSpreadsheetSort(playerSort, key))
+            () =>
+                (playerSort = nextSpreadsheetSort(
+                    playerSort,
+                    key,
+                    ownerStatisticColumns[key].directions
+                ))
         )}</th
     >
 {/snippet}
@@ -532,7 +595,8 @@
     matrix = true,
     sold = false,
     operating = false,
-    poolAlt = false
+    poolAlt = false,
+    numbers: readonly number[] = []
 )}
     {@const purchase = shares > 0 ? purchaseForCell(companyId, ownerId) : undefined}
     {@const saleChoices = shares > 0 ? saleChoicesForCell(companyId, ownerId) : []}
@@ -560,20 +624,29 @@
                 aria-label={`Sell ${getCompany(session.gameState, companyId).name} shares`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'sell', companyId, ownerId })}
-                ><span class="share-value" class:president
-                    >{shares}{#if president}<span class="badge" aria-label="President">P</span
-                        >{/if}</span
-                ></button
+                >{@render shareHolding(String(shares), president, numbers)}</button
             >
         {:else}
-            <span class="share-value" class:president
-                >{shares === 0 ? '' : shares}{#if president}<span
-                        class="badge"
-                        aria-label="President">P</span
-                    >{/if}</span
-            >
+            {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers)}
         {/if}
     </td>
+{/snippet}
+
+{#snippet shareValue(text: string, president: boolean)}
+    <span class="share-value" class:president
+        >{text}{#if president}<span class="badge" aria-label="President">P</span>{/if}</span
+    >
+{/snippet}
+
+{#snippet shareHolding(text: string, president: boolean, numbers: readonly number[])}
+    {#if numbers.length}
+        {@const label = ` (${numbers.join(',')})`}
+        <span class="noted-value" class:president data-note={label}
+            >{@render shareValue(text, president)}<span class="value-note">{label}</span></span
+        >
+    {:else}
+        {@render shareValue(text, president)}
+    {/if}
 {/snippet}
 
 {#snippet companyLabel(company: Company)}
@@ -736,7 +809,8 @@
                                                 !(owners[index].id in poolColumnLabels),
                                                 soldThisRound(owners[index].id, row.company.id),
                                                 false,
-                                                poolAlternate(owners[index].id)
+                                                poolAlternate(owners[index].id),
+                                                row.shareNumbers[index]
                                             )}{/each}
                                         {#if pricePresentation.showInSpreadsheet}<td
                                                 class="company-stat-start bright-cell value-cell"
@@ -812,7 +886,8 @@
                                                 !(owner.id in poolColumnLabels),
                                                 soldThisRound(owner.id, row.company.id),
                                                 row.company.id === operatingCompanyId,
-                                                poolAlternate(owner.id)
+                                                poolAlternate(owner.id),
+                                                row.shareNumbers[index]
                                             )}{/each}
                                         {#each ownerStatisticKeys as key, statIndex (key)}
                                             <td
@@ -1307,6 +1382,25 @@
         margin-left: 2px;
         top: 0;
         text-box: trim-both cap alphabetic;
+    }
+    /* A hidden copy of the note before the value keeps the value centered in its cell. */
+    .noted-value {
+        white-space: pre;
+    }
+    .noted-value::before,
+    .value-note {
+        color: var(--rail-muted, #a79888);
+        font-size: 0.85em;
+    }
+    .noted-value::before {
+        content: attr(data-note);
+        visibility: hidden;
+    }
+    .noted-value.president::before {
+        margin-right: 7px;
+    }
+    .noted-value.president .value-note {
+        margin-left: 7px;
     }
     .sheet-spacing {
         flex: 0 1 20px;

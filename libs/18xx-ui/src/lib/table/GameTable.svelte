@@ -1147,6 +1147,8 @@
                                     {valuationRules}
                                     {session}
                                     {companyNames}
+                                    {numberedShareNames}
+                                    {includedCompanyIds}
                                     {marketPoolId}
                                     {exchangePoolId}
                                     {portfolioCompanyIds}

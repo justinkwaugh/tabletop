@@ -9,10 +9,12 @@ export type SpreadsheetSort<Key extends string> = {
 
 export function nextSpreadsheetSort<Key extends string>(
     current: SpreadsheetSort<Key> | undefined,
-    key: Key
+    key: Key,
+    directions: readonly SpreadsheetSortDirection[] = ['descending', 'ascending']
 ): SpreadsheetSort<Key> | undefined {
-    if (current?.key !== key) return { key, direction: 'descending' }
-    return current.direction === 'descending' ? { key, direction: 'ascending' } : undefined
+    const index = current?.key === key ? directions.indexOf(current.direction) + 1 : 0
+    const direction = directions[index]
+    return direction ? { key, direction } : undefined
 }
 
 export function spreadsheetSortDirection<Key extends string>(
@@ -25,6 +27,7 @@ export function spreadsheetSortDirection<Key extends string>(
 export type SpreadsheetSortColumn<Item> = {
     value: (item: Item) => number | undefined
     tieOrder?: (a: Item, b: Item) => number
+    directions?: readonly SpreadsheetSortDirection[]
 }
 
 export function sortedForSpreadsheet<Item, Key extends string>(

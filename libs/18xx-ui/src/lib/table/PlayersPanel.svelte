@@ -3,15 +3,10 @@
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
     import { companyFocusLocations } from '../maps/companyFocusLocations.js'
-    import {
-        certificatesOwnedBy,
-        controllingOwner,
-        getCompany,
-        type Owner,
-        type ValuationRules
-    } from '@tabletop/18xx'
+    import { controllingOwner, getCompany, type Owner, type ValuationRules } from '@tabletop/18xx'
     import { auctionLotDetails } from '../auctions/auctionLotDetails.js'
     import { assertExists } from '@tabletop/common'
+    import { numberedSharesOwned } from './numberedShares.js'
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -105,16 +100,11 @@
     function numberedShares(owner: Owner, companyId: string) {
         const names = numberedShareNames[companyId]
         if (!names) return []
-        return certificatesOwnedBy(session.gameState, owner)
-            .filter((certificate) => certificate.kind === 'share')
-            .filter((certificate) => certificate.companyId === companyId)
-            .map((certificate) => {
-                assertExists(certificate.number, 'Numbered shares require a number')
-                const name = names[certificate.number]
-                assertExists(name, 'Numbered share requires a title-supplied name')
-                return { number: certificate.number, name }
-            })
-            .sort((a, b) => a.number - b.number)
+        return numberedSharesOwned(session.gameState, owner, companyId).map((number) => {
+            const name = names[number]
+            assertExists(name, 'Numbered share requires a title-supplied name')
+            return { number, name }
+        })
     }
     const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
 </script>

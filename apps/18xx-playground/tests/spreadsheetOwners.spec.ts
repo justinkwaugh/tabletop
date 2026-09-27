@@ -10,13 +10,13 @@ test('TOP groups Union Bank under its controller without merging their holdings'
     await expect(bank.locator('xpath=preceding-sibling::tr[1]').getByRole('rowheader')).toHaveText(
         'Alex'
     )
-    await expect(bank.getByRole('cell')).toHaveText(['1', '3P', '$40', '4', '—', '$390*'])
+    await expect(bank.getByRole('cell')).toHaveText(['1', '3P', '', '—', '$40', '4', '—', '$390*'])
     await expect(
         sheet
             .getByRole('row')
             .filter({ has: page.getByRole('rowheader', { name: 'Alex', exact: true }) })
             .getByRole('cell')
-    ).toHaveText(['3P', '1', '$240', '5', '5/20', '$1,072'])
+    ).toHaveText(['3P', '1', '1 (2)', '1', '$240', '5', '5/20', '$1,072'])
     await expect(bank.getByRole('rowheader')).toHaveClass(/controlled-owner/)
     await expect(bank.locator('.included-net-worth')).toHaveCSS('color', 'rgb(127, 142, 158)')
     await expect(
@@ -58,8 +58,49 @@ test('TOP groups Union Bank under its controller without merging their holdings'
         expect(playerLabel.height).toBe(bankLabel.height)
         await expect(sheet.locator('.included-net-worth')).toHaveText('$390*')
         await page.getByRole('button', { name: 'Swap rows and columns' }).click()
-        await expect(bank.getByRole('cell')).toHaveText(['1', '3P', '$40', '4', '—', '$390*'])
+        await expect(bank.getByRole('cell')).toHaveText([
+            '1',
+            '3P',
+            '',
+            '—',
+            '$40',
+            '4',
+            '—',
+            '$390*'
+        ])
     }
+})
+
+test('TOP lists PEIR last with player-held share numbers and no market value', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
+    const sheet = page.getByRole('table', { name: 'Company share ownership' })
+    const companies = sheet.locator('thead th[aria-label]')
+    await expect(companies).toHaveText(['C', 'SO', 'PEIR'])
+    const peirCells = (name: string) =>
+        sheet
+            .getByRole('row')
+            .filter({ has: page.getByRole('rowheader', { name, exact: true }) })
+            .getByRole('cell')
+            .nth(2)
+    await expect(peirCells('Alex')).toHaveText('1 (2)')
+    await expect(peirCells('Blair')).toHaveText('2P (3,5)')
+    await expect(peirCells('Casey')).toHaveText('2 (4,6)')
+    await expect(peirCells('Value')).toHaveText('—')
+    const value = sheet.getByRole('rowheader', { name: 'Value' })
+    for (const direction of ['descending', 'ascending'] as const) {
+        await value.getByRole('button').click()
+        await expect(value).toHaveAttribute('aria-sort', direction)
+        await expect(companies.last()).toHaveText('PEIR')
+    }
+    await page.getByRole('button', { name: 'Swap rows and columns' }).click()
+    await expect(
+        sheet
+            .getByRole('row')
+            .filter({ has: page.getByRole('rowheader', { name: 'Prince Edward Island Railway' }) })
+            .getByRole('cell')
+            .nth(2)
+    ).toHaveText('2P (3,5)')
 })
 
 test('1889 retains player order without corporate ownership connectors', async ({ page }) => {

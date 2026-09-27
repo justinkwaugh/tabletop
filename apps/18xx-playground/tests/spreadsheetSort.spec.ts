@@ -105,3 +105,70 @@ test('TOP market value ties follow operating order in both directions', async ({
         'Mount Stewart'
     ])
 })
+
+for (const title of ['TOP', '1889']) {
+    test(`${title} spreadsheet Order shows turn order and toggles an ascending sort`, async ({
+        page
+    }) => {
+        const sheet = await openSpreadsheet(page, title, 'opening')
+        const playerRows = sheet
+            .locator('tbody tr')
+            .filter({ has: page.locator('th .player-label') })
+        const playerNames = playerRows.locator('th .player-label')
+        const statHeaders = sheet.locator('thead th:has(.sort-header)')
+        await expect(statHeaders).toHaveText(['Order', 'Cash', 'Shares', 'Certs', 'Net worth'])
+        const order = sheet.getByRole('columnheader', { name: 'Order' })
+        const orderCells = playerRows.locator('td:nth-last-child(5)')
+        const seats = ['Alex', 'Blair', 'Casey']
+        await expect(playerNames).toHaveText(seats)
+        const orders = await amounts(orderCells)
+        expect(orders.toSorted()).toEqual([1, 2, 3])
+        const byTurn = seats.toSorted((a, b) => orders[seats.indexOf(a)] - orders[seats.indexOf(b)])
+
+        await order.getByRole('button').click()
+        await expect(order).toHaveAttribute('aria-sort', 'ascending')
+        await expect(playerNames).toHaveText(byTurn)
+        await expect(orderCells).toHaveText(['1', '2', '3'])
+
+        await order.getByRole('button').click()
+        await expect(order).not.toHaveAttribute('aria-sort')
+        await expect(playerNames).toHaveText(seats)
+
+        await page.getByRole('button', { name: 'Swap rows and columns' }).click()
+        const statRows = sheet.locator('tbody tr.financial-row th:has(.sort-header)')
+        await expect(statRows).toHaveText(['Order', 'Cash', 'Shares', 'Certs', 'Net worth'])
+    })
+}
+
+for (const title of ['TOP', '1889']) {
+    test(`${title} spreadsheet Order keeps the round's turn order when a later player passes`, async ({
+        page
+    }) => {
+        const sheet = await openSpreadsheet(page, title, 'trading')
+        const orderCells = sheet
+            .locator('tbody tr')
+            .filter({ has: page.locator('th .player-label') })
+            .locator('td:nth-last-child(5)')
+        await expect(orderCells).toHaveText(['1', '2', '3'])
+        const stockActions = page.getByRole('navigation', { name: 'Stock actions' })
+        const confirmation = page.getByRole('dialog', { name: 'Confirm share trade' })
+        const actingPlayers = sheet.locator('tr.current-player th .player-label')
+
+        await sheet
+            .getByRole('button', { name: /Buy .* from Market/ })
+            .first()
+            .click()
+        await confirmation.getByRole('button', { name: 'Yes' }).click()
+        await expect(confirmation).toBeHidden()
+        // A TOP purchase ends the turn; 1889 may still sell, so its turn ends explicitly.
+        if (title === '1889')
+            await stockActions.getByRole('button', { name: 'End turn', exact: true }).click()
+        await expect(actingPlayers.filter({ hasText: 'Blair' })).toHaveCount(1)
+        const passing = await actingPlayers.allTextContents()
+        await stockActions.getByRole('button', { name: 'Pass', exact: true }).click()
+        await expect.poll(() => actingPlayers.allTextContents()).not.toEqual(passing)
+
+        // In pass order Blair passed first, so TOP notes Blair's next round position.
+        await expect(orderCells).toHaveText(title === 'TOP' ? ['1', '2 (1)', '3'] : ['1', '2', '3'])
+    })
+}
