@@ -256,6 +256,7 @@
     const phoneLayout = new MediaQuery('(width < 40rem)')
     const boardAvailable = untrack(() => !!session.mapView.boardAreas)
     const boardMode = $derived(boardAvailable && !paneLayout.current)
+    const mapOverpan = $derived(paneLayout.current ? 'both' : 'focus')
     let orderChipsShown = $state(false)
     let orderOverflowing = $state(false)
     let orderFirstVisible = $state(-1)
@@ -1055,6 +1056,7 @@
                                 <ScalingWrapper
                                     bind:this={mapWrapper}
                                     maxScale={2}
+                                    overpan={mapOverpan}
                                     onManualViewChange={() => {
                                         restoreRouteView = undefined
                                         boardFocus = undefined
@@ -1082,6 +1084,7 @@
                                 <ScalingWrapper
                                     bind:this={boardWrapper}
                                     insetTop={44}
+                                    overpan={mapOverpan}
                                     justify="center"
                                     controls="bottom-left"
                                     expandable={true}

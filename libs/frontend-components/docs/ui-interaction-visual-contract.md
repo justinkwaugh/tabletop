@@ -197,6 +197,36 @@ consuming Game UI Artifact must be republished to adopt it, including TOP and 18
 
 The camera uses a `translate3d` transform so browsers can composite the board during movement. This preserves its two-dimensional coordinates and clipping while avoiding repeated painting of masked SVG artwork during pan and zoom, especially in WebKit.
 
+## Camera overpan
+
+A host may let zoomed content travel past its edges far enough to bring any edge
+point to the viewport centre, so an edge target can be centred like any other.
+The allowance eases in over the first zoom step from fit, so a fitted view never
+moves and zooming back to fit glides home. `overpan` selects who may use it:
+`none` keeps hard edges; any other value lets programmatic focus, fit, and view
+restoration use it; `x`, `y`, or `both` also let drag, wheel, pinch, gesture, and
+zoom-button changes use it on those axes, as does full screen on every axis since
+nothing encloses it to scroll. On the other axes a gesture may shrink an existing
+overpan but never grow it, so movement it cannot consume still reaches the
+enclosing scroll area at the edge. Zoom keeps the point under the cursor fixed even
+over blank margins.
+
+Verification (automated in `tests/scalingWrapper.spec.ts`):
+
+- Dragging a fitted view with any setting does not move it.
+- After a small zoom, dragging far brings the edge exactly to the centre on overpanning
+  axes and to the hard edge elsewhere; zooming back to fit restores the fitted view.
+- Focusing a corner target centres it with `focus` and pins it to the corner with `none`.
+- After a focus overpan, outward trackpad movement scrolls the enclosing table while the
+  view holds; inward movement shrinks the overpan and later outward movement cannot regrow it.
+- In full screen, a `focus` host drags to the centre on both axes; a `none` host stops at the edge.
+
+Manual: touch drag, inertia, and pinch on a phone in a horizontally scrolling layout.
+
+This changes bundled rendering only, with no host-bridge change. Hosts that opt in
+must republish their Game UI Artifacts; other artifacts pick up only the blank-margin
+zoom anchor when next republished.
+
 ## Tab workspace
 
 `TabWorkspace` takes stable tab definitions (`id`, `label`, optional `shortLabel`),

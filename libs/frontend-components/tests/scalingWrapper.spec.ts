@@ -1,11 +1,30 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { WrapperFixtureProps } from '../src/lib/components/tests/scalingWrapper.fixture.js'
+
+async function mountWrapper(page: Page, props: WrapperFixtureProps = {}) {
+    await page.goto('/session-test.html')
+    await page.evaluate(async (props) => {
+        const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
+        mountWrapper(props)
+    }, props)
+}
+
+function viewportOffset(board: Locator) {
+    return board.evaluate(element => {
+        const surface = element.closest('.scaling-surface')
+        if (!surface) throw new Error('Missing scaling surface')
+        const style = getComputedStyle(surface)
+        const boardBounds = element.getBoundingClientRect()
+        const surfaceBounds = surface.getBoundingClientRect()
+        return {
+            x: boardBounds.x - surfaceBounds.x - parseFloat(style.paddingLeft),
+            y: boardBounds.y - surfaceBounds.y - parseFloat(style.paddingTop)
+        }
+    })
+}
 
 test('trackpad pan hands remaining movement and momentum to the enclosing table', async ({ page }) => {
-    await page.goto('/session-test.html')
-    await page.evaluate(async () => {
-        const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
-        mountWrapper(1, true)
-    })
+    await mountWrapper(page, { scrollable: true })
     const board = page.getByTestId('board')
     const table = page.getByTestId('table-scroll')
     await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
@@ -27,11 +46,7 @@ test('trackpad pan hands remaining movement and momentum to the enclosing table'
 })
 
 test('mouse wheel zooms and dragging pans without clicking the board', async ({ page }) => {
-    await page.goto('/session-test.html')
-    await page.evaluate(async () => {
-        const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
-        mountWrapper()
-    })
+    await mountWrapper(page)
     const board = page.getByTestId('board')
     await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
     await page.mouse.move(200, 150)
@@ -59,11 +74,7 @@ test('mouse wheel zooms and dragging pans without clicking the board', async ({ 
 })
 
 test('smooth trackpad gestures pan, including their faster continuation, and pinch zooms', async ({ page }) => {
-    await page.goto('/session-test.html')
-    await page.evaluate(async () => {
-        const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
-        mountWrapper()
-    })
+    await mountWrapper(page)
     const board = page.getByTestId('board')
     await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
     await page.mouse.move(200, 150)
@@ -85,11 +96,7 @@ test('smooth trackpad gestures pan, including their faster continuation, and pin
 
 for (const maximum of [1, 2]) {
     test(`manual zoom respects maximum ${maximum}`, async ({ page }) => {
-        await page.goto('/session-test.html')
-        await page.evaluate(async (maxScale) => {
-            const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
-            mountWrapper(maxScale)
-        }, maximum)
+        await mountWrapper(page, { maxScale: maximum })
         const board = page.getByTestId('board')
         await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
         await page.mouse.move(200, 150)
@@ -102,11 +109,7 @@ for (const maximum of [1, 2]) {
 
 for (const mode of ['pan', 'pinch', 'gesture']) {
     test(`${mode} renders a burst of trackpad updates once per frame`, async ({ page }) => {
-        await page.goto('/session-test.html')
-        await page.evaluate(async () => {
-            const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
-            mountWrapper(2)
-        })
+        await mountWrapper(page, { maxScale: 2 })
         const board = page.getByTestId('board')
         await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
         await board.dispatchEvent('wheel', { deltaY: -200, clientX: 200, clientY: 150 })
@@ -143,15 +146,12 @@ for (const transition of ['modal mount', 'fullscreen'] as const) {
     test(`first painted frame is settled on ${transition}`, async ({ page }) => {
         await page.goto('/session-test.html')
         if (transition === 'fullscreen') {
-            await page.evaluate(async () => {
-                const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
-                mountWrapper(1, false, false, true)
-            })
+            await mountWrapper(page, { expandable: true })
             await expect.poll(async () => (await page.getByTestId('board').boundingBox())?.width).toBe(375)
         }
         const frames = await page.evaluate(async transition => {
             const { mountWrapper } = await import(new URL('/src/lib/components/tests/scalingWrapper.fixture.ts', location.href).href)
-            if (transition === 'modal mount') mountWrapper(1, false, true)
+            if (transition === 'modal mount') mountWrapper({ modal: true })
             else {
                 const button = document.querySelector('[aria-label="Enter full screen"]')
                 if (!(button instanceof HTMLElement)) throw new Error('Missing fullscreen control')
@@ -168,5 +168,88 @@ for (const transition of ['modal mount', 'fullscreen'] as const) {
             return frames
         }, transition)
         expect(frames).toEqual(frames.map(() => frames.at(-1)))
+    })
+}
+
+for (const [overpan, expected] of [['none', { x: 0, y: 0 }], ['x', { x: 200, y: 0 }], ['both', { x: 200, y: 150 }]] as const) {
+    test(`dragging a slightly zoomed map with ${overpan} overpan brings edges at most to the centre`, async ({ page }) => {
+        await mountWrapper(page, { overpan })
+        const board = page.getByTestId('board')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+        const drag = async () => {
+            await page.mouse.move(200, 150)
+            await page.mouse.down()
+            await page.mouse.move(600, 450, { steps: 5 })
+            await page.mouse.up()
+        }
+        await drag()
+        expect(await viewportOffset(board)).toEqual({ x: 12.5, y: 0 })
+        await page.mouse.move(200, 150)
+        await page.mouse.wheel(0, -120)
+        await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(375 * Math.exp(0.36), 1)
+        await drag()
+        const dragged = await viewportOffset(board)
+        expect(dragged.x).toBeCloseTo(expected.x)
+        expect(dragged.y).toBeCloseTo(expected.y)
+        await page.mouse.move(200, 150)
+        await page.mouse.wheel(0, 2000)
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+        expect(await viewportOffset(board)).toEqual({ x: 12.5, y: 0 })
+    })
+}
+
+for (const [overpan, expected] of [['none', { x: 0, y: 0 }], ['focus', { x: 150, y: 100 }]] as const) {
+    test(`focusing an edge target with ${overpan} overpan`, async ({ page }) => {
+        await mountWrapper(page, { scrollable: true, overpan, focus: { x: 0, y: 0, width: 100, height: 100 } })
+        const board = page.getByTestId('board')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(1000)
+        const focused = await viewportOffset(board)
+        expect(focused.x).toBeCloseTo(expected.x)
+        expect(focused.y).toBeCloseTo(expected.y)
+    })
+}
+
+test('gestures shrink a focus overpan but never grow it, handing outward movement to the table', async ({ page }) => {
+    await mountWrapper(page, { scrollable: true, overpan: 'focus', focus: { x: 0, y: 0, width: 100, height: 100 } })
+    const board = page.getByTestId('board')
+    const table = page.getByTestId('table-scroll')
+    await table.evaluate(element => { element.scrollLeft = 400 })
+    await expect.poll(async () => (await viewportOffset(board)).x).toBeCloseTo(150)
+    await board.dispatchEvent('wheel', { deltaX: -20, clientX: 200, clientY: 150 })
+    expect((await viewportOffset(board)).x).toBeCloseTo(150)
+    expect(await table.evaluate(element => element.scrollLeft)).toBe(380)
+    await board.dispatchEvent('wheel', { deltaX: 50, clientX: 200, clientY: 150 })
+    await expect.poll(async () => (await viewportOffset(board)).x).toBeCloseTo(100)
+    expect(await table.evaluate(element => element.scrollLeft)).toBe(380)
+    await board.dispatchEvent('wheel', { deltaX: -30, clientX: 200, clientY: 150 })
+    await expect.poll(() => table.evaluate(element => element.scrollLeft)).toBe(350)
+    expect((await viewportOffset(board)).x).toBeCloseTo(100)
+    await page.mouse.move(200, 150)
+    await page.mouse.down()
+    await page.mouse.move(200, 110, { steps: 4 })
+    await page.mouse.move(200, 250, { steps: 4 })
+    await page.mouse.up()
+    expect((await viewportOffset(board)).y).toBeCloseTo(60)
+})
+
+for (const [overpan, expected] of [['none', { x: 0, y: 0 }], ['focus', { x: 632, y: 352 }]] as const) {
+    test(`full screen dragging with ${overpan} overpan stops at its reach`, async ({ page }) => {
+        await mountWrapper(page, { maxScale: 2, expandable: true, overpan })
+        const board = page.getByTestId('board')
+        await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+        await page.getByLabel('Enter full screen').click()
+        await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(880)
+        await page.mouse.move(640, 360)
+        await page.mouse.wheel(0, -200)
+        await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(880 * Math.exp(0.6), 1)
+        for (let pass = 0; pass < 2; pass++) {
+            await page.mouse.move(640, 360)
+            await page.mouse.down()
+            await page.mouse.move(1270, 715, { steps: 5 })
+            await page.mouse.up()
+        }
+        const offset = await viewportOffset(board)
+        expect(offset.x).toBeCloseTo(expected.x, 0)
+        expect(offset.y).toBeCloseTo(expected.y, 0)
     })
 }

@@ -58,7 +58,13 @@
         <button onclick={onclose}>Close</button>
     </header>
     <div class="map" style:background={artwork?.backgroundColor}>
-        <ScalingWrapper maxScale={2} bind:this={wrapper} justify="center" controls="bottom-left">
+        <ScalingWrapper
+            maxScale={2}
+            bind:this={wrapper}
+            justify="center"
+            controls="bottom-left"
+            overpan="both"
+        >
             <MapScene
                 {artwork}
                 scene={preview.scene}

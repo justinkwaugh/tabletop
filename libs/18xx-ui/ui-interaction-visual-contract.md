@@ -836,6 +836,10 @@ Operating order collapses by default to a row of 21px miniature tokens in canoni
 
 ScalingWrapper keyboard shortcuts toggle fullscreen with F and exit with Escape. F is ignored in editable fields and with command modifiers; hidden map/market views do not handle it. This is local wrapper behavior, with no host bridge contract change. Deployed UI artifacts that bundle ScalingWrapper need republishing to adopt the shortcuts; old artifacts remain compatible.
 
+The table's Map and Board views use Game Client camera overpan: freely in the paned layout, and for focus only below the paned breakpoint, where the zoomed map must stop at its edge to hand swipes to the stacked page. The historical map dialog overpans freely. The Market view and the standalone MapViewer keep hard edges. TOP and 1889 UI artifacts must be republished to adopt it.
+
+Verification: in the paned layout, zoom one step and drag an edge hex to the viewport centre. Below the breakpoint, the same drag stops at the edge and continues as a page swipe, while a location icon or board-area focus centres an edge hex and a drag back inward cannot then regrow the gap. Full screen and the historical map dialog drag to the centre at either width. Manual.
+
 ### Market tokens
 
 StockMarketScene renders title-owned company tokens in canonical market stacks. A single token is centered; two or more are separated vertically and shifted against the cell's right edge so they clear the price at the upper left. Larger stacks use the available cell height before overlapping, with the first company in the stored stack above later arrivals. Hovering or focusing a crowded cell spreads the stack into fully visible tokens above neighboring cells, centered on the stack's own position and bounded by the rectangular board. A hover hit region keeps the spread reachable across gaps. Pointer exit, focus exit, Escape, or a visible-state update closes it. Hover offsets animate locally on inner wrappers and respect reduced motion.

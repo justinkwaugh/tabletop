@@ -303,6 +303,9 @@ keyboard activation remain available. Mouse release outside the wrapper and
 window blur end the drag. Mouse camera changes clear automatic focus and report
 through `onManualViewChange` so callers can preserve a user's chosen view.
 
+Hosts can let zoomed content overpan its edges; the Game Client visual contract
+(`libs/frontend-components/docs/ui-interaction-visual-contract.md`) owns that rule.
+
 This behavior is bundled into each Game UI Artifact. Existing published games
 retain their old wrapper until their UI Artifact is republished; no host bridge
 change is required.

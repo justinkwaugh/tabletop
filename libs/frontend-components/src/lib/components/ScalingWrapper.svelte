@@ -42,17 +42,25 @@
         y: number
     }
 
+    type Axis = 'x' | 'y'
+
+    type PanRange = {
+        min: number
+        max: number
+    }
+
+    type AxisMetrics = {
+        range: PanRange
+        overpanRange: PanRange
+    }
+
     type ViewMetrics = {
         scale: number
-        scaledWidth: number
-        scaledHeight: number
-        minTranslateX: number
-        maxTranslateX: number
-        minTranslateY: number
-        maxTranslateY: number
-        defaultTranslateX: number
-        defaultTranslateY: number
+        x: AxisMetrics
+        y: AxisMetrics
     }
+
+    type ViewChangeSource = 'programmatic' | 'gesture'
 
     let {
         children,
@@ -64,6 +72,7 @@
         allowFullscreenShortcut,
         maxScale = 1,
         insetTop = 0,
+        overpan = 'none',
         onManualViewChange
     }: {
         children: Snippet
@@ -74,6 +83,7 @@
         maxScale?: number
         /** Screen pixels at the top kept clear when fitting, focusing and resting the content, for overlaid controls. */
         insetTop?: number
+        overpan?: 'none' | 'focus' | 'x' | 'y' | 'both'
         expandable?: boolean
         allowFullscreenShortcut?: () => boolean
         onManualViewChange?: () => void
@@ -157,7 +167,7 @@
         clearActiveFocus()
         const next = clampTranslation(currentScale,
             currentTranslateX + event.clientX - mouseLastPoint.x,
-            currentTranslateY + event.clientY - mouseLastPoint.y)
+            currentTranslateY + event.clientY - mouseLastPoint.y, 'gesture')
         mouseLastPoint = { x: event.clientX, y: event.clientY }
         notifyManualViewChange(currentScale, next.translateX, next.translateY)
         applyView(currentScale, next.translateX, next.translateY)
@@ -259,31 +269,64 @@
         const scaledHeight = contentHeight * clampedScale
         const defaultTranslateX = getOffsetX(scaledWidth)
         const defaultTranslateY = insetTop + (isExpanded ? Math.max(0, (availableHeight() - scaledHeight) / 2) : 0)
-        const minTranslateX = scaledWidth > wrapperWidth ? wrapperWidth - scaledWidth : defaultTranslateX
-        const maxTranslateX = scaledWidth > wrapperWidth ? 0 : defaultTranslateX
-        const minTranslateY = scaledHeight > availableHeight() ? wrapperHeight - scaledHeight : defaultTranslateY
-        const maxTranslateY = scaledHeight > availableHeight() ? insetTop : defaultTranslateY
+        const rangeX = scaledWidth > wrapperWidth
+            ? { min: wrapperWidth - scaledWidth, max: 0 }
+            : { min: defaultTranslateX, max: defaultTranslateX }
+        const rangeY = scaledHeight > availableHeight()
+            ? { min: wrapperHeight - scaledHeight, max: insetTop }
+            : { min: defaultTranslateY, max: defaultTranslateY }
+        const overpanFraction = getOverpanFraction(clampedScale)
 
         return {
             scale: clampedScale,
-            scaledWidth,
-            scaledHeight,
-            minTranslateX,
-            maxTranslateX,
-            minTranslateY,
-            maxTranslateY,
-            defaultTranslateX,
-            defaultTranslateY
+            x: {
+                range: rangeX,
+                overpanRange: getOverpanRange(rangeX, scaledWidth, wrapperWidth / 2, overpanFraction)
+            },
+            y: {
+                range: rangeY,
+                overpanRange: getOverpanRange(rangeY, scaledHeight, viewportCenterY(), overpanFraction)
+            }
         }
     }
 
-    function clampTranslation(scale: number, translateX: number, translateY: number) {
+    function getOverpanFraction(scale: number) {
+        return overpan === 'none' ? 0 : clamp((scale - baseScale) / DISCRETE_ZOOM_STEP, 0, 1)
+    }
+
+    function getOverpanRange(range: PanRange, scaledSize: number, viewportCenter: number, fraction: number): PanRange {
+        return {
+            min: range.min - fraction * Math.max(0, range.min - (viewportCenter - scaledSize)),
+            max: range.max + fraction * Math.max(0, viewportCenter - range.max)
+        }
+    }
+
+    function mayOverpanFreely(axis: Axis, source: ViewChangeSource) {
+        return source === 'programmatic' || overpan === 'both' || overpan === axis ||
+            (isExpanded && overpan !== 'none')
+    }
+
+    function getPanRange(target: AxisMetrics, current: AxisMetrics, currentTranslate: number, free: boolean): PanRange {
+        if (free) {
+            return target.overpanRange
+        }
+
+        return {
+            min: Math.max(target.overpanRange.min, target.range.min - Math.max(0, current.range.min - currentTranslate)),
+            max: Math.min(target.overpanRange.max, target.range.max + Math.max(0, currentTranslate - current.range.max))
+        }
+    }
+
+    function clampTranslation(scale: number, translateX: number, translateY: number, source: ViewChangeSource) {
         const metrics = getMetrics(scale)
+        const current = getMetrics(currentScale)
+        const rangeX = getPanRange(metrics.x, current.x, currentTranslateX, mayOverpanFreely('x', source))
+        const rangeY = getPanRange(metrics.y, current.y, currentTranslateY, mayOverpanFreely('y', source))
 
         return {
             metrics,
-            translateX: clamp(translateX, metrics.minTranslateX, metrics.maxTranslateX),
-            translateY: clamp(translateY, metrics.minTranslateY, metrics.maxTranslateY)
+            translateX: clamp(translateX, rangeX.min, rangeX.max),
+            translateY: clamp(translateY, rangeY.min, rangeY.max)
         }
     }
 
@@ -307,7 +350,7 @@
 
     function applyView(scale: number, translateX: number, translateY: number, deferRender = false) {
         const { metrics, translateX: clampedTranslateX, translateY: clampedTranslateY } =
-            clampTranslation(scale, translateX, translateY)
+            clampTranslation(scale, translateX, translateY, 'programmatic')
 
         currentScale = metrics.scale
         currentTranslateX = clampedTranslateX
@@ -383,22 +426,17 @@
         contentY: number,
         viewportX: number,
         viewportY: number,
-        scale: number
+        scale: number,
+        source: ViewChangeSource
     ) {
-        const metrics = getMetrics(scale)
-        return {
-            scale: metrics.scale,
-            translateX: clamp(
-                viewportX - contentX * metrics.scale,
-                metrics.minTranslateX,
-                metrics.maxTranslateX
-            ),
-            translateY: clamp(
-                viewportY - contentY * metrics.scale,
-                metrics.minTranslateY,
-                metrics.maxTranslateY
-            )
-        }
+        const targetScale = clampScale(scale)
+        const { translateX, translateY } = clampTranslation(
+            targetScale,
+            viewportX - contentX * targetScale,
+            viewportY - contentY * targetScale,
+            source
+        )
+        return { scale: targetScale, translateX, translateY }
     }
 
     function getContentPointForClientPoint(clientX: number, clientY: number) {
@@ -407,8 +445,8 @@
         const viewportY = clientY - rect.top
 
         return {
-            x: clamp((viewportX - currentTranslateX) / currentScale, 0, contentWidth),
-            y: clamp((viewportY - currentTranslateY) / currentScale, 0, contentHeight)
+            x: (viewportX - currentTranslateX) / currentScale,
+            y: (viewportY - currentTranslateY) / currentScale
         }
     }
 
@@ -430,7 +468,8 @@
             centerY,
             wrapperWidth / 2,
             viewportCenterY(),
-            scale
+            scale,
+            'programmatic'
         )
     }
 
@@ -494,7 +533,8 @@
             const nextView = clampTranslation(
                 currentScale,
                 currentTranslateX + panVelocityX * deltaMs,
-                currentTranslateY + panVelocityY * deltaMs
+                currentTranslateY + panVelocityY * deltaMs,
+                'gesture'
             )
             const movedX = Math.abs(nextView.translateX - currentTranslateX) > EPSILON
             const movedY = Math.abs(nextView.translateY - currentTranslateY) > EPSILON
@@ -643,7 +683,8 @@
             contentY,
             wrapperWidth / 2,
             viewportCenterY(),
-            scale
+            scale,
+            'gesture'
         )
 
         notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
@@ -692,7 +733,8 @@
             centerPoint.y,
             wrapperWidth / 2,
             viewportCenterY(),
-            targetScale
+            targetScale,
+            'gesture'
         )
 
         cancelViewAnimation()
@@ -813,7 +855,8 @@
             contentHeight / 2,
             wrapperWidth / 2,
             viewportCenterY(),
-            baseScale
+            baseScale,
+            'programmatic'
         )
 
         if (options.animate) {
@@ -894,7 +937,8 @@
                 pinchAnchorContentPoint.y,
                 viewportX,
                 viewportY,
-                targetScale
+                targetScale,
+                'gesture'
             )
 
             cancelViewAnimation()
@@ -967,7 +1011,8 @@
         const nextView = clampTranslation(
             currentScale,
             currentTranslateX + deltaX,
-            currentTranslateY + deltaY
+            currentTranslateY + deltaY,
+            'gesture'
         )
         const consumedPanDeltaX = nextView.translateX - currentTranslateX
         const consumedPanDeltaY = nextView.translateY - currentTranslateY
@@ -1090,7 +1135,7 @@
                 const deltaY = -event.deltaY * unit
                 const next = clampTranslation(currentScale,
                     currentTranslateX + deltaX,
-                    currentTranslateY + deltaY)
+                    currentTranslateY + deltaY, 'gesture')
                 const residualX = deltaX - (next.translateX - currentTranslateX)
                 const residualY = deltaY - (next.translateY - currentTranslateY)
                 notifyManualViewChange(currentScale, next.translateX, next.translateY)
@@ -1109,7 +1154,7 @@
         const rect = scroller.getBoundingClientRect()
         const targetView = getViewForContentPointAtViewportPoint(
             contentPoint.x, contentPoint.y,
-            event.clientX - rect.left, event.clientY - rect.top, nextScale)
+            event.clientX - rect.left, event.clientY - rect.top, nextScale, 'gesture')
         notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
         applyView(targetView.scale, targetView.translateX, targetView.translateY, true)
     }
