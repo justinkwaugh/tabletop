@@ -266,8 +266,7 @@
         )
     )
     type OwnerStatistics = {
-        order?: number
-        nextOrder?: number
+        turnOrder?: number
         cash: number
         shares: number
         netWorth: number
@@ -277,19 +276,13 @@
         const { cash, netWorth, shares } = ownerPortfolio(session.gameState, owner, valuationRules)
         return { cash, shares, netWorth, certs }
     }
-    const ownerStatisticKeys = ['order', 'cash', 'shares', 'certs', 'netWorth'] as const
+    const ownerStatisticKeys = ['cash', 'shares', 'certs', 'netWorth'] as const
     type OwnerStatistic = (typeof ownerStatisticKeys)[number]
     type OwnerStatisticColumn = SpreadsheetSortColumn<OwnerStatistics> & {
         label: string
         text: (values: OwnerStatistics) => string
     }
     const ownerStatisticColumns: Record<OwnerStatistic, OwnerStatisticColumn> = {
-        order: {
-            label: 'Order',
-            value: (values) => values.order,
-            text: (values) => (values.order === undefined ? '—' : String(values.order)),
-            directions: ['ascending']
-        },
         cash: {
             label: 'Cash',
             value: (values) => values.cash,
@@ -311,21 +304,14 @@
             text: (values) => money(values.netWorth)
         }
     }
-    type CompanyStatistic = 'value' | 'cash' | 'lastRun'
-    let playerSort = $state<SpreadsheetSort<OwnerStatistic>>()
-    let companySort = $state<SpreadsheetSort<CompanyStatistic>>()
-    const passOrderStockRound = $derived(
-        session.passing === 'pass-order' &&
-            session.gameState.machineState === 'StockRound' &&
-            !session.gameState.stockRound.completed
-    )
-    // A pass-order player's next stock round position is settled once they pass.
-    function nextOrderFor(playerId: string) {
-        return passOrderStockRound &&
-            session.gameState.stockRound.passedPlayerIds.includes(playerId)
-            ? session.playerPriorityOrder.indexOf(playerId) + 1
-            : undefined
+    type PlayerSortKey = OwnerStatistic | 'turnOrder'
+    const playerSortColumns: Record<PlayerSortKey, SpreadsheetSortColumn<OwnerStatistics>> = {
+        ...ownerStatisticColumns,
+        turnOrder: { value: (values) => values.turnOrder, directions: ['ascending'] }
     }
+    type CompanyStatistic = 'value' | 'cash' | 'lastRun'
+    let playerSort = $state<SpreadsheetSort<PlayerSortKey>>()
+    let companySort = $state<SpreadsheetSort<CompanyStatistic>>()
     const seatedPlayers = $derived(
         seatOrder.map((playerId) => {
             const turn = session.gameState.turnManager.turnOrder.indexOf(playerId)
@@ -336,13 +322,12 @@
                     { kind: 'player', playerId },
                     session.playerCertificates(playerId)
                 ),
-                order: turn + 1,
-                nextOrder: nextOrderFor(playerId)
+                turnOrder: turn
             }
         })
     )
     const playerOrder = $derived(
-        sortedForSpreadsheet(seatedPlayers, playerSort, ownerStatisticColumns).map(
+        sortedForSpreadsheet(seatedPlayers, playerSort, playerSortColumns).map(
             (player) => player.playerId
         )
     )
@@ -481,24 +466,30 @@
     {@const values = statistics.get(ownerId)}
     {@const included =
         key === 'netWorth' && includedPortfolioOwners.some((owner) => owner.id === ownerId)}
-    {@const nextOrder =
-        key === 'order' && values?.nextOrder !== values?.order ? values?.nextOrder : undefined}
-    {#if values && nextOrder !== undefined}
-        {@const note = ` (${nextOrder})`}
-        <span class="noted-value" data-note={note}
-            >{ownerStatisticColumns[key].text(values)}<span
-                class="value-note"
-                title={`Next stock round position ${nextOrder}`}>{note}</span
-            ></span
-        >
-    {:else}
-        <span
-            class:included-net-worth={included}
-            aria-describedby={included ? `${footnoteId}-${ownerId}` : undefined}
-            >{values ? ownerStatisticColumns[key].text(values) : '—'}{#if included}<sup>*</sup
-                >{/if}</span
-        >
-    {/if}
+    <span
+        class:included-net-worth={included}
+        aria-describedby={included ? `${footnoteId}-${ownerId}` : undefined}
+        >{values ? ownerStatisticColumns[key].text(values) : '—'}{#if included}<sup>*</sup
+            >{/if}</span
+    >
+{/snippet}
+
+{#snippet turnOrderSort()}
+    {@const direction = spreadsheetSortDirection(playerSort, 'turnOrder')}
+    <button
+        class="sort-header"
+        title="Sort players by turn order"
+        aria-pressed={!!direction}
+        onclick={() =>
+            (playerSort = nextSpreadsheetSort(
+                playerSort,
+                'turnOrder',
+                playerSortColumns.turnOrder.directions
+            ))}
+        >Player{#if direction}<span class="sort-arrow" aria-hidden="true"
+                ><svg viewBox="0 0 8 6"><path d="M0 6 4 0 8 6Z"></path></svg></span
+            >{/if}</button
+    >
 {/snippet}
 
 {#snippet sortButton(
@@ -542,7 +533,7 @@
                 (playerSort = nextSpreadsheetSort(
                     playerSort,
                     key,
-                    ownerStatisticColumns[key].directions
+                    playerSortColumns[key].directions
                 ))
         )}</th
     >
@@ -739,7 +730,13 @@
                         </colgroup>
                         <thead>
                             <tr>
-                                <th scope="col">{view}</th>
+                                <th scope="col">
+                                    {#if view === 'Company'}
+                                        Company / {@render turnOrderSort()}
+                                    {:else}
+                                        {@render turnOrderSort()} / Company
+                                    {/if}
+                                </th>
                                 {#if view === 'Company'}
                                     {#each owners as owner, index (owner.id)}<th
                                             scope="col"

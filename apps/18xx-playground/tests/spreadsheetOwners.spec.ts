@@ -10,13 +10,13 @@ test('TOP groups Union Bank under its controller without merging their holdings'
     await expect(bank.locator('xpath=preceding-sibling::tr[1]').getByRole('rowheader')).toHaveText(
         'Alex'
     )
-    await expect(bank.getByRole('cell')).toHaveText(['1', '3P', '', '—', '$40', '4', '—', '$390*'])
+    await expect(bank.getByRole('cell')).toHaveText(['1', '3P', '', '$40', '4', '—', '$390*'])
     await expect(
         sheet
             .getByRole('row')
             .filter({ has: page.getByRole('rowheader', { name: 'Alex', exact: true }) })
             .getByRole('cell')
-    ).toHaveText(['3P', '1', '1 (2)', '1', '$240', '5', '5/20', '$1,072'])
+    ).toHaveText(['3P', '1', '1 (2)', '$240', '5', '5/20', '$1,072'])
     await expect(bank.getByRole('rowheader')).toHaveClass(/controlled-owner/)
     await expect(bank.locator('.included-net-worth')).toHaveCSS('color', 'rgb(127, 142, 158)')
     await expect(
@@ -58,16 +58,7 @@ test('TOP groups Union Bank under its controller without merging their holdings'
         expect(playerLabel.height).toBe(bankLabel.height)
         await expect(sheet.locator('.included-net-worth')).toHaveText('$390*')
         await page.getByRole('button', { name: 'Swap rows and columns' }).click()
-        await expect(bank.getByRole('cell')).toHaveText([
-            '1',
-            '3P',
-            '',
-            '—',
-            '$40',
-            '4',
-            '—',
-            '$390*'
-        ])
+        await expect(bank.getByRole('cell')).toHaveText(['1', '3P', '', '$40', '4', '—', '$390*'])
     }
 })
 
