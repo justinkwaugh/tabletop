@@ -8,41 +8,12 @@ import {
     isStopStockInstruction,
     sharesOwned,
     standingStockInstructionFor,
-    type FinishStockTurn,
-    type SellShares,
-    type SetStockInstruction,
-    type StockInstruction
+    type SellShares
 } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
+import { finishTurn, setInstruction } from '@tabletop/18xx/testing'
 import { Definition as Shikoku, Shikoku1889StockRules } from './index.js'
 import { Shikoku1889Scenarios } from './scenarios/index.js'
-
-function setInstruction(
-    gameId: string,
-    playerId: string,
-    instruction?: StockInstruction
-): SetStockInstruction {
-    return {
-        id: `set-${playerId}-${instruction?.kind ?? 'clear'}`,
-        gameId,
-        source: ActionSource.User,
-        type: 'SetStockInstruction',
-        playerId,
-        outOfTurn: true,
-        supersedable: true,
-        ...(instruction ? { instruction } : {})
-    }
-}
-
-function finishTurn(gameId: string, playerId: string): FinishStockTurn {
-    return {
-        id: `finish-${playerId}`,
-        gameId,
-        source: ActionSource.User,
-        type: 'FinishStockTurn',
-        playerId
-    }
-}
 
 function currentPlayerId(state: {
     turnManager: { series: readonly { type: string; playerId?: string; end?: number }[] }

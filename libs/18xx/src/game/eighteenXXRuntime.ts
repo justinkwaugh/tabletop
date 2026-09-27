@@ -53,6 +53,7 @@ import {
     stateAfterOperatingStep
 } from '../operating/operatingSteps.js'
 import { EighteenXXInitializer } from './eighteenXXInitializer.js'
+import { EighteenXXGameExploration } from './eighteenXXGameExploration.js'
 import { titleComponents } from './titleComponents.js'
 import type { EighteenXXStateHandler, EighteenXXTitleRules } from './eighteenXXTitleRules.js'
 function handledStateValidator(
@@ -253,6 +254,7 @@ export function createEighteenXXRuntime(
         randomnessVersion: 1,
         scoring: FinalWealthScoring,
         apiActions: actions.schemas,
+        exploration: new EighteenXXGameExploration(),
         stateHandlers
     }
 }

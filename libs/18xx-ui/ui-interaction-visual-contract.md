@@ -357,6 +357,11 @@ hand, with no automatic marker, so history never reveals that an instruction
 existed. This is a
 presentation rule; Game State itself remains public.
 
+An exploration starts with no standing instructions, including after Undo
+reaches back before its starting point: no player's live instruction acts
+inside it, and the bar starts undeclared. Instructions declared inside the
+exploration act normally there. The live game keeps its instructions unchanged.
+
 ### Live maps in finance examples
 
 The session derives map drawings, placed stations, current reservations, and tile
