@@ -16,6 +16,7 @@
         getCompany,
         sameOwner,
         sharesOwned,
+        stockMarketOrder,
         trainsOwnedBy,
         type Company,
         type Owner,
@@ -30,6 +31,16 @@
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import SpreadsheetOutline from './SpreadsheetOutline.svelte'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
+    import {
+        nextSpreadsheetSort,
+        orderedAs,
+        seatOrderFrom,
+        sortedForSpreadsheet,
+        spreadsheetSortDirection,
+        type SpreadsheetSort,
+        type SpreadsheetSortColumn,
+        type SpreadsheetSortDirection
+    } from './spreadsheetSort.js'
 
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -234,9 +245,70 @@
                 })
         }))
     )
+    const seatOrder = $derived(
+        seatOrderFrom(
+            session.gameState.players.map((player) => player.playerId),
+            session.myPrimaryPlayer?.id
+        )
+    )
+    type OwnerStatistics = {
+        cash: number
+        shares: number
+        netWorth: number
+        certs?: { count: number; limit: number }
+    }
+    function ownerStatisticsFor(owner: Owner, certs?: OwnerStatistics['certs']): OwnerStatistics {
+        const { cash, netWorth, shares } = ownerPortfolio(session.gameState, owner, valuationRules)
+        return { cash, shares, netWorth, certs }
+    }
+    const ownerStatisticKeys = ['cash', 'shares', 'certs', 'netWorth'] as const
+    type OwnerStatistic = (typeof ownerStatisticKeys)[number]
+    type OwnerStatisticColumn = SpreadsheetSortColumn<OwnerStatistics> & {
+        label: string
+        text: (values: OwnerStatistics) => string
+    }
+    const ownerStatisticColumns: Record<OwnerStatistic, OwnerStatisticColumn> = {
+        cash: {
+            label: 'Cash',
+            value: (values) => values.cash,
+            text: (values) => money(values.cash)
+        },
+        shares: {
+            label: 'Shares',
+            value: (values) => values.shares,
+            text: (values) => String(values.shares)
+        },
+        certs: {
+            label: 'Certs',
+            value: (values) => values.certs?.count,
+            text: (values) => (values.certs ? `${values.certs.count}/${values.certs.limit}` : '—')
+        },
+        netWorth: {
+            label: 'Net worth',
+            value: (values) => values.netWorth,
+            text: (values) => money(values.netWorth)
+        }
+    }
+    type CompanyStatistic = 'value' | 'cash' | 'lastRun'
+    let playerSort = $state<SpreadsheetSort<OwnerStatistic>>()
+    let companySort = $state<SpreadsheetSort<CompanyStatistic>>()
+    const seatedPlayers = $derived(
+        seatOrder.map((playerId) => ({
+            playerId,
+            ...ownerStatisticsFor(
+                { kind: 'player', playerId },
+                session.playerCertificates(playerId)
+            )
+        }))
+    )
+    const playerOrder = $derived(
+        sortedForSpreadsheet(seatedPlayers, playerSort, ownerStatisticColumns).map(
+            (player) => player.playerId
+        )
+    )
     const owners = $derived(
         [
-            ...session.playerPriorityOrder.flatMap((playerId) => [
+            ...playerOrder.flatMap((playerId) => [
                 {
                     id: `player:${playerId}`,
                     name: session.getPlayerName(playerId),
@@ -296,7 +368,7 @@
             }
         })
     )
-    const rows = $derived(
+    const companyRows = $derived(
         companies.map((company) => ({
             company,
             value: companySharePrice(session.gameState.stockMarket, company.id),
@@ -304,6 +376,7 @@
                 (station) => station.companyId === company.id
             ),
             cash: cashOwnedBy(session.gameState, { kind: 'company', companyId: company.id }),
+            lastRun: companyLastRun(session.actions, session.gameState.actionCount, company.id),
             presidentId:
                 company.president?.kind === 'player'
                     ? `player:${company.president.playerId}`
@@ -313,23 +386,30 @@
             shares: owners.map((owner) => owner.count(company.id))
         }))
     )
-    const statisticLabels = ['Cash', 'Shares', 'Certs', 'Net worth']
-    function financialValues(owner: Owner, certs = '—'): string[] {
-        const { cash, netWorth, shares } = ownerPortfolio(session.gameState, owner, valuationRules)
-        return [`${money(cash)}`, String(shares), certs, `${money(netWorth)}`]
-    }
+    type CompanyRow = (typeof companyRows)[number]
+    const companySortColumns = $derived.by(
+        (): Record<CompanyStatistic, SpreadsheetSortColumn<CompanyRow>> => {
+            const operatingOrder = orderedAs(stockMarketOrder(session.gameState.stockMarket))
+            return {
+                value: {
+                    value: (row) => row.value,
+                    tieOrder: (a, b) => operatingOrder(a.company.id, b.company.id)
+                },
+                cash: { value: (row) => (typeof row.cash === 'number' ? row.cash : undefined) },
+                lastRun: { value: (row) => row.lastRun?.metadata?.revenue }
+            }
+        }
+    )
+    const rows = $derived(sortedForSpreadsheet(companyRows, companySort, companySortColumns))
     const statistics = $derived(
         new Map([
-            ...session.playerPriorityOrder.map((playerId): [string, string[]] => {
-                const certs = session.playerCertificates(playerId)
-                return [
-                    `player:${playerId}`,
-                    financialValues({ kind: 'player', playerId }, `${certs.count}/${certs.limit}`)
-                ]
-            }),
-            ...portfolioCompanyIds.map((companyId): [string, string[]] => [
+            ...seatedPlayers.map((player): [string, OwnerStatistics] => [
+                `player:${player.playerId}`,
+                player
+            ]),
+            ...portfolioCompanyIds.map((companyId): [string, OwnerStatistics] => [
                 `company:${companyId}`,
-                financialValues({ kind: 'company', companyId })
+                ownerStatisticsFor({ kind: 'company', companyId })
             ])
         ])
     )
@@ -356,14 +436,52 @@
     }
 </script>
 
-{#snippet financialValue(ownerId: string, index: number)}
+{#snippet financialValue(ownerId: string, key: OwnerStatistic)}
+    {@const values = statistics.get(ownerId)}
     {@const included =
-        statisticLabels[index] === 'Net worth' &&
-        includedPortfolioOwners.some((owner) => owner.id === ownerId)}
+        key === 'netWorth' && includedPortfolioOwners.some((owner) => owner.id === ownerId)}
     <span
         class:included-net-worth={included}
         aria-describedby={included ? `${footnoteId}-${ownerId}` : undefined}
-        >{statistics.get(ownerId)?.[index] ?? '—'}{#if included}<sup>*</sup>{/if}</span
+        >{values ? ownerStatisticColumns[key].text(values) : '—'}{#if included}<sup>*</sup
+            >{/if}</span
+    >
+{/snippet}
+
+{#snippet sortButton(
+    label: string,
+    direction: SpreadsheetSortDirection | undefined,
+    onclick: () => void
+)}
+    <button class="sort-header" {onclick}
+        >{label}{#if direction}<span class="sort-arrow" aria-hidden="true"
+                ><svg viewBox="0 0 8 6"
+                    ><path d={direction === 'ascending' ? 'M0 6 4 0 8 6Z' : 'M0 0 4 6 8 0Z'}
+                    ></path></svg
+                ></span
+            >{/if}</button
+    >
+{/snippet}
+
+{#snippet companySortHeader(scope: 'col' | 'row', label: string, key: CompanyStatistic)}
+    {@const direction = spreadsheetSortDirection(companySort, key)}
+    <th {scope} class:company-stat-start={scope === 'col'} aria-sort={direction}
+        >{@render sortButton(
+            label,
+            direction,
+            () => (companySort = nextSpreadsheetSort(companySort, key))
+        )}</th
+    >
+{/snippet}
+
+{#snippet playerSortHeader(scope: 'col' | 'row', key: OwnerStatistic, statStart = false)}
+    {@const direction = spreadsheetSortDirection(playerSort, key)}
+    <th {scope} class:stat-start={statStart} aria-sort={direction}
+        >{@render sortButton(
+            ownerStatisticColumns[key].label,
+            direction,
+            () => (playerSort = nextSpreadsheetSort(playerSort, key))
+        )}</th
     >
 {/snippet}
 
@@ -383,8 +501,7 @@
     {cashText(money, cash)}
 {/snippet}
 
-{#snippet lastRunCell(company: Company)}
-    {@const run = companyLastRun(session.actions, session.gameState.actionCount, company.id)}
+{#snippet lastRunCell(company: Company, run: ReturnType<typeof companyLastRun>)}
     {#if run?.metadata}
         <button
             class="last-run"
@@ -511,7 +628,7 @@
             <OperatingHistory
                 {money}
                 rounds={session.operatingIncomeHistory()}
-                players={session.playerPriorityOrder.map((playerId) => ({
+                players={seatOrder.map((playerId) => ({
                     playerId,
                     name: session.getPlayerName(playerId),
                     color: session.colors.getPlayerBgColorValue(playerId)
@@ -544,7 +661,7 @@
                                 />
                             {:else}
                                 {#each companies as company (company.id)}<col />{/each}
-                                <col span={statisticLabels.length} class="financial-section" />
+                                <col span={ownerStatisticKeys.length} class="financial-section" />
                             {/if}
                         </colgroup>
                         <thead>
@@ -573,28 +690,30 @@
                                                     ></span>{/if}
                                             </span></th
                                         >{/each}
-                                    {#if pricePresentation.showInSpreadsheet}<th
-                                            scope="col"
-                                            class="company-stat-start">{pricePresentation.label}</th
-                                        >{/if}
-                                    <th scope="col" class="company-stat-start">Cash</th>
+                                    {#if pricePresentation.showInSpreadsheet}{@render companySortHeader(
+                                            'col',
+                                            pricePresentation.label,
+                                            'value'
+                                        )}{/if}
+                                    {@render companySortHeader('col', 'Cash', 'cash')}
                                     <th scope="col">Trains</th>
                                     <th scope="col">Tokens</th>
-                                    <th scope="col" class="company-stat-start">Last run</th>
+                                    {@render companySortHeader('col', 'Last run', 'lastRun')}
                                 {:else}
-                                    {#each companies as company (company.id)}
+                                    {#each rows as row (row.company.id)}
                                         <th
                                             scope="col"
-                                            class:operating-column={company.id ===
+                                            class:operating-column={row.company.id ===
                                                 operatingCompanyId}
-                                            aria-label={company.name}
-                                            >{@render companyLabel(company)}</th
+                                            aria-label={row.company.name}
+                                            >{@render companyLabel(row.company)}</th
                                         >
                                     {/each}
-                                    {#each statisticLabels as label, index (label)}<th
-                                            scope="col"
-                                            class:stat-start={index === 0}>{label}</th
-                                        >{/each}
+                                    {#each ownerStatisticKeys as key, index (key)}{@render playerSortHeader(
+                                            'col',
+                                            key,
+                                            index === 0
+                                        )}{/each}
                                 {/if}
                             </tr>
                         </thead>
@@ -637,26 +756,26 @@
                                             ).length}/{row.stations.length}</td
                                         >
                                         <td class="company-stat-start"
-                                            >{@render lastRunCell(row.company)}</td
+                                            >{@render lastRunCell(row.company, row.lastRun)}</td
                                         >
                                     </tr>
                                 {/each}
-                                {#each statisticLabels as label, index (label)}
+                                {#each ownerStatisticKeys as key, index (key)}
                                     <tr class="financial-row" class:stat-start={index === 0}>
-                                        <th scope="row">{label}</th>
+                                        {@render playerSortHeader('row', key)}
                                         {#each owners as owner (owner.id)}
                                             <td
                                                 class:pool-start={owner.id === firstPoolId}
                                                 class:bright-cell={statistics.has(owner.id)}
                                                 class:player-financial={!!ownerTintColor(owner.id)}
                                                 style:--player-color={ownerTintColor(owner.id)}
-                                                class:token-cell={label === 'Shares' &&
+                                                class:token-cell={key === 'shares' &&
                                                     statistics.has(owner.id)}
                                                 class:empty={!statistics.has(owner.id)}
                                                 class:void={owner.id in poolColumnLabels}
                                                 >{#if !(owner.id in poolColumnLabels)}{@render financialValue(
                                                         owner.id,
-                                                        index
+                                                        key
                                                     )}{/if}</td
                                             >
                                         {/each}
@@ -695,19 +814,19 @@
                                                 row.company.id === operatingCompanyId,
                                                 poolAlternate(owner.id)
                                             )}{/each}
-                                        {#each statisticLabels as _, statIndex (statIndex)}
+                                        {#each ownerStatisticKeys as key, statIndex (key)}
                                             <td
                                                 class:stat-start={statIndex === 0}
                                                 class:bright-cell={statistics.has(owner.id)}
                                                 class:player-financial={!!ownerTintColor(owner.id)}
                                                 style:--player-color={ownerTintColor(owner.id)}
-                                                class:token-cell={statisticLabels[statIndex] ===
-                                                    'Shares' && statistics.has(owner.id)}
+                                                class:token-cell={key === 'shares' &&
+                                                    statistics.has(owner.id)}
                                                 class:empty={!statistics.has(owner.id)}
                                                 class:void={owner.id in poolColumnLabels}
                                                 >{#if !(owner.id in poolColumnLabels)}{@render financialValue(
                                                         owner.id,
-                                                        statIndex
+                                                        key
                                                     )}{/if}</td
                                             >
                                         {/each}
@@ -715,7 +834,11 @@
                                 {/each}
                                 {#if pricePresentation.showInSpreadsheet}
                                     <tr class="company-stat-start financial-row">
-                                        <th scope="row">{pricePresentation.label}</th>
+                                        {@render companySortHeader(
+                                            'row',
+                                            pricePresentation.label,
+                                            'value'
+                                        )}
                                         {#each rows as row (row.company.id)}<td
                                                 class:operating-column={row.company.id ===
                                                     operatingCompanyId}
@@ -724,20 +847,20 @@
                                                     ? '—'
                                                     : row.value.toLocaleString('en-US')}</td
                                             >{/each}
-                                        {#each statisticLabels as _, index (index)}<td
+                                        {#each ownerStatisticKeys as _, index (index)}<td
                                                 class:stat-start={index === 0}
                                                 class="void"
                                             ></td>{/each}
                                     </tr>
                                 {/if}
                                 <tr class="company-stat-start financial-row">
-                                    <th scope="row">Cash</th>
+                                    {@render companySortHeader('row', 'Cash', 'cash')}
                                     {#each rows as row (row.company.id)}<td
                                             class:operating-column={row.company.id ===
                                                 operatingCompanyId}
                                             class="bright-cell">{@render companyCash(row.cash)}</td
                                         >{/each}
-                                    {#each statisticLabels as _, index (index)}<td
+                                    {#each ownerStatisticKeys as _, index (index)}<td
                                             class:stat-start={index === 0}
                                             class="void"
                                         ></td>{/each}
@@ -750,7 +873,7 @@
                                             class="bright-cell"
                                             >{@render companyTrains(row.company.id)}</td
                                         >{/each}
-                                    {#each statisticLabels as _, index (index)}<td
+                                    {#each ownerStatisticKeys as _, index (index)}<td
                                             class:stat-start={index === 0}
                                             class="void"
                                         ></td>{/each}
@@ -767,19 +890,19 @@
                                             ).length}/{row.stations.length}</td
                                         >
                                     {/each}
-                                    {#each statisticLabels as _, index (index)}<td
+                                    {#each ownerStatisticKeys as _, index (index)}<td
                                             class:stat-start={index === 0}
                                             class="void"
                                         ></td>{/each}
                                 </tr>
                                 <tr class="company-stat-start financial-row">
-                                    <th scope="row">Last run</th>
+                                    {@render companySortHeader('row', 'Last run', 'lastRun')}
                                     {#each rows as row (row.company.id)}<td
                                             class:operating-column={row.company.id ===
                                                 operatingCompanyId}
-                                            >{@render lastRunCell(row.company)}</td
+                                            >{@render lastRunCell(row.company, row.lastRun)}</td
                                         >{/each}
-                                    {#each statisticLabels as _, index (index)}<td
+                                    {#each ownerStatisticKeys as _, index (index)}<td
                                             class:stat-start={index === 0}
                                             class="void"
                                         ></td>{/each}
@@ -1085,6 +1208,35 @@
     td:has(.last-run) {
         position: relative;
         padding: 0;
+    }
+    .sort-header {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 3px;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .financial-row .sort-header {
+        flex-direction: row-reverse;
+    }
+    .sort-arrow svg {
+        --label-cap-height: 0.73em;
+        --arrow-height: 6px;
+        position: relative;
+        bottom: calc((var(--label-cap-height) - var(--arrow-height)) / 2);
+        display: block;
+        width: 8px;
+        height: var(--arrow-height);
+        fill: currentColor;
+    }
+    .sort-header:focus-visible {
+        outline: 2px solid var(--rail-focus, #b8cddd);
+        outline-offset: 2px;
     }
     .last-run {
         display: block;
