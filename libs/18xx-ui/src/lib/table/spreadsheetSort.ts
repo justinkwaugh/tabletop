@@ -11,8 +11,8 @@ export function nextSpreadsheetSort<Key extends string>(
     current: SpreadsheetSort<Key> | undefined,
     key: Key
 ): SpreadsheetSort<Key> | undefined {
-    if (current?.key !== key) return { key, direction: 'ascending' }
-    return current.direction === 'ascending' ? { key, direction: 'descending' } : undefined
+    if (current?.key !== key) return { key, direction: 'descending' }
+    return current.direction === 'descending' ? { key, direction: 'ascending' } : undefined
 }
 
 export function spreadsheetSortDirection<Key extends string>(

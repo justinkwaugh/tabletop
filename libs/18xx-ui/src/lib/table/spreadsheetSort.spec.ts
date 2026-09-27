@@ -6,18 +6,18 @@ import {
     sortedForSpreadsheet
 } from './spreadsheetSort.js'
 
-it('cycles a header through ascending, descending and unsorted', () => {
-    const ascending = nextSpreadsheetSort(undefined, 'cash')
-    expect(ascending).toEqual({ key: 'cash', direction: 'ascending' })
-    const descending = nextSpreadsheetSort(ascending, 'cash')
+it('cycles a header through descending, ascending and unsorted', () => {
+    const descending = nextSpreadsheetSort(undefined, 'cash')
     expect(descending).toEqual({ key: 'cash', direction: 'descending' })
-    expect(nextSpreadsheetSort(descending, 'cash')).toBeUndefined()
+    const ascending = nextSpreadsheetSort(descending, 'cash')
+    expect(ascending).toEqual({ key: 'cash', direction: 'ascending' })
+    expect(nextSpreadsheetSort(ascending, 'cash')).toBeUndefined()
 })
 
-it('starts a different header ascending', () => {
-    expect(nextSpreadsheetSort({ key: 'cash', direction: 'descending' }, 'netWorth')).toEqual({
+it('starts a different header descending', () => {
+    expect(nextSpreadsheetSort({ key: 'cash', direction: 'ascending' }, 'netWorth')).toEqual({
         key: 'netWorth',
-        direction: 'ascending'
+        direction: 'descending'
     })
 })
 

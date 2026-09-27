@@ -35,7 +35,7 @@ for (const title of ['TOP', '1889']) {
 
         const netWorth = sheet.getByRole('columnheader', { name: 'Net worth' })
         const playerNetWorth = () => amounts(playerRows.locator('td:last-child'))
-        for (const direction of ['ascending', 'descending'] as const) {
+        for (const direction of ['descending', 'ascending'] as const) {
             await netWorth.getByRole('button').click()
             await expect(netWorth).toHaveAttribute('aria-sort', direction)
             const values = await playerNetWorth()
@@ -49,9 +49,9 @@ for (const title of ['TOP', '1889']) {
         const cash = sheet.getByRole('rowheader', { name: 'Cash' })
         const companyCash = () => amounts(cash.locator('xpath=..').locator('td.bright-cell'))
         await cash.getByRole('button').click()
-        await expect(cash).toHaveAttribute('aria-sort', 'ascending')
-        const ascending = await companyCash()
-        expect(ascending).toEqual(sortedCopy(ascending, 'ascending'))
+        await expect(cash).toHaveAttribute('aria-sort', 'descending')
+        const descending = await companyCash()
+        expect(descending).toEqual(sortedCopy(descending, 'descending'))
         await cash.getByRole('button').click()
         await cash.getByRole('button').click()
         await expect(cash).not.toHaveAttribute('aria-sort')
@@ -65,7 +65,7 @@ test('TOP spreadsheet sorts companies by last run', async ({ page }) => {
     const lastRun = sheet.getByRole('rowheader', { name: 'Last run' })
     const runs = lastRun.locator('xpath=..').locator('.last-run')
     await expect(runs.first()).toBeVisible()
-    for (const direction of ['ascending', 'descending'] as const) {
+    for (const direction of ['descending', 'ascending'] as const) {
         await lastRun.getByRole('button').click()
         await expect(lastRun).toHaveAttribute('aria-sort', direction)
         const revenues = await amounts(runs)
@@ -81,18 +81,6 @@ test('TOP market value ties follow operating order in both directions', async ({
     const initial = await companyOrder(sheet)
     expect(initial.indexOf('Murray River')).toBeLessThan(initial.indexOf('Belfast Branch'))
     await value.getByRole('button').click()
-    await expect(value).toHaveAttribute('aria-sort', 'ascending')
-    expect(await companyOrder(sheet)).toEqual([
-        'Georgetown',
-        'Charlottetown',
-        'Belfast Branch',
-        'Murray River',
-        'Souris',
-        'Summerside',
-        'Alberton',
-        'Mount Stewart'
-    ])
-    await value.getByRole('button').click()
     await expect(value).toHaveAttribute('aria-sort', 'descending')
     expect(await companyOrder(sheet)).toEqual([
         'Mount Stewart',
@@ -103,5 +91,17 @@ test('TOP market value ties follow operating order in both directions', async ({
         'Murray River',
         'Charlottetown',
         'Georgetown'
+    ])
+    await value.getByRole('button').click()
+    await expect(value).toHaveAttribute('aria-sort', 'ascending')
+    expect(await companyOrder(sheet)).toEqual([
+        'Georgetown',
+        'Charlottetown',
+        'Belfast Branch',
+        'Murray River',
+        'Souris',
+        'Summerside',
+        'Alberton',
+        'Mount Stewart'
     ])
 })
