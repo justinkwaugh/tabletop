@@ -4,6 +4,15 @@
     const canBuy = $derived(session.decisions.privatePurchases.length > 0)
     const canUse = $derived(session.privateActions.powersAvailable)
     let menu = $state<HTMLDivElement>()
+    let compact = $state<HTMLButtonElement>()
+    $effect(() => {
+        if (!compact) return
+        const observer = new ResizeObserver(([entry]) => {
+            if (!entry.contentRect.width && menu?.matches(':popover-open')) menu.hidePopover()
+        })
+        observer.observe(compact)
+        return () => observer.disconnect()
+    })
     let expanded = $state(false)
     let position = $state({ top: 0, left: 0 })
 
@@ -41,6 +50,7 @@
         <div class="direct">{@render choices()}</div>
         {#if canBuy && canUse}
             <button
+                bind:this={compact}
                 class="compact"
                 aria-expanded={expanded}
                 aria-haspopup="true"
@@ -70,8 +80,6 @@
 
 <style>
     .private-actions {
-        align-self: center;
-        flex: none;
         margin: 3px 8px;
     }
     .direct {
@@ -129,7 +137,8 @@
     .menu button + button {
         margin-top: 3px;
     }
-    @container (max-width: 720px) {
+    /* At 480px or less OperatingSteps gives these actions a row of their own, with room for both. */
+    @container (480px < width <= 720px) {
         .both .direct {
             display: none;
         }

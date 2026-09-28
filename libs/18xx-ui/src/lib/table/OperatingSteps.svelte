@@ -97,10 +97,9 @@
                 </button>
             {/each}
         </div>
-        {#if !readOnly}<OperatingPrivateActions
-                {session}
-                purchaseLabel={privatePurchaseLabel}
-            />{/if}
+        {#if !readOnly}<div class="privates">
+                <OperatingPrivateActions {session} purchaseLabel={privatePurchaseLabel} />
+            </div>{/if}
     </nav>
 {/if}
 
@@ -109,6 +108,7 @@
         display: flex;
         align-items: stretch;
         justify-content: center;
+        flex-wrap: wrap;
         padding: 0;
         border-bottom: 1px solid var(--rail-border, #cbbcad);
         flex: none;
@@ -167,6 +167,25 @@
         padding-right: 17px;
         clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 11px 50%);
     }
+    .privates {
+        display: flex;
+        flex: none;
+        align-items: center;
+    }
+    .privates:empty {
+        display: none;
+    }
+    @container (max-width: 480px) {
+        .steps,
+        .privates {
+            flex-basis: 100%;
+        }
+        .privates {
+            justify-content: center;
+            border-top: 1px solid var(--rail-border, #cbbcad);
+            background: var(--rail-surface-raised, #e8ded4);
+        }
+    }
     @container (max-width: 420px) {
         button {
             font-size: 11px;
@@ -175,6 +194,9 @@
         small {
             font-size: 8px;
             letter-spacing: -0.02em;
+        }
+        button > span {
+            letter-spacing: 0.02em;
         }
         button:first-child {
             padding-left: 4px;

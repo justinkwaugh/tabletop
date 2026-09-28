@@ -481,3 +481,40 @@ test('1889 board keeps hexes under the market panel selectable', async ({ page }
     await nested.click()
     await expect(board.locator('[data-map-tile-choice]').first()).toBeVisible()
 })
+
+test('narrow OR strips give private actions a row of their own', async ({ page }) => {
+    await page.setViewportSize({ width: 600, height: 800 })
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1889')
+    await page.getByLabel('Position', { exact: true }).selectOption({ label: 'Buy privates' })
+    const strip = page.getByRole('navigation', { name: 'Operating steps' })
+    const menuButton = strip.getByRole('button', { name: 'Privates', exact: true })
+    const buy = strip.getByRole('button', { name: 'Buy privates', exact: true })
+    const menu = strip.locator('.menu:popover-open')
+    await menuButton.click()
+    await expect(menu).toBeVisible()
+
+    await page.setViewportSize({ width: 320, height: 800 })
+    await expect(menu).toHaveCount(0)
+    await expect(menuButton).toBeHidden()
+    await expect(buy).toBeVisible()
+    await expect(strip.getByRole('button', { name: 'Use privates', exact: true })).toBeVisible()
+    const [track, buyBox] = await Promise.all([
+        strip.getByRole('button', { name: 'Track' }).boundingBox(),
+        buy.boundingBox()
+    ])
+    if (!track || !buyBox) throw new Error('Missing strip buttons')
+    expect(buyBox.y).toBeGreaterThanOrEqual(track.y + track.height)
+    const clipped = await strip
+        .locator('.steps button > span')
+        .evaluateAll((labels) =>
+            labels
+                .filter((label) => label.scrollWidth > (label.parentElement?.clientWidth ?? 0))
+                .map((label) => label.textContent)
+        )
+    expect(clipped).toHaveLength(0)
+
+    await page.setViewportSize({ width: 600, height: 800 })
+    await expect(menuButton).toBeVisible()
+    await expect(buy).toBeHidden()
+})
