@@ -730,12 +730,13 @@
                         </colgroup>
                         <thead>
                             <tr>
-                                <th scope="col">
-                                    {#if view === 'Company'}
-                                        Company / {@render turnOrderSort()}
-                                    {:else}
-                                        {@render turnOrderSort()} / Company
-                                    {/if}
+                                <th scope="col" class="axis-corner">
+                                    <span class="axis-labels"
+                                        >{#if view === 'Player'}{@render turnOrderSort()}{:else}Company{/if}<span
+                                            class="axis-split"
+                                            ><span class="sr-only">{' / '}</span></span
+                                        >{#if view === 'Player'}Company{:else}{@render turnOrderSort()}{/if}</span
+                                    >
                                 </th>
                                 {#if view === 'Company'}
                                     {#each owners as owner, index (owner.id)}<th
@@ -1341,6 +1342,39 @@
     thead th,
     tbody th {
         background: var(--sheet-label);
+    }
+    .axis-corner {
+        overflow: hidden;
+    }
+    /* Labels take only their content's width, leaving a full-width sheet's spare room to the data. */
+    .label-column {
+        width: 0;
+    }
+    .axis-labels {
+        display: inline-flex;
+        align-items: center;
+    }
+    /* Taller than the cell, which clips it, so the line meets the cell's top and bottom edges. */
+    .axis-split {
+        align-self: center;
+        width: 26px;
+        height: 60px;
+        margin: -21px 0;
+        background: linear-gradient(
+            to top right,
+            transparent calc(50% - 0.75px),
+            currentColor calc(50% - 0.75px) calc(50% + 0.75px),
+            transparent calc(50% + 0.75px)
+        );
+        opacity: 0.55;
+    }
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
     }
     th.player-tinted-header {
         background: var(--player-tinted-background);
