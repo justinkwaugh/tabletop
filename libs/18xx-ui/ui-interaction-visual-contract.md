@@ -156,7 +156,9 @@ Reservation labels use supplied current reservations; omitted inputs derive prin
 home annotations from the current map. An explicit empty list suppresses them.
 Empty first station spaces contain the label; occupied spaces show it below the
 token. Inspection lists both the placed station and any reservation. Active
-reservation rules remain the host's responsibility. Covered terrain is
+reservation rules remain the host's responsibility. Terrain shows an icon per
+kind beside its cost; a cost with no kind, such as 1889's Kotohira and Kouchi,
+shows the cost alone. Covered terrain is
 hidden on the board and retained in inspection. Zero fixed revenues are hidden
 on the map, but remain available in inspection. Tile numbers stay outside artwork.
 

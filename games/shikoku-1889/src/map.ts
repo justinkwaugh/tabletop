@@ -119,7 +119,7 @@ export const Shikoku1889Map = new RailwayMap({
             terrain: { cost: 80, kinds: ['mountain'] }
         }),
         ...locations('I4', city('white', [], 0, 1, ['H']), {
-            terrain: { cost: 80, kinds: ['urban'] }
+            terrain: { cost: 80, kinds: [] }
         }),
         ...locations('C4', city('yellow', [2], 20, 1)),
         ...locations('K4', city('yellow', [0, 1, 2], 30, 1, ['T'])),
@@ -161,7 +161,7 @@ export const Shikoku1889Map = new RailwayMap({
             )
         ),
         ...locations('F9', city('green', [2, 3, 4, 5], 30, 2, ['K']), {
-            terrain: { cost: 80, kinds: ['urban'] }
+            terrain: { cost: 80, kinds: [] }
         })
     ]
 })

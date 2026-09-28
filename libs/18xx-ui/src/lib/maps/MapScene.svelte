@@ -293,13 +293,13 @@
                                             ></path>
                                         {:else}
                                             <text x="8" y="4" font-size="11" font-weight="700"
-                                                >{kind === 'urban' ? '▦' : kind}</text
+                                                >{kind}</text
                                             >
                                         {/if}
                                     </g>
                                 {/each}
                                 <text
-                                    x={iconWidth + 2}
+                                    x={iconWidth ? iconWidth + 2 : 0}
                                     y="4"
                                     text-anchor="start"
                                     font-size="10"

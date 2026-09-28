@@ -86,11 +86,12 @@ a city for routes; the pinned map's default city capacity does not express that
 restriction. TOP's older prototype remains the declared edition. No claim is made
 that it represents a reconciled current production edition.
 
-Shikoku I4 and F9 record the rulebook's dense urban construction cost. H5 and I6
-have a single combined water/mountain cost. TOP future X/T/CX labels and Vernon
-River Bridge, and 1889 private-company/port markers, remain inspectable after a
-prepared tile replacement. Conditional marker descriptions are reference facts,
-not a claim that those restrictions are active in every game state.
+Shikoku I4 and F9 record the rulebook's city construction cost with no terrain
+kind, drawn as the cost alone. H5 and I6 have a single combined water/mountain
+cost. TOP future X/T/CX labels and Vernon River Bridge, and 1889
+private-company/port markers, remain inspectable after a prepared tile
+replacement. Conditional marker descriptions are reference facts, not a claim
+that those restrictions are active in every game state.
 
 Unit tests cover serialization, immutable geography, both coordinate orientations,
 adjacency, invalid map data, shared border alignment, placement composition, and

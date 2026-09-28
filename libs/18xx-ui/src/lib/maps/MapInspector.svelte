@@ -38,9 +38,11 @@
             </p>{/if}
         <p>{entry.location.buildable ? 'Construction location' : 'Fixed map track'}</p>
         {#if entry.location.terrain}
+            {@const terrain = entry.location.terrain}
             <p>
-                Printed terrain: {entry.location.terrain.kinds.join(' + ')} · {entry.location
-                    .terrain.cost}{entry.placed ? ' (covered)' : ''}
+                Printed terrain: {terrain.kinds.length
+                    ? `${terrain.kinds.join(' + ')} · `
+                    : ''}{terrain.cost}{entry.placed ? ' (covered)' : ''}
             </p>
         {/if}
         {#if entry.face.upgradeCost !== undefined}<p>
