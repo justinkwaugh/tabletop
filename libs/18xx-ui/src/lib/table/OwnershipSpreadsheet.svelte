@@ -276,6 +276,11 @@
         const { cash, netWorth, shares } = ownerPortfolio(session.gameState, owner, valuationRules)
         return { cash, shares, netWorth, certs }
     }
+    function firstSortDirection(column: SpreadsheetSortColumn<never>): SpreadsheetSortDirection {
+        const first = nextSpreadsheetSort(undefined, 'column', column.directions)
+        assertExists(first, 'A sortable column needs a sort direction')
+        return first.direction
+    }
     const ownerStatisticKeys = ['cash', 'shares', 'certs', 'netWorth'] as const
     type OwnerStatistic = (typeof ownerStatisticKeys)[number]
     type OwnerStatisticColumn = SpreadsheetSortColumn<OwnerStatistics> & {
@@ -475,35 +480,40 @@
 {/snippet}
 
 {#snippet turnOrderSort()}
-    {@const direction = spreadsheetSortDirection(playerSort, 'turnOrder')}
-    <button
-        class="sort-header"
-        title="Sort players by turn order"
-        aria-pressed={!!direction}
-        onclick={() =>
+    {@render sortButton(
+        'Player',
+        spreadsheetSortDirection(playerSort, 'turnOrder'),
+        'ascending',
+        () =>
             (playerSort = nextSpreadsheetSort(
                 playerSort,
                 'turnOrder',
                 playerSortColumns.turnOrder.directions
-            ))}
-        >Player{#if direction}<span class="sort-arrow" aria-hidden="true"
-                ><svg viewBox="0 0 8 6"><path d="M0 6 4 0 8 6Z"></path></svg></span
-            >{/if}</button
+            )),
+        { title: 'Sort players by turn order', toggle: true }
+    )}
+{/snippet}
+
+{#snippet sortArrow(direction: SpreadsheetSortDirection, preview = false)}
+    <span class="sort-arrow" class:preview aria-hidden="true"
+        ><svg viewBox="0 0 8 6"
+            ><path d={direction === 'ascending' ? 'M0 6 4 0 8 6Z' : 'M0 0 4 6 8 0Z'}></path></svg
+        ></span
     >
 {/snippet}
 
+<!-- An unsorted header previews, on hover, the direction its first click applies. -->
 {#snippet sortButton(
     label: string,
     direction: SpreadsheetSortDirection | undefined,
-    onclick: () => void
+    firstDirection: SpreadsheetSortDirection,
+    onclick: () => void,
+    { title, toggle = false }: { title?: string; toggle?: boolean } = {}
 )}
-    <button class="sort-header" {onclick}
-        >{label}{#if direction}<span class="sort-arrow" aria-hidden="true"
-                ><svg viewBox="0 0 8 6"
-                    ><path d={direction === 'ascending' ? 'M0 6 4 0 8 6Z' : 'M0 0 4 6 8 0Z'}
-                    ></path></svg
-                ></span
-            >{/if}</button
+    <button class="sort-header" {title} aria-pressed={toggle ? !!direction : undefined} {onclick}
+        ><span class="sort-label">{label}</span>{#if direction}{@render sortArrow(
+                direction
+            )}{:else}{@render sortArrow(firstDirection, true)}{/if}</button
     >
 {/snippet}
 
@@ -513,6 +523,7 @@
         >{@render sortButton(
             label,
             direction,
+            firstSortDirection(companySortColumns[key]),
             () =>
                 (companySort = nextSpreadsheetSort(
                     companySort,
@@ -529,6 +540,7 @@
         >{@render sortButton(
             ownerStatisticColumns[key].label,
             direction,
+            firstSortDirection(playerSortColumns[key]),
             () =>
                 (playerSort = nextSpreadsheetSort(
                     playerSort,
@@ -1306,6 +1318,33 @@
         width: 8px;
         height: var(--arrow-height);
         fill: currentColor;
+    }
+    /* Room for Player's hover arrow before the corner's split line. */
+    .sort-header + .axis-split {
+        margin-left: 3px;
+    }
+    .sort-label {
+        text-decoration: underline dotted color-mix(in srgb, currentColor 40%, transparent);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+    }
+    /* A negative margin cancels the preview's width and gap, so revealing it never shifts the label. */
+    .sort-arrow.preview {
+        margin-right: -11px;
+        visibility: hidden;
+        opacity: 0.45;
+    }
+    .financial-row .sort-arrow.preview {
+        margin-right: 0;
+        margin-left: -11px;
+    }
+    @media (hover: hover) {
+        .sort-header:hover .sort-label {
+            text-decoration-color: currentColor;
+        }
+        .sort-header:hover .sort-arrow.preview {
+            visibility: visible;
+        }
     }
     .sort-header:focus-visible {
         outline: 2px solid var(--rail-focus, #b8cddd);
