@@ -277,7 +277,9 @@
         display: grid;
         width: max-content;
     }
+    /* Explicit, so the scene stays interactive inside a pointer-transparent board panel. */
     .space {
+        pointer-events: auto;
         position: relative;
         border: calc(1px * var(--render-scale)) solid
             light-dark(#a4b3a7, var(--rail-border, #485666));
@@ -330,6 +332,7 @@
         transition: none;
     }
     .stack-hitbox {
+        pointer-events: auto;
         position: absolute;
         z-index: 100;
         border-radius: calc(8px * var(--render-scale));

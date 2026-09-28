@@ -1638,8 +1638,6 @@
     .board-market {
         position: relative;
     }
-    .board-market :global(.space),
-    .board-market :global(.stack-hitbox),
     .market-corner,
     .board-depot {
         pointer-events: auto;

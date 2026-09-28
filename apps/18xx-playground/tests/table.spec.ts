@@ -461,3 +461,23 @@ for (const title of ['TOP', '1889']) {
         await expect(page.locator('.picker')).toHaveCount(0)
     })
 }
+
+test('1889 board keeps hexes under the market panel selectable', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1889')
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
+        .click()
+    await page.getByRole('button', { name: 'Board', exact: true }).click()
+    const board = page.getByRole('tabpanel', { name: 'Board', exact: true })
+    await expect(board).toBeVisible()
+    const market = board.getByRole('region', { name: 'Stock market', exact: true })
+    const nested = board.locator('[data-map-location="E2"]')
+    const [panel, hex] = await Promise.all([market.boundingBox(), nested.boundingBox()])
+    if (!panel || !hex) throw new Error('Missing market panel or hex')
+    expect(hex.x + hex.width / 2).toBeLessThan(panel.x + panel.width)
+    expect(hex.y + hex.height / 2).toBeLessThan(panel.y + panel.height)
+    await market.locator('[data-market-space]').first().hover()
+    await nested.click()
+    await expect(board.locator('[data-map-tile-choice]').first()).toBeVisible()
+})
