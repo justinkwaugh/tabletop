@@ -18,13 +18,15 @@
     } = $props()
     const instanceId = $props.id()
     const closableTabs = $derived(tabs.filter(tab => tab.closable !== false).map(tab => tab.id))
+    const recordedClosableTabs = $derived(closableTabs.filter(id => !tabs.find(tab => tab.id === id)?.optional))
     const initial = untrack(() => restoreWorkspaceTabs(savedLayout, tabs, fixedPane?.tabs, initialSplit, initialLayout))
     let root: WorkspaceNode = $state(initial.root)
     let fixed: WorkspacePane = $state(initial.fixed)
-    let lastLayout = JSON.stringify(saveWorkspace(initial.root, initial.fixed, closableTabs.filter(id => !tabs.find(tab => tab.id === id)?.optional)))
+    let locked = $state(initial.locked)
+    let lastLayout = JSON.stringify(saveWorkspace(initial.root, initial.fixed, recordedClosableTabs, locked))
     $effect(() => {
         if (resize) return
-        const value = saveWorkspace(root, fixed, closableTabs.filter(id => !tabs.find(tab => tab.id === id)?.optional))
+        const value = saveWorkspace(root, fixed, recordedClosableTabs, locked)
         const serialized = JSON.stringify(value)
         if (serialized === lastLayout) return
         lastLayout = serialized
@@ -192,6 +194,10 @@
                                     <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="2" y="3" width="16" height="14" rx="1" />{#if axis === 'horizontal'}<path d="M2 10h16" />{:else}<path d="M10 3v14" />{/if}</svg>
                                 </button>
                             {/each}
+                            <button aria-label={locked ? 'Unlock panes' : 'Lock panes'} title={locked ? 'Unlock panes so they can be deleted' : 'Lock panes to hide their delete buttons'}
+                                onclick={() => locked = !locked}>
+                                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="4" y="9" width="12" height="9" rx="1.5" />{#if locked}<path d="M7 9V6.5a3 3 0 0 1 5.8-1.1" />{:else}<path d="M7 9V6.5a3 3 0 0 1 6 0V9" />{/if}</svg>
+                            </button>
                         </div>
                         {/if}
                         {#if item.pane.tabs.length}{#if item.pane.id !== 'fixed'}<hr />{/if}
@@ -211,7 +217,7 @@
                         {/each}
                         {/if}
                     </div>
-                    {#if item.pane.id !== 'fixed' && mainLayout.panes.length > 1}
+                    {#if item.pane.id !== 'fixed' && mainLayout.panes.length > 1 && !locked}
                         <button class="split-button" aria-label={`Delete pane ${layout.panes.indexOf(item) + 1}`} title="Delete pane"
                             onclick={() => { root = deletePane(root, item.pane.id); if (selected) root = activateTab(root, selected) }}>
                             <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" /></svg>

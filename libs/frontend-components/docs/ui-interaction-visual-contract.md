@@ -255,6 +255,9 @@ tabs to its sibling (the first surviving leaf if that sibling is split), then
 collapses the split. The selected tab remains visible.
 The surviving subtree retains its contents and divider positions, and split-button
 availability follows the total pane count. The last pane cannot be deleted. Pane headers are 35px high.
+Each pane menu has a lock button after its split buttons. Locking hides every pane's Delete button;
+tabs can still be added, closed and moved, and panes can still be split and resized. While locked
+the button shows an open padlock and unlocks. The lock is saved with the layout.
 
 Native tab drops record a pending move and commit it at `dragend`, keeping the
 source tab mounted through the browser's drag lifecycle. Removing it during `drop`

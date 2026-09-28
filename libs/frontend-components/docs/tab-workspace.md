@@ -55,7 +55,8 @@ layout. `onLayoutChange` receives a `SavedWorkspace` after structural changes,
 including completed divider drags. Selecting a tab alone does not save a layout.
 
 The v1 format stores ordered tab IDs, a recursive split tree, integer percentages,
-and intentionally closed tabs. Runtime IDs and active selections are omitted.
+intentionally closed tabs, and `locked: true` while panes are locked. Runtime IDs
+and active selections are omitted.
 The historical `sidebar` field means the optional fixed pane, regardless of its
 physical position. Its name stays unchanged to preserve existing saved layouts.
 Unknown/duplicate tabs are removed, missing required tabs are restored, optional
