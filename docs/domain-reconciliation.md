@@ -18,16 +18,32 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Supplied Action index zero bypasses stale-index handling
 
 - **Classification**: Defect
-- **Observed**: Truthiness checks treat Action index `0` as absent. A stale Action based at index zero can therefore bypass the usual offset calculation and non-simultaneous rejection. Hosted missing-Action handling repeats the same check for `initialIndex`.
-- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:107`; `libs/backend-services/src/games/gameService.ts:793`
-- **Invariant**: Every supplied Action index is checked, including zero. Acceptance from a stale base is limited to members of a Simultaneous Action Group.
+- **Observed**: A truthiness check treats Action index `0` as absent. A stale Action based at index zero can therefore bypass the usual offset calculation and non-simultaneous rejection. Hosted missing-Action handling inherits the engine's offset.
+- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:334`; `libs/backend-services/src/games/gameService.ts:1057`
+- **Invariant**: Every supplied Action index is checked, including zero. Acceptance from a stale base is limited to members of a Simultaneous Action Group, unsequenced Out-of-Turn Actions whatever they raced, and races that pass a Commutation Proof ([ADR 0009](adr/0009-sequenced-out-of-turn-actions.md)). A stale Sequenced Out-of-Turn Action is never accepted without that proof.
 
 ### Action Reversal and Undo policy are correctly separated
 
 - **Classification**: Aligned
-- **Observed**: `GameEngine.undoAction` mechanically applies an undo patch. Candidate selection and authorization are performed by the Game Client and Game Lifecycle layers.
-- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:175`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:182`; `libs/backend-services/src/games/gameService.ts:914`
+- **Observed**: `GameEngine.undoProcessedAction` mechanically applies an undo patch. Candidate selection and authorization are performed by the Game Client and Game Lifecycle layers.
+- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:277`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:231`; `libs/backend-services/src/games/gameService.ts:1228`
 - **Invariant**: Game Runtime owns Action Reversal; Game Client selects an Undo Candidate; Game Lifecycle authorizes Hosted Undo.
+
+### Sequenced Out-of-Turn Actions are not implemented
+
+- **Classification**: Planned change
+- **Observed**: The Game Runtime, host, and Game Client recognise only `outOfTurn`. The engine and host accept any Action carrying it at a stale index, and host Undo authorization and Game Client Undo Candidate selection treat every such Action as a declaration. No Commutation Proof exists, and the host's reply cannot report a later recorded index.
+- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:338`; `libs/backend-services/src/games/gameService.ts:1071`; `libs/backend-services/src/games/gameService.ts:1324`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:262`; `libs/frontend-components/src/lib/model/gameUndo.ts:28`
+- **Invariant**: Sequenced Out-of-Turn Actions and Commutation Proofs follow [ADR 0009](adr/0009-sequenced-out-of-turn-actions.md). Because the current host would accept a sequenced Action at a stale index, the host must support them before any Logic Artifact registers a sequenced type, and a Game Title adopting one republishes its Logic and UI Artifacts together.
+
+## 18xx Game Family
+
+### 1889 exchange eligibility is expressed through Active Players
+
+- **Classification**: Planned change
+- **Observed**: `PrivateExchangeHandler` adds every Player with an available private exchange to the Active Players and accepts only `ExchangePrivate` from anyone other than the first. The Game State Machine is not waiting on those Players, but the site treats them as awaited: they receive turn notifications, the dashboard and Game card show them on turn, the Game Client reports `isMyTurn`, and the 18xx table header names them.
+- **Evidence**: `libs/18xx/src/privates/privateExchangeHandler.ts:46`; `libs/18xx/src/privates/privateExchangeHandler.ts:83`; `libs/backend-services/src/games/gameService.ts:1138`; `apps/frontend/src/lib/utils/dashboardGames.ts:13`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:439`; `libs/18xx-ui/src/lib/table/TableHeader.svelte:78`
+- **Invariant**: Active Players are the Players the Game State Machine is waiting on to act. An exchange a Player may make at any time is a Sequenced Out-of-Turn Action ([ADR 0009](adr/0009-sequenced-out-of-turn-actions.md)).
 
 ## Game Client
 

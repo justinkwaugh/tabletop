@@ -97,6 +97,10 @@ A Primary Game Context whose Canonical Action History agrees with the host.
 **Out-of-Sync Game Context**:
 A Primary Game Context whose Action history requires repair before it agrees with the host.
 
+**Commutation Proof**:
+A host replay that lets a late User Action be recorded after the Processed Actions it raced when a Sequenced Out-of-Turn Action is involved on either side. It requires every raced Action to belong to another Player and none to reveal information, and each Action's System Action cascade and the final Game State to match in either order, compared by content without regard to Action counts, the Action History Checksum, Action positions, or System Action Identities.
+_Avoid_: Rebase, Merge
+
 ## Undo and derivation
 
 **Undo Request**:
