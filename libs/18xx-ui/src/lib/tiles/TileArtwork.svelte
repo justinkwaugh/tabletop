@@ -5,6 +5,7 @@
     import type { Snippet } from 'svelte'
     import type { TileDrawing } from './tileDrawing.js'
     import { ClassicTileAppearance, type TileAppearance } from './tileAppearance.js'
+    import TileSymbol from './TileSymbol.svelte'
 
     let {
         face,
@@ -278,13 +279,7 @@
                 data-tile-symbol="port"
                 transform={`translate(${drawing.symbolPosition.x} ${drawing.symbolPosition.y})`}
             >
-                <circle r="8" fill={appearance.paper}></circle>
-                <g fill="none" stroke={appearance.ink} stroke-width="1.5" stroke-linecap="round">
-                    <circle cy="-4" r="1.5"></circle>
-                    <path
-                        d="M 0 -2.5 V 6 M -3 -1 H 3 M -5 2 Q -5 6 0 6 Q 5 6 5 2 M -5 2 L -6 3 M 5 2 L 6 3"
-                    ></path>
-                </g>
+                <TileSymbol symbol="port" ink={appearance.ink} paper={appearance.paper} />
             </g>
         {/if}
         {#each drawing.nodes as { node, revenuePosition, revenueCells } (node.id)}

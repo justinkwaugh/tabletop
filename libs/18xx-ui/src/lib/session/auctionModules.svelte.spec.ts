@@ -23,6 +23,38 @@ function waterfall(valid: string[], availability = {}) {
     return { ...harness, module: new WaterfallAuctionModule(harness.session) }
 }
 
+function openAuction(reservations: { playerId: string; lotId: string; amount: number }[]) {
+    const harness = testSession(
+        {
+            ...minimalPlayState(),
+            openingAuction: {
+                remainingLotIds: ['A', 'B', 'C'],
+                reservations,
+                nextPlayerId: 'alex',
+                passedPlayerIds: [],
+                discount: 5,
+                awards: [],
+                completed: false
+            }
+        },
+        {
+            auctionRules: {
+                lots: () => [
+                    { id: 'A', name: 'A', price: 20 },
+                    { id: 'B', name: 'B', price: 30 },
+                    { id: 'C', name: 'C', price: 40 }
+                ],
+                increment: 5,
+                bidOrder: 'clockwise-from-highest' as const,
+                award: () => {},
+                payIncome: () => {}
+            }
+        },
+        ['PassAuction', 'BuyAuctionLot', 'ReserveBid']
+    )
+    return { ...harness, module: new WaterfallAuctionModule(harness.session) }
+}
+
 describe('OfferAuctionModule', () => {
     it('has no model and refuses selection when the title has no offer auction', () => {
         const { module } = offers(['PassAuction'])
@@ -71,5 +103,33 @@ describe('WaterfallAuctionModule', () => {
         const { module, applied } = waterfall(['PassAuction'])
         await module.pass()
         expect(applied).toMatchObject([{ type: 'PassAuction' }])
+    })
+
+    it('buys the open lot as one action at its discounted price, dropping a staged bid', async () => {
+        const { module, applied } = openAuction([])
+        module.selectLot('bid', 'B')
+        await module.buy('A')
+        expect(applied).toMatchObject([{ type: 'BuyAuctionLot', lotId: 'A', expectedPrice: 15 }])
+        expect(module.choice.hasManual()).toBe(false)
+    })
+
+    it('lists remaining lots with bids highest first and each player’s bids in lot order', () => {
+        const { module } = openAuction([
+            { playerId: 'alex', lotId: 'C', amount: 45 },
+            { playerId: 'blair', lotId: 'B', amount: 35 },
+            { playerId: 'alex', lotId: 'B', amount: 40 }
+        ])
+        expect(
+            module.remainingLots.map(({ lot, bids }) => [lot.id, bids.map((bid) => bid.amount)])
+        ).toEqual([
+            ['A', []],
+            ['B', [40, 35]],
+            ['C', [45]]
+        ])
+        expect(module.playerBids('alex').map(({ lot, amount }) => [lot.id, amount])).toEqual([
+            ['B', 40],
+            ['C', 45]
+        ])
+        expect(module.playerBids('casey')).toEqual([])
     })
 })

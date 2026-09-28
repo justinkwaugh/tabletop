@@ -5,6 +5,7 @@
     import type { StationReservation } from '@tabletop/18xx'
     import type { BoundingBox } from '@tabletop/common'
     import TileArtwork from '../tiles/TileArtwork.svelte'
+    import TileSymbol from '../tiles/TileSymbol.svelte'
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
     import {
         assertMapOverlays,
@@ -322,14 +323,23 @@
                             </g>
                         {/if}
                         {#each entry.location.markers ?? [] as marker (marker.id)}
-                            {#if !entry.placed && entry.markerImages[marker.id]}
-                                <image
-                                    href={entry.markerImages[marker.id]}
-                                    x="-25"
-                                    y="-25"
-                                    width="50"
-                                    height="40"
+                            {@const art = entry.markerArt[marker.id]}
+                            {#if art && 'imageUrl' in art && !entry.placed}
+                                <image href={art.imageUrl} x="-25" y="-25" width="50" height="40"
                                 ></image>
+                            {:else if art && 'tileSymbol' in art && !entry.face.symbols?.includes(art.tileSymbol)}
+                                <g
+                                    data-map-marker-symbol={art.tileSymbol}
+                                    transform="translate(0 31)"
+                                    stroke="none"
+                                >
+                                    <title>{marker.label}</title>
+                                    <TileSymbol
+                                        symbol={art.tileSymbol}
+                                        ink={appearance.ink}
+                                        paper={appearance.paper}
+                                    />
+                                </g>
                             {/if}
                         {/each}
                         <text y="36" font-size="5" font-weight="650" data-map-markers
@@ -338,7 +348,7 @@
                                     .filter((label) => !yellowUpgradeLabels.includes(label))
                                     .map((label) => `${label.label} (${label.color})`),
                                 ...(entry.location.markers ?? [])
-                                    .filter((marker) => !entry.markerImages[marker.id])
+                                    .filter((marker) => !entry.markerArt[marker.id])
                                     .map((marker) => marker.label)
                             ].join(' · ')}</text
                         >

@@ -44,13 +44,25 @@ import { type MapViewDefinition, type StationAppearance } from '../maps/stationP
 import { GameSession } from '@tabletop/frontend-components'
 import { assert } from '@tabletop/common'
 import type { TitlePresentation } from './titlePresentation.js'
+import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
 import { type EighteenXXState, getCompany, type Owner, type Portfolio } from '@tabletop/18xx'
 
 type SessionOptions = ConstructorParameters<
     typeof GameSession<EighteenXXState, HydratedEighteenXXState>
 >[0]
 export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEighteenXXState> {
-    privateCompanyTokens: Readonly<Record<string, StationAppearance>> = $derived({})
+    privateCompanyTokens: Readonly<Record<string, StationAppearance>> = $derived.by(() =>
+        Object.fromEntries(
+            Object.entries(this.presentationDefinition.privateTokens ?? {}).map(
+                ([privateCompanyId, token]) => [
+                    privateCompanyId,
+                    'companyId' in token
+                        ? this.mapView.stations[token.companyId]
+                        : tileSymbolAppearance(token.tileSymbol, this.tileAppearance)
+                ]
+            )
+        )
+    )
     operatingIncomeHistory() {
         return operatingHistory(this.history.visibleContext.actions)
     }
@@ -321,7 +333,10 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         const owner = { kind: 'player', playerId } as const
         const cash = cashOwnedBy(this.gameState, owner)
         assert(typeof cash === 'number', 'Player liquidity requires finite cash')
-        return cash + shareSaleValue(this.gameState, owner, this.rules.stockRules)
+        const auction = this.waterfall.model
+        const uncommittedCash =
+            auction && !auction.auction.completed ? auction.availableCash(playerId) : cash
+        return uncommittedCash + shareSaleValue(this.gameState, owner, this.rules.stockRules)
     }
     companyRequiresTrain(companyId: string): boolean {
         return (

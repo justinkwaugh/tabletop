@@ -96,7 +96,7 @@ export class HistoricalMaps {
                     inventory: snapshot.tileInventory
                 },
                 view.layouts,
-                view.markerImages,
+                view.markerArt,
                 view.placements
             ),
             tokens: stationMapTokens(snapshot, view.stations),

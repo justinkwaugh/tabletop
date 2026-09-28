@@ -45,7 +45,8 @@ export { default as GameEnding } from './ending/GameEnding.svelte'
 
 export { default as GameTable } from './table/GameTable.svelte'
 export type { CompanyNameVariants, NumberedShareNames } from './table/companyPresentation.js'
-export type { TitlePresentation } from './session/titlePresentation.js'
+export type { PrivateTokenPresentation, TitlePresentation } from './session/titlePresentation.js'
+export type { TileSymbolName } from './tiles/tileSymbols.js'
 export { moneyFormat, type MoneyFormat } from './presentation/money.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'
 
@@ -62,6 +63,8 @@ export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'
 
 export { default as AuctionBidControl } from './auctions/AuctionBidControl.svelte'
 export { default as OfferAuctionBidding } from './auctions/OfferAuctionBidding.svelte'
+export { default as WaterfallAuctionLots } from './auctions/WaterfallAuctionLots.svelte'
+export { default as WaterfallAuctionBidding } from './auctions/WaterfallAuctionBidding.svelte'
 
 export { default as PrivateCard } from './privates/PrivateCard.svelte'
 export { createPhaseChart, type PhaseChartData } from './phases/phaseChart.js'

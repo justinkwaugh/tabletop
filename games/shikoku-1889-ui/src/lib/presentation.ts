@@ -12,5 +12,6 @@ export const Shikoku1889Presentation: TitlePresentation = {
     marketPoolId: 'open-market',
     companyNames: Shikoku1889CompanyNames,
     privatePurchaseHeading: 'Available privates',
-    privateTilePrompts: { MF: 'Place the port tile', ER: 'Place a tile in Ohzu' }
+    privateTilePrompts: { MF: 'Place the port tile', ER: 'Place a tile in Ohzu' },
+    privateTokens: { DR: { companyId: 'IR' }, MF: { tileSymbol: 'port' } }
 }

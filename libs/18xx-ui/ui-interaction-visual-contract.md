@@ -785,7 +785,8 @@ Player panels use priority order, with a Priority deal marker on the first playe
 and a subtle border for the currently acting player. Cash, liquidity, shares, Certs (weighted count/limit), and current net worth precede the ownership table (company token, name, percentage; president
 bold) and private-company table (income per OR and value). Liquidity is cash plus
 one legal stock-sale block per company at current terms, excluding corporate cash
-and negotiated private sales. Valuation is title-owned. All values follow the
+and negotiated private sales. During a waterfall auction, cash committed to reserved
+or contested bids is excluded from liquidity; Cash still shows the full balance. Valuation is title-owned. All values follow the
 displayed state, including Undo/history; no local selection affects them.
 
 Shares totals directly owned share units, including multi-share president
@@ -896,11 +897,15 @@ Company cash follows Market, separated by the same stronger divider as the owner
 
 During TOP offer bidding the action panel shows the lot/value, current bid if present, next bidder, a minus/amount/plus control, Bid and Pass. Increment and affordability come from the auction model; disabled controls prevent stepping below the legal minimum or above available cash. Initial amount is the minimum without a staged selection. Amount changes use the session selection; Bid commits through the session and Pass clears the selection before passing. The next turn resets to its legal minimum through the normal session lifecycle. The bidding controls replace the prototype pile/award summaries in the table only.
 
+During a waterfall opening auction (1889) the action panel lists the remaining privates in waterfall order: action, private abbreviation or token with name, income, reserved bids and price. Only the first row offers Buy, which commits through the session in one step at the current price without staging a selection, discarding any staged bid; a discounted price shows the face value struck through. Other rows offer Bid, which stages a manual bid selection at the model's legal minimum and highlights that row. The turn column beside the table shows the player's cash available after reservations, any amount they have reserved, and either Pass or the staged bid's minus/amount/plus control with Bid and Back. Back clears only the staged bid; Undo clears it first and then undoes committed actions. Choosing Bid on another row replaces the staged lot. Reserved bids appear as player-colour dots with amounts, highest first, with the viewer's own bid emphasised; names are available to assistive technology and on hover. Rows open the standard PrivateCard popover like offer rows, excluding the action button. The Bids column has a fixed width only in wide panels so reservations do not shift the table. Below 720px of panel width the turn column moves beneath the table and its text, Pass and bid controls center horizontally.
+
+When reserved bids contest a private, bidding uses the same card-and-control layout as TOP offer bidding, summarising the high bidder and high bid. That shared card places the lot and controls side by side, and below 480px of card width stacks them with the summary and controls centered. The stepper starts at the legal minimum; Bid commits through the session and Pass clears any staged amount before passing. The prototype waterfall panel remains only in the prototype table.
+
 PrivateCard is the shared name/value/income/description presentation for private popovers and the auctioned lot on the action panel's left. Numeric facts are supplied by callers, omitted when inapplicable, and never inferred from descriptions. Popover placement, dismissal and animation remain owned by PrivateDescription.
 
 Construction picker and confirmation controls render in ScalingWrapper's unscaled viewport overlay, inside the fullscreen stacking context. They measure that same viewport for arc fitting and screen-to-local coordinates in either mode; fullscreen does not remount the picker or change selection/animation ownership. Other games can omit the additive overlay snippet. This changes no host bridge contract; TOP and 1889 UI artifacts must be republished to adopt it, with no logic or site publication required.
 
-During an offer-pile opening auction, each player's card lists their remaining auction lot immediately after finances, with names and face values in the same order as the offer panel. The currently offered item remains in its pile until awarded; awards remove it, Undo restores it, and completed auctions hide this section. Corporate portfolios and titles without player-assigned offer piles do not invent auction lots.
+During an offer-pile opening auction, each player's card lists their remaining auction lot immediately after finances, with names and face values in the same order as the offer panel. The currently offered item remains in its pile until awarded; awards remove it, Undo restores it, and completed auctions hide this section. Corporate portfolios and titles without player-assigned offer piles do not invent auction lots. During a waterfall auction, the same position lists a player's reserved and contested bids as Bids, in waterfall order with bid amounts; it is hidden for players without bids.
 
 Auction-lot rows open the standard PrivateCard popover when clicked anywhere, including the value. Share-specific descriptions are supplied by the title; private descriptions reuse their existing data. Popovers retain the usual viewport fitting and click-away dismissal.
 
@@ -1540,6 +1545,10 @@ TOP’s Royal Agricultural Society and Railcar Ferry use the Mainline token and 
 
 TOP exchange privates Merchants and Co., Vernon River Bridge, and Shipbuilding use the assigned Shortline company token and a bold opening paragraph: ‘Includes one reserved share of [company].’ Ice Boats uses an outlined token with a large question mark because its exchange target is chosen from eligible companies. The same appearance is used on private cards and auction icons.
 
+Titles may mark a private through their presentation with either a company's token or a shared tile symbol. The session resolves company tokens to the current token art, so the published-artwork toggle applies, and tile symbols to the current tile appearance's ink and paper. 1889 marks Dôgo Railway with the Iyo Railway token, its exchange target, and Mitsubishi Ferry with the port anchor, on their cards, auction rows, portfolio rows and private purchase lists. TOP's role-dependent tokens remain its session override.
+
+Map markers may carry title-supplied art in place of their text label: an image drawn across an unplaced hex (TOP's Vernon River Bridge) or a shared tile symbol drawn at the marker position near the lower edge, with the marker label as its hover title. Images appear only on unplaced hexes in the generic presentation. Symbols follow text-marker visibility: unplaced hexes in the generic presentation and placed tiles in either presentation, except where the placed face already shows that symbol; unplaced hexes on the published board show its printed markers. 1889 draws its four eligible port locations with the same anchor as the port tile rather than the word Port.
+
 Auction share cards use the issuing company’s token in their upper-right corner, including each numbered PEIR share. Auction lists, pile popovers, and active bidding cards share the same lot token resolution.
 
 Schreiber and Burpee Construction uses a yellow straight-track tile icon, exported from the standard tile 9 geometry and classic palette, in auction lists and the card corner. Card titles balance within 22ch so this long title occupies two lines.
@@ -1548,7 +1557,7 @@ TOP private closure and forced-exchange conditions appear in the final paragraph
 
 The auction offer table centers within the action panel when narrower than the panel. It omits the redundant player-name / offer-instruction heading; the round header retains acting-player context.
 
-Auction offers use compact 3px vertical cell padding and no horizontal row dividers.
+Auction offers and waterfall lots share one table stylesheet: compact 3px vertical cell padding and no horizontal row dividers.
 
 Player headers expose a compact/expand icon beside the order badge: two horizontal bars with arrows pointing inward to compact or outward to expand. The icon is light tan at rest and darkens on hover or keyboard focus. The dedicated button retains an explicit accessible action label; background/name clicks do not change the card layout.
 

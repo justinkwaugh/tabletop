@@ -1,4 +1,4 @@
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
     BuyAuctionLot,
     PassAuction,
@@ -34,6 +34,29 @@ export class WaterfallAuctionModule {
     canAct = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('PassAuction')
     )
+    remainingLots = $derived.by(() => {
+        const model = this.model
+        if (!model || model.auction.completed) return []
+        const commitments = model.commitments()
+        return model.auction.remainingLotIds.map((lotId) => {
+            const lot = model.lots.find((item) => item.id === lotId)
+            assertExists(lot, 'Remaining auction lot must be known')
+            return {
+                lot,
+                bids: commitments
+                    .filter((bid) => bid.lotId === lotId)
+                    .sort((a, b) => b.amount - a.amount)
+            }
+        })
+    })
+
+    playerBids(playerId: string) {
+        return this.remainingLots.flatMap(({ lot, bids }) =>
+            bids
+                .filter((bid) => bid.playerId === playerId)
+                .map((bid) => ({ lot, amount: bid.amount }))
+        )
+    }
 
     selectLot(kind: AuctionSelection['kind'], lotId: string) {
         assert(this.canAct && this.model, 'Auction selection is unavailable')
@@ -47,6 +70,16 @@ export class WaterfallAuctionModule {
         const bid = this.choice.value('choice')
         assert(this.canAct && bid?.kind === 'bid', 'Select a bid first')
         this.choice.choose('choice', { ...bid, amount })
+    }
+    async buy(lotId: string) {
+        assert(this.canAct && this.model, 'Auction purchase is unavailable')
+        this.choice.clear()
+        await this.session.applyAction(
+            this.session.createPlayerAction(BuyAuctionLot, {
+                lotId,
+                expectedPrice: this.model.price(lotId)
+            })
+        )
     }
     async confirm() {
         const selection = this.selection

@@ -4,6 +4,7 @@
     import { auctionLotDetails } from './auctionLotDetails.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import './auctionLotTable.css'
 
     let {
         session,
@@ -23,7 +24,7 @@
 </script>
 
 <section class="centered-panel" aria-label="Auction offers">
-    <table>
+    <table class="auction-lot-table">
         <thead
             ><tr
                 ><th><span class="sr-only">Action</span></th><th>Private / share</th><th
@@ -88,111 +89,25 @@
 <style>
     section {
         width: 100%;
-        color: var(--rail-text, #514538);
-    }
-    table {
-        width: 100%;
-        max-width: 680px;
-        margin-inline: auto;
-        border-collapse: collapse;
-        font-size: 13px;
-    }
-    thead th {
-        color: var(--rail-muted, #887664);
-        font-size: 10px;
-        font-weight: 500;
-        padding: 0 7px 3px;
-        text-align: left;
-    }
-    thead th:first-child,
-    thead th:nth-child(2) {
-        padding-left: 0;
-    }
-    tbody th {
-        font-weight: 500;
-        text-align: left;
-        padding: 3px 7px 3px 0;
-    }
-    td {
-        padding: 3px 7px;
-    }
-    .identity {
-        display: flex;
-        align-items: center;
-        gap: 9px;
-    }
-    .private-icon {
-        display: grid;
-        place-items: center;
-        flex: 0 0 26px;
-        height: 26px;
-        border-radius: 6px;
-        background: var(--rail-surface-raised, #eae1d5);
-        color: var(--rail-text, #796047);
-        font-size: 10px;
-        font-weight: 650;
-    }
-    .amount {
-        text-align: right;
-        white-space: nowrap;
-        font-variant-numeric: tabular-nums;
-    }
-    thead .amount {
-        text-align: right;
-    }
-    .value {
-        font-weight: 600;
-    }
-    .income {
-        color: var(--rail-text, #796958);
-    }
-    small {
-        font-size: 10px;
-        color: var(--rail-muted, #887664);
-    }
-    .action {
-        width: 1%;
-        padding-right: 10px;
-        padding-left: 0;
-    }
-    button {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 3px 9px;
-        border: 1px solid var(--rail-border, #a99983);
-        border-radius: 5px;
-        background: var(--rail-surface, #fffdf8);
-        color: var(--rail-text, #514538);
-        font: inherit;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    button:hover:enabled {
-        background: var(--rail-surface-raised, #eee5d8);
-        border-color: var(--rail-focus, #796047);
-    }
-    button:focus-visible {
-        outline: 2px solid var(--rail-focus, #796047);
-        outline-offset: 2px;
-    }
-    button:disabled {
-        opacity: 0.45;
-        cursor: default;
     }
     .lot-icon {
+        display: flex;
+        align-items: center;
         width: 26px;
         height: 26px;
         padding: 0;
         border: 0;
         background: transparent;
+        color: inherit;
+        font-family: inherit;
         flex: 0 0 26px;
+        cursor: pointer;
     }
-    .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
+    .lot-icon:hover:enabled {
+        background: var(--rail-surface-raised, #eee5d8);
+    }
+    .lot-icon:focus-visible {
+        outline: 2px solid var(--rail-focus, #796047);
+        outline-offset: 2px;
     }
 </style>

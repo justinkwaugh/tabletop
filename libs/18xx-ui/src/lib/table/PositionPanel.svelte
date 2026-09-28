@@ -24,6 +24,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import GameEnding from '../ending/GameEnding.svelte'
     import AuctionLotCard from '../auctions/AuctionLotCard.svelte'
+    import { auctionLotDetail } from '../auctions/auctionLotDetails.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
     import TrainCardStrip from '../trains/TrainCardStrip.svelte'
     import { shareSign } from './shareCards.js'
@@ -149,9 +150,6 @@
             lotAction && (isOfferAuctionLot(lotAction) || isBidOnAuctionLot(lotAction))
                 ? session.auctionLotsFor(gameState).find((lot) => lot.id === lotAction.lotId)
                 : undefined
-        const share = lot
-            ? gameState.certificates.find((item) => item.id === lot.id && item.kind === 'share')
-            : undefined
         return {
             station: isPlaceStation(action) ? action : undefined,
             track,
@@ -177,15 +175,7 @@
                 ]
             }),
             shareSign: shareSign(action),
-            lot: lot
-                ? {
-                      ...lot,
-                      company: session.privates.companies.find((item) => item.id === lot.id),
-                      token:
-                          session.privateCompanyTokens[lot.id] ??
-                          (share ? session.mapView.stations[share.companyId] : undefined)
-                  }
-                : undefined,
+            lot: lot ? auctionLotDetail(session, lot, gameState) : undefined,
             purchase: purchase
                 ? {
                       description: describe(purchase),

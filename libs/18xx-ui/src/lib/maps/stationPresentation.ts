@@ -1,6 +1,6 @@
 import { assertExists, type BoundingBox } from '@tabletop/common'
 import type { StationState, RailwayMap, TileSet } from '@tabletop/18xx'
-import type { BoardArtwork, MapPlacement, MapToken } from './mapDrawing.js'
+import type { BoardArtwork, MapMarkerArt, MapPlacement, MapToken } from './mapDrawing.js'
 import type { TileLayout } from '../tiles/tileDrawing.js'
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 
@@ -20,7 +20,7 @@ export type MapViewDefinition = {
      */
     publishedStations?: Readonly<Record<string, StationAppearance>>
     revenueStageColors?: Readonly<Record<string, string>>
-    markerImages?: Readonly<Record<string, string>>
+    markerArt?: Readonly<Record<string, MapMarkerArt>>
     layouts?: Readonly<Record<string, TileLayout>>
     /**
      * Layout overrides that only apply in the published presentation, keyed like ``layouts``.

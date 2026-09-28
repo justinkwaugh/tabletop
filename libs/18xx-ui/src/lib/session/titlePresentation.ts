@@ -7,6 +7,9 @@ import type {
     NumberedShareNames
 } from '../table/companyPresentation.js'
 import type { StockInstructionStopReason } from '@tabletop/18xx'
+import type { TileSymbolName } from '../tiles/tileSymbols.js'
+
+export type PrivateTokenPresentation = { companyId: string } | { tileSymbol: TileSymbolName }
 
 export type TitleStopReason = Extract<StockInstructionStopReason, { code: 'title' }>
 
@@ -30,6 +33,7 @@ export type TitlePresentation = {
     privatePurchaseLabel?: string
     privatePurchaseHeading?: string
     privateTilePrompts?: Readonly<Record<string, string>>
+    privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
     /**
      * Published card artwork for the published presentation, keyed by private company id or
      * certificate id (for shares auctioned like privates). Shown in place of the generated card.

@@ -25,6 +25,7 @@ import {
 } from '@tabletop/18xx'
 import { createTileDrawing, type TileDrawing, type TileLayout } from '../tiles/tileDrawing.js'
 import { StandardTileLayouts } from '../tiles/standardTileLayouts.js'
+import type { TileSymbolName } from '../tiles/tileSymbols.js'
 import { tilePathPoint } from '../tiles/tileTrackGeometry.js'
 
 export type MapSelection =
@@ -53,6 +54,8 @@ export type MapPlacement = {
     hidden?: boolean
 }
 
+export type MapMarkerArt = { imageUrl: string } | { tileSymbol: TileSymbolName }
+
 export type MapDrawnLocation = {
     location: MapLocation
     center: Point
@@ -61,7 +64,7 @@ export type MapDrawnLocation = {
     placed: boolean
     /** True for a presentation placement that hides the hex entirely. */
     hidden: boolean
-    markerImages: Readonly<Record<string, string>>
+    markerArt: Readonly<Record<string, MapMarkerArt>>
     drawing: TileDrawing
     borders: readonly {
         start: Point
@@ -144,7 +147,7 @@ export function createMapDrawing(
     map: RailwayMap,
     supply?: { tileSet: TileSet; inventory: TileInventory },
     layouts: Readonly<Record<string, TileLayout>> = {},
-    markerImages: Readonly<Record<string, string>> = {},
+    markerArt: Readonly<Record<string, MapMarkerArt>> = {},
     placements: Readonly<Record<string, MapPlacement>> = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
@@ -220,7 +223,7 @@ export function createMapDrawing(
             placed: !!placement,
             hidden: !!relocation?.hidden,
             drawing,
-            markerImages,
+            markerArt,
             borders
         }
     })

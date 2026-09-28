@@ -4,7 +4,7 @@
     import { prefersReducedMotion } from 'svelte/motion'
     import { companyFocusLocations } from '../maps/companyFocusLocations.js'
     import { controllingOwner, getCompany, type Owner, type ValuationRules } from '@tabletop/18xx'
-    import { auctionLotDetails } from '../auctions/auctionLotDetails.js'
+    import { auctionLotDetail, auctionLotDetails } from '../auctions/auctionLotDetails.js'
     import { assertExists } from '@tabletop/common'
     import { numberedSharesOwned } from './numberedShares.js'
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
@@ -76,16 +76,43 @@
         (session.offers.model !== undefined && !session.offers.model.auction.completed) ||
             (session.waterfall.model !== undefined && !session.waterfall.model.auction.completed)
     )
-    const auctionPiles = $derived(
-        new Map(
-            session.offers.model && !session.offers.model.auction.completed
-                ? session.offers.model.auction.piles.map((pile) => [
-                      pile.playerId,
-                      auctionLotDetails(session, pile.lotIds)
-                  ])
-                : []
-        )
-    )
+    const playerAuctionLots = $derived.by(() => {
+        const offers = session.offers.model
+        if (offers && !offers.auction.completed)
+            return {
+                kind: 'offer-pile' as const,
+                byPlayer: new Map(
+                    offers.auction.piles.map((pile) => [
+                        pile.playerId,
+                        auctionLotDetails(session, pile.lotIds).map((lot) => ({
+                            lot,
+                            amount: lot.price
+                        }))
+                    ])
+                )
+            }
+        if (session.waterfall.remainingLots.length)
+            return {
+                kind: 'bids' as const,
+                byPlayer: new Map(
+                    session.gameState.players.flatMap(({ playerId }) => {
+                        const bids = session.waterfall.playerBids(playerId)
+                        return bids.length
+                            ? [
+                                  [
+                                      playerId,
+                                      bids.map(({ lot, amount }) => ({
+                                          lot: auctionLotDetail(session, lot),
+                                          amount
+                                      }))
+                                  ] as const
+                              ]
+                            : []
+                    })
+                )
+            }
+        return undefined
+    })
     const focusableCompanyIds = $derived(
         new Set(
             session.gameState.companies
@@ -230,12 +257,13 @@
                     <dd>{money(player.netWorth)}</dd>
                 </dl>
             </div>
-            {#if player.playerId && auctionPiles.has(player.playerId)}
-                <section class="auction-lot" aria-label={`${player.name} auction lot`}>
-                    <h4>Auction lot</h4>
+            {#if player.playerId && playerAuctionLots?.byPlayer.has(player.playerId)}
+                {@const heading = playerAuctionLots.kind === 'bids' ? 'Bids' : 'Auction lot'}
+                <section class="auction-lot" aria-label={`${player.name} ${heading.toLowerCase()}`}>
+                    <h4>{heading}</h4>
                     <table>
                         <tbody>
-                            {#each auctionPiles.get(player.playerId) ?? [] as lot (lot.id)}
+                            {#each playerAuctionLots.byPlayer.get(player.playerId) ?? [] as { lot, amount } (lot.id)}
                                 {@const description =
                                     auctionLotDescription?.(lot.id) ?? lot.company?.description}
                                 <tr data-private-description-row>
@@ -251,7 +279,7 @@
                                                 income={lot.company?.privateRevenue}
                                             />{:else}{lot.name}{/if}
                                     </th>
-                                    <td class="amount">{money(lot.price)}</td>
+                                    <td class="amount">{money(amount)}</td>
                                 </tr>
                             {:else}<tr><td class="empty">None</td></tr>{/each}
                         </tbody>

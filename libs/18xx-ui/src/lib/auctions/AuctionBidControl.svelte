@@ -8,6 +8,7 @@
         canDecrease,
         canIncrease,
         canPass,
+        passLabel = 'Pass',
         onChange,
         onBid,
         onPass
@@ -19,6 +20,7 @@
         canDecrease: boolean
         canIncrease: boolean
         canPass: boolean
+        passLabel?: string
         onChange: (amount: number) => void
         onBid: () => void
         onPass: () => void
@@ -40,7 +42,7 @@
         >
     </div>
     <button class="bid action-button" disabled={!canBid} onclick={onBid}>Bid</button>
-    <button class="pass action-button" disabled={!canPass} onclick={onPass}>Pass</button>
+    <button class="pass action-button" disabled={!canPass} onclick={onPass}>{passLabel}</button>
 </div>
 
 <style>

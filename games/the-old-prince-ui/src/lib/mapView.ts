@@ -50,7 +50,7 @@ export const TheOldPrinceMapView: MapViewDefinition = {
     },
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
-    markerImages: { 'vernon-river-bridge': VernonRiver },
+    markerArt: { 'vernon-river-bridge': { imageUrl: VernonRiver } },
     // Printed city circles that sit off the generic hex centre on the published board, measured in
     // map units (hex radius 50) from MAP-AUGUST-01.jpg; see docs/board-artwork.md.
     publishedTileAppearance: TheOldPrincePublishedTileAppearance,

@@ -122,7 +122,7 @@ for (const title of ['TOP', '1889']) {
         await page.getByLabel('Position', { exact: true }).selectOption('opening')
         await expect(
             page.getByRole('region', {
-                name: title === 'TOP' ? 'Auction offers' : 'Opening auction',
+                name: title === 'TOP' ? 'Auction offers' : 'Private auction',
                 exact: true
             })
         ).toBeVisible()
