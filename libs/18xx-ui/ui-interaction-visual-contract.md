@@ -686,7 +686,11 @@ it shares the market's scale; TOP stacks its tranches there, one row per tranche
 (one, two, then three slots), with slots about 1.4 times the size of market
 tokens and empty slots outlined in the muted text colour. A locked tranche's row
 is dimmed, with a lock in each empty slot. The panels behave as in their own tabs,
-including market hover and move animations.
+including market hover and move animations. A panel's box may overlap hexes in its
+empty corners; only its drawn content takes the pointer, so those hexes stay
+selectable. Shikoku 1889 draws its market at the upper left with the map nested
+into the market's empty lower-right staircase, and the depot to the market's right,
+top-aligned with it, above the island's northeast.
 
 In the paned layout Board is an optional tab added from the pane menu; Map, Market
 and Depot are unchanged. When the paned workspace opens with Board and Map in the

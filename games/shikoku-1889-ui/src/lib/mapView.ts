@@ -9,6 +9,12 @@ import { Shikoku1889Map, Shikoku1889TileSet } from '@tabletop/shikoku-1889'
 import type { MapViewDefinition } from '@tabletop/18xx-ui'
 
 export const Shikoku1889MapView: MapViewDefinition = {
+    // Fitted to keep every drawn market cell and the depot 12 map units clear of every hex, with the
+    // market at TOP's scale.
+    boardAreas: {
+        market: { x: -412, y: -200, width: 817, height: 659 },
+        depot: { x: 416, y: -200, width: 381, height: 187 }
+    },
     map: Shikoku1889Map,
     revenueStageColors: { diesel: '#b9bdc0' },
     tileSet: Shikoku1889TileSet,

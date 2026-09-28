@@ -22,7 +22,9 @@
 </div>
 
 <style>
+    /* An inset's box can overlap hexes in its empty corners, so only its drawn content opts back in to pointers. */
     .board-inset {
+        pointer-events: none;
         position: absolute;
         width: max-content;
         transform-origin: 0 0;

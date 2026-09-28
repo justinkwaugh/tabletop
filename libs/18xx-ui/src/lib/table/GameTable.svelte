@@ -754,17 +754,19 @@
             label="Train depot"
             area={viewportRect(boardViewport, boardAreas.depot)}
         >
-            <PhaseChartContent
-                {money}
-                {depotState}
-                depotOnly
-                onBoard
-                chart={phaseChart}
-                currentPhaseId={session.gameState.phaseId}
-                {trainColors}
-                tileColors={tileAppearance.colors}
-                tileColorNames={tileAppearance.colorNames}
-            />
+            <div class="board-depot">
+                <PhaseChartContent
+                    {money}
+                    {depotState}
+                    depotOnly
+                    onBoard
+                    chart={phaseChart}
+                    currentPhaseId={session.gameState.phaseId}
+                    {trainColors}
+                    tileColors={tileAppearance.colors}
+                    tileColorNames={tileAppearance.colorNames}
+                />
+            </div>
         </BoardInset>{/if}
 {/snippet}
 
@@ -1635,6 +1637,12 @@
     }
     .board-market {
         position: relative;
+    }
+    .board-market :global(.space),
+    .board-market :global(.stack-hitbox),
+    .market-corner,
+    .board-depot {
+        pointer-events: auto;
     }
     .market-corner {
         position: absolute;
