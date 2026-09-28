@@ -389,6 +389,7 @@
     }
 
     function scrollAncestorBy(deltaX: number, deltaY: number) {
+        if (isExpanded) return { movedX: 0, movedY: 0 }
         const scrollAncestor = findScrollableAncestor(scroller)
         if (scrollAncestor) {
             const startLeft = scrollAncestor.scrollLeft
@@ -1276,7 +1277,7 @@
     class:w-full={!isExpanded}
     class:h-full={!isExpanded}
     style={isExpanded
-        ? 'position: fixed; inset: 0; margin: 0; border: 0; padding: 0; width: auto; height: auto; max-width: none; max-height: none; color: inherit; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(1px);'
+        ? 'position: fixed; inset: 0; margin: 0; border: 0; padding: 0; width: auto; height: auto; max-width: none; max-height: none; overscroll-behavior: contain; color: inherit; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(1px);'
         : 'margin: 0; border: 0; padding: 0; max-width: none; max-height: none; color: inherit; background: transparent;'}
 >
     {#if toolbar}<div bind:clientHeight={toolbarHeight}>{@render toolbar()}</div>{/if}

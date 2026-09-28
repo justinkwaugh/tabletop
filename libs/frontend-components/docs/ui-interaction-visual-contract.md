@@ -189,8 +189,8 @@ control of the camera.
 
 Desktop wheel pan, wheel pinch, and Safari gesture zoom retain every input delta
 and clamp the logical camera immediately, but coalesce transform writes into one
-animation-frame update. Ancestor scroll handoff still receives each residual
-delta, including momentum. Immediate camera changes supersede a pending render;
+animation-frame update. Outside full screen, ancestor scroll handoff still
+receives each residual delta, including momentum. Immediate camera changes supersede a pending render;
 destruction cancels it. Touch pinch and inertia retain their existing frame loops.
 This changes bundled rendering only, with no host-bridge interface change; each
 consuming Game UI Artifact must be republished to adopt it, including TOP and 1889.
@@ -205,8 +205,8 @@ The allowance eases in over the first 5% of zoom beyond fit, so a fitted view
 never moves and zooming back to fit glides home. `overpan` selects who may use it:
 `none` keeps hard edges; any other value lets programmatic focus, fit, and view
 restoration use it; `x`, `y`, or `both` also let drag, wheel, pinch, gesture, and
-zoom-button changes use it on those axes, as does full screen on every axis since
-nothing encloses it to scroll. On the other axes a gesture may shrink an existing
+zoom-button changes use it on those axes, as does full screen on every axis, which
+never hands movement to the table or page behind it. On the other axes a gesture may shrink an existing
 overpan but never grow it, so movement it cannot consume still reaches the
 enclosing scroll area at the edge. Zoom keeps the point under the cursor fixed even
 over blank margins.
@@ -220,6 +220,8 @@ Verification (automated in `tests/scalingWrapper.spec.ts`):
 - After a focus overpan, outward trackpad movement scrolls the enclosing table while the
   view holds; inward movement shrinks the overpan and later outward movement cannot regrow it.
 - In full screen, a `focus` host drags to the centre on both axes; a `none` host stops at the edge.
+- In full screen, panning past the edge and turning the wheel over the controls scroll neither
+  the enclosing table nor the page; after exit the handoff to the table resumes.
 
 Manual: touch drag, inertia, and pinch on a phone in a horizontally scrolling layout.
 
@@ -342,6 +344,12 @@ Escape or the fullscreen control returns it to normal flow. Pane shells, content
 and dividers must never intercept pointer input intended for the expanded view.
 Background content is inert while expanded, focus stays within the modal, and
 keyboard events from fullscreen do not trigger background table shortcuts.
+Nothing behind it scrolls: the wrapper hands no residual pan to its ancestors or
+the window, and the dialog contains its overscroll, so native scrolling from its
+controls stops at the dialog. The Site Frontend also locks the document under any
+modal dialog. This changes bundled rendering only,
+with no host-bridge interface change; each consuming Game UI Artifact must be
+republished to adopt it, including TOP and 1889.
 
 Fullscreen centers content on both axes when it fits within the viewport. Content larger than an axis retains its pan range. Embedded views retain their configured horizontal alignment and top alignment.
 

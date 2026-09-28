@@ -45,6 +45,30 @@ test('trackpad pan hands remaining movement and momentum to the enclosing table'
     }
 })
 
+test('full screen keeps the table and page behind it from scrolling', async ({ page }) => {
+    await mountWrapper(page, { maxScale: 2, expandable: true, scrollable: true })
+    const board = page.getByTestId('board')
+    const table = page.getByTestId('table-scroll')
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(375)
+    await page.evaluate(() => {
+        document.body.append(Object.assign(document.createElement('div'), { style: 'height:3000px' }))
+        window.scrollTo(0, 50)
+    })
+    await table.evaluate(element => { element.scrollLeft = 400 })
+    await page.getByLabel('Enter full screen').click()
+    await expect.poll(async () => (await board.boundingBox())?.width).toBeCloseTo(880)
+    await board.dispatchEvent('wheel', { deltaX: -250, deltaY: 30, clientX: 640, clientY: 360 })
+    const zoomIn = page.getByLabel('Zoom in')
+    await zoomIn.hover()
+    await page.mouse.wheel(0, 400)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    expect(await table.evaluate(element => element.scrollLeft)).toBe(400)
+    expect(await page.evaluate(() => window.scrollY)).toBe(50)
+    await page.getByLabel('Exit full screen').click()
+    await board.dispatchEvent('wheel', { deltaX: -250, clientX: 200, clientY: 150 })
+    await expect.poll(() => table.evaluate(element => element.scrollLeft)).toBeLessThan(400)
+})
+
 test('mouse wheel zooms and dragging pans without clicking the board', async ({ page }) => {
     await mountWrapper(page)
     const board = page.getByTestId('board')
