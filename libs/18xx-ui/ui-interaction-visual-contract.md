@@ -1048,7 +1048,8 @@ to RunningTrains through Undo recalculates and focuses the new preview.
 
 The turn header pairs the current operating company's name with its title-owned
 token. The phase is a button opening a native modal phase chart with a full-screen
-backdrop. Its independent phase and train tables use canonical title data and
+backdrop. A faint dotted underline, like the spreadsheet sort headers',
+runs beneath both the Phase label and its badge and turns solid on hover. Its independent phase and train tables use canonical title data and
 highlight the current visible phase, including history positions. Special rust
 timing is explicit in the chart notes. Opening/closing is local presentation with
 no Action or Undo step. The native dialog owns focus containment, Escape,

@@ -127,7 +127,7 @@
             class="phase-button"
             aria-haspopup="dialog"
             onclick={() => (showPhaseChart = true)}
-            ><span class="max-sm:hidden">Phase </span><TrainBadge
+            ><span class="max-sm:hidden">Phase</span><TrainBadge
                 name={gameState.phaseId}
                 color={trainColors[gameState.phaseId]}
             /></button
@@ -316,6 +316,7 @@
         cursor: pointer;
     }
     .phase-button {
+        position: relative;
         display: inline-flex;
         align-items: center;
         gap: 4px;
@@ -324,6 +325,20 @@
         border-radius: 4px;
         text-transform: none;
         letter-spacing: normal;
+    }
+    /* A border, not text-decoration, so the underline runs beneath the badge too. */
+    .phase-button::after {
+        content: '';
+        position: absolute;
+        right: 5px;
+        bottom: 1px;
+        left: 5px;
+        border-bottom: 1px dotted color-mix(in srgb, currentColor 40%, transparent);
+    }
+    @media (hover: hover) {
+        .phase-button:hover::after {
+            border-bottom-color: currentColor;
+        }
     }
     button:focus-visible {
         outline: 2px solid var(--rail-focus, #9e7752);
