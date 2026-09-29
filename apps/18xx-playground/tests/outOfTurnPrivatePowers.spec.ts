@@ -47,6 +47,10 @@ test('1889 Mitsubishi’s owner requests a pause and gets the window only before
     await expect(request).toHaveAttribute('aria-pressed', 'false')
     await request.click()
     await expect(request).toHaveAttribute('aria-pressed', 'true')
+    await request.click()
+    await expect(request).toHaveAttribute('aria-pressed', 'false')
+    await request.click()
+    await expect(request).toHaveAttribute('aria-pressed', 'true')
 
     await page.getByRole('button', { name: 'finish', exact: true }).click()
     await expect(turn).toHaveText(['Casey'])

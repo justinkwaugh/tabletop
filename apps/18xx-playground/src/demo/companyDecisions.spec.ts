@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { trackConsentDecline } from '../../../../libs/18xx-ui/src/lib/session/trackConsentNotice.js'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, replaceSupersededAction, type GameAction } from '@tabletop/common'
 import {
     Definition as Top,
     TheOldPrinceTransferRules,
@@ -782,6 +782,27 @@ it.each([true, false])(
         expect(undone).toEqual(pending)
     }
 )
+it('Mitsubishi’s standing request is cancelled by superseding it', () => {
+    const { game, engine, state } = example(Shikoku, 'transfers')
+    const request = engine.executeCanonicalAction({ game, state, action: requestWindow(state) })
+    const cancel = { ...requestWindow(request.updatedState, false), id: 'cancel' }
+    const outcome = replaceSupersededAction({
+        engine,
+        apiActions: Shikoku.runtime.apiActions,
+        game,
+        state: request.updatedState,
+        window: request.processedActions,
+        replacement: { ...cancel, supersedesActionId: request.processedActions[0].id }
+    })
+    expect(outcome.kind).toBe('replace')
+    if (outcome.kind !== 'replace') return
+    const cancelled = engine.executeCanonicalAction({
+        game,
+        state: outcome.state,
+        action: cancel
+    }).updatedState
+    expect(cancelled.privatePowerRequests).toBeUndefined()
+})
 it('Mitsubishi’s request can be cancelled, and is dropped with its reason when the private closes', () => {
     const { game, engine, state } = example(Shikoku, 'transfers')
     const requested = engine.executeCanonicalAction({

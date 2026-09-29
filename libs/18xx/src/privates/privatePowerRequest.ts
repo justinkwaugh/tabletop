@@ -140,10 +140,9 @@ export class HydratedSetPrivatePowerRequest
     isValid(state: CompanyDecisionState): boolean {
         return (
             this.source === ActionSource.User &&
-            (this.requested
-                ? !hasPrivatePowerRequest(state, this.playerId) &&
-                  requestablePrivateIds(state, this.playerId, this.#rules).length > 0
-                : hasPrivatePowerRequest(state, this.playerId))
+            (!this.requested ||
+                (!hasPrivatePowerRequest(state, this.playerId) &&
+                    requestablePrivateIds(state, this.playerId, this.#rules).length > 0))
         )
     }
     apply(state: HydratedGameState & CompanyDecisionState): void {
