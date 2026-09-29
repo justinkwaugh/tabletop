@@ -118,7 +118,7 @@
         }
         return {
             destroy() {
-                elements.delete(id)
+                if (elements.get(id) === node) elements.delete(id)
             }
         }
     }
