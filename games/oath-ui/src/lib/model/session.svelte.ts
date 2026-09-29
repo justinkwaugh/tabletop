@@ -192,7 +192,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     resetAction(): void {
-        this.letPeekOpen = false
+        this.seatCardLetPeekOpen = false
         this.selection.reset()
         this.clearActionDrafts()
         for (const draft of this.panelDrafts) draft.reset()
@@ -482,7 +482,21 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     // R-9.4 — at any time, from the seat card or the Act Phase grid.
-    letPeekOpen = $state(false)
+    private seatCardLetPeekOpen = $state(false)
+
+    // Visual contract, "Coexistence": one let-peek picker; in this seat's Act Phase it is the staged action.
+    get letPeekIsStaged(): boolean {
+        return (
+            this.liveTurnSeatId !== undefined &&
+            this.gameState.machineState === MachineState.ActPhase
+        )
+    }
+
+    get letPeekOpen(): boolean {
+        return this.letPeekIsStaged
+            ? this.selection.action === ActionType.LetPeek
+            : this.seatCardLetPeekOpen
+    }
 
     get canLetPeek(): boolean {
         return this.liveSeatId !== undefined && this.validActionTypes.includes(ActionType.LetPeek)
@@ -495,7 +509,14 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     toggleLetPeek(): void {
-        this.letPeekOpen = this.canLetPeek && !this.letPeekOpen
+        if (!this.canLetPeek) return
+        if (!this.letPeekIsStaged) {
+            this.seatCardLetPeekOpen = !this.seatCardLetPeekOpen
+        } else if (this.letPeekOpen) {
+            this.resetAction()
+        } else {
+            this.chooseAction(ActionType.LetPeek)
+        }
     }
 
     get exileTargets(): string[] {

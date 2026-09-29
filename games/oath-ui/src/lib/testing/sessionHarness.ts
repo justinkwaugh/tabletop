@@ -13,6 +13,7 @@ import {
 } from '@tabletop/common'
 import {
     BridgedContext,
+    GameSession,
     createHarnessAppContext,
     type GameUiDefinition
 } from '@tabletop/frontend-components'
@@ -33,7 +34,19 @@ import { OathGameSession } from '$lib/model/session.svelte.js'
 const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
     info: UiDefinition.info,
     async runtime() {
-        throw new Error('The metadata-only test definition has no runtime')
+        return {
+            ...OathRuntime,
+            sessionClass: GameSession,
+            colorizer: OathUiRuntime.colorizer,
+            gameUI: {
+                load: async () => {
+                    throw Error('The session harness does not render a table')
+                },
+                mount: () => {
+                    throw Error('The session harness does not render a table')
+                }
+            }
+        }
     }
 }
 

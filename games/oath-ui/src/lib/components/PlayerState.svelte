@@ -258,7 +258,7 @@
             >
                 {gameSession.letPeekOpen ? 'Cancel' : 'Let another peek'}
             </button>
-            {#if gameSession.letPeekOpen}
+            {#if gameSession.letPeekOpen && !gameSession.letPeekIsStaged}
                 <div class="mt-1"><LetPeekPicker /></div>
             {/if}
         </div>

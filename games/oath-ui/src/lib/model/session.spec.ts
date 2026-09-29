@@ -287,6 +287,44 @@ describe('R-6.1, R-7.6.4 — turning a limiter faceup at the limit discards firs
     })
 })
 
+/** Visual contract, "Coexistence" — one let-peek picker; in this seat's Act Phase it is the staged action. */
+describe('the let-peek picker beside a staged Act Phase action', () => {
+    const TUTOR = 'denizen.arcane.tutor'
+    function table(turnPlayerId: string) {
+        const state = testState(
+            [
+                testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: TUTOR, faceUp: false }] }),
+                testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'c1', advisers: [{ cardId: 'denizen.beast.wolves', faceUp: false }] })
+            ],
+            { machineState: MachineState.ActPhase }
+        )
+        openTurn(state, turnPlayerId)
+        state.activePlayerIds = [turnPlayerId]
+        return openSessionOn(tableOf(state))
+    }
+
+    it('in your Act Phase, the seat card stages Let another peek in place of the staged action, and its Cancel leaves it', () => {
+        const session = table('me')
+        session.chooseAction(ActionType.Travel)
+        expect(session.letPeekIsStaged).toBe(true)
+
+        session.toggleLetPeek()
+        expect(session.selection.action).toBe(ActionType.LetPeek)
+        expect(session.letPeekOpen).toBe(true)
+
+        session.toggleLetPeek()
+        expect(session.selection.action).toBeUndefined()
+        expect(session.letPeekOpen).toBe(false)
+    })
+
+    it('choosing another action from the grid closes the picker', () => {
+        const session = table('me')
+        session.toggleLetPeek()
+        session.chooseAction(ActionType.Travel)
+        expect(session.letPeekOpen).toBe(false)
+    })
+})
+
 describe('R-6.1, R-9.4 — letting another player peek', () => {
     it('offers each facedown adviser to each other player, and sends the one chosen', async () => {
         const TUTOR = 'denizen.arcane.tutor'
