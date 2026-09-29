@@ -17,7 +17,11 @@ from typing import Any
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 SOURCE_SUFFIXES = {".svelte", ".ts", ".js", ".css", ".scss"}
+SCRIPT_SUFFIXES = {".svelte", ".ts", ".js"}
 IGNORED_PARTS = {"node_modules", ".svelte-kit", "build", "dist", "bundle", "esm"}
+TEST_PARTS = {"test", "tests", "__tests__", "__mocks__", "fixtures", "e2e"}
+TEST_NAME = re.compile(r"\.(?:spec|test|fixture)\.[^/]+$")
+HARNESS_CAST = "UiDefinition as unknown as GameUiDefinition<GameState, HydratedGameState>"
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -186,6 +190,76 @@ def source_files(roots: list[Path]) -> list[Path]:
     return sorted(files)
 
 
+def is_test_file(path: Path) -> bool:
+    return bool(TEST_NAME.search(path.name) or set(path.parts) & TEST_PARTS)
+
+
+def is_harness_cast(path: Path, ui_root: Path, text: str) -> bool:
+    return path == ui_root / "src" / "routes" / "+page.svelte" and text == HARNESS_CAST
+
+
+def type_escapes(files: list[Path], ui_root: Path, repo: Path) -> dict[str, Any]:
+    script = Path(__file__).with_name("find_type_escapes.mjs")
+    result = subprocess.run(
+        ["node", str(script), str(ui_root)],
+        input=json.dumps([path.as_posix() for path in files]),
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    violations: list[dict[str, Any]] = []
+    exempt: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    for entry in json.loads(result.stdout):
+        path = Path(entry["path"])
+        relative = path.relative_to(repo).as_posix()
+        if "error" in entry:
+            errors.append({"path": relative, "error": entry["error"]})
+            continue
+        for finding in entry["findings"]:
+            item = {"path": relative, **finding}
+            if finding["kind"] == "cast" and is_harness_cast(path, ui_root, finding["text"]):
+                exempt.append(item)
+            else:
+                violations.append(item)
+    return {"violations": violations, "exempt_harness_casts": exempt, "unparsed_files": errors}
+
+
+def schema_diff(merge_base: str, logic_root: Path, repo: Path) -> dict[str, list[str]]:
+    output = git("diff", "--unified=0", merge_base, "--", logic_root.relative_to(repo).as_posix(), cwd=repo)
+    changes: dict[str, list[str]] = {}
+    current = ""
+    for line in output.splitlines():
+        if line.startswith("+++ ") or line.startswith("--- "):
+            if line.startswith("+++ ") and line != "+++ /dev/null":
+                current = line[6:]
+            elif line.startswith("--- ") and line != "--- /dev/null":
+                current = line[6:]
+            continue
+        if line[:1] in "+-" and re.search(r"\bType\.|Schema\b|\bschemas?\b", line):
+            changes.setdefault(current, []).append(line)
+    return changes
+
+
+def package_version(root: Path) -> str | None:
+    return json.loads((root / "package.json").read_text(encoding="utf-8")).get("version")
+
+
+def generated_version(logic_root: Path) -> str | None:
+    path = logic_root / "src" / "definition" / "version.ts"
+    if not path.is_file():
+        return None
+    match = re.search(r"GAME_VERSION\s*=\s*'([^']*)'", path.read_text(encoding="utf-8"))
+    return match.group(1) if match else None
+
+
+def exists_at(commit: str, path: str, repo: Path) -> bool:
+    return subprocess.run(
+        ["git", "cat-file", "-e", f"{commit}:{path}"], cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    ).returncode == 0
+
+
 def find_hits(files: list[Path], patterns: dict[str, re.Pattern[str]]) -> dict[str, list[dict[str, Any]]]:
     hits = {name: [] for name in patterns}
     for path in files:
@@ -229,6 +303,10 @@ def main() -> int:
     merge_base, changes = changed_paths(args.base, repo)
     allowed = (f"games/{args.slug}/", f"games/{args.slug}-ui/")
     sources = source_files([logic_root, ui_root])
+    production_sources = [path for path in sources if not is_test_file(path)]
+    production_scripts = [path for path in production_sources if path.suffix.lower() in SCRIPT_SUFFIXES]
+    logic_sources = [path for path in production_sources if path.is_relative_to(logic_root)]
+    new_title = not exists_at(merge_base, f"games/{args.slug}/package.json", repo)
     images = sorted(
         path for path in ui_root.rglob("*")
         if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES and not (set(path.parts) & IGNORED_PARTS)
@@ -251,6 +329,34 @@ def main() -> int:
         "duration": re.compile(r"duration\s*:|ensureDuration\s*\(|repeat\s*:|delay\s*:"),
         "action_branch": re.compile(r"\baction\b"),
     }
+    production_patterns = {
+        "type_check_suppression": re.compile(r"@ts-(?:ignore|expect-error|nocheck)|eslint-disable"),
+    }
+    logic_patterns = {
+        "nondeterminism": re.compile(
+            r"Math\.random|Date\.now|new Date\(|randomUUID|performance\.now|crypto\.getRandomValues"
+        ),
+        "title_metadata": re.compile(
+            r"\b(?:minPlayers|maxPlayers|defaultPlayerCount|beta|version)\s*:|GameVisibility\.\w+"
+        ),
+        "runtime_registration": re.compile(
+            r"\b(?:canonicalStateValidator|randomnessVersion|supportsStartingPositions|scoring|visibility|"
+            r"exploration)\s*[:=]|createEighteenXXRuntime|defineGame\s*\("
+        ),
+        "competition": re.compile(
+            r"supportsStartingPositions|StartingPositionAssignment|startingPositions|"
+            r"HydratedTurnManager\.generate|finalScores|validateGameResult|GameResult\.\w+|winningPlayerIds"
+        ),
+        "hidden_information_api": re.compile(
+            r"Visibility\.(?:protect|Policy|createProjectionSchema|createProjector|createActionProjector)|"
+            r"getProtectedPrng|protectedPrng|createFromProjectedState"
+        ),
+        "hidden_information_candidates": re.compile(
+            r"\b(?:deck|bag|hand|hands|bid|bids|shuffle|draw|drawn|secret|hidden|private\w*|sealed|"
+            r"concealed|faceDown)\b",
+            re.IGNORECASE,
+        ),
+    }
     evidence = {
         "game": args.slug,
         "base_ref": args.base,
@@ -262,6 +368,24 @@ def main() -> int:
         "asset_references": asset_references(images, sources),
         "search_hits": find_hits(sources, patterns),
         "source_file_count": len(sources),
+        "new_title": new_title,
+        "test_files_exempt_from_forbidden_constructs": sorted(
+            path.relative_to(repo).as_posix() for path in sources if is_test_file(path)
+        ),
+        "type_escapes": type_escapes(production_scripts, ui_root, repo),
+        "production_hits": find_hits(production_sources, production_patterns),
+        "logic_hits": find_hits(logic_sources, logic_patterns),
+        "versions": {
+            "logic_package": package_version(logic_root),
+            "ui_package": package_version(ui_root),
+            "generated_game_version": generated_version(logic_root),
+        },
+        "competition_specs": sorted(
+            path.relative_to(repo).as_posix()
+            for path in logic_root.rglob("competition.*")
+            if not (set(path.parts) & IGNORED_PARTS)
+        ),
+        "schema_diff": {} if new_title else schema_diff(merge_base, logic_root, repo),
     }
     serialized = json.dumps(evidence, indent=2) + "\n"
     if args.output:

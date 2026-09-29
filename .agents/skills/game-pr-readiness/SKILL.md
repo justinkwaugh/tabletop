@@ -5,7 +5,7 @@ description: Audit a tabletop game implementation for pull-request acceptance an
 
 # Game PR Readiness
 
-Perform a read-only, exhaustive gate review of one game's logic module and UI module. A single violation makes the result **NOT READY**. Finish all eight gates even after finding a failure; the report must contain every violation found, not merely representative examples.
+Perform a read-only, exhaustive gate review of one game's logic module and UI module. A single violation makes the result **NOT READY**. Finish all eleven gates even after finding a failure; the report must contain every violation found, not merely representative examples.
 
 ## Establish scope
 
@@ -23,7 +23,7 @@ python3 .agents/skills/game-pr-readiness/scripts/collect_readiness_evidence.py <
   --base <base-ref> --output /tmp/<slug>-readiness-evidence.json
 ```
 
-The collector finds evidence; it does not decide semantic animation or rendering questions. Open every file and usage site it identifies. Use repository search as a fallback if the collector reports an unreadable image or incomplete evidence.
+The collector finds evidence; it does not decide semantic animation, rendering, compatibility, tournament, or hidden-information questions. It parses sources with the TypeScript and Svelte compilers installed for the UI package, so run `pnpm install` first if they are missing. Open every file and usage site it identifies. Use repository search as a fallback if the collector reports an unreadable image or incomplete evidence.
 
 ## Apply every gate
 
@@ -56,9 +56,19 @@ Inspect the image visually and against both catalog contracts:
 
 The title image must have a useful title/cover composition and aspect ratio at both sizes, enough natural resolution to avoid upscaling at 340px high, and no material excess resolution under gate 1. Record its file, format, natural dimensions, and expected rendered dimensions.
 
-### 3. Svelte effects
+### 3. Forbidden constructs
 
-Search every `.svelte` file in both allowed roots for runtime use of `$effect`, including `$effect.pre` and `$effect.root`. Any use is a violation. Distinguish executable use from comments or literal documentation, but report each executable occurrence with file, line, and the behavior it coordinates.
+Test files are exempt from this gate: files whose names contain `.spec.`, `.test.`, or `.fixture.`, and files beneath a `test`, `tests`, `__tests__`, `__mocks__`, `fixtures`, or `e2e` directory. The collector lists them under `test_files_exempt_from_forbidden_constructs`. Every other file in both roots is in scope, including a helper only tests import; it should move to a test location rather than be exempted.
+
+Report every executable occurrence with file, line, and the behavior it serves. Distinguish executable code from comments or literal documentation. Fail each of these:
+
+- `$effect`, `$effect.pre`, or `$effect.root` in a `.svelte` file (`search_hits.svelte_effect`);
+- a type-assertion cast, `value as T` or `<T>value`, which the [coding policy](../../../docs/agent-coding-policy.md) forbids. `as const` is allowed. `type_escapes.violations` comes from parsing each file, including Svelte template expressions, so each hit is real syntax; open `type_escapes.unparsed_files` manually;
+- an explicit `any` type (`type_escapes.violations` with kind `any`);
+- a `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, or `eslint-disable` comment (`production_hits.type_check_suppression`);
+- a nondeterministic source in the logic package, such as `Math.random`, `Date.now`, `new Date(`, `randomUUID`, `performance.now`, or `crypto.getRandomValues` (`logic_hits.nondeterminism`), whose value can reach game state, an Action, the system Action cascade, or a rule decision. [Deterministic execution](../../../docs/DESIGN.md#deterministic-execution) requires these values to come from a persisted state PRNG. Record why each remaining hit cannot reach them.
+
+One cast is exempt: the Game harness page every title shares, `games/<slug>-ui/src/routes/+page.svelte`, contains `const definition = UiDefinition as unknown as GameUiDefinition<GameState, HydratedGameState>`. The collector reports that exact expression in that file under `type_escapes.exempt_harness_casts`. Any other cast, including another in the harness page, is a violation.
 
 ### 4. Animation architecture
 
@@ -92,7 +102,9 @@ Review every applicable design area, including package and state boundaries, run
 
 Fail this gate for every violated invariant, missing required integration point, unresolved ambiguity that prevents the affected behavior from being proven, or applicable verification command that fails or cannot be completed. Treat recommendations as findings only when the authoritative guidance makes them required or the implementation causes a concrete architectural defect.
 
-Assign thumbnail violations to gate 2, `$effect` violations to gate 3, animation violations to gates 4 or 5, changed-path violations to gate 6, and UI entry weight violations to gate 8. Report their architectural impact in those gates without duplicating them in gate 7. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
+Color must not act as Player Identity ([player relationships](../../../docs/DESIGN.md#player-relationships)); record this item explicitly, citing any rule that compares or keys on color.
+
+Assign thumbnail violations to gate 2, forbidden-construct violations to gate 3, animation violations to gates 4 or 5, changed-path violations to gate 6, UI entry weight violations to gate 8, metadata and stored-game compatibility violations to gate 9, tournament setup violations to gate 10, and hidden-information violations to gate 11. Report their architectural impact in those gates without duplicating them in gate 7. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
 
 ### 8. Metadata-only UI entry
 
@@ -102,15 +114,58 @@ In source, the module exporting `UiDefinition` builds `info` from the logic pack
 
 Prove it in the built artifact. Run the UI package's `bundle` script, then follow the static `import`/`export … from` graph from `bundle/index.js`, excluding dynamic `import()`. Record the files and total bytes. Fail if that graph contains the chunk that `runtime()` imports, game components, or logic runtime code. For reference, lightweight entries measure from about 1 KB to 90 KB, while The Old Prince's pre-fix entry, which imported `Definition`, pulled in 501 KB.
 
+### 9. Title metadata and stored-game compatibility
+
+Check the title's `GameInfo` and runtime registration (`logic_hits.title_metadata`, `logic_hits.runtime_registration`, and `versions`). Fail any of these:
+
+- player counts are not positive integers with `minPlayers <= defaultPlayerCount <= maxPlayers`;
+- `metadata.version` does not come from `GAME_VERSION`, or the generated `src/definition/version.ts` differs from the logic `package.json` version;
+- a new title (`new_title`) omits `metadata.visibility`. Without it, a title with `beta: false` is listed as Public on its first publication (`libs/common/src/site/titleVisibility.ts`). Report the declared value;
+- the runtime does not register `canonicalStateValidator` with the compiled validator of the title's strict canonical state schema.
+
+For an existing title, determine whether games stored under the currently published Logic still load, replay, undo, and continue. `schema_diff` lists changed lines that touch TypeBox schemas since the merge base; also trace rule changes in the changed paths. Fail when previously valid stored state, Actions, or configuration become invalid or change meaning without being handled where the [design](../../../docs/DESIGN.md) places compatibility: the title configurator's `normalizeConfig` for configuration, and normalization or migration at load before canonical validation for state. Also fail rule changes that alter the result of replaying recorded Actions. Additive optional fields and new Action types are compatible.
+
+### 10. Tournament setup
+
+Evaluate the whole title, not only the changed code: a title that cannot be provisioned for a tournament fails even when the PR does not touch its setup. The authority is the [tournament game capabilities](../../../docs/tournament-game-capabilities.md). Capabilities can come from a shared runtime factory such as `createEighteenXXRuntime` in `libs/18xx`; trace them there rather than relying only on `logic_hits.competition` beneath the game roots.
+
+Fail any of these:
+
+- the initializer does not declare `supportsStartingPositions: true`. The backend refuses tournament creation and provisioning without it;
+- the assignment is not passed to `HydratedTurnManager.generate` before any order-dependent setup, the ordinary shuffle's draws are not still consumed, or completed state is reordered or patched afterward to simulate the assignment;
+- the runtime does not declare `randomnessVersion: 1`;
+- the runtime does not declare `scoring.finalScores`, or it reports a tiebreak value instead of the primary value the terminal handler ranks by;
+- any terminal branch, including a defensive one, can record a result that `validateGameResult` rejects;
+- no competition spec (`competition_specs`) covers every player count from `minPlayers` to `maxPlayers` and every configuration option that changes setup or the first actor. It must assert that each assigned order determines seating and the first actor, that ordinary setup is otherwise unchanged for the same seed, and that a finished game passes `validateGameResult`. `games/estates/src/definition/competition.spec.ts` and the shared `libs/18xx/test/startingPositions.ts` show the expected coverage.
+
+### 11. Hidden information
+
+Evaluate the whole title. The authorities are the [hidden-information contract](../../../docs/hidden-information.md), the [design's schema and hydration rules](../../../docs/DESIGN.md#schemas-and-hydration), and the [adoption catalog](../../../docs/hidden-information-game-catalog.md). Trace visibility supplied by a shared runtime factory as in gate 10.
+
+First decide whether the title has hidden information: undrawn deck or bag contents or order, owner-only hands or money, pending sealed bids, secret randomness, or a configuration option that makes any of these private. Use the catalog entry when the title has one; otherwise analyze the rules and the state, Action, and randomness code, starting from `logic_hits.hidden_information_candidates`. Record the decision and its evidence either way.
+
+Regardless of that decision, fail when the title uses visibility annotations or the protected PRNG (`logic_hits.hidden_information_api`) without registering `runtime.visibility`. Annotations do not enable projection, so hosted clients receive the full canonical state.
+
+When the title has hidden information, fail any of these:
+
+- `runtime.visibility` is missing, or lacks either the state projector or the Action projector;
+- a secret field lacks a protecting policy, or an Action payload or metadata reveals a secret to a Perspective not entitled to it;
+- secret randomness draws from the public PRNG instead of the protected stream;
+- the projected schema is not derived with `Visibility.createProjectionSchema` from the strict canonical schema, or hydration does not accept the projected representation;
+- the title has Exploration without a `createFromProjectedState` that populates hypothetical hidden values from the projection and public constraints only;
+- no test verifies, for each Perspective, that the projection omits or redacts what it must, exposes what the Perspective is entitled to, and hydrates.
+
+A title without hidden information and without visibility registration passes this gate; state why.
+
 ## Report
 
 Return a self-contained Markdown report with:
 
 1. `READY` or `NOT READY`, the game, base ref, and merge-base commit;
-2. an eight-row gate summary with `PASS` or `FAIL` and violation count;
-3. every violation, grouped by gate, with a stable ID such as `IMG-001` or `ANIM-003`;
+2. an eleven-row gate summary with `PASS` or `FAIL` and violation count;
+3. every violation, grouped by gate, with a stable ID such as `IMG-001`, `CAST-002`, or `HIDDEN-001`;
 4. for each violation: file and line or asset path, observed evidence, violated rule, user-visible or deployment impact, and a concrete remediation;
-5. verification details for passing gates, including the searches/files examined, image/title dimensions, and the UI entry's static graph files and bytes;
+5. verification details for passing gates, including the searches/files examined, image/title dimensions, the UI entry's static graph files and bytes, the exempt harness cast, the declared catalog visibility, and the hidden-information decision;
 6. strong recommendations in a separate non-blocking section, excluded from gate violation counts and the readiness verdict;
 7. an uncertainty section. Any unresolved uncertainty that prevents proving a gate passes makes that gate fail.
 
