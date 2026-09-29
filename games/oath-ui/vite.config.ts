@@ -6,9 +6,6 @@ import { VitestConfig } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [sveltekit(), devtoolsJson()],
-        // Containment: Vite's import scan (es-module-lexer) reads `of/` as a regex, and esbuild's
-        // renaming names one of Ably's variables `of` in this app's chunk, so the build fails.
-        esbuild: { minifyIdentifiers: false },
         build: {
             commonjsOptions: {
                 include: [/node_modules/]
