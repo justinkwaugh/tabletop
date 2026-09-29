@@ -12,12 +12,13 @@
             (option) => gameState.machineState !== 'StockRound' || !isActive(option.playerId)
         )
     )
-    const trackPowers = $derived(session.privateActions.trackPowers)
+    const usablePowers = $derived(session.privateActions.trackPowers)
+    const trackPowers = $derived(usablePowers.filter((power) => !isActive(power.playerId)))
     const requestPlayers = $derived(
         session.privates.requestPlayers.filter(
             (playerId) =>
                 session.privates.hasRequest(playerId) ||
-                !trackPowers.some((power) => power.playerId === playerId)
+                !usablePowers.some((power) => power.playerId === playerId)
         )
     )
     const selectedPower = $derived(session.privateActions.trackPowerSelection?.value)
@@ -57,7 +58,7 @@
                 />
             </span>
         {/each}
-        {#if selectedPower}
+        {#if selectedPower && !isActive(selectedPower.playerId)}
             <span class="power prompt" role="status"
                 >Choose a location on the map
                 <button class="text" onclick={() => session.privateActions.clear()}>Cancel</button
