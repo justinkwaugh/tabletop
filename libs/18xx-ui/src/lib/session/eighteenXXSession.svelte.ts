@@ -146,7 +146,8 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         {
             undo: (): boolean => this.track.stages.undo(),
             clear: () => this.track.stages.clear()
-        }
+        },
+        this.privates
     )
     readonly track: TrackModule = new TrackModule(
         this.moduleSession,

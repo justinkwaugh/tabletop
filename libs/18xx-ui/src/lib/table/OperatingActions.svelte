@@ -25,7 +25,7 @@
 </script>
 
 {#snippet actionControls()}
-    {#if (gameState.purchaseOffer && !(trainBuying && gameState.purchaseOffer.asset.kind === 'train')) || gameState.trackConsent || gameState.privateTrackLay || gameState.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.decisions.privateTileOptions.length || session.decisions.privateTrainOptions.length || session.decisions.selection}
+    {#if (gameState.purchaseOffer && !(trainBuying && gameState.purchaseOffer.asset.kind === 'train')) || gameState.trackConsent || gameState.privateTrackLay || gameState.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.decisions.privateTileOptions.length || session.decisions.privateTrainOptions.length || session.decisions.selection || session.privateActions.selection === 'powers'}
         <CompanyDecisions
             {session}
             {trainColors}

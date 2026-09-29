@@ -8,9 +8,7 @@
     const gameState = $derived(session.gameState)
     const isActive = (playerId: string) => gameState.activePlayerIds.includes(playerId)
     const exchanges = $derived(
-        session.privates.allExchangeOptions.filter(
-            (option) => gameState.machineState !== 'StockRound' || !isActive(option.playerId)
-        )
+        session.privates.allExchangeOptions.filter((option) => !isActive(option.playerId))
     )
     const usablePowers = $derived(session.privateActions.trackPowers)
     const trackPowers = $derived(usablePowers.filter((power) => !isActive(power.playerId)))

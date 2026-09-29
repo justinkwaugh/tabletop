@@ -6,6 +6,7 @@
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
     import PrivateTrainBuying from '../trains/PrivateTrainBuying.svelte'
+    import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
     let {
         session,
         trainColors,
@@ -154,6 +155,14 @@
                 {/if}
                 {#if showPowers && session.decisions.privateTrainOptions.length}
                     <PrivateTrainBuying {session} {trainColors} />
+                {/if}
+                {#if session.privateActions.selection === 'powers' && session.privates.exchangeOptions.length}
+                    <div class="private-track">
+                        {#each session.privates.exchangeOptions as option (`${option.playerId}:${option.privateCompanyId}:${option.certificateId}`)}
+                            <span>{getCompany(gameState, option.privateCompanyId).name}</span>
+                            <PrivateExchangeButton {session} {option} />
+                        {/each}
+                    </div>
                 {/if}
             </div>
         {/if}
