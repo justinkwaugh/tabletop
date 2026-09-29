@@ -40,8 +40,7 @@ describe('double-submit of one action', () => {
         expect(() => engine.run(second, current, game)).toThrow(/index/i)
     })
 
-    // Skipped: the platform's GameEngine tests `action.index` by truthiness, so index 0 is unchecked.
-    it.skip('an index-0 action is index-checked like any other', () => {
+    it('an index-0 action is index-checked like any other', () => {
         const game = testGame(['p1', 'p2'])
         const state = twoSeatActPhase('p1')
         const travel = action(Travel, {
@@ -54,8 +53,7 @@ describe('double-submit of one action', () => {
         expect(() => engine.run(travel, first.updatedState, game)).toThrow(/index/i)
     })
 
-    // Skipped: the platform's GameEngine tests `action.index` by truthiness, so index 0 is unchecked.
-    it.skip('a replayed index-0 action that is still legal does not apply twice', () => {
+    it('a replayed index-0 action that is still legal does not apply twice', () => {
         const game = testGame(['p1', 'p2'])
         const state = twoSeatActPhase('p1')
         state.players[0].warbandsOnBoard = { [Color.Purple]: 2 }
