@@ -19,7 +19,7 @@ import { CampaignState } from './campaign.js'
 import { PendingCampaign } from './pendingCampaign.js'
 import { PendingQuestions } from './question.js'
 import { PendingConsent } from './consent.js'
-import { OathVaultState, type OathVault } from './vault.js'
+import { OathVaultSchema, type OathVault } from './vault.js'
 
 /** R-2.8.2 — actions target the slot; `cardId` fills in once the identity is public (R-9.4). */
 export type RelicSlot = Type.Static<typeof RelicSlot>
@@ -121,7 +121,7 @@ export const OathGameState = Type.Object({
     campaign: Type.Optional(CampaignState),
     /** R-5.5.2.a */
     pendingCampaign: Type.Optional(PendingCampaign),
-    vault: Visibility.protect(OathVaultState, { policy: Visibility.Policy.HostOnly }),
+    vault: Visibility.protect(OathVaultSchema, { policy: Visibility.Policy.HostOnly }),
     /** R-X.1 */
     pendingConsent: Type.Optional(PendingConsent),
     pendingQuestions: Type.Optional(PendingQuestions),

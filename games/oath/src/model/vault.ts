@@ -4,7 +4,7 @@ import { CardKind, Region } from './oathEnums.js'
 import { kindOf } from '../data/cardRegistry.js'
 
 /** R-9.4 — everything unknown to every player; index 0 is the top of each list. */
-const OathVaultSchema = Type.Object({
+export const OathVaultSchema = Type.Object({
     worldDeck: Type.Array(Type.String()),
     /** R-2.1.2, R-9.4 — fronts in all piles are private; R-10.5 places on top, R-10.6 draws it. */
     discardPiles: Type.Record(Type.Enum(Region), Type.Array(Type.String())),
@@ -20,8 +20,6 @@ const OathVaultSchema = Type.Object({
     dispossessed: Type.Array(Type.String())
 })
 export type OathVault = Type.Static<typeof OathVaultSchema>
-// Opaque: the platform's type-level projection does not descend into Type.Record.
-export const OathVaultState = Type.Unsafe<OathVault>(OathVaultSchema)
 
 export function createOathVault(
     contents: {
