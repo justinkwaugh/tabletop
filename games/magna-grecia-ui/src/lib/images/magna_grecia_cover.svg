@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4c77b"/>
+      <stop offset="0.55" stop-color="#f7dfae"/>
+      <stop offset="1" stop-color="#fbeed2"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a9dbb"/>
+      <stop offset="1" stop-color="#1b5b78"/>
+    </linearGradient>
+    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e2be68"/>
+      <stop offset="1" stop-color="#b98d3e"/>
+    </linearGradient>
+    <linearGradient id="marble" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#fffdf7"/>
+      <stop offset="1" stop-color="#d8d0bf"/>
+    </linearGradient>
+    <pattern id="hexes" width="34.64" height="60" patternUnits="userSpaceOnUse" patternTransform="scale(1.3)">
+      <path d="M17.32 0 L34.64 10 L34.64 30 L17.32 40 L0 30 L0 10 Z M17.32 40 L17.32 60" fill="none" stroke="#fff6dc" stroke-width="1.2" opacity="0.45"/>
+    </pattern>
+  </defs>
+
+  <rect width="640" height="640" fill="url(#sky)"/>
+  <circle cx="470" cy="190" r="70" fill="#fff4d6" opacity="0.75"/>
+  <circle cx="470" cy="190" r="46" fill="#fffaf0" opacity="0.8"/>
+
+  <rect y="330" width="640" height="310" fill="url(#sea)"/>
+  <g stroke="#d6eef4" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.55">
+    <path d="M40 380 q10 -8 20 0 t20 0 t20 0"/>
+    <path d="M520 410 q10 -8 20 0 t20 0 t20 0"/>
+    <path d="M470 520 q10 -8 20 0 t20 0 t20 0"/>
+    <path d="M90 560 q10 -8 20 0 t20 0"/>
+  </g>
+
+  <path d="M0 360 C 120 300 210 280 300 300 C 380 318 420 360 470 420 C 510 470 520 560 500 640 L 0 640 Z" fill="#efe0b0"/>
+  <path d="M0 372 C 120 312 210 292 300 312 C 375 330 410 372 455 430 C 492 478 500 560 482 640 L 0 640 Z" fill="url(#hill)"/>
+  <path d="M0 372 C 120 312 210 292 300 312 C 375 330 410 372 455 430 C 492 478 500 560 482 640 L 0 640 Z" fill="url(#hexes)"/>
+
+  <g stroke="#b8322a" stroke-width="10" fill="none" stroke-linecap="round">
+    <path d="M110 640 C 130 560 180 520 200 470 C 215 430 230 400 250 370"/>
+  </g>
+  <g stroke="#e3b12f" stroke-width="10" fill="none" stroke-linecap="round">
+    <path d="M430 640 C 400 580 340 540 320 480 C 305 430 290 400 275 372"/>
+  </g>
+  <g stroke="#fff4dc" stroke-width="2" fill="none" stroke-dasharray="3 7" opacity="0.8">
+    <path d="M110 640 C 130 560 180 520 200 470 C 215 430 230 400 250 370"/>
+    <path d="M430 640 C 400 580 340 540 320 480 C 305 430 290 400 275 372"/>
+  </g>
+
+  <g transform="translate(262 300)">
+    <rect x="-96" y="44" width="192" height="12" fill="#cfc6b3" stroke="#6d6457" stroke-width="1.5"/>
+    <rect x="-86" y="34" width="172" height="12" fill="url(#marble)" stroke="#6d6457" stroke-width="1.5"/>
+    <g fill="url(#marble)" stroke="#6d6457" stroke-width="1.5">
+      <rect x="-78" y="-20" width="14" height="54"/>
+      <rect x="-50" y="-20" width="14" height="54"/>
+      <rect x="-22" y="-20" width="14" height="54"/>
+      <rect x="8" y="-20" width="14" height="54"/>
+      <rect x="36" y="-20" width="14" height="54"/>
+      <rect x="64" y="-20" width="14" height="54"/>
+    </g>
+    <rect x="-88" y="-32" width="176" height="14" fill="url(#marble)" stroke="#6d6457" stroke-width="1.5"/>
+    <path d="M-94 -32 L0 -74 L94 -32 Z" fill="#c9955a" stroke="#6b3f1d" stroke-width="2"/>
+    <path d="M-72 -38 L0 -66 L72 -38 Z" fill="#f3e6c4" opacity="0.6"/>
+  </g>
+
+  <g transform="translate(560 470) scale(1.4)">
+    <path d="M-40 -2 L38 -2 Q46 -2 50 -10 L44 4 Q0 12 -36 6 Z" fill="#6b3f1d" stroke="#3f220d" stroke-width="1"/>
+    <path d="M-38 -2 L38 -2" stroke="#d9a441" stroke-width="1.6"/>
+    <g stroke="#3f220d" stroke-width="1">
+      <line x1="-28" y1="3" x2="-34" y2="14"/><line x1="-18" y1="3" x2="-24" y2="14"/>
+      <line x1="-8" y1="3" x2="-14" y2="14"/><line x1="2" y1="3" x2="-4" y2="14"/>
+      <line x1="12" y1="3" x2="6" y2="14"/><line x1="22" y1="3" x2="16" y2="14"/>
+    </g>
+    <line x1="0" y1="-2" x2="0" y2="-40" stroke="#3f220d" stroke-width="1.6"/>
+    <path d="M-16 -37 Q0 -30 16 -37 L14 -10 Q0 -5 -14 -10 Z" fill="#f1e2bf" stroke="#8c5b2e" stroke-width="1"/>
+    <path d="M-15 -24 Q0 -18 15 -24" fill="none" stroke="#b5462f" stroke-width="3"/>
+  </g>
+
+  <g transform="translate(320 92)">
+    <path d="M-236 -44 h472 l20 44 l-20 44 h-472 l-20 -44 z" fill="#f6ead0" stroke="#6b3f1d" stroke-width="4"/>
+    <path d="M-226 -34 h452 l14 34 l-14 34 h-452 l-14 -34 z" fill="none" stroke="#b8793d" stroke-width="2"/>
+    <text y="16" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="52" letter-spacing="8" fill="#5a3214">MAGNA GRECIA</text>
+  </g>
+</svg>

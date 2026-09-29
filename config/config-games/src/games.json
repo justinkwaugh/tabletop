@@ -42,5 +42,9 @@
   {
     "gameId": "the-old-prince",
     "packageId": "the-old-prince"
+  },
+  {
+    "gameId": "magna-grecia",
+    "packageId": "magna-grecia"
   }
 ]
