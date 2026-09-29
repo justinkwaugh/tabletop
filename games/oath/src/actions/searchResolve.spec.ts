@@ -1,7 +1,9 @@
 import { servedJson } from '../testing/projection.js'
 import { describe, expect, it } from 'vitest'
 import { buildAction } from '../testing/actions.js'
-import { HydratedSearchResolve, SearchPlay, SearchResolve } from './searchResolve.js'
+import { HydratedSearchResolve, SearchPlay, SearchResolve, reasonCannotPairSecondPlay, reasonCannotPlaySecondCard } from './searchResolve.js'
+import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
+import '../powers/index.js'
 import { Banner, CardKind, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import { FIXTURE_SITE_CAPACITY, testPlayer, testState, testVaultWithRelics } from '../testing/fixture.js'
 import { siteHasRoom } from '../powers/vocabulary.js'
@@ -599,5 +601,39 @@ describe('R-7.2, R-7.2.2 — the lock is enforced against facedown advisers', ()
             discardedAdviserCardIds: [LOCKED]
         })
         expect(reason).toBe(`${LOCKED} is locked and cannot be discarded`)
+    })
+})
+
+describe('Land Warden — the second card is played without a hidden draw', () => {
+    const LAND_WARDEN = 'denizen.hearth.land-warden'
+    const HEIRLOOM = 'denizen.hearth.family-heirloom'
+    const PILGRIMAGE = 'denizen.nomad.pilgrimage'
+    const warden = { pendingSearchModifiers: [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }] }
+
+    it('reports a When Played draw it did not make, rather than an empty relic deck', () => {
+        const state = midSearch({ handIds: [ORDER, HEIRLOOM, BEAST] }, warden)
+        const action = resolve('p1', { keptCardId: ORDER, play: SearchPlay.Site, discardOrder: [BEAST], secondPlay: { cardId: HEIRLOOM, play: SearchPlay.Adviser, faceUp: true } })
+        applyOnServer(action, state)
+        expect(action.metadata?.secondWhenPlayed).toBe('Family Heirloom: its When Played power was not resolved, because no hidden card was drawn for it')
+        expect(state.pendingQuestions).toBeUndefined()
+        expect(state.getPlayerState('p1').knownAdvisers()).toEqual([{ cardId: HEIRLOOM, faceUp: true }])
+    })
+
+    it('resolves the Search when the second card is a Pilgrimage, moving no denizen', () => {
+        const state = midSearch({ handIds: [ORDER, PILGRIMAGE, BEAST] }, warden)
+        const action = resolve('p1', { keptCardId: ORDER, play: SearchPlay.Site, discardOrder: [BEAST], secondPlay: { cardId: PILGRIMAGE, play: SearchPlay.Adviser, faceUp: true } })
+        applyOnServer(action, state)
+        expect(action.metadata?.secondWhenPlayed).toMatch(/^Pilgrimage: its When Played power was not resolved/)
+        expect(state.denizensAt('c1')).toEqual([ORDER])
+    })
+
+    it('refuses a second card the ways the engine refuses it, apart from the kept card', () => {
+        const state = midSearch({ handIds: [ORDER, VISION, BEAST] }, warden)
+        const second = (play: SearchPlay, faceUp?: boolean) => reasonCannotPlaySecondCard(state, 'p1', ORDER, { cardId: VISION, play, faceUp })
+        expect(second(SearchPlay.Site)).toMatch(/^second card: /)
+        expect(second(SearchPlay.Adviser, true)).toMatch(/^second card: /)
+        expect(second(SearchPlay.Adviser, false)).toBeUndefined()
+        expect(reasonCannotPairSecondPlay(state, 'p1', SearchPlay.Discard, { cardId: VISION, play: SearchPlay.Adviser, faceUp: false })).toMatch(/at least one of the two cards/)
+        expect(reasonCannotPairSecondPlay(state, 'p1', SearchPlay.Site, { cardId: VISION, play: SearchPlay.Adviser, faceUp: false })).toBeUndefined()
     })
 })

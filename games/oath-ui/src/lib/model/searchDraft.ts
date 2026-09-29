@@ -3,8 +3,10 @@ import {
     MachineState,
     SearchPlay,
     carriedModifiers,
+    reasonCannotPairSecondPlay,
     reasonCannotPlaceCard,
     reasonCannotPlayCard,
+    reasonCannotPlaySecondCard,
     type LegalChoice,
     type PowerChoice,
     type SearchSecondPlay
@@ -110,17 +112,13 @@ export class SearchDraft implements PanelDraft {
         const cardId = this.kept
         const playerId = this.playerId
         if (!cardId || !playerId) return []
-        const state = this.session.gameState
         const options = PLACEMENTS.map((option) => {
-            const room =
-                option.play === SearchPlay.Adviser
-                    ? adviserRoom(state, playerId, cardId, { faceUp: option.faceUp })
-                    : { needed: 0, discardable: [] }
-            const blockedBecause = reasonCannotPlaceCard(state, playerId, cardId, option.play, {
-                faceUp: option.faceUp,
-                discardedAdviserCardIds: room.discardable.slice(0, room.needed)
-            })
-            return { ...option, blockedBecause, room }
+            const placed = this.placementOption(playerId, cardId, option)
+            return {
+                ...placed,
+                blockedBecause:
+                    placed.blockedBecause ?? this.reasonSecondCannotPair(playerId, option.play)
+            }
         }).filter((option) => option.blockedBecause === undefined || teaches(option.play))
         assert(
             options.some((option) => option.blockedBecause === undefined),
@@ -271,13 +269,21 @@ export class SearchDraft implements PanelDraft {
     }
 
     get secondPlays(): SecondPlay[] {
+        const kept = this.kept
+        const playerId = this.playerId
+        if (!kept || !playerId) return []
         return this.drawn
-            .filter((id) => id !== this.kept)
+            .filter((id) => id !== kept)
             .flatMap((cardId) => [
                 this.secondPlay(cardId, SearchPlay.Site, 'to your site'),
                 this.secondPlay(cardId, SearchPlay.Adviser, 'adviser, faceup', true),
                 this.secondPlay(cardId, SearchPlay.Adviser, 'adviser, facedown', false)
             ])
+            .filter(
+                (option) =>
+                    reasonCannotPlaySecondCard(this.session.gameState, playerId, kept, option) ===
+                        undefined && this.pairsWithAnOpenPlacement(playerId, kept, option)
+            )
     }
 
     get second() {
@@ -482,6 +488,39 @@ export class SearchDraft implements PanelDraft {
             label: `${cardName(cardId)} — ${mode}`,
             key: `${cardId}|${play}|${faceUp ?? ''}`
         }
+    }
+
+    private placementOption(
+        playerId: string,
+        cardId: string,
+        option: SearchPlacement & { label: string }
+    ): SearchPlacementOption {
+        const state = this.session.gameState
+        const room =
+            option.play === SearchPlay.Adviser
+                ? adviserRoom(state, playerId, cardId, { faceUp: option.faceUp })
+                : { needed: 0, discardable: [] }
+        const blockedBecause = reasonCannotPlaceCard(state, playerId, cardId, option.play, {
+            faceUp: option.faceUp,
+            discardedAdviserCardIds: room.discardable.slice(0, room.needed)
+        })
+        return { ...option, blockedBecause, room }
+    }
+
+    private pairsWithAnOpenPlacement(playerId: string, kept: string, second: SearchSecondPlay) {
+        return PLACEMENTS.some(
+            (option) =>
+                this.placementOption(playerId, kept, option).blockedBecause === undefined &&
+                reasonCannotPairSecondPlay(this.session.gameState, playerId, option.play, second) ===
+                    undefined
+        )
+    }
+
+    private reasonSecondCannotPair(playerId: string, firstPlay: SearchPlay): string | undefined {
+        const second = this.second
+        return second
+            ? reasonCannotPairSecondPlay(this.session.gameState, playerId, firstPlay, second)
+            : undefined
     }
 
     private samePlacement(a: SearchPlacement, b: SearchPlacement): boolean {

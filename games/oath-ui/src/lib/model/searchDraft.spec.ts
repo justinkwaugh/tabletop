@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, MachineState, PowerChoiceKind, SearchPlay } from '@tabletop/oath'
+import { Banner, MachineState, PowerChoiceKind, PowerTiming, SearchPlay, powerIndexOf } from '@tabletop/oath'
 import { FIXTURE_SITE_CAPACITY, openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     disposeSessions,
@@ -79,7 +79,7 @@ const TENTS = 'denizen.nomad.tents'
 const TUTOR = 'denizen.arcane.tutor'
 const HELD = ['denizen.order.longbows', 'denizen.hearth.wayside-inn', 'denizen.beast.wolves']
 
-function searchingWith(handIds: string[], advisers: string[] = []) {
+function searchingWith(handIds: string[], advisers: string[] = [], table: Record<string, unknown> = {}) {
     const state = testState(
         [
             testPlayer({
@@ -91,7 +91,7 @@ function searchingWith(handIds: string[], advisers: string[] = []) {
                 advisers: advisers.map((cardId) => ({ cardId, faceUp: true }))
             })
         ],
-        { machineState: MachineState.Searching }
+        { machineState: MachineState.Searching, ...table }
     )
     openTurn(state, ME)
     const session = openSessionOn(tableOf(state))
@@ -265,20 +265,43 @@ describe('R-7.6.4 — a limiter kept from a Search discards down to its limit', 
     })
 })
 
+const LAND_WARDEN = 'denizen.hearth.land-warden'
+const VISION = 'vision.conquest'
+const WARDEN_CARRIED = { pendingSearchModifiers: [{ cardId: LAND_WARDEN, powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier) }] }
+
 describe('Land Warden — the second play is picked on the cards', () => {
     it('a tap on a card picks its first way to play, a mode changes it, and a second tap drops it', () => {
-        const { draft } = searching()
-        const [kept, other, third] = draft.drawn
-        draft.keep(kept)
-        expect(draft.secondCandidates).toEqual([other, third])
+        const WRESTLERS = 'denizen.order.wrestlers'
+        const { draft } = searchingWith([TENTS, WRESTLERS, HELD[0]], [], WARDEN_CARRIED)
+        draft.keep(TENTS)
+        expect(draft.secondCandidates).toEqual([WRESTLERS, HELD[0]])
 
-        draft.tapSecondCard(other)
-        expect(draft.second).toMatchObject({ cardId: other, play: SearchPlay.Site, mode: 'to your site' })
-        draft.setSecondPlay(draft.secondPlays.find((option) => option.cardId === other && option.faceUp === false)?.key)
+        draft.tapSecondCard(WRESTLERS)
+        expect(draft.second).toMatchObject({ cardId: WRESTLERS, play: SearchPlay.Site, mode: 'to your site' })
+        draft.setSecondPlay(draft.secondPlays.find((option) => option.cardId === WRESTLERS && option.faceUp === false)?.key)
         expect(draft.second?.mode).toBe('adviser, facedown')
-        draft.tapSecondCard(third)
-        expect(draft.second?.cardId).toBe(third)
-        draft.tapSecondCard(third)
+        draft.tapSecondCard(HELD[0])
+        expect(draft.second?.cardId).toBe(HELD[0])
+        draft.tapSecondCard(HELD[0])
         expect(draft.second).toBeUndefined()
+    })
+
+    it('offers only the second plays the engine accepts: a Vision only as a facedown adviser, and none without the Warden', () => {
+        const { draft } = searchingWith([TENTS, VISION], [], WARDEN_CARRIED)
+        draft.keep(TENTS)
+        expect(draft.secondPlays.map((option) => option.mode)).toEqual(['adviser, facedown'])
+
+        const without = searchingWith([TENTS, VISION]).draft
+        without.keep(TENTS)
+        expect(without.secondPlays).toEqual([])
+    })
+
+    it('with a second adviser play, the kept card is offered only to the site', () => {
+        const { draft } = searchingWith([TENTS, TUTOR], [], WARDEN_CARRIED)
+        draft.keep(TENTS)
+        draft.setSecondPlay(draft.secondPlays.find((option) => option.cardId === TUTOR && option.faceUp === false)?.key)
+        const open = draft.placements.filter((option) => option.blockedBecause === undefined)
+        expect(open.map((option) => option.play)).toEqual([SearchPlay.Site])
+        expect(draft.placements.find((option) => option.play === SearchPlay.Adviser)?.blockedBecause).toMatch(/at least one of the two cards/)
     })
 })

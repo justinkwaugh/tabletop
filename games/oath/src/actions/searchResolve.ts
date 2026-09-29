@@ -29,7 +29,7 @@ import {
 import { discardRevealedVision } from '../util/revealedVision.js'
 import { seizeBanner } from '../util/seize.js'
 import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
-import { effectFor } from '../powers/registry.js'
+import { effectFor, type EffectContext } from '../powers/registry.js'
 import { regionOfPawn, pawnSiteId } from '../powers/vocabulary.js'
 import { isFaceupPlay, isIrreversible, powerOutcomeOf } from '../util/powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from '../util/powerChoice.js'
@@ -92,6 +92,8 @@ export const SearchResolveMetadata = Type.Object({
     favorGained: Type.Number(),
     /** R-7.3.3 */
     whenPlayed: Type.Optional(Type.String()),
+    /** Land Warden — the second card's When Played power, as it resolved. */
+    secondWhenPlayed: Type.Optional(Type.String()),
     /** R-7.1.4 */
     triggered: Type.Optional(Type.Array(Type.String())),
     /** R-7.3.3 */
@@ -261,6 +263,7 @@ export class HydratedSearchResolve
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
             favorGained: played.favorGained,
             whenPlayed: played.whenPlayed,
+            secondWhenPlayed: second?.whenPlayed,
             triggered: played.triggered,
             endsActPhase: played.endsActPhase,
             sitePower: played.sitePower,
@@ -312,28 +315,12 @@ export class HydratedSearchResolve
         if (!player.knownHand().includes(choice.keptCardId)) {
             return `${choice.keptCardId} was not drawn`
         }
-        // Land Warden
         const second = choice.secondPlay
         if (second) {
-            const allowed = carriedModifiers(state, state.pendingSearchModifiers).some(
-                (m) => m.hooks.secondPlay
-            )
-            if (!allowed) return 'only one drawn card may be played'
-            if (second.cardId === choice.keptCardId || !player.knownHand().includes(second.cardId))
-                return `${second.cardId} is not a second drawn card`
-            if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser)
-                return 'the second card is played to your site or as an adviser'
-            if (choice.play !== SearchPlay.Site && second.play !== SearchPlay.Site)
-                return 'Land Warden: at least one of the two cards must be played to a site'
-            const secondReason = reasonCannotPlayCard(state, playerId, second.cardId, second.play, {
-                faceUp: second.faceUp
-            })
-            if (secondReason) return `second card: ${secondReason}`
-            if (choice.play === SearchPlay.Site && second.play === SearchPlay.Site) {
-                const here = pawnSiteId(state, playerId)
-                if (state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here))
-                    return 'no room at your site for two cards'
-            }
+            const secondReason =
+                reasonCannotPlaySecondCard(state, playerId, choice.keptCardId, second) ??
+                reasonCannotPairSecondPlay(state, playerId, choice.play, second)
+            if (secondReason) return secondReason
         }
         const expected = player
             .knownHand()
@@ -369,6 +356,45 @@ export class HydratedSearchResolve
         }
         return true
     }
+}
+
+/** Land Warden — the second drawn card and how it is played, judged apart from the kept card's play. */
+export function reasonCannotPlaySecondCard(
+    state: HydratedOathGameState,
+    playerId: string,
+    keptCardId: string,
+    second: SearchSecondPlay
+): string | undefined {
+    const allowed = carriedModifiers(state, state.pendingSearchModifiers).some(
+        (m) => m.hooks.secondPlay
+    )
+    if (!allowed) return 'only one drawn card may be played'
+    const hand = state.getPlayerState(playerId).knownHand()
+    if (second.cardId === keptCardId || !hand.includes(second.cardId))
+        return `${second.cardId} is not a second drawn card`
+    if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser)
+        return 'the second card is played to your site or as an adviser'
+    const reason = reasonCannotPlayCard(state, playerId, second.cardId, second.play, {
+        faceUp: second.faceUp
+    })
+    return reason ? `second card: ${reason}` : undefined
+}
+
+/** Land Warden — "if you play at least one card to a site", with room for both there. */
+export function reasonCannotPairSecondPlay(
+    state: HydratedOathGameState,
+    playerId: string,
+    firstPlay: SearchPlay,
+    second: SearchSecondPlay
+): string | undefined {
+    if (firstPlay !== SearchPlay.Site && second.play !== SearchPlay.Site)
+        return 'Land Warden: at least one of the two cards must be played to a site'
+    if (firstPlay === SearchPlay.Site && second.play === SearchPlay.Site) {
+        const here = pawnSiteId(state, playerId)
+        if (state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here))
+            return 'no room at your site for two cards'
+    }
+    return undefined
 }
 
 export function reasonCannotPlayConspiracy(
@@ -552,16 +578,21 @@ export function playCard(
         const power = powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
         const effect = power ? effectFor(power) : undefined
         if (power && effect) {
-            const result = effect.resolve({
+            const context: EffectContext = {
                 state,
                 playerId,
                 power,
                 choices: options.choices ?? [],
                 reveal: options.reveal
-            })
-            whenPlayed = result.summary
-            endsActPhase = result.endsActPhase === true
-            outcome = powerOutcomeOf(result)
+            }
+            if (context.reveal === undefined && effect.hidden?.(context)) {
+                whenPlayed = unresolvedForWantOfReveal(cardId)
+            } else {
+                const result = effect.resolve(context)
+                whenPlayed = result.summary
+                endsActPhase = result.endsActPhase === true
+                outcome = powerOutcomeOf(result)
+            }
         }
     }
 
@@ -604,6 +635,13 @@ export function playConspiracy(
     }
 
     state.boxIds.push(cardId)
+}
+
+/** Land Warden — the second card's play draws no hidden card, so a When Played power needing one does not resolve. */
+function unresolvedForWantOfReveal(cardId: string): string {
+    const card = cardDefinition(cardId)
+    assertExists(card, `No card is registered as ${cardId}`)
+    return `${card.name}: its When Played power was not resolved, because no hidden card was drawn for it`
 }
 
 export function reasonWhenPlayedChoicesInvalid(
