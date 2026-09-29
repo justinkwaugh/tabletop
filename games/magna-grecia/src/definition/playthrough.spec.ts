@@ -62,6 +62,14 @@ function botAction(
         return act({ ...base, type: ActionType.PlaceCity, coords: claim.village })
     }
 
+    if (state.turn?.pendingFounding) {
+        const next = spaces.find(
+            (space) => state.cityPlacementPlan(playerId, space.coords) !== undefined
+        )
+        assertExists(next, 'A pending founding must have a legal next tile')
+        return act({ ...base, type: ActionType.PlaceCity, coords: next.coords })
+    }
+
     if (state.cityPlacementsRemaining(playerId) > 0 && player.points > 4) {
         const city = rotated(spaces, step).find(
             (space) => state.cityPlacementPlan(playerId, space.coords) !== undefined

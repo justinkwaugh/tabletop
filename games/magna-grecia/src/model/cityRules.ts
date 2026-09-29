@@ -49,7 +49,7 @@ export function planCityPlacement(input: CityPlacementInput): CityPlacementPlan 
     }
 
     if (board.isOpenVillage(coords)) {
-        return !turn.foundedCity && isFoundingVillage(board, playerId, coords)
+        return !turn.foundedCity && isFoundingAnchor(board, playerId, coords)
             ? { kind: CityPlacementKind.Found }
             : undefined
     }
@@ -70,12 +70,13 @@ export function planCityPlacement(input: CityPlacementInput): CityPlacementPlan 
     if (turn.foundedCity) {
         return undefined
     }
+    const anchored = isFoundingAnchor(board, playerId, coords)
     if (claimVillage) {
-        return isFoundingVillage(board, playerId, claimVillage)
+        return anchored || isFoundingAnchor(board, playerId, claimVillage)
             ? { kind: CityPlacementKind.Found, claimVillage }
             : undefined
     }
-    return tilesToFoundingVillage(board, playerId, coords) <= tilesAvailable
+    return tilesToCompleteFounding(board, playerId, coords, anchored) <= tilesAvailable
         ? { kind: CityPlacementKind.Found, awaitsVillage: true }
         : undefined
 }
@@ -97,14 +98,17 @@ function planFoundingStep(
     if (adjacentVillages.length > 1) {
         return undefined
     }
+    const anchored =
+        board.city(cityId).spaces.some((space) => isFoundingAnchor(board, playerId, space)) ||
+        isFoundingAnchor(board, playerId, coords)
     const claimVillage = adjacentVillages[0]
     if (claimVillage) {
-        return isFoundingVillage(board, playerId, claimVillage) &&
-            canClaimVillage(board, playerId, claimVillage, tilesAvailable)
+        return canClaimVillage(board, playerId, claimVillage, tilesAvailable) &&
+            (anchored || isFoundingAnchor(board, playerId, claimVillage))
             ? { kind: CityPlacementKind.Expand, cityIds: [cityId], claimVillage }
             : undefined
     }
-    return tilesToFoundingVillage(board, playerId, coords, cityId) <= tilesAvailable
+    return tilesToCompleteFounding(board, playerId, coords, anchored, cityId) <= tilesAvailable
         ? { kind: CityPlacementKind.Expand, cityIds: [cityId] }
         : undefined
 }
@@ -118,27 +122,32 @@ function canClaimVillage(
     return tilesAvailable >= 2 && !isForbiddenCitySpace(board, playerId, village)
 }
 
-function tilesToFoundingVillage(
+function tilesToCompleteFounding(
     board: HydratedBoard,
     playerId: string,
     start: AxialCoordinates,
+    startAnchored: boolean,
     foundingCityId?: string
 ): number {
-    const tilesTo = new Map<number, number>([[spaceKey(start), 1]])
-    const queue: AxialCoordinates[] = [start]
-    for (let next = queue.shift(); next; next = queue.shift()) {
-        const tiles = tilesTo.get(spaceKey(next)) ?? 0
-        const [claimVillage] = board.adjacentOpenVillages(next)
+    type Step = { coords: AxialCoordinates; anchored: boolean; tiles: number }
+    const stepKey = (coords: AxialCoordinates, anchored: boolean) =>
+        spaceKey(coords) * 2 + (anchored ? 1 : 0)
+    const seen = new Set<number>([stepKey(start, startAnchored)])
+    const queue: Step[] = [{ coords: start, anchored: startAnchored, tiles: 1 }]
+    for (let step = queue.shift(); step; step = queue.shift()) {
+        const [claimVillage] = board.adjacentOpenVillages(step.coords)
         if (claimVillage) {
-            return tiles + 1
+            if (step.anchored || isFoundingAnchor(board, playerId, claimVillage)) {
+                return step.tiles + 1
+            }
+            continue
         }
-        for (const neighbor of neighborsOf(next)) {
-            if (
-                !tilesTo.has(spaceKey(neighbor)) &&
-                isFoundingPathSpace(board, playerId, neighbor, foundingCityId)
-            ) {
-                tilesTo.set(spaceKey(neighbor), tiles + 1)
-                queue.push(neighbor)
+        for (const neighbor of neighborsOf(step.coords)) {
+            const anchored = step.anchored || isFoundingAnchor(board, playerId, neighbor)
+            const key = stepKey(neighbor, anchored)
+            if (!seen.has(key) && isFoundingPathSpace(board, playerId, neighbor, foundingCityId)) {
+                seen.add(key)
+                queue.push({ coords: neighbor, anchored, tiles: step.tiles + 1 })
             }
         }
     }
@@ -161,9 +170,7 @@ function isFoundingPathSpace(
     const villages = board.adjacentOpenVillages(coords)
     return (
         villages.length === 0 ||
-        (villages.length === 1 &&
-            isFoundingVillage(board, playerId, villages[0]) &&
-            !isForbiddenCitySpace(board, playerId, villages[0]))
+        (villages.length === 1 && !isForbiddenCitySpace(board, playerId, villages[0]))
     )
 }
 
@@ -171,7 +178,7 @@ function neighborsOf(coords: AxialCoordinates): AxialCoordinates[] {
     return ClockwisePointyHexDirections.map((direction) => neighborCoords(coords, direction))
 }
 
-export function isFoundingVillage(
+export function isFoundingAnchor(
     board: HydratedBoard,
     playerId: string,
     coords: AxialCoordinates

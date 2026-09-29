@@ -3,9 +3,9 @@
 ## Visual intents
 
 - **Tool targeting.** On the acting player's turn the action panel offers Roads, Cities, Build market and Sell market for whichever have a legal target, plus Resupply and End turn. The active tool alone decides which board spaces pulse as targets; every other space stays inert. Targets are focusable and activate with Enter or Space.
-- **City placement.** City targets pulse; hovering one previews a ghost city tile in the player's colour. Spaces that commit the player to further tiles use a fainter, dotted outline: a space beside a village (the next tile must cover it) and a plain space that founds a city which must reach a foundable village this turn.
+- **City placement.** City targets pulse; hovering one previews a ghost city tile in the player's colour. Spaces that commit the player to further tiles use a fainter, dotted outline: a space beside a village (the next tile must cover it) and a plain space that founds a city which must reach a village this turn.
 - **Pending village claim.** After a tile is placed beside a village, only that village is targeted, the tool buttons disappear, and the prompt asks for the village tile.
-- **Pending founding.** After founding on a plain space, only spaces that extend the new city toward a foundable village are targeted, the tool buttons disappear, and the prompt asks the player to keep building until the city covers a village.
+- **Pending founding.** After founding on a plain space, only spaces that extend the new city toward a village it can legally cover are targeted, the tool buttons disappear, and the prompt asks the player to keep building until the city covers a village.
 - **Road orientation.** Choosing a road space with one legal orientation places the road immediately. With several, the space stays highlighted and a ring of orientation choices opens around it; hovering a choice previews it on the space.
 - **Market targeting.** Build and sell targets show a price tag with the cost (−n) or value (+n) above the place.
 - **Resupply.** The Resupply button toggles an inline picker bounded by the allowance and the staging area.

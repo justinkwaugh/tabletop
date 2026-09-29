@@ -246,6 +246,45 @@ describe('cities', () => {
         expect(state.getPlayerState('p0').points).toBe(9)
     })
 
+    it('founds beside an unreached inland village when the player’s road reaches the first tile', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        const besideVillage = at(INLAND, W)
+        expect(state.cityPlacementPlan('p0', besideVillage)).toBeUndefined()
+
+        state.board.roads = [{ coords: at(besideVillage, W), playerId: 'p0', ends: [E, W] }]
+        expect(state.cityPlacementPlan('p0', besideVillage)).toMatchObject({
+            kind: 'Found',
+            claimVillage: INLAND
+        })
+        placeCity(state, 'p0', besideVillage)
+        const last = placeCity(state, 'p0', INLAND)
+        expect(last.metadata).toMatchObject({ foundingMarket: true })
+        expect(state.canFinishTurn('p0')).toBe(true)
+    })
+
+    it('carries the road connection through every tile of a founding', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        const start = at(at(INLAND, W), W)
+        state.board.roads = [{ coords: at(start, W), playerId: 'p0', ends: [E, W] }]
+        placeCity(state, 'p0', start)
+        expect(state.turn?.pendingFounding).toBeDefined()
+        expect(state.cityPlacementPlan('p0', at(INLAND, W))).toMatchObject({
+            kind: 'Expand',
+            claimVillage: INLAND
+        })
+    })
+
+    it('does not let an unconnected founding end on an unreached inland village', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        const start = at(at(INLAND, W), W)
+        placeCity(state, 'p0', start)
+        expect(state.turn?.pendingFounding).toBeDefined()
+        expect(state.cityPlacementPlan('p0', at(INLAND, W))).toBeUndefined()
+    })
+
     it('does not found on a plain space that cannot reach a founding village this turn', () => {
         const state = freshState()
         giveTurn(state, 'p0', 'Y1')

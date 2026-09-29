@@ -38,7 +38,7 @@
             return 'Finish the expansion: place a city tile on the village'
         }
         if (gameSession.pendingFounding) {
-            return 'Keep building your new city until it covers a village you can found on'
+            return 'Keep building your new city until it covers a village'
         }
         if (gameSession.roadSpace) {
             return 'Choose which way the road runs'
