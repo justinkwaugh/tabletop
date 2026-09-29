@@ -511,8 +511,12 @@ export class SearchDraft implements PanelDraft {
         return PLACEMENTS.some(
             (option) =>
                 this.placementOption(playerId, kept, option).blockedBecause === undefined &&
-                reasonCannotPairSecondPlay(this.session.gameState, playerId, option.play, second) ===
-                    undefined
+                reasonCannotPairSecondPlay(
+                    this.session.gameState,
+                    playerId,
+                    option.play,
+                    second
+                ) === undefined
         )
     }
 
