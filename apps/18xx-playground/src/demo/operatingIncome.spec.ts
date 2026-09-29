@@ -6,7 +6,11 @@ import { migrateOperatingIncome } from './migrateOperatingIncome.js'
 import { finishedGame } from './finishedGame.js'
 
 it('builds full-game income from recorded actions without states or replay patches', async () => {
-    const { game, state, engine, actions } = await finishedGame('local-user', 'Income history')
+    const { game, state, engine, actions } = await finishedGame(
+        'local-user',
+        'Income history',
+        'the-old-prince'
+    )
     const records = actions.map(({ undoPatch, forwardPatch, ...action }) => action)
     const before = structuredClone(records)
     const rounds = operatingHistory(records)

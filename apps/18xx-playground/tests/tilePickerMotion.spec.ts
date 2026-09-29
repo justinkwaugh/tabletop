@@ -48,12 +48,14 @@ test('1889 accepted upgrade stays on the map while the lay publishes', async ({ 
     const preview = await hex.evaluate((node) => node.querySelectorAll('path').length)
     expect(preview).not.toBe(before)
     await hex.evaluate((node) => {
+        const map = node.closest('svg')
+        if (!map) throw new Error('The hex is outside the map')
         const seen: number[] = []
-        Object.assign(window, { seenPathCounts: seen })
+        Reflect.set(window, 'seenPathCounts', seen)
         new MutationObserver(() => {
             const current = document.querySelector('g[data-map-location="E2"]')
             seen.push(current?.querySelectorAll('path').length ?? 0)
-        }).observe((node as SVGElement).ownerSVGElement!, {
+        }).observe(map, {
             subtree: true,
             childList: true,
             attributes: true
@@ -62,9 +64,7 @@ test('1889 accepted upgrade stays on the map while the lay publishes', async ({ 
     await page.getByRole('button', { name: 'Accept track lay', exact: true }).click()
     await expect(page.locator('.picker')).toHaveCount(0)
     await expect(hex).toHaveAttribute('data-placed', 'true')
-    const seen = await page.evaluate(
-        () => (window as unknown as { seenPathCounts: number[] }).seenPathCounts
-    )
+    const seen = await page.evaluate((): number[] => Reflect.get(window, 'seenPathCounts'))
     expect(seen.length).toBeGreaterThan(0)
     expect(seen.filter((count) => count !== preview)).toEqual([])
 })

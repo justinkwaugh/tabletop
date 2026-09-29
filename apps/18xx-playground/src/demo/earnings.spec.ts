@@ -361,7 +361,6 @@ it('previews a bank-breaking payment without mutation, then pays in full and sch
     expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId: 'IR' })).toBe(
         Number(cashOwnedBy(state, { kind: 'company', companyId: 'IR' })) + 100
     )
-    // History replays the payout on its own, before the train step is entered.
     let replay = state
     for (const processed of result.processedActions)
         replay = engine.applyProcessedAction({ game, state: replay, action: processed })

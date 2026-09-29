@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { putLocalRecords, readLocalRecords } from './localGameStore.js'
 
 test('finished TOP supports saved history navigation back to the opening auction', async ({
     page
@@ -43,7 +44,6 @@ test('finished 1889 steps back and forward across its bank-break payout', async 
     await expect(winner).toBeVisible({ timeout: 30000 })
     const back = page.getByRole('button', { name: 'step backwards', exact: true })
     const forward = page.getByRole('button', { name: 'step forwards', exact: true })
-    // The bank breaks during the final set; step back past it and replay forward.
     for (let step = 0; step < 12; step++) await back.click()
     await expect(winner).toHaveCount(0)
     for (let step = 0; step < 12; step++) await forward.click()
@@ -56,26 +56,6 @@ test('finished 1889 steps back and forward across its bank-break payout', async 
     expect(errors).toEqual([])
 })
 
-async function savedExamples(page: Page) {
-    return page.evaluate(
-        () =>
-            new Promise<{ typeId: string; name: string; examplePosition?: string }[]>((resolve) => {
-                const open = indexedDB.open('tabletop-local')
-                open.onsuccess = () => {
-                    const request = open.result.transaction('games').objectStore('games').getAll()
-                    request.onsuccess = () =>
-                        resolve(
-                            request.result.map((game) => ({
-                                typeId: game.typeId,
-                                name: game.name,
-                                examplePosition: game.config?.examplePosition
-                            }))
-                        )
-                }
-            })
-    )
-}
-
 test('a scenario abandoned mid-load saves nothing under another scenario’s name', async ({
     page
 }) => {
@@ -85,8 +65,9 @@ test('a scenario abandoned mid-load saves nothing under another scenario’s nam
     await expect(page.getByRole('status')).toHaveCount(0, { timeout: 20000 })
     await page.getByLabel('Game', { exact: true }).selectOption('1889')
     await expect(page.getByRole('status')).toHaveCount(0, { timeout: 20000 })
-    for (const game of await savedExamples(page))
-        expect(game.name).toContain(` ${game.examplePosition} `)
+    const games = await readLocalRecords(page, 'games')
+    expect(games.length).toBeGreaterThan(0)
+    for (const game of games) expect(game.name).toContain(` ${game.config?.examplePosition} `)
 })
 
 test('finished 1889 ignores an unfinished game saved under its name', async ({ page }) => {
@@ -95,23 +76,13 @@ test('finished 1889 ignores an unfinished game saved under its name', async ({ p
     await page.getByLabel('Game', { exact: true }).selectOption('1889')
     await page.getByLabel('Position', { exact: true }).selectOption('opening')
     await expect(page.getByRole('status')).toHaveCount(0, { timeout: 20000 })
-    await page.evaluate(
-        () =>
-            new Promise<void>((resolve) => {
-                const open = indexedDB.open('tabletop-local')
-                open.onsuccess = () => {
-                    const transaction = open.result.transaction('games', 'readwrite')
-                    const games = transaction.objectStore('games')
-                    games.getAll().onsuccess = (event) => {
-                        const game = (event.target as IDBRequest).result.find(
-                            (game: { typeId: string }) => game.typeId === 'shikoku-1889'
-                        )
-                        games.put({ ...game, name: 'Finances example · 26 · finished · default' })
-                    }
-                    transaction.oncomplete = () => resolve()
-                }
-            })
+    const opening = (await readLocalRecords(page, 'games')).find(
+        (game) => game.typeId === 'shikoku-1889'
     )
+    if (!opening) throw new Error('The 1889 opening example was not saved')
+    await putLocalRecords(page, 'games', [
+        { ...opening, name: 'Finances example · 26 · finished · default' }
+    ])
     await page.reload()
     await page.getByLabel('Game', { exact: true }).selectOption('1889')
     await page.getByLabel('Position', { exact: true }).selectOption('finished')

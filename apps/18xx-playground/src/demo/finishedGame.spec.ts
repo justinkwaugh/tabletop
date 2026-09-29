@@ -12,7 +12,8 @@ import { ActionSource, assertExists } from '@tabletop/common'
 it('replays the finished game and restores every history step in both directions', async () => {
     const { game, state, initialState, actions, engine } = await finishedGame(
         'local-user',
-        'Finished game'
+        'Finished game',
+        'the-old-prince'
     )
     expect(state.finalWealth?.map(({ total }) => total)).toEqual([6764, 7328, 7126])
     expect(actions).toHaveLength(1071)

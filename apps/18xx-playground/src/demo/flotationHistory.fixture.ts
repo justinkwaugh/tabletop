@@ -62,7 +62,8 @@ export async function flotationHistorySteps() {
 export async function finishedStockTurnHistorySteps() {
     const { game, state, initialState, actions, engine } = await finishedGame(
         'local-user',
-        'SR 3 history'
+        'SR 3 history',
+        'the-old-prince'
     )
     const thirdStockRound = new Set(
         historyRounds(actions, state)

@@ -49,7 +49,6 @@
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
-    // A host keeps its scenario for its whole load, even if the page moves on while it loads.
     const scenario = untrack(() => position)
     const players = untrack(() => playerCount)
     const exampleName = `Finances example · 26 · ${scenario} · ${players ?? 'default'}`

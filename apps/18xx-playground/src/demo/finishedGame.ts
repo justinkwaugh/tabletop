@@ -19,11 +19,7 @@ export function hasFinishedGame(typeId: string): typeId is FinishedGameTitle {
     return typeId in finishedGames
 }
 
-export async function finishedGame(
-    ownerId: string,
-    name: string,
-    typeId: FinishedGameTitle = 'the-old-prince'
-) {
+export async function finishedGame(ownerId: string, name: string, typeId: FinishedGameTitle) {
     const { definition, fixture: load } = finishedGames[typeId]
     const fixture = (await load()).default
     const game = Value.Convert(Game, structuredClone(fixture.game))

@@ -30,9 +30,9 @@ in the 1889 table's Position menu.
 
 Four players; Player 1 opens the private auction. The bank breaks during Tosa Electric
 Railway's payout in the third round of operating set 5, so the game ends when that set
-completes. Upstream's
-undone actions are omitted, as are its passes of the separate buy-company step; private and
-inter-company train purchases become purchase offers accepted by the seller.
+completes. Upstream's undone actions are omitted, as are its passes of the separate
+buy-company step; private and inter-company train purchases become purchase offers accepted
+by the seller.
 
 Replay produces 430 player actions and 264 automatic actions. Final wealth is 3,880 for
 Player 1, 4,444 for Player 2, 4,317 for Player 3, and 3,091 for Player 4.
