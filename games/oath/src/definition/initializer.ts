@@ -1,4 +1,7 @@
+import { Compile } from 'typebox/compile'
 import {
+    assert,
+    type GameConfig,
     type GameInitializer,
     BaseGameInitializer,
     Prng,
@@ -16,7 +19,7 @@ import {
 import { OathPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
-import { readOathGameConfig } from './config.js'
+import { OathGameConfig } from './config.js'
 import { OathExileColors } from './colors.js'
 import { Banner, IMPERIAL_COLOR, OathType, PlayerStatus } from '../model/oathEnums.js'
 import {
@@ -28,7 +31,15 @@ import {
 import { createOathVault } from '../model/vault.js'
 import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'
 import { bySuit } from '../data/typedData.js'
-import { SetupVariant } from '../data/worldDeck.js'
+import { SetupVariant } from '../model/oathEnums.js'
+
+const OathGameConfigValidator = Compile(OathGameConfig)
+
+export function readOathGameConfig(config: GameConfig | undefined): OathGameConfig {
+    if (config === undefined) return {}
+    assert(OathGameConfigValidator.Check(config), 'Game configuration is not a valid Oath setup')
+    return config
+}
 
 /** R-1.1 to R-1.22; R-1.23's choices are the `Setup` state's actions. */
 export class OathGameInitializer

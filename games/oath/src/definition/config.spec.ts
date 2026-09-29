@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { defaultGameConfig, isListConfigOption } from '@tabletop/common'
 import { OathType } from '../model/oathEnums.js'
-import { SetupVariant } from '../data/worldDeck.js'
-import { OathGameConfigOptions, readOathGameConfig } from './config.js'
+import { SetupVariant } from '../model/oathEnums.js'
+import { OathGameConfigOptions } from './config.js'
+import { readOathGameConfig } from './initializer.js'
 import { OathConfigurator } from './configurator.js'
 import { required } from '../testing/required.js'
 

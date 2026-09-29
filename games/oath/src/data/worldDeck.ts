@@ -53,12 +53,6 @@ export function composeFirstGameDeck(
     })
 }
 
-export enum SetupVariant {
-    Randomized = 'randomized',
-    /** `PLAYTEST_DECK` pins the composition; the order still comes from the vault seed. */
-    Curated = 'curated'
-}
-
 /** R-8.8 — top card first; `random` is the protected stream (R-9.4). */
 export function composeWorldDeck(random: RandomFunction, pool?: WorldDeckPool): string[] {
     const { denizenIds, visionIds } = pool ?? defaultWorldDeckPool()

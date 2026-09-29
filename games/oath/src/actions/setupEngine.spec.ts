@@ -19,7 +19,7 @@ import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { expectFullFavorComplement } from '../testing/census.js'
 import { expectOneWarbandColorPerSite, warbandCensus } from '../testing/census.js'
 import { CHANCELLOR_WARBANDS, EXILE_WARBANDS } from '../model/setup.js'
-import { SetupVariant } from '../data/worldDeck.js'
+import { SetupVariant } from '../model/oathEnums.js'
 import { testGame } from '../testing/game.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'

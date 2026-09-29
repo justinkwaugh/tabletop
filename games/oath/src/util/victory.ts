@@ -1,6 +1,7 @@
 import { assert } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { OathType, PlayerStatus } from '../model/oathEnums.js'
+import { OATH_NAMES } from '../definition/config.js'
 import {
     citizensMeetingSuccessorGoal,
     meetsRevealedVisionGoal,
@@ -154,16 +155,7 @@ export function wakePhaseWin(
 }
 
 export function oathTypeName(oathType: OathType): string {
-    switch (oathType) {
-        case OathType.Supremacy:
-            return 'the Oath of Supremacy'
-        case OathType.ThePeople:
-            return 'the Oath of the People'
-        case OathType.Protection:
-            return 'the Oath of Protection'
-        case OathType.Devotion:
-            return 'the Oath of Devotion'
-    }
+    return `the ${OATH_NAMES[oathType]}`
 }
 
 export { revealedVisionGoal }

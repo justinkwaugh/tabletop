@@ -1,14 +1,21 @@
 import { assertExists, shuffle, type RandomFunction } from '@tabletop/common'
 import { HydratedOathGameState, discardRegionFor, type RelicSlot } from './gameState.js'
 import type { HydratedOathPlayerState, OathPlayerState } from './playerState.js'
-import { Banner, CardKind, OathType, PlayerStatus, Region, TOTAL_FAVOR } from './oathEnums.js'
+import {
+    Banner,
+    CardKind,
+    OathType,
+    PlayerStatus,
+    Region,
+    SetupVariant,
+    TOTAL_FAVOR
+} from './oathEnums.js'
 import { createOathVault, drawFromBottomOfWorldDeck, drawRelics, type OathVault } from './vault.js'
 import { allMapSlots, TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { ALL_SITE_IDS } from '../data/sites.js'
 import { GRAND_SCEPTER_ID, RELIC_DECK_IDS, RELIQUARY_SIZE } from '../data/relics.js'
 import {
     composeFirstGameDeck,
-    SetupVariant,
     SETUP_DISCARD_SEED_CARDS,
     SETUP_HAND_SIZE,
     setupDrawTotal,

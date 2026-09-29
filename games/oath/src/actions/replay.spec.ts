@@ -1,6 +1,6 @@
 import { RunMode, vaultOf, engine } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
-import { SetupVariant } from '../data/worldDeck.js'
+import { SetupVariant } from '../model/oathEnums.js'
 import { describe, expect, it } from 'vitest'
 import { ActionSource, Game, assert, assertExists, type GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'

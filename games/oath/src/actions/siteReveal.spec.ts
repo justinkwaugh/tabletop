@@ -8,7 +8,7 @@ import { SetupChoice } from './setupChoice.js'
 import { Travel, isTravel } from './travel.js'
 import { siteRevealPrompt } from '../data/cardRegistry.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
-import { SetupVariant } from '../data/worldDeck.js'
+import { SetupVariant } from '../model/oathEnums.js'
 import { testGame } from '../testing/game.js'
 
 /** R-5.6.2, R-2.8.2 — dealt for real, because `testState` makes every slot faceup. */

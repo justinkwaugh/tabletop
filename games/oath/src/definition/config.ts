@@ -1,9 +1,6 @@
 import * as Type from 'typebox'
-import { Compile } from 'typebox/compile'
-import { assert, ConfigOptionType, type GameConfig, type GameConfigOptions } from '@tabletop/common'
-import { OathType } from '../model/oathEnums.js'
-import { oathTypeName } from '../util/victory.js'
-import { SetupVariant } from '../data/worldDeck.js'
+import { ConfigOptionType, type GameConfigOptions } from '@tabletop/common'
+import { OathType, SetupVariant } from '../model/oathEnums.js'
 
 export type OathGameConfig = Type.Static<typeof OathGameConfig>
 export const OathGameConfig = Type.Object({
@@ -13,12 +10,12 @@ export const OathGameConfig = Type.Object({
     oathType: Type.Optional(Type.Enum(OathType))
 })
 
-const OathGameConfigValidator = Compile(OathGameConfig)
-
-export function readOathGameConfig(config: GameConfig | undefined): OathGameConfig {
-    if (config === undefined) return {}
-    assert(OathGameConfigValidator.Check(config), 'Game configuration is not a valid Oath setup')
-    return config
+/** R-1.13 */
+export const OATH_NAMES: Readonly<Record<OathType, string>> = {
+    [OathType.Supremacy]: 'Oath of Supremacy',
+    [OathType.ThePeople]: 'Oath of the People',
+    [OathType.Devotion]: 'Oath of Devotion',
+    [OathType.Protection]: 'Oath of Protection'
 }
 
 export const OathGameConfigOptions: GameConfigOptions = [
@@ -44,7 +41,7 @@ export const OathGameConfigOptions: GameConfigOptions = [
             'The Oath the Chancellor has sworn, which decides how the Oathkeeper is chosen.',
         default: OathType.Supremacy,
         options: Object.values(OathType).map((oathType) => ({
-            name: oathTypeName(oathType).replace(/^the /, ''),
+            name: OATH_NAMES[oathType],
             value: oathType
         })),
         alwaysShow: true
