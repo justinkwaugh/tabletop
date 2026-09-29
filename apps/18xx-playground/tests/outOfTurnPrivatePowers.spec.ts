@@ -42,7 +42,7 @@ test('1889 Mitsubishi’s owner requests a pause and gets the window only before
     await expect(turn).toHaveText(['Blair'])
     const powers = page.getByRole('group', { name: 'Private powers' })
     const request = powers.getByRole('button', {
-        name: 'Pause before the next company for Casey'
+        name: 'Place before the next company for Casey'
     })
     await expect(request).toHaveAttribute('aria-pressed', 'false')
     await request.click()

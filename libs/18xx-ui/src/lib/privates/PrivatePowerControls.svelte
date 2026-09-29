@@ -80,15 +80,13 @@
                 <button
                     class="request"
                     aria-pressed={requested}
-                    aria-label={`Pause before the next company for ${session.getPlayerName(playerId)}`}
+                    aria-label={`Place before the next company for ${session.getPlayerName(playerId)}`}
                     disabled={session.busy}
                     onclick={() => void session.privates.setRequest(playerId, !requested)}
-                    >{requested
-                        ? 'Pausing before next company'
-                        : 'Pause before next company'}</button
+                    >Place before next company</button
                 >
                 {#if dropped}<span class="dropped" role="status"
-                        >Pause dropped: {dropText[dropped]}</span
+                        >Placement request dropped: {dropText[dropped]}</span
                     >{/if}
             </span>
         {/each}
