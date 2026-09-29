@@ -53,7 +53,11 @@ test('1889 accepted upgrade stays on the map while the lay publishes', async ({ 
         new MutationObserver(() => {
             const current = document.querySelector('g[data-map-location="E2"]')
             seen.push(current?.querySelectorAll('path').length ?? 0)
-        }).observe(node.ownerSVGElement!, { subtree: true, childList: true, attributes: true })
+        }).observe((node as SVGElement).ownerSVGElement!, {
+            subtree: true,
+            childList: true,
+            attributes: true
+        })
     })
     await page.getByRole('button', { name: 'Accept track lay', exact: true }).click()
     await expect(page.locator('.picker')).toHaveCount(0)

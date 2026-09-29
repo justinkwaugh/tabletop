@@ -161,3 +161,30 @@ it('replays the finished game and restores every history step in both directions
     reorderPendingOperatingCompanies(pending, ['S', 'A', 'MR', 'MS'])
     expect(pending.operatingSet.companyOrder).toEqual(['MS', 'A', 'S', 'MR'])
 }, 60000)
+
+it('replays the finished 1889 game to its bank-break ending and back', async () => {
+    const { game, state, initialState, actions, engine } = await finishedGame(
+        'local-user',
+        'Finished game',
+        'shikoku-1889'
+    )
+    expect(state.machineState).toBe('GameOver')
+    expect(state.finalWealth?.map(({ playerId, total }) => [playerId, total])).toEqual([
+        ['1230', 3880],
+        ['545', 4444],
+        ['253', 4317],
+        ['147', 3091]
+    ])
+    expect(state.winningPlayerIds).toEqual(['545'])
+    const rounds = historyRounds(actions, state)
+    expect(rounds.at(-1)?.label).toBe('Auction')
+    expect(rounds.some((round) => round.label.startsWith('OR '))).toBe(true)
+    for (const action of actions) expect(historyDescription(action, state).text).toBeTruthy()
+    let restored = state
+    for (const action of [...actions].reverse())
+        restored = engine.undoProcessedAction({ state: restored, action })
+    expect(restored).toEqual(initialState)
+    for (const action of actions)
+        restored = engine.applyProcessedAction({ game, state: restored, action })
+    expect(restored).toEqual(state)
+}, 60000)

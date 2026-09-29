@@ -1,10 +1,31 @@
 import { assert, Game, GameAction, GameEngine, GameStatus } from '@tabletop/common'
 import { EighteenXXStateValidator } from '@tabletop/18xx'
-import { Definition } from '@tabletop/the-old-prince'
+import { Definition as TheOldPrince } from '@tabletop/the-old-prince'
+import { Definition as Shikoku1889 } from '@tabletop/shikoku-1889'
 import * as Value from 'typebox/value'
-import fixture from './fixtures/top-finished.json'
 
-export async function finishedGame(ownerId: string, name: string) {
+const finishedGames = {
+    'the-old-prince': {
+        definition: TheOldPrince,
+        fixture: () => import('./fixtures/top-finished.json')
+    },
+    'shikoku-1889': {
+        definition: Shikoku1889,
+        fixture: () => import('./fixtures/1889-finished.json')
+    }
+}
+export type FinishedGameTitle = keyof typeof finishedGames
+export function hasFinishedGame(typeId: string): typeId is FinishedGameTitle {
+    return typeId in finishedGames
+}
+
+export async function finishedGame(
+    ownerId: string,
+    name: string,
+    typeId: FinishedGameTitle = 'the-old-prince'
+) {
+    const { definition, fixture: load } = finishedGames[typeId]
+    const fixture = (await load()).default
     const game = Value.Convert(Game, structuredClone(fixture.game))
     assert(Value.Check(Game, game), 'Invalid finished game definition')
     const initialState: unknown = structuredClone(fixture.initialState)
@@ -12,7 +33,7 @@ export async function finishedGame(ownerId: string, name: string) {
     game.ownerId = ownerId
     game.name = name
     game.players = game.players.map((player) => ({ ...player, userId: ownerId }))
-    const engine = new GameEngine(Definition.runtime)
+    const engine = new GameEngine(definition.runtime)
     let state = initialState
     const actions: GameAction[] = []
     for (const [index, command] of fixture.actions.entries()) {

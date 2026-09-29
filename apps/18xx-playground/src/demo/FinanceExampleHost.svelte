@@ -6,6 +6,7 @@
     import { migrateCompanyNames } from './migrateCompanyNames.js'
     import { Compile } from 'typebox/compile'
     import {
+        assert,
         assertExists,
         GameEngine,
         GameStorage,
@@ -117,8 +118,10 @@
                     loaded = undefined
             }
             if (!loaded && position === 'finished') {
-                const { finishedGame } = await import('./finishedGame.js')
-                const completed = await finishedGame(owner.id, exampleName)
+                const { finishedGame, hasFinishedGame } = await import('./finishedGame.js')
+                const typeId = definition.info.id
+                assert(hasFinishedGame(typeId), 'This title has no finished game')
+                const completed = await finishedGame(owner.id, exampleName, typeId)
                 await app.gameService.saveGameLocally(completed)
                 loaded = await app.gameService.loadGame(completed.game.id)
             }
