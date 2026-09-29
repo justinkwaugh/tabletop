@@ -16,7 +16,8 @@ export const TurnProgress = Type.Object({
     citiesPlaced: Type.Number(),
     foundedCity: Type.Boolean(),
     resupplied: Type.Boolean(),
-    pendingClaim: Type.Optional(PendingClaim)
+    pendingClaim: Type.Optional(PendingClaim),
+    pendingFounding: Type.Optional(Type.String())
 })
 
 export function newTurn(playerId: string): TurnProgress {
@@ -29,9 +30,13 @@ export function newTurn(playerId: string): TurnProgress {
     }
 }
 
+export function hasUnfinishedCity(turn: TurnProgress): boolean {
+    return !!turn.pendingClaim || !!turn.pendingFounding
+}
+
 // A player takes up to two of the card's three basic actions, or one of them enhanced by one step.
 export function remainingRoadPlacements(card: ActionCard, turn: TurnProgress): number {
-    if (turn.resupplied || turn.pendingClaim || turn.citiesPlaced > card.cities) {
+    if (turn.resupplied || hasUnfinishedCity(turn) || turn.citiesPlaced > card.cities) {
         return 0
     }
     const limit = turn.citiesPlaced > 0 ? card.roads : card.roads + 1
@@ -47,7 +52,7 @@ export function remainingCityPlacements(card: ActionCard, turn: TurnProgress): n
 }
 
 export function resupplyLimit(card: ActionCard, turn: TurnProgress): number {
-    if (turn.resupplied || turn.pendingClaim) {
+    if (turn.resupplied || hasUnfinishedCity(turn)) {
         return 0
     }
     const usedRoads = turn.roadsPlaced > 0

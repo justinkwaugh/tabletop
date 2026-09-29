@@ -29,6 +29,7 @@ type TileOutcome = {
     mergedCityIds: string[]
     claimVillage?: AxialCoordinates
     completesFounding: boolean
+    awaitsVillage: boolean
 }
 
 export type PlaceCity = Type.Static<typeof PlaceCity>
@@ -69,9 +70,18 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
         if (outcome.founded) {
             turn.foundedCity = true
         }
+        const continuesFounding = turn.pendingFounding === outcome.cityId
         turn.pendingClaim = outcome.claimVillage
-            ? { village: outcome.claimVillage, cityId: outcome.cityId, founding: outcome.founded }
+            ? {
+                  village: outcome.claimVillage,
+                  cityId: outcome.cityId,
+                  founding: outcome.founded || continuesFounding
+              }
             : undefined
+        turn.pendingFounding =
+            outcome.awaitsVillage || (continuesFounding && !outcome.claimVillage)
+                ? outcome.cityId
+                : undefined
 
         const foundingMarket =
             outcome.completesFounding && this.placeFoundingMarket(state, outcome.cityId)
@@ -98,7 +108,8 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
                     founded: true,
                     mergedCityIds: [],
                     claimVillage: plan.claimVillage,
-                    completesFounding: !plan.claimVillage
+                    completesFounding: !plan.claimVillage && !plan.awaitsVillage,
+                    awaitsVillage: !!plan.awaitsVillage
                 }
             case CityPlacementKind.Expand:
                 return {
@@ -106,14 +117,16 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
                     founded: false,
                     mergedCityIds: board.extendCity(plan.cityIds[0], this.coords),
                     claimVillage: plan.claimVillage,
-                    completesFounding: false
+                    completesFounding: false,
+                    awaitsVillage: false
                 }
             case CityPlacementKind.CompleteClaim:
                 return {
                     cityId: plan.cityId,
                     founded: false,
                     mergedCityIds: board.extendCity(plan.cityId, this.coords),
-                    completesFounding: plan.founding
+                    completesFounding: plan.founding,
+                    awaitsVillage: false
                 }
         }
     }

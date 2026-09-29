@@ -3,15 +3,16 @@
 ## Visual intents
 
 - **Tool targeting.** On the acting player's turn the action panel offers Roads, Cities, Build market and Sell market for whichever have a legal target, plus Resupply and End turn. The active tool alone decides which board spaces pulse as targets; every other space stays inert. Targets are focusable and activate with Enter or Space.
-- **City placement.** City targets pulse; hovering one previews a ghost city tile in the player's colour. Spaces beside a village that start a two-tile placement use a fainter, dotted outline.
+- **City placement.** City targets pulse; hovering one previews a ghost city tile in the player's colour. Spaces that commit the player to further tiles use a fainter, dotted outline: a space beside a village (the next tile must cover it) and a plain space that founds a city which must reach a foundable village this turn.
 - **Pending village claim.** After a tile is placed beside a village, only that village is targeted, the tool buttons disappear, and the prompt asks for the village tile.
+- **Pending founding.** After founding on a plain space, only spaces that extend the new city toward a foundable village are targeted, the tool buttons disappear, and the prompt asks the player to keep building until the city covers a village.
 - **Road orientation.** Choosing a road space with one legal orientation places the road immediately. With several, the space stays highlighted and a ring of orientation choices opens around it; hovering a choice previews it on the space.
 - **Market targeting.** Build and sell targets show a price tag with the cost (−n) or value (+n) above the place.
 - **Resupply.** The Resupply button toggles an inline picker bounded by the allowance and the staging area.
 
 ## Coexistence and precedence
 
-- A pending claim overrides the chosen tool: the City tool is forced and nothing else is targetable.
+- A pending claim or pending founding overrides the chosen tool: the City tool is forced and only the city tiles that complete it are targetable.
 - The road orientation ring exists only while the Road tool is active; choosing another tool, Back, or any published state closes it.
 - The resupply picker may be open alongside any tool's targets; both close when a new state is published.
 

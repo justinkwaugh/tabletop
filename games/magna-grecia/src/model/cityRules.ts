@@ -1,5 +1,9 @@
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
-import { BOARD_GRID } from '../components/boardGrid.js'
+import {
+    ClockwisePointyHexDirections,
+    sameCoordinates,
+    type AxialCoordinates
+} from '@tabletop/common'
+import { BOARD_GRID, neighborCoords, spaceKey } from '../components/boardGrid.js'
 import type { HydratedBoard } from './board.js'
 import type { TurnProgress } from './turn.js'
 
@@ -10,7 +14,7 @@ export enum CityPlacementKind {
 }
 
 export type CityPlacementPlan =
-    | { kind: CityPlacementKind.Found; claimVillage?: AxialCoordinates }
+    | { kind: CityPlacementKind.Found; claimVillage?: AxialCoordinates; awaitsVillage?: boolean }
     | { kind: CityPlacementKind.Expand; cityIds: string[]; claimVillage?: AxialCoordinates }
     | { kind: CityPlacementKind.CompleteClaim; cityId: string; founding: boolean }
 
@@ -22,13 +26,8 @@ export type CityPlacementInput = {
     tilesAvailable: number
 }
 
-export function planCityPlacement({
-    board,
-    playerId,
-    coords,
-    turn,
-    tilesAvailable
-}: CityPlacementInput): CityPlacementPlan | undefined {
+export function planCityPlacement(input: CityPlacementInput): CityPlacementPlan | undefined {
+    const { board, playerId, coords, turn, tilesAvailable } = input
     if (tilesAvailable < 1 || isForbiddenCitySpace(board, playerId, coords)) {
         return undefined
     }
@@ -38,6 +37,10 @@ export function planCityPlacement({
         return sameCoordinates(village, coords)
             ? { kind: CityPlacementKind.CompleteClaim, cityId, founding }
             : undefined
+    }
+
+    if (turn.pendingFounding) {
+        return planFoundingStep(input, turn.pendingFounding)
     }
 
     const adjacentVillages = board.adjacentOpenVillages(coords)
@@ -51,9 +54,8 @@ export function planCityPlacement({
             : undefined
     }
 
-    // A tile beside a village is only legal when the next tile immediately covers that village.
     const claimVillage = adjacentVillages[0]
-    if (claimVillage && tilesAvailable < 2) {
+    if (claimVillage && !canClaimVillage(board, playerId, claimVillage, tilesAvailable)) {
         return undefined
     }
 
@@ -65,10 +67,108 @@ export function planCityPlacement({
         return { kind: CityPlacementKind.Expand, cityIds: ownCityIds, claimVillage }
     }
 
-    if (claimVillage && !turn.foundedCity && isFoundingVillage(board, playerId, claimVillage)) {
-        return { kind: CityPlacementKind.Found, claimVillage }
+    if (turn.foundedCity) {
+        return undefined
     }
-    return undefined
+    if (claimVillage) {
+        return isFoundingVillage(board, playerId, claimVillage)
+            ? { kind: CityPlacementKind.Found, claimVillage }
+            : undefined
+    }
+    return tilesToFoundingVillage(board, playerId, coords) <= tilesAvailable
+        ? { kind: CityPlacementKind.Found, awaitsVillage: true }
+        : undefined
+}
+
+function planFoundingStep(
+    { board, playerId, coords, tilesAvailable }: CityPlacementInput,
+    cityId: string
+): CityPlacementPlan | undefined {
+    const adjacentCityIds = board.adjacentCities(coords).map((city) => city.id)
+    if (
+        board.isOpenVillage(coords) ||
+        !adjacentCityIds.includes(cityId) ||
+        adjacentCityIds.some((adjacentId) => adjacentId !== cityId)
+    ) {
+        return undefined
+    }
+
+    const adjacentVillages = board.adjacentOpenVillages(coords)
+    if (adjacentVillages.length > 1) {
+        return undefined
+    }
+    const claimVillage = adjacentVillages[0]
+    if (claimVillage) {
+        return isFoundingVillage(board, playerId, claimVillage) &&
+            canClaimVillage(board, playerId, claimVillage, tilesAvailable)
+            ? { kind: CityPlacementKind.Expand, cityIds: [cityId], claimVillage }
+            : undefined
+    }
+    return tilesToFoundingVillage(board, playerId, coords, cityId) <= tilesAvailable
+        ? { kind: CityPlacementKind.Expand, cityIds: [cityId] }
+        : undefined
+}
+
+function canClaimVillage(
+    board: HydratedBoard,
+    playerId: string,
+    village: AxialCoordinates,
+    tilesAvailable: number
+): boolean {
+    return tilesAvailable >= 2 && !isForbiddenCitySpace(board, playerId, village)
+}
+
+function tilesToFoundingVillage(
+    board: HydratedBoard,
+    playerId: string,
+    start: AxialCoordinates,
+    foundingCityId?: string
+): number {
+    const tilesTo = new Map<number, number>([[spaceKey(start), 1]])
+    const queue: AxialCoordinates[] = [start]
+    for (let next = queue.shift(); next; next = queue.shift()) {
+        const tiles = tilesTo.get(spaceKey(next)) ?? 0
+        const [claimVillage] = board.adjacentOpenVillages(next)
+        if (claimVillage) {
+            return tiles + 1
+        }
+        for (const neighbor of neighborsOf(next)) {
+            if (
+                !tilesTo.has(spaceKey(neighbor)) &&
+                isFoundingPathSpace(board, playerId, neighbor, foundingCityId)
+            ) {
+                tilesTo.set(spaceKey(neighbor), tiles + 1)
+                queue.push(neighbor)
+            }
+        }
+    }
+    return Number.POSITIVE_INFINITY
+}
+
+function isFoundingPathSpace(
+    board: HydratedBoard,
+    playerId: string,
+    coords: AxialCoordinates,
+    foundingCityId?: string
+): boolean {
+    if (
+        board.isOpenVillage(coords) ||
+        isForbiddenCitySpace(board, playerId, coords) ||
+        board.adjacentCities(coords).some((city) => city.id !== foundingCityId)
+    ) {
+        return false
+    }
+    const villages = board.adjacentOpenVillages(coords)
+    return (
+        villages.length === 0 ||
+        (villages.length === 1 &&
+            isFoundingVillage(board, playerId, villages[0]) &&
+            !isForbiddenCitySpace(board, playerId, villages[0]))
+    )
+}
+
+function neighborsOf(coords: AxialCoordinates): AxialCoordinates[] {
+    return ClockwisePointyHexDirections.map((direction) => neighborCoords(coords, direction))
 }
 
 export function isFoundingVillage(

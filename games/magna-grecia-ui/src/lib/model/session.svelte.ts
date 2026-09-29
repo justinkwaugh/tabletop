@@ -37,7 +37,7 @@ export enum BuildTool {
 
 export type RoadTarget = { coords: AxialCoordinates; options: RoadEnds[] }
 export type MarketTarget = { place: Place; amount: number }
-export type CityTarget = { coords: AxialCoordinates; startsClaim: boolean }
+export type CityTarget = { coords: AxialCoordinates; startsClaim: boolean; startsFounding: boolean }
 
 export class MagnaGreciaGameSession extends GameSession<
     MagnaGreciaGameState,
@@ -58,6 +58,10 @@ export class MagnaGreciaGameSession extends GameSession<
     private turnKey = $derived(`${this.gameState.round}:${this.gameState.turnIndex}`)
 
     pendingClaim = $derived(this.canAct ? this.gameState.turn?.pendingClaim : undefined)
+
+    pendingFounding = $derived(this.canAct ? this.gameState.turn?.pendingFounding : undefined)
+
+    cityUnfinished = $derived(!!this.pendingClaim || !!this.pendingFounding)
 
     private legalRoadTargets: Map<SpaceKey, RoadTarget> = $derived.by(() => {
         const playerId = this.myPlayerId
@@ -86,7 +90,8 @@ export class MagnaGreciaGameSession extends GameSession<
                 return []
             }
             const startsClaim = plan.kind !== CityPlacementKind.CompleteClaim && !!plan.claimVillage
-            return [{ coords: space.coords, startsClaim }]
+            const startsFounding = plan.kind === CityPlacementKind.Found && !!plan.awaitsVillage
+            return [{ coords: space.coords, startsClaim, startsFounding }]
         })
     })
 
@@ -104,7 +109,7 @@ export class MagnaGreciaGameSession extends GameSession<
     })
 
     activeTool: BuildTool | undefined = $derived.by(() => {
-        if (this.pendingClaim) {
+        if (this.cityUnfinished) {
             return BuildTool.City
         }
         const chosen = this.chosenTool

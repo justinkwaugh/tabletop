@@ -61,18 +61,20 @@
     </g>
 {/each}
 
-{#each gameSession.cityTargets as { coords, startsClaim } (spaceKey(coords))}
+{#each gameSession.cityTargets as { coords, startsClaim, startsFounding } (spaceKey(coords))}
     {@const center = hexCenter(coords)}
-    {@const claim = !!gameSession.pendingClaim}
+    {@const claim = gameSession.cityUnfinished}
     <g
         role="button"
         tabindex="0"
         aria-label={startsClaim
             ? 'Place a city tile here, then on the neighbouring village'
-            : 'Place a city tile here'}
+            : startsFounding
+              ? 'Found a city here, then build it on to a village this turn'
+              : 'Place a city tile here'}
         class="target cursor-pointer"
         class:claim
-        class:two-step={startsClaim}
+        class:two-step={startsClaim || startsFounding}
         transform="translate({center.x} {center.y})"
         onmouseenter={() => (hoveredCity = coords)}
         onmouseleave={() => (hoveredCity = undefined)}

@@ -37,6 +37,9 @@
         if (gameSession.pendingClaim) {
             return 'Finish the expansion: place a city tile on the village'
         }
+        if (gameSession.pendingFounding) {
+            return 'Keep building your new city until it covers a village you can found on'
+        }
         if (gameSession.roadSpace) {
             return 'Choose which way the road runs'
         }
@@ -44,7 +47,7 @@
             case BuildTool.Road:
                 return 'Place a road tile beside a city or continuing your road'
             case BuildTool.City:
-                return 'Found or expand a city (1 point per tile). Dotted spaces beside a village need a second tile on it'
+                return 'Found or expand a city (1 point per tile). Dotted spaces commit you to building on to a village this turn'
             case BuildTool.Market:
                 return 'Build a market in a village or rival city — this ends your turn'
             case BuildTool.Sell:
@@ -62,7 +65,7 @@
         />
     {:else}
         <div class="text-center text-[17px] tracking-[0.02em]">{message}</div>
-        {#if !gameSession.pendingClaim}
+        {#if !gameSession.cityUnfinished}
             <div class="flex flex-wrap items-center justify-center gap-2">
                 {#each gameSession.availableTools as tool (tool)}
                     <button

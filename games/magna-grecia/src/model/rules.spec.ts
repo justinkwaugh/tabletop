@@ -216,6 +216,49 @@ describe('cities', () => {
         expect(state.board.city(first.metadata!.cityId).spaces).toHaveLength(2)
     })
 
+    it('founds on a plain space when further tiles that turn reach a founding village', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        const start = offsetToAxial({ row: 0, col: 3 })
+        const besideVillage = offsetToAxial({ row: 0, col: 2 })
+        expect(state.cityPlacementPlan('p0', start)).toMatchObject({
+            kind: 'Found',
+            awaitsVillage: true
+        })
+
+        const first = placeCity(state, 'p0', start)
+        expect(first.metadata).toMatchObject({ founded: true, foundingMarket: false })
+        expect(state.turn?.pendingFounding).toBe(first.metadata!.cityId)
+        expect(state.canFinishTurn('p0')).toBe(false)
+        expect(state.roadPlacementsRemaining('p0')).toBe(0)
+        expect(state.resupplyAllowance('p0')).toBe(0)
+        expect(state.cityPlacementPlan('p0', offsetToAxial({ row: 1, col: 3 }))).toBeUndefined()
+
+        placeCity(state, 'p0', besideVillage)
+        expect(state.turn?.pendingFounding).toBeUndefined()
+        expect(state.turn?.pendingClaim).toMatchObject({ village: FRONTIER, founding: true })
+
+        const last = placeCity(state, 'p0', FRONTIER)
+        expect(last.metadata).toMatchObject({ foundingMarket: true })
+        expect(state.turn?.pendingClaim).toBeUndefined()
+        expect(state.canFinishTurn('p0')).toBe(true)
+        expect(state.board.city(first.metadata!.cityId).spaces).toHaveLength(3)
+        expect(state.getPlayerState('p0').points).toBe(9)
+    })
+
+    it('does not found on a plain space that cannot reach a founding village this turn', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'Y1')
+        expect(state.cityPlacementPlan('p0', offsetToAxial({ row: 0, col: 3 }))).toBeUndefined()
+    })
+
+    it('does not start a tile beside a village that could not then be covered', () => {
+        const state = freshState()
+        state.board.oracles = [{ coords: offsetToAxial({ row: 1, col: 0 }) }]
+        giveTurn(state, 'p0', 'G1')
+        expect(state.cityPlacementPlan('p0', offsetToAxial({ row: 0, col: 2 }))).toBeUndefined()
+    })
+
     it('never places beside an opponent city or an oracle', () => {
         const state = freshState()
         giveTurn(state, 'p0', 'G1')

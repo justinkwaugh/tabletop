@@ -22,6 +22,7 @@ import { canPlaceRoad } from './roadRules.js'
 import { scoreBreakdown, type ScoreBreakdown } from './scoring.js'
 import {
     TurnProgress,
+    hasUnfinishedCity,
     newTurn,
     remainingCityPlacements,
     remainingRoadPlacements,
@@ -118,8 +119,8 @@ export class HydratedMagnaGreciaGameState
         return this.turn?.playerId === playerId
     }
 
-    hasPendingClaim(playerId: string): boolean {
-        return this.isTurnOf(playerId) && !!this.turn?.pendingClaim
+    hasUnfinishedCity(playerId: string): boolean {
+        return this.isTurnOf(playerId) && !!this.turn && hasUnfinishedCity(this.turn)
     }
 
     roadPlacementsRemaining(playerId: string): number {
@@ -177,7 +178,7 @@ export class HydratedMagnaGreciaGameState
     }
 
     canFinishTurn(playerId: string): boolean {
-        return this.isTurnOf(playerId) && !this.hasPendingClaim(playerId)
+        return this.isTurnOf(playerId) && !this.hasUnfinishedCity(playerId)
     }
 
     marketSites(playerId: string): Place[] {
