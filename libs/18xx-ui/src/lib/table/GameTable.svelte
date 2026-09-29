@@ -781,7 +781,7 @@
     />
 {/snippet}
 
-{#snippet sidebarInformation()}
+{#snippet gameInformationStrip()}
     <div class="game-information" aria-label="Game information">
         <button
             class="game-information-item depot-information phase-information"
@@ -826,6 +826,9 @@
             {:else}<span>Empty</span>{/each}
         </button>
     </div>
+{/snippet}
+{#snippet sidebarInformation()}
+    {@render gameInformationStrip()}
     {#if gameInformation}{@render gameInformation()}{/if}
 {/snippet}
 {#snippet chatPanel()}
@@ -987,6 +990,9 @@
                     {/snippet}
                     {#snippet actionContent()}
                         <div class="action-body">
+                            <div class="action-information">
+                                {@render gameInformationStrip()}
+                            </div>
                             <TableNotices notices={session.notices} />
                             <OperatingSteps
                                 {session}
@@ -1374,6 +1380,12 @@
         flex: 1;
         min-height: 0;
         overflow: auto;
+    }
+    .action-information .game-information {
+        justify-content: center;
+        column-gap: 24px;
+        margin-top: 0;
+        padding: 4px 12px;
     }
     .actions-area .action-panel {
         flex: 1 0 auto;
