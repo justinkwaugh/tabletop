@@ -6,12 +6,16 @@
 
     let { session }: { session: EighteenXXSession } = $props()
     const gameState = $derived(session.gameState)
-    const isActive = (playerId: string) => gameState.activePlayerIds.includes(playerId)
+    // An operating round offers the active player's powers under Use privates; a stock round
+    // has no such control, so the strip keeps them.
+    const usesPrivatesControl = $derived(session.operating.step !== undefined)
+    const offeredHere = (playerId: string) =>
+        !usesPrivatesControl || !gameState.activePlayerIds.includes(playerId)
     const exchanges = $derived(
-        session.privates.allExchangeOptions.filter((option) => !isActive(option.playerId))
+        session.privates.allExchangeOptions.filter((option) => offeredHere(option.playerId))
     )
     const usablePowers = $derived(session.privateActions.trackPowers)
-    const trackPowers = $derived(usablePowers.filter((power) => !isActive(power.playerId)))
+    const trackPowers = $derived(usablePowers.filter((power) => offeredHere(power.playerId)))
     const requestPlayers = $derived(
         session.privates.requestPlayers.filter(
             (playerId) =>
@@ -56,7 +60,7 @@
                 />
             </span>
         {/each}
-        {#if selectedPower && !isActive(selectedPower.playerId)}
+        {#if selectedPower && offeredHere(selectedPower.playerId)}
             <span class="power prompt" role="status"
                 >Choose a location on the map
                 <button class="text" onclick={() => session.privateActions.clear()}>Cancel</button

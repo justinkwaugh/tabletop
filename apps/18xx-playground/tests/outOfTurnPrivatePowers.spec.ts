@@ -81,3 +81,29 @@ test('1889 Mitsubishi’s owner places the port off-turn during a stock round', 
         'Casey laid track at B11 with Mitsubishi Ferry'
     )
 })
+
+test('1889 Mitsubishi’s active owner places the port from the strip during a stock round', async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 1440, height: 950 })
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1889')
+    await page.getByLabel('Position', { exact: true }).selectOption('trading')
+    const turn = page.locator('.player-name')
+    await expect(turn.first()).toBeVisible()
+    const actions = page.locator('.action-body')
+    await expect(actions.getByRole('group', { name: 'Private powers' })).toBeVisible()
+    await expect(
+        actions.getByRole('button', { name: 'Mitsubishi Ferry', exact: true })
+    ).toHaveCount(0)
+    for (let passes = 0; passes < 3 && !(await turn.allTextContents()).includes('Casey'); passes++)
+        await page.getByRole('button', { name: 'Pass', exact: true }).click()
+    await expect(turn).toHaveText(['Casey'])
+    const powers = page.getByRole('group', { name: 'Private powers' })
+    await expect(powers).not.toContainText('Casey ·')
+    await powers.getByRole('button', { name: 'Use Mitsubishi Ferry' }).click()
+    await page.locator('[data-map-location="B11"]').click()
+    await page.getByRole('button', { name: 'Accept track lay', exact: true }).click()
+    await expect(page.locator('[data-map-location="B11"]')).toHaveAttribute('data-placed', 'true')
+    await expect(turn).toHaveText(['Casey'])
+})

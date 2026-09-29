@@ -143,7 +143,7 @@
                                     >
                                 {/if}
                             </header>
-                        {:else}
+                        {:else if session.privateActions.selection === 'powers'}
                             {#each session.privateActions.trackPowers as power, index (index)}
                                 <button
                                     onclick={() => session.privateActions.chooseTrackPower(power)}
