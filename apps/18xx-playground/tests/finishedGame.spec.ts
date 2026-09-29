@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 test('finished TOP supports saved history navigation back to the opening auction', async ({
     page
@@ -54,4 +54,68 @@ test('finished 1889 steps back and forward across its bank-break payout', async 
     await page.getByRole('button', { name: 'go to current', exact: true }).click()
     await expect(winner).toBeVisible({ timeout: 30000 })
     expect(errors).toEqual([])
+})
+
+async function savedExamples(page: Page) {
+    return page.evaluate(
+        () =>
+            new Promise<{ typeId: string; name: string; examplePosition?: string }[]>((resolve) => {
+                const open = indexedDB.open('tabletop-local')
+                open.onsuccess = () => {
+                    const request = open.result.transaction('games').objectStore('games').getAll()
+                    request.onsuccess = () =>
+                        resolve(
+                            request.result.map((game) => ({
+                                typeId: game.typeId,
+                                name: game.name,
+                                examplePosition: game.config?.examplePosition
+                            }))
+                        )
+                }
+            })
+    )
+}
+
+test('a scenario abandoned mid-load saves nothing under another scenario’s name', async ({
+    page
+}) => {
+    test.setTimeout(60000)
+    await page.goto('/table')
+    await page.getByLabel('Position', { exact: true }).selectOption('funding-chain')
+    await expect(page.getByRole('status')).toHaveCount(0, { timeout: 20000 })
+    await page.getByLabel('Game', { exact: true }).selectOption('1889')
+    await expect(page.getByRole('status')).toHaveCount(0, { timeout: 20000 })
+    for (const game of await savedExamples(page))
+        expect(game.name).toContain(` ${game.examplePosition} `)
+})
+
+test('finished 1889 ignores an unfinished game saved under its name', async ({ page }) => {
+    test.setTimeout(60000)
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1889')
+    await page.getByLabel('Position', { exact: true }).selectOption('opening')
+    await expect(page.getByRole('status')).toHaveCount(0, { timeout: 20000 })
+    await page.evaluate(
+        () =>
+            new Promise<void>((resolve) => {
+                const open = indexedDB.open('tabletop-local')
+                open.onsuccess = () => {
+                    const transaction = open.result.transaction('games', 'readwrite')
+                    const games = transaction.objectStore('games')
+                    games.getAll().onsuccess = (event) => {
+                        const game = (event.target as IDBRequest).result.find(
+                            (game: { typeId: string }) => game.typeId === 'shikoku-1889'
+                        )
+                        games.put({ ...game, name: 'Finances example · 26 · finished · default' })
+                    }
+                    transaction.oncomplete = () => resolve()
+                }
+            })
+    )
+    await page.reload()
+    await page.getByLabel('Game', { exact: true }).selectOption('1889')
+    await page.getByLabel('Position', { exact: true }).selectOption('finished')
+    await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({
+        timeout: 30000
+    })
 })

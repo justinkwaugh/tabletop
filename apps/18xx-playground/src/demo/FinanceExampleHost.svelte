@@ -9,6 +9,7 @@
         assert,
         assertExists,
         GameEngine,
+        GameStatus,
         GameStorage,
         PlayerStatus,
         type GameState,
@@ -48,9 +49,10 @@
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
-    const exampleName = untrack(
-        () => `Finances example · 26 · ${position} · ${playerCount ?? 'default'}`
-    )
+    // A host keeps its scenario for its whole load, even if the page moves on while it loads.
+    const scenario = untrack(() => position)
+    const players = untrack(() => playerCount)
+    const exampleName = `Finances example · 26 · ${scenario} · ${players ?? 'default'}`
 
     onMount(() => {
         void load()
@@ -65,7 +67,13 @@
         for (const game of [
             ...app.gameService.activeGames,
             ...app.gameService.finishedGames
-        ].filter((game) => game.name === exampleName)) {
+        ].filter(
+            (game) =>
+                game.name === exampleName &&
+                (scenario === 'finished'
+                    ? game.status === GameStatus.Finished
+                    : game.config?.examplePosition === scenario)
+        )) {
             try {
                 return await app.gameService.loadGame(game.id)
             } catch (cause) {
@@ -86,6 +94,7 @@
             const owner = app.authorizationService.getSessionUser()
             assertExists(owner, 'The local harness requires a user')
             let loaded = await loadCompatibleExample()
+            if (disposed) return
             if (
                 loaded?.game?.state &&
                 migrateOperatingIncome(
@@ -103,7 +112,7 @@
                     actions: loaded.actions
                 })
             }
-            if (loaded && position === 'finished') {
+            if (loaded && scenario === 'finished') {
                 const validators = new Map(
                     Object.entries(runtime.apiActions).map(([type, schema]) => [
                         type,
@@ -117,11 +126,12 @@
                 )
                     loaded = undefined
             }
-            if (!loaded && position === 'finished') {
+            if (!loaded && scenario === 'finished') {
                 const { finishedGame, hasFinishedGame } = await import('./finishedGame.js')
                 const typeId = definition.info.id
                 assert(hasFinishedGame(typeId), 'This title has no finished game')
                 const completed = await finishedGame(owner.id, exampleName, typeId)
+                if (disposed) return
                 await app.gameService.saveGameLocally(completed)
                 loaded = await app.gameService.loadGame(completed.game.id)
             }
@@ -133,9 +143,9 @@
                     ownerId: owner.id,
                     storage: GameStorage.Local,
                     hotseat: true,
-                    players: (playerCount
-                        ? ['Alex', 'Blair', 'Casey', 'Drew', 'Elliot', 'Fran'].slice(0, playerCount)
-                        : ['privates', 'private-events', 'transfers', 'powers'].includes(position)
+                    players: (players
+                        ? ['Alex', 'Blair', 'Casey', 'Drew', 'Elliot', 'Fran'].slice(0, players)
+                        : ['privates', 'private-events', 'transfers', 'powers'].includes(scenario)
                           ? ['Alex', 'Blair', 'Casey', 'Drew']
                           : ['Alex', 'Blair', 'Casey']
                     ).map((name) => ({
@@ -144,7 +154,7 @@
                         isHuman: true,
                         status: PlayerStatus.Joined
                     })),
-                    config: { examplePosition: position },
+                    config: { examplePosition: scenario },
                     seed: 1889
                 })
                 loaded = await app.gameService.loadGame(created.id)
