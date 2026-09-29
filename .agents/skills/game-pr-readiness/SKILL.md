@@ -18,14 +18,15 @@ Gate 6 names the only changes allowed outside them. A title is **new** until it 
 
 Use the user-supplied base when present. Otherwise use the merge base with the PR's base branch; if no PR metadata is available, prefer `origin/main`, then `main`, and state the chosen commit. Include committed changes since that merge base, staged and unstaged changes, and untracked files.
 
-Run the evidence collector before reviewing:
+Run the UI package's `bundle` script, then the evidence collector:
 
 ```bash
+pnpm --filter @tabletop/<slug>-ui bundle
 python3 .agents/skills/game-pr-readiness/scripts/collect_readiness_evidence.py <slug> \
   --base <base-ref> --output /tmp/<slug>-readiness-evidence.json
 ```
 
-The collector finds evidence; every judgement is yours. It parses sources with the TypeScript and Svelte compilers installed for the UI package, so run `pnpm install` first if they are missing. Open every file and usage site it identifies. Use repository search as a fallback if the collector reports an unreadable image or incomplete evidence.
+The bundle's final catalog step fails on a missing cover image (gate 2) after Rollup has written `bundle/`; that output still serves gates 8 and 12. The collector finds evidence; every judgement is yours. It parses sources with the TypeScript and Svelte compilers installed for the UI package, so run `pnpm install` first if they are missing. Open every file and usage site it identifies. Use repository search as a fallback if the collector reports an unreadable image or incomplete evidence.
 
 ## Apply every gate
 
@@ -123,7 +124,7 @@ The site imports every published title's UI entry (`index.js`) to list the libra
 
 In source, the module exporting `UiDefinition` builds `info` from the logic package's lightweight `<Title>Info` export (as `BridgesInfo` and `EstatesInfo` do), in a logic-package module whose imports are metadata only. Fail when it imports the logic package's `Definition`, or any other value whose module evaluates runtime construction such as `createEighteenXXRuntime(...)`, handlers, or the engine, even when only `.info` is read: that import carries the whole runtime into the entry chunk.
 
-Prove it in the built artifact. Run the UI package's `bundle` script, then follow the static `import`/`export … from` graph from `bundle/index.js`, excluding dynamic `import()`. Record the files and total bytes. Fail if that graph contains the chunk that `runtime()` imports, game components, or logic runtime code. For reference, lightweight entries measure from about 1 KB to 90 KB, while The Old Prince's pre-fix entry, which imported `Definition`, pulled in 501 KB.
+Prove it in the built artifact: follow the static `import`/`export … from` graph from `bundle/index.js`, excluding dynamic `import()`. Record the files and total bytes. Fail if that graph contains the chunk that `runtime()` imports, game components, or logic runtime code. For reference, lightweight entries measure from about 1 KB to 90 KB, while The Old Prince's pre-fix entry, which imported `Definition`, pulled in 501 KB.
 
 ### 9. Title metadata and stored-game compatibility
 
@@ -168,6 +169,20 @@ When the title has hidden information, fail any of these:
 
 A title without hidden information and without visibility registration passes this gate; state why.
 
+### 12. CSS encapsulation (whole-title)
+
+A title's game-specific CSS styles only its own table. Every such rule sits under `[data-game-ui="<id>"]`, the attribute the site's `GameUI` puts on the title's root, or carries the package's Svelte scope class, `.svelte-<package slug>-`. The site injects every loaded title's CSS into one document and keeps it after navigation, so an unscoped rule restyles the site and every other title, and titles that ship the same unscoped selector override each other in load order.
+
+Prove it in the built bundle: `css_encapsulation.bundle_scan` parses every stylesheet the bundle injects and classifies each selector. Fail each of these:
+
+- the title publishes no stylesheet of its own: no non-harness code imports the stylesheet the scope plugin covers (`stylesheet_imports` with `covered_by_scope_plugin: true`), or `bundle_scan.prefixedRules` is 0. A title whose classes come from the site's own Tailwind scan of its sources (`site_tailwind_scans_title`) ties its styling to site releases; it bundles its scoped stylesheet from the runtime module instead, as The Old Prince and Bus do;
+- a selector in `bundle_scan.leaks`. Trace each to the rule that defines it; its `source` is a sourcemap hint reliable only to the package. A top-level `:global(...)` rule is fixed by nesting it under a component-scoped selector (`.history :global(.timeline-item)`). A plain `.css` import the scope plugin does not cover (`stylesheet_imports` with `covered_by_scope_plugin: false`) is fixed by moving its rules into the scoped stylesheet or a component `<style>` block. A shared family library's leaks, such as `@tabletop/18xx-ui`'s, count against every title that ships them, with the fix in the library;
+- a selector in `bundle_scan.wrongPrefix`, or a `scope_prefix` that differs from the title's `GameInfo.id`;
+- a title-authored at-rule in `bundle_scan.globalAtRules`. `@keyframes`, `@font-face`, `@property`, and `@counter-style` names are document-wide, so give each a title-specific name, or declare keyframes in a component `<style>` block, which Svelte scopes. The scan already excludes Tailwind's own `--tw-*` properties and `spin`, `ping`, `pulse`, and `bounce` keyframes, which match the site's;
+- code that styles the page outside the title's root (`production_hits.page_styling`): changing `document.body` or `document.documentElement` style or classes, or injecting style elements or rules.
+
+The **platform layer** is the CSS that `@tabletop/frontend-components` and its third-party libraries ship identically in every title, such as the emoji picker, the Sonner toaster, and `GameChat`. It is shared by design and passes; the scan counts it under `platformLeaks` and `platformAtRules` instead of listing it. A third-party package the title's UI depends on directly is game-specific, and the scan lists its leaks.
+
 ## Report
 
 Return a self-contained Markdown report with:
@@ -176,7 +191,7 @@ Return a self-contained Markdown report with:
 2. a gate summary, one row per gate, with `PASS` or `FAIL` and violation count;
 3. every violation, grouped by gate, with a stable ID such as `IMG-001`, `CAST-002`, or `HIDDEN-001`;
 4. for each violation: file and line or asset path, observed evidence, violated rule, user-visible or deployment impact, and a concrete remediation;
-5. verification details for passing gates, including the searches/files examined, image/title dimensions, the UI entry's static graph files and bytes, the exempt harness cast, the declared catalog visibility, and the hidden-information decision;
+5. verification details for passing gates, including the searches/files examined, image/title dimensions, the UI entry's static graph files and bytes, the CSS scan's scoped-rule count, the exempt harness cast, the declared catalog visibility, and the hidden-information decision;
 6. strong recommendations in a separate non-blocking section, excluded from gate violation counts and the readiness verdict;
 7. an uncertainty section. Any unresolved uncertainty that prevents proving a gate passes makes that gate fail.
 

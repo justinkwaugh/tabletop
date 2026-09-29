@@ -244,6 +244,51 @@ def schema_diff(merge_base: str, logic_root: Path, repo: Path) -> dict[str, list
     return changes
 
 
+def css_encapsulation(ui_root: Path, sources: list[Path], repo: Path) -> dict[str, Any]:
+    config = ui_root / "postcss.config.js"
+    config_text = config.read_text(encoding="utf-8") if config.is_file() else ""
+    prefix = re.search(r"data-game-ui=\"([^\"]+)\"", config_text)
+    scoped_file = re.search(r"endsWith\('([^']+)'\)", config_text)
+    imports: list[dict[str, Any]] = []
+    for path in sources:
+        if (
+            not path.is_relative_to(ui_root)
+            or path.suffix.lower() not in SCRIPT_SUFFIXES
+            or "routes" in path.relative_to(ui_root).parts
+        ):
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            match = re.search(r"import\s+['\"]([^'\"]+\.css)['\"]", line)
+            if not match:
+                continue
+            target = match.group(1)
+            resolved = (ui_root / "src" / "lib" / target[5:]) if target.startswith("$lib/") else (path.parent / target)
+            resolved_text = resolved.resolve().as_posix()
+            imports.append({
+                "path": path.relative_to(repo).as_posix(),
+                "line": number,
+                "stylesheet": resolved.resolve().relative_to(repo).as_posix() if resolved.resolve().is_relative_to(repo) else resolved_text,
+                "covered_by_scope_plugin": bool(scoped_file) and resolved_text.endswith(scoped_file.group(1)),
+            })
+    scan = subprocess.run(
+        ["node", str(Path(__file__).with_name("scan_bundle_css.mjs")), str(ui_root)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    bundle_index = ui_root / "bundle" / "index.js"
+    site_css = repo / "apps" / "frontend" / "src" / "app.css"
+    return {
+        "site_tailwind_scans_title": site_css.is_file()
+        and f"games/{ui_root.name}/" in site_css.read_text(encoding="utf-8"),
+        "scope_prefix": prefix.group(1) if prefix else None,
+        "scope_plugin_file": scoped_file.group(1) if scoped_file else None,
+        "stylesheet_imports": imports,
+        "bundle_built_at": bundle_index.stat().st_mtime if bundle_index.is_file() else None,
+        "bundle_scan": json.loads(scan.stdout) if scan.returncode == 0 else {"error": scan.stderr.strip()[-500:]},
+    }
+
+
 def dev_harness(ui_root: Path) -> dict[str, bool]:
     page = ui_root / "src" / "routes" / "+page.svelte"
     scripts = json.loads((ui_root / "package.json").read_text(encoding="utf-8")).get("scripts", {})
@@ -430,6 +475,10 @@ def main() -> int:
     }
     production_patterns = {
         "type_check_suppression": re.compile(r"@ts-(?:ignore|expect-error|nocheck)|eslint-disable"),
+        "page_styling": re.compile(
+            r"document\.(?:body|documentElement)\.(?:style|classList|className)|document\.head\.(?:append|insertBefore)|"
+            r"createElement\(['\"]style|adoptedStyleSheets|insertRule\("
+        ),
     }
     logic_patterns = {
         "nondeterminism": re.compile(
@@ -485,6 +534,7 @@ def main() -> int:
             "generated_game_version": generated_version(logic_root),
         },
         "dev_harness": dev_harness(ui_root),
+        "css_encapsulation": css_encapsulation(ui_root, production_sources, repo),
         "competition_specs": sorted(
             path.relative_to(repo).as_posix()
             for path in logic_root.rglob("competition.*")
