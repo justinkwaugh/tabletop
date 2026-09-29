@@ -193,7 +193,7 @@
         </div>
 
         <div class="advisers">
-            {#each seatAdvisers(playerState, isMe) as adviser (adviser.key)}
+            {#each seatAdvisers(playerState, gameSession.myPlayer?.id) as adviser (adviser.key)}
                 {@const cardId = adviser.cardId}
                 {@const playable =
                     isMe && cardId !== undefined && gameSession.selectableAdvisers.includes(cardId)}

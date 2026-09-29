@@ -39,6 +39,7 @@ import {
     type AnswerConsentMetadata,
     type CampaignBattleMetadata,
     type CampaignTarget,
+    type LetPeek,
     type WarbandMove
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
@@ -72,9 +73,22 @@ function shownCard(cardId: string | undefined): string {
 
 export const UNDESCRIBED = 'took an action'
 
+// R-9.4, R-6.6.1 — an adviser is seen by its holder and the one shown; a relic by the Exile alone.
+function describeLetPeek(action: LetPeek, nameOf: NameOf, viewerId: string | undefined): string {
+    const shownTo = nameOf(action.toPlayerId)
+    const isRecipient = viewerId !== undefined && viewerId === action.toPlayerId
+    if (action.subject.kind === LetPeekSubjectKind.Adviser) {
+        const sawIt = isRecipient || (viewerId !== undefined && viewerId === action.playerId)
+        const cardId = sawIt && 'cardId' in action.subject ? action.subject.cardId : undefined
+        return `let ${shownTo} peek at ${cardId ? cardName(cardId) : 'a facedown adviser'}`
+    }
+    const seen = isRecipient ? action.metadata?.relicCardId : undefined
+    return `let ${shownTo} peek at the relic on ${reliquaryLabel(action.subject.slotId)}${seen ? ` (${cardName(seen)})` : ''}`
+}
+
 export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {
     return nameIds(
-        stripRules(describeActionCited(action, names) + outcomeClauses(action, viewerId)),
+        stripRules(describeActionCited(action, names, viewerId) + outcomeClauses(action, viewerId)),
         names.site
     )
 }
@@ -120,7 +134,11 @@ function supply(spent: number | undefined): string {
     return spent !== undefined && spent > 0 ? `, spending ${spent} Supply` : ''
 }
 
-function describeActionCited(action: GameAction, names: HistoryNames): string {
+function describeActionCited(
+    action: GameAction,
+    names: HistoryNames,
+    viewerId: string | undefined
+): string {
     const nameOf = names.player
     if (isSetupChoice(action)) {
         // R-1.23.2 keeps the adviser facedown, so it is never named.
@@ -239,14 +257,7 @@ function describeActionCited(action: GameAction, names: HistoryNames): string {
         return 'peeked at a relic at their site'
     }
     if (isLetPeek(action)) {
-        // R-9.4 — the card is named only to the players who saw it.
-        const shownTo = nameOf(action.toPlayerId)
-        if (action.subject.kind === LetPeekSubjectKind.Adviser) {
-            const cardId = 'cardId' in action.subject ? action.subject.cardId : undefined
-            return `let ${shownTo} peek at ${cardId ? cardName(cardId) : 'a facedown adviser'}`
-        }
-        const seen = action.metadata?.relicCardId
-        return `let ${shownTo} peek at the relic on ${reliquaryLabel(action.subject.slotId)}${seen ? ` (${cardName(seen)})` : ''}`
+        return describeLetPeek(action, nameOf, viewerId)
     }
     if (isMoveWarbands(action)) {
         const warbands = `${plural(action.count, `${action.color} warband`)} ${describeMove(action.move, nameOf)}`

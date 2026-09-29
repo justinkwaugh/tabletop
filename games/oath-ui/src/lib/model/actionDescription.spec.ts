@@ -159,12 +159,22 @@ describe('the history tab describes every action', () => {
 
     it('R-9.4 — names a shown adviser only to a viewer who saw it', () => {
         const shown = { type: ActionType.LetPeek, playerId: 'p1', toPlayerId: 'p2' }
-        expect(describeAction(action({ ...shown, subject: { kind: 'adviser', cardId: CARD } }), nameOf)).toBe(
+        expect(describeAction(action({ ...shown, subject: { kind: 'adviser', cardId: CARD } }), nameOf, 'p2')).toBe(
             'let Bob peek at Errand Boy'
+        )
+        expect(describeAction(action({ ...shown, subject: { kind: 'adviser', cardId: CARD } }), nameOf, 'p3')).toBe(
+            'let Bob peek at a facedown adviser'
         )
         expect(describeAction(action({ ...shown, subject: { kind: 'adviser' } }), nameOf)).toBe(
             'let Bob peek at a facedown adviser'
         )
+    })
+
+    it('R-6.6.1 — names a Reliquary relic to the Exile shown it, not to the Scepter holder', () => {
+        const relic = action({ type: ActionType.LetPeek, playerId: 'p1', toPlayerId: 'p2', subject: { kind: 'reliquary', slotId: 'reliquary.0' }, metadata: { relicCardId: 'relic.brass-horse' } })
+        expect(describeAction(relic, nameOf, 'p2')).toMatch(/\(Brass Horse\)$/)
+        expect(describeAction(relic, nameOf, 'p1')).not.toMatch(/\(/)
+        expect(describeAction(relic, nameOf, 'p3')).not.toMatch(/\(/)
     })
 
     it('pluralises warbands', () => {

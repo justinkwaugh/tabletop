@@ -114,7 +114,7 @@
 
             <h3>Advisers</h3>
             <div class="cards">
-                {#each seatAdvisers(seat, isMe) as adviser (adviser.key)}
+                {#each seatAdvisers(seat, gameSession.myPlayer?.id) as adviser (adviser.key)}
                     {@const cardId = adviser.cardId}
                     <figure class:own-facedown={!adviser.faceUp && (isMe || adviser.shownToMe)}>
                         {#if cardId}

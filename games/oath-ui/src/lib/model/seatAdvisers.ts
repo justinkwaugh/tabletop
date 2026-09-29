@@ -9,14 +9,17 @@ export interface SeatAdviser {
     shownToMe: boolean
 }
 
-// R-2.2.2, R-9.4 — a facedown adviser is named to its holder from the holder's own list, and to a
-// player its holder let peek from the row's own shown field, whatever data this client happens to hold.
+// R-2.2.2, R-9.4 — a facedown adviser is named to its holder, and to a player its holder let peek,
+// by who the viewer is rather than by what data this client happens to hold.
 export function seatAdvisers(
-    playerState: Pick<OathProjectedPlayerState, 'advisers' | 'adviserIds'>,
-    isHolder: boolean
+    playerState: Pick<OathProjectedPlayerState, 'playerId' | 'advisers' | 'adviserIds'>,
+    viewerId: string | undefined
 ): SeatAdviser[] {
+    const isHolder = viewerId !== undefined && viewerId === playerState.playerId
     return playerState.advisers.map((row, index) => {
-        const shown = !row.faceUp && !isHolder ? row.shownCardId : undefined
+        const shownToViewer =
+            !row.faceUp && !isHolder && viewerId !== undefined && row.shownTo?.includes(viewerId)
+        const shown = shownToViewer ? row.shownCardId : undefined
         const cardId = row.faceUp ? row.cardId : isHolder ? playerState.adviserIds?.[index] : shown
         return {
             key: cardId ?? `facedown-${index}`,
