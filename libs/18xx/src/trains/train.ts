@@ -85,10 +85,10 @@ export function validateTrainPurchaseStep(state: {
     trainPurchaseStep?: TrainPurchaseStep
     operatingSet?: { companyOrder: readonly string[] }
 }): void {
-    if (state.machineState !== 'BuyingTrains') return
+    // Entering the step can be deferred while a game end is scheduled, so the step may not exist yet.
+    if (state.machineState !== 'BuyingTrains' || !state.trainPurchaseStep) return
     assert(
-        state.trainPurchaseStep &&
-            state.operatingSet?.companyOrder.includes(state.trainPurchaseStep.companyId),
+        state.operatingSet?.companyOrder.includes(state.trainPurchaseStep.companyId),
         'Train purchases require an operating company'
     )
 }
