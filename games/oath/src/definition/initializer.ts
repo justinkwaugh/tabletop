@@ -9,7 +9,8 @@ import {
     Game,
     Player,
     HydratedTurnManager,
-    shuffle
+    shuffle,
+    type StartingPositionAssignment
 } from '@tabletop/common'
 import {
     HydratedOathGameState,
@@ -46,11 +47,18 @@ export class OathGameInitializer
     extends BaseGameInitializer<OathProjectedState, HydratedOathGameState>
     implements GameInitializer<OathProjectedState, HydratedOathGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedOathGameState {
+    readonly supportsStartingPositions = true
+
+    // R-1.7 — an assigned position zero is the Chancellor, and the rest sit in the assigned order.
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedOathGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game)
 
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
 
         const orderedPlayers: OathPlayerState[] = []
         for (const playerId of turnManager.turnOrder) {
