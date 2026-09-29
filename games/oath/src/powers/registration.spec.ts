@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { cardPowers } from '../data/cardPowers.js'
-import { effectFor } from './registry.js'
-import { choiceSpecsFor } from '../util/powerChoice.js'
+import { choiceSpecsFor, effectFor } from './registry.js'
 
 /** This file loads no powers, as a module reading the registry before the runtime would. */
 describe('reading a card power before the powers are loaded', () => {

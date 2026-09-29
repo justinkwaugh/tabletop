@@ -14,13 +14,7 @@ import type { RollRules, WarbandGroup } from '../model/campaign.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
 import { assert } from '@tabletop/common'
-import {
-    declareChoices,
-    POWERS_NOT_LOADED,
-    type ChoiceSpec,
-    type PowerChoice,
-    type PowerChoiceKind
-} from '../util/powerChoice.js'
+import type { ChoiceSpec, PowerChoice, PowerChoiceKind } from '../util/powerChoice.js'
 export interface ModifierParticulars {
     destinationSiteId?: string
     cardId?: string
@@ -339,6 +333,22 @@ export interface EffectDefinition {
     continuous?: ContinuousHooks
     /** R-7.1.4 */
     persistent?: PersistentHooks
+}
+
+const declarations = new Map<string, ChoiceSpec[]>()
+
+/** Redeclaring an address replaces it, so a hot reload cannot stack declarations. */
+export function declareChoices(cardId: string, index: number, specs: ChoiceSpec[]): void {
+    declarations.set(powerKey(cardId, index), specs)
+}
+
+/** The card powers register themselves on load, so a read before `powers/index.js` sees none. */
+export const POWERS_NOT_LOADED =
+    'No Oath card powers are registered: import the Oath runtime or `powers/index.js` before reading a power'
+
+export function choiceSpecsFor(power: CardPower): ChoiceSpec[] {
+    assert(declarations.size > 0, POWERS_NOT_LOADED)
+    return declarations.get(powerKey(power.cardId, power.powerIndex)) ?? []
 }
 
 const effects = new Map<string, EffectDefinition>()

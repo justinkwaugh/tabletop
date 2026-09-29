@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { declareChoices } from '../powers/registry.js'
 import { Color } from '@tabletop/common'
 import { Suit } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { cardPowers } from '../data/cardPowers.js'
 import {
-    declareChoices,
     legalChoices,
     one,
     optional,

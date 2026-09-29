@@ -1,4 +1,4 @@
-import { assert, assertExists, type Color, type Prng } from '@tabletop/common'
+import { assert, assertExists, type Color } from '@tabletop/common'
 import { isLockedFor } from '../util/locked.js'
 import { effectiveSiteCapacity } from '../util/capacity.js'
 import { HydratedOathGameState } from '../model/gameState.js'
@@ -15,7 +15,6 @@ import {
     boardColorsOwnFirst,
     boardWarbandGroups
 } from '../util/force.js'
-import { defenseShieldsFromFaces, rollDefenseDice } from '../data/dice.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { warbandsAt, warbandsFreeToLeave } from '../util/rule.js'
 import { ruledFaceupCardIds, siteHolding } from '../util/access.js'
@@ -27,6 +26,9 @@ import { pawnSiteId, regionOfPawn } from '../util/pawn.js'
 
 export { gainFavorFromBank, takeFavorFromPlayer } from '../util/favor.js'
 export { pawnSiteId, regionOfPawn } from '../util/pawn.js'
+export { gainWarbandsToBoard } from '../util/force.js'
+export { denizensOnMap } from '../util/access.js'
+export { rollDefenseShields } from '../data/dice.js'
 
 export function cardSuitIsOneOf(cardId: string, suits: readonly Suit[]): boolean {
     const suit = suitOf(cardId)
@@ -144,21 +146,6 @@ export function killWarbandsAtSite(
     return killed
 }
 
-/** R-10.10 — capped by R-9.3. */
-export function gainWarbandsToBoard(
-    state: HydratedOathGameState,
-    playerId: string,
-    count: number
-): number {
-    const player = state.getPlayerState(playerId)
-    const color = player.color
-    const available = countOf(player.warbandsInPersonalBank, color)
-    const gained = Math.max(0, Math.min(count, available))
-    player.warbandsInPersonalBank[color] = available - gained
-    addWarbandsToBoard(state, playerId, color, gained)
-    return gained
-}
-
 /** R-10.5 — the caller detaches the card from its zone. */
 export function discardAdviser(
     state: HydratedOathGameState,
@@ -206,11 +193,6 @@ export function faceupSitesInYourRegion(state: HydratedOathGameState, playerId: 
     return state.faceupSiteIds().filter((s) => state.regionOf(s) === region)
 }
 
-/** R-5.5.4.a — `prng` is the protected stream. */
-export function rollDefenseShields(prng: Prng, count: number): number {
-    return defenseShieldsFromFaces(rollDefenseDice(prng, count))
-}
-
 /** R-10.5, R-7.2.2 — locked cards stay, and R-7.1.3 resolves as much as possible; each card leaves from its site's region, in the discarder's order. */
 export function discardDenizensAtSites(
     state: HydratedOathGameState,
@@ -247,12 +229,6 @@ export function favorObtainableFromPicks(
         obtainable += Math.min(count, state.favorBank[suit])
     }
     return obtainable
-}
-
-export function denizensOnMap(state: HydratedOathGameState, suit?: Suit): string[] {
-    return Object.values(state.denizensBySite)
-        .flat()
-        .filter((id) => suit === undefined || suitOf(id) === suit)
 }
 
 /** R-10.21 */

@@ -1,5 +1,5 @@
 import {
-    HydratedSearchResolve,
+    conspiracyMatchIsValid,
     reasonCannotTakeByConspiracy,
     type ConspiracyPlay,
     type ConspiracyTake,
@@ -23,7 +23,7 @@ export function conspiracyTargets(state: HydratedOathGameState, playerId: string
             (p) =>
                 p.playerId !== playerId &&
                 p.siteId === siteId &&
-                HydratedSearchResolve.conspiracyMatchIsValid(state, playerId, p.playerId)
+                conspiracyMatchIsValid(state, playerId, p.playerId)
         )
         .map((p) => p.playerId)
 }

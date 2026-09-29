@@ -1,7 +1,8 @@
 import { pawnSiteId } from './pawn.js'
 import { cardPowers } from '../data/cardPowers.js'
+import { suitOf } from '../data/cardRegistry.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { PlayerStatus } from '../model/oathEnums.js'
+import { PlayerStatus, type Suit } from '../model/oathEnums.js'
 import { type ImperialScope, rulesSite } from './rule.js'
 import { uncoveredReliquarySpaces } from './imperial.js'
 import { relicPersistentsHeldBy } from './heldPersistents.js'
@@ -188,4 +189,10 @@ export function accessibleCardIds(
 ): string[] {
     const player = state.getPlayerState(playerId)
     return [...new Set([...poweredCardIds(state, playerId, scope), ...player.facedownAdviserIds()])]
+}
+
+export function denizensOnMap(state: HydratedOathGameState, suit?: Suit): string[] {
+    return Object.values(state.denizensBySite)
+        .flat()
+        .filter((id) => suit === undefined || suitOf(id) === suit)
 }

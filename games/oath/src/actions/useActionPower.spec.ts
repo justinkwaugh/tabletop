@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { declareChoices } from '../powers/registry.js'
 import { HydratedUseActionPower, UseActionPower } from './useActionPower.js'
 import { IMPERIAL_COLOR, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
@@ -6,7 +7,6 @@ import { Color } from '@tabletop/common'
 import { hasAccessToCard, hasReliquaryPowerAccess, rulesCard } from '../util/access.js'
 import { afterEach } from 'vitest'
 import {
-    declareChoices,
     one,
     PowerChoiceKind,
     type PowerChoice

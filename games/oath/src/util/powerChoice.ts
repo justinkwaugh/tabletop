@@ -1,14 +1,15 @@
 import { pawnSiteId } from './pawn.js'
-import { assert, assertExists } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import { HydratedOathGameState, type RelicSlot } from '../model/gameState.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
 import { Region, Suit } from '../model/oathEnums.js'
 import { WarbandGroup } from '../model/campaign.js'
 import { ExchangeTerms, type ExchangeAllowance } from '../model/question.js'
-import { type CardPower, type PowerUseKey, powerKey } from '../data/cardPowers.js'
+import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
 import { accessibleCardIds } from './access.js'
 import { boardWarbandGroups } from './force.js'
+import { choiceSpecsFor } from '../powers/registry.js'
 
 // R-7.1.3, R-X.1 — the engine never infers a choice, so every choice a power opens arrives on the action.
 
@@ -81,22 +82,6 @@ export function one(kind: PowerChoiceKind, extra: Partial<ChoiceSpec> = {}): Cho
 
 export function optional(kind: PowerChoiceKind, extra: Partial<ChoiceSpec> = {}): ChoiceSpec {
     return { kind, min: 0, max: 1, ...extra }
-}
-
-const declarations = new Map<string, ChoiceSpec[]>()
-
-/** Redeclaring an address replaces it, so a hot reload cannot stack declarations. */
-export function declareChoices(cardId: string, index: number, specs: ChoiceSpec[]): void {
-    declarations.set(powerKey(cardId, index), specs)
-}
-
-/** The card powers register themselves on load, so a read before `powers/index.js` sees none. */
-export const POWERS_NOT_LOADED =
-    'No Oath card powers are registered: import the Oath runtime or `powers/index.js` before reading a power'
-
-export function choiceSpecsFor(power: CardPower): ChoiceSpec[] {
-    assert(declarations.size > 0, POWERS_NOT_LOADED)
-    return declarations.get(powerKey(power.cardId, power.powerIndex)) ?? []
 }
 
 export function defaultDomain(kind: PowerChoiceKind): ChoiceDomain {

@@ -27,8 +27,7 @@ import { PLAYTEST_DECK, PLAYTEST_SITES } from '../data/playtestDeck.js'
 import { visionsDrawnAfter } from '../data/visionsDrawnTrack.js'
 import { discardCards } from '../util/discard.js'
 import { MAX_SUPPLY } from '../util/rest.js'
-import { addWarbandsToSite, takeWarbandsFromBank } from '../util/force.js'
-import { gainWarbandsToBoard } from '../powers/vocabulary.js'
+import { addWarbandsToSite, gainWarbandsToBoard, takeWarbandsFromBank } from '../util/force.js'
 import type { SetupChoice, SetupChoiceMetadata } from '../actions/setupChoice.js'
 
 /** R-1.6 — 3 favor per bank, or 4 each at five or six players. */

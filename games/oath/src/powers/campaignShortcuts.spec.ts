@@ -24,7 +24,7 @@ import { battlePlanUse, site, actionPowerUse } from '../testing/choices.js'
 import { INN } from '../testing/cards.js'
 import { askQuestion } from '../util/questions.js'
 import { answerQuestion } from '../testing/steps.js'
-import { playConspiracy } from '../actions/searchResolve.js'
+import { playConspiracy } from '../util/cardPlay.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
 
 const HEARTS = 'denizen.hearth.hearts-and-minds'

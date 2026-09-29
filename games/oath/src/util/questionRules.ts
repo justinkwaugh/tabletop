@@ -8,13 +8,14 @@ import { offerReroll, settleRoll } from './reroll.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
 import { cardPowers, type CardPower, type PowerUseKey } from '../data/cardPowers.js'
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
-import { regionOfPawn, rollDefenseShields } from '../powers/vocabulary.js'
+import { regionOfPawn } from './pawn.js'
+import { rollDefenseShields } from '../data/dice.js'
 import {
     playCard,
     playConspiracy,
     reasonCannotPlayCard,
     reasonCannotPlayConspiracy
-} from '../actions/searchResolve.js'
+} from './cardPlay.js'
 import { discardCards, isInPlay } from './discard.js'
 import { discardFromPlayInChosenOrder } from './orderedDiscard.js'
 import { rulesCard } from './access.js'

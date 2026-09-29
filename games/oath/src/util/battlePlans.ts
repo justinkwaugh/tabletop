@@ -10,7 +10,7 @@ import {
     type CardPower,
     powerKey
 } from '../data/cardPowers.js'
-import { denizensOnMap } from '../powers/vocabulary.js'
+import { denizensOnMap } from './access.js'
 import { isFacedownAdviserOf, rulesCard } from './access.js'
 import { banditsRuleSite } from './rule.js'
 import {

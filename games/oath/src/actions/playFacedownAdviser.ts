@@ -9,13 +9,8 @@ import { PowerChoice } from '../util/powerChoice.js'
 import { ActionType } from '../definition/actions.js'
 import { Region } from '../model/oathEnums.js'
 import { ConspiracyPlay } from '../model/conspiracy.js'
-import {
-    playCard,
-    playShowsCard,
-    reasonCannotPlaceCard,
-    reasonCannotPlayCard,
-    SearchPlay
-} from './searchResolve.js'
+import { playShowsCard, SearchPlay } from './searchResolve.js'
+import { playCard, reasonCannotPlaceCard, reasonCannotPlayCard } from '../util/cardPlay.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { regionOfPawn } from '../powers/vocabulary.js'
 

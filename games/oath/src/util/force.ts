@@ -212,3 +212,18 @@ export function takeFromGroups(groups: readonly WarbandGroup[], limit: number): 
     }
     return taken
 }
+
+/** R-10.10 — capped by R-9.3. */
+export function gainWarbandsToBoard(
+    state: HydratedOathGameState,
+    playerId: string,
+    count: number
+): number {
+    const player = state.getPlayerState(playerId)
+    const color = player.color
+    const available = countOf(player.warbandsInPersonalBank, color)
+    const gained = Math.max(0, Math.min(count, available))
+    player.warbandsInPersonalBank[color] = available - gained
+    addWarbandsToBoard(state, playerId, color, gained)
+    return gained
+}

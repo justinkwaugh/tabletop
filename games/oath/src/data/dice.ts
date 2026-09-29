@@ -86,3 +86,8 @@ export const END_DIE_FACES: readonly number[] = [1, 2, 3, 4, 5, 6]
 export function rollEndDie(prng: Prng): number {
     return prng.dieRoll(END_DIE_FACES.length)
 }
+
+/** R-5.5.4.a — `prng` is the protected stream. */
+export function rollDefenseShields(prng: Prng, count: number): number {
+    return defenseShieldsFromFaces(rollDefenseDice(prng, count))
+}

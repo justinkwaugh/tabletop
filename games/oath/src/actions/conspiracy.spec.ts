@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { conspiracyMatchIsValid } from '../util/cardPlay.js'
 import { HydratedSearchResolve, SearchPlay, SearchResolve } from './searchResolve.js'
 import { Banner, PlayerStatus } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
@@ -177,7 +178,7 @@ describe('the Conspiracy take (R-5.1.4.IV)', () => {
                 { cardId: 'denizen.beast.forest-council', faceUp: true }
             ]
         })
-        expect(HydratedSearchResolve.conspiracyMatchIsValid(state, 'p1', 'p2')).toBe(false)
+        expect(conspiracyMatchIsValid(state, 'p1', 'p2')).toBe(false)
     })
 
     /** The card's plural wording governs: no single shared suit is required. */
@@ -196,7 +197,7 @@ describe('the Conspiracy take (R-5.1.4.IV)', () => {
                 ]
             }
         )
-        expect(HydratedSearchResolve.conspiracyMatchIsValid(state, 'p1', 'p2')).toBe(true)
+        expect(conspiracyMatchIsValid(state, 'p1', 'p2')).toBe(true)
     })
 
     it('still refuses when only one of yours matches anything of theirs', () => {
@@ -206,7 +207,7 @@ describe('the Conspiracy take (R-5.1.4.IV)', () => {
                 { cardId: BEAST, faceUp: true }
             ]
         })
-        expect(HydratedSearchResolve.conspiracyMatchIsValid(state, 'p1', 'p2')).toBe(false)
+        expect(conspiracyMatchIsValid(state, 'p1', 'p2')).toBe(false)
     })
 
     it('ignores facedown advisers on both sides (R-5.1.4.II, R-10.14)', () => {
@@ -216,10 +217,10 @@ describe('the Conspiracy take (R-5.1.4.IV)', () => {
                 { cardId: ORDER_B, faceUp: false }
             ]
         })
-        expect(HydratedSearchResolve.conspiracyMatchIsValid(yours, 'p1', 'p2')).toBe(false)
+        expect(conspiracyMatchIsValid(yours, 'p1', 'p2')).toBe(false)
 
         const theirs = shared({}, { advisers: [{ cardId: ORDER_C, faceUp: false }] })
-        expect(HydratedSearchResolve.conspiracyMatchIsValid(theirs, 'p1', 'p2')).toBe(false)
+        expect(conspiracyMatchIsValid(theirs, 'p1', 'p2')).toBe(false)
     })
 
     it('refuses a relic the target does not hold', () => {
@@ -382,6 +383,6 @@ describe('R-5.1.4.IV — the Conspiracy match ignores the target\'s facedown adv
                 ]
             })
         ])
-        expect(HydratedSearchResolve.conspiracyMatchIsValid(state, 'p1', 't1')).toBe(false)
+        expect(conspiracyMatchIsValid(state, 'p1', 't1')).toBe(false)
     })
 })
