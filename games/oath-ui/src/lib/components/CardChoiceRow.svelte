@@ -1,0 +1,61 @@
+<script lang="ts">
+    import type { Snippet } from 'svelte'
+    import CardImage from '$lib/components/CardImage.svelte'
+    import { widthAtHeight } from '$lib/images/cardShape.js'
+    import type { CardChoice } from '$lib/model/cardChoice.js'
+
+    // Every card-valued choice is a row of cards: tap to pick, tap a picked card to untap it,
+    // and hover or hold to enlarge.
+    let {
+        choices,
+        picked,
+        onpick,
+        busy = false,
+        height = 90,
+        under
+    }: {
+        choices: readonly CardChoice[]
+        picked: readonly string[]
+        onpick: (key: string) => void
+        busy?: boolean
+        height?: number
+        under?: Snippet<[CardChoice]>
+    } = $props()
+</script>
+
+<div class="flex flex-wrap gap-2">
+    {#each choices as choice (choice.key)}
+        {@const on = picked.includes(choice.key)}
+        <div class="flex flex-col items-center gap-0.5">
+            <button
+                type="button"
+                class="rounded-[5px] {on
+                    ? 'ring-2 ring-amber-300'
+                    : 'ring-1 ring-stone-600 hover:ring-amber-400'}"
+                aria-pressed={on}
+                title={choice.label}
+                disabled={busy}
+                onclick={() => onpick(choice.key)}
+            >
+                <CardImage
+                    cardId={choice.cardId}
+                    faceDown={choice.cardId === undefined}
+                    backKind={choice.backKind}
+                    width={widthAtHeight(height, {
+                        cardId: choice.cardId,
+                        faceDown: choice.cardId === undefined,
+                        backKind: choice.backKind
+                    })}
+                    label={choice.label}
+                    inspect
+                />
+            </button>
+            {#if choice.caption}
+                <span class="max-w-[7rem] text-center text-[10px] leading-tight text-stone-300"
+                    >{choice.caption}</span
+                >
+            {/if}
+            {#if under}{@render under(choice)}{/if}
+        </div>
+    {/each}
+</div>

@@ -1,0 +1,56 @@
+<script lang="ts">
+    import { PowerQuestionKind, discardRegionFor, type PowerQuestion } from '@tabletop/oath'
+    import DiscardOrderCards from '$lib/components/DiscardOrderCards.svelte'
+    import { cardName, humanizeReason, regionName } from '$lib/model/names.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+
+    let {
+        question
+    }: {
+        question: Extract<
+            PowerQuestion,
+            { kind: PowerQuestionKind.OrderDrawnCards | PowerQuestionKind.OrderDiscards }
+        >
+    } = $props()
+    let pileRegion = $derived(
+        question.kind === PowerQuestionKind.OrderDiscards
+            ? discardRegionFor(question.fromRegion)
+            : question.region
+    )
+
+    let gameSession = getGameSession()
+    let draft = $derived(gameSession.question)
+    let busy = $derived(gameSession.busy)
+    let refused = $derived(draft.stackBlockedBecause)
+</script>
+
+<p class="text-sm mb-2">
+    {cardName(question.cardId)}: tap the cards in the order they go onto the {regionName(
+        pileRegion
+    )} discard pile. The last goes on top.
+</p>
+<div class="flex flex-wrap gap-2 mb-2">
+    <DiscardOrderCards
+        cards={draft.stackCards}
+        tapped={draft.stackTapped}
+        {busy}
+        ontap={(cardId) => draft.tapStack(cardId)}
+    />
+</div>
+{#if refused}<p class="mb-2 text-[11px] text-rose-300">{humanizeReason(refused)}</p>{/if}
+<div class="flex gap-2">
+    <button
+        class="grow rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        disabled={busy || !draft.stackComplete || !!refused}
+        onclick={() => draft.stack()}
+    >
+        Stack them
+    </button>
+    <button
+        class="grow rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        disabled={busy || draft.stackTapped.length === 0}
+        onclick={() => gameSession.back()}
+    >
+        Back
+    </button>
+</div>
