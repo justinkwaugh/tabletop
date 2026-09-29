@@ -23,6 +23,7 @@ TEST_PARTS = {"test", "tests", "__tests__", "__mocks__", "fixtures", "e2e"}
 TEST_NAME = re.compile(r"\.(?:spec|test|fixture)\.[^/]+$")
 HARNESS_CAST = "UiDefinition as unknown as GameUiDefinition<GameState, HydratedGameState>"
 CATALOGUE_PATH = "config/config-games/src/games.json"
+LOCKFILE_PATH = "pnpm-lock.yaml"
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -243,6 +244,72 @@ def schema_diff(merge_base: str, logic_root: Path, repo: Path) -> dict[str, list
     return changes
 
 
+def dev_harness(ui_root: Path) -> dict[str, bool]:
+    page = ui_root / "src" / "routes" / "+page.svelte"
+    scripts = json.loads((ui_root / "package.json").read_text(encoding="utf-8")).get("scripts", {})
+    return {
+        "dev_script": "dev" in scripts,
+        "vite_config": (ui_root / "vite.config.ts").is_file(),
+        "app_html": (ui_root / "src" / "app.html").is_file(),
+        "harness_page": page.is_file(),
+        "harness_page_renders_harness": page.is_file() and "<Harness" in page.read_text(encoding="utf-8"),
+    }
+
+
+def lockfile_sections(text: str) -> dict[str, Any]:
+    sections: dict[str, Any] = {}
+    section = ""
+    entry = ""
+    for line in text.splitlines():
+        if line and not line.startswith(" "):
+            section, entry = line, ""
+            sections[section] = {"": []}
+        elif line.startswith("  ") and not line.startswith("   ") and section:
+            entry = line.strip()
+            sections[section][entry] = [line]
+        elif section:
+            sections[section].setdefault(entry, []).append(line)
+    return sections
+
+
+def lockfile_change(merge_base: str, slug: str, repo: Path) -> dict[str, Any] | None:
+    try:
+        before = lockfile_sections(git("show", f"{merge_base}:{LOCKFILE_PATH}", cwd=repo))
+        after = lockfile_sections((repo / LOCKFILE_PATH).read_text(encoding="utf-8"))
+    except (subprocess.CalledProcessError, OSError):
+        return None
+    if before == after:
+        return None
+    title_importers = {f"games/{slug}:", f"games/{slug}-ui:"}
+    outside: list[str] = []
+    added: list[str] = []
+    for section in sorted(set(before) | set(after)):
+        old, new = before.get(section, {}), after.get(section, {})
+        for key in sorted(set(old) | set(new)):
+            if old.get(key) == new.get(key):
+                continue
+            label = f"{section} {key}".strip()
+            if section == "importers:" and key in title_importers:
+                continue
+            if section in ("packages:", "snapshots:") and key not in old:
+                added.append(label)
+                continue
+            outside.append(label)
+    frozen = subprocess.run(
+        ["pnpm", "install", "--frozen-lockfile", "--lockfile-only"],
+        cwd=repo,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    return {
+        "added_package_entries": added,
+        "changes_outside_title": outside,
+        "frozen_lockfile_check": "passed" if frozen.returncode == 0 else frozen.stdout.strip()[-500:],
+        "exempt": not outside and frozen.returncode == 0,
+    }
+
+
 def package_version(root: Path) -> str | None:
     return json.loads((root / "package.json").read_text(encoding="utf-8")).get("version")
 
@@ -335,7 +402,10 @@ def main() -> int:
     releases = release_tags(args.slug, repo)
     new_title = not releases["tags"]
     added_entry = catalogue_addition(merge_base, args.slug, repo) if new_title else None
-    catalogue_exempt = [CATALOGUE_PATH] if added_entry is not None else []
+    lockfile = lockfile_change(merge_base, args.slug, repo)
+    exempt_paths = [CATALOGUE_PATH] if added_entry is not None else []
+    if lockfile is not None and lockfile["exempt"]:
+        exempt_paths.append(LOCKFILE_PATH)
     images = sorted(
         path for path in ui_root.rglob("*")
         if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES and not (set(path.parts) & IGNORED_PARTS)
@@ -393,9 +463,10 @@ def main() -> int:
         "allowed_roots": list(allowed),
         "changed_paths": changes,
         "outside_allowed_roots": [
-            path for path in changes if not path.startswith(allowed) and path not in catalogue_exempt
+            path for path in changes if not path.startswith(allowed) and path not in exempt_paths
         ],
         "exempt_catalogue_addition": added_entry,
+        "lockfile_change": lockfile,
         "images": [image_info(path, repo) for path in images],
         "asset_references": asset_references(images, sources),
         "search_hits": find_hits(sources, patterns),
@@ -413,6 +484,7 @@ def main() -> int:
             "ui_package": package_version(ui_root),
             "generated_game_version": generated_version(logic_root),
         },
+        "dev_harness": dev_harness(ui_root),
         "competition_specs": sorted(
             path.relative_to(repo).as_posix()
             for path in logic_root.rglob("competition.*")
