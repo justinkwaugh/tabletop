@@ -9,11 +9,10 @@
         stroke="#262f3b"
         stroke-width="1"
     ></polygon>
-    <path
-        d="M -3.5 9 L -3.5 -1 L -8 -1 L 0 -10 L 8 -1 L 3.5 -1 L 3.5 9 Z"
-        fill="#f7f3ea"
-        stroke="#11161d"
-        stroke-width="1"
-        stroke-linejoin="round"
-    ></path>
+    <g fill="#f7f3ea" stroke="#11161d" stroke-width="0.8" stroke-linejoin="round">
+        <rect x="-5" y="7.5" width="10" height="2.5" rx="0.4"></rect>
+        <rect x="-2.8" y="-2" width="5.6" height="9.5"></rect>
+        <rect x="-5" y="-4" width="10" height="2" rx="0.4"></rect>
+        <path d="M -6.5 -4 L 0 -11 L 6.5 -4 Z"></path>
+    </g>
 </svg>

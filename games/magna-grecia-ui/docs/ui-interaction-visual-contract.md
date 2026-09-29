@@ -29,7 +29,7 @@ In History View and for inactive players `canAct` is false, so no tool, target, 
 
 - **Targets, ghost city and road ring.** The target layer owns every pulsing target, the ghost city preview and the road orientation ring. It renders above the pieces layer so previews cover placed tiles, and it is the only layer with hit targets on the board.
 - **Road ring preview.** The ring draws its hovered choice as a ghost tile on the chosen space, under the ring's dimming disc and choice buttons.
-- **Oracle arrow.** The pieces layer owns it. Each oracle covers its whole village hex with an opaque slate plinth so no village art shows beneath. The arrow is marble and points up while no city has the oracle's attention; once one does, it takes that player's colour and points along the oracle's connection to the favoured city (`oracleViews`), not from any transient UI state.
+- **Oracle column.** The pieces layer owns it. Each oracle covers its whole village hex with an opaque slate plinth so no village art shows beneath. The oracle is a marble Greek column lying on its side with a triangular pediment as its point. It points up while no city has the oracle's attention; once one does, its pediment and base take that player's colour and it points along the oracle's connection to the favoured city (`oracleViews`), not from any transient UI state.
 - **Upcoming round.** The action card panel shows the next round's card (allowances and turn order) in an "Upcoming round" box below the current card. It is derived from `upcomingCard()` and is hidden in the final round and after the game ends.
 
 ## Verification scenarios
