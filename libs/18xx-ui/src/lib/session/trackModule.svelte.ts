@@ -10,6 +10,7 @@ import {
     privateTrackConstruction,
     type EighteenXXState,
     type EighteenXXTitleRules,
+    type TrackLayDetails,
     type TrackRequest
 } from '@tabletop/18xx'
 import type { MapViewDefinition } from '../maps/stationPresentation.js'
@@ -122,7 +123,13 @@ export class TrackModule {
     set tileInFlight(inFlight: boolean) {
         this.tileFlightSelection = inFlight ? this.selection : undefined
     }
-    displayedPreview = $derived.by(() => this.session.state.trackConsent?.details ?? this.preview)
+    // A confirmed placement stays on the map until the state that records it is published.
+    private committed = $state.raw<{ details: TrackLayDetails; state: TrackState }>()
+    displayedPreview = $derived.by(() => {
+        const { state } = this.session
+        const committed = this.committed?.state === state ? this.committed.details : undefined
+        return state.trackConsent?.details ?? this.preview ?? committed
+    })
     constructionActions = $derived.by(() =>
         this.session.recordedActions.flatMap((action) => {
             const details =
@@ -201,6 +208,28 @@ export class TrackModule {
     async confirm() {
         const preview = this.preview
         assert(this.canBuild && preview, 'Choose a legal track placement')
+        const committed = { details: preview, state: this.session.state }
+        this.committed = committed
+        try {
+            await this.commit(preview)
+            await this.session.settled()
+        } finally {
+            if (this.committed === committed) this.committed = undefined
+        }
+    }
+    async finish() {
+        const companyId = this.session.state.trackStep?.companyId
+        assert(
+            companyId &&
+                !this.selection.locationId &&
+                this.session.validActionTypes.includes('FinishTrack') &&
+                this.session.interactive,
+            'Finish or cancel the construction selection'
+        )
+        await this.session.applyAction(this.session.createPlayerAction(FinishTrack, { companyId }))
+    }
+
+    private async commit(preview: TrackLayDetails) {
         const power = this.privateActions.trackPowerSelection?.value
         if (power) {
             this.decisions.selectPrivateTile({ ...power, details: preview })
@@ -217,18 +246,6 @@ export class TrackModule {
             )
         )
     }
-    async finish() {
-        const companyId = this.session.state.trackStep?.companyId
-        assert(
-            companyId &&
-                !this.selection.locationId &&
-                this.session.validActionTypes.includes('FinishTrack') &&
-                this.session.interactive,
-            'Finish or cancel the construction selection'
-        )
-        await this.session.applyAction(this.session.createPlayerAction(FinishTrack, { companyId }))
-    }
-
     private chooseTile(
         definitionId: string,
         placements: readonly TrackRequest[],
