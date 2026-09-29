@@ -24,14 +24,17 @@ export const HINTERLAND = ['h1', 'h2', 'h3']
 
 /** R-2.8.1 — every site prints a capacity, so each fixture slot's own card is a powerless site. */
 export const FIXTURE_SITE_CAPACITY = 3
-registerCards(
-    [...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => ({
-        id: slotId,
-        name: slotId,
-        kind: CardKind.Site,
-        capacity: FIXTURE_SITE_CAPACITY
-    }))
-)
+
+export function registerFixtureSites(): void {
+    registerCards(
+        [...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => ({
+            id: slotId,
+            name: slotId,
+            kind: CardKind.Site,
+            capacity: FIXTURE_SITE_CAPACITY
+        }))
+    )
+}
 
 export function testPlayer(overrides: Partial<OathPlayerState> = {}): OathPlayerState {
     const advisers = overrides.advisers ?? []
@@ -78,6 +81,7 @@ export function testState(
     players: OathPlayerState[],
     overrides: Partial<OathProjectedState> = {}
 ): HydratedOathGameState {
+    registerFixtureSites()
     const raw = {
         id: 'state-1',
         gameId: 'game-1',

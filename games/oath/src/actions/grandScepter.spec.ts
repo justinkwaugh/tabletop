@@ -7,6 +7,7 @@ import { cardPower, PowerTiming } from '../data/cardPowers.js'
 import { HydratedLetPeek, LetPeekSubjectKind } from '../actions/letPeek.js'
 import { HydratedUseActionPower } from '../actions/useActionPower.js'
 import { HydratedOfferCitizenship } from '../actions/offerCitizenship.js'
+import '../powers/index.js'
 
 describe("the Grand Scepter's continuous lockout is dead while its three permissions are live", () => {
     function board() {

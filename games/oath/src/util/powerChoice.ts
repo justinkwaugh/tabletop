@@ -1,5 +1,5 @@
 import { pawnSiteId } from './pawn.js'
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import { HydratedOathGameState, type RelicSlot } from '../model/gameState.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
@@ -90,7 +90,12 @@ export function declareChoices(cardId: string, index: number, specs: ChoiceSpec[
     declarations.set(powerKey(cardId, index), specs)
 }
 
+/** The card powers register themselves on load, so a read before `powers/index.js` sees none. */
+export const POWERS_NOT_LOADED =
+    'No Oath card powers are registered: import the Oath runtime or `powers/index.js` before reading a power'
+
 export function choiceSpecsFor(power: CardPower): ChoiceSpec[] {
+    assert(declarations.size > 0, POWERS_NOT_LOADED)
     return declarations.get(powerKey(power.cardId, power.powerIndex)) ?? []
 }
 

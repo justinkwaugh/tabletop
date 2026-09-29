@@ -12,6 +12,7 @@ import type { HydratedOathGameState } from '../model/gameState.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { expectRecolorExchange, expectWarbandsConserved, expectWarbandTotalConserved, warbandCensus } from '../testing/census.js'
 import { MAX_SUPPLY } from '../util/rest.js'
+import '../powers/index.js'
 
 const RELIQUARY_RELIC = 'relic.unnamed-1'
 const OTHER_RELIC = 'relic.unnamed-2'

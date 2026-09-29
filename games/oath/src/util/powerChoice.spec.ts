@@ -40,6 +40,7 @@ afterEach(() => declareChoices(CAPTAINS.cardId, CAPTAINS.powerIndex, []))
 
 describe('a power that declares no choices', () => {
     it('accepts none and refuses any', () => {
+        declareChoices(CAPTAINS.cardId, CAPTAINS.powerIndex, [])
         const state = board()
         expect(reasonChoicesInvalid(state, 'p1', CAPTAINS, undefined)).toBeUndefined()
         expect(reasonChoicesInvalid(state, 'p1', CAPTAINS, [])).toBeUndefined()

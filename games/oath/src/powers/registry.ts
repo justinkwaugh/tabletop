@@ -13,8 +13,10 @@ import type { ImperialScope } from '../util/rule.js'
 import type { RollRules, WarbandGroup } from '../model/campaign.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
+import { assert } from '@tabletop/common'
 import {
     declareChoices,
+    POWERS_NOT_LOADED,
     type ChoiceSpec,
     type PowerChoice,
     type PowerChoiceKind
@@ -401,6 +403,7 @@ export function registerContinuous(cardId: string, index: number, hooks: Continu
 }
 
 export function effectFor(power: CardPower): EffectDefinition | undefined {
+    assert(effects.size > 0, POWERS_NOT_LOADED)
     return effects.get(powerKey(power.cardId, power.powerIndex))
 }
 

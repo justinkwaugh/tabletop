@@ -8,6 +8,7 @@ import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { expectWarbandsConserved, expectWarbandTotalConserved } from '../testing/census.js'
 import { MAX_SUPPLY, returnSecretsToBoard } from '../util/rest.js'
 import { buildAction } from '../testing/actions.js'
+import '../powers/index.js'
 
 function exileCitizen(playerId: string, citizenPlayerId: string) {
     return new HydratedExileCitizen(

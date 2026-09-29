@@ -13,6 +13,7 @@ import {
 } from '../util/powerChoice.js'
 import { buildAction } from '../testing/actions.js'
 import { bank, site } from '../testing/choices.js'
+import '../powers/index.js'
 
 const CARD = 'denizen.hearth.spec-card'
 
@@ -22,7 +23,9 @@ function usePower(playerId: string, cardId: string, powerIndex = 0, choices?: Po
     )
 }
 
-afterEach(() => declareChoices('denizen.order.captains', 0, []))
+const SCEPTER = 'relic.grand-scepter'
+
+afterEach(() => declareChoices(SCEPTER, 1, []))
 
 function boardWith(cardIds: string[], playerOverrides: Record<string, unknown> = {}) {
     return testState(
@@ -223,15 +226,15 @@ describe('Use an Action Power (R-6.2) — the doorway, complete but for the effe
     })
 
     it('refuses last of all for the effect that does not exist', () => {
-        const state = boardWith(['denizen.order.captains'], { favor: 3 })
-        expect(() => usePower('ruler', 'denizen.order.captains').apply(state)).toThrow(
+        const state = boardWith([], { relicIds: [SCEPTER] })
+        expect(() => usePower('ruler', SCEPTER, 1).apply(state)).toThrow(
             /card power effects are not implemented yet/
         )
     })
 
-    // No effect resolves yet, and R-7.1.2 takes the payment first, so an offer would waste favor.
-    it('is never offered, so the Act Phase does not advertise it', () => {
-        const state = boardWith(['denizen.order.captains'], { favor: 3 })
+    // R-7.1.2 takes the payment first, so offering a power with no effect would waste it.
+    it('a power with no effect is never offered, so the Act Phase does not advertise it', () => {
+        const state = boardWith([], { relicIds: [SCEPTER] })
         expect(HydratedUseActionPower.canDoUseActionPower(state, 'ruler')).toBe(false)
     })
 })
@@ -239,35 +242,34 @@ describe('Use an Action Power (R-6.2) — the doorway, complete but for the effe
 describe('choices ride the action, checked after the cost and before the effect', () => {
     const CAPTAINS = 'denizen.order.captains'
 
-    it('a stray choice on a power that asks none is refused, after the cost', () => {
-        const state = boardWith([CAPTAINS], { favor: 3 })
-        expect(() => usePower('ruler', CAPTAINS, 0, [{ kind: PowerChoiceKind.Yes }]).apply(state)).toThrow(
+    it('a stray choice on a power that asks none is refused', () => {
+        const state = boardWith([], { relicIds: [SCEPTER] })
+        expect(() => usePower('ruler', SCEPTER, 1, [{ kind: PowerChoiceKind.Yes }]).apply(state)).toThrow(
             /takes no choices, but 1 were given/
         )
     })
 
     it('the cost is refused BEFORE a missing choice is mentioned', () => {
-        declareChoices(CAPTAINS, 0, [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })])
         const state = boardWith([CAPTAINS], { favor: 0 })
         expect(() => usePower('ruler', CAPTAINS).apply(state)).toThrow(/costs 1 favor, player has 0/)
     })
 
     it('a missing or bad choice is refused BEFORE the effect refusal', () => {
-        declareChoices(CAPTAINS, 0, [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })])
-        const state = boardWith([CAPTAINS], { favor: 3 })
-        expect(() => usePower('ruler', CAPTAINS).apply(state)).toThrow(
+        declareChoices(SCEPTER, 1, [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })])
+        const state = boardWith([], { relicIds: [SCEPTER] })
+        expect(() => usePower('ruler', SCEPTER, 1).apply(state)).toThrow(
             /no choice was made for a favor bank/
         )
         expect(() =>
-            usePower('ruler', CAPTAINS, 0, [site('c1')]).apply(state)
+            usePower('ruler', SCEPTER, 1, [site('c1')]).apply(state)
         ).toThrow(/no choice was made for a favor bank/)
     })
 
     it('sound choices walk the whole doorway and reach the effect refusal last', () => {
-        declareChoices(CAPTAINS, 0, [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })])
-        const state = boardWith([CAPTAINS], { favor: 3 })
+        declareChoices(SCEPTER, 1, [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })])
+        const state = boardWith([], { relicIds: [SCEPTER] })
         expect(() =>
-            usePower('ruler', CAPTAINS, 0, [bank(Suit.Beast)]).apply(state)
+            usePower('ruler', SCEPTER, 1, [bank(Suit.Beast)]).apply(state)
         ).toThrow(/card power effects are not implemented yet/)
     })
 
