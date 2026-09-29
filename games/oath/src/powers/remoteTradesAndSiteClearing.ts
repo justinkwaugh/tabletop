@@ -22,7 +22,6 @@ import {
     discardDenizensAtSites,
     faceupSitesInYourRegion,
     pawnSiteId,
-    regionOfPawn,
     faceupSitesWithCardOfSuit
 } from './vocabulary.js'
 import { playerChoicesAtYourSite } from './choiceDomains.js'

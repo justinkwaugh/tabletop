@@ -16,7 +16,7 @@ import { type ModifierUse } from '../util/modifiers.js'
 import '../powers/index.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { answerQuestion } from '../testing/steps.js'
-import { card, region, slot, modifierUse, yes } from '../testing/choices.js'
+import { region, slot, modifierUse, yes } from '../testing/choices.js'
 import { INN, FILLER } from '../testing/cards.js'
 
 const FAE = 'denizen.beast.fae-merchant'

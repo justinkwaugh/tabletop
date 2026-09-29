@@ -19,7 +19,6 @@ import {
     moveAdviserToSite,
     moveFavorBetweenBanks,
     pawnSiteId,
-    regionOfPawn,
     siteHasRoom,
     takeFavorFromPlayer
 } from './vocabulary.js'

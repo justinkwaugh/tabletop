@@ -1,7 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
-    Color,
     GameAction,
     HydratableAction,
     MachineContext,

@@ -11,7 +11,6 @@ import {
     wayStationRuled
 } from '../util/tolls.js'
 import {
-    flipOfferedForTravel,
     flipSecretFacedown,
     reasonFlipInvalid,
     reasonSitesForbidTravel,

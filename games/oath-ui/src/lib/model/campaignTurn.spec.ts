@@ -4,8 +4,6 @@ import { ActionType, MachineState } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { campaignDraftOpens, heldTurnOf } from './campaignTurn.js'
 
-const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
-
 function board(overrides: Parameters<typeof testState>[1] = {}, freeTravelAtAction?: number) {
     const state = testState(
         [

@@ -235,10 +235,10 @@ function sneakAttackOffered(): PlayedTable {
 }
 
 describe('the Campaign draft in a Sneak Attack', () => {
-    it('the card names the defender, which Back never returns to; Back leaves for the question', () => {
+    it('the card names the defender, which Back never returns to; Back leaves for the question', async () => {
         const session = openSessionOn(sneakAttackOffered())
         expect(session.myPlayer?.id).toBe(FOE)
-        session.question.accept()
+        await session.question.accept()
         const draft = session.campaign
         expect(draft.defender).toEqual({ kind: 'player', playerId: ME })
         expect(draft.defenderFixed).toBe(true)

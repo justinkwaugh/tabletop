@@ -176,7 +176,7 @@ describe('setup through GameEngine.run() (R-1.19–R-1.23.3)', () => {
         expect(state.machineState).toBe(MachineState.ActPhase)
 
         const deckBefore = vaultOf(state).worldDeck.length
-        let result = engine.runNext(buildAction(Search, {
+        const result = engine.runNext(buildAction(Search, {
             playerId: chancellorId,
             drawFrom: SearchSource.WorldDeck,
             // R-X.3 — a world deck draw takes cards out of the vault.

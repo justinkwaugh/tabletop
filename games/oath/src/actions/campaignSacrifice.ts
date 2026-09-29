@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PileDeposit } from '../model/hidden.js'
 import { commitHiddenOutputs, showTakenSiteRelics } from '../util/hiddenInputs.js'

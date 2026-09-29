@@ -1,7 +1,6 @@
 import { pawnSiteId } from './pawn.js'
 import { gainFavorFromBank } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { Suit } from '../model/oathEnums.js'
 import { sitePowerCategory, siteRecord } from '../data/sites.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { rulesSite } from './rule.js'
