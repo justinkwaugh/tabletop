@@ -38,12 +38,12 @@ Unless stated otherwise, every open item below is documented but not implemented
 
 ## 18xx Game Family
 
-### 1889 exchange eligibility is expressed through Active Players
+### 1889 off-turn private powers are expressed through Active Players
 
 - **Classification**: Planned change
-- **Observed**: `PrivateExchangeHandler` adds every Player with an available private exchange to the Active Players and accepts only `ExchangePrivate` from anyone other than the first. The Game State Machine is not waiting on those Players, but the site treats them as awaited: they receive turn notifications, the dashboard and Game card show them on turn, the Game Client reports `isMyTurn`, and the 18xx table header names them.
-- **Evidence**: `libs/18xx/src/privates/privateExchangeHandler.ts:46`; `libs/18xx/src/privates/privateExchangeHandler.ts:83`; `libs/backend-services/src/games/gameService.ts:1138`; `apps/frontend/src/lib/utils/dashboardGames.ts:13`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:439`; `libs/18xx-ui/src/lib/table/TableHeader.svelte:78`
-- **Invariant**: Active Players are the Players the Game State Machine is waiting on to act. An exchange a Player may make at any time is a Sequenced Out-of-Turn Action ([ADR 0009](adr/0009-sequenced-out-of-turn-actions.md)).
+- **Observed**: `PrivateExchangeHandler` adds every Player with an available private exchange to the Active Players and accepts only an exchange from anyone other than the Player the game is waiting on. `CompanyDecisionsHandler` likewise adds every Player with a usable private tile power, such as the Mitsubishi Ferry owner throughout a stock round. The site treats those Players as awaited: they receive turn notifications, the dashboard and Game card show them on turn, the Game Client reports `isMyTurn`, and the 18xx table header names them. Separately, `BetweenCompaniesHandler` opens a private power window before a rival company for every owner with a legal use, rather than only for a requester.
+- **Evidence**: `libs/18xx/src/privates/privateExchangeHandler.ts:46`; `libs/18xx/src/privates/privateExchangeHandler.ts:83`; `libs/18xx/src/privates/companyDecisionsHandler.ts:146`; `libs/18xx/src/privates/betweenCompaniesHandler.ts:61`; `libs/backend-services/src/games/gameService.ts:1138`; `apps/frontend/src/lib/utils/dashboardGames.ts:13`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:439`; `libs/18xx-ui/src/lib/table/TableHeader.svelte:78`
+- **Invariant**: Active Players are the Players the Game State Machine is waiting on to act. Off-turn private powers and Private Power Windows follow the [out-of-turn private powers design](../research/18xx/out-of-turn-private-powers-design.md).
 
 ## Game Client
 
