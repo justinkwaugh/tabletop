@@ -729,6 +729,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.createPlayerAction(LetPeek, {
                 type: ActionType.LetPeek,
                 outOfTurn: true,
+                sequenced: true,
                 toPlayerId,
                 subject
             })

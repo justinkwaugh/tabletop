@@ -4,13 +4,20 @@ import { HydratedLetPeek, LetPeek, LetPeekSubjectKind } from './letPeek.js'
 import { testPlayer, testState, testVaultWithRelics } from '../testing/fixture.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
-import { Color } from '@tabletop/common'
+import { Color, isOutOfTurnDeclaration, proveCommutation, type GameAction } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { engine } from '../testing/engine.js'
 import { testGame } from '../testing/game.js'
 import { openTurn } from '../testing/fixture.js'
 import type { OathProjectedState } from '../model/gameState.js'
+import { ForgoFreeAction } from './forgoFreeAction.js'
+import { OathRuntime } from '../definition/runtime.js'
+import { Campaign } from './campaign.js'
+import { CampaignSacrifice } from './campaignSacrifice.js'
+import { CampaignResolveVictory } from './campaignResolveVictory.js'
+import { CampaignTargetKind } from '../model/campaign.js'
+import { withChancellor } from '../testing/fixture.js'
 
 const RELIC = 'relic.unnamed-1'
 const TUTOR = 'denizen.arcane.tutor'
@@ -160,3 +167,143 @@ describe('Let another peek at any time', () => {
         expect(p1.advisers.at(-1)).toEqual({ faceUp: false })
     })
 })
+
+/** ADR 0009 — a peek has an immediate consequence later actions can depend on, so it is sequenced. */
+describe('A let-peek is ordered and undone like any other player action', () => {
+    const game = testGame(['p1', 'p2', 'p3'])
+
+    function table(): OathProjectedState {
+        const state = testState(
+            [
+                testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', status: PlayerStatus.Chancellor, freeTravelAtAction: 0 }),
+                testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c2', advisers: [{ cardId: TUTOR, faceUp: false }] }),
+                testPlayer({ playerId: 'p3', color: Color.Yellow, siteId: 'c2' })
+            ],
+            { chancellorPlayerId: 'p1', machineState: MachineState.ActPhase }
+        )
+        openTurn(state, 'p1')
+        state.activePlayerIds = ['p1']
+        state.vault = testVaultWithRelics({})
+        return state.dehydrate()
+    }
+
+    function peekAt(index: number): LetPeek {
+        return buildAction(LetPeek, { id: 'peek', playerId: 'p2', toPlayerId: 'p3', subject: adviser(TUTOR), index })
+    }
+
+    function afterForgo() {
+        return engine.executeCanonicalAction({
+            action: buildAction(ForgoFreeAction, { id: 'forgo', playerId: 'p1', index: 0 }),
+            state: table(),
+            game
+        })
+    }
+
+    it('declares itself sequenced, so it is never an out-of-turn declaration', () => {
+        const peek = peekAt(0)
+        expect(peek.sequenced).toBe(true)
+        expect(isOutOfTurnDeclaration(peek)).toBe(false)
+    })
+
+    it('is refused from a stale index, and no commutation proof admits it, because it reveals a card', () => {
+        const raced = afterForgo()
+        expect(() =>
+            engine.executeCanonicalAction({ action: peekAt(0), state: raced.updatedState, game })
+        ).toThrow('Action index is not valid, expected 1, got 0')
+        expect(
+            proveCommutation({
+                engine,
+                apiActions: OathRuntime.apiActions,
+                game,
+                state: raced.updatedState,
+                raced: raced.processedActions,
+                late: peekAt(0)
+            })
+        ).toEqual({ kind: 'invalid', reason: 'an involved Action reveals information' })
+    })
+
+    it('is accepted when resubmitted at the current index', () => {
+        const raced = afterForgo()
+        const after = engine.executeCanonicalAction({ action: peekAt(1), state: raced.updatedState, game })
+        expect(after.processedActions.map((action) => action.type)).toEqual([ActionType.LetPeek])
+        expect(after.updatedState.players[1].advisers[0]).toEqual({ faceUp: false, shownCardId: TUTOR, shownTo: ['p3'] })
+    })
+})
+
+/** R-6.6.1, R-6.4 — the Scepter's holder shows the Reliquary, then loses the Scepter in a Campaign. */
+describe('An undo across a let-peek rewinds it, the Grand Scepter changing hands included', () => {
+    const ATTACKER = 'p1'
+    const HOLDER = 'p2'
+    const EXILE = 'p3'
+    const game = testGame([ATTACKER, HOLDER, EXILE])
+
+    function table(seed: number): OathProjectedState {
+        const state = testState(
+            withChancellor([
+                testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 7, warbandsOnBoard: { [Color.Red]: 8 }, warbandsInPersonalBank: { [Color.Red]: 4 } }),
+                testPlayer({ playerId: HOLDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', warbandsInPersonalBank: { [Color.Yellow]: 13 }, relicIds: [GRAND_SCEPTER_ID] }),
+                testPlayer({ playerId: EXILE, color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c2' })
+            ]),
+            {
+                machineState: MachineState.ActPhase,
+                reliquary: [{ slotId: 'rel-1' }],
+                prng: { seed, invocations: 0 }
+            }
+        )
+        openTurn(state, ATTACKER)
+        state.activePlayerIds = [ATTACKER]
+        state.vault = testVaultWithRelics({})
+        state.vault.relicFacedown['rel-1'] = RELIC
+        return state.dehydrate()
+    }
+
+    const campaign = buildAction(Campaign, {
+        playerId: ATTACKER,
+        defender: { kind: 'player', playerId: HOLDER },
+        targets: [{ kind: CampaignTargetKind.Relic, cardId: GRAND_SCEPTER_ID }],
+        attackDice: 8
+    })
+
+    function play(seed: number) {
+        const start = table(seed)
+        const processed: GameAction[] = []
+        let state = start
+        for (const action of [
+            buildAction(LetPeek, { playerId: HOLDER, toPlayerId: EXILE, subject: reliquary('rel-1') }),
+            campaign,
+            buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills: [] }),
+            buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false })
+        ]) {
+            const result = engine.runNext(action, state, game)
+            processed.push(...result.processedActions)
+            state = result.updatedState
+        }
+        return { start, processed, end: state }
+    }
+
+    function seedWhereSwordsAlreadyWin(): number {
+        for (let seed = 1; seed < 5000; seed++) {
+            const peeked = engine.runNext(buildAction(LetPeek, { playerId: HOLDER, toPlayerId: EXILE, subject: reliquary('rel-1') }), table(seed), game)
+            const rolled = engine.runNext(campaign, peeked.updatedState, game).updatedState.campaign
+            if (rolled && rolled.swords > rolled.defense) return seed
+        }
+        throw Error('no seed found where the attack wins outright')
+    }
+
+    it('restores the peek, the Scepter and every other field exactly', () => {
+        const { start, processed, end } = play(seedWhereSwordsAlreadyWin())
+        expect(end.players[0].relicIds).toEqual([GRAND_SCEPTER_ID])
+        expect(end.players[1].relicIds).toEqual([])
+        expect(end.players[2].peekedRelicSlotIds).toEqual(['rel-1'])
+        const peek = processed.find((action) => action.type === ActionType.LetPeek)
+        expect(peek?.revealsInfo).toBe(true)
+        expect(peek?.sequenced).toBe(true)
+
+        let rewound = end
+        for (const action of processed.toReversed()) {
+            rewound = engine.undoProcessedAction({ action, state: rewound })
+        }
+        expect(rewound).toEqual(start)
+    })
+})
+

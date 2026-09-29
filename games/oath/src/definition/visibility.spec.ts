@@ -528,7 +528,7 @@ describe('Oath visibility', () => {
     it('shows a facedown adviser let peeked at to its holder and the one shown alone', () => {
         const game = { ...buildGame(), status: GameStatus.Started, protectedInformation: true as const }
         const before = relicBoard(MachineState.ActPhase, [], [{ cardId: TUTOR, faceUp: false }])
-        const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.LetPeek, outOfTurn: true, playerId: 'p1', toPlayerId: 'p2', subject: { kind: LetPeekSubjectKind.Adviser, cardId: TUTOR } }), state: before, game })
+        const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.LetPeek, outOfTurn: true, sequenced: true, playerId: 'p1', toPlayerId: 'p2', subject: { kind: LetPeekSubjectKind.Adviser, cardId: TUTOR } }), state: before, game })
         const record = result.processedActions[0]
         expect(record.revealsInfo).toBe(true)
         expect(OathRuntime.visibility.actions.project(record, p1)).toHaveProperty('subject.cardId', TUTOR)
@@ -555,7 +555,7 @@ describe('Oath visibility', () => {
         before.players[0].relicIds = [GRAND_SCEPTER_ID]
         before.reliquary = [{ slotId: 'reliquary.0' }]
         before.vault.relicFacedown = { ...before.vault.relicFacedown, 'reliquary.0': CUP }
-        const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.LetPeek, outOfTurn: true, playerId: 'p1', toPlayerId: 'p2', subject: { kind: LetPeekSubjectKind.Reliquary, slotId: 'reliquary.0' } }), state: before, game })
+        const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.LetPeek, outOfTurn: true, sequenced: true, playerId: 'p1', toPlayerId: 'p2', subject: { kind: LetPeekSubjectKind.Reliquary, slotId: 'reliquary.0' } }), state: before, game })
         const record = result.processedActions[0]
         const after = canonical(result.updatedState)
         expect(record.revealsInfo).toBe(true)

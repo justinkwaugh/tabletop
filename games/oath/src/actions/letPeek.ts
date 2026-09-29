@@ -47,6 +47,7 @@ export const LetPeek = Type.Evaluate(
             playerId: Type.String(),
             /** R-9.4 — "at any time", so it is never a turn's action. */
             outOfTurn: Type.Literal(true),
+            sequenced: Type.Literal(true),
             toPlayerId: Type.String(),
             subject: LetPeekSubject,
             metadata: Type.Optional(LetPeekMetadata)
@@ -64,6 +65,7 @@ export class HydratedLetPeek extends HydratableAction<typeof LetPeek> implements
     declare type: ActionType.LetPeek
     declare playerId: string
     declare outOfTurn: true
+    declare sequenced: true
     declare toPlayerId: string
     declare subject: LetPeekSubject
     declare metadata?: LetPeekMetadata
