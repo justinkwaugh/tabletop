@@ -14,6 +14,8 @@ Identify the game slug and the comparison base. The only allowed change roots ar
 - `games/<slug>/`
 - `games/<slug>-ui/`
 
+A title is new until it has been released: `new_title` is true when `origin` has no `<slug>-v*` or `<slug>-ui-v*` release tag (`release_tags`). A new title may also add its own entry to `config/config-games/src/games.json`, which the release tools and local hosting require.
+
 Use the user-supplied base when present. Otherwise use the merge base with the PR's base branch; if no PR metadata is available, prefer `origin/main`, then `main`, and state the chosen commit. Include committed changes since that merge base, staged and unstaged changes, and untracked files.
 
 Run the evidence collector before reviewing:
@@ -86,7 +88,7 @@ Fail this gate for every actionless context-owned path that violates the canonic
 
 ### 6. Change boundary
 
-Compare the complete change set with the fixed point established above. Every changed, renamed, deleted, staged, unstaged, or untracked path must be beneath one of the two allowed game roots. Any path outside them is a violation, including repository configuration, shared libraries, root lockfiles, docs, generated files, and other games.
+Compare the complete change set with the fixed point established above. Every changed, renamed, deleted, staged, unstaged, or untracked path must be beneath one of the two allowed game roots. Any path outside them is a violation, including repository configuration, shared libraries, root lockfiles, docs, generated files, and other games. The one exception is a new title's `games.json` change whose only effect is adding that title's `{ gameId, packageId }` entry; the collector reports it under `exempt_catalogue_addition` and leaves the file out of `outside_allowed_roots`. Any other `games.json` change is a violation.
 
 ### 7. Architecture and runtime integrity
 
@@ -94,7 +96,7 @@ Read and apply the repository's [game implementation design](../../../docs/DESIG
 
 Classify the review scope before applying the design guidance:
 
-- for a new game, evaluate the complete new-game contract and completion criteria;
+- for a new game (`new_title`), evaluate the complete new-game contract and completion criteria, including its `games.json` entry;
 - for a structural change to an existing game, trace every affected contract end to end without applying unrelated new-game requirements;
 - for a UI-only change, evaluate the applicable UI, session, interaction, visual-contract, and verification requirements.
 
@@ -123,20 +125,20 @@ Check the title's `GameInfo` and runtime registration (`logic_hits.title_metadat
 - a new title (`new_title`) omits `metadata.visibility`. Without it, a title with `beta: false` is listed as Public on its first publication (`libs/common/src/site/titleVisibility.ts`). Report the declared value;
 - the runtime does not register `canonicalStateValidator` with the compiled validator of the title's strict canonical state schema.
 
-For an existing title, determine whether games stored under the currently published Logic still load, replay, undo, and continue. `schema_diff` lists changed lines that touch TypeBox schemas since the merge base; also trace rule changes in the changed paths. Fail when previously valid stored state, Actions, or configuration become invalid or change meaning without being handled where the [design](../../../docs/DESIGN.md) places compatibility: the title configurator's `normalizeConfig` for configuration, and normalization or migration at load before canonical validation for state. Also fail rule changes that alter the result of replaying recorded Actions. Additive optional fields and new Action types are compatible.
+For a released title, determine whether games stored under the currently published Logic still load, replay, undo, and continue. `schema_diff` lists changed lines that touch TypeBox schemas since the merge base; also trace rule changes in the changed paths. Fail when previously valid stored state, Actions, or configuration become invalid or change meaning without being handled where the [design](../../../docs/DESIGN.md) places compatibility: the title configurator's `normalizeConfig` for configuration, and normalization or migration at load before canonical validation for state. Also fail rule changes that alter the result of replaying recorded Actions. Additive optional fields and new Action types are compatible.
 
 ### 10. Tournament setup
 
-Evaluate the whole title, not only the changed code: a title that cannot be provisioned for a tournament fails even when the PR does not touch its setup. The authority is the [tournament game capabilities](../../../docs/tournament-game-capabilities.md). Capabilities can come from a shared runtime factory such as `createEighteenXXRuntime` in `libs/18xx`; trace them there rather than relying only on `logic_hits.competition` beneath the game roots.
+Evaluate the whole title, not only the changed code: a title that cannot be provisioned for a tournament fails even when the PR does not touch its setup. The authority is the [tournament game capabilities](../../../docs/tournament-game-capabilities.md). Capabilities can come from a shared runtime factory in `libs/`; trace them there rather than relying only on `logic_hits.competition` beneath the game roots.
 
 Fail any of these:
 
 - the initializer does not declare `supportsStartingPositions: true`. The backend refuses tournament creation and provisioning without it;
-- the assignment is not passed to `HydratedTurnManager.generate` before any order-dependent setup, the ordinary shuffle's draws are not still consumed, or completed state is reordered or patched afterward to simulate the assignment;
+- when a tournament assigns seats, the player in seat one is not the first player, or, where the title has a turn order, the players in later seats do not follow in their assigned order;
 - the runtime does not declare `randomnessVersion: 1`;
 - the runtime does not declare `scoring.finalScores`, or it reports a tiebreak value instead of the primary value the terminal handler ranks by;
 - any terminal branch, including a defensive one, can record a result that `validateGameResult` rejects;
-- no competition spec (`competition_specs`) covers every player count from `minPlayers` to `maxPlayers` and every configuration option that changes setup or the first actor. It must assert that each assigned order determines seating and the first actor, that ordinary setup is otherwise unchanged for the same seed, and that a finished game passes `validateGameResult`. `games/estates/src/definition/competition.spec.ts` and the shared `libs/18xx/test/startingPositions.ts` show the expected coverage.
+- no competition spec (`competition_specs`) covers every player count from `minPlayers` to `maxPlayers` and every configuration option that changes setup or the first actor. It must assert, for each assigned order, that seat one is the first player and later seats follow in their assigned order where the title has a turn order, that ordinary setup is otherwise unchanged for the same seed, and that a finished game passes `validateGameResult`. `games/estates/src/definition/competition.spec.ts` shows the expected coverage.
 
 ### 11. Hidden information
 

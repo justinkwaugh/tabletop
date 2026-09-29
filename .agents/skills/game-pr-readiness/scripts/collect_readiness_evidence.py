@@ -22,6 +22,7 @@ IGNORED_PARTS = {"node_modules", ".svelte-kit", "build", "dist", "bundle", "esm"
 TEST_PARTS = {"test", "tests", "__tests__", "__mocks__", "fixtures", "e2e"}
 TEST_NAME = re.compile(r"\.(?:spec|test|fixture)\.[^/]+$")
 HARNESS_CAST = "UiDefinition as unknown as GameUiDefinition<GameState, HydratedGameState>"
+CATALOGUE_PATH = "config/config-games/src/games.json"
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -254,10 +255,35 @@ def generated_version(logic_root: Path) -> str | None:
     return match.group(1) if match else None
 
 
-def exists_at(commit: str, path: str, repo: Path) -> bool:
-    return subprocess.run(
-        ["git", "cat-file", "-e", f"{commit}:{path}"], cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    ).returncode == 0
+def release_tags(slug: str, repo: Path) -> dict[str, Any]:
+    patterns = [f"refs/tags/{slug}-v*", f"refs/tags/{slug}-ui-v*"]
+    remote = subprocess.run(
+        ["git", "ls-remote", "--tags", "origin", *patterns],
+        cwd=repo,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    if remote.returncode == 0:
+        refs = [line.split("\t", 1)[1] for line in remote.stdout.splitlines() if "\t" in line]
+        tags = sorted({ref.removeprefix("refs/tags/").removesuffix("^{}") for ref in refs})
+        return {"source": "origin", "tags": tags}
+    output = git("tag", "--list", f"{slug}-v*", f"{slug}-ui-v*", cwd=repo)
+    return {"source": "local tags; origin unreachable", "tags": output.splitlines()}
+
+
+def catalogue_addition(merge_base: str, slug: str, repo: Path) -> dict[str, Any] | None:
+    try:
+        before = json.loads(git("show", f"{merge_base}:{CATALOGUE_PATH}", cwd=repo))
+        after = json.loads((repo / CATALOGUE_PATH).read_text(encoding="utf-8"))
+    except (subprocess.CalledProcessError, OSError, json.JSONDecodeError):
+        return None
+    added = [entry for entry in after if entry.get("packageId") == slug]
+    if len(added) != 1 or any(entry.get("packageId") == slug for entry in before):
+        return None
+    remaining = list(after)
+    remaining.remove(added[0])
+    return added[0] if remaining == before and set(added[0]) == {"gameId", "packageId"} else None
 
 
 def find_hits(files: list[Path], patterns: dict[str, re.Pattern[str]]) -> dict[str, list[dict[str, Any]]]:
@@ -306,7 +332,10 @@ def main() -> int:
     production_sources = [path for path in sources if not is_test_file(path)]
     production_scripts = [path for path in production_sources if path.suffix.lower() in SCRIPT_SUFFIXES]
     logic_sources = [path for path in production_sources if path.is_relative_to(logic_root)]
-    new_title = not exists_at(merge_base, f"games/{args.slug}/package.json", repo)
+    releases = release_tags(args.slug, repo)
+    new_title = not releases["tags"]
+    added_entry = catalogue_addition(merge_base, args.slug, repo) if new_title else None
+    catalogue_exempt = [CATALOGUE_PATH] if added_entry is not None else []
     images = sorted(
         path for path in ui_root.rglob("*")
         if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES and not (set(path.parts) & IGNORED_PARTS)
@@ -363,12 +392,16 @@ def main() -> int:
         "merge_base": merge_base,
         "allowed_roots": list(allowed),
         "changed_paths": changes,
-        "outside_allowed_roots": [path for path in changes if not path.startswith(allowed)],
+        "outside_allowed_roots": [
+            path for path in changes if not path.startswith(allowed) and path not in catalogue_exempt
+        ],
+        "exempt_catalogue_addition": added_entry,
         "images": [image_info(path, repo) for path in images],
         "asset_references": asset_references(images, sources),
         "search_hits": find_hits(sources, patterns),
         "source_file_count": len(sources),
         "new_title": new_title,
+        "release_tags": releases,
         "test_files_exempt_from_forbidden_constructs": sorted(
             path.relative_to(repo).as_posix() for path in sources if is_test_file(path)
         ),
