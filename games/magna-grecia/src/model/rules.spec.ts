@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionSource,
     ClockwisePointyHexDirections,
+    Color,
     GameEngine,
     PlayerStatus,
     PointyHexDirection,
@@ -144,12 +145,29 @@ describe('setup', () => {
             expect(state.players[0]).toMatchObject({ supplyRoads: 4, stagingRoads: 16 })
         }
     )
+
+    it('uses the red, yellow, gray and blue player colours', () => {
+        const state = freshState(4)
+        expect(state.players.map((player) => player.color)).toEqual([
+            Color.Red,
+            Color.Yellow,
+            Color.Gray,
+            Color.Blue
+        ])
+    })
+
+    it('reveals the next round’s card until the final round', () => {
+        const state = freshState()
+        expect(state.upcomingCard()?.id).toBe(state.deck[1])
+        state.beginRound(state.roundCount - 1)
+        expect(state.upcomingCard()).toBeUndefined()
+    })
 })
 
 describe('cities', () => {
     it('founds a city on a frontier village with a free market for one point', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         const action = placeCity(state, 'p0', FRONTIER)
         expect(action.metadata).toMatchObject({ founded: true, foundingMarket: true })
         expect(state.getPlayerState('p0').points).toBe(11)
@@ -159,26 +177,26 @@ describe('cities', () => {
 
     it('founds on an inland village only when the player has a road into it', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         placeCity(state, 'p0', FRONTIER)
         placeRoad(state, 'p0', at(FRONTIER, SE), [NW, SE])
         placeRoad(state, 'p0', at(at(FRONTIER, SE), SE), [NW, E])
-        giveTurn(state, 'p1', 'B1')
+        giveTurn(state, 'p1', 'G2')
         expect(state.cityPlacementPlan('p1', INLAND)).toBeUndefined()
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         expect(state.cityPlacementPlan('p0', INLAND)).toMatchObject({ kind: 'Found' })
     })
 
     it('allows one founding per turn', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'B2')
+        giveTurn(state, 'p0', 'G1')
         placeCity(state, 'p0', FRONTIER)
         expect(state.cityPlacementPlan('p0', offsetToAxial({ row: 0, col: 8 }))).toBeUndefined()
     })
 
     it('requires a tile beside a village to be followed by one on that village', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'B2')
+        giveTurn(state, 'p0', 'G1')
         placeCity(state, 'p0', FRONTIER)
         placeRoad(state, 'p0', at(FRONTIER, SE), [NW, SE])
         placeRoad(state, 'p0', at(at(FRONTIER, SE), SE), [NW, E])
@@ -200,13 +218,13 @@ describe('cities', () => {
 
     it('never places beside an opponent city or an oracle', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'B2')
+        giveTurn(state, 'p0', 'G1')
         placeCity(state, 'p0', FRONTIER)
-        giveTurn(state, 'p1', 'B2')
+        giveTurn(state, 'p1', 'G1')
         expect(state.cityPlacementPlan('p1', at(FRONTIER, E))).toBeUndefined()
 
         state.board.oracles = [{ coords: INLAND }]
-        giveTurn(state, 'p0', 'B2')
+        giveTurn(state, 'p0', 'G1')
         expect(state.cityPlacementPlan('p0', at(FRONTIER, E))).toMatchObject({ kind: 'Expand' })
         expect(state.cityPlacementPlan('p0', INLAND)).toBeUndefined()
     })
@@ -224,7 +242,7 @@ describe('cities', () => {
             { playerId: 'p1', placeId: cityPlaceId('C2'), sold: true }
         ]
         const marketsBefore = state.board.marketsRemaining('p1')
-        giveTurn(state, 'p0', 'B2')
+        giveTurn(state, 'p0', 'G1')
         const action = placeCity(state, 'p0', offsetToAxial({ row: 11, col: 6 }))
         expect(action.metadata?.mergedCityIds).toEqual(['C2'])
         expect(state.board.cities).toHaveLength(1)
@@ -241,7 +259,7 @@ describe('cities', () => {
 describe('roads', () => {
     it('must start from a city, or continue the player’s own road', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         expect(state.canPlaceRoad('p0', at(FRONTIER, E), [W, E])).toBe(false)
         placeCity(state, 'p0', FRONTIER)
         expect(state.canPlaceRoad('p0', at(FRONTIER, E), [W, E])).toBe(true)
@@ -249,20 +267,20 @@ describe('roads', () => {
         placeRoad(state, 'p0', at(FRONTIER, E), [W, E])
         expect(state.canPlaceRoad('p0', at(at(FRONTIER, E), E), [W, SE])).toBe(true)
 
-        giveTurn(state, 'p1', 'B1')
+        giveTurn(state, 'p1', 'G2')
         expect(state.canPlaceRoad('p1', at(at(FRONTIER, E), E), [W, SE])).toBe(false)
         expect(state.canPlaceRoad('p1', at(FRONTIER, SE), [NW, SE])).toBe(true)
     })
 
     it('starts from a village or oracle only when the player’s road already reaches it', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'Y1')
+        giveTurn(state, 'p0', 'Y2')
         placeCity(state, 'p0', FRONTIER)
         placeRoad(state, 'p0', at(FRONTIER, SE), [NW, SE])
         placeRoad(state, 'p0', at(at(FRONTIER, SE), SE), [NW, E])
         const beyondVillage = at(INLAND, E)
         expect(state.canPlaceRoad('p0', beyondVillage, [W, E])).toBe(true)
-        giveTurn(state, 'p1', 'Y1')
+        giveTurn(state, 'p1', 'Y2')
         expect(state.canPlaceRoad('p1', beyondVillage, [W, E])).toBe(false)
     })
 })
@@ -270,7 +288,7 @@ describe('roads', () => {
 describe('action allowance', () => {
     it('allows two basic actions or one enhanced action', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         state.getPlayerState('p0').supplyRoads = 10
         expect(state.roadPlacementsRemaining('p0')).toBe(3)
         expect(state.cityPlacementsRemaining('p0')).toBe(3)
@@ -287,7 +305,7 @@ describe('action allowance', () => {
 
     it('resupplies last, moving tiles from staging to supply', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         const resupply = new HydratedResupply({
             ...base('p0'),
             type: ActionType.Resupply,
@@ -355,7 +373,7 @@ describe('network, markets and oracles', () => {
         const c2 = board.place(cityPlaceId('C2'))!
         expect(marketCost(board, 'p0', c2)).toBe(2)
 
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         const build = new HydratedBuildMarket({
             ...base('p0'),
             type: ActionType.BuildMarket,
@@ -368,7 +386,7 @@ describe('network, markets and oracles', () => {
         expect(marketValue(board, network, p0InC2)).toBe(0)
         expect(marketValue(board, network, board.marketOf('p0', cityPlaceId('C1'))!)).toBe(1)
 
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         const sell = new HydratedSellMarket({
             ...base('p0'),
             type: ActionType.SellMarket,
@@ -382,7 +400,7 @@ describe('network, markets and oracles', () => {
 
     it('never lets a player build in their own city or twice in one place', () => {
         const state = oracleLine()
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         const sites = state.marketSites('p0').map((place) => place.id)
         expect(sites).not.toContain(cityPlaceId('C1'))
         expect(sites).toContain(villagePlaceId(FRONTIER))
@@ -394,7 +412,7 @@ describe('network, markets and oracles', () => {
 
     it('does not end a turn while a village claim is pending', () => {
         const state = freshState()
-        giveTurn(state, 'p0', 'B1')
+        giveTurn(state, 'p0', 'G2')
         state.turn!.pendingClaim = { village: INLAND, cityId: 'C1', founding: false }
         expect(HydratedEndTurn.canEndTurn(state, 'p0')).toBe(false)
     })

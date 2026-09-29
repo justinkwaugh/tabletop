@@ -31,10 +31,6 @@
                 <stop offset="0.6" stop-color="#ece6da"></stop>
                 <stop offset="1" stop-color="#d6cfc0"></stop>
             </linearGradient>
-            <linearGradient id="mg-oracle-gaze" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stop-color="#fff2b8" stop-opacity="0.95"></stop>
-                <stop offset="1" stop-color="#f2c14e" stop-opacity="0.25"></stop>
-            </linearGradient>
             <filter id="mg-tile-shadow" x="-10%" y="-10%" width="125%" height="130%">
                 <feDropShadow
                     dx="1.5"

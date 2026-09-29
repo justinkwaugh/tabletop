@@ -30,6 +30,25 @@
         }))
     )
     const remaining = $derived(state.roundCount - state.round - 1)
+    const upcoming = $derived(state.result ? undefined : state.upcomingCard())
+    const upcomingValues = $derived(
+        upcoming
+            ? [
+                  { key: 'roads', label: 'Roads', value: upcoming.roads },
+                  { key: 'cities', label: 'Cities', value: upcoming.cities },
+                  { key: 'resupply', label: 'Resupply', value: upcoming.resupply }
+              ]
+            : []
+    )
+    const upcomingOrder = $derived(
+        upcoming
+            ? state.turnOrderForCard(upcoming).map((playerId) => ({
+                  playerId,
+                  name: gameSession.getPlayerName(playerId),
+                  color: gameSession.colors.getPlayerUiColor(playerId)
+              }))
+            : []
+    )
 </script>
 
 <aside class="card-panel">
@@ -76,6 +95,36 @@
     </div>
 
     <p class="hint">Take two actions, or one enhanced to the higher number.</p>
+
+    {#if upcoming}
+        <section class="upcoming" aria-label="Upcoming round">
+            <div class="upcoming-label">Upcoming round <strong>{state.round + 2}</strong></div>
+            <div class="upcoming-card">
+                <div class="upcoming-values">
+                    {#each upcomingValues as item (item.key)}
+                        <span class="upcoming-value" title={item.label}>
+                            {#if item.key === 'roads'}
+                                <RoadIcon size={28} />
+                            {:else if item.key === 'cities'}
+                                <CityIcon size={28} />
+                            {:else}
+                                <ResupplyIcon size={28} />
+                            {/if}
+                            {item.value}
+                        </span>
+                    {/each}
+                </div>
+                <ol class="upcoming-order">
+                    {#each upcomingOrder as seat (seat.playerId)}
+                        <li style:--seat={seat.color} title={seat.name}>
+                            <span class="chip"></span>
+                            <span class="seat-name">{seat.name}</span>
+                        </li>
+                    {/each}
+                </ol>
+            </div>
+        </section>
+    {/if}
 
     <div class="deck">
         <div class="deck-stack" aria-hidden="true">
@@ -255,5 +304,67 @@
         box-shadow:
             inset 0 0 0 2px #c9a25a,
             0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .upcoming {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .upcoming-label {
+        font-size: 20px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .upcoming-card {
+        display: flex;
+        gap: 10px;
+        border-radius: 10px;
+        padding: 10px 12px;
+        background: rgba(201, 149, 90, 0.35);
+        border: 2px dashed rgba(74, 34, 8, 0.4);
+    }
+
+    .upcoming-values {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .upcoming-value {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 26px;
+        font-weight: 700;
+        color: #4a2208;
+    }
+
+    .upcoming-order {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 3px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .upcoming-order li {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 18px;
+        color: #3b2a18;
+    }
+
+    .upcoming-order .chip {
+        width: 18px;
+        height: 18px;
     }
 </style>

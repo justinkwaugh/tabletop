@@ -57,24 +57,8 @@
 <g class="oracles">
     {#each oracles as oracle (oracle.key)}
         <g transform="translate({oracle.center.x} {oracle.center.y})">
-            {#if oracle.attention}
-                <g transform="rotate({oracle.attention.angle})">
-                    <path
-                        d="M 10 -9 L 44 -4 L 44 4 L 10 9 Z"
-                        fill="url(#mg-oracle-gaze)"
-                        opacity="0.9"
-                    ></path>
-                    <circle
-                        cx="41"
-                        cy="0"
-                        r="5"
-                        fill={playerColor(oracle.attention.playerId)}
-                        stroke="#fff6d8"
-                        stroke-width="1.5"
-                    ></circle>
-                </g>
-            {/if}
             <OracleArt
+                angle={oracle.attention?.angle}
                 attentionColor={oracle.attention
                     ? playerColor(oracle.attention.playerId)
                     : undefined}

@@ -81,6 +81,11 @@ export class HydratedMagnaGreciaGameState
         return actionCard(this.deck[this.round])
     }
 
+    upcomingCard(): ActionCard | undefined {
+        const nextRound = this.round + 1
+        return nextRound < this.roundCount ? actionCard(this.deck[nextRound]) : undefined
+    }
+
     turnOrderForCard(card: ActionCard): string[] {
         return card.turnOrder
             .map((color) => this.players.find((player) => player.color === color)?.playerId)

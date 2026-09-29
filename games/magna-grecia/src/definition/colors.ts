@@ -1,3 +1,3 @@
 import { Color } from '@tabletop/common'
 
-export const MagnaGreciaColors = [Color.Yellow, Color.Orange, Color.Brown, Color.Red]
+export const MagnaGreciaColors = [Color.Red, Color.Yellow, Color.Gray, Color.Blue]

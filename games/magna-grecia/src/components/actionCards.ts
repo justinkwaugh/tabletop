@@ -11,31 +11,33 @@ export type ActionCard = {
 
 export const RESUPPLY_STEPS = [2, 3, 5, 7] as const
 
-// Seven cards are read from published photos; the Y3, O2, O3, R2 and R3 values are reconstructed.
+const { Red, Yellow, Gray, Blue } = Color
+
 export const ACTION_CARDS: ActionCard[] = [
-    card('Y1', Color.Yellow, 3, 2, 5, [Color.Orange, Color.Brown, Color.Red]),
-    card('Y2', Color.Yellow, 1, 2, 3, [Color.Brown, Color.Red, Color.Orange]),
-    card('Y3', Color.Yellow, 2, 3, 2, [Color.Red, Color.Orange, Color.Brown]),
-    card('O1', Color.Orange, 2, 2, 2, [Color.Yellow, Color.Brown, Color.Red]),
-    card('O2', Color.Orange, 3, 1, 3, [Color.Red, Color.Yellow, Color.Brown]),
-    card('O3', Color.Orange, 1, 3, 5, [Color.Brown, Color.Red, Color.Yellow]),
-    card('R1', Color.Red, 2, 1, 3, [Color.Yellow, Color.Brown, Color.Orange]),
-    card('R2', Color.Red, 1, 2, 5, [Color.Orange, Color.Yellow, Color.Brown]),
-    card('R3', Color.Red, 3, 2, 2, [Color.Brown, Color.Orange, Color.Yellow]),
-    card('B1', Color.Brown, 2, 2, 5, [Color.Orange, Color.Yellow, Color.Red]),
-    card('B2', Color.Brown, 2, 3, 2, [Color.Yellow, Color.Red, Color.Orange]),
-    card('B3', Color.Brown, 2, 1, 2, [Color.Red, Color.Orange, Color.Yellow])
+    card('R1', [Red, Gray, Blue, Yellow], 2, 3, 5),
+    card('R2', [Red, Yellow, Gray, Blue], 2, 1, 3),
+    card('R3', [Red, Blue, Yellow, Gray], 2, 2, 3),
+    card('Y1', [Yellow, Red, Blue, Gray], 3, 1, 2),
+    card('Y2', [Yellow, Blue, Gray, Red], 3, 2, 5),
+    card('Y3', [Yellow, Gray, Red, Blue], 1, 2, 3),
+    card('G1', [Gray, Yellow, Red, Blue], 2, 3, 2),
+    card('G2', [Gray, Blue, Yellow, Red], 2, 2, 5),
+    card('G3', [Gray, Red, Blue, Yellow], 2, 1, 2),
+    card('B1', [Blue, Yellow, Gray, Red], 2, 2, 2),
+    card('B2', [Blue, Red, Yellow, Gray], 2, 3, 3),
+    card('B3', [Blue, Gray, Red, Yellow], 2, 1, 5)
 ]
 
 function card(
     id: string,
-    border: Color,
+    turnOrder: Color[],
     roads: number,
     cities: number,
-    resupply: number,
-    followers: Color[]
+    resupply: number
 ): ActionCard {
-    return { id, border, roads, cities, resupply, turnOrder: [border, ...followers] }
+    const border = turnOrder[0]
+    assertExists(border, `Action card ${id} has no turn order`)
+    return { id, border, roads, cities, resupply, turnOrder }
 }
 
 export function actionCard(id: string): ActionCard {
@@ -51,7 +53,7 @@ export function enhancedResupply(resupply: number): number {
 
 // Rulebook setup: shuffle each border colour, then build three shuffled layers of one card per colour.
 export function buildActionDeck(random: RandomFunction): string[] {
-    const stacks = [Color.Yellow, Color.Orange, Color.Red, Color.Brown].map((border) => {
+    const stacks = [Red, Yellow, Gray, Blue].map((border) => {
         const stack = ACTION_CARDS.filter((candidate) => candidate.border === border).map(
             (candidate) => candidate.id
         )
