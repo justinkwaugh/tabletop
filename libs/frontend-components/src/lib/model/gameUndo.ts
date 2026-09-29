@@ -2,6 +2,7 @@ import {
     assertExists,
     calculateActionChecksum,
     ExplorationHistory,
+    isOutOfTurnDeclaration,
     type GameAction,
     type GameState,
     type HydratedGameState,
@@ -25,7 +26,7 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
             assertExists(last, 'Undo target is not in Action History')
             action = last
             if (
-                (action.outOfTurn && action.id !== target.id) ||
+                (isOutOfTurnDeclaration(action) && action.id !== target.id) ||
                 (action.playerId &&
                     action.playerId !== target.playerId &&
                     target.simultaneousGroupId !== undefined &&

@@ -12,7 +12,11 @@ import {
     createGameFork,
     GameForkError,
     findLast,
+    isOutOfTurnDeclaration,
+    isSequencedActionType,
     isSupersedableActionType,
+    proveCommutation,
+    racesSequencedAction,
     replaceSupersededAction,
     unnamedDuplicateReason,
     findPlayerForUserId,
@@ -55,6 +59,7 @@ import {
 } from '../notifications/notificationService.js'
 import {
     DisallowedActionError,
+    RacedActionError,
     DisallowedUndoError,
     DuplicatePlayerError,
     GameAlreadyStartedError,
@@ -993,6 +998,7 @@ export class GameService {
         }
 
         game = await this.supersedeDeclaration({ definition, game, action, user })
+        const reconciledRace = await this.reconcileRace({ definition, game, action })
 
         const initialIndex = action.index
 
@@ -1052,6 +1058,8 @@ export class GameService {
                         })
                     }
 
+                    relatedActions.push(...reconciledRace)
+
                     // Lookup and verify the missing actions
                     let missingActions: GameAction[] = []
                     if (indexOffset > 0 && initialIndex !== undefined) {
@@ -1068,7 +1076,7 @@ export class GameService {
                         }
 
                         if (
-                            !action.outOfTurn &&
+                            !isOutOfTurnDeclaration(action) &&
                             !missingActions.every(
                                 (missingAction) =>
                                     missingAction.simultaneousGroupId === action.simultaneousGroupId
@@ -1155,6 +1163,49 @@ export class GameService {
         }
 
         return representation
+    }
+
+    private async reconcileRace({
+        definition,
+        game,
+        action
+    }: {
+        definition: GameDefinition
+        game: Game
+        action: GameAction
+    }): Promise<GameAction[]> {
+        const state = game.state
+        assertExists(state, 'Reconciling a race requires current Game State')
+        const apiActions = definition.runtime.apiActions
+        if (
+            action.index === undefined ||
+            action.index >= state.actionCount ||
+            isOutOfTurnDeclaration(action) ||
+            !Object.keys(apiActions).some((type) => isSequencedActionType(apiActions, type))
+        )
+            return []
+        const raced = await this.gameStore.findActionRangeForGame({
+            game,
+            startIndex: action.index,
+            endIndex: state.actionCount
+        })
+        if (!racesSequencedAction(apiActions, action, raced)) return []
+        const outcome = proveCommutation({
+            engine: new GameEngine(definition.runtime),
+            apiActions,
+            game,
+            state,
+            raced,
+            late: action
+        })
+        if (outcome.kind === 'invalid')
+            throw new RacedActionError({
+                gameId: game.id,
+                actionId: action.id,
+                reason: outcome.reason
+            })
+        action.index = state.actionCount
+        return raced
     }
 
     private async supersedeDeclaration({
@@ -1321,7 +1372,7 @@ export class GameService {
                 actions.some(
                     (action) =>
                         action.source === ActionSource.User &&
-                        !action.outOfTurn &&
+                        !isOutOfTurnDeclaration(action) &&
                         action.playerId &&
                         action.playerId !== userPlayer?.id &&
                         !this.isSameSimultaneousGroup(action, actionToUndo)
@@ -1336,7 +1387,10 @@ export class GameService {
         }
 
         for (const action of actions.slice(1)) {
-            if (action.outOfTurn || this.isSameSimultaneousGroup(action, actionToUndo)) {
+            if (
+                isOutOfTurnDeclaration(action) ||
+                this.isSameSimultaneousGroup(action, actionToUndo)
+            ) {
                 const redoAction = structuredClone(action)
                 // These fields will be re-assigned by the game engine
                 redoAction.index = undefined

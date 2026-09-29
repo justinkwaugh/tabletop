@@ -32,7 +32,8 @@ const State = Type.Object({
     drawPile: DrawBag(Token),
     drawn: Type.Optional(Token),
     currentAuction: Type.Optional(SimultaneousAuction),
-    notes: Type.Optional(Type.Record(Type.String(), Type.String()))
+    notes: Type.Optional(Type.Record(Type.String(), Type.String())),
+    tallies: Type.Optional(Type.Record(Type.String(), Type.Number()))
 })
 const CanonicalValidator = Compile(State)
 const ProjectedState = Visibility.createProjectionSchema(State)
@@ -46,6 +47,7 @@ class SyntheticState extends HydratableGameState<typeof ProjectedState, PlayerSt
     declare drawn?: ProjectedState['drawn']
     declare currentAuction?: ProjectedState['currentAuction']
     declare notes?: Record<string, string>
+    declare tallies?: Record<string, number>
 
     constructor(state: ProjectedState) {
         super(state, ProjectedValidator)
@@ -148,6 +150,30 @@ class NoteAction extends HydratableAction<typeof Note> {
     }
 }
 
+export const Tally = Type.Object({
+    ...PlayerAction.properties,
+    type: Type.Literal('tally'),
+    outOfTurn: Type.Literal(true),
+    sequenced: Type.Literal(true),
+    board: Type.Optional(Type.Literal(true))
+})
+export type Tally = Type.Static<typeof Tally>
+const TallyValidator = Compile(Tally)
+class TallyAction extends HydratableAction<typeof Tally> {
+    declare playerId: string
+    declare board?: true
+    constructor(action: Tally) {
+        super(action, TallyValidator)
+    }
+    apply(state: SyntheticState) {
+        state.tallies = {
+            ...state.tallies,
+            [this.playerId]: (state.tallies?.[this.playerId] ?? 0) + 1
+        }
+        if (this.board) state.board.push(-1)
+    }
+}
+
 class Initializer extends BaseGameInitializer<ProjectedState, SyntheticState> {
     readonly supportsStartingPositions = true
     initializeGameState(
@@ -186,16 +212,17 @@ export const SyntheticRuntime = {
             if (OpenAuctionValidator.Check(action)) return new OpenAuctionAction(action)
             if (BidValidator.Check(action)) return new BidAction(action)
             if (NoteValidator.Check(action)) return new NoteAction(action)
+            if (TallyValidator.Check(action)) return new TallyAction(action)
             throw Error('Unknown synthetic Action')
         }
     },
     playerColors: [Color.Red, Color.Blue, Color.Green],
-    apiActions: { step: Step, draw: Draw, bid: PlaceBid, note: Note },
+    apiActions: { step: Step, draw: Draw, bid: PlaceBid, note: Note, tally: Tally },
     stateHandlers: {
         playing: {
             enter() {},
             validActionsForPlayer() {
-                return ['step', 'draw', 'bid', 'note']
+                return ['step', 'draw', 'bid', 'note', 'tally']
             },
             isValidAction(action: GameAction) {
                 return (
@@ -203,7 +230,8 @@ export const SyntheticRuntime = {
                     DrawValidator.Check(action) ||
                     OpenAuctionValidator.Check(action) ||
                     BidValidator.Check(action) ||
-                    (NoteValidator.Check(action) && action.text !== 'invalid')
+                    (NoteValidator.Check(action) && action.text !== 'invalid') ||
+                    TallyValidator.Check(action)
                 )
             },
             onAction(action: GameAction, context: MachineContext<SyntheticState>) {
@@ -223,7 +251,8 @@ export const SyntheticRuntime = {
             draw: Draw,
             openAuction: OpenAuction,
             bid: PlaceBid,
-            note: Note
+            note: Note,
+            tally: Tally
         })
     }
 } satisfies GameRuntime<ProjectedState, SyntheticState>

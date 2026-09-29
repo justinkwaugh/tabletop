@@ -279,7 +279,7 @@ describe('normalized runtime configuration', () => {
         expect(normalizeGame(game, configurator)).toBe(game)
 
         const replay = new GameEngine(noteGameRuntime)
-        expect(replay.getValidActionTypesForPlayer(game, state, 'p1')).toEqual(['step', 'note'])
+        expect(replay.getValidActionTypesForPlayer(game, state, 'p1')).toEqual(['step', 'note', 'tally'])
         expect(game.config).toEqual({ retained: null })
     })
 })

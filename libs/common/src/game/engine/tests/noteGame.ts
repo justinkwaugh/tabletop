@@ -22,7 +22,8 @@ const NoteGameSchema = Type.Object({
     ...GameState.properties,
     machineState: Type.Literal('playing'),
     steps: Type.Array(Type.String()),
-    notes: Type.Record(Type.String(), Type.String())
+    notes: Type.Record(Type.String(), Type.String()),
+    tallies: Type.Record(Type.String(), Type.Number())
 })
 export type NoteGameState = Type.Static<typeof NoteGameSchema>
 const Validator = Compile(NoteGameSchema)
@@ -34,6 +35,7 @@ export class HydratedNoteGameState
     declare machineState: 'playing'
     declare steps: string[]
     declare notes: Record<string, string>
+    declare tallies: Record<string, number>
     constructor(data: NoteGameState) {
         super(data, Validator)
     }
@@ -72,6 +74,27 @@ class HydratedNote extends HydratableAction<typeof Note> {
     }
 }
 
+export const Tally = Type.Object({
+    ...PlayerAction.properties,
+    type: Type.Literal('tally'),
+    outOfTurn: Type.Literal(true),
+    sequenced: Type.Literal(true),
+    step: Type.Optional(Type.Literal(true))
+})
+export type Tally = Type.Static<typeof Tally>
+const TallyValidator = Compile(Tally)
+class HydratedTally extends HydratableAction<typeof Tally> {
+    declare playerId: string
+    declare step?: true
+    constructor(data: Tally) {
+        super(data, TallyValidator)
+    }
+    apply(state: HydratedNoteGameState): void {
+        state.tallies[this.playerId] = (state.tallies[this.playerId] ?? 0) + 1
+        if (this.step) state.steps.push(`tally:${this.playerId}`)
+    }
+}
+
 class Initializer extends BaseGameInitializer<NoteGameState, HydratedNoteGameState> {
     initializeGameState(game: Game, state: UninitializedGameState): HydratedNoteGameState {
         const playerIds = game.players.map((player) => player.id)
@@ -81,6 +104,7 @@ class Initializer extends BaseGameInitializer<NoteGameState, HydratedNoteGameSta
             machineState: 'playing',
             steps: [],
             notes: {},
+            tallies: {},
             players: playerIds.map((playerId, index) => ({
                 playerId,
                 color: [Color.Red, Color.Blue, Color.Green][index]
@@ -101,12 +125,13 @@ export const noteGameRuntime: GameRuntime<NoteGameState, HydratedNoteGameState> 
         hydrateAction: (action) => {
             if (StepValidator.Check(action)) return new HydratedStep(action)
             if (NoteValidator.Check(action)) return new HydratedNote(action)
+            if (TallyValidator.Check(action)) return new HydratedTally(action)
             throw Error(`Unknown action ${action.type}`)
         }
     },
     canonicalStateValidator: Validator,
     playerColors: [Color.Red, Color.Blue, Color.Green],
-    apiActions: { step: Step, note: Note },
+    apiActions: { step: Step, note: Note, tally: Tally },
     stateHandlers: {
         playing: {
             enter(context: MachineContext<HydratedNoteGameState>) {
@@ -117,10 +142,16 @@ export const noteGameRuntime: GameRuntime<NoteGameState, HydratedNoteGameState> 
                 playerId: string,
                 context: MachineContext<HydratedNoteGameState>
             ) {
-                return context.gameState.isActivePlayer(playerId) ? ['step', 'note'] : ['note']
+                return context.gameState.isActivePlayer(playerId)
+                    ? ['step', 'note', 'tally']
+                    : ['note', 'tally']
             },
             isValidAction(action: GameAction) {
-                return StepValidator.Check(action) || NoteValidator.Check(action)
+                return (
+                    StepValidator.Check(action) ||
+                    NoteValidator.Check(action) ||
+                    TallyValidator.Check(action)
+                )
             },
             onAction(action: GameAction, context: MachineContext<HydratedNoteGameState>) {
                 const state = context.gameState
@@ -192,5 +223,25 @@ export function note(
         supersedable: true,
         text,
         index
+    }
+}
+
+export function tally(
+    id: string,
+    gameId: string,
+    playerId: string,
+    index?: number,
+    options: { step?: true } = {}
+): Tally {
+    return {
+        id,
+        gameId,
+        type: 'tally',
+        source: ActionSource.User,
+        playerId,
+        outOfTurn: true,
+        sequenced: true,
+        index,
+        ...options
     }
 }

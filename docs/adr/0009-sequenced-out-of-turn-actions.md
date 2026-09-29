@@ -12,4 +12,4 @@ A Player acting outside their turn can race another Player from the same Game St
 
 ## Consequences
 
-The host's reply must tell a Game Client when its Action was recorded after Actions it raced, so the Game Client adopts the canonical order without reporting an error. This changes a `TabletopApi` result consumed by a Game Session ([ADR 0004](0004-game-ui-host-bridge-contract.md)).
+The host's reply tells a Game Client when its Action was recorded after Actions it raced by returning those Actions as missing Actions, which a Game Session already places before its own. The reconciled Action is adopted without an error, and the Game UI Host Bridge Contract ([ADR 0004](0004-game-ui-host-bridge-contract.md)) is unchanged. The Game Runtime that enforces these rules runs in the host as well as in each UI Artifact, so the host must be deployed first; a Game Title adopting a sequenced type then republishes its Logic and UI Artifacts together.

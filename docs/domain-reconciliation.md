@@ -15,28 +15,12 @@ Unless stated otherwise, every open item below is documented but not implemented
 
 ## Game Runtime
 
-### Supplied Action index zero bypasses stale-index handling
-
-- **Classification**: Defect
-- **Observed**: A truthiness check treats Action index `0` as absent. A stale Action based at index zero can therefore bypass the usual offset calculation and non-simultaneous rejection. Hosted missing-Action handling inherits the engine's offset.
-- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:334`; `libs/backend-services/src/games/gameService.ts:1057`
-- **Invariant**: Every supplied Action index is checked, including zero. Acceptance from a stale base is limited to members of a Simultaneous Action Group, unsequenced Out-of-Turn Actions whatever they raced, and races that pass a Commutation Proof ([ADR 0009](adr/0009-sequenced-out-of-turn-actions.md)). A stale Sequenced Out-of-Turn Action is never accepted without that proof.
-
 ### Action Reversal and Undo policy are correctly separated
 
 - **Classification**: Aligned
 - **Observed**: `GameEngine.undoProcessedAction` mechanically applies an undo patch. Candidate selection and authorization are performed by the Game Client and Game Lifecycle layers.
 - **Evidence**: `libs/common/src/game/engine/gameEngine.ts:277`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:231`; `libs/backend-services/src/games/gameService.ts:1228`
 - **Invariant**: Game Runtime owns Action Reversal; Game Client selects an Undo Candidate; Game Lifecycle authorizes Hosted Undo.
-
-### Sequenced Out-of-Turn Actions are not implemented
-
-- **Classification**: Planned change
-- **Observed**: The Game Runtime, host, and Game Client recognise only `outOfTurn`. The engine and host accept any Action carrying it at a stale index, and host Undo authorization and Game Client Undo Candidate selection treat every such Action as a declaration. No Commutation Proof exists, and the host's reply cannot report a later recorded index.
-- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:338`; `libs/backend-services/src/games/gameService.ts:1071`; `libs/backend-services/src/games/gameService.ts:1324`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:262`; `libs/frontend-components/src/lib/model/gameUndo.ts:28`
-- **Invariant**: Sequenced Out-of-Turn Actions and Commutation Proofs follow [ADR 0009](adr/0009-sequenced-out-of-turn-actions.md). Because the current host would accept a sequenced Action at a stale index, the host must support them before any Logic Artifact registers a sequenced type, and a Game Title adopting one republishes its Logic and UI Artifacts together.
-
-## 18xx Game Family
 
 ### 1889 off-turn private powers are expressed through Active Players
 
