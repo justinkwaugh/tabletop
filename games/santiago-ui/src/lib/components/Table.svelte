@@ -36,6 +36,7 @@
     const session = $derived(gameSession as SantiagoGameSession)
     const state = $derived(session.gameState)
     const isEndOfGame = $derived(state.machineState === MachineState.EndOfGame)
+    const isTileReveal = $derived(state.machineState === MachineState.TileReveal)
     const isBidding = $derived(state.machineState === MachineState.Bidding)
     const isPlanting = $derived(state.machineState === MachineState.PlantingPhase)
     const myId = $derived(session.myPlayer?.id)
@@ -92,6 +93,16 @@
     font-family: 'Lora', ui-serif, Georgia, serif;
 }
 </style>
+
+{#snippet drawPile()}
+    <img src={desertUrl} alt="tiles remaining"
+         class="w-full h-full object-cover"
+         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+    <span class="absolute inset-0 flex items-center justify-center text-white font-black text-[36px]"
+          style="text-shadow: 0 1px 3px rgba(0,0,0,0.9)">
+        {state.getRemainingTileCount()}
+    </span>
+{/snippet}
 
 <CustomFont fontFamily="Bitter" url={BitterFont} format="woff2" />
 <CustomFont fontFamily="Lora" url={LoraFont} format="woff2" />
@@ -161,10 +172,11 @@
                              the box ScalingWrapper actually measures and doesn't clip. -->
                         <div class="pl-8 pr-8 pt-4">
                             <div class="flex items-start gap-4">
-                                {#if displayTiles.length > 0}
+                                {#if displayTiles.length > 0 || isTileReveal}
                                     <!-- Revealed tiles (auction, selection, or neutral placement,
                                          whichever phase we're in) — a vertical strip to the
-                                         board's left, top-aligned with it, for the whole round.
+                                         board's left, top-aligned with it, for the whole round;
+                                         during TileReveal it holds just the draw pile.
                                          No label: position and the toolbar's own phase hint
                                          already make it obvious what these are. mt-5 nudges the
                                          whole strip down slightly — the selected tile's scale-up
@@ -214,15 +226,20 @@
                                             {/if}
                                         {/each}
                                         {#if state.getRemainingTileCount() > 0}
-                                            <div class="relative rounded-md overflow-hidden" style="width:{CELL_W}px; height:{CELL_H}px">
-                                                <img src={desertUrl} alt="tiles remaining"
-                                                     class="w-full h-full object-cover"
-                                                     style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                                                <span class="absolute inset-0 flex items-center justify-center text-white font-black text-[36px]"
-                                                      style="text-shadow: 0 1px 3px rgba(0,0,0,0.9)">
-                                                    {state.getRemainingTileCount()}
-                                                </span>
-                                            </div>
+                                            {#if session.canRevealTiles}
+                                                <button
+                                                    onclick={() => session.revealTiles()}
+                                                    aria-label="Reveal this round's fields"
+                                                    class="relative rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                    style="width:{CELL_W}px; height:{CELL_H}px"
+                                                >
+                                                    {@render drawPile()}
+                                                </button>
+                                            {:else}
+                                                <div class="relative rounded-md overflow-hidden" style="width:{CELL_W}px; height:{CELL_H}px">
+                                                    {@render drawPile()}
+                                                </div>
+                                            {/if}
                                         {/if}
                                     </div>
                                 {/if}

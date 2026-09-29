@@ -53,7 +53,7 @@ export class HydratedEndRoundEvent
         super(data, EndRoundEventValidator)
     }
 
-    apply(state: HydratedSantiagoGameState) {
-        if ((state.systemVersion ?? 1) >= 3 && !state.isBagEmpty()) this.revealsInfo = true
+    apply(_state: HydratedSantiagoGameState) {
+        // No state change — ExtraIrrigationStateHandler.onAction applies the drought and income
     }
 }

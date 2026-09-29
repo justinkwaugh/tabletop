@@ -90,13 +90,25 @@ function scenario(source = game, version = 3) {
 
 describe('Santiago visibility', () => {
     it('preserves pre-adoption v2 setup and saved continuation', () => {
-        expect(initialize(game, 2)).toEqual(legacy.initial)
+        const source = { ...game, protectedInformation: undefined }
+        const initial = initialize(game, 2)
+        expect(initial.machineState).toBe(MachineState.TileReveal)
+        expect(initial.revealedTiles).toEqual([])
         assert(
             SantiagoGameStateValidator.Check(legacy.initial),
             'Legacy state must remain canonical'
         )
+        const revealed = engine.executeCanonicalAction({
+            game: source,
+            state: initial,
+            action: nextAction(initial, game.id)
+        }).updatedState
+        expect({
+            ...revealed,
+            actionCount: legacy.initial.actionCount,
+            actionChecksum: legacy.initial.actionChecksum
+        }).toEqual(legacy.initial)
         let state: SantiagoProjectedState = structuredClone(legacy.initial)
-        const source = { ...game, protectedInformation: undefined }
         expect(Visibility.getGameVisibility(source, SantiagoRuntime)).toBeUndefined()
         for (const action of legacy.actions) {
             state = engine.executeCanonicalAction({
@@ -175,8 +187,30 @@ describe('Santiago visibility', () => {
 
     it('guards hidden reads while permitting owner bids and projected action discovery', () => {
         const source = { ...game, config: { publicMoney: false } }
-        const state = initialize(source)
-        const perspective = { kind: 'player', playerId: state.activePlayerIds[0] } as const
+        const unrevealed = initialize(source)
+        const perspective = { kind: 'player', playerId: unrevealed.activePlayerIds[0] } as const
+        const reveal = nextAction(unrevealed, game.id)
+        expect(
+            engine.getValidActionTypesForPlayer(
+                source,
+                project(unrevealed, source, perspective),
+                perspective.playerId
+            )
+        ).toEqual([ActionType.RevealTiles])
+        expect(() =>
+            engine.executeAction({
+                game: source,
+                state: project(unrevealed, source, perspective),
+                action: reveal,
+                perspective
+            })
+        ).toThrow(Visibility.UnavailableProjectedValueError)
+        const state = engine.executeCanonicalAction({
+            game: source,
+            state: unrevealed,
+            action: reveal
+        }).updatedState
+        expect(state.activePlayerIds).toEqual([perspective.playerId])
         const visible = project(state, source, perspective)
         const guarded = SantiagoRuntime.visibility.state.guardForExecution(
             SantiagoRuntime.hydrator.hydrateState(visible),
@@ -205,6 +239,7 @@ describe('Santiago visibility', () => {
     it('registers every action and strips canonical patches without sealing public bids', () => {
         expect(Object.keys(SantiagoApiActions).sort()).toEqual(Object.values(ActionType).sort())
         const s = scenario()
+        s.act()
         const bid = { ...nextAction(s.state, game.id), amount: 3 }
         const action = s.act(bid).processedActions[0]
         const visible = SantiagoRuntime.visibility.actions.project(action, spectator)
@@ -214,14 +249,32 @@ describe('Santiago visibility', () => {
         expect(visible.undoPatch).toBeUndefined()
     })
 
-    it('marks manual spring placement and subsequent tile draws as information reveals', () => {
+    it('marks only the tile reveals as information reveals, leaving round rollover undoable', () => {
         const source = { ...game, config: { randomizeSpring: false } }
         const s = scenario(source)
+        expect(s.act().processedActions[0].revealsInfo).toBeUndefined()
+        expect(s.state.machineState).toBe(MachineState.TileReveal)
+        expect(s.state.round).toBe(1)
+        expect(s.state.revealedTiles).toEqual([])
         expect(s.act().processedActions[0].revealsInfo).toBe(true)
+        expect(s.state.machineState).toBe(MachineState.Bidding)
+        expect(s.state.revealedTiles).toHaveLength(4)
         while (s.state.round < 2) s.act()
         const endRound = s.actions.find((action) => action.type === ActionType.EndRoundEvent)
-        expect(endRound?.revealsInfo).toBe(true)
+        expect(endRound?.revealsInfo).toBeUndefined()
+        expect(s.state.machineState).toBe(MachineState.TileReveal)
+        expect(s.state.revealedTiles).toEqual([])
+        const previousBidder = s.state.biddingOrder[0]
+        s.act()
+        expect(s.actions.at(-1)).toMatchObject({
+            type: ActionType.RevealTiles,
+            playerId: previousBidder,
+            revealsInfo: true
+        })
         expect(s.state.revealedTiles).toHaveLength(4)
+        for (const action of s.actions) {
+            expect(action.revealsInfo ?? false).toBe(action.type === ActionType.RevealTiles)
+        }
     })
 
     it.each([3, 4, 5])('samples legal bags from public board tiles with %s players', (count) => {
@@ -233,7 +286,7 @@ describe('Santiago visibility', () => {
             }))
         }
         const s = scenario(source)
-        while (s.state.round < 3) s.act()
+        while (s.state.round < 3 || s.state.machineState === MachineState.TileReveal) s.act()
         const visible = project(s.state, source)
         const first = populate(visible, source, 123)
         const second = populate(visible, source, 789)

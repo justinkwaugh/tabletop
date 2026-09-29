@@ -17,6 +17,8 @@ export function nextAction(state: SantiagoProjectedState, gameId: string) {
     switch (state.machineState) {
         case MachineState.SpringPlacement:
             return { ...action, type: ActionType.PlaceSpring, col: 2, row: 1 }
+        case MachineState.TileReveal:
+            return { ...action, type: ActionType.RevealTiles }
         case MachineState.Bidding:
             return { ...action, type: ActionType.PlaceBid, amount: 0 }
         case MachineState.PlantingPhase: {

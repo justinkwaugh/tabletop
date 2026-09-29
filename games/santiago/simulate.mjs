@@ -126,6 +126,7 @@ function buildAction(type, playerId, state) {
             return { ...base, segment: segs[0] }
         }
 
+        case ActionType.RevealTiles:
         case ActionType.Pass:
             return base
 

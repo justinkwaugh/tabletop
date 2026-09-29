@@ -48,6 +48,7 @@
     const hasActionContent = $derived(
         !session.isViewingHistory && (
             isMySpringPlacementTurn ||
+            session.canRevealTiles ||
             (isBidding && (isBiddingMyTurn || biddingRows.length > 0)) ||
             isMyPlantTurn || isMyNeutralPlacementTurn ||
             (isBuilding && (isCurrentProposer || isOverseerDeciding || bribeRows.length > 0)) ||
@@ -66,6 +67,10 @@
         {#if isMySpringPlacementTurn}
             <span class="shrink-0 whitespace-nowrap text-amber-300 font-semibold">Place the spring</span>
             <span class="shrink-0 whitespace-nowrap text-sm text-amber-500">Click a highlighted intersection on the board</span>
+
+        <!-- TILE REVEAL: THE FIRST BIDDER OPENS THE ROUND -->
+        {:else if session.canRevealTiles}
+            <span class="shrink-0 whitespace-nowrap text-amber-300">Click the draw pile beside the board to reveal this round's fields.</span>
 
         <!-- BIDDING -->
         {:else if isBidding}

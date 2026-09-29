@@ -8,6 +8,10 @@ Private-money Games disable entry into Exploration in every perspective and phas
 
 History uses 12-pixel outlined dots centered on the timeline, including action and game boundary entries. Player names designated white render at full brightness in panels, bidding, history, and status text.
 
+## Tile reveal
+
+Each round opens in TileReveal. The tile strip beside the board shows only the draw pile with its public count. For the round's first bidder in the current Player Perspective, the pile is a button with a hover scale, and the action bar above the board prompts them to click it. Every other perspective, history navigation, and the hotseat non-active view show the same pile as a static count. Clicking sends RevealTiles through the host; the local optimistic attempt is skipped because the draw reads the concealed bag. The reveal is the round's only Undo barrier, so the toolbar's Undo stays available to whoever acted last in the previous round until the pile is clicked.
+
 ## Coexistence and precedence
 
 EndOfGame disclosure takes precedence over private-money presentation. History uses the displayed state's phase, so navigating back before the end restores private presentation. Perspective changes replace the permitted state; values learned through Host View must not remain in a subsequent Player or Spectator representation.
@@ -29,4 +33,5 @@ Paper texture paints behind content within an isolated stacking context. It may 
 - Start a Public Money protected Game as Spectator: all balances are delivered, the bag remains concealed, and Exploration samples a playable complete bag. Submit a bid there and exit: the original action count and concealed bag return. Automated browser test.
 - Complete a private-money Game, navigate backward and forward through history: end-game money is public, earlier opponent balances remain omitted, and tile order never enters projected history. Automated logic conformance test.
 
+- Create a Game: the first bidder sees the draw pile and the reveal prompt with no bid controls; clicking the pile reveals four tiles, the count drops by four, and bid controls appear. In a later round, after the last personal-canal decision, Undo remains available to that player until the pile is clicked, and disappears once it is. The reveal click and the reappearance of bid controls are covered by the automated browser test; the count drop and Undo barrier are manual browser verification.
 - Create a Game and place a bid: panel and inline names retain full-white text; History shows one 12-pixel dot per entry aligned with the timeline. Verified in Chromium with rendered-pixel and geometry checks.

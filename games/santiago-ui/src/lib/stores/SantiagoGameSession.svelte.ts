@@ -4,6 +4,8 @@ import {
     MachineState,
     HydratedSantiagoGameState,
     PlaceSpring,
+    RevealTiles,
+    HydratedRevealTiles,
     PlaceBid,
     PlaceField,
     PlaceNeutralTile,
@@ -133,6 +135,11 @@ export class SantiagoGameSession extends GameSession<
     get validSpringSpots(): Set<string> {
         if (this.gameState.machineState !== MachineState.SpringPlacement) return new Set()
         return new Set(validSpringPlacements().map((p) => `${p.col},${p.row}`))
+    }
+
+    get canRevealTiles(): boolean {
+        if (this.isViewingHistory || !this.isMyTurn || !this.myPlayer) return false
+        return HydratedRevealTiles.canRevealTiles(this.gameState, this.myPlayer.id)
     }
 
     // True when the local player is the highest bidder who must place the neutral tile (3-player only).
@@ -276,6 +283,8 @@ export class SantiagoGameSession extends GameSession<
 
     nameForActionType(actionType: string): string {
         switch (actionType) {
+            case ActionType.RevealTiles:
+                return 'Reveal Fields'
             case ActionType.PlaceBid:
                 return 'Place Bid'
             case ActionType.PlaceField:
@@ -291,6 +300,14 @@ export class SantiagoGameSession extends GameSession<
 
     async placeSpring(col: number, row: number) {
         const action = this.createPlayerAction(PlaceSpring, { col, row })
+        await this.applyAction(action)
+    }
+
+    // The draw reads the concealed bag, so the host must execute it; revealsInfo skips the
+    // optimistic local attempt and marks the undo barrier.
+    async revealTiles() {
+        if (!this.canRevealTiles) return
+        const action = this.createPlayerAction(RevealTiles, { revealsInfo: true })
         await this.applyAction(action)
     }
 

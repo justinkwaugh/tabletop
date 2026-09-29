@@ -36,6 +36,7 @@ async function createGame(page: Page, privateMoney: boolean) {
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
+    await page.getByRole('button', { name: "Reveal this round's fields", exact: true }).click()
     await expect(page.getByRole('button', { name: 'Place Bid', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Options', exact: true }).click()
     await page.getByText('Protected mode', { exact: true }).click()
@@ -99,7 +100,7 @@ test('private money, public tile count and player bids survive perspective switc
     await page.getByRole('button', { name: 'Place Bid', exact: true }).click()
     await expect
         .poll(() => page.evaluate(() => window.santiagoSession.gameState.actionCount))
-        .toBe(2)
+        .toBe(3)
     expect(errors).toEqual([])
 })
 
@@ -118,12 +119,12 @@ test('public-money projected exploration creates a playable bag and returns to t
     await page.getByRole('button', { name: 'Place Bid', exact: true }).click()
     await expect
         .poll(() => page.evaluate(() => window.santiagoSession.gameState.actionCount))
-        .toBe(1)
+        .toBe(2)
     await page.getByRole('button', { name: 'Back to game', exact: true }).click()
     await expect.poll(() => page.evaluate(() => window.santiagoSession.isExploring)).toBe(false)
     await expect.poll(async () => (await visibleState(page)).tiles).toBe(0)
     await expect
         .poll(() => page.evaluate(() => window.santiagoSession.gameState.actionCount))
-        .toBe(0)
+        .toBe(1)
     expect(errors).toEqual([])
 })

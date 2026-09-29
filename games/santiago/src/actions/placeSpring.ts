@@ -39,7 +39,6 @@ export class HydratedPlaceSpring
     }
 
     apply(state: HydratedSantiagoGameState) {
-        if ((state.systemVersion ?? 1) >= 3) this.revealsInfo = true
         state.board.spring = { col: this.col, row: this.row }
     }
 }
