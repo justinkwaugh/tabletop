@@ -18,7 +18,14 @@ import {
     isDeclinePrivateTile,
     isLayPrivateTile
 } from './layPrivateTile.js'
-import { ExchangePrivate, HydratedExchangePrivate, isExchangePrivate } from './exchangePrivate.js'
+import {
+    ExchangePrivate,
+    ExchangePrivateOutOfTurn,
+    HydratedExchangePrivate,
+    HydratedExchangePrivateOutOfTurn,
+    isExchangePrivate,
+    isExchangePrivateOutOfTurn
+} from './exchangePrivate.js'
 
 export function privateActions(rules: {
     privateRules: PrivateRules
@@ -26,7 +33,22 @@ export function privateActions(rules: {
     stockRules: StockRules
     trackRules: TrackRules
     trainRules: TrainRules
+    outOfTurnPrivatePowers?: boolean
 }): ActionDefinition[] {
+    const outOfTurnActions = rules.outOfTurnPrivatePowers
+        ? [
+              defineAction(
+                  ExchangePrivateOutOfTurn,
+                  isExchangePrivateOutOfTurn,
+                  (action) =>
+                      new HydratedExchangePrivateOutOfTurn(
+                          action,
+                          rules.privateRules,
+                          rules.stockRules
+                      )
+              )
+          ]
+        : []
     return [
         defineAction(
             ContinueOperatingRound,
@@ -54,6 +76,7 @@ export function privateActions(rules: {
             ExchangePrivate,
             isExchangePrivate,
             (action) => new HydratedExchangePrivate(action, rules.privateRules, rules.stockRules)
-        )
+        ),
+        ...outOfTurnActions
     ]
 }

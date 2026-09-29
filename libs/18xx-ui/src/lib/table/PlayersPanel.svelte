@@ -9,6 +9,7 @@
     import { numberedSharesOwned } from './numberedShares.js'
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
+    import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentBadge from '../finance/PresidentBadge.svelte'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
@@ -439,7 +440,10 @@
                                             description={session.privates.companies.find(
                                                 (company) => company.id === entry.company.id
                                             )?.description ?? ''}
-                                        /></th
+                                        />{#each session.privates.allExchangeOptions.filter((option) => option.playerId === player.playerId && option.privateCompanyId === entry.company.id) as option (option.certificateId)}<span
+                                                class="private-power"
+                                                ><PrivateExchangeButton {session} {option} /></span
+                                            >{/each}</th
                                     >
                                     <td class="amount"
                                         >{#if entry.income !== 0}{money(
@@ -785,6 +789,10 @@
     }
     .privates tr {
         cursor: pointer;
+    }
+    .private-power {
+        margin-left: 6px;
+        white-space: nowrap;
     }
     .privates td {
         width: 46px;

@@ -16,7 +16,7 @@ import {
     isFinishStockTurn,
     isAdvancePhase,
     isCompleteStockRound,
-    isExchangePrivate,
+    isPrivateExchangeAction,
     isReserveBid,
     isRaiseAuctionBid,
     isContributeTrainFunds,
@@ -213,7 +213,7 @@ export function historyDescription(
                 : undefined,
             important: true
         }
-    if (isExchangePrivate(action))
+    if (isPrivateExchangeAction(action))
         return {
             text: `Exchanged ${companyName(action.privateCompanyId)}`,
             detail: action.metadata

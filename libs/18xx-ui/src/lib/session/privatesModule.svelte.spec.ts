@@ -95,6 +95,57 @@ describe('PrivatesModule', () => {
         }
     )
 
+    it.each([true, false])(
+        'offers a player who is not active the sequenced exchange only when the title opts in (%s)',
+        async (optedIn) => {
+            const { session, applied } = privates()
+            const bank = { owner: { kind: 'bank' as const }, poolId: 'market' }
+            session.state.activePlayerIds = ['someone-else']
+            session.state.certificates.push(
+                {
+                    id: 'P:charter',
+                    companyId: 'P',
+                    kind: 'private',
+                    certificateLimitCount: 1,
+                    retired: false,
+                    owner: { kind: 'player', playerId: TestPlayerId }
+                },
+                ...createOrdinaryShareCertificates('R', [bank], bank)
+            )
+            const module = new PrivatesModule({
+                ...session,
+                rules: {
+                    ...session.rules,
+                    outOfTurnPrivatePowers: optedIn,
+                    privateRules: {
+                        ...minimalPrivateRules,
+                        exchangeTerms: () => ({
+                            certificateIds: ['R:share:1'],
+                            timing: 'any-turn',
+                            stockAction: 'none',
+                            ownershipLimit: 'ordinary'
+                        })
+                    }
+                }
+            })
+            expect(module.exchangeOffers).toEqual([])
+            if (!optedIn) {
+                expect(module.outOfTurnExchangeOptions).toEqual([])
+                return
+            }
+            expect(module.outOfTurnExchangeOptions).toEqual([request])
+            module.selectExchange(request)
+            await module.confirmExchange()
+            expect(applied[0]).toMatchObject({
+                type: 'ExchangePrivateOutOfTurn',
+                playerId: TestPlayerId,
+                outOfTurn: true,
+                sequenced: true,
+                certificateId: 'R:share:1'
+            })
+        }
+    )
+
     it('lists private companies with the title description', () => {
         expect(privates().module.companies).toMatchObject([{ id: 'P', description: 'About P' }])
     })

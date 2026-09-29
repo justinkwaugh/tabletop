@@ -132,8 +132,8 @@ persistent control in the action area. Both appear whether or not it is the owne
 turn, including while a non-active owner's action area shows the position summary.
 Port placement uses the map's existing private-lay picker restricted to its
 locations. The request is a toggle with Cancel; its owner alone sees it and the last
-drop reason, as with "Autobuy stopped". Hotseat follows the Standing Instruction
-precedent of acting for a player while viewing as them.
+drop reason, as with "Autobuy stopped". In local hotseat, where one person plays every
+seat, these controls act for the owner directly.
 
 Every exchange and port lay, by either Action type, gives the other players a short
 in-table notice naming the player and effect, such as "Alex exchanged Dôgo for an Iyo

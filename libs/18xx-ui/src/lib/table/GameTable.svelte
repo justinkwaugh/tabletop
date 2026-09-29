@@ -13,6 +13,8 @@
     } from './tableWorkspace.js'
     import { historyMapFocus } from '../maps/historyMapFocus.js'
     import { routeColor } from '../routes/routePresentation.js'
+    import TableNotices from './TableNotices.svelte'
+    import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
     import {
         companyFocusLocations,
@@ -985,6 +987,7 @@
                     {/snippet}
                     {#snippet actionContent()}
                         <div class="action-body">
+                            <TableNotices notices={session.notices} />
                             <OperatingSteps
                                 {session}
                                 {privatePurchaseLabel}
@@ -996,6 +999,7 @@
                                     additionalActions={additionalStockActions}
                                     readOnly={readOnlyPosition}
                                 />
+                                <PrivatePowerControls {session} />
                             {/if}
                             <section class="action-panel" aria-label="Current action">
                                 {#if readOnlyPosition}

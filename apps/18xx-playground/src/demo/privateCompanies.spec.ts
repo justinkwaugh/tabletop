@@ -1,7 +1,7 @@
 import { historyCompanyChanges } from '../../../../libs/18xx-ui/src/lib/table/historyCompanyChanges.js'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, proveCommutation, type GameAction } from '@tabletop/common'
 import {
     Definition as Top,
     TheOldPrincePrivateRules,
@@ -16,6 +16,7 @@ import {
     Shikoku1889TrainRules
 } from '@tabletop/shikoku-1889'
 import {
+    nextOperatingCompany,
     isAdvancePhase,
     evaluatePrivateExchange,
     evaluateSharePurchase,
@@ -48,6 +49,21 @@ function exchange(
     playerId = state.activePlayerIds[0]
 ) {
     return action(state, 'ExchangePrivate', { privateCompanyId, certificateId, playerId })
+}
+function exchangeOutOfTurn(
+    state: EighteenXXState,
+    privateCompanyId: string,
+    certificateId: string,
+    playerId: string
+) {
+    return action(state, 'ExchangePrivateOutOfTurn', {
+        privateCompanyId,
+        certificateId,
+        playerId,
+        outOfTurn: true,
+        sequenced: true,
+        index: state.actionCount
+    })
 }
 const Titles = [
     {
@@ -212,11 +228,18 @@ it('1889 exchanges during another stock turn without changing passes, purchases 
         state,
         action: action(state, 'FinishStockTurn')
     }).updatedState
-    expect(passed.activePlayerIds).toEqual(['blair', 'alex', 'casey'])
+    expect(passed.activePlayerIds).not.toContain('alex')
     expect(engine.getValidActionTypesForPlayer(game, passed, 'alex')).toEqual([
-        'ExchangePrivate',
+        'ExchangePrivateOutOfTurn',
         'SetStockInstruction'
     ])
+    expect(() =>
+        engine.executeCanonicalAction({
+            game,
+            state: passed,
+            action: exchange(passed, 'DR', 'IR:share:5', 'alex')
+        })
+    ).toThrow()
     expect(() =>
         engine.executeCanonicalAction({
             game,
@@ -227,11 +250,43 @@ it('1889 exchanges during another stock turn without changing passes, purchases 
     const result = engine.executeCanonicalAction({
         game,
         state: passed,
-        action: exchange(passed, 'DR', 'IR:share:5', 'alex')
+        action: exchangeOutOfTurn(passed, 'DR', 'IR:share:5', 'alex')
     }).updatedState
     expect(result.stockRound).toEqual(passed.stockRound)
     expect(result.turnManager).toEqual(passed.turnManager)
-    expect(result.activePlayerIds).toEqual(['blair', 'casey'])
+    expect(result.activePlayerIds).toEqual(passed.activePlayerIds)
+})
+it('1889 reconciles a Dôgo exchange racing a stock pass, but not one that takes the operator’s presidency', () => {
+    const racing = (
+        { game, engine, state }: ReturnType<typeof example>,
+        type: string,
+        fields: object = {}
+    ) => {
+        const recorded = engine.executeCanonicalAction({
+            game,
+            state,
+            action: { ...action(state, type, fields), index: state.actionCount }
+        })
+        return proveCommutation({
+            engine,
+            apiActions: Shikoku.runtime.apiActions,
+            game,
+            state: recorded.updatedState,
+            raced: recorded.processedActions,
+            late: exchangeOutOfTurn(state, 'DR', 'IR:share:5', 'alex')
+        })
+    }
+    const stock = example(Shikoku, 'privates')
+    const passed = stock.engine.executeCanonicalAction({
+        game: stock.game,
+        state: stock.state,
+        action: action(stock.state, 'FinishStockTurn')
+    }).updatedState
+    expect(racing({ ...stock, state: passed }, 'FinishStockTurn')).toEqual({ kind: 'commutes' })
+    const operating = example(Shikoku, 'powers')
+    expect(
+        racing(operating, 'FinishTrack', { companyId: nextOperatingCompany(operating.state) })
+    ).toMatchObject({ kind: 'invalid', reason: 'Player blair is not an active player' })
 })
 it('1889 Dôgo respects ownership limits and requires an IPO share, but can exchange before Iyo starts', () => {
     const { state } = example(Shikoku, 'privates')
@@ -393,11 +448,11 @@ it('1889 closes a corporate-owned Uno-Takamatsu Ferry at phase 5', () => {
 })
 it('1889 out-of-turn exchange transfers the operating presidency and preserves the company’s pending purchases', () => {
     const { game, engine, state } = example(Shikoku, 'private-events')
-    expect(state.activePlayerIds).toEqual(['blair', 'alex'])
+    expect(state.activePlayerIds).toEqual(['blair'])
     const result = engine.executeCanonicalAction({
         game,
         state,
-        action: exchange(state, 'DR', 'IR:share:5', 'alex')
+        action: exchangeOutOfTurn(state, 'DR', 'IR:share:5', 'alex')
     }).updatedState
     expect(result.machineState).toBe('BuyingTrains')
     expect(result.trainPurchaseStep).toEqual(state.trainPurchaseStep)

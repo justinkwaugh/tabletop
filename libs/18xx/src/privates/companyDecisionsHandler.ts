@@ -68,8 +68,11 @@ export class CompanyDecisionsHandler<
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
-        if (!state.activePlayerIds.includes(playerId) || nextCompanyToFloat(state, this.companies))
-            return []
+        if (nextCompanyToFloat(state, this.companies)) return []
+        if (!state.activePlayerIds.includes(playerId))
+            return pendingCompanyDecision(state)
+                ? []
+                : this.handler.validActionsForPlayer(playerId, context)
         if (state.purchaseOffer)
             return state.purchaseOffer.sellerPlayerId === playerId ? ['RespondToPurchaseOffer'] : []
         if (state.trackConsent)

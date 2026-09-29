@@ -88,6 +88,7 @@ it.each([Top, Shikoku])(
                 'RespondToPurchaseOffer',
                 'OfferPurchase',
                 'ExchangePrivate',
+                ...(definition === Shikoku ? ['ExchangePrivateOutOfTurn'] : []),
                 'BuyShares',
                 'SellShares',
                 'SetStockInstruction',
