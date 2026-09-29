@@ -12,32 +12,28 @@
             (option) => gameState.machineState !== 'StockRound' || !isActive(option.playerId)
         )
     )
-    const trackPowers = $derived(
-        session.privateActions.trackPowers.filter((power) => !isActive(power.playerId))
+    const trackPowers = $derived(session.privateActions.trackPowers)
+    const requestPlayers = $derived(
+        session.privates.requestPlayers.filter(
+            (playerId) =>
+                session.privates.hasRequest(playerId) ||
+                !trackPowers.some((power) => power.playerId === playerId)
+        )
     )
-    const requestPlayers = $derived(session.privates.requestPlayers)
     const selectedPower = $derived(session.privateActions.trackPowerSelection?.value)
     const prompts = $derived(session.presentation.privateTilePrompts ?? {})
-    const actors = $derived(
-        new Set([
-            ...exchanges.map((option) => option.playerId),
-            ...trackPowers.map((power) => power.playerId),
-            ...requestPlayers
-        ])
-    )
+    const shown = $derived(exchanges.length + trackPowers.length + requestPlayers.length > 0)
     const dropText: Record<PrivatePowerRequestDropReason, string> = {
         'no-legal-use': 'no legal use remained',
         'private-closed': 'the private closed',
         'owner-changed': 'the private changed owner'
     }
     function owner(playerId: string) {
-        return actors.size > 1 || playerId !== session.myPlayer?.id
-            ? `${session.getPlayerName(playerId)} · `
-            : ''
+        return playerId === session.myPlayer?.id ? '' : `${session.getPlayerName(playerId)} · `
     }
 </script>
 
-{#if actors.size}
+{#if shown}
     <div class="private-powers" role="group" aria-label="Private powers">
         {#each exchanges as option (`${option.playerId}:${option.privateCompanyId}:${option.certificateId}`)}
             <span class="power">
@@ -61,7 +57,7 @@
                 />
             </span>
         {/each}
-        {#if selectedPower && !isActive(selectedPower.playerId)}
+        {#if selectedPower}
             <span class="power prompt" role="status"
                 >Choose a location on the map
                 <button class="text" onclick={() => session.privateActions.clear()}>Cancel</button
