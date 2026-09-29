@@ -146,6 +146,7 @@ export class HydratedEighteenXXState
     declare gameEnding?: GameEnding
     declare finalWealth?: PlayerWealth[]
     declare privatePowerWindow?: PrivatePowerWindow
+    declare privatePowerRequests?: string[]
     declare purchaseOffer?: PurchaseOffer
     declare privateTrackLay?: PrivateTrackLay
     declare trackConsent?: TrackConsent

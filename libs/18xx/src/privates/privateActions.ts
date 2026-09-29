@@ -16,8 +16,19 @@ import {
     LayPrivateTile,
     HydratedLayPrivateTile,
     isDeclinePrivateTile,
-    isLayPrivateTile
+    isLayPrivateTile,
+    LayPrivateTileOutOfTurn,
+    HydratedLayPrivateTileOutOfTurn,
+    isLayPrivateTileOutOfTurn
 } from './layPrivateTile.js'
+import {
+    DropPrivatePowerRequest,
+    HydratedDropPrivatePowerRequest,
+    HydratedSetPrivatePowerRequest,
+    SetPrivatePowerRequest,
+    isDropPrivatePowerRequest,
+    isSetPrivatePowerRequest
+} from './privatePowerRequest.js'
 import {
     ExchangePrivate,
     ExchangePrivateOutOfTurn,
@@ -46,6 +57,30 @@ export function privateActions(rules: {
                           rules.privateRules,
                           rules.stockRules
                       )
+              ),
+              defineAction(
+                  LayPrivateTileOutOfTurn,
+                  isLayPrivateTileOutOfTurn,
+                  (action) =>
+                      new HydratedLayPrivateTileOutOfTurn(
+                          action,
+                          rules.privatePowerRules,
+                          rules.trackRules
+                      )
+              )
+          ]
+        : []
+    const requestActions = rules.privatePowerRules.betweenTurnsPrivateIds?.length
+        ? [
+              defineAction(
+                  SetPrivatePowerRequest,
+                  isSetPrivatePowerRequest,
+                  (action) => new HydratedSetPrivatePowerRequest(action, rules.privatePowerRules)
+              ),
+              defineAction(
+                  DropPrivatePowerRequest,
+                  isDropPrivatePowerRequest,
+                  (action) => new HydratedDropPrivatePowerRequest(action)
               )
           ]
         : []
@@ -77,6 +112,7 @@ export function privateActions(rules: {
             isExchangePrivate,
             (action) => new HydratedExchangePrivate(action, rules.privateRules, rules.stockRules)
         ),
-        ...outOfTurnActions
+        ...outOfTurnActions,
+        ...requestActions
     ]
 }

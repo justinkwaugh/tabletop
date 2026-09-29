@@ -15,7 +15,8 @@ import {
 } from '../construction/trackConstruction.js'
 import { applyTrackLay } from '../construction/layTile.js'
 import { evaluatePrivateTrack, type PrivatePowerRules } from './privatePowers.js'
-import type { CompanyDecisionState } from './companyDecision.js'
+import { pendingCompanyDecision, type CompanyDecisionState } from './companyDecision.js'
+import { endPrivatePowerRequest } from './privatePowerRequest.js'
 export const LayPrivateTile = Type.Object(
     {
         ...PlayerAction.properties,
@@ -29,6 +30,44 @@ export const LayPrivateTile = Type.Object(
 )
 export type LayPrivateTile = Type.Static<typeof LayPrivateTile>
 const Validator = Compile(LayPrivateTile)
+type PrivateLay = Pick<LayPrivateTile, 'privateCompanyId' | 'playerId' | 'expectedCost'> &
+    TrackRequest
+
+function applyPrivateLay(
+    state: HydratedGameState & CompanyDecisionState,
+    lay: PrivateLay,
+    powers: PrivatePowerRules,
+    track: TrackRules
+): TrackLayDetails {
+    const details = evaluatePrivateTrack(
+        state,
+        lay.privateCompanyId,
+        lay.playerId,
+        lay,
+        powers,
+        track
+    ).details!
+    const terms = powers.trackTerms(state, lay.privateCompanyId, lay.playerId)!
+    applyTrackLay(state, track, details, terms.payer, false)
+    state.usedPrivatePowerIds.push(lay.privateCompanyId)
+    delete state.privateTrackLay
+    if (powers.betweenTurnsPrivateIds?.includes(lay.privateCompanyId))
+        endPrivatePowerRequest(state, lay.playerId)
+    return details
+}
+
+function costMatches(
+    state: CompanyDecisionState,
+    lay: PrivateLay,
+    powers: PrivatePowerRules,
+    track: TrackRules
+): boolean {
+    return (
+        evaluatePrivateTrack(state, lay.privateCompanyId, lay.playerId, lay, powers, track).details
+            ?.cost === lay.expectedCost
+    )
+}
+
 export class HydratedLayPrivateTile
     extends HydratableAction<typeof LayPrivateTile>
     implements LayPrivateTile
@@ -56,31 +95,76 @@ export class HydratedLayPrivateTile
             !state.purchaseOffer &&
             !state.trackConsent &&
             state.activePlayerIds.includes(this.playerId) &&
-            evaluatePrivateTrack(
-                state,
-                this.privateCompanyId,
-                this.playerId,
-                this,
-                this.#powers,
-                this.#track
-            ).details?.cost === this.expectedCost
+            costMatches(state, this, this.#powers, this.#track)
         )
     }
     apply(state: HydratedGameState & CompanyDecisionState): void {
         assert(this.isValid(state), 'Invalid private tile lay')
-        const details = evaluatePrivateTrack(
-            state,
-            this.privateCompanyId,
-            this.playerId,
-            this,
-            this.#powers,
-            this.#track
-        ).details!
-        const terms = this.#powers.trackTerms(state, this.privateCompanyId, this.playerId)!
-        applyTrackLay(state, this.#track, details, terms.payer, false)
-        state.usedPrivatePowerIds.push(this.privateCompanyId)
-        delete state.privateTrackLay
-        this.metadata = details
+        this.metadata = applyPrivateLay(state, this, this.#powers, this.#track)
+    }
+}
+
+export const LayPrivateTileOutOfTurn = Type.Object(
+    {
+        ...LayPrivateTile.properties,
+        type: Type.Literal('LayPrivateTileOutOfTurn'),
+        outOfTurn: Type.Literal(true),
+        sequenced: Type.Literal(true)
+    },
+    { additionalProperties: false }
+)
+export type LayPrivateTileOutOfTurn = Type.Static<typeof LayPrivateTileOutOfTurn>
+const OutOfTurnValidator = Compile(LayPrivateTileOutOfTurn)
+export function isLayPrivateTileOutOfTurn(action: GameAction): action is LayPrivateTileOutOfTurn {
+    return (
+        action instanceof HydratedLayPrivateTileOutOfTurn ||
+        (action.type === 'LayPrivateTileOutOfTurn' && OutOfTurnValidator.Check(action))
+    )
+}
+export function isPrivateTileLay(
+    action: GameAction
+): action is LayPrivateTile | LayPrivateTileOutOfTurn {
+    return isLayPrivateTile(action) || isLayPrivateTileOutOfTurn(action)
+}
+
+export class HydratedLayPrivateTileOutOfTurn
+    extends HydratableAction<typeof LayPrivateTileOutOfTurn>
+    implements LayPrivateTileOutOfTurn
+{
+    declare type: 'LayPrivateTileOutOfTurn'
+    declare playerId: string
+    declare privateCompanyId: string
+    declare companyId: string
+    declare locationId: string
+    declare definitionId: string
+    declare rotation: TrackRequest['rotation']
+    declare nodeMapping: TrackRequest['nodeMapping']
+    declare expectedCost: number
+    declare outOfTurn: true
+    declare sequenced: true
+    declare metadata?: TrackLayDetails
+    readonly #powers: PrivatePowerRules
+    readonly #track: TrackRules
+    constructor(data: LayPrivateTileOutOfTurn, powers: PrivatePowerRules, track: TrackRules) {
+        super(
+            data instanceof HydratedLayPrivateTileOutOfTurn ? data.dehydrate() : data,
+            OutOfTurnValidator
+        )
+        this.#powers = powers
+        this.#track = track
+    }
+    isValid(state: CompanyDecisionState): boolean {
+        return (
+            this.source === ActionSource.User &&
+            state.machineState === 'StockRound' &&
+            !pendingCompanyDecision(state) &&
+            !state.activePlayerIds.includes(this.playerId) &&
+            costMatches(state, this, this.#powers, this.#track)
+        )
+    }
+    apply(state: HydratedGameState & CompanyDecisionState): void {
+        assert(this.isValid(state), 'Invalid out-of-turn private tile lay')
+        this.metadata = applyPrivateLay(state, this, this.#powers, this.#track)
     }
 }
 export const DeclinePrivateTile = Type.Object(

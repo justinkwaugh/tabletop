@@ -71,6 +71,10 @@ export class PrivateActionsModule implements LocalSelection {
     choosePurchaseSource(source: 'mine' | 'other') {
         this.chooseSource(source)
     }
+    startTrackPower(power: PrivateTrackPower) {
+        this.chooseSource('powers')
+        this.chooseTrackPower(power)
+    }
     chooseTrackPower(power: PrivateTrackPower) {
         assert(
             this.trackPowers.some((option) => samePower(option, power)),

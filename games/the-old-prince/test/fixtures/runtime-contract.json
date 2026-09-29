@@ -1961,6 +1961,14 @@
         },
         "type": "array"
       },
+      "privatePowerRequests": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
       "privatePowerWindow": {
         "additionalProperties": false,
         "properties": {

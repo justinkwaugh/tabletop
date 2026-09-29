@@ -4,6 +4,12 @@ import {
     ExchangePrivateOutOfTurn,
     evaluatePrivateExchange,
     getCompany,
+    hasPrivatePowerRequest,
+    isDropPrivatePowerRequest,
+    isSetPrivatePowerRequest,
+    requestablePrivateIds,
+    SetPrivatePowerRequest,
+    type PrivatePowerRequestDropReason,
     outOfTurnExchangeOffers,
     nextCompanyToFloat,
     pendingCompanyDecision,
@@ -16,13 +22,18 @@ import { singleChoice } from './stagedSelection.svelte.js'
 
 type PrivatesState = Parameters<typeof privateExchangeOffers>[0] &
     Parameters<typeof pendingCompanyDecision>[0] &
-    Parameters<typeof nextCompanyToFloat>[0]
+    Parameters<typeof nextCompanyToFloat>[0] &
+    Parameters<typeof requestablePrivateIds>[0]
 
 export type PrivatesSession = ModuleSession<
     PrivatesState,
     Pick<
         EighteenXXTitleRules,
-        'privateRules' | 'stockRules' | 'companyRules' | 'outOfTurnPrivatePowers'
+        | 'privateRules'
+        | 'stockRules'
+        | 'companyRules'
+        | 'outOfTurnPrivatePowers'
+        | 'privatePowerRules'
     >
 >
 
@@ -94,6 +105,45 @@ export class PrivatesModule {
             : undefined
     })
 
+    requestPlayers = $derived.by(() => {
+        const { state, rules } = this.session
+        if (!this.session.interactive) return []
+        return state.players
+            .map((player) => player.playerId)
+            .filter(
+                (playerId) =>
+                    this.session.canActFor(playerId) &&
+                    (hasPrivatePowerRequest(state, playerId) ||
+                        requestablePrivateIds(state, playerId, rules.privatePowerRules).length > 0)
+            )
+    })
+    requestablePrivateNames(playerId: string) {
+        const { state, rules } = this.session
+        return requestablePrivateIds(state, playerId, rules.privatePowerRules).map(
+            (id) => getCompany(state, id).name
+        )
+    }
+    hasRequest(playerId: string) {
+        return hasPrivatePowerRequest(this.session.state, playerId)
+    }
+    lastRequestDrop(playerId: string): PrivatePowerRequestDropReason | undefined {
+        const last = this.session.recordedActions.findLast(
+            (action) =>
+                (isSetPrivatePowerRequest(action) && action.playerId === playerId) ||
+                (isDropPrivatePowerRequest(action) && action.requesterId === playerId)
+        )
+        return last && isDropPrivatePowerRequest(last) ? last.reason : undefined
+    }
+    async setRequest(playerId: string, requested: boolean) {
+        assert(this.requestPlayers.includes(playerId), 'This player cannot request a pause')
+        const action = this.session.createPlayerAction(SetPrivatePowerRequest, {
+            outOfTurn: true,
+            supersedable: true,
+            requested
+        })
+        action.playerId = playerId
+        await this.session.applyAction(this.session.withSupersededAction(action))
+    }
     exchangeCompany(certificateId: string) {
         const certificate = this.session.state.certificates.find(
             (item) => item.id === certificateId

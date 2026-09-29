@@ -24,7 +24,8 @@ function privates(availability = {}) {
         {
             privateRules: minimalPrivateRules,
             stockRules: minimalStockRules,
-            companyRules: minimalCompanyRules
+            companyRules: minimalCompanyRules,
+            privatePowerRules: { trackTerms: () => undefined, earlyTrainCompany: () => undefined }
         },
         [],
         availability

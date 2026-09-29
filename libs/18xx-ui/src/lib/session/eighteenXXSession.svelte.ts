@@ -50,6 +50,7 @@ import {
     type EighteenXXState,
     getCompany,
     isPrivateExchangeAction,
+    isPrivateTileLay,
     type Owner,
     type Portfolio
 } from '@tabletop/18xx'
@@ -310,6 +311,12 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
     }
     private noticeText(action: GameAction): string | undefined {
+        if (isPrivateTileLay(action)) {
+            const location = this.mapView.map.definition.locations.find(
+                (item) => item.id === action.locationId
+            )
+            return `${this.getPlayerName(action.playerId)} used ${getCompany(this.gameState, action.privateCompanyId).name} at ${location?.name ?? action.locationId}`
+        }
         if (!isPrivateExchangeAction(action)) return undefined
         const company = this.privates.exchangeCompany(action.certificateId)
         const article = /^[AEIOU]/i.test(company.name) ? 'an' : 'a'

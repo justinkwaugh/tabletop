@@ -4,7 +4,7 @@ import {
     LayTile,
     RequestTrackConsent,
     TrackConstruction,
-    isLayPrivateTile,
+    isPrivateTileLay,
     isLayTile,
     isRespondToTrackConsent,
     privateTrackConstruction,
@@ -68,10 +68,9 @@ export class TrackModule {
     canBuild = $derived.by(
         () =>
             this.session.interactive &&
-            (this.privateActions.trackPowerSelection
-                ? this.session.validActionTypes.includes('LayPrivateTile')
-                : !this.privateActions.selection &&
-                  this.session.validActionTypes.includes('FinishTrack'))
+            (!!this.privateActions.trackPowerSelection ||
+                (!this.privateActions.selection &&
+                    this.session.validActionTypes.includes('FinishTrack')))
     )
     showChoices = $derived.by(() => !this.session.viewingHistory && this.laying)
     private choicesByLocation = $derived.by(
@@ -127,7 +126,7 @@ export class TrackModule {
     constructionActions = $derived.by(() =>
         this.session.recordedActions.flatMap((action) => {
             const details =
-                isLayTile(action) || isLayPrivateTile(action)
+                isLayTile(action) || isPrivateTileLay(action)
                     ? action.metadata
                     : isRespondToTrackConsent(action) && action.metadata?.accepted
                       ? action.metadata.request.details

@@ -22,13 +22,6 @@ Unless stated otherwise, every open item below is documented but not implemented
 - **Evidence**: `libs/common/src/game/engine/gameEngine.ts:277`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:231`; `libs/backend-services/src/games/gameService.ts:1228`
 - **Invariant**: Game Runtime owns Action Reversal; Game Client selects an Undo Candidate; Game Lifecycle authorizes Hosted Undo.
 
-### 1889 off-turn private powers are expressed through Active Players
-
-- **Classification**: Planned change
-- **Observed**: `CompanyDecisionsHandler` adds every Player with a usable private tile power to the Active Players, such as the Mitsubishi Ferry owner throughout a stock round. The site treats those Players as awaited: they receive turn notifications, the dashboard and Game card show them on turn, the Game Client reports `isMyTurn`, and the 18xx table header names them. Separately, `BetweenCompaniesHandler` opens a private power window before a rival company for every owner with a legal use, rather than only for a requester. Private exchanges already use a Sequenced Out-of-Turn Action.
-- **Evidence**: `libs/18xx/src/privates/companyDecisionsHandler.ts:149`; `libs/18xx/src/privates/betweenCompaniesHandler.ts:61`; `libs/backend-services/src/games/gameService.ts:1146`; `apps/frontend/src/lib/utils/dashboardGames.ts:13`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:440`; `libs/18xx-ui/src/lib/table/TableHeader.svelte:78`
-- **Invariant**: Active Players are the Players the Game State Machine is waiting on to act. Off-turn private powers and Private Power Windows follow the [out-of-turn private powers design](../research/18xx/out-of-turn-private-powers-design.md).
-
 ## Game Client
 
 ### History is represented as a peer mode

@@ -1,6 +1,7 @@
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
     isLayTile,
+    isPrivateTileLay,
     isRequestTrackConsent,
     isRespondToTrackConsent,
     isPlaceStation,
@@ -102,6 +103,11 @@ export function historyDescription(
     if (isLayTile(action))
         return {
             text: `Laid track at ${action.locationId}`,
+            value: action.expectedCost ? money(action.expectedCost) : undefined
+        }
+    if (isPrivateTileLay(action))
+        return {
+            text: `Laid track at ${action.locationId} with ${companyName(action.privateCompanyId)}`,
             value: action.expectedCost ? money(action.expectedCost) : undefined
         }
     if (isPlaceStation(action))

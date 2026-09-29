@@ -1,4 +1,4 @@
-import { isLayTile, isLayPrivateTile, isRunTrains, type EighteenXXState } from '@tabletop/18xx'
+import { isLayTile, isPrivateTileLay, isRunTrains, type EighteenXXState } from '@tabletop/18xx'
 import { assert, assertExists, type GameAction } from '@tabletop/common'
 import jsonpatch from 'fast-json-patch'
 import {
@@ -11,7 +11,7 @@ import { stationMapTokens, type MapViewDefinition } from './stationPresentation.
 import { routeColor } from '../routes/routePresentation.js'
 
 export function isMapHistoryAction(action: GameAction) {
-    return isLayTile(action) || isLayPrivateTile(action) || isRunTrains(action)
+    return isLayTile(action) || isPrivateTileLay(action) || isRunTrains(action)
 }
 
 type MapSnapshot = Pick<
@@ -66,7 +66,7 @@ export class HistoricalMaps {
         }
         const snapshot = historicalMapSnapshot(state, actions, action.id)
         assert(
-            isLayTile(action) || isLayPrivateTile(action) || isRunTrains(action),
+            isLayTile(action) || isPrivateTileLay(action) || isRunTrains(action),
             'Historical map requires a company action'
         )
         const company = snapshot.companies.find((company) => company.id === action.companyId)
@@ -80,7 +80,7 @@ export class HistoricalMaps {
               }))
             : []
         const locationId =
-            isLayTile(action) || isLayPrivateTile(action) ? action.locationId : undefined
+            isLayTile(action) || isPrivateTileLay(action) ? action.locationId : undefined
         const selection: MapSelection | undefined = locationId
             ? { kind: 'hex', locationId }
             : undefined

@@ -2,7 +2,7 @@ import {
     isDistributeEarnings,
     isPlaceStation,
     isLayTile,
-    isLayPrivateTile,
+    isPrivateTileLay,
     isRespondToTrackConsent,
     isRunTrains,
     nextOperatingCompany,
@@ -35,7 +35,7 @@ export function historyMapFocus(state: EighteenXXState, action?: GameAction) {
             routes
         }
     }
-    if (action && (isLayTile(action) || isLayPrivateTile(action))) {
+    if (action && (isLayTile(action) || isPrivateTileLay(action))) {
         return {
             locations: [action.locationId],
             routes,

@@ -11,7 +11,7 @@
         isPlaceStation,
         isDistributeEarnings,
         isLayTile,
-        isLayPrivateTile,
+        isPrivateTileLay,
         isRespondToTrackConsent
     } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
@@ -135,7 +135,7 @@
                 ? session.getPlayerName(action.playerId)
                 : undefined
         const track =
-            isLayTile(action) || isLayPrivateTile(action)
+            isLayTile(action) || isPrivateTileLay(action)
                 ? action.metadata
                 : isRespondToTrackConsent(action) && action.metadata?.accepted
                   ? action.metadata.request.details

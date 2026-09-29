@@ -8,6 +8,8 @@ import {
     isFinishStockTurn,
     isSetStockInstruction,
     isStopStockInstruction,
+    isSetPrivatePowerRequest,
+    isDropPrivatePowerRequest,
     type BuyShares,
     type FloatCompany
 } from '@tabletop/18xx'
@@ -19,7 +21,9 @@ export function isHistoryBookkeeping(action: GameAction): boolean {
         isFinishOperatingTurn(action) ||
         (isFinishStockTurn(action) && action.metadata?.passed === false) ||
         isSetStockInstruction(action) ||
-        isStopStockInstruction(action)
+        isStopStockInstruction(action) ||
+        isSetPrivatePowerRequest(action) ||
+        isDropPrivatePowerRequest(action)
     )
 }
 

@@ -10,6 +10,7 @@
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
+    import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentBadge from '../finance/PresidentBadge.svelte'
     import { ownerPortfolio } from '../finance/ownerPortfolio.js'
@@ -443,6 +444,9 @@
                                         />{#each session.privates.allExchangeOptions.filter((option) => option.playerId === player.playerId && option.privateCompanyId === entry.company.id) as option (option.certificateId)}<span
                                                 class="private-power"
                                                 ><PrivateExchangeButton {session} {option} /></span
+                                            >{/each}{#each session.privateActions.trackPowers.filter((power) => power.playerId === player.playerId && power.privateCompanyId === entry.company.id) as power (power.privateCompanyId)}<span
+                                                class="private-power"
+                                                ><PrivateTrackPowerButton {session} {power} /></span
                                             >{/each}</th
                                     >
                                     <td class="amount"

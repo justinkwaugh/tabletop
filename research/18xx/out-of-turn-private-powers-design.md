@@ -108,8 +108,7 @@ and either ends the request.
 Using the power in any way ends the owner's request as part of that use. Otherwise a
 request lasts across rounds until a pause point. There, a requester without a legal
 use has the request dropped by a System Action recording why: no legal use, private
-closed, or owner changed, with a title-keyed escape like the Standing Instruction stop
-reasons.
+closed, or owner changed. Title-specific reasons can join these when a title needs one.
 
 ## 1889 policy
 

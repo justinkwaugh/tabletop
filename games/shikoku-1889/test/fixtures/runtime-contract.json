@@ -12,6 +12,7 @@
     "DeclinePrivateTile": "c4982db809f4f024354b9e0731dd49c5dcdf66c07687110e8325a3de35e0c8c4",
     "DiscardTrain": "8d2c18c38e3ffb08d8e767feedeb10f8cdaa07040957663c99cd38d350c50748",
     "DistributeEarnings": "988bf4d9f9caadcc669ceaf88c4049b0c6c6bf2baa69c42ab537d17527b3faae",
+    "DropPrivatePowerRequest": "5d86c65544fe511dc85e20d5164d5797fc4d28b2ec25bcec0ef58ec4a11d2209",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "ExchangePrivate": "04f1cc7dcb50539f7b72478c94a84f3996458316fc713deec6d5ecb20931dac0",
     "ExchangePrivateOutOfTurn": "6cd048241f9e32fe09307b717575faaeaf44b3efc7b0e8aeb1360b8b64511065",
@@ -23,6 +24,7 @@
     "FundTrain": "5c7f49d1dd2ddceaa51ef5898e96eadd7d79642915f997edc5fdd7fb5b0bccb0",
     "IssueTreasuryShares": "3bbce033d8ebe42dac7bc33733bf426d5713ddb6c2ce9543190d51d3aaf41d9f",
     "LayPrivateTile": "c8d97811dbc839c2d8fdf5e51ddac49143a685df1c80e2d5573dcd1c286bf298",
+    "LayPrivateTileOutOfTurn": "36048a1ec0ce97465063e728db991361857ee8c3e07b5f812390c62b73fa23f3",
     "LayTile": "3f0147c9c4ed30ee48cfe700899573e878d44011c2c89363ce05b2682226ee16",
     "OfferPurchase": "51b45483436aeef619c452fa43f86c4d58cc47d99f7aaaaf64359fd7312c23ed",
     "PassAuction": "0787d832446a6a789d06e769e79b3f3ef5b630bebc1247a975940bb6979e64a1",
@@ -39,6 +41,7 @@
     "ScheduleGameEnd": "a7cba501929a5aa1caadd48e7e45549ad833b064e46ee746494047f4ca78b3ce",
     "SellFundingShares": "263e4bc7909651fd7c30a6d9a979cf467c678a207cb93222d5f41f50f0a6951f",
     "SellShares": "34e4448309811eec820fc4f20d58bac48d162be3498c081075b444c5416e9bd0",
+    "SetPrivatePowerRequest": "6270d287f310092a9b3cda7b8dcb6982f2c31198b0b9a71f57c43c781b15f1ac",
     "SetStockInstruction": "1e85332f638a3f37ec83d300621cb5176e63ea1267c1986a153d038e812b2b59",
     "StartCompany": "c1a6eaf3045b859e1aed635e53951741171a313fa9802f26f43a3fba99ed19dd",
     "StartOperatingRound": "5291724947ce1b79a4c9cd87c0e6739a6c9d5b34be7a8104385a096f258fc8d5",
@@ -1961,6 +1964,14 @@
           "type": "object"
         },
         "type": "array"
+      },
+      "privatePowerRequests": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
       },
       "privatePowerWindow": {
         "additionalProperties": false,
