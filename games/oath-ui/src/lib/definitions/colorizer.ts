@@ -1,5 +1,7 @@
 import { assertExists, Color } from '@tabletop/common'
 import { DefaultColorizer } from '@tabletop/frontend-components'
+import type { PlayerColorPalette } from '@tabletop/frontend-components/definition/gameUiDefinition'
+import { OathColors } from '@tabletop/oath'
 
 type Swatch = { ui: string; bg: string; border: string }
 
@@ -21,6 +23,17 @@ const SWATCHES = {
     [Color.Brown]: { ui: '#555555', bg: 'bg-[#555555]', border: 'border-[#555555]' }
 } as const satisfies Record<Color, Swatch>
 
+// R-1.9 — two of the five Exile boards are pale, so white text is unreadable on them.
+const PALE_COLORS: ReadonlySet<Color> = new Set([Color.White, Color.Yellow])
+
+/** R-1.8, R-1.9 — the host's chat and admin panels draw each seat, and a viewer with none, in Oath's colours. */
+export const OATH_PLAYER_COLOR_PALETTE: PlayerColorPalette = Object.fromEntries(
+    [...OathColors, Color.Gray].map((color) => {
+        const text = PALE_COLORS.has(color) ? '#000000' : '#ffffff'
+        return [color, { fill: SWATCHES[color].ui, text, contrast: text }]
+    })
+)
+
 export class OathGameColorizer extends DefaultColorizer {
     // R-1.8, R-1.9 — a seat's colour is a rule fact, so a palette swap would part the seat from its pieces.
     override allowPreferredPlayerColors(): boolean {
@@ -35,9 +48,8 @@ export class OathGameColorizer extends DefaultColorizer {
         return this.swatchOf(color).ui
     }
 
-    // R-1.9 — two of the five Exile boards are pale, so white text is unreadable on them.
     override getTextColor(color?: Color, asPlayerColor: boolean = false): string {
-        if (!asPlayerColor && (color === Color.White || color === Color.Yellow)) {
+        if (!asPlayerColor && color !== undefined && PALE_COLORS.has(color)) {
             return 'text-black'
         }
         return super.getTextColor(color, asPlayerColor)
