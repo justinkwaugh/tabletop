@@ -15,7 +15,7 @@ export class OathGameExploration implements GameExploration<OathProjectedState> 
             vault.discardPiles[region] = withTopBackKept(vault.discardPiles[region], random)
         }
         shuffle(vault.dispossessed, random)
-        redealSites(vault, random)
+        redealSites(vault, peekedSiteSlots(hydrated), random)
         redealRelics(vault, peekedRelicSlots(hydrated), random)
         return hydrated.dehydrate()
     }
@@ -53,12 +53,12 @@ function keepTopBack(source: readonly string[], cards: string[], within: number)
     return cards
 }
 
-/** R-2.8.2, R-8.3.5.6 — a facedown site may be any site no player has seen. */
-function redealSites(vault: OathVault, random: RandomFunction) {
-    const slots = Object.keys(vault.siteFacedown)
-    const pool = [...Object.values(vault.siteFacedown), ...vault.siteDeck]
+/** R-2.8.2, R-8.3.5.6 — a facedown site may be any site no player has seen; one peeked at stays the site they saw. */
+function redealSites(vault: OathVault, peeked: ReadonlySet<string>, random: RandomFunction) {
+    const slots = Object.keys(vault.siteFacedown).filter((slotId) => !peeked.has(slotId))
+    const pool = [...slots.map((slotId) => vault.siteFacedown[slotId]), ...vault.siteDeck]
     shuffle(pool, random)
-    vault.siteFacedown = Object.fromEntries(slots.map((slotId, index) => [slotId, pool[index]]))
+    for (const [index, slotId] of slots.entries()) vault.siteFacedown[slotId] = pool[index]
     vault.siteDeck = pool.slice(slots.length)
 }
 
@@ -73,4 +73,8 @@ function redealRelics(vault: OathVault, peeked: ReadonlySet<string>, random: Ran
 
 function peekedRelicSlots(state: HydratedOathGameState): Set<string> {
     return new Set(state.players.flatMap((player) => player.peekedRelicSlotIds))
+}
+
+function peekedSiteSlots(state: HydratedOathGameState): Set<string> {
+    return new Set(state.players.flatMap((player) => player.peekedSiteSlotIds))
 }

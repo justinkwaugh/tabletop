@@ -277,11 +277,11 @@ registerEffect(IVORY_EYE, powerIndexOf(IVORY_EYE, PowerTiming.Action), {
                 peeked: [relicCardId]
             }
         }
+        const [site] = chosen(ctx, PowerChoiceKind.Site)
         const siteCardId = ctx.reveal?.kind === 'site' ? ctx.reveal.siteCardId : undefined
-        return {
-            summary: 'Ivory Eye: peeked at a facedown site',
-            peeked: siteCardId ? [siteCardId] : []
-        }
+        if (!site || !siteCardId) return { summary: 'Ivory Eye: nothing was seen' }
+        ctx.state.getPlayerState(ctx.playerId).recordSitePeek(site.siteId)
+        return { summary: 'Ivory Eye: peeked at a facedown site', peeked: [siteCardId] }
     }
 })
 

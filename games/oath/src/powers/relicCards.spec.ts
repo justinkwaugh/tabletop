@@ -237,6 +237,7 @@ describe('the peeking and taking relics', () => {
         expect(a.metadata?.reveal).toEqual({ kind: 'site', siteCardId: 'site.mountain' })
         expect(a.metadata?.peeked).toEqual(['site.mountain'])
         expect(u.isSiteFaceup('h1')).toBe(false)
+        expect(u.getPlayerState('me').peekedSiteSlotIds).toEqual(['h1'])
     })
 })
 

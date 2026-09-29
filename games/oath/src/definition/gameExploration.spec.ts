@@ -84,6 +84,17 @@ describe('Exploration from canonical state (R-9.4)', () => {
         }
     })
 
+    it('a facedown site someone has peeked at stays the site they saw, while an unpeeked one may move', () => {
+        const state = source()
+        const [peekedSlot, unpeekedSlot] = Object.keys(state.vault.siteFacedown)
+        state.players[1].peekedSiteSlotIds = [peekedSlot]
+        const branches = BRANCH_SEEDS.map((seed) => explore(state, seed))
+        for (const branch of branches) {
+            expect(branch.vault.siteFacedown[peekedSlot]).toBe(state.vault.siteFacedown[peekedSlot])
+        }
+        expect(branches.some((branch) => branch.vault.siteFacedown[unpeekedSlot] !== state.vault.siteFacedown[unpeekedSlot])).toBe(true)
+    })
+
     it('changes nothing a player can see: hands, advisers and the public board', () => {
         const state = source()
         const branch = explore(state)

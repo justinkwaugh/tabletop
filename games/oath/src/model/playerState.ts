@@ -72,6 +72,8 @@ export const OathPlayerState = Type.Object({
     peekedRelics: Visibility.protect(Type.Record(Type.String(), Type.String()), {
         policy: Visibility.Policy.Owner
     }),
+    /** Ivory Eye — the facedown sites this player has peeked at, which stay the sites they saw. */
+    peekedSiteSlotIds: Type.Array(Type.String()),
 
     /** R-11.2 — Homeland's once-per-turn condition. */
     homelandUsedThisTurn: Type.Array(Type.String()),
@@ -119,6 +121,7 @@ export class HydratedOathPlayerState
     declare revealedVisionId?: string
     declare peekedRelicSlotIds: string[]
     declare peekedRelics?: Record<string, string>
+    declare peekedSiteSlotIds: string[]
     declare homelandUsedThisTurn: string[]
     declare restPowersUsedThisTurn: string[]
 
@@ -239,5 +242,9 @@ export class HydratedOathPlayerState
         assertExists(this.peekedRelics, 'This operation requires known peeks')
         this.peekedRelics[slotId] = relicCardId
         if (!this.peekedRelicSlotIds.includes(slotId)) this.peekedRelicSlotIds.push(slotId)
+    }
+
+    recordSitePeek(slotId: string): void {
+        if (!this.peekedSiteSlotIds.includes(slotId)) this.peekedSiteSlotIds.push(slotId)
     }
 }

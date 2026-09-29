@@ -122,6 +122,7 @@ export class OathGameInitializer
                 revealedVisionId: undefined,
                 peekedRelicSlotIds: [],
                 peekedRelics: {},
+                peekedSiteSlotIds: [],
                 homelandUsedThisTurn: [],
                 restPowersUsedThisTurn: []
             }

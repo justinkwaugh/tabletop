@@ -55,6 +55,7 @@ export function testPlayer(overrides: Partial<OathPlayerState> = {}): OathPlayer
         revealedVisionId: undefined,
         peekedRelicSlotIds: [],
         peekedRelics: {},
+        peekedSiteSlotIds: [],
         homelandUsedThisTurn: [],
         restPowersUsedThisTurn: [],
         ...overrides,
