@@ -1,4 +1,4 @@
-import type { GameInfo } from '@tabletop/common'
+import { GameVisibility, type GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { OathConfigurator } from './configurator.js'
 
@@ -14,7 +14,8 @@ export const OathInfo: GameInfo = {
         maxPlayers: 6,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true
+        beta: true,
+        visibility: GameVisibility.Alpha
     },
     configurator: new OathConfigurator()
 }
