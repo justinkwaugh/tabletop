@@ -145,6 +145,11 @@
         padding: 6px 8px;
         border-bottom: 1px solid var(--rail-border, #b8a995);
     }
+    @media (width < 40rem) {
+        .tranches {
+            margin-top: 0;
+        }
+    }
     .tranches-label {
         color: var(--rail-muted, #887969);
         font-size: 10px;
