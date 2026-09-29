@@ -244,6 +244,8 @@
         header {
             min-height: 36px;
         }
+    }
+    @media (width < 64rem) {
         .phase .phase-separator,
         .phase .phase-button {
             display: none;

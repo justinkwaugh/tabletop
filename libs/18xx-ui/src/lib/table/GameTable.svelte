@@ -828,7 +828,7 @@
     </div>
 {/snippet}
 {#snippet sidebarInformation()}
-    {#if !phoneLayout.current}{@render gameInformationStrip()}{/if}
+    {#if paneLayout.current}{@render gameInformationStrip()}{/if}
     {#if gameInformation}{@render gameInformation()}{/if}
 {/snippet}
 {#snippet chatPanel()}

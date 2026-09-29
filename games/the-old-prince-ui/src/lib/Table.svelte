@@ -145,7 +145,7 @@
         padding: 6px 8px;
         border-bottom: 1px solid var(--rail-border, #b8a995);
     }
-    @media (width < 40rem) {
+    @media (width < 64rem) {
         .tranches {
             margin-top: 0;
         }
