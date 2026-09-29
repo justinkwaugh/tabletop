@@ -132,12 +132,6 @@ describe('replay determinism (what checksum verification and client rebuild rest
     })
 })
 
-describe('R-X.3 — undo bounds', () => {
-    it.todo(
-        'R-X.3 undo bounds hold across simultaneous groups and the admin bypass'
-    )
-})
-
 describe('R-1.1 — the faceup-site deal is counted on the saved public stream', () => {
     it('the next public draw does not repeat the entropy that dealt the sites', () => {
         const game = testGame(['p1', 'p2', 'p3'], { status: GameStatus.WaitingToStart })

@@ -354,9 +354,8 @@ export function buildSetupVault(state: HydratedOathGameState, random: RandomFunc
     const reliquaryRelics = drawRelics(vault, RELIQUARY_SIZE)
     if (reliquaryRelics.length < RELIQUARY_SIZE) {
         throw Error(
-            `R-1.17 draws ${RELIQUARY_SIZE} relics for the Imperial Reliquary; the ` +
-                `relic deck supplied ${reliquaryRelics.length}. Relic data is a ` +
-                `placeholder — see data/relics.ts.`
+            `R-1.17 draws ${RELIQUARY_SIZE} relics for the Imperial Reliquary, but the ` +
+                `relic deck held only ${reliquaryRelics.length}`
         )
     }
     reliquaryRelics.forEach((cardId, i) => {
@@ -369,10 +368,7 @@ export function buildSetupVault(state: HydratedOathGameState, random: RandomFunc
         for (const slot of state.relicSlotsAt(slotId)) {
             const [relicCardId] = drawRelics(vault, 1)
             if (!relicCardId) {
-                throw Error(
-                    `R-2.8.2: the relic deck ran out seeding faceup site ${slotId}. ` +
-                        `Relic data is a placeholder — see data/relics.ts.`
-                )
+                throw Error(`R-2.8.2: the relic deck ran out seeding faceup site ${slotId}`)
             }
             vault.relicFacedown[slot.slotId] = relicCardId
         }

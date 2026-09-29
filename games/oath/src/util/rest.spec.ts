@@ -335,8 +335,4 @@ describe('R-4.3.3 band tables and R-2.1.6 track costs, pinned', () => {
     it('pins the Visions Drawn search-cost track (R-2.1.6)', () => {
         expect([...VISIONS_DRAWN_SUPPLY_COST]).toEqual([2, 3, 3, 4, 4, 4])
     })
-
-    it.todo(
-        'the band, track and dice numbers match the printed components'
-    )
 })

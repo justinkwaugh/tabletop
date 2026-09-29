@@ -129,7 +129,6 @@ export class OathGameInitializer
                 adviserLimit: 3,
                 handIds: [],
                 handCount: 0,
-                visionIds: [],
                 revealedVisionId: undefined,
                 peekedRelicSlotIds: [],
                 peekedRelics: {},

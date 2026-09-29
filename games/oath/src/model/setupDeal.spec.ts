@@ -8,6 +8,7 @@ import { CardKind, Region } from './oathEnums.js'
 import { HydratedOathGameState } from './gameState.js'
 import { MachineState } from '../definition/states.js'
 import { SETUP_HAND_SIZE, setupDrawTotal } from '../data/worldDeck.js'
+import { kindOf } from '../data/cardRegistry.js'
 import { servedJson } from '../testing/projection.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { OathTestEngine } from '../testing/engine.js'
@@ -52,7 +53,9 @@ describe('R-1.19–R-1.22 — the initial state is dealt', () => {
     it('R-1.22 — no Vision is drawn at setup, so the track stays on 0', () => {
         const state = setUpState(3)
         expect(state.visionsDrawn).toBe(0)
-        for (const player of state.players) expect(player.visionIds).toEqual([])
+        for (const player of state.players) {
+            expect(player.handIds?.some((cardId) => kindOf(cardId) === CardKind.Vision)).toBe(false)
+        }
     })
 
     it('R-9.4 — the top card’s back type is published and the deck is not exhausted', () => {

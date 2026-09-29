@@ -49,3 +49,8 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **R-6.6.2, R-6.6.3:** a Citizen who gains warbands through a power gets their own colour, not purple; Muster already gives purple.
 - **R-9.4:** facedown advisers publish no card back, and the table draws every other player's facedown adviser as a denizen back, so a facedown Vision looks like a denizen.
 - **R-9.4:** a discard pile publishes only its top card's back and its count, not every back.
+
+## Not checked by specs
+
+- **R-4.3.3, R-2.1.6, R-5.5.4:** the refresh bands on the player boards, the Visions Drawn search costs printed on the board and the dice faces are pinned by specs as transcribed; no spec checks the transcription against the printed components.
+- **R-X.3:** the undo bounds around an information-revealing Action, simultaneous groups and an administrator's bypass are the platform's (its backend service specs); Oath declares no simultaneous groups, and its own specs cover undo across a let-peek.

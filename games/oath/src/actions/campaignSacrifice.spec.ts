@@ -8,6 +8,8 @@ import { HydratedCampaignSacrifice, CampaignSacrifice } from './campaignSacrific
 import { ongoingCampaign } from '../testing/required.js'
 import { buildAction } from '../testing/actions.js'
 import { CampaignDefeatKills, HydratedCampaignDefeatKills } from './campaignDefeatKills.js'
+import { HydratedResolveOathkeeper, ResolveOathkeeper } from './resolveOathkeeper.js'
+import { MachineState } from '../definition/states.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -402,7 +404,26 @@ describe('what happens next', () => {
 })
 
 describe('R-5.5.4 — the defending force recorded at the roll', () => {
-    it.todo(
-        'the recorded defending force survives an Oathkeeper choice between the roll and the sacrifice'
-    )
+    // R-2.11-H1 re-evaluates the title after the roll too, so R-2.11.b's choice can detour before the sacrifice.
+    it('survives an Oathkeeper choice between the roll and the sacrifice', () => {
+        const state = midBattle({ swords: 9, defense: 1 })
+        const recorded = structuredClone(ongoingCampaign(state).defendingForce)
+        state.machineState = MachineState.OathkeeperChoice
+        state.pendingOathkeeperChoice = {
+            holderPlayerId: CHANCELLOR,
+            candidates: [ATTACKER, DEFENDER],
+            resumeMachineState: MachineState.CampaignSacrifice
+        }
+        const choice = new HydratedResolveOathkeeper(
+            buildAction(ResolveOathkeeper, { playerId: CHANCELLOR, chosenPlayerId: DEFENDER })
+        )
+        choice.apply(state)
+        expect(choice.metadata?.resumeMachineState).toBe(MachineState.CampaignSacrifice)
+        expect(state.oathkeeperPlayerId).toBe(DEFENDER)
+        expect(ongoingCampaign(state).defendingForce).toEqual(recorded)
+
+        sacrifice().apply(state)
+        expect(state.campaign?.attackerVictorious).toBe(true)
+        expect(state.campaign?.defendingForce).toEqual(recorded)
+    })
 })

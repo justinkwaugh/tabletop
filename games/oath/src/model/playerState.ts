@@ -62,8 +62,6 @@ export const OathPlayerState = Type.Object({
     /** R-5.1.2, R-1.20 — held only mid-action; Oath has no persistent hand. */
     handIds: Visibility.protect(Type.Array(Type.String()), { policy: Visibility.Policy.Owner }),
     handCount: Type.Number(),
-    /** R-2.2.2 */
-    visionIds: Type.Array(Type.String()),
     /** R-2.2.1 — Exile side only; not an adviser. */
     revealedVisionId: Type.Optional(Type.String()),
     /** R-6.3 — "once you have peeked at a specific relic you may peek at it again from any site". */
@@ -117,7 +115,6 @@ export class HydratedOathPlayerState
     declare adviserLimit: number
     declare handIds?: string[]
     declare handCount: number
-    declare visionIds: string[]
     declare revealedVisionId?: string
     declare peekedRelicSlotIds: string[]
     declare peekedRelics?: Record<string, string>

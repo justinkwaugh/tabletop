@@ -54,7 +54,6 @@ export function testPlayer(overrides: Partial<OathPlayerState> = {}): OathPlayer
         adviserLimit: 3,
         handIds: [],
         handCount: overrides.handIds?.length ?? 0,
-        visionIds: [],
         revealedVisionId: undefined,
         peekedRelicSlotIds: [],
         peekedRelics: {},
