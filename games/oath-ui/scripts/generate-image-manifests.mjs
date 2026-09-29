@@ -12,9 +12,9 @@ const outFile = path.join(imagesDir, 'imageManifest.generated.ts')
 const GROUPS = [
     { name: 'cardFiles', dir: 'cards', exts: ['.jpg'], recursive: true },
     { name: 'backFiles', dir: 'backs', exts: ['.jpg'], recursive: false },
-    { name: 'pieceFiles', dir: 'pieces', exts: ['.png'], recursive: false },
-    { name: 'actionFiles', dir: 'actions', exts: ['.png'], recursive: false },
-    { name: 'diceFiles', dir: 'dice', exts: ['.jpg'], recursive: false },
+    { name: 'pieceFiles', dir: 'pieces', exts: ['.svg'], recursive: false },
+    { name: 'actionFiles', dir: 'actions', exts: ['.svg'], recursive: false },
+    { name: 'diceFiles', dir: 'dice', exts: ['.svg'], recursive: false },
     { name: 'playerBoardFiles', dir: 'playerBoards', exts: ['.jpg'], recursive: false },
     { name: 'tileFiles', dir: 'tiles', exts: ['.png', '.jpg'], recursive: false },
     { name: 'bannerFiles', dir: 'banners', exts: ['.jpg'], recursive: false }

@@ -1,4 +1,4 @@
-import { assertExists, type Color } from '@tabletop/common'
+import type { Color } from '@tabletop/common'
 import { pieceFiles } from './imageManifest.generated.js'
 import { imageNamed, indexByName } from './manifestIndex.js'
 
@@ -9,12 +9,8 @@ function byColor(kind: 'warband' | 'pawn'): Map<string, string> {
         [...indexByName(pieceFiles)]
             .filter(([name]) => name.startsWith(prefix))
             .map(([name, url]) => [name.slice(prefix.length), url] as const)
-            .filter(([key]) => !key.startsWith(BANDIT_KEY))
     )
 }
-
-// R-10.3 — the bandits are not a colour.
-const BANDIT_KEY = 'bandit'
 
 const warbandsByColor = byColor('warband')
 const pawnsByColor = byColor('pawn')
@@ -35,13 +31,4 @@ export function pawnImageKeys(): string[] {
     return [...pawnsByColor.keys()]
 }
 
-// R-2.8.3, R-10.3 — the bandits' figure, for the sites they rule; R-7.6.5 — in the Crown
-// holder's colour where they act as that player's warbands.
-export function banditWarbandImage(servingColor?: Color): string {
-    const name = servingColor
-        ? `./pieces/warband.bandit.${servingColor}.png`
-        : './pieces/warband.bandit.png'
-    const url = pieceFiles[name]
-    assertExists(url, `The bandits' figure ${servingColor ?? ''} is bundled`)
-    return url
-}
+export { banditWarbandImage } from './banditFigure.js'

@@ -29,6 +29,14 @@ describe('warband figure coverage', () => {
         expect(warbandImageKeys()).not.toContain('bandit')
     })
 
+    it('R-7.6.5 — one bandit figure takes each seat colour, and only a seat colour', () => {
+        const figures = OathColors.map((color) => decodeURIComponent(banditWarbandImage(color)))
+        expect(new Set([decodeURIComponent(banditWarbandImage()), ...figures]).size).toBe(OathColors.length + 1)
+        const detail = (figure: string) => figure.slice(figure.lastIndexOf('<path'))
+        expect(new Set(figures.map(detail)).size).toBe(1)
+        expect(() => banditWarbandImage(Color.Green)).toThrow()
+    })
+
     it('an unused colour is a broken invariant, not a missing picture', () => {
         expect(() => warbandImage(Color.Green)).toThrow()
         expect(() => pawnImage(Color.Green)).toThrow()

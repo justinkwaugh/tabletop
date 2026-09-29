@@ -1,8 +1,8 @@
 # Dice faces
 
 Cut from the attack and defence die textures (2048 × 2048, six cells each) and the end die
-(500 × 500). Each distinct face is one JPEG, 144 × 144, named for what the engine's dice
-data calls it:
+(500 × 500). Each distinct face was cropped at 144 × 144 and traced to one SVG (a flat
+ground and the traced glyph), named for what the engine's dice data calls it:
 
 - `attack.{sword,hollow-sword,skull}`: the three attack faces (R-5.5.5). The skull face
   carries its two swords, as on the component.
