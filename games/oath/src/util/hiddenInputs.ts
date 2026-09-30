@@ -128,7 +128,7 @@ export function revealForPower(
     choices: readonly PowerChoice[] | undefined
 ): HiddenReveal | undefined {
     const request = hiddenRequestFor(state, playerId, cardId, powerIndex, choices)
-    return request ? fulfil(request, state) : undefined
+    return request ? fulfil(request, state, playerId) : undefined
 }
 
 /** R-7.3.3 — a card played faceup reads the vault for its When Played power; R-11.2-H1, a Homeland's relic. */
@@ -150,7 +150,7 @@ export function revealForPlay(
               choices: action.choices ?? []
           })
         : undefined
-    if (request) return fulfil(request, state)
+    if (request) return fulfil(request, state, action.playerId)
     // R-11.2 — any play to a site: a Search's, R-6.1's, or one to another site (New Growth, the People's Favor).
     const slotId =
         action.play === SearchPlay.Site
@@ -330,7 +330,11 @@ function relicAt(vault: OathVault, slotId: string): string {
     return relicCardId
 }
 
-function fulfil(request: HiddenRequest, state: HydratedOathGameState): HiddenReveal {
+function fulfil(
+    request: HiddenRequest,
+    state: HydratedOathGameState,
+    playerId: string
+): HiddenReveal {
     const vault = state.requireVault()
     switch (request.kind) {
         case 'relicDraw':
@@ -348,7 +352,7 @@ function fulfil(request: HiddenRequest, state: HydratedOathGameState): HiddenRev
             return { kind: 'peek', cardIds: [cardId] }
         }
         case 'worldDeckVision': {
-            const cardId = drawWorldDeckVision(state)
+            const cardId = drawWorldDeckVision(state, playerId)
             return {
                 kind: 'vision',
                 cardId,

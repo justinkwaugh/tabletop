@@ -155,66 +155,65 @@ function mergedPositions(lists: readonly KnownPositions[]): KnownPositions {
     return Array.from(merged, (cardId) => cardId ?? null)
 }
 
-/** Every card a record places, singly or as one of a set. */
-function cardsIn(positions: TablePositions): string[] {
-    return positions.flatMap((entry) =>
-        entry === null ? [] : typeof entry === 'string' ? [entry] : entry.among
-    )
-}
-
 /**
- * A stack's remembered positions from its bottom: each card the table or a player named, and each
- * set the table saw dealt among its own positions in an order the explorer never saw.
+ * A stack's remembered positions from its bottom. Each card the table or a player named stays, unless
+ * the explorer knows it is somewhere else now. Each place in a set the table saw holds one of its
+ * cards not placed elsewhere, dealt in an order the explorer never saw; the set's other cards have
+ * left the stack, so they go back to the hidden cards. `taken` collects every card placed so far.
  */
 function rememberedPositions(
     table: TablePositions,
     lists: readonly KnownPositions[],
     random: RandomFunction,
+    taken: Set<string>,
     top?: { fromBottom: number; back: CardKind | undefined }
-): (string | null)[] {
+): { positions: (string | null)[]; leftovers: string[] } {
+    const free = (cardId: string | null) => (cardId !== null && !taken.has(cardId) ? cardId : null)
     const named = mergedPositions([
-        table.map((entry) => (typeof entry === 'string' ? entry : null)),
-        ...lists
+        table.map((entry) => (typeof entry === 'string' ? free(entry) : null)),
+        ...lists.map((list) => list.map(free))
     ])
     const positions: (string | null)[] = Array.from(
         { length: Math.max(named.length, table.length) },
         (_, index) => named[index] ?? null
     )
+    for (const cardId of positions) if (cardId !== null) taken.add(cardId)
     const sets = new Map<string, { among: string[]; at: number[] }>()
     for (const [index, entry] of table.entries()) {
         if (entry === null || typeof entry === 'string' || positions[index] !== null) continue
-        const key = [...entry.among].sort().join(',')
+        const key = entry.among.join(',')
         const set = sets.get(key) ?? { among: entry.among, at: [] }
         set.at.push(index)
         sets.set(key, set)
     }
+    const leftovers: string[] = []
     for (const { among, at } of sets.values()) {
         const left = shuffled(
-            among.filter((cardId) => !positions.includes(cardId)),
+            among.filter((cardId) => !taken.has(cardId)),
             random
         )
-        assert(left.length === at.length, 'A set the table saw does not fit the places it holds')
         // R-9.4 — the pile's top back is public, so the card dealt on top shows it.
         if (top?.back !== undefined && at.includes(top.fromBottom)) {
             const showing = left.findIndex((cardId) => kindOf(cardId) === top.back)
-            assert(showing >= 0, 'A set the table saw has no card with the public top back')
-            positions[top.fromBottom] = left.splice(showing, 1)[0]
-            at.splice(at.indexOf(top.fromBottom), 1)
+            if (showing >= 0) {
+                positions[top.fromBottom] = left.splice(showing, 1)[0]
+                at.splice(at.indexOf(top.fromBottom), 1)
+            }
         }
-        for (const [index, position] of at.entries()) positions[position] = left[index]
+        for (const [index, position] of at.entries())
+            if (index < left.length) positions[position] = left[index]
+        for (const cardId of left.slice(0, at.length)) taken.add(cardId)
+        leftovers.push(...left.slice(at.length))
     }
-    return positions
+    for (const cardId of positions) if (cardId !== null) taken.add(cardId)
+    return { positions, leftovers }
 }
 
 function namedWorldCards(
     state: OathProjectedState,
     questions: readonly ProjectedQuestion[]
 ): Set<string> {
-    const named = new Set<string>([
-        ...Object.values(state.denizensBySite).flat(),
-        ...state.boxIds,
-        ...[...Object.values(state.seenDiscardPiles), state.seenWorldDeckBottom].flatMap(cardsIn)
-    ])
+    const named = new Set<string>([...Object.values(state.denizensBySite).flat(), ...state.boxIds])
     for (const player of state.players) {
         for (const row of player.advisers) {
             if (row.cardId) named.add(row.cardId)
@@ -224,11 +223,6 @@ function namedWorldCards(
             named.add(cardId)
         if (player.revealedVisionId) named.add(player.revealedVisionId)
         for (const cardId of player.knownWorldDeckTop ?? []) named.add(cardId)
-        for (const pile of [
-            ...Object.values(player.knownDiscardPiles ?? noKnownDiscardPiles()),
-            player.knownWorldDeckBottom ?? []
-        ])
-            for (const cardId of cardsIn(pile)) named.add(cardId)
     }
     for (const question of questions) {
         if (question.kind === PowerQuestionKind.OrderDiscards)
@@ -274,8 +268,41 @@ function dealWorldCards(
     questions: readonly ProjectedQuestion[],
     random: RandomFunction
 ) {
-    const named = namedWorldCards(state, questions)
-    const { visions, denizens } = unnamedWorldCards(state, named, random)
+    // What the explorer knows lies elsewhere comes first; the stacks' records then place what is left.
+    const taken = namedWorldCards(state, questions)
+    const leftovers: string[] = []
+    const remembered = (
+        table: TablePositions,
+        lists: readonly KnownPositions[],
+        top?: { fromBottom: number; back: CardKind | undefined }
+    ) => {
+        const recalled = rememberedPositions(table, lists, random, taken, top)
+        leftovers.push(...recalled.leftovers)
+        return recalled.positions
+    }
+    const recalledPiles = new Map(
+        Object.values(Region).map((region) => [
+            region,
+            remembered(
+                state.seenDiscardPiles[region],
+                state.players.map((player) => player.knownDiscardPiles?.[region] ?? []),
+                {
+                    fromBottom: state.discardPileCounts[region] - 1,
+                    back: state.discardTopBackType[region]
+                }
+            )
+        ])
+    )
+    const recalledBottom = remembered(
+        state.seenWorldDeckBottom,
+        state.players.map((player) => player.knownWorldDeckBottom ?? [])
+    )
+    const returned = [...new Set(leftovers)].filter((cardId) => !taken.has(cardId))
+    const { visions, denizens } = unnamedWorldCards(state, new Set([...taken, ...returned]), random)
+    visions.push(...returned.filter(isVision))
+    denizens.push(...returned.filter((cardId) => !isVision(cardId)))
+    shuffle(visions, random)
+    shuffle(denizens, random)
     const hands = new Map<string, string[]>()
     const advisers = new Map<string, (string | undefined)[]>()
     const drawnForQuestions: string[] = []
@@ -303,12 +330,7 @@ function dealWorldCards(
     const piles = new Map<Region, (string | undefined)[]>()
     for (const region of Object.values(Region)) {
         const count = state.discardPileCounts[region]
-        const known = rememberedPositions(
-            state.seenDiscardPiles[region],
-            state.players.map((player) => player.knownDiscardPiles?.[region] ?? []),
-            random,
-            { fromBottom: count - 1, back: state.discardTopBackType[region] }
-        )
+        const known = recalledPiles.get(region) ?? []
         assert(known.length <= count, `More of the ${region} pile is known than it holds`)
         const pile = Array.from(
             { length: count },
@@ -324,11 +346,7 @@ function dealWorldCards(
     }
 
     // Cracked Horn — the cards known under the deck, bottom first; an unknown one among them is dealt.
-    const bottom = rememberedPositions(
-        state.seenWorldDeckBottom,
-        state.players.map((player) => player.knownWorldDeckBottom ?? []),
-        random
-    ).map((cardId) => cardId ?? undefined)
+    const bottom = recalledBottom.map((cardId) => cardId ?? undefined)
     for (const [index, cardId] of bottom.entries())
         if (cardId === undefined) slots.push({ fill: (dealt) => (bottom[index] = dealt) })
 

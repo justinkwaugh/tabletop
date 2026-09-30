@@ -20,6 +20,7 @@ import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { UseActionPower } from '../actions/useActionPower.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { modifierUse } from '../testing/choices.js'
+import { drawDiscardPile } from '../util/knowledge.js'
 
 // R-9.4 — a player or spectator explores from what they know; everything else is dealt afresh.
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
@@ -265,6 +266,20 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
         const sets = Object.values(resolved.seenDiscardPiles).flat().filter((entry) => entry !== null && typeof entry === 'object')
         expect(sets.length).toBe(hand.length)
         expectExplorable(game, resolved, setupVariant)
+
+        // A later draw takes part of the set: another player now holds one of its cards, unseen.
+        const drawing = new HydratedOathGameState(structuredClone(resolved))
+        const region = Object.values(Region).find((r) => resolved.seenDiscardPiles[r].some((entry) => entry !== null && typeof entry === 'object'))
+        assert(region !== undefined, 'the Harp set lies on a pile')
+        const other = drawing.players.find((player) => player.playerId !== chancellor)
+        assert(other !== undefined, 'another player sits at the table')
+        const drawn = drawDiscardPile(drawing, region, 1, false)
+        other.setHand([...other.knownHand(), ...drawn])
+        // R-9.4 — as a Search's draw does, the public count and top back follow the pile.
+        const [newTop] = drawing.requireVault().discardPiles[region]
+        drawing.discardPileCounts[region] -= drawn.length
+        drawing.discardTopBackType = { ...drawing.discardTopBackType, [region]: newTop === undefined ? undefined : kindOf(newTop) }
+        expectExplorable(game, canonical(drawing.dehydrate()), setupVariant)
     })
 
     it.each([

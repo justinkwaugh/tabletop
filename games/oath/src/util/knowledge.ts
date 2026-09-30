@@ -5,7 +5,6 @@ import type {
     KnownPositions,
     TablePositions
 } from '../model/playerState.js'
-import { isVision } from '../data/cardRegistry.js'
 import { Region } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
@@ -85,20 +84,20 @@ export function drawWorldDeck(state: HydratedOathGameState, count: number): Worl
     return draw
 }
 
-/** Oracle — the Vision closest to the top; a player who saw it in the top cards saw it go. */
-export function drawWorldDeckVision(state: HydratedOathGameState): string | undefined {
-    const vault = state.requireVault()
-    const at = vault.worldDeck.findIndex(isVision)
-    const fromBottom = vault.worldDeck.length - 1 - at
-    const cardId = drawFirstVision(vault)
+/**
+ * Oracle — the Vision closest to the top. A player who saw it among the top cards saw it go. Its
+ * place is private, so no record of what lies under the deck moves: only its drawer, who now holds
+ * it, stops naming it there.
+ */
+export function drawWorldDeckVision(
+    state: HydratedOathGameState,
+    playerId: string
+): string | undefined {
+    const cardId = drawFirstVision(state.requireVault())
     for (const player of state.players)
         player.knownWorldDeckTop = worldDeckTopOf(player).filter((id) => id !== cardId)
-    if (cardId !== undefined)
-        for (const holder of worldDeckBottomRecords(state)) {
-            const known = holder.get()
-            if (fromBottom < known.length)
-                holder.set(trimTop(withoutCard(known.toSpliced(fromBottom, 1), cardId)))
-        }
+    const drawer = state.getPlayerState(playerId)
+    drawer.knownWorldDeckBottom = worldDeckBottomOf(drawer).map((id) => (id === cardId ? null : id))
     return cardId
 }
 
@@ -194,14 +193,6 @@ function worldDeckBottomRecordOf(state: HydratedOathGameState, witness: Witness)
 /** A player remembers cards, never a set; a set only ever reaches the table's record. */
 function cardsOnly(positions: TablePositions): KnownPositions {
     return positions.map((entry) => (typeof entry === 'string' ? entry : null))
-}
-
-function withoutCard(positions: TablePositions, cardId: string): TablePositions {
-    return positions.map((entry) =>
-        entry !== null && typeof entry === 'object'
-            ? { among: entry.among.filter((id) => id !== cardId) }
-            : entry
-    )
 }
 
 function placed(positions: TablePositions, fromBottom: number, entry: TablePositions[number]) {

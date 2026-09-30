@@ -60,7 +60,7 @@ describe('the world deck’s top, as a player saw it', () => {
         seeWorldDeckTop(s, 'p1', [INN, VISION, WOLVES])
         drawWorldDeck(s, 1)
         expect(s.getPlayerState('p1').knownWorldDeckTop).toEqual([VISION, WOLVES])
-        expect(drawWorldDeckVision(s)).toBe(VISION)
+        expect(drawWorldDeckVision(s, 'p2')).toBe(VISION)
         expect(s.getPlayerState('p1').knownWorldDeckTop).toEqual([WOLVES])
         expect(s.requireVault().worldDeck).toEqual([WOLVES, RANGERS])
         expect(s.getPlayerState('p2').knownWorldDeckTop).toEqual([])
@@ -166,6 +166,20 @@ describe('the world deck’s bottom, as each player saw it (Cracked Horn)', () =
         expect(s.requireVault().worldDeck).toEqual([ELDERS, SCOUTS])
         expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([])
         expect(s.getPlayerState('p2').knownWorldDeckBottom).toEqual([SCOUTS, ELDERS])
+    })
+})
+
+describe('Oracle and what lies under the world deck', () => {
+    it('moves no record but its drawer\'s, since where the Vision lay is private', () => {
+        const s = table()
+        s.requireVault().worldDeck = [INN, WOLVES]
+        putUnderWorldDeckKnown(s, [VISION, TENTS], { witnessOf: () => 'p1', shownAsSet: new Set([VISION, TENTS]) })
+        const table_ = structuredClone(s.seenWorldDeckBottom)
+        expect(drawWorldDeckVision(s, 'p1')).toBe(VISION)
+        expect(s.requireVault().worldDeck).toEqual([INN, WOLVES, TENTS])
+        expect(s.seenWorldDeckBottom).toEqual(table_)
+        expect(s.getPlayerState('p2').knownWorldDeckBottom).toEqual([])
+        expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([TENTS, null])
     })
 })
 
