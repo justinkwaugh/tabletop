@@ -10,6 +10,7 @@ import {
     SetupVariant,
     TOTAL_FAVOR
 } from './oathEnums.js'
+import { TOTAL_VISIONS } from '../data/worldDeck.js'
 import { createOathVault, drawFromBottomOfWorldDeck, drawRelics, type OathVault } from './vault.js'
 import { allMapSlots, TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { ALL_SITE_IDS } from '../data/sites.js'
@@ -100,6 +101,9 @@ export function buildInitialPublicState(
     // R-1.2
     state.round = 1
     state.visionsDrawn = 0
+    state.worldDeckDrawn = 0
+    // R-8.5 — every Vision starts in the world deck.
+    state.worldDeckVisions = TOTAL_VISIONS
 
     if (context.setupVariant) {
         state.setupVariant = context.setupVariant

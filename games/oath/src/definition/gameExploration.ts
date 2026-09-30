@@ -59,7 +59,8 @@ function reshuffledWorldDeck(
     knownBottom: number,
     random: RandomFunction
 ): string[] {
-    const under = deck.length - knownBottom
+    // X-13 — on a short deck the known top and known bottom can meet.
+    const under = Math.max(known, deck.length - knownBottom)
     const rest = deck.slice(known, under)
     const reach = rest.findLastIndex(isVision) + 1
     const visions = rest.filter(isVision)
@@ -136,12 +137,12 @@ function knownPileIndexes(state: HydratedOathGameState, region: Region, size: nu
 function knownRelicDeckIndexes(state: HydratedOathGameState): Set<number> {
     const size = state.requireVault().relicDeck.length
     return new Set(
-        state.players.flatMap((player) => {
-            const known = knownOf(player).relicDeckBottom
-            return known.flatMap((cardId, index) =>
-                cardId === null ? [] : [size - known.length + index]
-            )
-        })
+        [
+            state.seenRelicDeckBottom,
+            ...state.players.map((player) => knownOf(player).relicDeckBottom)
+        ].flatMap((known) =>
+            known.flatMap((cardId, index) => (cardId === null ? [] : [size - known.length + index]))
+        )
     )
 }
 
@@ -191,8 +192,15 @@ function redealRelics(
     vault.relicDeck = relicDeck
 }
 
+/** R-6.3 — every relic slot any player, or the whole table, knows the relic in. */
 function peekedRelicSlots(state: HydratedOathGameState): Set<string> {
-    return new Set(state.players.flatMap((player) => player.peekedRelicSlotIds))
+    return new Set([
+        ...Object.keys(state.seenRelics),
+        ...state.players.flatMap((player) => [
+            ...player.peekedRelicSlotIds,
+            ...Object.keys(player.peekedRelics ?? {})
+        ])
+    ])
 }
 
 function peekedSiteSlots(state: HydratedOathGameState): Set<string> {

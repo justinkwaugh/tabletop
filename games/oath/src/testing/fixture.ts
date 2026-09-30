@@ -129,6 +129,8 @@ export function testState(
         worldDeckExhausted: false,
         topCardBackType: CardKind.Denizen,
         visionsDrawn: 0,
+        worldDeckDrawn: 0,
+        worldDeckVisions: 0,
         discardPileCounts: {
             [Region.Cradle]: 0,
             [Region.Provinces]: 0,
@@ -137,6 +139,8 @@ export function testState(
         discardTopBackType: {},
         seenDiscardPiles: noKnownDiscardPiles(),
         seenWorldDeckBottom: [],
+        seenRelicDeckBottom: [],
+        seenRelics: {},
         dispossessedCount: 0,
         boxIds: [],
         siteCapacityOverrides: {},

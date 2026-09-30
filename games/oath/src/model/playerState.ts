@@ -3,7 +3,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { PlayerStatus, Region } from './oathEnums.js'
 import { WarbandCounts } from './warbandCounts.js'
-import { AdviserShownPolicy } from './question.js'
+import { AdviserShownPolicy, HandShownPolicy } from './question.js'
 import { isVision } from '../data/cardRegistry.js'
 
 /** R-2.2.2 — one adviser in play order; a facedown one names no card here (R-9.4). */
@@ -16,7 +16,11 @@ export const AdviserRow = Type.Object({
     /** R-9.4 — the card, to those players alone, for as long as it stays here facedown. */
     shownCardId: Type.Optional(Visibility.protect(Type.String(), { policy: AdviserShownPolicy })),
     /** R-9.4 — a Vision's back differs from a denizen's, so a facedown Vision shows as one. */
-    vision: Type.Optional(Type.Literal(true))
+    vision: Type.Optional(Type.Literal(true)),
+    /** The table saw this card go down facedown (Truthful Harp, False Prophet), so `shownCardId` is everyone's. */
+    seen: Type.Optional(Type.Literal(true)),
+    /** Inquisitor — everyone saw the favor given: this card is not the Conspiracy. */
+    notConspiracy: Type.Optional(Type.Literal(true))
 })
 
 /** R-9.4 — known to its holder, or to the host. */
@@ -24,6 +28,8 @@ export interface KnownAdviser {
     cardId: string
     faceUp: boolean
     shownTo?: string[]
+    seen?: boolean
+    notConspiracy?: boolean
 }
 
 /** R-9.4 — a facedown card handed to another row stays known to its viewers, and to the player who gave it. */
@@ -88,15 +94,19 @@ export const OathPlayerState = Type.Object({
     adviserLimit: Type.Number(),
 
     /** R-5.1.2, R-1.20 — held only mid-action; Oath has no persistent hand. */
-    handIds: Visibility.protect(Type.Array(Type.String()), { policy: Visibility.Policy.Owner }),
+    handIds: Visibility.protect(Type.Array(Type.String()), {
+        policy: Visibility.Policy.anyOf(Visibility.Policy.Owner, HandShownPolicy)
+    }),
     handCount: Type.Number(),
     /** R-9.4 — how many held cards show a Vision's back. */
     handVisions: Type.Number(),
+    /** Truthful Harp — the table saw this hand, so `handIds` is everyone's until it is set again. */
+    handShown: Type.Optional(Type.Literal(true)),
     /** R-2.2.1 — Exile side only; not an adviser. */
     revealedVisionId: Type.Optional(Type.String()),
     /** R-6.3 — "once you have peeked at a specific relic you may peek at it again from any site". */
     peekedRelicSlotIds: Type.Array(Type.String()),
-    /** R-6.3 — the relic each of those peeks showed, by slot, known to this player alone. */
+    /** R-6.3 — the relic each of those peeks showed, by slot, known to this player alone; also a relic they knew was drawn onto a slot, which grants no peek. */
     peekedRelics: Visibility.protect(Type.Record(Type.String(), Type.String()), {
         policy: Visibility.Policy.Owner
     }),
@@ -162,6 +172,7 @@ export class HydratedOathPlayerState
     declare handIds?: string[]
     declare handCount: number
     declare handVisions: number
+    declare handShown?: true
     declare revealedVisionId?: string
     declare peekedRelicSlotIds: string[]
     declare peekedRelics?: Record<string, string>
@@ -187,6 +198,7 @@ export class HydratedOathPlayerState
         this.handIds = [...cardIds]
         this.handCount = cardIds.length
         this.handVisions = cardIds.filter(isVision).length
+        this.handShown = undefined
     }
 
     /** R-4.3.3 */
@@ -205,7 +217,9 @@ export class HydratedOathPlayerState
         return this.advisers.map((row, index) => ({
             cardId: ids[index],
             faceUp: row.faceUp,
-            shownTo: row.shownTo
+            shownTo: row.shownTo,
+            seen: row.seen,
+            notConspiracy: row.notConspiracy
         }))
     }
 
@@ -247,15 +261,18 @@ export class HydratedOathPlayerState
     }
 
     setAdvisers(advisers: readonly KnownAdviser[]): void {
-        this.advisers = advisers.map(({ cardId, faceUp, shownTo }): AdviserRow => {
-            if (faceUp) return { cardId, faceUp }
-            const row: AdviserRow =
-                shownTo && shownTo.length > 0
-                    ? { faceUp, shownTo, shownCardId: cardId }
-                    : { faceUp }
-            if (isVision(cardId)) row.vision = true
-            return row
-        })
+        this.advisers = advisers.map(
+            ({ cardId, faceUp, shownTo, seen, notConspiracy }): AdviserRow => {
+                if (faceUp) return { cardId, faceUp }
+                const row: AdviserRow = { faceUp }
+                if (shownTo && shownTo.length > 0) row.shownTo = shownTo
+                if ((shownTo && shownTo.length > 0) || seen) row.shownCardId = cardId
+                if (isVision(cardId)) row.vision = true
+                if (seen) row.seen = true
+                if (notConspiracy) row.notConspiracy = true
+                return row
+            }
+        )
         this.adviserIds = advisers.map(({ cardId }) => cardId)
     }
 
@@ -266,6 +283,20 @@ export class HydratedOathPlayerState
         assert(!adviser.faceUp, `${cardId} is faceup; showing it means nothing`)
         const shownTo = [...new Set([...(adviser.shownTo ?? []), toPlayerId])]
         this.replaceAdviser(cardId, { ...adviser, shownTo })
+    }
+
+    /** Truthful Harp, False Prophet — the table saw this card go down facedown. */
+    markSeen(cardId: string): void {
+        const adviser = this.knownAdviser(cardId)
+        assertExists(adviser, `${cardId} is not an adviser of ${this.playerId}`)
+        if (!adviser.faceUp) this.replaceAdviser(cardId, { ...adviser, seen: true })
+    }
+
+    /** Inquisitor — the favor given showed everyone this card is not the Conspiracy. */
+    markNotConspiracy(cardId: string): void {
+        const adviser = this.knownAdviser(cardId)
+        assertExists(adviser, `${cardId} is not an adviser of ${this.playerId}`)
+        this.replaceAdviser(cardId, { ...adviser, notConspiracy: true })
     }
 
     addAdviser(cardId: string, faceUp: boolean): void {

@@ -31,6 +31,9 @@ const BRASS_HORSE = 'relic.brass-horse'
 const TRUTHFUL_HARP = 'relic.truthful-harp'
 const CRACKED_HORN = 'relic.cracked-horn'
 const PILGRIMAGE = 'denizen.nomad.pilgrimage'
+const MAP = 'relic.map'
+const VISION_REACH = 30
+const CONSPIRACY = 'vision.conspiracy'
 
 function canonical(state: unknown): OathGameState {
     assert(OathGameStateValidator.Check(state), 'Expected complete canonical state')
@@ -150,6 +153,10 @@ function expectConserved(source: OathGameState, branch: OathGameState, setupVari
     expect(relics(branch)).toEqual(relics(source))
     expect(sites(branch)).toEqual(sites(source))
     expect(RELIC_DECK_IDS.every((id) => relics(branch).includes(id))).toBe(true)
+    // R-9.4 — every Vision's back is seen leaving and going under, so the deck's count is public.
+    const visionsIn = (deck: readonly string[]) => deck.filter((id) => kindOf(id) === CardKind.Vision).length
+    expect(visionsIn(source.vault.worldDeck)).toBe(source.worldDeckVisions)
+    expect(visionsIn(branch.vault.worldDeck)).toBe(source.worldDeckVisions)
 }
 
 /** What the explorer knows, and what the table shows, is the same in the branch. */
@@ -174,6 +181,11 @@ function expectKnownKept(source: OathGameState, branch: OathGameState, perspecti
             }
     }
     const deck = branch.vault.worldDeck
+    // R-8.8 — a Vision never drawn lies within reach of the top, less what was drawn from there.
+    const under = Math.max(source.seenWorldDeckBottom.length, explorer?.knownWorldDeckBottom.length ?? 0)
+    const reach = VISION_REACH - source.worldDeckDrawn
+    for (const [at, cardId] of deck.entries())
+        if (kindOf(cardId) === CardKind.Vision && at < deck.length - under) expect(at).toBeLessThan(Math.max(reach, 1))
     for (const known of [source.seenWorldDeckBottom, explorer?.knownWorldDeckBottom ?? []])
         for (const [fromBottom, entry] of known.entries()) {
             const dealt = deck[deck.length - 1 - fromBottom]
@@ -181,6 +193,10 @@ function expectKnownKept(source: OathGameState, branch: OathGameState, perspecti
             else if (entry !== null) expect(entry.among).toContain(dealt)
         }
     for (const [index, player] of source.players.entries()) {
+        // Truthful Harp — a shown hand, and a facedown card the table saw go down, are everyone's.
+        if (player.handShown) expect(branch.players[index].handIds).toEqual(player.handIds)
+        for (const [row, adviser] of player.advisers.entries())
+            if (adviser.seen) expect(branch.players[index].adviserIds[row]).toBe(player.adviserIds[row])
         // R-9.4 — every held card and facedown adviser keeps the back the table sees.
         expect(branch.players[index].handIds.filter((id) => kindOf(id) === CardKind.Vision)).toHaveLength(player.handVisions)
         expect(branch.players[index].advisers.map((row) => row.vision === true)).toEqual(player.advisers.map((row) => row.vision === true))
@@ -267,6 +283,17 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
             modifiers: [modifierUse(TRUTHFUL_HARP)]
         }), harped, game).updatedState)
         const hand = new HydratedOathGameState(searching).getPlayerState(chancellor).knownHand()
+        expect(searching.players.find((player) => player.playerId === chancellor)?.handShown).toBe(true)
+        expectExplorable(game, searching, setupVariant)
+        const keptFacedown = canonical(engine.runNext(buildAction(SearchResolve, {
+            playerId: chancellor,
+            keptCardId: hand[0],
+            discardOrder: hand.slice(1),
+            play: SearchPlay.Adviser,
+            faceUp: false
+        }), searching, game).updatedState)
+        expect(keptFacedown.players.find((player) => player.playerId === chancellor)?.advisers.at(-1)).toMatchObject({ faceUp: false, seen: true, shownCardId: hand[0] })
+        expectExplorable(game, keptFacedown, setupVariant)
         const resolved = canonical(engine.runNext(buildAction(SearchResolve, {
             playerId: chancellor,
             keptCardId: hand[0],
@@ -317,6 +344,16 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
         expect(searcher?.knownWorldDeckBottom.toSorted()).toEqual(hand.toSorted())
         expect(resolved.seenWorldDeckBottom.length > 0 ? 1 : 0).toBe(table)
         expectExplorable(game, resolved, setupVariant)
+    })
+
+    it('after The Map goes to the bottom of the relic deck in front of everyone', () => {
+        const { game, state, chancellor } = started(setupVariant)
+        const mapped = usePower(game, giveRelic(state, chancellor, MAP), chancellor, MAP)
+        expect(mapped.vault.relicDeck.at(-1)).toBe(MAP)
+        expect(mapped.seenRelicDeckBottom).toEqual([MAP])
+        expectExplorable(game, mapped, setupVariant)
+        for (const perspective of perspectives(mapped))
+            expect(explore(game, mapped, perspective).vault.relicDeck.at(-1)).toBe(MAP)
     })
 
     it('after Brass Horse reveals the top of a discard pile to the table', () => {
@@ -412,5 +449,54 @@ describe('the branch depends only on what the explorer may know', () => {
             expect(explore(game, swapped, perspective)).toEqual(explore(game, state, perspective))
         expect(swapped.vault.worldDeck).not.toEqual(state.vault.worldDeck)
         expect(chancellor).toBe(state.chancellorPlayerId)
+    })
+})
+
+describe('Inquisitor\'s public facts about a facedown row', () => {
+    /** The Conspiracy from the world deck into p2's facedown row, as a peek would find it; counts kept true. */
+    function conspiracyHeldBy(state: OathGameState, holder: string): OathGameState {
+        const next = structuredClone(state)
+        const player = next.players.find((p) => p.playerId === holder)
+        assert(player !== undefined, 'the holder sits at the table')
+        const deck = next.vault.worldDeck
+        const at = deck.indexOf(CONSPIRACY)
+        assert(at > 0, 'the Conspiracy lies under the top of the world deck')
+        ;[deck[at], player.adviserIds[0]] = [player.adviserIds[0], CONSPIRACY]
+        player.advisers[0] = { faceUp: false, vision: true }
+        next.worldDeckVisions -= 1
+        return canonical(next)
+    }
+
+    it('the Conspiracy Inquisitor found stays in the row everyone saw chosen, until it is played or discarded', () => {
+        const { game, state, chancellor } = started(SetupVariant.Randomized)
+        const holder = state.players.find((player) => player.playerId !== chancellor)?.playerId
+        assert(holder !== undefined, 'another player sits at the table')
+        const found = conspiracyHeldBy(state, holder)
+        found.pendingQuestions = {
+            queue: [{ kind: PowerQuestionKind.PlayOrDiscardConspiracy, cardId: 'denizen.arcane.inquisitor', askedPlayerId: chancellor, holderPlayerId: holder, index: 0 }],
+            askingPlayerId: chancellor,
+            resumeMachineState: MachineState.ActPhase
+        }
+        for (const perspective of perspectives(found))
+            for (const seed of [1, 2, 3])
+                expect(explore(game, canonical(found), perspective, seed).players.find((player) => player.playerId === holder)?.adviserIds[0]).toBe(CONSPIRACY)
+    })
+
+    it('a Vision row Inquisitor found was not the Conspiracy is never dealt it', () => {
+        const { game, state, chancellor } = started(SetupVariant.Randomized)
+        const holder = state.players.find((player) => player.playerId !== chancellor)?.playerId
+        assert(holder !== undefined, 'another player sits at the table')
+        const next = structuredClone(state)
+        const player = next.players.find((p) => p.playerId === holder)
+        assert(player !== undefined, 'the holder sits at the table')
+        const deck = next.vault.worldDeck
+        const vision = deck.findLast((id) => kindOf(id) === CardKind.Vision && id !== CONSPIRACY)
+        assert(vision !== undefined, 'a Vision other than the Conspiracy lies in the deck')
+        const at = deck.lastIndexOf(vision)
+        ;[deck[at], player.adviserIds[0]] = [player.adviserIds[0], vision]
+        player.advisers[0] = { faceUp: false, vision: true, notConspiracy: true }
+        next.worldDeckVisions -= 1
+        for (const seed of [1, 2, 3, 4, 5, 6, 7, 8])
+            expect(explore(game, canonical(next), { kind: 'spectator' }, seed).players.find((p) => p.playerId === holder)?.adviserIds[0]).not.toBe(CONSPIRACY)
     })
 })

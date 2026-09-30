@@ -249,7 +249,8 @@ describe('False Prophet — "If it is ever discarded, kill the warband and play 
         const s = prophesied()
         revealAnother(s, REBELLION)
         answerQuestion(s, ME, playTo(SearchPlay.Adviser))
-        expect(s.getPlayerState(ME).knownAdvisers()).toEqual([{ cardId: PROPHET, faceUp: true }, { cardId: FAITH, faceUp: false }])
+        // The Vision was revealed, so the table still knows it facedown.
+        expect(s.getPlayerState(ME).knownAdvisers()).toEqual([{ cardId: PROPHET, faceUp: true }, { cardId: FAITH, faceUp: false, seen: true }])
         const full = prophesied({ [ME]: { handIds: [], advisers: [{ cardId: PROPHET, faceUp: true }, { cardId: FILLER, faceUp: true }, { cardId: 'denizen.hearth.wayside-inn', faceUp: true }] } })
         revealAnother(full, REBELLION)
         expect(HydratedAnswerQuestion.reasonCannotAnswer(full, ME, playTo(SearchPlay.Adviser))).toMatch(/already at the adviser limit of 3/)

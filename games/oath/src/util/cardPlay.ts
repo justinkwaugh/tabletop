@@ -131,6 +131,8 @@ export interface CardPlayOptions {
     discardTarget?: DiscardTarget
     /** R-5.1.4.II — advisers may be played either way up. */
     faceUp?: boolean
+    /** Truthful Harp, False Prophet — the table saw the card, so a facedown play stays known. */
+    seen?: boolean
     /** R-5.1.4.IV — the Conspiracy's optional When Played power. */
     conspiracy?: ConspiracyPlay
     /** R-5.1.4.II, R-7.6.4 — to meet the limit. */
@@ -208,6 +210,7 @@ export function playCard(
                 discard(discardedId)
             }
             player.addAdviser(cardId, options.faceUp === true)
+            if (options.seen === true) player.markSeen(cardId)
             settleBoardFavor(state, playerId)
             break
         }

@@ -7,6 +7,8 @@ import type {
 } from '../model/playerState.js'
 import { Region } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
+import type { HiddenReveal } from '../model/hidden.js'
+import { isVision } from '../data/cardRegistry.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
 import {
     discardOnto,
@@ -76,6 +78,8 @@ export function seeWorldDeckTop(
 export function drawWorldDeck(state: HydratedOathGameState, count: number): WorldDeckDraw {
     const vault = state.requireVault()
     const draw = drawFromWorldDeck(vault, count)
+    state.worldDeckDrawn += draw.drawn.length
+    state.worldDeckVisions -= draw.drawn.filter(isVision).length
     for (const player of state.players)
         player.knownWorldDeckTop = worldDeckTopOf(player).slice(draw.drawn.length)
     const size = vault.worldDeck.length
@@ -94,6 +98,11 @@ export function drawWorldDeckVision(
     playerId: string
 ): string | undefined {
     const cardId = drawFirstVision(state.requireVault())
+    // R-8.8 — it lay within reach of the top, so it counts as drawn from there.
+    if (cardId !== undefined) {
+        state.worldDeckDrawn += 1
+        state.worldDeckVisions -= 1
+    }
     for (const player of state.players)
         player.knownWorldDeckTop = worldDeckTopOf(player).filter((id) => id !== cardId)
     const drawer = state.getPlayerState(playerId)
@@ -112,6 +121,8 @@ export interface DiscardWitnesses {
     holders: boolean
     /** Pilgrimage — cards the table knows as a set, but not in their order. */
     sets: ReadonlySet<string>
+    /** A relic question's drawn relic, and who already knew it. */
+    relics: ReadonlyMap<string, readonly Witness[]>
 }
 
 /** What the table shows, read from public state alone, so a projection can take it too. */
@@ -120,6 +131,10 @@ export function tableWitnesses(state: HydratedOathGameState): DiscardWitnesses {
         ...Object.values(state.denizensBySite).flat(),
         ...state.players.flatMap((player) => [
             ...player.faceupAdviserIds(),
+            // Truthful Harp, False Prophet — a facedown card the table saw go down.
+            ...player.advisers.flatMap((row) =>
+                row.seen && row.shownCardId !== undefined ? [row.shownCardId] : []
+            ),
             ...(player.revealedVisionId ? [player.revealedVisionId] : [])
         ])
     ]
@@ -134,7 +149,21 @@ export function tableWitnesses(state: HydratedOathGameState): DiscardWitnesses {
     for (const question of state.pendingQuestions?.queue ?? [])
         if (question.kind === PowerQuestionKind.OrderDrawnCards)
             for (const cardId of question.among ?? []) sets.add(cardId)
-    return { byCard: new Map(shown.map((cardId) => [cardId, 'everyone'])), holders: false, sets }
+    const relics = new Map<string, readonly Witness[]>()
+    for (const question of state.pendingQuestions?.queue ?? [])
+        if (
+            (question.kind === PowerQuestionKind.KeepOrBottomRelic ||
+                question.kind === PowerQuestionKind.BottomRelic) &&
+            question.relicCardId !== undefined &&
+            question.seenBy !== undefined
+        )
+            relics.set(question.relicCardId, question.seenBy)
+    return {
+        byCard: new Map(shown.map((cardId) => [cardId, 'everyone'])),
+        holders: false,
+        sets,
+        relics
+    }
 }
 
 /** On the host: the table's cards, and every hand card and facedown adviser as its holder's. */
@@ -145,7 +174,7 @@ export function discardWitnesses(state: HydratedOathGameState): DiscardWitnesses
             byCard.set(cardId, player.playerId)
     const table = tableWitnesses(state)
     for (const [cardId, witness] of table.byCard) byCard.set(cardId, witness)
-    return { byCard, holders: true, sets: table.sets }
+    return { byCard, holders: true, sets: table.sets, relics: table.relics }
 }
 
 interface RecordHolder {
@@ -304,6 +333,7 @@ export function putUnderWorldDeckKnown(
     deposit: Deposit
 ): void {
     putUnderWorldDeck(state.requireVault(), cardIds)
+    state.worldDeckVisions += cardIds.filter(isVision).length
     for (const record of worldDeckBottomRecords(state))
         if (record.get().length > 0) record.set([...unknown(cardIds.length), ...record.get()])
     remember(
@@ -331,15 +361,49 @@ export function mergeDiscardPileOnto(state: HydratedOathGameState, from: Region,
 }
 
 /** R-1.17, R-5.6.2, R-8.6.2 — a draw that reaches a known relic takes it off the known bottom. */
-export function drawRelicDeck(state: HydratedOathGameState, count: number): string[] {
+export function drawRelicDeck(
+    state: HydratedOathGameState,
+    count: number
+): { relicCardIds: string[]; seenBy: Witness[][] } {
     const vault = state.requireVault()
     const drawn = drawRelics(vault, count)
     const remaining = vault.relicDeck.length
-    for (const player of state.players) {
-        const known = relicDeckBottomOf(player)
-        player.knownRelicDeckBottom = trimAbove(known.slice(Math.max(0, known.length - remaining)))
-    }
-    return drawn
+    // A relic drawn off a known bottom stays known to whoever knew it there.
+    const seenBy = drawn.map((relicCardId): Witness[] =>
+        state.seenRelicDeckBottom.includes(relicCardId)
+            ? ['everyone']
+            : state.players
+                  .filter((player) => relicDeckBottomOf(player).includes(relicCardId))
+                  .map((player) => player.playerId)
+    )
+    const trim = (known: KnownPositions) =>
+        trimAbove(known.slice(Math.max(0, known.length - remaining)))
+    state.seenRelicDeckBottom = trim(state.seenRelicDeckBottom)
+    for (const player of state.players)
+        player.knownRelicDeckBottom = trim(relicDeckBottomOf(player))
+    return { relicCardIds: drawn, seenBy }
+}
+
+/** A relic question names who already knew the relic drawn for it. */
+export function knownDraw(reveal: HiddenReveal | undefined): { seenBy?: string[] } {
+    const seenBy = reveal?.kind === 'relics' ? reveal.seenBy?.[0] : undefined
+    return seenBy !== undefined && seenBy.length > 0 ? { seenBy } : {}
+}
+
+/** A relic a site flip drew onto `slotId`: whoever knew it knows it there, without a peek (R-6.3). */
+export function rememberRelicAt(
+    state: HydratedOathGameState,
+    slotId: string,
+    relicCardId: string,
+    seenBy: readonly Witness[]
+): void {
+    if (seenBy.includes('everyone'))
+        state.seenRelics = { ...state.seenRelics, [slotId]: relicCardId }
+    for (const player of state.players)
+        if (seenBy.includes(player.playerId)) {
+            assertExists(player.peekedRelics, 'This operation requires known peeks')
+            player.peekedRelics[slotId] = relicCardId
+        }
 }
 
 /** Every player records the relic sent to the bottom, by name if they know it. */
@@ -349,16 +413,16 @@ export function sendRelicToBottom(
     knownBy: 'everyone' | readonly string[]
 ): void {
     returnRelicToBottom(state.requireVault(), relicCardId)
-    for (const player of state.players) {
-        const knows =
+    const record = (known: KnownPositions, knows: boolean) =>
+        trimAbove([...known.filter((id) => id !== relicCardId), knows ? relicCardId : null])
+    state.seenRelicDeckBottom = record(state.seenRelicDeckBottom, knownBy === 'everyone')
+    for (const player of state.players)
+        player.knownRelicDeckBottom = record(
+            relicDeckBottomOf(player),
             knownBy === 'everyone' ||
-            knownBy.includes(player.playerId) ||
-            hasPeekedAt(player, relicCardId)
-        player.knownRelicDeckBottom = trimAbove([
-            ...relicDeckBottomOf(player).filter((id) => id !== relicCardId),
-            knows ? relicCardId : null
-        ])
-    }
+                knownBy.includes(player.playerId) ||
+                hasPeekedAt(player, relicCardId)
+        )
 }
 
 /** R-6.3 — a relic this player saw where it lay. */

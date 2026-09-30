@@ -25,7 +25,11 @@ export type HiddenReveal = Type.Static<typeof HiddenReveal>
 export const HiddenReveal = Type.Union([
     Type.Object({
         kind: Type.Literal('relics'),
-        relicCardIds: Type.Array(Type.String(), { maxItems: 8 })
+        relicCardIds: Type.Array(Type.String(), { maxItems: 8 }),
+        /** For each relic, who already knew it: it came off the known bottom of the relic deck. */
+        seenBy: Type.Optional(
+            Type.Array(Type.Array(Type.String(), { maxItems: 8 }), { maxItems: 8 })
+        )
     }),
     Type.Object({
         kind: Type.Literal('peek'),

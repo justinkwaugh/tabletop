@@ -33,20 +33,52 @@ function isShownPlayer(context: Visibility.PolicyContext<unknown>): boolean {
 
 export const AdviserShownPolicy = 'oath.adviserShownTo'
 
-/** R-9.4 — a facedown adviser's card is known to whoever its holder let peek, while it stays there. */
+/**
+ * R-9.4 — a facedown adviser's card is known to whoever its holder let peek, while it stays there,
+ * and to everyone when the table saw it go down (`seen`).
+ */
 function isAdviserShownTo(context: Visibility.PolicyContext<unknown>): boolean {
     const row = context.parent
+    if (typeof row !== 'object' || row === null) return false
+    if ('seen' in row && row.seen === true) return true
     return (
         context.perspective.kind === 'player' &&
-        typeof row === 'object' &&
-        row !== null &&
         'shownTo' in row &&
         Array.isArray(row.shownTo) &&
         row.shownTo.includes(context.perspective.playerId)
     )
 }
 
+export const HandShownPolicy = 'oath.handShown'
+
+/** Truthful Harp — "you must reveal every card you draw": a hand the table has seen. */
+function isHandShown(context: Visibility.PolicyContext<unknown>): boolean {
+    const player = context.parent
+    return (
+        typeof player === 'object' &&
+        player !== null &&
+        'handShown' in player &&
+        player.handShown === true
+    )
+}
+
+export const RelicSeenPolicy = 'oath.relicSeenBy'
+
+/** A relic drawn off the known bottom of the relic deck is known to whoever knew it there. */
+function isRelicSeenBy(context: Visibility.PolicyContext<unknown>): boolean {
+    const question = context.parent
+    if (typeof question !== 'object' || question === null || !('seenBy' in question)) return false
+    const seenBy = question.seenBy
+    if (!Array.isArray(seenBy)) return false
+    return (
+        seenBy.includes('everyone') ||
+        (context.perspective.kind === 'player' && seenBy.includes(context.perspective.playerId))
+    )
+}
+
 export const OathVisibilityPolicies = {
+    [HandShownPolicy]: isHandShown,
+    [RelicSeenPolicy]: isRelicSeenBy,
     [AdviserShownPolicy]: isAdviserShownTo,
     [AskedPlayerPolicy]: isAskedPlayer,
     [ShownPlayerPolicy]: isShownPlayer
@@ -199,15 +231,23 @@ export const PowerQuestion = Type.Union([
         kind: Type.Literal(PowerQuestionKind.KeepOrBottomRelic),
         cardId: Type.String(),
         askedPlayerId: Type.String(),
-        // R-9.4 — drawn from the relic deck and seen by the asked player alone.
-        relicCardId: Visibility.protect(Type.String(), { policy: AskedPlayerPolicy })
+        /** Who already knew the relic drawn: it came off the known bottom of the relic deck. */
+        seenBy: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
+        // R-9.4 — drawn from the relic deck and seen by the asked player, and by whoever knew it.
+        relicCardId: Visibility.protect(Type.String(), {
+            policy: Visibility.Policy.anyOf(AskedPlayerPolicy, RelicSeenPolicy)
+        })
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.BottomRelic),
         cardId: Type.String(),
         askedPlayerId: Type.String(),
-        // R-9.4 — drawn from the relic deck and seen by the asked player alone.
-        relicCardId: Visibility.protect(Type.String(), { policy: AskedPlayerPolicy })
+        /** Who already knew the relic drawn: it came off the known bottom of the relic deck. */
+        seenBy: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
+        // R-9.4 — drawn from the relic deck and seen by the asked player, and by whoever knew it.
+        relicCardId: Visibility.protect(Type.String(), {
+            policy: Visibility.Policy.anyOf(AskedPlayerPolicy, RelicSeenPolicy)
+        })
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.TakeOrLeaveRelic),
@@ -221,7 +261,9 @@ export const PowerQuestion = Type.Union([
         kind: Type.Literal(PowerQuestionKind.PlayOrDiscardConspiracy),
         cardId: Type.String(),
         askedPlayerId: Type.String(),
-        holderPlayerId: Type.String()
+        holderPlayerId: Type.String(),
+        /** The row Inquisitor peeked at, which everyone saw chosen. */
+        index: Type.Number()
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.TravelFreeTo),

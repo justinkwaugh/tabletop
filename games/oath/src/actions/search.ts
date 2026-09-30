@@ -136,6 +136,8 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
 
         const drawn = draw.drawnCardIds
         player.setHand([...player.knownHand(), ...drawn])
+        // Truthful Harp — the draw is revealed, so the whole hand is the table's to see.
+        if (active.some((m) => m.hooks.revealsDraw)) player.handShown = true
 
         if (this.drawFrom === SearchSource.WorldDeck) {
             state.topCardBackType = draw.topCardBackType

@@ -12,6 +12,7 @@ import {
     reliquarySlotChoices
 } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
+import { knownDraw } from '../util/knowledge.js'
 import { gainSupply } from '../util/rest.js'
 import { rulesSite } from '../util/rule.js'
 import {
@@ -98,6 +99,7 @@ registerEffect(DOWSING_STICKS, powerIndexOf(DOWSING_STICKS, PowerTiming.Action),
             kind: PowerQuestionKind.KeepOrBottomRelic,
             cardId: DOWSING_STICKS,
             askedPlayerId: ctx.playerId,
+            ...knownDraw(ctx.reveal),
             relicCardId: drawn
         })
         return {

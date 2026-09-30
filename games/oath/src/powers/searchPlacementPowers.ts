@@ -59,7 +59,8 @@ registerEffect(INQUISITOR, powerIndexOf(INQUISITOR, PowerTiming.Action), {
                 kind: PowerQuestionKind.PlayOrDiscardConspiracy,
                 cardId: INQUISITOR,
                 askedPlayerId: ctx.playerId,
-                holderPlayerId: holder.playerId
+                holderPlayerId: holder.playerId,
+                index: adviser.index
             })
             return {
                 summary: `Inquisitor: ${holder.playerId}'s adviser is the Conspiracy — play it, or discard it`,
@@ -67,6 +68,7 @@ registerEffect(INQUISITOR, powerIndexOf(INQUISITOR, PowerTiming.Action), {
             }
         }
         holder.markShown(cardId, ctx.playerId)
+        holder.markNotConspiracy(cardId)
         // "Give them the favor here" — the favor the cost just placed.
         const given = Math.min(1, ctx.state.tokensOn(INQUISITOR).favor)
         ctx.state.addTokensOn(INQUISITOR, { favor: -given })

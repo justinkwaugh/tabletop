@@ -95,6 +95,18 @@ describe('Exploration from canonical state (R-9.4)', () => {
         expect(branches.some((branch) => branch.vault.siteFacedown[unpeekedSlot] !== state.vault.siteFacedown[unpeekedSlot])).toBe(true)
     })
 
+    it('on a short deck whose known top and known bottom meet, deals each card once', () => {
+        const state = source()
+        const deck = state.vault.worldDeck.slice(0, 4)
+        state.vault.worldDeck = deck
+        state.players[0].knownWorldDeckTop = deck.slice(0, 3)
+        state.players[1].knownWorldDeckBottom = [deck[3], deck[2]]
+        for (const seed of BRANCH_SEEDS) {
+            const branch = explore(state, seed)
+            expect(branch.vault.worldDeck).toEqual(deck)
+        }
+    })
+
     it('changes nothing a player can see: hands, advisers and the public board', () => {
         const state = source()
         const branch = explore(state)

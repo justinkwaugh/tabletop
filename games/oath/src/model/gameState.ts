@@ -7,7 +7,12 @@ import {
     Visibility,
     assertExists
 } from '@tabletop/common'
-import { TablePositions, OathPlayerState, HydratedOathPlayerState } from './playerState.js'
+import {
+    KnownPositions,
+    TablePositions,
+    OathPlayerState,
+    HydratedOathPlayerState
+} from './playerState.js'
 import * as Type from 'typebox'
 import { PowerUse } from './powerUse.js'
 import { IMPERIAL_WARBANDS, WarbandCounts, type WarbandOwner } from './warbandCounts.js'
@@ -99,12 +104,20 @@ export const OathGameState = Type.Object({
     topCardBackType: Type.Optional(Type.Enum(CardKind)),
     /** R-2.1.6, R-2.7.1, R-1.2 */
     visionsDrawn: Type.Number(),
+    /** R-8.8, R-9.4 — cards drawn from the world deck's top so far, which the table saw leave. */
+    worldDeckDrawn: Type.Number(),
+    /** R-9.4 — Visions in the world deck: every back is seen leaving and going under. */
+    worldDeckVisions: Type.Number(),
     /** R-2.1.2, R-9.4 — counts are public; the piles live in the vault. */
     discardPileCounts: Type.Record(Type.Enum(Region), Type.Number()),
     /** R-9.4 — backs are public. Never written in `commitHiddenOutputs`: clients replay `apply()`. */
     discardTopBackType: Type.Record(Type.Enum(Region), Type.Optional(Type.Enum(CardKind))),
     /** What the whole table saw go onto each pile, by position from its bottom (`util/knowledge.ts`). */
     seenDiscardPiles: Type.Record(Type.Enum(Region), TablePositions),
+    /** The Map, Fae Merchant — relics the whole table saw go to the bottom of the relic deck, bottom last. */
+    seenRelicDeckBottom: KnownPositions,
+    /** R-9.4 — a facedown relic the whole table knows by where it came from, by slot. */
+    seenRelics: Type.Record(Type.String(), Type.String()),
     /** Cracked Horn with Truthful Harp — what the whole table saw go under the world deck. */
     seenWorldDeckBottom: TablePositions,
     /** R-8.5, R-9.4 — the Dispossessed lies facedown, so its size is public, not its cards. */
@@ -179,10 +192,14 @@ export class HydratedOathGameState
     declare worldDeckExhausted: boolean
     declare topCardBackType?: CardKind
     declare visionsDrawn: number
+    declare worldDeckDrawn: number
+    declare worldDeckVisions: number
     declare discardPileCounts: Record<Region, number>
     declare discardTopBackType: Partial<Record<Region, CardKind>>
     declare seenDiscardPiles: Record<Region, TablePositions>
     declare seenWorldDeckBottom: TablePositions
+    declare seenRelicDeckBottom: KnownPositions
+    declare seenRelics: Record<string, string>
     declare dispossessedCount: number
     declare boxIds: string[]
     declare oathType: OathType

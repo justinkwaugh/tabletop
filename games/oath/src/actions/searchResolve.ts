@@ -171,8 +171,11 @@ export class HydratedSearchResolve
         player.setHand([])
 
         // R-5.1.4
+        // Truthful Harp — "you must reveal every card you draw and the card you keep".
+        const shown = carried.some((m) => m.hooks.revealsDraw)
         const played = playCard(state, this.playerId, this.keptCardId, this.play, region, {
             faceUp: this.faceUp,
+            seen: shown,
             conspiracy: this.conspiracy,
             discardedAdviserCardIds: this.discardedAdviserCardIds,
             choices: this.choices,
@@ -187,6 +190,7 @@ export class HydratedSearchResolve
         const second = this.secondPlay
             ? playCard(state, this.playerId, this.secondPlay.cardId, this.secondPlay.play, region, {
                   faceUp: this.secondPlay.faceUp,
+                  seen: shown,
                   discardTarget
               })
             : undefined
@@ -217,9 +221,7 @@ export class HydratedSearchResolve
                 this.secondPlay && playShowsCard(this.secondPlay.play, this.secondPlay.faceUp)
                     ? this.secondPlay.cardId
                     : undefined,
-            revealedKeptCardId: carried.some((m) => m.hooks.revealsDraw)
-                ? this.keptCardId
-                : undefined,
+            revealedKeptCardId: shown ? this.keptCardId : undefined,
             discardPileRegion: discardTarget?.region ?? discardRegionFor(region),
             discardToBottom: discardTarget?.bottom || undefined,
             discardToWorldDeck: discardTarget?.worldDeck || undefined,

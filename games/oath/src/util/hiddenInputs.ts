@@ -12,6 +12,7 @@ import {
     mergeDiscardPileOnto,
     putOnDiscardPile,
     putUnderWorldDeckKnown,
+    rememberRelicAt,
     sendRelicToBottom,
     type Deposit,
     type DiscardWitnesses
@@ -66,9 +67,10 @@ export function flipSiteFromVault(state: HydratedOathGameState, siteId: string):
     assertExists(siteCardId, `${siteId} was not revealed from the vault`)
     delete vault.siteFacedown[siteId]
     const relics = drawRelicDeck(state, siteRevealPrompt(siteCardId)?.relics ?? 0)
-    const relicSlots = relics.map((relicCardId, index) => {
+    const relicSlots = relics.relicCardIds.map((relicCardId, index) => {
         const slotId = `${siteId}.relic.${index}`
         vault.relicFacedown[slotId] = relicCardId
+        rememberRelicAt(state, slotId, relicCardId, relics.seenBy[index])
         return { slotId }
     })
     state.siteCards = { ...state.siteCards, [siteId]: siteCardId }
@@ -198,7 +200,9 @@ export function commitHiddenOutputs(
                 sendRelicToBottom(
                     state,
                     bottomed,
-                    heldRelicAnswered(action) === bottomed ? 'everyone' : [action.playerId]
+                    heldRelicAnswered(action) === bottomed
+                        ? 'everyone'
+                        : [action.playerId, ...(witnesses.relics.get(bottomed) ?? [])]
                 )
             if (action.metadata?.relicTakenFromSlotId)
                 delete vault.relicFacedown[action.metadata.relicTakenFromSlotId]
@@ -365,7 +369,7 @@ function fulfil(
     const vault = state.requireVault()
     switch (request.kind) {
         case 'relicDraw':
-            return { kind: 'relics', relicCardIds: drawRelicDeck(state, request.count) }
+            return { kind: 'relics', ...drawRelicDeck(state, request.count) }
         case 'discardPeek':
             return { kind: 'peek', cardIds: peekDiscard(vault, request.region, request.count) }
         case 'relicAtSlot':

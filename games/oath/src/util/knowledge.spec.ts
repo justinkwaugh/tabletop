@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { Color, assert, getPrng } from '@tabletop/common'
+import { Color, assert, getPrng, type Visibility } from '@tabletop/common'
 import { OathGameStateValidator } from '../model/gameState.js'
 import { Region } from '../model/oathEnums.js'
+import { PowerQuestionKind } from '../model/question.js'
+import { MachineState } from '../definition/states.js'
 import { createOathVault } from '../model/vault.js'
 import { OathRuntime } from '../definition/runtime.js'
 import { testPlayer, testState } from '../testing/fixture.js'
@@ -11,6 +13,7 @@ import { PowerTiming, powersWithTiming } from '../data/cardPowers.js'
 import { INN, FILLER } from '../testing/cards.js'
 import {
     discardWitnesses,
+    rememberRelicAt,
     putUnderWorldDeckKnown,
     tableWitnesses,
     drawDiscardPile,
@@ -169,6 +172,38 @@ describe('the world deck’s bottom, as each player saw it (Cracked Horn)', () =
     })
 })
 
+describe('a known relic drawn back out of the relic deck', () => {
+    it('onto a site slot: its knowers know it there, and the table too when it went down in public, with no peek granted', () => {
+        const s = table()
+        s.requireVault().relicDeck = [CUP]
+        sendRelicToBottom(s, CUP, ['p1'])
+        const drawn = drawRelicDeck(s, 1)
+        rememberRelicAt(s, 'c2.relic.0', CUP, drawn.seenBy[0])
+        expect(s.getPlayerState('p1').peekedRelics).toEqual({ 'c2.relic.0': CUP })
+        expect(s.getPlayerState('p1').peekedRelicSlotIds).toEqual([])
+        expect(s.getPlayerState('p2').peekedRelics).toEqual({})
+        rememberRelicAt(s, 'c2.relic.1', DRUM, ['everyone'])
+        expect(s.seenRelics).toEqual({ 'c2.relic.1': DRUM })
+    })
+
+    it('into a relic question: whoever knew it sees the question\'s relic', () => {
+        const s = table()
+        s.pendingQuestions = {
+            queue: [{ kind: PowerQuestionKind.KeepOrBottomRelic, cardId: 'relic.dowsing-sticks', askedPlayerId: 'p1', seenBy: ['p2'], relicCardId: CUP }],
+            askingPlayerId: 'p1',
+            resumeMachineState: MachineState.ActPhase
+        }
+        const state = s.dehydrate()
+        assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
+        const relicOf = (perspective: Visibility.Perspective) => {
+            const question = OathRuntime.visibility.state.project(state, perspective).pendingQuestions?.queue[0]
+            return question && 'relicCardId' in question ? question.relicCardId : undefined
+        }
+        expect(relicOf({ kind: 'player', playerId: 'p2' })).toBe(CUP)
+        expect(relicOf(spectator)).toBeUndefined()
+    })
+})
+
 describe('Oracle and what lies under the world deck', () => {
     it('moves no record but its drawer\'s, since where the Vision lay is private', () => {
         const s = table()
@@ -221,11 +256,14 @@ describe('the relic deck’s bottom, as each player saw it', () => {
             [CUP, 'relic.ring-of-devotion'],
             ['relic.ring-of-devotion']
         ])
-        expect(drawRelicDeck(s, 3)).toEqual([DRUM, MAP, CUP])
+        expect(s.seenRelicDeckBottom).toEqual(['relic.ring-of-devotion'])
+        expect(drawRelicDeck(s, 3)).toEqual({ relicCardIds: [DRUM, MAP, CUP], seenBy: [[], [], ['p1']] })
         expect(s.players.map((player) => player.knownRelicDeckBottom)).toEqual([
             ['relic.ring-of-devotion'],
             ['relic.ring-of-devotion']
         ])
+        expect(drawRelicDeck(s, 1)).toEqual({ relicCardIds: ['relic.ring-of-devotion'], seenBy: [['everyone']] })
+        expect(s.seenRelicDeckBottom).toEqual([])
     })
 
     it('R-6.3 — a player who had peeked at a relic knows it when it goes down unseen', () => {

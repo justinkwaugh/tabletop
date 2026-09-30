@@ -9,6 +9,7 @@ import {
     type ChoiceDomain
 } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
+import { knownDraw } from '../util/knowledge.js'
 import { SECOND_WIND_ID, nextActionIndex } from '../util/freeActions.js'
 import {
     registerBattlePlan,
@@ -170,6 +171,7 @@ registerEffect(FAMILY_HEIRLOOM, powerIndexOf(FAMILY_HEIRLOOM, PowerTiming.WhenPl
             kind: PowerQuestionKind.KeepOrBottomRelic,
             cardId: FAMILY_HEIRLOOM,
             askedPlayerId: ctx.playerId,
+            ...knownDraw(ctx.reveal),
             relicCardId: drawn
         })
         return {

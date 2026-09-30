@@ -17,6 +17,7 @@ import { gainWarbandsToBoard, pawnSiteId, regionOfPawn } from './vocabulary.js'
 import { takeRelics, takeNotes, clearSiteRelicSlot, clearReliquarySlot } from '../util/relics.js'
 import { otherRegionChoices } from './choiceDomains.js'
 import { askQuestion } from '../util/questions.js'
+import { knownDraw } from '../util/knowledge.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { siteLockedFor } from '../util/locked.js'
 import { seeDiscardPile } from '../util/knowledge.js'
@@ -34,6 +35,7 @@ registerEffect(FAE_MERCHANT, powerIndexOf(FAE_MERCHANT, PowerTiming.Action), {
             kind: PowerQuestionKind.BottomRelic,
             cardId: FAE_MERCHANT,
             askedPlayerId: ctx.playerId,
+            ...knownDraw(ctx.reveal),
             relicCardId: drawn
         })
         return {

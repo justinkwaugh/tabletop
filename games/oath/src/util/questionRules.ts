@@ -484,6 +484,8 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             // R-5.1.4 — "as if you had searched": the same play a Search's kept card gets.
             const played = playCard(state, playerId, visionCardId, play, region, {
                 faceUp: false,
+                // The Vision was revealed; played facedown, the table still knows it.
+                seen: true,
                 discardedAdviserCardIds: listOf(discardedAdviserCardId)
             })
             const summary =

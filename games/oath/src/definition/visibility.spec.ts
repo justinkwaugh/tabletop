@@ -641,7 +641,7 @@ describe('Oath visibility', () => {
         const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.UseActionPower, playerId: 'p1', cardId: INQUISITOR, powerIndex: powerIndexOf(INQUISITOR, PowerTiming.Action), choices: [{ kind: 'facedownAdviser', playerId: 'p2', index: 0 }] }), state: before, game })
         const after = canonical(result.updatedState)
         expect(after.players[1].favor).toBe(before.players[1].favor)
-        expect(after.pendingQuestions?.queue[0]).toEqual({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, cardId: INQUISITOR, askedPlayerId: 'p1', holderPlayerId: 'p2' })
+        expect(after.pendingQuestions?.queue[0]).toEqual({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, cardId: INQUISITOR, askedPlayerId: 'p1', holderPlayerId: 'p2', index: 0 })
         const p3 = { kind: 'player', playerId: 'p3' } as const
         for (const perspective of [p3, spectator]) {
             const view = OathRuntime.visibility.state.project(after, perspective)

@@ -12,15 +12,13 @@ import { cardIdsOfKind, isVision, kindOf, suitOf } from '../data/cardRegistry.js
 import { PLAYTEST_DECK, PLAYTEST_SITES } from '../data/playtestDeck.js'
 import { ALL_SITE_IDS } from '../data/sites.js'
 import { RELIC_DECK_IDS } from '../data/relics.js'
+import { CONSPIRACY_ID } from '../data/visions.js'
 import {
-    CARDS_IN_PLAY,
     DENIZENS_PER_SUIT_IN_PLAY,
     SECOND_PILE_DENIZENS,
     SECOND_PILE_VISIONS,
     TOP_PILE_DENIZENS,
-    TOP_PILE_VISIONS,
-    TOTAL_VISIONS,
-    setupDrawTotal
+    TOP_PILE_VISIONS
 } from '../data/worldDeck.js'
 import { noKnownDiscardPiles } from './knowledge.js'
 
@@ -123,6 +121,8 @@ function seenAtSlots(slotIds: readonly string[], facedown: Record<string, string
 interface Slot {
     fill: (cardId: string) => void
     kind?: CardKind
+    /** Inquisitor — a card everyone knows this place does not hold. */
+    not?: string
 }
 
 /** Fills the slots that need a card back first, then the rest, from a shuffled pool. */
@@ -137,7 +137,9 @@ function fillSlots(slots: Slot[], pool: string[]) {
         ...slots.filter((slot) => slot.kind !== undefined && slot.kind !== CardKind.Vision)
     ]
     for (const slot of byKind) {
-        const index = pool.findIndex((cardId) => kindOf(cardId) === slot.kind)
+        const index = pool.findIndex(
+            (cardId) => kindOf(cardId) === slot.kind && cardId !== slot.not
+        )
         assert(index >= 0, `No hidden card with a ${slot.kind} back is left for a public back`)
         slot.fill(pool.splice(index, 1)[0])
     }
@@ -240,6 +242,8 @@ function namedWorldCards(
             for (const cardId of question.cardIds) named.add(cardId)
         if (question.kind === PowerQuestionKind.PlayOrDiscardVision)
             named.add(question.visionCardId)
+        // Inquisitor — the favor it kept named the Conspiracy in the row everyone saw chosen.
+        if (question.kind === PowerQuestionKind.PlayOrDiscardConspiracy) named.add(CONSPIRACY_ID)
         if (question.kind === PowerQuestionKind.OrderDrawnCards)
             for (const cardId of question.cardIds ?? question.among ?? []) named.add(cardId)
     }
@@ -350,12 +354,19 @@ function dealWorldCards(
         }
         if (player.adviserIds === undefined) {
             const ids = player.advisers.map((row) => row.cardId ?? row.shownCardId)
+            for (const question of questions)
+                if (
+                    question.kind === PowerQuestionKind.PlayOrDiscardConspiracy &&
+                    question.holderPlayerId === player.playerId
+                )
+                    ids[question.index] = CONSPIRACY_ID
             advisers.set(player.playerId, ids)
             for (const [index, cardId] of ids.entries())
                 if (cardId === undefined)
                     slots.push({
                         fill: (dealt) => (ids[index] = dealt),
-                        kind: player.advisers[index].vision ? CardKind.Vision : CardKind.Denizen
+                        kind: player.advisers[index].vision ? CardKind.Vision : CardKind.Denizen,
+                        not: player.advisers[index].notConspiracy ? CONSPIRACY_ID : undefined
                     })
         }
     }
@@ -393,35 +404,57 @@ function dealWorldCards(
     }
 
     // Cracked Horn — the cards known under the deck, bottom first; an unknown one among them is dealt.
-    const bottom = recalledBottom.map((cardId) => cardId ?? undefined)
+    // X-13 — a known top may already hold what a set under the deck lost: unfillable places above go.
+    const bottom = trimTrailingNulls(recalledBottom).map((cardId) => cardId ?? undefined)
     for (const [index, cardId] of bottom.entries())
         if (cardId === undefined) slots.push({ fill: (dealt) => (bottom[index] = dealt) })
 
     // R-2.7.1 — every Vision drawn so far moved the track, so the rest are still in the deck.
     const knownTop = longestTop(state.players.map((player) => player.knownWorldDeckTop ?? []))
-    const deckUnknown = visions.length + denizens.length - slots.length
+    // R-9.4 — places with a public back are dealt first, Visions (the fewer) before denizens, so the
+    // deck never takes the only card one of them may hold.
+    const free: Slot[] = []
+    for (const slot of [
+        ...slots.filter((slot) => slot.kind === CardKind.Vision),
+        ...slots.filter((slot) => slot.kind === CardKind.Denizen),
+        ...slots.filter((slot) => slot.kind === undefined)
+    ]) {
+        const from =
+            slot.kind === CardKind.Vision
+                ? visions
+                : slot.kind === CardKind.Denizen
+                  ? denizens
+                  : undefined
+        if (from === undefined) {
+            free.push(slot)
+            continue
+        }
+        const index = from.findIndex((cardId) => cardId !== slot.not)
+        assert(index >= 0, `No hidden card with a ${slot.kind} back is left for a public back`)
+        slot.fill(from.splice(index, 1)[0])
+    }
+    const deckUnknown = visions.length + denizens.length - free.length
     assert(deckUnknown >= 0, 'The hidden cards cannot fill every hidden place')
     const size = knownTop.length + deckUnknown + bottom.length
     assert(
         (size === 0) === state.worldDeckExhausted,
         'The world deck’s size disagrees with whether it is exhausted'
     )
-    // The deck keeps back what the public backs of the other hidden places need.
-    const needing = (kind: CardKind) => slots.filter((slot) => slot.kind === kind).length
-    const most = Math.min(visions.length - needing(CardKind.Vision), deckUnknown)
-    const least = Math.max(0, deckUnknown - (denizens.length - needing(CardKind.Denizen)))
-    assert(least <= most, 'The hidden cards cannot show every public back')
+    const most = Math.min(visions.length, deckUnknown)
+    const least = Math.max(0, deckUnknown - denizens.length)
     const visionsInDeck = Math.min(
         most,
         Math.max(
             least,
-            TOTAL_VISIONS - state.visionsDrawn - knownTop.filter(isVision).length,
+            state.worldDeckVisions -
+                knownTop.filter(isVision).length -
+                bottom.filter((cardId) => cardId !== undefined && isVision(cardId)).length,
             knownTop.length === 0 && state.topCardBackType === CardKind.Vision ? 1 : 0
         )
     )
     const deckVisions = visions.splice(0, visionsInDeck)
     const deckDenizens = denizens.splice(0, deckUnknown - visionsInDeck)
-    fillSlots(slots, shuffled([...visions, ...denizens], random))
+    fillSlots(free, shuffled([...visions, ...denizens], random))
     const pileOf = (region: Region) => (piles.get(region) ?? []).map(dealtCard)
     const discardPiles = {
         [Region.Cradle]: pileOf(Region.Cradle),
@@ -432,7 +465,7 @@ function dealWorldCards(
     const topMustBeVision = knownTop.length === 0 && state.topCardBackType === CardKind.Vision
     const topMustBeDenizen = knownTop.length === 0 && state.topCardBackType === CardKind.Denizen
     const first = knownTop.length + (topMustBeDenizen ? 1 : 0)
-    const drawnFromTop = Math.max(0, CARDS_IN_PLAY - setupDrawTotal(state.players.length) - size)
+    const drawnFromTop = state.worldDeckDrawn
     const reach = Math.min(
         size - bottom.length,
         Math.max(VISION_REACH - drawnFromTop, first + visionsInDeck)
@@ -450,6 +483,12 @@ function dealWorldCards(
         worldDeck.splice(position, 0, deckVisions[index])
     worldDeck.push(...bottom.map(dealtCard).reverse())
     return { worldDeck, discardPiles, hands, advisers, drawnForQuestions, dispossessed }
+}
+
+function trimTrailingNulls<T>(positions: readonly (T | null)[]): (T | null)[] {
+    let end = positions.length
+    while (end > 0 && positions[end - 1] === null) end -= 1
+    return positions.slice(0, end)
 }
 
 function longestTop(lists: readonly string[][]): string[] {
@@ -476,6 +515,8 @@ function dealRelics(
         (slot) => slot.slotId
     )
     const relicFacedown: Record<string, string> = {}
+    for (const [slotId, relicCardId] of Object.entries(state.seenRelics))
+        if (liveSlots.includes(slotId)) relicFacedown[slotId] = relicCardId
     for (const player of state.players)
         for (const [slotId, relicCardId] of Object.entries(player.peekedRelics ?? {}))
             if (liveSlots.includes(slotId)) relicFacedown[slotId] = relicCardId
@@ -484,7 +525,10 @@ function dealRelics(
             relicFacedown[question.slotId] = question.relicCardId
 
     const knownBottom = mergedPositions(
-        state.players.map((player) => [...(player.knownRelicDeckBottom ?? [])].reverse())
+        [
+            state.seenRelicDeckBottom,
+            ...state.players.map((player) => player.knownRelicDeckBottom ?? [])
+        ].map((known) => [...known].reverse())
     ).reverse()
     const named = new Set<string>([
         ...state.players.flatMap((player) => player.relicIds),
