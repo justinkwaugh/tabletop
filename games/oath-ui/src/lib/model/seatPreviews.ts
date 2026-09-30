@@ -7,7 +7,7 @@ export function reliquaryTraitPreview(spaceIndex: number, spaceLabel: string): C
     return {
         faceDown: false,
         imageSrc: reliquaryTraitImage(spaceIndex),
-        aspect: 357 / 360,
+        aspect: 1,
         label: `${spaceLabel}, uncovered: the Chancellor holds this trait`
     }
 }

@@ -27,6 +27,7 @@
         const gameState = gameSession.gameState
         const onSite = sitePieces(gameState, slotId)
         const pawns = onSite.pawns.map((p) => ({
+            playerId: p.playerId,
             name: gameSession.getPlayerName(p.playerId),
             color: gameSession.colors.getPlayerColor(p.playerId)
         }))
@@ -165,7 +166,7 @@
                             {:else}
                                 <span class="piece muted">no warbands</span>
                             {/if}
-                            {#each pieces.pawns as pawn (pawn.name)}
+                            {#each pieces.pawns as pawn (pawn.playerId)}
                                 <span class="piece">
                                     <img
                                         class="figure figure--pawn"

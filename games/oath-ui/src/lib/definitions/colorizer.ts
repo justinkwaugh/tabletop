@@ -41,7 +41,8 @@ export class OathGameColorizer extends DefaultColorizer {
         return false
     }
 
-    // The pieces are traced art, one drawing per printed colour, so a palette of fills cannot redraw them.
+    // R-1.8, R-1.9 — each seat's board and pieces are drawn in the colour the rules give it,
+    // so a substitute palette would contradict the table.
     override supportsColorblindPalette(): boolean {
         return false
     }

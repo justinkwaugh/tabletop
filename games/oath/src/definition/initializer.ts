@@ -30,7 +30,7 @@ import {
     buildSetupVault,
     resolveSetupDeal
 } from '../model/setup.js'
-import { noKnownDiscardPiles } from '../util/knowledge.js'
+import { EVERYONE, noKnownDiscardPiles } from '../util/knowledge.js'
 import { createOathVault } from '../model/vault.js'
 import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'
 import { bySuit } from '../data/typedData.js'
@@ -62,6 +62,10 @@ export class OathGameInitializer
         assert(
             players.every((player) => player.playerId !== IMPERIAL_WARBANDS),
             `R-10.13 — "${IMPERIAL_WARBANDS}" names the Empire's warbands, so no player may hold it as an id`
+        )
+        assert(
+            players.every((player) => player.playerId !== EVERYONE),
+            `"${EVERYONE}" names the whole table as a witness, so no player may hold it as an id`
         )
 
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)

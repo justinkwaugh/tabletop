@@ -146,8 +146,10 @@ export function drawWorldDeckVision(
     return cardId
 }
 
+export const EVERYONE = 'everyone'
+
 /** Who saw a card go onto a stack: everyone at the table, or the one player who knew it. */
-export type Witness = 'everyone' | string
+export type Witness = typeof EVERYONE | string
 
 /**
  * Who could see each card before an action moved it: `byCard` knew the card and will see where it
@@ -323,20 +325,22 @@ function worldDeckBottomRecords(state: HydratedOathGameState): RecordHolder[] {
     ]
 }
 
+function recordOf(records: RecordHolder[], witness: Witness): RecordHolder {
+    const record = records.find((holder) => holder.witness === witness)
+    assertExists(record, `${witness} is no witness at this table`)
+    return record
+}
+
 function pileRecordOf(
     state: HydratedOathGameState,
     region: Region,
     witness: Witness
 ): RecordHolder {
-    const [table, ...players] = pileRecords(state, region)
-    if (witness === 'everyone') return table
-    return players[state.players.findIndex((player) => player.playerId === witness)]
+    return recordOf(pileRecords(state, region), witness)
 }
 
 function worldDeckBottomRecordOf(state: HydratedOathGameState, witness: Witness): RecordHolder {
-    const [table, ...players] = worldDeckBottomRecords(state)
-    if (witness === 'everyone') return table
-    return players[state.players.findIndex((player) => player.playerId === witness)]
+    return recordOf(worldDeckBottomRecords(state), witness)
 }
 
 function backOfCard(cardId: string): CardKind {
