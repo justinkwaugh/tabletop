@@ -19,6 +19,7 @@ import { otherRegionChoices } from './choiceDomains.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { siteLockedFor } from '../util/locked.js'
+import { seeDiscardPile } from '../util/knowledge.js'
 
 // "Action: Draw a relic and take it. Put any relic you hold except the Grand Scepter on the bottom of the relic deck."
 // The relic to put down is chosen seeing the one drawn.
@@ -102,6 +103,7 @@ registerEffect(
         resolve: (ctx) => {
             const seen = ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds : []
             const region = regionOfPawn(ctx.state, ctx.playerId)
+            if (ctx.reveal?.kind === 'peek') seeDiscardPile(ctx.state, ctx.playerId, region, seen)
             return {
                 summary: `Tavern Songs: peeked at the top ${seen.length} cards of the ${region} discard pile`,
                 peeked: seen
@@ -123,6 +125,8 @@ registerEffect(
         resolve: (ctx) => {
             const [pick] = chosen(ctx, PowerChoiceKind.Region)
             const seen = ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds : []
+            if (ctx.reveal?.kind === 'peek')
+                seeDiscardPile(ctx.state, ctx.playerId, pick.region, seen)
             return {
                 summary: `Scryer: peeked at the ${pick.region} discard pile (${seen.length} cards)`,
                 peeked: seen

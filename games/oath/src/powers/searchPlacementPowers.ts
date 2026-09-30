@@ -66,6 +66,7 @@ registerEffect(INQUISITOR, powerIndexOf(INQUISITOR, PowerTiming.Action), {
                 peeked: [cardId]
             }
         }
+        holder.markShown(cardId, ctx.playerId)
         // "Give them the favor here" — the favor the cost just placed.
         const given = Math.min(1, ctx.state.tokensOn(INQUISITOR).favor)
         ctx.state.addTokensOn(INQUISITOR, { favor: -given })

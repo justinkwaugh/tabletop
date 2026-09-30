@@ -296,6 +296,9 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
         const accepted = answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
         expect(s.getPlayerState('ruler').knownAdviserIds()).toEqual([WOLVES])
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual([INN])
+        // R-9.4 — each side saw its card go, and knows where it now lies.
+        expect(s.getPlayerState('ruler').advisers).toEqual([{ faceUp: false, shownTo: ['other'], shownCardId: WOLVES }])
+        expect(s.getPlayerState('other').advisers).toEqual([{ faceUp: false, shownTo: ['ruler'], shownCardId: INN }])
         expect(publicView(s)).not.toContain(WOLVES)
         expect(JSON.stringify(accepted)).not.toContain(WOLVES)
         // R-X.3(c) — each side now knows a card it had not seen, so the answer cannot be undone.

@@ -98,11 +98,13 @@ export function defaultDomain(kind: PowerChoiceKind): ChoiceDomain {
                     .filter((p) => p.playerId !== playerId)
                     .map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
         case PowerChoiceKind.Card:
-            return (state, playerId) =>
-                accessibleCardIds(state, playerId).map((cardId) => ({
-                    kind: PowerChoiceKind.Card,
-                    cardId
-                }))
+            // R-9.4 — a Card choice is public, so it never names the actor's facedown adviser.
+            return (state, playerId) => {
+                const facedown = state.getPlayerState(playerId).facedownAdviserIds()
+                return accessibleCardIds(state, playerId)
+                    .filter((cardId) => !facedown.includes(cardId))
+                    .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+            }
         case PowerChoiceKind.Site:
             // R-10.21's faceup qualifier: a facedown slot is no site to name.
             return (state) =>

@@ -30,6 +30,7 @@ import {
     buildSetupVault,
     resolveSetupDeal
 } from '../model/setup.js'
+import { noKnownDiscardPiles } from '../util/knowledge.js'
 import { createOathVault } from '../model/vault.js'
 import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'
 import { bySuit } from '../data/typedData.js'
@@ -146,6 +147,10 @@ export class OathGameInitializer
                 peekedRelicSlotIds: [],
                 peekedRelics: {},
                 peekedSiteSlotIds: [],
+                peekedSites: {},
+                knownWorldDeckTop: [],
+                knownDiscardPiles: noKnownDiscardPiles(),
+                knownRelicDeckBottom: [],
                 homelandUsedThisTurn: [],
                 restPowersUsedThisTurn: []
             }

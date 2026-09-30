@@ -1,17 +1,19 @@
 import { assertExists } from '@tabletop/common'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import {
-    discardOnto,
-    drawFirstVision,
-    drawRelics,
     exchangeWithDispossessed,
-    mergeDiscardPiles,
     peekDiscard,
     putUnderWorldDeck,
-    returnRelicToBottom,
     topBackType,
     type OathVault
 } from '../model/vault.js'
+import {
+    drawRelicDeck,
+    drawWorldDeckVision,
+    mergeDiscardPileOnto,
+    putOnDiscardPile,
+    sendRelicToBottom
+} from './knowledge.js'
 import type { SearchResolve } from '../actions/searchResolve.js'
 import type { PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
 import type { SetupChoice } from '../actions/setupChoice.js'
@@ -28,6 +30,7 @@ import { effectFor } from '../powers/registry.js'
 import { powersWithTiming, PowerTiming } from '../data/cardPowers.js'
 import type { HiddenRequest, HiddenReveal, PileDeposit } from '../model/hidden.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
+import { PowerQuestionKind } from '../model/question.js'
 import { siteRevealPrompt } from '../data/cardRegistry.js'
 import { Region, SearchPlay } from '../model/oathEnums.js'
 import { CampaignTargetKind, type CampaignState } from '../model/campaign.js'
@@ -60,7 +63,7 @@ export function flipSiteFromVault(state: HydratedOathGameState, siteId: string):
     const siteCardId = vault.siteFacedown[siteId]
     assertExists(siteCardId, `${siteId} was not revealed from the vault`)
     delete vault.siteFacedown[siteId]
-    const relics = drawRelics(vault, siteRevealPrompt(siteCardId)?.relics ?? 0)
+    const relics = drawRelicDeck(state, siteRevealPrompt(siteCardId)?.relics ?? 0)
     const relicSlots = relics.map((relicCardId, index) => {
         const slotId = `${siteId}.relic.${index}`
         vault.relicFacedown[slotId] = relicCardId
@@ -168,50 +171,65 @@ export function commitHiddenOutputs(
     switch (action.type) {
         case ActionType.UseActionPower:
         case ActionType.UseRestPower:
-            if (action.metadata) commitPowerOutcome(vault, action.metadata)
+            // The Map sends itself down, a relic its holder showed everyone.
+            if (action.metadata)
+                commitPowerOutcome(state, action.playerId, action.metadata, action.cardId)
             return
-        case ActionType.AnswerQuestion:
-            if (action.metadata?.relicToDeckBottom)
-                returnRelicToBottom(vault, action.metadata.relicToDeckBottom)
+        case ActionType.AnswerQuestion: {
+            const bottomed = action.metadata?.relicToDeckBottom
+            // Fae Merchant — a held relic sent down was public.
+            if (bottomed)
+                sendRelicToBottom(
+                    state,
+                    bottomed,
+                    heldRelicAnswered(action) === bottomed ? 'everyone' : [action.playerId]
+                )
             if (action.metadata?.relicTakenFromSlotId)
                 delete vault.relicFacedown[action.metadata.relicTakenFromSlotId]
-            discardRecorded(vault, action.metadata)
-            depositOnPiles(vault, action.metadata?.pileDeposits)
+            discardRecorded(state, action.metadata)
+            depositOnPiles(state, action.metadata?.pileDeposits)
             return
+        }
         case ActionType.CampaignSacrifice:
         case ActionType.CampaignDefeatKills:
-            depositOnPiles(vault, action.metadata?.pileDeposits)
+            depositOnPiles(state, action.metadata?.pileDeposits)
             return
         case ActionType.CampaignResolveVictory:
             for (const id of action.metadata?.relicsToDeckBottom ?? [])
-                returnRelicToBottom(vault, id)
-            depositOnPiles(vault, action.metadata?.pileDeposits)
+                sendRelicToBottom(state, id, [action.playerId])
+            depositOnPiles(state, action.metadata?.pileDeposits)
             return
         case ActionType.SearchResolve:
             if (!action.metadata) return
             if (action.metadata.discardToWorldDeck === true)
                 putUnderWorldDeck(vault, action.metadata.discardedCardIds)
             else
-                discardOnto(
-                    vault,
+                putOnDiscardPile(
+                    state,
                     action.metadata.discardPileRegion,
                     action.metadata.discardedCardIds,
                     action.metadata.discardToBottom === true
                 )
-            commitPowerOutcome(vault, action.metadata)
+            commitPowerOutcome(state, action.playerId, action.metadata)
             return
         case ActionType.PlayFacedownAdviser:
             if (!action.metadata) return
-            discardRecorded(vault, action.metadata)
-            commitPowerOutcome(vault, action.metadata)
+            discardRecorded(state, action.metadata)
+            commitPowerOutcome(state, action.playerId, action.metadata)
             return
         case ActionType.SetupChoice:
-            discardRecorded(vault, action.metadata)
+            discardRecorded(state, action.metadata)
             return
         case ActionType.ResolveCitizenshipOffer:
-            discardRecorded(vault, action.metadata?.outcome)
+            discardRecorded(state, action.metadata?.outcome)
             return
     }
+}
+
+function heldRelicAnswered(action: AnswerQuestion): string | undefined {
+    return action.answer.kind === PowerQuestionKind.BottomRelic
+        ? action.answer.heldRelicCardId
+        : undefined
 }
 
 interface RecordedDiscard {
@@ -219,24 +237,40 @@ interface RecordedDiscard {
     discardedCardIds?: string[]
 }
 
-function discardRecorded(vault: OathVault, recorded: RecordedDiscard | undefined) {
+function discardRecorded(state: HydratedOathGameState, recorded: RecordedDiscard | undefined) {
     if (recorded?.discardPileRegion && recorded.discardedCardIds)
-        discardOnto(vault, recorded.discardPileRegion, recorded.discardedCardIds)
+        putOnDiscardPile(state, recorded.discardPileRegion, recorded.discardedCardIds, false)
 }
 
-function commitPowerOutcome(vault: OathVault, outcome: PowerOutcome) {
-    if (outcome.relicToDeckBottom) returnRelicToBottom(vault, outcome.relicToDeckBottom)
+function commitPowerOutcome(
+    state: HydratedOathGameState,
+    playerId: string,
+    outcome: PowerOutcome,
+    sourceCardId?: string
+) {
+    const vault = state.requireVault()
+    if (outcome.relicToDeckBottom)
+        sendRelicToBottom(
+            state,
+            outcome.relicToDeckBottom,
+            outcome.relicToDeckBottom === sourceCardId ? 'everyone' : [playerId]
+        )
+    // Relic Breaker — nobody sees the relic go, so only those who had peeked at it know it.
     if (outcome.relicSlotToBottom) {
-        returnRelicToBottom(vault, relicAt(vault, outcome.relicSlotToBottom))
+        sendRelicToBottom(state, relicAt(vault, outcome.relicSlotToBottom), [])
         delete vault.relicFacedown[outcome.relicSlotToBottom]
     }
-    if (outcome.mergePiles) mergeDiscardPiles(vault, outcome.mergePiles.from, outcome.mergePiles.to)
-    depositOnPiles(vault, outcome.pileDeposits)
+    if (outcome.mergePiles)
+        mergeDiscardPileOnto(state, outcome.mergePiles.from, outcome.mergePiles.to)
+    depositOnPiles(state, outcome.pileDeposits)
 }
 
-function depositOnPiles(vault: OathVault, deposits: readonly PileDeposit[] | undefined) {
+function depositOnPiles(
+    state: HydratedOathGameState,
+    deposits: readonly PileDeposit[] | undefined
+) {
     for (const deposit of deposits ?? [])
-        discardOnto(vault, deposit.region, deposit.cardIds, deposit.bottom === true)
+        putOnDiscardPile(state, deposit.region, deposit.cardIds, deposit.bottom === true)
 }
 
 /** R-9.4 */
@@ -250,7 +284,7 @@ function fulfil(request: HiddenRequest, state: HydratedOathGameState): HiddenRev
     const vault = state.requireVault()
     switch (request.kind) {
         case 'relicDraw':
-            return { kind: 'relics', relicCardIds: drawRelics(vault, request.count) }
+            return { kind: 'relics', relicCardIds: drawRelicDeck(state, request.count) }
         case 'discardPeek':
             return { kind: 'peek', cardIds: peekDiscard(vault, request.region, request.count) }
         case 'relicAtSlot':
@@ -264,7 +298,7 @@ function fulfil(request: HiddenRequest, state: HydratedOathGameState): HiddenRev
             return { kind: 'peek', cardIds: [cardId] }
         }
         case 'worldDeckVision': {
-            const cardId = drawFirstVision(vault)
+            const cardId = drawWorldDeckVision(state)
             return {
                 kind: 'vision',
                 cardId,

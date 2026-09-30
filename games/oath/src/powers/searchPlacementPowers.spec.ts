@@ -60,6 +60,7 @@ describe('Inquisitor — a peek, and the Conspiracy found there', () => {
         const a = actionPowerUse('me', INQUISITOR, [facedown('foe', 0)])
         a.apply(s)
         expect(a.metadata?.peeked).toEqual([TENTS])
+        expect(s.getPlayerState('foe').advisers).toEqual([{ faceUp: false, shownTo: ['me'], shownCardId: TENTS }])
         expect(s.getPlayerState('foe').favor).toBe(4)
         expect(s.cardTokens[INQUISITOR]).toEqual({ favor: 0, secrets: 0 })
         expect(s.pendingQuestions).toBeUndefined()

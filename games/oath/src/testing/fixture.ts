@@ -6,6 +6,7 @@ import { Banner, CardKind, OathType, PlayerStatus, Region } from '../model/oathE
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { RELIQUARY_SIZE } from '../data/relics.js'
 import { reliquarySlotId } from '../model/setup.js'
+import { noKnownDiscardPiles } from '../util/knowledge.js'
 import { createOathVault, type OathVault } from '../model/vault.js'
 import { bySuit } from '../data/typedData.js'
 import type { CampaignState } from '../model/campaign.js'
@@ -54,6 +55,10 @@ export function testPlayer(overrides: Partial<OathPlayerState> = {}): OathPlayer
         peekedRelicSlotIds: [],
         peekedRelics: {},
         peekedSiteSlotIds: [],
+        peekedSites: {},
+        knownWorldDeckTop: [],
+        knownDiscardPiles: noKnownDiscardPiles(),
+        knownRelicDeckBottom: [],
         homelandUsedThisTurn: [],
         restPowersUsedThisTurn: [],
         ...overrides,

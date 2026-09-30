@@ -1,3 +1,4 @@
+import { assert } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { PileDeposit } from '../model/hidden.js'
 import type { Region } from '../model/oathEnums.js'
@@ -26,6 +27,11 @@ export function discardFromPlayInChosenOrder(
     const byRegion = new Map<Region, string[]>()
     for (const cardId of cardIds) {
         if (!isInPlay(state, cardId)) continue
+        // R-9.4 — the pile deposit and `OrderDiscards.cardIds` name the card; a facedown adviser has no public name.
+        assert(
+            !state.adviserHolderOf(cardId)?.facedownAdviserIds().includes(cardId),
+            `${cardId} is a facedown adviser and cannot be discarded by name`
+        )
         const fromRegion = regionCardLeavesFrom(state, cardId)
         noteSiteDiscard(state, actingPlayerId, cardId)
         detachFromPlay(state, cardId)

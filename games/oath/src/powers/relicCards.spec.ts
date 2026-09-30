@@ -205,6 +205,8 @@ describe('the peeking and taking relics', () => {
         s.pendingQuestions = undefined
         const b = use(s, PIG, undefined, (vault) => { vault.worldDeck = [INN, TENTS, WOLVES] })
         expect(b.metadata?.peeked).toEqual([INN, TENTS, WOLVES])
+        expect(s.getPlayerState('me').knownWorldDeckTop).toEqual([INN, TENTS, WOLVES])
+        expect(s.getPlayerState('foe').knownWorldDeckTop).toEqual([])
     })
 
     it("Skeleton Key: with the Chancellor ruling your site, a Reliquary relic is seen and may be taken — uncovering the space", () => {
@@ -225,6 +227,7 @@ describe('the peeking and taking relics', () => {
         expect(HydratedUseActionPower.reasonCannotUse(s, 'me', EYE, powerIndexOf(EYE, PowerTiming.Action), [])).toMatch(/exactly one/)
         expect(HydratedUseActionPower.reasonCannotUse(s, 'me', EYE, powerIndexOf(EYE, PowerTiming.Action), [facedown('foe', 0), slot('c2-r1')])).toMatch(/exactly one/)
         expect(use(s, EYE, [facedown('foe', 0)]).metadata?.peeked).toEqual([TENTS])
+        expect(s.getPlayerState('foe').advisers).toEqual([{ faceUp: false, shownTo: ['me'], shownCardId: TENTS }])
         const t = relicBoard([EYE], {}, { relicsBySite: { c2: [{ slotId: 'c2-r1' }] } })
         use(t, EYE, [slot('c2-r1')], (vault) => { vault.relicFacedown['c2-r1'] = 'relic.cup' })
         expect(t.relicSlotsAt('c2')[0]).toEqual({ slotId: 'c2-r1' })
@@ -239,6 +242,7 @@ describe('the peeking and taking relics', () => {
         expect(a.metadata?.peeked).toEqual(['site.mountain'])
         expect(u.isSiteFaceup('h1')).toBe(false)
         expect(u.getPlayerState('me').peekedSiteSlotIds).toEqual(['h1'])
+        expect(u.getPlayerState('me').peekedSites).toEqual({ h1: 'site.mountain' })
     })
 })
 

@@ -28,6 +28,7 @@ import { playerChoicesAtYourSite } from './choiceDomains.js'
 import { SALT_THE_EARTH } from '../util/capacity.js'
 import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { siteHolding } from '../util/access.js'
+import { handedOver } from '../model/playerState.js'
 
 // "After you're victorious, you may travel and then may campaign, spending no Supply for either." Attacker. Cost: burn 1 favor, place 1 secret.
 const SECOND_WIND = SECOND_WIND_ID
@@ -71,12 +72,12 @@ registerEffect(DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), {
             return { summary: `Dream Thief: both advisers were ${a.playerId}'s, so nothing moved` }
         const pa = ctx.state.getPlayerState(a.playerId)
         const pb = ctx.state.getPlayerState(b.playerId)
-        const cardA = pa.knownAdviserIds()[a.index]
-        const cardB = pb.knownAdviserIds()[b.index]
-        assertExists(cardA, `${a.playerId} has no adviser at ${a.index}`)
-        assertExists(cardB, `${b.playerId} has no adviser at ${b.index}`)
-        pa.replaceAdviser(cardA, { cardId: cardB, faceUp: false })
-        pb.replaceAdviser(cardB, { cardId: cardA, faceUp: false })
+        const adviserA = pa.knownAdvisers()[a.index]
+        const adviserB = pb.knownAdvisers()[b.index]
+        assertExists(adviserA, `${a.playerId} has no adviser at ${a.index}`)
+        assertExists(adviserB, `${b.playerId} has no adviser at ${b.index}`)
+        pa.replaceAdviser(adviserA.cardId, handedOver(adviserB, pb.playerId, pa.playerId))
+        pb.replaceAdviser(adviserB.cardId, handedOver(adviserA, pa.playerId, pb.playerId))
         // R-9.4 — each holder now knows a card they had not seen.
         return {
             summary: `Dream Thief: swapped a facedown adviser of ${pa.playerId}'s with one of ${pb.playerId}'s`,

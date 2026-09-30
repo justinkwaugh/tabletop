@@ -1,7 +1,7 @@
 import { Hydratable, PlayerState, Visibility, assert, assertExists, Color } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { PlayerStatus } from './oathEnums.js'
+import { PlayerStatus, Region } from './oathEnums.js'
 import { WarbandCounts } from './warbandCounts.js'
 import { AdviserShownPolicy } from './question.js'
 
@@ -10,7 +10,7 @@ export type AdviserRow = Type.Static<typeof AdviserRow>
 export const AdviserRow = Type.Object({
     cardId: Type.Optional(Type.String()),
     faceUp: Type.Boolean(),
-    /** R-9.4 — the players its holder let peek while it is facedown; everyone sees a card was shown. */
+    /** R-9.4 — the players other than its holder who know it while it is facedown; everyone sees a card was shown. */
     shownTo: Type.Optional(Type.Array(Type.String())),
     /** R-9.4 — the card, to those players alone, for as long as it stays here facedown. */
     shownCardId: Type.Optional(Visibility.protect(Type.String(), { policy: AdviserShownPolicy }))
@@ -22,6 +22,23 @@ export interface KnownAdviser {
     faceUp: boolean
     shownTo?: string[]
 }
+
+/** R-9.4 — a facedown card handed to another row stays known to its viewers, and to the player who gave it. */
+export function handedOver(
+    adviser: KnownAdviser,
+    fromPlayerId: string,
+    toPlayerId: string
+): KnownAdviser {
+    if (adviser.faceUp) return { cardId: adviser.cardId, faceUp: true }
+    const shownTo = [...new Set([...(adviser.shownTo ?? []), fromPlayerId])].filter(
+        (playerId) => playerId !== toPlayerId
+    )
+    return { ...adviser, shownTo }
+}
+
+/** A run of cards in a stack, `null` where this player does not know the card. */
+export type KnownPositions = Type.Static<typeof KnownPositions>
+export const KnownPositions = Type.Array(Type.Union([Type.String(), Type.Null()]))
 
 /** Wild Allies, Captains — "as if your pawn is there". */
 export type CampaignAsIf = Type.Static<typeof CampaignAsIf>
@@ -72,6 +89,20 @@ export const OathPlayerState = Type.Object({
     }),
     /** Ivory Eye — the facedown sites this player has peeked at, which stay the sites they saw. */
     peekedSiteSlotIds: Type.Array(Type.String()),
+    /** Ivory Eye — the site each of those peeks showed, by slot, known to this player alone. */
+    peekedSites: Visibility.protect(Type.Record(Type.String(), Type.String()), {
+        policy: Visibility.Policy.Owner
+    }),
+    /** Oracular Pig — the world deck's top cards this player has seen, top first. */
+    knownWorldDeckTop: Visibility.protect(Type.Array(Type.String()), {
+        policy: Visibility.Policy.Owner
+    }),
+    /** Scryer, Tavern Songs — each discard pile's cards this player has seen, by position from the bottom. */
+    knownDiscardPiles: Visibility.protect(Type.Record(Type.Enum(Region), KnownPositions), {
+        policy: Visibility.Policy.Owner
+    }),
+    /** Relics this player saw sent to the bottom of the relic deck, bottom last. */
+    knownRelicDeckBottom: Visibility.protect(KnownPositions, { policy: Visibility.Policy.Owner }),
 
     /** R-11.2 — Homeland's once-per-turn condition. */
     homelandUsedThisTurn: Type.Array(Type.String()),
@@ -119,6 +150,10 @@ export class HydratedOathPlayerState
     declare peekedRelicSlotIds: string[]
     declare peekedRelics?: Record<string, string>
     declare peekedSiteSlotIds: string[]
+    declare peekedSites?: Record<string, string>
+    declare knownWorldDeckTop?: string[]
+    declare knownDiscardPiles?: Record<Region, KnownPositions>
+    declare knownRelicDeckBottom?: KnownPositions
     declare homelandUsedThisTurn: string[]
     declare restPowersUsedThisTurn: string[]
 
@@ -241,7 +276,9 @@ export class HydratedOathPlayerState
         if (!this.peekedRelicSlotIds.includes(slotId)) this.peekedRelicSlotIds.push(slotId)
     }
 
-    recordSitePeek(slotId: string): void {
+    recordSitePeek(slotId: string, siteCardId: string): void {
+        assertExists(this.peekedSites, 'This operation requires known peeks')
+        this.peekedSites[slotId] = siteCardId
         if (!this.peekedSiteSlotIds.includes(slotId)) this.peekedSiteSlotIds.push(slotId)
     }
 }

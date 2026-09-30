@@ -109,6 +109,8 @@ describe('relics', () => {
         expect(s.getPlayerState('ruler').relicIds).toEqual(['relic.grand-scepter', DRUM])
         expect(vault.relicDeck).toEqual([MAP, RING, CUP])
         expect(kept.metadata?.relicToDeckBottom).toBe(CUP)
+        // A held relic was public, so every player knows it lies at the bottom.
+        expect(s.players.map((player) => player.knownRelicDeckBottom)).toEqual([[CUP], [CUP]])
         expect(kept.metadata?.summary).toContain(DRUM)
 
         const t = board({ c1: [FAE] }, {}, { ruler: { relicIds: [CUP] } })
@@ -117,12 +119,13 @@ describe('relics', () => {
         const unkept = answerQuestion(t, 'ruler', { kind: PowerQuestionKind.BottomRelic })
         expect(t.getPlayerState('ruler').relicIds).toEqual([CUP])
         expect(v.relicDeck).toEqual([MAP, RING, DRUM])
+        expect(t.players.map((player) => player.knownRelicDeckBottom)).toEqual([[DRUM], []])
         // R-9.4 — a relic drawn and sent down unkept is named only in the Actor-protected fields.
         expect(unkept.metadata?.summary).not.toContain(DRUM)
     })
 
     it('Relic Breaker — a facedown relic at your site goes under the deck for three warbands', () => {
-        const s = board({ c1: [BREAKER] }, {}, {}, { relicsBySite: { c1: [{ slotId: 'slot-1' }] } })
+        const s = board({ c1: [BREAKER] }, {}, { chancellor: { peekedRelicSlotIds: ['slot-1'], peekedRelics: { 'slot-1': CUP } } }, { relicsBySite: { c1: [{ slotId: 'slot-1' }] } })
         const vault = vaultFor({ relicFacedown: { 'slot-1': CUP } })
         const a = serverUse(s, vault, BREAKER, [slot('slot-1')])
         expect(s.relicSlotsAt('c1')).toEqual([])
@@ -133,6 +136,8 @@ describe('relics', () => {
         expect(a.metadata?.relicToDeckBottom).toBeUndefined()
         expect(a.metadata?.relicSlotToBottom).toBe('slot-1')
         expect(JSON.stringify(a.metadata)).not.toContain(CUP)
+        // Only a player who had peeked at the slot knows what went down.
+        expect(s.players.map((player) => player.knownRelicDeckBottom)).toEqual([[], [CUP]])
         expect(() => serverUse(board({ c1: [BREAKER] }), vaultFor(), BREAKER, [slot('slot-1')])).toThrow()
     })
 })
@@ -163,6 +168,9 @@ describe('discard piles', () => {
         const b = serverUse(s, vault, SCRYER, [region(Region.Provinces)])
         expect(b.metadata?.peeked).toEqual([PILE_P1, PILE_P2])
         expect(s.getPlayerState('ruler').secrets).toBe(3)
+        // Kept by position from the bottom of each pile.
+        expect(s.getPlayerState('ruler').knownDiscardPiles).toEqual({ cradle: [PILE_C3, PILE_C2, PILE_C1], provinces: [PILE_P2, PILE_P1], hinterland: [] })
+        expect(s.getPlayerState('chancellor').knownDiscardPiles).toEqual({ cradle: [], provinces: [], hinterland: [] })
     })
 
     it("Bracken — the Search's discards go to the pile you name, on top or underneath", () => {

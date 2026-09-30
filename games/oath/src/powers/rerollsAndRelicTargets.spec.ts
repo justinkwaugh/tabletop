@@ -99,6 +99,7 @@ describe('Relic Hunter — a facedown relic as a target', () => {
         expect(s.getPlayerState('me').relicIds).not.toContain('relic.cup')
         expect(v.metadata?.relicsToDeckBottom).toEqual(['relic.cup'])
         expect(vault.relicDeck.at(-1)).toBe('relic.cup')
+        expect(s.players.map((player) => player.knownRelicDeckBottom)).toEqual([['relic.cup'], [], []])
     })
 
     // R-9.4 — a relic sent to the bottom was never shown, so only the attacker knows it.

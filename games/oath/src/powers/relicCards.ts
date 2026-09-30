@@ -34,6 +34,7 @@ import { releaseRelic } from '../util/relics.js'
 import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { reasonCannotMoveCardTo } from '../util/locked.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
+import { seeWorldDeckTop } from '../util/knowledge.js'
 
 // "Action: Put this relic on the bottom of the relic deck to gain 4 Supply."
 registerEffect('relic.map', powerIndexOf('relic.map', PowerTiming.Action), {
@@ -143,6 +144,7 @@ registerEffect(ORACULAR_PIG, powerIndexOf(ORACULAR_PIG, PowerTiming.Action), {
     hidden: () => ({ kind: 'worldDeckPeek', count: 3 }),
     resolve: (ctx) => {
         const seen = ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds : []
+        if (ctx.reveal?.kind === 'peek') seeWorldDeckTop(ctx.state, ctx.playerId, seen)
         // R-9.4 — the world deck's size is private, so the public summary names no count.
         return {
             summary: 'Oracular Pig: peeked at the top of the world deck',
@@ -265,6 +267,8 @@ registerEffect(IVORY_EYE, powerIndexOf(IVORY_EYE, PowerTiming.Action), {
         const [adviser] = chosen(ctx, PowerChoiceKind.FacedownAdviser)
         if (adviser) {
             const seen = ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds : []
+            if (seen.length > 0 && adviser.playerId !== ctx.playerId)
+                ctx.state.getPlayerState(adviser.playerId).markShown(seen[0], ctx.playerId)
             return { summary: 'Ivory Eye: peeked at a facedown adviser', peeked: seen }
         }
         const [slot] = chosen(ctx, PowerChoiceKind.RelicSlot)
@@ -280,7 +284,7 @@ registerEffect(IVORY_EYE, powerIndexOf(IVORY_EYE, PowerTiming.Action), {
         const [site] = chosen(ctx, PowerChoiceKind.Site)
         const siteCardId = ctx.reveal?.kind === 'site' ? ctx.reveal.siteCardId : undefined
         if (!site || !siteCardId) return { summary: 'Ivory Eye: nothing was seen' }
-        ctx.state.getPlayerState(ctx.playerId).recordSitePeek(site.siteId)
+        ctx.state.getPlayerState(ctx.playerId).recordSitePeek(site.siteId, siteCardId)
         return { summary: 'Ivory Eye: peeked at a facedown site', peeked: [siteCardId] }
     }
 })

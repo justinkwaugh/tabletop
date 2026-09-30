@@ -93,7 +93,9 @@ describe('Dream Thief — two facedown advisers change boards', () => {
         actionPowerUse('ruler', DREAM_THIEF, [facedown('other', 0), facedown('away', 0)]).apply(s)
         expect(s.getPlayerState('other').knownAdviserIds()).toEqual([WOLVES])
         expect(s.getPlayerState('away').knownAdviserIds()).toEqual([TENTS])
-        expect(s.getPlayerState('other').advisers).toEqual([{ faceUp: false }])
+        // R-9.4 — each giver saw their card go, and now knows where it lies.
+        expect(s.getPlayerState('other').advisers).toEqual([{ faceUp: false, shownTo: ['away'], shownCardId: WOLVES }])
+        expect(s.getPlayerState('away').advisers).toEqual([{ faceUp: false, shownTo: ['other'], shownCardId: TENTS }])
         expect(HydratedUseActionPower.reasonCannotUse(board([DREAM_THIEF]), 'ruler', DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), [facedown('other', 0), facedown('other', 0)])).toMatch(/chosen twice|two different/)
         expect(HydratedUseActionPower.reasonCannotUse(board([DREAM_THIEF], [INN]), 'ruler', DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), [facedown('ruler', 0), facedown('other', 0)])).toMatch(/not among the options/)
     })
@@ -209,13 +211,13 @@ describe('Crop Rotation — discard a denizen there first', () => {
 
 describe('Salt the Earth — a site scoured to one card', () => {
     it('discards the other denizens, sets the capacity to 1, and refuses a site with a locked card', () => {
-        const s = board([INN, WOLVES], [])
+        const s = board([INN, SMALL_FRIENDS], [])
         playDrawnCard(s, SALT, SearchPlay.Site)
         expect(s.denizensBySite['c1']).toEqual([SALT])
         expect(effectiveSiteCapacity(s, 'c1')).toBe(1)
         s.getPlayerState('ruler').handIds = [TENTS, FILLER]
         expect(HydratedSearchResolve.reasonCannotResolve(s, 'ruler', { keptCardId: TENTS, discardOrder: [FILLER], play: SearchPlay.Site })).toMatch(/capacity of 1/)
-        const full = board([INN, WOLVES, TENTS], [])
+        const full = board([INN, SMALL_FRIENDS, CROP_ROTATION], [])
         playDrawnCard(full, SALT, SearchPlay.Site)
         expect(full.denizensBySite['c1']).toEqual([SALT])
         const locked = board([LOCKED], [])

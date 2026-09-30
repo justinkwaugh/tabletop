@@ -18,12 +18,8 @@ import {
 } from '../data/visionsDrawnTrack.js'
 import { sitePowerCategory } from '../data/sites.js'
 import { kindOf } from '../data/cardRegistry.js'
-import {
-    drawFromDiscard,
-    drawFromDiscardBottom,
-    drawFromWorldDeck,
-    topBackType
-} from '../model/vault.js'
+import { topBackType } from '../model/vault.js'
+import { drawDiscardPile, drawWorldDeck } from '../util/knowledge.js'
 import { payTolls, reasonTollsUnpaid } from '../util/tolls.js'
 import { defaultTolls } from '../util/tollDefaults.js'
 import {
@@ -196,11 +192,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         const vault = state.requireVault()
         const count = HydratedSearch.drawCount(state, this.playerId, this.modifiers, this.drawFrom)
         if (this.drawFrom === SearchSource.WorldDeck) {
-            const {
-                drawn,
-                stoppedOnVision,
-                topBackType: nextBack
-            } = drawFromWorldDeck(vault, count)
+            const { drawn, stoppedOnVision, topBackType: nextBack } = drawWorldDeck(state, count)
             return {
                 drawnCardIds: drawn,
                 stoppedOnVision,
@@ -209,9 +201,12 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             }
         }
         const region = HydratedSearch.drawRegion(state, this.playerId, this.modifiers)
-        const drawnCardIds = HydratedSearch.drawsFromBottom(state, this.playerId, this.modifiers)
-            ? drawFromDiscardBottom(vault, region, count)
-            : drawFromDiscard(vault, region, count)
+        const drawnCardIds = drawDiscardPile(
+            state,
+            region,
+            count,
+            HydratedSearch.drawsFromBottom(state, this.playerId, this.modifiers)
+        )
         const newTop = vault.discardPiles[region][0]
         return {
             drawnCardIds,

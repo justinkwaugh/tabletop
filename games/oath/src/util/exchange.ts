@@ -19,6 +19,7 @@ import type { CitizenshipTransfer } from '../model/citizenship.js'
 import { countOf } from './warbands.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
 import { reasonPersistentForbidsGivingSecrets } from './persistent.js'
+import { handedOver } from '../model/playerState.js'
 
 export const TINKERS_FAIR_ALLOWS: ExchangeAllowance = { relics: true }
 export const DEED_WRITER_ALLOWS: ExchangeAllowance = { sites: true }
@@ -205,7 +206,7 @@ function applyTransfer(
     })
     for (const adviser of moving) {
         from.removeAdviser(adviser.cardId)
-        to.addAdviser(adviser.cardId, adviser.faceUp)
+        to.setAdvisers([...to.knownAdvisers(), handedOver(adviser, fromId, toId)])
     }
     return moving.some((adviser) => !adviser.faceUp)
 }
