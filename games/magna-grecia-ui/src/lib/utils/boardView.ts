@@ -3,6 +3,7 @@ import {
     PlaceKind,
     cityPlaceId,
     directionBetween,
+    isMarketActive,
     oraclePlaceId,
     type HydratedBoard,
     type Network,
@@ -22,6 +23,7 @@ export type MarketView = {
     point: Point
     playerId: string
     sold: boolean
+    active: boolean
 }
 
 export type ConnectionBadge = {
@@ -31,10 +33,10 @@ export type ConnectionBadge = {
 }
 
 const MARKET_SLOTS: Point[] = [
-    { x: -32.5, y: 22 },
-    { x: -11, y: 27 },
-    { x: 11, y: 27 },
-    { x: 32.5, y: 22 }
+    { x: -32.5, y: 12 },
+    { x: -11, y: 17 },
+    { x: 11, y: 17 },
+    { x: 32.5, y: 12 }
 ]
 
 export function placeAnchor(place: Place): AxialCoordinates {
@@ -72,7 +74,7 @@ export function oracleViews(board: HydratedBoard, network: Network): OracleView[
     })
 }
 
-export function marketViews(board: HydratedBoard): MarketView[] {
+export function marketViews(board: HydratedBoard, network: Network): MarketView[] {
     return board.places().flatMap((place) => {
         const center = placeCenter(place)
         return board.marketsAt(place.id).map((market, index) => {
@@ -81,7 +83,8 @@ export function marketViews(board: HydratedBoard): MarketView[] {
                 key: `${place.id}:${index}`,
                 point: { x: center.x + slot.x, y: center.y + slot.y },
                 playerId: market.playerId,
-                sold: market.sold
+                sold: market.sold,
+                active: !market.sold && isMarketActive(board, network, market)
             }
         })
     })

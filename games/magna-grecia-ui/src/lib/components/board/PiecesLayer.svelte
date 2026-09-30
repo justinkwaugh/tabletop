@@ -30,7 +30,7 @@
         )
     )
     const oracles = $derived(oracleViews(board, network))
-    const markets = $derived(marketViews(board))
+    const markets = $derived(marketViews(board, network))
     const badges = $derived(connectionBadges(board, network))
 
     function playerColor(playerId: string): string {
@@ -70,7 +70,11 @@
 <g class="markets">
     {#each markets as market (market.key)}
         <g transform="translate({market.point.x} {market.point.y})">
-            <MarketPiece color={playerColor(market.playerId)} sold={market.sold} />
+            <MarketPiece
+                color={playerColor(market.playerId)}
+                sold={market.sold}
+                active={market.active}
+            />
         </g>
     {/each}
 </g>

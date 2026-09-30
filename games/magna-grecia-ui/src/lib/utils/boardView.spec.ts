@@ -32,8 +32,16 @@ describe('board view', () => {
     })
 
     it('lays out each market in its own slot on the place', () => {
-        const views = marketViews(board())
+        const hydrated = board()
+        const views = marketViews(hydrated, hydrated.network())
         expect(views.map((view) => view.sold)).toEqual([false, true])
         expect(views[0].point).not.toEqual(views[1].point)
+    })
+
+    it('marks a market active only while it serves one of its owner’s cities', () => {
+        const hydrated = board()
+        hydrated.markets.push({ playerId: 'p2', placeId: 'city:C1', sold: false })
+        const views = marketViews(hydrated, hydrated.network())
+        expect(views.map((view) => view.active)).toEqual([true, false, false])
     })
 })

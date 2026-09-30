@@ -1,5 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import MapLegend from './MapLegend.svelte'
     import RoundCard, { type RoundCardSeat } from './RoundCard.svelte'
 
     const gameSession = getGameSession()
@@ -43,6 +44,8 @@
             <RoundCard card={upcoming} seats={upcomingOrder} upcoming />
         </section>
     {/if}
+
+    <MapLegend />
 </aside>
 
 <style>
