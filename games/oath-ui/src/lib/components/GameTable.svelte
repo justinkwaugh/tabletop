@@ -5,7 +5,6 @@
         HistoryControls,
         DefaultTabs,
         DefaultTableLayout,
-        GameChat,
         GameSession
     } from '@tabletop/frontend-components'
 
@@ -31,43 +30,18 @@
 
 <div class="oath-table">
     <DefaultTableLayout>
-        <!-- The shared phone controls default to light icons; Oath's side panel is light. -->
-        {#snippet mobileControlsContent()}
-            <HistoryControls
-                borderClass="border-b-2 border-stone-400"
-                bgClass="bg-transparent"
-                enabledColor="text-stone-800"
-                disabledColor="text-stone-400"
-            />
-        {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
-                <HistoryControls
-                    borderClass="border-b-2 border-stone-400"
-                    bgClass="bg-transparent"
-                    enabledColor="text-stone-800"
-                    disabledColor="text-stone-400"
-                />
+                <HistoryControls />
             </div>
             <DefaultTabs
                 activeTabClass="py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-black font-semibold"
-                inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />
                 {/snippet}
                 {#snippet history()}
                     <History />
-                {/snippet}
-                {#snippet chat()}
-                    <!-- The shared chat defaults to light text; Oath's side panel is light. -->
-                    <GameChat
-                        messageTextColor="text-stone-800"
-                        composerTextColor="text-stone-800"
-                        timeColor="text-stone-500"
-                        messageHoverColor="hover:bg-stone-200"
-                        inputBgColor="bg-stone-100"
-                    />
                 {/snippet}
             </DefaultTabs>
         {/snippet}

@@ -409,6 +409,32 @@ test.describe('scenario 32: waiting on a send', () => {
     })
 })
 
+async function luminanceOf(locator: ReturnType<Page['locator']>, property: 'color' | 'backgroundColor') {
+    return locator.evaluate((element, property) => {
+        const canvas = document.createElement('canvas')
+        canvas.width = 1
+        canvas.height = 1
+        const context = canvas.getContext('2d')
+        if (!context) throw Error('A canvas has a 2d context')
+        context.fillStyle = getComputedStyle(element)[property]
+        context.fillRect(0, 0, 1, 1)
+        const [red, green, blue] = context.getImageData(0, 0, 1, 1).data
+        return (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255
+    }, property)
+}
+
+test('the side tabs and the chat read light on the dark page', async ({ page }) => {
+    await openTable(page, 'setup')
+    expect(await luminanceOf(page.locator('body'), 'backgroundColor')).toBeLessThan(0.2)
+    const history = page.getByRole('tab', { name: 'History' })
+    await expect(history).toHaveAttribute('aria-selected', 'false')
+    expect(await luminanceOf(history, 'color')).toBeGreaterThan(0.6)
+
+    await page.getByRole('tab', { name: 'Chat' }).click()
+    expect(await luminanceOf(page.getByRole('tab', { name: 'Players' }), 'color')).toBeGreaterThan(0.6)
+    expect(await luminanceOf(page.locator('textarea'), 'color')).toBeGreaterThan(0.6)
+})
+
 test('the fixture opens the Chancellor setup with the hand offered', async ({ page }) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
