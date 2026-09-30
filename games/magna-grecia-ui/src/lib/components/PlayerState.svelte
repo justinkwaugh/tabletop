@@ -20,6 +20,16 @@
     const textColor = $derived(gameSession.colors.getPlayerTextColorValue(playerId))
     const isTurn = $derived(gameSession.gameState.activePlayerIds.includes(playerId))
     const marketsLeft = $derived(gameSession.gameState.board.marketsRemaining(playerId))
+    const ORDINALS = ['1st', '2nd', '3rd', '4th']
+    const nextRoundPlace = $derived.by(() => {
+        const state = gameSession.gameState
+        const upcoming = state.result ? undefined : state.upcomingCard()
+        if (!upcoming) {
+            return undefined
+        }
+        const index = state.turnOrderForCard(upcoming).indexOf(playerId)
+        return index >= 0 ? ORDINALS[index] : undefined
+    })
 </script>
 
 <div class="player" class:turn={isTurn} style:--player={color} style:--player-text={textColor}>
@@ -54,6 +64,11 @@
         </span>
         <span class="total">Total <strong>{score.total}</strong></span>
     </div>
+    {#if nextRoundPlace}
+        <div class="next-round" title="Turn order in the next round">
+            Next round: <strong>{nextRoundPlace}</strong>
+        </div>
+    {/if}
     {#if gameSession.showDebug}
         <div class="debug">id: {playerId}</div>
     {/if}
@@ -150,6 +165,12 @@
         color: #4a2c12;
     }
 
+    .next-round {
+        margin-top: -4px;
+        padding: 0 12px 8px;
+        font-size: 13px;
+        color: #7a5732;
+    }
     .debug {
         padding: 0 12px 6px;
         font-size: 10px;

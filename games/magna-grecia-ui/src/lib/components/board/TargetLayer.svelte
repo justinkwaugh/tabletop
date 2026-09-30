@@ -6,11 +6,17 @@
     import { hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
     import { placeCenter } from '$lib/utils/boardView.js'
     import CityTileArt from './CityTileArt.svelte'
-    import CityTileIcon from '../icons/CityTileIcon.svelte'
     import TileLayingWidget from './TileLayingWidget.svelte'
 
     const gameSession = getGameSession()
     const targetShape = localHexPoints(3)
+    const CITY_GLYPH_HOUSES = [
+        { x: -22, y: -3 },
+        { x: 22, y: -3 },
+        { x: -14, y: 17 },
+        { x: 14, y: 17 },
+        { x: 0, y: 25 }
+    ]
 
     let hoveredCity: AxialCoordinates | undefined = $state()
 
@@ -87,8 +93,12 @@
         {/if}
         <polygon points={targetShape} class="target-hex"></polygon>
         {#if !hoveredCity || !sameCoordinates(hoveredCity, coords)}
-            <g class="target-city" transform="translate(-16 -16)">
-                <CityTileIcon size={32} />
+            <g class="target-glyph target-city">
+                {#each CITY_GLYPH_HOUSES as house, index (index)}
+                    <rect x={house.x - 6} y={house.y - 5} width="12" height="10" rx="1"></rect>
+                {/each}
+                <path d="M -13 3 H 13 M -11 3 V -8 H 11 V 3 M -14 -8 L 0 -17 L 14 -8 Z"></path>
+                <path d="M -6 -6 V 1 M 0 -6 V 1 M 6 -6 V 1"></path>
             </g>
         {/if}
     </g>
@@ -154,8 +164,8 @@
     }
     .target-city {
         pointer-events: none;
-        opacity: 0.9;
-        animation: target-icon-pulse 1.6s ease-in-out infinite;
+        stroke-width: 3;
+        stroke-linejoin: round;
     }
     .price-tag {
         fill: #fbf3dc;
@@ -167,15 +177,6 @@
         font-size: 13px;
         font-weight: 700;
         fill: #6b3f1d;
-    }
-    @keyframes target-icon-pulse {
-        0%,
-        100% {
-            opacity: 0.95;
-        }
-        50% {
-            opacity: 0.55;
-        }
     }
     @keyframes target-pulse {
         0%,

@@ -28,22 +28,22 @@
     <Trireme x={westSea.x - 40} y={westSea.y + 10} scale={0.9} />
     <Trireme x={eastSea.x + 55} y={eastSea.y + 40} scale={0.8} flip />
 
-    <g transform="translate({bay.x - HEX.xRadius} {bay.y + 22})">
+    <g transform="translate({bay.x - HEX.xRadius} {bay.y + 22 + HEX.yRadius})">
         <path
-            d="M -190 -32 h 380 l 16 32 l -16 32 h -380 l -16 -32 z"
+            d="M -190 -38 h 380 l 18 38 l -18 38 h -380 l -18 -38 z"
             fill="#f3e6c4"
             stroke="#8c5b2e"
             stroke-width="2"
             opacity="0.94"
         ></path>
         <path
-            d="M -184 -26 h 368 l 12 26 l -12 26 h -368 l -12 -26 z"
+            d="M -184 -32 h 368 l 14 32 l -14 32 h -368 l -14 -32 z"
             fill="none"
             stroke="#b8793d"
             stroke-width="1"
         ></path>
         <text
-            y="2"
+            y="0"
             text-anchor="middle"
             font-family="Georgia, 'Times New Roman', serif"
             font-size="32"
@@ -51,10 +51,10 @@
             fill="#6b3f1d">MAGNA GRECIA</text
         >
         <text
-            y="20"
+            y="23"
             text-anchor="middle"
             font-family="Georgia, 'Times New Roman', serif"
-            font-size="12"
+            font-size="16"
             font-style="italic"
             letter-spacing="1"
             fill="#8c5b2e">By Michael Schacht and Leo Colovini</text

@@ -3,7 +3,6 @@
         playerId: string
         name: string
         color: string
-        done?: boolean
         current?: boolean
     }
 </script>
@@ -57,7 +56,6 @@
             <ol class="order">
                 {#each seats as seat (seat.playerId)}
                     <li
-                        class:done={seat.done}
                         class:current={seat.current}
                         style:--seat={seat.color}
                         title={seat.name}
@@ -115,8 +113,8 @@
 
     .enhanced {
         font-size: 26px;
-        color: #a2412a;
-        border: 1.5px solid rgba(162, 65, 42, 0.55);
+        color: #4a2208;
+        border: 1.5px solid rgba(74, 34, 8, 0.5);
         border-radius: 999px;
         padding: 0 8px;
     }
@@ -160,10 +158,6 @@
         border-radius: 6px;
         font-size: 21px;
         color: #3b2a18;
-    }
-
-    .order li.done {
-        opacity: 0.45;
     }
 
     .order li.current {

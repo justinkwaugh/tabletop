@@ -12,7 +12,6 @@
             playerId,
             name: gameSession.getPlayerName(playerId),
             color: gameSession.colors.getPlayerUiColor(playerId),
-            done: !!state.result || index < state.turnIndex,
             current: !state.result && index === state.turnIndex
         }))
     )
@@ -37,7 +36,7 @@
     <RoundCard {card} seats={turnOrder} />
 
     <p class="hint">
-        Take two actions, or one enhanced to the <span class="enhanced-text">higher number</span>.
+        Take two actions, or one enhanced to the higher number. Resupply must be last.
     </p>
 
     {#if upcoming}
@@ -78,11 +77,6 @@
         line-height: 1.35;
         text-align: center;
         color: #6b4a2a;
-    }
-
-    .enhanced-text {
-        color: #a2412a;
-        font-weight: 700;
     }
 
     .upcoming {
