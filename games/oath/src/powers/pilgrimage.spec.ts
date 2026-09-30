@@ -205,7 +205,7 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         const s = board()
         const a = play(s)
         const drawn = peekedBy(a)
-        expect(s.pendingQuestions?.queue).toEqual([{ kind: PowerQuestionKind.OrderDrawnCards, cardId: PILGRIMAGE, askedPlayerId: ME, region: Region.Cradle, cardIds: drawn }])
+        expect(s.pendingQuestions?.queue).toEqual([{ kind: PowerQuestionKind.OrderDrawnCards, cardId: PILGRIMAGE, askedPlayerId: ME, region: Region.Cradle, cardCount: drawn.length, cardIds: drawn }])
         expect(s.requireVault().discardPiles[Region.Cradle]).toEqual([])
         expect(s.discardPileCounts[Region.Cradle]).toBe(0)
         expect(a.metadata?.pileDeposits).toBeUndefined()

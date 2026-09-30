@@ -45,6 +45,7 @@ const stack = (): PowerQuestion => ({
     cardId: 'denizen.nomad.pilgrimage',
     askedPlayerId: ME,
     region: Region.Cradle,
+    cardCount: DRAWN.length,
     cardIds: DRAWN
 })
 

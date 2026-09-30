@@ -62,6 +62,7 @@ registerEffect(PILGRIMAGE, powerIndexOf(PILGRIMAGE, PowerTiming.WhenPlayed), {
             cardId: PILGRIMAGE,
             askedPlayerId: ctx.playerId,
             region,
+            cardCount: drawn.length,
             cardIds: drawn
         })
         return {

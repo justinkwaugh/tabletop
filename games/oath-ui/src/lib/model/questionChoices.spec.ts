@@ -92,6 +92,7 @@ describe('stackOrderAnswer (Pilgrimage, Law Glossary "Discard")', () => {
                         cardId: 'denizen.nomad.pilgrimage',
                         askedPlayerId: 'me',
                         region: Region.Cradle,
+                        cardCount: DRAWN.length,
                         cardIds: DRAWN
                     }
                 ]

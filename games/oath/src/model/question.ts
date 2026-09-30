@@ -269,6 +269,8 @@ export const PowerQuestion = Type.Union([
         cardId: Type.String(),
         askedPlayerId: Type.String(),
         region: Type.Enum(Region),
+        /** How many cards wait to be stacked: the denizens that left the site, which everyone saw. */
+        cardCount: Type.Number(),
         cardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 16 }), {
             policy: AskedPlayerPolicy
         })
