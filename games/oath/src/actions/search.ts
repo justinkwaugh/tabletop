@@ -194,7 +194,11 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         const vault = state.requireVault()
         const count = HydratedSearch.drawCount(state, this.playerId, this.modifiers, this.drawFrom)
         if (this.drawFrom === SearchSource.WorldDeck) {
-            const { drawn, stoppedOnVision, topBackType: nextBack } = drawWorldDeck(state, count)
+            const {
+                drawn,
+                stoppedOnVision,
+                topBackType: nextBack
+            } = drawWorldDeck(state, count, this.playerId)
             return {
                 drawnCardIds: drawn,
                 stoppedOnVision,
@@ -207,7 +211,8 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             state,
             region,
             count,
-            HydratedSearch.drawsFromBottom(state, this.playerId, this.modifiers)
+            HydratedSearch.drawsFromBottom(state, this.playerId, this.modifiers),
+            this.playerId
         )
         const newTop = vault.discardPiles[region][0]
         return {

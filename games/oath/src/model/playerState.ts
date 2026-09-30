@@ -70,6 +70,10 @@ export const TablePositions = Type.Array(
     Type.Union([Type.String(), Type.Null(), SeenSet, SeenBack])
 )
 
+/** What is known of a hand: a card it holds, or one card of a set. */
+export type HandPositions = Type.Static<typeof HandPositions>
+export const HandPositions = Type.Array(Type.Union([Type.String(), SeenSet]), { maxItems: 32 })
+
 /** Wild Allies, Captains — "as if your pawn is there". */
 export type CampaignAsIf = Type.Static<typeof CampaignAsIf>
 export const CampaignAsIf = Type.Object({ siteId: Type.String(), atAction: Type.Number() })
@@ -113,6 +117,8 @@ export const OathPlayerState = Type.Object({
     handCount: Type.Number(),
     /** R-9.4 — how many held cards show a Vision's back. */
     handVisions: Type.Number(),
+    /** Cards the whole table knows this hand holds, singly or as one of a set: it saw them drawn. */
+    handSeen: HandPositions,
     /** Truthful Harp — the table saw this hand, so `handIds` is everyone's until it is set again. */
     handShown: Type.Optional(Type.Literal(true)),
     /** R-2.2.1 — Exile side only; not an adviser. */
@@ -134,11 +140,15 @@ export const OathPlayerState = Type.Object({
         policy: Visibility.Policy.Owner
     }),
     /** Scryer, Tavern Songs — each discard pile's cards this player has seen, by position from the bottom. */
-    knownDiscardPiles: Visibility.protect(Type.Record(Type.Enum(Region), KnownPositions), {
+    knownDiscardPiles: Visibility.protect(Type.Record(Type.Enum(Region), TablePositions), {
         policy: Visibility.Policy.Owner
     }),
     /** Cracked Horn — the cards this player saw go under the world deck, by position from its bottom. */
-    knownWorldDeckBottom: Visibility.protect(KnownPositions, { policy: Visibility.Policy.Owner }),
+    knownWorldDeckBottom: Visibility.protect(TablePositions, { policy: Visibility.Policy.Owner }),
+    /** Cards this player knows another's hand holds, singly or as one of a set, by that player. */
+    knownHands: Visibility.protect(Type.Record(Type.String(), HandPositions), {
+        policy: Visibility.Policy.Owner
+    }),
     /** Relics this player saw sent to the bottom of the relic deck, bottom last. */
     knownRelicDeckBottom: Visibility.protect(KnownPositions, { policy: Visibility.Policy.Owner }),
 
@@ -192,8 +202,10 @@ export class HydratedOathPlayerState
     declare peekedSiteSlotIds: string[]
     declare peekedSites?: Record<string, string>
     declare knownWorldDeckTop?: string[]
-    declare knownDiscardPiles?: Record<Region, KnownPositions>
-    declare knownWorldDeckBottom?: KnownPositions
+    declare knownDiscardPiles?: Record<Region, TablePositions>
+    declare knownWorldDeckBottom?: TablePositions
+    declare knownHands?: Record<string, HandPositions>
+    declare handSeen: HandPositions
     declare knownRelicDeckBottom?: KnownPositions
     declare homelandUsedThisTurn: string[]
     declare restPowersUsedThisTurn: string[]

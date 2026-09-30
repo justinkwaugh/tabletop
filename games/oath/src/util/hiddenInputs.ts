@@ -15,7 +15,8 @@ import {
     rememberRelicAt,
     sendRelicToBottom,
     type Deposit,
-    type DiscardWitnesses
+    type DiscardWitnesses,
+    type Witness
 } from './knowledge.js'
 import type { SearchResolve } from '../actions/searchResolve.js'
 import type { PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
@@ -176,15 +177,20 @@ export function commitHiddenOutputs(
     // A card this action drew out of concealment, or, once every holder is known, one no one else
     // could see, is its actor's alone; without the holders, such a card is remembered by no one.
     const drawn = new Set(revealedCardIds(action))
-    const fallback = witnesses.holders ? action.playerId : undefined
+    const fallback: readonly Witness[] = witnesses.holders ? [action.playerId] : []
     // Pilgrimage from an empty Dispossessed — the table knows which cards, not their order.
     const sets = new Set([...witnesses.sets, ...shownAsSets(action)])
+    // X-14 — a hand card others knew is placed among the discards only once the kept card is public.
+    const resolved = handResolved(action)
     const deposit: Deposit = {
         witnessOf: (cardId) =>
             drawn.has(cardId) || sets.has(cardId)
-                ? action.playerId
+                ? [action.playerId]
                 : (witnesses.byCard.get(cardId) ?? fallback),
-        shownAsSet: sets
+        setWitnessesOf: (cardId) => [
+            ...(sets.has(cardId) ? ['everyone'] : []),
+            ...(resolved ? (witnesses.setsByCard.get(cardId) ?? []) : [])
+        ]
     }
     switch (action.type) {
         case ActionType.UseActionPower:
@@ -223,17 +229,15 @@ export function commitHiddenOutputs(
             if (!action.metadata) return
             {
                 // Truthful Harp — the table saw the cards drawn, so it knows which went down, not their order.
-                const discards: Deposit =
-                    action.metadata.revealedKeptCardId === undefined
-                        ? deposit
-                        : {
-                              ...deposit,
-                              shownAsSet: new Set([
-                                  ...sets,
-                                  ...action.discardOrder,
-                                  action.metadata.revealedKeptCardId
-                              ])
-                          }
+                const harp = action.metadata.revealedKeptCardId
+                const shown = new Set(harp === undefined ? [] : [...action.discardOrder, harp])
+                const discards: Deposit = {
+                    ...deposit,
+                    setWitnessesOf: (cardId) => [
+                        ...(deposit.setWitnessesOf?.(cardId) ?? []),
+                        ...(shown.has(cardId) ? ['everyone'] : [])
+                    ]
+                }
                 if (action.metadata.discardToWorldDeck === true)
                     putUnderWorldDeckKnown(state, action.metadata.discardedCardIds, discards)
                 else
@@ -293,6 +297,23 @@ function pileDepositsOf(action: HiddenOutputAction): readonly PileDeposit[] {
         default:
             return []
     }
+}
+
+/**
+ * X-14 — a Search's hand is resolved for those who knew its cards when the kept card's fate is public:
+ * played faceup, shown by Truthful Harp, or discarded with the rest. A card kept facedown unseen could
+ * be any of them, so none is placed.
+ */
+function handResolved(action: HiddenOutputAction): boolean {
+    if (action.type !== ActionType.SearchResolve) return true
+    const metadata = action.metadata
+    if (metadata?.revealedKeptCardId !== undefined) return true
+    const kept = metadata?.playedCardId !== undefined || action.play === SearchPlay.Discard
+    const second =
+        action.secondPlay === undefined ||
+        metadata?.secondPlayedCardId !== undefined ||
+        action.secondPlay.play === SearchPlay.Discard
+    return kept && second
 }
 
 function heldRelicAnswered(action: AnswerQuestion): string | undefined {

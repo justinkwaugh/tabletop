@@ -1,6 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import type {
+    HandPositions,
     HydratedOathPlayerState,
     KnownPositions,
     TablePositions
@@ -23,7 +24,7 @@ import {
     type WorldDeckDraw
 } from '../model/vault.js'
 
-export function noKnownDiscardPiles(): Record<Region, KnownPositions> {
+export function noKnownDiscardPiles(): Record<Region, TablePositions> {
     return { [Region.Cradle]: [], [Region.Provinces]: [], [Region.Hinterland]: [] }
 }
 
@@ -32,12 +33,12 @@ function worldDeckTopOf(player: HydratedOathPlayerState): string[] {
     return player.knownWorldDeckTop
 }
 
-function discardPilesOf(player: HydratedOathPlayerState): Record<Region, KnownPositions> {
+function discardPilesOf(player: HydratedOathPlayerState): Record<Region, TablePositions> {
     assertExists(player.knownDiscardPiles, 'This operation requires known stacks')
     return player.knownDiscardPiles
 }
 
-function worldDeckBottomOf(player: HydratedOathPlayerState): KnownPositions {
+function worldDeckBottomOf(player: HydratedOathPlayerState): TablePositions {
     assertExists(player.knownWorldDeckBottom, 'This operation requires known stacks')
     return player.knownWorldDeckBottom
 }
@@ -74,17 +75,30 @@ export function seeWorldDeckTop(
     player.knownWorldDeckTop = [...cardIds, ...worldDeckTopOf(player).slice(cardIds.length)]
 }
 
-/** R-5.1.2 — a draw that reaches the cards known under the deck takes them off its known bottom. */
-export function drawWorldDeck(state: HydratedOathGameState, count: number): WorldDeckDraw {
+/**
+ * R-5.1.2 — whoever knew a card drawn now knows it is in the drawer's hand; a draw that reaches the
+ * cards known under the deck takes them off its known bottom.
+ */
+export function drawWorldDeck(
+    state: HydratedOathGameState,
+    count: number,
+    drawerId: string
+): WorldDeckDraw {
     const vault = state.requireVault()
+    const before = vault.worldDeck.length
     const draw = drawFromWorldDeck(vault, count)
     state.worldDeckDrawn += draw.drawn.length
     state.worldDeckVisions -= draw.drawn.filter(isVision).length
-    for (const player of state.players)
-        player.knownWorldDeckTop = worldDeckTopOf(player).slice(draw.drawn.length)
+    for (const player of state.players) {
+        const top = worldDeckTopOf(player)
+        intoHand(state, player.playerId, drawerId, top.slice(0, draw.drawn.length))
+        player.knownWorldDeckTop = top.slice(draw.drawn.length)
+    }
     const size = vault.worldDeck.length
-    for (const holder of worldDeckBottomRecords(state))
+    for (const holder of worldDeckBottomRecords(state)) {
+        intoHand(state, holder.witness, drawerId, holder.get().slice(size, before))
         holder.set(trimTop(holder.get().slice(0, size)))
+    }
     return draw
 }
 
@@ -115,10 +129,16 @@ export function drawWorldDeckVision(
     if (fromUnder !== undefined)
         for (const holder of worldDeckBottomRecords(state)) {
             const known = holder.get()
-            if (fromUnder < known.length) holder.set(trimTop(known.toSpliced(fromUnder, 1)))
+            if (fromUnder >= known.length) continue
+            intoHand(state, holder.witness, playerId, [known[fromUnder]])
+            holder.set(trimTop(known.toSpliced(fromUnder, 1)))
         }
-    for (const player of state.players)
-        player.knownWorldDeckTop = worldDeckTopOf(player).filter((id) => id !== cardId)
+    for (const player of state.players) {
+        const top = worldDeckTopOf(player)
+        if (cardId !== undefined && top.includes(cardId))
+            intoHand(state, player.playerId, playerId, [cardId])
+        player.knownWorldDeckTop = top.filter((id) => id !== cardId)
+    }
     const drawer = state.getPlayerState(playerId)
     const known = worldDeckBottomOf(drawer)
     const at = cardId === undefined ? -1 : known.indexOf(cardId)
@@ -129,9 +149,14 @@ export function drawWorldDeckVision(
 /** Who saw a card go onto a stack: everyone at the table, or the one player who knew it. */
 export type Witness = 'everyone' | string
 
-/** Who could see each card before an action moved it; with `holders`, also each hand's and facedown adviser's holder. */
+/**
+ * Who could see each card before an action moved it: `byCard` knew the card and will see where it
+ * lands; `setsByCard` knew the card but not its place among the others moved with it. With `holders`,
+ * also each hand's and facedown adviser's holder.
+ */
 export interface DiscardWitnesses {
-    byCard: ReadonlyMap<string, Witness>
+    byCard: ReadonlyMap<string, readonly Witness[]>
+    setsByCard: ReadonlyMap<string, readonly Witness[]>
     holders: boolean
     /** Pilgrimage — cards the table knows as a set, but not in their order. */
     sets: ReadonlySet<string>
@@ -173,25 +198,81 @@ export function tableWitnesses(state: HydratedOathGameState): DiscardWitnesses {
         )
             relics.set(question.relicCardId, question.seenBy)
     return {
-        byCard: new Map(shown.map((cardId) => [cardId, 'everyone'])),
+        byCard: new Map(shown.map((cardId) => [cardId, ['everyone']])),
+        setsByCard: new Map(),
         holders: false,
         sets,
         relics
     }
 }
 
-/** On the host: the table's cards, and every hand card and facedown adviser as its holder's. */
+/**
+ * On the host: the table's cards, every hand card and facedown adviser as its holder's, and those
+ * others knew too (a hand card the table or a player saw drawn, an adviser shown), who will know it
+ * is among the cards moved but not where.
+ */
 export function discardWitnesses(state: HydratedOathGameState): DiscardWitnesses {
-    const byCard = new Map<string, Witness>()
-    for (const player of state.players)
+    const byCard = new Map<string, readonly Witness[]>()
+    const setsByCard = new Map<string, Witness[]>()
+    const alsoKnows = (cardId: string, witness: Witness) =>
+        setsByCard.set(cardId, [...(setsByCard.get(cardId) ?? []), witness])
+    for (const player of state.players) {
         for (const cardId of [...player.knownHand(), ...player.facedownAdviserIds()])
-            byCard.set(cardId, player.playerId)
+            byCard.set(cardId, [player.playerId])
+        for (const entry of player.handSeen)
+            if (typeof entry === 'string') alsoKnows(entry, 'everyone')
+        for (const other of state.players) {
+            if (other.playerId === player.playerId) continue
+            for (const entry of knownHandsOf(other)[player.playerId] ?? [])
+                if (typeof entry === 'string') alsoKnows(entry, other.playerId)
+        }
+        // R-9.4 — whoever was shown a facedown adviser knows it when it goes.
+        for (const [index, row] of player.advisers.entries())
+            if (!row.faceUp)
+                for (const viewer of row.shownTo ?? [])
+                    alsoKnows(player.knownAdviserIds()[index], viewer)
+    }
     const table = tableWitnesses(state)
-    for (const [cardId, witness] of table.byCard) byCard.set(cardId, witness)
-    return { byCard, holders: true, sets: table.sets, relics: table.relics }
+    for (const [cardId, witnesses] of table.byCard) byCard.set(cardId, witnesses)
+    return { byCard, setsByCard, holders: true, sets: table.sets, relics: table.relics }
+}
+
+function knownHandsOf(player: HydratedOathPlayerState): Record<string, HandPositions> {
+    assertExists(player.knownHands, 'This operation requires known hands')
+    return player.knownHands
+}
+
+/** Cards `witness` knew in a stack, now in `drawerId`'s hand: the drawer needs no record of their own. */
+function intoHand(
+    state: HydratedOathGameState,
+    witness: Witness,
+    drawerId: string,
+    entries: TablePositions
+): void {
+    if (witness === drawerId) return
+    const known = entries.flatMap((entry): HandPositions => {
+        if (entry === null) return []
+        if (typeof entry === 'string') return [entry]
+        return 'among' in entry ? [{ among: entry.among }] : []
+    })
+    if (known.length === 0) return
+    if (witness === 'everyone') {
+        const drawer = state.getPlayerState(drawerId)
+        drawer.handSeen = [...drawer.handSeen, ...known]
+        return
+    }
+    const hands = knownHandsOf(state.getPlayerState(witness))
+    hands[drawerId] = [...(hands[drawerId] ?? []), ...known]
+}
+
+/** A hand emptied: what anyone knew it held has gone where the action that emptied it put it. */
+export function forgetHand(state: HydratedOathGameState, playerId: string): void {
+    state.getPlayerState(playerId).handSeen = []
+    for (const player of state.players) delete knownHandsOf(player)[playerId]
 }
 
 interface RecordHolder {
+    witness: Witness
     get(): TablePositions
     set(positions: TablePositions): void
 }
@@ -200,14 +281,16 @@ interface RecordHolder {
 function pileRecords(state: HydratedOathGameState, region: Region): RecordHolder[] {
     return [
         {
+            witness: 'everyone',
             get: () => state.seenDiscardPiles[region],
             set: (positions) => (state.seenDiscardPiles[region] = positions)
         },
         ...state.players.map((player) => {
             const piles = discardPilesOf(player)
             return {
+                witness: player.playerId,
                 get: () => piles[region],
-                set: (positions: TablePositions) => (piles[region] = cardsOnly(positions))
+                set: (positions: TablePositions) => (piles[region] = withoutBacks(positions))
             }
         })
     ]
@@ -216,12 +299,15 @@ function pileRecords(state: HydratedOathGameState, region: Region): RecordHolder
 function worldDeckBottomRecords(state: HydratedOathGameState): RecordHolder[] {
     return [
         {
+            witness: 'everyone',
             get: () => state.seenWorldDeckBottom,
             set: (positions) => (state.seenWorldDeckBottom = positions)
         },
         ...state.players.map((player) => ({
+            witness: player.playerId,
             get: () => worldDeckBottomOf(player),
-            set: (positions: TablePositions) => (player.knownWorldDeckBottom = cardsOnly(positions))
+            set: (positions: TablePositions) =>
+                (player.knownWorldDeckBottom = withoutBacks(positions))
         }))
     ]
 }
@@ -255,9 +341,12 @@ export function backOf(entry: TablePositions[number]): CardKind | undefined {
     return entry.back
 }
 
-/** A player remembers cards, never a set; a set only ever reaches the table's record. */
-function cardsOnly(positions: TablePositions): KnownPositions {
-    return positions.map((entry) => (typeof entry === 'string' ? entry : null))
+/** A player remembers cards and sets; backs are the table's, which everyone reads. */
+function withoutBacks(positions: TablePositions): TablePositions {
+    return positions.map((entry) => {
+        if (entry === null || typeof entry === 'string') return entry
+        return 'among' in entry ? { among: entry.among } : null
+    })
 }
 
 function placed(positions: TablePositions, fromBottom: number, entry: TablePositions[number]) {
@@ -281,61 +370,73 @@ export function seeDiscardPile(
     record.set(trimTop(known))
 }
 
-/** R-5.1.2, Mushrooms */
+/** R-5.1.2, Mushrooms — whoever knew a card drawn now knows it is in the drawer's hand. */
 export function drawDiscardPile(
     state: HydratedOathGameState,
     region: Region,
     count: number,
-    fromBottom: boolean
+    fromBottom: boolean,
+    drawerId: string
 ): string[] {
     const vault = state.requireVault()
+    const before = vault.discardPiles[region].length
     const drawn = fromBottom
         ? drawFromDiscardBottom(vault, region, count)
         : drawFromDiscard(vault, region, count)
     const size = vault.discardPiles[region].length
-    for (const record of pileRecords(state, region))
-        record.set(
-            trimTop(fromBottom ? record.get().slice(drawn.length) : record.get().slice(0, size))
-        )
+    for (const record of pileRecords(state, region)) {
+        const known = record.get()
+        const taken = fromBottom ? known.slice(0, drawn.length) : known.slice(size, before)
+        intoHand(state, record.witness, drawerId, taken)
+        record.set(trimTop(fromBottom ? known.slice(drawn.length) : known.slice(0, size)))
+    }
     return drawn
 }
 
 /**
- * Who remembers each card put on a stack: its witness by name, and the table as one of `shownAsSet`
- * when it saw the cards but not their order (Truthful Harp). A card with no witness is remembered
- * by no one.
+ * Who remembers each card put on a stack: `witnessOf` names those who see where it lands, and
+ * `setWitnessesOf` those who know it is among the cards put there but not where (Truthful Harp,
+ * Pilgrimage, a hand or adviser others knew). The table always sees each back.
  */
 export interface Deposit {
-    witnessOf: (cardId: string) => Witness | undefined
-    shownAsSet?: ReadonlySet<string>
+    witnessOf: (cardId: string) => readonly Witness[]
+    setWitnessesOf?: (cardId: string) => readonly Witness[]
 }
 
 function remember(
-    table: RecordHolder,
     recordFor: (witness: Witness) => RecordHolder,
     cardIds: readonly string[],
     positionOf: (index: number) => number,
     deposit: Deposit
 ) {
+    const exactly = (cardId: string) => deposit.witnessOf(cardId)
+    const asSet = (cardId: string) =>
+        (deposit.setWitnessesOf?.(cardId) ?? []).filter(
+            (witness) => !exactly(cardId).includes(witness)
+        )
     // Sorted: the order the cards went down is their player's alone.
-    const set = cardIds.filter((cardId) => deposit.shownAsSet?.has(cardId)).toSorted()
+    const setFor = (witness: Witness) =>
+        cardIds.filter((cardId) => asSet(cardId).includes(witness)).toSorted()
     for (const [index, cardId] of cardIds.entries()) {
-        const witness = deposit.witnessOf(cardId)
-        if (witness !== undefined) {
+        const at = positionOf(index)
+        for (const witness of exactly(cardId)) {
             const record = recordFor(witness)
-            record.set(placed(record.get(), positionOf(index), cardId))
+            record.set(placed(record.get(), at, cardId))
+        }
+        for (const witness of asSet(cardId)) {
+            if (witness === 'everyone') continue
+            const record = recordFor(witness)
+            record.set(placed(record.get(), at, { among: setFor(witness) }))
         }
         // R-9.4 — the table saw every back go down, and a set's cards where it knew them.
-        if (witness !== 'everyone')
-            table.set(
-                placed(
-                    table.get(),
-                    positionOf(index),
-                    set.includes(cardId)
-                        ? { among: set, back: backOfCard(cardId) }
-                        : { back: backOfCard(cardId) }
-                )
-            )
+        if (!exactly(cardId).includes('everyone')) {
+            const table = recordFor('everyone')
+            const back = backOfCard(cardId)
+            const entry = asSet(cardId).includes('everyone')
+                ? { among: setFor('everyone'), back }
+                : { back }
+            table.set(placed(table.get(), at, entry))
+        }
     }
 }
 
@@ -354,7 +455,6 @@ export function putOnDiscardPile(
         for (const record of pileRecords(state, region))
             if (record.get().length > 0) record.set([...unknown(cardIds.length), ...record.get()])
     remember(
-        pileRecords(state, region)[0],
         (witness) => pileRecordOf(state, region, witness),
         cardIds,
         (index) => (bottom ? cardIds.length - 1 - index : size + index),
@@ -373,7 +473,6 @@ export function putUnderWorldDeckKnown(
     for (const record of worldDeckBottomRecords(state))
         if (record.get().length > 0) record.set([...unknown(cardIds.length), ...record.get()])
     remember(
-        worldDeckBottomRecords(state)[0],
         (witness) => worldDeckBottomRecordOf(state, witness),
         cardIds,
         (index) => cardIds.length - 1 - index,

@@ -48,7 +48,8 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 
 - **R-6.6.2, R-6.6.3:** a Citizen who gains warbands through a power gets their own, not Imperial ones; Muster already gives Imperial ones.
 - **R-9.4:** the state publishes each facedown adviser's back (`vision: true` on a Vision's row) and the number of Visions in each hand (`handVisions`), but the table still draws every other player's facedown adviser as a denizen back and shows a hand as a count, so a facedown Vision looks like a denizen there.
-- **R-9.4:** a discard pile publishes only its top card's back and its count, not every back.
+- **R-9.4:** the state records every back that goes onto a pile, but the table draws only the top card's back and the count.
+- **R-9.4, Exploration:** after a Search whose hand others knew, a card kept facedown unseen may be the kept card or among the discards; the records place it nowhere, so a player's or spectator's exploration deals it anywhere. Every other known card keeps its place.
 
 ## Not checked by specs
 

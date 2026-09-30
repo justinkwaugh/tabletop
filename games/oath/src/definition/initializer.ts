@@ -153,6 +153,8 @@ export class OathGameInitializer
                 knownDiscardPiles: noKnownDiscardPiles(),
                 knownRelicDeckBottom: [],
                 knownWorldDeckBottom: [],
+                knownHands: {},
+                handSeen: [],
                 homelandUsedThisTurn: [],
                 restPowersUsedThisTurn: []
             }

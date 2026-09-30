@@ -61,6 +61,8 @@ export function testPlayer(overrides: Partial<OathPlayerState> = {}): OathPlayer
         knownDiscardPiles: noKnownDiscardPiles(),
         knownRelicDeckBottom: [],
         knownWorldDeckBottom: [],
+        knownHands: {},
+        handSeen: [],
         homelandUsedThisTurn: [],
         restPowersUsedThisTurn: [],
         ...overrides,

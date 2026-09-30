@@ -15,7 +15,7 @@ import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
 import { carriedModifiers, modifierContext, runAfter } from '../util/modifiers.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
-import { discardWitnesses } from '../util/knowledge.js'
+import { discardWitnesses, forgetHand } from '../util/knowledge.js'
 import { playCard, reasonCannotPlayCard } from '../util/cardPlay.js'
 
 /** R-9.4 */
@@ -169,6 +169,7 @@ export class HydratedSearchResolve
         // R-5.1.3, R-10.5 — to the next region's pile, or where Bracken says.
         discardCards(state, this.playerId, this.discardOrder, region, discardTarget)
         player.setHand([])
+        forgetHand(state, this.playerId)
 
         // R-5.1.4
         // Truthful Harp — "you must reveal every card you draw and the card you keep".

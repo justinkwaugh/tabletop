@@ -75,6 +75,7 @@ export function populateHiddenCards(
             knownWorldDeckTop: player.knownWorldDeckTop ?? [],
             knownDiscardPiles: player.knownDiscardPiles ?? noKnownDiscardPiles(),
             knownWorldDeckBottom: player.knownWorldDeckBottom ?? [],
+            knownHands: player.knownHands ?? {},
             knownRelicDeckBottom: player.knownRelicDeckBottom ?? []
         }))
     }
@@ -171,7 +172,7 @@ function mergedPositions(lists: readonly KnownPositions[]): KnownPositions {
  */
 function rememberedPositions(
     table: TablePositions,
-    lists: readonly KnownPositions[],
+    lists: readonly TablePositions[],
     random: RandomFunction,
     taken: Set<string>,
     top?: { fromBottom: number; back: CardKind | undefined }
@@ -184,7 +185,9 @@ function rememberedPositions(
     const free = (cardId: string | null) => (cardId !== null && !taken.has(cardId) ? cardId : null)
     const named = mergedPositions([
         table.map((entry) => (typeof entry === 'string' ? free(entry) : null)),
-        ...lists.map((list) => list.map(free))
+        ...lists.map((list) =>
+            list.map((entry) => (typeof entry === 'string' ? free(entry) : null))
+        )
     ])
     const positions: (string | null)[] = Array.from(
         { length: Math.max(named.length, table.length) },
@@ -201,14 +204,16 @@ function rememberedPositions(
         kinds[top.fromBottom] ??= top.back
     for (const cardId of positions) if (cardId !== null) taken.add(cardId)
     const sets = new Map<string, { among: string[]; at: number[] }>()
-    for (const [index, entry] of table.entries()) {
-        if (entry === null || typeof entry === 'string' || !('among' in entry)) continue
-        if (positions[index] !== null) continue
-        const key = entry.among.join(',')
-        const set = sets.get(key) ?? { among: entry.among, at: [] }
-        set.at.push(index)
-        sets.set(key, set)
-    }
+    // A set any record holds, the table's or the explorer's own (X-14).
+    for (const record of [table, ...lists])
+        for (const [index, entry] of record.entries()) {
+            if (entry === null || typeof entry === 'string' || !('among' in entry)) continue
+            if (positions[index] !== null) continue
+            const key = entry.among.join(',')
+            const set = sets.get(key) ?? { among: entry.among, at: [] }
+            if (!set.at.includes(index)) set.at.push(index)
+            sets.set(key, set)
+        }
     const leftovers: string[] = []
     const fromSets: number[] = []
     for (const { among, at } of sets.values()) {
@@ -304,7 +309,7 @@ function dealWorldCards(
     const kindsOf = new Map<(string | null)[], (CardKind | undefined)[]>()
     const remembered = (
         table: TablePositions,
-        lists: readonly KnownPositions[],
+        lists: readonly TablePositions[],
         top?: { fromBottom: number; back: CardKind | undefined }
     ) => {
         const recalled = rememberedPositions(table, lists, random, taken, top)
@@ -330,6 +335,31 @@ function dealWorldCards(
         state.seenWorldDeckBottom,
         state.players.map((player) => player.knownWorldDeckBottom ?? [])
     )
+    // HIDDEN-010 — cards the table, or the explorer, saw drawn into a hand stay there.
+    const explorer = state.players.find((player) => player.knownHands !== undefined)
+    const heldKnown = new Map<string, string[]>()
+    for (const player of state.players) {
+        if (player.handIds !== undefined) continue
+        const entries = [...player.handSeen, ...(explorer?.knownHands?.[player.playerId] ?? [])]
+        const held: string[] = []
+        for (const entry of entries)
+            if (typeof entry === 'string' && !taken.has(entry) && held.length < player.handCount) {
+                held.push(entry)
+                taken.add(entry)
+            }
+        for (const entry of entries) {
+            if (typeof entry === 'string' || held.length >= player.handCount) continue
+            const [cardId, ...rest] = shuffled(
+                entry.among.filter((id) => !taken.has(id)),
+                random
+            )
+            if (cardId === undefined) continue
+            held.push(cardId)
+            taken.add(cardId)
+            leftovers.push(...rest)
+        }
+        heldKnown.set(player.playerId, held)
+    }
     const returned = [...new Set(leftovers)].filter((cardId) => !taken.has(cardId))
     const { visions, denizens } = unnamedWorldCards(state, new Set([...taken, ...returned]), random)
     visions.push(...returned.filter(isVision))
@@ -360,12 +390,13 @@ function dealWorldCards(
 
     for (const player of state.players) {
         if (player.handIds === undefined) {
-            const hand: string[] = []
+            const hand = [...(heldKnown.get(player.playerId) ?? [])]
             hands.set(player.playerId, hand)
-            for (let i = 0; i < player.handCount; i++)
+            const visionsLeft = player.handVisions - hand.filter(isVision).length
+            for (let i = hand.length; i < player.handCount; i++)
                 slots.push({
                     fill: (cardId) => hand.push(cardId),
-                    kind: i < player.handVisions ? CardKind.Vision : CardKind.Denizen
+                    kind: i - hand.length < visionsLeft ? CardKind.Vision : CardKind.Denizen
                 })
         }
         if (player.adviserIds === undefined) {
