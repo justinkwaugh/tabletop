@@ -41,7 +41,12 @@
             return 'Keep building your new city until it covers a village'
         }
         if (gameSession.roadSpace) {
-            return 'Choose which way the road runs'
+            if (!gameSession.roadPreview) {
+                return 'Choose a straight or curved road tile'
+            }
+            return gameSession.roadPlacements.length > 1
+                ? 'Click the tile to rotate it, then ✓ to place it'
+                : 'Place the road tile with ✓, or ✕ to cancel'
         }
         switch (gameSession.activeTool) {
             case BuildTool.Road:

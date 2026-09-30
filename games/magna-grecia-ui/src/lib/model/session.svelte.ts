@@ -15,6 +15,7 @@ import {
     PlaceCity,
     PlaceRoad,
     Resupply,
+    RoadShape,
     SellMarket,
     legalRoadEnds,
     marketCost,
@@ -27,6 +28,7 @@ import {
     type RoadEnds,
     type SpaceKey
 } from '@tabletop/magna-grecia'
+import { legalRoadShapeChoices, roadPlacement, type RoadShapeChoice } from './roadLay.js'
 
 export enum BuildTool {
     Road = 'Road',
@@ -45,6 +47,8 @@ export class MagnaGreciaGameSession extends GameSession<
 > {
     private chosenTool: { tool: BuildTool; turnKey: string } | undefined = $state()
     roadSpace: AxialCoordinates | undefined = $state()
+    private chosenRoadShape: RoadShape | undefined = $state()
+    private roadRotation = $state(0)
     resupplyOpen = $state(false)
 
     myPlayerId = $derived(this.myPlayer?.id)
@@ -165,24 +169,70 @@ export class MagnaGreciaGameSession extends GameSession<
         return space ? (this.roadTargets.get(spaceKey(space))?.options ?? []) : []
     })
 
+    roadShapeChoices: RoadShapeChoice[] = $derived(legalRoadShapeChoices(this.roadOptions))
+
+    roadShape: RoadShape | undefined = $derived.by(() => {
+        const chosen = this.chosenRoadShape
+        if (chosen && this.roadShapeChoices.some((choice) => choice.shape === chosen)) {
+            return chosen
+        }
+        return this.roadShapeChoices.length === 1 ? this.roadShapeChoices[0].shape : undefined
+    })
+
+    roadPlacements: RoadEnds[] = $derived(
+        this.roadShapeChoices.find((choice) => choice.shape === this.roadShape)?.placements ?? []
+    )
+
+    roadPreview: RoadEnds | undefined = $derived(
+        roadPlacement(this.roadPlacements, this.roadRotation)
+    )
+
     resupplyAllowance = $derived(
         this.canAct && this.myPlayerId ? this.gameState.resupplyAllowance(this.myPlayerId) : 0
     )
 
     chooseTool(tool: BuildTool) {
-        this.roadSpace = undefined
+        this.clearRoadLay()
         this.resupplyOpen = false
         this.chosenTool = { tool, turnKey: this.turnKey }
     }
 
-    async chooseRoadSpace(coords: AxialCoordinates) {
-        const options = this.roadTargets.get(spaceKey(coords))?.options ?? []
-        if (options.length === 1) {
-            await this.placeRoad(coords, options[0])
+    chooseRoadSpace(coords: AxialCoordinates) {
+        if (this.roadSpace && sameCoordinates(this.roadSpace, coords)) {
+            if (this.roadPreview) {
+                this.rotateRoad()
+            }
             return
         }
-        this.roadSpace =
-            this.roadSpace && sameCoordinates(this.roadSpace, coords) ? undefined : coords
+        this.clearRoadLay()
+        this.roadSpace = coords
+    }
+
+    chooseRoadShape(shape: RoadShape) {
+        if (!this.roadShapeChoices.some((choice) => choice.shape === shape)) {
+            return
+        }
+        this.chosenRoadShape = shape
+        this.roadRotation = 0
+    }
+
+    rotateRoad() {
+        if (this.roadPlacements.length > 1) {
+            this.roadRotation = (this.roadRotation + 1) % this.roadPlacements.length
+        }
+    }
+
+    async confirmRoad() {
+        const space = this.roadSpace
+        const ends = this.roadPreview
+        if (!space || !ends) {
+            return
+        }
+        await this.placeRoad(space, ends)
+    }
+
+    cancelRoad() {
+        this.clearRoadLay()
     }
 
     hasManualSelection(): boolean {
@@ -190,13 +240,24 @@ export class MagnaGreciaGameSession extends GameSession<
     }
 
     back() {
-        this.roadSpace = undefined
+        if (this.chosenRoadShape && this.roadShapeChoices.length > 1) {
+            this.chosenRoadShape = undefined
+            this.roadRotation = 0
+            return
+        }
+        this.clearRoadLay()
         this.resupplyOpen = false
     }
 
     resetAction() {
-        this.roadSpace = undefined
+        this.clearRoadLay()
         this.resupplyOpen = false
+    }
+
+    private clearRoadLay() {
+        this.roadSpace = undefined
+        this.chosenRoadShape = undefined
+        this.roadRotation = 0
     }
 
     override beforeNewState(): void {
@@ -222,7 +283,7 @@ export class MagnaGreciaGameSession extends GameSession<
         if (!this.validActionTypes.includes(ActionType.PlaceRoad)) {
             return
         }
-        this.roadSpace = undefined
+        this.clearRoadLay()
         await this.applyAction(this.createPlayerAction(PlaceRoad, { coords, ends }))
     }
 

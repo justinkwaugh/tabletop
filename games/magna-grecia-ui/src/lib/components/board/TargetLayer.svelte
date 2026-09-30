@@ -6,7 +6,7 @@
     import { hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
     import { placeCenter } from '$lib/utils/boardView.js'
     import CityTileArt from './CityTileArt.svelte'
-    import RoadPicker from './RoadPicker.svelte'
+    import TileLayingWidget from './TileLayingWidget.svelte'
 
     const gameSession = getGameSession()
     const targetShape = localHexPoints(3)
@@ -110,8 +110,8 @@
     </g>
 {/each}
 
-{#if gameSession.roadSpace && gameSession.roadOptions.length > 1}
-    <RoadPicker coords={gameSession.roadSpace} options={gameSession.roadOptions} />
+{#if gameSession.roadSpace}
+    <TileLayingWidget coords={gameSession.roadSpace} />
 {/if}
 
 <style>
