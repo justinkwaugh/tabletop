@@ -15,17 +15,17 @@
 
 - A pending claim or pending founding overrides the chosen tool: the City tool is forced and only the city tiles that complete it are targetable.
 - The tile laying widget exists only while the Road tool is active; choosing another tool, ✕, Back, or any published state closes it. Choosing a different road space moves the widget there and forgets the previous shape and orientation.
-- The resupply picker may be open alongside any tool's targets; both close when a new state is published.
+- The resupply picker is its own mode: opening it deselects the Roads and Cities tools, closes any road being laid and hides every board target. Choosing a tool closes the picker; closing the picker (its button again, or Back) restores the previously chosen tool. The picker closes when a new state is published.
 
 ## Shared visual state
 
 | State          | Meaning                              | Producer                                                                                        | Consumers                              | Lifetime                                                                                | Validity                                            |
 | -------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `activeTool`   | Which kind of target the board shows | Session: pending claim, else the player's chosen tool, else the first of Roads/Cities available | Action panel, target layer             | The choice is keyed to the round and turn, so it lapses when the turn changes           | Derived from currently available tools              |
+| `activeTool`   | Which kind of target the board shows | Session: pending claim, else none while resupplying, else the chosen tool, else the first of Roads/Cities | Action panel, target layer             | The choice is keyed to the round and turn, so it lapses when the turn changes           | Derived from currently available tools              |
 | `roadSpace`    | Road space being laid (manual)       | Target layer                                                                                    | Target layer, tile laying widget, action panel, header Back | Cleared by `resetAction()` before each published state, by ✕, by Back, and by choosing a tool | Options are re-derived from current legal road ends |
 | `roadShape`    | Tile shape previewed on the space    | Widget (manual), or auto when only one shape is legal                                          | Tile laying widget, action panel       | Cleared with `roadSpace`; Back clears a manual shape first                              | A manual shape no longer legal falls back to auto or none |
 | `roadRotation` | Which legal orientation is previewed | Widget (click preview to rotate)                                                                | Tile laying widget                     | Reset whenever the space or shape changes                                               | Taken modulo the shape's legal orientations       |
-| `resupplyOpen` | Resupply picker visible              | Action panel                                                                                    | Action panel, header Back              | Cleared like `roadSpace`                                                                | Picker hidden when the allowance is 0               |
+| `resupplyOpen` | Resupply picker visible (suspends the build tool) | Action panel                                                                                    | Action panel, header Back              | Cleared like `roadSpace`                                                                | Picker hidden when the allowance is 0               |
 
 In History View and for inactive players `canAct` is false, so no tool, target, picker or tile laying widget is shown.
 
@@ -58,6 +58,7 @@ All scenarios were exercised manually in the single-game harness with Playwright
     - Input: open Resupply, step roads and cities, then confirm.
     - Expected: supply and staging counts update and the picker closes.
     - Cancel: Back closes the picker without moving tiles.
+    - Mode: while the picker is open no tool button is highlighted and no board space pulses; choosing Roads or Cities closes it.
 4. **Market targets.**
     - Input: choose Build market.
     - Expected: price tags appear on eligible villages and rival cities, and clicking one builds the market and passes the turn.

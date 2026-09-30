@@ -116,6 +116,9 @@ export class MagnaGreciaGameSession extends GameSession<
         if (this.cityUnfinished) {
             return BuildTool.City
         }
+        if (this.resupplyOpen) {
+            return undefined
+        }
         const chosen = this.chosenTool
         if (
             chosen &&
@@ -233,6 +236,15 @@ export class MagnaGreciaGameSession extends GameSession<
 
     cancelRoad() {
         this.clearRoadLay()
+    }
+
+    toggleResupply() {
+        if (this.resupplyOpen) {
+            this.resupplyOpen = false
+            return
+        }
+        this.clearRoadLay()
+        this.resupplyOpen = true
     }
 
     hasManualSelection(): boolean {

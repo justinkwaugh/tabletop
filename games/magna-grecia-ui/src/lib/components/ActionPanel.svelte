@@ -40,6 +40,9 @@
         if (gameSession.pendingFounding) {
             return 'Keep building your new city until it covers a village'
         }
+        if (gameSession.resupplyOpen) {
+            return 'Choose tiles to move to your supply — this is your last action'
+        }
         if (gameSession.roadSpace) {
             if (!gameSession.roadPreview) {
                 return 'Choose a straight or curved road tile'
@@ -90,7 +93,7 @@
                         type="button"
                         class="tool"
                         class:active={gameSession.resupplyOpen}
-                        onclick={() => (gameSession.resupplyOpen = !gameSession.resupplyOpen)}
+                        onclick={() => gameSession.toggleResupply()}
                     >
                         Resupply <span class="count">{gameSession.resupplyAllowance}</span>
                     </button>
