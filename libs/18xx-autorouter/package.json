@@ -23,8 +23,8 @@
         "build": "node build.mjs && tsgo",
         "check": "tsgo --noEmit",
         "test": "vitest run",
-        "build:native": "cargo build --manifest-path rust/Cargo.toml --release --locked",
-        "test:rust": "cargo test --manifest-path rust/Cargo.toml --locked",
+        "build:native": "cd rust && cargo build --release --locked",
+        "test:rust": "cd rust && cargo test --locked",
         "lint": "eslint ."
     },
     "dependencies": {

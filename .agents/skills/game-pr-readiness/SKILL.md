@@ -96,7 +96,7 @@ Compare the complete change set with the fixed point established above. Every ch
 - a new title's `config/config-games/src/games.json` change whose only effect is adding that title's `{ gameId, packageId }` entry, which the release tools and local hosting require (`exempt_catalogue_addition`);
 - a `pnpm-lock.yaml` change confined to the title: it changes only the `games/<slug>` and `games/<slug>-ui` importer entries, otherwise only adds package entries, and `pnpm install --frozen-lockfile --lockfile-only` passes (`lockfile_change`).
 
-The collector leaves a qualifying file out of `outside_allowed_roots`. Any other change to either file is a violation; a lockfile change beyond the title, such as another package's version moving, belongs in its own PR.
+The collector leaves a qualifying file out of `outside_allowed_roots`. Any other change to either file is a violation; a lockfile change beyond the title, such as another package's version moving, belongs in its own PR. The lockfile must also match every manifest: fail when `lockfile_change.frozen_lockfile_check` has not passed, including when the change leaves the lockfile untouched while adding or changing a package manifest.
 
 ### 7. Architecture and runtime integrity
 
@@ -110,11 +110,11 @@ Classify the review scope before applying the design guidance:
 
 Review every applicable design area, including package and state boundaries, runtime composition and registration, deterministic execution, serialization and hydration, action and machine-state contracts, UI/session ownership, and repository verification. Follow the design document's pointers instead of restating their rules here.
 
-Fail this gate for every violated invariant, missing required integration point, unresolved ambiguity that prevents the affected behavior from being proven, or applicable verification command that fails or cannot be completed. Treat recommendations as findings only when the authoritative guidance makes them required or the implementation causes a concrete architectural defect.
+Fail this gate for every violated invariant, missing required integration point, unresolved ambiguity that prevents the affected behavior from being proven, or applicable verification command that fails or cannot be completed. A verification command that fails identically on `main` for a sibling title, because of a shared package, is a **platform failure**: record it with the sibling evidence in the verification details; it does not count against the title. Treat recommendations as findings only when the authoritative guidance makes them required or the implementation causes a concrete architectural defect.
 
 Every title's UI package carries its own dev harness, even when a shared playground also hosts the title: a `dev` script, `vite.config.ts`, `src/app.html`, and `src/routes/+page.svelte` rendering the shared `Harness` with the title's `UiDefinition` (`dev_harness`). Record each missing piece as a violation.
 
-Player Identity is the player ID ([player relationships](../../../docs/DESIGN.md#player-relationships)); record this item explicitly, reporting each rule that compares or keys on player color as a violation.
+Player Identity is the player ID ([player relationships](../../../docs/DESIGN.md#player-relationships)): changing player colors leaves attribution, rules, scoring, action availability, replay, and undo unchanged. Color may be a rule fact, such as the color of a player's pieces, when relationships are stored against player IDs. Record this item explicitly, reporting each rule where color stands in for a player ID.
 
 Assign thumbnail violations to gate 2, forbidden-construct violations to gate 3, animation violations to gates 4 or 5, changed-path violations to gate 6, UI entry weight violations to gate 8, metadata and stored-game compatibility violations to gate 9, tournament setup violations to gate 10, and hidden-information violations to gate 11. Report their architectural impact in those gates without duplicating them in gate 7. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
 
@@ -164,7 +164,7 @@ When the title has hidden information, fail any of these:
 - a secret field lacks a protecting policy, or an Action payload or metadata reveals a secret to a Perspective not entitled to it;
 - secret randomness draws from the public PRNG instead of the protected stream;
 - the projected schema is not derived with `Visibility.createProjectionSchema` from the strict canonical schema, or hydration does not accept the projected representation;
-- the title has Exploration without a `createFromProjectedState` that populates hypothetical hidden values from the projection and public constraints only;
+- the title's `createFromProjectedState` populates hypothetical hidden values from anything beyond the projection and public constraints. A title with Exploration may instead omit the hook, which disables projected exploration safely; record which it does;
 - no test verifies, for each Perspective, that the projection omits or redacts what it must, exposes what the Perspective is entitled to, and hydrates.
 
 A title without hidden information and without visibility registration passes this gate; state why.

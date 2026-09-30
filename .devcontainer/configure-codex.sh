@@ -5,6 +5,7 @@ set -euo pipefail
 sudo mkdir -p "${HOME}/.codex"
 sudo chown "$(id -u):$(id -g)" "${HOME}/.codex"
 
+if [ ! -f "${HOME}/.codex/config.toml" ]; then
 cat <<'EOF' > "${HOME}/.codex/config.toml"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
@@ -12,6 +13,7 @@ sandbox_mode = "danger-full-access"
 [projects."/workspace"]
 trust_level = "trusted"
 EOF
+fi
 
 if ! grep -q 'codex-managed-path' "${HOME}/.bashrc" 2>/dev/null; then
 cat <<'EOF' >> "${HOME}/.bashrc"

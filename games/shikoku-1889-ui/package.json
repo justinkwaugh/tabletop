@@ -22,7 +22,7 @@
         "build": "pnpm run package",
         "package": "svelte-kit sync && svelte-package",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-        "bundle": "rimraf bundle && rollup -c ./rollup.config.ts",
+        "bundle": "svelte-kit sync && rimraf bundle && rollup -c ./rollup.config.ts",
         "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
         "dev": "vite dev",
         "lint": "eslint ."

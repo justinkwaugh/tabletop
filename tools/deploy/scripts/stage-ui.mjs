@@ -28,7 +28,7 @@ if (!packageName) {
 }
 
 const repoRoot = await findRepoRoot(packageRoot)
-const staticRoot = process.env.STATIC_ROOT ?? path.join(repoRoot, '.local-static')
+const staticRoot = process.env.STATIC_ROOT || path.join(repoRoot, '.local-static')
 const sourceDir = path.join(packageRoot, 'bundle')
 const targetDir = path.join(staticRoot, 'games', packageId, 'ui', packageVersion)
 

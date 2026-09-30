@@ -25,6 +25,13 @@ it('uses the repository staging directory by default', async () => {
     expect(STATIC_ROOT).toBe(path.join(repositoryRoot(), '.local-static'))
 })
 
+it('treats an empty STATIC_ROOT as unset', async () => {
+    vi.stubEnv('STATIC_ROOT', '')
+    const { STATIC_ROOT } = await import('./staticRoot.js')
+
+    expect(STATIC_ROOT).toBe(path.join(repositoryRoot(), '.local-static'))
+})
+
 it('preserves an explicitly configured static directory', async () => {
     vi.stubEnv('STATIC_ROOT', '/tmp/hosted-game-assets')
     const { STATIC_ROOT } = await import('./staticRoot.js')

@@ -1,4 +1,5 @@
 import RequestTimingsPlugin from './plugins/requestTimings.js'
+import { STATIC_ROOT } from '@tabletop/backend-services'
 import { measure } from '@tabletop/backend-services/diagnostics'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
@@ -20,7 +21,6 @@ import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
-import { STATIC_ROOT } from './lib/staticRoot.js'
 
 const __dirname = import.meta.dirname
 
