@@ -1,59 +1,17 @@
 import { pawnSiteId } from './pawn.js'
 import { assertExists } from '@tabletop/common'
-import * as Type from 'typebox'
 import { HydratedOathGameState, type RelicSlot } from '../model/gameState.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
 import { Region, Suit } from '../model/oathEnums.js'
-import { WarbandGroup } from '../model/campaign.js'
-import { ExchangeTerms, type ExchangeAllowance } from '../model/question.js'
+import type { ExchangeAllowance } from '../model/question.js'
+import { PowerChoice, PowerChoiceKind } from '../model/powerChoice.js'
 import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
 import { accessibleCardIds } from './access.js'
 import { boardWarbandGroups } from './force.js'
 import { describeWarbands } from './warbands.js'
 import { choiceSpecsFor } from '../powers/registry.js'
 
-// R-7.1.3, R-X.1 — the engine never infers a choice, so every choice a power opens arrives on the action.
-
-export enum PowerChoiceKind {
-    /** R-7.1.3 — the bare "may". */
-    Yes = 'yes',
-    FavorBank = 'favorBank',
-    Player = 'player',
-    Card = 'card',
-    Site = 'site',
-    Warbands = 'warbands',
-    Region = 'region',
-    RelicSlot = 'relicSlot',
-    /** R-9.4 */
-    FacedownAdviser = 'facedownAdviser',
-    /** R-7.6.3 — the card's effect validates the terms. */
-    Exchange = 'exchange',
-    /** The card's effect bounds the number. */
-    Count = 'count'
-}
-
-export type PowerChoice = Type.Static<typeof PowerChoice>
-export const PowerChoice = Type.Union([
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.Yes) }),
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.FavorBank), suit: Type.Enum(Suit) }),
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.Player), playerId: Type.String() }),
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.Card), cardId: Type.String() }),
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.Site), siteId: Type.String() }),
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.Warbands), group: WarbandGroup }),
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.Region), region: Type.Enum(Region) }),
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.RelicSlot), slotId: Type.String() }),
-    Type.Object({
-        kind: Type.Literal(PowerChoiceKind.FacedownAdviser),
-        playerId: Type.String(),
-        index: Type.Integer({ minimum: 0, maximum: 15 })
-    }),
-    Type.Object({
-        kind: Type.Literal(PowerChoiceKind.Exchange),
-        withPlayerId: Type.String(),
-        terms: ExchangeTerms
-    }),
-    Type.Object({ kind: Type.Literal(PowerChoiceKind.Count), n: Type.Number() })
-])
+export { PowerChoice, PowerChoiceKind }
 
 /** A `warbands` option carries the group's maximum; the player picks how many. */
 export type ChoiceDomain = (

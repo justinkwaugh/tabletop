@@ -29,7 +29,7 @@ import {
     buildInitialPublicState,
     buildSetupVault,
     resolveSetupDeal
-} from '../model/setup.js'
+} from '../util/setup.js'
 import { EVERYONE, noKnownDiscardPiles } from '../util/knowledge.js'
 import { createOathVault } from '../model/vault.js'
 import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'

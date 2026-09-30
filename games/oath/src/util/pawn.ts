@@ -13,3 +13,7 @@ export function pawnSiteId(state: HydratedOathGameState, playerId: string): stri
 export function regionOfPawn(state: HydratedOathGameState, playerId: string): Region {
     return state.regionOf(pawnSiteId(state, playerId))
 }
+
+export function playersAt(state: HydratedOathGameState, siteId: string): string[] {
+    return state.players.filter((p) => p.siteId === siteId).map((p) => p.playerId)
+}

@@ -2,22 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 import { PowerQuestionKind } from '../model/question.js'
-import { reasonNoCampaignAgainst } from './campaign.js'
-import { reasonPersistentForbidsCampaign } from './persistent.js'
 import { currentQuestion, resumeStateAfterQuestions } from './questions.js'
-
-/** R-5.5.1, R-5.5.2 — Sneak Attack gives the opportunity, not an exemption. */
-export function reasonCannotSneakAttack(
-    state: HydratedOathGameState,
-    holderPlayerId: string,
-    defenderPlayerId: string
-): string | undefined {
-    if (state.campaign) return 'a Campaign is already under way'
-    return (
-        reasonPersistentForbidsCampaign(state, holderPlayerId) ??
-        reasonNoCampaignAgainst(state, holderPlayerId, defenderPlayerId)
-    )
-}
 
 export function sneakAttackOfferedTo(state: HydratedOathGameState, playerId: string) {
     const question = currentQuestion(state)

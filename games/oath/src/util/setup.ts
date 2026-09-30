@@ -1,18 +1,22 @@
 import { assertExists, shuffle, type RandomFunction } from '@tabletop/common'
-import { HydratedOathGameState, discardRegionFor, type RelicSlot } from './gameState.js'
-import type { HydratedOathPlayerState } from './playerState.js'
+import { HydratedOathGameState, type RelicSlot } from '../model/gameState.js'
+import type { HydratedOathPlayerState } from '../model/playerState.js'
 import {
     Banner,
     CardKind,
     OathType,
-    PlayerStatus,
     Region,
     SetupVariant,
     TOTAL_FAVOR
-} from './oathEnums.js'
+} from '../model/oathEnums.js'
 import { TOTAL_VISIONS } from '../data/worldDeck.js'
-import { createOathVault, drawFromBottomOfWorldDeck, drawRelics, type OathVault } from './vault.js'
-import { allMapSlots, TOP_CRADLE_SLOT } from '../data/mapSlots.js'
+import {
+    createOathVault,
+    drawFromBottomOfWorldDeck,
+    drawRelics,
+    type OathVault
+} from '../model/vault.js'
+import { allMapSlots } from '../data/mapSlots.js'
 import { ALL_SITE_IDS } from '../data/sites.js'
 import { GRAND_SCEPTER_ID, RELIC_DECK_IDS, RELIQUARY_SIZE } from '../data/relics.js'
 import {
@@ -26,11 +30,9 @@ import { siteRevealPrompt } from '../data/cardRegistry.js'
 import { bySuit } from '../data/typedData.js'
 import { PLAYTEST_DECK, PLAYTEST_SITES } from '../data/playtestDeck.js'
 import { visionsDrawnAfter } from '../data/visionsDrawnTrack.js'
-import { discardCards } from '../util/discard.js'
-import { MAX_SUPPLY } from '../util/rest.js'
-import { addWarbandsToSite, gainWarbandsToBoard, takeWarbandsFromBank } from '../util/force.js'
-import { IMPERIAL_WARBANDS } from './warbandCounts.js'
-import type { SetupChoice, SetupChoiceMetadata } from '../actions/setupChoice.js'
+import { MAX_SUPPLY } from './rest.js'
+import { addWarbandsToSite, gainWarbandsToBoard, takeWarbandsFromBank } from './force.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 /** R-1.6 — 3 favor per bank, or 4 each at five or six players. */
 export function favorPerBank(playerCount: number): number {
@@ -251,37 +253,6 @@ export function placeSetupSiteTokens(state: HydratedOathGameState): void {
         .map(({ siteCardId, prompt }) => ({ siteCardId, wanted: prompt.favor }))
 }
 
-/** R-1.16 — only the Chancellor splits, all the bank holds, no site above what it prints. */
-function reasonSiteFavorInvalid(
-    state: HydratedOathGameState,
-    status: PlayerStatus,
-    split: SetupChoiceInput['siteFavor']
-): string | undefined {
-    const pending = state.pendingSiteFavor
-    const chancellor = status === PlayerStatus.Chancellor
-    if (!pending || !chancellor) {
-        return split
-            ? "only the Chancellor splits the sites' favor, and only when it runs short"
-            : undefined
-    }
-    if (!split) return 'the favor runs short: the Chancellor chooses how to place it on the sites'
-    for (const { siteCardId, favor } of split) {
-        const site = pending.find((p) => p.siteCardId === siteCardId)
-        if (!site) return `${siteCardId} is not a site waiting for favor`
-        if (favor < 0 || favor > site.wanted) {
-            return `${siteCardId} takes between 0 and ${site.wanted} favor`
-        }
-    }
-    if (new Set(split.map((s) => s.siteCardId)).size !== split.length) {
-        return 'each site is named once'
-    }
-    const placed = split.reduce((n, s) => n + s.favor, 0)
-    if (placed !== state.favorSupply) {
-        return `all ${state.favorSupply} favor left in the bank is placed, not ${placed}`
-    }
-    return undefined
-}
-
 /** R-2.8.2, R-9.4 — the identity is dealt by `buildSetupVault`. */
 export function placeSiteRevealRelicSlots(state: HydratedOathGameState): void {
     for (const slotId of state.faceupSiteIds()) {
@@ -310,7 +281,7 @@ export function placeRevealTokensForSite(state: HydratedOathGameState, slotId: s
 }
 
 /** R-9.3 — take as many as possible. */
-function takeFavorFromSupply(state: HydratedOathGameState, amount: number): number {
+export function takeFavorFromSupply(state: HydratedOathGameState, amount: number): number {
     const taken = Math.max(0, Math.min(amount, state.favorSupply))
     state.favorSupply -= taken
     return taken
@@ -476,12 +447,6 @@ export function applySetupDeal(state: HydratedOathGameState, result: SetupDealRe
     state.worldDeckExhausted = result.worldDeckExhausted
 }
 
-/** R-1.23.1–R-1.23.3, taken as explicit action input per R-X.1. */
-export type SetupChoiceInput = Pick<
-    SetupChoice,
-    'siteId' | 'adviserCardId' | 'discardOrder' | 'siteFavor'
->
-
 /** R-1.23 — "starting with the Chancellor, each player in turn order"; undefined once done. */
 export function nextSetupPlayerId(state: HydratedOathGameState): string | undefined {
     for (const playerId of state.turnManager.turnOrder) {
@@ -496,75 +461,4 @@ export function nextSetupPlayerId(state: HydratedOathGameState): string | undefi
 
 export function isSetupComplete(state: HydratedOathGameState): boolean {
     return state.players.every((p) => p.handCount === 0 && p.siteId !== undefined)
-}
-
-export function reasonCannotSetupChoice(
-    state: HydratedOathGameState,
-    playerId: string,
-    choice: SetupChoiceInput
-): string | undefined {
-    const player = state.getPlayerState(playerId)
-    if (player.siteId !== undefined) return 'player has already resolved setup'
-    if (nextSetupPlayerId(state) !== playerId) {
-        return `R-1.23 resolves in turn order; ${nextSetupPlayerId(state)} is next`
-    }
-
-    // R-1.23.1
-    if (!state.allSiteIds().includes(choice.siteId)) {
-        return `${choice.siteId} is not a site on the map`
-    }
-    if (!state.isSiteFaceup(choice.siteId)) {
-        return `${choice.siteId} is facedown; R-1.23.1 places a pawn on a faceup site`
-    }
-    if (player.status === PlayerStatus.Chancellor && choice.siteId !== TOP_CRADLE_SLOT) {
-        return 'R-1.23.1 puts the Chancellor on the top Cradle site'
-    }
-
-    // R-1.23.2, R-1.23.3, R-9.5
-    const kept = [choice.adviserCardId, ...choice.discardOrder]
-    const hand = [...player.knownHand()].sort()
-    if (kept.length !== hand.length || [...kept].sort().join() !== hand.join()) {
-        return `R-1.23.2 and R-1.23.3 must name exactly the ${hand.length} cards drawn`
-    }
-    if (choice.discardOrder.includes(choice.adviserCardId)) {
-        return 'a card cannot be both the adviser and discarded'
-    }
-    const siteFavorReason = reasonSiteFavorInvalid(state, player.status, choice.siteFavor)
-    if (siteFavorReason) return siteFavorReason
-    return undefined
-}
-
-/** R-1.23.1 to R-1.23.3 in order: R-10.5 discards from where the pawn now stands. */
-export function applySetupChoice(
-    state: HydratedOathGameState,
-    playerId: string,
-    choice: SetupChoiceInput
-): SetupChoiceMetadata {
-    const reason = reasonCannotSetupChoice(state, playerId, choice)
-    if (reason) {
-        throw Error(`Cannot resolve setup for ${playerId}: ${reason}`)
-    }
-    const player = state.getPlayerState(playerId)
-
-    // R-1.16
-    for (const { siteCardId, favor } of choice.siteFavor ?? []) {
-        state.addTokensOn(siteCardId, { favor: takeFavorFromSupply(state, favor), secrets: 0 })
-    }
-    if (choice.siteFavor) state.pendingSiteFavor = undefined
-
-    // R-1.23.1
-    player.siteId = choice.siteId
-
-    // R-1.23.2
-    player.addAdviser(choice.adviserCardId, false)
-
-    // R-1.23.3
-    const region = state.regionOf(choice.siteId)
-    player.setHand([])
-    discardCards(state, playerId, choice.discardOrder, region)
-
-    return {
-        discardPileRegion: discardRegionFor(region),
-        discardedCardIds: [...choice.discardOrder]
-    }
 }

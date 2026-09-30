@@ -15,6 +15,7 @@ import {
     persistentPawnDefenseBonus,
     persistentRelicDefenseBonus,
     reasonPersistentForbidsBannerTake,
+    reasonPersistentForbidsCampaign,
     reasonPersistentForbidsRelicTake,
     reasonPersistentForbidsTargets
 } from './persistent.js'
@@ -103,6 +104,19 @@ export function reasonNoCampaignAgainst(
     return found
         ? undefined
         : `no targets can be declared against ${defenderPlayerId ?? 'the bandits'}`
+}
+
+/** R-5.5.1, R-5.5.2 — Sneak Attack gives the opportunity, not an exemption. */
+export function reasonCannotSneakAttack(
+    state: HydratedOathGameState,
+    holderPlayerId: string,
+    defenderPlayerId: string
+): string | undefined {
+    if (state.campaign) return 'a Campaign is already under way'
+    return (
+        reasonPersistentForbidsCampaign(state, holderPlayerId) ??
+        reasonNoCampaignAgainst(state, holderPlayerId, defenderPlayerId)
+    )
 }
 
 function targetableBy(state: HydratedOathGameState, parties: CampaignParties): CampaignTarget[] {

@@ -7,7 +7,7 @@ import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/sea
 import { MachineState } from '../definition/states.js'
 import { ActPhaseStateHandler } from '../stateHandlers/actPhase.js'
 import { Banner, CardKind, PlayerStatus, Region } from '../model/oathEnums.js'
-import { reliquarySlotId } from '../model/setup.js'
+import { reliquarySlotId } from '../util/setup.js'
 import { createOathVault, type OathVault } from '../model/vault.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { type PowerChoice } from '../util/powerChoice.js'

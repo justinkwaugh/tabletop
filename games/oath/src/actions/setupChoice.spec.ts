@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { testPlayer, testState } from '../testing/fixture.js'
-import { HydratedSetupChoice, SetupChoice } from './setupChoice.js'
-import { PlayerStatus, Region } from '../model/oathEnums.js'
-import { HydratedOathGameState } from '../model/gameState.js'
 import {
     applySetupChoice,
-    isSetupComplete,
-    nextSetupPlayerId,
-    reasonCannotSetupChoice
-} from '../model/setup.js'
+    HydratedSetupChoice,
+    reasonCannotSetupChoice,
+    SetupChoice
+} from './setupChoice.js'
+import { PlayerStatus, Region } from '../model/oathEnums.js'
+import { HydratedOathGameState } from '../model/gameState.js'
+import { isSetupComplete, nextSetupPlayerId } from '../util/setup.js'
 import { TOP_CRADLE_SLOT, allMapSlots } from '../data/mapSlots.js'
 import { buildAction } from '../testing/actions.js'
 

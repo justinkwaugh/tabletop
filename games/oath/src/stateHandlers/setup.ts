@@ -3,7 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSetupChoice, isSetupChoice } from '../actions/setupChoice.js'
-import { isSetupComplete, nextSetupPlayerId } from '../model/setup.js'
+import { isSetupComplete, nextSetupPlayerId } from '../util/setup.js'
 
 // R-1.23.1 to R-1.23.3 — progress is read off the board.
 export class SetupStateHandler implements MachineStateHandler<

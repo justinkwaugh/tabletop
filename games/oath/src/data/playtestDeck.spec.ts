@@ -7,7 +7,7 @@ import {
     DENIZENS_PER_SUIT_IN_PLAY,
     reasonCuratedDeckInvalid
 } from './worldDeck.js'
-import { buildInitialPublicState, buildSetupVault } from '../model/setup.js'
+import { buildInitialPublicState, buildSetupVault } from '../util/setup.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { OathType, SetupVariant } from '../model/oathEnums.js'
 import { Color, getPrng } from '@tabletop/common'

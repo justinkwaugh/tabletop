@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { PowerChoice } from '../util/powerChoice.js'
+import { PowerChoice } from './powerChoice.js'
 
 export type PowerUse = Type.Static<typeof PowerUse>
 export const PowerUse = Type.Object({

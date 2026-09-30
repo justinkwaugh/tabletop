@@ -1,5 +1,5 @@
 import { servedJson } from '../testing/projection.js'
-import { buildSetupVault } from '../model/setup.js'
+import { buildSetupVault } from '../util/setup.js'
 import { getPrng } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { buildAction } from '../testing/actions.js'

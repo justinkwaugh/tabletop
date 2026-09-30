@@ -9,7 +9,8 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedAnswerQuestion, isAnswerQuestion } from '../actions/answerQuestion.js'
 import { HydratedCampaign, isCampaign } from '../actions/campaign.js'
-import { currentQuestion, settleQueue } from '../util/questions.js'
+import { currentQuestion } from '../util/questions.js'
+import { settleQueue } from '../util/questionAnswers.js'
 import { sneakAttackOfferedTo } from '../util/sneakAttack.js'
 import {
     isPlayerActionOfType,

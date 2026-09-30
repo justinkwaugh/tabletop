@@ -15,7 +15,7 @@ import { exchangeAllowanceOf, PowerChoiceKind, type PowerChoice } from '../util/
 import { choiceSpecsFor } from './registry.js'
 import { cardPowers, PowerTiming, TRIBUNAL_ID, powerIndexOf } from '../data/cardPowers.js'
 import { afterCampaignPersistent } from '../util/persistent.js'
-import { settleQueue } from '../util/questions.js'
+import { settleQueue } from '../util/questionAnswers.js'
 import { DEED_WRITER_ALLOWS, TINKERS_FAIR_ALLOWS } from '../util/exchange.js'
 import { warbandsAt } from '../util/rule.js'
 import '../powers/index.js'

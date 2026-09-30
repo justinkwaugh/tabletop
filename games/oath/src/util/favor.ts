@@ -9,6 +9,10 @@ export function favorHomeBankOf(state: HydratedOathGameState, playerId: string):
         ?.keepsFavorInBank
 }
 
+export function banksWithFavor(state: HydratedOathGameState): Suit[] {
+    return Object.values(Suit).filter((suit) => state.favorBank[suit] > 0)
+}
+
 /** R-7.1.2 */
 export function usableFavor(state: HydratedOathGameState, playerId: string): number {
     const player = state.getPlayerState(playerId)

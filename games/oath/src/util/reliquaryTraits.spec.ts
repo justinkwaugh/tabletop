@@ -9,7 +9,7 @@ import { CampaignSacrifice, HydratedCampaignSacrifice } from '../actions/campaig
 import { ActionType } from '../definition/actions.js'
 import { PlayerStatus, Suit } from '../model/oathEnums.js'
 import { CampaignTargetKind } from '../model/campaign.js'
-import { reliquarySlotId } from '../model/setup.js'
+import { reliquarySlotId } from './setup.js'
 import { RELIQUARY_MODIFIERS } from '../data/reliquary.js'
 import { forceTotal } from './force.js'
 import { mandatoryModifiers } from './modifiers.js'

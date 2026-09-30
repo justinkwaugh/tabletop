@@ -8,7 +8,7 @@ import { NO_COST, PowerTiming, type CardPower } from '../data/cardPowers.js'
 import { RELIQUARY_MODIFIERS, type ReliquaryModifier } from '../data/reliquary.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { RELIQUARY_SPACES, reliquarySlot } from './imperial.js'
-import { reliquarySlotId } from '../model/setup.js'
+import { reliquarySlotId } from './setup.js'
 import type { EffectContext, ModifierHooks } from '../powers/registry.js'
 import type { ActiveModifier } from './modifiers.js'
 

@@ -8,12 +8,8 @@ import { PowerQuestionKind, QuestionAnswer } from '../model/question.js'
 import { Region } from '../model/oathEnums.js'
 import { RelicToDeckBottom } from '../model/powerOutcome.js'
 import { PileDeposit } from '../model/hidden.js'
-import {
-    applyAnswer,
-    currentQuestion,
-    reasonCannotAnswer,
-    resumeStateAfterQuestions
-} from '../util/questions.js'
+import { currentQuestion, resumeStateAfterQuestions } from '../util/questions.js'
+import { applyAnswer, reasonCannotAnswer } from '../util/questionAnswers.js'
 import { commitHiddenOutputs } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
 

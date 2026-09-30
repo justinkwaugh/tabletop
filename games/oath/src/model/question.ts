@@ -408,6 +408,10 @@ export const QuestionAnswer = Type.Union([
     })
 ])
 
+export type QuestionOf<K extends PowerQuestionKind> = Extract<PowerQuestion, { kind: K }>
+export type AnswerOf<K extends PowerQuestionKind> = Extract<QuestionAnswer, { kind: K }>
+export type Answered<K extends PowerQuestionKind> = { question: QuestionOf<K>; answer: AnswerOf<K> }
+
 /** Present only while a question is unanswered. */
 export type PendingQuestions = Type.Static<typeof PendingQuestions>
 export const PendingQuestions = Type.Object({

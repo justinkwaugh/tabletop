@@ -10,7 +10,7 @@ import {
     Region,
     Suit,
     TOTAL_FAVOR
-} from './oathEnums.js'
+} from '../model/oathEnums.js'
 import {
     buildSetupVault,
     CHANCELLOR_BOARD_WARBANDS,
@@ -29,7 +29,7 @@ import { RELIQUARY_SIZE, GRAND_SCEPTER_ID } from '../data/relics.js'
 import { TOP_CRADLE_SLOT, TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
 import { expectFullFavorComplement, favorCensus } from '../testing/census.js'
 import { expectOneWarbandOwnerPerSite, warbandCensus } from '../testing/census.js'
-import { MAX_SUPPLY } from '../util/rest.js'
+import { MAX_SUPPLY } from './rest.js'
 import { CARDS_IN_PLAY } from '../data/worldDeck.js'
 import { SetupVariant } from '../model/oathEnums.js'
 import { registerCards, siteRevealPrompt } from '../data/cardRegistry.js'

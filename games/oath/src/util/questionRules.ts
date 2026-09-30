@@ -19,7 +19,7 @@ import {
 import { discardCards, isInPlay } from './discard.js'
 import { discardFromPlayInChosenOrder } from './orderedDiscard.js'
 import { rulesCard } from './access.js'
-import { reasonPersistentForbidsRelicTake, reasonPersistentForbidsTravel } from './persistent.js'
+import { reasonPersistentForbidsTravel } from './persistent.js'
 import { applyAttackRoll, applyDefenseRoll } from './campaignRoll.js'
 import { rollAttackDice, rollDefenseDice } from '../data/dice.js'
 import {
@@ -29,16 +29,14 @@ import {
     releaseRelic,
     clearReliquarySlot
 } from './relics.js'
-import { reliquarySlot } from './imperial.js'
-import { askQuestion, banksWithFavor, playersAt } from './questions.js'
-import type { QuestionRules } from './questions.js'
+import { askQuestion } from './questions.js'
+import type { QuestionRules } from './questionAnswers.js'
 import {
     GATHERING_ALLOWS,
     applyExchange,
     reasonExchangeInvalid,
     reasonTermsOutsideCard
 } from './exchange.js'
-import { reasonCannotSneakAttack } from './sneakAttack.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
 import { reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
@@ -93,11 +91,6 @@ function powerForQuestion(state: HydratedOathGameState, question: PowerUseKey): 
 
 export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     [PowerQuestionKind.BurnFavorForSecrets]: {
-        forcedOutcome: (state, question) => {
-            return usableFavor(state, question.askedPlayerId) <= 0
-                ? `${question.askedPlayerId} has no favor to burn`
-                : undefined
-        },
         reasonCannotAnswer: (state, playerId, matched) => {
             const favor = matched.answer.favor
             if (!Number.isInteger(favor) || favor < 0)
@@ -116,16 +109,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.PayOrLoseRelic]: {
-        forcedOutcome: (state, question, asked) => {
-            if (!asked.relicIds.includes(question.relicCardId)) {
-                return `${question.askedPlayerId} no longer holds ${question.relicCardId}`
-            }
-            if (usableFavor(state, question.askedPlayerId) >= question.price) return undefined
-            const notes = takeRelicsFrom(state, question.askedPlayerId, question.takerPlayerId, [
-                question.relicCardId
-            ])
-            return `${question.askedPlayerId} could not pay ${question.price} favor, so ${question.takerPlayerId} took ${question.relicCardId}${takeNotes(notes)}`
-        },
         reasonCannotAnswer: (state, playerId, matched) => {
             const usable = usableFavor(state, playerId)
             if (matched.answer.pay && usable < matched.question.price) {
@@ -144,18 +127,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.PickFavorBank]: {
-        forcedOutcome: (state, question) => {
-            const banks = banksWithFavor(state)
-            if (banks.length > 1) return undefined
-            if (banks.length === 0) return 'no favor bank has any favor to gain'
-            const gained = gainFavorFromBank(
-                state,
-                question.askedPlayerId,
-                banks[0],
-                question.amount
-            )
-            return `${question.askedPlayerId} gained ${gained} favor from the ${banks[0]} bank, the only one with favor`
-        },
         reasonCannotAnswer: (state, _playerId, matched) => {
             const suit = matched.answer.suit
             if (state.favorBank[suit] <= 0) return `the ${suit} bank has no favor`
@@ -168,16 +139,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.Exchange]: {
-        forcedOutcome: (state, question) => {
-            return reasonExchangeInvalid(
-                state,
-                question.proposerPlayerId,
-                question.askedPlayerId,
-                question.terms
-            )
-                ? `the proposed exchange can no longer be honoured: ${reasonExchangeInvalid(state, question.proposerPlayerId, question.askedPlayerId, question.terms)}`
-                : undefined
-        },
         reasonCannotAnswer: (state, _playerId, matched) => {
             if (!matched.answer.accept) return undefined
             const { proposerPlayerId, askedPlayerId, terms } = matched.question
@@ -191,11 +152,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.JoinSite]: {
-        forcedOutcome: (_state, question, asked) => {
-            return asked.siteId === question.siteId
-                ? `${question.askedPlayerId} is already there`
-                : undefined
-        },
         reasonCannotAnswer: () => undefined,
         apply: (_state, _playerId, matched, asked) => {
             const { siteId } = matched.question
@@ -205,12 +161,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.GatheringFloor]: {
-        forcedOutcome: (state, question) => {
-            return playersAt(state, question.siteId).filter((id) => id !== question.askedPlayerId)
-                .length === 0
-                ? 'nobody else is here to negotiate with'
-                : undefined
-        },
         reasonCannotAnswer: (state, playerId, matched) => {
             const proposal = matched.answer.proposal
             if (!proposal) return undefined
@@ -242,7 +192,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.KeepOrBottomRelic]: {
-        forcedOutcome: () => undefined,
         reasonCannotAnswer: () => undefined,
         apply: (state, _playerId, matched, asked) => {
             const { relicCardId } = matched.question
@@ -256,7 +205,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.BottomRelic]: {
-        forcedOutcome: () => undefined,
         reasonCannotAnswer: (state, playerId, matched) => {
             const held = matched.answer.heldRelicCardId
             if (held === undefined || heldRelicsToBottom(state, playerId).includes(held)) {
@@ -286,11 +234,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.TakeOrLeaveRelic]: {
-        forcedOutcome: (state, question) => {
-            return reliquarySlot(state, question.slotId) !== undefined
-                ? undefined
-                : 'the Reliquary space is no longer occupied'
-        },
         reasonCannotAnswer: () => undefined,
         apply: (state, _playerId, matched, asked) => {
             const { relicCardId, slotId } = matched.question
@@ -304,11 +247,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.PlayOrDiscardConspiracy]: {
-        forcedOutcome: (state, question) => {
-            return state.getPlayerState(question.holderPlayerId).hasAdviser(CONSPIRACY_ID)
-                ? undefined
-                : 'the Conspiracy is no longer there'
-        },
         reasonCannotAnswer: (state, playerId, matched) => {
             if (!matched.answer.play) return undefined
             return reasonCannotPlayConspiracy(state, playerId, {
@@ -335,7 +273,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.ShroudedWoodDestination]: {
-        forcedOutcome: () => undefined,
         reasonCannotAnswer: (state, _playerId, matched) => {
             const { travelerPlayerId, fromSiteId } = matched.question
             return shroudedWoodDestinations(state, travelerPlayerId, fromSiteId).includes(
@@ -353,8 +290,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.TravelFreeTo]: {
-        forcedOutcome: (_state, question) =>
-            question.siteIds.length === 0 ? 'no site to travel to' : undefined,
         reasonCannotAnswer: (state, playerId, matched) => {
             const siteId = matched.answer.siteId
             if (!matched.question.siteIds.includes(siteId)) {
@@ -369,12 +304,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.RerollDice]: {
-        forcedOutcome: (state, question) => {
-            const power = cardPowers(question.cardId)[question.powerIndex]
-            assertExists(power, `${question.cardId} has a power at index ${question.powerIndex}`)
-            const cost = reasonCannotPayPowerCost(state, question.askedPlayerId, power)
-            return cost ? `${question.askedPlayerId} cannot use Jinx: ${cost}` : undefined
-        },
         reasonCannotAnswer: (state, playerId, matched) => {
             if (!matched.answer.reroll) return undefined
             return reasonCannotUsePowerToReroll(state, playerId, matched.question)
@@ -413,29 +342,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.RelicThiefRoll]: {
-        forcedOutcome: (state, question) => {
-            const still = question.relicCardIds.filter((id) =>
-                state.getPlayerState(question.takerPlayerId).relicIds.includes(id)
-            )
-            if (still.length === 0) return `${question.takerPlayerId} no longer holds the relics`
-            // Circlet of Command, Lost Tongue — "cannot target or take … in any way".
-            const forbidden = still
-                .map((id) =>
-                    reasonPersistentForbidsRelicTake(
-                        state,
-                        question.askedPlayerId,
-                        question.takerPlayerId,
-                        id
-                    )
-                )
-                .find((reason) => reason !== undefined)
-            if (forbidden) return `${question.askedPlayerId} cannot use Relic Thief: ${forbidden}`
-            const power = cardPowers(question.cardId)[question.powerIndex]
-            const cost = power
-                ? reasonCannotPayPowerCost(state, question.askedPlayerId, power)
-                : 'the power is not in play'
-            return cost ? `${question.askedPlayerId} cannot use Relic Thief: ${cost}` : undefined
-        },
         reasonCannotAnswer: (state, playerId, matched) => {
             if (!matched.answer.roll) return undefined
             return reasonCannotUsePowerToReroll(state, playerId, matched.question)
@@ -464,7 +370,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.PlayOrDiscardVision]: {
-        forcedOutcome: () => undefined,
         reasonCannotAnswer: (state, playerId, matched) => {
             return reasonCannotPlayCard(
                 state,
@@ -501,7 +406,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.DiscardInstead]: {
-        forcedOutcome: () => undefined,
         reasonCannotAnswer: (state, playerId, matched) => {
             const insteadCardId = matched.answer.insteadCardId
             if (insteadCardId === undefined) return undefined
@@ -534,14 +438,11 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.SneakAttack]: {
-        forcedOutcome: (state, question) =>
-            reasonCannotSneakAttack(state, question.askedPlayerId, question.defenderPlayerId),
         reasonCannotAnswer: () => undefined,
         apply: (_state, _playerId, matched) =>
             `passed on a Sneak Attack against ${matched.question.defenderPlayerId}`
     },
     [PowerQuestionKind.OrderDiscards]: {
-        forcedOutcome: () => undefined,
         reasonCannotAnswer: (_state, _playerId, matched) => {
             return isPermutationOf(matched.answer.order, matched.question.cardIds.length)
                 ? undefined
@@ -558,7 +459,6 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.OrderDrawnCards]: {
-        forcedOutcome: () => undefined,
         reasonCannotAnswer: (_state, _playerId, matched) => {
             return isPermutationOf(matched.answer.order, matched.question.cardIds.length)
                 ? undefined

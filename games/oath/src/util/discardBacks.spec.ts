@@ -3,7 +3,7 @@ import { Color, getPrng } from '@tabletop/common'
 import { CardKind, PlayerStatus, Region } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { discardCards } from '../util/discard.js'
-import { buildSetupVault, resolveSetupDeal, applySetupDeal } from '../model/setup.js'
+import { buildSetupVault, resolveSetupDeal, applySetupDeal } from './setup.js'
 import { drawFromDiscard } from '../model/vault.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
