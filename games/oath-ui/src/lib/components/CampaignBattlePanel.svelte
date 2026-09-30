@@ -323,7 +323,7 @@
                     title="Take the spoils and burn half the defeated player's favor, {spoils.burnAmount} of it"
                     onclick={() => spoils.takeSpoils(true)}
                 >
-                    <img class="h-5 w-5 burn" src={favorTokenImage()} alt="" />
+                    <img class="h-5 w-auto burn" src={favorTokenImage()} alt="" />
                     …and burn {spoils.burnAmount} favor
                 </button>
             {/if}
