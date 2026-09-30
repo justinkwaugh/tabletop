@@ -19,7 +19,7 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 SOURCE_SUFFIXES = {".svelte", ".ts", ".js", ".css", ".scss"}
 SCRIPT_SUFFIXES = {".svelte", ".ts", ".js"}
 IGNORED_PARTS = {"node_modules", ".svelte-kit", "build", "dist", "bundle", "esm"}
-TEST_PARTS = {"test", "tests", "__tests__", "__mocks__", "fixtures", "e2e"}
+TEST_PARTS = {"test", "tests", "testing", "__tests__", "__mocks__", "fixtures", "e2e"}
 TEST_NAME = re.compile(r"\.(?:spec|test|fixture)\.[^/]+$")
 HARNESS_CAST = "UiDefinition as unknown as GameUiDefinition<GameState, HydratedGameState>"
 CATALOGUE_PATH = "config/config-games/src/games.json"
@@ -323,8 +323,6 @@ def lockfile_change(merge_base: str, slug: str, repo: Path) -> dict[str, Any] | 
         after = lockfile_sections((repo / LOCKFILE_PATH).read_text(encoding="utf-8"))
     except (subprocess.CalledProcessError, OSError):
         return None
-    if before == after:
-        return None
     title_importers = {f"games/{slug}:", f"games/{slug}-ui:"}
     outside: list[str] = []
     added: list[str] = []
@@ -348,10 +346,11 @@ def lockfile_change(merge_base: str, slug: str, repo: Path) -> dict[str, Any] | 
         text=True,
     )
     return {
+        "changed": before != after,
         "added_package_entries": added,
         "changes_outside_title": outside,
         "frozen_lockfile_check": "passed" if frozen.returncode == 0 else frozen.stdout.strip()[-500:],
-        "exempt": not outside and frozen.returncode == 0,
+        "exempt": before != after and not outside and frozen.returncode == 0,
     }
 
 
