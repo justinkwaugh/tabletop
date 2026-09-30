@@ -21,6 +21,8 @@ import { actionPowerUse, facedown, modifierUse, player, battlePlanUse } from '..
 import { rulerTable } from '../testing/tables.js'
 import { playDrawnCard } from '../testing/steps.js'
 import { INN, TENTS, FILLER } from '../testing/cards.js'
+import { served, spectator } from '../testing/projection.js'
+import type { Visibility } from '@tabletop/common'
 
 const SECOND_WIND = 'denizen.discord.second-wind'
 const DREAM_THIEF = 'denizen.arcane.dream-thief'
@@ -96,6 +98,15 @@ describe('Dream Thief — two facedown advisers change boards', () => {
         // R-9.4 — each giver saw their card go, and now knows where it lies.
         expect(s.getPlayerState('other').advisers).toEqual([{ faceUp: false, shownTo: ['away'], shownCardId: WOLVES }])
         expect(s.getPlayerState('away').advisers).toEqual([{ faceUp: false, shownTo: ['other'], shownCardId: TENTS }])
+        // R-9.4 — each giver is served where their card went; the thief and a spectator neither card.
+        const rowsSeenBy = (perspective: Visibility.Perspective) => {
+            const view = served(s, perspective)
+            return ['other', 'away'].map((id) => view.players.find((p) => p.playerId === id)?.advisers)
+        }
+        expect(rowsSeenBy({ kind: 'player', playerId: 'away' })).toEqual([[{ faceUp: false, shownTo: ['away'], shownCardId: WOLVES }], [{ faceUp: false, shownTo: ['other'] }]])
+        expect(rowsSeenBy({ kind: 'player', playerId: 'other' })).toEqual([[{ faceUp: false, shownTo: ['away'] }], [{ faceUp: false, shownTo: ['other'], shownCardId: TENTS }]])
+        for (const perspective of [{ kind: 'player', playerId: 'ruler' } as const, spectator])
+            expect(rowsSeenBy(perspective)).toEqual([[{ faceUp: false, shownTo: ['away'] }], [{ faceUp: false, shownTo: ['other'] }]])
         expect(HydratedUseActionPower.reasonCannotUse(board([DREAM_THIEF]), 'ruler', DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), [facedown('other', 0), facedown('other', 0)])).toMatch(/chosen twice|two different/)
         expect(HydratedUseActionPower.reasonCannotUse(board([DREAM_THIEF], [INN]), 'ruler', DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), [facedown('ruler', 0), facedown('other', 0)])).toMatch(/not among the options/)
     })

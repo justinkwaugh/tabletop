@@ -19,6 +19,8 @@ import { answerQuestion } from '../testing/steps.js'
 import { region, slot, modifierUse, yes } from '../testing/choices.js'
 import { INN, FILLER } from '../testing/cards.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { served, servedJson, spectator } from '../testing/projection.js'
+import { OathRuntime } from '../definition/runtime.js'
 
 const FAE = 'denizen.beast.fae-merchant'
 const BREAKER = 'denizen.hearth.relic-breaker'
@@ -221,6 +223,12 @@ describe('discard piles', () => {
         expect(a.metadata?.opensSearch).toBe(true)
         expect(new ActPhaseStateHandler().onAction(a, machineContext(s))).toBe(MachineState.Searching)
         expect(s.getPlayerState('ruler').secrets).toBe(2)
+        // R-9.4 — the Vision drawn reaches its drawer alone, in state and in the record.
+        expect(served(s, { kind: 'player', playerId: 'ruler' }).players[0].handIds).toEqual(['vision.supremacy'])
+        for (const perspective of [{ kind: 'player', playerId: 'chancellor' } as const, spectator]) {
+            expect(servedJson(s, perspective)).not.toContain('vision.supremacy')
+            expect(JSON.stringify(OathRuntime.visibility.actions.project(a.dehydrate(), perspective))).not.toContain('vision.supremacy')
+        }
         serverResolve(s, vault, { keptCardId: 'vision.supremacy', discardOrder: [], play: SearchPlay.RevealedVision })
         expect(s.getPlayerState('ruler').revealedVisionId).toBe('vision.supremacy')
     })

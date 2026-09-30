@@ -35,6 +35,7 @@ import { ongoingCampaign, required } from '../testing/required.js'
 import { card, facedown, player, site, slot, actionPowerUse, battlePlanUse, modifierUse } from '../testing/choices.js'
 import { INN, FILLER } from '../testing/cards.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { served, spectator } from '../testing/projection.js'
 
 /** R-7.1.1-H1 — a held relic grants access the way an adviser does. */
 
@@ -226,8 +227,15 @@ describe('the peeking and taking relics', () => {
         const s = relicBoard([EYE], {}, { relicsBySite: { c2: [{ slotId: 'c2-r1' }] } })
         expect(HydratedUseActionPower.reasonCannotUse(s, 'me', EYE, powerIndexOf(EYE, PowerTiming.Action), [])).toMatch(/exactly one/)
         expect(HydratedUseActionPower.reasonCannotUse(s, 'me', EYE, powerIndexOf(EYE, PowerTiming.Action), [facedown('foe', 0), slot('c2-r1')])).toMatch(/exactly one/)
-        expect(use(s, EYE, [facedown('foe', 0)]).metadata?.peeked).toEqual([TENTS])
+        const eye = use(s, EYE, [facedown('foe', 0)])
+        expect(eye.metadata?.peeked).toEqual([TENTS])
         expect(s.getPlayerState('foe').advisers).toEqual([{ faceUp: false, shownTo: ['me'], shownCardId: TENTS }])
+        // R-9.4 — the peeker alone is served the card, in state and in the record.
+        expect(served(s, { kind: 'player', playerId: 'me' }).players[1].advisers).toEqual([{ faceUp: false, shownTo: ['me'], shownCardId: TENTS }])
+        for (const perspective of [{ kind: 'player', playerId: 'far' } as const, spectator]) {
+            expect(served(s, perspective).players[1].advisers).toEqual([{ faceUp: false, shownTo: ['me'] }])
+            expect(JSON.stringify(OathRuntime.visibility.actions.project(eye.dehydrate(), perspective))).not.toContain(TENTS)
+        }
         const t = relicBoard([EYE], {}, { relicsBySite: { c2: [{ slotId: 'c2-r1' }] } })
         use(t, EYE, [slot('c2-r1')], (vault) => { vault.relicFacedown['c2-r1'] = 'relic.cup' })
         expect(t.relicSlotsAt('c2')[0]).toEqual({ slotId: 'c2-r1' })
@@ -288,7 +296,6 @@ describe('the Search relics', () => {
 
 describe('Truthful Harp — "you must reveal every card you draw and the card you keep"', () => {
     const harp = [modifierUse(HARP)]
-    const spectator = { kind: 'spectator' } as const
 
     it('the draw and the kept card are public on the records, and the keep cannot be undone', () => {
         const s = relicBoard([HARP])
