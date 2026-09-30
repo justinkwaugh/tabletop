@@ -7,7 +7,7 @@ readonly AUTHORIZED_KEYS_FILE="${HOME}/.ssh/authorized_keys.tabletop-devcontaine
 readonly SSHD_STATE_DIR="/var/lib/tabletop-sshd"
 readonly SSHD_HOST_KEY="${SSHD_STATE_DIR}/ssh_host_ed25519_key"
 readonly SSHD_CONFIG_DROP_IN="/etc/ssh/sshd_config.d/99-tabletop-devcontainer.conf"
-readonly SSH_SESSION_PATH="/home/node/.codex/bin:/home/node/.local/bin:/usr/local/share/npm-global/bin:/usr/local/share/nvm/current/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games"
+readonly SSH_SESSION_PATH="/home/node/.codex/bin:/home/node/.cargo/bin:/home/node/.local/bin:/opt/pnpm:/usr/local/share/npm-global/bin:/usr/local/share/nvm/current/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games"
 
 sudo service ssh stop
 
