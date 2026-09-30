@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Button } from 'flowbite-svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { MachineState, endDieIsRolled } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -29,6 +30,17 @@
     let undoable = $derived(gameSession.isViewingHistory ? undefined : gameSession.undoableAction)
     let steppingBack = $derived(!gameSession.isViewingHistory && gameSession.hasManualDraft)
     let busy = $derived(gameSession.busy)
+
+    let undoTooltip = $derived.by(() => {
+        if (steppingBack) return 'Steps back through your picks not yet sent, as Back does.'
+        if (!undoable) return undefined
+        const description = describeAction(
+            undoable,
+            gameSession.historyNames,
+            gameSession.myPlayer?.id
+        )
+        return `Reverses for everyone: ${description}. Not the same as Back.`
+    })
 
     function undo() {
         if (!undoable && !steppingBack) return
@@ -72,33 +84,15 @@
                 >end die live</span
             >
         {/if}
-        {#if steppingBack}
-            <button
-                class="ml-auto shrink-0 rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40
-                       px-2 py-0.5 text-xs font-semibold"
+        {#if undoTooltip}
+            <Button
+                color="light"
+                size="sm"
+                class="ml-auto shrink-0 font-semibold"
                 disabled={busy}
-                title="Steps back through the picks not yet sent, as Back does."
-                onclick={undo}
+                title={undoTooltip}
+                onclick={undo}>Undo</Button
             >
-                Undo — <span class="font-normal">your last pick</span>
-            </button>
-        {:else if undoable}
-            <button
-                class="ml-auto shrink-0 max-w-[22rem] truncate rounded bg-stone-700
-                       hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5
-                       text-xs font-semibold"
-                disabled={busy}
-                title="Reverses the last action for everyone (R-X.3). Not the same as Back."
-                onclick={undo}
-            >
-                Undo — <span class="font-normal"
-                    >{describeAction(
-                        undoable,
-                        gameSession.historyNames,
-                        gameSession.myPlayer?.id
-                    )}</span
-                >
-            </button>
         {/if}
     </div>
 </div>

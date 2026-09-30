@@ -219,6 +219,22 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
     await expect(dimmedSites(page)).toHaveCount(0)
 })
 
+test('Undo reads "Undo"; its tooltip names the action it reverses, or the picks it steps back through', async ({
+    page
+}) => {
+    await openTable(page, 'actPhase')
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    await expect(undo).toHaveCount(0)
+
+    await call(page, 'seatTravels', 'slot.cradle.1')
+    await expect(undo).toBeVisible()
+    await expect(undo).toHaveAttribute('title', /travelled to/)
+
+    await tile(page, 'Travel').click()
+    await expect(undo).toHaveText('Undo')
+    await expect(undo).toHaveAttribute('title', /picks not yet sent/)
+})
+
 /** Scenario 30: a warband move that needs the Chancellor's permission (R-6.5.a). */
 test.describe('scenario 30: answering another player’s request', () => {
     test('the asked player sees who asks for what; nothing moves until Allow, which moves it', async ({
@@ -325,7 +341,7 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
         await expect(kill).toBeEnabled()
         await expect(grid(page)).not.toContainText('must kill exactly')
 
-        await page.getByRole('button', { name: /Undo — your last pick/ }).click()
+        await page.getByRole('button', { name: 'Undo', exact: true }).click()
         await expect(grid(page)).toContainText('Chosen 0 of 2')
         await expect(kill).toBeDisabled()
         expect((await call(page, 'defeatPicks')).picked).toEqual([0, 0])
