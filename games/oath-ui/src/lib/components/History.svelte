@@ -19,7 +19,7 @@
 </script>
 
 <div
-    class="rounded-lg border border-[#ad9c80] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
+    class="history rounded-lg border border-[#ad9c80] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
 >
     <div class="overflow-auto h-full w-full">
         <Timeline class="ms-2 dark:border-[#ad9c80]">
@@ -77,7 +77,7 @@
 
 <!-- flowbite-svelte's TimelineItem renders an extra marker div; hidden here. -->
 <style>
-    :global(.timeline-item > div) {
+    .history :global(.timeline-item > div) {
         display: none;
     }
 </style>

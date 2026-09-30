@@ -118,7 +118,7 @@
     }
 
     /* A held card must not raise the phone's image menu. */
-    :global(.oath-table img) {
+    .oath-table :global(img) {
         -webkit-touch-callout: none;
         -webkit-user-select: none;
         user-select: none;
