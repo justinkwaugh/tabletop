@@ -132,6 +132,11 @@ export const OathProjectedState = Visibility.createProjectionSchema(OathGameStat
 export type OathProjectedState = Type.Static<typeof OathProjectedState>
 const OathProjectedStateValidator = Compile(OathProjectedState)
 
+/** A pending question as a projection carries it: fields protected from the viewer are absent. */
+export type ProjectedPowerQuestion = NonNullable<
+    OathProjectedState['pendingQuestions']
+>['queue'][number]
+
 export class HydratedOathGameState
     extends HydratableGameState<typeof OathProjectedState, HydratedOathPlayerState>
     implements OathProjectedState
@@ -178,8 +183,8 @@ export class HydratedOathGameState
     declare campaign?: CampaignState
     declare pendingCampaign?: PendingCampaign
     declare pendingConsent?: PendingConsent
-    declare pendingQuestions?: PendingQuestions
-    declare heldTurn?: PendingQuestions
+    declare pendingQuestions?: OathProjectedState['pendingQuestions']
+    declare heldTurn?: OathProjectedState['heldTurn']
     declare siteCapacityOverrides: Record<string, number>
     declare chancellorPlayerId?: string
     declare vault?: OathProjectedState['vault']

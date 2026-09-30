@@ -13,7 +13,9 @@ import {
     usableFavor,
     type ConspiracyPlay,
     type ExchangeTerms,
+    PowerQuestionValidator,
     type PowerQuestion,
+    type ProjectedPowerQuestion,
     type QuestionAnswer
 } from '@tabletop/oath'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
@@ -64,14 +66,21 @@ export class QuestionDraft implements PanelDraft {
         return playerId !== undefined && question?.askedPlayerId === playerId ? playerId : undefined
     }
 
-    /** The open question, while it is put to this seat. */
+    /** The open question, while it is put to this seat, which sees every field of it. */
     get question(): PowerQuestion | undefined {
-        return this.playerId ? currentQuestion(this.session.gameState) : undefined
+        const question = this.playerId ? currentQuestion(this.session.gameState) : undefined
+        return question && PowerQuestionValidator.Check(question) ? question : undefined
     }
 
-    /** The open question, whoever it is put to. */
-    get open(): PowerQuestion | undefined {
+    /** The open question, whoever it is put to; fields protected from this seat are absent. */
+    get open(): ProjectedPowerQuestion | undefined {
         return currentQuestion(this.session.gameState)
+    }
+
+    /** The open question when it is put to this seat, which sees every field of it. */
+    get mine(): PowerQuestion | undefined {
+        const question = this.isMine ? this.open : undefined
+        return question && PowerQuestionValidator.Check(question) ? question : undefined
     }
 
     get isMine(): boolean {
@@ -200,8 +209,8 @@ export class QuestionDraft implements PanelDraft {
     }
 
     get acceptBlockedBecause(): string | undefined {
-        const question = this.open
-        assertExists(question, 'A question is answered only while one is open')
+        const question = this.mine
+        assertExists(question, 'A question is answered only by the seat it is put to')
         switch (question.kind) {
             case PowerQuestionKind.SneakAttack:
                 return this.session.validActionTypes.includes(ActionType.Campaign)
@@ -225,15 +234,15 @@ export class QuestionDraft implements PanelDraft {
     }
 
     async accept(): Promise<void> {
-        const question = this.open
-        assertExists(question, 'A question is answered only while one is open')
+        const question = this.mine
+        assertExists(question, 'A question is answered only by the seat it is put to')
         if (question.kind === PowerQuestionKind.SneakAttack) this.session.startSneakAttack()
         else await this.send(this.answer(question, true))
     }
 
     async decline(): Promise<void> {
-        const question = this.open
-        assertExists(question, 'A question is answered only while one is open')
+        const question = this.mine
+        assertExists(question, 'A question is answered only by the seat it is put to')
         await this.send(this.answer(question, false))
     }
 

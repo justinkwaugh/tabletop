@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Visibility } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { Region, SearchPlay, Suit } from './oathEnums.js'
@@ -291,6 +292,9 @@ export const PowerQuestion = Type.Union([
         fromRegion: Type.Enum(Region)
     })
 ])
+
+/** A question as the host and its asked player see it, every protected field present. */
+export const PowerQuestionValidator = Compile(PowerQuestion)
 
 export type QuestionAnswer = Type.Static<typeof QuestionAnswer>
 export const QuestionAnswer = Type.Union([

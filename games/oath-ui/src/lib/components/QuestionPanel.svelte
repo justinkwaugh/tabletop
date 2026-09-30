@@ -18,6 +18,7 @@
     let draft = $derived(gameSession.question)
     let busy = $derived(gameSession.busy)
     let question = $derived(draft.open)
+    let mine = $derived(draft.mine)
     let asking = $derived(gameState.pendingQuestions?.askingPlayerId)
 
     // Jinx — "after you roll … for any reason".
@@ -43,7 +44,7 @@
 
     {#if !question}
         <p class="text-sm text-stone-400">Nothing is waiting on an answer.</p>
-    {:else if !draft.isMine}
+    {:else if !mine}
         <p class="text-sm text-stone-300">
             Waiting on {gameSession.getPlayerName(question.askedPlayerId)} to answer {cardName(
                 question.cardId
@@ -52,7 +53,7 @@
                     asking
                 )}){/if}.
         </p>
-    {:else if question.kind === PowerQuestionKind.BurnFavorForSecrets}
+    {:else if mine.kind === PowerQuestionKind.BurnFavorForSecrets}
         <p class="text-sm mb-2">
             You may burn any number of favor to gain as many secrets. You have {draft.myFavor} favor.
         </p>
@@ -70,15 +71,14 @@
             favor
         </label>
         <QuestionYesNo yes="Burn {draft.burn} for {draft.burn} secrets" no="Burn none" />
-    {:else if question.kind === PowerQuestionKind.PayOrLoseRelic}
+    {:else if mine.kind === PowerQuestionKind.PayOrLoseRelic}
         <p class="text-sm mb-2">
-            {gameSession.getPlayerName(question.takerPlayerId)} takes {cardName(
-                question.relicCardId
-            )} unless you give them {question.price} favor. You have {draft.myFavor}.
+            {gameSession.getPlayerName(mine.takerPlayerId)} takes {cardName(mine.relicCardId)} unless
+            you give them {mine.price} favor. You have {draft.myFavor}.
         </p>
-        <QuestionYesNo yes="Pay {question.price} favor, keep it" no="Let them take it" />
-    {:else if question.kind === PowerQuestionKind.PickFavorBank}
-        <p class="text-sm mb-2">You gain {question.amount} favor from any one favor bank.</p>
+        <QuestionYesNo yes="Pay {mine.price} favor, keep it" no="Let them take it" />
+    {:else if mine.kind === PowerQuestionKind.PickFavorBank}
+        <p class="text-sm mb-2">You gain {mine.amount} favor from any one favor bank.</p>
         <div class="flex flex-wrap gap-1">
             {#each draft.favorBanks as suit (suit)}
                 <button
@@ -90,62 +90,57 @@
                 </button>
             {/each}
         </div>
-    {:else if question.kind === PowerQuestionKind.Exchange}
+    {:else if mine.kind === PowerQuestionKind.Exchange}
         <p class="text-sm mb-1">
-            {gameSession.getPlayerName(question.proposerPlayerId)} proposes a binding exchange (R-7.6.3):
+            {gameSession.getPlayerName(mine.proposerPlayerId)} proposes a binding exchange (R-7.6.3):
         </p>
         <div class="mb-2 rounded border border-stone-700 px-2 py-1.5 text-xs">
             <div>
-                {gameSession.getPlayerName(question.proposerPlayerId)} gives {transferText(
+                {gameSession.getPlayerName(mine.proposerPlayerId)} gives {transferText(
                     gameState,
-                    question.terms.fromProposer,
-                    question.proposerPlayerId
+                    mine.terms.fromProposer,
+                    mine.proposerPlayerId
                 )}
             </div>
             <div>
-                {gameSession.getPlayerName(question.askedPlayerId)} gives {transferText(
+                {gameSession.getPlayerName(mine.askedPlayerId)} gives {transferText(
                     gameState,
-                    question.terms.fromCounterparty,
-                    question.askedPlayerId
+                    mine.terms.fromCounterparty,
+                    mine.askedPlayerId
                 )}
             </div>
         </div>
         <QuestionYesNo yes="Accept" no="Refuse" />
-    {:else if question.kind === PowerQuestionKind.JoinSite}
+    {:else if mine.kind === PowerQuestionKind.JoinSite}
         <p class="text-sm mb-2">
-            {cardName(question.cardId)}: you may put your pawn at {siteName(
-                gameState,
-                question.siteId
-            )}.
+            {cardName(mine.cardId)}: you may put your pawn at {siteName(gameState, mine.siteId)}.
         </p>
         <QuestionYesNo yes="Go there" no="Stay" />
-    {:else if question.kind === PowerQuestionKind.KeepOrBottomRelic}
-        {@const relic =
-            question.relicCardId !== undefined ? cardName(question.relicCardId) : 'the relic'}
+    {:else if mine.kind === PowerQuestionKind.KeepOrBottomRelic}
+        {@const relic = mine.relicCardId !== undefined ? cardName(mine.relicCardId) : 'the relic'}
         <p class="text-sm mb-2">
-            {cardName(question.cardId)}: you drew {relic}. Take it, or put it on the bottom of the
-            relic deck.
+            {cardName(mine.cardId)}: you drew {relic}. Take it, or put it on the bottom of the relic
+            deck.
         </p>
-        {#if question.relicCardId !== undefined}
-            <div class="mb-2"><ShownCards cardIds={[question.relicCardId]} /></div>
+        {#if mine.relicCardId !== undefined}
+            <div class="mb-2"><ShownCards cardIds={[mine.relicCardId]} /></div>
         {/if}
         <QuestionYesNo yes="Take {relic}" no="Put it on the bottom" />
-    {:else if question.kind === PowerQuestionKind.BottomRelic}
-        {@const relic =
-            question.relicCardId !== undefined ? cardName(question.relicCardId) : 'the relic'}
+    {:else if mine.kind === PowerQuestionKind.BottomRelic}
+        {@const relic = mine.relicCardId !== undefined ? cardName(mine.relicCardId) : 'the relic'}
         <p class="text-sm mb-2">
-            {cardName(question.cardId)}: you drew {relic}. Put it, or a relic you hold, on the
-            bottom of the relic deck.
+            {cardName(mine.cardId)}: you drew {relic}. Put it, or a relic you hold, on the bottom of
+            the relic deck.
         </p>
         <p class="text-xs text-stone-400 mb-1">Tap the relic that goes to the bottom:</p>
         <CardChoiceRow
             choices={[
-                ...(question.relicCardId !== undefined
+                ...(mine.relicCardId !== undefined
                     ? [
                           {
-                              key: question.relicCardId,
-                              cardId: question.relicCardId,
-                              label: cardName(question.relicCardId),
+                              key: mine.relicCardId,
+                              cardId: mine.relicCardId,
+                              label: cardName(mine.relicCardId),
                               caption: 'the one drawn'
                           }
                       ]
@@ -157,24 +152,24 @@
             ]}
             picked={[]}
             onpick={(cardId) =>
-                void (cardId === question.relicCardId
+                void (cardId === mine.relicCardId
                     ? draft.putOnBottom()
                     : draft.putOnBottom(cardId))}
             {busy}
             height={80}
         />
-    {:else if question.kind === PowerQuestionKind.RerollDice}
+    {:else if mine.kind === PowerQuestionKind.RerollDice}
         <p class="text-sm mb-2">
-            {cardName(question.cardId)}: reroll {rolledDice(question.roll)} once? The roll stands as it
-            is otherwise ({standingRoll(question.roll)}). The card's cost is paid if you do.
+            {cardName(mine.cardId)}: reroll {rolledDice(mine.roll)} once? The roll stands as it is otherwise
+            ({standingRoll(mine.roll)}). The card's cost is paid if you do.
         </p>
         <QuestionYesNo yes="Reroll" no="Keep the roll" />
-    {:else if question.kind === PowerQuestionKind.TravelFreeTo}
+    {:else if mine.kind === PowerQuestionKind.TravelFreeTo}
         <p class="text-sm mb-2">
-            {cardName(question.cardId)}: travel to one of these sites, for no Supply.
+            {cardName(mine.cardId)}: travel to one of these sites, for no Supply.
         </p>
         <div class="flex flex-wrap gap-1">
-            {#each question.siteIds as siteId (siteId)}
+            {#each mine.siteIds as siteId (siteId)}
                 <button
                     class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1 text-xs"
                     disabled={busy}
@@ -184,10 +179,10 @@
                 </button>
             {/each}
         </div>
-    {:else if question.kind === PowerQuestionKind.ShroudedWoodDestination}
+    {:else if mine.kind === PowerQuestionKind.ShroudedWoodDestination}
         <p class="text-sm mb-2">
             You rule the Shrouded Wood: choose where {gameSession.getPlayerName(
-                question.travelerPlayerId
+                mine.travelerPlayerId
             )} goes.
         </p>
         <div class="flex flex-wrap gap-1">
@@ -201,41 +196,40 @@
                 </button>
             {/each}
         </div>
-    {:else if question.kind === PowerQuestionKind.PlayOrDiscardConspiracy}
-        <QuestionConspiracy {question} />
-    {:else if question.kind === PowerQuestionKind.TakeOrLeaveRelic}
-        {@const relic =
-            question.relicCardId !== undefined ? cardName(question.relicCardId) : 'the relic'}
+    {:else if mine.kind === PowerQuestionKind.PlayOrDiscardConspiracy}
+        <QuestionConspiracy question={mine} />
+    {:else if mine.kind === PowerQuestionKind.TakeOrLeaveRelic}
+        {@const relic = mine.relicCardId !== undefined ? cardName(mine.relicCardId) : 'the relic'}
         <p class="text-sm mb-2">
-            {cardName(question.cardId)}: the relic in {reliquaryLabel(question.slotId)} is
+            {cardName(mine.cardId)}: the relic in {reliquaryLabel(mine.slotId)} is
             {relic}. Take it, or leave it there.
         </p>
-        {#if question.relicCardId !== undefined}
-            <div class="mb-2"><ShownCards cardIds={[question.relicCardId]} /></div>
+        {#if mine.relicCardId !== undefined}
+            <div class="mb-2"><ShownCards cardIds={[mine.relicCardId]} /></div>
         {/if}
         <QuestionYesNo yes="Take {relic}" no="Leave it" />
-    {:else if question.kind === PowerQuestionKind.RelicThiefRoll}
+    {:else if mine.kind === PowerQuestionKind.RelicThiefRoll}
         <p class="text-sm mb-2">
-            {gameSession.getPlayerName(question.takerPlayerId)} took {question.relicCardIds
+            {gameSession.getPlayerName(mine.takerPlayerId)} took {mine.relicCardIds
                 .map(cardName)
                 .join(', ')}
-            in your region. Use {cardName(question.cardId)} to roll {question.relicCardIds.length}
+            in your region. Use {cardName(mine.cardId)} to roll {mine.relicCardIds.length}
             defense
-            {question.relicCardIds.length === 1 ? 'die' : 'dice'}: no shields, and the relics are
-            yours. The card's cost is paid either way.
+            {mine.relicCardIds.length === 1 ? 'die' : 'dice'}: no shields, and the relics are yours.
+            The card's cost is paid either way.
         </p>
         <QuestionYesNo yes="Roll for them" no="Let them go" />
-    {:else if question.kind === PowerQuestionKind.PlayOrDiscardVision}
-        <QuestionVision {question} />
-    {:else if question.kind === PowerQuestionKind.DiscardInstead}
+    {:else if mine.kind === PowerQuestionKind.PlayOrDiscardVision}
+        <QuestionVision question={mine} />
+    {:else if mine.kind === PowerQuestionKind.DiscardInstead}
         <p class="text-sm mb-1">
-            Your Nomad battle plans {question.planCardIds.map(cardName).join(', ')} are to be discarded.
-            You may discard one Beast card you rule instead.
+            Your Nomad battle plans {mine.planCardIds.map(cardName).join(', ')} are to be discarded. You
+            may discard one Beast card you rule instead.
         </p>
         <div class="mb-2 text-xs">
             <span class="text-stone-400">Tap the Beast card to discard instead:</span>
             <CardChoiceRow
-                choices={cardChoices(question.insteadCardIds)}
+                choices={cardChoices(mine.insteadCardIds)}
                 picked={draft.instead ? [draft.instead] : []}
                 onpick={(cardId) => draft.chooseInstead(toggleSingle(draft.instead, cardId))}
                 {busy}
@@ -246,15 +240,15 @@
             yes="Discard {draft.instead ? cardName(draft.instead) : 'it'} instead"
             no="Discard the plans"
         />
-    {:else if question.kind === PowerQuestionKind.SneakAttack}
+    {:else if mine.kind === PowerQuestionKind.SneakAttack}
         <p class="text-sm mb-2">
-            {gameSession.getPlayerName(question.defenderPlayerId)}'s Campaign is over. You may
-            campaign against them now, for no Supply, while their turn waits.
+            {gameSession.getPlayerName(mine.defenderPlayerId)}'s Campaign is over. You may campaign
+            against them now, for no Supply, while their turn waits.
         </p>
         <QuestionYesNo yes="Campaign" no="Pass" />
-    {:else if question.kind === PowerQuestionKind.OrderDrawnCards || question.kind === PowerQuestionKind.OrderDiscards}
-        <QuestionStackOrder {question} />
-    {:else if question.kind === PowerQuestionKind.GatheringFloor}
+    {:else if mine.kind === PowerQuestionKind.OrderDrawnCards || mine.kind === PowerQuestionKind.OrderDiscards}
+        <QuestionStackOrder question={mine} />
+    {:else if mine.kind === PowerQuestionKind.GatheringFloor}
         <QuestionGatheringFloor />
     {/if}
 </div>

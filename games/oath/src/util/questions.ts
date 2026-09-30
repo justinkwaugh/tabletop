@@ -1,8 +1,13 @@
 import { assert, assertExists } from '@tabletop/common'
-import { HydratedOathGameState } from '../model/gameState.js'
+import { HydratedOathGameState, type ProjectedPowerQuestion } from '../model/gameState.js'
 import { Suit, Region } from '../model/oathEnums.js'
 import { MachineState } from '../definition/states.js'
-import { PowerQuestionKind, type PowerQuestion, type QuestionAnswer } from '../model/question.js'
+import {
+    PowerQuestionKind,
+    PowerQuestionValidator,
+    type PowerQuestion,
+    type QuestionAnswer
+} from '../model/question.js'
 import { settleSkullKills } from './campaignRoll.js'
 import type { PileDeposit } from '../model/hidden.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
@@ -133,7 +138,7 @@ export function scheduleGatheringFloor(
     state.pendingQuestions = pending
 }
 
-export function currentQuestion(state: HydratedOathGameState): PowerQuestion | undefined {
+export function currentQuestion(state: HydratedOathGameState): ProjectedPowerQuestion | undefined {
     return state.pendingQuestions?.queue[0]
 }
 
@@ -172,6 +177,9 @@ export function reasonCannotAnswer(
     if (!question) return 'no question is waiting for an answer'
     if (question.askedPlayerId !== playerId)
         return `the question is ${question.askedPlayerId}'s to answer`
+    // R-9.4 — only the asked player's view and the host's carry the question's protected fields.
+    if (!PowerQuestionValidator.Check(question))
+        return 'the question’s hidden fields are not known in this view'
     return reasonCannotAnswerOf(state, playerId, question.kind, question, answer)
 }
 
@@ -211,6 +219,10 @@ function applyAnswerInner(
     assertExists(pending, 'an answer was validated with no pending questions')
     const head = pending.queue.shift()
     assertExists(head, 'an answer was validated with an empty question queue')
+    assert(
+        PowerQuestionValidator.Check(head),
+        'Answering needs the question as its asked player or the host sees it'
+    )
     return applyAnswerOf(state, playerId, head.kind, head, answer, pending.askingPlayerId)
 }
 
