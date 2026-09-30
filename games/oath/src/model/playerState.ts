@@ -4,6 +4,7 @@ import { Compile } from 'typebox/compile'
 import { PlayerStatus, Region } from './oathEnums.js'
 import { WarbandCounts } from './warbandCounts.js'
 import { AdviserShownPolicy } from './question.js'
+import { isVision } from '../data/cardRegistry.js'
 
 /** R-2.2.2 — one adviser in play order; a facedown one names no card here (R-9.4). */
 export type AdviserRow = Type.Static<typeof AdviserRow>
@@ -13,7 +14,9 @@ export const AdviserRow = Type.Object({
     /** R-9.4 — the players other than its holder who know it while it is facedown; everyone sees a card was shown. */
     shownTo: Type.Optional(Type.Array(Type.String())),
     /** R-9.4 — the card, to those players alone, for as long as it stays here facedown. */
-    shownCardId: Type.Optional(Visibility.protect(Type.String(), { policy: AdviserShownPolicy }))
+    shownCardId: Type.Optional(Visibility.protect(Type.String(), { policy: AdviserShownPolicy })),
+    /** R-9.4 — a Vision's back differs from a denizen's, so a facedown Vision shows as one. */
+    vision: Type.Optional(Type.Literal(true))
 })
 
 /** R-9.4 — known to its holder, or to the host. */
@@ -87,6 +90,8 @@ export const OathPlayerState = Type.Object({
     /** R-5.1.2, R-1.20 — held only mid-action; Oath has no persistent hand. */
     handIds: Visibility.protect(Type.Array(Type.String()), { policy: Visibility.Policy.Owner }),
     handCount: Type.Number(),
+    /** R-9.4 — how many held cards show a Vision's back. */
+    handVisions: Type.Number(),
     /** R-2.2.1 — Exile side only; not an adviser. */
     revealedVisionId: Type.Optional(Type.String()),
     /** R-6.3 — "once you have peeked at a specific relic you may peek at it again from any site". */
@@ -156,6 +161,7 @@ export class HydratedOathPlayerState
     declare adviserLimit: number
     declare handIds?: string[]
     declare handCount: number
+    declare handVisions: number
     declare revealedVisionId?: string
     declare peekedRelicSlotIds: string[]
     declare peekedRelics?: Record<string, string>
@@ -180,6 +186,7 @@ export class HydratedOathPlayerState
     setHand(cardIds: string[]): void {
         this.handIds = [...cardIds]
         this.handCount = cardIds.length
+        this.handVisions = cardIds.filter(isVision).length
     }
 
     /** R-4.3.3 */
@@ -240,10 +247,14 @@ export class HydratedOathPlayerState
     }
 
     setAdvisers(advisers: readonly KnownAdviser[]): void {
-        this.advisers = advisers.map(({ cardId, faceUp, shownTo }) => {
+        this.advisers = advisers.map(({ cardId, faceUp, shownTo }): AdviserRow => {
             if (faceUp) return { cardId, faceUp }
-            if (shownTo && shownTo.length > 0) return { faceUp, shownTo, shownCardId: cardId }
-            return { faceUp }
+            const row: AdviserRow =
+                shownTo && shownTo.length > 0
+                    ? { faceUp, shownTo, shownCardId: cardId }
+                    : { faceUp }
+            if (isVision(cardId)) row.vision = true
+            return row
         })
         this.adviserIds = advisers.map(({ cardId }) => cardId)
     }

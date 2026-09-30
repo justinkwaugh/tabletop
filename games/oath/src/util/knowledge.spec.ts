@@ -194,6 +194,23 @@ describe('Oracle and what lies under the world deck', () => {
     })
 })
 
+describe('R-9.4 — the backs of held cards are public', () => {
+    it('a hand counts its Visions, and a facedown Vision adviser shows as one', () => {
+        const s = table()
+        const p2 = s.getPlayerState('p2')
+        p2.setHand([VISION, WOLVES])
+        expect(p2.handVisions).toBe(1)
+        p2.setAdvisers([{ cardId: VISION, faceUp: false }, { cardId: TENTS, faceUp: false }])
+        expect(p2.advisers).toEqual([{ faceUp: false, vision: true }, { faceUp: false }])
+        const state = s.dehydrate()
+        assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
+        const seen = OathRuntime.visibility.state.project(state, spectator).players[1]
+        expect(seen.handVisions).toBe(1)
+        expect(seen.advisers).toEqual([{ faceUp: false, vision: true }, { faceUp: false }])
+        expect(JSON.stringify(seen)).not.toContain(VISION)
+    })
+})
+
 describe('the relic deck’s bottom, as each player saw it', () => {
     it('names a relic to those who know it, and a draw that reaches it takes it off', () => {
         const s = table()

@@ -10,7 +10,7 @@ import { noKnownDiscardPiles } from '../util/knowledge.js'
 import { createOathVault, type OathVault } from '../model/vault.js'
 import { bySuit } from '../data/typedData.js'
 import type { CampaignState } from '../model/campaign.js'
-import { registerCards } from '../data/cardRegistry.js'
+import { isVision, registerCards } from '../data/cardRegistry.js'
 
 /** The eight map slots (R-2.1.1): 2 Cradle, 3 Provinces, 3 Hinterland. */
 export const CRADLE = ['c1', 'c2']
@@ -51,6 +51,7 @@ export function testPlayer(overrides: Partial<OathPlayerState> = {}): OathPlayer
         adviserLimit: 3,
         handIds: [],
         handCount: overrides.handIds?.length ?? 0,
+        handVisions: (overrides.handIds ?? []).filter(isVision).length,
         revealedVisionId: undefined,
         peekedRelicSlotIds: [],
         peekedRelics: {},
@@ -64,7 +65,13 @@ export function testPlayer(overrides: Partial<OathPlayerState> = {}): OathPlayer
         restPowersUsedThisTurn: [],
         ...overrides,
         // R-9.4 — a fixture names every adviser; the public row names a faceup one only.
-        advisers: advisers.map((row) => (row.faceUp ? row : { faceUp: false })),
+        advisers: advisers.map((row) =>
+            row.faceUp
+                ? row
+                : row.cardId !== undefined && isVision(row.cardId)
+                  ? { faceUp: false, vision: true }
+                  : { faceUp: false }
+        ),
         adviserIds:
             overrides.adviserIds ??
             advisers.map((row) => {

@@ -127,7 +127,11 @@ function fillSlots(slots: Slot[], pool: string[]) {
         slots.length === pool.length,
         'Exploration dealt a different number of cards than it had slots'
     )
-    const byKind = slots.filter((slot) => slot.kind !== undefined)
+    // Visions are the fewer, so their slots are filled first.
+    const byKind = [
+        ...slots.filter((slot) => slot.kind === CardKind.Vision),
+        ...slots.filter((slot) => slot.kind !== undefined && slot.kind !== CardKind.Vision)
+    ]
     for (const slot of byKind) {
         const index = pool.findIndex((cardId) => kindOf(cardId) === slot.kind)
         assert(index >= 0, `No hidden card with a ${slot.kind} back is left for a public back`)
@@ -165,7 +169,7 @@ function rememberedPositions(
     random: RandomFunction,
     taken: Set<string>,
     top?: { fromBottom: number; back: CardKind | undefined }
-): { positions: (string | null)[]; leftovers: string[] } {
+): { positions: (string | null)[]; leftovers: string[]; fromSets: number[] } {
     const free = (cardId: string | null) => (cardId !== null && !taken.has(cardId) ? cardId : null)
     const named = mergedPositions([
         table.map((entry) => (typeof entry === 'string' ? free(entry) : null)),
@@ -185,6 +189,7 @@ function rememberedPositions(
         sets.set(key, set)
     }
     const leftovers: string[] = []
+    const fromSets: number[] = []
     for (const { among, at } of sets.values()) {
         const left = shuffled(
             among.filter((cardId) => !taken.has(cardId)),
@@ -195,16 +200,20 @@ function rememberedPositions(
             const showing = left.findIndex((cardId) => kindOf(cardId) === top.back)
             if (showing >= 0) {
                 positions[top.fromBottom] = left.splice(showing, 1)[0]
+                fromSets.push(top.fromBottom)
                 at.splice(at.indexOf(top.fromBottom), 1)
             }
         }
         for (const [index, position] of at.entries())
-            if (index < left.length) positions[position] = left[index]
+            if (index < left.length) {
+                positions[position] = left[index]
+                fromSets.push(position)
+            }
         for (const cardId of left.slice(0, at.length)) taken.add(cardId)
         leftovers.push(...left.slice(at.length))
     }
     for (const cardId of positions) if (cardId !== null) taken.add(cardId)
-    return { positions, leftovers }
+    return { positions, leftovers, fromSets }
 }
 
 function namedWorldCards(
@@ -269,6 +278,7 @@ function dealWorldCards(
     // What the explorer knows lies elsewhere comes first; the stacks' records then place what is left.
     const taken = namedWorldCards(state, questions)
     const leftovers: string[] = []
+    const setPlaces: { positions: (string | null)[]; at: number }[] = []
     const remembered = (
         table: TablePositions,
         lists: readonly KnownPositions[],
@@ -276,6 +286,7 @@ function dealWorldCards(
     ) => {
         const recalled = rememberedPositions(table, lists, random, taken, top)
         leftovers.push(...recalled.leftovers)
+        for (const at of recalled.fromSets) setPlaces.push({ positions: recalled.positions, at })
         return recalled.positions
     }
     const recalledPiles = new Map(
@@ -299,6 +310,24 @@ function dealWorldCards(
     const { visions, denizens } = unnamedWorldCards(state, new Set([...taken, ...returned]), random)
     visions.push(...returned.filter(isVision))
     denizens.push(...returned.filter((cardId) => !isVision(cardId)))
+    // R-9.4 — every held card and facedown adviser shows its back. A set place the table remembers
+    // from before Oracle's draw may hold the only Vision left for them; it goes back to the pool.
+    const heldVisions = state.players.reduce(
+        (total, player) =>
+            total +
+            (player.handIds === undefined ? player.handVisions : 0) +
+            (player.adviserIds === undefined
+                ? player.advisers.filter((row) => row.vision === true && !row.shownCardId).length
+                : 0),
+        0
+    )
+    for (const place of shuffled(setPlaces, random)) {
+        if (visions.length >= heldVisions) break
+        const cardId = place.positions[place.at]
+        if (cardId === null || !isVision(cardId)) continue
+        place.positions[place.at] = null
+        visions.push(cardId)
+    }
     shuffle(visions, random)
     shuffle(denizens, random)
     const hands = new Map<string, string[]>()
@@ -311,13 +340,20 @@ function dealWorldCards(
             const hand: string[] = []
             hands.set(player.playerId, hand)
             for (let i = 0; i < player.handCount; i++)
-                slots.push({ fill: (cardId) => hand.push(cardId) })
+                slots.push({
+                    fill: (cardId) => hand.push(cardId),
+                    kind: i < player.handVisions ? CardKind.Vision : CardKind.Denizen
+                })
         }
         if (player.adviserIds === undefined) {
             const ids = player.advisers.map((row) => row.cardId ?? row.shownCardId)
             advisers.set(player.playerId, ids)
             for (const [index, cardId] of ids.entries())
-                if (cardId === undefined) slots.push({ fill: (dealt) => (ids[index] = dealt) })
+                if (cardId === undefined)
+                    slots.push({
+                        fill: (dealt) => (ids[index] = dealt),
+                        kind: player.advisers[index].vision ? CardKind.Vision : CardKind.Denizen
+                    })
         }
     }
     for (const question of questions)
@@ -357,11 +393,15 @@ function dealWorldCards(
         (size === 0) === state.worldDeckExhausted,
         'The world deck’s size disagrees with whether it is exhausted'
     )
+    // The deck keeps back what the public backs of the other hidden places need.
+    const needing = (kind: CardKind) => slots.filter((slot) => slot.kind === kind).length
+    const most = Math.min(visions.length - needing(CardKind.Vision), deckUnknown)
+    const least = Math.max(0, deckUnknown - (denizens.length - needing(CardKind.Denizen)))
+    assert(least <= most, 'The hidden cards cannot show every public back')
     const visionsInDeck = Math.min(
-        visions.length,
-        deckUnknown,
+        most,
         Math.max(
-            0,
+            least,
             TOTAL_VISIONS - state.visionsDrawn - knownTop.filter(isVision).length,
             knownTop.length === 0 && state.topCardBackType === CardKind.Vision ? 1 : 0
         )
@@ -409,7 +449,7 @@ function longestTop(lists: readonly string[][]): string[] {
     return [...longest]
 }
 
-function shuffled(cards: string[], random: RandomFunction): string[] {
+function shuffled<T>(cards: T[], random: RandomFunction): T[] {
     shuffle(cards, random)
     return cards
 }

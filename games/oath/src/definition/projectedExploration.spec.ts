@@ -179,6 +179,12 @@ function expectKnownKept(source: OathGameState, branch: OathGameState, perspecti
             else if (entry !== null) expect(entry.among).toContain(dealt)
         }
     for (const [index, player] of source.players.entries()) {
+        // R-9.4 — every held card and facedown adviser keeps the back the table sees.
+        expect(branch.players[index].handIds.filter((id) => kindOf(id) === CardKind.Vision)).toHaveLength(player.handVisions)
+        expect(branch.players[index].advisers.map((row) => row.vision === true)).toEqual(player.advisers.map((row) => row.vision === true))
+        for (const [row, cardId] of branch.players[index].adviserIds.entries())
+            if (!player.advisers[row].faceUp)
+                expect(kindOf(cardId) === CardKind.Vision).toBe(player.advisers[row].vision === true)
         expect(branch.players[index].advisers.map((row) => row.faceUp)).toEqual(player.advisers.map((row) => row.faceUp))
         expect(branch.players[index].handIds).toHaveLength(player.handIds.length)
         if (perspective.kind !== 'player' || perspective.playerId !== player.playerId) continue
@@ -222,6 +228,8 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
             revealsInfo: true
         }), state, game).updatedState)
         expect(searching.machineState).toBe(MachineState.Searching)
+        const searcher = searching.players.find((player) => player.playerId === chancellor)
+        expect(searcher?.handVisions).toBe(searcher?.handIds.filter((id) => kindOf(id) === CardKind.Vision).length)
         expectExplorable(game, searching, setupVariant)
     })
 
