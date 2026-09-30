@@ -19,7 +19,12 @@ export class OathGameExploration implements GameExploration<OathProjectedState> 
         const hydrated = new HydratedOathGameState(structuredClone(state))
         const vault = hydrated.requireVault()
         const random = hydrated.getProtectedPrng().random
-        vault.worldDeck = reshuffledWorldDeck(vault.worldDeck, knownTopLength(hydrated), random)
+        vault.worldDeck = reshuffledWorldDeck(
+            vault.worldDeck,
+            knownTopLength(hydrated),
+            knownBottomLength(hydrated),
+            random
+        )
         for (const region of Object.values(Region)) {
             const pile = vault.discardPiles[region]
             vault.discardPiles[region] = withTopBackKept(
@@ -51,9 +56,11 @@ function isVision(cardId: string): boolean {
 function reshuffledWorldDeck(
     deck: readonly string[],
     known: number,
+    knownBottom: number,
     random: RandomFunction
 ): string[] {
-    const rest = deck.slice(known)
+    const under = deck.length - knownBottom
+    const rest = deck.slice(known, under)
     const reach = rest.findLastIndex(isVision) + 1
     const visions = rest.filter(isVision)
     const denizens = rest.filter((cardId) => !isVision(cardId))
@@ -63,8 +70,17 @@ function reshuffledWorldDeck(
     const reshuffled = [...head, ...denizens]
     return [
         ...deck.slice(0, known),
-        ...(known === 0 ? keepTopBack(deck, reshuffled, reach) : reshuffled)
+        ...(known === 0 ? keepTopBack(deck, reshuffled, reach) : reshuffled),
+        ...deck.slice(under)
     ]
+}
+
+/** Cracked Horn — the most the table or any player has seen go under the world deck. */
+function knownBottomLength(state: HydratedOathGameState): number {
+    return Math.max(
+        state.seenWorldDeckBottom.length,
+        ...state.players.map((player) => knownOf(player).worldDeckBottom.length)
+    )
 }
 
 /** R-9.4 — a discard pile's top back is public; a card a player has seen stays where it is. */
@@ -130,12 +146,15 @@ function knownRelicDeckIndexes(state: HydratedOathGameState): Set<number> {
 }
 
 function knownOf(player: HydratedOathPlayerState) {
-    const { knownWorldDeckTop, knownDiscardPiles, knownRelicDeckBottom } = player
+    const { knownWorldDeckTop, knownWorldDeckBottom, knownDiscardPiles, knownRelicDeckBottom } =
+        player
     assertExists(knownWorldDeckTop, 'Host View exploration requires every player’s knowledge')
+    assertExists(knownWorldDeckBottom, 'Host View exploration requires every player’s knowledge')
     assertExists(knownDiscardPiles, 'Host View exploration requires every player’s knowledge')
     assertExists(knownRelicDeckBottom, 'Host View exploration requires every player’s knowledge')
     return {
         worldDeckTop: knownWorldDeckTop,
+        worldDeckBottom: knownWorldDeckBottom,
         discardPiles: knownDiscardPiles,
         relicDeckBottom: knownRelicDeckBottom
     }

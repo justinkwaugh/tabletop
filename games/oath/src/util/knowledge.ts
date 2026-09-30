@@ -1,6 +1,11 @@
 import { assertExists } from '@tabletop/common'
 import type { HydratedOathGameState } from '../model/gameState.js'
-import type { HydratedOathPlayerState, KnownPositions } from '../model/playerState.js'
+import type {
+    HydratedOathPlayerState,
+    KnownPositions,
+    TablePositions
+} from '../model/playerState.js'
+import { isVision } from '../data/cardRegistry.js'
 import { Region } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
@@ -12,6 +17,7 @@ import {
     drawFromWorldDeck,
     drawRelics,
     mergeDiscardPiles,
+    putUnderWorldDeck,
     returnRelicToBottom,
     type WorldDeckDraw
 } from '../model/vault.js'
@@ -30,13 +36,18 @@ function discardPilesOf(player: HydratedOathPlayerState): Record<Region, KnownPo
     return player.knownDiscardPiles
 }
 
+function worldDeckBottomOf(player: HydratedOathPlayerState): KnownPositions {
+    assertExists(player.knownWorldDeckBottom, 'This operation requires known stacks')
+    return player.knownWorldDeckBottom
+}
+
 function relicDeckBottomOf(player: HydratedOathPlayerState): KnownPositions {
     assertExists(player.knownRelicDeckBottom, 'This operation requires known stacks')
     return player.knownRelicDeckBottom
 }
 
 /** Positions from the bottom: unknown cards above the last known one say nothing. */
-function trimTop(known: KnownPositions): KnownPositions {
+function trimTop<T>(known: readonly (T | null)[]): (T | null)[] {
     let end = known.length
     while (end > 0 && known[end - 1] === null) end -= 1
     return known.slice(0, end)
@@ -48,7 +59,7 @@ function trimAbove(known: KnownPositions): KnownPositions {
     return first < 0 ? [] : known.slice(first)
 }
 
-function unknown(count: number): KnownPositions {
+function unknown(count: number): null[] {
     return Array.from({ length: count }, () => null)
 }
 
@@ -62,32 +73,46 @@ export function seeWorldDeckTop(
     player.knownWorldDeckTop = [...cardIds, ...worldDeckTopOf(player).slice(cardIds.length)]
 }
 
-/** R-5.1.2 */
+/** R-5.1.2 — a draw that reaches the cards known under the deck takes them off its known bottom. */
 export function drawWorldDeck(state: HydratedOathGameState, count: number): WorldDeckDraw {
-    const draw = drawFromWorldDeck(state.requireVault(), count)
+    const vault = state.requireVault()
+    const draw = drawFromWorldDeck(vault, count)
     for (const player of state.players)
         player.knownWorldDeckTop = worldDeckTopOf(player).slice(draw.drawn.length)
+    const size = vault.worldDeck.length
+    for (const holder of worldDeckBottomRecords(state))
+        holder.set(trimTop(holder.get().slice(0, size)))
     return draw
 }
 
 /** Oracle — the Vision closest to the top; a player who saw it in the top cards saw it go. */
 export function drawWorldDeckVision(state: HydratedOathGameState): string | undefined {
-    const cardId = drawFirstVision(state.requireVault())
+    const vault = state.requireVault()
+    const at = vault.worldDeck.findIndex(isVision)
+    const fromBottom = vault.worldDeck.length - 1 - at
+    const cardId = drawFirstVision(vault)
     for (const player of state.players)
         player.knownWorldDeckTop = worldDeckTopOf(player).filter((id) => id !== cardId)
+    if (cardId !== undefined)
+        for (const holder of worldDeckBottomRecords(state)) {
+            const known = holder.get()
+            if (fromBottom < known.length)
+                holder.set(trimTop(withoutCard(known.toSpliced(fromBottom, 1), cardId)))
+        }
     return cardId
 }
 
-/** Who saw a card go onto a pile: everyone at the table, or the one player who knew it. */
+/** Who saw a card go onto a stack: everyone at the table, or the one player who knew it. */
 export type Witness = 'everyone' | string
 
-/** Before an action moves cards: a card shown to the table is everyone's, a hand or a facedown adviser its holder's. */
-export function discardWitnesses(state: HydratedOathGameState): Map<string, Witness> {
-    const witnesses = new Map<string, Witness>()
-    for (const player of state.players) {
-        for (const cardId of player.handIds ?? []) witnesses.set(cardId, player.playerId)
-        for (const cardId of player.adviserIds ?? []) witnesses.set(cardId, player.playerId)
-    }
+/** Who could see each card before an action moved it; with `holders`, also each hand's and facedown adviser's holder. */
+export interface DiscardWitnesses {
+    byCard: ReadonlyMap<string, Witness>
+    holders: boolean
+}
+
+/** What the table shows, read from public state alone, so a projection can take it too. */
+export function tableWitnesses(state: HydratedOathGameState): DiscardWitnesses {
     const shown = [
         ...Object.values(state.denizensBySite).flat(),
         ...state.players.flatMap((player) => [
@@ -102,33 +127,87 @@ export function discardWitnesses(state: HydratedOathGameState): Map<string, Witn
         // Inquisitor — the favor it keeps names the Conspiracy it found.
         if (question.kind === PowerQuestionKind.PlayOrDiscardConspiracy) shown.push(CONSPIRACY_ID)
     }
-    for (const cardId of shown) witnesses.set(cardId, 'everyone')
-    return witnesses
+    return { byCard: new Map(shown.map((cardId) => [cardId, 'everyone'])), holders: false }
+}
+
+/** On the host: the table's cards, and every hand card and facedown adviser as its holder's. */
+export function discardWitnesses(state: HydratedOathGameState): DiscardWitnesses {
+    const byCard = new Map<string, Witness>()
+    for (const player of state.players)
+        for (const cardId of [...player.knownHand(), ...player.facedownAdviserIds()])
+            byCard.set(cardId, player.playerId)
+    for (const [cardId, witness] of tableWitnesses(state).byCard) byCard.set(cardId, witness)
+    return { byCard, holders: true }
+}
+
+interface RecordHolder {
+    get(): TablePositions
+    set(positions: TablePositions): void
 }
 
 /** What the whole table has seen of each pile, and what each player has. */
-function pileRecords(state: HydratedOathGameState): Record<Region, KnownPositions>[] {
-    return [state.seenDiscardPiles, ...state.players.map(discardPilesOf)]
-}
-
-function recordOf(state: HydratedOathGameState, witness: Witness): Record<Region, KnownPositions> {
-    return witness === 'everyone'
-        ? state.seenDiscardPiles
-        : discardPilesOf(state.getPlayerState(witness))
-}
-
-function place(
-    record: Record<Region, KnownPositions>,
-    region: Region,
-    fromBottom: number,
-    cardId: string
-) {
-    const known = [
-        ...record[region],
-        ...unknown(Math.max(0, fromBottom + 1 - record[region].length))
+function pileRecords(state: HydratedOathGameState, region: Region): RecordHolder[] {
+    return [
+        {
+            get: () => state.seenDiscardPiles[region],
+            set: (positions) => (state.seenDiscardPiles[region] = positions)
+        },
+        ...state.players.map((player) => {
+            const piles = discardPilesOf(player)
+            return {
+                get: () => piles[region],
+                set: (positions: TablePositions) => (piles[region] = cardsOnly(positions))
+            }
+        })
     ]
-    known[fromBottom] = cardId
-    record[region] = known
+}
+
+function worldDeckBottomRecords(state: HydratedOathGameState): RecordHolder[] {
+    return [
+        {
+            get: () => state.seenWorldDeckBottom,
+            set: (positions) => (state.seenWorldDeckBottom = positions)
+        },
+        ...state.players.map((player) => ({
+            get: () => worldDeckBottomOf(player),
+            set: (positions: TablePositions) => (player.knownWorldDeckBottom = cardsOnly(positions))
+        }))
+    ]
+}
+
+function pileRecordOf(
+    state: HydratedOathGameState,
+    region: Region,
+    witness: Witness
+): RecordHolder {
+    const [table, ...players] = pileRecords(state, region)
+    if (witness === 'everyone') return table
+    return players[state.players.findIndex((player) => player.playerId === witness)]
+}
+
+function worldDeckBottomRecordOf(state: HydratedOathGameState, witness: Witness): RecordHolder {
+    const [table, ...players] = worldDeckBottomRecords(state)
+    if (witness === 'everyone') return table
+    return players[state.players.findIndex((player) => player.playerId === witness)]
+}
+
+/** A player remembers cards, never a set; a set only ever reaches the table's record. */
+function cardsOnly(positions: TablePositions): KnownPositions {
+    return positions.map((entry) => (typeof entry === 'string' ? entry : null))
+}
+
+function withoutCard(positions: TablePositions, cardId: string): TablePositions {
+    return positions.map((entry) =>
+        entry !== null && typeof entry === 'object'
+            ? { among: entry.among.filter((id) => id !== cardId) }
+            : entry
+    )
+}
+
+function placed(positions: TablePositions, fromBottom: number, entry: TablePositions[number]) {
+    const known = [...positions, ...unknown(Math.max(0, fromBottom + 1 - positions.length))]
+    known[fromBottom] = entry
+    return known
 }
 
 /** Scryer, Tavern Songs, Brass Horse — `cardIds` are the pile's top cards, top first. */
@@ -139,10 +218,11 @@ export function seeDiscardPile(
     cardIds: readonly string[]
 ): void {
     const size = state.requireVault().discardPiles[region].length
-    const record = recordOf(state, witness)
+    const record = pileRecordOf(state, region, witness)
+    let known = record.get()
     for (const [fromTop, cardId] of cardIds.entries())
-        place(record, region, size - 1 - fromTop, cardId)
-    record[region] = trimTop(record[region])
+        known = placed(known, size - 1 - fromTop, cardId)
+    record.set(trimTop(known))
 }
 
 /** R-5.1.2, Mushrooms */
@@ -157,32 +237,81 @@ export function drawDiscardPile(
         ? drawFromDiscardBottom(vault, region, count)
         : drawFromDiscard(vault, region, count)
     const size = vault.discardPiles[region].length
-    for (const record of pileRecords(state))
-        record[region] = trimTop(
-            fromBottom ? record[region].slice(drawn.length) : record[region].slice(0, size)
+    for (const record of pileRecords(state, region))
+        record.set(
+            trimTop(fromBottom ? record.get().slice(drawn.length) : record.get().slice(0, size))
         )
     return drawn
 }
 
-/** R-10.5 — each card is remembered where it lands by whoever saw it go; cards underneath lift the rest. */
+/**
+ * Who remembers each card put on a stack: its witness by name, and the table as one of `shownAsSet`
+ * when it saw the cards but not their order (Truthful Harp). A card with no witness is remembered
+ * by no one.
+ */
+export interface Deposit {
+    witnessOf: (cardId: string) => Witness | undefined
+    shownAsSet?: ReadonlySet<string>
+}
+
+function remember(
+    table: RecordHolder,
+    recordFor: (witness: Witness) => RecordHolder,
+    cardIds: readonly string[],
+    positionOf: (index: number) => number,
+    deposit: Deposit
+) {
+    const set = cardIds.filter((cardId) => deposit.shownAsSet?.has(cardId))
+    for (const [index, cardId] of cardIds.entries()) {
+        const witness = deposit.witnessOf(cardId)
+        if (witness !== undefined) {
+            const record = recordFor(witness)
+            record.set(placed(record.get(), positionOf(index), cardId))
+        }
+        if (witness !== 'everyone' && set.includes(cardId))
+            table.set(placed(table.get(), positionOf(index), { among: set }))
+    }
+}
+
+/** R-10.5 — cards on top keep every known position; cards underneath lift them. */
 export function putOnDiscardPile(
     state: HydratedOathGameState,
     region: Region,
     cardIds: string[],
     bottom: boolean,
-    witnessOf: (cardId: string) => Witness
+    deposit: Deposit
 ): void {
     const vault = state.requireVault()
     const size = vault.discardPiles[region].length
     discardOnto(vault, region, cardIds, bottom)
     if (bottom)
-        for (const record of pileRecords(state))
-            if (record[region].length > 0)
-                record[region] = [...unknown(cardIds.length), ...record[region]]
-    for (const [index, cardId] of cardIds.entries()) {
-        const fromBottom = bottom ? cardIds.length - 1 - index : size + index
-        place(recordOf(state, witnessOf(cardId)), region, fromBottom, cardId)
-    }
+        for (const record of pileRecords(state, region))
+            if (record.get().length > 0) record.set([...unknown(cardIds.length), ...record.get()])
+    remember(
+        pileRecords(state, region)[0],
+        (witness) => pileRecordOf(state, region, witness),
+        cardIds,
+        (index) => (bottom ? cardIds.length - 1 - index : size + index),
+        deposit
+    )
+}
+
+/** Cracked Horn — under the world deck, in the order given, so the last lies at the bottom. */
+export function putUnderWorldDeckKnown(
+    state: HydratedOathGameState,
+    cardIds: string[],
+    deposit: Deposit
+): void {
+    putUnderWorldDeck(state.requireVault(), cardIds)
+    for (const record of worldDeckBottomRecords(state))
+        if (record.get().length > 0) record.set([...unknown(cardIds.length), ...record.get()])
+    remember(
+        worldDeckBottomRecords(state)[0],
+        (witness) => worldDeckBottomRecordOf(state, witness),
+        cardIds,
+        (index) => cardIds.length - 1 - index,
+        deposit
+    )
 }
 
 /** Convoys — `from` goes on top of `to`. */
@@ -191,14 +320,12 @@ export function mergeDiscardPileOnto(state: HydratedOathGameState, from: Region,
     const vault = state.requireVault()
     const underneath = vault.discardPiles[to].length
     mergeDiscardPiles(vault, from, to)
-    for (const record of pileRecords(state)) {
-        if (record[from].length > 0)
-            record[to] = [
-                ...record[to],
-                ...unknown(underneath - record[to].length),
-                ...record[from]
-            ]
-        record[from] = []
+    const fromRecords = pileRecords(state, from)
+    for (const [index, record] of pileRecords(state, to).entries()) {
+        const moved = fromRecords[index].get()
+        if (moved.length > 0)
+            record.set([...record.get(), ...unknown(underneath - record.get().length), ...moved])
+        fromRecords[index].set([])
     }
 }
 

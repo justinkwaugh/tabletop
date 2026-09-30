@@ -9,6 +9,7 @@ import { PowerTiming } from '../data/cardPowers.js'
 import { PowerChoice, type LegalPowerUse } from '../util/powerChoice.js'
 import { PowerUse } from '../model/powerUse.js'
 import {
+    hiddenRequestFor,
     isIrreversible,
     legalPowers,
     powerOutcomeOf,
@@ -16,7 +17,7 @@ import {
     usePower
 } from '../util/powerDoorway.js'
 import { commitHiddenOutputs, revealForPower } from '../util/hiddenInputs.js'
-import { discardWitnesses } from '../util/knowledge.js'
+import { discardWitnesses, tableWitnesses } from '../util/knowledge.js'
 
 export type UseActionPowerMetadata = Type.Static<typeof UseActionPowerMetadata>
 export const UseActionPowerMetadata = Type.Object({
@@ -65,7 +66,6 @@ export class HydratedUseActionPower
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
-        const witnesses = discardWitnesses(state)
         const reason = HydratedUseActionPower.reasonCannotUse(
             state,
             this.playerId,
@@ -76,6 +76,12 @@ export class HydratedUseActionPower
         if (reason) {
             throw Error(`Cannot use action power: ${reason}`)
         }
+        // Only a power that reads the vault runs on the host, where every holder can be read.
+        const witnesses =
+            hiddenRequestFor(state, this.playerId, this.cardId, this.powerIndex, this.choices) ===
+            undefined
+                ? tableWitnesses(state)
+                : discardWitnesses(state)
         const reveal = revealForPower(
             state,
             this.playerId,

@@ -7,7 +7,7 @@ import { WarbandGroup } from '../model/campaign.js'
 import { PileDeposit } from '../model/hidden.js'
 import { forceTotal, selectionExceedsForce } from '../util/force.js'
 import { commitHiddenOutputs } from '../util/hiddenInputs.js'
-import { discardWitnesses } from '../util/knowledge.js'
+import { tableWitnesses } from '../util/knowledge.js'
 import { HydratedCampaignSacrifice } from './campaignSacrifice.js'
 
 export type CampaignDefeatKillsMetadata = Type.Static<typeof CampaignDefeatKillsMetadata>
@@ -54,7 +54,7 @@ export class HydratedCampaignDefeatKills
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
-        const witnesses = discardWitnesses(state)
+        const witnesses = tableWitnesses(state)
         this.revealsInfo = false
         const reason = HydratedCampaignDefeatKills.reasonCannotChoose(
             state,

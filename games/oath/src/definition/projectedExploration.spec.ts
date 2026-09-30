@@ -19,12 +19,15 @@ import { Search, SearchSource } from '../actions/search.js'
 import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { UseActionPower } from '../actions/useActionPower.js'
 import { EndActPhase } from '../actions/endActPhase.js'
+import { modifierUse } from '../testing/choices.js'
 
 // R-9.4 — a player or spectator explores from what they know; everything else is dealt afresh.
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const DOWSING_STICKS = 'relic.dowsing-sticks'
 const ORACULAR_PIG = 'relic.oracular-pig'
 const BRASS_HORSE = 'relic.brass-horse'
+const TRUTHFUL_HARP = 'relic.truthful-harp'
+const CRACKED_HORN = 'relic.cracked-horn'
 
 function canonical(state: unknown): OathGameState {
     assert(OathGameStateValidator.Check(state), 'Expected complete canonical state')
@@ -161,9 +164,19 @@ function expectKnownKept(source: OathGameState, branch: OathGameState, perspecti
     for (const region of Object.values(Region)) {
         const size = source.discardPileCounts[region]
         for (const known of [source.seenDiscardPiles[region], explorer?.knownDiscardPiles[region] ?? []])
-            for (const [fromBottom, cardId] of known.entries())
-                if (cardId !== null) expect(branch.vault.discardPiles[region][size - 1 - fromBottom]).toBe(cardId)
+            for (const [fromBottom, entry] of known.entries()) {
+                const dealt = branch.vault.discardPiles[region][size - 1 - fromBottom]
+                if (typeof entry === 'string') expect(dealt).toBe(entry)
+                else if (entry !== null) expect(entry.among).toContain(dealt)
+            }
     }
+    const deck = branch.vault.worldDeck
+    for (const known of [source.seenWorldDeckBottom, explorer?.knownWorldDeckBottom ?? []])
+        for (const [fromBottom, entry] of known.entries()) {
+            const dealt = deck[deck.length - 1 - fromBottom]
+            if (typeof entry === 'string') expect(dealt).toBe(entry)
+            else if (entry !== null) expect(entry.among).toContain(dealt)
+        }
     for (const [index, player] of source.players.entries()) {
         expect(branch.players[index].advisers.map((row) => row.faceUp)).toEqual(player.advisers.map((row) => row.faceUp))
         expect(branch.players[index].handIds).toHaveLength(player.handIds.length)
@@ -230,6 +243,54 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
         )
         const searcher = resolved.players.find((player) => player.playerId === chancellor)
         expect(Object.values(searcher?.knownDiscardPiles ?? {}).flat().filter((id) => id !== null)).toEqual(expect.arrayContaining(hand.slice(1)))
+        expectExplorable(game, resolved, setupVariant)
+    })
+
+    it('after a Truthful Harp Search, whose discards the table saw but not their order', () => {
+        const { game, state, chancellor } = started(setupVariant)
+        const harped = giveRelic(state, chancellor, TRUTHFUL_HARP)
+        const searching = canonical(engine.runNext(buildAction(Search, {
+            playerId: chancellor,
+            drawFrom: SearchSource.WorldDeck,
+            revealsInfo: true,
+            modifiers: [modifierUse(TRUTHFUL_HARP)]
+        }), harped, game).updatedState)
+        const hand = new HydratedOathGameState(searching).getPlayerState(chancellor).knownHand()
+        const resolved = canonical(engine.runNext(buildAction(SearchResolve, {
+            playerId: chancellor,
+            keptCardId: hand[0],
+            discardOrder: hand.slice(1),
+            play: SearchPlay.Discard
+        }), searching, game).updatedState)
+        const sets = Object.values(resolved.seenDiscardPiles).flat().filter((entry) => entry !== null && typeof entry === 'object')
+        expect(sets.length).toBe(hand.length)
+        expectExplorable(game, resolved, setupVariant)
+    })
+
+    it.each([
+        { harp: false, table: 0 },
+        { harp: true, table: 1 }
+    ])('after a Cracked Horn Search sends the discards under the world deck (Truthful Harp: $harp)', ({ harp, table }) => {
+        const { game, state, chancellor } = started(setupVariant)
+        const relics = harp ? [CRACKED_HORN, TRUTHFUL_HARP] : [CRACKED_HORN]
+        const holding = relics.reduce((current, relic) => giveRelic(current, chancellor, relic), state)
+        const searching = canonical(engine.runNext(buildAction(Search, {
+            playerId: chancellor,
+            drawFrom: SearchSource.WorldDeck,
+            revealsInfo: true,
+            modifiers: relics.map((relic) => modifierUse(relic))
+        }), holding, game).updatedState)
+        const hand = new HydratedOathGameState(searching).getPlayerState(chancellor).knownHand()
+        const resolved = canonical(engine.runNext(buildAction(SearchResolve, {
+            playerId: chancellor,
+            keptCardId: hand[0],
+            discardOrder: hand.slice(1),
+            play: SearchPlay.Discard
+        }), searching, game).updatedState)
+        const searcher = resolved.players.find((player) => player.playerId === chancellor)
+        // Played as a discard, the kept card goes under with the rest.
+        expect(searcher?.knownWorldDeckBottom.toSorted()).toEqual(hand.toSorted())
+        expect(resolved.seenWorldDeckBottom.length > 0 ? 1 : 0).toBe(table)
         expectExplorable(game, resolved, setupVariant)
     })
 

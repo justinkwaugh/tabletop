@@ -151,6 +151,7 @@ export class OathGameInitializer
                 knownWorldDeckTop: [],
                 knownDiscardPiles: noKnownDiscardPiles(),
                 knownRelicDeckBottom: [],
+                knownWorldDeckBottom: [],
                 homelandUsedThisTurn: [],
                 restPowersUsedThisTurn: []
             }
@@ -186,6 +187,7 @@ function seedRequiredFields(
         discardPileCounts: { cradle: 0, provinces: 0, hinterland: 0 },
         discardTopBackType: {},
         seenDiscardPiles: noKnownDiscardPiles(),
+        seenWorldDeckBottom: [],
         boxIds: [],
         siteCapacityOverrides: {},
         oathType: OathType.Supremacy

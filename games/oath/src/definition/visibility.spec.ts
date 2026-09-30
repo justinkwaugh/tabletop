@@ -10,7 +10,7 @@ import { HydratedOathGameState, OathGameStateValidator, type OathGameState } fro
 import { PlayerStatus } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { Search, SearchSource } from '../actions/search.js'
-import { isUseActionPower } from '../actions/useActionPower.js'
+import { UseActionPower, isUseActionPower } from '../actions/useActionPower.js'
 import { required } from '../testing/required.js'
 import { LetPeekSubjectKind } from '../actions/letPeek.js'
 import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
@@ -192,6 +192,22 @@ describe('Oath visibility', () => {
         expect(() => engine.executeAction({ action: search(state), state, game, perspective: p1 })).toThrow(
             Visibility.UnavailableProjectedValueError
         )
+    })
+
+    it('runs a power that reads nothing hidden on its player\'s own projection, while another player holds a hand and a facedown adviser', () => {
+        const game = { ...buildGame(), status: GameStatus.Started, protectedInformation: true as const }
+        const board = testState(
+            [
+                testPlayer({ playerId: 'p1', status: PlayerStatus.Chancellor, siteId: 'c1', favor: 3, secrets: 3, supply: 2, advisers: [{ cardId: 'denizen.hearth.wayside-inn', faceUp: true }] }),
+                testPlayer({ playerId: 'p2', siteId: 'c1', handIds: [FILLER], advisers: [{ cardId: 'denizen.nomad.tents', faceUp: false }] })
+            ],
+            { machineState: MachineState.ActPhase, chancellorPlayerId: 'p1' }
+        )
+        openTurn(board, 'p1')
+        const state = canonical(board.dehydrate())
+        const inn = buildAction(UseActionPower, { playerId: 'p1', cardId: 'denizen.hearth.wayside-inn', powerIndex: powerIndexOf('denizen.hearth.wayside-inn', PowerTiming.Action), index: state.actionCount })
+        const result = engine.executeAction({ action: inn, state: OathRuntime.visibility.state.project(state, p1), game, perspective: p1 })
+        expect(result.processedActions[0].type).toBe(ActionType.UseActionPower)
     })
 
     it('keeps the Dispossessed from every client, and shows a Pilgrimage peek to the player who made it alone', () => {

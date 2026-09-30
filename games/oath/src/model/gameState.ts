@@ -7,7 +7,7 @@ import {
     Visibility,
     assertExists
 } from '@tabletop/common'
-import { KnownPositions, OathPlayerState, HydratedOathPlayerState } from './playerState.js'
+import { TablePositions, OathPlayerState, HydratedOathPlayerState } from './playerState.js'
 import * as Type from 'typebox'
 import { PowerUse } from './powerUse.js'
 import { IMPERIAL_WARBANDS, WarbandCounts, type WarbandOwner } from './warbandCounts.js'
@@ -103,8 +103,10 @@ export const OathGameState = Type.Object({
     discardPileCounts: Type.Record(Type.Enum(Region), Type.Number()),
     /** R-9.4 — backs are public. Never written in `commitHiddenOutputs`: clients replay `apply()`. */
     discardTopBackType: Type.Record(Type.Enum(Region), Type.Optional(Type.Enum(CardKind))),
-    /** Cards the whole table saw go onto each pile, by position from its bottom (`util/knowledge.ts`). */
-    seenDiscardPiles: Type.Record(Type.Enum(Region), KnownPositions),
+    /** What the whole table saw go onto each pile, by position from its bottom (`util/knowledge.ts`). */
+    seenDiscardPiles: Type.Record(Type.Enum(Region), TablePositions),
+    /** Cracked Horn with Truthful Harp — what the whole table saw go under the world deck. */
+    seenWorldDeckBottom: TablePositions,
     /** R-5.1.4.IV — out of play for this game only; the Chronicle carries no box (R-8.5, R-8.8). */
     boxIds: Type.Array(Type.String()),
 
@@ -177,7 +179,8 @@ export class HydratedOathGameState
     declare visionsDrawn: number
     declare discardPileCounts: Record<Region, number>
     declare discardTopBackType: Partial<Record<Region, CardKind>>
-    declare seenDiscardPiles: Record<Region, KnownPositions>
+    declare seenDiscardPiles: Record<Region, TablePositions>
+    declare seenWorldDeckBottom: TablePositions
     declare boxIds: string[]
     declare oathType: OathType
     declare oathkeeperPlayerId?: string

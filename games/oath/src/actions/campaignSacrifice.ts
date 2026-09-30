@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext, assertExists } from '@tab
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PileDeposit } from '../model/hidden.js'
 import { commitHiddenOutputs, showTakenSiteRelics } from '../util/hiddenInputs.js'
-import { discardWitnesses } from '../util/knowledge.js'
+import { tableWitnesses } from '../util/knowledge.js'
 import {
     killOrRedirect,
     partiesOf,
@@ -90,7 +90,7 @@ export class HydratedCampaignSacrifice
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
-        const witnesses = discardWitnesses(state)
+        const witnesses = tableWitnesses(state)
         this.revealsInfo = false
         const reason = HydratedCampaignSacrifice.reasonCannotResolve(state, this.playerId, this)
         if (reason) {

@@ -5,7 +5,7 @@ import {
     type OathProjectedState
 } from '../model/gameState.js'
 import type { OathVault } from '../model/vault.js'
-import type { KnownPositions } from '../model/playerState.js'
+import type { KnownPositions, TablePositions } from '../model/playerState.js'
 import { CardKind, Region, SetupVariant, Suit } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { cardIdsOfKind, isVision, kindOf, suitOf } from '../data/cardRegistry.js'
@@ -76,6 +76,7 @@ export function populateHiddenCards(
                 player.peekedSites ?? seenAtSlots(player.peekedSiteSlotIds, vault.siteFacedown),
             knownWorldDeckTop: player.knownWorldDeckTop ?? [],
             knownDiscardPiles: player.knownDiscardPiles ?? noKnownDiscardPiles(),
+            knownWorldDeckBottom: player.knownWorldDeckBottom ?? [],
             knownRelicDeckBottom: player.knownRelicDeckBottom ?? []
         }))
     }
@@ -154,6 +155,57 @@ function mergedPositions(lists: readonly KnownPositions[]): KnownPositions {
     return Array.from(merged, (cardId) => cardId ?? null)
 }
 
+/** Every card a record places, singly or as one of a set. */
+function cardsIn(positions: TablePositions): string[] {
+    return positions.flatMap((entry) =>
+        entry === null ? [] : typeof entry === 'string' ? [entry] : entry.among
+    )
+}
+
+/**
+ * A stack's remembered positions from its bottom: each card the table or a player named, and each
+ * set the table saw dealt among its own positions in an order the explorer never saw.
+ */
+function rememberedPositions(
+    table: TablePositions,
+    lists: readonly KnownPositions[],
+    random: RandomFunction,
+    top?: { fromBottom: number; back: CardKind | undefined }
+): (string | null)[] {
+    const named = mergedPositions([
+        table.map((entry) => (typeof entry === 'string' ? entry : null)),
+        ...lists
+    ])
+    const positions: (string | null)[] = Array.from(
+        { length: Math.max(named.length, table.length) },
+        (_, index) => named[index] ?? null
+    )
+    const sets = new Map<string, { among: string[]; at: number[] }>()
+    for (const [index, entry] of table.entries()) {
+        if (entry === null || typeof entry === 'string' || positions[index] !== null) continue
+        const key = [...entry.among].sort().join(',')
+        const set = sets.get(key) ?? { among: entry.among, at: [] }
+        set.at.push(index)
+        sets.set(key, set)
+    }
+    for (const { among, at } of sets.values()) {
+        const left = shuffled(
+            among.filter((cardId) => !positions.includes(cardId)),
+            random
+        )
+        assert(left.length === at.length, 'A set the table saw does not fit the places it holds')
+        // R-9.4 — the pile's top back is public, so the card dealt on top shows it.
+        if (top?.back !== undefined && at.includes(top.fromBottom)) {
+            const showing = left.findIndex((cardId) => kindOf(cardId) === top.back)
+            assert(showing >= 0, 'A set the table saw has no card with the public top back')
+            positions[top.fromBottom] = left.splice(showing, 1)[0]
+            at.splice(at.indexOf(top.fromBottom), 1)
+        }
+        for (const [index, position] of at.entries()) positions[position] = left[index]
+    }
+    return positions
+}
+
 function namedWorldCards(
     state: OathProjectedState,
     questions: readonly ProjectedQuestion[]
@@ -161,9 +213,7 @@ function namedWorldCards(
     const named = new Set<string>([
         ...Object.values(state.denizensBySite).flat(),
         ...state.boxIds,
-        ...Object.values(state.seenDiscardPiles).flatMap((pile) =>
-            pile.flatMap((cardId) => (cardId === null ? [] : [cardId]))
-        )
+        ...[...Object.values(state.seenDiscardPiles), state.seenWorldDeckBottom].flatMap(cardsIn)
     ])
     for (const player of state.players) {
         for (const row of player.advisers) {
@@ -174,8 +224,11 @@ function namedWorldCards(
             named.add(cardId)
         if (player.revealedVisionId) named.add(player.revealedVisionId)
         for (const cardId of player.knownWorldDeckTop ?? []) named.add(cardId)
-        for (const pile of Object.values(player.knownDiscardPiles ?? noKnownDiscardPiles()))
-            for (const cardId of pile) if (cardId !== null) named.add(cardId)
+        for (const pile of [
+            ...Object.values(player.knownDiscardPiles ?? noKnownDiscardPiles()),
+            player.knownWorldDeckBottom ?? []
+        ])
+            for (const cardId of cardsIn(pile)) named.add(cardId)
     }
     for (const question of questions) {
         if (question.kind === PowerQuestionKind.OrderDiscards)
@@ -250,10 +303,12 @@ function dealWorldCards(
     const piles = new Map<Region, (string | undefined)[]>()
     for (const region of Object.values(Region)) {
         const count = state.discardPileCounts[region]
-        const known = mergedPositions([
+        const known = rememberedPositions(
             state.seenDiscardPiles[region],
-            ...state.players.map((player) => player.knownDiscardPiles?.[region] ?? [])
-        ])
+            state.players.map((player) => player.knownDiscardPiles?.[region] ?? []),
+            random,
+            { fromBottom: count - 1, back: state.discardTopBackType[region] }
+        )
         assert(known.length <= count, `More of the ${region} pile is known than it holds`)
         const pile = Array.from(
             { length: count },
@@ -268,11 +323,20 @@ function dealWorldCards(
                 })
     }
 
+    // Cracked Horn — the cards known under the deck, bottom first; an unknown one among them is dealt.
+    const bottom = rememberedPositions(
+        state.seenWorldDeckBottom,
+        state.players.map((player) => player.knownWorldDeckBottom ?? []),
+        random
+    ).map((cardId) => cardId ?? undefined)
+    for (const [index, cardId] of bottom.entries())
+        if (cardId === undefined) slots.push({ fill: (dealt) => (bottom[index] = dealt) })
+
     // R-2.7.1 — every Vision drawn so far moved the track, so the rest are still in the deck.
     const knownTop = longestTop(state.players.map((player) => player.knownWorldDeckTop ?? []))
     const deckUnknown = visions.length + denizens.length - slots.length
     assert(deckUnknown >= 0, 'The hidden cards cannot fill every hidden place')
-    const size = knownTop.length + deckUnknown
+    const size = knownTop.length + deckUnknown + bottom.length
     assert(
         (size === 0) === state.worldDeckExhausted,
         'The world deck’s size disagrees with whether it is exhausted'
@@ -300,7 +364,10 @@ function dealWorldCards(
     const topMustBeDenizen = knownTop.length === 0 && state.topCardBackType === CardKind.Denizen
     const first = knownTop.length + (topMustBeDenizen ? 1 : 0)
     const drawnFromTop = Math.max(0, CARDS_IN_PLAY - setupDrawTotal(state.players.length) - size)
-    const reach = Math.min(size, Math.max(VISION_REACH - drawnFromTop, first + visionsInDeck))
+    const reach = Math.min(
+        size - bottom.length,
+        Math.max(VISION_REACH - drawnFromTop, first + visionsInDeck)
+    )
     const open = Array.from({ length: Math.max(0, reach - first) }, (_, i) => first + i)
     shuffle(open, random)
     const at = topMustBeVision ? [first, ...open.filter((position) => position !== first)] : open
@@ -312,6 +379,7 @@ function dealWorldCards(
     const worldDeck = [...knownTop, ...deckDenizens]
     for (const [index, position] of visionPositions.entries())
         worldDeck.splice(position, 0, deckVisions[index])
+    worldDeck.push(...bottom.map(dealtCard).reverse())
     return { worldDeck, discardPiles, hands, advisers, drawnForQuestions }
 }
 

@@ -11,6 +11,8 @@ import { PowerTiming, powersWithTiming } from '../data/cardPowers.js'
 import { INN, FILLER } from '../testing/cards.js'
 import {
     discardWitnesses,
+    putUnderWorldDeckKnown,
+    tableWitnesses,
     drawDiscardPile,
     drawRelicDeck,
     drawWorldDeck,
@@ -70,13 +72,13 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
         const s = table()
         seeDiscardPile(s, 'p1', Region.Cradle, [INN, TENTS])
         expect(s.getPlayerState('p1').knownDiscardPiles?.cradle).toEqual([null, TENTS, INN])
-        putOnDiscardPile(s, Region.Cradle, [ELDERS], false, () => 'p2')
+        putOnDiscardPile(s, Region.Cradle, [ELDERS], false, { witnessOf: () => 'p2' })
         expect(s.getPlayerState('p1').knownDiscardPiles?.cradle).toEqual([null, TENTS, INN])
         expect(s.getPlayerState('p2').knownDiscardPiles?.cradle).toEqual([null, null, null, ELDERS])
         expect(drawDiscardPile(s, Region.Cradle, 2, false)).toEqual([ELDERS, INN])
         expect(s.getPlayerState('p1').knownDiscardPiles?.cradle).toEqual([null, TENTS])
         expect(s.getPlayerState('p2').knownDiscardPiles?.cradle).toEqual([])
-        putOnDiscardPile(s, Region.Cradle, [ELDERS], true, () => 'p2')
+        putOnDiscardPile(s, Region.Cradle, [ELDERS], true, { witnessOf: () => 'p2' })
         expect(s.getPlayerState('p1').knownDiscardPiles?.cradle).toEqual([null, null, TENTS])
         expect(s.getPlayerState('p2').knownDiscardPiles?.cradle).toEqual([ELDERS])
         expect(drawDiscardPile(s, Region.Cradle, 2, true)).toEqual([ELDERS, WOLVES])
@@ -86,7 +88,7 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
 
     it('a card shown to the table is remembered by the table, and a hidden one by the player who put it there', () => {
         const s = table()
-        putOnDiscardPile(s, Region.Provinces, [WOLVES, ELDERS], false, (cardId) => (cardId === WOLVES ? 'everyone' : 'p1'))
+        putOnDiscardPile(s, Region.Provinces, [WOLVES, ELDERS], false, { witnessOf: (cardId: string) => (cardId === WOLVES ? 'everyone' : 'p1') })
         expect(s.requireVault().discardPiles.provinces).toEqual([ELDERS, WOLVES, RANGERS])
         expect(s.seenDiscardPiles.provinces).toEqual([null, WOLVES])
         expect(s.getPlayerState('p1').knownDiscardPiles?.provinces).toEqual([null, null, ELDERS])
@@ -102,11 +104,33 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
         s.denizensBySite = { c1: [WOLVES] }
         s.getPlayerState('p2').handIds = [RANGERS]
         s.getPlayerState('p2').handCount = 1
-        const witnesses = discardWitnesses(s)
+        const witnesses = discardWitnesses(s).byCard
         expect(witnesses.get(WOLVES)).toBe('everyone')
         expect(witnesses.get(RANGERS)).toBe('p2')
         expect(witnesses.get(FACEDOWN)).toBe('p1')
         expect(witnesses.get(INN)).toBeUndefined()
+    })
+
+    it('Truthful Harp — the table knows which cards went down but not their order; their player knows both', () => {
+        const s = table()
+        putOnDiscardPile(s, Region.Hinterland, [WOLVES, ELDERS], false, { witnessOf: () => 'p1', shownAsSet: new Set([WOLVES, ELDERS]) })
+        expect(s.getPlayerState('p1').knownDiscardPiles?.hinterland).toEqual([WOLVES, ELDERS])
+        expect(s.seenDiscardPiles.hinterland).toEqual([{ among: [WOLVES, ELDERS] }, { among: [WOLVES, ELDERS] }])
+        expect(s.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([])
+    })
+
+    it('a card no one can be named for is remembered by no one', () => {
+        const s = table()
+        putOnDiscardPile(s, Region.Hinterland, [WOLVES], false, { witnessOf: () => undefined })
+        expect(s.seenDiscardPiles.hinterland).toEqual([])
+        expect(s.players.map((player) => player.knownDiscardPiles?.hinterland)).toEqual([[], []])
+    })
+
+    it('the table snapshot reads public state only: no hand, no facedown adviser', () => {
+        const s = table()
+        s.denizensBySite = { c1: [WOLVES] }
+        expect([...tableWitnesses(s).byCard]).toEqual([[WOLVES, 'everyone']])
+        expect(tableWitnesses(s).holders).toBe(false)
     })
 
     it('Convoys — a pile moved onto another keeps what was seen, above the cards it now covers', () => {
@@ -119,6 +143,25 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
             provinces: [null, WOLVES, TENTS, INN],
             hinterland: []
         })
+    })
+})
+
+describe('the world deck’s bottom, as each player saw it (Cracked Horn)', () => {
+    it('lifts what was under it, keeps it through draws above, and drops it once a draw reaches it', () => {
+        const s = table()
+        const SCOUTS = 'denizen.order.scouts'
+        putUnderWorldDeckKnown(s, [TENTS], { witnessOf: () => 'p1' })
+        putUnderWorldDeckKnown(s, [ELDERS, SCOUTS], { witnessOf: () => 'p2' })
+        expect(s.requireVault().worldDeck).toEqual([INN, VISION, WOLVES, RANGERS, TENTS, ELDERS, SCOUTS])
+        expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([null, null, TENTS])
+        expect(s.getPlayerState('p2').knownWorldDeckBottom).toEqual([SCOUTS, ELDERS])
+        // R-5.1.2 — the draw stops on the Vision, well above the cards under the deck.
+        expect(drawWorldDeck(s, 4).drawn).toEqual([INN, VISION])
+        expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([null, null, TENTS])
+        expect(drawWorldDeck(s, 3).drawn).toEqual([WOLVES, RANGERS, TENTS])
+        expect(s.requireVault().worldDeck).toEqual([ELDERS, SCOUTS])
+        expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([])
+        expect(s.getPlayerState('p2').knownWorldDeckBottom).toEqual([SCOUTS, ELDERS])
     })
 })
 

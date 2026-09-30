@@ -9,6 +9,7 @@ import { PowerTiming, powerKey } from '../data/cardPowers.js'
 import { PowerChoice, type LegalPowerUse } from '../util/powerChoice.js'
 import { PowerUse } from '../model/powerUse.js'
 import {
+    hiddenRequestFor,
     isIrreversible,
     legalPowers,
     powerOutcomeOf,
@@ -16,7 +17,7 @@ import {
     usePower
 } from '../util/powerDoorway.js'
 import { commitHiddenOutputs, revealForPower } from '../util/hiddenInputs.js'
-import { discardWitnesses } from '../util/knowledge.js'
+import { discardWitnesses, tableWitnesses } from '../util/knowledge.js'
 import { holdsTheTurn } from '../util/turn.js'
 
 export type UseRestPowerMetadata = Type.Static<typeof UseRestPowerMetadata>
@@ -62,7 +63,6 @@ export class HydratedUseRestPower
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
-        const witnesses = discardWitnesses(state)
         const reason = HydratedUseRestPower.reasonCannotUse(
             state,
             this.playerId,
@@ -74,6 +74,12 @@ export class HydratedUseRestPower
             throw Error(`Cannot use rest power: ${reason}`)
         }
 
+        // Only a power that reads the vault runs on the host, where every holder can be read.
+        const witnesses =
+            hiddenRequestFor(state, this.playerId, this.cardId, this.powerIndex, this.choices) ===
+            undefined
+                ? tableWitnesses(state)
+                : discardWitnesses(state)
         const reveal = revealForPower(
             state,
             this.playerId,

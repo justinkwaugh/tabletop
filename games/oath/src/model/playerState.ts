@@ -40,6 +40,14 @@ export function handedOver(
 export type KnownPositions = Type.Static<typeof KnownPositions>
 export const KnownPositions = Type.Array(Type.Union([Type.String(), Type.Null()]))
 
+/** Truthful Harp — the table knows these cards lie here, in an order only their player saw. */
+export type SeenSet = Type.Static<typeof SeenSet>
+export const SeenSet = Type.Object({ among: Type.Array(Type.String(), { maxItems: 16 }) })
+
+/** What the whole table knows of a stack, by position: a card, one of a set, or `null`. */
+export type TablePositions = Type.Static<typeof TablePositions>
+export const TablePositions = Type.Array(Type.Union([Type.String(), Type.Null(), SeenSet]))
+
 /** Wild Allies, Captains — "as if your pawn is there". */
 export type CampaignAsIf = Type.Static<typeof CampaignAsIf>
 export const CampaignAsIf = Type.Object({ siteId: Type.String(), atAction: Type.Number() })
@@ -101,6 +109,8 @@ export const OathPlayerState = Type.Object({
     knownDiscardPiles: Visibility.protect(Type.Record(Type.Enum(Region), KnownPositions), {
         policy: Visibility.Policy.Owner
     }),
+    /** Cracked Horn — the cards this player saw go under the world deck, by position from its bottom. */
+    knownWorldDeckBottom: Visibility.protect(KnownPositions, { policy: Visibility.Policy.Owner }),
     /** Relics this player saw sent to the bottom of the relic deck, bottom last. */
     knownRelicDeckBottom: Visibility.protect(KnownPositions, { policy: Visibility.Policy.Owner }),
 
@@ -153,6 +163,7 @@ export class HydratedOathPlayerState
     declare peekedSites?: Record<string, string>
     declare knownWorldDeckTop?: string[]
     declare knownDiscardPiles?: Record<Region, KnownPositions>
+    declare knownWorldDeckBottom?: KnownPositions
     declare knownRelicDeckBottom?: KnownPositions
     declare homelandUsedThisTurn: string[]
     declare restPowersUsedThisTurn: string[]

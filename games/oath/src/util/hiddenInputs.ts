@@ -3,7 +3,6 @@ import type { HydratedOathGameState } from '../model/gameState.js'
 import {
     exchangeWithDispossessed,
     peekDiscard,
-    putUnderWorldDeck,
     topBackType,
     type OathVault
 } from '../model/vault.js'
@@ -12,8 +11,10 @@ import {
     drawWorldDeckVision,
     mergeDiscardPileOnto,
     putOnDiscardPile,
+    putUnderWorldDeckKnown,
     sendRelicToBottom,
-    type Witness
+    type Deposit,
+    type DiscardWitnesses
 } from './knowledge.js'
 import type { SearchResolve } from '../actions/searchResolve.js'
 import type { PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
@@ -167,25 +168,23 @@ export function revealForPlay(
 export function commitHiddenOutputs(
     action: HiddenOutputAction,
     state: HydratedOathGameState,
-    witnesses: ReadonlyMap<string, Witness>
+    witnesses: DiscardWitnesses
 ): void {
     const vault = state.requireVault()
-    // A card this action drew out of concealment, or one no one else could see, is its actor's alone.
+    // A card this action drew out of concealment, or, once every holder is known, one no one else
+    // could see, is its actor's alone; without the holders, such a card is remembered by no one.
     const drawn = new Set(revealedCardIds(action))
-    const witnessOf = (cardId: string): Witness =>
-        drawn.has(cardId) ? action.playerId : (witnesses.get(cardId) ?? action.playerId)
+    const fallback = witnesses.holders ? action.playerId : undefined
+    const deposit: Deposit = {
+        witnessOf: (cardId) =>
+            drawn.has(cardId) ? action.playerId : (witnesses.byCard.get(cardId) ?? fallback)
+    }
     switch (action.type) {
         case ActionType.UseActionPower:
         case ActionType.UseRestPower:
             // The Map sends itself down, a relic its holder showed everyone.
             if (action.metadata)
-                commitPowerOutcome(
-                    state,
-                    action.playerId,
-                    action.metadata,
-                    witnessOf,
-                    action.cardId
-                )
+                commitPowerOutcome(state, action.playerId, action.metadata, deposit, action.cardId)
             return
         case ActionType.AnswerQuestion: {
             const bottomed = action.metadata?.relicToDeckBottom
@@ -198,43 +197,56 @@ export function commitHiddenOutputs(
                 )
             if (action.metadata?.relicTakenFromSlotId)
                 delete vault.relicFacedown[action.metadata.relicTakenFromSlotId]
-            discardRecorded(state, action.metadata, witnessOf)
-            depositOnPiles(state, action.metadata?.pileDeposits, witnessOf)
+            discardRecorded(state, action.metadata, deposit)
+            depositOnPiles(state, action.metadata?.pileDeposits, deposit)
             return
         }
         case ActionType.CampaignSacrifice:
         case ActionType.CampaignDefeatKills:
-            depositOnPiles(state, action.metadata?.pileDeposits, witnessOf)
+            depositOnPiles(state, action.metadata?.pileDeposits, deposit)
             return
         case ActionType.CampaignResolveVictory:
             for (const id of action.metadata?.relicsToDeckBottom ?? [])
                 sendRelicToBottom(state, id, [action.playerId])
-            depositOnPiles(state, action.metadata?.pileDeposits, witnessOf)
+            depositOnPiles(state, action.metadata?.pileDeposits, deposit)
             return
         case ActionType.SearchResolve:
             if (!action.metadata) return
-            if (action.metadata.discardToWorldDeck === true)
-                putUnderWorldDeck(vault, action.metadata.discardedCardIds)
-            else
-                putOnDiscardPile(
-                    state,
-                    action.metadata.discardPileRegion,
-                    action.metadata.discardedCardIds,
-                    action.metadata.discardToBottom === true,
-                    witnessOf
-                )
-            commitPowerOutcome(state, action.playerId, action.metadata, witnessOf)
+            {
+                // Truthful Harp — the table saw the cards drawn, so it knows which went down, not their order.
+                const discards: Deposit =
+                    action.metadata.revealedKeptCardId === undefined
+                        ? deposit
+                        : {
+                              ...deposit,
+                              shownAsSet: new Set([
+                                  ...action.discardOrder,
+                                  action.metadata.revealedKeptCardId
+                              ])
+                          }
+                if (action.metadata.discardToWorldDeck === true)
+                    putUnderWorldDeckKnown(state, action.metadata.discardedCardIds, discards)
+                else
+                    putOnDiscardPile(
+                        state,
+                        action.metadata.discardPileRegion,
+                        action.metadata.discardedCardIds,
+                        action.metadata.discardToBottom === true,
+                        discards
+                    )
+            }
+            commitPowerOutcome(state, action.playerId, action.metadata, deposit)
             return
         case ActionType.PlayFacedownAdviser:
             if (!action.metadata) return
-            discardRecorded(state, action.metadata, witnessOf)
-            commitPowerOutcome(state, action.playerId, action.metadata, witnessOf)
+            discardRecorded(state, action.metadata, deposit)
+            commitPowerOutcome(state, action.playerId, action.metadata, deposit)
             return
         case ActionType.SetupChoice:
-            discardRecorded(state, action.metadata, witnessOf)
+            discardRecorded(state, action.metadata, deposit)
             return
         case ActionType.ResolveCitizenshipOffer:
-            discardRecorded(state, action.metadata?.outcome, witnessOf)
+            discardRecorded(state, action.metadata?.outcome, deposit)
             return
     }
 }
@@ -266,7 +278,7 @@ interface RecordedDiscard {
 function discardRecorded(
     state: HydratedOathGameState,
     recorded: RecordedDiscard | undefined,
-    witnessOf: (cardId: string) => Witness
+    deposit: Deposit
 ) {
     if (recorded?.discardPileRegion && recorded.discardedCardIds)
         putOnDiscardPile(
@@ -274,7 +286,7 @@ function discardRecorded(
             recorded.discardPileRegion,
             recorded.discardedCardIds,
             false,
-            witnessOf
+            deposit
         )
 }
 
@@ -282,7 +294,7 @@ function commitPowerOutcome(
     state: HydratedOathGameState,
     playerId: string,
     outcome: PowerOutcome,
-    witnessOf: (cardId: string) => Witness,
+    deposit: Deposit,
     sourceCardId?: string
 ) {
     const vault = state.requireVault()
@@ -299,16 +311,16 @@ function commitPowerOutcome(
     }
     if (outcome.mergePiles)
         mergeDiscardPileOnto(state, outcome.mergePiles.from, outcome.mergePiles.to)
-    depositOnPiles(state, outcome.pileDeposits, witnessOf)
+    depositOnPiles(state, outcome.pileDeposits, deposit)
 }
 
 function depositOnPiles(
     state: HydratedOathGameState,
     deposits: readonly PileDeposit[] | undefined,
-    witnessOf: (cardId: string) => Witness
+    deposit: Deposit
 ) {
-    for (const deposit of deposits ?? [])
-        putOnDiscardPile(state, deposit.region, deposit.cardIds, deposit.bottom === true, witnessOf)
+    for (const pile of deposits ?? [])
+        putOnDiscardPile(state, pile.region, pile.cardIds, pile.bottom === true, deposit)
 }
 
 /** R-9.4 */
