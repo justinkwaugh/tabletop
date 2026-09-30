@@ -16,7 +16,7 @@
 
 <div class="space-y-2">
     {#each orderedPlayers as playerState (playerState.playerId)}
-        <div animate:flip={{ duration: 320, easing: cubicOut }}>
+        <div animate:flip={{ duration: gameSession.flipPlayerOrder ? 320 : 0, easing: cubicOut }}>
             <PlayerState {playerState} score={scores[playerState.playerId]} />
         </div>
     {/each}

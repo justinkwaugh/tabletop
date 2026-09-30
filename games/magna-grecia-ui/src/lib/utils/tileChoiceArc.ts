@@ -1,11 +1,11 @@
-import type { Point } from '@tabletop/common'
+import type { Point, RectangleDimensions } from '@tabletop/common'
 
 export type TileChoiceArcInput = {
     center: Point
     count: number
     radius: number
     choiceSize: number
-    bounds: { width: number; height: number }
+    bounds: RectangleDimensions
 }
 
 const DIRECTIONS = [-Math.PI / 2, Math.PI / 2, Math.PI, 0]

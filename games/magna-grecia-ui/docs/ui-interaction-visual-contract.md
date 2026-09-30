@@ -27,6 +27,12 @@
 | `roadRotation` | Which legal orientation is previewed | Widget (click preview to rotate)                                                                | Tile laying widget                     | Reset whenever the space or shape changes                                               | Taken modulo the shape's legal orientations       |
 | `resupplyOpen` | Resupply picker visible (suspends the build tool) | Action panel                                                                                    | Action panel, header Back              | Cleared like `roadSpace`                                                                | Picker hidden when the allowance is 0               |
 
+`roadSpace`, `roadShape`, `roadRotation` and `resupplyOpen` all live in one turn draft (`model/turnDraft.ts`), built on the shared staged-selection helpers: the space and a manually chosen shape are manual stages, an auto-selected shape is derived and never stored, and Back pops the highest manual stage.
+
+| State             | Meaning                                   | Producer                                                                                   | Consumers     | Lifetime                                   | Validity |
+| ----------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------ | ------------- | ------------------------------------------ | -------- |
+| `flipPlayerOrder` | Whether the player list may slide into its new order | Session: true only when the state change passed through `onGameStateChange`; set in `beforeNewState` | Players panel | Recomputed before every published state | Silent history swaps never call the listener, so they reorder instantly |
+
 In History View and for inactive players `canAct` is false, so no tool, target, picker or tile laying widget is shown.
 
 ## Render ownership
@@ -41,7 +47,7 @@ In History View and for inactive players `canAct` is false, so no tool, target, 
 
 ## Verification scenarios
 
-All scenarios were exercised manually in the single-game harness with Playwright, except scenario 2, which was rewritten for the tile laying widget and still needs a manual pass.
+Scenarios 1 and 4–6 were exercised manually in the single-game harness with Playwright. Scenario 2 and the mode and Back paths of scenario 3 are automated in `tests/turnControls.spec.ts`; confirming a resupply and scenarios 7–9 still need a manual pass.
 
 1. **Claim start and Undo.**
     - Start: a new 4-player game.
@@ -54,11 +60,12 @@ All scenarios were exercised manually in the single-game harness with Playwright
     - Expected: straight and curved tiles fan out beside the space. Choosing curved moves it onto the space; clicking it steps through its legal orientations; ✓ places the road and closes the widget.
     - Cancel: ✕, or Back with no shape chosen, closes the widget without placing anything; Back with a shape chosen returns to the arc.
     - Replacement: choosing another tool or another road space while the widget is open closes it or moves it there.
+    - Publish: the state published by ✓ closes the widget.
 3. **Resupply picker.**
     - Input: open Resupply, step roads and cities, then confirm.
     - Expected: supply and staging counts update and the picker closes.
     - Cancel: Back closes the picker without moving tiles.
-    - Mode: while the picker is open no tool button is highlighted and no board space pulses; choosing Roads or Cities closes it.
+    - Mode: while the picker is open no tool button is highlighted and no board space pulses; choosing Roads or Cities closes it, and closing it with its button or Back restores the previously chosen tool.
 4. **Market targets.**
     - Input: choose Build market.
     - Expected: price tags appear on eligible villages and rival cities, and clicking one builds the market and passes the turn.
@@ -70,3 +77,15 @@ All scenarios were exercised manually in the single-game harness with Playwright
 6. **Game end.**
     - Input: play to the end.
     - Expected: the end panel lists winners with points, markets, oracles and totals, and no targets remain.
+7. **Pending founding.**
+    - Start: a new game with a card that allows at least two cities.
+    - Input: choose Cities and click a dotted plain space that founds a city away from a village.
+    - Expected: only spaces that extend the new city toward a village it can legally cover are targeted, the tool buttons disappear and the prompt asks the player to keep building; covering the village places the founding market and restores the tool buttons.
+8. **Sell market.**
+    - Start: the player owns an active market.
+    - Input: choose Sell market.
+    - Expected: a +n price tag appears on each place holding one of the player's active markets, including a market worth 0; clicking one lays the market on its side and passes the turn.
+9. **Silent history replay.**
+    - Start: a game at least one round past a round whose card changed the turn order.
+    - Input: click an action from the earlier round in the history list to replay it.
+    - Expected: the player list switches order instantly when the replay starts and ends; it only slides when a live or stepped state change reorders it.
