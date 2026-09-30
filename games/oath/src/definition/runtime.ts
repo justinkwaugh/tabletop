@@ -12,6 +12,7 @@ import { OathStateHandlers } from './stateHandlers.js'
 import { OathColors } from './colors.js'
 import { OathVisibilityPolicies } from '../model/question.js'
 import { OathGameExploration } from './gameExploration.js'
+import { OathScoring } from './scoring.js'
 // Registers every built card power wherever the runtime loads.
 import '../powers/index.js'
 
@@ -25,6 +26,7 @@ export const OathRuntime = {
     apiActions: OathApiActions,
     playerColors: OathColors,
     stateLogger: new DefaultStateLogger(),
+    scoring: new OathScoring(),
     visibility: {
         state: Visibility.createProjector(OathGameState, { policies: OathVisibilityPolicies }),
         actions: Visibility.createActionProjector(OathApiActions, {
