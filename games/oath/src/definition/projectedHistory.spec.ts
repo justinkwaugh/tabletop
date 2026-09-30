@@ -18,10 +18,12 @@ import { LetPeek, LetPeekSubjectKind } from '../actions/letPeek.js'
 import { Search, SearchSource } from '../actions/search.js'
 import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { UseActionPower } from '../actions/useActionPower.js'
+import { modifierUse } from '../testing/choices.js'
 
 // R-9.4 — what each seat is sent, action by action, rebuilds the state it is shown.
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const DOWSING_STICKS = 'relic.dowsing-sticks'
+const HARP = 'relic.truthful-harp'
 
 function canonical(state: unknown): OathGameState {
     assert(OathGameStateValidator.Check(state), 'Expected complete canonical state')
@@ -138,6 +140,49 @@ describe('hydrating a projection', () => {
             const asked = perspective.kind === 'player' && perspective.playerId === chancellor
             expect(view.pendingQuestions?.queue[0]?.kind).toBe(PowerQuestionKind.KeepOrBottomRelic)
             expect(Object.hasOwn(view.pendingQuestions?.queue[0] ?? {}, 'relicCardId')).toBe(asked)
+        }
+    })
+})
+
+describe('Truthful Harp keeps the order of its discards to the searcher', () => {
+    it('two Searches that differ only in that order look the same to every other seat and a spectator, in state and in history', () => {
+        const { game, state: start, chancellor } = table()
+        const withHarp = structuredClone(start)
+        const deck = withHarp.vault.relicDeck
+        const at = deck.indexOf(HARP)
+        if (at >= 0) deck.splice(at, 1)
+        else {
+            const slotId = Object.keys(withHarp.vault.relicFacedown).find((id) => withHarp.vault.relicFacedown[id] === HARP)
+            assert(slotId !== undefined, 'Truthful Harp is somewhere in the vault')
+            const [replacement] = deck.splice(0, 1)
+            withHarp.vault.relicFacedown[slotId] = replacement
+            for (const player of withHarp.players) if (player.peekedRelics[slotId]) player.peekedRelics[slotId] = replacement
+        }
+        withHarp.players.find((player) => player.playerId === chancellor)?.relicIds.push(HARP)
+        // Denizens under the top card, so the draw runs its full length before any Vision stops it.
+        const [top, ...rest] = withHarp.vault.worldDeck
+        const next = rest.filter((cardId) => !cardId.startsWith('vision.')).slice(0, 5)
+        withHarp.vault.worldDeck = [top, ...next, ...rest.filter((cardId) => !next.includes(cardId))]
+        const execute = (action: GameAction, state: OathGameState) =>
+            engine.executeCanonicalAction({ action: { ...action, id: `h-${state.actionCount}`, index: state.actionCount }, state, game })
+        const searched = execute(buildAction(Search, { playerId: chancellor, drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(HARP)] }), canonical(withHarp))
+        const searching = canonical(searched.updatedState)
+        const hand = new HydratedOathGameState(searching).getPlayerState(chancellor).knownHand()
+        expect(hand.length).toBeGreaterThan(2)
+        const resolve = (discardOrder: string[]) =>
+            execute(buildAction(SearchResolve, { playerId: chancellor, keptCardId: hand[0], discardOrder, play: SearchPlay.Site }), searching)
+        const one = resolve(hand.slice(1))
+        const two = resolve(hand.slice(1).toReversed())
+        const oneState = canonical(one.updatedState)
+        const twoState = canonical(two.updatedState)
+        expect(oneState.vault.discardPiles).not.toEqual(twoState.vault.discardPiles)
+        const seen = (history: readonly GameAction[]) =>
+            history.map((action) => ({ type: action.type, metadata: Reflect.get(action, 'metadata'), forwardPatch: action.forwardPatch, undoPatch: action.undoPatch }))
+        for (const perspective of perspectivesOf(oneState).filter((p) => p.kind !== 'player' || p.playerId !== chancellor)) {
+            expect(project(oneState, perspective)).toEqual(project(twoState, perspective))
+            const historyOf = (currentState: OathGameState, actions: readonly GameAction[]) =>
+                Visibility.projectActionHistory({ game, currentState, startIndex: searching.actionCount, actions, visibility: OathRuntime.visibility, perspective, replay: { game, runtime: OathRuntime } }).actions
+            expect(seen(historyOf(oneState, one.processedActions))).toEqual(seen(historyOf(twoState, two.processedActions)))
         }
     })
 })

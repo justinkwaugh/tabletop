@@ -115,8 +115,12 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
         const s = table()
         putOnDiscardPile(s, Region.Hinterland, [WOLVES, ELDERS], false, { witnessOf: () => 'p1', shownAsSet: new Set([WOLVES, ELDERS]) })
         expect(s.getPlayerState('p1').knownDiscardPiles?.hinterland).toEqual([WOLVES, ELDERS])
-        expect(s.seenDiscardPiles.hinterland).toEqual([{ among: [WOLVES, ELDERS] }, { among: [WOLVES, ELDERS] }])
+        const set = { among: [WOLVES, ELDERS].toSorted() }
+        expect(s.seenDiscardPiles.hinterland).toEqual([set, set])
         expect(s.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([])
+        const other = table()
+        putOnDiscardPile(other, Region.Hinterland, [ELDERS, WOLVES], false, { witnessOf: () => 'p1', shownAsSet: new Set([WOLVES, ELDERS]) })
+        expect(other.seenDiscardPiles).toEqual(s.seenDiscardPiles)
     })
 
     it('a card no one can be named for is remembered by no one', () => {

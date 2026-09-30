@@ -261,7 +261,8 @@ function remember(
     positionOf: (index: number) => number,
     deposit: Deposit
 ) {
-    const set = cardIds.filter((cardId) => deposit.shownAsSet?.has(cardId))
+    // Sorted: the order the cards went down is their player's alone.
+    const set = cardIds.filter((cardId) => deposit.shownAsSet?.has(cardId)).toSorted()
     for (const [index, cardId] of cardIds.entries()) {
         const witness = deposit.witnessOf(cardId)
         if (witness !== undefined) {
