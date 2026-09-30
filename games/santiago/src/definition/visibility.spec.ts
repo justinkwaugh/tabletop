@@ -18,6 +18,7 @@ import { MachineState } from './states.js'
 import { SantiagoGameStateValidator, type SantiagoProjectedState } from '../model/gameState.js'
 import { isFieldSquare } from '../model/board.js'
 import { buildTileBag } from '../util/tileBag.js'
+import { validCanalPlacements } from '../util/placement.js'
 import { isPlaceBid } from '../actions/placeBid.js'
 import legacy from './tests/v2-continuation.json'
 import { nextAction } from './tests/autoplay.js'
@@ -86,6 +87,16 @@ function scenario(source = game, version = 3) {
             return result
         }
     }
+}
+
+// The host's rule for undoing an action (GameService.undoAction): every action from the target
+// onward must neither reveal information nor be another player's own move.
+function undoIsPermitted(actionsFromTarget: GameAction[], playerId: string): boolean {
+    return !actionsFromTarget.some(
+        (action) =>
+            action.revealsInfo ||
+            (action.source === ActionSource.User && action.playerId !== playerId)
+    )
 }
 
 describe('Santiago visibility', () => {
@@ -275,6 +286,42 @@ describe('Santiago visibility', () => {
         for (const action of s.actions) {
             expect(action.revealsInfo ?? false).toBe(action.type === ActionType.RevealTiles)
         }
+    })
+
+    it('keeps the last personal canal undoable across the round rollover until the tiles are revealed', () => {
+        const s = scenario()
+        while (s.state.machineState !== MachineState.ExtraIrrigation) s.act()
+        const builder = s.state.activePlayerIds[0]
+        const segment = validCanalPlacements(s.state.board)[0]
+        assert(segment, 'Extra irrigation requires a placeable segment')
+        const before = structuredClone(s.state)
+
+        const rollover = s.act({
+            ...nextAction(s.state, game.id),
+            type: ActionType.BuildCanal,
+            segment
+        }).processedActions
+        expect(rollover.map((action) => action.type)).toEqual([
+            ActionType.BuildCanal,
+            ActionType.EndRoundEvent
+        ])
+        expect(s.state.machineState).toBe(MachineState.TileReveal)
+        expect(s.state.round).toBe(before.round + 1)
+        expect(s.state.board.canals).toHaveLength(before.board.canals.length + 1)
+        expect(s.state.players.map((p) => p.money)).toEqual(
+            before.players.map((p) => (p.money ?? 0) + 3)
+        )
+        expect(undoIsPermitted(rollover, builder)).toBe(true)
+
+        let undone = s.state
+        for (const action of rollover.toReversed()) {
+            undone = engine.undoProcessedAction({ state: undone, action })
+        }
+        expect(undone).toEqual(before)
+
+        const reveal = s.act().processedActions[0]
+        expect(reveal.type).toBe(ActionType.RevealTiles)
+        expect(undoIsPermitted([...rollover, reveal], builder)).toBe(false)
     })
 
     it.each([3, 4, 5])('samples legal bags from public board tiles with %s players', (count) => {
