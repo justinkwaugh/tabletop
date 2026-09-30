@@ -32,7 +32,7 @@
     function servedWarbandImage(servingIds: string[]): string {
         const [firstId] = servingIds
         if (firstId === undefined) return banditWarbandImage()
-        return banditWarbandImage(gameState.getPlayerState(firstId).color)
+        return banditWarbandImage(gameSession.colors.getPlayerColor(firstId))
     }
 </script>
 
@@ -78,7 +78,7 @@
             {#each pieces.pawns as pawn (pawn.playerId)}
                 <span class="pawn-slot" title="{gameSession.getPlayerName(pawn.playerId)}'s pawn">
                     <img
-                        src={pawnImage(pawn.color)}
+                        src={pawnImage(gameSession.colors.getPlayerColor(pawn.playerId))}
                         alt=""
                         style="height:{PAWN_HEIGHT}px; width:auto;"
                     />

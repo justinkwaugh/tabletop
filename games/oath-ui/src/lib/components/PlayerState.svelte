@@ -34,7 +34,7 @@
     let isTurn = $derived(gameState.activePlayerIds.includes(player.id))
     let isMe = $derived(gameSession.myPlayer?.id === player.id)
     let status = $derived(playerState.status)
-    let color = $derived(playerState.color)
+    let color = $derived(gameSession.colors.getPlayerColor(player.id))
     let seatColor = $derived(gameSession.colors.getPlayerUiColor(player.id))
     let ground = $derived(boardGround(status, color))
 

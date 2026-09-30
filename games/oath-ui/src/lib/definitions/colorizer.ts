@@ -35,11 +35,13 @@ export const OATH_PLAYER_COLOR_PALETTE: PlayerColorPalette = Object.fromEntries(
 )
 
 export class OathGameColorizer extends DefaultColorizer {
-    // R-1.8, R-1.9 — a seat's colour is a rule fact, so a palette swap would part the seat from its pieces.
+    // R-1.8, R-1.9 — player boards are printed for the five Exile colours and the Chancellor alone,
+    // and purple is the Empire's, so a seat cannot be shown in another seat's colour.
     override allowPreferredPlayerColors(): boolean {
         return false
     }
 
+    // The pieces are traced art, one drawing per printed colour, so a palette of fills cannot redraw them.
     override supportsColorblindPalette(): boolean {
         return false
     }

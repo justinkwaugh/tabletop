@@ -28,7 +28,7 @@
         const onSite = sitePieces(gameState, slotId)
         const pawns = onSite.pawns.map((p) => ({
             name: gameSession.getPlayerName(p.playerId),
-            color: p.color
+            color: gameSession.colors.getPlayerColor(p.playerId)
         }))
         const cardId = gameState.siteCardAt(slotId)
         const tokens = cardId ? gameState.tokensOn(cardId) : { favor: 0, secrets: 0 }
@@ -170,7 +170,7 @@
                                     <img
                                         class="figure figure--pawn"
                                         src={pawnImage(pawn.color)}
-                                        alt="{pawn.color} pawn"
+                                        alt="{pawn.name}'s pawn"
                                     />
                                     {pawn.name}
                                 </span>
