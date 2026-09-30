@@ -1,5 +1,4 @@
 import path from 'node:path'
-import { STATIC_ROOT } from '../lib/staticRoot.js'
 import {
     AblyService,
     AblyTransport,
@@ -34,6 +33,7 @@ import {
     RedisService,
     ResendEmailService,
     SecretsService,
+    STATIC_ROOT,
     TaskService,
     TokenService,
     TournamentService,

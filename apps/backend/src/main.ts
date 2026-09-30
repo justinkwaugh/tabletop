@@ -30,7 +30,8 @@ try {
     health.listen({ port: 8081, host: '0.0.0.0' })
     await supervisor.start()
     if (!closing) {
-        const host = process.env['HOST'] ?? 'localhost'
+        // Not 'localhost', which can resolve to ::1 alone while the frontend proxy dials IPv4.
+        const host = process.env['HOST'] ?? '127.0.0.1'
         const port = Number(process.env['PORT'] ?? 3000)
         gateway.server.listen({ port, host }, () => console.log(`[ ready ] http://${host}:${port}`))
     }
