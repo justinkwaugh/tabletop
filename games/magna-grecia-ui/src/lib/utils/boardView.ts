@@ -31,10 +31,10 @@ export type ConnectionBadge = {
 }
 
 const MARKET_SLOTS: Point[] = [
-    { x: -19, y: 27 },
-    { x: -6.5, y: 30 },
-    { x: 6.5, y: 30 },
-    { x: 19, y: 27 }
+    { x: -32.5, y: 22 },
+    { x: -11, y: 27 },
+    { x: 11, y: 27 },
+    { x: 32.5, y: 22 }
 ]
 
 export function placeAnchor(place: Place): AxialCoordinates {
@@ -95,6 +95,6 @@ export function connectionBadges(board: HydratedBoard, network: Network): Connec
         .filter(({ count }) => count > 0)
         .map(({ place, count }) => {
             const center = placeCenter(place)
-            return { key: place.id, point: { x: center.x + 27, y: center.y - 30 }, count }
+            return { key: place.id, point: { x: center.x + 26, y: center.y - 29 }, count }
         })
 }

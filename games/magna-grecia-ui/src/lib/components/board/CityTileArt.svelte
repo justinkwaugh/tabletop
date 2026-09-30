@@ -1,5 +1,6 @@
 <script lang="ts">
     import { localHexPoints } from '$lib/utils/boardGeometry.js'
+    import { darken, lighten } from '$lib/utils/colorMix.js'
 
     let {
         color,
@@ -8,7 +9,9 @@
     }: { color: string; variant?: number; ghost?: boolean } = $props()
 
     const tileShape = localHexPoints(1.5)
-    const trimShape = localHexPoints(5.5)
+    const ground = $derived(lighten(color, 0.08))
+    const edge = $derived(darken(color, 0.5))
+    const roof = $derived(darken(color, 0.4))
 
     const HOUSE_LAYOUTS = [
         [
@@ -30,16 +33,7 @@
 </script>
 
 <g opacity={ghost ? 0.7 : 1}>
-    <polygon points={tileShape} fill="url(#mg-marble)" stroke="#8f8779" stroke-width="1.4"
-    ></polygon>
-    <polygon
-        points={trimShape}
-        fill="none"
-        stroke={color}
-        stroke-width="3.5"
-        stroke-linejoin="round"
-    ></polygon>
-    <ellipse cx="0" cy="4" rx="26" ry="22" fill="#e9e3d6" opacity="0.8"></ellipse>
+    <polygon points={tileShape} fill={ground} stroke={edge} stroke-width="3"></polygon>
     {#each houses as house, index (index)}
         <g transform="translate({house.x} {house.y})">
             <rect
@@ -48,8 +42,8 @@
                 width="12"
                 height="9"
                 rx="1"
-                fill="#fbf8f1"
-                stroke="#6d6457"
+                fill={color}
+                stroke={edge}
                 stroke-width="0.7"
             ></rect>
             <rect
@@ -58,14 +52,14 @@
                 width="13.6"
                 height="4.4"
                 rx="1"
-                fill={color}
+                fill={roof}
                 stroke="rgba(0,0,0,0.45)"
                 stroke-width="0.6"
             ></rect>
         </g>
     {/each}
     <g transform="translate(0 -3)">
-        <rect x="-13" y="6" width="26" height="4" fill="#d9d2c3" stroke="#6d6457" stroke-width="0.7"
+        <rect x="-13" y="6" width="26" height="4" fill="#fbf8f1" stroke="#6d6457" stroke-width="0.7"
         ></rect>
         <rect
             x="-11"
@@ -88,6 +82,5 @@
             stroke="rgba(0,0,0,0.45)"
             stroke-width="0.7"
         ></path>
-        <path d="M -9 -9.5 L 0 -14.5 L 9 -9.5 Z" fill="rgba(255,255,255,0.35)"></path>
     </g>
 </g>

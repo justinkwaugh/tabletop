@@ -78,12 +78,12 @@
 <g class="connection-badges" pointer-events="none">
     {#each badges as badge (badge.key)}
         <g transform="translate({badge.point.x} {badge.point.y})">
-            <circle r="9.5" fill="#fbf3dc" stroke="#6b3f1d" stroke-width="1.4"></circle>
+            <circle r="14.25" fill="#fbf3dc" stroke="#6b3f1d" stroke-width="2.1"></circle>
             <text
-                y="4"
+                y="6"
                 text-anchor="middle"
                 font-family="Georgia, 'Times New Roman', serif"
-                font-size="12"
+                font-size="18"
                 font-weight="700"
                 fill="#6b3f1d">{badge.count}</text
             >

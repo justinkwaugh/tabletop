@@ -5,8 +5,8 @@
 <svg width={size} height={size} viewBox="-14 -14 28 28" aria-hidden="true">
     <polygon
         points="0,-13 11.3,-6.5 11.3,6.5 0,13 -11.3,6.5 -11.3,-6.5"
-        fill="#3d4a5c"
-        stroke="#262f3b"
+        fill="#fbf9f4"
+        stroke="#8f8779"
         stroke-width="1"
     ></polygon>
     <g fill="#f7f3ea" stroke="#11161d" stroke-width="0.8" stroke-linejoin="round">

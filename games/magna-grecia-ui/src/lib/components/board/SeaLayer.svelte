@@ -6,7 +6,6 @@
     const bay = hexCenter(offsetToAxial({ row: 15, col: 5 }))
     const westSea = hexCenter(offsetToAxial({ row: 10, col: 0 }))
     const eastSea = hexCenter(offsetToAxial({ row: 12, col: 15 }))
-    const northWest = hexCenter(offsetToAxial({ row: 0, col: 0 }))
 
     const waves = Array.from({ length: 34 }, (_, index) => ({
         x: ((index * 373) % (BOARD_WIDTH - 80)) + 40,
@@ -24,22 +23,6 @@
                 d="M -14 0 q 3.5 -4 7 0 t 7 0 t 7 0 t 7 0"
             ></path>
         {/each}
-    </g>
-
-    <g transform="translate({northWest.x - 22} {northWest.y + 4})">
-        <circle r="30" fill="#1d5f78" opacity="0.55"></circle>
-        <circle r="30" fill="none" stroke="#e9d9a8" stroke-width="1.4" opacity="0.8"></circle>
-        <circle r="22" fill="none" stroke="#e9d9a8" stroke-width="0.8" opacity="0.6"></circle>
-        <path d="M 0 -27 L 5 0 L 0 27 L -5 0 Z" fill="#e9d9a8"></path>
-        <path d="M -27 0 L 0 5 L 27 0 L 0 -5 Z" fill="#c9b27a"></path>
-        <path d="M 0 -27 L 5 0 L 0 0 Z" fill="#b5462f"></path>
-        <text
-            y="-34"
-            text-anchor="middle"
-            font-family="Georgia, 'Times New Roman', serif"
-            font-size="12"
-            fill="#f4e7c2">N</text
-        >
     </g>
 
     <Trireme x={westSea.x - 40} y={westSea.y + 10} scale={0.9} />

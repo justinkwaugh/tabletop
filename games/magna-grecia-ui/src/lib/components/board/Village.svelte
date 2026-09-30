@@ -18,17 +18,17 @@
 <g class="village">
     {#if frontier}
         <polygon
-            points={localHexPoints(4)}
+            points={localHexPoints(5)}
             fill="none"
             stroke="#3f7d35"
-            stroke-width="4"
+            stroke-width="8"
             stroke-linejoin="round"
         ></polygon>
         <polygon
-            points={localHexPoints(4)}
+            points={localHexPoints(5)}
             fill="none"
             stroke="#8cc26b"
-            stroke-width="1.2"
+            stroke-width="2.2"
             stroke-linejoin="round"
         ></polygon>
     {/if}

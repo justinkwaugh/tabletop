@@ -7,17 +7,17 @@
     const trimShape = localHexPoints(6)
     const OUTLINE = '#11161d'
     const MARBLE = 'url(#mg-marble)'
-    const FLUTES = [-3.2, 0, 3.2]
+    const FLUTES = [-5, -1.7, 1.7, 5]
 
     const accent = $derived(attentionColor ?? MARBLE)
 </script>
 
 <g>
-    <polygon points={plinthShape} fill="#3d4a5c" stroke="#262f3b" stroke-width="1.4"></polygon>
+    <polygon points={plinthShape} fill="#fbf9f4" stroke="#8f8779" stroke-width="1.6"></polygon>
     <polygon
         points={trimShape}
         fill="none"
-        stroke="#8e9bb0"
+        stroke="#c9c2b4"
         stroke-width="1.5"
         stroke-dasharray="4 3"
         stroke-linejoin="round"
@@ -28,27 +28,16 @@
         stroke-linejoin="round"
         filter="url(#mg-tile-shadow)"
     >
-        <rect x="-31" y="-11" width="4" height="22" rx="0.8" fill={accent} stroke-width="1.4"
-        ></rect>
-        <rect x="-27" y="-8.5" width="4" height="17" rx="0.6" fill={MARBLE} stroke-width="1.2"
-        ></rect>
-        <rect x="-23" y="-6" width="27" height="12" fill={MARBLE} stroke-width="1.4"></rect>
+        <rect x="-32" y="-13" width="5" height="26" rx="1" fill={accent} stroke-width="1.6"></rect>
+        <rect x="-27" y="-11" width="4" height="22" fill={MARBLE} stroke-width="1.3"></rect>
+        <rect x="-23" y="-9" width="26" height="18" fill={MARBLE} stroke-width="1.6"></rect>
         {#each FLUTES as y (y)}
-            <line x1="-21" y1={y} x2="2" y2={y} stroke="#9a927f" stroke-width="1"></line>
+            <line x1="-21" y1={y} x2="2" y2={y} stroke="#9a927f" stroke-width="1.2"></line>
         {/each}
-        <rect x="4" y="-8.5" width="4" height="17" rx="0.6" fill={MARBLE} stroke-width="1.2"
-        ></rect>
-        <circle cx="6" cy="-9.5" r="2.6" fill={MARBLE} stroke-width="1.1"></circle>
-        <circle cx="6" cy="9.5" r="2.6" fill={MARBLE} stroke-width="1.1"></circle>
-        <rect x="8" y="-11" width="3" height="22" rx="0.6" fill={MARBLE} stroke-width="1.2"
-        ></rect>
-        <path d="M 11 -16 L 32 0 L 11 16 Z" fill={accent} stroke-width="1.8"></path>
-        <path
-            d="M 14 -9 L 25 0 L 14 9 Z"
-            fill="none"
-            stroke={OUTLINE}
-            stroke-opacity="0.45"
-            stroke-width="1"
-        ></path>
+        <rect x="3" y="-11" width="4" height="22" fill={MARBLE} stroke-width="1.3"></rect>
+        <circle cx="5" cy="-12" r="3" fill={MARBLE} stroke-width="1.2"></circle>
+        <circle cx="5" cy="12" r="3" fill={MARBLE} stroke-width="1.2"></circle>
+        <rect x="7" y="-13" width="4" height="26" rx="0.8" fill={MARBLE} stroke-width="1.3"></rect>
+        <path d="M 11 -21 L 33 0 L 11 21 Z" fill={accent} stroke-width="2"></path>
     </g>
 </g>
