@@ -50,7 +50,7 @@ export function populateHiddenCards(
         relicFacedown: relics.relicFacedown,
         relicDeck: relics.relicDeck,
         siteDeck: sites.siteDeck,
-        dispossessed: []
+        dispossessed: world.dispossessed
     }
     const adviserIdsOf = (playerId: string) => {
         const dealt = world.advisers.get(playerId)
@@ -89,8 +89,12 @@ export function populateHiddenCards(
             question.relicCardId = relics.drawnForQuestions.pop()
         if (question.kind === PowerQuestionKind.TakeOrLeaveRelic)
             question.relicCardId ??= vault.relicFacedown[question.slotId]
+        // Pilgrimage — when the table knows which cards wait, only their order is dealt.
         if (question.kind === PowerQuestionKind.OrderDrawnCards)
-            question.cardIds ??= world.drawnForQuestions.splice(0, question.cardCount)
+            question.cardIds ??=
+                question.among === undefined
+                    ? world.drawnForQuestions.splice(0, question.cardCount)
+                    : shuffled([...question.among], random)
     }
     assert(
         OathGameStateValidator.Check(result),
@@ -237,7 +241,7 @@ function namedWorldCards(
         if (question.kind === PowerQuestionKind.PlayOrDiscardVision)
             named.add(question.visionCardId)
         if (question.kind === PowerQuestionKind.OrderDrawnCards)
-            for (const cardId of question.cardIds ?? []) named.add(cardId)
+            for (const cardId of question.cardIds ?? question.among ?? []) named.add(cardId)
     }
     return named
 }
@@ -332,7 +336,6 @@ function dealWorldCards(
     shuffle(denizens, random)
     const hands = new Map<string, string[]>()
     const advisers = new Map<string, (string | undefined)[]>()
-    const drawnForQuestions: string[] = []
     const slots: Slot[] = []
 
     for (const player of state.players) {
@@ -356,10 +359,20 @@ function dealWorldCards(
                     })
         }
     }
+
+    const drawnForQuestions: string[] = []
     for (const question of questions)
-        if (question.kind === PowerQuestionKind.OrderDrawnCards && question.cardIds === undefined)
+        if (
+            question.kind === PowerQuestionKind.OrderDrawnCards &&
+            question.cardIds === undefined &&
+            question.among === undefined
+        )
             for (let i = 0; i < question.cardCount; i++)
                 slots.push({ fill: (cardId) => drawnForQuestions.push(cardId) })
+    // R-8.5 — the Dispossessed's cards are unknown to everyone; only its size shows.
+    const dispossessed: string[] = []
+    for (let i = 0; i < state.dispossessedCount; i++)
+        slots.push({ fill: (cardId) => dispossessed.push(cardId) })
 
     const piles = new Map<Region, (string | undefined)[]>()
     for (const region of Object.values(Region)) {
@@ -436,7 +449,7 @@ function dealWorldCards(
     for (const [index, position] of visionPositions.entries())
         worldDeck.splice(position, 0, deckVisions[index])
     worldDeck.push(...bottom.map(dealtCard).reverse())
-    return { worldDeck, discardPiles, hands, advisers, drawnForQuestions }
+    return { worldDeck, discardPiles, hands, advisers, drawnForQuestions, dispossessed }
 }
 
 function longestTop(lists: readonly string[][]): string[] {
@@ -478,6 +491,7 @@ function dealRelics(
         ...Object.values(relicFacedown),
         ...knownBottom.flatMap((cardId) => (cardId === null ? [] : [cardId]))
     ])
+    const drawnForQuestions: string[] = []
     for (const question of questions)
         if (
             (question.kind === PowerQuestionKind.KeepOrBottomRelic ||
@@ -496,7 +510,6 @@ function dealRelics(
         assertExists(relicCardId, `No relic is left for ${slotId}`)
         relicFacedown[slotId] = relicCardId
     }
-    const drawnForQuestions: string[] = []
     for (const question of questions)
         if (
             (question.kind === PowerQuestionKind.KeepOrBottomRelic ||

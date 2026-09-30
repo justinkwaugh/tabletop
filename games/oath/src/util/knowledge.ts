@@ -110,6 +110,8 @@ export type Witness = 'everyone' | string
 export interface DiscardWitnesses {
     byCard: ReadonlyMap<string, Witness>
     holders: boolean
+    /** Pilgrimage — cards the table knows as a set, but not in their order. */
+    sets: ReadonlySet<string>
 }
 
 /** What the table shows, read from public state alone, so a projection can take it too. */
@@ -128,7 +130,11 @@ export function tableWitnesses(state: HydratedOathGameState): DiscardWitnesses {
         // Inquisitor — the favor it keeps names the Conspiracy it found.
         if (question.kind === PowerQuestionKind.PlayOrDiscardConspiracy) shown.push(CONSPIRACY_ID)
     }
-    return { byCard: new Map(shown.map((cardId) => [cardId, 'everyone'])), holders: false }
+    const sets = new Set<string>()
+    for (const question of state.pendingQuestions?.queue ?? [])
+        if (question.kind === PowerQuestionKind.OrderDrawnCards)
+            for (const cardId of question.among ?? []) sets.add(cardId)
+    return { byCard: new Map(shown.map((cardId) => [cardId, 'everyone'])), holders: false, sets }
 }
 
 /** On the host: the table's cards, and every hand card and facedown adviser as its holder's. */
@@ -137,8 +143,9 @@ export function discardWitnesses(state: HydratedOathGameState): DiscardWitnesses
     for (const player of state.players)
         for (const cardId of [...player.knownHand(), ...player.facedownAdviserIds()])
             byCard.set(cardId, player.playerId)
-    for (const [cardId, witness] of tableWitnesses(state).byCard) byCard.set(cardId, witness)
-    return { byCard, holders: true }
+    const table = tableWitnesses(state)
+    for (const [cardId, witness] of table.byCard) byCard.set(cardId, witness)
+    return { byCard, holders: true, sets: table.sets }
 }
 
 interface RecordHolder {

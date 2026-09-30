@@ -175,9 +175,14 @@ export function commitHiddenOutputs(
     // could see, is its actor's alone; without the holders, such a card is remembered by no one.
     const drawn = new Set(revealedCardIds(action))
     const fallback = witnesses.holders ? action.playerId : undefined
+    // Pilgrimage from an empty Dispossessed — the table knows which cards, not their order.
+    const sets = new Set([...witnesses.sets, ...shownAsSets(action)])
     const deposit: Deposit = {
         witnessOf: (cardId) =>
-            drawn.has(cardId) ? action.playerId : (witnesses.byCard.get(cardId) ?? fallback)
+            drawn.has(cardId) || sets.has(cardId)
+                ? action.playerId
+                : (witnesses.byCard.get(cardId) ?? fallback),
+        shownAsSet: sets
     }
     switch (action.type) {
         case ActionType.UseActionPower:
@@ -220,6 +225,7 @@ export function commitHiddenOutputs(
                         : {
                               ...deposit,
                               shownAsSet: new Set([
+                                  ...sets,
                                   ...action.discardOrder,
                                   action.metadata.revealedKeptCardId
                               ])
@@ -262,6 +268,27 @@ function revealedCardIds(action: HiddenOutputAction): string[] {
     if (reveal?.kind === 'peek') return reveal.cardIds
     if (reveal?.kind === 'vision' && reveal.cardId !== undefined) return [reveal.cardId]
     return []
+}
+
+function shownAsSets(action: HiddenOutputAction): string[] {
+    const deposits = action.type === ActionType.SetupChoice ? [] : pileDepositsOf(action)
+    return deposits.flatMap((deposit) => (deposit.shownAsSet ? deposit.cardIds : []))
+}
+
+function pileDepositsOf(action: HiddenOutputAction): readonly PileDeposit[] {
+    switch (action.type) {
+        case ActionType.UseActionPower:
+        case ActionType.UseRestPower:
+        case ActionType.SearchResolve:
+        case ActionType.PlayFacedownAdviser:
+        case ActionType.AnswerQuestion:
+        case ActionType.CampaignSacrifice:
+        case ActionType.CampaignDefeatKills:
+        case ActionType.CampaignResolveVictory:
+            return action.metadata?.pileDeposits ?? []
+        default:
+            return []
+    }
 }
 
 function heldRelicAnswered(action: AnswerQuestion): string | undefined {

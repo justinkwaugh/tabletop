@@ -270,8 +270,13 @@ export const PowerQuestion = Type.Union([
         cardId: Type.String(),
         askedPlayerId: Type.String(),
         region: Type.Enum(Region),
-        /** How many cards wait to be stacked: the denizens that left the site, which everyone saw. */
+        /** How many cards wait to be stacked: as many as left the site. */
         cardCount: Type.Number(),
+        /**
+         * When the Dispossessed was empty, the cards drawn back are the denizens that left the site,
+         * which everyone saw: named here, sorted, since only their order is the asked player's.
+         */
+        among: Type.Optional(Type.Array(Type.String(), { maxItems: 16 })),
         cardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 16 }), {
             policy: AskedPlayerPolicy
         })

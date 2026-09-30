@@ -49,5 +49,7 @@ export const PileDeposit = Type.Object({
     cardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 64 }), {
         policy: Visibility.Policy.Actor
     }),
-    bottom: Type.Optional(Type.Boolean())
+    bottom: Type.Optional(Type.Boolean()),
+    /** The table knows which cards these are, but not their order (Pilgrimage from an empty Dispossessed). */
+    shownAsSet: Type.Optional(Type.Literal(true))
 })

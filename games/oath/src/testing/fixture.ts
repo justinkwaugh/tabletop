@@ -137,6 +137,7 @@ export function testState(
         discardTopBackType: {},
         seenDiscardPiles: noKnownDiscardPiles(),
         seenWorldDeckBottom: [],
+        dispossessedCount: 0,
         boxIds: [],
         siteCapacityOverrides: {},
         oathType: OathType.Supremacy,

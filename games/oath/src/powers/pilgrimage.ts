@@ -32,6 +32,8 @@ registerEffect(PILGRIMAGE, powerIndexOf(PILGRIMAGE, PowerTiming.WhenPlayed), {
             return { summary: `Pilgrimage: no denizens at ${siteId} could be moved` }
 
         const drawn = ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds : []
+        // R-9.4 — from an empty Dispossessed the cards drawn back are the ones everyone saw leave.
+        const seenLeaving = ctx.state.dispossessedCount === 0
         assert(
             drawn.length === leaving.length,
             `Pilgrimage moved ${leaving.length} denizens but the Dispossessed gave ${drawn.length}`
@@ -53,7 +55,7 @@ registerEffect(PILGRIMAGE, powerIndexOf(PILGRIMAGE, PowerTiming.WhenPlayed), {
                 pileDeposits: discardCards(ctx.state, ctx.playerId, drawn, region, {
                     region,
                     bottom: false
-                })
+                }).map((deposit) => (seenLeaving ? { ...deposit, shownAsSet: true } : deposit))
             }
         }
         // Law Glossary "Discard" — the player stacks the cards in the order they choose.
@@ -63,6 +65,7 @@ registerEffect(PILGRIMAGE, powerIndexOf(PILGRIMAGE, PowerTiming.WhenPlayed), {
             askedPlayerId: ctx.playerId,
             region,
             cardCount: drawn.length,
+            ...(seenLeaving ? { among: drawn.toSorted() } : {}),
             cardIds: drawn
         })
         return {

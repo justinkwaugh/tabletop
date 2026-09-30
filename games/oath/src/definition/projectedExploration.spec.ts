@@ -8,7 +8,7 @@ import { MachineState } from './states.js'
 import { HydratedOathGameState, OathGameStateValidator, type OathGameState } from '../model/gameState.js'
 import { CardKind, Region, SetupVariant } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
-import { kindOf } from '../data/cardRegistry.js'
+import { cardDefinition, kindOf } from '../data/cardRegistry.js'
 import { CARDS_IN_PLAY } from '../data/worldDeck.js'
 import { RELIC_DECK_IDS } from '../data/relics.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
@@ -18,6 +18,7 @@ import { ResolveWake } from '../actions/resolveWake.js'
 import { Search, SearchSource } from '../actions/search.js'
 import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { UseActionPower } from '../actions/useActionPower.js'
+import { AnswerQuestion } from '../actions/answerQuestion.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { modifierUse } from '../testing/choices.js'
 import { drawDiscardPile } from '../util/knowledge.js'
@@ -29,6 +30,7 @@ const ORACULAR_PIG = 'relic.oracular-pig'
 const BRASS_HORSE = 'relic.brass-horse'
 const TRUTHFUL_HARP = 'relic.truthful-harp'
 const CRACKED_HORN = 'relic.cracked-horn'
+const PILGRIMAGE = 'denizen.nomad.pilgrimage'
 
 function canonical(state: unknown): OathGameState {
     assert(OathGameStateValidator.Check(state), 'Expected complete canonical state')
@@ -345,6 +347,55 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
         const branch = explore(game, state, { kind: 'player', playerId: chancellor })
         const result = engine.runNext(buildAction(EndActPhase, { playerId: chancellor }), branch, game)
         expect(result.updatedState.machineState).not.toBe(MachineState.ActPhase)
+    })
+})
+
+// Pilgrimage is not in the Curated deck, so its case runs on a random one.
+describe('Exploration from a projection, around Pilgrimage', () => {
+    it('with a Pilgrimage waiting on its order, and after the cards are stacked', () => {
+        const setupVariant = SetupVariant.Randomized
+        const { game, state, chancellor } = started(setupVariant)
+        const staged = structuredClone(state)
+        const deck = staged.vault.worldDeck
+        // R-1.21 — nine nomads are in play: Pilgrimage takes the place of one deep in the deck, unless it is there already.
+        if (!worldCards(staged).includes(PILGRIMAGE))
+            deck.splice(deck.findLastIndex((id) => id.startsWith('denizen.nomad.')), 1, PILGRIMAGE)
+        expect(deck).toContain(PILGRIMAGE)
+        // Pilgrimage on top, a denizen back as before; two denizens from deep in the deck at the Chancellor's site.
+        const movable = (id: string) => kindOf(id) === CardKind.Denizen && id !== PILGRIMAGE && !cardDefinition(id)?.locked
+        const moved = [0, 1].map(() => deck.splice(deck.findLastIndex(movable), 1)[0])
+        deck.splice(deck.indexOf(PILGRIMAGE), 1)
+        deck.unshift(PILGRIMAGE)
+        const siteId = staged.players.find((player) => player.playerId === chancellor)?.siteId
+        assert(siteId !== undefined, 'the Chancellor has a pawn on the map')
+        staged.denizensBySite[siteId] = [...(staged.denizensBySite[siteId] ?? []), ...moved]
+        const searching = canonical(engine.runNext(buildAction(Search, { playerId: chancellor, drawFrom: SearchSource.WorldDeck, revealsInfo: true }), canonical(staged), game).updatedState)
+        const hand = new HydratedOathGameState(searching).getPlayerState(chancellor).knownHand()
+        expect(hand).toContain(PILGRIMAGE)
+        const resolvedRun = engine.runNext(buildAction(SearchResolve, {
+            playerId: chancellor,
+            keptCardId: PILGRIMAGE,
+            discardOrder: hand.filter((id) => id !== PILGRIMAGE),
+            play: SearchPlay.Adviser,
+            faceUp: true
+        }), searching, game)
+        const waiting = canonical(resolvedRun.updatedState)
+        const question = waiting.pendingQuestions?.queue[0]
+        assert(question?.kind === PowerQuestionKind.OrderDrawnCards, 'Pilgrimage waits on the order of its cards')
+        expect(question.among).toEqual(question.cardIds.toSorted())
+        expectExplorable(game, waiting, setupVariant)
+        for (const perspective of perspectives(waiting)) {
+            const branch = explore(game, waiting, perspective)
+            const dealt = branch.pendingQuestions?.queue[0]
+            assert(dealt?.kind === PowerQuestionKind.OrderDrawnCards, 'the branch keeps the question')
+            expect(dealt.cardIds.toSorted()).toEqual(question.among)
+        }
+        const stacked = canonical(engine.runNext(buildAction(AnswerQuestion, {
+            playerId: chancellor,
+            answer: { kind: PowerQuestionKind.OrderDrawnCards, order: question.cardIds.map((_, index) => index) }
+        }), waiting, game).updatedState)
+        expect(Object.values(stacked.seenDiscardPiles).flat().filter((entry) => entry !== null && typeof entry === 'object')).toHaveLength(question.cardIds.length)
+        expectExplorable(game, stacked, setupVariant)
     })
 })
 

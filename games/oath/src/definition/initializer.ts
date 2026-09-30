@@ -189,6 +189,7 @@ function seedRequiredFields(
         discardTopBackType: {},
         seenDiscardPiles: noKnownDiscardPiles(),
         seenWorldDeckBottom: [],
+        dispossessedCount: 0,
         boxIds: [],
         siteCapacityOverrides: {},
         oathType: OathType.Supremacy

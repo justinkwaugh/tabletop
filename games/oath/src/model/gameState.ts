@@ -107,6 +107,8 @@ export const OathGameState = Type.Object({
     seenDiscardPiles: Type.Record(Type.Enum(Region), TablePositions),
     /** Cracked Horn with Truthful Harp — what the whole table saw go under the world deck. */
     seenWorldDeckBottom: TablePositions,
+    /** R-8.5, R-9.4 — the Dispossessed lies facedown, so its size is public, not its cards. */
+    dispossessedCount: Type.Number(),
     /** R-5.1.4.IV — out of play for this game only; the Chronicle carries no box (R-8.5, R-8.8). */
     boxIds: Type.Array(Type.String()),
 
@@ -181,6 +183,7 @@ export class HydratedOathGameState
     declare discardTopBackType: Partial<Record<Region, CardKind>>
     declare seenDiscardPiles: Record<Region, TablePositions>
     declare seenWorldDeckBottom: TablePositions
+    declare dispossessedCount: number
     declare boxIds: string[]
     declare oathType: OathType
     declare oathkeeperPlayerId?: string

@@ -172,7 +172,7 @@ describe('the deposit itself', () => {
         const s = board()
         s.requireVault().discardPiles[Region.Hinterland] = [INN]
         const recorded = new HydratedUseActionPower(buildAction(UseActionPower, { playerId: ME, cardId: TAMING, powerIndex: powerIndexOf(TAMING, PowerTiming.Action), metadata: { summary: 'test', pileDeposits: [{ region: Region.Hinterland, cardIds: [WOLVES, TENTS], bottom: true }] } }))
-        commitHiddenOutputs(recorded, s, { byCard: new Map(), holders: true })
+        commitHiddenOutputs(recorded, s, { byCard: new Map(), holders: true, sets: new Set() })
         expect(s.requireVault().discardPiles[Region.Hinterland]).toEqual([INN, WOLVES, TENTS])
     })
 

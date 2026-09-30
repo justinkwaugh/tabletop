@@ -72,7 +72,8 @@ function pilgrimageBoard(atSite = ['denizen.hearth.wayside-inn']) {
             machineState: MachineState.Searching,
             chancellorPlayerId: 'p1',
             denizensBySite: { c1: atSite },
-            vault: { ...testVaultWithRelics({}), dispossessed: [...DISPOSSESSED] }
+            vault: { ...testVaultWithRelics({}), dispossessed: [...DISPOSSESSED] },
+            dispossessedCount: DISPOSSESSED.length
         }
     )
     openTurn(state, 'p1')

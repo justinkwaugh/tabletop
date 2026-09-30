@@ -14,7 +14,7 @@ import { effectFor, hasEffect } from './registry.js'
 import '../powers/index.js'
 import { buildAction } from '../testing/actions.js'
 import { INN, FILLER } from '../testing/cards.js'
-import { servedJson } from '../testing/projection.js'
+import { served, servedJson } from '../testing/projection.js'
 
 /** R-8.5, R-9.4 — the Dispossessed is in the vault. */
 const PILGRIMAGE = 'denizen.nomad.pilgrimage'
@@ -44,6 +44,7 @@ function board(denizens: Record<string, string[]> = {}, over: Record<string, Rec
     )
     openTurn(s, ME)
     s.requireVault().dispossessed = [...dispossessed]
+    s.dispossessedCount = dispossessed.length
     return s
 }
 
@@ -200,6 +201,29 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         expect(s.discardTopBackType?.[Region.Cradle]).toBe(CardKind.Denizen)
         expect(answer.metadata?.pileDeposits).toEqual([{ region: Region.Cradle, cardIds: drawn }])
         expect(answer.revealsInfo).toBe(true)
+    })
+
+    it('from an empty Dispossessed the table knows which cards come back, not their order: named on the question, and as a set once stacked', () => {
+        const s = board({}, {}, [])
+        const drawn = peekedBy(play(s))
+        expect(drawn.toSorted()).toEqual([WOLVES, INN].toSorted())
+        const question = s.pendingQuestions?.queue[0]
+        expect(question).toMatchObject({ kind: PowerQuestionKind.OrderDrawnCards, among: [WOLVES, INN].toSorted(), cardCount: 2 })
+        const seen = served(s, { kind: 'player', playerId: FOE }).pendingQuestions?.queue[0]
+        expect(seen).toMatchObject({ among: [WOLVES, INN].toSorted() })
+        expect(seen).not.toHaveProperty('cardIds')
+        stack(s, [1, 0])
+        const set = { among: [WOLVES, INN].toSorted() }
+        expect(s.seenDiscardPiles[Region.Cradle]).toEqual([set, set])
+        expect(s.getPlayerState(ME).knownDiscardPiles?.[Region.Cradle]).toEqual([drawn[1], drawn[0]])
+    })
+
+    it('from a Dispossessed holding other cards, the table learns nothing of what came back', () => {
+        const s = board()
+        play(s)
+        expect(s.pendingQuestions?.queue[0]).not.toHaveProperty('among')
+        stack(s, [1, 0])
+        expect(s.seenDiscardPiles[Region.Cradle]).toEqual([])
     })
 
     it('in an order of the player’s choice (Law Glossary "Discard"): the drawn cards wait, off the pile, on a question to the player', () => {
