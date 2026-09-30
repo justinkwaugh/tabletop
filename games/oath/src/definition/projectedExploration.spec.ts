@@ -177,7 +177,10 @@ function expectKnownKept(source: OathGameState, branch: OathGameState, perspecti
             for (const [fromBottom, entry] of known.entries()) {
                 const dealt = branch.vault.discardPiles[region][size - 1 - fromBottom]
                 if (typeof entry === 'string') expect(dealt).toBe(entry)
-                else if (entry !== null) expect(entry.among).toContain(dealt)
+                else if (entry !== null) {
+                    if ('among' in entry) expect(entry.among).toContain(dealt)
+                    if (entry.back !== undefined) expect(kindOf(dealt)).toBe(entry.back)
+                }
             }
     }
     const deck = branch.vault.worldDeck
@@ -190,7 +193,10 @@ function expectKnownKept(source: OathGameState, branch: OathGameState, perspecti
         for (const [fromBottom, entry] of known.entries()) {
             const dealt = deck[deck.length - 1 - fromBottom]
             if (typeof entry === 'string') expect(dealt).toBe(entry)
-            else if (entry !== null) expect(entry.among).toContain(dealt)
+            else if (entry !== null) {
+                if ('among' in entry) expect(entry.among).toContain(dealt)
+                if (entry.back !== undefined) expect(kindOf(dealt)).toBe(entry.back)
+            }
         }
     for (const [index, player] of source.players.entries()) {
         // Truthful Harp — a shown hand, and a facedown card the table saw go down, are everyone's.
@@ -300,7 +306,7 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
             discardOrder: hand.slice(1),
             play: SearchPlay.Discard
         }), searching, game).updatedState)
-        const sets = Object.values(resolved.seenDiscardPiles).flat().filter((entry) => entry !== null && typeof entry === 'object')
+        const sets = Object.values(resolved.seenDiscardPiles).flat().filter((entry) => entry !== null && typeof entry === 'object' && 'among' in entry)
         expect(sets.length).toBe(hand.length)
         expectExplorable(game, resolved, setupVariant)
 
@@ -342,7 +348,9 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
         const searcher = resolved.players.find((player) => player.playerId === chancellor)
         // Played as a discard, the kept card goes under with the rest.
         expect(searcher?.knownWorldDeckBottom.toSorted()).toEqual(hand.toSorted())
-        expect(resolved.seenWorldDeckBottom.length > 0 ? 1 : 0).toBe(table)
+        // Every back is the table's; which cards, only under Truthful Harp.
+        expect(resolved.seenWorldDeckBottom).toHaveLength(hand.length)
+        expect(resolved.seenWorldDeckBottom.filter((entry) => entry !== null && typeof entry === 'object' && 'among' in entry)).toHaveLength(table * hand.length)
         expectExplorable(game, resolved, setupVariant)
     })
 
@@ -359,7 +367,7 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
     it('after Brass Horse reveals the top of a discard pile to the table', () => {
         const { game, state, chancellor } = started(setupVariant)
         const revealed = usePower(game, giveRelic(state, chancellor, BRASS_HORSE), chancellor, BRASS_HORSE)
-        const seen = Object.values(revealed.seenDiscardPiles).flat().filter((id) => id !== null)
+        const seen = Object.values(revealed.seenDiscardPiles).flat().filter((id) => typeof id === 'string')
         expect(seen).toHaveLength(1)
         expectExplorable(game, revealed, setupVariant)
     })
@@ -431,7 +439,7 @@ describe('Exploration from a projection, around Pilgrimage', () => {
             playerId: chancellor,
             answer: { kind: PowerQuestionKind.OrderDrawnCards, order: question.cardIds.map((_, index) => index) }
         }), waiting, game).updatedState)
-        expect(Object.values(stacked.seenDiscardPiles).flat().filter((entry) => entry !== null && typeof entry === 'object')).toHaveLength(question.cardIds.length)
+        expect(Object.values(stacked.seenDiscardPiles).flat().filter((entry) => entry !== null && typeof entry === 'object' && 'among' in entry)).toHaveLength(question.cardIds.length)
         expectExplorable(game, stacked, setupVariant)
     })
 })

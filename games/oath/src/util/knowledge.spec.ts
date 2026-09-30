@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Color, assert, getPrng, type Visibility } from '@tabletop/common'
 import { OathGameStateValidator } from '../model/gameState.js'
-import { Region } from '../model/oathEnums.js'
+import { CardKind, Region } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { MachineState } from '../definition/states.js'
 import { createOathVault } from '../model/vault.js'
@@ -93,12 +93,13 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
         const s = table()
         putOnDiscardPile(s, Region.Provinces, [WOLVES, ELDERS], false, { witnessOf: (cardId: string) => (cardId === WOLVES ? 'everyone' : 'p1') })
         expect(s.requireVault().discardPiles.provinces).toEqual([ELDERS, WOLVES, RANGERS])
-        expect(s.seenDiscardPiles.provinces).toEqual([null, WOLVES])
+        // R-9.4 — the table saw the hidden card's back go down.
+        expect(s.seenDiscardPiles.provinces).toEqual([null, WOLVES, { back: CardKind.Denizen }])
         expect(s.getPlayerState('p1').knownDiscardPiles?.provinces).toEqual([null, null, ELDERS])
         expect(s.getPlayerState('p2').knownDiscardPiles?.provinces).toEqual([])
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
-        expect(OathRuntime.visibility.state.project(state, spectator).seenDiscardPiles.provinces).toEqual([null, WOLVES])
+        expect(OathRuntime.visibility.state.project(state, spectator).seenDiscardPiles.provinces).toEqual([null, WOLVES, { back: CardKind.Denizen }])
         expect(JSON.stringify(OathRuntime.visibility.state.project(state, spectator))).not.toContain(ELDERS)
     })
 
@@ -118,7 +119,7 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
         const s = table()
         putOnDiscardPile(s, Region.Hinterland, [WOLVES, ELDERS], false, { witnessOf: () => 'p1', shownAsSet: new Set([WOLVES, ELDERS]) })
         expect(s.getPlayerState('p1').knownDiscardPiles?.hinterland).toEqual([WOLVES, ELDERS])
-        const set = { among: [WOLVES, ELDERS].toSorted() }
+        const set = { among: [WOLVES, ELDERS].toSorted(), back: CardKind.Denizen }
         expect(s.seenDiscardPiles.hinterland).toEqual([set, set])
         expect(s.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([])
         const other = table()
@@ -126,10 +127,10 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
         expect(other.seenDiscardPiles).toEqual(s.seenDiscardPiles)
     })
 
-    it('a card no one can be named for is remembered by no one', () => {
+    it('a card no one can be named for is remembered by no one, though the table saw its back', () => {
         const s = table()
         putOnDiscardPile(s, Region.Hinterland, [WOLVES], false, { witnessOf: () => undefined })
-        expect(s.seenDiscardPiles.hinterland).toEqual([])
+        expect(s.seenDiscardPiles.hinterland).toEqual([{ back: CardKind.Denizen }])
         expect(s.players.map((player) => player.knownDiscardPiles?.hinterland)).toEqual([[], []])
     })
 
@@ -205,16 +206,27 @@ describe('a known relic drawn back out of the relic deck', () => {
 })
 
 describe('Oracle and what lies under the world deck', () => {
-    it('moves no record but its drawer\'s, since where the Vision lay is private', () => {
+    it('moves no record but its drawer\'s while a Vision may lie above what the table saw go under', () => {
+        const s = table()
+        s.requireVault().worldDeck = [INN, 'vision.people', WOLVES]
+        s.worldDeckVisions = 1
+        putUnderWorldDeckKnown(s, [VISION, TENTS], { witnessOf: () => 'p1', shownAsSet: new Set([VISION, TENTS]) })
+        const table_ = structuredClone(s.seenWorldDeckBottom)
+        expect(drawWorldDeckVision(s, 'p1')).toBe('vision.people')
+        expect(s.seenWorldDeckBottom).toEqual(table_)
+        expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([TENTS, VISION])
+    })
+
+    it('when every Vision left lies under the deck, everyone knows which one it took', () => {
         const s = table()
         s.requireVault().worldDeck = [INN, WOLVES]
         putUnderWorldDeckKnown(s, [VISION, TENTS], { witnessOf: () => 'p1', shownAsSet: new Set([VISION, TENTS]) })
-        const table_ = structuredClone(s.seenWorldDeckBottom)
+        expect(s.worldDeckVisions).toBe(1)
         expect(drawWorldDeckVision(s, 'p1')).toBe(VISION)
         expect(s.requireVault().worldDeck).toEqual([INN, WOLVES, TENTS])
-        expect(s.seenWorldDeckBottom).toEqual(table_)
-        expect(s.getPlayerState('p2').knownWorldDeckBottom).toEqual([])
+        expect(s.seenWorldDeckBottom).toEqual([{ among: [TENTS, VISION].toSorted(), back: CardKind.Denizen }])
         expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([TENTS])
+        expect(s.worldDeckVisions).toBe(0)
     })
 
     it('its drawer, who saw where the Vision lay, closes the gap it left under the cards above', () => {

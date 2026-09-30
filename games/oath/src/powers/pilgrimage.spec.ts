@@ -213,7 +213,7 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         expect(seen).toMatchObject({ among: [WOLVES, INN].toSorted() })
         expect(seen).not.toHaveProperty('cardIds')
         stack(s, [1, 0])
-        const set = { among: [WOLVES, INN].toSorted() }
+        const set = { among: [WOLVES, INN].toSorted(), back: CardKind.Denizen }
         expect(s.seenDiscardPiles[Region.Cradle]).toEqual([set, set])
         expect(s.getPlayerState(ME).knownDiscardPiles?.[Region.Cradle]).toEqual([drawn[1], drawn[0]])
     })
@@ -223,7 +223,8 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         play(s)
         expect(s.pendingQuestions?.queue[0]).not.toHaveProperty('among')
         stack(s, [1, 0])
-        expect(s.seenDiscardPiles[Region.Cradle]).toEqual([])
+        // Only the backs, which the table always sees.
+        expect(s.seenDiscardPiles[Region.Cradle]).toEqual([{ back: CardKind.Denizen }, { back: CardKind.Denizen }])
     })
 
     it('in an order of the player’s choice (Law Glossary "Discard"): the drawn cards wait, off the pile, on a question to the player', () => {

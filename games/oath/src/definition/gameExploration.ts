@@ -84,19 +84,25 @@ function knownBottomLength(state: HydratedOathGameState): number {
     )
 }
 
-/** R-9.4 — a discard pile's top back is public; a card a player has seen stays where it is. */
+/**
+ * R-9.4 — every back that went onto a pile was seen, so a card trades places only with one of its own
+ * back; a card a player has seen stays where it is.
+ */
 function withTopBackKept(
     pile: readonly string[],
     known: ReadonlySet<number>,
     random: RandomFunction
 ): string[] {
-    const free = pile.map((_, index) => index).filter((index) => !known.has(index))
-    const cards = free.map((index) => pile[index])
-    shuffle(cards, random)
     const reshuffled = [...pile]
-    for (const [at, index] of free.entries()) reshuffled[index] = cards[at]
-    if (known.has(0)) return reshuffled
-    return keepTopBack(pile, reshuffled, reshuffled.length, known)
+    for (const back of new Set(pile.map(kindOf))) {
+        const free = pile
+            .map((_, index) => index)
+            .filter((index) => !known.has(index) && kindOf(pile[index]) === back)
+        const cards = free.map((index) => pile[index])
+        shuffle(cards, random)
+        for (const [at, index] of free.entries()) reshuffled[index] = cards[at]
+    }
+    return reshuffled
 }
 
 // R-9.4 — the swap stays within `within` so a Vision never leaves R-8.8's reach.

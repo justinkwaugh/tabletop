@@ -1,7 +1,7 @@
 import { Hydratable, PlayerState, Visibility, assert, assertExists, Color } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { PlayerStatus, Region } from './oathEnums.js'
+import { CardKind, PlayerStatus, Region } from './oathEnums.js'
 import { WarbandCounts } from './warbandCounts.js'
 import { AdviserShownPolicy, HandShownPolicy } from './question.js'
 import { isVision } from '../data/cardRegistry.js'
@@ -51,11 +51,24 @@ export const KnownPositions = Type.Array(Type.Union([Type.String(), Type.Null()]
 
 /** Truthful Harp — the table knows these cards lie here, in an order only their player saw. */
 export type SeenSet = Type.Static<typeof SeenSet>
-export const SeenSet = Type.Object({ among: Type.Array(Type.String(), { maxItems: 16 }) })
+export const SeenSet = Type.Object(
+    {
+        among: Type.Array(Type.String(), { maxItems: 16 }),
+        /** R-9.4 — the back the table saw at this place. */
+        back: Type.Optional(Type.Enum(CardKind))
+    },
+    { additionalProperties: false }
+)
 
-/** What the whole table knows of a stack, by position: a card, one of a set, or `null`. */
+/** R-9.4 — a card whose back, but not its face, the table saw go to this place. */
+export type SeenBack = Type.Static<typeof SeenBack>
+export const SeenBack = Type.Object({ back: Type.Enum(CardKind) }, { additionalProperties: false })
+
+/** What the whole table knows of a stack, by position: a card, one of a set, a back, or `null`. */
 export type TablePositions = Type.Static<typeof TablePositions>
-export const TablePositions = Type.Array(Type.Union([Type.String(), Type.Null(), SeenSet]))
+export const TablePositions = Type.Array(
+    Type.Union([Type.String(), Type.Null(), SeenSet, SeenBack])
+)
 
 /** Wild Allies, Captains — "as if your pawn is there". */
 export type CampaignAsIf = Type.Static<typeof CampaignAsIf>

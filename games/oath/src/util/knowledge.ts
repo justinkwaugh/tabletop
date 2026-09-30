@@ -5,10 +5,10 @@ import type {
     KnownPositions,
     TablePositions
 } from '../model/playerState.js'
-import { Region } from '../model/oathEnums.js'
+import { CardKind, Region } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import type { HiddenReveal } from '../model/hidden.js'
-import { isVision } from '../data/cardRegistry.js'
+import { isVision, kindOf } from '../data/cardRegistry.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
 import {
     discardOnto,
@@ -97,12 +97,26 @@ export function drawWorldDeckVision(
     state: HydratedOathGameState,
     playerId: string
 ): string | undefined {
+    // R-9.4 — when every Vision left lies under the deck where the table saw its back go, the one
+    // closest to the top is the highest of them, which everyone can tell; otherwise it lay above.
+    const visionsUnder = state.seenWorldDeckBottom.flatMap((entry, at) =>
+        backOf(entry) === CardKind.Vision ? [at] : []
+    )
+    const fromUnder =
+        visionsUnder.length > 0 && visionsUnder.length === state.worldDeckVisions
+            ? visionsUnder[visionsUnder.length - 1]
+            : undefined
     const cardId = drawFirstVision(state.requireVault())
-    // R-8.8 — it lay within reach of the top, so it counts as drawn from there.
     if (cardId !== undefined) {
-        state.worldDeckDrawn += 1
         state.worldDeckVisions -= 1
+        // R-8.8 — one from above the known bottom lay within reach of the top.
+        if (fromUnder === undefined) state.worldDeckDrawn += 1
     }
+    if (fromUnder !== undefined)
+        for (const holder of worldDeckBottomRecords(state)) {
+            const known = holder.get()
+            if (fromUnder < known.length) holder.set(trimTop(known.toSpliced(fromUnder, 1)))
+        }
     for (const player of state.players)
         player.knownWorldDeckTop = worldDeckTopOf(player).filter((id) => id !== cardId)
     const drawer = state.getPlayerState(playerId)
@@ -228,6 +242,19 @@ function worldDeckBottomRecordOf(state: HydratedOathGameState, witness: Witness)
     return players[state.players.findIndex((player) => player.playerId === witness)]
 }
 
+function backOfCard(cardId: string): CardKind {
+    const back = kindOf(cardId)
+    assertExists(back, `${cardId} is no registered card`)
+    return back
+}
+
+/** R-9.4 — the back a record entry shows, where it shows one. */
+export function backOf(entry: TablePositions[number]): CardKind | undefined {
+    if (entry === null) return undefined
+    if (typeof entry === 'string') return kindOf(entry)
+    return entry.back
+}
+
 /** A player remembers cards, never a set; a set only ever reaches the table's record. */
 function cardsOnly(positions: TablePositions): KnownPositions {
     return positions.map((entry) => (typeof entry === 'string' ? entry : null))
@@ -298,8 +325,17 @@ function remember(
             const record = recordFor(witness)
             record.set(placed(record.get(), positionOf(index), cardId))
         }
-        if (witness !== 'everyone' && set.includes(cardId))
-            table.set(placed(table.get(), positionOf(index), { among: set }))
+        // R-9.4 — the table saw every back go down, and a set's cards where it knew them.
+        if (witness !== 'everyone')
+            table.set(
+                placed(
+                    table.get(),
+                    positionOf(index),
+                    set.includes(cardId)
+                        ? { among: set, back: backOfCard(cardId) }
+                        : { back: backOfCard(cardId) }
+                )
+            )
     }
 }
 

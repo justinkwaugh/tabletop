@@ -95,6 +95,13 @@ describe('Exploration from canonical state (R-9.4)', () => {
         expect(branches.some((branch) => branch.vault.siteFacedown[unpeekedSlot] !== state.vault.siteFacedown[unpeekedSlot])).toBe(true)
     })
 
+    it('keeps every back in a discard pile where the table saw it go down', () => {
+        const state = source()
+        const backs = (pile: readonly string[]) => pile.map((id) => kindOf(id))
+        for (const seed of BRANCH_SEEDS)
+            expect(backs(explore(state, seed).vault.discardPiles[Region.Cradle])).toEqual(backs(state.vault.discardPiles[Region.Cradle]))
+    })
+
     it('on a short deck whose known top and known bottom meet, deals each card once', () => {
         const state = source()
         const deck = state.vault.worldDeck.slice(0, 4)

@@ -452,7 +452,12 @@ function backTypeOf(cardId: string): CardKind {
 export function applySetupDeal(state: HydratedOathGameState, result: SetupDealResult): void {
     // R-1.19
     for (const region of Object.values(Region)) {
-        state.discardPileCounts[region] += result.discardSeedCounts[region] ?? 0
+        const seeded = result.discardSeedCounts[region] ?? 0
+        state.discardPileCounts[region] += seeded
+        // R-1.19, R-8.8 — drawn from the Vision-free tail, so every seed shows a denizen's back.
+        state.seenDiscardPiles[region] = Array.from({ length: seeded }, () => ({
+            back: CardKind.Denizen
+        }))
         const back = result.discardSeedTopBackType?.[region]
         if (back) {
             state.discardTopBackType = { ...state.discardTopBackType, [region]: back }
