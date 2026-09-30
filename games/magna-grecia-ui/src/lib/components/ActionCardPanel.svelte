@@ -36,7 +36,9 @@
 
     <RoundCard {card} seats={turnOrder} />
 
-    <p class="hint">Take two actions, or one enhanced to the higher number.</p>
+    <p class="hint">
+        Take two actions, or one enhanced to the <span class="enhanced-text">higher number</span>.
+    </p>
 
     {#if upcoming}
         <section class="upcoming" aria-label="Upcoming round">
@@ -76,6 +78,11 @@
         line-height: 1.35;
         text-align: center;
         color: #6b4a2a;
+    }
+
+    .enhanced-text {
+        color: #a2412a;
+        font-weight: 700;
     }
 
     .upcoming {

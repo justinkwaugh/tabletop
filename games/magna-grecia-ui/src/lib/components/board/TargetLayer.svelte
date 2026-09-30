@@ -6,6 +6,7 @@
     import { hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
     import { placeCenter } from '$lib/utils/boardView.js'
     import CityTileArt from './CityTileArt.svelte'
+    import CityTileIcon from '../icons/CityTileIcon.svelte'
     import TileLayingWidget from './TileLayingWidget.svelte'
 
     const gameSession = getGameSession()
@@ -57,7 +58,7 @@
         onkeydown={(event) => activate(event, () => gameSession.chooseRoadSpace(target.coords))}
     >
         <polygon points={targetShape} class="target-hex"></polygon>
-        <path d="M -12 0 Q 0 -10 12 0" class="target-glyph"></path>
+        <path d="M -19 3 Q 0 -15 19 3" class="target-glyph"></path>
     </g>
 {/each}
 
@@ -85,6 +86,11 @@
             <CityTileArt color={myColor} ghost />
         {/if}
         <polygon points={targetShape} class="target-hex"></polygon>
+        {#if !hoveredCity || !sameCoordinates(hoveredCity, coords)}
+            <g class="target-city" transform="translate(-16 -16)">
+                <CityTileIcon size={32} />
+            </g>
+        {/if}
     </g>
 {/each}
 
@@ -116,7 +122,7 @@
 
 <style>
     .target-hex {
-        fill: rgba(255, 238, 170, 0.22);
+        fill: rgba(255, 246, 214, 0.58);
         stroke: #fff4c9;
         stroke-width: 3;
         stroke-dasharray: 7 5;
@@ -125,26 +131,31 @@
     .target:hover .target-hex,
     .target:focus-visible .target-hex,
     .target.selected .target-hex {
-        fill: rgba(255, 238, 170, 0.45);
+        fill: rgba(255, 250, 232, 0.8);
         stroke-dasharray: none;
     }
     .target.two-step .target-hex {
-        fill: rgba(255, 238, 170, 0.1);
+        fill: rgba(255, 246, 214, 0.38);
         stroke-dasharray: 3 6;
     }
     .target.claim .target-hex {
         stroke: #ffffff;
         stroke-width: 4;
-        fill: rgba(255, 245, 200, 0.5);
+        fill: rgba(255, 250, 232, 0.75);
     }
     .target:focus {
         outline: none;
     }
     .target-glyph {
         fill: none;
-        stroke: rgba(107, 63, 29, 0.55);
-        stroke-width: 4;
+        stroke: rgba(107, 63, 29, 0.7);
+        stroke-width: 7;
         stroke-linecap: round;
+    }
+    .target-city {
+        pointer-events: none;
+        opacity: 0.9;
+        animation: target-icon-pulse 1.6s ease-in-out infinite;
     }
     .price-tag {
         fill: #fbf3dc;
@@ -156,6 +167,15 @@
         font-size: 13px;
         font-weight: 700;
         fill: #6b3f1d;
+    }
+    @keyframes target-icon-pulse {
+        0%,
+        100% {
+            opacity: 0.95;
+        }
+        50% {
+            opacity: 0.55;
+        }
     }
     @keyframes target-pulse {
         0%,

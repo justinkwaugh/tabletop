@@ -71,15 +71,17 @@
         </li>
     </ul>
     <div class="markets">
-        <span class="markets-label">Markets:</span>
-        {#each markets as market (market.key)}
-            <span class="market">
-                <svg viewBox={MARKET_VIEW} aria-hidden="true">
-                    <MarketPiece {color} active={market.active} sold={market.sold} />
-                </svg>
-                <span>{market.label}</span>
-            </span>
-        {/each}
+        <div class="markets-label">Markets</div>
+        <div class="market-row">
+            {#each markets as market (market.key)}
+                <span class="market">
+                    <svg viewBox={MARKET_VIEW} aria-hidden="true">
+                        <MarketPiece {color} active={market.active} sold={market.sold} />
+                    </svg>
+                    <span>{market.label}</span>
+                </span>
+            {/each}
+        </div>
     </div>
 </section>
 
@@ -95,7 +97,7 @@
     }
 
     .legend-title {
-        font-size: 18px;
+        font-size: 30px;
         letter-spacing: 0.06em;
         text-transform: uppercase;
         text-align: center;
@@ -121,15 +123,15 @@
 
     .entries svg {
         flex-shrink: 0;
-        width: 34px;
-        height: 38px;
+        width: 48px;
+        height: 54px;
     }
 
     .markets {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         align-items: center;
-        gap: 4px 10px;
+        gap: 6px;
         border-top: 1px solid rgba(107, 74, 42, 0.25);
         padding-top: 8px;
     }
@@ -137,12 +139,20 @@
     .markets-label {
         font-size: 17px;
         font-weight: 700;
+        text-align: center;
         color: #3b2a18;
+    }
+
+    .market-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px 14px;
     }
 
     .market svg {
         flex-shrink: 0;
-        width: 28px;
-        height: 28px;
+        width: 40px;
+        height: 40px;
     }
 </style>

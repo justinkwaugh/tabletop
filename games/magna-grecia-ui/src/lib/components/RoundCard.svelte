@@ -115,8 +115,8 @@
 
     .enhanced {
         font-size: 26px;
-        color: rgba(74, 34, 8, 0.55);
-        border: 1.5px solid rgba(74, 34, 8, 0.35);
+        color: #a2412a;
+        border: 1.5px solid rgba(162, 65, 42, 0.55);
         border-radius: 999px;
         padding: 0 8px;
     }

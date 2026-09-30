@@ -1,6 +1,6 @@
 <script lang="ts">
     import { offsetToAxial } from '@tabletop/magna-grecia'
-    import { BOARD_HEIGHT, BOARD_WIDTH, hexCenter } from '$lib/utils/boardGeometry.js'
+    import { BOARD_HEIGHT, BOARD_WIDTH, HEX, hexCenter } from '$lib/utils/boardGeometry.js'
     import Trireme from './Trireme.svelte'
 
     const bay = hexCenter(offsetToAxial({ row: 15, col: 5 }))
@@ -28,7 +28,7 @@
     <Trireme x={westSea.x - 40} y={westSea.y + 10} scale={0.9} />
     <Trireme x={eastSea.x + 55} y={eastSea.y + 40} scale={0.8} flip />
 
-    <g transform="translate({bay.x} {bay.y + 22})">
+    <g transform="translate({bay.x - HEX.xRadius} {bay.y + 22})">
         <path
             d="M -190 -32 h 380 l 16 32 l -16 32 h -380 l -16 -32 z"
             fill="#f3e6c4"
