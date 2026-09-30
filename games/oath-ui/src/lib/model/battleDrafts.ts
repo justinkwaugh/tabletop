@@ -1,4 +1,4 @@
-import { assertExists, type Color } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import {
     CampaignTargetKind,
     HydratedCampaignDefeatKills,
@@ -18,7 +18,8 @@ import {
     type CampaignPlacement,
     type PowerUseKey,
     type WarbandCounts,
-    type WarbandGroup
+    type WarbandGroup,
+    type WarbandOwner
 } from '@tabletop/oath'
 import { samePowerUse } from './powerUse.js'
 import { declaredPlan, planChoices } from './planChoices.js'
@@ -26,8 +27,8 @@ import { emptyPicks, type PowerChoicePicks } from './powerChoices.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 
-/** Keyed by site, then by warband colour. */
-type PlaceCounts = Record<string, Partial<Record<Color, number>>>
+/** Keyed by site, then by warband owner. */
+type PlaceCounts = Record<string, Partial<Record<WarbandOwner, number>>>
 type Spoils = {
     placeCounts: PlaceCounts
     bottomSlots: string[]
@@ -71,15 +72,15 @@ export class VictoryDraft implements PanelDraft {
         )
     }
 
-    // R-10.9, R-5.5.7.I — "from your force", so the board is the ceiling, colour by colour.
-    get forceColors(): Color[] {
+    // R-10.9, R-5.5.7.I — "from your force", so the board is the ceiling, owner by owner.
+    get forceOwners(): WarbandOwner[] {
         return warbandEntries(this.forceBoard)
             .filter(([, count]) => count > 0)
-            .map(([color]) => color)
+            .map(([owner]) => owner)
     }
 
     get forceAvailable() {
-        return this.forceColors.reduce((sum, color) => sum + countOf(this.forceBoard, color), 0)
+        return this.forceOwners.reduce((sum, owner) => sum + countOf(this.forceBoard, owner), 0)
     }
 
     private get forceBoard(): WarbandCounts {
@@ -87,18 +88,18 @@ export class VictoryDraft implements PanelDraft {
         return playerId ? this.session.gameState.getPlayerState(playerId).warbandsOnBoard : {}
     }
 
-    countAt(siteId: string, color: Color): number {
-        return this.capturedSites.includes(siteId) && this.forceColors.includes(color)
-            ? (this.spoils.placeCounts[siteId]?.[color] ?? 0)
+    countAt(siteId: string, owner: WarbandOwner): number {
+        return this.capturedSites.includes(siteId) && this.forceOwners.includes(owner)
+            ? (this.spoils.placeCounts[siteId]?.[owner] ?? 0)
             : 0
     }
 
-    /** Each taken site's total, whatever the colours. */
+    /** Each taken site's total, whoever's warbands they are. */
     get placeCounts(): Record<string, number> {
         return Object.fromEntries(
             this.capturedSites.map((siteId) => [
                 siteId,
-                this.forceColors.reduce((sum, color) => sum + this.countAt(siteId, color), 0)
+                this.forceOwners.reduce((sum, owner) => sum + this.countAt(siteId, owner), 0)
             ])
         )
     }
@@ -110,10 +111,10 @@ export class VictoryDraft implements PanelDraft {
     get placements(): CampaignPlacement[] {
         return this.capturedSites
             .flatMap((siteId) =>
-                this.forceColors.map((color) => ({
+                this.forceOwners.map((owner) => ({
                     siteId,
-                    color,
-                    count: this.countAt(siteId, color)
+                    owner,
+                    count: this.countAt(siteId, owner)
                 }))
             )
             .filter((placement) => placement.count > 0)
@@ -129,20 +130,20 @@ export class VictoryDraft implements PanelDraft {
         return this.spoils.bottomSlots.filter((slotId) => this.relicTargets.includes(slotId))
     }
 
-    ceilingAt(siteId: string, color: Color): number {
+    ceilingAt(siteId: string, owner: WarbandOwner): number {
         const elsewhere = this.capturedSites
             .filter((other) => other !== siteId)
-            .reduce((sum, other) => sum + this.countAt(other, color), 0)
-        return Math.max(0, countOf(this.forceBoard, color) - elsewhere)
+            .reduce((sum, other) => sum + this.countAt(other, owner), 0)
+        return Math.max(0, countOf(this.forceBoard, owner) - elsewhere)
     }
 
-    setPlaceCount(siteId: string, color: Color, count: number): void {
-        if (!this.capturedSites.includes(siteId) || !this.forceColors.includes(color)) return
+    setPlaceCount(siteId: string, owner: WarbandOwner, count: number): void {
+        if (!this.capturedSites.includes(siteId) || !this.forceOwners.includes(owner)) return
         const placeCounts = {
             ...this.spoils.placeCounts,
             [siteId]: {
                 ...this.spoils.placeCounts[siteId],
-                [color]: Math.max(0, Math.min(count, this.ceilingAt(siteId, color)))
+                [owner]: Math.max(0, Math.min(count, this.ceilingAt(siteId, owner)))
             }
         }
         this.flow.set('spoils', { ...this.spoils, placeCounts })

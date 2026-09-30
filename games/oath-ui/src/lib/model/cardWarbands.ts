@@ -1,12 +1,16 @@
-import type { Color } from '@tabletop/common'
-import { revealedVisionIdsOf, warbandEntries, type HydratedOathGameState } from '@tabletop/oath'
+import {
+    revealedVisionIdsOf,
+    warbandEntries,
+    type HydratedOathGameState,
+    type WarbandOwner
+} from '@tabletop/oath'
 
-export type WarbandCount = { color: Color; count: number }
+export type WarbandCount = { owner: WarbandOwner; count: number }
 
 export function warbandsOnCardOf(state: HydratedOathGameState, cardId: string): WarbandCount[] {
     return warbandEntries(state.warbandsOnCard(cardId))
         .filter(([, count]) => count > 0)
-        .map(([color, count]) => ({ color, count }))
+        .map(([owner, count]) => ({ owner, count }))
 }
 
 // False Prophet — another holder's Vision a warband of this player stands on.

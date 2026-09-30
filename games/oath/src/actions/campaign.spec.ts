@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { CardKind, IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { CardKind, PlayerStatus } from '../model/oathEnums.js'
 import { registerCards } from '../data/cardRegistry.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { ActionType } from '../definition/actions.js'
@@ -15,6 +15,7 @@ import { machineContext, buildAction, answerConsent } from '../testing/actions.j
 import { siteTarget } from '../testing/choices.js'
 import { ATTACKER, DEFENDER, campaign } from '../testing/steps.js'
 import { ConsentRequestKind } from '../model/consent.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -34,8 +35,8 @@ function table(overrides: Record<string, unknown> = {}) {
                 status: PlayerStatus.Exile,
                 siteId: 'c1',
                 supply: 7,
-                warbandsOnBoard: { [Color.Red]: 5 },
-                warbandsInPersonalBank: { [Color.Red]: 7 }
+                warbandsOnBoard: { [ATTACKER]: 5 },
+                warbandsInPersonalBank: { [ATTACKER]: 7 }
             }),
             testPlayer({
                 playerId: DEFENDER,
@@ -43,32 +44,32 @@ function table(overrides: Record<string, unknown> = {}) {
                 status: PlayerStatus.Exile,
                 siteId: 'p1',
                 favor: 6,
-                warbandsOnBoard: { [Color.Yellow]: 4 },
-                warbandsInPersonalBank: { [Color.Yellow]: 6 }
+                warbandsOnBoard: { [DEFENDER]: 4 },
+                warbandsInPersonalBank: { [DEFENDER]: 6 }
             }),
             testPlayer({
                 playerId: CHANCELLOR,
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'h1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 6 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 15 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 15 }
             }),
             testPlayer({
                 playerId: CITIZEN,
                 color: Color.Blue,
                 status: PlayerStatus.Citizen,
                 siteId: 'h2',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                warbandsInPersonalBank: { [Color.Blue]: 14 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [CITIZEN]: 14 }
             })
         ],
         {
             chancellorPlayerId: CHANCELLOR,
             // R-5.5.1 — the defender's warband at c1 is what makes them a legal target.
             warbandsBySite: {
-                c1: { [Color.Yellow]: 1 },
-                p1: { [Color.Yellow]: 3 }
+                c1: { [DEFENDER]: 1 },
+                p1: { [DEFENDER]: 3 }
             },
             prng: { seed: 1, invocations: 0 },
             ...overrides
@@ -102,7 +103,7 @@ describe('Campaign step 1 (R-5.5.1)', () => {
 
     it('accepts a defender whose pawn is at your site even if they rule nothing', () => {
         const state = table({
-            warbandsBySite: { c1: { [Color.Red]: 2 }, p1: { [Color.Yellow]: 3 } }
+            warbandsBySite: { c1: { [ATTACKER]: 2 }, p1: { [DEFENDER]: 3 } }
         })
         state.getPlayerState(DEFENDER).siteId = 'c1'
 
@@ -180,8 +181,8 @@ describe('Campaign-scoped Imperial status (R-5.5.1.a)', () => {
                     status: PlayerStatus.Citizen,
                     siteId: 'c1',
                     supply: 7,
-                    warbandsOnBoard: { [IMPERIAL_COLOR]: 5 },
-                    warbandsInPersonalBank: { [Color.Blue]: 9 }
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 5 },
+                    warbandsInPersonalBank: { [CITIZEN]: 9 }
                 }),
                 testPlayer({
                     playerId: 'citizen2',
@@ -189,16 +190,16 @@ describe('Campaign-scoped Imperial status (R-5.5.1.a)', () => {
                     status: PlayerStatus.Citizen,
                     siteId: 'c1',
                     favor: 4,
-                    warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                    warbandsInPersonalBank: { [Color.Black]: 11 }
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                    warbandsInPersonalBank: { citizen2: 11 }
                 }),
                 testPlayer({
                     playerId: CHANCELLOR,
                     color: Color.Purple,
                     status: PlayerStatus.Chancellor,
                     siteId: 'h1',
-                    warbandsOnBoard: { [IMPERIAL_COLOR]: 6 },
-                    warbandsInPersonalBank: { [IMPERIAL_COLOR]: 15 }
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 15 }
                 })
             ],
             { chancellorPlayerId: CHANCELLOR, prng: { seed: 1, invocations: 0 } }
@@ -453,8 +454,8 @@ describe('skulls (R-5.5.5)', () => {
         const attacker = state.getPlayerState(ATTACKER)
         const skulls = state.campaign?.attackRoll.reduce((n, f) => n + f.skulls, 0) ?? 0
         expect(skulls).toBeGreaterThan(0)
-        expect(attacker.warbandsOnBoard[Color.Red]).toBe(5 - skulls)
-        expect(attacker.warbandsInPersonalBank[Color.Red]).toBe(7 + skulls)
+        expect(attacker.warbandsOnBoard[ATTACKER]).toBe(5 - skulls)
+        expect(attacker.warbandsInPersonalBank[ATTACKER]).toBe(7 + skulls)
     })
 
     it('still counts the two swords on the skull face', () => {
@@ -469,12 +470,12 @@ describe('skulls (R-5.5.5)', () => {
         expect(state.campaign?.swords).toBeGreaterThanOrEqual(expected)
     })
 
-    it('sends a killed purple warband to the Chancellor (R-10.13)', () => {
+    it('sends a killed Imperial warband to the Chancellor (R-10.13)', () => {
         const seed = seedRollingSkulls(1)
         const state = table({ prng: { seed, invocations: 0 } })
         const citizen = state.getPlayerState(CITIZEN)
         citizen.siteId = 'c1'
-        citizen.warbandsOnBoard = { [IMPERIAL_COLOR]: 5 }
+        citizen.warbandsOnBoard = { [IMPERIAL_WARBANDS]: 5 }
         citizen.supply = 7
 
         expectWarbandsConserved(state, () => {
@@ -490,7 +491,7 @@ describe('skulls (R-5.5.5)', () => {
 
         const skulls = state.campaign?.attackRoll.reduce((n, f) => n + f.skulls, 0) ?? 0
         expect(skulls).toBeGreaterThan(0)
-        expect(state.getPlayerState(CHANCELLOR).warbandsInPersonalBank[IMPERIAL_COLOR]).toBe(
+        expect(state.getPlayerState(CHANCELLOR).warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(
             15 + skulls
         )
     })

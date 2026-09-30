@@ -434,9 +434,9 @@ registerBattlePlan(
             dice: () => ({ attack: -1 }),
             onUse: (ctx) => {
                 const attackerId = ctx.campaign.parties.attackerPlayerId
-                const { killed, color } = killWarbandsOnBoard(ctx.state, attackerId, 1)
+                const { killed } = killWarbandsOnBoard(ctx.state, attackerId, 1)
                 return killed
-                    ? `Bear Traps: killed a ${color} warband on ${attackerId}'s board`
+                    ? `Bear Traps: killed a warband on ${attackerId}'s board`
                     : "Bear Traps: no warband on the attacker's board to kill"
             }
         }

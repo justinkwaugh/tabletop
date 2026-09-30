@@ -1,11 +1,10 @@
-import type { Color } from '@tabletop/common'
-import type { WarbandCounts } from '../model/warbandCounts.js'
+import { IMPERIAL_WARBANDS, type WarbandCounts, type WarbandOwner } from '../model/warbandCounts.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { PlayerStatus } from '../model/oathEnums.js'
 import { relicPersistentsHeldBy } from './heldPersistents.js'
 import { totalWarbands, countOf } from './warbands.js'
 
-/** R-10.21 — any warband of the colour rules a faceup site. */
+/** R-10.21 — any warband a player rules with rules a faceup site. */
 
 /** R-5.5.1.a */
 export interface ImperialScope {
@@ -32,19 +31,21 @@ export function isImperialPlayer(
     return !scope?.nonImperialPlayerIds?.includes(playerId)
 }
 
-/** R-10.21 plus R-6.6.3's purple; the Chancellor's own colour is already purple. */
-export function rulingColorsOf(
+/** R-1.8, R-1.9 — the Chancellor's warbands are the Empire's; every other player's are their own. */
+export function ownWarbandOwner(state: HydratedOathGameState, playerId: string): WarbandOwner {
+    const player = state.getPlayerState(playerId)
+    return player.status === PlayerStatus.Chancellor ? IMPERIAL_WARBANDS : player.playerId
+}
+
+/** R-10.21 plus R-6.6.3: an Imperial player also rules with the Empire's warbands. */
+export function rulingWarbandOwners(
     state: HydratedOathGameState,
     playerId: string,
     scope?: ImperialScope
-): Color[] {
-    const player = state.getPlayerState(playerId)
-
-    const colors: Color[] = [player.color]
-    if (isImperialPlayer(state, playerId, scope) && !colors.includes(IMPERIAL_COLOR)) {
-        colors.push(IMPERIAL_COLOR)
-    }
-    return colors
+): WarbandOwner[] {
+    const own = ownWarbandOwner(state, playerId)
+    if (own === IMPERIAL_WARBANDS || !isImperialPlayer(state, playerId, scope)) return [own]
+    return [own, IMPERIAL_WARBANDS]
 }
 
 function rulesByWarbands(
@@ -54,7 +55,7 @@ function rulesByWarbands(
     scope?: ImperialScope
 ): boolean {
     const onSite = warbandsAt(state, siteId)
-    return rulingColorsOf(state, playerId, scope).some((color) => countOf(onSite, color) > 0)
+    return rulingWarbandOwners(state, playerId, scope).some((owner) => countOf(onSite, owner) > 0)
 }
 
 export function rulesSite(
@@ -108,15 +109,15 @@ export function warbandsFreeToLeave(
     state: HydratedOathGameState,
     playerId: string,
     siteId: string,
-    color: Color
+    owner: WarbandOwner
 ): number {
-    const atSite = countOf(warbandsAt(state, siteId), color)
+    const atSite = countOf(warbandsAt(state, siteId), owner)
     return banditsServe(state, playerId, siteId) ? atSite : Math.max(0, atSite - 1)
 }
 
 /** R-6.6.3 */
 export function isImperialSite(state: HydratedOathGameState, siteId: string): boolean {
-    return state.isSiteFaceup(siteId) && countOf(warbandsAt(state, siteId), IMPERIAL_COLOR) > 0
+    return state.isSiteFaceup(siteId) && countOf(warbandsAt(state, siteId), IMPERIAL_WARBANDS) > 0
 }
 
 /** R-6.6.3 — the bandits are `banditsRuleSite`'s. */

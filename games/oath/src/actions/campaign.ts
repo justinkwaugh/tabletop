@@ -31,7 +31,7 @@ import {
     type CampaignParties
 } from '../util/campaign.js'
 import { attackDiceFromSites } from '../util/sitePowers.js'
-import { isImperialPlayer, rulingColorsOf, warbandsAt } from '../util/rule.js'
+import { isImperialPlayer, rulingWarbandOwners, warbandsAt } from '../util/rule.js'
 import { holdTurnForSneakAttack, sneakAttackOfferedTo } from '../util/sneakAttack.js'
 import { reasonPersistentForbidsCampaign, persistentForceSites } from '../util/persistent.js'
 import { warbandsOnBoardOf } from '../util/force.js'
@@ -476,10 +476,10 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
     }
 
     private static siteForceOf(state: HydratedOathGameState, playerId: string): number {
-        const colors = rulingColorsOf(state, playerId)
+        const owners = rulingWarbandOwners(state, playerId)
         return forceSitesOf(state, playerId).reduce((total, siteId) => {
             const onSite = warbandsAt(state, siteId)
-            return total + colors.reduce((n, color) => n + countOf(onSite, color), 0)
+            return total + owners.reduce((n, owner) => n + countOf(onSite, owner), 0)
         }, 0)
     }
 

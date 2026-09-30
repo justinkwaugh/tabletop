@@ -1,10 +1,11 @@
 import { spendFavor, usableFavor } from '../util/favor.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { PlayerStatus } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS, WarbandOwner } from '../model/warbandCounts.js'
 import { reasonCannotPlaceOn } from '../util/powerCost.js'
 import { musterWarbandsBonus } from '../util/continuous.js'
 import { riverMusterBonus } from '../util/sitePowers.js'
@@ -24,6 +25,7 @@ import {
 } from '../util/modifiers.js'
 import { countOf } from '../util/warbands.js'
 import { pawnSiteId } from '../util/pawn.js'
+import { ownWarbandOwner } from '../util/rule.js'
 
 /** R-5.2.1 */
 export const MUSTER_SUPPLY_COST = 1
@@ -34,7 +36,7 @@ export type MusterMetadata = Type.Static<typeof MusterMetadata>
 export const MusterMetadata = Type.Object({
     supplySpent: Type.Number(),
     warbandsGained: Type.Number(),
-    warbandColor: Type.Enum(Color),
+    warbandOwner: WarbandOwner,
     /** R-7.4 */
     modifiers: Type.Optional(Type.Array(Type.String())),
     /** R-7.4 */
@@ -97,11 +99,9 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
             state.addTokensOn(this.cardId, { favor: 1 })
         }
 
-        const color = HydratedMuster.warbandColorFor(state, this.playerId)
-        const bank = state.getPlayerState(
-            HydratedMuster.warbandBankOwner(state, this.playerId)
-        ).warbandsInPersonalBank
-        const available = countOf(bank, color)
+        const owner = HydratedMuster.warbandOwnerFor(state, this.playerId)
+        const bank = state.getPlayerState(state.warbandBankHolderOf(owner)).warbandsInPersonalBank
+        const available = countOf(bank, owner)
         // R-7.4, R-7.1.4-H1 (Ring of Devotion), R-11.5 (River)
         const wanted =
             foldNumber(
@@ -116,8 +116,8 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
             riverMusterBonus(state, this.playerId)
         const gained = Math.min(wanted, available)
 
-        bank[color] = available - gained
-        addWarbandsToBoard(state, this.playerId, color, gained)
+        bank[owner] = available - gained
+        addWarbandsToBoard(state, this.playerId, owner, gained)
 
         // R-7.4
         const after = runAfter(state, this.playerId, active, particulars)
@@ -125,23 +125,16 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
         this.metadata = {
             supplySpent: cost,
             warbandsGained: gained,
-            warbandColor: color,
+            warbandOwner: owner,
             modifiers: active.length > 0 ? modifierSummary(active) : undefined,
             modifierNotes: after.notes.length > 0 ? after.notes : undefined
         }
     }
 
-    static warbandColorFor(state: HydratedOathGameState, playerId: string): Color {
-        const player = state.getPlayerState(playerId)
-        return player.status === PlayerStatus.Citizen ? IMPERIAL_COLOR : player.color
-    }
-
-    static warbandBankOwner(state: HydratedOathGameState, playerId: string): string {
-        const player = state.getPlayerState(playerId)
-        if (player.status !== PlayerStatus.Citizen) {
-            return playerId
-        }
-        return state.chancellorId()
+    /** R-5.2.2 — a Citizen musters the Empire's warbands, from the Chancellor's bank (R-10.13). */
+    static warbandOwnerFor(state: HydratedOathGameState, playerId: string): WarbandOwner {
+        if (state.getPlayerState(playerId).status === PlayerStatus.Citizen) return IMPERIAL_WARBANDS
+        return ownWarbandOwner(state, playerId)
     }
 
     static plan(

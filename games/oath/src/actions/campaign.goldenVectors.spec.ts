@@ -12,7 +12,7 @@ import { relicDefenseDice } from '../data/cardRegistry.js'
 import { CampaignTargetKind, type CampaignTarget, type RolledAttackFace, type RolledDefenseFace, type WarbandGroup } from '../model/campaign.js'
 import { testPlayer, testState, withChancellor } from '../testing/fixture.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
-import { expectOneWarbandColorPerSite, warbandCensus } from '../testing/census.js'
+import { expectOneWarbandOwnerPerSite, warbandCensus } from '../testing/census.js'
 import {
     ATTACK_DIE_FACES,
     DEFENSE_DIE_FACES,
@@ -183,8 +183,8 @@ function buildState(board: Board, seed: number): OathProjectedState {
                 status: PlayerStatus.Exile,
                 siteId: ATTACKER_SITE,
                 supply: board.attackerSupply ?? 7,
-                warbandsOnBoard: { [Color.Red]: board.attackerBoard },
-                warbandsInPersonalBank: { [Color.Red]: 14 - board.attackerBoard }
+                warbandsOnBoard: { [A]: board.attackerBoard },
+                warbandsInPersonalBank: { [A]: 14 - board.attackerBoard }
             }),
             testPlayer({
                 playerId: D,
@@ -192,9 +192,9 @@ function buildState(board: Board, seed: number): OathProjectedState {
                 status: PlayerStatus.Exile,
                 siteId: board.defenderSiteId ?? ELSEWHERE,
                 favor: board.defenderFavor ?? 0,
-                warbandsOnBoard: { [Color.Yellow]: board.defenderBoard ?? 0 },
+                warbandsOnBoard: { [D]: board.defenderBoard ?? 0 },
                 warbandsInPersonalBank: {
-                    [Color.Yellow]: 14 - (board.defenderBoard ?? 0) - onSites
+                    [D]: 14 - (board.defenderBoard ?? 0) - onSites
                 },
                 relicIds: board.defenderRelicIds ?? []
             })
@@ -202,7 +202,7 @@ function buildState(board: Board, seed: number): OathProjectedState {
         {
             machineState: MachineState.ActPhase,
             warbandsBySite: Object.fromEntries(
-                Object.entries(sites).map(([siteId, n]) => [siteId, { [Color.Yellow]: n }])
+                Object.entries(sites).map(([siteId, n]) => [siteId, { [D]: n }])
             ),
             oathkeeperPlayerId: board.defenderIsOathkeeper ? D : undefined,
             ...(board.siteCards ? { siteCards: board.siteCards } : {}),
@@ -278,7 +278,7 @@ function boardOf(state: OathProjectedState, playerId: string): number {
 }
 
 function siteOf(state: OathProjectedState, siteId: string): number {
-    return state.warbandsBySite[siteId]?.[Color.Yellow] ?? 0
+    return state.warbandsBySite[siteId]?.[D] ?? 0
 }
 
 /** R-5.5.5, R-5.5.6.a */
@@ -327,14 +327,14 @@ describe('Campaign golden vectors', () => {
         state = engine.run(
             act(buildAction(CampaignResolveVictory, {
                 playerId: A,
-                placements: [{ siteId: ATTACKER_SITE, color: Color.Red, count: 2 }],
+                placements: [{ siteId: ATTACKER_SITE, owner: A, count: 2 }],
                 burnFavor: false
             })),
             state,
             game
         ).updatedState
 
-        expect(state.warbandsBySite[ATTACKER_SITE][Color.Red]).toBe(2)
+        expect(state.warbandsBySite[ATTACKER_SITE][A]).toBe(2)
         expect(boardOf(state, A)).toBe(1)
         expectSettled(state)
     })
@@ -355,7 +355,7 @@ describe('Campaign golden vectors', () => {
             act(buildAction(CampaignSacrifice, {
                 playerId: A,
                 sacrifice: 0,
-                defeatKills: [{ at: { kind: 'board', playerId: A }, color: Color.Red, count: 1 }]
+                defeatKills: [{ at: { kind: 'board', playerId: A }, owner: A, count: 1 }]
             })),
             rolled,
             game
@@ -422,7 +422,7 @@ describe('Campaign golden vectors', () => {
             act(buildAction(CampaignSacrifice, {
                 playerId: A,
                 sacrifice: 0,
-                defeatKills: [{ at: { kind: 'board', playerId: A }, color: Color.Red, count: 1 }]
+                defeatKills: [{ at: { kind: 'board', playerId: A }, owner: A, count: 1 }]
             }), 'decline'),
             rolled,
             game
@@ -477,7 +477,7 @@ describe('Campaign golden vectors', () => {
             act(buildAction(CampaignSacrifice, {
                 playerId: A,
                 sacrifice: 0,
-                defeatKills: [{ at: { kind: 'board', playerId: A }, color: Color.Red, count: 2 }]
+                defeatKills: [{ at: { kind: 'board', playerId: A }, owner: A, count: 2 }]
             })),
             rolled,
             game
@@ -587,8 +587,8 @@ describe('Campaign golden vectors', () => {
             act(buildAction(CampaignResolveVictory, {
                 playerId: A,
                 placements: [
-                    { siteId: ATTACKER_SITE, color: Color.Red, count: 1 },
-                    { siteId: S2, color: Color.Red, count: 2 }
+                    { siteId: ATTACKER_SITE, owner: A, count: 1 },
+                    { siteId: S2, owner: A, count: 2 }
                 ],
                 burnFavor: false
             })),
@@ -596,8 +596,8 @@ describe('Campaign golden vectors', () => {
             game
         ).updatedState
 
-        expect(state.warbandsBySite[ATTACKER_SITE][Color.Red]).toBe(1)
-        expect(state.warbandsBySite[S2][Color.Red]).toBe(2)
+        expect(state.warbandsBySite[ATTACKER_SITE][A]).toBe(1)
+        expect(state.warbandsBySite[S2][A]).toBe(2)
         expect(boardOf(state, A)).toBe(3)
         expectSettled(state)
 
@@ -722,7 +722,7 @@ describe('Campaign golden vectors', () => {
             game
         ).updatedState
 
-        expect(state.warbandsBySite[ATTACKER_SITE]?.[Color.Red] ?? 0).toBe(0)
+        expect(state.warbandsBySite[ATTACKER_SITE]?.[A] ?? 0).toBe(0)
         expectSettled(state)
     })
 
@@ -749,9 +749,9 @@ describe('Campaign golden vectors', () => {
 
 function expectSettled(state: OathProjectedState) {
     const hydrated = new HydratedOathGameState(state)
-    expectOneWarbandColorPerSite(hydrated)
+    expectOneWarbandOwnerPerSite(hydrated)
     // R-1.9 — 14 per Exile.
     const census = warbandCensus(hydrated)
-    expect(census[Color.Red]).toBe(14)
-    expect(census[Color.Yellow]).toBe(14)
+    expect(census[A]).toBe(14)
+    expect(census[D]).toBe(14)
 }

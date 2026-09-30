@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { Color, getPrng } from '@tabletop/common'
-import { Banner, IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { Banner, PlayerStatus } from '../model/oathEnums.js'
 import { campaignRecords, testPlayer, testState } from '../testing/fixture.js'
-import { expectOneWarbandColorPerSite, expectWarbandsConserved } from '../testing/census.js'
+import { expectOneWarbandOwnerPerSite, expectWarbandsConserved } from '../testing/census.js'
 import { expectFavorConserved } from '../testing/census.js'
 import { CampaignTargetKind, type CampaignState, type CampaignTarget } from '../model/campaign.js'
 import { HydratedCampaignResolveVictory, CampaignResolveVictory } from './campaignResolveVictory.js'
@@ -11,6 +11,7 @@ import { buildAction } from '../testing/actions.js'
 import { siteTarget } from '../testing/choices.js'
 import { PowerQuestionKind } from '../model/question.js'
 import '../powers/index.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const CHANCELLOR = 'chancellor'
 const ATTACKER = 'attacker'
@@ -27,8 +28,8 @@ function won(campaign: Partial<CampaignState> = {}, stateOverrides: Record<strin
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: 'c1',
-                warbandsOnBoard: { [Color.Red]: 4 },
-                warbandsInPersonalBank: { [Color.Red]: 8 },
+                warbandsOnBoard: { [ATTACKER]: 4 },
+                warbandsInPersonalBank: { [ATTACKER]: 8 },
                 relicIds: []
             }),
             testPlayer({
@@ -37,8 +38,8 @@ function won(campaign: Partial<CampaignState> = {}, stateOverrides: Record<strin
                 status: PlayerStatus.Exile,
                 siteId: 'c1',
                 favor: 7,
-                warbandsOnBoard: { [Color.Yellow]: 3 },
-                warbandsInPersonalBank: { [Color.Yellow]: 11 },
+                warbandsOnBoard: { [DEFENDER]: 3 },
+                warbandsInPersonalBank: { [DEFENDER]: 11 },
                 relicIds: ['relic.crown', 'relic.cup']
             }),
             testPlayer({
@@ -46,8 +47,8 @@ function won(campaign: Partial<CampaignState> = {}, stateOverrides: Record<strin
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'h1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 6 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 18 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 18 }
             })
         ],
         {
@@ -93,53 +94,53 @@ describe('taking rule of targeted sites (R-5.5.7.I)', () => {
         const state = won()
         expectWarbandsConserved(state, () =>
             resolve({
-                placements: [{ siteId: 'c1', color: Color.Red, count: 2 }]
+                placements: [{ siteId: 'c1', owner: ATTACKER, count: 2 }]
             }).apply(state)
         )
 
-        expect(state.warbandsBySite['c1'][Color.Red]).toBe(2)
-        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(2)
+        expect(state.warbandsBySite['c1'][ATTACKER]).toBe(2)
+        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(2)
     })
 
     it('allows placing zero, which is explicit in the rule', () => {
         const state = won()
         expect(() => resolve({ placements: [] }).apply(state)).not.toThrow()
-        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(4)
+        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(4)
     })
 
     it('refuses a site that was not targeted', () => {
         const state = won()
         expect(() =>
-            resolve({ placements: [{ siteId: 'p1', color: Color.Red, count: 1 }] }).apply(state)
+            resolve({ placements: [{ siteId: 'p1', owner: ATTACKER, count: 1 }] }).apply(state)
         ).toThrow(/p1 was not targeted/)
     })
 
     it('refuses to place more warbands than the force holds', () => {
         const state = won()
         expect(() =>
-            resolve({ placements: [{ siteId: 'c1', color: Color.Red, count: 5 }] }).apply(state)
+            resolve({ placements: [{ siteId: 'c1', owner: ATTACKER, count: 5 }] }).apply(state)
         ).toThrow(/only 4/)
     })
 
     it('refuses a negative placement', () => {
         const valid = buildAction(CampaignResolveVictory, {
             playerId: ATTACKER,
-            placements: [{ siteId: 'c1', color: Color.Red, count: 1 }],
+            placements: [{ siteId: 'c1', owner: ATTACKER, count: 1 }],
             burnFavor: false
         })
         expect(
             () =>
                 new HydratedCampaignResolveVictory({
                     ...valid,
-                    placements: [{ siteId: 'c1', color: Color.Red, count: -1 }]
+                    placements: [{ siteId: 'c1', owner: ATTACKER, count: -1 }]
                 })
         ).toThrow(/at least 0|must be >= 0/)
     })
 
     it('leaves no site holding two players\' warbands', () => {
         const state = won()
-        resolve({ placements: [{ siteId: 'c1', color: Color.Red, count: 3 }] }).apply(state)
-        expectOneWarbandColorPerSite(state)
+        resolve({ placements: [{ siteId: 'c1', owner: ATTACKER, count: 3 }] }).apply(state)
+        expectOneWarbandOwnerPerSite(state)
     })
 
     it('spreads a placement across several targeted sites', () => {
@@ -147,13 +148,13 @@ describe('taking rule of targeted sites (R-5.5.7.I)', () => {
         expectWarbandsConserved(state, () =>
             resolve({
                 placements: [
-                    { siteId: 'c1', color: Color.Red, count: 1 },
-                    { siteId: 'p1', color: Color.Red, count: 2 }
+                    { siteId: 'c1', owner: ATTACKER, count: 1 },
+                    { siteId: 'p1', owner: ATTACKER, count: 2 }
                 ]
             }).apply(state)
         )
-        expect(state.warbandsBySite['p1'][Color.Red]).toBe(2)
-        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(1)
+        expect(state.warbandsBySite['p1'][ATTACKER]).toBe(2)
+        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(1)
     })
 
     it('sums repeated placements on one site before checking the force', () => {
@@ -161,8 +162,8 @@ describe('taking rule of targeted sites (R-5.5.7.I)', () => {
         expect(() =>
             resolve({
                 placements: [
-                    { siteId: 'c1', color: Color.Red, count: 3 },
-                    { siteId: 'c1', color: Color.Red, count: 3 }
+                    { siteId: 'c1', owner: ATTACKER, count: 3 },
+                    { siteId: 'c1', owner: ATTACKER, count: 3 }
                 ]
             }).apply(state)
         ).toThrow(/only 4/)
@@ -282,7 +283,7 @@ describe('banishing the pawn and burning favor (R-5.5.7.III)', () => {
     })
 
     it('"a site they are able to travel to": Vow of Union keeps the pawn at a site its holder rules', () => {
-        const state = won({ targets: [pawnAndFavor] }, { siteCards: { c1: 'site.plains', p1: 'site.river' }, warbandsBySite: { c1: { [Color.Yellow]: 1 }, p1: {} } })
+        const state = won({ targets: [pawnAndFavor] }, { siteCards: { c1: 'site.plains', p1: 'site.river' }, warbandsBySite: { c1: { [DEFENDER]: 1 }, p1: {} } })
         state.getPlayerState(DEFENDER).setAdvisers([{ cardId: 'denizen.beast.vow-of-union', faceUp: true }])
         expect(HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, { placements: [], burnFavor: false, banishToSiteId: 'p1' })).toMatch(/Vow of Union/)
     })
@@ -291,12 +292,12 @@ describe('banishing the pawn and burning favor (R-5.5.7.III)', () => {
         const state = won({ targets: [siteTarget('c1'), pawnAndFavor] }, { denizensBySite: { c1: [], p1: ['denizen.discord.boiling-lake'] } })
         const action = resolve({ banishToSiteId: 'p1' })
         action.apply(state)
-        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[Color.Yellow]).toBe(1)
+        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(1)
         expect(action.metadata?.triggered).toContainEqual(expect.stringMatching(/Boiling Lake/))
     })
 
     it('R-11.7 — from a Shrouded Wood an enemy rules, that ruler chooses where the pawn goes', () => {
-        const state = won({ targets: [siteTarget('c1'), pawnAndFavor] }, { siteCards: { c1: 'site.shrouded-wood', p1: 'site.river' }, warbandsBySite: { c1: { [Color.Red]: 1 }, p1: {} } })
+        const state = won({ targets: [siteTarget('c1'), pawnAndFavor] }, { siteCards: { c1: 'site.shrouded-wood', p1: 'site.river' }, warbandsBySite: { c1: { [ATTACKER]: 1 }, p1: {} } })
         expect(HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, { placements: [], burnFavor: false, banishToSiteId: 'p1' })).toMatch(/Shrouded Wood's ruler chooses/)
         resolve({ banish: true }).apply(state)
         expect(state.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.ShroudedWoodDestination, askedPlayerId: ATTACKER, travelerPlayerId: DEFENDER, fromSiteId: 'c1' })
@@ -340,10 +341,10 @@ describe('a bandit victory', () => {
             defendingBandits: 1
         })
         expectWarbandsConserved(state, () =>
-            resolve({ placements: [{ siteId: 'p1', color: Color.Red, count: 2 }] }).apply(state)
+            resolve({ placements: [{ siteId: 'p1', owner: ATTACKER, count: 2 }] }).apply(state)
         )
 
-        expect(state.warbandsBySite['p1'][Color.Red]).toBe(2)
+        expect(state.warbandsBySite['p1'][ATTACKER]).toBe(2)
         expect(state.getPlayerState(ATTACKER).relicIds).toEqual([])
     })
 })
@@ -359,15 +360,15 @@ describe('R-5.5.7.III — banish to a facedown site never resolves the reveal', 
                     playerId: 'attacker',
                     color: Color.Red,
                     siteId: 'c1',
-                    warbandsOnBoard: { [Color.Red]: 4 },
-                    warbandsInPersonalBank: { [Color.Red]: 8 }
+                    warbandsOnBoard: { [ATTACKER]: 4 },
+                    warbandsInPersonalBank: { [ATTACKER]: 8 }
                 }),
                 testPlayer({
                     playerId: 'defender',
                     color: Color.Yellow,
                     siteId: 'c1',
                     favor: 6,
-                    warbandsInPersonalBank: { [Color.Yellow]: 11 }
+                    warbandsInPersonalBank: { [DEFENDER]: 11 }
                 })
             ],
             {

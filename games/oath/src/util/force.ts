@@ -1,8 +1,14 @@
-import type { Color } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
+import type { WarbandOwner } from '../model/warbandCounts.js'
 import type { WarbandGroup, WarbandLocation } from '../model/campaign.js'
-import { totalWarbands, countOf, adjustCount, warbandEntries } from './warbands.js'
-import { warbandsAt } from './rule.js'
+import {
+    totalWarbands,
+    countOf,
+    adjustCount,
+    describeWarbands,
+    warbandEntries
+} from './warbands.js'
+import { ownWarbandOwner, warbandsAt } from './rule.js'
 
 /** R-10.9 — recorded when computed, since R-5.5.6 moves the board afterwards. */
 
@@ -10,34 +16,37 @@ export function forceTotal(force: readonly WarbandGroup[]): number {
     return force.reduce((sum, group) => sum + group.count, 0)
 }
 
-/** R-10.13 — own colour first, then the other colours on the board: the order losses come from. */
-export function boardColorsOwnFirst(state: HydratedOathGameState, playerId: string): Color[] {
-    const player = state.getPlayerState(playerId)
+/** R-10.13 — their own warbands first, then the others on the board: the order losses come from. */
+export function boardOwnersOwnFirst(
+    state: HydratedOathGameState,
+    playerId: string
+): WarbandOwner[] {
+    const own = ownWarbandOwner(state, playerId)
     return [
-        player.color,
-        ...warbandEntries(player.warbandsOnBoard)
-            .map(([color]) => color)
-            .filter((color) => color !== player.color)
+        own,
+        ...warbandEntries(state.getPlayerState(playerId).warbandsOnBoard)
+            .map(([owner]) => owner)
+            .filter((owner) => owner !== own)
     ]
 }
 
 export function boardWarbandGroups(state: HydratedOathGameState, playerId: string): WarbandGroup[] {
     return warbandEntries(state.getPlayerState(playerId).warbandsOnBoard)
         .filter(([, count]) => count > 0)
-        .map(([color, count]): WarbandGroup => ({ at: { kind: 'board', playerId }, color, count }))
+        .map(([owner, count]): WarbandGroup => ({ at: { kind: 'board', playerId }, owner, count }))
 }
 
 export function warbandGroupsAtSites(
     state: HydratedOathGameState,
     siteIds: readonly string[],
-    colors: readonly Color[]
+    owners: readonly WarbandOwner[]
 ): WarbandGroup[] {
     const groups: WarbandGroup[] = []
     for (const siteId of siteIds) {
         const onSite = warbandsAt(state, siteId)
-        for (const color of colors) {
-            const count = countOf(onSite, color)
-            if (count > 0) groups.push({ at: { kind: 'site', siteId }, color, count })
+        for (const owner of owners) {
+            const count = countOf(onSite, owner)
+            if (count > 0) groups.push({ at: { kind: 'site', siteId }, owner, count })
         }
     }
     return groups
@@ -48,17 +57,17 @@ export function warbandsOnBoardOf(state: HydratedOathGameState, playerId: string
 }
 
 /** R-10.13 — the caller removes the warband. */
-export function killWarbands(state: HydratedOathGameState, color: Color, count: number) {
+export function killWarbands(state: HydratedOathGameState, owner: WarbandOwner, count: number) {
     if (count <= 0) return
 
-    const bank = state.getPlayerState(state.warbandOwnerOf(color)).warbandsInPersonalBank
-    adjustCount(bank, color, count)
+    const bank = state.getPlayerState(state.warbandBankHolderOf(owner)).warbandsInPersonalBank
+    adjustCount(bank, owner, count)
 }
 
 export function removeWarbandsFrom(
     state: HydratedOathGameState,
     at: WarbandLocation,
-    color: Color,
+    owner: WarbandOwner,
     count: number
 ) {
     if (count <= 0) return
@@ -68,68 +77,72 @@ export function removeWarbandsFrom(
             ? (state.warbandsBySite[at.siteId] ??= {})
             : state.getPlayerState(at.playerId).warbandsOnBoard
 
-    const available = countOf(counts, color)
+    const available = countOf(counts, owner)
     if (available < count) {
         const where = at.kind === 'site' ? at.siteId : `${at.playerId}'s board`
-        throw Error(`Cannot take ${count} ${color} from ${where}: only ${available} there`)
+        throw Error(
+            `Cannot take ${describeWarbands(count, owner)} from ${where}: only ${available} there`
+        )
     }
-    counts[color] = available - count
+    counts[owner] = available - count
 }
 
 export function addWarbandsToBoard(
     state: HydratedOathGameState,
     playerId: string,
-    color: Color,
+    owner: WarbandOwner,
     count: number
 ) {
     if (count <= 0) return
     const board = state.getPlayerState(playerId).warbandsOnBoard
-    adjustCount(board, color, count)
+    adjustCount(board, owner, count)
 }
 
 export function addWarbandsToSite(
     state: HydratedOathGameState,
     siteId: string,
-    color: Color,
+    owner: WarbandOwner,
     count: number
 ) {
     if (count <= 0) return
     const counts = (state.warbandsBySite[siteId] ??= {})
-    adjustCount(counts, color, count)
+    adjustCount(counts, owner, count)
 }
 
 export function addWarbandsToCard(
     state: HydratedOathGameState,
     cardId: string,
-    color: Color,
+    owner: WarbandOwner,
     count: number
 ) {
     if (count <= 0) return
     const onCards = state.warbandsOnCards
     const counts = (onCards[cardId] ??= {})
-    adjustCount(counts, color, count)
+    adjustCount(counts, owner, count)
 }
 
 export function removeWarbandsFromCard(
     state: HydratedOathGameState,
     cardId: string,
-    color: Color,
+    owner: WarbandOwner,
     count: number
 ) {
     if (count <= 0) return
     const counts = state.warbandsOnCard(cardId)
-    const available = countOf(counts, color)
+    const available = countOf(counts, owner)
     if (available < count) {
-        throw Error(`Cannot take ${count} ${color} from ${cardId}: only ${available} on it`)
+        throw Error(
+            `Cannot take ${describeWarbands(count, owner)} from ${cardId}: only ${available} on it`
+        )
     }
-    counts[color] = available - count
+    counts[owner] = available - count
 }
 
 /** R-10.13 — a card cannot carry warbands out of play, so they return to their banks as it leaves. */
 export function returnWarbandsOnCardToBanks(state: HydratedOathGameState, cardId: string) {
-    for (const [color, count] of warbandEntries(state.warbandsOnCard(cardId))) {
-        removeWarbandsFromCard(state, cardId, color, count)
-        killWarbands(state, color, count)
+    for (const [owner, count] of warbandEntries(state.warbandsOnCard(cardId))) {
+        removeWarbandsFromCard(state, cardId, owner, count)
+        killWarbands(state, owner, count)
     }
 }
 
@@ -165,39 +178,42 @@ export function selectionExceedsForce(
 function groupKey(group: WarbandGroup): string {
     const where =
         group.at.kind === 'site' ? `site ${group.at.siteId}` : `${group.at.playerId}'s board`
-    return `${group.color} at ${where}`
+    return `${group.owner}'s at ${where}`
 }
 
-/** R-5.5.6, R-5.5.7.I — site warbands go to their colour's board, the Empire's to the Chancellor. */
+/** R-5.5.6, R-5.5.7.I — site warbands go to their owner's board, the Empire's to the Chancellor's. */
 export function moveForceToBoards(state: HydratedOathGameState, force: readonly WarbandGroup[]) {
     for (const group of force) {
         if (group.at.kind !== 'site') {
             continue
         }
-        removeWarbandsFrom(state, group.at, group.color, group.count)
-        addWarbandsToBoard(state, state.warbandOwnerOf(group.color), group.color, group.count)
+        removeWarbandsFrom(state, group.at, group.owner, group.count)
+        addWarbandsToBoard(state, state.warbandBankHolderOf(group.owner), group.owner, group.count)
     }
 }
 
 /** R-10.13, R-5.2.2 */
-export function warbandsInBankFor(state: HydratedOathGameState, color: Color): number {
-    return countOf(state.getPlayerState(state.warbandOwnerOf(color)).warbandsInPersonalBank, color)
+export function warbandsInBankFor(state: HydratedOathGameState, owner: WarbandOwner): number {
+    return countOf(
+        state.getPlayerState(state.warbandBankHolderOf(owner)).warbandsInPersonalBank,
+        owner
+    )
 }
 
 /** R-9.3 — "as many as possible": may return fewer than asked. */
 export function takeWarbandsFromBank(
     state: HydratedOathGameState,
-    color: Color,
+    owner: WarbandOwner,
     count: number
 ): number {
     if (count <= 0) return 0
 
-    const available = warbandsInBankFor(state, color)
+    const available = warbandsInBankFor(state, owner)
     const taken = Math.min(count, available)
     if (taken === 0) return 0
 
-    const bank = state.getPlayerState(state.warbandOwnerOf(color)).warbandsInPersonalBank
-    adjustCount(bank, color, -taken)
+    const bank = state.getPlayerState(state.warbandBankHolderOf(owner)).warbandsInPersonalBank
+    adjustCount(bank, owner, -taken)
     return taken
 }
 
@@ -220,10 +236,10 @@ export function gainWarbandsToBoard(
     count: number
 ): number {
     const player = state.getPlayerState(playerId)
-    const color = player.color
-    const available = countOf(player.warbandsInPersonalBank, color)
+    const own = ownWarbandOwner(state, playerId)
+    const available = countOf(player.warbandsInPersonalBank, own)
     const gained = Math.max(0, Math.min(count, available))
-    player.warbandsInPersonalBank[color] = available - gained
-    addWarbandsToBoard(state, playerId, color, gained)
+    player.warbandsInPersonalBank[own] = available - gained
+    addWarbandsToBoard(state, playerId, own, gained)
     return gained
 }

@@ -1,4 +1,4 @@
-import { assert, assertExists, type Color } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { isLockedFor } from '../util/locked.js'
 import { effectiveSiteCapacity } from '../util/capacity.js'
 import { HydratedOathGameState } from '../model/gameState.js'
@@ -12,7 +12,7 @@ import {
     addWarbandsToSite,
     killWarbands,
     removeWarbandsFrom,
-    boardColorsOwnFirst,
+    boardOwnersOwnFirst,
     boardWarbandGroups
 } from '../util/force.js'
 import { suitOf } from '../data/cardRegistry.js'
@@ -20,7 +20,7 @@ import { warbandsAt, warbandsFreeToLeave } from '../util/rule.js'
 import { ruledFaceupCardIds, siteHolding } from '../util/access.js'
 import { burnFromBanner } from '../util/seize.js'
 import { countOf, adjustCount, warbandEntries } from '../util/warbands.js'
-import type { WarbandCounts } from '../model/warbandCounts.js'
+import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import { playersAt } from '../util/questions.js'
 import { pawnSiteId, regionOfPawn } from '../util/pawn.js'
 
@@ -106,24 +106,22 @@ export function burnSecretsFromDarkestSecret(state: HydratedOathGameState, count
     return burnFromBanner(state, Banner.DarkestSecret, count)
 }
 
-/** R-10.13 — their own colour first. */
+/** R-10.13 — their own warbands first. */
 export function killWarbandsOnBoard(
     state: HydratedOathGameState,
-    ownerId: string,
+    playerId: string,
     count: number
-): { color?: Color; killed: number } {
-    const owner = state.getPlayerState(ownerId)
-    const color = boardColorsOwnFirst(state, ownerId).find(
-        (c) => countOf(owner.warbandsOnBoard, c) > 0
-    )
-    if (!color) return { killed: 0 }
-    const killed = Math.min(count, countOf(owner.warbandsOnBoard, color))
-    removeWarbandsFrom(state, { kind: 'board', playerId: ownerId }, color, killed)
-    killWarbands(state, color, killed)
-    return { color, killed }
+): { owner?: WarbandOwner; killed: number } {
+    const board = state.getPlayerState(playerId).warbandsOnBoard
+    const owner = boardOwnersOwnFirst(state, playerId).find((o) => countOf(board, o) > 0)
+    if (!owner) return { killed: 0 }
+    const killed = Math.min(count, countOf(board, owner))
+    removeWarbandsFrom(state, { kind: 'board', playerId }, owner, killed)
+    killWarbands(state, owner, killed)
+    return { owner, killed }
 }
 
-/** R-10.13 — largest colour group first. */
+/** R-10.13 — largest owner's group first. */
 export function killWarbandsAtSite(
     state: HydratedOathGameState,
     siteId: string,
@@ -133,14 +131,14 @@ export function killWarbandsAtSite(
     let left = count
     const present = { ...warbandsAt(state, siteId) }
     while (left > 0) {
-        const [color, n] = warbandEntries(present).sort((a, b) => b[1] - a[1])[0] ?? []
-        if (!color || !n) break
+        const [owner, n] = warbandEntries(present).sort((a, b) => b[1] - a[1])[0] ?? []
+        if (!owner || !n) break
         const take = Math.min(left, n)
-        removeWarbandsFrom(state, { kind: 'site', siteId }, color, take)
-        killWarbands(state, color, take)
-        adjustCount(killed, color, take)
-        present[color] = n - take
-        if (present[color] === 0) delete present[color]
+        removeWarbandsFrom(state, { kind: 'site', siteId }, owner, take)
+        killWarbands(state, owner, take)
+        adjustCount(killed, owner, take)
+        present[owner] = n - take
+        if (present[owner] === 0) delete present[owner]
         left -= take
     }
     return killed
@@ -282,15 +280,15 @@ export function swapPlayedCardWithSiteCard(
 export function moveWarbandsBoardToSite(
     state: HydratedOathGameState,
     playerId: string,
-    color: Color,
+    owner: WarbandOwner,
     siteId: string,
     count: number
 ): number {
     const board = state.getPlayerState(playerId).warbandsOnBoard
-    const moved = Math.max(0, Math.min(count, countOf(board, color)))
+    const moved = Math.max(0, Math.min(count, countOf(board, owner)))
     if (moved === 0) return 0
-    removeWarbandsFrom(state, { kind: 'board', playerId }, color, moved)
-    addWarbandsToSite(state, siteId, color, moved)
+    removeWarbandsFrom(state, { kind: 'board', playerId }, owner, moved)
+    addWarbandsToSite(state, siteId, owner, moved)
     return moved
 }
 
@@ -298,14 +296,14 @@ export function moveWarbandsBoardToSite(
 export function moveWarbandsSiteToBoard(
     state: HydratedOathGameState,
     playerId: string,
-    color: Color,
+    owner: WarbandOwner,
     siteId: string,
     count: number
 ): number {
-    const moved = Math.max(0, Math.min(count, warbandsFreeToLeave(state, playerId, siteId, color)))
+    const moved = Math.max(0, Math.min(count, warbandsFreeToLeave(state, playerId, siteId, owner)))
     if (moved === 0) return 0
-    removeWarbandsFrom(state, { kind: 'site', siteId }, color, moved)
-    addWarbandsToBoard(state, playerId, color, moved)
+    removeWarbandsFrom(state, { kind: 'site', siteId }, owner, moved)
+    addWarbandsToBoard(state, playerId, owner, moved)
     return moved
 }
 
@@ -313,12 +311,12 @@ export function moveWarbandsSiteToBoard(
 export function killWarbandGroup(state: HydratedOathGameState, group: WarbandGroup): number {
     const present =
         group.at.kind === 'board'
-            ? countOf(state.getPlayerState(group.at.playerId).warbandsOnBoard, group.color)
-            : countOf(warbandsAt(state, group.at.siteId), group.color)
+            ? countOf(state.getPlayerState(group.at.playerId).warbandsOnBoard, group.owner)
+            : countOf(warbandsAt(state, group.at.siteId), group.owner)
     const killed = Math.max(0, Math.min(group.count, present))
     if (killed === 0) return 0
-    removeWarbandsFrom(state, group.at, group.color, killed)
-    killWarbands(state, group.color, killed)
+    removeWarbandsFrom(state, group.at, group.owner, killed)
+    killWarbands(state, group.owner, killed)
     return killed
 }
 
@@ -331,8 +329,8 @@ export function warbandGroupsInRegion(
     const groups: WarbandGroup[] = []
     for (const siteId of state.allSiteIds()) {
         if (state.regionOf(siteId) !== region) continue
-        for (const [color, count] of warbandEntries(warbandsAt(state, siteId))) {
-            if (count > 0) groups.push({ at: { kind: 'site', siteId }, color, count })
+        for (const [owner, count] of warbandEntries(warbandsAt(state, siteId))) {
+            if (count > 0) groups.push({ at: { kind: 'site', siteId }, owner, count })
         }
     }
     for (const p of state.players) {

@@ -49,12 +49,12 @@ const toProvinces = (...cardIds: string[]): PileDeposit => ({ region: Region.Pro
 function board(cards: string[] = [], over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 4, supply: 6, warbandsOnBoard: { [Color.Red]: 4 }, warbandsInPersonalBank: { [Color.Red]: 6 }, ...over[ME] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', favor: 2, secrets: 2, warbandsOnBoard: { [Color.Blue]: 2 }, ...over[FOE] })
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 4, supply: 6, warbandsOnBoard: { [ME]: 4 }, warbandsInPersonalBank: { [ME]: 6 }, ...over[ME] }),
+            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', favor: 2, secrets: 2, warbandsOnBoard: { [FOE]: 2 }, ...over[FOE] })
         ],
         {
             denizensBySite: { c1: cards, c2: [], p1: [], h1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } },
+            warbandsBySite: { c1: { [ME]: 1 }, c2: { [ME]: 2 }, p1: { [FOE]: 3 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             ...state
         }

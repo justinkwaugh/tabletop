@@ -11,7 +11,7 @@ import {
     type ChoiceDomain
 } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
-import { rulesSite, rulingColorsOf, sitesRuledBy, warbandsFreeToLeave } from '../util/rule.js'
+import { rulesSite, rulingWarbandOwners, sitesRuledBy, warbandsFreeToLeave } from '../util/rule.js'
 import { receiveFavor } from '../util/favor.js'
 import { areEnemies } from '../util/persistent.js'
 import {
@@ -122,20 +122,20 @@ registerModifier(LAND_WARDEN, powerIndexOf(LAND_WARDEN, PowerTiming.Modifier), {
 const WARNING_SIGNALS = 'denizen.nomad.warning-signals'
 const ruledSiteGroups: ChoiceDomain = (state, playerId) =>
     sitesRuledBy(state, playerId).flatMap((siteId) =>
-        rulingColorsOf(state, playerId)
-            .map((color) => ({ color, free: warbandsFreeToLeave(state, playerId, siteId, color) }))
+        rulingWarbandOwners(state, playerId)
+            .map((owner) => ({ owner, free: warbandsFreeToLeave(state, playerId, siteId, owner) }))
             .filter(({ free }) => free > 0)
-            .map(({ color, free }) => ({
+            .map(({ owner, free }) => ({
                 kind: PowerChoiceKind.Warbands,
-                group: { at: { kind: 'site' as const, siteId }, color, count: free }
+                group: { at: { kind: 'site' as const, siteId }, owner, count: free }
             }))
     )
 const boardGroups: ChoiceDomain = (state, playerId) =>
     warbandEntries(state.getPlayerState(playerId).warbandsOnBoard)
         .filter(([, count]) => count > 0)
-        .map(([color, count]) => ({
+        .map(([owner, count]) => ({
             kind: PowerChoiceKind.Warbands,
-            group: { at: { kind: 'board' as const, playerId }, color, count }
+            group: { at: { kind: 'board' as const, playerId }, owner, count }
         }))
 registerBattlePlan(WARNING_SIGNALS, powerIndexOf(WARNING_SIGNALS, PowerTiming.BattlePlan), {
     choices: [
@@ -175,11 +175,11 @@ registerBattlePlan(WARNING_SIGNALS, powerIndexOf(WARNING_SIGNALS, PowerTiming.Ba
                 const siteId = fromSite ?? to?.siteId
                 if (!siteId) continue
                 const move = fromSite ? moveWarbandsSiteToBoard : moveWarbandsBoardToSite
-                const moved = move(ctx.state, ctx.playerId, group.color, siteId, group.count)
+                const moved = move(ctx.state, ctx.playerId, group.owner, siteId, group.count)
                 const route = fromSite
                     ? `from ${siteId} to the board`
                     : `from the board to ${siteId}`
-                notes.push(`${moved} ${group.color} ${route}`)
+                notes.push(`${moved} ${route}`)
             }
             return `Warning Signals: moved ${notes.join('; ') || 'nothing'}`
         }

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { RELIQUARY_SPACES, uncoveredReliquarySpaces } from '@tabletop/oath'
 import { Color } from '@tabletop/common'
-import { IMPERIAL_COLOR, PlayerStatus } from '@tabletop/oath'
+import { PlayerStatus } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { reliquarySpaces } from './reliquary.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 /** R-2.3 — a Reliquary space is covered while its slot is present, and a slot names no card. */
 
@@ -15,8 +16,8 @@ function board(coveredSlotIds: string[]) {
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'c1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 20 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 20 }
             })
         ],
         { reliquary: coveredSlotIds.map((slotId) => ({ slotId })) }

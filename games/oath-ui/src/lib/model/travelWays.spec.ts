@@ -21,7 +21,7 @@ function travelling(me: { supply: number }, denizensBySite: Record<string, strin
         {
             machineState: MachineState.ActPhase,
             denizensBySite,
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Blue]: 1 } }
+            warbandsBySite: { c1: { me: 1 }, c2: { ann: 1 } }
         }
     )
     openTurn(state, 'me')
@@ -66,7 +66,7 @@ describe('R-7.4 — a declared modifier lights the Muster and Search targets it 
             {
                 machineState: MachineState.ActPhase,
                 denizensBySite,
-                warbandsBySite: { c1: { [Color.Red]: 1 } },
+                warbandsBySite: { c1: { me: 1 } },
                 discardPileCounts: { cradle: 3, provinces: 0, hinterland: 0 }
             }
         )
@@ -104,7 +104,7 @@ describe('R-11.12 — the Buried Giant offers a flipped secret beside the Supply
             {
                 machineState: MachineState.ActPhase,
                 siteCards: { c1: 'site.buried-giant', c2: 'site.river' },
-                warbandsBySite: { c1: { [Color.Red]: 1 } }
+                warbandsBySite: { c1: { me: 1 } }
             }
         )
         openTurn(state, 'me')
@@ -134,7 +134,7 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules', () => {
             {
                 machineState: MachineState.ActPhase,
                 siteCards: { c1: 'site.shrouded-wood', c2: 'site.river' },
-                warbandsBySite: { c1: { [Color.Blue]: 1 } }
+                warbandsBySite: { c1: { ann: 1 } }
             }
         )
         openTurn(state, 'me')

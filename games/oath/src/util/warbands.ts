@@ -1,12 +1,10 @@
-import { Color } from '@tabletop/common'
-import type { WarbandCounts } from '../model/warbandCounts.js'
-import { parseEnumValue } from '../data/typedData.js'
+import { IMPERIAL_WARBANDS, type WarbandCounts, type WarbandOwner } from '../model/warbandCounts.js'
 
-export function warbandEntries(counts: Readonly<WarbandCounts>): [Color, number][] {
-    const entries: [Color, number][] = []
-    for (const [key, count] of Object.entries(counts)) {
+export function warbandEntries(counts: Readonly<WarbandCounts>): [WarbandOwner, number][] {
+    const entries: [WarbandOwner, number][] = []
+    for (const [owner, count] of Object.entries(counts)) {
         if (count === undefined) continue
-        entries.push([parseEnumValue(Object.values(Color), key, `${key} is not a colour`), count])
+        entries.push([owner, count])
     }
     return entries
 }
@@ -15,11 +13,16 @@ export function totalWarbands(counts: Readonly<WarbandCounts>): number {
     return warbandEntries(counts).reduce((sum, [, n]) => sum + n, 0)
 }
 
-/** Warband records are sparse: a colour with no entry has none there. */
-export function countOf(counts: Readonly<WarbandCounts>, color: Color): number {
-    return counts[color] ?? 0
+/** Warband records are sparse: an owner with no entry has none there. */
+export function countOf(counts: Readonly<WarbandCounts>, owner: WarbandOwner): number {
+    return counts[owner] ?? 0
 }
 
-export function adjustCount(counts: WarbandCounts, color: Color, delta: number): void {
-    counts[color] = countOf(counts, color) + delta
+export function adjustCount(counts: WarbandCounts, owner: WarbandOwner, delta: number): void {
+    counts[owner] = countOf(counts, owner) + delta
+}
+
+export function describeWarbands(count: number, owner: WarbandOwner): string {
+    if (owner === IMPERIAL_WARBANDS) return `${count} Imperial warbands`
+    return `${count} of ${owner}'s warbands`
 }

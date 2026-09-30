@@ -82,7 +82,10 @@
                     <dt>supply</dt>
                 </div>
                 <div>
-                    <img src={warbandImage(facts.warbands.color)} alt="" />
+                    <img
+                        src={warbandImage(gameSession.warbandColor(facts.warbands.owner))}
+                        alt=""
+                    />
                     <dd>{facts.warbands.onBoard}</dd>
                     <dt>warbands, bank {facts.warbands.inBank}</dt>
                 </div>

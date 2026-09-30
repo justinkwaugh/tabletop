@@ -17,8 +17,8 @@ export type ExileCitizenMetadata = Type.Static<typeof ExileCitizenMetadata>
 export const ExileCitizenMetadata = Type.Object({
     favorGiven: Type.Number(),
     costModifier: Type.Number(),
-    recoloredCount: Type.Number(),
-    // R-9.3 — purple left for want of their own colour.
+    replacedCount: Type.Number(),
+    // R-9.3 — Imperial warbands left for want of their own.
     unreplacedCount: Type.Number()
 })
 
@@ -70,13 +70,13 @@ export class HydratedExileCitizen
         // R-10.11: the favor is given, not burned.
         giveFavor(state, this.playerId, this.citizenPlayerId, cost)
 
-        // R-6.7 recolours the board only; the purple on the map stays the Empire's.
+        // R-6.7 replaces the board's warbands only; those on the map stay the Empire's.
         const conversion = becomeExile(state, this.citizenPlayerId)
 
         this.metadata = {
             favorGiven: cost,
             costModifier: cost - EXILE_CITIZEN_BASE_COST,
-            recoloredCount: conversion.recoloredCount,
+            replacedCount: conversion.replacedCount,
             unreplacedCount: conversion.unreplacedCount
         }
     }

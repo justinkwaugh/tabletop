@@ -7,7 +7,9 @@ import {
     type Transfer,
     type HydratedOathGameState,
     Region,
-    RELIQUARY_MODIFIERS
+    RELIQUARY_MODIFIERS,
+    IMPERIAL_WARBANDS,
+    type WarbandOwner
 } from '@tabletop/oath'
 
 export function cardName(cardId: string): string {
@@ -111,6 +113,26 @@ export function nameIds(text: string, siteOf: (slotId: string) => string): strin
 
 export function plural(count: number, noun: string): string {
     return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
+
+/** R-10.13 — whose warbands: the Empire's, or a player's by name; never a colour. */
+export function warbandOwnerName(
+    owner: WarbandOwner,
+    nameOf: (playerId: string) => string
+): string {
+    return owner === IMPERIAL_WARBANDS ? 'Imperial' : `${nameOf(owner)}'s`
+}
+
+/** `selfId`'s own warbands need no owner named. */
+export function warbandsOf(
+    count: number,
+    owner: WarbandOwner,
+    nameOf: (playerId: string) => string,
+    selfId?: string
+): string {
+    if (owner === selfId) return plural(count, 'warband')
+    if (owner === IMPERIAL_WARBANDS) return plural(count, 'Imperial warband')
+    return `${count} of ${nameOf(owner)}'s warbands`
 }
 
 const BANNER_NAMES: Record<Banner, string> = {

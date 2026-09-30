@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { IMPERIAL_COLOR, PlayerStatus } from '@tabletop/oath'
+import { PlayerStatus } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { cardRulerIds, siteRuleOf } from './siteRule.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 const CROWN = 'relic.bandit-crown'
 const MASK = 'relic.grand-mask'
@@ -19,28 +20,28 @@ function board(myRelics: string[], turn = ME) {
                 color: Color.Red,
                 siteId: 'c1',
                 relicIds: myRelics,
-                warbandsOnBoard: { [Color.Red]: 4 }
+                warbandsOnBoard: { [ME]: 4 }
             }),
             testPlayer({
                 playerId: CHAN,
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'p1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 8 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }
             }),
             testPlayer({
                 playerId: CIT,
                 color: Color.Yellow,
                 status: PlayerStatus.Citizen,
                 siteId: 'p1',
-                warbandsInPersonalBank: { [Color.Yellow]: 14 }
+                warbandsInPersonalBank: { [CIT]: 14 }
             })
         ],
         {
             chancellorPlayerId: CHAN,
             denizensBySite: { p1: [MESSENGER] },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, p1: { [IMPERIAL_COLOR]: 2 } }
+            warbandsBySite: { c1: { [ME]: 1 }, p1: { [IMPERIAL_WARBANDS]: 2 } }
         }
     )
     state.turnManager.series = [{ type: 'turn', playerId: turn, start: 0 }]

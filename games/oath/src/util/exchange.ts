@@ -1,5 +1,5 @@
 import { bannerHolder } from './oathkeeper.js'
-import { assertExists, type Color } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import { giveFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import {
@@ -7,7 +7,7 @@ import {
     type ExchangeTerms,
     type ExchangeTransfer
 } from '../model/question.js'
-import { rulesSite, rulingColorsOf, warbandsAt } from './rule.js'
+import { rulesSite, rulingWarbandOwners, warbandsAt } from './rule.js'
 import { addWarbandsToBoard, addWarbandsToSite, removeWarbandsFrom } from './force.js'
 import {
     advisersTowardLimit,
@@ -17,6 +17,7 @@ import {
 import { moveRelic } from './relics.js'
 import type { CitizenshipTransfer } from '../model/citizenship.js'
 import { countOf } from './warbands.js'
+import type { WarbandOwner } from '../model/warbandCounts.js'
 import { reasonPersistentForbidsGivingSecrets } from './persistent.js'
 
 export const TINKERS_FAIR_ALLOWS: ExchangeAllowance = { relics: true }
@@ -112,8 +113,8 @@ export function reasonTransferInvalid(
             return `${fromId} promised ${site.siteId}, which they do not rule`
         if (!Number.isInteger(site.warbands) || site.warbands < 1)
             return `${toId} must move at least one warband to ${site.siteId}`
-        const color = boardColorOf(state, toId)
-        if (!color || countOf(to.warbandsOnBoard, color) < site.warbands) {
+        const owner = boardWarbandOwnerOf(state, toId)
+        if (!owner || countOf(to.warbandsOnBoard, owner) < site.warbands) {
             return `${toId} has fewer than ${site.warbands} warbands on their board to move to ${site.siteId}`
         }
     }
@@ -138,10 +139,14 @@ export function reasonTransferInvalid(
     return undefined
 }
 
-export function boardColorOf(state: HydratedOathGameState, playerId: string): Color | undefined {
+/** R-10.8 — the warbands a new ruler moves in: whichever of theirs their board holds most of. */
+export function boardWarbandOwnerOf(
+    state: HydratedOathGameState,
+    playerId: string
+): WarbandOwner | undefined {
     const player = state.getPlayerState(playerId)
-    const colors = rulingColorsOf(state, playerId)
-    return colors.sort(
+    const owners = rulingWarbandOwners(state, playerId)
+    return owners.sort(
         (a, b) => countOf(player.warbandsOnBoard, b) - countOf(player.warbandsOnBoard, a)
     )[0]
 }
@@ -180,17 +185,17 @@ function applyTransfer(
     for (const site of transfer.sites ?? []) {
         // R-10.8 — "old ruler moves warbands to board": all of theirs there.
         const onSite = warbandsAt(state, site.siteId)
-        for (const color of rulingColorsOf(state, fromId)) {
-            const n = countOf(onSite, color)
+        for (const owner of rulingWarbandOwners(state, fromId)) {
+            const n = countOf(onSite, owner)
             if (n <= 0) continue
-            removeWarbandsFrom(state, { kind: 'site', siteId: site.siteId }, color, n)
-            addWarbandsToBoard(state, fromId, color, n)
+            removeWarbandsFrom(state, { kind: 'site', siteId: site.siteId }, owner, n)
+            addWarbandsToBoard(state, fromId, owner, n)
         }
         // R-10.8 — "…and new ruler moves warbands from board".
-        const color = boardColorOf(state, toId)
-        assertExists(color, `${toId} has no ruling colour to move warbands in`)
-        removeWarbandsFrom(state, { kind: 'board', playerId: toId }, color, site.warbands)
-        addWarbandsToSite(state, site.siteId, color, site.warbands)
+        const owner = boardWarbandOwnerOf(state, toId)
+        assertExists(owner, `${toId} has no warbands to move in`)
+        removeWarbandsFrom(state, { kind: 'board', playerId: toId }, owner, site.warbands)
+        addWarbandsToSite(state, site.siteId, owner, site.warbands)
     }
     // Resolved by the host, which alone knows what a facedown row holds.
     const moving = (transfer.adviserRows ?? []).map((row) => {

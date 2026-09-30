@@ -1,8 +1,8 @@
 import * as Type from 'typebox'
-import { Color } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { CitizenshipTerms } from './citizenship.js'
 import { WarbandMove } from './warbandMove.js'
+import { WarbandOwner } from './warbandCounts.js'
 
 export enum ConsentRequestKind {
     /** R-6.6.1 */
@@ -30,7 +30,7 @@ export const ConsentRequest = Type.Union([
     Type.Object({
         kind: Type.Literal(ConsentRequestKind.WarbandMove),
         move: WarbandMove,
-        color: Type.Enum(Color),
+        owner: WarbandOwner,
         count: Type.Integer({ minimum: 1, maximum: 999 })
     }),
     Type.Object({

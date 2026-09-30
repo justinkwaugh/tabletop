@@ -80,7 +80,7 @@ export class HydratedAnswerConsent
                     state,
                     endpoints.from,
                     endpoints.to,
-                    request.color,
+                    request.owner,
                     request.count
                 )
                 break

@@ -21,8 +21,9 @@ import { OathPlayerState } from '../model/playerState.js'
 
 import { MachineState } from './states.js'
 import { OathGameConfig } from './config.js'
-import { OathExileColors } from './colors.js'
-import { Banner, IMPERIAL_COLOR, OathType, PlayerStatus } from '../model/oathEnums.js'
+import { OathExileColors, OathImperialColor } from './colors.js'
+import { Banner, OathType, PlayerStatus } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import {
     applySetupDeal,
     buildInitialPublicState,
@@ -57,6 +58,10 @@ export class OathGameInitializer
     ): HydratedOathGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game)
+        assert(
+            players.every((player) => player.playerId !== IMPERIAL_WARBANDS),
+            `R-10.13 — "${IMPERIAL_WARBANDS}" names the Empire's warbands, so no player may hold it as an id`
+        )
 
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
 
@@ -74,7 +79,7 @@ export class OathGameInitializer
 
         const chancellor = orderedPlayers[0]
         chancellor.status = PlayerStatus.Chancellor
-        chancellor.color = IMPERIAL_COLOR
+        chancellor.color = OathImperialColor
         orderedPlayers.slice(1).forEach((player, index) => {
             const color = exileColors[index]
             if (!color) {
@@ -167,7 +172,6 @@ function seedRequiredFields(
         reliquary: [],
         favorBank: bySuit(() => 0),
         favorSupply: 0,
-        warbandOwnerPlayerId: {},
         banners: {
             [Banner.PeoplesFavor]: { value: 0, mobSide: false },
             [Banner.DarkestSecret]: { value: 0 }

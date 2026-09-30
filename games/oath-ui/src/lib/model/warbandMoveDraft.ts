@@ -28,7 +28,7 @@ export class WarbandMoveDraft {
         return this.chosen === undefined ? this.options.filter((o) => o.move.kind === kind) : []
     }
 
-    // A move of one colour is tapped on the board; a holder of two colours picks one in the panel.
+    // A move of one owner's warbands is tapped on the board; a holder of two owners' picks one in the panel.
     get boardToSite(): WarbandMoveOption | undefined {
         const options = this.ofKind(WarbandMoveKind.BoardToSite)
         return options.length === 1 ? options[0] : undefined
@@ -39,8 +39,8 @@ export class WarbandMoveDraft {
         return options.length === 1 ? options[0] : undefined
     }
 
-    /** R-6.5 — the moves between board and site offered by colour, when there is more than one. */
-    get byColour(): WarbandMoveOption[] {
+    /** R-6.5 — the moves between board and site offered by owner, when there is more than one. */
+    get byOwner(): WarbandMoveOption[] {
         return [WarbandMoveKind.BoardToSite, WarbandMoveKind.SiteToBoard].flatMap((kind) => {
             const options = this.ofKind(kind)
             return options.length > 1 ? options : []
@@ -60,6 +60,6 @@ export class WarbandMoveDraft {
     }
 
     private same(a: WarbandMoveOption, b: WarbandMoveOption): boolean {
-        return a.color === b.color && JSON.stringify(a.move) === JSON.stringify(b.move)
+        return a.owner === b.owner && JSON.stringify(a.move) === JSON.stringify(b.move)
     }
 }

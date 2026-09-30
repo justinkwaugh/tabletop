@@ -17,8 +17,8 @@ export const SelfExileMetadata = Type.Object({
     secretsOnBoard: Type.Number(),
     secretsOnCards: Type.Number(),
     warbandsOnBoard: Type.Number(),
-    recoloredCount: Type.Number(),
-    // R-9.3 — purple left for want of their own colour.
+    replacedCount: Type.Number(),
+    // R-9.3 — Imperial warbands left for want of their own.
     unreplacedCount: Type.Number(),
     // R-6.8 — applied by the Act Phase state handler.
     endsActPhase: Type.Boolean()
@@ -67,7 +67,7 @@ export class HydratedSelfExile extends HydratableAction<typeof SelfExile> implem
 
         const endsActPhase = citizenshipEndsActPhase(state, this.playerId)
 
-        // R-6.8 recolours the board only; the purple on the map stays the Empire's.
+        // R-6.8 replaces the board's warbands only; those on the map stay the Empire's.
         const conversion = becomeExile(state, this.playerId)
 
         this.metadata = {
@@ -75,7 +75,7 @@ export class HydratedSelfExile extends HydratableAction<typeof SelfExile> implem
             secretsOnBoard: price.secretsOnBoard,
             secretsOnCards: price.secretsOnCards,
             warbandsOnBoard: price.warbandsOnBoard,
-            recoloredCount: conversion.recoloredCount,
+            replacedCount: conversion.replacedCount,
             unreplacedCount: conversion.unreplacedCount,
             endsActPhase
         }

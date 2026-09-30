@@ -23,14 +23,14 @@ function board() {
                 color: Color.Red,
                 siteId: 'c1',
                 advisers: [{ cardId: 'denizen.beast.rangers', faceUp: true }],
-                warbandsOnBoard: { [Color.Red]: 3 }
+                warbandsOnBoard: { p1: 3 }
             }),
             testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c2' }),
             testPlayer({ playerId: 'p3', color: Color.Yellow, siteId: 'c1' })
         ],
         {
             denizensBySite: { c1: ['denizen.order.captains', 'denizen.hearth.ballot-box'] },
-            warbandsBySite: { c1: { [Color.Red]: 1 } },
+            warbandsBySite: { c1: { p1: 1 } },
             siteCards: { c1: 'site.mine', c2: 'site.river', p1: 'site.plains' }
         }
     )
@@ -170,16 +170,16 @@ describe('"that bank is not among the options" — validated against the live bo
         expect(options).toEqual([
             {
                 kind: PowerChoiceKind.Warbands,
-                group: { at: { kind: 'board', playerId: 'p1' }, color: Color.Red, count: 3 }
+                group: { at: { kind: 'board', playerId: 'p1' }, owner: 'p1', count: 3 }
             }
         ])
         const pick = (count: number): PowerChoice => ({
             kind: PowerChoiceKind.Warbands,
-            group: { at: { kind: 'board', playerId: 'p1' }, color: Color.Red, count }
+            group: { at: { kind: 'board', playerId: 'p1' }, owner: 'p1', count }
         })
         expect(reasonChoicesInvalid(state, 'p1', CAPTAINS, [pick(2)])).toBeUndefined()
         expect(reasonChoicesInvalid(state, 'p1', CAPTAINS, [pick(4)])).toBe(
-            '4 red warbands chosen for warbands, but only 3 are there'
+            "4 of p1's warbands chosen for warbands, but only 3 are there"
         )
         expect(reasonChoicesInvalid(state, 'p1', CAPTAINS, [pick(0)])).toBe(
             'at least one warband must be chosen for warbands'

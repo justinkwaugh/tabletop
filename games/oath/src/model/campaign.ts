@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
-import { Color } from '@tabletop/common'
 import { Banner } from './oathEnums.js'
+import { WarbandOwner } from './warbandCounts.js'
 
 export type WarbandLocation = Type.Static<typeof WarbandLocation>
 export const WarbandLocation = Type.Union([
@@ -8,15 +8,15 @@ export const WarbandLocation = Type.Union([
     Type.Object({ kind: Type.Literal('board'), playerId: Type.String() })
 ])
 
-/** R-5.5.5, R-10.22 — one place and colour the attacker's losses may come from, in the order named. */
+/** R-5.5.5, R-10.22 — one place and owner the attacker's losses may come from, in the order named. */
 export type LossSource = Type.Static<typeof LossSource>
-export const LossSource = Type.Object({ at: WarbandLocation, color: Type.Enum(Color) })
+export const LossSource = Type.Object({ at: WarbandLocation, owner: WarbandOwner })
 
-/** R-10.13 — a killed warband returns to the bank of the player whose colour it is. */
+/** R-10.13 — a killed warband returns to its owner's bank. */
 export type WarbandGroup = Type.Static<typeof WarbandGroup>
 export const WarbandGroup = Type.Object({
     at: WarbandLocation,
-    color: Type.Enum(Color),
+    owner: WarbandOwner,
     count: Type.Integer({ minimum: 0, maximum: 999 })
 })
 
@@ -92,7 +92,7 @@ export type HeldForHospital = Type.Static<typeof HeldForHospital>
 export const HeldForHospital = Type.Object({
     playerId: Type.String(),
     siteId: Type.String(),
-    color: Type.Enum(Color),
+    owner: WarbandOwner,
     count: Type.Integer({ minimum: 1 })
 })
 

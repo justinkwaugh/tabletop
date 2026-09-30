@@ -1,5 +1,4 @@
 import {
-    Color,
     GameResult,
     GameState,
     HydratableGameState,
@@ -11,7 +10,7 @@ import {
 import { OathPlayerState, HydratedOathPlayerState } from './playerState.js'
 import * as Type from 'typebox'
 import { PowerUse } from './powerUse.js'
-import { WarbandCounts } from './warbandCounts.js'
+import { IMPERIAL_WARBANDS, WarbandCounts, type WarbandOwner } from './warbandCounts.js'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { Banner, CardKind, OathType, Region, SetupVariant, Suit } from './oathEnums.js'
@@ -91,10 +90,6 @@ export const OathGameState = Type.Object({
             maxItems: 16
         })
     ),
-    /** R-10.13 — the seat each colour's warbands return to; purple returns to the Chancellor. */
-    warbandOwnerPlayerId: Type.Record(Type.Enum(Color), Type.Optional(Type.String()), {
-        additionalProperties: false
-    }),
     /** R-2.5 */
     banners: Type.Record(Type.Enum(Banner), BannerState),
 
@@ -169,7 +164,6 @@ export class HydratedOathGameState
     declare favorBank: Record<Suit, number>
     declare favorSupply: number
     declare pendingSiteFavor?: { siteCardId: string; wanted: number }[]
-    declare warbandOwnerPlayerId: Partial<Record<Color, string>>
     declare banners: Record<Banner, BannerState>
     declare worldDeckExhausted: boolean
     declare topCardBackType?: CardKind
@@ -243,11 +237,10 @@ export class HydratedOathGameState
         this.cardTokens[cardId] = { favor: tokens.favor + favor, secrets: tokens.secrets + secrets }
     }
 
-    /** R-10.13 — every colour in play belongs to a seat; purple to the Chancellor (R-1.7). */
-    warbandOwnerOf(color: Color): string {
-        const owner = this.warbandOwnerPlayerId[color]
-        assertExists(owner, `no seat holds the ${color} warbands`)
-        return owner
+    /** R-10.13 — the player whose bank a warband returns to; the Empire's is the Chancellor's (R-1.8). */
+    warbandBankHolderOf(owner: WarbandOwner): string {
+        if (owner === IMPERIAL_WARBANDS) return this.chancellorId()
+        return this.getPlayerState(owner).playerId
     }
 
     /** R-9.4 */

@@ -28,7 +28,7 @@ const game = testGame([X, Y, H])
 function board(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     return testState(
         withChancellor([
-            testPlayer({ playerId: X, color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { [Color.Red]: 4 }, ...over[X] }),
+            testPlayer({ playerId: X, color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { [X]: 4 }, ...over[X] }),
             testPlayer({ playerId: Y, color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 6, ...over[Y] }),
             testPlayer({ playerId: H, color: Color.Yellow, siteId: 'p1', favor: 1, supply: 6, ...over[H] })
         ]),

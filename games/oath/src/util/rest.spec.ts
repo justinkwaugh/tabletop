@@ -17,6 +17,7 @@ import type { OathGameState } from '../model/gameState.js'
 import type { OathPlayerState } from '../model/playerState.js'
 import { VISIONS_DRAWN_SUPPLY_COST } from '../data/visionsDrawnTrack.js'
 import { FILLER as ORDER_CARD } from '../testing/cards.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -34,21 +35,21 @@ function table(
             playerId: CHANCELLOR,
             color: Color.Purple,
             status: PlayerStatus.Chancellor,
-            warbandsInPersonalBank: { purple: 5 },
+            warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 },
             ...playerOverrides[CHANCELLOR]
         }),
         testPlayer({
             playerId: CITIZEN,
             color: Color.Blue,
             status: PlayerStatus.Citizen,
-            warbandsInPersonalBank: { blue: 14 },
+            warbandsInPersonalBank: { [CITIZEN]: 14 },
             ...playerOverrides[CITIZEN]
         }),
         testPlayer({
             playerId: EXILE,
             color: Color.Red,
             status: PlayerStatus.Exile,
-            warbandsInPersonalBank: { [Color.Red]: 4 },
+            warbandsInPersonalBank: { [EXILE]: 4 },
             ...playerOverrides[EXILE]
         })
     ]
@@ -98,7 +99,7 @@ describe('R-4.3.4-H1 — a mid-turn Supply gain', () => {
                 playerId: 'p1',
                 color: Color.Red,
                 status: PlayerStatus.Exile,
-                warbandsInPersonalBank: { [Color.Red]: 2 }, // R-4.3.3 — base 4
+                warbandsInPersonalBank: { p1: 2 }, // R-4.3.3 — base 4
                 ...overrides
             })
         ])
@@ -228,7 +229,7 @@ describe('R-4.3.3 / R-4.3.4 — refresh and save Supply', () => {
                 [EXILE]: {
                     supply: 2,
                     supplySpentThisTurn: 1,
-                    warbandsInPersonalBank: { [Color.Red]: 2 }
+                    warbandsInPersonalBank: { [EXILE]: 2 }
                 }
             }
         )
@@ -238,7 +239,7 @@ describe('R-4.3.3 / R-4.3.4 — refresh and save Supply', () => {
     it('cannot refresh past the leftmost space (R-4.3.4)', () => {
         const state = table(
             {},
-            { [EXILE]: { supply: 5, warbandsInPersonalBank: { [Color.Red]: 14 } } }
+            { [EXILE]: { supply: 5, warbandsInPersonalBank: { [EXILE]: 14 } } }
         )
         expect(refreshSupply(state, EXILE)).toBe(MAX_SUPPLY)
     })
@@ -307,7 +308,7 @@ function ledgerTable(opts: { supply: number; supplySpentThisTurn: number; bank: 
             supply: opts.supply,
             supplyAtTurnStart: MAX_SUPPLY,
             supplySpentThisTurn: opts.supplySpentThisTurn,
-            warbandsInPersonalBank: { [Color.Red]: opts.bank }
+            warbandsInPersonalBank: { [LEDGER_PLAYER]: opts.bank }
         })
     ])
 }

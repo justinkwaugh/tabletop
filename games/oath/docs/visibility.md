@@ -14,7 +14,7 @@ A peek leaves the relic facedown: its identity stays in the vault and the slot n
 
 Letting another player peek (R-6.1, R-9.4, R-6.6.1) is its own Action, `LetPeek`, and an Undo barrier. It names who is shown under the public `toPlayerId`. A shown facedown adviser's `subject.cardId` is visible to its holder and to the player shown, under the `oath.shownPlayer` policy. A Reliquary relic the Grand Scepter's holder lets an Exile see is read from the vault into `metadata.relicCardId`, which only the Exile sees. It is also recorded in the Exile's `peekedRelics`, as their own peek would be; the holder already knows it.
 
-Colour is a rule fact, not player identity: `warbandOwnerPlayerId` records at setup which seat each colour's warbands return to, purple to the Chancellor (R-10.13).
+Warbands are keyed by owner, never by colour: every holding (sites, cards, boards, banks, the Campaign's groups and the consent and move records) counts an Exile's warbands under that player's id and the Empire's under `IMPERIAL_WARBANDS`. The Empire's return to the Chancellor's bank (R-10.13), and who may use them is decided from status (R-6.6.3, R-5.5.1.a). A player's `color` is presentation only; no rule reads it.
 
 ## Execution
 

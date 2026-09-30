@@ -12,6 +12,7 @@ import {
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { emptyPicks } from './powerChoices.js'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 afterEach(disposeSessions)
 
@@ -39,7 +40,7 @@ function table(
                 favor: 3,
                 secrets: 2,
                 supply: 5,
-                warbandsOnBoard: { [Color.Red]: 2 },
+                warbandsOnBoard: { [ME]: 2 },
                 ...me
             }),
             testPlayer({
@@ -48,7 +49,7 @@ function table(
                 status: PlayerStatus.Chancellor,
                 siteId: 'h1',
                 favor: 4,
-                warbandsInPersonalBank: { [Color.Purple]: 1 }
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 1 }
             }),
             ...others
         ],
@@ -56,7 +57,7 @@ function table(
             machineState,
             chancellorPlayerId: CHANCELLOR,
             denizensBySite: { c1: [INN, OAK], c2: [], h1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1 } },
+            warbandsBySite: { c1: { [ME]: 1 } },
             siteCards: { c1: 'site.mine', c2: 'site.river', h1: 'site.wastes' },
             ...over
         }
@@ -341,8 +342,8 @@ describe('the Citizenship offer draft (docs/user-interactions.md)', () => {
     })
 })
 
-/** R-6.6.2 — which warbands take the purple, one entry for every group. */
-describe('the Citizenship recolor draft (docs/user-interactions.md)', () => {
+/** R-6.6.2 — which warbands become Imperial, one entry for every group. */
+describe('the Citizenship replacement draft (docs/user-interactions.md)', () => {
     const answering = () => {
         const state = table(MachineState.ActPhase)
         state.pendingConsent = {

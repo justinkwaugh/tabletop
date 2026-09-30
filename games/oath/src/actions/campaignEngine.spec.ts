@@ -16,9 +16,10 @@ import { bySuit } from '../data/typedData.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { testPlayer, testState, withChancellor } from '../testing/fixture.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
-import { expectOneWarbandColorPerSite, warbandCensus } from '../testing/census.js'
+import { expectOneWarbandOwnerPerSite, warbandCensus } from '../testing/census.js'
 import { favorCensus } from '../testing/census.js'
 import { testGame } from '../testing/game.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 
 const ATTACKER = 'p1'
@@ -42,8 +43,8 @@ function buildState(seed = 20260826): OathProjectedState {
                 status: PlayerStatus.Exile,
                 siteId: 'c1',
                 supply: 7,
-                warbandsOnBoard: { [Color.Red]: 8 },
-                warbandsInPersonalBank: { [Color.Red]: 4 }
+                warbandsOnBoard: { [ATTACKER]: 8 },
+                warbandsInPersonalBank: { [ATTACKER]: 4 }
             }),
             testPlayer({
                 playerId: DEFENDER,
@@ -52,14 +53,14 @@ function buildState(seed = 20260826): OathProjectedState {
                 siteId: 'c1',
                 favor: 5,
                 warbandsOnBoard: {},
-                warbandsInPersonalBank: { [Color.Yellow]: 13 },
+                warbandsInPersonalBank: { [DEFENDER]: 13 },
                 relicIds: [RELIC]
             })
         ]),
         {
             machineState: MachineState.ActPhase,
             // R-6.5 — the defender rules c1, so the attacker's warbands start on their board.
-            warbandsBySite: { c1: { [Color.Yellow]: 1 } },
+            warbandsBySite: { c1: { [DEFENDER]: 1 } },
             favorSupply: 13,
             favorBank: bySuit(() => 3),
             banners: {
@@ -154,12 +155,12 @@ describe('a Campaign through the engine', () => {
         expect(state.campaign?.attackerVictorious).toBe(true)
         expect(state.machineState).toBe(MachineState.CampaignVictory)
         // R-5.5.6
-        expect(state.warbandsBySite['c1'][Color.Yellow]).toBe(0)
+        expect(state.warbandsBySite['c1'][DEFENDER]).toBe(0)
 
         result = engine.run(
             action(buildAction(CampaignResolveVictory, {
                 playerId: ATTACKER,
-                placements: [{ siteId: 'c1', color: Color.Red, count: 2 }],
+                placements: [{ siteId: 'c1', owner: ATTACKER, count: 2 }],
                 banishToSiteId: 'h3',
                 burnFavor: true
             })),
@@ -174,8 +175,8 @@ describe('a Campaign through the engine', () => {
 
         const hydrated = new HydratedOathGameState(state)
         // R-5.5.7.I
-        expect(state.warbandsBySite['c1'][Color.Red]).toBe(2)
-        expect(state.warbandsBySite['c1'][Color.Yellow]).toBe(0)
+        expect(state.warbandsBySite['c1'][ATTACKER]).toBe(2)
+        expect(state.warbandsBySite['c1'][DEFENDER]).toBe(0)
         // R-5.5.7.II
         expect(state.players[0].relicIds).toEqual([RELIC])
         expect(state.players[1].relicIds).toEqual([])
@@ -188,7 +189,7 @@ describe('a Campaign through the engine', () => {
 
         expect(warbandCensus(hydrated)).toEqual(warbandsBefore)
         expect(favorCensus(hydrated)).toBe(favorBefore)
-        expectOneWarbandColorPerSite(hydrated)
+        expectOneWarbandOwnerPerSite(hydrated)
     })
 
     it('replays identically from the same seed -- the roll is in state, not the server', () => {
@@ -243,11 +244,11 @@ describe('R-5.5.2.a — a Citizen joins the defence, through the engine', () => 
     function empireAtC1(): OathProjectedState {
         const state = testState(
             [
-                testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 7, warbandsOnBoard: { [Color.Red]: 5 }, warbandsInPersonalBank: { [Color.Red]: 7 } }),
-                testPlayer({ playerId: CHANCELLOR, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c1', warbandsOnBoard: { purple: 2 }, warbandsInPersonalBank: { purple: 15 } }),
-                testPlayer({ playerId: CITIZEN, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', warbandsOnBoard: { purple: 1 }, warbandsInPersonalBank: { [Color.Blue]: 14 } })
+                testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 7, warbandsOnBoard: { [ATTACKER]: 5 }, warbandsInPersonalBank: { [ATTACKER]: 7 } }),
+                testPlayer({ playerId: CHANCELLOR, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 15 } }),
+                testPlayer({ playerId: CITIZEN, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 1 }, warbandsInPersonalBank: { [CITIZEN]: 14 } })
             ],
-            { machineState: MachineState.ActPhase, chancellorPlayerId: CHANCELLOR, warbandsBySite: { c1: { purple: 2 } }, prng: { seed: 1, invocations: 0 } }
+            { machineState: MachineState.ActPhase, chancellorPlayerId: CHANCELLOR, warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 } }, prng: { seed: 1, invocations: 0 } }
         ).dehydrate()
         state.turnManager = {
             series: [{ type: 'turn', playerId: ATTACKER, start: 0 }],

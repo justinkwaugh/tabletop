@@ -240,8 +240,8 @@ describe('An undo across a let-peek rewinds it, the Grand Scepter changing hands
     function table(seed: number): OathProjectedState {
         const state = testState(
             withChancellor([
-                testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 7, warbandsOnBoard: { [Color.Red]: 8 }, warbandsInPersonalBank: { [Color.Red]: 4 } }),
-                testPlayer({ playerId: HOLDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', warbandsInPersonalBank: { [Color.Yellow]: 13 }, relicIds: [GRAND_SCEPTER_ID] }),
+                testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 7, warbandsOnBoard: { [ATTACKER]: 8 }, warbandsInPersonalBank: { [ATTACKER]: 4 } }),
+                testPlayer({ playerId: HOLDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', warbandsInPersonalBank: { [HOLDER]: 13 }, relicIds: [GRAND_SCEPTER_ID] }),
                 testPlayer({ playerId: EXILE, color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c2' })
             ]),
             {

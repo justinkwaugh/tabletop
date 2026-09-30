@@ -23,6 +23,7 @@ import { ongoingCampaign } from '../testing/required.js'
 import { bank, modifierUse, player, region, yes } from '../testing/choices.js'
 import { playDrawnCard } from '../testing/steps.js'
 import { FILLER, INN } from '../testing/cards.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const HOSPITALITY = 'denizen.nomad.hospitality'
 const DISGUISE = 'denizen.arcane.master-of-disguise'
@@ -41,14 +42,14 @@ function board(cards: Record<string, string[]> = {}, advisers: Record<string, st
     const adv = (id: string) => (advisers[id] ?? []).map((cardId) => ({ cardId, faceUp: true }))
     const s = testState(
         [
-            testPlayer({ playerId: 'ruler', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 3, supply: 5, warbandsOnBoard: { [Color.Red]: 4 }, warbandsInPersonalBank: { [Color.Red]: 6 }, advisers: adv('ruler'), ...over['ruler'] }),
-            testPlayer({ playerId: 'other', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 2, supply: 5, warbandsOnBoard: { [Color.Blue]: 3 }, warbandsInPersonalBank: { [Color.Blue]: 5 }, advisers: adv('other'), ...over['other'] }),
-            testPlayer({ playerId: 'chancellor', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 2, secrets: 2, supply: 5, warbandsOnBoard: { purple: 3 }, warbandsInPersonalBank: { purple: 12 }, advisers: adv('chancellor'), ...over['chancellor'] })
+            testPlayer({ playerId: 'ruler', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 3, supply: 5, warbandsOnBoard: { ruler: 4 }, warbandsInPersonalBank: { ruler: 6 }, advisers: adv('ruler'), ...over['ruler'] }),
+            testPlayer({ playerId: 'other', color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 2, supply: 5, warbandsOnBoard: { other: 3 }, warbandsInPersonalBank: { other: 5 }, advisers: adv('other'), ...over['other'] }),
+            testPlayer({ playerId: 'chancellor', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 2, secrets: 2, supply: 5, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 12 }, advisers: adv('chancellor'), ...over['chancellor'] })
         ],
         {
             chancellorPlayerId: 'chancellor',
             denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...cards },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Blue]: 2 }, p1: {}, h1: { purple: 2 } },
+            warbandsBySite: { c1: { ruler: 1 }, c2: { other: 2 }, p1: {}, h1: { [IMPERIAL_WARBANDS]: 2 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             discardPileCounts: { cradle: 0, provinces: 3, hinterland: 2 },
             prng: { seed: 1, invocations: 0 },
@@ -121,7 +122,7 @@ describe('choices on declared modifiers', () => {
         // R-7.1.1 — a card at a site the ruler neither stands on nor rules is out of reach.
         expect(HydratedSearch.reasonCannotSearch(away, 'ruler', SearchSource.Discard, [modifierUse(OBSERVATORY, [region(Region.Hinterland)])])).toBeTruthy()
         // Ruling c2 puts the card in reach; the Observatory still needs the pawn at its site.
-        const ruledAfar = board({ c2: [OBSERVATORY] }, {}, {}, { warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Red]: 2 }, p1: {}, h1: { purple: 2 } } })
+        const ruledAfar = board({ c2: [OBSERVATORY] }, {}, {}, { warbandsBySite: { c1: { ruler: 1 }, c2: { ruler: 2 }, p1: {}, h1: { [IMPERIAL_WARBANDS]: 2 } } })
         expect(HydratedSearch.reasonCannotSearch(ruledAfar, 'ruler', SearchSource.Discard, [modifierUse(OBSERVATORY, [region(Region.Hinterland)])])).toMatch(/not at the Observatory/)
     })
 })
@@ -134,7 +135,7 @@ describe('Citizenship routes', () => {
         a.apply(s)
         expect(s.getPlayerState('ruler').status).toBe(PlayerStatus.Citizen)
         expect(s.getPlayerState('ruler').supply).toBe(MAX_SUPPLY)
-        expect(s.getPlayerState('ruler').warbandsOnBoard.purple).toBe(4)
+        expect(s.getPlayerState('ruler').warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(4)
         expect(a.metadata?.endsActPhase).toBe(true)
         expect(() => new HydratedUseActionPower(buildAction(UseActionPower, { playerId: 'ruler', cardId: BALLOT, powerIndex: 0 })).apply(board({ c1: [BALLOT] }))).toThrow(/People's Favor/)
     })

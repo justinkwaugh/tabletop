@@ -20,12 +20,12 @@ const WOLVES = 'denizen.beast.wolves'
 function board(siteCards: Record<string, string>, over: Record<string, unknown> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, supply: 5, warbandsOnBoard: { [Color.Red]: 3 }, ...over }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'p1', favor: 2, secrets: 2, supply: 4, warbandsOnBoard: { [Color.Blue]: 2 } })
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, supply: 5, warbandsOnBoard: { me: 3 }, ...over }),
+            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'p1', favor: 2, secrets: 2, supply: 4, warbandsOnBoard: { foe: 2 } })
         ],
         {
             denizensBySite: { c1: [], c2: [], p1: [], p2: [], h1: [] },
-            warbandsBySite: { p1: { [Color.Blue]: 2 }, p2: { [Color.Blue]: 1 }, c2: { [Color.Blue]: 1 } },
+            warbandsBySite: { p1: { foe: 2 }, p2: { foe: 1 }, c2: { foe: 1 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', p2: 'site.mine', h1: 'site.mountain', ...siteCards },
             ...state
         }
@@ -69,7 +69,7 @@ describe('the site travel layer (R-11.3, R-11.6, R-11.7, R-11.12)', () => {
 })
 
 describe('R-11.7 — leaving a Shrouded Wood an enemy rules', () => {
-    const enemyWood = () => board({ c1: 'site.shrouded-wood' }, {}, { warbandsBySite: { c1: { [Color.Blue]: 1 }, p1: { [Color.Blue]: 2 }, p2: { [Color.Blue]: 1 }, c2: { [Color.Blue]: 1 } } })
+    const enemyWood = () => board({ c1: 'site.shrouded-wood' }, {}, { warbandsBySite: { c1: { foe: 1 }, p1: { foe: 2 }, p2: { foe: 1 }, c2: { foe: 1 } } })
 
     it('names no destination: the Supply is paid and the ruler chooses, ignoring the Narrow Pass', () => {
         const s = enemyWood()
@@ -89,7 +89,7 @@ describe('R-11.7 — leaving a Shrouded Wood an enemy rules', () => {
     })
 
     it('a Wood its traveler rules, or the bandits hold, is left the usual way', () => {
-        expect(HydratedTravel.legalDestinations(board({ c1: 'site.shrouded-wood' }, {}, { warbandsBySite: { c1: { [Color.Red]: 1 } } }), 'me')).toContain('c2')
+        expect(HydratedTravel.legalDestinations(board({ c1: 'site.shrouded-wood' }, {}, { warbandsBySite: { c1: { me: 1 } } }), 'me')).toContain('c2')
     })
 })
 
@@ -141,7 +141,7 @@ describe('the Narrow Pass and The Hidden Place (R-11.8, R-11.13)', () => {
         expect(HydratedTravel.legalDestinations(s, 'me')).toContain('c2')
         expect(HydratedTravel.legalDestinations(board({ c2: 'site.the-hidden-place' }, { secrets: 0 }), 'me')).not.toContain('c2')
         // foe also rules c1, the attacker's site, which R-5.5.2 then requires among the targets.
-        const t = board({ c2: 'site.the-hidden-place' }, {}, { warbandsBySite: { c1: { [Color.Blue]: 1 }, c2: { [Color.Blue]: 1 }, p1: { [Color.Blue]: 2 } } })
+        const t = board({ c2: 'site.the-hidden-place' }, {}, { warbandsBySite: { c1: { foe: 1 }, c2: { foe: 1 }, p1: { foe: 2 } } })
         const choice = { defender: { kind: 'player' as const, playerId: 'foe' }, targets: [{ kind: CampaignTargetKind.Site as const, siteId: 'c1' }, { kind: CampaignTargetKind.Site as const, siteId: 'c2' }], attackDice: 2 }
         expect(HydratedCampaign.reasonCannotCampaign(t, 'me', choice)).toMatch(/cannot declare targets here unless you flip/)
         expect(HydratedCampaign.reasonCannotCampaign(t, 'me', { ...choice, flipSecret: true })).toBeUndefined()
@@ -158,7 +158,7 @@ describe('the Narrow Pass and The Hidden Place (R-11.8, R-11.13)', () => {
     })
 
     it('targeting another region with a Narrow Pass, you must target the pass unless you rule it', () => {
-        const s = board({ p1: 'site.narrow-pass' }, {}, { warbandsBySite: { c1: { [Color.Blue]: 1 }, p1: { [Color.Blue]: 2 }, p2: { [Color.Blue]: 1 } } })
+        const s = board({ p1: 'site.narrow-pass' }, {}, { warbandsBySite: { c1: { foe: 1 }, p1: { foe: 2 }, p2: { foe: 1 } } })
         const choice = (siteIds: string[]) => ({ defender: { kind: 'player' as const, playerId: 'foe' }, targets: siteIds.map((siteId) => ({ kind: CampaignTargetKind.Site as const, siteId })), attackDice: 2 })
         expect(HydratedCampaign.reasonCannotCampaign(s, 'me', choice(['c1', 'p2']))).toMatch(/must target p1/)
         expect(HydratedCampaign.reasonCannotCampaign(s, 'me', choice(['c1', 'p1', 'p2']))).toBeUndefined()

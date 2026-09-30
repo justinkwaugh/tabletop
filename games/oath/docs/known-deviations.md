@@ -18,7 +18,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 - **Sticky Fire:** takes effect over Billowing Fog (R-9.2).
 - **Cursed Cauldron:** counts only the defeated side's kills, Hospital-saved warbands included; its Q&A also counts Bear Traps and skull kills.
 - **The Grand Scepter:** one received in an exchange is locked for the turn; its Q&A lets it be used.
-- **Obsidian Cage:** warbands of an Exile who has since become a Citizen return in their old colour; the Q&A makes them purple.
+- **Obsidian Cage:** warbands of an Exile who has since become a Citizen return as that player's own; the Q&A makes them Imperial.
 - **Revelation:** asks from the player who played it; the Q&A starts from the Chancellor.
 - **Gambling Hall:** the favor bank is chosen before the roll.
 - **Witch's Bargain:** deals with one player per use; the Q&A allows several.
@@ -46,7 +46,7 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 
 ## Rules
 
-- **R-6.6.2, R-6.6.3:** a Citizen who gains warbands through a power gets their own colour, not purple; Muster already gives purple.
+- **R-6.6.2, R-6.6.3:** a Citizen who gains warbands through a power gets their own, not Imperial ones; Muster already gives Imperial ones.
 - **R-9.4:** facedown advisers publish no card back, and the table draws every other player's facedown adviser as a denizen back, so a facedown Vision looks like a denizen.
 - **R-9.4:** a discard pile publishes only its top card's back and its count, not every back.
 

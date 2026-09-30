@@ -39,20 +39,18 @@ const FOREST_COUNCIL = 'denizen.beast.forest-council'
 
 const ME = 'me'
 const FOE = 'foe'
-const RED: Color = Color.Red
-const BLUE: Color = Color.Blue
 
 const POWER = powersWithTiming(WILD_MOUNTS, PowerTiming.BattlePlan)[0]
 
 function board(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [RED]: 6 }, advisers: [adviser(WILD_MOUNTS), adviser(HORSE_ARCHERS), adviser(LANCERS)], ...over[ME] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [BLUE]: 2 }, ...over[FOE] })
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [ME]: 6 }, advisers: [adviser(WILD_MOUNTS), adviser(HORSE_ARCHERS), adviser(LANCERS)], ...over[ME] }),
+            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [FOE]: 2 }, ...over[FOE] })
         ]),
         {
             denizensBySite: { c1: [], c2: [WOLVES, INN], p1: [ERRAND_BOY] },
-            warbandsBySite: { c1: { [BLUE]: 1 }, c2: { [RED]: 1 }, p1: { [BLUE]: 1 } },
+            warbandsBySite: { c1: { [FOE]: 1 }, c2: { [ME]: 1 }, p1: { [FOE]: 1 } },
             ...state
         }
     )
@@ -224,13 +222,13 @@ describe('Wild Mounts — "instead discard any one beast card you rule"', () => 
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, ME, instead('denizen.beast.no-such-card'))).toMatch(/is not one of the cards you may discard instead/)
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, FOE, instead())).toBe("the question is me's to answer")
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, ME, { kind: PowerQuestionKind.KeepOrBottomRelic, keep: true })).toMatch(/the question is discardInstead/)
-        s.warbandsBySite.c2 = { [BLUE]: 1 }
+        s.warbandsBySite.c2 = { [FOE]: 1 }
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, ME, instead(WOLVES))).toBe(`you no longer rule ${WOLVES}`)
         expect(HydratedAnswerQuestion.reasonCannotAnswer(s, ME, instead())).toBeUndefined()
     })
 
     it('Law Glossary "Discard": the beast card leaves from its own region, not the attacker’s', () => {
-        const s = board({ [ME]: { advisers: [adviser(WILD_MOUNTS), adviser(LANCERS)] } }, { denizensBySite: { c1: [], c2: [], p1: [ERRAND_BOY] }, warbandsBySite: { c1: { [BLUE]: 1 }, c2: {}, p1: { [RED]: 1 } } })
+        const s = board({ [ME]: { advisers: [adviser(WILD_MOUNTS), adviser(LANCERS)] } }, { denizensBySite: { c1: [], c2: [], p1: [ERRAND_BOY] }, warbandsBySite: { c1: { [FOE]: 1 }, c2: {}, p1: { [ME]: 1 } } })
         campaign(s, [WILD_MOUNTS, LANCERS])
         lose(s)
         const reply = answer(s, ME, instead(ERRAND_BOY))

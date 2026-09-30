@@ -104,7 +104,7 @@
                 {#each draft.lossOrder as source, index (JSON.stringify(source))}
                     <div class="flex items-center gap-2 mb-0.5">
                         <span class="grow"
-                            >{source.color}
+                            >{gameSession.warbandOwnerName(source.owner)}
                             {source.at.kind === 'board'
                                 ? 'on your board'
                                 : `at ${siteName(gameState, source.at.siteId)}`}</span

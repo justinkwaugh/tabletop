@@ -7,7 +7,7 @@ import { HydratedSearch, SearchSource, Search } from '../actions/search.js'
 import { HydratedCampaign, Campaign } from '../actions/campaign.js'
 import { CampaignSacrifice, HydratedCampaignSacrifice } from '../actions/campaignSacrifice.js'
 import { ActionType } from '../definition/actions.js'
-import { IMPERIAL_COLOR, PlayerStatus, Suit } from '../model/oathEnums.js'
+import { PlayerStatus, Suit } from '../model/oathEnums.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { reliquarySlotId } from '../model/setup.js'
 import { RELIQUARY_MODIFIERS } from '../data/reliquary.js'
@@ -19,6 +19,7 @@ import '../powers/index.js'
 import { ongoingCampaign, required } from '../testing/required.js'
 import { buildAction } from '../testing/actions.js'
 import { INN } from '../testing/cards.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const RETURN = 'denizen.hearth.awaited-return'
 
@@ -48,8 +49,8 @@ function board(
                 favor: 3,
                 secrets: 2,
                 supply: 3,
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 4 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 10 },
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 },
                 advisers: advisers.map((cardId) => ({ cardId, faceUp: true })),
                 ...ruler
             }),
@@ -59,15 +60,15 @@ function board(
                 siteId: 'p1',
                 favor: 2,
                 secrets: 2,
-                warbandsOnBoard: { [Color.Blue]: 4 },
-                warbandsInPersonalBank: { [Color.Blue]: 5 }
+                warbandsOnBoard: { other: 4 },
+                warbandsInPersonalBank: { other: 5 }
             })
         ],
         {
             chancellorPlayerId: 'ruler',
             reliquary: reliquary(uncovered.map((id) => required(SPACE[id], `space ${id}`))),
             denizensBySite: { [siteId]: cards },
-            warbandsBySite: { c1: { [Color.Blue]: 1 }, p1: { [Color.Blue]: 3 } },
+            warbandsBySite: { c1: { other: 1 }, p1: { other: 3 } },
             discardPileCounts: { cradle: 3, provinces: 3, hinterland: 3 },
             ...over
         }
@@ -237,7 +238,7 @@ describe('Brutal — Campaign (R-6.6.2.a)', () => {
         const other = s.getPlayerState('other')
         other.supply = 5
         other.siteId = 'c1'
-        s.warbandsBySite = { c1: { [IMPERIAL_COLOR]: 2 }, p1: { [Color.Blue]: 3 } }
+        s.warbandsBySite = { c1: { [IMPERIAL_WARBANDS]: 2 }, p1: { other: 3 } }
         new HydratedCampaign(
             buildAction(Campaign, {
                 playerId: 'other',

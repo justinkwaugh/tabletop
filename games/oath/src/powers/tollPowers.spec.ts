@@ -10,6 +10,7 @@ import { defaultTolls } from '../util/tollDefaults.js'
 import '../powers/index.js'
 import { buildAction } from '../testing/actions.js'
 import { INN } from '../testing/cards.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const TOLL_ROADS = 'denizen.order.toll-roads'
 const CURFEW = 'denizen.order.curfew'
@@ -20,14 +21,14 @@ const WAY_STATION = 'denizen.nomad.way-station'
 function board(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: 'ruler', color: Color.Red, siteId: 'c1', favor: 3, secrets: 3, supply: 4, warbandsOnBoard: { [Color.Red]: 2 }, ...over['ruler'] }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { [Color.Blue]: 2 }, ...over['foe'] }),
+            testPlayer({ playerId: 'ruler', color: Color.Red, siteId: 'c1', favor: 3, secrets: 3, supply: 4, warbandsOnBoard: { ruler: 2 }, ...over['ruler'] }),
+            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { foe: 2 }, ...over['foe'] }),
             testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 1, secrets: 1, supply: 4, ...over['chan'] })
         ],
         {
             chancellorPlayerId: 'chan',
             denizensBySite: { c1: [INN], c2: [], p1: [], h1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } },
+            warbandsBySite: { c1: { ruler: 1 }, c2: { ruler: 2 }, p1: { foe: 3 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             ...state
         }
@@ -70,13 +71,13 @@ describe('Toll Roads — a favor to travel into the ruler’s sites', () => {
 
     it('an Imperial ruler is paid through the Chancellor; a bandit-ruled card burns the favor', () => {
         const imperial = board(
-            { ruler: { status: PlayerStatus.Citizen, color: Color.Purple } },
-            { denizensBySite: { c1: [], c2: [TOLL_ROADS], p1: [], h1: [] }, warbandsBySite: { c1: { purple: 1 }, c2: { purple: 2 }, p1: { [Color.Blue]: 3 } } }
+            { ruler: { status: PlayerStatus.Citizen, owner: IMPERIAL_WARBANDS } },
+            { denizensBySite: { c1: [], c2: [TOLL_ROADS], p1: [], h1: [] }, warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { [IMPERIAL_WARBANDS]: 2 }, p1: { foe: 3 } } }
         )
         expect(tollsFor(imperial, 'foe', { kind: 'travel', toSiteId: 'c2' })).toEqual([{ cardId: TOLL_ROADS, payeeId: 'chan' }])
         travel(imperial, 'foe', 'c2', [TOLL_ROADS])
         expect(imperial.getPlayerState('chan').favor).toBe(2)
-        const bandits = board({}, { denizensBySite: { c1: [], c2: [TOLL_ROADS], p1: [], h1: [] }, warbandsBySite: { c1: { [Color.Red]: 1 }, p1: { [Color.Blue]: 3 } } })
+        const bandits = board({}, { denizensBySite: { c1: [], c2: [TOLL_ROADS], p1: [], h1: [] }, warbandsBySite: { c1: { ruler: 1 }, p1: { foe: 3 } } })
         expect(tollsFor(bandits, 'foe', { kind: 'travel', toSiteId: 'c2' })).toEqual([{ cardId: TOLL_ROADS, payeeId: undefined }])
         const supply = bandits.favorSupply
         const a = travel(bandits, 'foe', 'c2', [TOLL_ROADS])

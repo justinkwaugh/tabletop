@@ -27,8 +27,8 @@ function board(c1Card: string, over: Record<string, unknown> = {}, ruler: Record
                 favor: 3,
                 secrets: 1,
                 supply: 5,
-                warbandsOnBoard: { [Color.Red]: 4 },
-                warbandsInPersonalBank: { [Color.Red]: 5 },
+                warbandsOnBoard: { ruler: 4 },
+                warbandsInPersonalBank: { ruler: 5 },
                 ...ruler
             }),
             testPlayer({
@@ -36,13 +36,13 @@ function board(c1Card: string, over: Record<string, unknown> = {}, ruler: Record
                 color: Color.Blue,
                 status: PlayerStatus.Exile,
                 siteId: 'c1',
-                warbandsOnBoard: { [Color.Blue]: 3 },
-                warbandsInPersonalBank: { [Color.Blue]: 5 }
+                warbandsOnBoard: { other: 3 },
+                warbandsInPersonalBank: { other: 5 }
             })
         ],
         {
             denizensBySite: { c1: [INN], c2: [], p1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, p1: { [Color.Blue]: 2 }, c2: { [Color.Blue]: 1 } },
+            warbandsBySite: { c1: { ruler: 1 }, p1: { other: 2 }, c2: { other: 1 } },
             siteCards: { c1: c1Card, c2: 'site.plains', p1: 'site.mountain', p2: 'site.river' },
             prng: { seed: 3, invocations: 0 },
             ...over
@@ -113,15 +113,15 @@ describe('R-11.5 — River', () => {
     it('one more warband when mustering here and ruling here; not when unruled', () => {
         const ruled = board('site.river')
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN })).apply(ruled)
-        expect(ruled.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4 + 3)
+        expect(ruled.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4 + 3)
 
-        const unruled = board('site.river', { warbandsBySite: { c1: { [Color.Blue]: 1 }, p1: { [Color.Blue]: 2 } } })
+        const unruled = board('site.river', { warbandsBySite: { c1: { other: 1 }, p1: { other: 2 } } })
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN })).apply(unruled)
-        expect(unruled.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4 + 2)
+        expect(unruled.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4 + 2)
 
         const elsewhere = board('site.mine')
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN })).apply(elsewhere)
-        expect(elsewhere.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4 + 2)
+        expect(elsewhere.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4 + 2)
     })
 })
 

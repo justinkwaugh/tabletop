@@ -6,13 +6,14 @@ import { MoveWarbands } from '../actions/moveWarbands.js'
 import { WarbandMoveKind } from '../model/warbandMove.js'
 import { Travel } from '../actions/travel.js'
 import { describe, expect, it } from 'vitest'
-import { Color, GameStatus, Prng, shuffle } from '@tabletop/common'
+import { GameStatus, Prng, shuffle } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { Region } from '../model/oathEnums.js'
 import { ALL_SITE_IDS } from '../data/sites.js'
 import type { OathProjectedState } from '../model/gameState.js'
 import { testGame } from '../testing/game.js'
 import { twoSeatActPhase } from '../testing/tables.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 function action<T extends Type.TSchema>(schema: T, fields: Partial<Type.Static<T>>) {
     return buildAction(schema, { id: 'dup-1', ...fields })
@@ -56,21 +57,21 @@ describe('double-submit of one action', () => {
     it('a replayed index-0 action that is still legal does not apply twice', () => {
         const game = testGame(['p1', 'p2'])
         const state = twoSeatActPhase('p1')
-        state.players[0].warbandsOnBoard = { [Color.Purple]: 2 }
-        state.warbandsBySite = { c1: { [Color.Purple]: 1 } }
+        state.players[0].warbandsOnBoard = { [IMPERIAL_WARBANDS]: 2 }
+        state.warbandsBySite = { c1: { [IMPERIAL_WARBANDS]: 1 } }
 
         const move = action(MoveWarbands, {
             playerId: 'p1',
             move: { kind: WarbandMoveKind.BoardToSite },
-            color: Color.Purple,
+            owner: IMPERIAL_WARBANDS,
             count: 1,
             index: 0
         })
         const first = engine.run(move, state, game)
-        expect(first.updatedState.warbandsBySite['c1'][Color.Purple]).toBe(2)
+        expect(first.updatedState.warbandsBySite['c1'][IMPERIAL_WARBANDS]).toBe(2)
 
         expect(() => engine.run(move, first.updatedState, game)).toThrow(/index/i)
-        expect(first.updatedState.warbandsBySite['c1'][Color.Purple]).toBe(2)
+        expect(first.updatedState.warbandsBySite['c1'][IMPERIAL_WARBANDS]).toBe(2)
     })
 
     it('a replayed action with a CORRECTED index is refused by legality, not by any id dedup', () => {

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
 import { ActionType, Banner, WarbandMoveKind } from '@tabletop/oath'
 import { OathSelection, OATH_STAGE_ORDER } from './oathSelection.svelte.js'
 import { setStagedSelectionValue } from '@tabletop/frontend-components'
@@ -119,8 +118,8 @@ describe('Oath staged selection (docs/user-interactions.md)', () => {
 
 const LONGBOWS = { cardId: 'denizen.order.longbows', powerIndex: 0 }
 const WAYSIDE_INN = { cardId: 'denizen.hearth.wayside-inn', powerIndex: 0 }
-const TO_SITE = { move: { kind: WarbandMoveKind.BoardToSite }, color: Color.Red, max: 3 } as const
-const TO_BOARD = { move: { kind: WarbandMoveKind.SiteToBoard }, color: Color.Red, max: 2 } as const
+const TO_SITE = { move: { kind: WarbandMoveKind.BoardToSite }, owner: 'p1', max: 3 } as const
+const TO_BOARD = { move: { kind: WarbandMoveKind.SiteToBoard }, owner: 'p1', max: 2 } as const
 
 /** R-7.4 — the modifiers declared on the staged action are one stage of the same flow. */
 describe('modifiers in the staged selection (docs/user-interactions.md)', () => {

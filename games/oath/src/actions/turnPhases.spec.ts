@@ -9,6 +9,7 @@ import { FINAL_ROUND, HydratedCompleteRest, CompleteRest } from './completeRest.
 import type { OathGameState } from '../model/gameState.js'
 import type { OathPlayerState } from '../model/playerState.js'
 import { buildAction } from '../testing/actions.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const CHANCELLOR = 'p1'
 const EXILE = 'p2'
@@ -23,7 +24,7 @@ function table(
             color: Color.Purple,
             status: PlayerStatus.Chancellor,
             siteId: 'c1',
-            warbandsInPersonalBank: { purple: 5 },
+            warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 },
             ...playerOverrides[CHANCELLOR]
         }),
         testPlayer({
@@ -31,7 +32,7 @@ function table(
             color: Color.Red,
             status: PlayerStatus.Exile,
             siteId: 'c2',
-            warbandsInPersonalBank: { [Color.Red]: 4 },
+            warbandsInPersonalBank: { [EXILE]: 4 },
             ...playerOverrides[EXILE]
         })
     ]

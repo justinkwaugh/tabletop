@@ -27,6 +27,7 @@ import type { OathPlayerState } from '../model/playerState.js'
 import { EXILE_REFRESH_BANDS, MAX_SUPPLY, refreshSpaceFor } from '../util/rest.js'
 import { required } from '../testing/required.js'
 import { testGame } from '../testing/game.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const ORDER = 'denizen.order.wrestlers'
 const BEAST = 'denizen.beast.rangers'
@@ -44,7 +45,7 @@ function buildState(
             supply: 7,
             favor: 4,
             secrets: 2,
-            warbandsInPersonalBank: { purple: 5 },
+            warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 },
             ...playerOverrides['p1']
         }),
         testPlayer({
@@ -53,7 +54,7 @@ function buildState(
             status: PlayerStatus.Exile,
             siteId: 'c2',
             supply: 7,
-            warbandsInPersonalBank: { [Color.Red]: 4 },
+            warbandsInPersonalBank: { p2: 4 },
             ...playerOverrides['p2']
         })
     ]
@@ -363,13 +364,13 @@ describe('R-2.11-H1 — the title is re-evaluated after every action', () => {
         const game = testGame(['p1', 'p2'])
         let state = buildState({
             oathType: OathType.Supremacy,
-            warbandsBySite: { c1: { purple: 1 } },
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } },
             oathkeeperPlayerId: 'p1'
         })
         state = wake(state, game, 'p1')
         expect(state.oathkeeperPlayerId).toBe('p1')
 
-        state.warbandsBySite = { c1: { purple: 1 }, c2: { red: 1 }, p1: { red: 1 } }
+        state.warbandsBySite = { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { p2: 1 }, p1: { p2: 1 } }
         state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
         expect(state.oathkeeperPlayerId).toBe('p2')
     })
@@ -516,8 +517,8 @@ describe('R-6.6.2 and R-6.8 end the Act Phase from inside a minor action', () =>
                     status: PlayerStatus.Citizen,
                     favor: 10,
                     secrets: 0,
-                    warbandsInPersonalBank: { [Color.Blue]: 1 },
-                    warbandsOnBoard: { purple: 2 }
+                    warbandsInPersonalBank: { p1: 1 },
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
                 },
                 p2: { relicIds: ['relic.grand-scepter'] }
             }
@@ -652,7 +653,7 @@ describe('R-X.1 — a question is a turn, through the engine', () => {
     })
 
     it('R-2.11-H1 — the title is re-evaluated after the answer, not just after the ask', () => {
-        // R-6.6.2, R-6.6.3 — accepting turns p2's warbands purple, so p1 rules all three sites.
+        // R-6.6.2, R-6.6.3 — accepting makes p2's warbands Imperial, so p1 rules all three sites.
         const game = testGame(['p1', 'p2'])
         let state = buildState(
             {
@@ -660,7 +661,7 @@ describe('R-X.1 — a question is a turn, through the engine', () => {
                 vault: reliquaryVault(),
                 oathType: OathType.Supremacy,
                 oathkeeperPlayerId: 'p2',
-                warbandsBySite: { c1: { purple: 1 }, c2: { red: 1 }, h1: { red: 1 } }
+                warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { p2: 1 }, h1: { p2: 1 } }
             },
             { p1: { relicIds: ['relic.grand-scepter'] } }
         )
@@ -697,7 +698,7 @@ describe('R-X.1 — a question is a turn, through the engine', () => {
 describe('R-6.5.b — a warband move waits on the other player, through the engine', () => {
     function takeTable() {
         return buildState({}, {
-            p2: { status: PlayerStatus.Citizen, siteId: 'c1', warbandsOnBoard: { purple: 2 } }
+            p2: { status: PlayerStatus.Citizen, siteId: 'c1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } }
         })
     }
 
@@ -705,7 +706,7 @@ describe('R-6.5.b — a warband move waits on the other player, through the engi
         return engine.runNext(buildAction(MoveWarbands, {
             playerId: 'p1',
             move: { kind: WarbandMoveKind.TakeFromImperial, otherPlayerId: 'p2' },
-            color: Color.Purple,
+            owner: IMPERIAL_WARBANDS,
             count: 1
         }), state, game).updatedState
     }
@@ -717,7 +718,7 @@ describe('R-6.5.b — a warband move waits on the other player, through the engi
         expect(state.activePlayerIds).toEqual(['p2'])
         expect(engine.getValidActionTypesForPlayer(game, state, 'p2')).toEqual([ActionType.AnswerConsent])
         expect(engine.getValidActionTypesForPlayer(game, state, 'p1')).toEqual([])
-        expect(state.players[1].warbandsOnBoard).toEqual({ purple: 2 })
+        expect(state.players[1].warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 2 })
     })
 
     it('the answer carries the move out and hands the turn back', () => {
@@ -726,8 +727,8 @@ describe('R-6.5.b — a warband move waits on the other player, through the engi
         state = engine.runNext(buildAction(AnswerConsent, { playerId: 'p2', granted: true }), state, game).updatedState
         expect(state.machineState).toBe(MachineState.ActPhase)
         expect(state.activePlayerIds).toEqual(['p1'])
-        expect(state.players[1].warbandsOnBoard).toEqual({ purple: 1 })
-        expect(state.players[0].warbandsOnBoard).toEqual({ purple: 1 })
+        expect(state.players[1].warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 1 })
+        expect(state.players[0].warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 1 })
     })
 })
 
@@ -737,7 +738,7 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
         const state = buildState({
             oathType: OathType.Supremacy,
             oathkeeperPlayerId: 'p1',
-            warbandsBySite: { c1: { purple: 1 } }
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } }
         })
         return { game, state }
     }
@@ -747,7 +748,7 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
         let state = wake(initial, game, 'p1')
         expect(state.oathkeeperPlayerId).toBe('p1')
 
-        state.warbandsBySite = { c2: { red: 1 }, p1: { red: 1 } }
+        state.warbandsBySite = { c2: { p2: 1 }, p1: { p2: 1 } }
         state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
 
         expect(state.pendingOathkeeperChoice).toBeUndefined()
@@ -761,14 +762,14 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
         let state = buildState({
             oathType: OathType.Supremacy,
             oathkeeperPlayerId: 'p1',
-            warbandsBySite: { c1: { purple: 1 } }
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } }
         })
         const third = testPlayer({
             playerId: 'p3',
             color: Color.Yellow,
             status: PlayerStatus.Exile,
             siteId: 'p1',
-            warbandsInPersonalBank: { [Color.Yellow]: 4 }
+            warbandsInPersonalBank: { p3: 4 }
         })
         state.players = [...state.players, third]
         state.turnManager.turnOrder = ['p1', 'p2', 'p3']
@@ -777,7 +778,7 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
         state = wake(state, game, 'p1')
         expect(state.oathkeeperPlayerId).toBe('p1')
 
-        state.warbandsBySite = { c2: { red: 1 }, p1: { yellow: 1 } }
+        state.warbandsBySite = { c2: { p2: 1 }, p1: { p3: 1 } }
         state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
 
         // R-2.11.b — the title stays put until the outgoing holder chooses.
@@ -807,7 +808,7 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
         let state = buildState({
             oathType: OathType.Supremacy,
             oathkeeperPlayerId: 'p1',
-            warbandsBySite: { c1: { purple: 1 } }
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } }
         })
         state.players = [
             ...state.players,
@@ -816,14 +817,14 @@ describe('R-2.11.b — the choice interrupts the turn, through the engine', () =
                 color: Color.Yellow,
                 status: PlayerStatus.Exile,
                 siteId: 'p1',
-                warbandsInPersonalBank: { [Color.Yellow]: 4 }
+                warbandsInPersonalBank: { p3: 4 }
             })
         ]
         state.turnManager.turnOrder = ['p1', 'p2', 'p3']
         state.turnManager.turnCounts = { p1: 0, p2: 0, p3: 0 }
 
         state = wake(state, game, 'p1')
-        state.warbandsBySite = { c2: { red: 1 }, p1: { yellow: 1 } }
+        state.warbandsBySite = { c2: { p2: 1 }, p1: { p3: 1 } }
         state = engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), state, game).updatedState
         expect(state.machineState).toBe(MachineState.OathkeeperChoice)
 

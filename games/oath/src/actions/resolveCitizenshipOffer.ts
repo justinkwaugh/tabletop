@@ -24,7 +24,7 @@ import {
 import {
     becomeCitizen,
     citizenshipEndsActPhase,
-    citizenshipRecolorGroups
+    citizenshipReplacementGroups
 } from '../util/citizenship.js'
 import { forceTotal, selectionExceedsForce } from '../util/force.js'
 import { giveBanner } from '../util/seize.js'
@@ -36,7 +36,7 @@ export type CitizenshipOutcome = Type.Static<typeof CitizenshipOutcome>
 export const CitizenshipOutcome = Type.Object({
     relicCardId: Type.Optional(Type.String()),
     reliquarySpacesUncovered: Type.Number(),
-    recoloredCount: Type.Number(),
+    replacedCount: Type.Number(),
     unreplacedCount: Type.Number(),
     discardedCardIds: Visibility.protect(Type.Array(Type.String()), {
         policy: Visibility.Policy.Actor
@@ -64,7 +64,7 @@ export const ResolveCitizenshipOffer = Type.Evaluate(
             type: Type.Literal(ActionType.ResolveCitizenshipOffer),
             playerId: Type.String(),
             granted: Type.Boolean(),
-            recolorChoice: Type.Optional(Type.Array(WarbandGroup, { maxItems: 64 })),
+            replacementChoice: Type.Optional(Type.Array(WarbandGroup, { maxItems: 64 })),
             metadata: Type.Optional(ResolveCitizenshipOfferMetadata)
         })
     ])
@@ -83,7 +83,7 @@ export class HydratedResolveCitizenshipOffer
     declare type: ActionType.ResolveCitizenshipOffer
     declare playerId: string
     declare granted: boolean
-    declare recolorChoice?: WarbandGroup[]
+    declare replacementChoice?: WarbandGroup[]
     declare metadata?: ResolveCitizenshipOfferMetadata
 
     constructor(data: ResolveCitizenshipOffer) {
@@ -125,7 +125,7 @@ export class HydratedResolveCitizenshipOffer
         // R-X.3: the relic's identity comes out of the vault.
         this.revealsInfo = true
 
-        const conversion = becomeCitizen(state, this.playerId, this.recolorChoice)
+        const conversion = becomeCitizen(state, this.playerId, this.replacementChoice)
 
         // R-X.3(b): the discarded Vision is replayed into the vault, which is never rolled back.
         if (conversion.discardedVisionId) {
@@ -149,7 +149,7 @@ export class HydratedResolveCitizenshipOffer
             outcome: {
                 relicCardId,
                 reliquarySpacesUncovered: uncoveredReliquarySpaces(state),
-                recoloredCount: conversion.recoloredCount,
+                replacedCount: conversion.replacedCount,
                 unreplacedCount: conversion.unreplacedCount,
                 discardedCardIds: conversion.discardedVisionId
                     ? [conversion.discardedVisionId]
@@ -166,7 +166,7 @@ export class HydratedResolveCitizenshipOffer
     static reasonCannotResolve(
         state: HydratedOathGameState,
         playerId: string,
-        choice: { granted: boolean; recolorChoice?: readonly WarbandGroup[] }
+        choice: { granted: boolean; replacementChoice?: readonly WarbandGroup[] }
     ): string | undefined {
         const pending = state.pendingConsent
         if (!pending || pending.request.kind !== ConsentRequestKind.CitizenshipOffer) {
@@ -177,7 +177,7 @@ export class HydratedResolveCitizenshipOffer
         }
 
         if (!choice.granted) {
-            if (choice.recolorChoice && choice.recolorChoice.length > 0) {
+            if (choice.replacementChoice && choice.replacementChoice.length > 0) {
                 return 'a refusal chooses no warbands'
             }
             return undefined
@@ -191,10 +191,10 @@ export class HydratedResolveCitizenshipOffer
         const terms = reasonTermsInvalid(state, pending.askingPlayerId, playerId, request.terms)
         if (terms) return terms
 
-        return HydratedResolveCitizenshipOffer.reasonRecolorChoiceInvalid(
+        return HydratedResolveCitizenshipOffer.reasonReplacementChoiceInvalid(
             state,
             playerId,
-            choice.recolorChoice
+            choice.replacementChoice
         )
     }
 
@@ -239,24 +239,24 @@ export class HydratedResolveCitizenshipOffer
         return given
     }
 
-    private static reasonRecolorChoiceInvalid(
+    private static reasonReplacementChoiceInvalid(
         state: HydratedOathGameState,
         exileId: string,
         choice?: readonly WarbandGroup[]
     ): string | undefined {
-        const all = citizenshipRecolorGroups(state, exileId)
+        const all = citizenshipReplacementGroups(state, exileId)
         const wanted = forceTotal(all)
         const available = availableImperialWarbands(state)
 
         if (available >= wanted) {
             if (choice && choice.length > 0) {
-                return 'the Empire has purple enough to replace every warband, so there is nothing to choose'
+                return 'the Empire has Imperial warbands enough to replace every warband, so there is nothing to choose'
             }
             return undefined
         }
 
         if (!choice || choice.length === 0) {
-            return `only ${available} purple warbands are available for ${wanted} warbands; the Exile must choose which are replaced`
+            return `only ${available} Imperial warbands are available for ${wanted} warbands; the Exile must choose which are replaced`
         }
         const exceeds = selectionExceedsForce(choice, all)
         if (exceeds) return exceeds

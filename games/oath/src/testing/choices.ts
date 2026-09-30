@@ -1,8 +1,8 @@
-import type { Color } from '@tabletop/common'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { CampaignTargetKind, type CampaignTarget } from '../model/campaign.js'
 import type { Region, Suit } from '../model/oathEnums.js'
+import type { WarbandOwner } from '../model/warbandCounts.js'
 import type { BattlePlanUse } from '../model/battlePlanUse.js'
 import type { ModifierUse } from '../util/modifiers.js'
 import { PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
@@ -10,15 +10,15 @@ import { buildAction } from './actions.js'
 
 export const yes: PowerChoice = { kind: PowerChoiceKind.Yes }
 
-export function boardWarbands(playerId: string, color: Color, count: number): PowerChoice {
+export function boardWarbands(playerId: string, owner: WarbandOwner, count: number): PowerChoice {
     return {
         kind: PowerChoiceKind.Warbands,
-        group: { at: { kind: 'board', playerId }, color, count }
+        group: { at: { kind: 'board', playerId }, owner, count }
     }
 }
 
-export function siteWarbands(siteId: string, color: Color, count: number): PowerChoice {
-    return { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId }, color, count } }
+export function siteWarbands(siteId: string, owner: WarbandOwner, count: number): PowerChoice {
+    return { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId }, owner, count } }
 }
 
 export function bank(suit: Suit): PowerChoice {

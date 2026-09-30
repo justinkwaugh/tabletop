@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { HydratedMuster, Muster } from './muster.js'
-import { IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { PlayerStatus } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { Color } from '@tabletop/common'
 import { expectWarbandsConserved } from '../testing/census.js'
 import { buildAction } from '../testing/actions.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 function muster(playerId: string, cardId: string) {
     return new HydratedMuster(buildAction(Muster, { playerId, cardId }))
@@ -27,8 +28,8 @@ describe('Muster (R-5.2)', () => {
         expect(p.favor).toBe(1)
         expect(state.tokensOn('card-a')).toEqual({ favor: 1, secrets: 0 })
         // R-10.10 — the two warbands come out of the personal bank.
-        expect(p.warbandsOnBoard).toEqual({ [Color.Red]: 2 })
-        expect(p.warbandsInPersonalBank).toEqual({ [Color.Red]: 12 })
+        expect(p.warbandsOnBoard).toEqual({ p1: 2 })
+        expect(p.warbandsInPersonalBank).toEqual({ p1: 12 })
     })
 
     it('places the favor on the card rather than returning it to a bank', () => {
@@ -66,7 +67,7 @@ describe('Muster (R-5.2)', () => {
         expect(() => muster('p1', 'card-a').apply(state)).toThrow(/costs 1 Supply/)
     })
 
-    function citizenAndChancellor(chancellorPurple = 10) {
+    function citizenAndChancellor(chancellorImperial = 10) {
         return testState(
             [
                 testPlayer({
@@ -75,37 +76,37 @@ describe('Muster (R-5.2)', () => {
                     favor: 2,
                     status: PlayerStatus.Citizen,
                     color: Color.Red,
-                    warbandsInPersonalBank: { [Color.Red]: 4 }
+                    warbandsInPersonalBank: { citizen: 4 }
                 }),
                 testPlayer({
                     playerId: 'chancellor',
                     color: Color.Purple,
                     status: PlayerStatus.Chancellor,
-                    warbandsInPersonalBank: { [IMPERIAL_COLOR]: chancellorPurple }
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: chancellorImperial }
                 })
             ],
             { denizensBySite: { c1: ['card-a'] }, chancellorPlayerId: 'chancellor' }
         )
     }
 
-    it('gives a Citizen purple warbands, not their own colour (R-5.2.2)', () => {
+    it('gives a Citizen Imperial warbands, not their own (R-5.2.2)', () => {
         const state = citizenAndChancellor()
         const action = muster('citizen', 'card-a')
         action.apply(state)
 
-        expect(action.metadata?.warbandColor).toBe(IMPERIAL_COLOR)
-        expect(state.getPlayerState('citizen').warbandsOnBoard).toEqual({ [IMPERIAL_COLOR]: 2 })
+        expect(action.metadata?.warbandOwner).toBe(IMPERIAL_WARBANDS)
+        expect(state.getPlayerState('citizen').warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 2 })
     })
 
-    it('draws a Citizen purple out of the CHANCELLOR pool, which is shared', () => {
+    it('draws a Citizen\'s Imperial warbands out of the CHANCELLOR pool, which is shared', () => {
         const state = citizenAndChancellor()
         muster('citizen', 'card-a').apply(state)
 
         expect(state.getPlayerState('chancellor').warbandsInPersonalBank).toEqual({
-            [IMPERIAL_COLOR]: 8
+            [IMPERIAL_WARBANDS]: 8
         })
         expect(state.getPlayerState('citizen').warbandsInPersonalBank).toEqual({
-            [Color.Red]: 4
+            citizen: 4
         })
     })
 
@@ -116,7 +117,7 @@ describe('Muster (R-5.2)', () => {
 
         expect(action.metadata?.warbandsGained).toBe(1)
         expect(state.getPlayerState('chancellor').warbandsInPersonalBank).toEqual({
-            [IMPERIAL_COLOR]: 0
+            [IMPERIAL_WARBANDS]: 0
         })
     })
 
@@ -135,7 +136,7 @@ describe('Muster (R-5.2)', () => {
                 testPlayer({
                     siteId: 'c1',
                     favor: 2,
-                    warbandsInPersonalBank: { [Color.Red]: 1 }
+                    warbandsInPersonalBank: { p1: 1 }
                 })
             ],
             { denizensBySite: { c1: ['card-a'] } }
@@ -144,11 +145,11 @@ describe('Muster (R-5.2)', () => {
         action.apply(state)
 
         expect(action.metadata?.warbandsGained).toBe(1)
-        expect(state.getPlayerState('p1').warbandsOnBoard).toEqual({ [Color.Red]: 1 })
-        expect(state.getPlayerState('p1').warbandsInPersonalBank).toEqual({ [Color.Red]: 0 })
+        expect(state.getPlayerState('p1').warbandsOnBoard).toEqual({ p1: 1 })
+        expect(state.getPlayerState('p1').warbandsInPersonalBank).toEqual({ p1: 0 })
     })
 
-    it('gains nothing when the personal bank holds none of that colour', () => {
+    it('gains nothing when the personal bank holds none of their own', () => {
         const state = testState(
             [testPlayer({ siteId: 'c1', favor: 2, warbandsInPersonalBank: {} })],
             { denizensBySite: { c1: ['card-a'] } }

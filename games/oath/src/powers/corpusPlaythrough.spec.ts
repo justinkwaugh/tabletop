@@ -19,20 +19,21 @@ import '../powers/index.js'
 import { required } from '../testing/required.js'
 import { testGame } from '../testing/game.js'
 import { FILLER } from '../testing/cards.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const FILLER2 = 'denizen.hearth.wayside-inn'
 function table(machineState: MachineState, me: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 6, secrets: 6, supply: 6, warbandsOnBoard: { [Color.Red]: 3 }, warbandsInPersonalBank: { [Color.Red]: 6 }, relicIds: ['relic.cup-of-plenty'], ...me }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 3, supply: 4, warbandsOnBoard: { [Color.Blue]: 2 }, warbandsInPersonalBank: { [Color.Blue]: 5 }, advisers: [{ cardId: 'denizen.nomad.tents', faceUp: false }], relicIds: ['relic.map'] }),
-            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 3, secrets: 3, supply: 4, warbandsInPersonalBank: { purple: 5 } })
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 6, secrets: 6, supply: 6, warbandsOnBoard: { me: 3 }, warbandsInPersonalBank: { me: 6 }, relicIds: ['relic.cup-of-plenty'], ...me }),
+            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 3, supply: 4, warbandsOnBoard: { foe: 2 }, warbandsInPersonalBank: { foe: 5 }, advisers: [{ cardId: 'denizen.nomad.tents', faceUp: false }], relicIds: ['relic.map'] }),
+            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 3, secrets: 3, supply: 4, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } })
         ],
         {
             machineState,
             chancellorPlayerId: 'chan',
             denizensBySite: { c1: ['denizen.beast.wolves', 'denizen.hearth.storyteller'], c2: ['denizen.nomad.elders'], p1: ['denizen.arcane.tutor'], h1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1, [Color.Blue]: 1 }, c2: { [Color.Red]: 2 }, p1: { purple: 2 } },
+            warbandsBySite: { c1: { me: 1, foe: 1 }, c2: { me: 2 }, p1: { [IMPERIAL_WARBANDS]: 2 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             relicsBySite: { c1: [{ slotId: 'c1-r1' }] },
             reliquary: [{ slotId: 'reliquary.0' }, { slotId: 'reliquary.1' }, { slotId: 'reliquary.2' }, { slotId: 'reliquary.3' }],

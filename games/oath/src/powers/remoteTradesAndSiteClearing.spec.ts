@@ -1,6 +1,5 @@
 import { CampaignTargetKind } from '../model/campaign.js'
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
 import { HydratedUseActionPower } from '../actions/useActionPower.js'
 import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { HydratedSearch, SearchSource, Search } from '../actions/search.js'
@@ -52,7 +51,7 @@ function board(cards: string[], advisers: string[] = [], over: Record<string, Re
 
 describe('Second Wind — a free Travel, then a free Campaign', () => {
     it('after a victory, the next Travel costs nothing and the Campaign after it does too', () => {
-        const s = board([], [SECOND_WIND], { ruler: { favor: 4, secrets: 3 } }, { warbandsBySite: { c1: { [Color.Blue]: 1 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } } })
+        const s = board([], [SECOND_WIND], { ruler: { favor: 4, secrets: 3 } }, { warbandsBySite: { c1: { other: 1 }, c2: { ruler: 2 }, p1: { other: 3 } } })
         new HydratedCampaign(buildAction(Campaign, {
             playerId: 'ruler', defender: { kind: 'player', playerId: 'other' },
             targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }], attackDice: 4,

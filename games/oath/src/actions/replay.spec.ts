@@ -19,9 +19,9 @@ import { CampaignResolveVictory } from './campaignResolveVictory.js'
 import { EndActPhase } from './endActPhase.js'
 import { CompleteRest } from './completeRest.js'
 import { CampaignTargetKind } from '../model/campaign.js'
-import { IMPERIAL_COLOR } from '../model/oathEnums.js'
 import { ongoingCampaign, required } from '../testing/required.js'
 import { testGame } from '../testing/game.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 /** At this seed `slot.provinces.1` holds Drowned City, the only site with two relics. */
 const MASTER_SEED = '0000000000000000000000000000002a'
@@ -133,7 +133,7 @@ function walkTwoTurns() {
     record(buildAction(CampaignResolveVictory, {
         playerId: chancellor,
         // R-5.5.7.I — the one surviving warband is placed, which takes rule of the site.
-        placements: [{ siteId: destination, color: IMPERIAL_COLOR, count: 1 }],
+        placements: [{ siteId: destination, owner: IMPERIAL_WARBANDS, count: 1 }],
         burnFavor: false
     }))
 

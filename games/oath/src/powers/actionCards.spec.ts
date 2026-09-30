@@ -40,8 +40,8 @@ function boardNoTurn(cards: string[], over: Record<string, Record<string, unknow
                 favor: 3,
                 secrets: 2,
                 supply: 3,
-                warbandsOnBoard: { [Color.Red]: 2 },
-                warbandsInPersonalBank: { [Color.Red]: 5 },
+                warbandsOnBoard: { ruler: 2 },
+                warbandsInPersonalBank: { ruler: 5 },
                 ...over['ruler']
             }),
             testPlayer({
@@ -50,15 +50,15 @@ function boardNoTurn(cards: string[], over: Record<string, Record<string, unknow
                 siteId: 'c1',
                 favor: 2,
                 secrets: 2,
-                warbandsOnBoard: { [Color.Blue]: 2 },
-                warbandsInPersonalBank: { [Color.Blue]: 5 },
+                warbandsOnBoard: { other: 2 },
+                warbandsInPersonalBank: { other: 5 },
                 ...over['other']
             }),
             testPlayer({ playerId: 'away', color: Color.Yellow, siteId: 'h1', favor: 1, secrets: 3, ...over['away'] })
         ],
         {
             denizensBySite: { c1: cards, c2: [], h1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Blue]: 3, [Color.Red]: 1 } },
+            warbandsBySite: { c1: { ruler: 1 }, c2: { other: 3, ruler: 1 } },
             siteCards: { c1: 'site.mine', c2: 'site.river', p1: 'site.plains', h1: 'site.wastes' }
         }
     )
@@ -182,12 +182,12 @@ describe('Beast', () => {
     it('Wolves — kills one warband on any board, even yours, returning it to its bank', () => {
         const s = board(['denizen.beast.wolves'])
         actionPowerUse('ruler', 'denizen.beast.wolves', [player('other')]).apply(s)
-        expect(s.getPlayerState('other').warbandsOnBoard[Color.Blue]).toBe(1)
-        expect(s.getPlayerState('other').warbandsInPersonalBank[Color.Blue]).toBe(6)
+        expect(s.getPlayerState('other').warbandsOnBoard['other']).toBe(1)
+        expect(s.getPlayerState('other').warbandsInPersonalBank['other']).toBe(6)
 
         const self = board(['denizen.beast.wolves'])
         actionPowerUse('ruler', 'denizen.beast.wolves', [player('ruler')]).apply(self)
-        expect(self.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(1)
+        expect(self.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(1)
 
         const empty = board(['denizen.beast.wolves'], { away: { warbandsOnBoard: {} } })
         const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('away')])
@@ -340,11 +340,11 @@ describe('Nomad', () => {
 })
 
 describe('Order', () => {
-    it('Siege Engines — kills two warbands at a site in your region, largest colour first', () => {
+    it('Siege Engines — kills two warbands at a site in your region, largest owner\'s group first', () => {
         const s = board(['denizen.order.siege-engines'])
         actionPowerUse('ruler', 'denizen.order.siege-engines', [site('c2')]).apply(s)
-        expect(s.warbandsBySite['c2']).toEqual({ [Color.Blue]: 1, [Color.Red]: 1 })
-        expect(s.getPlayerState('other').warbandsInPersonalBank[Color.Blue]).toBe(7)
+        expect(s.warbandsBySite['c2']).toEqual({ other: 1, ruler: 1 })
+        expect(s.getPlayerState('other').warbandsInPersonalBank['other']).toBe(7)
     })
 
     it('Siege Engines — a site outside your region is not among the options', () => {
@@ -419,23 +419,23 @@ describe('Slice 2 — the two deferred Action powers', () => {
 
     it('Messenger — moves warbands board ⇄ ruled sites, never the last one from a site', () => {
         const s = board(['denizen.order.messenger'])
-        s.warbandsBySite['c2'] = { [Color.Blue]: 3, [Color.Red]: 2 }
+        s.warbandsBySite['c2'] = { other: 3, ruler: 2 }
         const move = (at: { kind: 'board'; playerId: string } | { kind: 'site'; siteId: string }, count: number): PowerChoice => ({
             kind: PowerChoiceKind.Warbands,
-            group: { at, color: Color.Red, count }
+            group: { at, owner: 'ruler', count }
         })
         actionPowerUse('ruler', 'denizen.order.messenger', [move({ kind: 'board', playerId: 'ruler' }, 1), site('c2')]).apply(s)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(1)
-        expect(s.warbandsBySite['c2'][Color.Red]).toBe(3)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(1)
+        expect(s.warbandsBySite['c2']['ruler']).toBe(3)
 
         const back = board(['denizen.order.messenger'])
-        back.warbandsBySite['c2'] = { [Color.Blue]: 3, [Color.Red]: 3 }
+        back.warbandsBySite['c2'] = { other: 3, ruler: 3 }
         expect(() =>
             actionPowerUse('ruler', 'denizen.order.messenger', [move({ kind: 'site', siteId: 'c2' }, 3)]).apply(back)
         ).toThrow(/only 2 are there/)
         actionPowerUse('ruler', 'denizen.order.messenger', [move({ kind: 'site', siteId: 'c2' }, 2)]).apply(back)
-        expect(back.warbandsBySite['c2'][Color.Red]).toBe(1)
-        expect(back.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4)
+        expect(back.warbandsBySite['c2']['ruler']).toBe(1)
+        expect(back.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
 
         const elsewhere = board(['denizen.order.messenger'])
         expect(() =>

@@ -72,10 +72,10 @@
                 die; the rest go home to their boards.
             </p>
             <div class="mb-2 rounded border border-rose-500/40 px-2 py-1.5 text-xs">
-                {#each defeat.groups as group, index (JSON.stringify(group.at) + group.color)}
+                {#each defeat.groups as group, index (JSON.stringify(group.at) + group.owner)}
                     <label class="block mb-1">
                         {defeat.picked[index] ?? 0} of {group.count}
-                        {group.color}
+                        {gameSession.warbandOwnerName(group.owner)}
                         {whereText(group)}
                         <input
                             type="range"
@@ -129,10 +129,10 @@
         {#if losses.choosesSacrifice}
             <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
                 <div class="mb-1">To win, sacrifice {needed} of these:</div>
-                {#each losses.force as group, index (JSON.stringify(group.at) + group.color)}
+                {#each losses.force as group, index (JSON.stringify(group.at) + group.owner)}
                     <label class="block mb-1">
                         {losses.sacrificed[index] ?? 0} of {group.count}
-                        {group.color}
+                        {gameSession.warbandOwnerName(group.owner)}
                         {whereText(group)}
                         <input
                             type="range"
@@ -153,10 +153,10 @@
                 <div class="mb-1">
                     If you sacrifice nothing and lose, {losses.defeatRequired} of these die:
                 </div>
-                {#each losses.force as group, index (JSON.stringify(group.at) + group.color)}
+                {#each losses.force as group, index (JSON.stringify(group.at) + group.owner)}
                     <label class="block mb-1">
                         {losses.defeated[index] ?? 0} of {group.count}
-                        {group.color}
+                        {gameSession.warbandOwnerName(group.owner)}
                         {whereText(group)}
                         <input
                             type="range"
@@ -236,27 +236,27 @@
                 />
             </div>
         {/if}
-        {#if spoils.capturedSites.length > 0 && spoils.forceColors.length > 0}
+        {#if spoils.capturedSites.length > 0 && spoils.forceOwners.length > 0}
             <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
                 <div class="mb-1">
                     Place warbands on the sites you took — {spoils.placedTotal} of
                     {spoils.forceAvailable} in your force. This is how you come to rule them.
                 </div>
                 {#each spoils.capturedSites as siteId (siteId)}
-                    {#each spoils.forceColors as color (color)}
-                        {@const count = spoils.countAt(siteId, color)}
-                        {@const ceiling = spoils.ceilingAt(siteId, color)}
+                    {#each spoils.forceOwners as owner (owner)}
+                        {@const count = spoils.countAt(siteId, owner)}
+                        {@const ceiling = spoils.ceilingAt(siteId, owner)}
                         <div class="mb-1 flex items-center gap-2">
                             <span class="grow"
-                                >{siteName(gameState, siteId)}{spoils.forceColors.length > 1
-                                    ? ` — ${color}`
+                                >{siteName(gameState, siteId)}{spoils.forceOwners.length > 1
+                                    ? ` — ${gameSession.warbandOwnerName(owner)}`
                                     : ''}</span
                             >
                             <button
                                 type="button"
                                 class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5"
                                 disabled={busy || count <= 0}
-                                onclick={() => spoils.setPlaceCount(siteId, color, count - 1)}
+                                onclick={() => spoils.setPlaceCount(siteId, owner, count - 1)}
                             >
                                 −
                             </button>
@@ -265,7 +265,7 @@
                                 type="button"
                                 class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5"
                                 disabled={busy || count >= ceiling}
-                                onclick={() => spoils.setPlaceCount(siteId, color, count + 1)}
+                                onclick={() => spoils.setPlaceCount(siteId, owner, count + 1)}
                             >
                                 +
                             </button>

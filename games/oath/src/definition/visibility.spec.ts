@@ -22,6 +22,7 @@ import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { testGame } from '../testing/game.js'
 import { FILLER } from '../testing/cards.js'
 import { Color } from '@tabletop/common'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const p1 = { kind: 'player', playerId: 'p1' } as const
@@ -361,14 +362,14 @@ describe('Oath visibility', () => {
         function board() {
             const state = testState(
                 [
-                    testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', supply: 3, handIds: [BIRDSONG, FILLER], warbandsOnBoard: { [Color.Red]: 2 }, warbandsInPersonalBank: { [Color.Red]: 5 } }),
+                    testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', supply: 3, handIds: [BIRDSONG, FILLER], warbandsOnBoard: { p1: 2 }, warbandsInPersonalBank: { p1: 5 } }),
                     testPlayer({ playerId: 'p2', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'c1' })
                 ],
                 {
                     machineState: MachineState.Searching,
                     chancellorPlayerId: 'p2',
                     denizensBySite: { c1: [WILD_CRY] },
-                    warbandsBySite: { c1: { [Color.Red]: 1 } },
+                    warbandsBySite: { c1: { p1: 1 } },
                     pendingSearchModifiers: [{ cardId: WILD_CRY, powerIndex: powerIndexOf(WILD_CRY, PowerTiming.Modifier) }]
                 }
             )
@@ -386,7 +387,7 @@ describe('Oath visibility', () => {
         const hidden = play(false)
         const after = canonical(hidden.updatedState)
         expect(after.players[0].supply).toBe(3)
-        expect(after.players[0].warbandsOnBoard).toEqual({ [Color.Red]: 2 })
+        expect(after.players[0].warbandsOnBoard).toEqual({ p1: 2 })
         for (const perspective of [p2, spectator]) {
             expect(JSON.stringify(OathRuntime.visibility.actions.project(hidden.processedActions[0], perspective))).not.toContain('Wild Cry')
         }
@@ -589,7 +590,7 @@ describe('Oath visibility', () => {
         const before = relicBoard(MachineState.ActPhase, [])
         before.players[0].relicIds = [SKELETON_KEY]
         before.players[0].secrets = 2
-        before.warbandsBySite = { c1: { purple: 1 } }
+        before.warbandsBySite = { c1: { [IMPERIAL_WARBANDS]: 1 } }
         before.reliquary = [{ slotId: 'reliquary.0' }]
         before.vault.relicFacedown = { ...before.vault.relicFacedown, 'reliquary.0': CUP }
         const used = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.UseActionPower, playerId: 'p1', cardId: SKELETON_KEY, powerIndex: powerIndexOf(SKELETON_KEY, PowerTiming.Action), choices: [{ kind: 'relicSlot', slotId: 'reliquary.0' }] }), state: before, game })

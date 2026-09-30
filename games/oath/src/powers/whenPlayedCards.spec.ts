@@ -22,8 +22,8 @@ function board(over: Record<string, Record<string, unknown>> = {}, denizens: Rec
                 favor: 3,
                 secrets: 2,
                 supply: 2,
-                warbandsOnBoard: { [Color.Red]: 2 },
-                warbandsInPersonalBank: { [Color.Red]: 6 },
+                warbandsOnBoard: { ruler: 2 },
+                warbandsInPersonalBank: { ruler: 6 },
                 ...over['ruler']
             }),
             testPlayer({ playerId: 'other', color: Color.Blue, siteId: 'c1', favor: 2, secrets: 2, ...over['other'] }),
@@ -31,7 +31,7 @@ function board(over: Record<string, Record<string, unknown>> = {}, denizens: Rec
         ],
         {
             denizensBySite: { c1: [], c2: [], h1: [], ...denizens },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Red]: 2 } },
+            warbandsBySite: { c1: { ruler: 1 }, c2: { ruler: 2 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', h1: 'site.wastes' }
         }
     )
@@ -84,7 +84,7 @@ describe('Beast', () => {
     it('Animal Host — warbands equal to beast cards at sites, itself included', () => {
         const s = board({}, { c2: ['denizen.beast.rangers'], h1: ['denizen.beast.wolves'] })
         const a = playDrawnCard(s, 'denizen.beast.animal-host', SearchPlay.Site)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(5)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(5)
         expect(a.metadata?.whenPlayed).toMatch(/gained 3 warbands \(3 beast cards/)
     })
 
@@ -101,8 +101,8 @@ describe('Discord', () => {
     it('A Small Favor — four warbands from your bank, adviser-only so played faceup there', () => {
         const s = board()
         playDrawnCard(s, 'denizen.discord.a-small-favor', SearchPlay.Adviser)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(6)
-        expect(s.getPlayerState('ruler').warbandsInPersonalBank[Color.Red]).toBe(2)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(6)
+        expect(s.getPlayerState('ruler').warbandsInPersonalBank['ruler']).toBe(2)
     })
 
     it('Charlatan — burns the Darkest Secret down to one, and fires from the R-6.1 flip too', () => {
@@ -150,16 +150,16 @@ describe('Order', () => {
     it('Garrison — one warband per ruled site, then one from the board onto each', () => {
         const s = board()
         const a = playDrawnCard(s, 'denizen.order.garrison', SearchPlay.Site)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(2)
-        expect(s.warbandsBySite['c1'][Color.Red]).toBe(2)
-        expect(s.warbandsBySite['c2'][Color.Red]).toBe(3)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(2)
+        expect(s.warbandsBySite['c1']['ruler']).toBe(2)
+        expect(s.warbandsBySite['c2']['ruler']).toBe(3)
         expect(a.metadata?.whenPlayed).toMatch(/gained 2 warbands and placed 2 across 2/)
 
         // R-9.2 — under Ring of Devotion the warbands are gained and none placed.
         const ring = board({ ruler: { relicIds: ['relic.ring-of-devotion'] } })
         const b = playDrawnCard(ring, 'denizen.order.garrison', SearchPlay.Site)
-        expect(ring.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4)
-        expect(ring.warbandsBySite['c1'][Color.Red]).toBe(1)
+        expect(ring.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
+        expect(ring.warbandsBySite['c1']['ruler']).toBe(1)
         expect(b.metadata?.whenPlayed).toMatch(/placed none/)
     })
 
@@ -181,7 +181,7 @@ describe('the trigger itself', () => {
         new HydratedSearchResolve(
             buildAction(SearchResolve, { playerId: 'ruler', keptCardId: 'denizen.discord.a-small-favor', discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: false })
         ).apply(down)
-        expect(down.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(2)
+        expect(down.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(2)
     })
 
     it('a card with no When Played power plays fine, stays inert, and refuses stray choices', () => {

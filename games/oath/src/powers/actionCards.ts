@@ -30,7 +30,7 @@ import {
     favorObtainableFromPicks,
     discardDenizensAtSites
 } from './vocabulary.js'
-import { rulesSite, rulingColorsOf, sitesRuledBy, warbandsFreeToLeave } from '../util/rule.js'
+import { rulesSite, rulingWarbandOwners, sitesRuledBy, warbandsFreeToLeave } from '../util/rule.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { totalWarbands, countOf } from '../util/warbands.js'
 import { playerChoicesAtYourSite, siteChoicesYouRule } from './choiceDomains.js'
@@ -184,10 +184,10 @@ registerEffect('denizen.beast.wolves', powerIndexOf('denizen.beast.wolves', Powe
     choices: [one(PowerChoiceKind.Player, { what: 'a board', domain: anyPlayer })],
     resolve: (ctx) => {
         const [target] = chosen(ctx, PowerChoiceKind.Player)
-        const { killed, color } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
+        const { killed } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
         return {
             summary: killed
-                ? `killed a ${color} warband on ${target.playerId}'s board`
+                ? `killed a warband on ${target.playerId}'s board`
                 : `${target.playerId}'s board held no warbands`
         }
     }
@@ -482,26 +482,26 @@ registerEffect(
 function messengerSources(
     ...[state, playerId]: Parameters<ChoiceDomain>
 ): ReturnType<ChoiceDomain> {
-    const colors = rulingColorsOf(state, playerId)
+    const owners = rulingWarbandOwners(state, playerId)
     const player = state.getPlayerState(playerId)
     const out: ReturnType<ChoiceDomain> = []
-    for (const color of colors) {
-        const onBoard = countOf(player.warbandsOnBoard, color)
+    for (const owner of owners) {
+        const onBoard = countOf(player.warbandsOnBoard, owner)
         if (onBoard > 0) {
             out.push({
                 kind: PowerChoiceKind.Warbands,
-                group: { at: { kind: 'board', playerId }, color, count: onBoard }
+                group: { at: { kind: 'board', playerId }, owner, count: onBoard }
             })
         }
     }
     for (const siteId of sitesRuledBy(state, playerId)) {
-        for (const color of colors) {
+        for (const owner of owners) {
             // "except the last warband from a site"
-            const free = warbandsFreeToLeave(state, playerId, siteId, color)
+            const free = warbandsFreeToLeave(state, playerId, siteId, owner)
             if (free > 0) {
                 out.push({
                     kind: PowerChoiceKind.Warbands,
-                    group: { at: { kind: 'site', siteId }, color, count: free }
+                    group: { at: { kind: 'site', siteId }, owner, count: free }
                 })
             }
         }
@@ -520,7 +520,7 @@ function applyMessengerMoves(
         if (c.kind !== PowerChoiceKind.Warbands) continue
         const next = choices[i + 1]
         const dest = next && next.kind === PowerChoiceKind.Site ? next : undefined
-        const { at, color, count } = c.group
+        const { at, owner, count } = c.group
         if (at.kind === 'board') {
             if (!dest)
                 return {
@@ -529,29 +529,29 @@ function applyMessengerMoves(
                 }
             if (!rulesSite(state, playerId, dest.siteId))
                 return { reason: `you do not rule ${dest.siteId}`, summary: '' }
-            const moved = moveWarbandsBoardToSite(state, playerId, color, dest.siteId, count)
+            const moved = moveWarbandsBoardToSite(state, playerId, owner, dest.siteId, count)
             if (moved < count)
                 return {
-                    reason: `only ${moved} ${color} warbands on your board to move`,
+                    reason: `only ${moved} of those warbands on your board to move`,
                     summary: ''
                 }
-            moves.push(`${moved} ${color} board → ${dest.siteId}`)
+            moves.push(`${moved} board → ${dest.siteId}`)
         } else {
             if (!rulesSite(state, playerId, at.siteId))
                 return { reason: `you do not rule ${at.siteId}`, summary: '' }
-            const lifted = moveWarbandsSiteToBoard(state, playerId, color, at.siteId, count)
+            const lifted = moveWarbandsSiteToBoard(state, playerId, owner, at.siteId, count)
             if (lifted < count)
                 return {
-                    reason: `only ${lifted} ${color} warbands may leave ${at.siteId} (the last must stay)`,
+                    reason: `only ${lifted} of those warbands may leave ${at.siteId} (the last must stay)`,
                     summary: ''
                 }
             if (dest) {
                 if (!rulesSite(state, playerId, dest.siteId))
                     return { reason: `you do not rule ${dest.siteId}`, summary: '' }
-                moveWarbandsBoardToSite(state, playerId, color, dest.siteId, lifted)
-                moves.push(`${lifted} ${color} ${at.siteId} → ${dest.siteId}`)
+                moveWarbandsBoardToSite(state, playerId, owner, dest.siteId, lifted)
+                moves.push(`${lifted} ${at.siteId} → ${dest.siteId}`)
             } else {
-                moves.push(`${lifted} ${color} ${at.siteId} → board`)
+                moves.push(`${lifted} ${at.siteId} → board`)
             }
         }
     }

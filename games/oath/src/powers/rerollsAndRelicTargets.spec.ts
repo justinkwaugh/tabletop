@@ -32,12 +32,12 @@ const WOLVES = 'denizen.beast.wolves'
 function board(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { [Color.Red]: 4 }, warbandsInPersonalBank: { [Color.Red]: 6 }, advisers: [{ cardId: HUNTER, faceUp: true }], ...over['me'] }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { [Color.Blue]: 2 }, warbandsInPersonalBank: { [Color.Blue]: 5 }, ...over['foe'] })
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { me: 4 }, warbandsInPersonalBank: { me: 6 }, advisers: [{ cardId: HUNTER, faceUp: true }], ...over['me'] }),
+            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { foe: 2 }, warbandsInPersonalBank: { foe: 5 }, ...over['foe'] })
         ]),
         {
             denizensBySite: { c1: [], c2: [INN], p1: [WOLVES], h1: [] },
-            warbandsBySite: { c1: { [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } },
+            warbandsBySite: { c1: { foe: 2 }, c2: { me: 2 }, p1: { foe: 3 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             relicsBySite: { p1: [{ slotId: 'p1-r1' }] },
             ...state
@@ -155,7 +155,7 @@ describe('Brass Horse — a peek, then a free Travel', () => {
         empty.discardPileCounts.cradle = 0
         expect(HydratedUseActionPower.reasonCannotUse(empty, 'me', HORSE, powerIndexOf(HORSE, PowerTiming.Action))).toMatch(/discard pile is empty/)
         // Vow of Union: no leaving a ruled site with warbands on the board, so p1 is out of reach and the Travel is "as normal".
-        const bound = board({ me: { relicIds: [HORSE], advisers: [{ cardId: 'denizen.beast.vow-of-union', faceUp: true }], warbandsOnBoard: { red: 2 } } }, { warbandsBySite: { c1: { red: 1 } } })
+        const bound = board({ me: { relicIds: [HORSE], advisers: [{ cardId: 'denizen.beast.vow-of-union', faceUp: true }], warbandsOnBoard: { me: 2 } } }, { warbandsBySite: { c1: { me: 1 } } })
         bound.requireVault().discardPiles.cradle = ['denizen.beast.rangers']
         bound.discardPileCounts.cradle = 1
         actionPowerUse('me', HORSE).apply(bound)
@@ -178,13 +178,13 @@ describe('Jinx — a reroll after the roll, the skulls waiting on the answer', (
             expect(state.machineState).toBe(MachineState.PowerQuestion)
             expect(state.activePlayerIds).toEqual(['me'])
             const skulls = ongoingCampaign(state).attackRoll.reduce((n, f) => n + f.skulls, 0)
-            expect(state.players[0].warbandsOnBoard.red).toBe(4)
+            expect(state.players[0].warbandsOnBoard.me).toBe(4)
             if (skulls === 0) continue
             state = engine.runNext(buildAction(AnswerQuestion, { playerId: 'me', answer: { kind: PowerQuestionKind.RerollDice, reroll: true } }), state, game).updatedState
             expect(state.machineState).toBe(MachineState.CampaignSacrifice)
             expect(state.cardTokens[JINX]?.secrets).toBe(1)
             const after = ongoingCampaign(state).attackRoll.reduce((n, f) => n + f.skulls, 0)
-            expect(state.players[0].warbandsOnBoard.red).toBe(4 - after)
+            expect(state.players[0].warbandsOnBoard.me).toBe(4 - after)
             expect(ongoingCampaign(state).pendingSkullKills).toBeUndefined()
             return
         }
@@ -202,7 +202,7 @@ describe('Jinx — a reroll after the roll, the skulls waiting on the answer', (
         state = engine.runNext(buildAction(AnswerQuestion, { playerId: 'me', answer: { kind: PowerQuestionKind.RerollDice, reroll: false } }), state, game).updatedState
         expect(state.machineState).toBe(MachineState.CampaignSacrifice)
         expect(state.cardTokens[JINX]).toBeUndefined()
-        expect(state.players[0].warbandsOnBoard.red).toBe(4 - skulls)
+        expect(state.players[0].warbandsOnBoard.me).toBe(4 - skulls)
     })
 })
 

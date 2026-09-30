@@ -2,16 +2,10 @@ import { Color, assertExists, getPrng, type TurnManager } from '@tabletop/common
 import { BannerState, HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { OathPlayerState } from '../model/playerState.js'
 import { MachineState } from '../definition/states.js'
-import {
-    Banner,
-    CardKind,
-    IMPERIAL_COLOR,
-    OathType,
-    PlayerStatus,
-    Region
-} from '../model/oathEnums.js'
+import { Banner, CardKind, OathType, PlayerStatus, Region } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { RELIQUARY_SIZE } from '../data/relics.js'
-import { reliquarySlotId, warbandOwnersBySeat } from '../model/setup.js'
+import { reliquarySlotId } from '../model/setup.js'
 import { createOathVault, type OathVault } from '../model/vault.js'
 import { bySuit } from '../data/typedData.js'
 import type { CampaignState } from '../model/campaign.js'
@@ -38,6 +32,8 @@ export function registerFixtureSites(): void {
 
 export function testPlayer(overrides: Partial<OathPlayerState> = {}): OathPlayerState {
     const advisers = overrides.advisers ?? []
+    const playerId = overrides.playerId ?? 'p1'
+    const ownWarbands = overrides.status === PlayerStatus.Chancellor ? IMPERIAL_WARBANDS : playerId
     return {
         playerId: 'p1',
         color: Color.Red,
@@ -48,7 +44,7 @@ export function testPlayer(overrides: Partial<OathPlayerState> = {}): OathPlayer
         secrets: 0,
         secretsFacedown: 0,
         warbandsOnBoard: {},
-        warbandsInPersonalBank: { [Color.Red]: 14 },
+        warbandsInPersonalBank: { [ownWarbands]: 14 },
         siteId: undefined,
         relicIds: [],
         adviserLimit: 3,
@@ -116,7 +112,6 @@ export function testState(
         favorSupply: 18,
         chancellorPlayerId: players.find((player) => player.status === PlayerStatus.Chancellor)
             ?.playerId,
-        warbandOwnerPlayerId: warbandOwners(players, overrides.chancellorPlayerId),
         banners: testBanners(),
         worldDeckExhausted: false,
         topCardBackType: CardKind.Denizen,
@@ -166,20 +161,6 @@ export function withChancellor(players: OathPlayerState[]): OathPlayerState[] {
 /** R-9.4 */
 export function testVaultWithRelics(relicFacedown: Record<string, string>): OathVault {
     return createOathVault({ relicFacedown }, getPrng(1))
-}
-
-/** R-10.13 — each seat's colour, and purple to the Chancellor, as setup records them. */
-function warbandOwners(
-    players: OathPlayerState[],
-    chancellorPlayerId: string | undefined
-): Record<string, string> {
-    const chancellor =
-        chancellorPlayerId ??
-        players.find((player) => player.status === PlayerStatus.Chancellor)?.playerId
-    return {
-        ...warbandOwnersBySeat(players),
-        ...(chancellor ? { [IMPERIAL_COLOR]: chancellor } : {})
-    }
 }
 
 /** R-2.5 — `value` 1 makes a banner a Recover target (R-5.4.2) worth one die (R-2.5.2). */

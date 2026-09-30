@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
 import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { HydratedSearch, SearchSource, Search } from '../actions/search.js'
 import { HydratedMuster, Muster } from '../actions/muster.js'
@@ -160,7 +159,7 @@ describe('Nomad', () => {
 describe('Order', () => {
     it('Knights Errant — the Campaign right after a Muster spends no Supply, and only that one', () => {
         // `other` rules c1, so the ruler's own site is a Campaign target.
-        const contested = { warbandsBySite: { c1: { [Color.Blue]: 1 }, p1: { [Color.Blue]: 3 } } }
+        const contested = { warbandsBySite: { c1: { other: 1 }, p1: { other: 3 } } }
         const s = rulerTable([KNIGHTS, INN], [], {}, contested)
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN, modifiers: [modifierUse(KNIGHTS)] })).apply(s)
         expect(s.getPlayerState('ruler').freeCampaignAtAction).toBe(1)
@@ -222,15 +221,15 @@ describe('Order', () => {
     it('Palanquin — "a site that they can travel to": their travel restrictions bind and their after-travel powers fire', () => {
         const lake = rulerTable([PALANQUIN], [], {}, { denizensBySite: { c1: [PALANQUIN], c2: ['denizen.discord.boiling-lake'], p1: [], h1: [] } })
         actionPowerUse('ruler', PALANQUIN, [player('other'), site('c2')]).apply(lake)
-        expect(lake.getPlayerState('other').warbandsOnBoard[Color.Blue]).toBe(0)
-        const vowed = rulerTable([PALANQUIN], [], { other: { advisers: [{ cardId: 'denizen.beast.vow-of-union', faceUp: true }] } }, { warbandsBySite: { c1: { [Color.Blue]: 1 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } } })
+        expect(lake.getPlayerState('other').warbandsOnBoard['other']).toBe(0)
+        const vowed = rulerTable([PALANQUIN], [], { other: { advisers: [{ cardId: 'denizen.beast.vow-of-union', faceUp: true }] } }, { warbandsBySite: { c1: { other: 1 }, c2: { ruler: 2 }, p1: { other: 3 } } })
         expect(() => actionPowerUse('ruler', PALANQUIN, [player('other'), site('c2')]).apply(vowed)).toThrow(/Vow of Union/)
     })
 
     it("Palanquin — carried out of a Shrouded Wood their enemy rules, the Wood's ruler chooses where they go (R-11.7)", () => {
         const s = rulerTable([PALANQUIN], [], {}, {
             siteCards: { c1: 'site.shrouded-wood', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
-            warbandsBySite: { c1: { [Color.Yellow]: 2 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } }
+            warbandsBySite: { c1: { away: 2 }, c2: { ruler: 2 }, p1: { other: 3 } }
         })
         actionPowerUse('ruler', PALANQUIN, [player('other'), site('c2')]).apply(s)
         expect(s.getPlayerState('ruler').siteId).toBe('c2')

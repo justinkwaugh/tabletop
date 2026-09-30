@@ -25,6 +25,7 @@ import {
     tableOf,
     type PlayedTable
 } from '$lib/testing/sessionHarness.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 const ME = 'me'
 const FOE = 'foe'
@@ -47,7 +48,7 @@ function board(foeSiteId = 'c1') {
                 playerId: ME,
                 color: Color.Red,
                 siteId: 'c1',
-                warbandsOnBoard: { [Color.Red]: 4 }
+                warbandsOnBoard: { [ME]: 4 }
             }),
             testPlayer({
                 playerId: FOE,
@@ -57,7 +58,7 @@ function board(foeSiteId = 'c1') {
             })
         ],
         {
-            warbandsBySite: { c2: { [Color.Yellow]: 2 } },
+            warbandsBySite: { c2: { [FOE]: 2 } },
             relicsBySite: { c2: [{ slotId: 'c2-r1' }] }
         }
     )
@@ -75,7 +76,7 @@ describe('choosing targets', () => {
     it('a relic is offered only when the defender stands at the attacker’s site', () => {
         const relic: CampaignTarget = { kind: CampaignTargetKind.Relic, cardId: 'relic.map' }
         const away = board('h1')
-        away.warbandsBySite = { ...away.warbandsBySite, c1: { [Color.Yellow]: 1 } }
+        away.warbandsBySite = { ...away.warbandsBySite, c1: { [FOE]: 1 } }
         expect(canToggleTarget(board('c1'), ME, FOE_DEFENDS, [], relic)).toBe(true)
         expect(canToggleTarget(away, ME, FOE_DEFENDS, [], relic)).toBe(false)
         const siteHere: CampaignTarget = { kind: CampaignTargetKind.Site, siteId: 'c1' }
@@ -94,7 +95,7 @@ afterEach(disposeSessions)
 
 function campaigning(warbands = 4) {
     const state = board()
-    state.players[0].warbandsOnBoard = { [Color.Red]: warbands }
+    state.players[0].warbandsOnBoard = { [ME]: warbands }
     state.players[0].advisers = [{ cardId: HUNTER, faceUp: true }]
     state.players[0].adviserIds = [HUNTER]
     const session = openSessionOn(tableOf(state))
@@ -204,12 +205,12 @@ describe('the Campaign draft (docs/user-interactions.md)', () => {
 function sneakAttackOffered(): PlayedTable {
     const state = testState(
         withChancellor([
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', supply: 6, warbandsOnBoard: { [Color.Red]: 6 } }),
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', supply: 6, warbandsOnBoard: { [ME]: 6 } }),
             testPlayer({
                 playerId: FOE,
                 color: Color.Blue,
                 siteId: 'c1',
-                warbandsOnBoard: { [Color.Blue]: 4 },
+                warbandsOnBoard: { [FOE]: 4 },
                 advisers: [{ cardId: 'denizen.discord.sneak-attack', faceUp: true }]
             })
         ])
@@ -264,17 +265,17 @@ describe('the skull-loss order', () => {
         expect(single.lossSources).toHaveLength(1)
 
         const session = campaigning(3)
-        session.gameState.getPlayerState(ME).warbandsOnBoard = { [Color.Red]: 3, [Color.Purple]: 1 }
+        session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 3, [IMPERIAL_WARBANDS]: 1 }
         const draft = session.campaign
         draft.chooseDefender(FOE_DEFENDS)
         const board = { kind: 'board', playerId: ME } as const
         expect(draft.lossOrder).toEqual([
-            { at: board, color: Color.Red },
-            { at: board, color: Color.Purple }
+            { at: board, owner: ME },
+            { at: board, owner: IMPERIAL_WARBANDS }
         ])
         draft.moveLossSourceUp(1)
         draft.setAttackDice(2)
-        expect(draft.lossOrder.map((s) => s.color)).toEqual([Color.Purple, Color.Red])
+        expect(draft.lossOrder.map((s) => s.owner)).toEqual([IMPERIAL_WARBANDS, ME])
 
         const sent = vi.spyOn(session, 'declareCampaign').mockResolvedValue()
         draft.toggleTarget(FOES_RELIC)
@@ -282,8 +283,8 @@ describe('the skull-loss order', () => {
         expect(sent).toHaveBeenCalledWith(
             expect.objectContaining({
                 skullLossOrder: [
-                    { at: board, color: Color.Purple },
-                    { at: board, color: Color.Red }
+                    { at: board, owner: IMPERIAL_WARBANDS },
+                    { at: board, owner: ME }
                 ]
             })
         )

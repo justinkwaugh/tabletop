@@ -1,4 +1,3 @@
-import { Color } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { testPlayer, testState, testVaultWithRelics } from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
@@ -47,7 +46,7 @@ function serverApply<
 describe('revealsInfo — R-X.3, the field undo is derived from', () => {
     it('R-X.3(a) — an action that advanced the PRNG must set revealsInfo', () => {
         const { state, vault } = board()
-        state.getPlayerState('p1').warbandsOnBoard = { [Color.Red]: 3 }
+        state.getPlayerState('p1').warbandsOnBoard = { p1: 3 }
         state.getPlayerState('p2').siteId = 'c1'
         const prngBefore = state.prng.invocations
         const raw = buildAction(Campaign, {

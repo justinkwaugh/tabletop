@@ -17,6 +17,7 @@ import { Travel } from '../actions/travel.js'
 import { type OathProjectedState } from '../model/gameState.js'
 import { type OathPlayerState } from '../model/playerState.js'
 import { testGame } from '../testing/game.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 /** R-4.3 — the Rest refresh runs once per turn, however often the phase is re-entered. */
 
@@ -31,7 +32,7 @@ describe('RestPhase.enter() is re-entry-safe', () => {
                 status: PlayerStatus.Chancellor,
                 siteId: 'c1',
                 supply: 4,
-                warbandsInPersonalBank: { purple: 5 }, // R-4.3.3 — band 4-10, base 4
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }, // R-4.3.3 — band 4-10, base 4
                 advisers: [{ cardId: POVERTY, faceUp: true }]
             }),
             testPlayer({
@@ -39,7 +40,7 @@ describe('RestPhase.enter() is re-entry-safe', () => {
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: 'c2',
-                warbandsInPersonalBank: { [Color.Red]: 4 }
+                warbandsInPersonalBank: { p2: 4 }
             })
         ]
         const state = testState(seats, {

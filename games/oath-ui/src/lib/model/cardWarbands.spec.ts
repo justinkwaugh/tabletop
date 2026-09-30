@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { sharedVisionIdsOf, warbandsOnCardOf } from './cardWarbands.js'
 
@@ -15,18 +16,18 @@ function board() {
         ],
         {
             warbandsOnCards: {
-                [CAGE]: { [Color.Red]: 2, [Color.Blue]: 0, [Color.Yellow]: 1 },
-                [CONQUEST]: { [Color.Red]: 1 }
+                [CAGE]: { me: 2, other: 0, [IMPERIAL_WARBANDS]: 1 },
+                [CONQUEST]: { me: 1 }
             }
         }
     )
 }
 
 describe('warbandsOnCardOf', () => {
-    it('lists each colour standing on the card, and no empty colour', () => {
+    it('lists each owner with warbands standing on the card, and no empty entry', () => {
         expect(warbandsOnCardOf(board(), CAGE)).toEqual([
-            { color: Color.Red, count: 2 },
-            { color: Color.Yellow, count: 1 }
+            { owner: 'me', count: 2 },
+            { owner: IMPERIAL_WARBANDS, count: 1 }
         ])
     })
 

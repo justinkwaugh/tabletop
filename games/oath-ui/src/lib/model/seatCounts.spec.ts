@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { IMPERIAL_COLOR, PlayerStatus } from '@tabletop/oath'
+import { PlayerStatus } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { seatWarbands } from './seatWarbands.js'
 import { reliquarySpaces } from './reliquary.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 const CHAN = 'chan'
 const CIT = 'cit'
@@ -16,21 +17,21 @@ function table() {
                 playerId: CHAN,
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 8 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }
             }),
             testPlayer({
                 playerId: CIT,
                 color: Color.Yellow,
                 status: PlayerStatus.Citizen,
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 2 },
-                warbandsInPersonalBank: { [Color.Yellow]: 14 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { [CIT]: 14 }
             }),
             testPlayer({
                 playerId: EXILE,
                 color: Color.Red,
-                warbandsOnBoard: { [Color.Red]: 4 },
-                warbandsInPersonalBank: { [Color.Red]: 10 }
+                warbandsOnBoard: { [EXILE]: 4 },
+                warbandsInPersonalBank: { [EXILE]: 10 }
             })
         ],
         { chancellorPlayerId: CHAN }
@@ -38,18 +39,18 @@ function table() {
 }
 
 describe('a seat’s warbands (R-6.6.3)', () => {
-    it('an Imperial seat counts purple, drawn from the one Imperial bank', () => {
+    it('an Imperial seat counts the Empire\'s warbands, drawn from the one Imperial bank', () => {
         const state = table()
         expect(seatWarbands(state, CIT)).toEqual({
-            color: IMPERIAL_COLOR,
+            owner: IMPERIAL_WARBANDS,
             onBoard: 2,
             inBank: seatWarbands(state, CHAN).inBank
         })
         expect(seatWarbands(state, CIT).inBank).not.toBe(14)
     })
 
-    it('an Exile counts their own colour', () => {
-        expect(seatWarbands(table(), EXILE)).toEqual({ color: Color.Red, onBoard: 4, inBank: 10 })
+    it('an Exile counts their own warbands', () => {
+        expect(seatWarbands(table(), EXILE)).toEqual({ owner: EXILE, onBoard: 4, inBank: 10 })
     })
 })
 

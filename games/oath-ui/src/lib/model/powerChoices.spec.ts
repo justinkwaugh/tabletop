@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
-import { PowerChoiceKind, type LegalChoice } from '@tabletop/oath'
+import { IMPERIAL_WARBANDS, PowerChoiceKind, type LegalChoice } from '@tabletop/oath'
 import { emptyPicks, powerChoicesFrom, withSeveralCount } from './powerChoices.js'
 
 const cage: LegalChoice = {
@@ -8,11 +7,11 @@ const cage: LegalChoice = {
     options: [
         {
             kind: PowerChoiceKind.Warbands,
-            group: { at: { kind: 'board', playerId: 'red' }, color: Color.Red, count: 3 }
+            group: { at: { kind: 'board', playerId: 'red' }, owner: 'red', count: 3 }
         },
         {
             kind: PowerChoiceKind.Warbands,
-            group: { at: { kind: 'board', playerId: 'chan' }, color: Color.Purple, count: 2 }
+            group: { at: { kind: 'board', playerId: 'chan' }, owner: IMPERIAL_WARBANDS, count: 2 }
         }
     ]
 }
@@ -28,11 +27,11 @@ describe('powerChoicesFrom — a spec taking several picks', () => {
         expect(powerChoicesFrom([cage], picks)).toEqual([
             {
                 kind: PowerChoiceKind.Warbands,
-                group: { at: { kind: 'board', playerId: 'chan' }, color: Color.Purple, count: 1 }
+                group: { at: { kind: 'board', playerId: 'chan' }, owner: IMPERIAL_WARBANDS, count: 1 }
             },
             {
                 kind: PowerChoiceKind.Warbands,
-                group: { at: { kind: 'board', playerId: 'red' }, color: Color.Red, count: 3 }
+                group: { at: { kind: 'board', playerId: 'red' }, owner: 'red', count: 3 }
             }
         ])
     })

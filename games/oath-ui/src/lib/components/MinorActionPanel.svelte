@@ -202,17 +202,19 @@
                     ? 'No warbands you may move.'
                     : `Tap ${gameSession.warbandMoves.boardToSite ? 'your site on the map to move warbands onto it' : ''}${gameSession.warbandMoves.boardToSite && gameSession.warbandMoves.siteToBoard ? ', or ' : ''}${gameSession.warbandMoves.siteToBoard ? 'the Board counter on your card to bring them back' : ''}.`}
             </p>
-            {#each gameSession.warbandMoves.byColour as option (option.move.kind + option.color)}
+            {#each gameSession.warbandMoves.byOwner as option (option.move.kind + option.owner)}
                 <button
                     class="rounded border border-amber-500/40 bg-stone-800/60 hover:border-amber-300 px-2 py-1 text-xs text-left"
                     disabled={busy}
                     onclick={() => gameSession.warbandMoves.choose(option)}
                 >
                     {MOVE_LABELS[option.move.kind]}
-                    <span class="text-stone-500">({option.color}, up to {option.max})</span>
+                    <span class="text-stone-500"
+                        >({gameSession.warbandOwnerName(option.owner)}, up to {option.max})</span
+                    >
                 </button>
             {/each}
-            {#each imperialMoves as option (JSON.stringify(option.move) + option.color)}
+            {#each imperialMoves as option (JSON.stringify(option.move) + option.owner)}
                 {@const otherPlayerId = otherPlayerOf(option.move)}
                 <button
                     class="rounded border border-amber-500/40 bg-stone-800/60 hover:border-amber-300 px-2 py-1 text-xs text-left"
@@ -222,7 +224,9 @@
                     {MOVE_LABELS[option.move.kind]} — {otherPlayerId
                         ? gameSession.getPlayerName(otherPlayerId)
                         : ''}
-                    <span class="text-stone-500">({option.color}, up to {option.max})</span>
+                    <span class="text-stone-500"
+                        >({gameSession.warbandOwnerName(option.owner)}, up to {option.max})</span
+                    >
                 </button>
             {/each}
         {/if}

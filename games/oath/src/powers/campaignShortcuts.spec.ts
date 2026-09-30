@@ -41,13 +41,13 @@ registerCards([{ id: 'site.test-cheap', name: 'Cheap', kind: CardKind.Site, reco
 function board(cards: string[] = [], over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: 'att', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { [Color.Red]: 4 }, warbandsInPersonalBank: { [Color.Red]: 6 }, ...over['att'] }),
-            testPlayer({ playerId: 'def', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { [Color.Blue]: 2 }, warbandsInPersonalBank: { [Color.Blue]: 5 }, ...over['def'] }),
+            testPlayer({ playerId: 'att', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { att: 4 }, warbandsInPersonalBank: { att: 6 }, ...over['att'] }),
+            testPlayer({ playerId: 'def', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { def: 2 }, warbandsInPersonalBank: { def: 5 }, ...over['def'] }),
             testPlayer({ playerId: 'far', color: Color.Yellow, siteId: 'h1', favor: 2, secrets: 2, ...over['far'] })
         ],
         {
             denizensBySite: { c1: cards, c2: [INN], p1: [WOLVES], h1: [] },
-            warbandsBySite: { c1: { [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } },
+            warbandsBySite: { c1: { def: 2 }, c2: { att: 2 }, p1: { def: 3 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             ...state
         }
@@ -77,11 +77,11 @@ describe('Hearts and Minds and Peace Envoy — a battle decided without a roll',
         expect(s.campaign).toMatchObject({ decidedVictor: 'defender', attackRoll: [], defenseRoll: [], swords: 0, defense: 0 })
         expect(HydratedCampaignSacrifice.sacrificeNeeded(ongoingCampaign(s))).toBe(0)
         expect(HydratedCampaignSacrifice.reasonCannotResolve(s, 'att', { sacrifice: 1 })).toMatch(/already decided/)
-        const before = required(s.getPlayerState('att').warbandsOnBoard[Color.Red], 'the attacker’s red warbands')
+        const before = required(s.getPlayerState('att').warbandsOnBoard['att'], 'the attacker’s red warbands')
         const sac = finish(s)
         expect(sac.metadata?.attackerVictorious).toBe(false)
         // R-5.5.6 — the defeated attacker still loses half of four.
-        expect(s.getPlayerState('att').warbandsOnBoard[Color.Red]).toBe(before - 2)
+        expect(s.getPlayerState('att').warbandsOnBoard['att']).toBe(before - 2)
         expect(sac.metadata?.planNotes?.[0]).toMatch(/discarded at the end/)
         expect(s.denizensBySite['c1']).not.toContain(HEARTS)
 
@@ -101,8 +101,8 @@ describe('Hearts and Minds and Peace Envoy — a battle decided without a roll',
         const sac = finish(s)
         expect(sac.metadata?.attackerVictorious).toBe(true)
         expect(sac.metadata?.defeatKilled).toBe(0)
-        expect(s.getPlayerState('def').warbandsOnBoard[Color.Blue]).toBe(4)
-        expect(warbandsAt(s, 'c1')[Color.Blue] ?? 0).toBe(0)
+        expect(s.getPlayerState('def').warbandsOnBoard['def']).toBe(4)
+        expect(warbandsAt(s, 'c1')['def'] ?? 0).toBe(0)
         expect(HydratedCampaign.reasonCannotCampaign(board([], { att: { advisers: [{ cardId: ENVOY, faceUp: true }, { cardId: 'denizen.discord.mercenaries', faceUp: true }] } }), 'att', { defender: { kind: 'player', playerId: 'def' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }], attackDice: 1, plans: [battlePlanUse(ENVOY), battlePlanUse('denizen.discord.mercenaries')] })).toMatch(/cannot use other battle plans/)
     })
 
@@ -116,7 +116,7 @@ describe('Hearts and Minds and Peace Envoy — a battle decided without a roll',
 
 describe('Wild Allies and Captains — a Campaign from another site', () => {
     it('Captains: the next Campaign acts from a ruled site, for no Supply, with the warbands there in the force', () => {
-        const s = board([CAPTAINS], {}, { warbandsBySite: { c1: { [Color.Red]: 1, [Color.Blue]: 2 }, c2: { [Color.Red]: 2, [Color.Blue]: 1 }, p1: { [Color.Blue]: 3 } } })
+        const s = board([CAPTAINS], {}, { warbandsBySite: { c1: { att: 1, def: 2 }, c2: { att: 2, def: 1 }, p1: { def: 3 } } })
         actionPowerUse('att', CAPTAINS, [site('c2')]).apply(s)
         s.actionCount += 1
         expect(attackingSiteOf(s, 'att')).toBe('c2')
@@ -147,9 +147,9 @@ describe('Wild Allies and Captains — a Campaign from another site', () => {
         s.actionCount += 1
         const declaration: Parameters<typeof HydratedCampaign.reasonCannotCampaign>[2] = { defender: { kind: 'player', playerId: 'def' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'p1' }], attackDice: 3 }
         expect(HydratedCampaign.reasonCannotCampaign(s, 'att', declaration)).toBeUndefined()
-        expect(HydratedCampaign.reasonCannotCampaign(s, 'att', { ...declaration, skullLossOrder: [{ at: { kind: 'site', siteId: 'p1' }, color: Color.Blue }] })).toMatch(/not in your force/)
-        expect(() => campaign(s, { ...declaration, skullLossOrder: [{ at: { kind: 'site', siteId: 'p1' }, color: Color.Blue }] })).toThrow(/not in your force/)
-        expect(warbandsAt(s, 'p1')[Color.Blue]).toBe(3)
+        expect(HydratedCampaign.reasonCannotCampaign(s, 'att', { ...declaration, skullLossOrder: [{ at: { kind: 'site', siteId: 'p1' }, owner: 'def' }] })).toMatch(/not in your force/)
+        expect(() => campaign(s, { ...declaration, skullLossOrder: [{ at: { kind: 'site', siteId: 'p1' }, owner: 'def' }] })).toThrow(/not in your force/)
+        expect(warbandsAt(s, 'p1')['def']).toBe(3)
     })
 
     it("R-5.5.5 — a sacrifice naming another player's warbands is refused", () => {
@@ -159,13 +159,13 @@ describe('Wild Allies and Captains — a Campaign from another site', () => {
         ongoingCampaign(s).swords = 1
         ongoingCampaign(s).defense = 2
         expect(HydratedCampaignSacrifice.reasonCannotResolve(s, 'att', { sacrifice: 2 })).toBeUndefined()
-        expect(HydratedCampaignSacrifice.reasonCannotResolve(s, 'att', { sacrifice: 2, sacrificeKills: [{ at: { kind: 'site', siteId: 'c1' }, color: Color.Blue, count: 2 }] })).toMatch(/not in the force/)
+        expect(HydratedCampaignSacrifice.reasonCannotResolve(s, 'att', { sacrifice: 2, sacrificeKills: [{ at: { kind: 'site', siteId: 'c1' }, owner: 'def', count: 2 }] })).toMatch(/not in the force/)
     })
 })
 
 describe('R-5.5.5, R-10.22 — the attacker chooses which of their own warbands die', () => {
-    function captainsAt(c2: Record<string, number> = { [Color.Red]: 2, [Color.Blue]: 1 }) {
-        const s = board([CAPTAINS], {}, { warbandsBySite: { c1: { [Color.Red]: 1, [Color.Blue]: 2 }, c2, p1: { [Color.Blue]: 3 } } })
+    function captainsAt(c2: Record<string, number> = { att: 2, def: 1 }) {
+        const s = board([CAPTAINS], {}, { warbandsBySite: { c1: { att: 1, def: 2 }, c2, p1: { def: 3 } } })
         actionPowerUse('att', CAPTAINS, [site('c2')]).apply(s)
         s.actionCount += 1
         return s
@@ -173,11 +173,11 @@ describe('R-5.5.5, R-10.22 — the attacker chooses which of their own warbands 
 
     it('skull kills come from the places named first, then the rest of the force', () => {
         const s = captainsAt()
-        campaign(s, { targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }], attackDice: 0, skullLossOrder: [{ at: { kind: 'site', siteId: 'c2' }, color: Color.Red }] })
-        const board = s.getPlayerState('att').warbandsOnBoard[Color.Red]
-        killFromAttackingForce(s, ongoingCampaign(s), 3, [{ at: { kind: 'site', siteId: 'c2' }, color: Color.Red }])
-        expect(warbandsAt(s, 'c2')[Color.Red] ?? 0).toBe(0)
-        expect(s.getPlayerState('att').warbandsOnBoard[Color.Red]).toBe(required(board, 'the board') - 1)
+        campaign(s, { targets: [{ kind: CampaignTargetKind.Site, siteId: 'c2' }], attackDice: 0, skullLossOrder: [{ at: { kind: 'site', siteId: 'c2' }, owner: 'att' }] })
+        const board = s.getPlayerState('att').warbandsOnBoard['att']
+        killFromAttackingForce(s, ongoingCampaign(s), 3, [{ at: { kind: 'site', siteId: 'c2' }, owner: 'att' }])
+        expect(warbandsAt(s, 'c2')['att'] ?? 0).toBe(0)
+        expect(s.getPlayerState('att').warbandsOnBoard['att']).toBe(required(board, 'the board') - 1)
     })
 
     it('a sacrifice from a force of more than one kind names its warbands, which are the ones that die', () => {
@@ -188,19 +188,19 @@ describe('R-5.5.5, R-10.22 — the attacker chooses which of their own warbands 
         ongoingCampaign(s).defense = 2
         ongoingCampaign(s).sacrificeWorth = 1
         expect(HydratedCampaignSacrifice.reasonCannotResolve(s, 'att', { sacrifice: 2 })).toMatch(/choose which warbands/)
-        const kills = [{ at: { kind: 'site' as const, siteId: 'c2' }, color: Color.Red, count: 2 }]
+        const kills = [{ at: { kind: 'site' as const, siteId: 'c2' }, owner: 'att', count: 2 }]
         expect(HydratedCampaignSacrifice.reasonCannotResolve(s, 'att', { sacrifice: 2, sacrificeKills: kills })).toBeUndefined()
-        const onBoard = s.getPlayerState('att').warbandsOnBoard[Color.Red]
+        const onBoard = s.getPlayerState('att').warbandsOnBoard['att']
         new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId: 'att', sacrifice: 2, sacrificeKills: kills })).apply(s)
-        expect(warbandsAt(s, 'c2')[Color.Red] ?? 0).toBe(0)
-        expect(s.getPlayerState('att').warbandsOnBoard[Color.Red]).toBe(onBoard)
+        expect(warbandsAt(s, 'c2')['att'] ?? 0).toBe(0)
+        expect(s.getPlayerState('att').warbandsOnBoard['att']).toBe(onBoard)
     })
 })
 
 describe('Hospital — a kill becomes a placement', () => {
     it("Hospital's Q&A — the saved warbands wait for the Campaign's end, then go to its site if its user still rules it", () => {
         const defendWithHospital = (denizensBySite: Record<string, string[]>) => {
-            const s = board([], {}, { denizensBySite, warbandsBySite: { c1: { [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } } })
+            const s = board([], {}, { denizensBySite, warbandsBySite: { c1: { def: 2 }, c2: { att: 2 }, p1: { def: 3 } } })
             campaign(s)
             new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'def', plans: [battlePlanUse(HOSPITAL)] })).apply(s)
             ongoingCampaign(s).swords = 9
@@ -210,15 +210,15 @@ describe('Hospital — a kill becomes a placement', () => {
         // Hospital at p1, which the defender keeps: the two saved warbands arrive there at the end.
         const kept = defendWithHospital({ c1: [], c2: [INN], p1: [HOSPITAL, WOLVES], h1: [] })
         expect(kept.campaign?.killRedirects).toEqual([{ playerId: 'def', siteId: 'p1' }])
-        const bank = required(kept.getPlayerState('def').warbandsInPersonalBank[Color.Blue], 'the defender\'s blue bank')
+        const bank = required(kept.getPlayerState('def').warbandsInPersonalBank['def'], 'the defender\'s blue bank')
         expectWarbandsConserved(kept, () => finish(kept))
-        expect(kept.getPlayerState('def').warbandsInPersonalBank[Color.Blue]).toBe(bank)
-        expect(warbandsAt(kept, 'p1')[Color.Blue]).toBe(5)
+        expect(kept.getPlayerState('def').warbandsInPersonalBank['def']).toBe(bank)
+        expect(warbandsAt(kept, 'p1')['def']).toBe(5)
         // Hospital at c1, the targeted site the defender loses: nothing props it up, and the saved warbands die.
         const lost = defendWithHospital({ c1: [HOSPITAL], c2: [INN], p1: [WOLVES], h1: [] })
         finish(lost)
-        expect(warbandsAt(lost, 'c1')[Color.Blue] ?? 0).toBe(0)
-        expect(lost.getPlayerState('def').warbandsInPersonalBank[Color.Blue]).toBe(bank + 2)
+        expect(warbandsAt(lost, 'c1')['def'] ?? 0).toBe(0)
+        expect(lost.getPlayerState('def').warbandsInPersonalBank['def']).toBe(bank + 2)
         expect(lost.campaign).toBeUndefined()
     })
 })

@@ -36,7 +36,7 @@ const MINOR_ACTIONS = [
     {
         type: ActionType.MoveWarbands,
         hydrated: HydratedMoveWarbands,
-        action: buildAction(MoveWarbands, { playerId: 'p1', move: { kind: WarbandMoveKind.SiteToBoard }, color: Color.Red, count: 1 })
+        action: buildAction(MoveWarbands, { playerId: 'p1', move: { kind: WarbandMoveKind.SiteToBoard }, owner: 'p1', count: 1 })
     },
     {
         type: ActionType.OfferCitizenship,
@@ -85,19 +85,19 @@ describe('minor action wiring (R-6.1–R-6.8)', () => {
                     siteId: 'c1',
                     supply: 5,
                     supplySpentThisTurn: 2,
-                    warbandsOnBoard: { [Color.Red]: 2 },
-                    warbandsInPersonalBank: { [Color.Red]: 9 },
+                    warbandsOnBoard: { p1: 2 },
+                    warbandsInPersonalBank: { p1: 9 },
                     advisers: [{ cardId: 'denizen.hearth.marriage', faceUp: false }]
                 })
             ],
-            { warbandsBySite: { c1: { [Color.Red]: 3 } } }
+            { warbandsBySite: { c1: { p1: 3 } } }
         )
 
         new HydratedMoveWarbands(
             buildAction(MoveWarbands, {
                 playerId: 'p1',
                 move: { kind: WarbandMoveKind.SiteToBoard },
-                color: Color.Red,
+                owner: 'p1',
                 count: 1
             })
         ).apply(state)

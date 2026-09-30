@@ -8,7 +8,7 @@ import { HydratedRecover, RecoverTargetKind, Recover } from '../actions/recover.
 import { HydratedUseRestPower, UseRestPower } from '../actions/useRestPower.js'
 import { HydratedCampaignResolveVictory, CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
 import { CampaignTargetKind } from '../model/campaign.js'
-import { Banner, IMPERIAL_COLOR, PlayerStatus, Suit } from '../model/oathEnums.js'
+import { Banner, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { powersWithTiming, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { campaignRecords, testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { PowerChoiceKind } from '../util/powerChoice.js'
@@ -20,6 +20,7 @@ import { hasEffect } from './registry.js'
 import '../powers/index.js'
 import { buildAction } from '../testing/actions.js'
 import { actionPowerUse, player } from '../testing/choices.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 /** The nomad bank is usable favor but not on the holder's board, so a Take finds it empty. */
 const VOW = 'denizen.nomad.vow-of-kinship'
@@ -33,8 +34,6 @@ const FILLER = 'denizen.hearth.storyteller'
 
 const KIN = 'kin'
 const FOE = 'foe'
-const RED: Color = Color.Red
-const BLUE: Color = Color.Blue
 
 const faceup = (cardId: string) => ({ cardId, faceUp: true })
 
@@ -46,12 +45,12 @@ function board(
 ) {
     const s = testState(
         [
-            testPlayer({ playerId: KIN, color: Color.Red, siteId: 'c1', favor: 0, secrets: 2, supply: 6, advisers: [faceup(VOW)], warbandsOnBoard: { [RED]: 2 }, warbandsInPersonalBank: { [RED]: 8 }, ...over[KIN] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [BLUE]: 2 }, warbandsInPersonalBank: { [BLUE]: 8 }, ...over[FOE] })
+            testPlayer({ playerId: KIN, color: Color.Red, siteId: 'c1', favor: 0, secrets: 2, supply: 6, advisers: [faceup(VOW)], warbandsOnBoard: { [KIN]: 2 }, warbandsInPersonalBank: { [KIN]: 8 }, ...over[KIN] }),
+            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [FOE]: 2 }, warbandsInPersonalBank: { [FOE]: 8 }, ...over[FOE] })
         ],
         {
             denizensBySite: { c1: [WRESTLERS], c2: [] },
-            warbandsBySite: { c1: { [RED]: 1 } },
+            warbandsBySite: { c1: { [KIN]: 1 } },
             siteCards: { c1: 'site.plains', c2: 'site.river' },
             ...state
         }
@@ -246,7 +245,7 @@ describe('it is not favor on the holder\'s board', () => {
     })
 
     it('Royal Tax, played by the site\'s ruler, takes nothing from the holder standing there', () => {
-        const s = board({}, { warbandsBySite: { c1: { [BLUE]: 2 } } }, FOE)
+        const s = board({}, { warbandsBySite: { c1: { [FOE]: 2 } } }, FOE)
         expectFavorConserved(s, () => searchPlay(s, TAX, SearchPlay.Site, undefined, FOE).apply(s))
         expect(s.denizensBySite['c1']).toContain(TAX)
         expect(nomadBank(s)).toBe(3)
@@ -257,9 +256,9 @@ describe('it is not favor on the holder\'s board', () => {
     it('R-5.5.7.III burns half of an empty board', () => {
         const s = testState(
             [
-                testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', warbandsOnBoard: { [BLUE]: 4 }, warbandsInPersonalBank: { [BLUE]: 8 } }),
-                testPlayer({ playerId: KIN, color: Color.Red, siteId: 'c1', favor: 0, advisers: [faceup(VOW)], warbandsOnBoard: { [RED]: 3 }, warbandsInPersonalBank: { [RED]: 11 } }),
-                testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', warbandsOnBoard: { [IMPERIAL_COLOR]: 6 }, warbandsInPersonalBank: { [IMPERIAL_COLOR]: 18 } })
+                testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', warbandsOnBoard: { [FOE]: 4 }, warbandsInPersonalBank: { [FOE]: 8 } }),
+                testPlayer({ playerId: KIN, color: Color.Red, siteId: 'c1', favor: 0, advisers: [faceup(VOW)], warbandsOnBoard: { [KIN]: 3 }, warbandsInPersonalBank: { [KIN]: 11 } }),
+                testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 18 } })
             ],
             {
                 chancellorPlayerId: 'chan',
@@ -314,10 +313,10 @@ describe('"you" is the holder alone (R-10.28), and only while the vow is in play
     it('an Imperial ally of the holder cannot use it either', () => {
         const s = board(
             {
-                [KIN]: { status: PlayerStatus.Chancellor, color: Color.Purple, warbandsOnBoard: { [IMPERIAL_COLOR]: 2 }, warbandsInPersonalBank: { [IMPERIAL_COLOR]: 8 } },
+                [KIN]: { status: PlayerStatus.Chancellor, owner: IMPERIAL_WARBANDS, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 } },
                 [FOE]: { status: PlayerStatus.Citizen, favor: 0 }
             },
-            { chancellorPlayerId: KIN, warbandsBySite: { c1: { [IMPERIAL_COLOR]: 1 } } },
+            { chancellorPlayerId: KIN, warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } } },
             FOE
         )
         expect(usableFavor(s, KIN)).toBe(3)

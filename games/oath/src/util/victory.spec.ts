@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
 import { Banner, OathType, PlayerStatus } from '../model/oathEnums.js'
 import { testBanners } from '../testing/fixture.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
@@ -177,8 +176,8 @@ describe('the War Exhaustion Win is strict precedence (R-3.4)', () => {
                 round: 8,
                 visionsDrawn: 3,
                 warbandsBySite: {
-                    c1: { [Color.Red]: 1 },
-                    p1: { [Color.Yellow]: 1 }
+                    c1: { [EXILE]: 1 },
+                    p1: { [OTHER_EXILE]: 1 }
                 }
             },
             {

@@ -61,10 +61,13 @@
                     />
                 </span>
             {/if}
-            {#each pieces.warbands as [color, count] (color)}
-                <span class="warband" title="{count} {color} warbands">
+            {#each pieces.warbands as [owner, count] (owner)}
+                <span
+                    class="warband"
+                    title="{count} {gameSession.warbandOwnerName(owner)} warbands"
+                >
                     <img
-                        src={warbandImage(color)}
+                        src={warbandImage(gameSession.warbandColor(owner))}
                         alt=""
                         style="height:{WARBAND_HEIGHT}px; width:auto;"
                     />

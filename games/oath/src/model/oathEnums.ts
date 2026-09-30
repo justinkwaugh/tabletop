@@ -1,4 +1,3 @@
-import { Color } from '@tabletop/common'
 /** R-2.1.1 */
 export enum Region {
     Cradle = 'cradle',
@@ -31,9 +30,6 @@ export enum SetupVariant {
 
 /** R-1.4, R-9.3 — favor is component-limited; the total is a conservation invariant. */
 export const TOTAL_FAVOR = 36
-
-/** R-6.6.3 — the Chancellor's colour, held and mustered by Citizens too (R-1.15, R-5.2.2). */
-export const IMPERIAL_COLOR: Color = Color.Purple
 
 export enum PlayerStatus {
     Chancellor = 'chancellor',

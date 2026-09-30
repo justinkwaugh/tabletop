@@ -1,10 +1,11 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { Suit, CardKind } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { kindOf, suitOf } from '../data/cardRegistry.js'
 import { warbandsOnBoardOf } from '../util/force.js'
 import { gainSupply } from '../util/rest.js'
 import { totalWarbandsAt } from '../util/rule.js'
+import { totalWarbands } from '../util/warbands.js'
 import { registerModifier, type EffectContext } from './registry.js'
 import {
     gainFavorFromBank,
@@ -102,9 +103,9 @@ registerModifier(
             after: (ctx) => {
                 const to = ctx.particulars?.destinationSiteId
                 assertExists(to, 'Tyrant applies to a Travel, which always names a destination')
-                const [color] = Object.keys(killWarbandsAtSite(ctx.state, to, 1))
-                assertExists(color, "Tyrant's condition found a warband at the destination")
-                return { summary: `Tyrant killed a ${color} warband at ${to}` }
+                const killed = totalWarbands(killWarbandsAtSite(ctx.state, to, 1))
+                assert(killed === 1, "Tyrant's condition found a warband at the destination")
+                return { summary: `Tyrant killed a warband at ${to}` }
             }
         }
     }
@@ -184,8 +185,8 @@ registerModifier(
                     : 'you have no warband on your board to sacrifice',
             supplyCost: waive,
             before: (ctx) => {
-                const { color } = killWarbandsOnBoard(ctx.state, ctx.playerId, 1)
-                return `sacrificed a ${color} warband from your board (Awaited Return)`
+                killWarbandsOnBoard(ctx.state, ctx.playerId, 1)
+                return 'sacrificed a warband from your board (Awaited Return)'
             }
         }
     }

@@ -47,7 +47,7 @@ function board(cards: string[], advisers: string[] = [], ruler: Record<string, u
                 favor: 3,
                 secrets: 2,
                 supply: 3,
-                warbandsOnBoard: { [Color.Red]: 2 },
+                warbandsOnBoard: { ruler: 2 },
                 advisers: advisers.map((cardId) => ({ cardId, faceUp: true })),
                 ...ruler
             }),
@@ -62,7 +62,7 @@ function board(cards: string[], advisers: string[] = [], ruler: Record<string, u
         {
             chancellorPlayerId: 'chancellor',
             denizensBySite: { c1: cards, c2: [], h1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1 } },
+            warbandsBySite: { c1: { ruler: 1 } },
             siteCards: { c1: 'site.mine', c2: 'site.river', h1: 'site.wastes' },
             ...over
         }

@@ -44,7 +44,7 @@ export const OathPlayerState = Type.Object({
     /** R-7.1.2.a — flipped facedown by paying outside your turn; cannot be spent. */
     secretsFacedown: Type.Number(),
 
-    /** R-10.9, R-10.13 — keyed by colour: a Citizen's board holds purple (R-1.15, R-6.6.2). */
+    /** R-10.9, R-10.13 — keyed by owner: a Citizen's board holds the Empire's (R-1.15, R-6.6.2). */
     warbandsOnBoard: WarbandCounts,
     /** R-4.3.3 */
     warbandsInPersonalBank: WarbandCounts,

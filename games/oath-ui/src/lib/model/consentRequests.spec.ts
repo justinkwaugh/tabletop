@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
 import {
     ConsentRequestKind,
     HydratedOathGameState,
@@ -9,6 +8,7 @@ import {
 } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { consentQuestion } from './consentRequests.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 const nameOf = (playerId: string) => ({ p1: 'Alice', p2: 'Bob', p3: 'Cleo' })[playerId] ?? playerId
 
@@ -21,14 +21,14 @@ function table(): HydratedOathGameState {
 }
 
 describe('what a consent request asks (R-6.5.a, R-6.5.b, R-5.5.2.a)', () => {
-    it('names the asker, the count, the colour and the direction of a warband move', () => {
+    it('names the asker, the count, whose warbands and the direction of a warband move', () => {
         const state = table()
-        const move = (kind: WarbandMoveKind.SiteToBoard | WarbandMoveKind.BoardToSite) => asked({ kind: ConsentRequestKind.WarbandMove, move: { kind }, color: Color.Purple, count: 2 })
-        expect(consentQuestion(state, move(WarbandMoveKind.SiteToBoard), nameOf)).toBe('Alice asks your permission, as Chancellor, to move 2 purple warbands off their site to their board.')
-        const take = asked({ kind: ConsentRequestKind.WarbandMove, move: { kind: WarbandMoveKind.TakeFromImperial, otherPlayerId: 'p2' }, color: Color.Purple, count: 1 })
-        expect(consentQuestion(state, take, nameOf)).toBe('Alice asks your permission to take 1 purple warband from your board.')
-        const give = asked({ kind: ConsentRequestKind.WarbandMove, move: { kind: WarbandMoveKind.GiveToImperial, otherPlayerId: 'p2' }, color: Color.Purple, count: 3 })
-        expect(consentQuestion(state, give, nameOf)).toBe('Alice asks your permission to give you 3 purple warbands.')
+        const move = (kind: WarbandMoveKind.SiteToBoard | WarbandMoveKind.BoardToSite) => asked({ kind: ConsentRequestKind.WarbandMove, move: { kind }, owner: IMPERIAL_WARBANDS, count: 2 })
+        expect(consentQuestion(state, move(WarbandMoveKind.SiteToBoard), nameOf)).toBe('Alice asks your permission, as Chancellor, to move 2 Imperial warbands off their site to their board.')
+        const take = asked({ kind: ConsentRequestKind.WarbandMove, move: { kind: WarbandMoveKind.TakeFromImperial, otherPlayerId: 'p2' }, owner: IMPERIAL_WARBANDS, count: 1 })
+        expect(consentQuestion(state, take, nameOf)).toBe('Alice asks your permission to take 1 Imperial warband from your board.')
+        const give = asked({ kind: ConsentRequestKind.WarbandMove, move: { kind: WarbandMoveKind.GiveToImperial, otherPlayerId: 'p2' }, owner: IMPERIAL_WARBANDS, count: 3 })
+        expect(consentQuestion(state, give, nameOf)).toBe('Alice asks your permission to give you 3 Imperial warbands.')
     })
 
     it('asks a Citizen whether to join, naming the defender of the held Campaign', () => {

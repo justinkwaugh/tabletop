@@ -4,10 +4,11 @@ import { engine } from '../testing/engine.js'
 import { waitingGame } from '../testing/game.js'
 import { OathGameInitializer } from './initializer.js'
 import { MachineState } from './states.js'
-import { IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { PlayerStatus } from '../model/oathEnums.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { SetupChoice } from '../actions/setupChoice.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
+import { OathImperialColor } from './colors.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
@@ -57,7 +58,7 @@ describe.each([2, 3, 4, 5, 6])('Oath tournaments with %i players', (count) => {
             expect(initial.turnManager.turnOrder).toEqual(order)
             expect(initial.players.map((player) => player.playerId)).toEqual(order)
             expect(initial.chancellorPlayerId).toBe(order[0])
-            expect(initial.players[0]).toMatchObject({ status: PlayerStatus.Chancellor, color: IMPERIAL_COLOR })
+            expect(initial.players[0]).toMatchObject({ status: PlayerStatus.Chancellor, color: OathImperialColor })
             expect(initial.machineState).toBe(MachineState.Setup)
 
             const { state, actors } = playSetup(game, initial)

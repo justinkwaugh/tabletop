@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { EXILE_CITIZEN_BASE_COST, HydratedExileCitizen, ExileCitizen } from './exileCitizen.js'
 import { HydratedSelfExile, SelfExile } from './selfExile.js'
-import { Banner, IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { Banner, PlayerStatus } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { Color } from '@tabletop/common'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
@@ -9,6 +9,7 @@ import { expectWarbandsConserved, expectWarbandTotalConserved } from '../testing
 import { MAX_SUPPLY, returnSecretsToBoard } from '../util/rest.js'
 import { buildAction } from '../testing/actions.js'
 import '../powers/index.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 function exileCitizen(playerId: string, citizenPlayerId: string) {
     return new HydratedExileCitizen(
@@ -20,7 +21,7 @@ function selfExile(playerId: string) {
     return new HydratedSelfExile(buildAction(SelfExile, { playerId }))
 }
 
-/** R-6.7 leaves the three purple at c1 alone. */
+/** R-6.7 leaves the three Imperial warbands at c1 alone. */
 function table(citizenOverrides = {}, chancellorOverrides = {}) {
     return testState(
         [
@@ -31,7 +32,7 @@ function table(citizenOverrides = {}, chancellorOverrides = {}) {
                 siteId: 'c2',
                 favor: 10,
                 relicIds: [GRAND_SCEPTER_ID],
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 17 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 17 },
                 ...chancellorOverrides
             }),
             testPlayer({
@@ -41,14 +42,14 @@ function table(citizenOverrides = {}, chancellorOverrides = {}) {
                 siteId: 'c1',
                 favor: 2,
                 supply: 1,
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 4 },
-                warbandsInPersonalBank: { [Color.Red]: 14 },
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 },
+                warbandsInPersonalBank: { cit: 14 },
                 ...citizenOverrides
             })
         ],
         {
             chancellorPlayerId: 'chan',
-            warbandsBySite: { c1: { [IMPERIAL_COLOR]: 3 } }
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 3 } }
         }
     )
 }
@@ -73,29 +74,29 @@ describe('Exiling a Citizen (R-6.7)', () => {
         expect(state.getPlayerState('chan').supplySpentThisTurn).toBe(0)
     })
 
-    it('recolours only the BOARD — the purple on the map stays the Empire’s', () => {
-        // R-6.6.3 — purple sites belong to the whole Empire, not to the ex-Citizen.
+    it('replaces only the BOARD — the Imperial warbands on the map stay the Empire’s', () => {
+        // R-6.6.3 — Imperial sites belong to the whole Empire, not to the ex-Citizen.
         const state = table()
         const action = exileCitizen('chan', 'cit').apply(state)
 
         expect(state.getPlayerState('cit').warbandsOnBoard).toEqual({
-            [IMPERIAL_COLOR]: 0,
-            [Color.Red]: 4
+            [IMPERIAL_WARBANDS]: 0,
+            cit: 4
         })
-        expect(state.warbandsBySite['c1']).toEqual({ [IMPERIAL_COLOR]: 3 })
+        expect(state.warbandsBySite['c1']).toEqual({ [IMPERIAL_WARBANDS]: 3 })
         void action
     })
 
-    it('conserves warbands per colour as well as in total', () => {
+    it('conserves warbands per owner as well as in total', () => {
         const state = table()
         expectWarbandTotalConserved(state, () => {
             expectWarbandsConserved(state, () => {
                 exileCitizen('chan', 'cit').apply(state)
             })
         })
-        // R-10.13 — purple goes home to the Chancellor; red comes from the ex-Citizen's bank.
-        expect(state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_COLOR]).toBe(21)
-        expect(state.getPlayerState('cit').warbandsInPersonalBank[Color.Red]).toBe(10)
+        // R-10.13 — the Imperial warbands go home to the Chancellor; the ex-Citizen's own come from their bank.
+        expect(state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(21)
+        expect(state.getPlayerState('cit').warbandsInPersonalBank['cit']).toBe(10)
     })
 
     it('costs +1 for each of the Citizen’s two assets, and +2 for both', () => {
@@ -214,8 +215,8 @@ describe('Self-Exiling (R-6.8)', () => {
         expect(HydratedSelfExile.selfExileCost(state, 'cit').secretsOnCards).toBe(0)
     })
 
-    it('counts warbands on the board of every colour', () => {
-        const state = table({ favor: 40, warbandsOnBoard: { [IMPERIAL_COLOR]: 4, [Color.Red]: 2 } })
+    it('counts warbands on the board of every owner', () => {
+        const state = table({ favor: 40, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4, cit: 2 } })
         expect(HydratedSelfExile.selfExileCost(state, 'cit').warbandsOnBoard).toBe(6)
     })
 
@@ -243,7 +244,7 @@ describe('Self-Exiling (R-6.8)', () => {
         expect(() => selfExile('cit').apply(state)).toThrow(/nobody holds the Grand Scepter/)
     })
 
-    it('recolours only the board, like R-6.7 and unlike R-6.6.2', () => {
+    it('replaces only the board, like R-6.7 and unlike R-6.6.2', () => {
         const state = table({ favor: 40 })
         expectWarbandTotalConserved(state, () => {
             expectWarbandsConserved(state, () => {
@@ -251,10 +252,10 @@ describe('Self-Exiling (R-6.8)', () => {
             })
         })
         expect(state.getPlayerState('cit').warbandsOnBoard).toEqual({
-            [IMPERIAL_COLOR]: 0,
-            [Color.Red]: 4
+            [IMPERIAL_WARBANDS]: 0,
+            cit: 4
         })
-        expect(state.warbandsBySite['c1']).toEqual({ [IMPERIAL_COLOR]: 3 })
+        expect(state.warbandsBySite['c1']).toEqual({ [IMPERIAL_WARBANDS]: 3 })
     })
 
     it('reports the end of the Act Phase — R-6.8 ends it, R-6.7 does not', () => {
@@ -267,16 +268,16 @@ describe('Self-Exiling (R-6.8)', () => {
         expect(action.metadata?.endsActPhase).toBe(true)
     })
 
-    it('leaves purple on the board when the Citizen’s own colour has run out (R-9.3)', () => {
-        const state = table({ favor: 40, warbandsInPersonalBank: { [Color.Red]: 1 } })
+    it('leaves Imperial warbands on the board when the Citizen’s own have run out (R-9.3)', () => {
+        const state = table({ favor: 40, warbandsInPersonalBank: { cit: 1 } })
         const action = selfExile('cit')
         action.apply(state)
 
-        expect(action.metadata?.recoloredCount).toBe(1)
+        expect(action.metadata?.replacedCount).toBe(1)
         expect(action.metadata?.unreplacedCount).toBe(3)
         expect(state.getPlayerState('cit').warbandsOnBoard).toEqual({
-            [IMPERIAL_COLOR]: 3,
-            [Color.Red]: 1
+            [IMPERIAL_WARBANDS]: 3,
+            cit: 1
         })
     })
 
@@ -290,7 +291,7 @@ describe('Self-Exiling (R-6.8)', () => {
 /** R-4.3.2's Rest sweeps every card secret to the resting player. */
 describe('R-6.8 × R-4.3.2 — how long a secret stays on a card', () => {
     function citizenMidTurn() {
-        return table({ secrets: 1, warbandsOnBoard: { [IMPERIAL_COLOR]: 3 } })
+        return table({ secrets: 1, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } })
     }
 
     it('R-5.3.2 — trading a secret onto a card moves the cost, it does not raise it', () => {

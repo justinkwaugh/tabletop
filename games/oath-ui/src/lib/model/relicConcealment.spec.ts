@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { IMPERIAL_COLOR, PlayerStatus } from '@tabletop/oath'
+import { PlayerStatus } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import type { HydratedOathGameState } from '@tabletop/oath'
 import { peekedRelicAt } from './relicKnowledge.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 /** R-6.3, R-6.4, R-9.4 — a peeked relic is named only to the player who peeked it. */
 
@@ -20,8 +21,8 @@ function board(): HydratedOathGameState {
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'c1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 20 },
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 20 },
                 peekedRelicSlotIds: [SLOT],
                 peekedRelics: { [SLOT]: RELIC }
             }),
@@ -30,8 +31,8 @@ function board(): HydratedOathGameState {
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: 'c1',
-                warbandsOnBoard: { [Color.Red]: 3 },
-                warbandsInPersonalBank: { [Color.Red]: 20 }
+                warbandsOnBoard: { [OTHER]: 3 },
+                warbandsInPersonalBank: { [OTHER]: 20 }
             })
         ],
         { relicsBySite: { c1: [{ slotId: SLOT }] } }

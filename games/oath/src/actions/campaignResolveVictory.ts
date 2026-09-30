@@ -3,7 +3,6 @@ import { burnFavor } from '../util/burn.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
-    Color,
     GameAction,
     HydratableAction,
     MachineContext,
@@ -27,7 +26,8 @@ import { addWarbandsToSite, removeWarbandsFrom } from '../util/force.js'
 import { seizeBanner } from '../util/seize.js'
 import { commitHiddenOutputs, takeRelicFromVault, type SiteFlip } from '../util/hiddenInputs.js'
 import { moveRelic, takeRelic, clearSiteRelicSlot } from '../util/relics.js'
-import { countOf } from '../util/warbands.js'
+import { countOf, describeWarbands } from '../util/warbands.js'
+import { WarbandOwner } from '../model/warbandCounts.js'
 import { shroudedWoodChooser } from '../util/siteTravel.js'
 import { pawnSiteId } from '../util/pawn.js'
 import { askQuestion } from '../util/questions.js'
@@ -38,7 +38,7 @@ import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js
 export type CampaignPlacement = Type.Static<typeof CampaignPlacement>
 export const CampaignPlacement = Type.Object({
     siteId: Type.String(),
-    color: Type.Enum(Color),
+    owner: WarbandOwner,
     count: Type.Integer({ minimum: 0, maximum: 999 })
 })
 
@@ -186,10 +186,10 @@ export class HydratedCampaignResolveVictory
             removeWarbandsFrom(
                 state,
                 { kind: 'board', playerId: campaign.attackerPlayerId },
-                placement.color,
+                placement.owner,
                 placement.count
             )
-            addWarbandsToSite(state, placement.siteId, placement.color, placement.count)
+            addWarbandsToSite(state, placement.siteId, placement.owner, placement.count)
             placed += placement.count
         }
         return placed
@@ -342,7 +342,7 @@ export class HydratedCampaignResolveVictory
         const sites = targetedSiteIds(partiesOf(campaign))
         const board = state.getPlayerState(campaign.attackerPlayerId).warbandsOnBoard
 
-        const wanted = new Map<Color, number>()
+        const wanted = new Map<WarbandOwner, number>()
         for (const placement of placements) {
             if (placement.count < 0) {
                 return 'must place at least 0 warbands'
@@ -358,15 +358,15 @@ export class HydratedCampaignResolveVictory
             if (!sites.includes(placement.siteId)) {
                 return `${placement.siteId} was not targeted, so no warbands may be placed there`
             }
-            wanted.set(placement.color, (wanted.get(placement.color) ?? 0) + placement.count)
+            wanted.set(placement.owner, (wanted.get(placement.owner) ?? 0) + placement.count)
         }
 
-        for (const [color, count] of wanted) {
-            const available = countOf(board, color)
+        for (const [owner, count] of wanted) {
+            const available = countOf(board, owner)
             if (count > available) {
                 // R-5.5.7.I places "from your force", which R-10.9 makes the
                 // warbands on your board — already reduced by skulls and sacrifice.
-                return `cannot place ${count} ${color}: only ${available} in your force`
+                return `cannot place ${describeWarbands(count, owner)}: only ${available} in your force`
             }
         }
         return undefined

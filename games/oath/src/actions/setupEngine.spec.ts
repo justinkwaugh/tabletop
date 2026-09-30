@@ -12,15 +12,16 @@ import { EndActPhase } from '../actions/endActPhase.js'
 import { CompleteRest } from '../actions/completeRest.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { IMPERIAL_COLOR, Region, TOTAL_FAVOR } from '../model/oathEnums.js'
+import { Region, TOTAL_FAVOR } from '../model/oathEnums.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { type OathVault } from '../model/vault.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { expectFullFavorComplement } from '../testing/census.js'
-import { expectOneWarbandColorPerSite, warbandCensus } from '../testing/census.js'
+import { expectOneWarbandOwnerPerSite, warbandCensus } from '../testing/census.js'
 import { CHANCELLOR_WARBANDS, EXILE_WARBANDS } from '../model/setup.js'
 import { SetupVariant } from '../model/oathEnums.js'
 import { testGame } from '../testing/game.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const PLAYERS = ['p1', 'p2', 'p3']
@@ -158,13 +159,13 @@ describe('setup through GameEngine.run() (R-1.19–R-1.23.3)', () => {
         const after = new HydratedOathGameState(state)
 
         expectFullFavorComplement(after)
-        expectOneWarbandColorPerSite(after)
+        expectOneWarbandOwnerPerSite(after)
 
         const census = warbandCensus(after)
-        expect(census[IMPERIAL_COLOR]).toBe(CHANCELLOR_WARBANDS)
+        expect(census[IMPERIAL_WARBANDS]).toBe(CHANCELLOR_WARBANDS)
         expect(
             Object.entries(census)
-                .filter(([color]) => color !== IMPERIAL_COLOR)
+                .filter(([owner]) => owner !== IMPERIAL_WARBANDS)
                 .map(([, n]) => n)
         ).toEqual(Array(PLAYERS.length - 1).fill(EXILE_WARBANDS))
     })
@@ -231,7 +232,7 @@ function expectGameConserved(state: OathProjectedState, warbandsBefore: Record<s
     const hydrated = new HydratedOathGameState(state)
     expect(warbandCensus(hydrated)).toEqual(warbandsBefore)
     expectFullFavorComplement(hydrated)
-    expectOneWarbandColorPerSite(hydrated)
+    expectOneWarbandOwnerPerSite(hydrated)
 }
 
 /** R-3.3 — `seed` fixes the end die, and so the round the game ends on. */

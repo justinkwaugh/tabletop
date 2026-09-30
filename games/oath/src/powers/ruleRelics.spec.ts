@@ -8,7 +8,7 @@ import { HydratedMoveWarbands, MoveWarbands } from '../actions/moveWarbands.js'
 import { WarbandMoveKind } from '../model/warbandMove.js'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { type CampaignTarget } from '../model/campaign.js'
-import { IMPERIAL_COLOR, OathType, PlayerStatus, Suit } from '../model/oathEnums.js'
+import { OathType, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { cardPowers, PowerTiming, BattlePlanSide, powerIndexOf } from '../data/cardPowers.js'
 import { defenseShieldsFromFaces } from '../data/dice.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
@@ -24,6 +24,7 @@ import { ruledCardsOfSuit } from './vocabulary.js'
 import '../powers/index.js'
 import { buildAction } from '../testing/actions.js'
 import { siteTarget } from '../testing/choices.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const CROWN = 'relic.bandit-crown'
 const MASK = 'relic.grand-mask'
@@ -33,7 +34,6 @@ const BANDIT_CHIEF = 'denizen.discord.bandit-chief'
 const VOW_OF_UNION = 'denizen.beast.vow-of-union'
 
 const ME = 'me'
-const RED: Color = Color.Red
 const FOE = 'foe'
 const CHAN = 'chan'
 const CIT = 'cit'
@@ -47,15 +47,15 @@ function board(
 ) {
     const s = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, relicIds: relics[ME] ?? [], warbandsOnBoard: { [Color.Red]: 4 }, warbandsInPersonalBank: { [Color.Red]: 6 }, ...over[ME] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'h1', favor: 4, secrets: 2, supply: 6, relicIds: relics[FOE] ?? [], warbandsOnBoard: { [Color.Blue]: 5 }, warbandsInPersonalBank: { [Color.Blue]: 5 }, ...over[FOE] }),
-            testPlayer({ playerId: CHAN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 4, secrets: 2, supply: 6, relicIds: relics[CHAN] ?? [], warbandsOnBoard: { [IMPERIAL_COLOR]: 3 }, warbandsInPersonalBank: { [IMPERIAL_COLOR]: 8 }, ...over[CHAN] }),
-            testPlayer({ playerId: CIT, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p1', favor: 4, secrets: 2, supply: 6, relicIds: relics[CIT] ?? [], warbandsInPersonalBank: { [Color.Yellow]: 14 }, ...over[CIT] })
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, relicIds: relics[ME] ?? [], warbandsOnBoard: { [ME]: 4 }, warbandsInPersonalBank: { [ME]: 6 }, ...over[ME] }),
+            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'h1', favor: 4, secrets: 2, supply: 6, relicIds: relics[FOE] ?? [], warbandsOnBoard: { [FOE]: 5 }, warbandsInPersonalBank: { [FOE]: 5 }, ...over[FOE] }),
+            testPlayer({ playerId: CHAN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 4, secrets: 2, supply: 6, relicIds: relics[CHAN] ?? [], warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }, ...over[CHAN] }),
+            testPlayer({ playerId: CIT, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p1', favor: 4, secrets: 2, supply: 6, relicIds: relics[CIT] ?? [], warbandsInPersonalBank: { [CIT]: 14 }, ...over[CIT] })
         ],
         {
             chancellorPlayerId: CHAN,
             denizensBySite: { c1: [], c2: [MESSENGER, LONGBOWS], p1: [], h1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, h1: { [Color.Blue]: 3 }, p1: { [IMPERIAL_COLOR]: 2 } },
+            warbandsBySite: { c1: { [ME]: 1 }, h1: { [FOE]: 3 }, p1: { [IMPERIAL_WARBANDS]: 2 } },
             ...state
         }
     )
@@ -160,7 +160,7 @@ describe('Bandit Crown — "Act as if bandits are your warbands … (You rule em
 
     it('the holder may put warbands on an empty site they stand at (R-6.5: "if you rule your site")', () => {
         const at = { [ME]: { siteId: 'c2' } }
-        const move = { move: { kind: WarbandMoveKind.BoardToSite as const }, color: RED, count: 2 }
+        const move = { move: { kind: WarbandMoveKind.BoardToSite as const }, owner: ME, count: 2 }
         expect(HydratedMoveWarbands.reasonCannotMove(board({ [ME]: [CROWN] }, at), ME, move)).toBeUndefined()
         expect(HydratedMoveWarbands.reasonCannotMove(board({}, at), ME, move)).toMatch(/do not rule/)
     })
@@ -185,7 +185,7 @@ describe('Bandit Crown — "except at sites ruled by enemies"', () => {
         expect(banditsServe(s, CIT, 'c1')).toBe(false)
         // R-5.5.1.a — suspended for one Campaign, the Citizen is the Chancellor's enemy.
         expect(banditsServe(s, CIT, 'p1', { nonImperialPlayerIds: [CIT] })).toBe(false)
-        // The empty sites are the holder's alone; the Crown is not purple.
+        // The empty sites are the holder's alone; the Crown is not Imperial.
         expect(rulersOfSite(s, 'c2')).toEqual([CIT])
     })
 })
@@ -208,14 +208,14 @@ describe('Bandit Crown — a relic is held, never ruled (R-7.1.1-H1)', () => {
 })
 
 describe('Bandit Crown — the last physical warband (R-6.5, R-7.6.5)', () => {
-    const lastOne = { move: { kind: WarbandMoveKind.SiteToBoard as const }, color: RED, count: 1 }
+    const lastOne = { move: { kind: WarbandMoveKind.SiteToBoard as const }, owner: ME, count: 1 }
 
     it('the last physical warband may leave the holder\'s site, and the site stays theirs', () => {
         const s = board({ [ME]: [CROWN] })
-        expect(HydratedMoveWarbands.maxMovable(s, ME, lastOne.move, Color.Red)).toBe(1)
+        expect(HydratedMoveWarbands.maxMovable(s, ME, lastOne.move, ME)).toBe(1)
         new HydratedMoveWarbands(buildAction(MoveWarbands, { playerId: ME, ...lastOne })).apply(s)
-        expect(warbandsAt(s, 'c1')[Color.Red] ?? 0).toBe(0)
-        expect(s.getPlayerState(ME).warbandsOnBoard[Color.Red]).toBe(5)
+        expect(warbandsAt(s, 'c1')[ME] ?? 0).toBe(0)
+        expect(s.getPlayerState(ME).warbandsOnBoard[ME]).toBe(5)
         expect(rulersOfSite(s, 'c1')).toEqual([ME])
 
         const bare = board({})
@@ -227,12 +227,12 @@ describe('Bandit Crown — the last physical warband (R-6.5, R-7.6.5)', () => {
     it('the cards that print the same bound follow it: Messenger lifts the last warband too', () => {
         const s = board({ [ME]: [CROWN] })
         const index = powerIndexOf(MESSENGER, PowerTiming.Action)
-        const group = { at: { kind: 'site' as const, siteId: 'c1' }, color: RED, count: 1 }
+        const group = { at: { kind: 'site' as const, siteId: 'c1' }, owner: ME, count: 1 }
         const domain = legalPowers(s, ME, PowerTiming.Action).find((p) => p.cardId === MESSENGER)?.choices[0].options
         expect(domain).toContainEqual({ kind: PowerChoiceKind.Warbands, group })
         new HydratedUseActionPower(buildAction(UseActionPower, { playerId: ME, cardId: MESSENGER, powerIndex: index, choices: [{ kind: PowerChoiceKind.Warbands, group }] })).apply(s)
-        expect(warbandsAt(s, 'c1')[Color.Red] ?? 0).toBe(0)
-        expect(s.getPlayerState(ME).warbandsOnBoard[Color.Red]).toBe(5)
+        expect(warbandsAt(s, 'c1')[ME] ?? 0).toBe(0)
+        expect(s.getPlayerState(ME).warbandsOnBoard[ME]).toBe(5)
     })
 })
 
@@ -280,10 +280,10 @@ describe('Bandit Crown — "They cannot be killed, moved, or sacrificed."', () =
     })
 
     it('cannot be killed: the bandit counts in the force whose half dies, and the kill falls on the warbands', () => {
-        const build = (relics: string[]) => (seed: number) => board({ [ME]: relics }, { [FOE]: { siteId: 'c2' }, [ME]: { siteId: 'h3' } }, { warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Red]: 1 }, h1: { [Color.Blue]: 3 } }, prng: { seed, invocations: 0 } })
+        const build = (relics: string[]) => (seed: number) => board({ [ME]: relics }, { [FOE]: { siteId: 'c2' }, [ME]: { siteId: 'h3' } }, { warbandsBySite: { c1: { [ME]: 1 }, c2: { [ME]: 1 }, h1: { [FOE]: 3 } }, prng: { seed, invocations: 0 } })
         const s = foeBeatsMeAt('c2', build([CROWN]))
         // One warband and one bandit: half of two is one, and only the warband can die.
-        expect(HydratedCampaignSacrifice.defaultDefeatKills(s, 0)).toEqual([{ at: { kind: 'site', siteId: 'c2' }, color: Color.Red, count: 1 }])
+        expect(HydratedCampaignSacrifice.defaultDefeatKills(s, 0)).toEqual([{ at: { kind: 'site', siteId: 'c2' }, owner: ME, count: 1 }])
         // Without the Crown the force is the one warband, and half of one is none.
         expect(HydratedCampaignSacrifice.defaultDefeatKills(foeBeatsMeAt('c2', build([])), 0)).toEqual([])
     })
@@ -299,7 +299,7 @@ describe('Bandit Crown — "They cannot be killed, moved, or sacrificed."', () =
     })
 
     it('cannot be sacrificed: the holder\'s attacking force is their board, and Vow of Union adds nothing from a site of bandits alone', () => {
-        const s = board({ [ME]: [CROWN] }, { [ME]: { siteId: 'h1', advisers: [{ cardId: VOW_OF_UNION, faceUp: true }], warbandsOnBoard: { [Color.Red]: 2 } } })
+        const s = board({ [ME]: [CROWN] }, { [ME]: { siteId: 'h1', advisers: [{ cardId: VOW_OF_UNION, faceUp: true }], warbandsOnBoard: { [ME]: 2 } } })
         // Two on the board and one at c1 through the Vow; the five empty sites give none.
         expect(HydratedCampaign.reasonCannotCampaign(s, ME, choiceOf({ kind: 'player', playerId: FOE }, [siteTarget('h1')], 3))).toBeUndefined()
         expect(HydratedCampaign.reasonCannotCampaign(s, ME, choiceOf({ kind: 'player', playerId: FOE }, [siteTarget('h1')], 4))).toBeDefined()
@@ -311,7 +311,7 @@ function maskBoard(holder = ME, turn = ME, over: Record<string, Record<string, u
 }
 
 describe('Grand Mask — "you rule cards … at Imperial sites"', () => {
-    it('during the Exile holder\'s turn they rule the denizens at a purple site, from anywhere', () => {
+    it('during the Exile holder\'s turn they rule the denizens at an Imperial site, from anywhere', () => {
         const s = maskBoard()
         expect(rulesCard(s, ME, MESSENGER)).toBe(true)
         expect(hasAccessToCard(s, ME, MESSENGER)).toBe(true)
@@ -407,7 +407,7 @@ describe('Grand Mask — "and Imperial players do not"', () => {
 })
 
 describe('the two together', () => {
-    it('a Chancellor\'s Crown makes no site Imperial: the Mask reaches purple sites only', () => {
+    it('a Chancellor\'s Crown makes no site Imperial: the Mask reaches Imperial sites only', () => {
         const s = board({ [ME]: [MASK], [CHAN]: [CROWN] }, {}, { denizensBySite: { c1: [], c2: [MESSENGER], p1: [], h1: [] } })
         expect(rulersOfSite(s, 'c2')).toEqual([CHAN])
         expect(rulesCard(s, CHAN, MESSENGER)).toBe(true)

@@ -9,6 +9,7 @@ import { ExchangeTerms, type ExchangeAllowance } from '../model/question.js'
 import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
 import { accessibleCardIds } from './access.js'
 import { boardWarbandGroups } from './force.js'
+import { describeWarbands } from './warbands.js'
 import { choiceSpecsFor } from '../powers/registry.js'
 
 // R-7.1.3, R-X.1 — the engine never infers a choice, so every choice a power opens arrives on the action.
@@ -198,7 +199,7 @@ function keyOf(choice: PowerChoice): string {
         case PowerChoiceKind.Site:
             return `site:${choice.siteId}`
         case PowerChoiceKind.Warbands:
-            return `warbands:${choice.group.color}@${JSON.stringify(choice.group.at)}`
+            return `warbands:${choice.group.owner}@${JSON.stringify(choice.group.at)}`
         case PowerChoiceKind.Region:
             return `region:${choice.region}`
         case PowerChoiceKind.RelicSlot:
@@ -281,7 +282,7 @@ export function reasonChoicesInvalid(
                 }
                 if (choice.group.count > option.group.count) {
                     return (
-                        `${choice.group.count} ${choice.group.color} warbands chosen for ` +
+                        `${describeWarbands(choice.group.count, choice.group.owner)} chosen for ` +
                         `${describe(spec)}, but only ${option.group.count} are there`
                     )
                 }
@@ -308,7 +309,7 @@ function describeChoice(choice: PowerChoice): string {
         case PowerChoiceKind.Site:
             return choice.siteId
         case PowerChoiceKind.Warbands:
-            return `${choice.group.count} ${choice.group.color} warbands`
+            return describeWarbands(choice.group.count, choice.group.owner)
         case PowerChoiceKind.Region:
             return `the ${choice.region}`
         case PowerChoiceKind.RelicSlot:

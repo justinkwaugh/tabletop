@@ -1,6 +1,6 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, OathType, PlayerStatus } from '../model/oathEnums.js'
-import { isImperialPlayer, sitesRuledBy } from './rule.js'
+import { isImperialPlayer, ownWarbandOwner, sitesRuledBy } from './rule.js'
 import { holdsGrandScepter } from './imperial.js'
 import { countOf } from './warbands.js'
 
@@ -111,15 +111,15 @@ export function revealedVisionGoal(
 
 /** R-2.2.1's own space first, then every revealed Vision a warband of theirs stands on (False Prophet). */
 export function revealedVisionIdsOf(state: HydratedOathGameState, playerId: string): string[] {
-    const player = state.getPlayerState(playerId)
-    const own = player.revealedVisionId
+    const own = state.getPlayerState(playerId).revealedVisionId
+    const warbands = ownWarbandOwner(state, playerId)
     const alsoRevealed = state.players
         .map((holder) => holder.revealedVisionId)
         .filter(
             (visionId): visionId is string =>
                 visionId !== undefined &&
                 visionId !== own &&
-                countOf(state.warbandsOnCard(visionId), player.color) > 0
+                countOf(state.warbandsOnCard(visionId), warbands) > 0
         )
     return own ? [own, ...alsoRevealed] : alsoRevealed
 }

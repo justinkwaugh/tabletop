@@ -12,7 +12,7 @@ import {
 } from '../util/campaignRoll.js'
 import { concludeCampaign } from '../util/campaignEnd.js'
 import { MachineState } from '../definition/states.js'
-import { isImperialPlayer, rulingColorsOf } from '../util/rule.js'
+import { isImperialPlayer, rulingWarbandOwners } from '../util/rule.js'
 import { scopeOf } from '../util/campaign.js'
 import { BANDITS_PLAN_USER, plansUsedBy, sideOf, defendingPlayerIds } from '../util/battlePlans.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
@@ -23,7 +23,7 @@ import {
     takeFromGroups,
     moveForceToBoards,
     selectionExceedsForce,
-    boardColorsOwnFirst,
+    boardOwnersOwnFirst,
     warbandGroupsAtSites
 } from '../util/force.js'
 import { BRUTAL, hasTrait } from '../util/reliquaryTraits.js'
@@ -210,7 +210,7 @@ export class HydratedCampaignSacrifice
             return
         }
         for (const group of this.sacrificeKills) {
-            killOrRedirect(state, campaign, group.at, group.color, group.count)
+            killOrRedirect(state, campaign, group.at, group.owner, group.count)
         }
     }
 
@@ -222,7 +222,7 @@ export class HydratedCampaignSacrifice
         attackerVictorious: boolean
     ): { defeatKilled: number; survivorsNote?: string } {
         for (const group of kills) {
-            killOrRedirect(state, campaign, group.at, group.color, group.count)
+            killOrRedirect(state, campaign, group.at, group.owner, group.count)
         }
 
         const survivors = HydratedCampaignSacrifice.subtractSelection(force, kills)
@@ -500,18 +500,18 @@ export class HydratedCampaignSacrifice
         const groups = warbandGroupsAtSites(
             state,
             campaign.forceSiteIds,
-            rulingColorsOf(state, campaign.attackerPlayerId)
+            rulingWarbandOwners(state, campaign.attackerPlayerId)
         )
         let toRemove = alreadySacrificed
-        for (const color of boardColorsOwnFirst(state, campaign.attackerPlayerId)) {
-            let count = countOf(attacker.warbandsOnBoard, color)
+        for (const owner of boardOwnersOwnFirst(state, campaign.attackerPlayerId)) {
+            let count = countOf(attacker.warbandsOnBoard, owner)
             const taken = Math.min(count, toRemove)
             count -= taken
             toRemove -= taken
             if (count > 0) {
                 groups.push({
                     at: { kind: 'board', playerId: campaign.attackerPlayerId },
-                    color,
+                    owner,
                     count
                 })
             }
@@ -529,7 +529,7 @@ export class HydratedCampaignSacrifice
             for (const group of remaining) {
                 if (toRemove === 0) break
                 if (
-                    group.color !== taken.color ||
+                    group.owner !== taken.owner ||
                     !HydratedCampaignSacrifice.sameLocation(group.at, taken.at)
                 )
                     continue

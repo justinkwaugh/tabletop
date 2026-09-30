@@ -5,7 +5,7 @@ import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply, returnFavorFromCards, returnSecretsToBoard } from '../util/rest.js'
-import { rulersOfSite, sitesRuledBy } from '../util/rule.js'
+import { ownWarbandOwner, rulersOfSite, sitesRuledBy } from '../util/rule.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { registerEffect, registerModifier, chosen } from './registry.js'
@@ -164,12 +164,12 @@ registerEffect(
         ],
         resolve: (ctx) => {
             const [target] = chosen(ctx, PowerChoiceKind.Player)
-            const { killed, color } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
+            const { killed } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
             if (!killed)
                 return { summary: `${target.playerId}'s board held no warband; nothing gained` }
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
             return {
-                summary: `killed a ${color} warband on ${target.playerId}'s board and gained ${gained}`
+                summary: `killed a warband on ${target.playerId}'s board and gained ${gained}`
             }
         }
     }
@@ -263,8 +263,8 @@ registerEffect(KEY, powerIndexOf(KEY, PowerTiming.WhenPlayed), {
                 summary: `Key to the City: killed ${killed} at ${site}, gained ${gained}; placed none — you cannot place warbands at sites`
             }
         }
-        const color = ctx.state.getPlayerState(ctx.playerId).color
-        const placed = moveWarbandsBoardToSite(ctx.state, ctx.playerId, color, site, gained)
+        const own = ownWarbandOwner(ctx.state, ctx.playerId)
+        const placed = moveWarbandsBoardToSite(ctx.state, ctx.playerId, own, site, gained)
         return {
             summary: `Key to the City: killed ${killed} at ${site}, gained ${gained} and placed ${placed} there`
         }

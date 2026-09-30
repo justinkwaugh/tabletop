@@ -1,5 +1,6 @@
-import { assert, type Color } from '@tabletop/common'
-import { IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { assert } from '@tabletop/common'
+import { PlayerStatus } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS, type WarbandOwner } from '../model/warbandCounts.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import {
@@ -12,10 +13,10 @@ import {
 } from '../util/force.js'
 import { optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { FALSE_PROPHET_ID } from '../util/revealedVision.js'
-import { isImperialPlayer } from '../util/rule.js'
+import { isImperialPlayer, ownWarbandOwner } from '../util/rule.js'
 import { chosen, registerBattlePlan, registerEffect, type EffectContext } from './registry.js'
 import { gainWarbandsToBoard } from './vocabulary.js'
-import { countOf, warbandEntries } from '../util/warbands.js'
+import { countOf, describeWarbands, warbandEntries } from '../util/warbands.js'
 
 const OBSIDIAN_CAGE = 'relic.obsidian-cage'
 
@@ -24,38 +25,38 @@ registerBattlePlan(OBSIDIAN_CAGE, powerIndexOf(OBSIDIAN_CAGE, PowerTiming.Battle
         // R-7.6.5, R-10.3 — bandits are never warbands in a force, so none reach the Cage.
         takesEnemySurvivors: (ctx, survivors) => {
             for (const group of survivors) {
-                removeWarbandsFrom(ctx.state, group.at, group.color, group.count)
-                addWarbandsToCard(ctx.state, OBSIDIAN_CAGE, group.color, group.count)
+                removeWarbandsFrom(ctx.state, group.at, group.owner, group.count)
+                addWarbandsToCard(ctx.state, OBSIDIAN_CAGE, group.owner, group.count)
             }
             return `Obsidian Cage: moved the enemy's ${forceTotal(survivors)} unkilled warbands to the Cage`
         }
     }
 })
 
-/** R-6.6.3 — every Imperial board holds purple; any other colour has its own player's board. */
-function boardsOfColor(state: HydratedOathGameState, color: Color): string[] {
-    if (color === IMPERIAL_COLOR) {
+/** R-6.6.3 — every Imperial board holds the Empire's warbands; an Exile's go to their own board. */
+function boardsFor(state: HydratedOathGameState, owner: WarbandOwner): string[] {
+    if (owner === IMPERIAL_WARBANDS) {
         return state.players
             .filter((player) => isImperialPlayer(state, player.playerId))
             .map((player) => player.playerId)
     }
-    return [state.warbandOwnerOf(color)]
+    return [state.warbandBankHolderOf(owner)]
 }
 
 const cagedWarbandsByBoard: ChoiceDomain = (state) =>
     warbandEntries(state.warbandsOnCard(OBSIDIAN_CAGE))
         .filter(([, count]) => count > 0)
-        .flatMap(([color, count]) =>
-            boardsOfColor(state, color).map((playerId) => ({
+        .flatMap(([owner, count]) =>
+            boardsFor(state, owner).map((playerId) => ({
                 kind: PowerChoiceKind.Warbands,
-                group: { at: { kind: 'board' as const, playerId }, color, count }
+                group: { at: { kind: 'board' as const, playerId }, owner, count }
             }))
         )
 
-function cagedWarbandsChosenByColor(ctx: EffectContext): Map<Color, number> {
-    const wanted = new Map<Color, number>()
+function cagedWarbandsChosenByOwner(ctx: EffectContext): Map<WarbandOwner, number> {
+    const wanted = new Map<WarbandOwner, number>()
     for (const { group } of chosen(ctx, PowerChoiceKind.Warbands)) {
-        wanted.set(group.color, (wanted.get(group.color) ?? 0) + group.count)
+        wanted.set(group.owner, (wanted.get(group.owner) ?? 0) + group.count)
     }
     return wanted
 }
@@ -67,27 +68,27 @@ registerEffect(OBSIDIAN_CAGE, powerIndexOf(OBSIDIAN_CAGE, PowerTiming.Action), {
             min: 1,
             max: 16,
             domain: cagedWarbandsByBoard,
-            what: 'warbands on the Obsidian Cage, and the board of their colour they move to'
+            what: 'warbands on the Obsidian Cage, and the board of their owner they move to'
         }
     ],
     reasonCannotResolve: (ctx) => {
         const caged = ctx.state.warbandsOnCard(OBSIDIAN_CAGE)
-        for (const [color, count] of cagedWarbandsChosenByColor(ctx)) {
-            const held = countOf(caged, color)
+        for (const [owner, count] of cagedWarbandsChosenByOwner(ctx)) {
+            const held = countOf(caged, owner)
             if (count > held)
-                return `the Obsidian Cage holds ${held} ${color} warbands, not ${count}`
+                return `the Obsidian Cage holds ${describeWarbands(held, owner)}, not ${count}`
         }
         return undefined
     },
     resolve: (ctx) => {
         const moves = chosen(ctx, PowerChoiceKind.Warbands).map(({ group }) => group)
-        for (const { at, color, count } of moves) {
+        for (const { at, owner, count } of moves) {
             assert(at.kind === 'board', 'Obsidian Cage moves warbands to a board')
-            removeWarbandsFromCard(ctx.state, OBSIDIAN_CAGE, color, count)
-            addWarbandsToBoard(ctx.state, at.playerId, color, count)
+            removeWarbandsFromCard(ctx.state, OBSIDIAN_CAGE, owner, count)
+            addWarbandsToBoard(ctx.state, at.playerId, owner, count)
         }
         return {
-            summary: `Obsidian Cage: moved ${forceTotal(moves)} warbands from the Cage to boards of their colour`
+            summary: `Obsidian Cage: moved ${forceTotal(moves)} warbands from the Cage to their owners' boards`
         }
     }
 })
@@ -106,8 +107,8 @@ registerEffect(FALSE_PROPHET_ID, powerIndexOf(FALSE_PROPHET_ID, PowerTiming.When
     ],
     reasonCannotResolve: (ctx) => {
         if (chosen(ctx, PowerChoiceKind.Card).length > 0) return undefined
-        const me = ctx.state.getPlayerState(ctx.playerId)
-        const warbandToPlace = warbandsInBankFor(ctx.state, me.color) > 0
+        const own = ownWarbandOwner(ctx.state, ctx.playerId)
+        const warbandToPlace = warbandsInBankFor(ctx.state, own) > 0
         const visionToPlaceItOn = revealedVisions(ctx.state, ctx.playerId, ctx.power).length > 0
         // R-7.1.3 — no "may": with a warband to gain and a Vision revealed, one must be named.
         return warbandToPlace && visionToPlaceItOn
@@ -128,8 +129,9 @@ registerEffect(FALSE_PROPHET_ID, powerIndexOf(FALSE_PROPHET_ID, PowerTiming.When
         if (gained === 0) {
             return { summary: 'False Prophet: the bank is empty; no warband went on a Vision' }
         }
-        removeWarbandsFrom(ctx.state, { kind: 'board', playerId: ctx.playerId }, me.color, gained)
-        addWarbandsToCard(ctx.state, vision.cardId, me.color, gained)
+        const own = ownWarbandOwner(ctx.state, ctx.playerId)
+        removeWarbandsFrom(ctx.state, { kind: 'board', playerId: ctx.playerId }, own, gained)
+        addWarbandsToCard(ctx.state, vision.cardId, own, gained)
         return {
             summary: `False Prophet: gained a warband and put it on ${vision.cardId}, which ${ctx.playerId} now also has revealed`
         }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { Banner, PlayerStatus } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { CampaignTargetKind, type CampaignTarget } from '../model/campaign.js'
 import { PowerTiming, cardPowers } from '../data/cardPowers.js'
 import { testPlayer, testState } from '../testing/fixture.js'
@@ -29,11 +30,11 @@ const RELIC_AT_C2: CampaignTarget = { kind: CampaignTargetKind.SiteRelic, slotId
 function campaignBoard() {
     const state = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [Color.Red]: 4 } }),
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [ME]: 4 } }),
             testPlayer({ playerId: FOE, color: Color.Yellow, siteId: 'c1', relicIds: ['relic.map'] })
         ],
         {
-            warbandsBySite: { c2: { [Color.Yellow]: 2 } },
+            warbandsBySite: { c2: { [FOE]: 2 } },
             relicsBySite: { c2: [{ slotId: 'c2-r1' }] }
         }
     )
@@ -44,21 +45,21 @@ function campaignBoard() {
 function imperialBoard(myRelics: string[]) {
     const state = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', relicIds: myRelics, warbandsOnBoard: { [Color.Red]: 4 } }),
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', relicIds: myRelics, warbandsOnBoard: { [ME]: 4 } }),
             testPlayer({
                 playerId: CHAN,
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'p1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 8 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }
             }),
-            testPlayer({ playerId: CIT, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p1', warbandsInPersonalBank: { [Color.Yellow]: 14 } })
+            testPlayer({ playerId: CIT, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p1', warbandsInPersonalBank: { [CIT]: 14 } })
         ],
         {
             chancellorPlayerId: CHAN,
             denizensBySite: { p1: [MESSENGER] },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, p1: { [IMPERIAL_COLOR]: 2 } }
+            warbandsBySite: { c1: { [ME]: 1 }, p1: { [IMPERIAL_WARBANDS]: 2 } }
         }
     )
     state.turnManager.series = [{ type: 'turn', playerId: ME, start: 0 }]
@@ -101,7 +102,7 @@ describe('sitesDefendedBy', () => {
         expect(sitesDefendedBy(state, { kind: 'player', playerId: ME })).toEqual(['c1', 'c2', 'p2', 'p3', 'h1', 'h2', 'h3'])
     })
 
-    it('a Citizen defends the purple sites as well as their own', () => {
+    it('a Citizen defends the Imperial sites as well as their own', () => {
         expect(sitesDefendedBy(imperialBoard([]), { kind: 'player', playerId: CIT })).toEqual(['p1'])
     })
 })

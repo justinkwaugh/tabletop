@@ -4,15 +4,16 @@ import { HydratedOfferCitizenship, OfferCitizenship } from './offerCitizenship.j
 import { HydratedResolveCitizenshipOffer, ResolveCitizenshipOffer } from './resolveCitizenshipOffer.js'
 import { ConsentRequestKind } from '../model/consent.js'
 import { MachineState } from '../definition/states.js'
-import { Banner, IMPERIAL_COLOR, PlayerStatus, Region } from '../model/oathEnums.js'
+import { Banner, PlayerStatus, Region } from '../model/oathEnums.js'
 import { testPlayer, testState, testVaultWithRelics } from '../testing/fixture.js'
 import { Color } from '@tabletop/common'
 import type { OathVault } from '../model/vault.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
-import { expectRecolorExchange, expectWarbandsConserved, expectWarbandTotalConserved, warbandCensus } from '../testing/census.js'
+import { expectReplacementExchange, expectWarbandsConserved, expectWarbandTotalConserved, warbandCensus } from '../testing/census.js'
 import { MAX_SUPPLY } from '../util/rest.js'
 import '../powers/index.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const RELIQUARY_RELIC = 'relic.unnamed-1'
 const OTHER_RELIC = 'relic.unnamed-2'
@@ -28,7 +29,7 @@ function table(exileOverrides = {}, stateOverrides = {}) {
                 favor: 5,
                 secrets: 2,
                 relicIds: [GRAND_SCEPTER_ID],
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 20 }
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 20 }
             }),
             testPlayer({
                 playerId: 'ex',
@@ -38,14 +39,14 @@ function table(exileOverrides = {}, stateOverrides = {}) {
                 favor: 3,
                 secrets: 1,
                 supply: 2,
-                warbandsOnBoard: { [Color.Red]: 3 },
-                warbandsInPersonalBank: { [Color.Red]: 9 },
+                warbandsOnBoard: { ex: 3 },
+                warbandsInPersonalBank: { ex: 9 },
                 ...exileOverrides
             })
         ],
         {
             chancellorPlayerId: 'chan',
-            warbandsBySite: { c1: { [Color.Red]: 2 } },
+            warbandsBySite: { c1: { ex: 2 } },
             reliquary: [{ slotId: 'rel-1' }],
             ...stateOverrides
         }
@@ -252,10 +253,10 @@ describe('Accepting Citizenship (R-6.6.2)', () => {
         const ex = state.getPlayerState('ex')
 
         expect(ex.status).toBe(PlayerStatus.Citizen)
-        expect(ex.warbandsOnBoard).toEqual({ [Color.Red]: 0, [IMPERIAL_COLOR]: 3 })
+        expect(ex.warbandsOnBoard).toEqual({ ex: 0, [IMPERIAL_WARBANDS]: 3 })
         expect(state.warbandsBySite['c1']).toEqual({
-            [Color.Red]: 0,
-            [IMPERIAL_COLOR]: 2
+            ex: 0,
+            [IMPERIAL_WARBANDS]: 2
         })
         expect(ex.revealedVisionId).toBeUndefined()
         expect(state.oathkeeperIsUsurper).toBe(false)
@@ -264,12 +265,12 @@ describe('Accepting Citizenship (R-6.6.2)', () => {
         expect(action.metadata?.outcome?.flippedUsurperToOathkeeper).toBe(true)
     })
 
-    it('recolours the map as well as the board — unlike being exiled (R-6.7)', () => {
+    it('replaces on the map as well as the board — unlike being exiled (R-6.7)', () => {
         const { state, vault } = table()
         serverOffer(state, vault, {})
 
-        expect(state.getPlayerState('ex').warbandsOnBoard[Color.Red]).toBe(0)
-        expect(state.warbandsBySite['c1'][Color.Red]).toBe(0)
+        expect(state.getPlayerState('ex').warbandsOnBoard['ex']).toBe(0)
+        expect(state.warbandsBySite['c1']['ex']).toBe(0)
     })
 
     it('discards the revealed Vision to the NEXT region’s pile (R-10.5)', () => {
@@ -369,22 +370,22 @@ describe('Refusing a Citizenship offer (R-6.6.2, R-X.1)', () => {
         expect(() => answer(state, vault)).toThrow(/no Citizenship offer is open/)
     })
 
-    it('refuses a recolour choice attached to a refusal', () => {
+    it('refuses a replacement choice attached to a refusal', () => {
         const { state, vault } = table()
         offer(state)
         expect(() =>
             answer(state, vault, {
                 granted: false,
-                recolorChoice: [
-                    { at: { kind: 'board', playerId: 'ex' }, color: Color.Red, count: 1 }
+                replacementChoice: [
+                    { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
                 ]
             })
         ).toThrow(/a refusal chooses no warbands/)
     })
 })
 
-describe('the recolour conserves components (R-6.6.2, R-9.3)', () => {
-    it('moves warbands between pools rather than minting them — per colour AND in total', () => {
+describe('the replacement conserves components (R-6.6.2, R-9.3)', () => {
+    it('moves warbands between pools rather than minting them — per owner AND in total', () => {
         const { state, vault } = table()
         expectWarbandTotalConserved(state, () => {
             expectWarbandsConserved(state, () => {
@@ -393,40 +394,40 @@ describe('the recolour conserves components (R-6.6.2, R-9.3)', () => {
         })
     })
 
-    it('exchanges exactly as many purple as it displaced red', () => {
+    it('exchanges exactly as many Imperial warbands as it displaced of the Exile\'s', () => {
         const { state, vault } = table()
         const before = warbandCensus(state)
         const action = serverOffer(state, vault, {})
 
-        expect(action.metadata?.outcome?.recoloredCount).toBe(5)
+        expect(action.metadata?.outcome?.replacedCount).toBe(5)
         expect(action.metadata?.outcome?.unreplacedCount).toBe(0)
 
-        expect(state.getPlayerState('ex').warbandsInPersonalBank[Color.Red]).toBe(14)
-        expect(state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_COLOR]).toBe(15)
-        expectRecolorExchange(before, warbandCensus(state), Color.Red, IMPERIAL_COLOR, 0)
+        expect(state.getPlayerState('ex').warbandsInPersonalBank['ex']).toBe(14)
+        expect(state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(15)
+        expectReplacementExchange(before, warbandCensus(state), 'ex', IMPERIAL_WARBANDS, 0)
     })
 })
 
-describe('when the Empire runs short of purple (R-6.6.2 clar., R-9.3, R-X.1)', () => {
+describe('when the Empire runs short of Imperial warbands (R-6.6.2 clar., R-9.3, R-X.1)', () => {
     function short() {
         const { state, vault } = table()
-        state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_COLOR] = 2
+        state.getPlayerState('chan').warbandsInPersonalBank[IMPERIAL_WARBANDS] = 2
         return { state, vault }
     }
 
     it('requires the Exile to choose which warbands are replaced', () => {
         const { state, vault } = short()
         expect(() => serverOffer(state, vault, {})).toThrow(
-            /only 2 purple warbands are available for 5 warbands; the Exile must choose/
+            /only 2 Imperial warbands are available for 5 warbands; the Exile must choose/
         )
     })
 
-    it('requires the choice to use every purple available (R-9.3)', () => {
+    it('requires the choice to use every Imperial warband available (R-9.3)', () => {
         const { state, vault } = short()
         expect(() =>
             serverOffer(state, vault, {}, {
-                recolorChoice: [
-                    { at: { kind: 'board', playerId: 'ex' }, color: Color.Red, count: 1 }
+                replacementChoice: [
+                    { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
                 ]
             })
         ).toThrow(/must choose exactly 2 warbands to replace, not 1/)
@@ -436,8 +437,8 @@ describe('when the Empire runs short of purple (R-6.6.2 clar., R-9.3, R-X.1)', (
         const { state, vault } = short()
         expect(() =>
             serverOffer(state, vault, {}, {
-                recolorChoice: [
-                    { at: { kind: 'site', siteId: 'h3' }, color: Color.Red, count: 2 }
+                replacementChoice: [
+                    { at: { kind: 'site', siteId: 'h3' }, owner: 'ex', count: 2 }
                 ]
             })
         ).toThrow(/is not in the force/)
@@ -446,16 +447,16 @@ describe('when the Empire runs short of purple (R-6.6.2 clar., R-9.3, R-X.1)', (
     it('removes the unchosen warbands: "the Exile chooses which warbands to remove and which to replace" (R-6.6.2)', () => {
         const { state, vault } = short()
         const action = serverOffer(state, vault, {}, {
-            recolorChoice: [
-                { at: { kind: 'board', playerId: 'ex' }, color: Color.Red, count: 2 }
+            replacementChoice: [
+                { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 2 }
             ]
         })
 
         const ex = state.getPlayerState('ex')
-        expect(ex.warbandsOnBoard[Color.Red] ?? 0).toBe(0)
-        expect(ex.warbandsOnBoard[IMPERIAL_COLOR]).toBe(2)
-        expect(state.warbandsBySite['c1']?.[Color.Red] ?? 0).toBe(0)
-        expect(action.metadata?.outcome?.recoloredCount).toBe(2)
+        expect(ex.warbandsOnBoard['ex'] ?? 0).toBe(0)
+        expect(ex.warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(2)
+        expect(state.warbandsBySite['c1']?.['ex'] ?? 0).toBe(0)
+        expect(action.metadata?.outcome?.replacedCount).toBe(2)
         expect(action.metadata?.outcome?.unreplacedCount).toBe(3)
     })
 
@@ -464,23 +465,23 @@ describe('when the Empire runs short of purple (R-6.6.2 clar., R-9.3, R-X.1)', (
         expectWarbandTotalConserved(state, () => {
             expectWarbandsConserved(state, () => {
                 serverOffer(state, vault, {}, {
-                    recolorChoice: [
-                        { at: { kind: 'site', siteId: 'c1' }, color: Color.Red, count: 2 }
+                    replacementChoice: [
+                        { at: { kind: 'site', siteId: 'c1' }, owner: 'ex', count: 2 }
                     ]
                 })
             })
         })
     })
 
-    it('refuses a choice when the Empire has purple enough', () => {
+    it('refuses a choice when the Empire has Imperial warbands enough', () => {
         const { state, vault } = table()
         expect(() =>
             serverOffer(state, vault, {}, {
-                recolorChoice: [
-                    { at: { kind: 'board', playerId: 'ex' }, color: Color.Red, count: 1 }
+                replacementChoice: [
+                    { at: { kind: 'board', playerId: 'ex' }, owner: 'ex', count: 1 }
                 ]
             })
-        ).toThrow(/purple enough to replace every warband, so there is nothing to choose/)
+        ).toThrow(/Imperial warbands enough to replace every warband, so there is nothing to choose/)
     })
 })
 

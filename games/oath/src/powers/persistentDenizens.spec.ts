@@ -66,13 +66,13 @@ function board(cards: Record<string, string[]> = {}, advisers: Record<string, st
     const adv = (id: string) => (advisers[id] ?? []).map((cardId) => ({ cardId, faceUp: true }))
     const s = testState(
         [
-            testPlayer({ playerId: 'ruler', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 5, warbandsOnBoard: { [Color.Red]: 4 }, warbandsInPersonalBank: { [Color.Red]: 6 }, advisers: adv('ruler'), ...over['ruler'] }),
-            testPlayer({ playerId: 'other', color: Color.Blue, siteId: 'c1', favor: 4, secrets: 3, supply: 5, warbandsOnBoard: { [Color.Blue]: 3 }, warbandsInPersonalBank: { [Color.Blue]: 5 }, advisers: adv('other'), ...over['other'] }),
-            testPlayer({ playerId: 'away', color: Color.Yellow, siteId: 'h1', favor: 2, secrets: 2, supply: 5, warbandsOnBoard: { [Color.Yellow]: 2 }, advisers: adv('away'), ...over['away'] })
+            testPlayer({ playerId: 'ruler', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 5, warbandsOnBoard: { ruler: 4 }, warbandsInPersonalBank: { ruler: 6 }, advisers: adv('ruler'), ...over['ruler'] }),
+            testPlayer({ playerId: 'other', color: Color.Blue, siteId: 'c1', favor: 4, secrets: 3, supply: 5, warbandsOnBoard: { other: 3 }, warbandsInPersonalBank: { other: 5 }, advisers: adv('other'), ...over['other'] }),
+            testPlayer({ playerId: 'away', color: Color.Yellow, siteId: 'h1', favor: 2, secrets: 2, supply: 5, warbandsOnBoard: { away: 2 }, advisers: adv('away'), ...over['away'] })
         ],
         {
             denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...cards },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } },
+            warbandsBySite: { c1: { ruler: 1 }, c2: { ruler: 2 }, p1: { other: 3 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             discardPileCounts: { cradle: 2, provinces: 2, hinterland: 2 },
             ...state
@@ -156,7 +156,7 @@ describe('vows and seats', () => {
     })
 
     it('Council Seat — a Citizen holding it cannot self-exile', () => {
-        const s = board({}, { other: [SEAT] }, { other: { status: PlayerStatus.Citizen, color: Color.Blue }, ruler: { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] } }, { chancellorPlayerId: 'ruler' })
+        const s = board({}, { other: [SEAT] }, { other: { status: PlayerStatus.Citizen, owner: 'other' }, ruler: { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] } }, { chancellorPlayerId: 'ruler' })
         expect(HydratedSelfExile.reasonCannotSelfExile(s, 'other')).toMatch(/Council Seat/)
         const free = board({}, {}, { other: { status: PlayerStatus.Citizen }, ruler: { status: PlayerStatus.Chancellor, relicIds: ['relic.grand-scepter'] } }, { chancellorPlayerId: 'ruler' })
         expect(HydratedSelfExile.reasonCannotSelfExile(free, 'other')).not.toMatch(/Council Seat/)
@@ -197,7 +197,7 @@ describe('R-10.7 — a card the bandits rule binds every player, for the bandits
         expect(reasonPersistentForbidsFacedownAdviser(s, 'ruler')).toMatch(/Gossip/)
         expect(reasonPersistentForbidsTrade(s, 'ruler', 'denizen.beast.wolves')).toMatch(/Forest Council/)
         expect(afterTravelPersistent(s, 'away', 'h1', 'c1')).toContainEqual(expect.stringMatching(/Grasping Vines/))
-        expect(s.getPlayerState('away').warbandsOnBoard[Color.Yellow]).toBe(1)
+        expect(s.getPlayerState('away').warbandsOnBoard['away']).toBe(1)
         // Leaving a site a player rules, the bandits' Vines do nothing.
         expect(afterTravelPersistent(s, 'ruler', 'c1', 'c2')).toEqual([])
     })
@@ -290,18 +290,18 @@ describe('travel and triggers', () => {
         const v = onTurn(board({ c1: [VINES] }), 'other')
         const a = new HydratedTravel(buildAction(Travel, { playerId: 'other', siteId: 'c2' }))
         a.apply(v)
-        expect(v.getPlayerState('other').warbandsOnBoard[Color.Blue]).toBe(2)
-        expect(a.metadata?.modifierNotes).toEqual(['Grasping Vines: killed a blue warband on your board'])
+        expect(v.getPlayerState('other').warbandsOnBoard['other']).toBe(2)
+        expect(a.metadata?.modifierNotes).toEqual(['Grasping Vines: killed a warband on your board'])
         const r = board({ c1: [VINES] })
         new HydratedTravel(buildAction(Travel, { playerId: 'ruler', siteId: 'c2' })).apply(r)
-        expect(r.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4)
+        expect(r.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
 
         const l = onTurn(board({ c2: [LAKE] }), 'other')
         new HydratedTravel(buildAction(Travel, { playerId: 'other', siteId: 'c2' })).apply(l)
-        expect(l.getPlayerState('other').warbandsOnBoard[Color.Blue]).toBe(1)
+        expect(l.getPlayerState('other').warbandsOnBoard['other']).toBe(1)
         const owner = board({ c2: [LAKE] })
         new HydratedTravel(buildAction(Travel, { playerId: 'ruler', siteId: 'c2' })).apply(owner)
-        expect(owner.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4)
+        expect(owner.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
     })
 
     it('Chaos Cult taxes a new Oathkeeper; Saddle Makers pays on nomad and order plays', () => {

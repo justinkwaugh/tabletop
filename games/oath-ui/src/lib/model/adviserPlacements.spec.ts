@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, IMPERIAL_COLOR, PlayerStatus, SearchPlay } from '@tabletop/oath'
+import { Banner, PlayerStatus, SearchPlay } from '@tabletop/oath'
 import { FIXTURE_SITE_CAPACITY, testPlayer, testState } from '@tabletop/oath/testing'
 import { adviserOtherSites, adviserPlacements } from './adviserPlacements.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 
 const UNRESTRICTED = 'denizen.beast.errand-boy'
@@ -18,7 +19,7 @@ function table(advisers: { cardId: string; faceUp: boolean }[], status = PlayerS
             status,
             siteId: 'c1',
             advisers,
-            warbandsOnBoard: { [IMPERIAL_COLOR]: 0 }
+            warbandsOnBoard: { [IMPERIAL_WARBANDS]: 0 }
         })
     ])
 }

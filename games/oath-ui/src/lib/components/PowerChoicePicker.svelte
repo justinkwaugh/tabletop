@@ -4,13 +4,20 @@
         exchangeAllowanceOf,
         type ExchangeTerms,
         type LegalChoice,
-        type PowerChoice
+        type PowerChoice,
+        type WarbandOwner
     } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, facedownAdviserLabel, reliquaryLabel, siteName } from '$lib/model/names.js'
+    import {
+        cardName,
+        facedownAdviserLabel,
+        reliquaryLabel,
+        siteName,
+        warbandOwnerName
+    } from '$lib/model/names.js'
     import {
         allowsSeveral,
         emptyPicks,
@@ -57,7 +64,12 @@
                 playerId,
                 index
             ),
-        siteLabel: (siteId) => siteName(gameSession.gameState, siteId)
+        siteLabel: (siteId) => siteName(gameSession.gameState, siteId),
+        warbandOwnerName: (owner) => ownerName(owner)
+    }
+
+    function ownerName(owner: WarbandOwner): string {
+        return warbandOwnerName(owner, (playerId) => gameSession.getPlayerName(playerId))
     }
 
     // A pick of a card-drawn option: a tap on the picked card clears it when the choice is optional.
@@ -79,7 +91,7 @@
             case PowerChoiceKind.Site:
                 return siteName(gameSession.gameState, option.siteId)
             case PowerChoiceKind.Warbands:
-                return `${option.group.count} ${option.group.color} at ${
+                return `${option.group.count} ${ownerName(option.group.owner)} at ${
                     option.group.at.kind === 'site'
                         ? siteName(gameSession.gameState, option.group.at.siteId)
                         : `${gameSession.getPlayerName(option.group.at.playerId)}'s board`
@@ -105,7 +117,7 @@
     function severalLabel(option: PowerChoice): string {
         if (option.kind !== PowerChoiceKind.Warbands || option.group.at.kind !== 'board')
             return label(option)
-        return `${option.group.color}, up to ${option.group.count}, to ${gameSession.getPlayerName(
+        return `${ownerName(option.group.owner)}, up to ${option.group.count}, to ${gameSession.getPlayerName(
             option.group.at.playerId
         )}'s board`
     }

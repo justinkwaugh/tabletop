@@ -23,8 +23,8 @@ export function reachTable(
                 favor: 6,
                 secrets: 6,
                 supply: 6,
-                warbandsOnBoard: { [Color.Red]: 3 },
-                warbandsInPersonalBank: { [Color.Red]: 6 },
+                warbandsOnBoard: { me: 3 },
+                warbandsInPersonalBank: { me: 6 },
                 advisers: route === 'adviser' ? [adviser(cardId)] : [],
                 relicIds: route === 'relic' ? [cardId] : []
             }),
@@ -35,7 +35,7 @@ export function reachTable(
                 favor: 3,
                 secrets: 3,
                 supply: 4,
-                warbandsOnBoard: { [Color.Blue]: 2 }
+                warbandsOnBoard: { foe: 2 }
             })
         ],
         {
@@ -48,9 +48,9 @@ export function reachTable(
             },
             // R-7.5.1, R-7.1.4 — a battle plan or a site's persistent power needs rule, not access.
             warbandsBySite: {
-                ...(ruleOwnSite ? { c1: { [Color.Red]: 1 } } : {}),
-                c2: { [Color.Red]: 2 },
-                p1: { [Color.Blue]: 3 }
+                ...(ruleOwnSite ? { c1: { me: 1 } } : {}),
+                c2: { me: 2 },
+                p1: { foe: 3 }
             },
             siteCards: {
                 c1: 'site.plains',

@@ -40,12 +40,12 @@ const TENTS = 'denizen.nomad.tents'
 function board(cards: string[] = [], over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { [Color.Red]: 3 }, advisers: [{ cardId: INN, faceUp: true }], ...over['me'] }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { [Color.Blue]: 2 }, advisers: [{ cardId: TENTS, faceUp: false }], ...over['foe'] })
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { me: 3 }, advisers: [{ cardId: INN, faceUp: true }], ...over['me'] }),
+            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { foe: 2 }, advisers: [{ cardId: TENTS, faceUp: false }], ...over['foe'] })
         ],
         {
             denizensBySite: { c1: cards, c2: [WOLVES], p1: [], h1: [] },
-            warbandsBySite: { c1: { [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } },
+            warbandsBySite: { c1: { foe: 2 }, c2: { me: 2 }, p1: { foe: 3 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             ...state
         }
@@ -199,14 +199,14 @@ describe('Land Warden and Warning Signals', () => {
         new HydratedCampaign(buildAction(Campaign, { playerId: 'me', defender: { kind: 'player', playerId: 'foe' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }], attackDice: 2 })).apply(s)
         expect(s.campaign?.pendingDefenderPlans).toBeDefined()
         const d = new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'foe', plans: [{ cardId: WARNING, powerIndex: powerIndexOf(WARNING, PowerTiming.BattlePlan), choices: [
-            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'p1' }, color: Color.Blue, count: 2 } },
-            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'foe' }, color: Color.Blue, count: 1 } },
+            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'p1' }, owner: 'foe', count: 2 } },
+            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'foe' }, owner: 'foe', count: 1 } },
             site('c1')
         ] }] }))
         d.apply(s)
-        expect(warbandsAt(s, 'p1')[Color.Blue]).toBe(1)
-        expect(warbandsAt(s, 'c1')[Color.Blue]).toBe(3)
-        expect(s.getPlayerState('foe').warbandsOnBoard[Color.Blue]).toBe(3)
+        expect(warbandsAt(s, 'p1')['foe']).toBe(1)
+        expect(warbandsAt(s, 'c1')['foe']).toBe(3)
+        expect(s.getPlayerState('foe').warbandsOnBoard['foe']).toBe(3)
         expect(s.campaign?.discardAtEnd).toContain(WARNING)
         expect(d.metadata?.planNotes?.[0]).toMatch(/Warning Signals/)
     })
@@ -219,15 +219,15 @@ describe('Land Warden and Warning Signals', () => {
             new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'foe', plans: [{ cardId: WARNING, powerIndex: powerIndexOf(WARNING, PowerTiming.BattlePlan), choices }] })).apply(s)
             return s
         }
-        const alone = defendWith([{ kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'foe' }, color: Color.Blue, count: 2 } }, site('c1')])
-        expect(warbandsAt(alone, 'c1')[Color.Blue]).toBe(4)
-        expect(alone.getPlayerState('foe').warbandsOnBoard[Color.Blue]).toBe(0)
+        const alone = defendWith([{ kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'foe' }, owner: 'foe', count: 2 } }, site('c1')])
+        expect(warbandsAt(alone, 'c1')['foe']).toBe(4)
+        expect(alone.getPlayerState('foe').warbandsOnBoard['foe']).toBe(0)
         const both = defendWith([
-            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'c1' }, color: Color.Blue, count: 1 } },
-            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'p1' }, color: Color.Blue, count: 2 } }
+            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'c1' }, owner: 'foe', count: 1 } },
+            { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'p1' }, owner: 'foe', count: 2 } }
         ])
-        expect(warbandsAt(both, 'c1')[Color.Blue]).toBe(1)
-        expect(warbandsAt(both, 'p1')[Color.Blue]).toBe(1)
-        expect(both.getPlayerState('foe').warbandsOnBoard[Color.Blue]).toBe(5)
+        expect(warbandsAt(both, 'c1')['foe']).toBe(1)
+        expect(warbandsAt(both, 'p1')['foe']).toBe(1)
+        expect(both.getPlayerState('foe').warbandsOnBoard['foe']).toBe(5)
     })
 })

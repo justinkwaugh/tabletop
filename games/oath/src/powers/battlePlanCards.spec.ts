@@ -10,12 +10,13 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { ActPhaseStateHandler } from '../stateHandlers/actPhase.js'
 import { CampaignPlansStateHandler } from '../stateHandlers/campaigning.js'
-import { IMPERIAL_COLOR, PlayerStatus, Suit } from '../model/oathEnums.js'
+import { PlayerStatus, Suit } from '../model/oathEnums.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
 import '../powers/index.js'
 import { ongoingCampaign } from '../testing/required.js'
 import { battlePlanUse, siteTarget } from '../testing/choices.js'
 import { ATTACKER, DEFENDER, campaign, defend, finishCampaign } from '../testing/steps.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const PROVISIONS = 'denizen.hearth.extra-provisions'
 const STORM = 'denizen.nomad.storm-caller'
@@ -37,8 +38,8 @@ function table(
                 siteId: 'c1',
                 supply: 5,
                 favor: 3,
-                warbandsOnBoard: { [Color.Red]: 5 },
-                warbandsInPersonalBank: { [Color.Red]: 7 },
+                warbandsOnBoard: { [ATTACKER]: 5 },
+                warbandsInPersonalBank: { [ATTACKER]: 7 },
                 advisers: (advisers.attacker ?? []).map((cardId) => ({ cardId, faceUp: true }))
             }),
             testPlayer({
@@ -47,8 +48,8 @@ function table(
                 status: PlayerStatus.Exile,
                 siteId: 'p1',
                 favor: 6,
-                warbandsOnBoard: { [Color.Yellow]: 4 },
-                warbandsInPersonalBank: { [Color.Yellow]: 6 },
+                warbandsOnBoard: { [DEFENDER]: 4 },
+                warbandsInPersonalBank: { [DEFENDER]: 6 },
                 advisers: (advisers.defender ?? []).map((cardId) => ({ cardId, faceUp: true }))
             }),
             testPlayer({
@@ -56,13 +57,13 @@ function table(
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'h1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 6 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 15 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 15 }
             })
         ],
         {
             chancellorPlayerId: 'chancellor',
-            warbandsBySite: { c1: { [Color.Yellow]: 1 }, p1: { [Color.Yellow]: 3 } },
+            warbandsBySite: { c1: { [DEFENDER]: 1 }, p1: { [DEFENDER]: 3 } },
             prng: { seed, invocations: 0 },
             ...over
         }
@@ -95,7 +96,7 @@ describe('the attacker\'s battle plans ride the Campaign (R-5.5.3)', () => {
         const action = campaign({ plans: [battlePlanUse(OUTRIDERS)] })
         action.apply(s)
         expect(action.metadata?.battle?.skullsKilled).toBe(0)
-        expect(s.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(5)
+        expect(s.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(5)
         expect(s.campaign?.ignoreSkulls).toBe(true)
     })
 
@@ -214,7 +215,7 @@ describe('Storm Caller (R-5.5.8 "at end, discard")', () => {
 
     it('the bandits use it unasked when they rule its site (R-5.5.3, R-5.5.3-H1)', () => {
         const s = table({
-            warbandsBySite: { c1: {}, p1: { [Color.Yellow]: 3 } },
+            warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } },
             denizensBySite: { c1: [STORM] }
         })
         const action = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')] })
@@ -227,12 +228,12 @@ describe('Storm Caller (R-5.5.8 "at end, discard")', () => {
 
     it('Specialist stops the bandits\' plans; a bandit Code of Honor stands alone', () => {
         const SPECIALIST = 'denizen.order.specialist'
-        const locked = table({ warbandsBySite: { c1: {}, p1: { [Color.Yellow]: 3 } }, denizensBySite: { c1: [STORM] } }, { attacker: [SPECIALIST] })
+        const locked = table({ warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } }, denizensBySite: { c1: [STORM] } }, { attacker: [SPECIALIST] })
         const action = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')], plans: [battlePlanUse(SPECIALIST)] })
         action.apply(locked)
         expect(action.metadata?.battle?.plansUsed).toEqual([SPECIALIST])
         expect(locked.campaign?.defensePool).toBe(1)
-        const honor = table({ warbandsBySite: { c1: {}, p1: { [Color.Yellow]: 3 } }, denizensBySite: { c1: [STORM, 'denizen.order.code-of-honor'] } })
+        const honor = table({ warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } }, denizensBySite: { c1: [STORM, 'denizen.order.code-of-honor'] } })
         const bandits = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')] })
         bandits.apply(honor)
         expect(bandits.metadata?.battle?.plansUsed).toEqual(['denizen.order.code-of-honor'])
@@ -240,7 +241,7 @@ describe('Storm Caller (R-5.5.8 "at end, discard")', () => {
 
     it('Extra Provisions costs, so the bandits never use it', () => {
         const s = table({
-            warbandsBySite: { c1: {}, p1: { [Color.Yellow]: 3 } },
+            warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } },
             denizensBySite: { c1: [PROVISIONS] }
         })
         const action = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')] })
@@ -264,8 +265,8 @@ describe("the defender's allies use battle plans too (R-5.5.3.a)", () => {
                     siteId: 'h1',
                     supply: 5,
                     favor: 3,
-                    warbandsOnBoard: { [Color.Red]: 5 },
-                    warbandsInPersonalBank: { [Color.Red]: 7 }
+                    warbandsOnBoard: { [ATTACKER]: 5 },
+                    warbandsInPersonalBank: { [ATTACKER]: 7 }
                 }),
                 testPlayer({
                     playerId: CHANCELLOR,
@@ -273,8 +274,8 @@ describe("the defender's allies use battle plans too (R-5.5.3.a)", () => {
                     status: PlayerStatus.Chancellor,
                     siteId: 'h1',
                     favor: 4,
-                    warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                    warbandsInPersonalBank: { [IMPERIAL_COLOR]: 15 },
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 15 },
                     advisers: (advisers.chancellor ?? []).map((cardId) => ({ cardId, faceUp: true }))
                 }),
                 testPlayer({
@@ -283,14 +284,14 @@ describe("the defender's allies use battle plans too (R-5.5.3.a)", () => {
                     status: PlayerStatus.Citizen,
                     siteId: 'h1',
                     favor: 4,
-                    warbandsOnBoard: { [IMPERIAL_COLOR]: 2 },
-                    warbandsInPersonalBank: { [Color.Blue]: 9 },
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                    warbandsInPersonalBank: { [CITIZEN]: 9 },
                     advisers: (advisers.citizen ?? []).map((cardId) => ({ cardId, faceUp: true }))
                 })
             ],
             {
                 chancellorPlayerId: CHANCELLOR,
-                warbandsBySite: { h1: { [IMPERIAL_COLOR]: 3 } },
+                warbandsBySite: { h1: { [IMPERIAL_WARBANDS]: 3 } },
                 prng: { seed, invocations: 0 }
             }
         )

@@ -24,7 +24,7 @@ import {
     isImperialPlayer,
     rulersOfSite,
     rulesSite,
-    rulingColorsOf,
+    rulingWarbandOwners,
     type ImperialScope
 } from './rule.js'
 import { boardWarbandGroups, warbandGroupsAtSites } from './force.js'
@@ -212,7 +212,7 @@ export function titleDefenseDice(state: HydratedOathGameState, parties: Campaign
     return state.oathkeeperIsUsurper ? 2 : 1
 }
 
-// R-5.5.4, R-5.5.4.b, R-10.9 — by colour, so another player's warbands at a targeted site never defend.
+// R-5.5.4, R-5.5.4.b, R-10.9 — by owner, so another player's warbands at a targeted site never defend.
 export function collectDefendingForce(
     state: HydratedOathGameState,
     parties: CampaignParties
@@ -224,7 +224,7 @@ export function collectDefendingForce(
     const force = warbandGroupsAtSites(
         state,
         sites,
-        rulingColorsOf(state, defenderId, scopeOf(parties))
+        rulingWarbandOwners(state, defenderId, scopeOf(parties))
     )
 
     const attackerSiteId = attackingSiteOf(state, parties.attackerPlayerId)

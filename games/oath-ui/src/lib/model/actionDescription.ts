@@ -50,7 +50,8 @@ import {
     plural,
     reliquaryLabel,
     nameIds,
-    stripRules
+    stripRules,
+    warbandsOf
 } from '$lib/model/names.js'
 import {
     actorOnlyOutcome,
@@ -260,7 +261,7 @@ function describeActionCited(
         return describeLetPeek(action, nameOf, viewerId)
     }
     if (isMoveWarbands(action)) {
-        const warbands = `${plural(action.count, `${action.color} warband`)} ${describeMove(action.move, nameOf)}`
+        const warbands = `${warbandsOf(action.count, action.owner, nameOf, action.playerId)} ${describeMove(action.move, nameOf)}`
         const asked = action.metadata?.awaitingConsentOf
         return asked
             ? `asked ${nameOf(asked)}'s permission to move ${warbands}`
@@ -276,7 +277,9 @@ function describeActionCited(
         const unreplaced = action.metadata?.outcome?.unreplacedCount ?? 0
         return action.granted
             ? 'accepted Citizenship' +
-                  (unreplaced > 0 ? `, removing ${unreplaced} warbands for want of purple` : '')
+                  (unreplaced > 0
+                      ? `, removing ${unreplaced} warbands for want of Imperial ones`
+                      : '')
             : 'refused Citizenship'
     }
     if (isAnswerQuestion(action)) {
@@ -284,13 +287,13 @@ function describeActionCited(
         return meta ? `${cardName(meta.cardId)}: ${meta.summary}` : 'answered a question'
     }
     if (isExileCitizen(action)) {
-        // R-6.7 — the exiler pays the Citizen they throw out; R-9.3's leftover purple is worth a clause.
+        // R-6.7 — the exiler pays the Citizen they throw out; R-9.3's leftover Imperial warbands are worth a clause.
         const meta = action.metadata
         return (
             `exiled ${nameOf(action.citizenPlayerId)}` +
             ((meta?.favorGiven ?? 0) > 0 ? `, giving them ${meta?.favorGiven} favor` : '') +
             ((meta?.unreplacedCount ?? 0) > 0
-                ? `, with ${meta?.unreplacedCount} warbands left purple`
+                ? `, with ${meta?.unreplacedCount} warbands left Imperial`
                 : '')
         )
     }
@@ -302,7 +305,7 @@ function describeActionCited(
                 ? `, giving ${meta?.favorGiven} favor to the Grand Scepter’s holder`
                 : '') +
             ((meta?.unreplacedCount ?? 0) > 0
-                ? `, with ${meta?.unreplacedCount} warbands left purple`
+                ? `, with ${meta?.unreplacedCount} warbands left Imperial`
                 : '')
         )
     }

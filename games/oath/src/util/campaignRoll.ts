@@ -1,4 +1,4 @@
-import { assertExists, type Color } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { PileDeposit } from '../model/hidden.js'
 import {
@@ -23,14 +23,15 @@ import {
     forceTotal,
     killWarbands,
     removeWarbandsFrom,
-    boardColorsOwnFirst
+    boardOwnersOwnFirst
 } from './force.js'
-import { rulesSite, rulingColorsOf, warbandsAt } from './rule.js'
+import { rulesSite, rulingWarbandOwners, warbandsAt } from './rule.js'
 import { isInPlay } from './discard.js'
 import { discardFromPlayInChosenOrder } from './orderedDiscard.js'
 import { BANDITS_PLAN_USER, plansUsedBy, sideOf, type ActiveBattlePlan } from './battlePlans.js'
 import type { PlayerPlanContext } from '../powers/registry.js'
 import { countOf } from './warbands.js'
+import type { WarbandOwner } from '../model/warbandCounts.js'
 
 /** R-5.5.4, R-5.5.5 — rolled from the protected stream inside an action's `apply`. */
 
@@ -165,36 +166,36 @@ function killForSkulls(
     return killFromAttackingForce(state, campaign, skulls, skullLossOrder)
 }
 
-/** R-5.5.5, R-10.22 — the board, then the sites the force reaches: every place and colour it holds. */
+/** R-5.5.5, R-10.22 — the board, then the sites the force reaches: every place and owner it holds. */
 export function attackingForceSources(
     state: HydratedOathGameState,
     attackerId: string,
     forceSiteIds: readonly string[]
 ): LossSource[] {
     const board = state.getPlayerState(attackerId).warbandsOnBoard
-    const siteColors = rulingColorsOf(state, attackerId)
+    const siteOwners = rulingWarbandOwners(state, attackerId)
     return [
-        ...boardColorsOwnFirst(state, attackerId)
-            .filter((color) => countOf(board, color) > 0)
-            .map((color): LossSource => ({ at: { kind: 'board', playerId: attackerId }, color })),
+        ...boardOwnersOwnFirst(state, attackerId)
+            .filter((owner) => countOf(board, owner) > 0)
+            .map((owner): LossSource => ({ at: { kind: 'board', playerId: attackerId }, owner })),
         ...forceSiteIds.flatMap((siteId) =>
-            siteColors
-                .filter((color) => countOf(warbandsAt(state, siteId), color) > 0)
-                .map((color): LossSource => ({ at: { kind: 'site', siteId }, color }))
+            siteOwners
+                .filter((owner) => countOf(warbandsAt(state, siteId), owner) > 0)
+                .map((owner): LossSource => ({ at: { kind: 'site', siteId }, owner }))
         )
     ]
 }
 
 export function sameLossSource(a: LossSource, b: LossSource): boolean {
     return (
-        a.color === b.color &&
+        a.owner === b.owner &&
         (a.at.kind === 'board'
             ? b.at.kind === 'board' && a.at.playerId === b.at.playerId
             : b.at.kind === 'site' && a.at.siteId === b.at.siteId)
     )
 }
 
-/** R-5.5.5-H1, R-10.22 — a declared loss order names only places and colours in the attacking force. */
+/** R-5.5.5-H1, R-10.22 — a declared loss order names only places and owners in the attacking force. */
 export function reasonLossOrderOutsideForce(
     state: HydratedOathGameState,
     attackerId: string,
@@ -205,7 +206,7 @@ export function reasonLossOrderOutsideForce(
     const stray = declaredOrder.find(
         (source) => !sources.some((held) => sameLossSource(held, source))
     )
-    return stray === undefined ? undefined : `${stray.color} warbands there are not in your force`
+    return stray === undefined ? undefined : `${stray.owner}'s warbands there are not in your force`
 }
 
 /** R-5.5.5, R-10.22 — the sources named first, in order, then the rest of the force by default. */
@@ -221,15 +222,15 @@ export function killFromAttackingForce(
         ...sources.filter((held) => !declaredOrder.some((source) => sameLossSource(held, source)))
     ]
     let remaining = count
-    for (const { at, color } of order) {
+    for (const { at, owner } of order) {
         if (remaining === 0) break
         const here =
             at.kind === 'board'
                 ? state.getPlayerState(at.playerId).warbandsOnBoard
                 : warbandsAt(state, at.siteId)
-        const killed = Math.min(countOf(here, color), remaining)
+        const killed = Math.min(countOf(here, owner), remaining)
         if (killed > 0) {
-            killOrRedirect(state, campaign, at, color, killed)
+            killOrRedirect(state, campaign, at, owner, killed)
             remaining -= killed
         }
     }
@@ -241,23 +242,23 @@ export function killOrRedirect(
     state: HydratedOathGameState,
     campaign: CampaignState,
     at: WarbandLocation,
-    color: Color,
+    owner: WarbandOwner,
     count: number
 ): void {
     if (count <= 0) return
-    const owner = at.kind === 'board' ? at.playerId : state.warbandOwnerOf(color)
-    const redirect = campaign.killRedirects.find((r) => r.playerId === owner)
+    const playerId = at.kind === 'board' ? at.playerId : state.warbandBankHolderOf(owner)
+    const redirect = campaign.killRedirects.find((r) => r.playerId === playerId)
     if (redirect) {
         // Hospital's Q&A — set aside now, placed when the Campaign ends if its ruler still rules it.
-        removeWarbandsFrom(state, at, color, count)
+        removeWarbandsFrom(state, at, owner, count)
         campaign.heldForHospital = [
             ...(campaign.heldForHospital ?? []),
-            { playerId: owner, siteId: redirect.siteId, color, count }
+            { playerId, siteId: redirect.siteId, owner, count }
         ]
         return
     }
-    removeWarbandsFrom(state, at, color, count)
-    killWarbands(state, color, count)
+    removeWarbandsFrom(state, at, owner, count)
+    killWarbands(state, owner, count)
 }
 
 export function usedPlanContext(
@@ -314,9 +315,9 @@ export function endCampaign(state: HydratedOathGameState): PileDeposit[] {
     // Hospital — "if you still rule it"; otherwise the warbands are killed after all (R-10.13).
     for (const held of campaign.heldForHospital ?? []) {
         if (rulesSite(state, held.playerId, held.siteId)) {
-            addWarbandsToSite(state, held.siteId, held.color, held.count)
+            addWarbandsToSite(state, held.siteId, held.owner, held.count)
         } else {
-            killWarbands(state, held.color, held.count)
+            killWarbands(state, held.owner, held.count)
         }
     }
     campaign.heldForHospital = undefined

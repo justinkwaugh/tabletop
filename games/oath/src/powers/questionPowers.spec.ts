@@ -2,7 +2,7 @@ import { OathTestEngine } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
 import { describe, expect, it } from 'vitest'
 import { OathGameStateValidator } from '../model/gameState.js'
-import { Color, assert } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import { HydratedUseActionPower, UseActionPower } from '../actions/useActionPower.js'
 import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { AnswerQuestion, HydratedAnswerQuestion } from '../actions/answerQuestion.js'
@@ -202,10 +202,10 @@ describe("Tinker's Fair and Deed Writer — a binding exchange the other side mu
         const s = rulerTable([DEED_WRITER])
         actionPowerUse('ruler', DEED_WRITER, [exchange('other', { fromProposer: { sites: [{ siteId: 'c2', warbands: 1 }] }, fromCounterparty: { favor: 1 } })]).apply(s)
         answerQuestion(s, 'other', { kind: PowerQuestionKind.Exchange, accept: true })
-        expect(warbandsAt(s, 'c2')[Color.Blue]).toBe(1)
-        expect(warbandsAt(s, 'c2')[Color.Red] ?? 0).toBe(0)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(6)
-        expect(s.getPlayerState('other').warbandsOnBoard[Color.Blue]).toBe(1)
+        expect(warbandsAt(s, 'c2')['other']).toBe(1)
+        expect(warbandsAt(s, 'c2')['ruler'] ?? 0).toBe(0)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(6)
+        expect(s.getPlayerState('other').warbandsOnBoard['other']).toBe(1)
         expect(s.getPlayerState('ruler').favor).toBe(4)
     })
 

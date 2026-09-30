@@ -11,30 +11,29 @@ import {
 import { HydratedMuster, Muster } from '../actions/muster.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
-const PURPLE = Color.Purple
-
-/** R-1.8, R-1.9 — 24 warbands of the Chancellor's colour and 14 per Exile. */
+/** R-1.8, R-1.9 — 24 Imperial warbands and 14 per Exile. */
 function fullTable() {
     return testState(
         [
             testPlayer({
                 playerId: 'chancellor',
                 color: Color.Purple,
-                warbandsOnBoard: { [PURPLE]: 3 },
-                warbandsInPersonalBank: { [PURPLE]: 19 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 19 }
             }),
             testPlayer({
                 playerId: 'exile',
                 color: Color.Red,
-                warbandsOnBoard: { [Color.Red]: 3 },
-                warbandsInPersonalBank: { [Color.Red]: 10 }
+                warbandsOnBoard: { exile: 3 },
+                warbandsInPersonalBank: { exile: 10 }
             })
         ],
         {
             warbandsBySite: {
-                c1: { [PURPLE]: 2, [Color.Red]: 1 },
-                p1: { [Color.Red]: 0 }
+                c1: { [IMPERIAL_WARBANDS]: 2, exile: 1 },
+                p1: { exile: 0 }
             }
         }
     )
@@ -44,29 +43,29 @@ describe('the warband census', () => {
     it('counts every location a warband can be in', () => {
         const census = warbandCensus(fullTable())
 
-        expect(census[PURPLE]).toBe(24)
-        expect(census[Color.Red]).toBe(14)
+        expect(census[IMPERIAL_WARBANDS]).toBe(24)
+        expect(census['exile']).toBe(14)
     })
 
     it('counts the warbands standing on a card (Obsidian Cage, False Prophet)', () => {
         const state = fullTable()
         state.warbandsOnCards = {
-            'relic.obsidian-cage': { [PURPLE]: 2, [Color.Red]: 1 },
-            'vision.faith': { [Color.Red]: 1 }
+            'relic.obsidian-cage': { [IMPERIAL_WARBANDS]: 2, exile: 1 },
+            'vision.faith': { exile: 1 }
         }
 
         const census = warbandCensus(state)
-        expect(census[PURPLE]).toBe(26)
-        expect(census[Color.Red]).toBe(16)
+        expect(census[IMPERIAL_WARBANDS]).toBe(26)
+        expect(census['exile']).toBe(16)
     })
 
-    it('keeps colours apart rather than totalling them', () => {
+    it('keeps owners apart rather than totalling them', () => {
         const census = warbandCensus(fullTable())
-        expect(Object.keys(census).sort()).toEqual([Color.Red, PURPLE].sort())
+        expect(Object.keys(census).sort()).toEqual(['exile', IMPERIAL_WARBANDS].sort())
     })
 
     it('totals a single record', () => {
-        expect(totalWarbands({ [PURPLE]: 3, [Color.Red]: 4 })).toBe(7)
+        expect(totalWarbands({ [IMPERIAL_WARBANDS]: 3, exile: 4 })).toBe(7)
         expect(totalWarbands({})).toBe(0)
     })
 })
@@ -77,8 +76,8 @@ describe('conservation (R-1.8, R-1.9, R-10.13)', () => {
         expect(() =>
             expectWarbandsConserved(state, () => {
                 const p = state.getPlayerState('exile')
-                adjustCount(p.warbandsInPersonalBank, Color.Red, -2)
-                adjustCount(p.warbandsOnBoard, Color.Red, 2)
+                adjustCount(p.warbandsInPersonalBank, 'exile', -2)
+                adjustCount(p.warbandsOnBoard, 'exile', 2)
             })
         ).not.toThrow()
     })
@@ -87,38 +86,38 @@ describe('conservation (R-1.8, R-1.9, R-10.13)', () => {
         const state = fullTable()
         expect(() =>
             expectWarbandsConserved(state, () => {
-                adjustCount(state.getPlayerState('exile').warbandsOnBoard, Color.Red, 2)
+                adjustCount(state.getPlayerState('exile').warbandsOnBoard, 'exile', 2)
             })
-        ).toThrow(/red: 14 -> 16/)
+        ).toThrow(/exile: 14 -> 16/)
     })
 
     it('catches a warband dropped on the floor', () => {
         const state = fullTable()
         expect(() =>
             expectWarbandsConserved(state, () => {
-                adjustCount(state.warbandsBySite['c1'], PURPLE, -2)
+                adjustCount(state.warbandsBySite['c1'], IMPERIAL_WARBANDS, -2)
             })
-        ).toThrow(/purple: 24 -> 22/)
+        ).toThrow(/imperial: 24 -> 22/)
     })
 
-    it('catches a colour swap that mints one colour and loses another', () => {
-        // R-6.6.2 — a Citizen conversion replaces an Exile's warbands with purple.
+    it('catches a swap that mints one owner\'s warbands and loses another\'s', () => {
+        // R-6.6.2 — a Citizen conversion replaces an Exile's warbands with Imperial ones.
         const state = fullTable()
         expect(() =>
             expectWarbandsConserved(state, () => {
-                state.getPlayerState('exile').warbandsOnBoard[PURPLE] = 3
+                state.getPlayerState('exile').warbandsOnBoard[IMPERIAL_WARBANDS] = 3
             })
-        ).toThrow(/purple: 24 -> 27/)
+        ).toThrow(/imperial: 24 -> 27/)
     })
 
-    it('names every colour that moved, not just the first', () => {
+    it('names every owner whose warbands moved, not just the first', () => {
         const breaches = warbandConservationBreaches(
-            { purple: 24, red: 14 },
-            { purple: 23, red: 15 }
+            { [IMPERIAL_WARBANDS]: 24, exile: 14 },
+            { [IMPERIAL_WARBANDS]: 23, exile: 15 }
         )
         expect(breaches).toEqual([
-            { color: 'purple', before: 24, after: 23 },
-            { color: 'red', before: 14, after: 15 }
+            { owner: IMPERIAL_WARBANDS, before: 24, after: 23 },
+            { owner: 'exile', before: 14, after: 15 }
         ])
     })
 
@@ -126,22 +125,22 @@ describe('conservation (R-1.8, R-1.9, R-10.13)', () => {
         const state = fullTable()
         expect(() =>
             expectWarbandsConserved(state, () => {
-                removeWarbandsFrom(state, { kind: 'board', playerId: 'exile' }, Color.Red, 2)
-                addWarbandsToCard(state, 'relic.obsidian-cage', Color.Red, 2)
-                removeWarbandsFromCard(state, 'relic.obsidian-cage', Color.Red, 1)
-                killWarbands(state, Color.Red, 1)
+                removeWarbandsFrom(state, { kind: 'board', playerId: 'exile' }, 'exile', 2)
+                addWarbandsToCard(state, 'relic.obsidian-cage', 'exile', 2)
+                removeWarbandsFromCard(state, 'relic.obsidian-cage', 'exile', 1)
+                killWarbands(state, 'exile', 1)
             })
         ).not.toThrow()
-        expect(state.warbandsOnCard('relic.obsidian-cage')).toEqual({ [Color.Red]: 1 })
+        expect(state.warbandsOnCard('relic.obsidian-cage')).toEqual({ exile: 1 })
     })
 
     it('catches a warband that leaves a board for a card and never arrives', () => {
         const state = fullTable()
         expect(() =>
             expectWarbandsConserved(state, () => {
-                removeWarbandsFrom(state, { kind: 'board', playerId: 'exile' }, Color.Red, 1)
+                removeWarbandsFrom(state, { kind: 'board', playerId: 'exile' }, 'exile', 1)
             })
-        ).toThrow(/red: 14 -> 13/)
+        ).toThrow(/exile: 14 -> 13/)
     })
 
     it('holds across a real action', () => {
@@ -150,8 +149,8 @@ describe('conservation (R-1.8, R-1.9, R-10.13)', () => {
                 testPlayer({
                     siteId: 'c1',
                     favor: 2,
-                    warbandsOnBoard: { [Color.Red]: 3 },
-                    warbandsInPersonalBank: { [Color.Red]: 11 }
+                    warbandsOnBoard: { p1: 3 },
+                    warbandsInPersonalBank: { p1: 11 }
                 })
             ],
             { denizensBySite: { c1: ['card-a'] } }
@@ -165,6 +164,6 @@ describe('conservation (R-1.8, R-1.9, R-10.13)', () => {
             })
         ).not.toThrow()
 
-        expect(warbandCensus(state)[Color.Red]).toBe(14)
+        expect(warbandCensus(state)['p1']).toBe(14)
     })
 })

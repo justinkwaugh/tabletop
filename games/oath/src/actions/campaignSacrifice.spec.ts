@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { PlayerStatus } from '../model/oathEnums.js'
 import { campaignRecords, testPlayer, testState } from '../testing/fixture.js'
 import { expectWarbandsConserved } from '../testing/census.js'
 import { CampaignTargetKind, type CampaignState, type WarbandGroup } from '../model/campaign.js'
@@ -10,6 +10,7 @@ import { buildAction } from '../testing/actions.js'
 import { CampaignDefeatKills, HydratedCampaignDefeatKills } from './campaignDefeatKills.js'
 import { HydratedResolveOathkeeper, ResolveOathkeeper } from './resolveOathkeeper.js'
 import { MachineState } from '../definition/states.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -18,8 +19,8 @@ const DEFENDER = 'defender'
 
 function midBattle(campaign: Partial<CampaignState> = {}) {
     const defendingForce: WarbandGroup[] = [
-        { at: { kind: 'site', siteId: 'c1' }, color: Color.Yellow, count: 2 },
-        { at: { kind: 'board', playerId: DEFENDER }, color: Color.Yellow, count: 1 }
+        { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 2 },
+        { at: { kind: 'board', playerId: DEFENDER }, owner: DEFENDER, count: 1 }
     ]
 
     return testState(
@@ -29,37 +30,37 @@ function midBattle(campaign: Partial<CampaignState> = {}) {
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: 'c1',
-                warbandsOnBoard: { [Color.Red]: 4 },
-                warbandsInPersonalBank: { [Color.Red]: 8 }
+                warbandsOnBoard: { [ATTACKER]: 4 },
+                warbandsInPersonalBank: { [ATTACKER]: 8 }
             }),
             testPlayer({
                 playerId: DEFENDER,
                 color: Color.Yellow,
                 status: PlayerStatus.Exile,
                 siteId: 'c1',
-                warbandsOnBoard: { [Color.Yellow]: 1 },
-                warbandsInPersonalBank: { [Color.Yellow]: 11 }
+                warbandsOnBoard: { [DEFENDER]: 1 },
+                warbandsInPersonalBank: { [DEFENDER]: 11 }
             }),
             testPlayer({
                 playerId: CHANCELLOR,
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'h1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 6 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 18 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 18 }
             }),
             testPlayer({
                 playerId: CITIZEN,
                 color: Color.Blue,
                 status: PlayerStatus.Citizen,
                 siteId: 'h2',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 0 },
-                warbandsInPersonalBank: { [Color.Blue]: 14 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 0 },
+                warbandsInPersonalBank: { [CITIZEN]: 14 }
             })
         ],
         {
             chancellorPlayerId: CHANCELLOR,
-            warbandsBySite: { c1: { [Color.Yellow]: 2 } },
+            warbandsBySite: { c1: { [DEFENDER]: 2 } },
             campaign: {
                 attackerPlayerId: ATTACKER,
                 defenderPlayerId: DEFENDER,
@@ -96,8 +97,8 @@ function lose(playerId: string, kills: WarbandGroup[]) {
 }
 
 const ALL_DEFENDERS: WarbandGroup[] = [
-    { at: { kind: 'site', siteId: 'c1' }, color: Color.Yellow, count: 2 },
-    { at: { kind: 'board', playerId: DEFENDER }, color: Color.Yellow, count: 1 }
+    { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 2 },
+    { at: { kind: 'board', playerId: DEFENDER }, owner: DEFENDER, count: 1 }
 ]
 
 describe('who wins (R-5.5.5.b)', () => {
@@ -110,7 +111,7 @@ describe('who wins (R-5.5.5.b)', () => {
     it('gives a tie to the defender', () => {
         const state = midBattle({ swords: 5, defense: 5 })
         sacrifice({
-            defeatKills: [{ at: { kind: 'board', playerId: ATTACKER }, color: Color.Red, count: 2 }]
+            defeatKills: [{ at: { kind: 'board', playerId: ATTACKER }, owner: ATTACKER, count: 2 }]
         }).apply(state)
         expect(state.campaign).toBeUndefined()
     })
@@ -118,7 +119,7 @@ describe('who wins (R-5.5.5.b)', () => {
     it('gives the defender the win when the attack falls short', () => {
         const state = midBattle({ swords: 2, defense: 5 })
         sacrifice({
-            defeatKills: [{ at: { kind: 'board', playerId: ATTACKER }, color: Color.Red, count: 2 }]
+            defeatKills: [{ at: { kind: 'board', playerId: ATTACKER }, owner: ATTACKER, count: 2 }]
         }).apply(state)
         expect(state.campaign).toBeUndefined()
     })
@@ -130,7 +131,7 @@ describe('the sacrifice (R-5.5.5, R-5.5.5.c, R-9.5)', () => {
         sacrifice({ sacrifice: 3 }).apply(state)
 
         expect(state.campaign?.attackerVictorious).toBe(true)
-        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(1)
+        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(1)
     })
 
     it('kills the sacrificed warbands back to their own bank (R-10.13, R-10.22)', () => {
@@ -138,7 +139,7 @@ describe('the sacrifice (R-5.5.5, R-5.5.5.c, R-9.5)', () => {
         expectWarbandsConserved(state, () =>
             sacrifice({ sacrifice: 3 }).apply(state)
         )
-        expect(state.getPlayerState(ATTACKER).warbandsInPersonalBank[Color.Red]).toBe(8 + 3)
+        expect(state.getPlayerState(ATTACKER).warbandsInPersonalBank[ATTACKER]).toBe(8 + 3)
     })
 
     it('refuses more than exactly enough', () => {
@@ -157,7 +158,7 @@ describe('the sacrifice (R-5.5.5, R-5.5.5.c, R-9.5)', () => {
             sacrifice({
                 sacrifice: 0,
                 defeatKills: [
-                    { at: { kind: 'board', playerId: ATTACKER }, color: Color.Red, count: 2 }
+                    { at: { kind: 'board', playerId: ATTACKER }, owner: ATTACKER, count: 2 }
                 ]
             }).apply(state)
         ).not.toThrow()
@@ -189,19 +190,19 @@ describe('resolving defeat (R-5.5.6)', () => {
         expectWarbandsConserved(state, () =>
             sacrifice({
                 defeatKills: [
-                    { at: { kind: 'board', playerId: ATTACKER }, color: Color.Red, count: 2 }
+                    { at: { kind: 'board', playerId: ATTACKER }, owner: ATTACKER, count: 2 }
                 ]
             }).apply(state)
         )
-        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(2)
-        expect(state.getPlayerState(ATTACKER).warbandsInPersonalBank[Color.Red]).toBe(10)
+        expect(state.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(2)
+        expect(state.getPlayerState(ATTACKER).warbandsInPersonalBank[ATTACKER]).toBe(10)
     })
 
     it('rounds an odd force down, not up', () => {
         const state = midBattle({ swords: 9, defense: 1 })
         sacrifice().apply(state)
         lose(DEFENDER, [ALL_DEFENDERS[1]]).apply(state)
-        expect(state.getPlayerState(DEFENDER).warbandsInPersonalBank[Color.Yellow]).toBe(12)
+        expect(state.getPlayerState(DEFENDER).warbandsInPersonalBank[DEFENDER]).toBe(12)
     })
 
     it('refuses a kill count that is not exactly half', () => {
@@ -215,7 +216,7 @@ describe('resolving defeat (R-5.5.6)', () => {
         sacrifice().apply(state)
         expect(() =>
             lose(DEFENDER, [
-                { at: { kind: 'board', playerId: CHANCELLOR }, color: IMPERIAL_COLOR, count: 1 }
+                { at: { kind: 'board', playerId: CHANCELLOR }, owner: IMPERIAL_WARBANDS, count: 1 }
             ]).apply(state)
         ).toThrow(/not in the force/)
     })
@@ -227,16 +228,16 @@ describe('resolving defeat (R-5.5.6)', () => {
             lose(DEFENDER, [ALL_DEFENDERS[1]]).apply(state)
         })
 
-        expect(state.warbandsBySite['c1'][Color.Yellow]).toBe(0)
-        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[Color.Yellow]).toBe(2)
+        expect(state.warbandsBySite['c1'][DEFENDER]).toBe(0)
+        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(2)
     })
 
     it('leaves warbands that were already on a board where they are', () => {
         const state = midBattle({ swords: 9, defense: 1 })
         sacrifice().apply(state)
-        lose(DEFENDER, [{ at: { kind: 'site', siteId: 'c1' }, color: Color.Yellow, count: 1 }]).apply(state)
+        lose(DEFENDER, [{ at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }]).apply(state)
 
-        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[Color.Yellow]).toBe(2)
+        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(2)
     })
 
     it('kills nothing when the defeated force is a single warband', () => {
@@ -244,11 +245,11 @@ describe('resolving defeat (R-5.5.6)', () => {
             swords: 9,
             defense: 1,
             defendingForce: [
-                { at: { kind: 'site', siteId: 'c1' }, color: Color.Yellow, count: 1 }
+                { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }
             ]
         })
         expectWarbandsConserved(state, () => sacrifice({ defeatKills: [] }).apply(state))
-        expect(state.getPlayerState(DEFENDER).warbandsInPersonalBank[Color.Yellow]).toBe(11)
+        expect(state.getPlayerState(DEFENDER).warbandsInPersonalBank[DEFENDER]).toBe(11)
     })
 
     it('asks nobody when the defeated force leaves no choice: one group loses what it must', () => {
@@ -256,12 +257,12 @@ describe('resolving defeat (R-5.5.6)', () => {
             swords: 9,
             defense: 1,
             defendingForce: [
-                { at: { kind: 'site', siteId: 'c1' }, color: Color.Yellow, count: 2 }
+                { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 2 }
             ]
         })
         sacrifice().apply(state)
         expect(state.campaign?.pendingDefeatKills).toBeUndefined()
-        expect(state.getPlayerState(DEFENDER).warbandsInPersonalBank[Color.Yellow]).toBe(12)
+        expect(state.getPlayerState(DEFENDER).warbandsInPersonalBank[DEFENDER]).toBe(12)
     })
 
     it('the defending side chooses its own losses, never the attacker', () => {
@@ -297,11 +298,11 @@ describe('the Chancellor chooses for an Imperial defence (R-5.5.6.a)', () => {
             swords: 9,
             defense: 1,
             defendingForce: [
-                { at: { kind: 'site', siteId: 'c1' }, color: IMPERIAL_COLOR, count: 2 },
-                { at: { kind: 'board', playerId: CHANCELLOR }, color: IMPERIAL_COLOR, count: 2 }
+                { at: { kind: 'site', siteId: 'c1' }, owner: IMPERIAL_WARBANDS, count: 2 },
+                { at: { kind: 'board', playerId: CHANCELLOR }, owner: IMPERIAL_WARBANDS, count: 2 }
             ]
         })
-        state.warbandsBySite['c1'] = { [IMPERIAL_COLOR]: 2 }
+        state.warbandsBySite['c1'] = { [IMPERIAL_WARBANDS]: 2 }
         return state
     }
 
@@ -312,23 +313,23 @@ describe('the Chancellor chooses for an Imperial defence (R-5.5.6.a)', () => {
             expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: CHANCELLOR })
             expect(() => lose(CITIZEN, []).apply(state)).toThrow(/chancellor chooses/)
             lose(CHANCELLOR, [
-                { at: { kind: 'board', playerId: CHANCELLOR }, color: IMPERIAL_COLOR, count: 2 }
+                { at: { kind: 'board', playerId: CHANCELLOR }, owner: IMPERIAL_WARBANDS, count: 2 }
             ]).apply(state)
         })
-        expect(state.getPlayerState(CHANCELLOR).warbandsInPersonalBank[IMPERIAL_COLOR]).toBe(20)
-        expect(state.getPlayerState(CHANCELLOR).warbandsOnBoard[IMPERIAL_COLOR]).toBe(6)
+        expect(state.getPlayerState(CHANCELLOR).warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(20)
+        expect(state.getPlayerState(CHANCELLOR).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(6)
     })
 
-    it('sends surviving purple off a site to the Chancellor, not the Citizen', () => {
+    it('sends surviving Imperial warbands off a site to the Chancellor, not the Citizen', () => {
         const state = imperialDefence()
         sacrifice().apply(state)
         lose(CHANCELLOR, [
-            { at: { kind: 'board', playerId: CHANCELLOR }, color: IMPERIAL_COLOR, count: 2 }
+            { at: { kind: 'board', playerId: CHANCELLOR }, owner: IMPERIAL_WARBANDS, count: 2 }
         ]).apply(state)
 
-        expect(state.warbandsBySite['c1'][IMPERIAL_COLOR]).toBe(0)
-        expect(state.getPlayerState(CHANCELLOR).warbandsOnBoard[IMPERIAL_COLOR]).toBe(6)
-        expect(state.getPlayerState(CITIZEN).warbandsOnBoard[IMPERIAL_COLOR]).toBe(0)
+        expect(state.warbandsBySite['c1'][IMPERIAL_WARBANDS]).toBe(0)
+        expect(state.getPlayerState(CHANCELLOR).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(6)
+        expect(state.getPlayerState(CITIZEN).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(0)
     })
 })
 
@@ -377,7 +378,7 @@ describe('what happens next', () => {
         const state = midBattle({ swords: 0, defense: 9 })
         sacrifice({
             defeatKills: [
-                { at: { kind: 'board', playerId: ATTACKER }, color: Color.Red, count: 2 }
+                { at: { kind: 'board', playerId: ATTACKER }, owner: ATTACKER, count: 2 }
             ]
         }).apply(state)
         expect(state.campaign).toBeUndefined()

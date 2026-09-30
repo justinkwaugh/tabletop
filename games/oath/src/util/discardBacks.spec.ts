@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { Color, getPrng } from '@tabletop/common'
-import { CardKind, IMPERIAL_COLOR, PlayerStatus, Region } from '../model/oathEnums.js'
+import { CardKind, PlayerStatus, Region } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { discardCards } from '../util/discard.js'
 import { buildSetupVault, resolveSetupDeal, applySetupDeal } from '../model/setup.js'
 import { drawFromDiscard } from '../model/vault.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 /** R-9.4 — a pile's top back is public though its fronts are private. */
 
@@ -19,8 +20,8 @@ function board() {
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'c1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 20 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 20 }
             })
         ],
         {}

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { plural } from '$lib/model/names.js'
+    import { warbandsOf } from '$lib/model/names.js'
     import { warbandImage } from '$lib/images/pieceImages.js'
     import { warbandsOnCardOf } from '$lib/model/cardWarbands.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -12,9 +12,14 @@
 
 {#if counts.length > 0}
     <span class="card-warbands" style:--size="{size}px">
-        {#each counts as { color, count } (color)}
-            <span class="chip" title="{plural(count, `${color} warband`)} on this card">
-                <img src={warbandImage(color)} alt="" />
+        {#each counts as { owner, count } (owner)}
+            <span
+                class="chip"
+                title="{warbandsOf(count, owner, (id) =>
+                    gameSession.getPlayerName(id)
+                )} on this card"
+            >
+                <img src={warbandImage(gameSession.warbandColor(owner))} alt="" />
                 <span class="count">{count}</span>
             </span>
         {/each}

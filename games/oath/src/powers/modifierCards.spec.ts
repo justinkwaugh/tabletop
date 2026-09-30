@@ -17,6 +17,7 @@ import '../powers/index.js'
 import { required } from '../testing/required.js'
 import { modifierUse } from '../testing/choices.js'
 import { INN } from '../testing/cards.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const TENTS = 'denizen.nomad.tents'
 const STEED = 'denizen.nomad.a-fast-steed'
@@ -51,8 +52,8 @@ function board(
                 favor: 3,
                 secrets: 2,
                 supply: 3,
-                warbandsOnBoard: { [Color.Red]: 2 },
-                warbandsInPersonalBank: { [Color.Red]: 5 },
+                warbandsOnBoard: { ruler: 2 },
+                warbandsInPersonalBank: { ruler: 5 },
                 advisers: advisers.map((cardId) => ({ cardId, faceUp: true })),
                 ...ruler
             }),
@@ -62,13 +63,13 @@ function board(
                 siteId: 'c1',
                 favor: 2,
                 secrets: 2,
-                warbandsOnBoard: { [Color.Blue]: 2 },
-                warbandsInPersonalBank: { [Color.Blue]: 5 }
+                warbandsOnBoard: { other: 2 },
+                warbandsInPersonalBank: { other: 5 }
             })
         ],
         {
             denizensBySite: { c1: cards, c2: [], p1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Blue]: 3, [Color.Red]: 1 } },
+            warbandsBySite: { c1: { ruler: 1 }, c2: { other: 3, ruler: 1 } },
             siteCards: { c1: 'site.mine', c2: 'site.river', p1: 'site.plains', h1: 'site.wastes' },
             ...over
         }
@@ -142,7 +143,7 @@ describe('Travel modifiers', () => {
         expect(s.getPlayerState('ruler').supply).toBe(3)
         expect(s.getPlayerState('ruler').favor).toBe(2)
 
-        const many = board([STEED], [], {}, { warbandsOnBoard: { [Color.Red]: 4 } })
+        const many = board([STEED], [], {}, { warbandsOnBoard: { ruler: 4 } })
         expect(() => travel('p1', [modifierUse(STEED)]).apply(many)).toThrow(/more than three/)
     })
 
@@ -172,7 +173,7 @@ describe('Travel modifiers', () => {
     it('Tyrant is mandatory: kills a warband at the destination unasked, and cannot be declared', () => {
         const s = board([], [TYRANT])
         travel('c2').apply(s)
-        expect(s.warbandsBySite.c2).toEqual({ [Color.Blue]: 2, [Color.Red]: 1 })
+        expect(s.warbandsBySite.c2).toEqual({ other: 2, ruler: 1 })
         expect(() => travel('c2', [modifierUse(TYRANT)]).apply(board([], [TYRANT]))).toThrow(/mandatory/)
     })
 
@@ -186,7 +187,7 @@ describe('Travel modifiers', () => {
     it('without Tyrant the destination is untouched (the mandatory fold is access-gated)', () => {
         const s = board([])
         travel('c2').apply(s)
-        expect(s.warbandsBySite.c2).toEqual({ [Color.Blue]: 3, [Color.Red]: 1 })
+        expect(s.warbandsBySite.c2).toEqual({ other: 3, ruler: 1 })
     })
 })
 
@@ -194,7 +195,7 @@ describe('Muster modifiers', () => {
     it('Rowdy Pub: one more warband when mustering on it, refused elsewhere', () => {
         const s = board([PUB, INN])
         muster(PUB, [modifierUse(PUB)]).apply(s)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(5)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(5)
         expect(s.getPlayerState('ruler').supply).toBe(2)
         expect(() => muster(INN, [modifierUse(PUB)]).apply(board([PUB, INN]))).toThrow(/not mustering on Rowdy Pub/)
     })
@@ -203,7 +204,7 @@ describe('Muster modifiers', () => {
         const s = board([BIRDSONG, INN], [PLAYMATES])
         muster(BIRDSONG, [modifierUse(PLAYMATES)]).apply(s)
         expect(s.getPlayerState('ruler').supply).toBe(3)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
         expect(() => muster(INN, [modifierUse(PLAYMATES)]).apply(board([BIRDSONG, INN], [PLAYMATES]))).toThrow(/not a beast card/)
     })
 
@@ -211,7 +212,7 @@ describe('Muster modifiers', () => {
         const least = { ...Object.fromEntries(Object.values(Suit).map((x) => [x, 3])), [Suit.Hearth]: 1 }
         const s = board([DOWNTRODDEN, INN], [], { favorBank: least })
         muster(INN, [modifierUse(DOWNTRODDEN)]).apply(s)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(6)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(6)
 
         const tied = { ...least, [Suit.Beast]: 1 }
         expect(() => muster(INN, [modifierUse(DOWNTRODDEN)]).apply(board([DOWNTRODDEN, INN], [], { favorBank: tied }))).toThrow(
@@ -225,7 +226,7 @@ describe('Muster modifiers', () => {
         const s = board([PRESSGANGS, INN], [], occupied)
         muster(INN, [modifierUse(PRESSGANGS)]).apply(s)
         expect(s.tokensOn(INN).favor).toBe(2)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
     })
 })
 
@@ -236,7 +237,7 @@ describe('Trade modifiers', () => {
         action.apply(s)
         const p = s.getPlayerState('ruler')
         expect(p.supply).toBe(3)
-        expect(p.warbandsOnBoard[Color.Red]).toBe(1)
+        expect(p.warbandsOnBoard['ruler']).toBe(1)
         expect(p.favor).toBe(4)
         expect(action.metadata?.modifierNotes?.[0]).toMatch(/sacrificed/)
 
@@ -354,12 +355,12 @@ describe('Search modifiers', () => {
         resolve(BIRDSONG, [RETURN]).apply(s)
         const p = s.getPlayerState('ruler')
         expect(p.supply).toBe(3 - HydratedSearch.supplyCost(s, SearchSource.WorldDeck) + 1)
-        expect(p.warbandsOnBoard[Color.Red]).toBe(4)
+        expect(p.warbandsOnBoard['ruler']).toBe(4)
 
         const t = board([CRY])
         search([modifierUse(CRY)], [BIRDSONG, RETURN]).apply(t)
         resolve(RETURN, [BIRDSONG]).apply(t)
-        expect(t.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(2)
+        expect(t.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(2)
     })
 
     it('a Search without modifiers leaves no carry', () => {
@@ -373,8 +374,8 @@ describe('a ruled card at another site is in reach (R-7.1.1)', () => {
     it("the Chancellor at the Mine sees A Fast Steed at Fertile Valley, where the Chancellor's warbands rule, and travels free with it", () => {
         const STEED = 'denizen.nomad.a-fast-steed'
         const s = testState(
-            [testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p3', favor: 2, secrets: 1, supply: 6, warbandsOnBoard: { purple: 2 } })],
-            { chancellorPlayerId: 'chan', denizensBySite: { c1: [STEED], p3: [] }, warbandsBySite: { c1: { purple: 2 } }, siteCards: { c1: 'site.fertile-valley', p3: 'site.mine' } }
+            [testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p3', favor: 2, secrets: 1, supply: 6, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } })],
+            { chancellorPlayerId: 'chan', denizensBySite: { c1: [STEED], p3: [] }, warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 } }, siteCards: { c1: 'site.fertile-valley', p3: 'site.mine' } }
         )
         openTurn(s, 'chan')
         expect(usableModifiers(s, 'chan', ActionType.Travel).map((p) => p.cardId)).toContain(STEED)

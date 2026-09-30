@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { declareChoices } from '../powers/registry.js'
 import { HydratedUseActionPower, UseActionPower } from './useActionPower.js'
-import { IMPERIAL_COLOR, PlayerStatus, Suit } from '../model/oathEnums.js'
+import { PlayerStatus, Suit } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { Color } from '@tabletop/common'
 import { hasAccessToCard, hasReliquaryPowerAccess, rulesCard } from '../util/access.js'
@@ -39,7 +40,7 @@ function boardWith(cardIds: string[], playerOverrides: Record<string, unknown> =
         ],
         {
             denizensBySite: { c1: cardIds },
-            warbandsBySite: { c1: { [Color.Red]: 1 } }
+            warbandsBySite: { c1: { ruler: 1 } }
         }
     )
 }
@@ -53,7 +54,7 @@ function board() {
         ],
         {
             denizensBySite: { c1: [CARD] },
-            warbandsBySite: { c1: { [Color.Red]: 1 } }
+            warbandsBySite: { c1: { ruler: 1 } }
         }
     )
 }
@@ -77,7 +78,7 @@ describe('Access to a card power (R-7.1.1, R-10.21)', () => {
         expect(hasAccessToCard(state, 'absent', CARD)).toBe(false)
     })
 
-    it('shares access through purple among Imperial players (R-6.6.3)', () => {
+    it('shares access through Imperial warbands among Imperial players (R-6.6.3)', () => {
         const state = testState(
             [
                 testPlayer({
@@ -95,7 +96,7 @@ describe('Access to a card power (R-7.1.1, R-10.21)', () => {
             ],
             {
                 denizensBySite: { c1: [CARD] },
-                warbandsBySite: { c1: { [IMPERIAL_COLOR]: 1 } }
+                warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } }
             }
         )
         // Neither pawn is at c1, so both reach it purely through R-6.6.3.
@@ -115,7 +116,7 @@ describe('Access to a card power (R-7.1.1, R-10.21)', () => {
             ],
             {
                 denizensBySite: { c1: [CARD] },
-                warbandsBySite: { c1: { [IMPERIAL_COLOR]: 1 } }
+                warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } }
             }
         )
         expect(hasAccessToCard(state, 'cit', CARD)).toBe(true)

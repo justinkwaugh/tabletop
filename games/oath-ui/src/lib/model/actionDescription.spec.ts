@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActionType, SearchPlay, SearchSource } from '@tabletop/oath'
+import { ActionType, IMPERIAL_WARBANDS, SearchPlay, SearchSource } from '@tabletop/oath'
 import { UNDESCRIBED, describeAction } from './actionDescription.js'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
 import { testPlayer, testState } from '@tabletop/oath/testing'
@@ -38,7 +38,7 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.UseActionPower]: { cardId: CARD },
     [ActionType.Peek]: { target: { kind: 'siteRelic', slotId: 's1' } },
     [ActionType.LetPeek]: { toPlayerId: 'p2', subject: { kind: 'reliquary', slotId: 'r1' } },
-    [ActionType.MoveWarbands]: { move: { kind: 'siteToBoard' }, color: 'red', count: 1 },
+    [ActionType.MoveWarbands]: { move: { kind: 'siteToBoard' }, owner: 'p1', count: 1 },
     [ActionType.OfferCitizenship]: { exilePlayerId: 'p2', reliquarySlotId: 'r1' },
     [ActionType.ResolveCitizenshipOffer]: { granted: true },
     [ActionType.AnswerConsent]: { granted: true },
@@ -146,8 +146,13 @@ describe('the history tab describes every action', () => {
             ],
             [
                 ActionType.MoveWarbands,
-                { move: { kind: 'siteToBoard' }, color: 'red', count: 2 },
-                'moved 2 red warbands from site to board'
+                { move: { kind: 'siteToBoard' }, owner: 'p1', count: 2 },
+                'moved 2 warbands from site to board'
+            ],
+            [
+                ActionType.MoveWarbands,
+                { move: { kind: 'boardToSite' }, owner: 'p2', count: 2 },
+                "moved 2 of Bob's warbands from board to site"
             ]
         ]
         for (const [type, fields, expected] of cases) {
@@ -184,12 +189,12 @@ describe('the history tab describes every action', () => {
                     type: ActionType.MoveWarbands,
                     playerId: 'p1',
                     move: { kind: 'boardToSite' },
-                    color: 'red',
+                    owner: IMPERIAL_WARBANDS,
                     count: 1
                 }),
                 nameOf
             )
-        ).toBe('moved 1 red warband from board to site')
+        ).toBe('moved 1 Imperial warband from board to site')
     })
 
     it('R-5.6.2 — names the site a Travel revealed, and its relics', () => {
@@ -364,7 +369,7 @@ describe('the history tab describes every action', () => {
                         type: ActionType.ExileCitizen,
                         playerId: 'p1',
                         citizenPlayerId: 'p2',
-                        metadata: { favorGiven: 4, recoloredCount: 3, unreplacedCount: 0 }
+                        metadata: { favorGiven: 4, replacedCount: 3, unreplacedCount: 0 }
                     }),
                     nameOf
                 )
@@ -375,24 +380,24 @@ describe('the history tab describes every action', () => {
                     action({
                         type: ActionType.SelfExile,
                         playerId: 'p1',
-                        metadata: { favorGiven: 4, recoloredCount: 3, unreplacedCount: 0 }
+                        metadata: { favorGiven: 4, replacedCount: 3, unreplacedCount: 0 }
                     }),
                     nameOf
                 )
             ).toBe('went into exile, giving 4 favor to the Grand Scepter’s holder')
         })
 
-        it('R-9.3 — warbands left purple for want of the player’s own colour', () => {
+        it('R-9.3 — warbands left Imperial for want of the player’s own', () => {
             expect(
                 describeAction(
                     action({
                         type: ActionType.SelfExile,
                         playerId: 'p1',
-                        metadata: { favorGiven: 2, recoloredCount: 1, unreplacedCount: 3 }
+                        metadata: { favorGiven: 2, replacedCount: 1, unreplacedCount: 3 }
                     }),
                     nameOf
                 )
-            ).toContain('with 3 warbands left purple')
+            ).toContain('with 3 warbands left Imperial')
         })
 
         it('R-6.1 — names the card in place, with no dangling "it"', () => {

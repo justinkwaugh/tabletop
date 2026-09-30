@@ -1,7 +1,6 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Region, Suit, TOTAL_FAVOR } from '../model/oathEnums.js'
-import type { Color } from '@tabletop/common'
-import type { WarbandCounts } from '../model/warbandCounts.js'
+import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import { totalWarbands, countOf, adjustCount, warbandEntries } from '../util/warbands.js'
 
 /** R-1.4 */
@@ -44,8 +43,8 @@ export function expectFullFavorComplement(state: HydratedOathGameState): void {
 export function warbandCensus(state: HydratedOathGameState): WarbandCounts {
     const census: WarbandCounts = {}
     const add = (counts: WarbandCounts) => {
-        for (const [color, n] of warbandEntries(counts)) {
-            adjustCount(census, color, n)
+        for (const [owner, n] of warbandEntries(counts)) {
+            adjustCount(census, owner, n)
         }
     }
 
@@ -60,7 +59,7 @@ export function warbandCensus(state: HydratedOathGameState): WarbandCounts {
         add(onCard)
     }
     // Hospital — set aside mid-Campaign, still in play.
-    for (const held of state.campaign?.heldForHospital ?? []) add({ [held.color]: held.count })
+    for (const held of state.campaign?.heldForHospital ?? []) add({ [held.owner]: held.count })
 
     return census
 }
@@ -69,37 +68,37 @@ export function warbandCensus(state: HydratedOathGameState): WarbandCounts {
 export function warbandConservationBreaches(
     before: WarbandCounts,
     after: WarbandCounts
-): Array<{ color: Color; before: number; after: number }> {
-    const colors = new Set(
-        [...warbandEntries(before), ...warbandEntries(after)].map(([color]) => color)
+): Array<{ owner: WarbandOwner; before: number; after: number }> {
+    const owners = new Set(
+        [...warbandEntries(before), ...warbandEntries(after)].map(([owner]) => owner)
     )
-    return [...colors]
-        .map((color) => ({
-            color,
-            before: countOf(before, color),
-            after: countOf(after, color)
+    return [...owners]
+        .map((owner) => ({
+            owner,
+            before: countOf(before, owner),
+            after: countOf(after, owner)
         }))
         .filter((entry) => entry.before !== entry.after)
 }
 
-/** R-6.5, R-5.5.7.I, R-1.8 — one colour per site; purple is one colour (R-6.6.3). */
-export function multiColorSites(
+/** R-6.5, R-5.5.7.I, R-1.8 — one owner per site; the Empire's are one owner (R-6.6.3). */
+export function multiOwnerSites(
     state: HydratedOathGameState
-): Array<{ siteId: string; colors: Color[] }> {
+): Array<{ siteId: string; owners: WarbandOwner[] }> {
     return Object.entries(state.warbandsBySite)
         .map(([siteId, counts]) => ({
             siteId,
-            colors: warbandEntries(counts)
+            owners: warbandEntries(counts)
                 .filter(([, n]) => n > 0)
-                .map(([color]) => color)
+                .map(([owner]) => owner)
         }))
-        .filter((entry) => entry.colors.length > 1)
+        .filter((entry) => entry.owners.length > 1)
 }
 
-export function expectOneWarbandColorPerSite(state: HydratedOathGameState): void {
-    const breaches = multiColorSites(state)
+export function expectOneWarbandOwnerPerSite(state: HydratedOathGameState): void {
+    const breaches = multiOwnerSites(state)
     if (breaches.length > 0) {
-        const detail = breaches.map((b) => `${b.siteId}: ${b.colors.join(' + ')}`).join(', ')
+        const detail = breaches.map((b) => `${b.siteId}: ${b.owners.join(' + ')}`).join(', ')
         throw Error(`Sites hold more than one player's warbands (${detail})`)
     }
 }
@@ -109,7 +108,7 @@ export function expectWarbandsConserved(state: HydratedOathGameState, mutate: ()
     mutate()
     const breaches = warbandConservationBreaches(before, warbandCensus(state))
     if (breaches.length > 0) {
-        const detail = breaches.map((b) => `${b.color}: ${b.before} -> ${b.after}`).join(', ')
+        const detail = breaches.map((b) => `${b.owner}: ${b.before} -> ${b.after}`).join(', ')
         throw Error(`Warbands were created or destroyed (${detail})`)
     }
 }
@@ -118,7 +117,7 @@ function warbandTotal(state: HydratedOathGameState): number {
     return totalWarbands(warbandCensus(state))
 }
 
-/** R-6.6.2, R-6.7, R-6.8 — colour-blind, so it holds through a recolour. */
+/** R-6.6.2, R-6.7, R-6.8 — blind to owner, so it holds through a replacement. */
 export function expectWarbandTotalConserved(
     state: HydratedOathGameState,
     mutate: () => void
@@ -131,15 +130,15 @@ export function expectWarbandTotalConserved(
     }
 }
 
-/** R-6.6.2, R-6.7, R-6.8 — a wrong recolour can leave the totals intact. */
-export function expectRecolorExchange(
+/** R-6.6.2, R-6.7, R-6.8 — a wrong replacement can leave the totals intact. */
+export function expectReplacementExchange(
     before: WarbandCounts,
     after: WarbandCounts,
-    from: Color,
-    to: Color,
+    from: WarbandOwner,
+    to: WarbandOwner,
     count: number
 ): void {
-    const moved = (color: Color) => countOf(after, color) - countOf(before, color)
+    const moved = (owner: WarbandOwner) => countOf(after, owner) - countOf(before, owner)
     const problems: string[] = []
     if (moved(from) !== -count) {
         problems.push(`${from} moved by ${moved(from)}, expected -${count}`)
@@ -149,7 +148,7 @@ export function expectRecolorExchange(
     }
     if (problems.length > 0) {
         throw Error(
-            `Recolour did not exchange ${count} ${from} for ${count} ${to} (${problems.join('; ')})`
+            `Replacement did not exchange ${count} of ${from}'s for ${count} of ${to}'s (${problems.join('; ')})`
         )
     }
 }

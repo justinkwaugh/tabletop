@@ -1,5 +1,5 @@
 import { GameSession } from '@tabletop/frontend-components'
-import { assert, assertExists, type GameAction } from '@tabletop/common'
+import { assert, assertExists, type Color, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     AnswerConsent,
@@ -74,8 +74,10 @@ import {
     type TravelTerms,
     type WakeFavorStep,
     type WarbandGroup,
-    type WarbandMoveOption
+    type WarbandMoveOption,
+    type WarbandOwner
 } from '@tabletop/oath'
+import { warbandOwnerName } from './names.js'
 import { OathSelection } from './oathSelection.svelte.js'
 import { SearchDraft } from './searchDraft.js'
 import { QuestionDraft } from './questionDraft.js'
@@ -314,12 +316,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    async answerCitizenshipOffer(granted: boolean, recolorChoice?: WarbandGroup[]): Promise<void> {
+    async answerCitizenshipOffer(
+        granted: boolean,
+        replacementChoice?: WarbandGroup[]
+    ): Promise<void> {
         await this.commit(
             this.createPlayerAction(ResolveCitizenshipOffer, {
                 type: ActionType.ResolveCitizenshipOffer,
                 granted,
-                ...(recolorChoice ? { recolorChoice } : {})
+                ...(replacementChoice ? { replacementChoice } : {})
             })
         )
     }
@@ -790,7 +795,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             this.createPlayerAction(MoveWarbands, {
                 type: ActionType.MoveWarbands,
                 move: option.move,
-                color: option.color,
+                owner: option.owner,
                 count
             })
         )
@@ -967,6 +972,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     knownRelicAt(slotId: string | undefined): string | undefined {
         return peekedRelicAt(this.gameState, this.myPlayer?.id, slotId)
+    }
+
+    /** R-10.13 — warbands show their owner's seat colour; the Empire's show the Chancellor's. */
+    warbandColor(owner: WarbandOwner): Color {
+        return this.colors.getPlayerColor(this.gameState.warbandBankHolderOf(owner))
+    }
+
+    warbandOwnerName(owner: WarbandOwner): string {
+        return warbandOwnerName(owner, (playerId) => this.getPlayerName(playerId))
     }
 
     chooseAction(type: ActionType): void {

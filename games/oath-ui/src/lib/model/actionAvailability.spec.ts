@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { ActionType, IMPERIAL_COLOR, PlayerStatus } from '@tabletop/oath'
+import { ActionType, PlayerStatus } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { freeActionDueLine, reasonActionUnavailable } from './actionAvailability.js'
 import { ALL_ACTIONS } from './actionCatalogue.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 const CHANCELLOR = 'chan'
 const EXILE = 'ex'
@@ -19,15 +20,15 @@ function board(overrides: Record<string, unknown> = {}) {
                 favor: 2,
                 // R-6.7 needs the Grand Scepter and five favor; holding it leaves favor the limit.
                 relicIds: ['relic.grand-scepter'],
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 20 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 20 }
             }),
             testPlayer({
                 playerId: EXILE,
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: 'c2',
-                warbandsInPersonalBank: { [Color.Red]: 14 }
+                warbandsInPersonalBank: { [EXILE]: 14 }
             })
         ],
         { chancellorPlayerId: CHANCELLOR, ...overrides }

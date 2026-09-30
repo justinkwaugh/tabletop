@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, CardKind, IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { Banner, CardKind, PlayerStatus } from '../model/oathEnums.js'
 import { registerCards } from '../data/cardRegistry.js'
 import { CampaignTargetKind, type CampaignTarget } from '../model/campaign.js'
 import { testPlayer, testState } from '../testing/fixture.js'
-import { expectOneWarbandColorPerSite, multiColorSites } from '../testing/census.js'
+import { expectOneWarbandOwnerPerSite, multiOwnerSites } from '../testing/census.js'
 import {
     applyDiceDelta,
     collectDefendingBandits,
@@ -15,6 +15,7 @@ import {
     type CampaignParties
 } from './campaign.js'
 import { siteTarget } from '../testing/choices.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -37,8 +38,8 @@ function table(overrides: Record<string, unknown> = {}) {
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: 'c1',
-                warbandsOnBoard: { [Color.Red]: 5 },
-                warbandsInPersonalBank: { [Color.Red]: 9 }
+                warbandsOnBoard: { [ATTACKER]: 5 },
+                warbandsInPersonalBank: { [ATTACKER]: 9 }
             }),
             testPlayer({
                 playerId: DEFENDER,
@@ -46,32 +47,32 @@ function table(overrides: Record<string, unknown> = {}) {
                 status: PlayerStatus.Exile,
                 siteId: 'p1',
                 favor: 6,
-                warbandsOnBoard: { [Color.Yellow]: 4 },
-                warbandsInPersonalBank: { [Color.Yellow]: 10 }
+                warbandsOnBoard: { [DEFENDER]: 4 },
+                warbandsInPersonalBank: { [DEFENDER]: 10 }
             }),
             testPlayer({
                 playerId: CHANCELLOR,
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'h1',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 6 },
-                warbandsInPersonalBank: { [IMPERIAL_COLOR]: 18 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 18 }
             }),
             testPlayer({
                 playerId: CITIZEN,
                 color: Color.Blue,
                 status: PlayerStatus.Citizen,
                 siteId: 'h2',
-                warbandsOnBoard: { [IMPERIAL_COLOR]: 3 },
-                warbandsInPersonalBank: { [Color.Blue]: 14 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                warbandsInPersonalBank: { [CITIZEN]: 14 }
             })
         ],
         {
             chancellorPlayerId: CHANCELLOR,
             warbandsBySite: {
-                c1: { [Color.Yellow]: 1 },
-                p1: { [Color.Yellow]: 3 },
-                p2: { [Color.Yellow]: 2 }
+                c1: { [DEFENDER]: 1 },
+                p1: { [DEFENDER]: 3 },
+                p2: { [DEFENDER]: 2 }
             },
             ...overrides
         }
@@ -210,25 +211,25 @@ describe('collecting the defending force (R-5.5.4, R-10.9)', () => {
     it("counts the defender's warbands at every targeted site", () => {
         const force = collectDefendingForce(table(), parties([siteTarget('p1'), siteTarget('p2')]))
         expect(force.filter((g) => g.at.kind === 'site')).toEqual([
-            { at: { kind: 'site', siteId: 'p1' }, color: Color.Yellow, count: 3 },
-            { at: { kind: 'site', siteId: 'p2' }, color: Color.Yellow, count: 2 }
+            { at: { kind: 'site', siteId: 'p1' }, owner: DEFENDER, count: 3 },
+            { at: { kind: 'site', siteId: 'p2' }, owner: DEFENDER, count: 2 }
         ])
     })
 
     it("counts only the defender's warbands, on a board that could not occur", () => {
         const state = table({
-            warbandsBySite: { c1: { [Color.Red]: 2, [Color.Yellow]: 1 } }
+            warbandsBySite: { c1: { [ATTACKER]: 2, [DEFENDER]: 1 } }
         })
-        expect(multiColorSites(state)).toHaveLength(1)
+        expect(multiOwnerSites(state)).toHaveLength(1)
 
         const force = collectDefendingForce(state, parties([siteTarget('c1')]))
         expect(force).toEqual([
-            { at: { kind: 'site', siteId: 'c1' }, color: Color.Yellow, count: 1 }
+            { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }
         ])
     })
 
     it('holds the one-player-per-site invariant on its own fixtures', () => {
-        expectOneWarbandColorPerSite(table())
+        expectOneWarbandOwnerPerSite(table())
     })
 
     it('counts no warbands at a site nobody targeted', () => {
@@ -243,7 +244,7 @@ describe('collecting the defending force (R-5.5.4, R-10.9)', () => {
         const force = collectDefendingForce(state, parties([siteTarget('p1')]))
         expect(force).toContainEqual({
             at: { kind: 'board', playerId: DEFENDER },
-            color: Color.Yellow,
+            owner: DEFENDER,
             count: 4
         })
     })
@@ -252,7 +253,7 @@ describe('collecting the defending force (R-5.5.4, R-10.9)', () => {
         const force = collectDefendingForce(table(), parties([siteTarget('p1')]))
         expect(force).toContainEqual({
             at: { kind: 'board', playerId: DEFENDER },
-            color: Color.Yellow,
+            owner: DEFENDER,
             count: 4
         })
     })
@@ -275,7 +276,7 @@ describe('collecting the defending force (R-5.5.4, R-10.9)', () => {
         )
         expect(force).toContainEqual({
             at: { kind: 'board', playerId: CITIZEN },
-            color: IMPERIAL_COLOR,
+            owner: IMPERIAL_WARBANDS,
             count: 3
         })
     })
@@ -290,9 +291,9 @@ describe('collecting the defending force (R-5.5.4, R-10.9)', () => {
         )
     })
 
-    it('counts an Imperial defence through purple, not the Citizen colour', () => {
+    it('counts an Imperial defence through Imperial warbands, not the Citizen\'s own', () => {
         const state = table({
-            warbandsBySite: { c1: { [Color.Red]: 2 }, p1: { [IMPERIAL_COLOR]: 4 } }
+            warbandsBySite: { c1: { [ATTACKER]: 2 }, p1: { [IMPERIAL_WARBANDS]: 4 } }
         })
         const force = collectDefendingForce(
             state,
@@ -300,7 +301,7 @@ describe('collecting the defending force (R-5.5.4, R-10.9)', () => {
         )
         expect(force).toContainEqual({
             at: { kind: 'site', siteId: 'p1' },
-            color: IMPERIAL_COLOR,
+            owner: IMPERIAL_WARBANDS,
             count: 4
         })
     })
@@ -426,7 +427,7 @@ describe('declaring targets (R-5.5.2)', () => {
     })
 
     it('accepts targeting the bandits at your site', () => {
-        const state = table({ warbandsBySite: { c1: { [Color.Yellow]: 1 }, h3: {} } })
+        const state = table({ warbandsBySite: { c1: { [DEFENDER]: 1 }, h3: {} } })
         state.getPlayerState(ATTACKER).siteId = 'h3'
         expect(
             reasonCannotDeclareTargets(

@@ -1,4 +1,10 @@
-import { CardKind, PowerChoiceKind, powerKey, type PowerChoice } from '@tabletop/oath'
+import {
+    CardKind,
+    PowerChoiceKind,
+    powerKey,
+    type PowerChoice,
+    type WarbandOwner
+} from '@tabletop/oath'
 import { cardName } from './names.js'
 
 /**
@@ -49,6 +55,7 @@ export type CardResolvers = {
     relicSlotLabel(slotId: string): string
     facedownAdviserLabel(playerId: string, index: number): string
     siteLabel(siteId: string): string
+    warbandOwnerName(owner: WarbandOwner): string
 }
 
 /**
@@ -79,7 +86,7 @@ export function powerChoiceCard(
         case PowerChoiceKind.Warbands: {
             const at = option.group.at
             if (at.kind !== 'site') return undefined
-            const caption = `${option.group.count} ${option.group.color}`
+            const caption = `${option.group.count} ${resolve.warbandOwnerName(option.group.owner)}`
             const siteCardId = resolve.faceupSiteCardAt(at.siteId)
             return siteCardId
                 ? {

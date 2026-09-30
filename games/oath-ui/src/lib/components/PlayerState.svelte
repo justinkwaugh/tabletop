@@ -39,7 +39,7 @@
     let ground = $derived(boardGround(status, color))
 
     let facts = $derived(seatFacts(gameState, player.id))
-    let warbandFigure = $derived(warbandImage(facts.warbands.color))
+    let warbandFigure = $derived(warbandImage(gameSession.warbandColor(facts.warbands.owner)))
 
     let oathName = $derived(oathTypeName(gameState.oathType))
     let goals = $derived(seatGoals(gameState, player.id))

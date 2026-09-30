@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { Banner, IMPERIAL_COLOR, OathType, PlayerStatus } from '../model/oathEnums.js'
+import { Banner, OathType, PlayerStatus } from '../model/oathEnums.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
 import { testBanners, testPlayer, testState } from '../testing/fixture.js'
 import {
@@ -18,6 +18,7 @@ import {
 } from './oathkeeper.js'
 import type { OathGameState } from '../model/gameState.js'
 import type { OathPlayerState } from '../model/playerState.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -34,29 +35,29 @@ function seats(overrides: Record<string, Partial<OathPlayerState>> = {}): OathPl
             playerId: CHANCELLOR,
             color: Color.Purple,
             status: PlayerStatus.Chancellor,
-            warbandsInPersonalBank: { [IMPERIAL_COLOR]: 24 },
+            warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 24 },
             ...overrides[CHANCELLOR]
         }),
         testPlayer({
             playerId: CITIZEN,
             color: Color.Blue,
             status: PlayerStatus.Citizen,
-            // R-6.6.2 — a Citizen's warbands are purple, on board and on map.
-            warbandsInPersonalBank: { [IMPERIAL_COLOR]: 0, [Color.Blue]: 14 },
+            // R-6.6.2 — a Citizen's warbands are Imperial, on board and on map.
+            warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 0, [CITIZEN]: 14 },
             ...overrides[CITIZEN]
         }),
         testPlayer({
             playerId: EXILE,
             color: Color.Red,
             status: PlayerStatus.Exile,
-            warbandsInPersonalBank: { [Color.Red]: 14 },
+            warbandsInPersonalBank: { [EXILE]: 14 },
             ...overrides[EXILE]
         }),
         testPlayer({
             playerId: OTHER_EXILE,
             color: Color.Yellow,
             status: PlayerStatus.Exile,
-            warbandsInPersonalBank: { [Color.Yellow]: 14 },
+            warbandsInPersonalBank: { [OTHER_EXILE]: 14 },
             ...overrides[OTHER_EXILE]
         })
     ]
@@ -94,9 +95,9 @@ describe('the Oathkeeper goal (R-2.11)', () => {
         const state = table({
             oathType: OathType.Supremacy,
             warbandsBySite: {
-                c1: { [Color.Red]: 1 },
-                c2: { [Color.Red]: 1 },
-                p1: { [Color.Yellow]: 3 }
+                c1: { [EXILE]: 1 },
+                c2: { [EXILE]: 1 },
+                p1: { [OTHER_EXILE]: 3 }
             }
         })
         expect(playersMeetingOathkeeperGoal(state)).toEqual([EXILE])
@@ -105,7 +106,7 @@ describe('the Oathkeeper goal (R-2.11)', () => {
     it('lets ties qualify, because R-2.11.b exists to resolve them', () => {
         const state = table({
             oathType: OathType.Supremacy,
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Yellow]: 1 } }
+            warbandsBySite: { c1: { [EXILE]: 1 }, c2: { [OTHER_EXILE]: 1 } }
         })
         expect(playersMeetingOathkeeperGoal(state)).toEqual([EXILE, OTHER_EXILE])
     })
@@ -151,10 +152,10 @@ describe('the Oathkeeper goal (R-2.11)', () => {
 
 describe('R-2.11.d — the Empire holds Supremacy through the Chancellor', () => {
     it('drops Citizens from the qualifying set when the Empire meets the goal', () => {
-        // R-6.6.3 — each Imperial player rules every purple site, so Chancellor and Citizen tie.
+        // R-6.6.3 — each Imperial player rules every Imperial site, so Chancellor and Citizen tie.
         const state = table({
             oathType: OathType.Supremacy,
-            warbandsBySite: { c1: { [IMPERIAL_COLOR]: 2 }, c2: { [IMPERIAL_COLOR]: 1 } }
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 }, c2: { [IMPERIAL_WARBANDS]: 1 } }
         })
         expect(playersMeetingGoal(state, Goal.MostSites)).toEqual([CHANCELLOR, CITIZEN])
         expect(playersMeetingOathkeeperGoal(state)).toEqual([CHANCELLOR])
@@ -163,7 +164,7 @@ describe('R-2.11.d — the Empire holds Supremacy through the Chancellor', () =>
     it('leaves an Exile in the set alongside the Chancellor — it collapses the Empire only', () => {
         const state = table({
             oathType: OathType.Supremacy,
-            warbandsBySite: { c1: { [IMPERIAL_COLOR]: 2 }, c2: { [Color.Red]: 1 } }
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 }, c2: { [EXILE]: 1 } }
         })
         expect(playersMeetingOathkeeperGoal(state)).toEqual([CHANCELLOR, EXILE])
     })
@@ -178,7 +179,7 @@ describe('R-2.11.d — the Empire holds Supremacy through the Chancellor', () =>
 
     it('is not applied to a Vision goal — R-2.11.d is about the title (R-3.2.a)', () => {
         const state = table({
-            warbandsBySite: { c1: { [IMPERIAL_COLOR]: 2 }, c2: { [IMPERIAL_COLOR]: 1 } }
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 }, c2: { [IMPERIAL_WARBANDS]: 1 } }
         })
         expect(playersMeetingGoal(state, Goal.MostSites)).toEqual([CHANCELLOR, CITIZEN])
     })
@@ -202,7 +203,7 @@ describe('the Vision goal and its universal gate (R-3.2, R-3.2.a)', () => {
 
     it('gates Conquest too — the gate is not Faith-specific (R-3.2)', () => {
         const holding = { [EXILE]: { revealedVisionId: 'vision.conquest' } }
-        const warbandsBySite = { c1: { [Color.Red]: 1 } }
+        const warbandsBySite = { c1: { [EXILE]: 1 } }
 
         expect(
             meetsRevealedVisionGoal(table({ visionsDrawn: 2, warbandsBySite }, holding), EXILE)
@@ -220,8 +221,8 @@ describe('the Vision goal and its universal gate (R-3.2, R-3.2.a)', () => {
             {
                 visionsDrawn: 3,
                 warbandsBySite: {
-                    c1: { [Color.Red]: 1 },
-                    c2: { [IMPERIAL_COLOR]: 1 }
+                    c1: { [EXILE]: 1 },
+                    c2: { [IMPERIAL_WARBANDS]: 1 }
                 }
             },
             holding
@@ -232,9 +233,9 @@ describe('the Vision goal and its universal gate (R-3.2, R-3.2.a)', () => {
             {
                 visionsDrawn: 3,
                 warbandsBySite: {
-                    c1: { [Color.Red]: 1 },
-                    p1: { [Color.Red]: 1 },
-                    c2: { [IMPERIAL_COLOR]: 1 }
+                    c1: { [EXILE]: 1 },
+                    p1: { [EXILE]: 1 },
+                    c2: { [IMPERIAL_WARBANDS]: 1 }
                 }
             },
             holding
@@ -298,7 +299,7 @@ describe('the Successor goal — Citizens only, keyed to the sworn Oath (R-3.3.1
         const state = table(
             {
                 oathType: OathType.Supremacy,
-                warbandsBySite: { c1: { [Color.Red]: 1 } }
+                warbandsBySite: { c1: { [EXILE]: 1 } }
             },
             { [CITIZEN]: { relicIds: [CUP] } }
         )
@@ -355,7 +356,7 @@ describe('the Successor goal — Citizens only, keyed to the sworn Oath (R-3.3.1
 
 describe('R-2.11.d — a Citizen can take the Supremacy title when the Chancellor does not qualify', () => {
     it('the Imperial-collapse filter does not fire when the Chancellor is not in the tie', () => {
-        // Reachable only through R-6.6.2's purple shortage; R-2.11.d is unruled here, so its filter is read literally.
+        // Reachable only through R-6.6.2's Imperial shortage; R-2.11.d is unruled here, so its filter is read literally.
         const state = testState(
             [
                 testPlayer({
@@ -374,9 +375,9 @@ describe('R-2.11.d — a Citizen can take the Supremacy title when the Chancello
             {
                 chancellorPlayerId: 'chancellor',
                 warbandsBySite: {
-                    c1: { [Color.Blue]: 1 },
-                    c2: { [Color.Blue]: 1 },
-                    h1: { purple: 1 }
+                    c1: { [CITIZEN]: 1 },
+                    c2: { [CITIZEN]: 1 },
+                    h1: { [IMPERIAL_WARBANDS]: 1 }
                 }
             }
         )

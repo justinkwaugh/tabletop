@@ -18,6 +18,7 @@ import { PowerQuestionKind } from '../model/question.js'
 import { answerQuestion } from '../testing/steps.js'
 import { region, slot, modifierUse, yes } from '../testing/choices.js'
 import { INN, FILLER } from '../testing/cards.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const FAE = 'denizen.beast.fae-merchant'
 const BREAKER = 'denizen.hearth.relic-breaker'
@@ -46,13 +47,13 @@ function board(cards: Record<string, string[]> = {}, advisers: Record<string, st
     const adv = (id: string) => (advisers[id] ?? []).map((cardId) => ({ cardId, faceUp: true }))
     const s = testState(
         [
-            testPlayer({ playerId: 'ruler', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 4, supply: 5, warbandsOnBoard: { [Color.Red]: 4 }, warbandsInPersonalBank: { [Color.Red]: 6 }, advisers: adv('ruler'), ...over['ruler'] }),
-            testPlayer({ playerId: 'chancellor', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 2, secrets: 2, supply: 5, warbandsOnBoard: { purple: 3 }, warbandsInPersonalBank: { purple: 12 }, advisers: adv('chancellor'), ...over['chancellor'] })
+            testPlayer({ playerId: 'ruler', color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 4, supply: 5, warbandsOnBoard: { ruler: 4 }, warbandsInPersonalBank: { ruler: 6 }, advisers: adv('ruler'), ...over['ruler'] }),
+            testPlayer({ playerId: 'chancellor', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 2, secrets: 2, supply: 5, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 12 }, advisers: adv('chancellor'), ...over['chancellor'] })
         ],
         {
             chancellorPlayerId: 'chancellor',
             denizensBySite: { c1: [], c2: [], p1: [], h1: [], ...cards },
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Red]: 2 }, p1: {}, h1: { purple: 2 } },
+            warbandsBySite: { c1: { ruler: 1 }, c2: { ruler: 2 }, p1: {}, h1: { [IMPERIAL_WARBANDS]: 2 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             discardPileCounts: { cradle: 3, provinces: 2, hinterland: 0 },
             discardTopBackType: { cradle: CardKind.Denizen, provinces: CardKind.Denizen },
@@ -125,7 +126,7 @@ describe('relics', () => {
         const vault = vaultFor({ relicFacedown: { 'slot-1': CUP } })
         const a = serverUse(s, vault, BREAKER, [slot('slot-1')])
         expect(s.relicSlotsAt('c1')).toEqual([])
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(7)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(7)
         expect(vault.relicDeck).toEqual([DRUM, MAP, RING, CUP])
         expect(vault.relicFacedown['slot-1']).toBeUndefined()
         // R-9.4 — the card never lets its user look, so the record names the slot and not the relic.
@@ -242,7 +243,7 @@ describe('Citizenship with a Reliquary relic', () => {
         expect(s.reliquarySlots().map((r) => r.slotId)).toEqual([reliquarySlotId(0), reliquarySlotId(2), reliquarySlotId(3)])
         expect(a.metadata?.endsActPhase).toBe(true)
         expect(vault.relicFacedown[reliquarySlotId(1)]).toBeUndefined()
-        const weak = board({}, {}, {}, { warbandsBySite: { c1: { [Color.Red]: 1 }, c2: {}, p1: {}, h1: { purple: 2 } } })
+        const weak = board({}, {}, {}, { warbandsBySite: { c1: { ruler: 1 }, c2: {}, p1: {}, h1: { [IMPERIAL_WARBANDS]: 2 } } })
         expect(() => playAdviser(weak, vaultFor(), AMBITIONS, [yes, slot(reliquarySlotId(0))])).toThrow(/not more than the Chancellor/)
         const keep = board()
         playAdviser(keep, vaultFor(), AMBITIONS)

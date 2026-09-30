@@ -38,12 +38,12 @@ export function discardRevealedVision(
 
 /** R-10.13 */
 function killWarbandsOnVision(state: HydratedOathGameState, visionId: string): string | undefined {
-    let ownerId: string | undefined
-    for (const [color, count] of warbandEntries(state.warbandsOnCard(visionId))) {
+    let playerId: string | undefined
+    for (const [owner, count] of warbandEntries(state.warbandsOnCard(visionId))) {
         if (count <= 0) continue
-        removeWarbandsFromCard(state, visionId, color, count)
-        killWarbands(state, color, count)
-        ownerId ??= state.warbandOwnerOf(color)
+        removeWarbandsFromCard(state, visionId, owner, count)
+        killWarbands(state, owner, count)
+        playerId ??= state.warbandBankHolderOf(owner)
     }
-    return ownerId
+    return playerId
 }

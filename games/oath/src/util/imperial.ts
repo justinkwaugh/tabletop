@@ -1,5 +1,5 @@
 import { HydratedOathGameState, type RelicSlot } from '../model/gameState.js'
-import { IMPERIAL_COLOR } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { GRAND_SCEPTER_ID, RELIQUARY_SIZE } from '../data/relics.js'
 import { countOf } from './warbands.js'
 
@@ -28,16 +28,11 @@ export function grandScepterHolderId(state: HydratedOathGameState): string | und
     return state.relicHolderOf(GRAND_SCEPTER_ID)?.playerId
 }
 
-/** R-1.8, R-5.2.2 — the Chancellor's bank is the Empire's pool, so a Citizen musters from it. */
-export function imperialWarbandBankOwner(state: HydratedOathGameState): string {
-    return state.chancellorId()
-}
-
 /** R-6.6.2, R-9.3 */
 export function availableImperialWarbands(state: HydratedOathGameState): number {
     return countOf(
         state.getPlayerState(state.chancellorId()).warbandsInPersonalBank,
-        IMPERIAL_COLOR
+        IMPERIAL_WARBANDS
     )
 }
 

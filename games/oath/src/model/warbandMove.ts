@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import type { Color } from '@tabletop/common'
+import type { WarbandOwner } from './warbandCounts.js'
 
 export enum WarbandMoveKind {
     SiteToBoard = 'siteToBoard',
@@ -23,4 +23,4 @@ export const WarbandMove = Type.Union([
     })
 ])
 
-export type WarbandMoveOption = { move: WarbandMove; color: Color; max: number }
+export type WarbandMoveOption = { move: WarbandMove; owner: WarbandOwner; max: number }

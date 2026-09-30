@@ -36,8 +36,6 @@ const JINX = 'denizen.arcane.jinx'
 const X = 'x'
 const Y = 'y'
 const H = 'h'
-const RED: Color = Color.Red
-const BLUE: Color = Color.Blue
 
 const POWER = powersWithTiming(SNEAK_ATTACK, PowerTiming.Persistent)[0]
 const PAWN: CampaignTarget = { kind: CampaignTargetKind.PawnAndFavor }
@@ -46,9 +44,9 @@ const pass: QuestionAnswer = { kind: PowerQuestionKind.SneakAttack, campaign: fa
 function board(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     return testState(
         withChancellor([
-            testPlayer({ playerId: X, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [RED]: 6 }, ...over[X] }),
-            testPlayer({ playerId: Y, color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 0, warbandsOnBoard: { [BLUE]: 4 }, advisers: [adviser(SNEAK_ATTACK)], ...over[Y] }),
-            testPlayer({ playerId: H, color: Color.Yellow, siteId: 'p1', favor: 0, supply: 6, warbandsOnBoard: { [Color.Yellow]: 2 }, warbandsInPersonalBank: { [Color.Yellow]: 12 }, ...over[H] })
+            testPlayer({ playerId: X, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [X]: 6 }, ...over[X] }),
+            testPlayer({ playerId: Y, color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 0, warbandsOnBoard: { [Y]: 4 }, advisers: [adviser(SNEAK_ATTACK)], ...over[Y] }),
+            testPlayer({ playerId: H, color: Color.Yellow, siteId: 'p1', favor: 0, supply: 6, warbandsOnBoard: { [H]: 2 }, warbandsInPersonalBank: { [H]: 12 }, ...over[H] })
         ]),
         { warbandsBySite: {}, ...state }
     )
@@ -151,7 +149,7 @@ describe('Sneak Attack — "After another player\'s campaign, you may campaign"'
         Object.assign(s.campaign ?? {}, { swords: 9, defense: 0 })
         new HydratedCampaignSacrifice(buildAction(CampaignSacrifice, { playerId: X, sacrifice: 0, defeatKills: [] })).apply(s)
         expect(s.pendingQuestions).toBeUndefined()
-        const won = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: X, placements: [{ siteId: 'c1', color: RED, count: 1 }], burnFavor: false }))
+        const won = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: X, placements: [{ siteId: 'c1', owner: X, count: 1 }], burnFavor: false }))
         won.apply(s)
         expect(s.pendingQuestions?.queue).toMatchObject([{ kind: PowerQuestionKind.SneakAttack, askedPlayerId: Y, defenderPlayerId: X }])
         expect(won.metadata?.triggered).toEqual([`Sneak Attack: ${Y} may campaign against ${X} for no Supply`])
@@ -220,7 +218,7 @@ describe('Sneak Attack — "if you declare them as the defender"', () => {
         expect(t.state.machineState).toBe(MachineState.ActPhase)
         expect(t.state.pendingQuestions).toBeUndefined()
         // R-5.5.1 — ruling the holder's site is the other limb.
-        const ruled = new Table(board({ [Y]: { siteId: 'c2' }, [H]: { siteId: 'c1' } }, { warbandsBySite: { c2: { [RED]: 1 } } }))
+        const ruled = new Table(board({ [Y]: { siteId: 'c2' }, [H]: { siteId: 'c1' } }, { warbandsBySite: { c2: { [X]: 1 } } }))
         ruled.campaign(X, H, [PAWN], 0).sacrifice(X)
         expect(ruled.question).toMatchObject({ kind: PowerQuestionKind.SneakAttack, askedPlayerId: Y })
         // R-5.5.2 — the defender rules the holder's site, so it must be targeted.
@@ -230,7 +228,7 @@ describe('Sneak Attack — "if you declare them as the defender"', () => {
     })
 
     it('R-5.5.2: with no legal declaration of targets against the defender, nobody is asked (The Hidden Place, no secret to flip)', () => {
-        const hidden = (secrets: number) => new Table(board({ [Y]: { secrets } }, { warbandsBySite: { c1: { [RED]: 1 } }, siteCards: { ...Object.fromEntries(['c2', 'p1', 'p2', 'p3', 'h1', 'h2', 'h3'].map((id) => [id, id])), c1: 'site.the-hidden-place' } })).xLosesToY(true)
+        const hidden = (secrets: number) => new Table(board({ [Y]: { secrets } }, { warbandsBySite: { c1: { [X]: 1 } }, siteCards: { ...Object.fromEntries(['c2', 'p1', 'p2', 'p3', 'h1', 'h2', 'h3'].map((id) => [id, id])), c1: 'site.the-hidden-place' } })).xLosesToY(true)
         const noSecret = hidden(0)
         expect(noSecret.state.machineState).toBe(MachineState.ActPhase)
         expect(noSecret.state.pendingQuestions).toBeUndefined()
@@ -336,7 +334,7 @@ describe('Sneak Attack — the whole interrupted turn, through the engine', () =
         expect(t.state.machineState).toBe(MachineState.ActPhase)
         expect(t.state.activePlayerIds).toEqual([X])
         // R-5.5.6 — half of the defeated force of four.
-        expect(t.player(Y).warbandsOnBoard[BLUE]).toBe(2)
+        expect(t.player(Y).warbandsOnBoard[Y]).toBe(2)
     })
 })
 
@@ -377,7 +375,7 @@ describe('Sneak Attack — R-10.2-H1, the order of simultaneous triggers', () =>
             const rolled = t.state.campaign
             if (!rolled || rolled.swords <= rolled.defense) continue
             t.sacrifice(X)
-            return t.victory(X, { placements: [{ siteId: 'c1', color: RED, count: 1 }] })
+            return t.victory(X, { placements: [{ siteId: 'c1', owner: X, count: 1 }] })
         }
         throw Error('no seed found where the attack wins outright')
     }

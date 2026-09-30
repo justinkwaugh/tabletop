@@ -145,12 +145,12 @@
                     {#if pieces}
                         <div class="card-preview__pieces" style="width:{width}px;">
                             {#if pieces.warbands.length > 0}
-                                {#each pieces.warbands as [color, n] (color)}
+                                {#each pieces.warbands as [owner, n] (owner)}
                                     <span class="piece">
                                         <img
                                             class="figure"
-                                            src={warbandImage(color)}
-                                            alt="{color} warband"
+                                            src={warbandImage(gameSession.warbandColor(owner))}
+                                            alt="{gameSession.warbandOwnerName(owner)} warband"
                                         />
                                         {plural(n, 'warband')}
                                     </span>

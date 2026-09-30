@@ -1,7 +1,8 @@
 import { Color } from '@tabletop/common'
 import type { OathGameState, OathProjectedState } from '../model/gameState.js'
 import type { AdviserRow, OathPlayerState } from '../model/playerState.js'
-import { IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { PlayerStatus } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { MachineState } from '../definition/states.js'
 import { openTurn, testPlayer, testState } from './fixture.js'
 import { TENTS } from './cards.js'
@@ -30,8 +31,8 @@ export function rulerTable(
                 favor: 3,
                 secrets: 3,
                 supply: 4,
-                warbandsOnBoard: { [Color.Red]: 4 },
-                warbandsInPersonalBank: { [Color.Red]: 6 },
+                warbandsOnBoard: { ruler: 4 },
+                warbandsInPersonalBank: { ruler: 6 },
                 advisers: advisers.map((cardId) => adviser(cardId)),
                 ...over['ruler']
             }),
@@ -41,8 +42,8 @@ export function rulerTable(
                 siteId: 'c1',
                 favor: 2,
                 secrets: 2,
-                warbandsOnBoard: { [Color.Blue]: 2 },
-                warbandsInPersonalBank: { [Color.Blue]: 5 },
+                warbandsOnBoard: { other: 2 },
+                warbandsInPersonalBank: { other: 5 },
                 advisers: [adviser(TENTS)],
                 ...over['other']
             }),
@@ -58,9 +59,9 @@ export function rulerTable(
         {
             denizensBySite: { c1: cards, c2: [], p1: [], h1: [] },
             warbandsBySite: {
-                c1: { [Color.Red]: 1 },
-                c2: { [Color.Red]: 2 },
-                p1: { [Color.Blue]: 3 }
+                c1: { ruler: 1 },
+                c2: { ruler: 2 },
+                p1: { other: 3 }
             },
             siteCards: {
                 c1: 'site.plains',
@@ -90,28 +91,28 @@ export function statusTable(
             playerId: CHANCELLOR,
             color: Color.Purple,
             status: PlayerStatus.Chancellor,
-            warbandsInPersonalBank: { [IMPERIAL_COLOR]: 24 },
+            warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 24 },
             ...playerOverrides[CHANCELLOR]
         }),
         testPlayer({
             playerId: CITIZEN,
             color: Color.Blue,
             status: PlayerStatus.Citizen,
-            warbandsInPersonalBank: { [IMPERIAL_COLOR]: 0, [Color.Blue]: 14 },
+            warbandsInPersonalBank: { [CITIZEN]: 14 },
             ...playerOverrides[CITIZEN]
         }),
         testPlayer({
             playerId: EXILE,
             color: Color.Red,
             status: PlayerStatus.Exile,
-            warbandsInPersonalBank: { [Color.Red]: 14 },
+            warbandsInPersonalBank: { [EXILE]: 14 },
             ...playerOverrides[EXILE]
         }),
         testPlayer({
             playerId: OTHER_EXILE,
             color: Color.Yellow,
             status: PlayerStatus.Exile,
-            warbandsInPersonalBank: { [Color.Yellow]: 14 },
+            warbandsInPersonalBank: { [OTHER_EXILE]: 14 },
             ...playerOverrides[OTHER_EXILE]
         })
     ]
@@ -133,14 +134,14 @@ export function twoSeatActPhase(
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: 'c1',
-                warbandsInPersonalBank: { purple: 5 }
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }
             }),
             testPlayer({
                 playerId: 'p2',
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: 'c2',
-                warbandsInPersonalBank: { [Color.Red]: 4 }
+                warbandsInPersonalBank: { p2: 4 }
             })
         ],
         { machineState: MachineState.ActPhase, chancellorPlayerId: 'p1', ...overrides }

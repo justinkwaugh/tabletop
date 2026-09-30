@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
 import { SearchPlay } from '../actions/searchResolve.js'
 import { HydratedTravel, Travel } from '../actions/travel.js'
 import { HydratedMuster, Muster } from '../actions/muster.js'
@@ -58,25 +57,25 @@ describe('Arcane', () => {
     it('Terror Spells — two warbands in your region, anywhere, only while you hold the Darkest Secret', () => {
         const dark = { banners: { [Banner.DarkestSecret]: { holderPlayerId: 'ruler', value: 1 }, [Banner.PeoplesFavor]: { value: 1 } } }
         const s = board([TERROR], [], {}, dark)
-        actionPowerUse('ruler', TERROR, [siteWarbands('c2', Color.Red, 1), boardWarbands('other', Color.Blue, 1)]).apply(s)
-        expect(s.warbandsBySite['c2'][Color.Red]).toBe(1)
-        expect(s.getPlayerState('other').warbandsOnBoard[Color.Blue]).toBe(1)
+        actionPowerUse('ruler', TERROR, [siteWarbands('c2', 'ruler', 1), boardWarbands('other', 'other', 1)]).apply(s)
+        expect(s.warbandsBySite['c2']['ruler']).toBe(1)
+        expect(s.getPlayerState('other').warbandsOnBoard['other']).toBe(1)
 
         const noBanner = board([TERROR])
-        expect(() => actionPowerUse('ruler', TERROR, [siteWarbands('c2', Color.Red, 2)]).apply(noBanner)).toThrow(/Darkest Secret/)
+        expect(() => actionPowerUse('ruler', TERROR, [siteWarbands('c2', 'ruler', 2)]).apply(noBanner)).toThrow(/Darkest Secret/)
         const one = board([TERROR], [], {}, dark)
-        expect(() => actionPowerUse('ruler', TERROR, [siteWarbands('c2', Color.Red, 1)]).apply(one)).toThrow(/1 named, 2 to kill/)
+        expect(() => actionPowerUse('ruler', TERROR, [siteWarbands('c2', 'ruler', 1)]).apply(one)).toThrow(/1 named, 2 to kill/)
         // p1 is another region: not in the domain.
         const far = board([TERROR], [], {}, dark)
-        expect(() => actionPowerUse('ruler', TERROR, [siteWarbands('p1', Color.Blue, 2)]).apply(far)).toThrow()
+        expect(() => actionPowerUse('ruler', TERROR, [siteWarbands('p1', 'other', 2)]).apply(far)).toThrow()
     })
 
     it('Blood Pact — an even number from your board, one secret per pair', () => {
         const s = board([BLOOD])
-        actionPowerUse('ruler', BLOOD, [boardWarbands('ruler', Color.Red, 4)]).apply(s)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(0)
+        actionPowerUse('ruler', BLOOD, [boardWarbands('ruler', 'ruler', 4)]).apply(s)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(0)
         expect(s.getPlayerState('ruler').secrets).toBe(3 - 1 + 2)
-        expect(() => actionPowerUse('ruler', BLOOD, [boardWarbands('ruler', Color.Red, 3)]).apply(board([BLOOD]))).toThrow(/even number/)
+        expect(() => actionPowerUse('ruler', BLOOD, [boardWarbands('ruler', 'ruler', 3)]).apply(board([BLOOD]))).toThrow(/even number/)
     })
 
     it('Taming Charm — discards a beast or nomad card at your site for two favor from its bank', () => {
@@ -108,19 +107,19 @@ describe('Beast', () => {
         const plain = board([INN, WOLVES], [TENTS])
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: WOLVES })).apply(plain)
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: WOLVES })).apply(s)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(required(plain.getPlayerState('ruler').warbandsOnBoard[Color.Red], 'the ruler’s red warbands') + 1)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(required(plain.getPlayerState('ruler').warbandsOnBoard['ruler'], 'the ruler’s red warbands') + 1)
     })
 
     it('Second Chance — kills one on the board of a player with an order or discord adviser, gaining one', () => {
         const s = board([SECOND])
         actionPowerUse('ruler', SECOND, [player('other')]).apply(s)
-        expect(s.getPlayerState('other').warbandsOnBoard[Color.Blue]).toBe(1)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(5)
+        expect(s.getPlayerState('other').warbandsOnBoard['other']).toBe(1)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(5)
         expect(() => actionPowerUse('ruler', SECOND, [player('away')]).apply(board([SECOND]))).toThrow()
         const empty = board([SECOND], [], { other: { warbandsOnBoard: {} } })
         const a = actionPowerUse('ruler', SECOND, [player('other')])
         a.apply(empty)
-        expect(empty.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4)
+        expect(empty.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
         expect(a.metadata?.summary).toMatch(/nothing gained/)
     })
 })
@@ -130,9 +129,9 @@ describe('Discord', () => {
         const s = board([])
         expect(banditsPerSite(s)).toBe(1)
         playDrawnCard(s, CHIEF, SearchPlay.Site)
-        expect(s.warbandsBySite['c1'][Color.Red] ?? 0).toBe(0)
-        expect(s.warbandsBySite['c2'][Color.Red]).toBe(1)
-        expect(s.warbandsBySite['p1'][Color.Blue]).toBe(2)
+        expect(s.warbandsBySite['c1']['ruler'] ?? 0).toBe(0)
+        expect(s.warbandsBySite['c2']['ruler']).toBe(1)
+        expect(s.warbandsBySite['p1']['other']).toBe(2)
         expect(banditsPerSite(s)).toBe(3)
         const parties: CampaignParties = { attackerPlayerId: 'ruler', defenderPlayerId: undefined, targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }], allyPlayerIds: [], nonImperialPlayerIds: [] }
         expect(collectDefendingBandits(s, parties)).toBe(3)
@@ -169,15 +168,15 @@ describe('Discord', () => {
         s.getPlayerState('ruler').siteId = 'c1'
         const here = playDrawnCard(s, KEY, SearchPlay.Site)
         expect(here.metadata?.whenPlayed).toMatch(/ruler's pawn is at c1/)
-        expect(s.warbandsBySite['c1'][Color.Red]).toBe(1)
+        expect(s.warbandsBySite['c1']['ruler']).toBe(1)
 
         // `other` rules p1 but stands on c1.
         const t = board([], [], { ruler: { siteId: 'p1' } }, { denizensBySite: { c1: [], c2: [], p1: [], h1: [] } })
         const a = playDrawnCard(t, KEY, SearchPlay.Site)
         expect(a.metadata?.whenPlayed).toMatch(/killed 3 at p1/)
-        expect(t.warbandsBySite['p1'][Color.Blue] ?? 0).toBe(0)
-        expect(t.warbandsBySite['p1'][Color.Red]).toBe(1)
-        expect(t.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4)
+        expect(t.warbandsBySite['p1']['other'] ?? 0).toBe(0)
+        expect(t.warbandsBySite['p1']['ruler']).toBe(1)
+        expect(t.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
 
         // R-7.2.1's placement: the card can only be played to a site.
         expect(() => playDrawnCard(board([]), KEY, SearchPlay.Adviser)).toThrow(/only be played to a site/)

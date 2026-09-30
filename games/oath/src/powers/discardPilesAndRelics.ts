@@ -245,7 +245,7 @@ function citizenshipWithRelic(
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             const relic = takeReliquaryRelic(ctx, slot.slotId)
             return {
-                summary: `${name}: became a Citizen (${c.recoloredCount} warbands turned purple), took ${relic.relicCardId ?? 'a Reliquary relic'}${takeNotes(relic.notes)}; Supply refreshed, Act Phase over`,
+                summary: `${name}: became a Citizen (${c.replacedCount} warbands became Imperial), took ${relic.relicCardId ?? 'a Reliquary relic'}${takeNotes(relic.notes)}; Supply refreshed, Act Phase over`,
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
             }

@@ -14,6 +14,7 @@ import { ongoingCampaign, required } from '../testing/required.js'
 import { joinDefence } from '../testing/actions.js'
 import { battlePlanUse, siteTarget } from '../testing/choices.js'
 import { ATTACKER, DEFENDER, campaign, defend, finishCampaign, finishCampaignSteps } from '../testing/steps.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const ALLY = 'ally'
 
@@ -27,19 +28,19 @@ function table(
         [
             testPlayer({
                 playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 5, favor: 4, secrets: 3,
-                warbandsOnBoard: { [Color.Red]: 5 }, warbandsInPersonalBank: { [Color.Red]: 7 },
+                warbandsOnBoard: { [ATTACKER]: 5 }, warbandsInPersonalBank: { [ATTACKER]: 7 },
                 advisers: (advisers.attacker ?? []).map((cardId) => ({ cardId, faceUp: true })),
                 ...players[ATTACKER]
             }),
             testPlayer({
                 playerId: DEFENDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'p1', favor: 6, secrets: 3,
-                warbandsOnBoard: { [Color.Yellow]: 4 }, warbandsInPersonalBank: { [Color.Yellow]: 6 },
+                warbandsOnBoard: { [DEFENDER]: 4 }, warbandsInPersonalBank: { [DEFENDER]: 6 },
                 advisers: (advisers.defender ?? []).map((cardId) => ({ cardId, faceUp: true })),
                 ...players[DEFENDER]
             })
         ],
         {
-            warbandsBySite: { c1: { [Color.Yellow]: 1 }, p1: { [Color.Yellow]: 3 } },
+            warbandsBySite: { c1: { [DEFENDER]: 1 }, p1: { [DEFENDER]: 3 } },
             denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
             prng: { seed, invocations: 0 },
             ...over
@@ -103,7 +104,7 @@ describe('conditions read the Campaign', () => {
         expect(small.campaign?.attackPool).toBe(3)
         expect(small.campaign?.ignoreSkulls).toBe(true)
         // Four targets, four defense dice.
-        const big = table({ warbandsBySite: { c1: { [Color.Yellow]: 1 }, c2: { [Color.Yellow]: 1 }, p1: { [Color.Yellow]: 3 }, h1: { [Color.Yellow]: 1 } } }, { attacker: ['denizen.beast.rangers'] })
+        const big = table({ warbandsBySite: { c1: { [DEFENDER]: 1 }, c2: { [DEFENDER]: 1 }, p1: { [DEFENDER]: 3 }, h1: { [DEFENDER]: 1 } } }, { attacker: ['denizen.beast.rangers'] })
         campaign({ plans: [battlePlanUse('denizen.beast.rangers')], targets: [siteTarget('c1'), siteTarget('c2'), siteTarget('p1'), siteTarget('h1')] }).apply(big)
         expect(big.campaign?.attackPool).toBe(5)
     })
@@ -171,14 +172,14 @@ describe('conditions read the Campaign', () => {
         defend([battlePlanUse('denizen.order.bear-traps')]).apply(s)
         expect(s.campaign?.attackPool).toBe(2)
         // One to the trap, then one per skull rolled.
-        expect(s.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(4 - attackFromFaces(ongoingCampaign(s).attackRoll).skulls)
+        expect(s.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(4 - attackFromFaces(ongoingCampaign(s).attackRoll).skulls)
 
         const w = table({ denizensBySite: { c1: ['denizen.order.wrestlers'], c2: [], p1: [], h1: [] } })
         campaign().apply(w)
         defend([battlePlanUse('denizen.order.wrestlers')]).apply(w)
         expect(w.campaign?.defensePool).toBe(2)
         // The pawn at p1 keeps the defender's board out, so c1's one warband is the force.
-        expect(w.warbandsBySite['c1'][Color.Yellow] ?? 0).toBe(0)
+        expect(w.warbandsBySite['c1'][DEFENDER] ?? 0).toBe(0)
     })
 })
 
@@ -194,7 +195,7 @@ describe('the roll rules', () => {
             const hollow = sum((f) => f.hollowSwords)
             const skulls = sum((f) => f.skulls)
             expect(s.campaign?.swords).toBe(2 * sum((f) => f.swords) + hollow)
-            expect(s.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(Math.max(0, 5 - 2 * skulls))
+            expect(s.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(Math.max(0, 5 - 2 * skulls))
             if (hollow % 2 === 1) oddHollow = true
             if (skulls > 0) skulled = true
         }
@@ -232,7 +233,7 @@ describe('the roll rules', () => {
     })
 
     it('Zealots: three per sacrificed warband while the defending force is larger', () => {
-        const s = battleWhere(false, (seed) => table({}, { attacker: ['denizen.discord.zealots'] }, { [ATTACKER]: { warbandsOnBoard: { [Color.Red]: 2 } } }, seed), (s) =>
+        const s = battleWhere(false, (seed) => table({}, { attacker: ['denizen.discord.zealots'] }, { [ATTACKER]: { warbandsOnBoard: { [ATTACKER]: 2 } } }, seed), (s) =>
             campaign({ plans: [battlePlanUse('denizen.discord.zealots')], targets: [siteTarget('c1'), siteTarget('p1')], attackDice: 2 }).apply(s)
         )
         // c1's one, p1's three and the board's four, since the defender's pawn is on a target.
@@ -246,16 +247,16 @@ describe('the roll rules', () => {
         let shrunk = false
         for (let seed = 1; seed < 40; seed++) {
             // Nine on the board against a defending force of eight: not larger when used.
-            const s = table({}, { attacker: ['denizen.discord.zealots'] }, { [ATTACKER]: { warbandsOnBoard: { [Color.Red]: 9 } } }, seed)
+            const s = table({}, { attacker: ['denizen.discord.zealots'] }, { [ATTACKER]: { warbandsOnBoard: { [ATTACKER]: 9 } } }, seed)
             campaign({ plans: [battlePlanUse('denizen.discord.zealots')], targets: [siteTarget('c1'), siteTarget('p1')], attackDice: 6 }).apply(s)
-            if ((s.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red] ?? 0) < 8) shrunk = true
+            if ((s.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER] ?? 0) < 8) shrunk = true
             expect(s.campaign?.sacrificeWorth).toBe(1)
         }
         expect(shrunk).toBe(true)
     })
 
     it('Zealots: judged when used, so a Jinx reroll left open on the roll does not hold it back', () => {
-        const s = table({}, { attacker: ['denizen.discord.zealots', 'denizen.arcane.jinx'] }, { [ATTACKER]: { warbandsOnBoard: { [Color.Red]: 2 } } })
+        const s = table({}, { attacker: ['denizen.discord.zealots', 'denizen.arcane.jinx'] }, { [ATTACKER]: { warbandsOnBoard: { [ATTACKER]: 2 } } })
         campaign({ plans: [battlePlanUse('denizen.discord.zealots')], targets: [siteTarget('c1'), siteTarget('p1')], attackDice: 2 }).apply(s)
         expect(s.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.RerollDice, askedPlayerId: ATTACKER })
         expect(s.campaign?.pendingSkullKills).toBeDefined()
@@ -277,11 +278,11 @@ describe('locks', () => {
     it("Code of Honor on the defending side locks the rest of it (R-10.28-H1)", () => {
         const s = testState(
             [
-                testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'h1', supply: 5, favor: 3, warbandsOnBoard: { [Color.Red]: 5 }, warbandsInPersonalBank: { [Color.Red]: 7 } }),
-                testPlayer({ playerId: 'chancellor', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 4, warbandsOnBoard: { purple: 3 }, warbandsInPersonalBank: { purple: 15 }, advisers: [{ cardId: 'denizen.order.code-of-honor', faceUp: true }] }),
-                testPlayer({ playerId: ALLY, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'h1', favor: 4, warbandsOnBoard: { purple: 2 }, warbandsInPersonalBank: { [Color.Blue]: 9 }, advisers: [{ cardId: 'denizen.hearth.extra-provisions', faceUp: true }] })
+                testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'h1', supply: 5, favor: 3, warbandsOnBoard: { [ATTACKER]: 5 }, warbandsInPersonalBank: { [ATTACKER]: 7 } }),
+                testPlayer({ playerId: 'chancellor', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 15 }, advisers: [{ cardId: 'denizen.order.code-of-honor', faceUp: true }] }),
+                testPlayer({ playerId: ALLY, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'h1', favor: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [ALLY]: 9 }, advisers: [{ cardId: 'denizen.hearth.extra-provisions', faceUp: true }] })
             ],
-            { chancellorPlayerId: 'chancellor', warbandsBySite: { h1: { purple: 3 } }, prng: { seed: 1, invocations: 0 } }
+            { chancellorPlayerId: 'chancellor', warbandsBySite: { h1: { [IMPERIAL_WARBANDS]: 3 } }, prng: { seed: 1, invocations: 0 } }
         )
         campaign({ defender: { kind: 'player', playerId: 'chancellor' }, targets: [siteTarget('h1')] }).apply(s)
         joinDefence(s, ALLY, 'chancellor')
@@ -299,15 +300,15 @@ describe('the outcome', () => {
             campaign({ plans: [battlePlanUse('denizen.order.battle-honors'), battlePlanUse('denizen.order.field-promotion')], attackDice: 5 }).apply(s)
         )
         const order = won.favorBank[Suit.Order]
-        const board = required(won.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red], 'the attacker’s red warbands')
+        const board = required(won.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER], 'the attacker’s red warbands')
         const { sacrifice: a, victory } = finishCampaignSteps(won)
         expect(a.metadata?.attackerVictorious).toBe(true)
         expect(won.favorBank[Suit.Order]).toBe(order - 2)
-        expect(won.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(board + 3)
+        expect(won.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(board + 3)
         // R-5.5.8 — after R-5.5.7's spoils, so the victory's record reports them.
         expect(victory?.metadata?.triggered).toEqual(['Battle Honors: gained 2 favor from the order bank', 'Field Promotion: gained 3 warbands'])
 
-        const lost = battleWhere(false, (seed) => table({}, { attacker: ['denizen.order.battle-honors'] }, { [ATTACKER]: { warbandsOnBoard: { [Color.Red]: 1 } } }, seed), (s) =>
+        const lost = battleWhere(false, (seed) => table({}, { attacker: ['denizen.order.battle-honors'] }, { [ATTACKER]: { warbandsOnBoard: { [ATTACKER]: 1 } } }, seed), (s) =>
             campaign({ plans: [battlePlanUse('denizen.order.battle-honors')], attackDice: 1 }).apply(s)
         )
         const before = lost.favorBank[Suit.Order]
@@ -317,21 +318,21 @@ describe('the outcome', () => {
     })
 
     it('Mercenaries is discarded on defeat; Traveling Doctor keeps the defeated force whole and goes', () => {
-        const lost = battleWhere(false, (seed) => table({}, { attacker: ['denizen.discord.mercenaries'] }, { [ATTACKER]: { warbandsOnBoard: { [Color.Red]: 2 } } }, seed), (s) =>
+        const lost = battleWhere(false, (seed) => table({}, { attacker: ['denizen.discord.mercenaries'] }, { [ATTACKER]: { warbandsOnBoard: { [ATTACKER]: 2 } } }, seed), (s) =>
             campaign({ plans: [battlePlanUse('denizen.discord.mercenaries')], attackDice: 1 }).apply(s)
         )
         finishCampaign(lost)
         expect(lost.getPlayerState(ATTACKER).advisers).toEqual([])
         expect(lost.discardPileCounts.provinces).toBe(1)
 
-        const doc = battleWhere(false, (seed) => table({}, { attacker: ['denizen.hearth.traveling-doctor'] }, { [ATTACKER]: { warbandsOnBoard: { [Color.Red]: 4 } } }, seed), (s) =>
+        const doc = battleWhere(false, (seed) => table({}, { attacker: ['denizen.hearth.traveling-doctor'] }, { [ATTACKER]: { warbandsOnBoard: { [ATTACKER]: 4 } } }, seed), (s) =>
             campaign({ plans: [battlePlanUse('denizen.hearth.traveling-doctor')], attackDice: 1 }).apply(s)
         )
-        const force = doc.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]
+        const force = doc.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]
         expect(HydratedCampaignSacrifice.defaultDefeatKills(doc, 0)).toEqual([])
         const a = finishCampaign(doc)
         expect(a.metadata?.defeatKilled).toBe(0)
-        expect(doc.getPlayerState(ATTACKER).warbandsOnBoard[Color.Red]).toBe(force)
+        expect(doc.getPlayerState(ATTACKER).warbandsOnBoard[ATTACKER]).toBe(force)
         expect(doc.getPlayerState(ATTACKER).advisers).toEqual([])
     })
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { IMPERIAL_COLOR, PlayerStatus } from '../model/oathEnums.js'
+import { PlayerStatus } from '../model/oathEnums.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { accessibleCardIds, hasAccessToCard, ruledFaceupCardIds, rulesCard } from './access.js'
 import '../powers/index.js'
@@ -9,6 +9,7 @@ import { mayUseBattlePlansOf } from './battlePlans.js'
 import { resolveModifiers } from './modifiers.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { ActionType } from '../definition/actions.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const ADVISER = 'denizen.hearth.wayside-inn'
 const HIDDEN_ADVISER = 'denizen.nomad.tents'
@@ -42,9 +43,9 @@ function table() {
             chancellorPlayerId: 'chancellor',
             denizensBySite: { c2: [AT_RULED_SITE], h1: [AT_PAWN_SITE], p1: [AT_IMPERIAL_SITE] },
             warbandsBySite: {
-                c2: { [Color.Red]: 1 },
-                h1: { [Color.Blue]: 1 },
-                p1: { [IMPERIAL_COLOR]: 1 }
+                c2: { exile: 1 },
+                h1: { blue: 1 },
+                p1: { [IMPERIAL_WARBANDS]: 1 }
             }
         }
     )

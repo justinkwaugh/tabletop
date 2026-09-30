@@ -1,6 +1,6 @@
 import { assertExists, shuffle, type RandomFunction } from '@tabletop/common'
 import { HydratedOathGameState, discardRegionFor, type RelicSlot } from './gameState.js'
-import type { HydratedOathPlayerState, OathPlayerState } from './playerState.js'
+import type { HydratedOathPlayerState } from './playerState.js'
 import {
     Banner,
     CardKind,
@@ -28,6 +28,7 @@ import { visionsDrawnAfter } from '../data/visionsDrawnTrack.js'
 import { discardCards } from '../util/discard.js'
 import { MAX_SUPPLY } from '../util/rest.js'
 import { addWarbandsToSite, gainWarbandsToBoard, takeWarbandsFromBank } from '../util/force.js'
+import { IMPERIAL_WARBANDS } from './warbandCounts.js'
 import type { SetupChoice, SetupChoiceMetadata } from '../actions/setupChoice.js'
 
 /** R-1.6 — 3 favor per bank, or 4 each at five or six players. */
@@ -57,13 +58,6 @@ export const BANNER_START_VALUE = 1
 /** R-2.3, R-1.17 */
 export function reliquarySlotId(index: number): string {
     return `reliquary.${index}`
-}
-
-/** R-10.13 — each seat's own colour; the Chancellor's is purple. */
-export function warbandOwnersBySeat(
-    players: readonly Pick<OathPlayerState, 'playerId' | 'color'>[]
-): Record<string, string> {
-    return Object.fromEntries(players.map((player) => [player.color, player.playerId]))
 }
 
 /** R-1.1, R-8.3.5.7 — a first game flips the top site of each region; the rest are dealt facedown. */
@@ -140,15 +134,14 @@ export function buildInitialPublicState(
 
     // R-1.8 through R-1.15
     state.chancellorPlayerId = chancellor.playerId
-    // R-10.13 — colours are fixed at seating, and the Chancellor's purple returns to them.
-    state.warbandOwnerPlayerId = warbandOwnersBySeat(orderedPlayers)
     for (const player of orderedPlayers) {
         const isChancellor = player.playerId === chancellor.playerId
 
         player.warbandsOnBoard = {}
-        player.warbandsInPersonalBank = {
-            [player.color]: isChancellor ? CHANCELLOR_WARBANDS : EXILE_WARBANDS
-        }
+        // R-1.8 — the Chancellor's bank is the Empire's warbands.
+        player.warbandsInPersonalBank = isChancellor
+            ? { [IMPERIAL_WARBANDS]: CHANCELLOR_WARBANDS }
+            : { [player.playerId]: EXILE_WARBANDS }
 
         // R-1.10 — leftmost is the maximum, not zero.
         player.supply = MAX_SUPPLY
@@ -166,7 +159,7 @@ export function buildInitialPublicState(
         }
         player.secretsFacedown = 0
 
-        // R-1.15 — a Citizen places purple, so the colour comes off the player.
+        // R-1.15 — each Exile's own warbands; the Chancellor's are placed by R-1.12.
         if (!isChancellor) {
             gainWarbandsToBoard(state, player.playerId, EXILE_BOARD_WARBANDS)
         }
@@ -229,8 +222,8 @@ function placeChancellorWarbands(
     addWarbandsToSite(
         state,
         topCradle,
-        chancellor.color,
-        takeWarbandsFromBank(state, chancellor.color, TOP_CRADLE_WARBANDS)
+        IMPERIAL_WARBANDS,
+        takeWarbandsFromBank(state, IMPERIAL_WARBANDS, TOP_CRADLE_WARBANDS)
     )
 }
 

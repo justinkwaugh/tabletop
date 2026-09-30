@@ -20,7 +20,7 @@ import {
     availableSitePowerTakes,
     banksWithLeastFavor,
     canUseSitePower,
-    citizenshipRecolorGroups,
+    citizenshipReplacementGroups,
     endDieIsRolled,
     forceTotal,
     powerKey,
@@ -524,7 +524,7 @@ export class CitizenshipDraft implements PanelDraft {
     }
 }
 
-/** R-6.6.2, R-9.3 — which warbands take the purple, when the Empire cannot cover them all. */
+/** R-6.6.2, R-9.3 — which warbands become Imperial, when the Empire cannot cover them all. */
 export class ConsentDraft extends OneStepDraft<number[]> {
     private get playerId(): string | undefined {
         const pending = this.session.gameState.pendingConsent
@@ -537,18 +537,20 @@ export class ConsentDraft extends OneStepDraft<number[]> {
     }
 
     get groups(): WarbandGroup[] {
-        return this.playerId ? citizenshipRecolorGroups(this.session.gameState, this.playerId) : []
+        return this.playerId
+            ? citizenshipReplacementGroups(this.session.gameState, this.playerId)
+            : []
     }
 
-    get purpleAvailable() {
+    get imperialAvailable() {
         return availableImperialWarbands(this.session.gameState)
     }
 
     get mustChoose() {
-        return this.playerId !== undefined && this.purpleAvailable < forceTotal(this.groups)
+        return this.playerId !== undefined && this.imperialAvailable < forceTotal(this.groups)
     }
 
-    // The default fills the groups in order until the purple runs out.
+    // The default fills the groups in order until the Imperial warbands run out.
     get picked(): number[] {
         if (!this.mustChoose) return []
         const stored = this.stored
@@ -558,7 +560,7 @@ export class ConsentDraft extends OneStepDraft<number[]> {
         ) {
             return stored
         }
-        let left = this.purpleAvailable
+        let left = this.imperialAvailable
         return this.groups.map((group) => {
             const take = Math.min(group.count, left)
             left -= take
@@ -570,7 +572,7 @@ export class ConsentDraft extends OneStepDraft<number[]> {
         return this.picked.reduce((n, c) => n + c, 0)
     }
 
-    get recolorChoice(): WarbandGroup[] | undefined {
+    get replacementChoice(): WarbandGroup[] | undefined {
         if (!this.mustChoose) return undefined
         return this.groups
             .map((group, index) => ({ ...group, count: this.picked[index] ?? 0 }))
@@ -589,12 +591,15 @@ export class ConsentDraft extends OneStepDraft<number[]> {
         return HydratedResolveCitizenshipOffer.reasonCannotResolve(
             this.session.gameState,
             playerId,
-            { granted: true, recolorChoice: this.recolorChoice }
+            { granted: true, replacementChoice: this.replacementChoice }
         )
     }
 
     async answer(granted: boolean): Promise<void> {
         if (!this.playerId) return
-        await this.session.answerCitizenshipOffer(granted, granted ? this.recolorChoice : undefined)
+        await this.session.answerCitizenshipOffer(
+            granted,
+            granted ? this.replacementChoice : undefined
+        )
     }
 }

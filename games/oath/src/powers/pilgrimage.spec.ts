@@ -32,12 +32,12 @@ const POWER = powersWithTiming(PILGRIMAGE, PowerTiming.WhenPlayed)[0]
 function board(denizens: Record<string, string[]> = {}, over: Record<string, Record<string, unknown>> = {}, dispossessed: string[] = POOL) {
     const s = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, warbandsOnBoard: { [Color.Red]: 2 }, ...over[ME] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'p1', favor: 3, secrets: 2, warbandsOnBoard: { [Color.Blue]: 2 }, ...over[FOE] })
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, warbandsOnBoard: { [ME]: 2 }, ...over[ME] }),
+            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'p1', favor: 3, secrets: 2, warbandsOnBoard: { [FOE]: 2 }, ...over[FOE] })
         ],
         {
             denizensBySite: { c1: [WOLVES, INN], c2: [TENTS], p1: [ELDERS], ...denizens },
-            warbandsBySite: { c1: { [Color.Blue]: 1 }, c2: { [Color.Red]: 1 }, p1: { [Color.Blue]: 1 } },
+            warbandsBySite: { c1: { [FOE]: 1 }, c2: { [ME]: 1 }, p1: { [FOE]: 1 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes' }
         }
     )

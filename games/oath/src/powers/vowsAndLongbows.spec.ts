@@ -19,12 +19,12 @@ const MAGICIANS_CODE = 'denizen.arcane.magicians-code'
 function board(advisers: string[] = [], over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: 'att', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { [Color.Red]: 3 }, warbandsInPersonalBank: { [Color.Red]: 6 }, advisers: advisers.map((cardId) => ({ cardId, faceUp: true })), ...over['att'] }),
-            testPlayer({ playerId: 'def', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { [Color.Blue]: 2 }, warbandsInPersonalBank: { [Color.Blue]: 5 }, ...over['def'] })
+            testPlayer({ playerId: 'att', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { att: 3 }, warbandsInPersonalBank: { att: 6 }, advisers: advisers.map((cardId) => ({ cardId, faceUp: true })), ...over['att'] }),
+            testPlayer({ playerId: 'def', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { def: 2 }, warbandsInPersonalBank: { def: 5 }, ...over['def'] })
         ],
         {
             denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
-            warbandsBySite: { c1: { [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } },
+            warbandsBySite: { c1: { def: 2 }, c2: { att: 2 }, p1: { def: 3 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             ...state
         }
@@ -62,13 +62,13 @@ describe('Vow of Union — the ruled sites in the force, and no leaving a ruled 
     })
 
     it('forbids travelling from a ruled site while warbands are on the board, and not otherwise', () => {
-        const s = board([VOW_OF_UNION], {}, { warbandsBySite: { c1: { [Color.Red]: 1, [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } } })
+        const s = board([VOW_OF_UNION], {}, { warbandsBySite: { c1: { att: 1, def: 2 }, c2: { att: 2 }, p1: { def: 3 } } })
         expect(HydratedTravel.reasonCannotTravel(s, 'att', 'c2')).toMatch(/cannot travel from a site you rule/)
         s.getPlayerState('att').warbandsOnBoard = {}
         expect(HydratedTravel.reasonCannotTravel(s, 'att', 'c2')).toBeUndefined()
         const t = board([VOW_OF_UNION])
         expect(HydratedTravel.reasonCannotTravel(t, 'att', 'c2')).toBeUndefined()
-        const u = board([], { def: { advisers: [{ cardId: VOW_OF_UNION, faceUp: true }] } }, { warbandsBySite: { c1: { [Color.Red]: 1, [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { [Color.Blue]: 3 } } })
+        const u = board([], { def: { advisers: [{ cardId: VOW_OF_UNION, faceUp: true }] } }, { warbandsBySite: { c1: { att: 1, def: 2 }, c2: { att: 2 }, p1: { def: 3 } } })
         expect(HydratedTravel.reasonCannotTravel(u, 'att', 'c2')).toBeUndefined()
     })
 })

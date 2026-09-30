@@ -10,6 +10,7 @@ import {
 } from '@tabletop/oath'
 import { campaignRecords, required, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
+import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 afterEach(() => {
     disposeSessions()
@@ -27,19 +28,19 @@ const MOUNTS_PLAN = required(
 function battle(machineState: MachineState, campaign: Partial<CampaignState>, onClock: string) {
     const state = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [Color.Red]: 4 } }),
+            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [ME]: 4 } }),
             testPlayer({
                 playerId: FOE,
                 color: Color.Blue,
                 siteId: 'c1',
-                warbandsOnBoard: { [Color.Blue]: 2 },
+                warbandsOnBoard: { [FOE]: 2 },
                 advisers: [{ cardId: WILD_MOUNTS, faceUp: true }]
             })
         ],
         {
             machineState,
             activePlayerIds: [onClock],
-            warbandsBySite: { c1: { [Color.Blue]: 3 }, c2: { [Color.Blue]: 2 } },
+            warbandsBySite: { c1: { [FOE]: 3 }, c2: { [FOE]: 2 } },
             campaign: {
                 attackerPlayerId: ME,
                 defenderPlayerId: FOE,
@@ -74,15 +75,15 @@ describe('the spoils draft (docs/user-interactions.md)', () => {
 
     it('a count on one site keeps the counts on the others', () => {
         const spoils = won()
-        spoils.setPlaceCount('c1', Color.Red, 2)
-        spoils.setPlaceCount('c2', Color.Red, 1)
+        spoils.setPlaceCount('c1', ME, 2)
+        spoils.setPlaceCount('c2', ME, 1)
         expect(spoils.placeCounts).toEqual({ c1: 2, c2: 1 })
     })
 
     it('Back clears every count at once', () => {
         const spoils = won()
-        spoils.setPlaceCount('c1', Color.Red, 2)
-        spoils.setPlaceCount('c2', Color.Red, 1)
+        spoils.setPlaceCount('c1', ME, 2)
+        spoils.setPlaceCount('c2', ME, 1)
         expect(spoils.back()).toBe(true)
         expect(spoils.placeCounts).toEqual({ c1: 0, c2: 0 })
         expect(spoils.back()).toBe(false)
@@ -96,18 +97,18 @@ describe('the spoils draft (docs/user-interactions.md)', () => {
 
     it('a site not taken, or more warbands than the force holds, is never placed', () => {
         const spoils = won()
-        spoils.setPlaceCount('p1', Color.Red, 1)
+        spoils.setPlaceCount('p1', ME, 1)
         expect(spoils.hasManualSelection()).toBe(false)
-        spoils.setPlaceCount('c1', Color.Red, 9)
+        spoils.setPlaceCount('c1', ME, 9)
         expect(spoils.placeCounts.c1).toBe(4)
     })
 
     it('recounting a site lowers the ceiling left for the others', () => {
         const spoils = won()
-        spoils.setPlaceCount('c1', Color.Red, 3)
-        expect(spoils.ceilingAt('c2', Color.Red)).toBe(1)
-        spoils.setPlaceCount('c1', Color.Red, 1)
-        expect(spoils.ceilingAt('c2', Color.Red)).toBe(3)
+        spoils.setPlaceCount('c1', ME, 3)
+        expect(spoils.ceilingAt('c2', ME)).toBe(1)
+        spoils.setPlaceCount('c1', ME, 1)
+        expect(spoils.ceilingAt('c2', ME)).toBe(3)
     })
 })
 
@@ -117,7 +118,7 @@ describe('R-5.5.2.a then R-5.5.3 — the attacker declares plans after the Citiz
         const ARCHERS = 'denizen.nomad.horse-archers'
         const state = testState(
             [
-                testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [Color.Red]: 4 }, advisers: [{ cardId: ARCHERS, faceUp: true }] }),
+                testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', warbandsOnBoard: { [ME]: 4 }, advisers: [{ cardId: ARCHERS, faceUp: true }] }),
                 testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1' })
             ],
             {
@@ -146,7 +147,7 @@ describe('R-5.5.7.III, R-11.7 — banishing from a Shrouded Wood', () => {
     it('lists no site: the Wood\'s ruler chooses, and the banish is sent for them to answer', async () => {
         const session = battle(MachineState.CampaignVictory, { attackerVictorious: true, targets: [{ kind: CampaignTargetKind.PawnAndFavor }] }, ME)
         session.gameState.siteCards = { ...session.gameState.siteCards, c1: 'site.shrouded-wood' }
-        session.gameState.warbandsBySite = { ...session.gameState.warbandsBySite, c1: { [Color.Red]: 1 } }
+        session.gameState.warbandsBySite = { ...session.gameState.warbandsBySite, c1: { [ME]: 1 } }
         const sent = vi.spyOn(session, 'resolveCampaignVictory').mockResolvedValue()
         const spoils = session.victory
         expect(spoils.woodChooses).toBe(true)
@@ -160,7 +161,7 @@ describe('R-5.5.7.III, R-11.7 — banishing from a Shrouded Wood', () => {
 describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', () => {
     function sacrificing() {
         const session = battle(MachineState.CampaignSacrifice, { swords: 1, defense: 2, sacrificeWorth: 1 }, ME)
-        session.gameState.getPlayerState(ME).warbandsOnBoard = { [Color.Red]: 4, [Color.Purple]: 1 }
+        session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 4, [IMPERIAL_WARBANDS]: 1 }
         const sent = vi.spyOn(session, 'resolveCampaignSacrifice').mockResolvedValue()
         return { losses: session.attackerLosses, sent }
     }
@@ -178,8 +179,8 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
         expect(sent).toHaveBeenCalledWith(
             2,
             [
-                { at: board, color: Color.Red, count: 1 },
-                { at: board, color: Color.Purple, count: 1 }
+                { at: board, owner: ME, count: 1 },
+                { at: board, owner: IMPERIAL_WARBANDS, count: 1 }
             ],
             []
         )
@@ -192,8 +193,8 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
         losses.setDefeated(0, 1)
         await losses.lose()
         expect(sent).toHaveBeenCalledWith(0, undefined, [
-            { at: board, color: Color.Red, count: 1 },
-            { at: board, color: Color.Purple, count: 1 }
+            { at: board, owner: ME, count: 1 },
+            { at: board, owner: IMPERIAL_WARBANDS, count: 1 }
         ])
     })
 
@@ -205,19 +206,19 @@ describe('R-5.5.5, R-5.5.6, R-10.22 — the attacker picks their own losses', ()
     })
 })
 
-describe('R-5.5.7.I — spoils from a board of two colours (R-6.6.2)', () => {
-    it('offers each colour on each taken site, held to what the board carries of it', () => {
+describe('R-5.5.7.I — spoils from a board holding two owners\' warbands (R-6.6.2)', () => {
+    it('offers each owner on each taken site, held to what the board carries of theirs', () => {
         const session = battle(MachineState.CampaignVictory, { attackerVictorious: true, targets: [...SITES] }, ME)
-        session.gameState.getPlayerState(ME).warbandsOnBoard = { [Color.Red]: 2, [Color.Purple]: 1 }
+        session.gameState.getPlayerState(ME).warbandsOnBoard = { [ME]: 2, [IMPERIAL_WARBANDS]: 1 }
         const spoils = session.victory
-        expect(spoils.forceColors).toEqual([Color.Red, Color.Purple])
-        spoils.setPlaceCount('c1', Color.Purple, 5)
-        spoils.setPlaceCount('c2', Color.Red, 2)
+        expect(spoils.forceOwners).toEqual([ME, IMPERIAL_WARBANDS])
+        spoils.setPlaceCount('c1', IMPERIAL_WARBANDS, 5)
+        spoils.setPlaceCount('c2', ME, 2)
         expect(spoils.placements).toEqual([
-            { siteId: 'c1', color: Color.Purple, count: 1 },
-            { siteId: 'c2', color: Color.Red, count: 2 }
+            { siteId: 'c1', owner: IMPERIAL_WARBANDS, count: 1 },
+            { siteId: 'c2', owner: ME, count: 2 }
         ])
-        expect(spoils.ceilingAt('c2', Color.Purple)).toBe(0)
+        expect(spoils.ceilingAt('c2', IMPERIAL_WARBANDS)).toBe(0)
     })
 })
 
@@ -293,8 +294,8 @@ describe('the defence draft (docs/user-interactions.md)', () => {
 /** R-5.5.6.a — the defeated defending side's losses, one entry for every group. */
 describe('the losses draft (docs/user-interactions.md)', () => {
     const FORCE = [
-        { at: { kind: 'site', siteId: 'c1' }, color: Color.Blue, count: 3 },
-        { at: { kind: 'site', siteId: 'c2' }, color: Color.Blue, count: 2 }
+        { at: { kind: 'site', siteId: 'c1' }, owner: FOE, count: 3 },
+        { at: { kind: 'site', siteId: 'c2' }, owner: FOE, count: 2 }
     ] as const
     const defeated = () =>
         battle(

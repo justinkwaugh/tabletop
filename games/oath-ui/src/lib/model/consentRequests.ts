@@ -4,7 +4,7 @@ import {
     type HydratedOathGameState,
     type PendingConsent
 } from '@tabletop/oath'
-import { plural } from './names.js'
+import { warbandsOf } from './names.js'
 
 type NameOf = (playerId: string) => string
 
@@ -34,7 +34,7 @@ export function consentQuestion(
         case ConsentRequestKind.WarbandMove:
             return warbandMoveQuestion(
                 asker,
-                plural(request.count, `${request.color} warband`),
+                warbandsOf(request.count, request.owner, nameOf, pending.askingPlayerId),
                 request.move.kind
             )
         case ConsentRequestKind.JoinDefence: {

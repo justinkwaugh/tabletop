@@ -1,4 +1,3 @@
-import type { Color } from '@tabletop/common'
 import {
     banditsRuleSite,
     rulersOfSite,
@@ -7,7 +6,8 @@ import {
     warbandEntries,
     warbandsAt,
     type HydratedOathGameState,
-    type HydratedOathPlayerState
+    type HydratedOathPlayerState,
+    type WarbandOwner
 } from '@tabletop/oath'
 
 export type SiteRule = {
@@ -35,13 +35,13 @@ export function cardRulerIds(state: HydratedOathGameState, cardId: string): stri
 }
 
 export type SitePieces = {
-    warbands: [Color, number][]
+    warbands: [WarbandOwner, number][]
     pawns: HydratedOathPlayerState[]
     rule: SiteRule
     bandits: boolean
 }
 
-// Only one player's warbands are allowed per site; every colour is kept so a broken invariant shows.
+// Only one player's warbands are allowed per site; every owner is kept so a broken invariant shows.
 export function sitePieces(state: HydratedOathGameState, slotId: string): SitePieces {
     const rule = siteRuleOf(state, slotId)
     return {

@@ -1,29 +1,29 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { Color, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { WarbandLocation } from '../model/campaign.js'
+import { IMPERIAL_WARBANDS, WarbandOwner } from '../model/warbandCounts.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { addWarbandsToBoard, addWarbandsToSite, removeWarbandsFrom } from '../util/force.js'
 import {
     banditsServe,
     isImperialPlayer,
     rulesSite,
-    rulingColorsOf,
+    rulingWarbandOwners,
     warbandsFreeToLeave
 } from '../util/rule.js'
 import { ConsentRequestKind } from '../model/consent.js'
 import { WarbandMove, WarbandMoveKind, type WarbandMoveOption } from '../model/warbandMove.js'
 import { MachineState } from '../definition/states.js'
-import { imperialWarbandBankOwner } from '../util/imperial.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
-import { countOf } from '../util/warbands.js'
+import { countOf, describeWarbands } from '../util/warbands.js'
 import { pawnSiteId } from '../util/pawn.js'
 
 export type MoveWarbandsMetadata = Type.Static<typeof MoveWarbandsMetadata>
 export const MoveWarbandsMetadata = Type.Object({
-    color: Type.Enum(Color),
+    owner: WarbandOwner,
     count: Type.Number(),
     from: WarbandLocation,
     to: WarbandLocation,
@@ -39,8 +39,8 @@ export const MoveWarbands = Type.Evaluate(
             type: Type.Literal(ActionType.MoveWarbands),
             playerId: Type.String(),
             move: WarbandMove,
-            // R-6.6.2 can leave a player holding two colours, so the colour is input, not derived.
-            color: Type.Enum(Color),
+            // R-6.6.2 can leave a player holding their own and the Empire's, so whose is input.
+            owner: WarbandOwner,
             count: Type.Integer({ minimum: 0, maximum: 999 }),
             metadata: Type.Optional(MoveWarbandsMetadata)
         })
@@ -60,7 +60,7 @@ export class HydratedMoveWarbands
     declare type: ActionType.MoveWarbands
     declare playerId: string
     declare move: WarbandMove
-    declare color: Color
+    declare owner: WarbandOwner
     declare count: number
     declare metadata?: MoveWarbandsMetadata
 
@@ -83,7 +83,7 @@ export class HydratedMoveWarbands
                 request: {
                     kind: ConsentRequestKind.WarbandMove,
                     move: this.move,
-                    color: this.color,
+                    owner: this.owner,
                     count: this.count
                 },
                 askingPlayerId: this.playerId,
@@ -91,7 +91,7 @@ export class HydratedMoveWarbands
                 resumeMachineState: MachineState.ActPhase
             }
             this.metadata = {
-                color: this.color,
+                owner: this.owner,
                 count: this.count,
                 from,
                 to,
@@ -100,8 +100,8 @@ export class HydratedMoveWarbands
             return
         }
 
-        HydratedMoveWarbands.carryOut(state, from, to, this.color, this.count)
-        this.metadata = { color: this.color, count: this.count, from, to }
+        HydratedMoveWarbands.carryOut(state, from, to, this.owner, this.count)
+        this.metadata = { owner: this.owner, count: this.count, from, to }
     }
 
     /** R-6.5 */
@@ -109,14 +109,14 @@ export class HydratedMoveWarbands
         state: HydratedOathGameState,
         from: WarbandLocation,
         to: WarbandLocation,
-        color: Color,
+        owner: WarbandOwner,
         count: number
     ) {
-        removeWarbandsFrom(state, from, color, count)
+        removeWarbandsFrom(state, from, owner, count)
         if (to.kind === 'site') {
-            addWarbandsToSite(state, to.siteId, color, count)
+            addWarbandsToSite(state, to.siteId, owner, count)
         } else {
-            addWarbandsToBoard(state, to.playerId, color, count)
+            addWarbandsToBoard(state, to.playerId, owner, count)
         }
     }
 
@@ -153,27 +153,27 @@ export class HydratedMoveWarbands
         state: HydratedOathGameState,
         playerId: string,
         move: WarbandMove,
-        color: Color
+        owner: WarbandOwner
     ): number {
         const player = state.getPlayerState(playerId)
 
         switch (move.kind) {
             case WarbandMoveKind.SiteToBoard: {
                 // R-6.5: "except the last one".
-                return warbandsFreeToLeave(state, playerId, pawnSiteId(state, playerId), color)
+                return warbandsFreeToLeave(state, playerId, pawnSiteId(state, playerId), owner)
             }
             case WarbandMoveKind.BoardToSite:
             case WarbandMoveKind.GiveToImperial:
-                return countOf(player.warbandsOnBoard, color)
+                return countOf(player.warbandsOnBoard, owner)
             case WarbandMoveKind.TakeFromImperial:
-                return countOf(state.getPlayerState(move.otherPlayerId).warbandsOnBoard, color)
+                return countOf(state.getPlayerState(move.otherPlayerId).warbandsOnBoard, owner)
         }
     }
 
     static reasonCannotMove(
         state: HydratedOathGameState,
         playerId: string,
-        choice: Pick<MoveWarbands, 'move' | 'color' | 'count'>
+        choice: Pick<MoveWarbands, 'move' | 'owner' | 'count'>
     ): string | undefined {
         if (!Number.isInteger(choice.count) || choice.count < 1) {
             return `must move at least one warband, not ${choice.count}`
@@ -190,16 +190,16 @@ export class HydratedMoveWarbands
             return 'you cannot place warbands at sites (Ring of Devotion)'
         }
 
-        const owned = HydratedMoveWarbands.movableColorsFor(state, playerId, choice.move)
-        if (!owned.includes(choice.color)) {
+        const owned = HydratedMoveWarbands.movableOwnersFor(state, playerId, choice.move)
+        if (!owned.includes(choice.owner)) {
             const whose =
                 choice.move.kind === WarbandMoveKind.TakeFromImperial
                     ? `${choice.move.otherPlayerId}'s`
-                    : 'your'
-            return `${choice.color} warbands are not ${whose} (${owned.join(', ')})`
+                    : 'yours'
+            return `${choice.owner}'s warbands are not ${whose} to move (${owned.join(', ')})`
         }
 
-        const max = HydratedMoveWarbands.maxMovable(state, playerId, choice.move, choice.color)
+        const max = HydratedMoveWarbands.maxMovable(state, playerId, choice.move, choice.owner)
         if (choice.count > max) {
             const lastMustStay =
                 choice.move.kind === WarbandMoveKind.SiteToBoard &&
@@ -207,7 +207,7 @@ export class HydratedMoveWarbands
             const limit = lastMustStay
                 ? `${max} (the last one must stay to keep rule of the site)`
                 : `${max}`
-            return `cannot move ${choice.count} ${choice.color}: at most ${limit}`
+            return `cannot move ${describeWarbands(choice.count, choice.owner)}: at most ${limit}`
         }
 
         return undefined
@@ -230,10 +230,10 @@ export class HydratedMoveWarbands
             if (HydratedMoveWarbands.reasonMoveShapeInvalid(state, playerId, move)) {
                 continue
             }
-            for (const color of HydratedMoveWarbands.movableColorsFor(state, playerId, move)) {
-                const max = HydratedMoveWarbands.maxMovable(state, playerId, move, color)
+            for (const owner of HydratedMoveWarbands.movableOwnersFor(state, playerId, move)) {
+                const max = HydratedMoveWarbands.maxMovable(state, playerId, move, owner)
                 if (max > 0) {
-                    results.push({ move, color, max })
+                    results.push({ move, owner, max })
                 }
             }
         }
@@ -244,14 +244,14 @@ export class HydratedMoveWarbands
         return HydratedMoveWarbands.legalMoves(state, playerId).length > 0
     }
 
-    private static movableColorsFor(
+    private static movableOwnersFor(
         state: HydratedOathGameState,
         playerId: string,
         move: WarbandMove
-    ): Color[] {
-        const ownerId =
+    ): WarbandOwner[] {
+        const holderId =
             move.kind === WarbandMoveKind.TakeFromImperial ? move.otherPlayerId : playerId
-        return rulingColorsOf(state, ownerId)
+        return rulingWarbandOwners(state, holderId)
     }
 
     private static reasonMoveShapeInvalid(
@@ -298,7 +298,7 @@ export class HydratedMoveWarbands
         switch (move.kind) {
             case WarbandMoveKind.SiteToBoard:
                 return state.getPlayerState(playerId).status === PlayerStatus.Citizen
-                    ? imperialWarbandBankOwner(state)
+                    ? state.warbandBankHolderOf(IMPERIAL_WARBANDS)
                     : undefined
             case WarbandMoveKind.BoardToSite:
                 return undefined

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
 import { CardKind, PowerChoiceKind, Region } from '@tabletop/oath'
 import { powerChoiceCard, powerChoiceCards, powerUseCards, toggleSingle, togglePick, type CardResolvers } from './cardChoice.js'
 
@@ -8,7 +7,8 @@ const resolve: CardResolvers = {
     faceupSiteCardAt: (siteId) => (siteId === 'c1' ? 'site.plains' : undefined),
     relicSlotLabel: (slotId) => `relic ${slotId}`,
     facedownAdviserLabel: (playerId, index) => `${playerId}'s facedown adviser ${index + 1}`,
-    siteLabel: (siteId) => `site ${siteId}`
+    siteLabel: (siteId) => `site ${siteId}`,
+    warbandOwnerName: (owner) => `${owner}'s`
 }
 
 describe('a card row: tap to pick, tap again to untap', () => {
@@ -37,9 +37,9 @@ describe('a power choice drawn as cards', () => {
     })
 
     it('warbands at a site by the site card, captioned with the group; on a board they are no card', () => {
-        const atSite = { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'c1' }, color: Color.Red, count: 2 } } as const
-        expect(powerChoiceCard(atSite, '0', resolve)).toMatchObject({ cardId: 'site.plains', caption: '2 red' })
-        const onBoard = { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'ann' }, color: Color.Red, count: 2 } } as const
+        const atSite = { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'c1' }, owner: 'ann', count: 2 } } as const
+        expect(powerChoiceCard(atSite, '0', resolve)).toMatchObject({ cardId: 'site.plains', caption: "2 ann's" })
+        const onBoard = { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'ann' }, owner: 'ann', count: 2 } } as const
         expect(powerChoiceCard(onBoard, '0', resolve)).toBeUndefined()
     })
 

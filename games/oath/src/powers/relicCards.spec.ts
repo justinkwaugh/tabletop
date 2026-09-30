@@ -34,6 +34,7 @@ import { buildAction, defendingSideChooses } from '../testing/actions.js'
 import { ongoingCampaign, required } from '../testing/required.js'
 import { card, facedown, player, site, slot, actionPowerUse, battlePlanUse, modifierUse } from '../testing/choices.js'
 import { INN, FILLER } from '../testing/cards.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 /** R-7.1.1-H1 — a held relic grants access the way an adviser does. */
 
@@ -54,8 +55,8 @@ function board(relics: string[], cards: string[] = [], advisers: string[] = [], 
                 secrets: 2,
                 supply: 2,
                 relicIds: relics,
-                warbandsOnBoard: { [Color.Red]: 3 },
-                warbandsInPersonalBank: { [Color.Red]: 5 },
+                warbandsOnBoard: { ruler: 3 },
+                warbandsInPersonalBank: { ruler: 5 },
                 advisers: advisers.map((cardId) => ({ cardId, faceUp: true })),
                 ...over
             }),
@@ -63,7 +64,7 @@ function board(relics: string[], cards: string[] = [], advisers: string[] = [], 
         ],
         {
             denizensBySite: { c1: cards, c2: [], p1: [] },
-            warbandsBySite: { c1: { [Color.Red]: 1 } },
+            warbandsBySite: { c1: { ruler: 1 } },
             siteCards: { c1: 'site.mine', c2: 'site.river', p1: 'site.plains' }
         }
     )
@@ -105,7 +106,7 @@ describe('Dragonskin Drum (Travel modifier)', () => {
             })
         )
         travel.apply(s)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(4)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
         expect(s.getPlayerState('ruler').supply).toBe(1)
         expect(travel.metadata?.modifierNotes?.[0]).toMatch(/Dragonskin Drum/)
     })
@@ -136,19 +137,19 @@ describe('Ring of Devotion (continuous)', () => {
     it('adds two warbands to a Muster', () => {
         const s = board([RING], [INN])
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN })).apply(s)
-        expect(s.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(3 + 4)
+        expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(3 + 4)
         const plain = board([], [INN])
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN })).apply(plain)
-        expect(plain.getPlayerState('ruler').warbandsOnBoard[Color.Red]).toBe(5)
+        expect(plain.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(5)
     })
 
     it('forbids moving warbands from the board to a site, but not the reverse', () => {
         const s = board([RING])
         expect(
-            HydratedMoveWarbands.reasonCannotMove(s, 'ruler', { move: { kind: WarbandMoveKind.BoardToSite }, color: Color.Red, count: 1 })
+            HydratedMoveWarbands.reasonCannotMove(s, 'ruler', { move: { kind: WarbandMoveKind.BoardToSite }, owner: 'ruler', count: 1 })
         ).toMatch(/Ring of Devotion/)
         expect(
-            HydratedMoveWarbands.reasonCannotMove(board([]), 'ruler', { move: { kind: WarbandMoveKind.BoardToSite }, color: Color.Red, count: 1 })
+            HydratedMoveWarbands.reasonCannotMove(board([]), 'ruler', { move: { kind: WarbandMoveKind.BoardToSite }, owner: 'ruler', count: 1 })
         ).toBeUndefined()
     })
 })
@@ -170,15 +171,15 @@ const WOLVES = 'denizen.beast.wolves'
 function relicBoard(relics: string[], over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, relicIds: relics, warbandsOnBoard: { [Color.Red]: 4 }, warbandsInPersonalBank: { [Color.Red]: 6 }, advisers: [{ cardId: INN, faceUp: true }], ...over['me'] }),
-            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { [Color.Blue]: 2 }, warbandsInPersonalBank: { [Color.Blue]: 5 }, advisers: [{ cardId: TENTS, faceUp: false }], ...over['foe'] }),
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, relicIds: relics, warbandsOnBoard: { me: 4 }, warbandsInPersonalBank: { me: 6 }, advisers: [{ cardId: INN, faceUp: true }], ...over['me'] }),
+            testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 4, warbandsOnBoard: { foe: 2 }, warbandsInPersonalBank: { foe: 5 }, advisers: [{ cardId: TENTS, faceUp: false }], ...over['foe'] }),
             testPlayer({ playerId: 'far', color: Color.Yellow, siteId: 'h1', favor: 2, secrets: 2, ...over['far'] }),
-            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 2, secrets: 2, warbandsInPersonalBank: { purple: 5 }, ...over['chan'] })
+            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1', favor: 2, secrets: 2, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 }, ...over['chan'] })
         ],
         {
             chancellorPlayerId: 'chan',
             denizensBySite: { c1: [WOLVES], c2: [], p1: [], h1: [] },
-            warbandsBySite: { c1: { [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { purple: 2 } },
+            warbandsBySite: { c1: { foe: 2 }, c2: { me: 2 }, p1: { [IMPERIAL_WARBANDS]: 2 } },
             siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' },
             reliquary: [{ slotId: 'reliquary.0' }, { slotId: 'reliquary.1' }],
             ...state
@@ -207,7 +208,7 @@ describe('the peeking and taking relics', () => {
     })
 
     it("Skeleton Key: with the Chancellor ruling your site, a Reliquary relic is seen and may be taken — uncovering the space", () => {
-        const s = relicBoard([KEY], {}, { warbandsBySite: { c1: { purple: 1, [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { purple: 2 } } })
+        const s = relicBoard([KEY], {}, { warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1, foe: 2 }, c2: { me: 2 }, p1: { [IMPERIAL_WARBANDS]: 2 } } })
         expect(HydratedUseActionPower.reasonCannotUse(relicBoard([KEY]), 'me', KEY, powerIndexOf(KEY, PowerTiming.Action), [slot('reliquary.0')])).toMatch(/Chancellor does not rule/)
         const a = use(s, KEY, [slot('reliquary.0')], (vault) => { vault.relicFacedown['reliquary.0'] = 'relic.cup' })
         expect(a.metadata?.peeked).toEqual(['relic.cup'])
@@ -329,11 +330,11 @@ describe('the Campaign relics', () => {
     it('Cursed Cauldron gains a warband per enemy warband killed', () => {
         const s = relicBoard([CAULDRON])
         attack(s, [battlePlanUse(CAULDRON)])
-        const board_ = required(s.getPlayerState('me').warbandsOnBoard[Color.Red], 'my red warbands')
+        const board_ = required(s.getPlayerState('me').warbandsOnBoard['me'], 'my warbands')
         const sac = finish(s)
         // R-5.5.6 — half of the defending force of four (2 at c1, 2 on the board).
         expect(sac.metadata?.defeatKilled).toBe(2)
-        expect(s.getPlayerState('me').warbandsOnBoard[Color.Red]).toBe(board_ + 2)
+        expect(s.getPlayerState('me').warbandsOnBoard['me']).toBe(board_ + 2)
     })
 
     it("Sticky Fire kills the enemy's whole force and owes them a favor", () => {
@@ -341,8 +342,8 @@ describe('the Campaign relics', () => {
         attack(s, [battlePlanUse(FIRE)])
         const sac = finish(s)
         expect(sac.metadata?.defeatKilled).toBe(4)
-        expect(warbandsAt(s, 'c1')[Color.Blue] ?? 0).toBe(0)
-        expect(s.getPlayerState('foe').warbandsOnBoard[Color.Blue] ?? 0).toBe(0)
+        expect(warbandsAt(s, 'c1')['foe'] ?? 0).toBe(0)
+        expect(s.getPlayerState('foe').warbandsOnBoard['foe'] ?? 0).toBe(0)
         expect(s.getPlayerState('foe').favor).toBe(4)
         expect(sac.metadata?.defeatKilled).toBe(4)
         expect(victory?.metadata?.triggered?.[0]).toMatch(/Sticky Fire/)
@@ -360,11 +361,11 @@ describe('the Campaign relics', () => {
     })
 
     it('Whistle — "if able": the Travel rules bind the pulled pawn, and its after-travel powers fire', () => {
-        const lake = relicBoard([WHISTLE], { far: { warbandsOnBoard: { [Color.Yellow]: 3 } } }, { denizensBySite: { c1: [WOLVES, 'denizen.discord.boiling-lake'], c2: [], p1: [], h1: [] } })
+        const lake = relicBoard([WHISTLE], { far: { warbandsOnBoard: { far: 3 } } }, { denizensBySite: { c1: [WOLVES, 'denizen.discord.boiling-lake'], c2: [], p1: [], h1: [] } })
         use(lake, WHISTLE, [player('far')])
         expect(lake.getPlayerState('far').siteId).toBe('c1')
-        expect(lake.getPlayerState('far').warbandsOnBoard[Color.Yellow]).toBe(1)
-        const vowed = relicBoard([WHISTLE], { far: { warbandsOnBoard: { [Color.Yellow]: 3 }, advisers: [{ cardId: 'denizen.beast.vow-of-union', faceUp: true }] } }, { warbandsBySite: { c1: { [Color.Blue]: 2 }, c2: { [Color.Red]: 2 }, p1: { purple: 2 }, h1: { [Color.Yellow]: 1 } } })
+        expect(lake.getPlayerState('far').warbandsOnBoard['far']).toBe(1)
+        const vowed = relicBoard([WHISTLE], { far: { warbandsOnBoard: { far: 3 }, advisers: [{ cardId: 'denizen.beast.vow-of-union', faceUp: true }] } }, { warbandsBySite: { c1: { foe: 2 }, c2: { me: 2 }, p1: { [IMPERIAL_WARBANDS]: 2 }, h1: { far: 1 } } })
         const a = use(vowed, WHISTLE, [player('far')])
         expect(vowed.getPlayerState('far').siteId).toBe('h1')
         expect(vowed.getPlayerState('far').secrets).toBe(2)

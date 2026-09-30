@@ -22,10 +22,10 @@
         pending?.request.kind === ConsentRequestKind.CitizenshipOffer ? pending.request : undefined
     )
 
-    // R-6.6.2, R-9.3 — which warbands take the purple is the Exile's choice
+    // R-6.6.2, R-9.3 — which warbands become Imperial is the Exile's choice
     // when the Empire cannot cover them all.
     let groups = $derived(consent.groups)
-    let purpleAvailable = $derived(consent.purpleAvailable)
+    let imperialAvailable = $derived(consent.imperialAvailable)
     let mustChoose = $derived(consent.mustChoose)
     let picked = $derived(consent.picked)
     let pickedTotal = $derived(consent.pickedTotal)
@@ -99,21 +99,21 @@
         </div>
 
         <p class="mb-2 text-[11px] text-stone-400 leading-snug">
-            Accepting flips your board to its Citizen side, turns your warbands purple, discards
+            Accepting flips your board to its Citizen side, makes your warbands Imperial, discards
             your revealed Vision and refreshes your Supply. Refusing changes nothing at all.
         </p>
 
         {#if mustChoose}
             <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
                 <div class="mb-1">
-                    The Empire has only {purpleAvailable} purple for
-                    {forceTotal(groups)} warbands. Choose which are replaced — exactly
-                    {purpleAvailable}, and the rest stay your colour.
+                    The Empire has only {imperialAvailable} Imperial warbands for
+                    {forceTotal(groups)} of yours. Choose which are replaced — exactly
+                    {imperialAvailable}, and the rest stay your own.
                 </div>
-                {#each groups as group, index (JSON.stringify(group.at) + group.color)}
+                {#each groups as group, index (JSON.stringify(group.at) + group.owner)}
                     <label class="block mb-1">
                         {picked[index] ?? 0} of {group.count}
-                        {group.color}
+                        {gameSession.warbandOwnerName(group.owner)}
                         {whereText(group)}
                         <input
                             disabled={busy}
@@ -127,8 +127,8 @@
                         />
                     </label>
                 {/each}
-                <div class={pickedTotal === purpleAvailable ? 'text-stone-400' : 'text-rose-300'}>
-                    Chosen {pickedTotal} of {purpleAvailable}
+                <div class={pickedTotal === imperialAvailable ? 'text-stone-400' : 'text-rose-300'}>
+                    Chosen {pickedTotal} of {imperialAvailable}
                 </div>
             </div>
         {/if}

@@ -1,8 +1,8 @@
-import type { Color } from '@tabletop/common'
 import { discardRegionFor, HydratedOathGameState } from '../model/gameState.js'
 import type { WarbandGroup } from '../model/campaign.js'
 import type { PileDeposit } from '../model/hidden.js'
-import { IMPERIAL_COLOR, PlayerStatus, Region } from '../model/oathEnums.js'
+import { PlayerStatus, Region } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS, type WarbandOwner } from '../model/warbandCounts.js'
 import {
     addWarbandsToBoard,
     addWarbandsToSite,
@@ -21,10 +21,10 @@ import { MAX_SUPPLY } from './rest.js'
 import { holdsTheTurn } from './turn.js'
 
 export interface ConversionResult {
-    recolored: WarbandGroup[]
+    replaced: WarbandGroup[]
     /** R-9.3 may cap this below the number asked for. */
-    recoloredCount: number
-    /** R-6.6.2 — for want of purple, removed (a Citizen) or left as they were (an Exile, R-6.6.3). */
+    replacedCount: number
+    /** R-6.6.2 — for want of Imperial warbands, removed (a Citizen) or left as they were (an Exile, R-6.6.3). */
     unreplacedCount: number
     discardedVisionId?: string
     /** R-10.5 */
@@ -33,38 +33,36 @@ export interface ConversionResult {
     flippedUsurperToOathkeeper: boolean
 }
 
-/** R-6.6.2 — board first, then map order: the order a purple shortage takes them. */
-export function citizenshipRecolorGroups(
+/** R-6.6.2 — board first, then map order: the order an Imperial shortage takes them. */
+export function citizenshipReplacementGroups(
     state: HydratedOathGameState,
     playerId: string
 ): WarbandGroup[] {
-    const player = state.getPlayerState(playerId)
-
     return [
-        ...boardWarbandGroups(state, playerId).filter((group) => group.color !== IMPERIAL_COLOR),
-        ...warbandGroupsAtSites(state, state.allSiteIds(), [player.color])
+        ...boardWarbandGroups(state, playerId).filter((group) => group.owner !== IMPERIAL_WARBANDS),
+        ...warbandGroupsAtSites(state, state.allSiteIds(), [playerId])
     ]
 }
 
-// R-X.1 — `recolorChoice` names which warbands take the purple when it is short.
+// R-X.1 — `replacementChoice` names which warbands become Imperial when the Empire's are short.
 export function becomeCitizen(
     state: HydratedOathGameState,
     playerId: string,
-    recolorChoice?: readonly WarbandGroup[]
+    replacementChoice?: readonly WarbandGroup[]
 ): ConversionResult {
     const player = state.getPlayerState(playerId)
 
     player.status = PlayerStatus.Citizen
 
-    const all = citizenshipRecolorGroups(state, playerId)
-    const available = warbandsInBankFor(state, IMPERIAL_COLOR)
+    const all = citizenshipReplacementGroups(state, playerId)
+    const available = warbandsInBankFor(state, IMPERIAL_WARBANDS)
     const wanted = forceTotal(all)
-    const chosen = available >= wanted ? all : (recolorChoice ?? takeFromGroups(all, available))
+    const chosen = available >= wanted ? all : (replacementChoice ?? takeFromGroups(all, available))
 
-    const recolored = applyRecolor(state, chosen, IMPERIAL_COLOR)
-    const recoloredCount = forceTotal(recolored)
+    const replaced = replaceWarbands(state, chosen, IMPERIAL_WARBANDS)
+    const replacedCount = forceTotal(replaced)
     // R-6.6.2 — "chooses which warbands to remove and which to replace": the rest leave play.
-    removeUnreplaced(state, all, recolored)
+    removeUnreplaced(state, all, replaced)
 
     let discardedVisionId: string | undefined
     let discardPileRegion: Region | undefined
@@ -87,38 +85,37 @@ export function becomeCitizen(
     player.supply = MAX_SUPPLY
 
     return {
-        recolored,
-        recoloredCount,
-        unreplacedCount: wanted - recoloredCount,
+        replaced,
+        replacedCount,
+        unreplacedCount: wanted - replacedCount,
         discardedVisionId,
         discardPileRegion,
         flippedUsurperToOathkeeper
     }
 }
 
-/** R-6.7, R-6.8, R-6.6.3 — the board only; R-9.3 caps the recolour when their colour runs short. */
+/** R-6.7, R-6.8, R-6.6.3 — the board only; R-9.3 caps the replacement when their own run short. */
 export function becomeExile(state: HydratedOathGameState, playerId: string): ConversionResult {
     const player = state.getPlayerState(playerId)
 
     player.status = PlayerStatus.Exile
 
-    const own = player.color
-    const groups = boardWarbandGroups(state, playerId).filter((group) => group.color !== own)
+    const groups = boardWarbandGroups(state, playerId).filter((group) => group.owner !== playerId)
 
     const wanted = forceTotal(groups)
-    const available = warbandsInBankFor(state, own)
+    const available = warbandsInBankFor(state, playerId)
     const chosen = available >= wanted ? groups : takeFromGroups(groups, available)
 
-    const recolored = applyRecolor(state, chosen, own)
-    const recoloredCount = forceTotal(recolored)
+    const replaced = replaceWarbands(state, chosen, playerId)
+    const replacedCount = forceTotal(replaced)
 
     // R-1.10 — only the marker moves; the Supply already spent this turn stays spent.
     player.supply = MAX_SUPPLY
 
     return {
-        recolored,
-        recoloredCount,
-        unreplacedCount: wanted - recoloredCount,
+        replaced,
+        replacedCount,
+        unreplacedCount: wanted - replacedCount,
         flippedUsurperToOathkeeper: false
     }
 }
@@ -130,13 +127,13 @@ function removeUnreplaced(
 ): void {
     for (const group of groups) {
         const done = replaced
-            .filter((r) => r.color === group.color && sameLocation(r.at, group.at))
+            .filter((r) => r.owner === group.owner && sameLocation(r.at, group.at))
             .reduce((n, r) => n + r.count, 0)
         const left = group.count - done
         if (left <= 0) continue
-        removeWarbandsFrom(state, group.at, group.color, left)
+        removeWarbandsFrom(state, group.at, group.owner, left)
         // R-10.13
-        killWarbands(state, group.color, left)
+        killWarbands(state, group.owner, left)
     }
 }
 
@@ -146,31 +143,31 @@ function sameLocation(a: WarbandGroup['at'], b: WarbandGroup['at']): boolean {
         : b.kind === 'board' && a.playerId === b.playerId
 }
 
-/** R-9.3 — only as many move as the bank gives. */
-function applyRecolor(
+/** R-9.3 — only as many are replaced as the bank gives. */
+function replaceWarbands(
     state: HydratedOathGameState,
     groups: readonly WarbandGroup[],
-    toColor: Color
+    toOwner: WarbandOwner
 ): WarbandGroup[] {
     const moved: WarbandGroup[] = []
 
     for (const group of groups) {
-        if (group.color === toColor || group.count <= 0) continue
+        if (group.owner === toOwner || group.count <= 0) continue
 
-        const taken = takeWarbandsFromBank(state, toColor, group.count)
+        const taken = takeWarbandsFromBank(state, toOwner, group.count)
         if (taken === 0) continue
 
-        removeWarbandsFrom(state, group.at, group.color, taken)
+        removeWarbandsFrom(state, group.at, group.owner, taken)
         // R-10.13 — a displaced warband goes to the bank a killed one would.
-        killWarbands(state, group.color, taken)
+        killWarbands(state, group.owner, taken)
 
         if (group.at.kind === 'site') {
-            addWarbandsToSite(state, group.at.siteId, toColor, taken)
+            addWarbandsToSite(state, group.at.siteId, toOwner, taken)
         } else {
-            addWarbandsToBoard(state, group.at.playerId, toColor, taken)
+            addWarbandsToBoard(state, group.at.playerId, toOwner, taken)
         }
 
-        moved.push({ at: group.at, color: group.color, count: taken })
+        moved.push({ at: group.at, owner: group.owner, count: taken })
     }
 
     return moved

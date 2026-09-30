@@ -18,6 +18,7 @@ import { FILLER } from '../testing/cards.js'
 import { discardInListedOrder, playDrawnCard } from '../testing/steps.js'
 import { expectCountsMatchTheVault } from '../testing/census.js'
 import { adviser } from '../testing/tables.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const BALLOT = 'denizen.hearth.ballot-box'
 const HEIR = 'denizen.beast.long-lost-heir'
@@ -30,21 +31,19 @@ const VISION = 'vision.faith'
 
 const ME = 'me'
 const FOE = 'foe'
-const RED: Color = Color.Red
-const BLUE: Color = Color.Blue
 
 /** R-10.5 — c1 is in the Cradle, so its discards go to the Provinces pile. */
 function board(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
     const s = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 4, supply: 6, revealedVisionId: VISION, warbandsOnBoard: { [RED]: 6 }, warbandsInPersonalBank: { [RED]: 6 }, ...over[ME] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [BLUE]: 2 }, ...over[FOE] }),
-            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 2, secrets: 2, warbandsInPersonalBank: { purple: 12 }, ...over['chan'] })
+            testPlayer({ playerId: ME, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 4, supply: 6, revealedVisionId: VISION, warbandsOnBoard: { [ME]: 6 }, warbandsInPersonalBank: { [ME]: 6 }, ...over[ME] }),
+            testPlayer({ playerId: FOE, color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [FOE]: 2 }, ...over[FOE] }),
+            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 2, secrets: 2, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 12 }, ...over['chan'] })
         ],
         {
             chancellorPlayerId: 'chan',
             denizensBySite: { c1: [], c2: [], h1: [] },
-            warbandsBySite: { c1: { [BLUE]: 1 }, c2: { [RED]: 1 }, h1: { purple: 1 } },
+            warbandsBySite: { c1: { [FOE]: 1 }, c2: { [ME]: 1 }, h1: { [IMPERIAL_WARBANDS]: 1 } },
             ...state
         }
     )
@@ -93,7 +92,7 @@ describe("a power's route to Citizenship discards the revealed Vision into the v
     })
 
     it('Royal Ambitions, the route that also takes a Reliquary relic', () => {
-        const s = board({}, { reliquary: [{ slotId: 'reliquary.0' }], vault: testVaultWithRelics({ 'reliquary.0': 'relic.cup-of-plenty' }), warbandsBySite: { c1: { [BLUE]: 1 }, c2: { [RED]: 1 } } })
+        const s = board({}, { reliquary: [{ slotId: 'reliquary.0' }], vault: testVaultWithRelics({ 'reliquary.0': 'relic.cup-of-plenty' }), warbandsBySite: { c1: { [FOE]: 1 }, c2: { [ME]: 1 } } })
         const a = search(s, AMBITIONS, SearchPlay.Adviser, [yes, slot('reliquary.0')])
         expectVisionInTheVault(s, a, [FILLER])
     })
@@ -185,7 +184,7 @@ describe('the "At end, discard" battle plans of a Campaign reach the vault\'s pi
     })
 
     it('Law Glossary "Discard": a card at a site leaves from the card’s region, not the attacker’s', () => {
-        const s = board({}, { denizensBySite: { c1: [], c2: [], p1: [STORM_CALLER], h1: [] }, warbandsBySite: { c1: { [BLUE]: 1 }, c2: { [RED]: 1 }, p1: { [BLUE]: 1 }, h1: { purple: 1 } } })
+        const s = board({}, { denizensBySite: { c1: [], c2: [], p1: [STORM_CALLER], h1: [] }, warbandsBySite: { c1: { [FOE]: 1 }, c2: { [ME]: 1 }, p1: { [FOE]: 1 }, h1: { [IMPERIAL_WARBANDS]: 1 } } })
         campaign(s, [], [STORM_CALLER])
         const a = sacrifice(s, { swords: 0, defense: 9 })
         expect(s.denizensBySite.p1).toEqual([])

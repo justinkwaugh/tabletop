@@ -5,7 +5,6 @@ import { MachineState } from '../definition/states.js'
 import {
     Banner,
     CardKind,
-    IMPERIAL_COLOR,
     OathType,
     PlayerStatus,
     Region,
@@ -29,13 +28,15 @@ import {
 import { RELIQUARY_SIZE, GRAND_SCEPTER_ID } from '../data/relics.js'
 import { TOP_CRADLE_SLOT, TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
 import { expectFullFavorComplement, favorCensus } from '../testing/census.js'
-import { expectOneWarbandColorPerSite, warbandCensus } from '../testing/census.js'
+import { expectOneWarbandOwnerPerSite, warbandCensus } from '../testing/census.js'
 import { MAX_SUPPLY } from '../util/rest.js'
 import { CARDS_IN_PLAY } from '../data/worldDeck.js'
 import { SetupVariant } from '../model/oathEnums.js'
 import { registerCards, siteRevealPrompt } from '../data/cardRegistry.js'
 import { required } from '../testing/required.js'
 import { setUpState } from '../testing/game.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { OathImperialColor } from '../definition/colors.js'
 
 const PROMPTING_SITE = 'site.test-prompting'
 
@@ -86,20 +87,22 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         ).toHaveLength(1)
     })
 
-    it('R-10.13 — setup records each colour\'s seat by id, purple to the Chancellor', () => {
+    it('R-1.8, R-1.9, R-10.13 — each bank is keyed by its owner: the Empire\'s for the Chancellor, the player\'s own id for an Exile', () => {
         const state = setUpState(4)
-        expect(state.warbandOwnerPlayerId[IMPERIAL_COLOR]).toBe(state.chancellorPlayerId)
         for (const player of state.players) {
-            expect(state.warbandOwnerPlayerId[player.color]).toBe(player.playerId)
+            const owner =
+                player.playerId === state.chancellorPlayerId ? IMPERIAL_WARBANDS : player.playerId
+            expect(Object.keys(player.warbandsInPersonalBank)).toEqual([owner])
+            expect(state.warbandBankHolderOf(owner)).toBe(player.playerId)
         }
     })
 
-    it('R-1.8 — the Chancellor is purple and holds the Grand Scepter', () => {
+    it('R-1.8 — the Chancellor shows the Empire\'s purple and holds the Grand Scepter', () => {
         const state = setUpState(4)
         const chancellorId = state.chancellorPlayerId
         assertExists(chancellorId, 'setup names a Chancellor')
         const chancellor = state.getPlayerState(chancellorId)
-        expect(chancellor.color).toBe(IMPERIAL_COLOR)
+        expect(chancellor.color).toBe(OathImperialColor)
         expect(chancellor.relicIds).toContain(GRAND_SCEPTER_ID)
     })
 
@@ -107,9 +110,9 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         for (const count of [2, 4, 6]) {
             const state = setUpState(count)
             const census = warbandCensus(state)
-            expect(census[IMPERIAL_COLOR]).toBe(CHANCELLOR_WARBANDS)
+            expect(census[IMPERIAL_WARBANDS]).toBe(CHANCELLOR_WARBANDS)
             for (const player of state.players.slice(1)) {
-                expect(census[player.color]).toBe(EXILE_WARBANDS)
+                expect(census[player.playerId]).toBe(EXILE_WARBANDS)
             }
             expect(Object.keys(census)).toHaveLength(count)
         }
@@ -146,11 +149,11 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         const chancellorId = state.chancellorPlayerId
         assertExists(chancellorId, 'setup names a Chancellor')
         const chancellor = state.getPlayerState(chancellorId)
-        expect(chancellor.warbandsOnBoard[IMPERIAL_COLOR]).toBe(CHANCELLOR_BOARD_WARBANDS)
-        expect(state.warbandsBySite[TOP_CRADLE_SLOT]?.[IMPERIAL_COLOR]).toBe(
+        expect(chancellor.warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(CHANCELLOR_BOARD_WARBANDS)
+        expect(state.warbandsBySite[TOP_CRADLE_SLOT]?.[IMPERIAL_WARBANDS]).toBe(
             TOP_CRADLE_WARBANDS
         )
-        expect(chancellor.warbandsInPersonalBank[IMPERIAL_COLOR]).toBe(
+        expect(chancellor.warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(
             CHANCELLOR_WARBANDS - CHANCELLOR_BOARD_WARBANDS - TOP_CRADLE_WARBANDS
         )
     })
@@ -163,17 +166,17 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         expect(garrisoned.map(([slotId]) => slotId)).toEqual([TOP_CRADLE_SLOT])
     })
 
-    it('R-1.8 — setup places only the Chancellor’s warbands, one colour per site', () => {
+    it('R-1.8 — setup places only the Chancellor’s warbands, one owner per site', () => {
         for (const count of [2, 4, 6]) {
-            expectOneWarbandColorPerSite(setUpState(count))
+            expectOneWarbandOwnerPerSite(setUpState(count))
         }
     })
 
     it('R-1.15 — each Exile puts 3 of their own warbands on their board', () => {
         const state = setUpState(4)
         for (const exile of state.players.slice(1)) {
-            expect(exile.warbandsOnBoard[exile.color]).toBe(EXILE_BOARD_WARBANDS)
-            expect(exile.warbandsInPersonalBank[exile.color]).toBe(
+            expect(exile.warbandsOnBoard[exile.playerId]).toBe(EXILE_BOARD_WARBANDS)
+            expect(exile.warbandsInPersonalBank[exile.playerId]).toBe(
                 EXILE_WARBANDS - EXILE_BOARD_WARBANDS
             )
         }
@@ -490,7 +493,7 @@ describe('R-1.1 — sites start bare', () => {
             .filter(([, counts]) => Object.values(counts).some((n) => n > 0))
             .map(([siteId]) => siteId)
         expect(occupied).toEqual([TOP_CRADLE_SLOT])
-        expect(state.warbandsBySite[TOP_CRADLE_SLOT][IMPERIAL_COLOR]).toBe(2)
+        expect(state.warbandsBySite[TOP_CRADLE_SLOT][IMPERIAL_WARBANDS]).toBe(2)
     })
 
     it('leaves Muster and Trade with nothing to act on (R-5.2, R-5.3)', () => {

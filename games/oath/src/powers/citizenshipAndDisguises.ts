@@ -134,7 +134,7 @@ registerEffect(
         resolve: (ctx) => {
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             return {
-                summary: `Ballot Box: became a Citizen (${c.recoloredCount} warbands turned purple); Supply refreshed, Act Phase over`,
+                summary: `Ballot Box: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed, Act Phase over`,
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
             }
@@ -157,7 +157,7 @@ registerEffect(
                 return { summary: 'Long-Lost Heir: stayed an Exile' }
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             return {
-                summary: `Long-Lost Heir: became a Citizen (${c.recoloredCount} warbands turned purple); Supply refreshed, Act Phase over`,
+                summary: `Long-Lost Heir: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed, Act Phase over`,
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
             }
@@ -194,7 +194,7 @@ registerEffect(
                 return { summary: 'Bewitch: stayed an Exile' }
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             return {
-                summary: `Bewitch: became a Citizen (${c.recoloredCount} warbands turned purple); Supply refreshed, Act Phase over`,
+                summary: `Bewitch: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed, Act Phase over`,
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
             }
@@ -220,7 +220,7 @@ registerBattlePlan(
                 if (ctx.campaign.side === BattlePlanSide.Attacker && ctx.state.campaign)
                     ctx.state.campaign.endsActPhaseAfter = true
                 return {
-                    note: `Martial Culture: became a Citizen (${c.recoloredCount} warbands turned purple); Supply refreshed`,
+                    note: `Martial Culture: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed`,
                     pileDeposits: visionDeposits(c)
                 }
             }

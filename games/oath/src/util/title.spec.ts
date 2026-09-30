@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
 import { Banner, OathType } from '../model/oathEnums.js'
 import { testBanners } from '../testing/fixture.js'
 import { MachineState } from '../definition/states.js'
@@ -55,7 +54,7 @@ describe('R-2.11.b favours the incumbent', () => {
         const state = table({
             oathType: OathType.Supremacy,
             oathkeeperPlayerId: EXILE,
-            warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Yellow]: 1 } }
+            warbandsBySite: { c1: { [EXILE]: 1 }, c2: { [OTHER_EXILE]: 1 } }
         })
         expect(evaluateTitle(state)).toEqual({ kind: 'unchanged' })
 
@@ -85,7 +84,7 @@ function contested() {
     return table({
         oathType: OathType.Supremacy,
         oathkeeperPlayerId: CHANCELLOR,
-        warbandsBySite: { c1: { [Color.Red]: 1 }, c2: { [Color.Yellow]: 1 } }
+        warbandsBySite: { c1: { [EXILE]: 1 }, c2: { [OTHER_EXILE]: 1 } }
     })
 }
 
