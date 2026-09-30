@@ -41,6 +41,16 @@ The frontend is run as a separate Vite process during development but for deploy
 1. Clone the repository to a local folder. On Windows, cloning inside WSL is optional but gives faster file access and more reliable file watching. Do not use VSCode's "Clone Repository in Container Volume": the dev container bind-mounts your cloned folder into the container.
 1. Open the repository in VSCode and then choose "Reopen in container" when prompted.
 
+#### Coding agents in the dev container
+
+The container comes with Claude Code, Codex, and T3 Code installed. Sign in once from a terminal inside the container; the sign-ins are kept in Docker volumes, so they survive rebuilds.
+
+- Claude Code: run `claude` and follow the login prompt.
+- Codex: run `codex login --device-auth`.
+- GitHub CLI and HTTPS git: see [GitHub access](docs/runbooks/devcontainer-github-access.md).
+- T3 Code: the container starts a T3 server automatically. The desktop app connects to it over SSH; the mobile app uses T3 Connect. See [T3 Code in the devcontainer](docs/runbooks/devcontainer-t3.md).
+- SSH access, which the T3 Code and ChatGPT desktop apps both use: see [SSH access](docs/runbooks/devcontainer-ssh-access.md).
+
 ### Setup Without Dev Containers
 
 1. Clone the repository

@@ -14,7 +14,7 @@ sudo service ssh stop
 managed_public_key=""
 key_validation_error=""
 if [ -f "${AUTHORIZED_KEY_SOURCE}" ]; then
-    mapfile -t configured_keys < <(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "${AUTHORIZED_KEY_SOURCE}")
+    mapfile -t configured_keys < <(sed 's/\r$//; /^[[:space:]]*#/d; /^[[:space:]]*$/d' "${AUTHORIZED_KEY_SOURCE}")
     if [ "${#configured_keys[@]}" -ne 1 ] || [[ ! "${configured_keys[0]}" =~ ^ssh-ed25519[[:space:]] ]]; then
         key_validation_error="${AUTHORIZED_KEY_SOURCE} must contain exactly one Ed25519 public key."
     else
@@ -22,7 +22,7 @@ if [ -f "${AUTHORIZED_KEY_SOURCE}" ]; then
     fi
 else
     echo "Managed ChatGPT SSH access is disabled until ${AUTHORIZED_KEY_SOURCE} is created." >&2
-    echo "Follow docs/runbooks/devcontainer-ssh-access.md from the host Mac, then restart the container." >&2
+    echo "Follow docs/runbooks/devcontainer-ssh-access.md on the host machine, then restart the container." >&2
 fi
 
 install -d -m 700 "${HOME}/.ssh"
