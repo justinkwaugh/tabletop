@@ -221,12 +221,15 @@ function rememberedPositions(
             among.filter((cardId) => !taken.has(cardId)),
             random
         )
-        // Places with a known back first, each taking a card of that back.
+        // Places with a known back first, each taking a card of that back; a set with fewer cards
+        // than places lies at any of them.
+        const places = shuffled([...at], random)
         const ordered = [
-            ...at.filter((position) => kinds[position] !== undefined),
-            ...at.filter((position) => kinds[position] === undefined)
+            ...places.filter((position) => kinds[position] !== undefined),
+            ...places.filter((position) => kinds[position] === undefined)
         ]
         for (const position of ordered) {
+            if (positions[position] !== null) continue
             const index = left.findIndex(
                 (cardId) => kinds[position] === undefined || kindOf(cardId) === kinds[position]
             )
@@ -304,6 +307,24 @@ function dealWorldCards(
 ) {
     // What the explorer knows lies elsewhere comes first; the stacks' records then place what is left.
     const taken = namedWorldCards(state, questions)
+    // HIDDEN-010 — cards the table, or the explorer, saw drawn into a hand stay there; a card named
+    // there is newer than a set still listing it in a stack (HIDDEN-014).
+    const explorer = state.players.find((player) => player.knownHands !== undefined)
+    const heldKnown = new Map<string, string[]>()
+    const handEntries = (player: (typeof state.players)[number]) => [
+        ...player.handSeen,
+        ...(explorer?.knownHands?.[player.playerId] ?? [])
+    ]
+    for (const player of state.players) {
+        if (player.handIds !== undefined) continue
+        const held: string[] = []
+        for (const entry of handEntries(player))
+            if (typeof entry === 'string' && !taken.has(entry) && held.length < player.handCount) {
+                held.push(entry)
+                taken.add(entry)
+            }
+        heldKnown.set(player.playerId, held)
+    }
     const leftovers: string[] = []
     const setPlaces: { positions: (string | null)[]; at: number }[] = []
     const kindsOf = new Map<(string | null)[], (CardKind | undefined)[]>()
@@ -335,19 +356,10 @@ function dealWorldCards(
         state.seenWorldDeckBottom,
         state.players.map((player) => player.knownWorldDeckBottom ?? [])
     )
-    // HIDDEN-010 — cards the table, or the explorer, saw drawn into a hand stay there.
-    const explorer = state.players.find((player) => player.knownHands !== undefined)
-    const heldKnown = new Map<string, string[]>()
     for (const player of state.players) {
-        if (player.handIds !== undefined) continue
-        const entries = [...player.handSeen, ...(explorer?.knownHands?.[player.playerId] ?? [])]
-        const held: string[] = []
-        for (const entry of entries)
-            if (typeof entry === 'string' && !taken.has(entry) && held.length < player.handCount) {
-                held.push(entry)
-                taken.add(entry)
-            }
-        for (const entry of entries) {
+        const held = heldKnown.get(player.playerId)
+        if (held === undefined) continue
+        for (const entry of handEntries(player)) {
             if (typeof entry === 'string' || held.length >= player.handCount) continue
             const [cardId, ...rest] = shuffled(
                 entry.among.filter((id) => !taken.has(id)),
@@ -358,7 +370,6 @@ function dealWorldCards(
             taken.add(cardId)
             leftovers.push(...rest)
         }
-        heldKnown.set(player.playerId, held)
     }
     const returned = [...new Set(leftovers)].filter((cardId) => !taken.has(cardId))
     const { visions, denizens } = unnamedWorldCards(state, new Set([...taken, ...returned]), random)
@@ -371,7 +382,12 @@ function dealWorldCards(
             total +
             (player.handIds === undefined ? player.handVisions : 0) +
             (player.adviserIds === undefined
-                ? player.advisers.filter((row) => row.vision === true && !row.shownCardId).length
+                ? player.advisers.filter(
+                      (row, index) =>
+                          row.vision === true &&
+                          !row.shownCardId &&
+                          !conspiracyRow(questions, player.playerId, index)
+                  ).length
                 : 0),
         0
     )
@@ -400,13 +416,11 @@ function dealWorldCards(
                 })
         }
         if (player.adviserIds === undefined) {
-            const ids = player.advisers.map((row) => row.cardId ?? row.shownCardId)
-            for (const question of questions)
-                if (
-                    question.kind === PowerQuestionKind.PlayOrDiscardConspiracy &&
-                    question.holderPlayerId === player.playerId
-                )
-                    ids[question.index] = CONSPIRACY_ID
+            const ids = player.advisers.map((row, index) =>
+                conspiracyRow(questions, player.playerId, index)
+                    ? CONSPIRACY_ID
+                    : (row.cardId ?? row.shownCardId)
+            )
             advisers.set(player.playerId, ids)
             for (const [index, cardId] of ids.entries())
                 if (cardId === undefined)
@@ -454,10 +468,14 @@ function dealWorldCards(
     }
 
     // Cracked Horn — the cards known under the deck, bottom first; an unknown one among them is dealt.
-    // X-13 — a known top may already hold what a set under the deck lost: unfillable places above go.
+    // X-13 — a short deck's known top may reach the places known under it: the hidden cards left over
+    // for the deck say how many of those places are the known top's.
     const bottomBacks = kindsOf.get(recalledBottom) ?? []
+    const unnamedUnder = (end: number) =>
+        recalledBottom.slice(0, end).filter((cardId) => cardId === null).length
+    const hiddenLeft = visions.length + denizens.length - slots.length
     let under = recalledBottom.length
-    while (under > 0 && recalledBottom[under - 1] === null && bottomBacks[under - 1] === undefined)
+    while (under > 0 && recalledBottom[under - 1] === null && hiddenLeft < unnamedUnder(under))
         under -= 1
     const bottom = recalledBottom.slice(0, under).map((cardId) => cardId ?? undefined)
     for (const [index, cardId] of bottom.entries())
@@ -538,6 +556,20 @@ function dealWorldCards(
         worldDeck.splice(position, 0, deckVisions[index])
     worldDeck.push(...bottom.map(dealtCard).reverse())
     return { worldDeck, discardPiles, hands, advisers, drawnForQuestions, dispossessed }
+}
+
+/** Inquisitor — the row everyone saw the Conspiracy question name. */
+function conspiracyRow(
+    questions: readonly ProjectedQuestion[],
+    playerId: string,
+    index: number
+): boolean {
+    return questions.some(
+        (question) =>
+            question.kind === PowerQuestionKind.PlayOrDiscardConspiracy &&
+            question.holderPlayerId === playerId &&
+            question.index === index
+    )
 }
 
 function longestTop(lists: readonly string[][]): string[] {

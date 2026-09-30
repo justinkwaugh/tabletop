@@ -102,6 +102,21 @@ describe('Exploration from canonical state (R-9.4)', () => {
             expect(backs(explore(state, seed).vault.discardPiles[Region.Cradle])).toEqual(backs(state.vault.discardPiles[Region.Cradle]))
     })
 
+    it('a back the table saw says only which kind lies there: cards of that back still trade places', () => {
+        const state = source()
+        state.seenDiscardPiles[Region.Cradle] = [{ back: CardKind.Vision }, { back: CardKind.Denizen }, { back: CardKind.Denizen }]
+        const under = state.vault.worldDeck.filter((id) => kindOf(id) === CardKind.Denizen).slice(0, 3)
+        state.vault.worldDeck = [...state.vault.worldDeck.filter((id) => !under.includes(id)), ...under]
+        state.seenWorldDeckBottom = under.map(() => ({ back: CardKind.Denizen }))
+        const branches = BRANCH_SEEDS.map((seed) => explore(state, seed))
+        expect(branches.some((branch) => branch.vault.discardPiles[Region.Cradle][0] !== state.vault.discardPiles[Region.Cradle][0])).toBe(true)
+        expect(branches.some((branch) => branch.vault.worldDeck.at(-1) !== under.at(-1))).toBe(true)
+        for (const branch of branches) {
+            expect(branch.vault.discardPiles[Region.Cradle][2]).toBe(state.vault.discardPiles[Region.Cradle][2])
+            expect(sorted(branch.vault.worldDeck.slice(-3))).toEqual(sorted(under))
+        }
+    })
+
     it('on a short deck whose known top and known bottom meet, deals each card once', () => {
         const state = source()
         const deck = state.vault.worldDeck.slice(0, 4)

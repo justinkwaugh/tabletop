@@ -6,6 +6,7 @@ import { waitingGame } from '../testing/game.js'
 import { OathRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 import { HydratedOathGameState, OathGameStateValidator, type OathGameState } from '../model/gameState.js'
+import type { TablePositions } from '../model/playerState.js'
 import { CardKind, Region, SetupVariant } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { cardDefinition, kindOf } from '../data/cardRegistry.js'
@@ -21,7 +22,8 @@ import { UseActionPower } from '../actions/useActionPower.js'
 import { AnswerQuestion } from '../actions/answerQuestion.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { modifierUse } from '../testing/choices.js'
-import { drawDiscardPile } from '../util/knowledge.js'
+import { adviserDiscardsNeeded } from '../util/cardPlay.js'
+import { drawDiscardPile, putUnderWorldDeckKnown, seeDiscardPile, seeWorldDeckTop } from '../util/knowledge.js'
 
 // R-9.4 — a player or spectator explores from what they know; everything else is dealt afresh.
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
@@ -171,33 +173,16 @@ function expectKnownKept(source: OathGameState, branch: OathGameState, perspecti
             expect(kindOf(branch.vault.discardPiles[region][0])).toBe(source.discardTopBackType[region])
     // Every pile position the table or the explorer remembers holds the card they saw there.
     const explorer = source.players.find((player) => perspective.kind === 'player' && player.playerId === perspective.playerId)
-    for (const region of Object.values(Region)) {
-        const size = source.discardPileCounts[region]
+    for (const region of Object.values(Region))
         for (const known of [source.seenDiscardPiles[region], explorer?.knownDiscardPiles[region] ?? []])
-            for (const [fromBottom, entry] of known.entries()) {
-                const dealt = branch.vault.discardPiles[region][size - 1 - fromBottom]
-                if (typeof entry === 'string') expect(dealt).toBe(entry)
-                else if (entry !== null) {
-                    if ('among' in entry) expect(entry.among).toContain(dealt)
-                    if (entry.back !== undefined) expect(kindOf(dealt)).toBe(entry.back)
-                }
-            }
-    }
+            expectRecordKept(known, branch.vault.discardPiles[region])
     const deck = branch.vault.worldDeck
     // R-8.8 — a Vision never drawn lies within reach of the top, less what was drawn from there.
     const under = Math.max(source.seenWorldDeckBottom.length, explorer?.knownWorldDeckBottom.length ?? 0)
     const reach = VISION_REACH - source.worldDeckDrawn
     for (const [at, cardId] of deck.entries())
         if (kindOf(cardId) === CardKind.Vision && at < deck.length - under) expect(at).toBeLessThan(Math.max(reach, 1))
-    for (const known of [source.seenWorldDeckBottom, explorer?.knownWorldDeckBottom ?? []])
-        for (const [fromBottom, entry] of known.entries()) {
-            const dealt = deck[deck.length - 1 - fromBottom]
-            if (typeof entry === 'string') expect(dealt).toBe(entry)
-            else if (entry !== null) {
-                if ('among' in entry) expect(entry.among).toContain(dealt)
-                if (entry.back !== undefined) expect(kindOf(dealt)).toBe(entry.back)
-            }
-        }
+    for (const known of [source.seenWorldDeckBottom, explorer?.knownWorldDeckBottom ?? []]) expectRecordKept(known, deck)
     for (const [index, player] of source.players.entries()) {
         // HIDDEN-010 — a card the table, or the explorer, saw drawn into a hand is in it.
         const held = branch.players[index].handIds
@@ -229,6 +214,21 @@ function expectKnownKept(source: OathGameState, branch: OathGameState, perspecti
         for (const [slotId, relicCardId] of Object.entries(player.peekedRelics))
             if (branch.vault.relicFacedown[slotId]) expect(branch.vault.relicFacedown[slotId]).toBe(relicCardId)
     }
+}
+
+/** A named place holds its card, a back its kind, and a set's cards still in the stack lie at the set's places. */
+function expectRecordKept(known: TablePositions, stack: readonly string[]) {
+    const setPlaces = new Map<string, string[]>()
+    for (const [fromBottom, entry] of known.entries()) {
+        const dealt = stack[stack.length - 1 - fromBottom]
+        if (typeof entry === 'string') expect(dealt).toBe(entry)
+        else if (entry !== null) {
+            if (entry.back !== undefined) expect(kindOf(dealt)).toBe(entry.back)
+            if ('among' in entry) setPlaces.set(entry.among.join(','), [...(setPlaces.get(entry.among.join(',')) ?? []), dealt])
+        }
+    }
+    for (const [members, dealt] of setPlaces)
+        for (const member of members.split(',')) if (stack.includes(member)) expect(dealt).toContain(member)
 }
 
 function expectExplorable(game: Game, source: OathGameState, setupVariant: SetupVariant) {
@@ -316,7 +316,7 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
 
         // A later draw takes part of the set: another player now holds one of its cards, unseen.
         const drawing = new HydratedOathGameState(structuredClone(resolved))
-        const region = Object.values(Region).find((r) => resolved.seenDiscardPiles[r].some((entry) => entry !== null && typeof entry === 'object'))
+        const region = Object.values(Region).find((r) => resolved.seenDiscardPiles[r].some((entry) => entry !== null && typeof entry === 'object' && 'among' in entry))
         assert(region !== undefined, 'the Harp set lies on a pile')
         const other = drawing.players.find((player) => player.playerId !== chancellor)
         assert(other !== undefined, 'another player sits at the table')
@@ -327,6 +327,34 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
         drawing.discardPileCounts[region] -= drawn.length
         drawing.discardTopBackType = { ...drawing.discardTopBackType, [region]: newTop === undefined ? undefined : kindOf(newTop) }
         expectExplorable(game, canonical(drawing.dehydrate()), setupVariant)
+    })
+
+    it('HIDDEN-014 — a card the table saw leave a set for a hand is dealt to that hand, not back to the set', () => {
+        const { game, state, chancellor } = started(setupVariant)
+        const drawing = new HydratedOathGameState(structuredClone(state))
+        const vault = drawing.requireVault()
+        // Three denizens on the Cradle pile that the table knows only as a set, as after Truthful Harp.
+        const set = vault.worldDeck.slice(1).filter((id) => kindOf(id) === CardKind.Denizen).slice(0, 3)
+        vault.worldDeck = vault.worldDeck.filter((id) => !set.includes(id))
+        vault.discardPiles[Region.Cradle].unshift(...set)
+        drawing.discardPileCounts[Region.Cradle] += set.length
+        drawing.discardTopBackType = { ...drawing.discardTopBackType, [Region.Cradle]: CardKind.Denizen }
+        const among = set.toSorted()
+        drawing.seenDiscardPiles[Region.Cradle] = [...drawing.seenDiscardPiles[Region.Cradle], ...set.map(() => ({ among, back: CardKind.Denizen }))]
+        // Brass Horse names the top, and another player draws it.
+        seeDiscardPile(drawing, 'everyone', Region.Cradle, set.slice(0, 1))
+        const other = drawing.players.find((player) => player.playerId !== chancellor)
+        assert(other !== undefined, 'another player sits at the table')
+        const drawn = drawDiscardPile(drawing, Region.Cradle, 1, false, other.playerId)
+        other.setHand([...other.knownHand(), ...drawn])
+        const [top] = vault.discardPiles[Region.Cradle]
+        drawing.discardPileCounts[Region.Cradle] -= 1
+        drawing.discardTopBackType = { ...drawing.discardTopBackType, [Region.Cradle]: top === undefined ? undefined : kindOf(top) }
+        expect(other.handSeen).toEqual([set[0]])
+        const source = canonical(drawing.dehydrate())
+        expectExplorable(game, source, setupVariant)
+        for (const seed of [1, 2, 3, 4, 5, 6, 7, 8])
+            expect(explore(game, source, { kind: 'spectator' }, seed).players.find((player) => player.playerId === other.playerId)?.handIds).toContain(set[0])
     })
 
     it.each([
@@ -393,6 +421,122 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
                 faceUp: false
             }), searching, game).updatedState)
             expect(Object.values(keptFacedown.seenDiscardPiles).flat().some((entry) => entry !== null && typeof entry === 'object' && 'among' in entry)).toBe(false)
+        }
+    })
+
+    it('HIDDEN-011 — a known card searched and discarded again leaves the discard order the searcher’s', () => {
+        const { game, state, chancellor } = started(setupVariant)
+        const region = HydratedSearch.drawRegion(new HydratedOathGameState(structuredClone(state)), chancellor, [])
+        const seeded = structuredClone(state)
+        // Two more denizens on the pile, the top one watched going on (as a Brass Horse would show it).
+        const moved = seeded.vault.worldDeck.slice(1).filter((id) => kindOf(id) === CardKind.Denizen).slice(0, 2)
+        seeded.vault.worldDeck = seeded.vault.worldDeck.filter((id) => !moved.includes(id))
+        seeded.vault.discardPiles[region].unshift(...moved)
+        const [top] = moved
+        assert(top !== undefined, 'the deck holds denizens')
+        seeded.discardPileCounts[region] += moved.length
+        seeded.discardTopBackType[region] = CardKind.Denizen
+        seeded.seenDiscardPiles[region] = [...seeded.seenDiscardPiles[region], { back: CardKind.Denizen }, top]
+        const searching = canonical(engine.runNext(buildAction(Search, { playerId: chancellor, drawFrom: SearchSource.Discard }), canonical(seeded), game).updatedState)
+        const hand = new HydratedOathGameState(searching).getPlayerState(chancellor).knownHand()
+        const partner = hand.find((id) => id !== top && kindOf(id) === kindOf(top))
+        assert(partner !== undefined, `the hand holds another card with the known card’s back: ${hand.join(' ')}`)
+        const rest = hand.filter((id) => id !== top && id !== partner)
+        const resolve = (keptCardId: string, discardOrder: string[]) =>
+            canonical(engine.runNext(buildAction(SearchResolve, { playerId: chancellor, keptCardId, discardOrder, play: SearchPlay.Discard }), searching, game).updatedState)
+        const outcomes = [
+            resolve(rest[0] ?? top, [top, partner, ...rest.slice(1)]),
+            resolve(rest[0] ?? top, [partner, top, ...rest.slice(1)]),
+            resolve(top, [partner, ...rest]),
+            resolve(partner, [top, ...rest])
+        ].filter((_, index) => rest.length > 0 || index >= 2)
+        const others = perspectives(searching).filter((perspective) => perspective.kind === 'spectator' || perspective.playerId !== chancellor)
+        for (const perspective of others) {
+            const [first, ...later] = outcomes.map((outcome) => OathRuntime.visibility.state.project(outcome, perspective, { config: game.config }))
+            for (const projected of later) expect(projected).toEqual(first)
+        }
+        for (const outcome of outcomes) expectExplorable(game, outcome, setupVariant)
+    })
+
+    it('HIDDEN-016 — a hand of one known card kept facedown stays known in the row it took', () => {
+        const { game, state, chancellor } = started(setupVariant)
+        const region = HydratedSearch.drawRegion(new HydratedOathGameState(structuredClone(state)), chancellor, [])
+        const seeded = structuredClone(state)
+        const [top, ...below] = seeded.vault.discardPiles[region]
+        assert(top !== undefined, 'the pile holds a card')
+        // A pile of one card, watched going on by the table.
+        seeded.boxIds.push(...below)
+        seeded.vault.discardPiles[region] = [top]
+        seeded.discardPileCounts[region] = 1
+        seeded.seenDiscardPiles[region] = [top]
+        const searching = canonical(engine.runNext(buildAction(Search, { playerId: chancellor, drawFrom: SearchSource.Discard }), canonical(seeded), game).updatedState)
+        expect(new HydratedOathGameState(searching).getPlayerState(chancellor).knownHand()).toEqual([top])
+        const kept = canonical(engine.runNext(buildAction(SearchResolve, { playerId: chancellor, keptCardId: top, discardOrder: [], play: SearchPlay.Adviser, faceUp: false }), searching, game).updatedState)
+        expect(kept.players.find((player) => player.playerId === chancellor)?.advisers.at(-1)).toMatchObject({ faceUp: false, seen: true, shownCardId: top })
+        expectExplorable(game, kept, setupVariant)
+        for (const perspective of perspectives(kept))
+            expect(explore(game, kept, perspective).players.find((player) => player.playerId === chancellor)?.adviserIds.at(-1)).toBe(top)
+    })
+
+    it('HIDDEN-013 — a shown adviser discarded to make room stays known on the pile, though the kept card went facedown unseen', () => {
+        const { game, state, chancellor } = started(setupVariant)
+        const searching = new HydratedOathGameState(structuredClone(canonical(engine.runNext(buildAction(Search, {
+            playerId: chancellor,
+            drawFrom: SearchSource.WorldDeck,
+            revealsInfo: true
+        }), state, game).updatedState)))
+        const searcher = searching.getPlayerState(chancellor)
+        const [keptCardId, ...discardOrder] = searcher.knownHand()
+        assert(keptCardId !== undefined, 'the Search drew cards')
+        const viewer = searching.players.find((player) => player.playerId !== chancellor)?.playerId
+        assert(viewer !== undefined, 'another player sits at the table')
+        // Facedown advisers dealt from the deck until keeping one more facedown needs a discard.
+        const vault = searching.requireVault()
+        while (adviserDiscardsNeeded(searching, chancellor, keptCardId, { faceUp: false }) === 0) {
+            const index = vault.worldDeck.findIndex((id, at) => at > 0 && kindOf(id) === CardKind.Denizen)
+            const [cardId] = vault.worldDeck.splice(index, 1)
+            searcher.addAdviser(cardId, false)
+        }
+        const shown = searcher.facedownAdviserIds()[0]
+        searcher.markShown(shown, viewer)
+        const source = canonical(searching.dehydrate())
+        const resolved = canonical(engine.runNext(buildAction(SearchResolve, {
+            playerId: chancellor,
+            keptCardId,
+            discardOrder,
+            play: SearchPlay.Adviser,
+            faceUp: false,
+            discardedAdviserCardIds: [shown]
+        }), source, game).updatedState)
+        const records = Object.values(resolved.players.find((player) => player.playerId === viewer)?.knownDiscardPiles ?? {}).flat()
+        expect(records.some((entry) => entry !== null && typeof entry === 'object' && 'among' in entry && entry.among.includes(shown))).toBe(true)
+        expectExplorable(game, resolved, setupVariant)
+    })
+
+    it('X-13 — a short deck whose known top reaches the cards known under it', () => {
+        const { game, state } = started(setupVariant)
+        const current = new HydratedOathGameState(structuredClone(state))
+        const vault = current.requireVault()
+        // As though the deck had run down to two denizens before a Cracked Horn sent two more under.
+        const denizens = vault.worldDeck.filter((id) => kindOf(id) === CardKind.Denizen)
+        const [kept, horned] = [denizens.slice(0, 2), denizens.slice(2, 4)]
+        current.boxIds.push(...vault.worldDeck.filter((id) => !kept.includes(id) && !horned.includes(id)))
+        vault.worldDeck = kept
+        current.worldDeckVisions = 0
+        current.topCardBackType = CardKind.Denizen
+        const [seer, depositor] = current.players.map((player) => player.playerId)
+        assert(seer !== undefined && depositor !== undefined, 'two players sit at the table')
+        putUnderWorldDeckKnown(current, horned, { witnessOf: () => [depositor] })
+        const deck = [...vault.worldDeck]
+        seeWorldDeckTop(current, seer, deck.slice(0, 3))
+        const source = canonical(current.dehydrate())
+        expect(source.seenWorldDeckBottom).toEqual([{ back: CardKind.Denizen }, { back: CardKind.Denizen }])
+        for (const perspective of perspectives(source)) {
+            const branch = explore(game, source, perspective)
+            expect(branch.vault.worldDeck).toHaveLength(deck.length)
+            if (perspective.kind === 'spectator') continue
+            if (perspective.playerId === seer) expect(branch.vault.worldDeck.slice(0, 3)).toEqual(deck.slice(0, 3))
+            if (perspective.playerId === depositor) expect(branch.vault.worldDeck.slice(-2)).toEqual(deck.slice(-2))
         }
     })
 

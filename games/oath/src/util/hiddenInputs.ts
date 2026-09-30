@@ -180,7 +180,8 @@ export function commitHiddenOutputs(
     const fallback: readonly Witness[] = witnesses.holders ? [action.playerId] : []
     // Pilgrimage from an empty Dispossessed — the table knows which cards, not their order.
     const sets = new Set([...witnesses.sets, ...shownAsSets(action)])
-    // X-14 — a hand card others knew is placed among the discards only once the kept card is public.
+    // X-14 — a hand card others knew is placed among the discards only once the kept card is public;
+    // a facedown adviser's viewers know it went whatever the kept card did (HIDDEN-013).
     const resolved = handResolved(action)
     const deposit: Deposit = {
         witnessOf: (cardId) =>
@@ -189,7 +190,8 @@ export function commitHiddenOutputs(
                 : (witnesses.byCard.get(cardId) ?? fallback),
         setWitnessesOf: (cardId) => [
             ...(sets.has(cardId) ? ['everyone'] : []),
-            ...(resolved ? (witnesses.setsByCard.get(cardId) ?? []) : [])
+            ...(witnesses.setsByCard.get(cardId) ?? []),
+            ...(resolved ? (witnesses.handSetsByCard.get(cardId) ?? []) : [])
         ]
     }
     switch (action.type) {

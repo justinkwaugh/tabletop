@@ -151,12 +151,14 @@ export type Witness = 'everyone' | string
 
 /**
  * Who could see each card before an action moved it: `byCard` knew the card and will see where it
- * lands; `setsByCard` knew the card but not its place among the others moved with it. With `holders`,
- * also each hand's and facedown adviser's holder.
+ * lands; `setsByCard` (a facedown adviser's viewers) and `handSetsByCard` (a hand card's) knew the
+ * card but not its place among the others moved with it. With `holders`, also each hand's and
+ * facedown adviser's holder.
  */
 export interface DiscardWitnesses {
     byCard: ReadonlyMap<string, readonly Witness[]>
     setsByCard: ReadonlyMap<string, readonly Witness[]>
+    handSetsByCard: ReadonlyMap<string, readonly Witness[]>
     holders: boolean
     /** Pilgrimage — cards the table knows as a set, but not in their order. */
     sets: ReadonlySet<string>
@@ -200,6 +202,7 @@ export function tableWitnesses(state: HydratedOathGameState): DiscardWitnesses {
     return {
         byCard: new Map(shown.map((cardId) => [cardId, ['everyone']])),
         setsByCard: new Map(),
+        handSetsByCard: new Map(),
         holders: false,
         sets,
         relics
@@ -214,27 +217,35 @@ export function tableWitnesses(state: HydratedOathGameState): DiscardWitnesses {
 export function discardWitnesses(state: HydratedOathGameState): DiscardWitnesses {
     const byCard = new Map<string, readonly Witness[]>()
     const setsByCard = new Map<string, Witness[]>()
-    const alsoKnows = (cardId: string, witness: Witness) =>
-        setsByCard.set(cardId, [...(setsByCard.get(cardId) ?? []), witness])
+    const handSetsByCard = new Map<string, Witness[]>()
+    const alsoKnows = (sets: Map<string, Witness[]>, cardId: string, witness: Witness) =>
+        sets.set(cardId, [...(sets.get(cardId) ?? []), witness])
     for (const player of state.players) {
         for (const cardId of [...player.knownHand(), ...player.facedownAdviserIds()])
             byCard.set(cardId, [player.playerId])
         for (const entry of player.handSeen)
-            if (typeof entry === 'string') alsoKnows(entry, 'everyone')
+            if (typeof entry === 'string') alsoKnows(handSetsByCard, entry, 'everyone')
         for (const other of state.players) {
             if (other.playerId === player.playerId) continue
             for (const entry of knownHandsOf(other)[player.playerId] ?? [])
-                if (typeof entry === 'string') alsoKnows(entry, other.playerId)
+                if (typeof entry === 'string') alsoKnows(handSetsByCard, entry, other.playerId)
         }
         // R-9.4 — whoever was shown a facedown adviser knows it when it goes.
         for (const [index, row] of player.advisers.entries())
             if (!row.faceUp)
                 for (const viewer of row.shownTo ?? [])
-                    alsoKnows(player.knownAdviserIds()[index], viewer)
+                    alsoKnows(setsByCard, player.knownAdviserIds()[index], viewer)
     }
     const table = tableWitnesses(state)
     for (const [cardId, witnesses] of table.byCard) byCard.set(cardId, witnesses)
-    return { byCard, setsByCard, holders: true, sets: table.sets, relics: table.relics }
+    return {
+        byCard,
+        setsByCard,
+        handSetsByCard,
+        holders: true,
+        sets: table.sets,
+        relics: table.relics
+    }
 }
 
 function knownHandsOf(player: HydratedOathPlayerState): Record<string, HandPositions> {
@@ -417,25 +428,33 @@ function remember(
     // Sorted: the order the cards went down is their player's alone.
     const setFor = (witness: Witness) =>
         cardIds.filter((cardId) => asSet(cardId).includes(witness)).toSorted()
+    // HIDDEN-011 — a set may lie at any place of the deposit not known exactly whose back one of its
+    // cards shows, so where it lies says nothing of the order.
+    const setAt = (witness: Witness, cardId: string) => {
+        if (exactly(cardId).includes(witness)) return undefined
+        const among = setFor(witness)
+        const back = backOfCard(cardId)
+        return among.some((member) => backOfCard(member) === back) ? among : undefined
+    }
+    const setWitnesses = new Set(cardIds.flatMap(asSet))
     for (const [index, cardId] of cardIds.entries()) {
         const at = positionOf(index)
         for (const witness of exactly(cardId)) {
             const record = recordFor(witness)
             record.set(placed(record.get(), at, cardId))
         }
-        for (const witness of asSet(cardId)) {
-            if (witness === 'everyone') continue
+        for (const witness of setWitnesses) {
+            const among = witness === 'everyone' ? undefined : setAt(witness, cardId)
+            if (among === undefined) continue
             const record = recordFor(witness)
-            record.set(placed(record.get(), at, { among: setFor(witness) }))
+            record.set(placed(record.get(), at, { among }))
         }
-        // R-9.4 — the table saw every back go down, and a set's cards where it knew them.
+        // R-9.4 — the table saw every back go down, and each place a set it knew may lie at.
         if (!exactly(cardId).includes('everyone')) {
             const table = recordFor('everyone')
             const back = backOfCard(cardId)
-            const entry = asSet(cardId).includes('everyone')
-                ? { among: setFor('everyone'), back }
-                : { back }
-            table.set(placed(table.get(), at, entry))
+            const among = setWitnesses.has('everyone') ? setAt('everyone', cardId) : undefined
+            table.set(placed(table.get(), at, among ? { among, back } : { back }))
         }
     }
 }
@@ -541,23 +560,38 @@ export function rememberRelicAt(
         }
 }
 
-/** Every player records the relic sent to the bottom, by name if they know it. */
+/**
+ * Every player records the relic sent to the bottom, by name if they know it; a relic the table knew
+ * where it lay, or at its old place under the deck, the table knows here too.
+ */
 export function sendRelicToBottom(
     state: HydratedOathGameState,
     relicCardId: string,
-    knownBy: 'everyone' | readonly string[]
+    knownBy: 'everyone' | readonly Witness[]
 ): void {
     returnRelicToBottom(state.requireVault(), relicCardId)
+    const everyone =
+        knownBy === 'everyone' ||
+        knownBy.includes('everyone') ||
+        Object.values(state.seenRelics).includes(relicCardId)
     const record = (known: KnownPositions, knows: boolean) =>
         trimAbove([...known.filter((id) => id !== relicCardId), knows ? relicCardId : null])
-    state.seenRelicDeckBottom = record(state.seenRelicDeckBottom, knownBy === 'everyone')
+    state.seenRelicDeckBottom = record(state.seenRelicDeckBottom, everyone)
     for (const player of state.players)
         player.knownRelicDeckBottom = record(
             relicDeckBottomOf(player),
-            knownBy === 'everyone' ||
-                knownBy.includes(player.playerId) ||
-                hasPeekedAt(player, relicCardId)
+            everyone || knownBy.includes(player.playerId) || hasPeekedAt(player, relicCardId)
         )
+    leaveSlots(state, relicCardId)
+}
+
+/** A relic that left its slot: no record keeps it there. */
+function leaveSlots(state: HydratedOathGameState, relicCardId: string): void {
+    const without = (slots: Record<string, string>) =>
+        Object.fromEntries(Object.entries(slots).filter(([, cardId]) => cardId !== relicCardId))
+    state.seenRelics = without(state.seenRelics)
+    for (const player of state.players)
+        if (player.peekedRelics !== undefined) player.peekedRelics = without(player.peekedRelics)
 }
 
 /** R-6.3 — a relic this player saw where it lay. */

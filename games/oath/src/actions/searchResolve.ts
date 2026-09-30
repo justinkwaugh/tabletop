@@ -187,6 +187,18 @@ export class HydratedSearchResolve
             toSiteId: this.toSiteId
         })
 
+        // HIDDEN-016 — a hand of one card has nowhere else to go: whoever knew it knows the row it took.
+        if (
+            this.discardOrder.length === 0 &&
+            this.secondPlay === undefined &&
+            this.play === SearchPlay.Adviser &&
+            this.faceUp !== true &&
+            !shown
+        )
+            for (const knower of witnesses.handSetsByCard.get(this.keptCardId) ?? [])
+                if (knower === 'everyone') player.markSeen(this.keptCardId)
+                else player.markShown(this.keptCardId, knower)
+
         // Land Warden
         const second = this.secondPlay
             ? playCard(state, this.playerId, this.secondPlay.cardId, this.secondPlay.play, region, {

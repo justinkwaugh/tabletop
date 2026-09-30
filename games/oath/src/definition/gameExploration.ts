@@ -9,7 +9,7 @@ import { HydratedOathGameState, type OathProjectedState } from '../model/gameSta
 import { CardKind, Region } from '../model/oathEnums.js'
 import { kindOf } from '../data/cardRegistry.js'
 import type { OathVault } from '../model/vault.js'
-import type { HydratedOathPlayerState } from '../model/playerState.js'
+import type { HydratedOathPlayerState, TablePositions } from '../model/playerState.js'
 import { populateHiddenCards } from '../util/exploration.js'
 
 /** R-9.4 — re-deals unknown cards from a new protected stream, so a branch foretells nothing. */
@@ -23,6 +23,7 @@ export class OathGameExploration implements GameExploration<OathProjectedState> 
             vault.worldDeck,
             knownTopLength(hydrated),
             knownBottomLength(hydrated),
+            knownBottomIndexes(hydrated),
             random
         )
         for (const region of Object.values(Region)) {
@@ -57,10 +58,12 @@ function reshuffledWorldDeck(
     deck: readonly string[],
     known: number,
     knownBottom: number,
+    namedBottom: ReadonlySet<number>,
     random: RandomFunction
 ): string[] {
     // X-13 — on a short deck the known top and known bottom can meet.
     const under = Math.max(known, deck.length - knownBottom)
+    const bottom = deck.slice(under)
     const rest = deck.slice(known, under)
     const reach = rest.findLastIndex(isVision) + 1
     const visions = rest.filter(isVision)
@@ -72,8 +75,33 @@ function reshuffledWorldDeck(
     return [
         ...deck.slice(0, known),
         ...(known === 0 ? keepTopBack(deck, reshuffled, reach) : reshuffled),
-        ...deck.slice(under)
+        ...withTopBackKept(
+            bottom,
+            new Set(
+                [...namedBottom]
+                    .map((fromBottom) => bottom.length - 1 - fromBottom)
+                    .filter((at) => at >= 0)
+            ),
+            random
+        )
     ]
+}
+
+/** Cracked Horn — the places under the world deck, from the bottom, where some record names a card. */
+function knownBottomIndexes(state: HydratedOathGameState): Set<number> {
+    return new Set(
+        [
+            state.seenWorldDeckBottom,
+            ...state.players.map((player) => knownOf(player).worldDeckBottom)
+        ].flatMap((known) =>
+            known.flatMap((entry, fromBottom) => (names(entry) ? [fromBottom] : []))
+        )
+    )
+}
+
+/** R-9.4 — a record's place that says which card, or which cards, may lie there; a back alone says neither. */
+function names(entry: TablePositions[number]): boolean {
+    return entry !== null && (typeof entry === 'string' || 'among' in entry)
 }
 
 /** Cracked Horn — the most the table or any player has seen go under the world deck. */
@@ -127,14 +155,14 @@ function knownTopLength(state: HydratedOathGameState): number {
     return Math.max(0, ...state.players.map((player) => knownOf(player).worldDeckTop.length))
 }
 
-/** A pile's positions, from its top, that the table or some player has seen. */
+/** A pile's positions, from its top, where the table or some player has seen which card lies. */
 function knownPileIndexes(state: HydratedOathGameState, region: Region, size: number): Set<number> {
     return new Set(
         [
             state.seenDiscardPiles[region],
             ...state.players.map((player) => knownOf(player).discardPiles[region])
         ].flatMap((known) =>
-            known.flatMap((cardId, fromBottom) => (cardId === null ? [] : [size - 1 - fromBottom]))
+            known.flatMap((entry, fromBottom) => (names(entry) ? [size - 1 - fromBottom] : []))
         )
     )
 }

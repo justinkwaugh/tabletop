@@ -281,8 +281,48 @@ describe('HIDDEN-010 — a card someone knew in a stack, drawn into a hand', () 
             witnessOf: () => ['p1'],
             setWitnessesOf: (cardId: string) => witnesses.setsByCard.get(cardId) ?? []
         })
-        expect(s.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([{ among: [FACEDOWN] }])
+        expect(s.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([{ among: [FACEDOWN] }, { among: [FACEDOWN] }])
         expect(s.getPlayerState('p1').knownDiscardPiles?.hinterland).toEqual([FACEDOWN, WOLVES])
+    })
+})
+
+describe('HIDDEN-011 — a set a witness knew only part of', () => {
+    const handKnown = (order: string[]) => {
+        const s = table()
+        putOnDiscardPile(s, Region.Hinterland, order, false, {
+            witnessOf: () => ['p1'],
+            setWitnessesOf: (cardId: string) => (cardId === WOLVES ? ['everyone', 'p2'] : [])
+        })
+        return s
+    }
+
+    it('lies at every place of the deposit with its back, so the order stays the depositor’s', () => {
+        const [first, second] = [handKnown([WOLVES, ELDERS, VISION]), handKnown([ELDERS, WOLVES, VISION])]
+        expect(first.seenDiscardPiles.hinterland).toEqual([
+            { among: [WOLVES], back: CardKind.Denizen },
+            { among: [WOLVES], back: CardKind.Denizen },
+            { back: CardKind.Vision }
+        ])
+        expect(second.seenDiscardPiles).toEqual(first.seenDiscardPiles)
+        expect(second.getPlayerState('p2').knownDiscardPiles).toEqual(first.getPlayerState('p2').knownDiscardPiles)
+        expect(first.getPlayerState('p2').knownDiscardPiles?.hinterland).toEqual([{ among: [WOLVES] }, { among: [WOLVES] }])
+    })
+})
+
+describe('HIDDEN-015 — a relic the table knew, sent to the bottom again', () => {
+    it('stays known to the table, from a known bottom or a known slot', () => {
+        const s = table()
+        sendRelicToBottom(s, CUP, 'everyone')
+        expect(drawRelicDeck(s, 3).seenBy).toEqual([[], [], ['everyone']])
+        sendRelicToBottom(s, CUP, ['p1', 'everyone'])
+        expect(s.seenRelicDeckBottom).toEqual([CUP])
+        expect(s.getPlayerState('p2').knownRelicDeckBottom).toEqual([CUP])
+        s.seenRelics = { 'site.1.relic': MAP }
+        s.getPlayerState('p2').peekedRelics = { 'site.1.relic': MAP }
+        sendRelicToBottom(s, MAP, ['p1'])
+        expect(s.seenRelicDeckBottom).toEqual([CUP, MAP])
+        expect(s.seenRelics).toEqual({})
+        expect(s.getPlayerState('p2').peekedRelics).toEqual({})
     })
 })
 
