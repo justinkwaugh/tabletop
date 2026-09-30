@@ -26,6 +26,7 @@ import {
     validSpringPlacements
 } from '@tabletop/santiago'
 import { type GameAction } from '@tabletop/common'
+import { TileDealAnimator } from '$lib/animators/tileDealAnimator.svelte.js'
 
 export class SantiagoGameSession extends GameSession<
     SantiagoProjectedState,
@@ -38,6 +39,9 @@ export class SantiagoGameSession extends GameSession<
             super.canExplore
         )
     }
+
+    // Shared by the table (pile and tile slots) and the action bar (bidding preview) during a reveal.
+    readonly tileDeal = new TileDealAnimator(this)
 
     chosenAction: string | undefined = $state(undefined)
     bidValue: number = $state(0)

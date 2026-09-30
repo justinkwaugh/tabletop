@@ -7,12 +7,15 @@
     let { boardCenterX = null }: { boardCenterX?: number | null } = $props()
 
     const session = getGameSession()
+    const deal = session.tileDeal
     const state = $derived(session.gameState)
     const ms = $derived(state.machineState)
     const myId = $derived(session.myPlayer?.id)
     const me = $derived(session.mySantiagoPlayer)
 
-    const isBidding = $derived(ms === MachineState.Bidding)
+    // While a reveal is animating, the bar already shows the bidding content the round is about
+    // to need, so its height change can be animated before the tiles are dealt.
+    const isBidding = $derived(ms === MachineState.Bidding || deal.previewBidding)
     const isBiddingMyTurn = $derived(isBidding && session.isMyTurn)
     // Every player in bidding order — shown next to the bid control (like Indonesia's turn-order
     // bid tracker) instead of as a badge on each player's own panel. Players who haven't bid
@@ -57,7 +60,15 @@
     )
 </script>
 
-<!-- Action area -->
+<!-- Action area. The wrapper is always present so the reveal animation can measure and tween
+     its height; it is empty, and zero height, whenever there is nothing to show. -->
+<div
+    class="shrink-0"
+    {@attach (el) => {
+        deal.setActionBar(el)
+        return () => deal.setActionBar(undefined)
+    }}
+>
 {#if hasActionContent}
     <div class="shrink-0 mt-1 min-h-[56px]">
     <div class="h-full max-w-full px-3 py-2 flex flex-wrap items-center gap-3 text-white text-base"
@@ -68,11 +79,7 @@
             <span class="shrink-0 whitespace-nowrap text-amber-300 font-semibold">Place the spring</span>
             <span class="shrink-0 whitespace-nowrap text-sm text-amber-500">Click a highlighted intersection on the board</span>
 
-        <!-- TILE REVEAL: THE FIRST BIDDER OPENS THE ROUND -->
-        {:else if session.canRevealTiles}
-            <span class="shrink-0 whitespace-nowrap text-amber-300">Click the draw pile beside the board to reveal this round's fields.</span>
-
-        <!-- BIDDING -->
+        <!-- BIDDING (also previewed while the reveal animates) -->
         {:else if isBidding}
             <div class="flex items-center flex-nowrap gap-8">
                 {#if isBiddingMyTurn}
@@ -137,6 +144,10 @@
                     </div>
                 {/if}
             </div>
+
+        <!-- TILE REVEAL: THE FIRST BIDDER OPENS THE ROUND -->
+        {:else if session.canRevealTiles}
+            <span class="shrink-0 whitespace-nowrap text-amber-300">Click the draw pile beside the board to reveal this round's fields.</span>
 
         <!-- PLANTING: CHOOSE AND PLACE A FIELD -->
         {:else if isMyPlantTurn}
@@ -244,3 +255,4 @@
     </div>
     </div>
 {/if}
+</div>
