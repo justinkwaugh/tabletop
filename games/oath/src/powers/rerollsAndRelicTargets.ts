@@ -6,6 +6,7 @@ import { registerBattlePlan, registerEffect, registerPersistent } from './regist
 import { siteHasCardOfSuit, regionOfPawn } from './vocabulary.js'
 import { nextActionIndex } from '../util/freeActions.js'
 import { reasonCannotTravelByPower } from '../util/powerTravel.js'
+import { seeDiscardPile } from '../util/knowledge.js'
 
 // "You may target facedown relics at targeted sites, adding 1 [defenseDie] per relic.
 //  You may put any relics you take on the bottom of the relic deck." Attacker.
@@ -32,6 +33,8 @@ registerEffect(BRASS_HORSE, powerIndexOf(BRASS_HORSE, PowerTiming.Action), {
     resolve: (ctx) => {
         const me = ctx.state.getPlayerState(ctx.playerId)
         const top = ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds[0] : undefined
+        // "Reveal" — the whole table sees the top card.
+        if (top) seeDiscardPile(ctx.state, 'everyone', regionOfPawn(ctx.state, ctx.playerId), [top])
         const suit = top ? suitOf(top) : undefined
         // Its Q&A — the Travel rules bind; a site that cannot be travelled to is "unable".
         const sites = suit

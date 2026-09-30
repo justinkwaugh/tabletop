@@ -17,6 +17,7 @@ Each field records a fact the player saw, kept in step with later public events 
 | Oracular Pig | the world deck's top three | new `knownWorldDeckTop: cardId[]`, Owner, index 0 the top | a draw of n drops the first n; Oracle's draw removes the first Vision in the list, if any; a new look replaces it |
 | Scryer | one discard pile, whole | new `knownDiscardPiles: Record<Region, (cardId \| null)[]>`, Owner, indexed from the pile's bottom, `null` where unknown | a top draw truncates to the new public count; Mushrooms' bottom draw shifts it; Convoys moves it onto the target pile above that pile's count; a deposit changes nothing |
 | Tavern Songs | the top three of one pile | the same field, those three positions | the same |
+| A discard, and Brass Horse | cards put on a pile: every one the table could see (a card leaving play faceup, a revealed Vision, the order of a public discard, Brass Horse's reveal) by everyone, and every other one by the player who held it or drew it | new public `seenDiscardPiles` on the state for what the table saw; the player's `knownDiscardPiles` for the rest | the same as Scryer's; a card underneath lifts every record |
 | Family Heirloom, Dowsing Sticks | a drawn relic sent to the bottom | new `knownRelicDeckBottom: (cardId \| null)[]`, Owner, last element the bottom | every relic sent to the bottom appends to every player's list, the id to those who know it and `null` to the rest; a draw that reaches into the list trims it from the top |
 | Fae Merchant | the drawn relic, or a held one (public) | the same field; a held relic is public, so it is named in everyone's list | the same |
 | Relic Hunter | the site relics taken, then bottomed | the same field, for the attacker and anyone who had peeked at that slot | the same |
@@ -33,8 +34,9 @@ The relic deck's length is not in public state. It follows from public state (ev
 ## Scope
 
 - Scryer and Tavern Songs look at a discard pile, not the world deck, so the world deck and the discard piles have separate fields.
+- Who saw a discard is decided when the action commits it to the pile, from a snapshot taken as the action starts: a card on the table, a revealed Vision or a card named in a public question is everyone's; a hand card or a facedown adviser is its holder's; a card the action drew out of concealment, or one no one else could see, is the acting player's.
 - A card handed from one player's row to another's, by Dream Thief or an exchange at The Gathering, keeps its `shownTo` and adds the player who gave it, who held it and saw it go.
-- Not recorded: cards a player discarded themselves (their own `pileDeposits`), where a known card went when another player drew it, and cards once in a player's hand. Exploration treats them as unknown, which is less informed but never leaks.
+- Not recorded: where a known card went when another player drew it, and cards once in a player's hand. Exploration treats them as unknown, which is less informed but never leaks.
 
 ## Invariant asserts (G2, G3)
 

@@ -16,6 +16,7 @@ import {
     usePower
 } from '../util/powerDoorway.js'
 import { commitHiddenOutputs, revealForPower } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 import { holdsTheTurn } from '../util/turn.js'
 
 export type UseRestPowerMetadata = Type.Static<typeof UseRestPowerMetadata>
@@ -61,6 +62,7 @@ export class HydratedUseRestPower
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         const reason = HydratedUseRestPower.reasonCannotUse(
             state,
             this.playerId,
@@ -99,7 +101,7 @@ export class HydratedUseRestPower
         const outcome = powerOutcomeOf(result)
         this.revealsInfo = isIrreversible(outcome) || reveal !== undefined
         this.metadata = { ...outcome, summary: result.summary, reveal }
-        if (this.revealsInfo) commitHiddenOutputs(this, state)
+        if (this.revealsInfo) commitHiddenOutputs(this, state, witnesses)
     }
 
     static reasonCannotUse(

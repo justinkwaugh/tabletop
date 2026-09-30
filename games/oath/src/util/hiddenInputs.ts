@@ -12,7 +12,8 @@ import {
     drawWorldDeckVision,
     mergeDiscardPileOnto,
     putOnDiscardPile,
-    sendRelicToBottom
+    sendRelicToBottom,
+    type Witness
 } from './knowledge.js'
 import type { SearchResolve } from '../actions/searchResolve.js'
 import type { PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
@@ -165,15 +166,26 @@ export function revealForPlay(
 /** Called at the end of `apply`. */
 export function commitHiddenOutputs(
     action: HiddenOutputAction,
-    state: HydratedOathGameState
+    state: HydratedOathGameState,
+    witnesses: ReadonlyMap<string, Witness>
 ): void {
     const vault = state.requireVault()
+    // A card this action drew out of concealment, or one no one else could see, is its actor's alone.
+    const drawn = new Set(revealedCardIds(action))
+    const witnessOf = (cardId: string): Witness =>
+        drawn.has(cardId) ? action.playerId : (witnesses.get(cardId) ?? action.playerId)
     switch (action.type) {
         case ActionType.UseActionPower:
         case ActionType.UseRestPower:
             // The Map sends itself down, a relic its holder showed everyone.
             if (action.metadata)
-                commitPowerOutcome(state, action.playerId, action.metadata, action.cardId)
+                commitPowerOutcome(
+                    state,
+                    action.playerId,
+                    action.metadata,
+                    witnessOf,
+                    action.cardId
+                )
             return
         case ActionType.AnswerQuestion: {
             const bottomed = action.metadata?.relicToDeckBottom
@@ -186,18 +198,18 @@ export function commitHiddenOutputs(
                 )
             if (action.metadata?.relicTakenFromSlotId)
                 delete vault.relicFacedown[action.metadata.relicTakenFromSlotId]
-            discardRecorded(state, action.metadata)
-            depositOnPiles(state, action.metadata?.pileDeposits)
+            discardRecorded(state, action.metadata, witnessOf)
+            depositOnPiles(state, action.metadata?.pileDeposits, witnessOf)
             return
         }
         case ActionType.CampaignSacrifice:
         case ActionType.CampaignDefeatKills:
-            depositOnPiles(state, action.metadata?.pileDeposits)
+            depositOnPiles(state, action.metadata?.pileDeposits, witnessOf)
             return
         case ActionType.CampaignResolveVictory:
             for (const id of action.metadata?.relicsToDeckBottom ?? [])
                 sendRelicToBottom(state, id, [action.playerId])
-            depositOnPiles(state, action.metadata?.pileDeposits)
+            depositOnPiles(state, action.metadata?.pileDeposits, witnessOf)
             return
         case ActionType.SearchResolve:
             if (!action.metadata) return
@@ -208,22 +220,36 @@ export function commitHiddenOutputs(
                     state,
                     action.metadata.discardPileRegion,
                     action.metadata.discardedCardIds,
-                    action.metadata.discardToBottom === true
+                    action.metadata.discardToBottom === true,
+                    witnessOf
                 )
-            commitPowerOutcome(state, action.playerId, action.metadata)
+            commitPowerOutcome(state, action.playerId, action.metadata, witnessOf)
             return
         case ActionType.PlayFacedownAdviser:
             if (!action.metadata) return
-            discardRecorded(state, action.metadata)
-            commitPowerOutcome(state, action.playerId, action.metadata)
+            discardRecorded(state, action.metadata, witnessOf)
+            commitPowerOutcome(state, action.playerId, action.metadata, witnessOf)
             return
         case ActionType.SetupChoice:
-            discardRecorded(state, action.metadata)
+            discardRecorded(state, action.metadata, witnessOf)
             return
         case ActionType.ResolveCitizenshipOffer:
-            discardRecorded(state, action.metadata?.outcome)
+            discardRecorded(state, action.metadata?.outcome, witnessOf)
             return
     }
+}
+
+function revealedCardIds(action: HiddenOutputAction): string[] {
+    const reveal =
+        action.type === ActionType.UseActionPower ||
+        action.type === ActionType.UseRestPower ||
+        action.type === ActionType.SearchResolve ||
+        action.type === ActionType.PlayFacedownAdviser
+            ? action.metadata?.reveal
+            : undefined
+    if (reveal?.kind === 'peek') return reveal.cardIds
+    if (reveal?.kind === 'vision' && reveal.cardId !== undefined) return [reveal.cardId]
+    return []
 }
 
 function heldRelicAnswered(action: AnswerQuestion): string | undefined {
@@ -237,15 +263,26 @@ interface RecordedDiscard {
     discardedCardIds?: string[]
 }
 
-function discardRecorded(state: HydratedOathGameState, recorded: RecordedDiscard | undefined) {
+function discardRecorded(
+    state: HydratedOathGameState,
+    recorded: RecordedDiscard | undefined,
+    witnessOf: (cardId: string) => Witness
+) {
     if (recorded?.discardPileRegion && recorded.discardedCardIds)
-        putOnDiscardPile(state, recorded.discardPileRegion, recorded.discardedCardIds, false)
+        putOnDiscardPile(
+            state,
+            recorded.discardPileRegion,
+            recorded.discardedCardIds,
+            false,
+            witnessOf
+        )
 }
 
 function commitPowerOutcome(
     state: HydratedOathGameState,
     playerId: string,
     outcome: PowerOutcome,
+    witnessOf: (cardId: string) => Witness,
     sourceCardId?: string
 ) {
     const vault = state.requireVault()
@@ -262,15 +299,16 @@ function commitPowerOutcome(
     }
     if (outcome.mergePiles)
         mergeDiscardPileOnto(state, outcome.mergePiles.from, outcome.mergePiles.to)
-    depositOnPiles(state, outcome.pileDeposits)
+    depositOnPiles(state, outcome.pileDeposits, witnessOf)
 }
 
 function depositOnPiles(
     state: HydratedOathGameState,
-    deposits: readonly PileDeposit[] | undefined
+    deposits: readonly PileDeposit[] | undefined,
+    witnessOf: (cardId: string) => Witness
 ) {
     for (const deposit of deposits ?? [])
-        putOnDiscardPile(state, deposit.region, deposit.cardIds, deposit.bottom === true)
+        putOnDiscardPile(state, deposit.region, deposit.cardIds, deposit.bottom === true, witnessOf)
 }
 
 /** R-9.4 */

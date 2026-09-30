@@ -30,6 +30,7 @@ import { forceTotal, selectionExceedsForce } from '../util/force.js'
 import { giveBanner } from '../util/seize.js'
 import { reasonTermsInvalid } from './offerCitizenship.js'
 import { commitHiddenOutputs, takeRelicFromVault } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 import { moveRelic, takeRelic, clearReliquarySlot } from '../util/relics.js'
 
 export type CitizenshipOutcome = Type.Static<typeof CitizenshipOutcome>
@@ -91,6 +92,7 @@ export class HydratedResolveCitizenshipOffer
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         this.revealsInfo = false
         const reason = HydratedResolveCitizenshipOffer.reasonCannotResolve(
             state,
@@ -160,7 +162,7 @@ export class HydratedResolveCitizenshipOffer
                 givenBanners
             }
         }
-        commitHiddenOutputs(this, state)
+        commitHiddenOutputs(this, state, witnesses)
     }
 
     static reasonCannotResolve(

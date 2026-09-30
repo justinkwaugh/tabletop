@@ -226,7 +226,9 @@ describe('Oath visibility', () => {
             expect(theirs).toHaveProperty('metadata.pileDeposits', [{ region: 'cradle' }])
             expect(JSON.stringify(theirs)).not.toContain(drawn[0])
         }
-        for (const perspective of [p1, p2, spectator]) {
+        // The player who stacked it remembers where it lies; no one else does.
+        expect(OathRuntime.visibility.state.project(after, p1).players[0].knownDiscardPiles?.cradle).toEqual([drawn[0]])
+        for (const perspective of [p2, spectator]) {
             const view = OathRuntime.visibility.state.project(after, perspective)
             expect(view).not.toHaveProperty('vault')
             expect(JSON.stringify(view)).not.toContain(drawn[0])

@@ -158,7 +158,13 @@ function namedWorldCards(
     state: OathProjectedState,
     questions: readonly ProjectedQuestion[]
 ): Set<string> {
-    const named = new Set<string>([...Object.values(state.denizensBySite).flat(), ...state.boxIds])
+    const named = new Set<string>([
+        ...Object.values(state.denizensBySite).flat(),
+        ...state.boxIds,
+        ...Object.values(state.seenDiscardPiles).flatMap((pile) =>
+            pile.flatMap((cardId) => (cardId === null ? [] : [cardId]))
+        )
+    ])
     for (const player of state.players) {
         for (const row of player.advisers) {
             if (row.cardId) named.add(row.cardId)
@@ -244,9 +250,10 @@ function dealWorldCards(
     const piles = new Map<Region, (string | undefined)[]>()
     for (const region of Object.values(Region)) {
         const count = state.discardPileCounts[region]
-        const known = mergedPositions(
-            state.players.map((player) => player.knownDiscardPiles?.[region] ?? [])
-        )
+        const known = mergedPositions([
+            state.seenDiscardPiles[region],
+            ...state.players.map((player) => player.knownDiscardPiles?.[region] ?? [])
+        ])
         assert(known.length <= count, `More of the ${region} pile is known than it holds`)
         const pile = Array.from(
             { length: count },

@@ -24,6 +24,7 @@ import { EndActPhase } from '../actions/endActPhase.js'
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const DOWSING_STICKS = 'relic.dowsing-sticks'
 const ORACULAR_PIG = 'relic.oracular-pig'
+const BRASS_HORSE = 'relic.brass-horse'
 
 function canonical(state: unknown): OathGameState {
     assert(OathGameStateValidator.Check(state), 'Expected complete canonical state')
@@ -155,6 +156,14 @@ function expectKnownKept(source: OathGameState, branch: OathGameState, perspecti
     for (const region of Object.values(Region))
         if (source.discardPileCounts[region] > 0)
             expect(kindOf(branch.vault.discardPiles[region][0])).toBe(source.discardTopBackType[region])
+    // Every pile position the table or the explorer remembers holds the card they saw there.
+    const explorer = source.players.find((player) => perspective.kind === 'player' && player.playerId === perspective.playerId)
+    for (const region of Object.values(Region)) {
+        const size = source.discardPileCounts[region]
+        for (const known of [source.seenDiscardPiles[region], explorer?.knownDiscardPiles[region] ?? []])
+            for (const [fromBottom, cardId] of known.entries())
+                if (cardId !== null) expect(branch.vault.discardPiles[region][size - 1 - fromBottom]).toBe(cardId)
+    }
     for (const [index, player] of source.players.entries()) {
         expect(branch.players[index].advisers.map((row) => row.faceUp)).toEqual(player.advisers.map((row) => row.faceUp))
         expect(branch.players[index].handIds).toHaveLength(player.handIds.length)
@@ -219,7 +228,17 @@ describe.each([SetupVariant.Curated, SetupVariant.Randomized])('Exploration from
         expect(Object.values(resolved.discardPileCounts).reduce((a, b) => a + b, 0)).toBeGreaterThan(
             Object.values(state.discardPileCounts).reduce((a, b) => a + b, 0)
         )
+        const searcher = resolved.players.find((player) => player.playerId === chancellor)
+        expect(Object.values(searcher?.knownDiscardPiles ?? {}).flat().filter((id) => id !== null)).toEqual(expect.arrayContaining(hand.slice(1)))
         expectExplorable(game, resolved, setupVariant)
+    })
+
+    it('after Brass Horse reveals the top of a discard pile to the table', () => {
+        const { game, state, chancellor } = started(setupVariant)
+        const revealed = usePower(game, giveRelic(state, chancellor, BRASS_HORSE), chancellor, BRASS_HORSE)
+        const seen = Object.values(revealed.seenDiscardPiles).flat().filter((id) => id !== null)
+        expect(seen).toHaveLength(1)
+        expectExplorable(game, revealed, setupVariant)
     })
 
     it('after Oracular Pig’s peek, with the relic Dowsing Sticks drew waiting on its question', () => {

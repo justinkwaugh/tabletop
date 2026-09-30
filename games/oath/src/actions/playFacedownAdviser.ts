@@ -12,6 +12,7 @@ import { ConspiracyPlay } from '../model/conspiracy.js'
 import { playShowsCard, SearchPlay } from './searchResolve.js'
 import { playCard, reasonCannotPlaceCard, reasonCannotPlayCard } from '../util/cardPlay.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 import { regionOfPawn } from '../powers/vocabulary.js'
 
 export type PlayFacedownAdviserMetadata = Type.Static<typeof PlayFacedownAdviserMetadata>
@@ -87,6 +88,7 @@ export class HydratedPlayFacedownAdviser
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         const player = state.getPlayerState(this.playerId)
         const reason = HydratedPlayFacedownAdviser.reasonCannotPlay(state, this.playerId, this)
         if (reason) {
@@ -128,7 +130,7 @@ export class HydratedPlayFacedownAdviser
             this.metadata.playedCardId !== undefined ||
             isIrreversible(this.metadata) ||
             reveal !== undefined
-        commitHiddenOutputs(this, state)
+        commitHiddenOutputs(this, state, witnesses)
     }
 
     static reasonCannotPlay(

@@ -14,6 +14,7 @@ import { effectFor, hasEffect } from './registry.js'
 import '../powers/index.js'
 import { buildAction } from '../testing/actions.js'
 import { INN, FILLER } from '../testing/cards.js'
+import { servedJson } from '../testing/projection.js'
 
 /** R-8.5, R-9.4 — the Dispossessed is in the vault. */
 const PILGRIMAGE = 'denizen.nomad.pilgrimage'
@@ -179,9 +180,9 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         const drawn = peekedBy(a)
         expect(drawn).toHaveLength(1)
         expect(a.metadata?.peeked).toEqual(drawn)
-        const open = { ...s.dehydrate(), vault: undefined }
+        const open = servedJson(s)
         for (const id of [WOLVES, ...POOL]) {
-            expect(JSON.stringify(open)).not.toContain(id)
+            expect(open).not.toContain(id)
             expect(a.metadata?.whenPlayed?.split('; drew')[1]).not.toContain(id)
         }
         expect(a.metadata?.whenPlayed).toMatch(/drew 1 from it, peeked/)

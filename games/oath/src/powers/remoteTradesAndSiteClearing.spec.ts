@@ -23,6 +23,7 @@ import { playDrawnCard } from '../testing/steps.js'
 import { INN, TENTS, FILLER } from '../testing/cards.js'
 import { served, spectator } from '../testing/projection.js'
 import type { Visibility } from '@tabletop/common'
+import { discardInListedOrder } from '../testing/steps.js'
 
 const SECOND_WIND = 'denizen.discord.second-wind'
 const DREAM_THIEF = 'denizen.arcane.dream-thief'
@@ -221,6 +222,17 @@ describe('Crop Rotation — discard a denizen there first', () => {
 })
 
 describe('Salt the Earth — a site scoured to one card', () => {
+    it('the table remembers the scoured denizens on the pile; only the searcher the card they discarded from hand', () => {
+        const s = board([INN, SMALL_FRIENDS], [])
+        playDrawnCard(s, SALT, SearchPlay.Site)
+        discardInListedOrder(s)
+        const seen = Object.values(s.seenDiscardPiles).flat()
+        expect(seen).toEqual(expect.arrayContaining([INN, SMALL_FRIENDS]))
+        expect(seen).not.toContain(FILLER)
+        expect(Object.values(s.getPlayerState('ruler').knownDiscardPiles ?? {}).flat()).toContain(FILLER)
+        expect(Object.values(s.getPlayerState('other').knownDiscardPiles ?? {}).flat()).not.toContain(FILLER)
+    })
+
     it('discards the other denizens, sets the capacity to 1, and refuses a site with a locked card', () => {
         const s = board([INN, SMALL_FRIENDS], [])
         playDrawnCard(s, SALT, SearchPlay.Site)

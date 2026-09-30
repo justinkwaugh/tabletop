@@ -25,6 +25,7 @@ import { partiesOf } from '../util/campaignRoll.js'
 import { addWarbandsToSite, removeWarbandsFrom } from '../util/force.js'
 import { seizeBanner } from '../util/seize.js'
 import { commitHiddenOutputs, takeRelicFromVault, type SiteFlip } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 import { moveRelic, takeRelic, clearSiteRelicSlot } from '../util/relics.js'
 import { countOf, describeWarbands } from '../util/warbands.js'
 import { WarbandOwner } from '../model/warbandCounts.js'
@@ -115,6 +116,7 @@ export class HydratedCampaignResolveVictory
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         this.revealsInfo = false
         const reason = HydratedCampaignResolveVictory.reasonCannotResolveVictory(
             state,
@@ -175,7 +177,7 @@ export class HydratedCampaignResolveVictory
         }
         // R-X.3(b): a discard is replayed into the vault, which is never rolled back.
         if (this.metadata.pileDeposits) this.revealsInfo = true
-        commitHiddenOutputs(this, state)
+        commitHiddenOutputs(this, state, witnesses)
     }
 
     /** R-5.5.7.I */

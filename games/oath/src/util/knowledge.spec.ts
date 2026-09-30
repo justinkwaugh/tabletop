@@ -10,6 +10,7 @@ import { required } from '../testing/required.js'
 import { PowerTiming, powersWithTiming } from '../data/cardPowers.js'
 import { INN, FILLER } from '../testing/cards.js'
 import {
+    discardWitnesses,
     drawDiscardPile,
     drawRelicDeck,
     drawWorldDeck,
@@ -69,15 +70,43 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
         const s = table()
         seeDiscardPile(s, 'p1', Region.Cradle, [INN, TENTS])
         expect(s.getPlayerState('p1').knownDiscardPiles?.cradle).toEqual([null, TENTS, INN])
-        putOnDiscardPile(s, Region.Cradle, [ELDERS], false)
+        putOnDiscardPile(s, Region.Cradle, [ELDERS], false, () => 'p2')
         expect(s.getPlayerState('p1').knownDiscardPiles?.cradle).toEqual([null, TENTS, INN])
+        expect(s.getPlayerState('p2').knownDiscardPiles?.cradle).toEqual([null, null, null, ELDERS])
         expect(drawDiscardPile(s, Region.Cradle, 2, false)).toEqual([ELDERS, INN])
         expect(s.getPlayerState('p1').knownDiscardPiles?.cradle).toEqual([null, TENTS])
-        putOnDiscardPile(s, Region.Cradle, [ELDERS], true)
+        expect(s.getPlayerState('p2').knownDiscardPiles?.cradle).toEqual([])
+        putOnDiscardPile(s, Region.Cradle, [ELDERS], true, () => 'p2')
         expect(s.getPlayerState('p1').knownDiscardPiles?.cradle).toEqual([null, null, TENTS])
+        expect(s.getPlayerState('p2').knownDiscardPiles?.cradle).toEqual([ELDERS])
         expect(drawDiscardPile(s, Region.Cradle, 2, true)).toEqual([ELDERS, WOLVES])
         expect(s.getPlayerState('p1').knownDiscardPiles?.cradle).toEqual([TENTS])
         expect(s.requireVault().discardPiles.cradle).toEqual([TENTS])
+    })
+
+    it('a card shown to the table is remembered by the table, and a hidden one by the player who put it there', () => {
+        const s = table()
+        putOnDiscardPile(s, Region.Provinces, [WOLVES, ELDERS], false, (cardId) => (cardId === WOLVES ? 'everyone' : 'p1'))
+        expect(s.requireVault().discardPiles.provinces).toEqual([ELDERS, WOLVES, RANGERS])
+        expect(s.seenDiscardPiles.provinces).toEqual([null, WOLVES])
+        expect(s.getPlayerState('p1').knownDiscardPiles?.provinces).toEqual([null, null, ELDERS])
+        expect(s.getPlayerState('p2').knownDiscardPiles?.provinces).toEqual([])
+        const state = s.dehydrate()
+        assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
+        expect(OathRuntime.visibility.state.project(state, spectator).seenDiscardPiles.provinces).toEqual([null, WOLVES])
+        expect(JSON.stringify(OathRuntime.visibility.state.project(state, spectator))).not.toContain(ELDERS)
+    })
+
+    it('before an action, a card on the table is everyone’s to have seen, and a hand or facedown adviser its holder’s', () => {
+        const s = table()
+        s.denizensBySite = { c1: [WOLVES] }
+        s.getPlayerState('p2').handIds = [RANGERS]
+        s.getPlayerState('p2').handCount = 1
+        const witnesses = discardWitnesses(s)
+        expect(witnesses.get(WOLVES)).toBe('everyone')
+        expect(witnesses.get(RANGERS)).toBe('p2')
+        expect(witnesses.get(FACEDOWN)).toBe('p1')
+        expect(witnesses.get(INN)).toBeUndefined()
     })
 
     it('Convoys — a pile moved onto another keeps what was seen, above the cards it now covers', () => {

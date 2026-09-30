@@ -4,6 +4,7 @@ import { GameAction, HydratableAction, MachineContext, assertExists } from '@tab
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PileDeposit } from '../model/hidden.js'
 import { commitHiddenOutputs, showTakenSiteRelics } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 import {
     killOrRedirect,
     partiesOf,
@@ -89,6 +90,7 @@ export class HydratedCampaignSacrifice
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         this.revealsInfo = false
         const reason = HydratedCampaignSacrifice.reasonCannotResolve(state, this.playerId, this)
         if (reason) {
@@ -140,7 +142,7 @@ export class HydratedCampaignSacrifice
         // R-X.3(b): a discard is replayed into the vault, which is never rolled back.
         if (this.metadata.pileDeposits) {
             this.revealsInfo = true
-            commitHiddenOutputs(this, state)
+            commitHiddenOutputs(this, state, witnesses)
         }
     }
 

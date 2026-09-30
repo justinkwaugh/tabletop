@@ -104,13 +104,14 @@ function knownTopLength(state: HydratedOathGameState): number {
     return Math.max(0, ...state.players.map((player) => knownOf(player).worldDeckTop.length))
 }
 
-/** Scryer, Tavern Songs — a pile's positions, from its top, that some player has seen. */
+/** A pile's positions, from its top, that the table or some player has seen. */
 function knownPileIndexes(state: HydratedOathGameState, region: Region, size: number): Set<number> {
     return new Set(
-        state.players.flatMap((player) =>
-            knownOf(player).discardPiles[region].flatMap((cardId, fromBottom) =>
-                cardId === null ? [] : [size - 1 - fromBottom]
-            )
+        [
+            state.seenDiscardPiles[region],
+            ...state.players.map((player) => knownOf(player).discardPiles[region])
+        ].flatMap((known) =>
+            known.flatMap((cardId, fromBottom) => (cardId === null ? [] : [size - 1 - fromBottom]))
         )
     )
 }

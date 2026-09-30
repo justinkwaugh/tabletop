@@ -185,6 +185,7 @@ function seedRequiredFields(
         visionsDrawn: 0,
         discardPileCounts: { cradle: 0, provinces: 0, hinterland: 0 },
         discardTopBackType: {},
+        seenDiscardPiles: noKnownDiscardPiles(),
         boxIds: [],
         siteCapacityOverrides: {},
         oathType: OathType.Supremacy

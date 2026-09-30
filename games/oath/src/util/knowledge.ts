@@ -2,6 +2,8 @@ import { assertExists } from '@tabletop/common'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import type { HydratedOathPlayerState, KnownPositions } from '../model/playerState.js'
 import { Region } from '../model/oathEnums.js'
+import { PowerQuestionKind } from '../model/question.js'
+import { CONSPIRACY_ID } from '../data/visions.js'
 import {
     discardOnto,
     drawFirstVision,
@@ -76,18 +78,71 @@ export function drawWorldDeckVision(state: HydratedOathGameState): string | unde
     return cardId
 }
 
-/** Scryer, Tavern Songs — `cardIds` are the pile's top cards, top first. */
+/** Who saw a card go onto a pile: everyone at the table, or the one player who knew it. */
+export type Witness = 'everyone' | string
+
+/** Before an action moves cards: a card shown to the table is everyone's, a hand or a facedown adviser its holder's. */
+export function discardWitnesses(state: HydratedOathGameState): Map<string, Witness> {
+    const witnesses = new Map<string, Witness>()
+    for (const player of state.players) {
+        for (const cardId of player.handIds ?? []) witnesses.set(cardId, player.playerId)
+        for (const cardId of player.adviserIds ?? []) witnesses.set(cardId, player.playerId)
+    }
+    const shown = [
+        ...Object.values(state.denizensBySite).flat(),
+        ...state.players.flatMap((player) => [
+            ...player.faceupAdviserIds(),
+            ...(player.revealedVisionId ? [player.revealedVisionId] : [])
+        ])
+    ]
+    for (const question of state.pendingQuestions?.queue ?? []) {
+        if (question.kind === PowerQuestionKind.OrderDiscards) shown.push(...question.cardIds)
+        if (question.kind === PowerQuestionKind.PlayOrDiscardVision)
+            shown.push(question.visionCardId)
+        // Inquisitor — the favor it keeps names the Conspiracy it found.
+        if (question.kind === PowerQuestionKind.PlayOrDiscardConspiracy) shown.push(CONSPIRACY_ID)
+    }
+    for (const cardId of shown) witnesses.set(cardId, 'everyone')
+    return witnesses
+}
+
+/** What the whole table has seen of each pile, and what each player has. */
+function pileRecords(state: HydratedOathGameState): Record<Region, KnownPositions>[] {
+    return [state.seenDiscardPiles, ...state.players.map(discardPilesOf)]
+}
+
+function recordOf(state: HydratedOathGameState, witness: Witness): Record<Region, KnownPositions> {
+    return witness === 'everyone'
+        ? state.seenDiscardPiles
+        : discardPilesOf(state.getPlayerState(witness))
+}
+
+function place(
+    record: Record<Region, KnownPositions>,
+    region: Region,
+    fromBottom: number,
+    cardId: string
+) {
+    const known = [
+        ...record[region],
+        ...unknown(Math.max(0, fromBottom + 1 - record[region].length))
+    ]
+    known[fromBottom] = cardId
+    record[region] = known
+}
+
+/** Scryer, Tavern Songs, Brass Horse — `cardIds` are the pile's top cards, top first. */
 export function seeDiscardPile(
     state: HydratedOathGameState,
-    playerId: string,
+    witness: Witness,
     region: Region,
     cardIds: readonly string[]
 ): void {
     const size = state.requireVault().discardPiles[region].length
-    const piles = discardPilesOf(state.getPlayerState(playerId))
-    const known = [...piles[region], ...unknown(Math.max(0, size - piles[region].length))]
-    for (const [fromTop, cardId] of cardIds.entries()) known[size - 1 - fromTop] = cardId
-    piles[region] = trimTop(known)
+    const record = recordOf(state, witness)
+    for (const [fromTop, cardId] of cardIds.entries())
+        place(record, region, size - 1 - fromTop, cardId)
+    record[region] = trimTop(record[region])
 }
 
 /** R-5.1.2, Mushrooms */
@@ -102,27 +157,31 @@ export function drawDiscardPile(
         ? drawFromDiscardBottom(vault, region, count)
         : drawFromDiscard(vault, region, count)
     const size = vault.discardPiles[region].length
-    for (const player of state.players) {
-        const piles = discardPilesOf(player)
-        piles[region] = trimTop(
-            fromBottom ? piles[region].slice(drawn.length) : piles[region].slice(0, size)
+    for (const record of pileRecords(state))
+        record[region] = trimTop(
+            fromBottom ? record[region].slice(drawn.length) : record[region].slice(0, size)
         )
-    }
     return drawn
 }
 
-/** R-10.5 — cards on top leave every known position where it was; cards underneath lift them. */
+/** R-10.5 — each card is remembered where it lands by whoever saw it go; cards underneath lift the rest. */
 export function putOnDiscardPile(
     state: HydratedOathGameState,
     region: Region,
     cardIds: string[],
-    bottom: boolean
+    bottom: boolean,
+    witnessOf: (cardId: string) => Witness
 ): void {
-    discardOnto(state.requireVault(), region, cardIds, bottom)
-    if (!bottom) return
-    for (const player of state.players) {
-        const piles = discardPilesOf(player)
-        if (piles[region].length > 0) piles[region] = [...unknown(cardIds.length), ...piles[region]]
+    const vault = state.requireVault()
+    const size = vault.discardPiles[region].length
+    discardOnto(vault, region, cardIds, bottom)
+    if (bottom)
+        for (const record of pileRecords(state))
+            if (record[region].length > 0)
+                record[region] = [...unknown(cardIds.length), ...record[region]]
+    for (const [index, cardId] of cardIds.entries()) {
+        const fromBottom = bottom ? cardIds.length - 1 - index : size + index
+        place(recordOf(state, witnessOf(cardId)), region, fromBottom, cardId)
     }
 }
 
@@ -132,11 +191,14 @@ export function mergeDiscardPileOnto(state: HydratedOathGameState, from: Region,
     const vault = state.requireVault()
     const underneath = vault.discardPiles[to].length
     mergeDiscardPiles(vault, from, to)
-    for (const player of state.players) {
-        const piles = discardPilesOf(player)
-        if (piles[from].length > 0)
-            piles[to] = [...piles[to], ...unknown(underneath - piles[to].length), ...piles[from]]
-        piles[from] = []
+    for (const record of pileRecords(state)) {
+        if (record[from].length > 0)
+            record[to] = [
+                ...record[to],
+                ...unknown(underneath - record[to].length),
+                ...record[from]
+            ]
+        record[from] = []
     }
 }
 

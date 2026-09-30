@@ -127,6 +127,7 @@ export function testState(
             [Region.Hinterland]: 0
         },
         discardTopBackType: {},
+        seenDiscardPiles: noKnownDiscardPiles(),
         boxIds: [],
         siteCapacityOverrides: {},
         oathType: OathType.Supremacy,

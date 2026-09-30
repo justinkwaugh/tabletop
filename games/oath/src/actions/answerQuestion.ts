@@ -15,6 +15,7 @@ import {
     resumeStateAfterQuestions
 } from '../util/questions.js'
 import { commitHiddenOutputs } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 
 export type AnswerQuestionMetadata = Type.Static<typeof AnswerQuestionMetadata>
 export const AnswerQuestionMetadata = Type.Object({
@@ -69,6 +70,7 @@ export class HydratedAnswerQuestion
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         const question = currentQuestion(state)
         const reason = HydratedAnswerQuestion.reasonCannotAnswer(state, this.playerId, this.answer)
         if (reason || !question) {
@@ -96,7 +98,7 @@ export class HydratedAnswerQuestion
             pileDeposits: outcome.pileDeposits,
             relicTakenFromSlotId: outcome.relicTakenFromSlotId
         }
-        commitHiddenOutputs(this, state)
+        commitHiddenOutputs(this, state, witnesses)
     }
 
     static reasonCannotAnswer(

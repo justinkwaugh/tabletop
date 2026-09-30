@@ -16,6 +16,7 @@ import {
     usePower
 } from '../util/powerDoorway.js'
 import { commitHiddenOutputs, revealForPower } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 
 export type UseActionPowerMetadata = Type.Static<typeof UseActionPowerMetadata>
 export const UseActionPowerMetadata = Type.Object({
@@ -64,6 +65,7 @@ export class HydratedUseActionPower
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         const reason = HydratedUseActionPower.reasonCannotUse(
             state,
             this.playerId,
@@ -100,7 +102,7 @@ export class HydratedUseActionPower
             endsActPhase: result.endsActPhase === true ? true : undefined,
             opensSearch: result.opensSearch || undefined
         }
-        if (this.revealsInfo) commitHiddenOutputs(this, state)
+        if (this.revealsInfo) commitHiddenOutputs(this, state, witnesses)
     }
 
     static reasonCannotUse(

@@ -15,6 +15,7 @@ import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
 import { carriedModifiers, modifierContext, runAfter } from '../util/modifiers.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 import { playCard, reasonCannotPlayCard } from '../util/cardPlay.js'
 
 /** R-9.4 */
@@ -149,6 +150,7 @@ export class HydratedSearchResolve
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         const player = state.getPlayerState(this.playerId)
         const reason = HydratedSearchResolve.reasonCannotResolve(state, this.playerId, this)
         if (reason) {
@@ -238,7 +240,7 @@ export class HydratedSearchResolve
             this.metadata.revealedKeptCardId !== undefined ||
             isIrreversible(this.metadata) ||
             reveal !== undefined
-        commitHiddenOutputs(this, state)
+        commitHiddenOutputs(this, state, witnesses)
     }
 
     static reasonCannotResolve(

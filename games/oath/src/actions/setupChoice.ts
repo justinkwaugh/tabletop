@@ -11,6 +11,7 @@ import {
     type SetupChoiceInput
 } from '../model/setup.js'
 import { commitHiddenOutputs } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 
 export type SetupChoiceMetadata = Type.Static<typeof SetupChoiceMetadata>
 export const SetupChoiceMetadata = Type.Object({
@@ -70,10 +71,11 @@ export class HydratedSetupChoice
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         this.metadata = applySetupChoice(state, this.playerId, this.choice())
 
         this.revealsInfo = this.metadata.discardedCardIds.length > 0
-        commitHiddenOutputs(this, state)
+        commitHiddenOutputs(this, state, witnesses)
     }
 
     private choice(): SetupChoiceInput {

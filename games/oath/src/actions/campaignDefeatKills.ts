@@ -7,6 +7,7 @@ import { WarbandGroup } from '../model/campaign.js'
 import { PileDeposit } from '../model/hidden.js'
 import { forceTotal, selectionExceedsForce } from '../util/force.js'
 import { commitHiddenOutputs } from '../util/hiddenInputs.js'
+import { discardWitnesses } from '../util/knowledge.js'
 import { HydratedCampaignSacrifice } from './campaignSacrifice.js'
 
 export type CampaignDefeatKillsMetadata = Type.Static<typeof CampaignDefeatKillsMetadata>
@@ -53,6 +54,7 @@ export class HydratedCampaignDefeatKills
     }
 
     apply(state: HydratedOathGameState, _context?: MachineContext) {
+        const witnesses = discardWitnesses(state)
         this.revealsInfo = false
         const reason = HydratedCampaignDefeatKills.reasonCannotChoose(
             state,
@@ -76,7 +78,7 @@ export class HydratedCampaignDefeatKills
         // R-X.3(b): a discard is replayed into the vault, which is never rolled back.
         if (this.metadata.pileDeposits) {
             this.revealsInfo = true
-            commitHiddenOutputs(this, state)
+            commitHiddenOutputs(this, state, witnesses)
         }
     }
 
