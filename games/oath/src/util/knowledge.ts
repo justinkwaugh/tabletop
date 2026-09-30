@@ -86,8 +86,8 @@ export function drawWorldDeck(state: HydratedOathGameState, count: number): Worl
 
 /**
  * Oracle — the Vision closest to the top. A player who saw it among the top cards saw it go. Its
- * place is private, so no record of what lies under the deck moves: only its drawer, who now holds
- * it, stops naming it there.
+ * place is private, so no record of what lies under the deck moves but its drawer's, who saw where
+ * it lay and now holds it.
  */
 export function drawWorldDeckVision(
     state: HydratedOathGameState,
@@ -97,7 +97,9 @@ export function drawWorldDeckVision(
     for (const player of state.players)
         player.knownWorldDeckTop = worldDeckTopOf(player).filter((id) => id !== cardId)
     const drawer = state.getPlayerState(playerId)
-    drawer.knownWorldDeckBottom = worldDeckBottomOf(drawer).map((id) => (id === cardId ? null : id))
+    const known = worldDeckBottomOf(drawer)
+    const at = cardId === undefined ? -1 : known.indexOf(cardId)
+    if (at >= 0) drawer.knownWorldDeckBottom = known.toSpliced(at, 1)
     return cardId
 }
 

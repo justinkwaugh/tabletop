@@ -179,7 +179,18 @@ describe('Oracle and what lies under the world deck', () => {
         expect(s.requireVault().worldDeck).toEqual([INN, WOLVES, TENTS])
         expect(s.seenWorldDeckBottom).toEqual(table_)
         expect(s.getPlayerState('p2').knownWorldDeckBottom).toEqual([])
-        expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([TENTS, null])
+        expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([TENTS])
+    })
+
+    it('its drawer, who saw where the Vision lay, closes the gap it left under the cards above', () => {
+        const s = table()
+        s.requireVault().worldDeck = [INN, WOLVES]
+        putUnderWorldDeckKnown(s, [ELDERS], { witnessOf: () => 'p1' })
+        putUnderWorldDeckKnown(s, [VISION, TENTS], { witnessOf: () => 'p1' })
+        expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([TENTS, VISION, ELDERS])
+        expect(drawWorldDeckVision(s, 'p1')).toBe(VISION)
+        expect(s.requireVault().worldDeck).toEqual([INN, WOLVES, ELDERS, TENTS])
+        expect(s.getPlayerState('p1').knownWorldDeckBottom).toEqual([TENTS, ELDERS])
     })
 })
 

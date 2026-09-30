@@ -141,17 +141,15 @@ function fillSlots(slots: Slot[], pool: string[]) {
 }
 
 /** Every player's known positions of one stack, merged; two players never disagree on a position. */
+/**
+ * Later lists win: a player's own record follows moves the table's cannot (Oracle's Vision, taken from
+ * a place only its drawer knew), so where the two differ the player's is the newer. A card it displaces
+ * goes back to the hidden cards.
+ */
 function mergedPositions(lists: readonly KnownPositions[]): KnownPositions {
     const merged: KnownPositions = []
     for (const list of lists)
-        for (const [index, cardId] of list.entries()) {
-            if (cardId === null) continue
-            assert(
-                merged[index] === undefined || merged[index] === null || merged[index] === cardId,
-                'Two players remember different cards in one place'
-            )
-            merged[index] = cardId
-        }
+        for (const [index, cardId] of list.entries()) if (cardId !== null) merged[index] = cardId
     return Array.from(merged, (cardId) => cardId ?? null)
 }
 
