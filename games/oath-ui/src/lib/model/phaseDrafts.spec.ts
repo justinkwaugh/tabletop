@@ -6,8 +6,14 @@ import {
     ConsentRequestKind,
     MachineState,
     PlayerStatus,
+    PowerChoiceKind,
+    PowerTiming,
     Suit,
-    type HydratedOathGameState
+    allPowersWithTiming,
+    legalChoices,
+    one,
+    type HydratedOathGameState,
+    type LegalPowerUse
 } from '@tabletop/oath'
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { emptyPicks } from './powerChoices.js'
@@ -201,6 +207,44 @@ describe('the Rest draft (docs/user-interactions.md)', () => {
         rest.pickBank(power(rest, SILVER_TONGUE), Suit.Beast)
         rest.pickBank(power(rest, SILVER_TONGUE), Suit.Hearth)
         expect(rest.pickedSuit(power(rest, SILVER_TONGUE))).toBe(Suit.Hearth)
+    })
+})
+
+/** Visual contract scenario 33 — what the Rest panel does not offer. */
+describe('a Rest power whose choice the panel does not offer', () => {
+    const NOT_OFFERED = 'this power asks a choice this panel does not offer'
+
+    it('is refused with that reason, while a bank-only power is not', () => {
+        const rest = opened(
+            table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }] })
+        ).rest
+        const offered = required(
+            rest.powers.find((p) => p.cardId === OBEDIENCE),
+            'Vow of Obedience offered at Rest'
+        )
+        const asksForAPlayer: LegalPowerUse = {
+            ...offered,
+            choices: [
+                {
+                    spec: one(PowerChoiceKind.Player),
+                    options: [{ kind: PowerChoiceKind.Player, playerId: CHANCELLOR }]
+                }
+            ]
+        }
+        expect(rest.reasonCannotUse(asksForAPlayer)).toBe(NOT_OFFERED)
+        expect(rest.reasonCannotUse(offered)).not.toBe(NOT_OFFERED)
+    })
+
+    it('is never reached in play: every Rest power in the card set asks at most a favor bank', () => {
+        const state = table(MachineState.RestPhase)
+        const restPowers = allPowersWithTiming(PowerTiming.Rest)
+        expect(restPowers.map((p) => p.cardId)).toEqual(
+            expect.arrayContaining([OBEDIENCE, SILVER_TONGUE])
+        )
+        const asked = restPowers.flatMap((p) =>
+            legalChoices(state, ME, p).map((choice) => choice.spec.kind)
+        )
+        expect(asked.filter((kind) => kind !== PowerChoiceKind.FavorBank)).toEqual([])
     })
 })
 

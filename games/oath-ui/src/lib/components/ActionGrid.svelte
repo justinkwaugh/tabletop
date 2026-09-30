@@ -42,7 +42,7 @@
 
     // A dimmed tile answers "why not" on tap, where there is no hover; the reason is the
     // engine's for the state and seat it was tapped in, and a hover on another tile replaces it.
-    let tap = $state<{ entry: ActionEntry; seatId: string; actionCount: number } | undefined>(
+    let tap = $state.raw<{ entry: ActionEntry; seatId: string; actionCount: number } | undefined>(
         undefined
     )
     let tapped = $derived(
@@ -52,7 +52,7 @@
     )
     let tappedReason = $derived(tapped && !available(tapped) ? blockedBecause(tapped) : undefined)
 
-    let hoveredEntry = $state<ActionEntry | undefined>(undefined)
+    let hoveredEntry = $state.raw<ActionEntry | undefined>(undefined)
 
     let freeActionDue = $derived(freeActionDueLine(gameState, seat.playerId))
 
