@@ -20,7 +20,8 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
   - Full game: `tests/fullGame.spec.ts` plays a hotseat game to the end through the UI (about 100 steps, 33 s).
   - Known platform failure: `svelte-check` fails on `createGameSessionContext` in `sessionContext.svelte.ts`; Estates and Oath fail identically on `main`, so it doesn't count against the title.
   - Open for step 10: the three `docs/marracash-*.md` files are outside the allowed change roots (gate 6) and must leave the PR. All tracked MarraCash files are Prettier-formatted.
-- Next: step 9, the Game Catalogue entry.
+- Step 9 is done: `config/config-games/src/games.json` lists `{ gameId: marracash, packageId: marracash }`, which the readiness collector reports as the exempt catalogue addition. Every catalogue entry resolves its logic and UI package versions.
+- Next: step 10, the `game-pr-readiness` check. Before it, ask where to save these planning docs and remove them from the branch.
 
 ## Decisions
 
