@@ -17,6 +17,8 @@ import { applyTrackLay } from '../construction/layTile.js'
 import { evaluatePrivateTrack, type PrivatePowerRules } from './privatePowers.js'
 import { pendingCompanyDecision, type CompanyDecisionState } from './companyDecision.js'
 import { endPrivatePowerRequest } from './privatePowerRequest.js'
+import { privateStationPositions } from './privateStation.js'
+import type { StationRules } from '../stations/stationPlacement.js'
 export const LayPrivateTile = Type.Object(
     {
         ...PlayerAction.properties,
@@ -33,11 +35,12 @@ const Validator = Compile(LayPrivateTile)
 type PrivateLay = Pick<LayPrivateTile, 'privateCompanyId' | 'playerId' | 'expectedCost'> &
     TrackRequest
 
+type PrivateLayRules = { powers: PrivatePowerRules; track: TrackRules; stations: StationRules }
+
 function applyPrivateLay(
     state: HydratedGameState & CompanyDecisionState,
     lay: PrivateLay,
-    powers: PrivatePowerRules,
-    track: TrackRules
+    { powers, track, stations }: PrivateLayRules
 ): TrackLayDetails {
     const details = evaluatePrivateTrack(
         state,
@@ -48,9 +51,20 @@ function applyPrivateLay(
         track
     ).details!
     const terms = powers.trackTerms(state, lay.privateCompanyId, lay.playerId)!
-    applyTrackLay(state, track, details, terms.payer, false)
+    applyTrackLay(state, track, details, terms.payer, terms.countsAsOrdinaryLay === true)
     state.usedPrivatePowerIds.push(lay.privateCompanyId)
     delete state.privateTrackLay
+    const station = {
+        privateCompanyId: lay.privateCompanyId,
+        companyId: terms.companyId,
+        playerId: lay.playerId,
+        locationId: lay.locationId
+    }
+    if (
+        powers.stationPrivateIds?.includes(lay.privateCompanyId) &&
+        privateStationPositions(state, stations, station).length
+    )
+        state.privateStation = station
     if (powers.betweenTurnsPrivateIds?.includes(lay.privateCompanyId))
         endPrivatePowerRequest(state, lay.playerId)
     return details
@@ -82,12 +96,10 @@ export class HydratedLayPrivateTile
     declare nodeMapping: TrackRequest['nodeMapping']
     declare expectedCost: number
     declare metadata?: TrackLayDetails
-    readonly #powers: PrivatePowerRules
-    readonly #track: TrackRules
-    constructor(data: LayPrivateTile, powers: PrivatePowerRules, track: TrackRules) {
+    readonly #rules: PrivateLayRules
+    constructor(data: LayPrivateTile, rules: PrivateLayRules) {
         super(data instanceof HydratedLayPrivateTile ? data.dehydrate() : data, Validator)
-        this.#powers = powers
-        this.#track = track
+        this.#rules = rules
     }
     isValid(state: CompanyDecisionState): boolean {
         return (
@@ -95,12 +107,12 @@ export class HydratedLayPrivateTile
             !state.purchaseOffer &&
             !state.trackConsent &&
             state.activePlayerIds.includes(this.playerId) &&
-            costMatches(state, this, this.#powers, this.#track)
+            costMatches(state, this, this.#rules.powers, this.#rules.track)
         )
     }
     apply(state: HydratedGameState & CompanyDecisionState): void {
         assert(this.isValid(state), 'Invalid private tile lay')
-        this.metadata = applyPrivateLay(state, this, this.#powers, this.#track)
+        this.metadata = applyPrivateLay(state, this, this.#rules)
     }
 }
 
@@ -143,15 +155,13 @@ export class HydratedLayPrivateTileOutOfTurn
     declare outOfTurn: true
     declare sequenced: true
     declare metadata?: TrackLayDetails
-    readonly #powers: PrivatePowerRules
-    readonly #track: TrackRules
-    constructor(data: LayPrivateTileOutOfTurn, powers: PrivatePowerRules, track: TrackRules) {
+    readonly #rules: PrivateLayRules
+    constructor(data: LayPrivateTileOutOfTurn, rules: PrivateLayRules) {
         super(
             data instanceof HydratedLayPrivateTileOutOfTurn ? data.dehydrate() : data,
             OutOfTurnValidator
         )
-        this.#powers = powers
-        this.#track = track
+        this.#rules = rules
     }
     isValid(state: CompanyDecisionState): boolean {
         return (
@@ -159,12 +169,12 @@ export class HydratedLayPrivateTileOutOfTurn
             state.machineState === 'StockRound' &&
             !pendingCompanyDecision(state) &&
             !state.activePlayerIds.includes(this.playerId) &&
-            costMatches(state, this, this.#powers, this.#track)
+            costMatches(state, this, this.#rules.powers, this.#rules.track)
         )
     }
     apply(state: HydratedGameState & CompanyDecisionState): void {
         assert(this.isValid(state), 'Invalid out-of-turn private tile lay')
-        this.metadata = applyPrivateLay(state, this, this.#powers, this.#track)
+        this.metadata = applyPrivateLay(state, this, this.#rules)
     }
 }
 export const DeclinePrivateTile = Type.Object(

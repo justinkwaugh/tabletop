@@ -22,8 +22,8 @@
     <button
         type="button"
         class="flex flex-col items-center gap-0.5 rounded-[5px] {tapped.includes(cardId)
-            ? 'ring-2 ring-sky-300'
-            : 'ring-1 ring-stone-600 hover:ring-sky-400'}"
+            ? 'ring-2 ring-oath-accent'
+            : 'ring-1 ring-oath-control-hover hover:ring-oath-accent'}"
         disabled={busy || tapped.includes(cardId)}
         onclick={() => ontap(cardId)}
     >
@@ -33,7 +33,7 @@
             label={cardName(cardId)}
             inspect
         />
-        <span class="text-[10px] text-sky-200 h-3"
+        <span class="text-[10px] text-oath-heading h-3"
             >{discardPositionLabel(cardId, tapped, cards)}</span
         >
     </button>

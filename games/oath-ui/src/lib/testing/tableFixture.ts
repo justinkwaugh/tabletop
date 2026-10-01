@@ -1,6 +1,7 @@
 import { mount, tick, unmount } from 'svelte'
-import { ActionSource, Color, assertExists, createAction } from '@tabletop/common'
+import { ActionSource, Color, assertExists, createAction, range } from '@tabletop/common'
 import {
+    Banner,
     CampaignSacrifice,
     CampaignTargetKind,
     Campaign,
@@ -9,11 +10,13 @@ import {
     LetPeekSubjectKind,
     MachineState,
     MoveWarbands,
+    OathType,
     PlayerStatus,
     PowerQuestionKind,
     Region,
     SearchPlay,
     SetupChoice,
+    Suit,
     TOP_CRADLE_SLOT,
     Travel,
     WarbandMoveKind,
@@ -30,6 +33,7 @@ import {
     PROVINCES,
     campaignRecords,
     openTurn,
+    testBanners,
     testPlayer,
     testState,
     testVaultWithRelics
@@ -57,6 +61,13 @@ export type TableName =
     | 'joinDefenceAsked'
     | 'exileDefeated'
     | 'imperialDefeated'
+    | 'visionBacks'
+    | 'restBanks'
+    | 'goalsRail'
+    | 'goalsRailThePeople'
+    | 'goalsRailProtection'
+    | 'goalsRailDevotion'
+    | 'trade'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -130,6 +141,106 @@ function offTurnTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-9.4: another seat holds a facedown Vision among its advisers and a Vision in hand. */
+function visionBacksTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1' }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1',
+                advisers: [
+                    { cardId: 'vision.conquest', faceUp: false },
+                    { cardId: 'denizen.arcane.tutor', faceUp: false }
+                ],
+                handIds: ['vision.conspiracy', 'denizen.order.scouts']
+            })
+        ],
+        { machineState: MachineState.ActPhase, chancellorPlayerId: 'ann' }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-4.3.5: a Rest with Vow of Obedience, whose power takes favor from a bank the player picks. */
+function restBanksTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                advisers: [{ cardId: 'denizen.order.vow-of-obedience', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            })
+        ],
+        { machineState: MachineState.RestPhase, chancellorPlayerId: 'ann' }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-3: every live goal at once: a tied Oath held by the Chancellor, a revealed Vision, a Citizen. */
+function goalsRailTable(oathType = OathType.Supremacy): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                revealedVisionId: 'vision.conquest'
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1'
+            }),
+            testPlayer({
+                playerId: 'bo',
+                color: Color.Yellow,
+                status: PlayerStatus.Citizen,
+                siteId: 'p2',
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 0, bo: 14 }
+            }),
+            testPlayer({ playerId: 'cy', color: Color.Blue, siteId: 'h1' })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            oathType,
+            oathkeeperPlayerId: 'ann',
+            // R-2.11 — under a banner Oath the title follows its banner.
+            banners: testBanners({
+                [Banner.PeoplesFavor]: oathType === OathType.ThePeople ? 'ann' : undefined,
+                [Banner.DarkestSecret]: oathType === OathType.Devotion ? 'ann' : undefined
+            }),
+            warbandsBySite: {
+                c1: { me: 1 },
+                c2: { me: 1 },
+                p1: { [IMPERIAL_WARBANDS]: 1 },
+                p2: { [IMPERIAL_WARBANDS]: 1 },
+                h1: { cy: 1 }
+            }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
 function envelope(table: PlayedTable) {
     return { gameId: table.state.gameId, source: ActionSource.User }
 }
@@ -169,6 +280,57 @@ function actPhaseTable(): PlayedTable {
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [], [next]: ['denizen.hearth.wayside-inn'] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-5.3.2: three denizens at the seat's site, one carrying favor, two Hearth advisers and an empty Discord bank. */
+function tradeTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                secrets: 1,
+                favor: 3,
+                advisers: [
+                    { cardId: 'denizen.hearth.a-round-of-ale', faceUp: true },
+                    { cardId: 'denizen.hearth.armed-mob', faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: {
+                [home]: [
+                    'denizen.hearth.book-binders',
+                    'denizen.order.council-seat',
+                    'denizen.discord.assassin'
+                ]
+            },
+            cardTokens: { 'denizen.order.council-seat': { favor: 1, secrets: 0 } },
+            favorBank: {
+                [Suit.Discord]: 0,
+                [Suit.Arcane]: 3,
+                [Suit.Order]: 3,
+                [Suit.Hearth]: 3,
+                [Suit.Beast]: 3,
+                [Suit.Nomad]: 3
+            }
         }
     )
     openTurn(state, 'me')
@@ -314,10 +476,10 @@ function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
                 targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
                 attackPool: 4,
                 defensePool: 1,
-                attackRoll: [],
-                defenseRoll: [],
+                attackRoll: range(0, 4).map(() => ({ swords: 1, hollowSwords: 0, skulls: 0 })),
+                defenseRoll: [{ shields: 1, doubling: false }],
                 defense: 1,
-                swords: 9,
+                swords: 4,
                 defendingForce,
                 defendingBandits: 0,
                 ...campaignRecords()
@@ -342,7 +504,14 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     staleWarbandMoveAsked: staleWarbandMoveAskedTable,
     joinDefenceAsked: joinDefenceAskedTable,
     exileDefeated: () => defeatedTable('exile'),
-    imperialDefeated: () => defeatedTable('imperial')
+    imperialDefeated: () => defeatedTable('imperial'),
+    visionBacks: visionBacksTable,
+    restBanks: restBanksTable,
+    goalsRail: () => goalsRailTable(),
+    goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),
+    goalsRailProtection: () => goalsRailTable(OathType.Protection),
+    goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
+    trade: tradeTable
 }
 
 let session: OathGameSession | undefined
@@ -505,6 +674,8 @@ export function tableFacts(): {
     boardOf: Record<string, WarbandCounts>
     campaignUnderway: boolean
     staged: string | undefined
+    favorOf: Record<string, number>
+    favorBank: Record<Suit, number>
 } {
     const table = current()
     const state = table.gameState
@@ -517,7 +688,9 @@ export function tableFacts(): {
             state.players.map((player) => [player.playerId, player.warbandsOnBoard])
         ),
         campaignUnderway: state.campaign !== undefined,
-        staged: table.selection.action
+        staged: table.selection.action,
+        favorOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.favor])),
+        favorBank: state.favorBank
     }
 }
 
@@ -528,4 +701,8 @@ export function defeatPicks(): { required: number; picked: number[]; blockedBeca
         picked: defeat.picked,
         blockedBecause: defeat.blockedBecause
     }
+}
+
+export function cardTokens(cardId: string): { favor: number; secrets: number } {
+    return current().gameState.tokensOn(cardId)
 }

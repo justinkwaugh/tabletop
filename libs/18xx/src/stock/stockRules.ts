@@ -14,6 +14,8 @@ import { companyMarketSpace } from './stockMarket.js'
 import type { StockState } from './stockState.js'
 import type { SharePurchaseTerms, ShareCertificate } from './sharePurchase.js'
 import type { StockInstructionRules } from './stockInstruction.js'
+import type { MultipleBuyRules } from './turnPurchases.js'
+import type { PrivateSaleRules } from './privateSale.js'
 
 export type ShareSaleTerms = {
     payer: Owner
@@ -44,8 +46,17 @@ export interface StockRules {
     certificateWeight(state: StockState, certificate: Portfolio[number]): number
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
-    extendSaleBlocks?: boolean
-    sellAfterBuying: boolean
+    /** When a turn's sales may come relative to its purchase. */
+    turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
+    /**
+     * A second sale of a company in the same turn: extending the first block at its price, or
+     * a separate sale at the current price. Without it, each company sells once per turn.
+     */
+    repeatSales?: 'extend-block' | 'separate'
+    /** Further share purchases in a turn after the first. */
+    multipleBuys?: MultipleBuyRules
+    /** Private sales between players, offered and answered like a company's purchase offer. */
+    privateSales?: PrivateSaleRules
 }
 export function stockCertificateCount(state: StockState, owner: Owner, rules: StockRules): number {
     return certificatesOwnedBy(state, owner).reduce(

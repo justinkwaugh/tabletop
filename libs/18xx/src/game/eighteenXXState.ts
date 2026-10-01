@@ -2,14 +2,16 @@ import { GameEnding } from '../ending/gameEnding.js'
 import { EndingFields, type PlayerWealth } from '../ending/finalWealth.js'
 import { OfferPileFields, type OfferPileAuction } from '../auctions/offerPileAuction.js'
 import { AuctionFields, type WaterfallAuction } from '../auctions/waterfallAuction.js'
+import { validatePendingPar, type PendingPar } from '../company/pendingPar.js'
 import { FundingFields, type TrainFunding, type Bankruptcy } from '../funding/trainFunding.js'
 import {
     CompanyDecisionFields,
     type PrivateTrackLay,
+    type PrivateStation,
     type TrackConsent,
     type PrivatePowerWindow
 } from '../privates/companyDecision.js'
-import { type PurchaseOffer } from '../transfers/purchaseOffer.js'
+import { type PendingPurchaseOffer } from '../transfers/purchaseOffer.js'
 import { PhaseFields, type PhaseEvent, type PhaseChange } from '../phases/phaseChange.js'
 import { EarningsFields, type EarningsDetails } from '../earnings/earningsDistribution.js'
 import { RouteFields, type RouteStep } from '../routes/route.js'
@@ -44,6 +46,7 @@ import { validateWaterfallAuction } from '../auctions/waterfallAuction.js'
 import { validateTrainFunding } from '../funding/trainFunding.js'
 import { validateFinalResults } from '../ending/finalWealth.js'
 import { validateCompanyDecisions } from '../privates/companyDecision.js'
+import { StockTurnPurchaseFields, type StockTurnPurchase } from '../stock/turnPurchases.js'
 import { validateRouteStep } from '../routes/route.js'
 import { validatePhaseChange } from '../phases/phaseChange.js'
 import { validateEarningsDistribution } from '../earnings/earningsDistribution.js'
@@ -91,7 +94,8 @@ const FamilyFields = Type.Object({
     ...PhaseFields,
     ...EarningsFields,
     ...CompanyDecisionFields,
-    ...RouteFields
+    ...RouteFields,
+    ...StockTurnPurchaseFields
 })
 export const EighteenXXState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof FamilyFields.properties
@@ -141,14 +145,17 @@ export class HydratedEighteenXXState
 {
     declare offerAuction?: OfferPileAuction
     declare openingAuction?: WaterfallAuction
+    declare pendingPar?: PendingPar
     declare trainFunding?: TrainFunding
     declare bankruptcy?: Bankruptcy
     declare gameEnding?: GameEnding
     declare finalWealth?: PlayerWealth[]
     declare privatePowerWindow?: PrivatePowerWindow
     declare privatePowerRequests?: string[]
-    declare purchaseOffer?: PurchaseOffer
+    declare purchaseOffer?: PendingPurchaseOffer
+    declare stockTurnPurchases?: StockTurnPurchase[]
     declare privateTrackLay?: PrivateTrackLay
+    declare privateStation?: PrivateStation
     declare trackConsent?: TrackConsent
     declare usedPrivatePowerIds: string[]
     declare earningsDistribution?: EarningsDetails
@@ -192,6 +199,7 @@ export class HydratedEighteenXXState
         validateTrackStep(this)
         validateStationStep(this)
         validateWaterfallAuction(this)
+        validatePendingPar(this)
         validateTrainFunding(this)
         validateFinalResults(this)
         validateCompanyDecisions(this)

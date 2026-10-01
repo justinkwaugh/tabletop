@@ -57,7 +57,9 @@
                         <th scope="row"
                             ><div class="identity">
                                 {#if lot.token}<CompanyToken appearance={lot.token} size={26} />
-                                {:else}<span class="private-icon" aria-hidden="true">{lot.id}</span
+                                {:else}<span class="private-icon" aria-hidden="true"
+                                        >{session.presentation.companyNames?.[lot.id]?.initials ??
+                                            lot.id}</span
                                     >{/if}
                                 <PrivateDescription
                                     {money}

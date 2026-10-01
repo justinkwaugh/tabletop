@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { marketColors } from './marketColors.js'
+    import { marketColors, marketDarkLightness } from './marketColors.js'
     import { onMount, tick, untrack } from 'svelte'
     import { prefersReducedMotion } from 'svelte/motion'
     import { type StockMarket as StockMarketModel, type Company } from '@tabletop/18xx'
@@ -185,6 +185,7 @@
                 style:--market-color={tinted
                     ? (marketColors[space.color] ?? space.color)
                     : undefined}
+                style:--market-lightness={marketDarkLightness[space.color]}
                 onpointerenter={() => expandStack(space.id)}
                 onfocus={() => expandStack(space.id)}
                 onblur={() => (hoveredSpace = undefined)}
@@ -293,7 +294,7 @@
             var(--market-color),
             color-mix(
                 in oklab,
-                oklch(from var(--market-color) 0.62 calc(c * 1.25) h) 80%,
+                oklch(from var(--market-color) var(--market-lightness, 0.62) calc(c * 1.25) h) 80%,
                 var(--rail-surface-raised, #2b3744)
             )
         );

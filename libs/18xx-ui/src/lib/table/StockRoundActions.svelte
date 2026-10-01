@@ -18,6 +18,7 @@
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import StandingInstruction from '../stock/StandingInstruction.svelte'
+    import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
     let {
         session,
         poolName
@@ -117,7 +118,9 @@
                           ? 'Available Sales'
                           : menu === 'start'
                             ? 'Available Companies'
-                            : 'Available Exchanges'}</span
+                            : menu === 'privates'
+                              ? 'Players’ Privates'
+                              : 'Available Exchanges'}</span
                 >
             </div>
             {#if (menu === 'buy' && buyers.length > 1) || (menu === 'start' && startBuyers.length > 1)}
@@ -420,6 +423,8 @@
                                 />
                             </span>
                         </button>{/each}
+                {:else if menu === 'privates'}
+                    <PrivatePurchaseOffers {session} {disabled} />
                 {/if}
             </div>
         {:else}

@@ -10,6 +10,7 @@ import {
     type GameState
 } from '@tabletop/common'
 import { cashOwnedBy, type FinancialState } from '../finance/finance.js'
+import { PendingParFields } from '../company/pendingPar.js'
 
 export const AuctionLot = Type.Object(
     { id: Type.String(), name: Type.String(), price: Type.Integer({ minimum: 1 }) },
@@ -40,7 +41,10 @@ export const WaterfallAuction = Type.Object(
     { additionalProperties: false }
 )
 export type WaterfallAuction = Type.Static<typeof WaterfallAuction>
-export const AuctionFields = { openingAuction: Type.Optional(WaterfallAuction) }
+export const AuctionFields = {
+    openingAuction: Type.Optional(WaterfallAuction),
+    ...PendingParFields
+}
 export type AuctionState = FinancialState &
     Pick<GameState, 'players' | 'activePlayerIds' | 'turnManager'> &
     Type.Static<Type.TObject<typeof AuctionFields>>

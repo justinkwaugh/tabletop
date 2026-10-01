@@ -35,6 +35,12 @@ type Stations = Pick<
     | 'choices'
     | 'selectPosition'
     | 'confirm'
+    | 'homeChoice'
+    | 'homeLocationIds'
+    | 'chooseHome'
+    | 'privateStationPositions'
+    | 'privateStationLocationIds'
+    | 'placePrivateStation'
 >
 type Routes = Pick<
     RoutesModule<RoutesSession['state']>,
@@ -199,11 +205,23 @@ export class MapModule {
             )
         )
             this.routes.selectStart({ locationId: selection.locationId, nodeId: selection.nodeId })
+        else if (this.stations.homeLocationIds.includes(selection.locationId))
+            this.chooseHome(selection)
+        else if (this.stations.privateStationLocationIds.includes(selection.locationId))
+            this.placePrivateStation(selection)
         else if (this.stations.canPlace && this.stations.locationIds.includes(selection.locationId))
             this.placeStation(selection)
         else if (allowInspection) this.inspect(selection)
     }
 
+    private chooseHome(selection: MapSelection) {
+        const position = offeredCity(this.stations.homeChoice?.positions ?? [], selection)
+        if (position) void this.stations.chooseHome(position)
+    }
+    private placePrivateStation(selection: MapSelection) {
+        const position = offeredCity(this.stations.privateStationPositions, selection)
+        if (position) void this.stations.placePrivateStation(position)
+    }
     private placeStation(selection: MapSelection) {
         const location = this.scene.locations.find(
             (entry) => entry.location.id === selection.locationId
@@ -224,12 +242,17 @@ export class MapModule {
     }
     private draw(inventory: MapState['tileInventory']) {
         const view = this.view()
-        return createMapDrawing(
-            view.map,
-            { tileSet: view.tileSet, inventory },
-            view.layouts,
-            view.markerArt,
-            view.placements
-        )
+        return createMapDrawing(view.map, { tileSet: view.tileSet, inventory }, view)
     }
+}
+
+function offeredCity<Position extends { locationId: string; nodeId: string }>(
+    positions: readonly Position[],
+    selection: MapSelection
+): Position | undefined {
+    const offered = positions.filter((position) => position.locationId === selection.locationId)
+    if (offered.length === 1) return offered[0]
+    return selection.kind === 'slot' || selection.kind === 'node'
+        ? offered.find((position) => position.nodeId === selection.nodeId)
+        : undefined
 }

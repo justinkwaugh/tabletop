@@ -61,8 +61,8 @@ export const TheOldPrinceStockRules: StockRules = {
             { kind: 'company', companyId: 'UB' }
         ]
     },
-    extendSaleBlocks: true,
-    sellAfterBuying: false
+    turnOrder: 'sell-buy',
+    repeatSales: 'extend-block'
 }
 
 export function theOldPrincePurchasePayers(state: StockState, buyer: Owner): Owner[] {

@@ -3,6 +3,7 @@ import {
     TestCompanyId,
     TestPlayerId,
     minimalCompanyRules,
+    minimalValuationRules,
     minimalPlayState,
     minimalStockRules
 } from '@tabletop/18xx/testing'
@@ -22,7 +23,11 @@ function trading(valid: string[] = [], availability = {}) {
     let cancelled = 0
     const harness = testSession(
         state,
-        { stockRules: minimalStockRules, companyRules: minimalCompanyRules },
+        {
+            stockRules: minimalStockRules,
+            companyRules: minimalCompanyRules,
+            endingRules: minimalValuationRules
+        },
         valid,
         availability
     )

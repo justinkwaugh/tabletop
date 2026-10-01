@@ -31,7 +31,6 @@ export const TheOldPrincePublishedTileAppearance: TileAppearance = Object.freeze
     // and rings at about 12.8 on the board, so the token fills a larger hole than the classic style.
     cityRingWidth: 3,
     citySlotRadius: 11,
-    mapTokenSize: 22,
     revenueBadge: 'plain',
     // The Charlottetown gray tile (CX) prints the ring plus the city name instead of a code.
     labelMarkers: { X: 'ring', T: 'hex', CX: 'ring' } as const,

@@ -39,8 +39,11 @@
 .auction-lot-table .private-icon {
     display: grid;
     place-items: center;
-    flex: 0 0 26px;
+    flex: 0 0 auto;
+    min-width: 26px;
     height: 26px;
+    padding: 0 3px;
+    box-sizing: border-box;
     border-radius: 6px;
     background: var(--rail-surface-raised, #eae1d5);
     color: var(--rail-text, #796047);

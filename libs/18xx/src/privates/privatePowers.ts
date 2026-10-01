@@ -12,6 +12,7 @@ export interface PrivateTrackTerms {
     definitionIds: readonly string[]
     payer: Owner
     connected: boolean
+    countsAsOrdinaryLay?: true
 }
 export interface PrivatePowerRules {
     trackTerms(
@@ -25,6 +26,11 @@ export interface PrivatePowerRules {
         playerId: string
     ): string | undefined
     betweenTurnsPrivateIds?: readonly string[]
+    /**
+     * Privates whose tile lay lets the company place its next station on that tile, free and
+     * unconnected, as its station for the turn.
+     */
+    stationPrivateIds?: readonly string[]
 }
 export function privateTrackConstruction(
     state: CompanyDecisionState,

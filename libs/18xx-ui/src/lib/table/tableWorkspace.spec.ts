@@ -26,7 +26,7 @@ it('starts with information above social tabs and Player Aid after Tiles', () =>
         undefined,
         [],
         [],
-        initialTableLayout
+        initialTableLayout(tabs)
     )
     expect(workspaceLayout(restored.root).panes.map((item) => item.pane.tabs)).toEqual([
         ['Game info'],
@@ -79,5 +79,20 @@ it('defaults to Board only when it shares a pane with Map', () => {
     expect(defaultTableView(layout(['Map', 'Market', 'Board']), withBoard)).toBe('Board')
     expect(defaultTableView(layout(['cols', 50, ['Map'], ['Board']]), withBoard)).toBe('Map')
     expect(defaultTableView(layout(['Map', 'Market']), withBoard)).toBe('Map')
-    expect(defaultTableView(null, withBoard)).toBe('Map')
+    expect(defaultTableView(null, withBoard)).toBe('Board')
+    expect(defaultTableView(null, tabs)).toBe('Map')
+})
+it('starts a new layout with Board before Map when the title has board areas', () => {
+    const withBoard = [...tabs, { id: 'Board', label: 'Board', optional: true }]
+    expect(initialTableLayout(withBoard)).toEqual([
+        'cols',
+        20,
+        ['rows', 25, ['Game info'], ['Players', 'History', 'Chat']],
+        [
+            'rows',
+            50,
+            ['Actions'],
+            ['Board', 'Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid']
+        ]
+    ])
 })

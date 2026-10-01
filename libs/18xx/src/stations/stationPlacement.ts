@@ -7,6 +7,7 @@ import { StationPosition, type StationReservation, type StationState } from '../
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import { TrackNetwork } from '../construction/trackNetwork.js'
+import type { OperatingSet } from '../operating/operatingSet.js'
 
 export const StationStep = Type.Object(
     {
@@ -36,12 +37,21 @@ export const StationPlacementDetails = Type.Object(
 )
 export type StationPlacementDetails = Type.Static<typeof StationPlacementDetails>
 export type HomeStation = { stationId: string; locationId: string; nodeId: string }
+export type HomePosition = Pick<StationPosition, 'locationId' | 'nodeId'>
+export type HomeStationChoice = {
+    companyId: string
+    stationId: string
+    positions: readonly HomePosition[]
+}
+export type OperatingStationState = StationPlacementState & { operatingSet?: OperatingSet }
 export interface StationRules {
     map: RailwayMap
     tileSet: TileSet
     placementCost(state: StationPlacementState, stationId: string): number
     placementLimit(state: StationPlacementState, companyId: string): number
-    pendingHomes(state: StationPlacementState): HomeStation[]
+    pendingHomes(state: OperatingStationState): HomeStation[]
+    /** Titles whose presidents choose a home city return the next operating company's choice. */
+    homeChoice?(state: OperatingStationState): HomeStationChoice | undefined
     reservationOccupant?(reservation: StationReservation): string | undefined
 }
 export type StationEvaluation =
@@ -173,10 +183,22 @@ export class StationPlacement {
                 cost: 0
             }
             applyStationPlacement(planned, details)
+            releaseHomeReservations(planned, station.companyId, [home.locationId])
             placements.push(details)
         }
         return placements
     }
+}
+// A placed home fulfils its company's reservations on the home hexes.
+export function releaseHomeReservations(
+    state: StationState,
+    companyId: string,
+    locationIds: readonly string[]
+): void {
+    state.stationReservations = state.stationReservations.filter(
+        (reservation) =>
+            reservation.companyId !== companyId || !locationIds.includes(reservation.locationId)
+    )
 }
 export function applyStationPlacement(state: StationState, details: StationPlacementDetails): void {
     const station = state.stations.find((station) => station.id === details.stationId)

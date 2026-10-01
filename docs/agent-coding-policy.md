@@ -41,3 +41,4 @@
 39. When code seems to need an explanatory comment, refactor it for clarity first. Treat narrative or paragraph comments as evidence of a missing abstraction, unclear name, overloaded function, or overly complex state flow.
 40. Keep a comment only when it records irreducible rationale external to the code, such as a rule citation, protocol requirement, compatibility constraint, browser/library workaround, or deliberate surprising tradeoff. Keep it short and explain why the constraint exists; the code should communicate what it does.
 41. Before finalizing, remove comments made redundant by clearer code and remove commented-out code.
+42. Describe what an Action did from its input and `metadata`, never its `undoPatch` or `forwardPatch`; see [Actions](DESIGN.md#actions).

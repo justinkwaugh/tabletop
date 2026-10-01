@@ -27,7 +27,8 @@
         'buy',
         'sell',
         ...(session.stock.canStartCompanies ? ['start' as const] : []),
-        ...(session.privates.hasExchanges ? ['exchange' as const] : [])
+        ...(session.privates.hasExchanges ? ['exchange' as const] : []),
+        ...(session.stock.sellsPrivates ? ['privates' as const] : [])
     ])
     type StripPill = Omit<StockMenuOption, 'onSelect'> & Partial<Pick<StockMenuOption, 'onSelect'>>
     const selections = $derived<StripPill[]>(

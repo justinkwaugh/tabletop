@@ -7,6 +7,7 @@ export interface BackendTarget {
 
 export interface SupervisorOptions {
     entry: URL
+    env?: NodeJS.ProcessEnv
     startupTimeoutMs?: number
     drainTimeoutMs?: number
     retryDelayMs?: number
@@ -102,7 +103,8 @@ export class BackendSupervisor {
             this.options.startupTimeoutMs ?? 120_000,
             () => {
                 if (candidate === this.active || candidate === this.starting) this.requestReload()
-            }
+            },
+            this.options.env
         )
         this.starting = candidate
         this.children.add(candidate)

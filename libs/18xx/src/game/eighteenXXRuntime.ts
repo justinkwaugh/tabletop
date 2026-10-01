@@ -7,6 +7,8 @@ import { FinalWealthScoring } from '../ending/finalScores.js'
 import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
 import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
+import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
+import { PendingParHandler } from '../company/pendingPar.js'
 import { BankruptHandler } from '../funding/bankruptHandler.js'
 import { BetweenCompaniesHandler } from '../privates/betweenCompaniesHandler.js'
 import { CompanyDecisionsHandler } from '../privates/companyDecisionsHandler.js'
@@ -107,6 +109,12 @@ export function createEighteenXXRuntime(
                   options.privatePowerRules
               )
             : handler
+    const choosesHome = (handler: Handler): Handler =>
+        options.stationRules.homeChoice
+            ? new HomeStationChoiceHandler(handler, options.stationRules)
+            : handler
+    const awaitsPar = (handler: Handler): Handler =>
+        companyRules.parAfterAward ? new PendingParHandler(handler) : handler
     const after = stateAfterOperatingStep
     const operatingStep = (handler: Handler): Handler =>
         endsGame(allowsPrivatePowerRequests(allowsCompanyDecisions(allowsExchange(handler))))
@@ -124,10 +132,20 @@ export function createEighteenXXRuntime(
         ...(options.auctionRules
             ? {
                   WaterfallAuction: endsGame(
-                      decides('WaterfallAuction', new WaterfallAuctionHandler(options.auctionRules))
+                      awaitsPar(
+                          decides(
+                              'WaterfallAuction',
+                              new WaterfallAuctionHandler(options.auctionRules)
+                          )
+                      )
                   ),
                   AuctionBidding: endsGame(
-                      decides('AuctionBidding', new WaterfallAuctionHandler(options.auctionRules))
+                      awaitsPar(
+                          decides(
+                              'AuctionBidding',
+                              new WaterfallAuctionHandler(options.auctionRules)
+                          )
+                      )
                   )
               }
             : {}),
@@ -175,7 +193,12 @@ export function createEighteenXXRuntime(
                 new BetweenCompaniesHandler(
                     decides(
                         'OperatingSet',
-                        new StartOperatingTurnHandler(options.stationRules, OperatingStepStates[0])
+                        choosesHome(
+                            new StartOperatingTurnHandler(
+                                options.stationRules,
+                                OperatingStepStates[0]
+                            )
+                        )
                     ),
                     options.privatePowerRules,
                     options.trackRules,
@@ -242,7 +265,7 @@ export function createEighteenXXRuntime(
         ...fundingActions(options.trainFundingRules, rules, options.trainRules),
         ...privateActions(options),
         ...trackActions(options.trackRules),
-        ...transferActions(options.transferRules, options.trainRules),
+        ...transferActions(options.transferRules, options.trainRules, rules),
         ...phaseActions(options),
         ...operatingActions(operatingRules, options.trainRules, options.endingRules),
         ...stockActions(rules),

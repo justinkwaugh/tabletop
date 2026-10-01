@@ -69,4 +69,65 @@ describe('TrainBuyingModule', () => {
             })
         ).toThrow('Choose an available company train')
     })
+
+    it('lists what the president pays toward a funded offer while it is valid', () => {
+        const alex = { kind: 'player', playerId: 'alex' } as const
+        const base = minimalPlayState()
+        const state: TrainBuyingSession['state'] = {
+            ...base,
+            machineState: 'BuyingTrains',
+            usedPrivatePowerIds: [],
+            companies: [
+                { ...base.companies[0], president: alex },
+                { id: 'S', name: 'Seller', kind: 'major', shareCount: 10, president: alex }
+            ],
+            cash: [
+                ...base.cash,
+                { owner: { kind: 'company', companyId: 'R' }, amount: 30 },
+                { owner: { kind: 'company', companyId: 'S' }, amount: 0 },
+                { owner: alex, amount: 50 }
+            ],
+            trainInventory: {
+                depotId: 'trains',
+                nextTrainNumber: 2,
+                trains: [
+                    {
+                        id: 't1',
+                        definitionId: '2',
+                        status: 'owned',
+                        owner: { kind: 'company', companyId: 'S' }
+                    }
+                ]
+            }
+        }
+        const request = {
+            companyId: 'R',
+            seller: { kind: 'company', companyId: 'S' } as const,
+            asset: { kind: 'train', trainId: 't1' } as const,
+            price: 70
+        }
+        const { session } = testSession(
+            state,
+            {
+                trainRules: minimalTrainRules,
+                transferRules: {
+                    ...minimalTransferRules,
+                    operatingCompany: () => 'R',
+                    canPurchase: () => true,
+                    priceRange: () => ({ minimum: 1 }),
+                    purchaseFunding: () => ({ contributors: [alex], maximumPrice: 100 })
+                }
+            },
+            ['BuyTrain', 'OfferPurchase']
+        )
+        const module = new TrainBuyingModule(session, () => [{ request, minimum: 1 }])
+        module.selectSource('mine')
+        module.selectCompanyTrain(request)
+        expect(module.companyContributions).toEqual([
+            { from: alex, to: { kind: 'company', companyId: 'R' }, amount: 40 }
+        ])
+        module.setCompanyTrainPrice(81)
+        expect(module.companyEvaluation?.reason).toBe('The buyer cannot afford the offer.')
+        expect(module.companyContributions).toEqual([])
+    })
 })

@@ -49,7 +49,7 @@ export class EncodedRoutes {
         const arcs: SolverArc[] = []
         for (const [id, { locationId, path }] of tracks.entries()) {
             const pathResources = routePathResources(locationId, path).map((key) =>
-                this.resourceId(resources, key)
+                this.indexFor(resources, key)
             )
             for (const [direction, departure] of path.endpoints.entries()) {
                 const arrival = path.endpoints[1 - direction]
@@ -107,9 +107,11 @@ export class EncodedRoutes {
             assertExists(node, 'Route requires an existing node')
             return node
         })
+        const groupIds = new Map<string, number>()
         const stops = this.centers.map((center, index) => {
             const node = nodes[index]
             assertExists(node, 'Revenue center requires a node')
+            const group = rules.map.location(center.locationId).stopGroup
             return {
                 city: node.kind === 'city',
                 token: state.stations.some(
@@ -124,7 +126,7 @@ export class EncodedRoutes {
                     cityIsBlocked(state, companyId, center.locationId, node),
                 endpoint: true,
                 allowed: true,
-                groups: []
+                groups: group === undefined ? [] : [this.indexFor(groupIds, group)]
             }
         })
         const trains = trainsOwnedBy(state, { kind: 'company', companyId }).map((train) => {
@@ -161,7 +163,7 @@ export class EncodedRoutes {
             arcs,
             trains,
             resource_count: resources.size,
-            group_count: 0,
+            group_count: groupIds.size,
             hex_bonuses: locations.map(() => 0),
             budget_ms: timeLimitMs
         }
@@ -189,11 +191,11 @@ export class EncodedRoutes {
         })
     }
 
-    private resourceId(resources: Map<string, number>, key: string): number {
-        const existing = resources.get(key)
+    private indexFor(indices: Map<string, number>, key: string): number {
+        const existing = indices.get(key)
         if (existing !== undefined) return existing
-        const id = resources.size
-        resources.set(key, id)
+        const id = indices.size
+        indices.set(key, id)
         return id
     }
     private centerKey(center: RevenueCenter): string {

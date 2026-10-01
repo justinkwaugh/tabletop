@@ -128,6 +128,12 @@ describe('Curfew and Forced Labor — a favor to trade or search under the ruler
         expect(HydratedTrade.canDoTrade(board({}, { denizensBySite: { c1: [CURFEW, INN], c2: [], p1: [], h1: [] } }), 'foe')).toBe(true)
     })
 
+    it('Curfew leaves the tolled card among the cards an enemy can trade with, as its default toll pays', () => {
+        const s = board({}, { denizensBySite: { c1: [CURFEW, INN], c2: [], p1: [], h1: [] } })
+        expect(HydratedTrade.legalCards(s, 'foe')).toContain(INN)
+        expect(HydratedTrade.legalCards(board({ foe: { favor: 0 } }, { denizensBySite: { c1: [CURFEW, INN], c2: [], p1: [], h1: [] } }), 'foe')).not.toContain(INN)
+    })
+
     it('Forced Labor tolls an enemy searching from a ruled site', () => {
         const s = board({}, { denizensBySite: { c1: [FORCED_LABOR], c2: [], p1: [], h1: [] } })
         expect(HydratedSearch.reasonCannotSearch(s, 'foe', SearchSource.WorldDeck)).toMatch(/cannot search from here unless/)

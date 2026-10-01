@@ -1,10 +1,13 @@
 # 18xx Playground
 
 Standalone development host for shared 18xx tiles, maps, and playable title prototypes.
-This app composes `@tabletop/18xx-ui`, TOP, and Shikoku 1889. Shared libraries must
+This app composes `@tabletop/18xx-ui`, TOP, Shikoku 1889, and 1830. Shared libraries must
 not depend on game packages, including through development dependencies or tests.
 Title definitions remain in their game packages; the app supplies them to the
 reusable viewer through its public interface.
+Each hosted title is registered once in `src/titles.ts` (rules, scenarios, UI,
+map example, tile sets, title-specific positions and finished-game fixture); the
+maps, tile library and table pages read that registry.
 
 ## Regular title harness vs scenario playground
 
@@ -74,7 +77,7 @@ It uses Game Sessions and local harness services. Games are persisted locally an
 restored on revisit. The position selector includes focused scenarios and real
 opening auctions; TOP also has a finished-game fixture for forward/backward history.
 
-TOP supports 3–4 players and standard Shikoku 1889 supports 2–6. Stock and operating
+TOP supports 3–4 players; standard Shikoku 1889 and 1830 support 2–6. Stock and operating
 Actions run through the canonical engine, including complete-game replay and Undo.
 See [complete-game verification](../../research/18xx/complete-game-verification.md)
 and [client autorouting](../../research/18xx/autorouter-design.md). These are still

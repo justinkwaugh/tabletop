@@ -1,44 +1,69 @@
 import { describe, expect, it } from 'vitest'
 import { createMapDrawing, mapSelectionPoint, assertMapOverlays } from '@tabletop/18xx-ui'
+import { rotateTileEdge, type RailwayMap } from '@tabletop/18xx'
 import { MapExamples } from './maps.js'
+import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
+import { createEighteenThirtyStockMarket } from '@tabletop/1830'
+import { EighteenThirtyMapView } from '@tabletop/1830-ui'
+import {
+    MarketCellHeight,
+    MarketCellWidth,
+    MarketScenePadding
+} from '../../../../libs/18xx-ui/src/lib/stock/marketTokenLayout.js'
+
+type MapScene = ReturnType<typeof createMapDrawing>
+
+// Counts drawn track ends that meet a neighbor at the shared edge midpoint, failing on any that don't.
+function alignedEdges(
+    scene: MapScene,
+    map: RailwayMap,
+    include: (entry: MapScene['locations'][number]) => boolean = () => true
+): number {
+    let checked = 0
+    for (const entry of scene.locations.filter(include)) {
+        for (const path of entry.drawing.paths) {
+            expect(path.d).not.toMatch(/NaN|Infinity|undefined/)
+            for (const [index, endpoint] of entry.face.paths
+                .find((candidate) => candidate.id === path.id)!
+                .endpoints.entries()) {
+                if (endpoint.kind !== 'edge') continue
+                const neighbor = map.neighbor(
+                    entry.location.id,
+                    rotateTileEdge(endpoint.edge, entry.rotation)
+                )
+                if (!neighbor) continue
+                checked++
+                const other = scene.locations.find(
+                    (candidate) => candidate.location.id === neighbor.id
+                )!
+                const point = index === 0 ? path.start : path.end
+                expect(entry.center.x + point.x).toBeCloseTo(
+                    (entry.center.x + other.center.x) / 2,
+                    1
+                )
+                expect(entry.center.y + point.y).toBeCloseTo(
+                    (entry.center.y + other.center.y) / 2,
+                    1
+                )
+            }
+        }
+    }
+    return checked
+}
 
 describe('complete title maps', () => {
     it.each(Object.values(MapExamples))(
         'preserves location facts and aligns map edges for $map.definition.name',
         (example) => {
-            const scene = createMapDrawing(example.map)
-            let checkedConnections = 0
-            for (const entry of scene.locations) {
-                for (const path of entry.drawing.paths) {
-                    expect(path.d).not.toMatch(/NaN|Infinity|undefined/)
-                    for (const [index, endpoint] of entry.face.paths
-                        .find((candidate) => candidate.id === path.id)!
-                        .endpoints.entries()) {
-                        if (endpoint.kind !== 'edge') continue
-                        const neighbor = example.map.neighbor(entry.location.id, endpoint.edge)
-                        if (!neighbor) continue
-                        checkedConnections++
-                        const other = scene.locations.find(
-                            (candidate) => candidate.location.id === neighbor.id
-                        )!
-                        const point = index === 0 ? path.start : path.end
-                        expect(entry.center.x + point.x).toBeCloseTo(
-                            (entry.center.x + other.center.x) / 2,
-                            1
-                        )
-                        expect(entry.center.y + point.y).toBeCloseTo(
-                            (entry.center.y + other.center.y) / 2,
-                            1
-                        )
-                    }
-                }
-            }
-            expect(checkedConnections).toBeGreaterThan(10)
-            const prepared = createMapDrawing(example.map, {
-                tileSet: example.tileSet,
-                inventory: example.prepared
-            })
+            const scene = createMapDrawing(example.map, undefined, { layouts: example.layouts })
+            expect(alignedEdges(scene, example.map)).toBeGreaterThan(10)
+            const prepared = createMapDrawing(
+                example.map,
+                { tileSet: example.tileSet, inventory: example.prepared },
+                { layouts: example.layouts }
+            )
             expect(prepared.locations.filter((entry) => entry.placed)).toHaveLength(1)
+            alignedEdges(prepared, example.map, (entry) => entry.placed)
             for (const entry of prepared.locations)
                 expect(entry.location).toBe(example.map.location(entry.location.id))
             expect(() => assertMapOverlays(prepared, example.tokens, example.routes)).not.toThrow()
@@ -51,6 +76,15 @@ describe('complete title maps', () => {
             ).toThrow('Multiple tokens')
         }
     )
+    it('draws a rotated pointy-hex tile meeting both neighbors', () => {
+        const example = MapExamples['1830']
+        const prepared = createMapDrawing(
+            example.map,
+            { tileSet: example.tileSet, inventory: example.prepared },
+            { layouts: example.layouts }
+        )
+        expect(alignedEdges(prepared, example.map, (entry) => entry.placed)).toBe(2)
+    })
     it('includes every location and title-specific printed rule', () => {
         const top = MapExamples.TOP.map
         const shikoku = MapExamples['1889'].map
@@ -63,7 +97,7 @@ describe('complete title maps', () => {
         expect(top.location('N18').markers?.[0].id).toBe('vernon-river-bridge')
         expect(top.location('L16').upgradeLabels).toEqual([{ color: 'gray', label: 'CX' }])
         expect(shikoku.location('H5').terrain).toEqual({ cost: 80, kinds: ['water', 'mountain'] })
-        expect(shikoku.location('I4').terrain?.kinds).toEqual(['urban'])
+        expect(shikoku.location('I4').terrain?.kinds).toEqual([])
         expect(
             shikoku.definition.locations.filter((location) =>
                 location.markers?.some((marker) => marker.id === 'port')
@@ -79,5 +113,47 @@ describe('complete title maps', () => {
                 ]
             }
         })
+    })
+})
+
+describe('1830 board', () => {
+    it('keeps every drawn market cell and the depot clear of every hex', () => {
+        const areas = EighteenThirtyMapView.boardAreas
+        expect(areas?.market && areas.depot).toBeTruthy()
+        const hexes = EighteenThirtyMapView.map.definition.locations.map(
+            (location) =>
+                calculateHexGeometry(
+                    { orientation: HexOrientation.Pointy, dimensions: { radius: 50 } },
+                    location.coordinates
+                ).center
+        )
+        const clear = (x: number, y: number, width: number, height: number) =>
+            hexes.every(
+                (hex) =>
+                    x + width < hex.x - 55.3 ||
+                    x > hex.x + 55.3 ||
+                    y + height < hex.y - 62 ||
+                    y > hex.y + 62
+            )
+        const market = createEighteenThirtyStockMarket()
+        const cells = market.spaces.map((space) => space.id.split(':').map(Number))
+        const columns = Math.max(...cells.map(([, column]) => column)) + 1
+        const rows = Math.max(...cells.map(([row]) => row)) + 1
+        const width = 2 * MarketScenePadding + columns * MarketCellWidth
+        const height = 2 * MarketScenePadding + rows * MarketCellHeight
+        const area = areas!.market!
+        const scale = Math.min(area.width / width, area.height / height)
+        const left = area.x + (area.width - width * scale) / 2
+        for (const [row, column] of cells)
+            expect(
+                clear(
+                    left + (MarketScenePadding + column * MarketCellWidth) * scale,
+                    area.y + (MarketScenePadding + row * MarketCellHeight) * scale,
+                    MarketCellWidth * scale,
+                    MarketCellHeight * scale
+                )
+            ).toBe(true)
+        const depot = areas!.depot!
+        expect(clear(depot.x, depot.y, depot.width, depot.height)).toBe(true)
     })
 })

@@ -15,7 +15,7 @@
 
     let offers = $derived(gameSession.siteOffers)
 
-    const SITE_ASPECT = cardAspect({ backKind: CardKind.Site, faceDown: true })
+    const SITE_ASPECT = cardAspect({ back: CardKind.Site })
 
     function restingLabel(slotId: string): string {
         return gameState.isSiteFaceup(slotId)
@@ -72,8 +72,7 @@
     >
         <BoardCard
             {cardId}
-            faceDown={!faceUp}
-            backKind={CardKind.Site}
+            back={faceUp ? undefined : CardKind.Site}
             label={restingLabel(slotId)}
             x={0}
             y={0}

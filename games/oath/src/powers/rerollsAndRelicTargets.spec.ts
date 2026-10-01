@@ -15,7 +15,7 @@ import { PowerQuestionKind } from '../model/question.js'
 import { testPlayer, testState, withChancellor, openTurn, testVaultWithRelics } from '../testing/fixture.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { collectDefensePool } from '../util/campaign.js'
-import { OathRuntime } from '../definition/runtime.js'
+import { OathRuntime, OathVisibility } from '../definition/runtime.js'
 import { OathGameStateValidator } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 import '../powers/index.js'
@@ -116,14 +116,14 @@ describe('Relic Hunter — a facedown relic as a target', () => {
         const v = new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'me', placements: [], burnFavor: false, bottomRelicSlotIds: ['p1-r1'] }))
         v.apply(s)
         const record = v.dehydrate()
-        expect(OathRuntime.visibility.actions.project(record, { kind: 'player', playerId: 'me' })).toMatchObject({ metadata: { relicsToDeckBottom: ['relic.cup'] } })
+        expect(OathVisibility.actions.project(record, { kind: 'player', playerId: 'me' })).toMatchObject({ metadata: { relicsToDeckBottom: ['relic.cup'] } })
         for (const perspective of [{ kind: 'player', playerId: 'foe' } as const, { kind: 'spectator' } as const]) {
-            const theirs = OathRuntime.visibility.actions.project(record, perspective)
+            const theirs = OathVisibility.actions.project(record, perspective)
             expect(theirs).toMatchObject({ metadata: { relicsTaken: [] } })
             expect(JSON.stringify(theirs)).not.toContain('relic.cup')
             const state = s.dehydrate()
             assert(OathGameStateValidator.Check(state), 'the engine holds canonical state')
-            expect(JSON.stringify(OathRuntime.visibility.state.project(state, perspective))).not.toContain('relic.cup')
+            expect(JSON.stringify(OathVisibility.state.project(state, perspective))).not.toContain('relic.cup')
         }
     })
 })

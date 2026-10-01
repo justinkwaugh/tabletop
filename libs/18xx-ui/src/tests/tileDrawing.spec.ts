@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
 import {
     StandardTileCatalog,
+    createCityTileFace,
+    createOffboardTileFace,
+    createStagedTileRevenue,
     parseTileDefinition,
     type TileFace,
     type TileRotation
@@ -114,7 +117,9 @@ describe('tile drawing geometry', () => {
             )
             for (const tile of StandardTileCatalog.entries()) {
                 for (const rotation of rotations) {
-                    const drawing = createTileDrawing(tile.face, orientation, rotation)
+                    const drawing = createTileDrawing(tile.face, orientation, rotation, {
+                        nodePositions: StandardTileLayouts[tile.id]?.nodePositions
+                    })
                     for (const { node, revenuePosition } of drawing.nodes) {
                         if (node.kind === 'junction' || node.revenue.kind !== 'fixed') continue
                         expect(
@@ -179,9 +184,13 @@ describe('tile viewer filtering', () => {
             )
         ).toEqual([
             '18xx:1',
+            '18xx:2',
             '18xx:3',
+            '18xx:4',
+            '18xx:55',
             '18xx:56',
             '18xx:58',
+            '18xx:69',
             '18xx:143',
             '18xx:144',
             '18xx:437',
@@ -192,5 +201,34 @@ describe('tile viewer filtering', () => {
             '18xx:767',
             '18xx:769'
         ])
+    })
+})
+
+describe('offboard track', () => {
+    it('ends each offboard path in a spike from its edge toward the centre', () => {
+        const face = createOffboardTileFace(
+            [2, 3],
+            createStagedTileRevenue([
+                ['yellow', 30],
+                ['brown', 60]
+            ])
+        )
+        const drawing = createTileDrawing(face, HexOrientation.Pointy, 0)
+        for (const path of drawing.paths) {
+            expect(path.spike?.base).toEqual(path.start)
+            const toCenter = Math.hypot(path.start.x, path.start.y)
+            const length = Math.hypot(
+                path.spike!.tip.x - path.start.x,
+                path.spike!.tip.y - path.start.y
+            )
+            expect(length).toBeGreaterThan(toCenter * 0.5)
+            expect(length).toBeLessThan(toCenter * 0.7)
+        }
+        const city = createTileDrawing(
+            createCityTileFace('yellow', [0], 20, 1),
+            HexOrientation.Pointy,
+            0
+        )
+        expect(city.paths.every((path) => !path.spike)).toBe(true)
     })
 })

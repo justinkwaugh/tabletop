@@ -1,4 +1,4 @@
-import { DefaultStateLogger, Visibility, type GameRuntime } from '@tabletop/common'
+import { DefaultStateLogger, Visibility, defineGame, type GameRuntime } from '@tabletop/common'
 import {
     OathGameState,
     OathGameStateValidator,
@@ -13,10 +13,18 @@ import { OathColors } from './colors.js'
 import { OathVisibilityPolicies } from '../model/question.js'
 import { OathGameExploration } from './gameExploration.js'
 import { OathScoring } from './scoring.js'
+import { OathInfo } from './info.js'
 // Registers every built card power wherever the runtime loads.
 import '../powers/index.js'
 
-export const OathRuntime = {
+export const OathVisibility = {
+    state: Visibility.createProjector(OathGameState, { policies: OathVisibilityPolicies }),
+    actions: Visibility.createActionProjector(OathApiActions, {
+        policies: OathVisibilityPolicies
+    })
+}
+
+const runtime = {
     randomnessVersion: 1,
     initializer: new OathGameInitializer(),
     exploration: new OathGameExploration(),
@@ -27,10 +35,13 @@ export const OathRuntime = {
     playerColors: OathColors,
     stateLogger: new DefaultStateLogger(),
     scoring: new OathScoring(),
-    visibility: {
-        state: Visibility.createProjector(OathGameState, { policies: OathVisibilityPolicies }),
-        actions: Visibility.createActionProjector(OathApiActions, {
-            policies: OathVisibilityPolicies
-        })
-    }
-} satisfies GameRuntime<OathProjectedState, HydratedOathGameState>
+    visibility: OathVisibility
+} satisfies Omit<GameRuntime<OathProjectedState, HydratedOathGameState>, 'configuration'>
+
+// `defineGame` installs the configurator's `normalizeConfig` where the engine and clients read it.
+export const Definition = defineGame<OathProjectedState, HydratedOathGameState>({
+    info: OathInfo,
+    runtime
+})
+
+export const OathRuntime = Definition.runtime

@@ -18,6 +18,12 @@ import {
     isAdvancePhase,
     isCompleteStockRound,
     isPrivateExchangeAction,
+    isOfferPrivatePurchase,
+    isParCompany,
+    isPlacePrivateStation,
+    isChooseHomeStation,
+    isDeclinePrivateStation,
+    isCompanyPurchaseOffer,
     isReserveBid,
     isRaiseAuctionBid,
     isContributeTrainFunds,
@@ -34,6 +40,7 @@ import {
     isBuyAuctionLot,
     isPassAuction,
     isResolveAuction,
+    stockMarketSpace,
     type Owner,
     type PresidencyChange,
     type EighteenXXState
@@ -73,15 +80,29 @@ export function historyDescription(
         (change) =>
             `${companyName(change.companyId)} President: ${change.previous ? ownerName(change.previous) : 'None'} → ${change.next ? ownerName(change.next) : 'None'}`
     )
+    const closures = (companyChanges?.closedCompanyIds ?? []).map(
+        (id) => `${companyName(id)} closed`
+    )
+    function awardExtras(): string {
+        const extras = (action.undoPatch ?? []).flatMap((patch) => {
+            const match = /^\/certificates\/(\d+)\/owner\/kind$/.exec(patch.path)
+            const certificate = match ? state.certificates[Number(match[1])] : undefined
+            if (certificate?.kind !== 'share') return []
+            return [
+                certificate.president
+                    ? `the ${companyName(certificate.companyId)} president’s certificate`
+                    : `${certificate.shares} ${companyName(certificate.companyId)}`
+            ]
+        })
+        return extras.length ? `, with ${extras.join(' and ')}` : ''
+    }
     function receivedShare(certificateId: string) {
         const certificate = state.certificates.find((item) => item.id === certificateId)
         assert(certificate?.kind === 'share', 'Recorded exchange requires its received share')
         return `${certificate.shares} ${companyName(certificate.companyId)}`
     }
     function marketPrice(id: string) {
-        const space = state.stockMarket.spaces.find((item) => item.id === id)
-        assertExists(space, 'Recorded market movement requires its space')
-        return space.price
+        return stockMarketSpace(state.stockMarket, id).price
     }
     function shares(certificateId: string) {
         const certificate = state.certificates.find((item) => item.id === certificateId)
@@ -110,6 +131,14 @@ export function historyDescription(
             text: `Laid track at ${action.locationId} with ${companyName(action.privateCompanyId)}`,
             value: action.expectedCost ? money(action.expectedCost) : undefined
         }
+    if (isChooseHomeStation(action)) return { text: `Home station at ${action.locationId}` }
+    if (isPlacePrivateStation(action))
+        return {
+            text: `Station at ${action.position.locationId} with ${companyName(action.privateCompanyId)}`,
+            value: 'Free'
+        }
+    if (isDeclinePrivateStation(action))
+        return { text: `Declined the ${companyName(action.privateCompanyId)} station` }
     if (isPlaceStation(action))
         return {
             text: `Station at ${action.position.locationId}`,
@@ -168,6 +197,7 @@ export function historyDescription(
             text: `Bought`,
             trainDefinitionIds: [action.definitionId],
             value: money(action.expectedPrice),
+            detail: closures.join(' · ') || undefined,
             important: true
         }
     if (isBuyShares(action)) {
@@ -219,6 +249,11 @@ export function historyDescription(
                 : undefined,
             important: true
         }
+    if (isParCompany(action))
+        return {
+            text: `Set ${companyName(action.companyId)}’s par at ${money(marketPrice(action.marketSpaceId))}`,
+            important: true
+        }
     if (isPrivateExchangeAction(action))
         return {
             text: `Exchanged ${companyName(action.privateCompanyId)}`,
@@ -267,7 +302,7 @@ export function historyDescription(
     }
     if (isBuyAuctionLot(action))
         return {
-            text: `Bought ${companyName(action.lotId)}`,
+            text: `Bought ${companyName(action.lotId)}${awardExtras()}`,
             value: money(action.expectedPrice),
             important: true
         }
@@ -286,7 +321,7 @@ export function historyDescription(
             detail: awards
                 .map(
                     (award) =>
-                        `${playerName(award.playerId)} won ${companyName(award.lotId)} for ${money(award.price)}`
+                        `${playerName(award.playerId)} won ${companyName(award.lotId)} for ${money(award.price)}${awardExtras()}`
                 )
                 .join(' · '),
             important: !!awards.length,
@@ -321,9 +356,7 @@ export function historyDescription(
                         return `${ownerName(exchange.owner)} exchanged ${companyName(certificate.companyId)}${number} for ${receivedShare(exchange.receivedId)}`
                     }),
                     ...presidentChanges,
-                    ...(companyChanges?.closedCompanyIds ?? []).map(
-                        (id) => `${companyName(id)} closed`
-                    )
+                    ...closures
                 ].join(' · ') || undefined,
             important: true
         }
@@ -352,6 +385,12 @@ export function historyDescription(
         assertExists(action.metadata, 'Recorded purchase offer requires its terms')
         const { offer, accepted } = action.metadata
         if (isRespondToPurchaseOffer(action) && !accepted) return { text: 'Declined offer' }
+        if (!isCompanyPurchaseOffer(offer))
+            return {
+                text: `Sold ${companyName(offer.asset.privateCompanyId)} to ${playerName(offer.buyerPlayerId)}`,
+                value: money(offer.price),
+                important: true
+            }
         const purchaseAsset = offer.asset
         if (purchaseAsset.kind === 'train' && accepted) {
             const train = state.trainInventory.trains.find(
@@ -363,7 +402,7 @@ export function historyDescription(
                 trainDefinitionIds: [train.definitionId],
                 omitActor: true,
                 value: money(offer.price),
-                detail: `From ${ownerName(offer.seller)}`,
+                detail: [`From ${ownerName(offer.seller)}`, ...closures].join(' · '),
                 important: true
             }
         }
@@ -381,6 +420,10 @@ export function historyDescription(
             important: accepted
         }
     }
+    if (isOfferPrivatePurchase(action))
+        return {
+            text: `Offered ${money(action.price)} for ${companyName(action.privateCompanyId)}`
+        }
     if (isFinishTrack(action)) return { text: 'Finished track', routine: true }
     if (isFinishStations(action)) return { text: 'Finished stations', routine: true }
     if (isFinishOperatingTurn(action)) return { text: 'Finished operating', routine: true }

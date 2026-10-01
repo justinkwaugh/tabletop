@@ -2,7 +2,8 @@ import {
     PowerChoiceKind,
     type ExchangeTerms,
     type LegalChoice,
-    type PowerChoice
+    type PowerChoice,
+    type Suit
 } from '@tabletop/oath'
 
 export type PowerChoicePicks = {
@@ -18,6 +19,13 @@ export function emptyPicks(): PowerChoicePicks {
 }
 
 export const NO_OPTION = -1
+
+/** The favor banks among a choice's options, in option order. */
+export function favorBankSuits(options: readonly PowerChoice[]): Suit[] {
+    return options.flatMap((option) =>
+        option.kind === PowerChoiceKind.FavorBank ? [option.suit] : []
+    )
+}
 
 export function allowsSeveral(legal: LegalChoice): boolean {
     return legal.spec.max > 1

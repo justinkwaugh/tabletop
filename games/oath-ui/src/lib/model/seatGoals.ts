@@ -2,7 +2,6 @@ import {
     PlayerStatus,
     meetsRevealedVisionGoal,
     meetsSuccessorGoal,
-    playersMeetingOathkeeperGoal,
     visionsMetBy,
     type HydratedOathGameState
 } from '@tabletop/oath'
@@ -10,7 +9,6 @@ import { sharedVisionIdsOf } from './cardWarbands.js'
 
 export type SeatGoal =
     | { kind: 'successor'; key: string; met: boolean }
-    | { kind: 'oathkeeper'; key: string; met: boolean }
     | { kind: 'vision'; key: string; met: boolean; visionId: string; shared: boolean }
 
 export type SeatVision = { visionId: string; shared: boolean }
@@ -25,14 +23,14 @@ export function seatVisions(state: HydratedOathGameState, playerId: string): Sea
     return own ? [{ visionId: own, shared: false }, ...shared] : shared
 }
 
-/** R-3.3.1 for a Citizen, R-3.1 and R-3.2 for an Exile, R-2.11 for the Chancellor. */
+/** R-3.3.1 for a Citizen, R-3.2 for an Exile and any seat a Vision is shared with; the Oath is the rail's. */
 export function seatGoals(state: HydratedOathGameState, playerId: string): SeatGoal[] {
     const seat = state.getPlayerState(playerId)
     if (seat.status === PlayerStatus.Citizen) {
         return [{ kind: 'successor', key: 'successor', met: meetsSuccessorGoal(state, playerId) }]
     }
     const met = visionsMetBy(state, playerId)
-    const goals: SeatGoal[] = seatVisions(state, playerId)
+    return seatVisions(state, playerId)
         .filter((vision) => vision.shared || seat.status === PlayerStatus.Exile)
         .map(
             ({ visionId, shared }): SeatGoal => ({
@@ -43,10 +41,4 @@ export function seatGoals(state: HydratedOathGameState, playerId: string): SeatG
                 met: shared ? met.includes(visionId) : meetsRevealedVisionGoal(state, playerId)
             })
         )
-    goals.push({
-        kind: 'oathkeeper',
-        key: 'oathkeeper',
-        met: playersMeetingOathkeeperGoal(state).includes(playerId)
-    })
-    return goals
 }

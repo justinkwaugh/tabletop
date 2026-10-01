@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
-import { ConfigOptionType, type GameConfigOptions } from '@tabletop/common'
+import * as Value from 'typebox/value'
+import { assert, ConfigOptionType, type GameConfig, type GameConfigOptions } from '@tabletop/common'
 import { OathType, SetupVariant } from '../model/oathEnums.js'
 
 export type OathGameConfig = Type.Static<typeof OathGameConfig>
@@ -23,14 +24,9 @@ export const OathGameConfigOptions: GameConfigOptions = [
         id: 'setupVariant',
         type: ConfigOptionType.List,
         name: 'World Deck',
-        description:
-            'Random: nine denizens of each suit, drawn at random from all 198. ' +
-            'Curated: a fixed set of 54 denizens chosen for a first game.',
+        description: 'Random: nine denizens of each suit, drawn at random from all 198.',
         default: SetupVariant.Randomized,
-        options: [
-            { name: 'Random', value: SetupVariant.Randomized },
-            { name: 'Curated', value: SetupVariant.Curated }
-        ],
+        options: [{ name: 'Random', value: SetupVariant.Randomized }],
         alwaysShow: true
     },
     {
@@ -47,3 +43,17 @@ export const OathGameConfigOptions: GameConfigOptions = [
         alwaysShow: true
     }
 ]
+
+// The retired fixed 54-card deck: a stored setup still waiting to start begins with a random one.
+
+export function normalizeOathConfig(config: GameConfig): OathGameConfig {
+    const normalized =
+        config.setupVariant === SetupVariant.Curated
+            ? { ...config, setupVariant: SetupVariant.Randomized }
+            : config
+    assert(
+        Value.Check(OathGameConfig, normalized),
+        `Not an Oath configuration: ${JSON.stringify(config)}`
+    )
+    return normalized
+}

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { ActionType, discardRegionFor } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
@@ -22,15 +23,16 @@
     let canGoBack = $derived(gameSession.selection.hasManualSelection())
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
+<div>
     {#if choosing && gameSession.setup.siteFavor && !adviserCardId}
         {@const split = gameSession.setup.siteFavor}
         {@const pending = gameSession.setup.pendingSiteFavor}
         <!-- R-1.16 — "if there is not enough favor, the Chancellor chooses how to place it". -->
-        <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+        <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
             <div class="mb-1">
-                The bank holds {gameState.favorSupply} favor, not enough for every site. Place all of
-                it:
+                <TokenText
+                    text="The bank holds {gameState.favorSupply} favor, not enough for every site. Place all of it:"
+                />
                 {gameSession.setup.siteFavorPlaced} of {gameState.favorSupply} placed.
             </div>
             {#each split as { siteCardId, favor }, index (siteCardId)}
@@ -39,7 +41,7 @@
                     >
                     <button
                         type="button"
-                        class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5"
+                        class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
                         disabled={busy || favor <= 0}
                         onclick={() => gameSession.setup.setSiteFavor(siteCardId, favor - 1)}
                     >
@@ -48,7 +50,7 @@
                     <span class="w-6 text-center font-semibold">{favor}</span>
                     <button
                         type="button"
-                        class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5"
+                        class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
                         disabled={busy || favor >= pending[index].wanted}
                         onclick={() => gameSession.setup.setSiteFavor(siteCardId, favor + 1)}
                     >
@@ -67,8 +69,8 @@
                         class="flex flex-col items-center gap-0.5 rounded border p-1 {tapped.includes(
                             cardId
                         )
-                            ? 'border-amber-300 bg-amber-950/60'
-                            : 'border-stone-700 hover:border-amber-400'}"
+                            ? 'border-oath-accent bg-oath-accent-soft'
+                            : 'border-oath-divider hover:border-oath-accent'}"
                         disabled={busy}
                         onclick={() => gameSession.setup.tapDiscard(cardId)}
                     >
@@ -78,7 +80,7 @@
                             label={cardName(cardId)}
                             inspect
                         />
-                        <span class="text-[10px] text-sky-200 h-3"
+                        <span class="text-[10px] text-oath-heading h-3"
                             >{discardPositionLabel(cardId, tapped, others)}</span
                         >
                     </button>
@@ -121,18 +123,20 @@
                 <p class="text-sm">
                     Keeping <span class="font-semibold">{cardName(adviserCardId)}</span>.
                     <span class="font-semibold">Tap the site where your pawn starts.</span>
-                    <span class="text-stone-400">Any faceup site — they are lit on the map.</span>
+                    <span class="text-oath-text-muted"
+                        >Any faceup site — they are lit on the map.</span
+                    >
                 </p>
             {:else}
                 <p class="text-sm">
                     <span class="font-semibold">Tap the site where your pawn starts</span>
-                    <span class="text-stone-400">(lit on the map)</span>
+                    <span class="text-oath-text-muted">(lit on the map)</span>
                     <span class="font-semibold">and the card to keep</span> as a facedown adviser.
                 </p>
             {/if}
             {#if canGoBack}
                 <button
-                    class="shrink-0 rounded bg-stone-700 hover:bg-stone-600 px-2 py-1 text-xs font-semibold"
+                    class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs font-semibold"
                     disabled={busy}
                     onclick={() => gameSession.back()}
                 >
@@ -141,6 +145,6 @@
             {/if}
         </div>
     {:else}
-        <p class="text-sm text-stone-400">Waiting for another player to set up.</p>
+        <p class="text-sm text-oath-text-muted">Waiting for another player to set up.</p>
     {/if}
 </div>

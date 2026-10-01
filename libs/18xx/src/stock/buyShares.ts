@@ -11,6 +11,7 @@ import {
 } from '@tabletop/common'
 import { Owner } from '../finance/finance.js'
 import { evaluateSharePurchase, SharePurchaseDetails, applySharePurchase } from './sharePurchase.js'
+import { recordTurnPurchase } from './turnPurchases.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
@@ -55,6 +56,11 @@ export class HydratedBuyShares extends HydratableAction<typeof BuyShares> implem
         assert(result.details, result.reason ?? 'Invalid purchase')
         assert(this.expectedPrice === result.details.price, 'The purchase price has changed')
         recordStockAction(state, this.playerId, this.#rules.round)
+        recordTurnPurchase(state, this.#rules, {
+            kind: 'share',
+            companyId: result.details.companyId,
+            ...(result.poolId ? { poolId: result.poolId } : {})
+        })
         applySharePurchase(state, result.details)
         this.metadata = result.details
     }

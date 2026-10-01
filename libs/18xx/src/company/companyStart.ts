@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
-import { copyFinances, getCompany } from '../finance/finance.js'
+import { copyFinances, getCompany, type President } from '../finance/finance.js'
 import { SharePurchaseDetails, evaluateShareAcquisition } from '../stock/sharePurchase.js'
-import { placeStockMarker } from '../stock/stockMarket.js'
+import { placeStockMarker, stockMarketSpace } from '../stock/stockMarket.js'
 import type { Owner } from '../finance/finance.js'
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
@@ -49,6 +49,8 @@ export function evaluateCompanyStart(
     )
     if (!certificate || certificate.retired)
         return { reason: 'The president’s certificate is unavailable.' }
+    if (state.stockRound.turn.bought)
+        return { reason: 'A company cannot be started after this turn’s purchase.' }
     const terms = rules.startTerms(state, company.id, request.buyer, space.id)
     if (typeof terms === 'string') return { reason: terms }
     const projected: FormationState = {
@@ -59,11 +61,7 @@ export function evaluateCompanyStart(
             stacks: structuredClone(state.stockMarket.stacks)
         }
     }
-    const started = getCompany(projected, company.id)
-    started.started = true
-    started.parPrice = space.price
-    started.president = request.buyer
-    placeStockMarker(projected.stockMarket, company.id, space.id)
+    startCompanyAtPar(projected, company.id, space.id, request.buyer)
     const result = evaluateShareAcquisition(
         projected,
         { playerId: request.playerId, buyer: request.buyer, certificateId: certificate.id },
@@ -73,4 +71,17 @@ export function evaluateCompanyStart(
     return result.details
         ? { details: { ...result.details, marketSpaceId: space.id, parPrice: space.price } }
         : { reason: result.reason }
+}
+
+export function startCompanyAtPar(
+    state: FormationState,
+    companyId: string,
+    marketSpaceId: string,
+    president: President
+): void {
+    const company = getCompany(state, companyId)
+    company.started = true
+    company.parPrice = stockMarketSpace(state.stockMarket, marketSpaceId).price
+    company.president = president
+    placeStockMarker(state.stockMarket, companyId, marketSpaceId)
 }

@@ -1,6 +1,10 @@
 import {
     isAdvancePhase,
+    isBuyPrivateTrain,
+    isBuyTrain,
     isFloatCompany,
+    isOfferPurchase,
+    isRespondToPurchaseOffer,
     sameOwner,
     type FinancialState,
     type President
@@ -30,7 +34,7 @@ export function historyCompanyChanges(
             closed: company.closed
         }))
         ledger = jsonpatch.applyPatch(ledger, structuredClone(patches)).newDocument
-        if (!isFloatCompany(action) && !isAdvancePhase(action)) continue
+        if (!changesCompanies(action)) continue
         const changes: HistoryCompanyChanges = { presidents: [], closedCompanyIds: [] }
         for (const company of after) {
             const before = ledger.companies.find((previous) => previous.id === company.id)
@@ -44,4 +48,16 @@ export function historyCompanyChanges(
         result.set(action.id, changes)
     }
     return result
+}
+
+// Train purchases can close privates, such as one that closes on its railroad's first train.
+function changesCompanies(action: GameAction): boolean {
+    return (
+        isFloatCompany(action) ||
+        isAdvancePhase(action) ||
+        isBuyTrain(action) ||
+        isBuyPrivateTrain(action) ||
+        isOfferPurchase(action) ||
+        isRespondToPurchaseOffer(action)
+    )
 }

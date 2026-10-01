@@ -29,7 +29,7 @@ const MASTER_SEED = '0000000000000000000000000000002a'
 type Step = { from: OathProjectedState; actions: GameAction[]; to: OathProjectedState }
 
 function walkSetup() {
-    // The Curated variant deals only eight sites, so the seed's Drowned City needs the full deck.
+    // The seed's deal reaches the Drowned City.
     const game = testGame(['p1', 'p2'], { config: { setupVariant: SetupVariant.Randomized } })
     const { initialState } = engine.startGame(game, { masterSeed: MASTER_SEED })
     const vault = vaultOf(initialState)

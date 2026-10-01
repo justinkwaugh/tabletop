@@ -10,7 +10,7 @@ export {
     type TileLayout
 } from './tiles/tileDrawing.js'
 export { TileColors } from './tiles/tilePresentation.js'
-export { StandardTileLayouts } from './tiles/standardTileLayouts.js'
+export { StandardTileLayouts, towardTileEdge } from './tiles/standardTileLayouts.js'
 export * from './maps/mapDrawing.js'
 export { default as MapScene } from './maps/MapScene.svelte'
 export { default as MapInspector } from './maps/MapInspector.svelte'
@@ -64,6 +64,7 @@ export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'
 export { default as AuctionBidControl } from './auctions/AuctionBidControl.svelte'
 export { default as OfferAuctionBidding } from './auctions/OfferAuctionBidding.svelte'
 export { default as WaterfallAuctionLots } from './auctions/WaterfallAuctionLots.svelte'
+export { default as CompanyPar } from './stock/CompanyPar.svelte'
 export { default as WaterfallAuctionBidding } from './auctions/WaterfallAuctionBidding.svelte'
 
 export { default as PrivateCard } from './privates/PrivateCard.svelte'

@@ -4,6 +4,7 @@
     import type { TileFace } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import type { TileDrawing } from './tileDrawing.js'
+    import { spikePoints } from './tileTrackGeometry.js'
     import { ClassicTileAppearance, type TileAppearance } from './tileAppearance.js'
     import TileSymbol from './TileSymbol.svelte'
 
@@ -164,13 +165,26 @@
     {/each}
     <g fill="none" stroke-linecap="butt" filter={inkFilter}>
         {#each drawing.paths as path (path.id)}
-            <path
-                d={path.d}
-                stroke={appearance.paper}
-                stroke-width={appearance.trackWidth + appearance.trackBorderWidth}
-            ></path>
+            {#if path.spike}
+                <polygon
+                    points={spikePoints(path.spike, appearance.trackWidth)}
+                    fill={appearance.ink}
+                    stroke={appearance.paper}
+                    stroke-width={appearance.trackBorderWidth}
+                    stroke-linejoin="round"
+                    paint-order="stroke"
+                    data-path-id={path.id}
+                    data-offboard-spike
+                ></polygon>
+            {:else}
+                <path
+                    d={path.d}
+                    stroke={appearance.paper}
+                    stroke-width={appearance.trackWidth + appearance.trackBorderWidth}
+                ></path>
+            {/if}
         {/each}
-        {#each drawing.paths as path (path.id)}
+        {#each drawing.paths.filter((path) => !path.spike) as path (path.id)}
             <g data-path-id={path.id}>
                 <path d={path.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
                 ></path>
@@ -240,16 +254,7 @@
                         stroke-width="0.7"
                     ></circle>
                 {/if}
-            {:else if node.kind === 'offboard'}
-                <rect
-                    x={center.x - 7}
-                    y={center.y - 7}
-                    width="14"
-                    height="14"
-                    rx="2"
-                    fill={appearance.ink}
-                ></rect>
-            {:else}
+            {:else if node.kind === 'offboard'}{:else}
                 <circle cx={center.x} cy={center.y} r="3" fill={appearance.ink}></circle>
             {/if}
         </g>
@@ -282,8 +287,8 @@
                 <TileSymbol symbol="port" ink={appearance.ink} paper={appearance.paper} />
             </g>
         {/if}
-        {#each drawing.nodes as { node, revenuePosition, revenueCells } (node.id)}
-            {#if node.kind !== 'junction' && (showZeroRevenue || node.revenue.kind === 'staged' || node.revenue.amount !== 0)}
+        {#each drawing.nodes as { node, revenuePosition, revenueCells, revenueHidden } (node.id)}
+            {#if node.kind !== 'junction' && !revenueHidden && (showZeroRevenue || node.revenue.kind === 'staged' || node.revenue.amount !== 0)}
                 <g
                     data-revenue-for={node.id}
                     transform={`translate(${revenuePosition.x} ${revenuePosition.y})`}

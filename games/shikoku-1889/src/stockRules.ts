@@ -70,6 +70,6 @@ export const Shikoku1889StockRules: StockRules = {
     },
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
-    extendSaleBlocks: true,
-    sellAfterBuying: true
+    turnOrder: 'sell-buy-or-buy-sell',
+    repeatSales: 'extend-block'
 }

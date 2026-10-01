@@ -4,19 +4,12 @@
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import TrainBadge from '../trains/TrainBadge.svelte'
-    import PhaseChart from '../phases/PhaseChart.svelte'
-    import type { PhaseChartData } from '../phases/phaseChart.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     let {
         session,
         companyNames = {},
         bordered = true,
         centered = false,
-        phaseChart,
-        trainColors,
-        tileColors,
-        tileColorNames,
         artworkAvailable = false,
         publishedArtwork = false,
         onToggleArtwork
@@ -28,13 +21,7 @@
         centered?: boolean
         session: EighteenXXSession
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
-        phaseChart: PhaseChartData
-        trainColors: Readonly<Record<string, string>>
-        tileColors?: Readonly<Record<string, string>>
-        tileColorNames?: Readonly<Record<string, string>>
     } = $props()
-    const money = $derived(session.presentation.money)
-    let showPhaseChart = $state(false)
     let compact = $state(false)
     function fitRoundLabel(header: HTMLElement) {
         const phase = header.querySelector<HTMLElement>('.phase')
@@ -123,15 +110,6 @@
                 {gameState.operatingSet?.number}.{gameState.operatingSet?.roundNumber}
             {/if}
         </strong>
-        <span class="separator phase-separator">/</span><button
-            class="phase-button"
-            aria-haspopup="dialog"
-            onclick={() => (showPhaseChart = true)}
-            ><span>Phase</span><TrainBadge
-                name={gameState.phaseId}
-                color={trainColors[gameState.phaseId]}
-            /></button
-        >
         {#if company && gameState.stockRound.completed && !gameState.result}<span
                 class="separator"
                 aria-hidden="true">/</span
@@ -178,21 +156,6 @@
         {/if}
     </div>
 </header>
-
-{#if showPhaseChart}<PhaseChart
-        {money}
-        depotState={{
-            depot: session.trainDepot,
-            inventory: gameState.trainInventory,
-            availableDefinitionIds: session.availableTrainDefinitionIds
-        }}
-        chart={phaseChart}
-        currentPhaseId={gameState.phaseId}
-        {trainColors}
-        {tileColors}
-        {tileColorNames}
-        onclose={() => (showPhaseChart = false)}
-    />{/if}
 
 <style>
     header {
@@ -243,12 +206,6 @@
     @media (width < 40rem) {
         header {
             min-height: 36px;
-        }
-    }
-    @media (width < 64rem) {
-        .phase .phase-separator,
-        .phase .phase-button {
-            display: none;
         }
     }
     .phase,
@@ -320,31 +277,6 @@
         text-transform: uppercase;
         letter-spacing: 0.08em;
         cursor: pointer;
-    }
-    .phase-button {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 5px;
-        margin: 0 -5px;
-        border-radius: 4px;
-        text-transform: none;
-        letter-spacing: normal;
-    }
-    /* A border, not text-decoration, so the underline runs beneath the badge too. */
-    .phase-button::after {
-        content: '';
-        position: absolute;
-        right: 5px;
-        bottom: 1px;
-        left: 5px;
-        border-bottom: 1px dotted color-mix(in srgb, currentColor 40%, transparent);
-    }
-    @media (hover: hover) {
-        .phase-button:hover::after {
-            border-bottom-color: currentColor;
-        }
     }
     button:focus-visible {
         outline: 2px solid var(--rail-focus, #9e7752);

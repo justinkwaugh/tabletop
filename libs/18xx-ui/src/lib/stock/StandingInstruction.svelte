@@ -9,6 +9,7 @@
     import { popoverAbove } from '../presentation/popoverPlacement.js'
     import { shareGoalWithin } from '../session/stockInstructionModule.svelte.js'
     import SlidingToggle from '../table/SlidingToggle.svelte'
+    import SwitchTrack from '../table/SwitchTrack.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     let { session }: { session: EighteenXXSession } = $props()
     const gameState = $derived(session.gameState)
@@ -237,7 +238,7 @@
                             aria-checked={thenPass}
                             {disabled}
                             onclick={() => (thenPass = !thenPass)}
-                            ><span class="knob" aria-hidden="true"></span>then pass</button
+                            ><SwitchTrack on={thenPass} />then pass</button
                         >
                     {/if}
                 </div>
@@ -415,34 +416,6 @@
     }
     .switch[aria-checked='true'] {
         color: var(--rail-text, #e3e9ef);
-    }
-    .knob {
-        position: relative;
-        width: 26px;
-        height: 14px;
-        border-radius: 999px;
-        background: var(--rail-surface-inset, #1b232d);
-        border: 1px solid var(--rail-border, #485666);
-        transition: background 150ms ease;
-    }
-    .knob::after {
-        content: '';
-        position: absolute;
-        top: 1px;
-        left: 1px;
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-        background: var(--rail-muted, #7f8e9e);
-        transition: transform 150ms ease;
-    }
-    .switch[aria-checked='true'] .knob {
-        background: var(--rail-solid, #40576b);
-        border-color: transparent;
-    }
-    .switch[aria-checked='true'] .knob::after {
-        transform: translateX(12px);
-        background: #ffffff;
     }
     .commit {
         padding: 4px 12px;

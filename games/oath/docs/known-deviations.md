@@ -47,7 +47,6 @@ deviations. Each line names the card or rule, what the engine or UI does, and wh
 ## Rules
 
 - **R-6.6.2, R-6.6.3:** a Citizen who gains warbands through a power gets their own, not Imperial ones; Muster already gives Imperial ones.
-- **R-9.4:** the state publishes each facedown adviser's back (`vision: true` on a Vision's row) and the number of Visions in each hand (`handVisions`), but the table still draws every other player's facedown adviser as a denizen back and shows a hand as a count, so a facedown Vision looks like a denizen there.
 - **R-9.4:** the state records every back that goes onto a pile, but the table draws only the top card's back and the count.
 - **R-9.4, Exploration:** a card known only as "one of these places" is forgotten: after a Search of two or more cards whose hand others knew, a card kept facedown unseen may be the kept card or among the discards; and a card known to be in a hand only as one of a set (drawn from a set's places) is forgotten when that hand is discarded. The records place such a card nowhere, so a player's or spectator's exploration deals it anywhere, and in a Randomized game may deal it out of the game (the nine denizens per suit are then drawn afresh). Every other known card keeps its place.
 

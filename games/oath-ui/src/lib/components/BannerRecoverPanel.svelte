@@ -1,5 +1,7 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { FAVOR_BANK_ORDER } from '@tabletop/oath'
+    import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { bannerName, humanizeReason } from '$lib/model/names.js'
 
@@ -14,39 +16,36 @@
 {#if banner}
     <div class="flex flex-col gap-1.5 text-xs">
         <label class="flex items-center gap-2">
-            <span class="text-stone-400">Pay for the {bannerName(banner)}:</span>
+            <span class="text-oath-text-muted">Pay for the {bannerName(banner)}:</span>
             <input
                 disabled={busy}
                 type="number"
                 min={amounts[0]}
                 max={amounts[amounts.length - 1]}
                 value={gameSession.bannerAmount}
-                class="w-16 rounded bg-stone-800 px-1 py-0.5 text-xs"
+                class="w-16 rounded bg-oath-surface-raised px-1 py-0.5 text-xs"
                 oninput={(event) => gameSession.setBannerAmount(Number(event.currentTarget.value))}
             />
         </label>
         {#if gameSession.needsFavorStart}
-            <div class="text-stone-400">Return the favor on it starting at:</div>
-            <div class="flex flex-wrap gap-1">
-                {#each FAVOR_BANK_ORDER as suit (suit)}
-                    <button
-                        class="rounded border px-2 py-0.5 capitalize {gameSession.favorStart ===
-                        suit
-                            ? 'border-amber-300 bg-amber-900/60'
-                            : 'border-stone-600 bg-stone-800/60 hover:border-amber-300'}"
-                        disabled={busy}
-                        onclick={() => gameSession.setFavorStart(suit)}
-                    >
-                        {suit}
-                    </button>
-                {/each}
+            <div class="text-oath-text-muted">
+                <TokenText text="Return the favor on it starting at:" />
             </div>
+            {@const start = gameSession.favorStart}
+            <SuitPicker
+                suits={FAVOR_BANK_ORDER}
+                picked={start === undefined ? [] : [start]}
+                onpick={(suit) => gameSession.setFavorStart(suit)}
+                {busy}
+            />
         {/if}
         {#if reason}
-            <p class="text-[11px] text-rose-300">{humanizeReason(reason)}</p>
+            <p class="text-[11px] text-oath-danger">
+                <TokenText text={humanizeReason(reason) ?? ''} />
+            </p>
         {/if}
         <button
-            class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-0.5 self-start"
+            class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 self-start"
             disabled={busy || !!reason}
             onclick={() => gameSession.recoverBanner()}
         >

@@ -39,7 +39,9 @@ export function reorderPendingOperatingCompanies(
     set.companyOrder = [...fixed, ...reordered]
 }
 
-export function nextOperatingCompany(state: OperatingState): string | undefined {
+export function nextOperatingCompany(
+    state: Pick<OperatingState, 'operatingSet' | 'companies'>
+): string | undefined {
     const set = state.operatingSet
     if (!set || set.completed) return undefined
     return set.companyOrder.find(

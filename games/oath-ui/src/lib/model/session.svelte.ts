@@ -97,6 +97,7 @@ import {
 } from './phaseDrafts.js'
 import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
+import { GoalsView } from './goalsView.svelte.js'
 import { siteName } from './names.js'
 import type { HistoryNames } from './actionDescription.js'
 import { peekedRelicAt } from './relicKnowledge.js'
@@ -112,7 +113,6 @@ import {
     reasonCannotRecoverBanner,
     recoverableBanners,
     recoverableRelicSlots,
-    tradeOptions,
     travelCost,
     travelWays,
     type TravelWay,
@@ -121,6 +121,7 @@ import {
     type SiteOffer
 } from './actionOffers.js'
 import { tollLabel } from './offerText.js'
+import { tradeRows, type TradeRow } from './tradeRows.js'
 import { SetupDraft } from './setupDraft.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
 import { WarbandMoveDraft } from './warbandMoveDraft.js'
@@ -151,6 +152,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly citizenship = new CitizenshipDraft(this)
     readonly consent = new ConsentDraft(this)
     readonly seatDetail = new SeatDetail(this)
+    readonly goalsView = new GoalsView()
 
     readonly campaign = new CampaignDraft(this)
     readonly setup = new SetupDraft(this)
@@ -862,24 +864,31 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.siteOffers.some((offer) => offer.intent !== 'moveWarbands')
     }
 
-    // R-5.3.2 — Trade's legality is per option, so a card is offered if either is legal.
+    // R-5.3.2 — Trade's legality is per option, so a card is offered if either is legal;
+    // a tap only marks its row in the Trade menu, so every card stays offered.
     get selectableCards(): string[] {
         const playerId = this.liveTurnSeatId
         if (!playerId) return []
+        if (this.selection.action === ActionType.Trade) {
+            return HydratedTrade.legalCards(this.gameState, playerId, this.modifiers.declared)
+        }
         if (this.selection.value('card') !== undefined) return []
         if (this.selection.action === ActionType.Muster) {
             return HydratedMuster.legalCards(this.gameState, playerId, this.modifiers.declared)
         }
-        if (this.selection.action === ActionType.Trade) {
-            return HydratedTrade.legalCards(this.gameState, playerId, this.modifiers.declared)
-        }
         return []
     }
 
-    tradeOptionsFor(cardId: string): TradeOption[] {
+    /** The card a tap in the strip marked in the Trade menu. */
+    get tradeCard(): string | undefined {
+        return this.selection.action === ActionType.Trade ? this.selection.value('card') : undefined
+    }
+
+    // R-5.3.2, R-7.4 — every trade at the site, priced with the declared modifiers.
+    get tradeRows(): TradeRow[] {
         const playerId = this.liveTurnSeatId
-        if (!playerId) return []
-        return tradeOptions(this.gameState, playerId, cardId, this.modifiers.declared)
+        if (!playerId || this.selection.action !== ActionType.Trade) return []
+        return tradeRows(this.gameState, playerId, this.modifiers.declared)
     }
 
     // R-5.4, R-6.3 — relic slots, never card ids: a facedown relic's identity
@@ -1014,13 +1023,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             await this.muster(cardId)
             return
         }
-        if (this.selection.action === ActionType.Trade) {
-            const options = this.tradeOptionsFor(cardId)
-            if (options.length === 1) {
-                this.selection.autoSelect('option', options[0])
-                await this.trade(cardId, options[0])
-            }
-        }
     }
 
     async chooseRelicSlot(slotId: string): Promise<void> {
@@ -1069,9 +1071,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    async chooseTradeOption(option: TradeOption): Promise<void> {
-        const cardId = this.selection.value('card')
-        assertExists(cardId, 'A Trade option is offered once its card is chosen')
+    async chooseTrade(cardId: string, option: TradeOption): Promise<void> {
+        this.selection.set('card', cardId)
         this.selection.set('option', option)
         await this.trade(cardId, option)
     }

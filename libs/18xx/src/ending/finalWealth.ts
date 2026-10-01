@@ -34,6 +34,13 @@ export const EndingFields = {
 export interface ValuationRules {
     certificateItems(state: StockState, certificate: Portfolio[number]): WealthItem[]
 }
+export function certificateValue(
+    state: StockState,
+    certificate: Portfolio[number],
+    rules: ValuationRules
+): number {
+    return rules.certificateItems(state, certificate).reduce((sum, item) => sum + item.value, 0)
+}
 export function marketShareValue(state: StockState, certificate: Portfolio[number]): number {
     const company = getCompany(state, certificate.companyId)
     return certificate.kind === 'share' && company.started && !company.closed

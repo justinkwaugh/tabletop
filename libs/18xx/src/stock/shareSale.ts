@@ -65,15 +65,23 @@ export function evaluateShareSale(
     if (!rules.sellers(state, playerId).some((owner) => sameOwner(owner, seller)))
         return { reason: 'This player cannot sell for that owner.' }
     const turn = state.stockRound.turn
-    if (turn.bought && (!rules.sellAfterBuying || turn.soldBeforeBuying))
+    if (
+        turn.bought &&
+        (rules.turnOrder === 'sell-buy' ||
+            (rules.turnOrder === 'sell-buy-or-buy-sell' && turn.soldBeforeBuying))
+    )
         return { reason: 'Selling is not allowed after this purchase.' }
     const previous = turn.saleBlocks?.find(
         (block) => block.companyId === sales[0].companyId && sameOwner(block.seller, seller)
     )
-    if (turn.companiesSold.includes(sales[0].companyId) && (!rules.extendSaleBlocks || !previous))
+    const extending = rules.repeatSales === 'extend-block'
+    if (
+        turn.companiesSold.includes(sales[0].companyId) &&
+        rules.repeatSales !== 'separate' &&
+        (!extending || !previous)
+    )
         return { reason: 'Sell a company’s shares in one block per turn.' }
-    if (!previous || !rules.extendSaleBlocks)
-        return evaluateShareDisposal(state, seller, sales, rules)
+    if (!previous || !extending) return evaluateShareDisposal(state, seller, sales, rules)
     return evaluateShareDisposal(state, seller, sales, {
         presidencyCandidates: rules.presidencyCandidates,
         saleTerms(projected, companyId, shares, seller) {

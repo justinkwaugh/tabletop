@@ -1,4 +1,4 @@
-import type { StationAppearance } from './stationPresentation.js'
+import type { MapViewDefinition, StationAppearance } from './stationPresentation.js'
 import {
     assert,
     assertExists,
@@ -11,6 +11,7 @@ import {
     type Point
 } from '@tabletop/common'
 import {
+    TileEdges,
     tileEdgeDirection,
     RailwayMapState,
     type RoutePath,
@@ -18,6 +19,7 @@ import {
     type StationReservation,
     type RailwayMap,
     type MapLocation,
+    type TileEdge,
     type TileFace,
     type TileRotation,
     type TileSet,
@@ -54,7 +56,10 @@ export type MapPlacement = {
     hidden?: boolean
 }
 
-export type MapMarkerArt = { imageUrl: string } | { tileSymbol: TileSymbolName }
+export type MapMarkerArt =
+    | { imageUrl: string }
+    | { tileSymbol: TileSymbolName }
+    | { localLine: true }
 
 export type MapDrawnLocation = {
     location: MapLocation
@@ -71,7 +76,9 @@ export type MapDrawnLocation = {
         end: Point
         border: NonNullable<MapLocation['borders']>[number]
     }[]
+    outline: readonly HexSegment[]
 }
+type HexSegment = { start: Point; end: Point }
 export type BoardArtwork = {
     backgroundColor?: string
     imageUrl: string
@@ -146,9 +153,12 @@ function remapFaceEdges(face: TileFace, edges: Readonly<Record<number, number>>)
 export function createMapDrawing(
     map: RailwayMap,
     supply?: { tileSet: TileSet; inventory: TileInventory },
-    layouts: Readonly<Record<string, TileLayout>> = {},
-    markerArt: Readonly<Record<string, MapMarkerArt>> = {},
-    placements: Readonly<Record<string, MapPlacement>> = {}
+    {
+        layouts = {},
+        markerArt = {},
+        placements = {},
+        joinedEdges = {}
+    }: Pick<MapViewDefinition, 'layouts' | 'markerArt' | 'placements' | 'joinedEdges'> = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
     const locations = map.definition.locations.map((location): MapDrawnLocation => {
@@ -201,8 +211,8 @@ export function createMapDrawing(
             { orientation: map.definition.orientation, dimensions: { radius: 50 } },
             relocation?.at ?? location.coordinates
         )
-        const borders = (location.borders ?? []).map((border) => {
-            const direction = tileEdgeDirection(border.edge, map.definition.orientation)
+        const segment = (edge: TileEdge): HexSegment => {
+            const direction = tileEdgeDirection(edge, map.definition.orientation)
             const index =
                 map.definition.orientation === HexOrientation.Flat
                     ? ClockwiseFlatHexDirections.findIndex((candidate) => candidate === direction)
@@ -210,11 +220,15 @@ export function createMapDrawing(
             const a = geometry.vertices[index],
                 b = geometry.vertices[(index + 1) % 6]
             return {
-                border,
                 start: { x: a.x - geometry.center.x, y: a.y - geometry.center.y },
                 end: { x: b.x - geometry.center.x, y: b.y - geometry.center.y }
             }
-        })
+        }
+        const borders = (location.borders ?? []).map((border) => ({
+            border,
+            ...segment(border.edge)
+        }))
+        const joined = joinedEdges[location.id] ?? []
         return {
             location,
             center: geometry.center,
@@ -224,7 +238,8 @@ export function createMapDrawing(
             hidden: !!relocation?.hidden,
             drawing,
             markerArt,
-            borders
+            borders,
+            outline: TileEdges.filter((edge) => !joined.includes(edge)).map(segment)
         }
     })
     const vertices = locations.flatMap(

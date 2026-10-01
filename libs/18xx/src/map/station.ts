@@ -7,6 +7,7 @@ export const CityReservation = Type.Object(
     { companyId: Id, nodeId: Id },
     { additionalProperties: false }
 )
+export type CityReservation = Type.Static<typeof CityReservation>
 export const StationReservation = Type.Object(
     {
         ...CityReservation.properties,

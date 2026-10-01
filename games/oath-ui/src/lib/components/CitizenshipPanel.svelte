@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { CardKind } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -15,8 +16,8 @@
     let reliquarySlotId = $derived(offer.reliquarySlotId)
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">Offer Citizenship</h3>
+<div>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">Offer Citizenship</h3>
 
     {#if !exilePlayerId}
         <p class="text-sm mb-1">Choose an Exile. They will be asked, and may refuse.</p>
@@ -24,8 +25,8 @@
             {#each offer.exiles as playerId (playerId)}
                 <button
                     disabled={busy}
-                    class="rounded border border-amber-500/40 bg-stone-800/60
-                           hover:border-amber-300 px-2 py-1 text-sm text-left"
+                    class="rounded border border-oath-frame bg-oath-surface-raised
+                           hover:border-oath-accent px-2 py-1 text-sm text-left"
                     onclick={() => offer.chooseExile(playerId)}
                 >
                     {gameSession.getPlayerName(playerId)}{playerId === me?.id ? ' (yourself)' : ''}
@@ -45,7 +46,7 @@
                     ? { key: space.slotId, cardId: known, label: cardName(known) }
                     : {
                           key: space.slotId,
-                          backKind: CardKind.Relic,
+                          back: CardKind.Relic,
                           label: `Facedown relic on ${reliquaryLabel(space.slotId)}`
                       }
             })}
@@ -62,10 +63,11 @@
         </p>
 
         <div class="mb-2 grid grid-cols-2 gap-2 text-xs">
-            <div class="rounded border border-stone-700 px-2 py-1.5">
-                <div class="text-stone-400 mb-1">You also give</div>
+            <div class="border-t border-oath-divider pt-1.5">
+                <div class="text-oath-text-muted mb-1">You also give</div>
                 <label class="block mb-1">
-                    Favor {offer.offerTerms.givenFavor} of {held.offerer.favor}
+                    <TokenText text="favor" />
+                    {offer.offerTerms.givenFavor} of {held.offerer.favor}
                     <input
                         disabled={busy}
                         type="range"
@@ -77,7 +79,8 @@
                     />
                 </label>
                 <label class="block">
-                    Secrets {offer.offerTerms.givenSecrets} of {held.offerer.secrets}
+                    <TokenText text="secrets" />
+                    {offer.offerTerms.givenSecrets} of {held.offerer.secrets}
                     <input
                         disabled={busy}
                         type="range"
@@ -118,10 +121,11 @@
                     </label>
                 {/each}
             </div>
-            <div class="rounded border border-stone-700 px-2 py-1.5">
-                <div class="text-stone-400 mb-1">They give</div>
+            <div class="border-t border-oath-divider pt-1.5">
+                <div class="text-oath-text-muted mb-1">They give</div>
                 <label class="block mb-1">
-                    Favor {offer.offerTerms.askedFavor} of {held.exile.favor}
+                    <TokenText text="favor" />
+                    {offer.offerTerms.askedFavor} of {held.exile.favor}
                     <input
                         disabled={busy}
                         type="range"
@@ -133,7 +137,8 @@
                     />
                 </label>
                 <label class="block">
-                    Secrets {offer.offerTerms.askedSecrets} of {held.exile.secrets}
+                    <TokenText text="secrets" />
+                    {offer.offerTerms.askedSecrets} of {held.exile.secrets}
                     <input
                         disabled={busy}
                         type="range"
@@ -177,12 +182,14 @@
         </div>
 
         {#if offer.blockedBecause}
-            <p class="mb-2 text-[11px] text-rose-300">{offer.blockedBecause}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={offer.blockedBecause ?? ''} />
+            </p>
         {/if}
 
         <div class="flex gap-2">
             <button
-                class="grow rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                        px-2 py-1.5 text-sm font-semibold"
                 disabled={busy || !!offer.blockedBecause}
                 onclick={() => offer.offer()}
@@ -191,7 +198,7 @@
             </button>
             <button
                 disabled={busy}
-                class="rounded bg-stone-700 hover:bg-stone-600 px-2 py-1.5 text-sm"
+                class="rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1.5 text-sm"
                 onclick={() => gameSession.back()}
             >
                 Back

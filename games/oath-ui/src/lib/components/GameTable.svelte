@@ -4,8 +4,8 @@
         ScalingWrapper,
         HistoryControls,
         DefaultTabs,
-        DefaultTableLayout,
         GameChat,
+        DefaultTableLayout,
         GameSession
     } from '@tabletop/frontend-components'
 
@@ -17,6 +17,7 @@
     import Board from '$lib/components/Board.svelte'
     import CardPreviewLayer from '$lib/components/CardPreviewLayer.svelte'
     import SeatDetailLayer from '$lib/components/SeatDetailLayer.svelte'
+    import GoalsLayer from '$lib/components/GoalsLayer.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
     import { MachineState } from '@tabletop/oath'
 
@@ -31,27 +32,17 @@
 
 <div class="oath-table">
     <DefaultTableLayout>
-        <!-- The shared phone controls default to light icons; Oath's side panel is light. -->
-        {#snippet mobileControlsContent()}
-            <HistoryControls
-                borderClass="border-b-2 border-stone-400"
-                bgClass="bg-transparent"
-                enabledColor="text-stone-800"
-                disabledColor="text-stone-400"
-            />
-        {/snippet}
         {#snippet sideContent()}
             <div class="max-sm:hidden">
                 <HistoryControls
-                    borderClass="border-b-2 border-stone-400"
-                    bgClass="bg-transparent"
-                    enabledColor="text-stone-800"
-                    disabledColor="text-stone-400"
+                    enabledColor="text-oath-heading"
+                    disabledColor="text-oath-text-muted/40"
+                    borderClass="border-b border-oath-divider"
                 />
             </div>
             <DefaultTabs
-                activeTabClass="py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-black font-semibold"
-                inactiveTabClass="text-black py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700"
+                activeTabClass="py-1 px-3 bg-oath-accent-soft border-2 border-oath-frame rounded-lg text-oath-text font-semibold"
+                inactiveTabClass="py-1 px-3 border-2 border-transparent rounded-lg text-oath-text-muted hover:text-oath-text hover:border-oath-frame"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />
@@ -60,13 +51,15 @@
                     <History />
                 {/snippet}
                 {#snippet chat()}
-                    <!-- The shared chat defaults to light text; Oath's side panel is light. -->
                     <GameChat
-                        messageTextColor="text-stone-800"
-                        composerTextColor="text-stone-800"
-                        timeColor="text-stone-500"
-                        messageHoverColor="hover:bg-stone-200"
-                        inputBgColor="bg-stone-100"
+                        timeColor="text-oath-text-muted"
+                        messageTextColor="text-oath-text"
+                        composerTextColor="text-oath-text"
+                        messageHoverColor="hover:bg-oath-divider"
+                        bgColor="bg-oath-surface"
+                        inputBgColor="bg-oath-surface-raised"
+                        inputBorderColor="border-oath-divider"
+                        borderColor="border-oath-frame"
                     />
                 {/snippet}
             </DefaultTabs>
@@ -102,6 +95,7 @@
          `ScalingWrapper`, a scaled panel) would be the containing block for these
          fixed layers and scale or clip them with it. -->
     <SeatDetailLayer />
+    <GoalsLayer />
     <CardPreviewLayer />
 </div>
 

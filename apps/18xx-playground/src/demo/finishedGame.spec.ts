@@ -3,9 +3,11 @@ import { expect, it } from 'vitest'
 import { historyOperatingOrder } from '../../../../libs/18xx-ui/src/lib/table/historyOperatingOrder.js'
 import { historyGroups } from '../../../../libs/18xx-ui/src/lib/table/historyGroups.js'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
+import { historyCompanyChanges } from '../../../../libs/18xx-ui/src/lib/table/historyCompanyChanges.js'
 import { shouldContinueHistoryStep } from '../../../../libs/18xx-ui/src/lib/table/historyNavigation.js'
 import { historyRounds } from '../../../../libs/18xx-ui/src/lib/table/historyRounds.js'
-import { finishedGame } from './finishedGame.js'
+import { finishedGame, replayFinishedGame } from './finishedGame.js'
+import { playgroundTitle } from '../titles.js'
 import { reorderPendingOperatingCompanies, isRunTrains, isDistributeEarnings } from '@tabletop/18xx'
 import { ActionSource, assertExists } from '@tabletop/common'
 
@@ -189,3 +191,82 @@ it('replays the finished 1889 game to its bank-break ending and back', async () 
         restored = engine.applyProcessedAction({ game, state: restored, action })
     expect(restored).toEqual(state)
 }, 60000)
+
+it('describes 1830’s awards and the B&O closure in the finished game’s history', async () => {
+    const { state, actions } = await finishedGame('local-user', 'Finished game', '1830')
+    const changes = historyCompanyChanges(actions, state)
+    const describe = (action: (typeof actions)[number]) => {
+        const description = historyDescription(
+            action,
+            state,
+            undefined,
+            undefined,
+            changes.get(action.id)
+        )
+        return [description.text, description.detail].join(' | ')
+    }
+    const lines = actions.map(describe)
+    expect(lines.some((line) => /CA.*with 1 PRR/.test(line))).toBe(true)
+    expect(lines.some((line) => /BOP.*with the BO president’s certificate/.test(line))).toBe(true)
+    const firstBaltimoreTrain = actions.find(
+        (action) => action.type === 'BuyTrain' && Reflect.get(action, 'companyId') === 'BO'
+    )
+    assertExists(firstBaltimoreTrain, 'B&O buys a train')
+    expect(describe(firstBaltimoreTrain)).toContain('BOP closed')
+    const homeChoice = {
+        id: 'home',
+        gameId: 'game',
+        source: ActionSource.User,
+        playerId: state.players[0].playerId,
+        type: 'ChooseHomeStation',
+        companyId: 'ERIE',
+        locationId: 'E11',
+        nodeId: 'city-1'
+    }
+    expect(historyDescription(homeChoice, state).text).toBe('Home station at E11')
+}, 120000)
+
+it('replays the finished 1830 game to its bank-break ending and back', async () => {
+    const { game, state, initialState, actions, engine } = await finishedGame(
+        'local-user',
+        'Finished game',
+        '1830'
+    )
+    expect(state.machineState).toBe('GameOver')
+    expect(
+        Object.fromEntries(state.finalWealth?.map(({ playerId, total }) => [playerId, total]) ?? [])
+    ).toEqual({ '15698': 12025, '13430': 13048, '15688': 12109 })
+    expect(state.winningPlayerIds).toEqual(['13430'])
+    for (const action of actions) expect(historyDescription(action, state).text).toBeTruthy()
+    let restored = state
+    for (const action of [...actions].reverse())
+        restored = engine.undoProcessedAction({ state: restored, action })
+    expect(restored).toEqual(initialState)
+    for (const action of actions)
+        restored = engine.applyProcessedAction({ game, state: restored, action })
+    expect(restored).toEqual(state)
+}, 120000)
+
+it.each([
+    ['26855', { '82': 2127, '117': 310, '330': 2212, '1627': 1831 }],
+    ['29133', { '1668': 416, '4631': 1477, '4639': 951, '4836': 887 }]
+] as const)(
+    'replays recorded 1830 game %s to its bankruptcy',
+    async (id, wealth) => {
+        const fixture = (await import(`./fixtures/1830-bankruptcy-${id}.json`)).default
+        const { state } = await replayFinishedGame(
+            playgroundTitle('1830'),
+            fixture,
+            'local-user',
+            'Recorded game'
+        )
+        expect(state.machineState).toBe('GameOver')
+        expect(state.gameEnding?.reason).toBe('Bankruptcy')
+        expect(
+            Object.fromEntries(
+                state.finalWealth?.map(({ playerId, total }) => [playerId, total]) ?? []
+            )
+        ).toEqual(wealth)
+    },
+    120000
+)

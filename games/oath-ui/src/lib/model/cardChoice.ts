@@ -11,13 +11,10 @@ import { cardName } from './names.js'
  * One option of a card-valued choice: a card's face, or a back where the chooser may not see it
  * (R-9.4). `key` is what the panel's draft stores.
  */
-export type CardChoice = {
-    key: string
-    cardId?: string
-    backKind?: CardKind
-    label: string
-    caption?: string
-}
+export type CardChoice = { key: string; label: string; caption?: string } & (
+    | { cardId: string; back?: undefined }
+    | { cardId?: undefined; back: CardKind }
+)
 
 /** Cards named by id, each its own key. */
 export function cardChoices(cardIds: readonly string[]): CardChoice[] {
@@ -54,6 +51,7 @@ export type CardResolvers = {
     faceupSiteCardAt(siteId: string): string | undefined
     relicSlotLabel(slotId: string): string
     facedownAdviserLabel(playerId: string, index: number): string
+    facedownAdviserBack(playerId: string, index: number): CardKind
     siteLabel(siteId: string): string
     warbandOwnerName(owner: WarbandOwner): string
 }
@@ -75,12 +73,12 @@ export function powerChoiceCard(
             const known = resolve.knownRelicAt(option.slotId)
             return known
                 ? { key, cardId: known, label: cardName(known) }
-                : { key, backKind: CardKind.Relic, label: resolve.relicSlotLabel(option.slotId) }
+                : { key, back: CardKind.Relic, label: resolve.relicSlotLabel(option.slotId) }
         }
         case PowerChoiceKind.FacedownAdviser:
             return {
                 key,
-                backKind: CardKind.Denizen,
+                back: resolve.facedownAdviserBack(option.playerId, option.index),
                 label: resolve.facedownAdviserLabel(option.playerId, option.index)
             }
         case PowerChoiceKind.Warbands: {
@@ -97,7 +95,7 @@ export function powerChoiceCard(
                   }
                 : {
                       key,
-                      backKind: CardKind.Site,
+                      back: CardKind.Site,
                       label: `${caption} at ${resolve.siteLabel(at.siteId)}`,
                       caption
                   }

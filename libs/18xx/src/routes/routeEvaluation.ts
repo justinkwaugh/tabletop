@@ -76,6 +76,8 @@ export class RouteEvaluation {
             )
                 return { reason: 'The route cannot pass through a blocked city or offboard.' }
         }
+        const repeatedGroup = this.repeatedStopGroup(trace)
+        if (repeatedGroup) return { reason: `A route may visit ${repeatedGroup} only once.` }
         const distance = this.distance(definition, trace)
         if (definition.distance.maximum !== 'unlimited' && distance > definition.distance.maximum)
             return { reason: `The route exceeds the ${definition.name} train’s distance limit.` }
@@ -152,6 +154,12 @@ export class RouteEvaluation {
                 revenue: results.reduce((sum, route) => sum + route.revenue, 0)
             }
         }
+    }
+    private repeatedStopGroup(trace: RouteTrace): string | undefined {
+        const groups = trace.visits.flatMap(
+            (visit) => this.rules.map.location(visit.locationId).stopGroup ?? []
+        )
+        return groups.find((group, index) => groups.indexOf(group) !== index)
     }
     private distance(train: TrainDefinition, trace: RouteTrace): number {
         if (train.distance.measure === 'hex-edges') return trace.crossings

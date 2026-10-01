@@ -19,7 +19,7 @@ export function cardImageKeys(): string[] {
 // which is what `state.topCardBackType` publishes.
 const backsByKind = indexByName(backFiles)
 
-export function cardBack(kind: CardKind = CardKind.Denizen): string {
+export function cardBack(kind: CardKind): string {
     return imageNamed(backsByKind, kind)
 }
 

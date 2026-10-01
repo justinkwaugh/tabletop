@@ -70,6 +70,7 @@
                 scene={preview.scene}
                 tokens={preview.tokens}
                 reservations={preview.reservations}
+                stationAppearances={preview.stationAppearances}
                 routes={preview.routes}
                 selection={preview.selection}
                 maskUnavailableLocations={preview.kind === 'run'}

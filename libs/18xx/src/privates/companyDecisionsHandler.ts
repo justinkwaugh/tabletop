@@ -1,7 +1,6 @@
 import { TrackConstruction, type TrackRules } from '../construction/trackConstruction.js'
 import { purchaseChoices } from '../transfers/purchaseChoices.js'
 import {
-    assert,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext,
@@ -27,7 +26,12 @@ import {
 } from './layPrivateTile.js'
 import { hasLegalPrivateTrackUse } from './privatePowerRequest.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
-import { pendingCompanyDecision, type CompanyDecisionState } from './companyDecision.js'
+import { HydratedDeclinePrivateStation, HydratedPlacePrivateStation } from './privateStation.js'
+import {
+    pendingCompanyDecision,
+    pendingDecisionPlayerId,
+    type CompanyDecisionState
+} from './companyDecision.js'
 import type { PrivatePowerRules } from './privatePowers.js'
 export function isCompanyDecisionAction(
     action: HydratedAction
@@ -39,6 +43,8 @@ export function isCompanyDecisionAction(
     | HydratedLayPrivateTile
     | HydratedLayPrivateTileOutOfTurn
     | HydratedDeclinePrivateTile
+    | HydratedPlacePrivateStation
+    | HydratedDeclinePrivateStation
     | HydratedBuyPrivateTrain {
     return (
         action instanceof HydratedOfferPurchase ||
@@ -48,6 +54,8 @@ export function isCompanyDecisionAction(
         action instanceof HydratedLayPrivateTile ||
         action instanceof HydratedLayPrivateTileOutOfTurn ||
         action instanceof HydratedDeclinePrivateTile ||
+        action instanceof HydratedPlacePrivateStation ||
+        action instanceof HydratedDeclinePrivateStation ||
         action instanceof HydratedBuyPrivateTrain
     )
 }
@@ -94,6 +102,10 @@ export class CompanyDecisionsHandler<
             return state.privateTrackLay.playerId === playerId
                 ? ['LayPrivateTile', 'DeclinePrivateTile']
                 : []
+        if (state.privateStation)
+            return state.privateStation.playerId === playerId
+                ? ['PlacePrivateStation', 'DeclinePrivateStation']
+                : []
         const actions = this.handler.validActionsForPlayer(playerId, context)
         const companyId = this.transfers.operatingCompany(state)
         if (companyId && controllingOwner(state, companyId)?.playerId === playerId) {
@@ -135,12 +147,8 @@ export class CompanyDecisionsHandler<
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
-        const playerId =
-            state.purchaseOffer?.sellerPlayerId ??
-            state.privateTrackLay?.playerId ??
-            state.trackConsent?.details.consentPlayerId
-        if (pendingCompanyDecision(state)) {
-            assert(playerId, 'A pending decision requires its player')
+        const playerId = pendingDecisionPlayerId(state)
+        if (playerId !== undefined) {
             state.activePlayerIds = [playerId]
             return
         }

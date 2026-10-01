@@ -11,6 +11,7 @@ import {
     StationPlacement,
     StationPlacementDetails,
     applyStationPlacement,
+    releaseHomeReservations,
     type StationPlacementState,
     type StationRules
 } from './stationPlacement.js'
@@ -44,7 +45,10 @@ export class HydratedPlaceHomeStations
         assert(this.source === ActionSource.System, 'Home stations require a system action')
         const placements = new StationPlacement(state, this.#rules).homePlacements()
         assert(placements.length, 'No home stations are pending')
-        for (const placement of placements) applyStationPlacement(state, placement)
+        for (const placement of placements) {
+            applyStationPlacement(state, placement)
+            releaseHomeReservations(state, placement.companyId, [placement.position.locationId])
+        }
         this.metadata = placements
     }
 }

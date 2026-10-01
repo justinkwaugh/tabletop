@@ -13,15 +13,15 @@
 </script>
 
 <div
-    class="mb-2 rounded-lg bg-stone-900/80 border border-amber-500/40 px-3 py-3
-           text-center text-stone-100"
+    class="mb-2 rounded-lg bg-oath-surface border border-oath-frame px-3 py-3
+           text-center text-oath-text"
 >
-    <h1 class="text-2xl tracking-[0.2em] uppercase text-amber-200 mb-1">The game is over</h1>
+    <h1 class="text-2xl tracking-[0.2em] uppercase text-oath-heading mb-1">The game is over</h1>
 
     <p class="text-lg">
         <PlayerName playerId={winner} /> won
         {#if wonBy}
-            <span class="text-stone-300">{ENDINGS[wonBy]}</span>
+            <span class="text-oath-text-muted">{ENDINGS[wonBy]}</span>
         {/if}
     </p>
 </div>

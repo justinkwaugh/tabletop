@@ -23,7 +23,11 @@ beforeAll(async () => {
     const bytes = await readFile(new URL('../esm/solver.wasm', import.meta.url))
     router = await Autorouter.create(new Uint8Array(bytes).buffer)
 })
-function position(faces: TileFace[], distances: TrainDistance[]) {
+function position(
+    faces: TileFace[],
+    distances: TrainDistance[],
+    stopGroups: Readonly<Record<number, string>> = {}
+) {
     const tileSet = new TileSet({ id: 'empty', entries: [] }, [])
     const depot = new TrainDepot({
         id: 'test',
@@ -44,7 +48,8 @@ function position(faces: TileFace[], distances: TrainDistance[]) {
                 id: String(r),
                 coordinates: { q: 0, r },
                 preprintedTile,
-                buildable: true
+                buildable: true,
+                ...(stopGroups[r] ? { stopGroup: stopGroups[r] } : {})
             }))
         }),
         tileSet,
@@ -207,4 +212,18 @@ it('matches exhaustive route enumeration for mixed distance measures on a connec
     expect(router.solve(state, rules, 'A').result.revenue).toBe(
         exhaustiveRevenue(state, rules, 'A')
     )
+})
+it('visits one location of a stop group per route', () => {
+    const faces = [
+        city('yellow', [0], 20, 1),
+        town('yellow', [[3, 0]], 10),
+        town('yellow', [[3]], 40)
+    ]
+    const distances: TrainDistance[] = [{ measure: 'revenue-centers', maximum: 3 }]
+    const ungrouped = position(faces, distances)
+    expect(router.solve(ungrouped.state, ungrouped.rules, 'A').result.revenue).toBe(70)
+    const grouped = position(faces, distances, { 1: 'Canada', 2: 'Canada' })
+    const result = router.solve(grouped.state, grouped.rules, 'A')
+    expect(result.exhaustive).toBe(true)
+    expect(result.result.revenue).toBe(30)
 })

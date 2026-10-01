@@ -5,7 +5,7 @@ import { goalCardPreview, reliquaryTraitPreview } from './seatPreviews.js'
 describe('seat card previews go through the shared enlarged card', () => {
     it('an uncovered Reliquary space previews its trait, labelled as the Chancellor’s', () => {
         const preview = reliquaryTraitPreview(1, 'Reliquary space 2')
-        expect(preview.faceDown).toBe(false)
+        expect(preview.back).toBeUndefined()
         expect(preview.imageSrc).toContain('trait.decadent')
         expect(preview.label).toBe('Reliquary space 2, uncovered: the Chancellor holds this trait')
     })

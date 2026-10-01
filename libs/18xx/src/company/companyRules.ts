@@ -18,4 +18,9 @@ export interface CompanyRules {
     flotationPayments(state: FormationState, companyId: string): CashPayment[] | undefined
     onStart?(state: FormationState, details: CompanyStartDetails): void
     onFloat?(state: FormationState & TrainState, companyId: string): CertificateExchange[] | void
+    /**
+     * Opening awards may give a president's certificate before its company has a par; the
+     * auction waits while the new owner sets it.
+     */
+    parAfterAward?: true
 }

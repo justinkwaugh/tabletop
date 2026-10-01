@@ -118,6 +118,20 @@ Changing appearance preserves the current selection. The development host's
 Show sample tile, token & route switch replaces its displayed inventory and overlays; choosing
 a different map replaces the whole scene. Neither operation is a game Action.
 
+A company token on the map fills its city slot's circle.
+A reserved city slot without a token shows the reserving company's token in grayscale
+at reduced opacity, titled "Reserved for [company]"; without a company appearance it
+falls back to the company id as small text. Track into an offboard ends in a short
+filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
+own. A marker whose art is a local line shows its label beside two linked circles near
+the foot of the hex while the hex has no tile, drawn above track with a halo in the
+hex's colour; 1830 marks its private-reserved hexes this way.
+
+A map view's joined edges draw no outline, in the hex artwork or the map's outline
+layer, so neighbouring hexes read as one area (1830's Canada and Gulf). A tile layout
+may hide a revenue value that another hex of the area already shows. Each hex stays
+separately selectable.
+
 ### Coexistence and precedence
 
 Slot and stop hit targets take precedence over tracks beneath them; track targets
@@ -325,6 +339,7 @@ the ordinary ownership ceiling and what the player could buy by spending
 current cash on the preferred pool while it holds shares, or otherwise on the
 cheapest other pool, at each share's own price, and a "then pass" switch. Pool and
 goal segments are sliding toggles whose thumb sizes to the selected segment.
+The then-pass switch shares the board Auto zoom switch's track, green when on.
 The tray's corners round fully on one line and soften when it wraps. A green Enable follows the tray and
 stays disabled until a company is chosen.
 With an instruction declared the toggle
@@ -590,7 +605,9 @@ Selections hide during updatingVisibleState and History View and clear in before
 Committed offers, seller tile choices, and track-permission requests remain in
 Game State across reload. Their entitled player decides before ordinary play resumes.
 Other stock, construction, route, and train controls remain unavailable meanwhile.
-Same-player purchases settle with one explicit confirmation. Another player's
+Same-player purchases settle with one explicit confirmation. When a title lets owners
+fund a train offer the treasury cannot cover, the offer form states each contribution,
+"[owner] pays [amount] toward it", while the offer is valid. Another player's
 private lay is selectable only through explicit Local Hotseat input; Hosted clients
 remain limited to their associated player. All Actions are constructed by the
 Game Session. Tile previews reuse the shared tile renderer, and committed changes
@@ -601,6 +618,20 @@ Between operating companies, an eligible private owner may act or Continue opera
 round. Continuing declines only that window, retaining the unused power. The choice
 and resulting automatic company start form a normal Undo history step. Automatic
 private income and required home stations resolve before this optional window.
+
+A private lay that offers a station (a title's `stationPrivateIds`, such as 1830's D&H)
+leaves a committed private station decision in Game State. While it is pending the
+track picker gives up map clicks, the placement mask and focus show the laid hex, and
+the action panel prompts "[company]: click the highlighted city for [private]'s free
+station, or Decline". A click anywhere on a one-city tile, or on an offered city of a
+multi-city tile, submits PlacePrivateStation directly; Decline submits
+DeclinePrivateStation. There is no confirmation stage. A placed station shows the
+station step as Placed and the step completes automatically.
+
+A pending par after an opening award (a title's `parAfterAward`, such as 1830's B&O)
+replaces the auction panel with "[player] sets [company]'s par." Only the entitled
+player sees the par prices, as buttons in market colours. A click submits ParCompany
+directly; the auction then completes and the first stock round begins.
 
 ### Compulsory train funding
 
@@ -636,7 +667,7 @@ controls. Browser coverage checks TOP and 1889 at phone, breakpoint and desktop
 widths, including resizing back to mobile.
 The operating company in the phase header uses title-defined initials below that
 same breakpoint and its full name at wider sizes; its token remains visible.
-In the paned layout the header centers the round / phase / company group and
+In the paned layout the header centers the round / company group and
 appends the active player names, or History, after a further separator; Undo and
 the artwork toggle stay at the right edge. When the centered group cannot fit
 with symmetric margins, the round label compacts first and the group then yields
@@ -690,11 +721,16 @@ including market hover and move animations. A panel's box may overlap hexes in i
 empty corners; only its drawn content takes the pointer, so those hexes stay
 selectable. Shikoku 1889 draws its market at the upper left with the map nested
 into the market's empty lower-right staircase, and the depot to the market's right,
-top-aligned with it, above the island's northeast.
+top-aligned with it, above the island's northeast. 1830 draws its market at the upper
+left with the map nested down and left into the market's empty lower-right
+staircase, and the depot to the market's right, top-aligned with it, above the
+map's northeast.
 
-In the paned layout Board is an optional tab added from the pane menu; Map, Market
-and Depot are unchanged. When the paned workspace opens with Board and Map in the
-same pane and Map still the initial selection, Board is selected instead. Below the paned breakpoint the Map tab shows the board
+In the paned layout Board is an optional tab, so a saved arrangement without it is
+left unchanged and can add it from the pane menu. A new arrangement for a title with
+board areas places Board before Map in the map pane. When the paned workspace opens
+with Board and Map in the same pane and Map still the initial selection, Board is
+selected instead. Below the paned breakpoint the Map tab shows the board
 instead, labelled Board and selected by default, and Market is not offered.
 
 Map framing (placement choices, route previews, company starts, hex, company and
@@ -711,6 +747,18 @@ Choosing one animates the view to fit the whole board or that area and marks it
 selected; choosing the selected one again animates back to the view captured
 before the first focus, even after switching between targets. A manual pan or
 zoom clears the selection and forgets that view. Focus never changes Game State.
+
+An Auto zoom switch on the board, labelled Auto below the phone breakpoint, sits at
+the top right of the paned Board tab's overlay and at the right end of the strip
+above the board below the paned breakpoint. Its on track uses the table's positive
+green. Turning it off stops the board's map framing for placement choices, route
+previews and their restores, company starts, and history steps, including restores
+captured before it was turned off. The Map tab keeps framing when the board is a
+separate tab. Explicit hex, company and route focus, board focus and artwork fitting
+still move the board. The boardAutoZoom family preference persists the choice
+across reloads and 18xx titles and defaults to on. TOP and 1889 need updated Logic
+and matching UI Artifacts because the backend validates the added preference key
+against the published Logic schema.
 Market cells share single-width borders with values at the upper left. In the
 dark table, neutral (white) cells use the raised table surface and table borders,
 while colored cells keep each market color's hue at dark-surface lightness,
@@ -1058,9 +1106,10 @@ when the preview disappears. Empty route sets do not move the camera. Returning
 to RunningTrains through Undo recalculates and focuses the new preview.
 
 The turn header pairs the current operating company's name with its title-owned
-token. The phase is a button opening a native modal phase chart with a full-screen
-backdrop. A faint dotted underline, like the spreadsheet sort headers',
-runs beneath both the Phase label and its badge and turns solid on hover. Its independent phase and train tables use canonical title data and
+token. The header does not show the phase; the game-information strip of phase,
+train limit and depot is a single button opening a native modal phase chart with a
+full-screen backdrop, and hovering anywhere on it highlights the whole strip. The
+chart's independent phase and train tables use canonical title data and
 highlight the current visible phase, including history positions. Special rust
 timing is explicit in the chart notes. Opening/closing is local presentation with
 no Action or Undo step. The native dialog owns focus containment, Escape,
@@ -1072,7 +1121,7 @@ spacing makes room for those notes beside their phase; delayed rusting remains
 an explicitly marked train footnote. General rules that do not belong to a
 particular phase remain beneath the chart.
 
-The clickable header phase uses the same colored badge and contrasting text as
+The game-information phase uses the same colored badge and contrasting text as
 its phase-chart entry, following the title's train-phase palette rather than its
 available tile colors.
 
@@ -1181,6 +1230,8 @@ Selecting a company to start focuses its home locations using the map’s contex
 Ordinary station placement automatically selects the cheapest available token with a legal placement, retaining supply order for equal costs. Titles whose token identities introduce a meaningful choice can override requiresStationTokenChoice to retain manual selection. Token selection is derived and marked auto; only the location choice is a manual stage. Undo skips the automatic token selection, and Finish stations remains available until a location is selected. Canonical token identity, costs and placement validation are unchanged.
 
 Station placement masks map hexes without legal placements. Clicking anywhere on a valid single-city hex submits PlaceStation directly; interchangeable slots use the first legal slot. Hexes containing multiple separate cities require a city/slot click, even when only one city is eligible. No location dropdown or confirmation stage is shown; committed placement is undone through action history.
+
+A pending home choice (a title's homeChoice hook, before the company's operating turn) uses the same placement mask and focus with the offered hexes as the legal set. The action panel only prompts "[company]: choose a highlighted city on the map for its home station." A city or slot click on an offered city submits ChooseHomeStation directly, as does any click on a hex with only one offered city; other clicks do nothing. The home choice takes precedence over station placement and inspection while pending. There is no confirmation stage; a committed choice is undone through action history.
 
 Reaching the title’s ordinary station-placement limit produces a canonical system FinishStations action in the placement cascade. The UI advances without an extra click. Titles permitting additional placements retain the placement step. Undo reverses the placement and its automatic completion together.
 
@@ -1348,6 +1399,19 @@ and either turn-button label use the same rule. The strip remains outside the
 scrolling action choices. It sticks to the top of its scroll container above
 the action content whenever that area scrolls vertically.
 
+Titles with private sales between players add a Privates category while the active
+player may offer for another player's private. Its panel lists those privates with
+their owners, a price field starting at the private's value within the title's price
+bounds, and an Offer button that
+submits OfferPrivatePurchase directly. While the offer awaits its answer, ordinary
+stock choices and the strip's pills are withheld and the action panel shows the
+shared purchase response, "[buyer] offers [price] for [private]" with Accept and
+Decline for the owner. The answer returns the panel to the buyer's turn.
+
+After a turn's purchase, Buy remains available only while the title allows a
+further share (such as several brown-zone shares of one company); it then lists
+only those shares.
+
 The Buy panel centers its contents vertically in available pane space and keeps
 share choices horizontally centered. When content exceeds the pane height, the
 action body scrolls with the beginning of the content still reachable. In the
@@ -1385,9 +1449,9 @@ Switching the buyer recomputes legal options from the session.
 
 Sidebar game information pairs train limit with depot availability. Each currently
 available depot type uses the title's train badge and canonical remaining count
-(infinity for unlimited supply); sold-out types are omitted. Clicking Depot opens
-a depot-only roster with live remaining counts and the same current-row highlight
-as the phase chart. All available types are highlighted; exhausted rows are muted.
+(infinity for unlimited supply); sold-out types are omitted. Clicking anywhere on
+the strip, Depot included, opens the full phase chart, whose train roster shows live
+remaining counts. All available types are highlighted; exhausted rows are muted.
 Title-specific company roles share the compact information row; TOP labels them
 Main and Short. Additional title information such as tranches follows below.
 
@@ -1516,7 +1580,7 @@ The zoom wrapper does not permanently promote its content with `will-change: tra
 
 The track picker keeps its entire overlay in a persistent compositing layer above the transformed map, including tile choices, placement cost, and accept/cancel controls. Its stacking order must remain stable during and after entry animations, dragging, and fullscreen transitions. TOP and 1889 UI artifacts need republication to adopt this Safari rendering workaround; game logic and the host bridge are unchanged.
 
-In the non-pane layout, the phase and Undo header stays within the same column as the action panel and map. Phase and turn controls wrap when they cannot fit together, and long company/player names wrap within their group. Pane-layout header alignment is unchanged.
+In the non-pane layout, the round and Undo header stays within the same column as the action panel and map. Phase and turn controls wrap when they cannot fit together, and long company/player names wrap within their group. Pane-layout header alignment is unchanged.
 
 Wheel-event trackpad pinch (Ctrl-marked wheel events) uses a 0.006 zoom coefficient, independently of ordinary mouse-wheel zoom at 0.003. Touch-distance pinch and native Safari gesture scaling are unchanged. This internal shared-wrapper change requires republication of consuming UI artifacts to adopt it, without host-bridge changes.
 
@@ -1534,8 +1598,6 @@ Concession descriptions start by identifying the president’s certificate and
 the actual assigned company, then retain the closure conditions. This descriptive
 text lives in TOP’s private rules module; the icon metadata lives in its UI.
 No host-bridge member or gameplay rule changes.
-
-The round/phase header uses a 4px gap between the Phase label and its badge when both are visible. Mobile retains the badge alone.
 
 Operating-history footnotes wrap within the table’s available width and do not contribute intrinsic width; income and payout tables remain centered beneath the full-width controls strip.
 
@@ -1774,9 +1836,9 @@ limit without discarding tabs or existing dividers. Existing valid saved layouts
 win over the default when returning to pane mode. This needs updated TOP/1889 UI
 Artifacts only, with no host bridge or Logic schema change.
 
-The pane-mode history navigation and round/phase header share one bottom border
-across the workspace width. Game info keeps an eight-pixel inset around its
-phase/depot buttons so controls do not touch the pane divider.
+The pane-mode history navigation and round header share one bottom border
+across the workspace width. Game info keeps an eight-pixel inset inside its
+game-information button so its contents do not touch the pane divider.
 
 Player portfolio headers share the auction header’s 15% player-color tint in both
 compact and expanded views and both themes. Non-player portfolio headers retain

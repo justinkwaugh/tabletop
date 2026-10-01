@@ -28,7 +28,6 @@ import {
 } from '../data/worldDeck.js'
 import { siteRevealPrompt } from '../data/cardRegistry.js'
 import { bySuit } from '../data/typedData.js'
-import { PLAYTEST_DECK, PLAYTEST_SITES } from '../data/playtestDeck.js'
 import { visionsDrawnAfter } from '../data/visionsDrawnTrack.js'
 import { MAX_SUPPLY } from './rest.js'
 import { addWarbandsToSite, gainWarbandsToBoard, takeWarbandsFromBank } from './force.js'
@@ -112,10 +111,7 @@ export function buildInitialPublicState(
     }
 
     // R-1.1
-    const { map, siteCards } = dealFaceupSites(
-        context.random,
-        context.setupVariant === SetupVariant.Curated ? PLAYTEST_SITES : ALL_SITE_IDS
-    )
+    const { map, siteCards } = dealFaceupSites(context.random, ALL_SITE_IDS)
     state.map = map
     state.siteCards = siteCards
 
@@ -290,17 +286,12 @@ export function takeFavorFromSupply(state: HydratedOathGameState, amount: number
 /** R-1.1, R-1.17, R-1.18, R-1.21 — shuffled from the protected stream (R-9.4). */
 export function buildSetupVault(state: HydratedOathGameState, random: RandomFunction): OathVault {
     const faceup = new Set(Object.values(state.siteCards))
-    const pool = state.setupVariant === SetupVariant.Curated ? PLAYTEST_SITES : ALL_SITE_IDS
-    const remainingSites = pool.filter((id) => !faceup.has(id))
+    const remainingSites = ALL_SITE_IDS.filter((id) => !faceup.has(id))
 
     const vault = createOathVault(
         {
             // R-1.21
-            composeWorldDeck: (random) =>
-                composeFirstGameDeck(
-                    random,
-                    state.setupVariant === SetupVariant.Curated ? PLAYTEST_DECK : undefined
-                ),
+            composeWorldDeck: (random) => composeFirstGameDeck(random),
             // R-1.18 — less the Grand Scepter R-1.8 handed to the Chancellor.
             relicDeck: RELIC_DECK_IDS,
             siteDeck: remainingSites

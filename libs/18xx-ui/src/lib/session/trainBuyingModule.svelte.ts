@@ -4,6 +4,7 @@ import {
     OfferPurchase,
     TrainPurchase,
     evaluatePurchaseOffer,
+    fundingContributions,
     isBuyTrain,
     isDistributeEarnings,
     isOfferPurchase,
@@ -12,7 +13,8 @@ import {
     type EighteenXXState,
     type EighteenXXTitleRules,
     type PurchaseOfferRequest,
-    type TrainPurchaseRequest
+    type TrainPurchaseRequest,
+    isCompanyPurchaseOffer
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
@@ -66,6 +68,12 @@ export class TrainBuyingModule {
         const request = this.selection.purchase?.value
         return request ? this.evaluateOffer(request) : undefined
     })
+    companyContributions = $derived.by(() => {
+        const request = this.selection.purchase?.value
+        return request && this.companyEvaluation && !this.companyEvaluation.reason
+            ? fundingContributions(this.session.state, request, this.session.rules.transferRules)
+            : []
+    })
     depotSelection = $derived.by(() =>
         this.session.selectionsVisible && this.buying ? this.depotChoice.value('choice') : undefined
     )
@@ -111,7 +119,9 @@ export class TrainBuyingModule {
             const offer = action.metadata?.offer
             if (
                 action.metadata?.accepted &&
-                offer?.companyId === step.companyId &&
+                offer &&
+                isCompanyPurchaseOffer(offer) &&
+                offer.companyId === step.companyId &&
                 offer.asset.kind === 'train'
             ) {
                 assert(offer.seller.kind === 'company', 'Accepted train requires a company seller')

@@ -3,6 +3,8 @@
     import GameEnding from '../ending/GameEnding.svelte'
     import TrackBuilding from '../maps/TrackBuilding.svelte'
     import StationBuilding from '../maps/StationBuilding.svelte'
+    import HomeStationChoice from '../maps/HomeStationChoice.svelte'
+    import PrivateStationChoice from '../maps/PrivateStationChoice.svelte'
     import AutomaticRoutes from '../routes/AutomaticRoutes.svelte'
     import EarningsDistribution from '../earnings/EarningsDistribution.svelte'
     import StockRoundActions from './StockRoundActions.svelte'
@@ -37,6 +39,8 @@
     {#if !session.privateActions.selection && !session.privateActions.trackPowerSelection && gameState.purchaseOffer?.asset.kind !== 'private'}
         {#if gameState.machineState === 'StockRound'}
             <StockRoundActions {session} {poolName} />
+        {:else if session.stations.homeChoice}<HomeStationChoice {session} />
+        {:else if session.stations.privateStation}<PrivateStationChoice {session} />
         {:else if gameState.machineState === 'LayingTrack'}<TrackBuilding
                 {session}
                 showUndo={false}

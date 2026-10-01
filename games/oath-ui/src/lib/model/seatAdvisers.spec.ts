@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { HydratedLetPeek, LetPeek, LetPeekSubjectKind, PlayerStatus } from '@tabletop/oath'
+import { CardKind, HydratedLetPeek, LetPeek, LetPeekSubjectKind, PlayerStatus } from '@tabletop/oath'
 import { buildAction, testPlayer, testState } from '@tabletop/oath/testing'
 import { seatAdvisers } from './seatAdvisers.js'
 import { describeAction } from './actionDescription.js'
@@ -18,15 +18,21 @@ const seat = {
 
 describe('seat advisers', () => {
     it('names a faceup adviser to everyone', () => {
-        expect(seatAdvisers(seat, 'p2')[0]).toEqual({ key: WOLVES, cardId: WOLVES, faceUp: true, shownToMe: false })
+        expect(seatAdvisers(seat, 'p2')[0]).toEqual({ key: WOLVES, cardId: WOLVES, faceUp: true, back: CardKind.Denizen, shownToMe: false })
     })
 
     it('names a facedown adviser to its holder from the holder’s own list', () => {
-        expect(seatAdvisers(seat, 'p1')[1]).toEqual({ key: TENTS, cardId: TENTS, faceUp: false, shownToMe: false })
+        expect(seatAdvisers(seat, 'p1')[1]).toEqual({ key: TENTS, cardId: TENTS, faceUp: false, back: CardKind.Denizen, shownToMe: false })
     })
 
     it('draws a back for anyone else, even on a client that holds the whole state', () => {
-        expect(seatAdvisers(seat, 'p2')[1]).toEqual({ key: 'facedown-1', cardId: undefined, faceUp: false, shownToMe: false })
+        expect(seatAdvisers(seat, 'p2')[1]).toEqual({ key: 'facedown-1', cardId: undefined, faceUp: false, back: CardKind.Denizen, shownToMe: false })
+    })
+
+    it('draws a facedown Vision with the Vision back, as its row says (R-9.4)', () => {
+        const visionSeat = { playerId: 'p1', advisers: [{ faceUp: false, vision: true as const }], adviserIds: ['vision.conquest'] }
+        expect(seatAdvisers(visionSeat, 'p2')[0]).toEqual({ key: 'facedown-0', cardId: undefined, faceUp: false, back: CardKind.Vision, shownToMe: false })
+        expect(seatAdvisers(visionSeat, 'p1')[0]).toMatchObject({ cardId: 'vision.conquest', back: CardKind.Vision })
     })
 
     it('draws a back for a projection that omits the list', () => {
@@ -53,7 +59,7 @@ describe('a let-peek on a client holding the whole state', () => {
 
     it('a third seat, and a viewer with no seat, see a back', () => {
         const { holder } = shown()
-        expect(seatAdvisers(holder, 'p3')[0]).toEqual({ key: 'facedown-0', cardId: undefined, faceUp: false, shownToMe: false })
+        expect(seatAdvisers(holder, 'p3')[0]).toEqual({ key: 'facedown-0', cardId: undefined, faceUp: false, back: CardKind.Denizen, shownToMe: false })
         expect(seatAdvisers(holder, undefined)[0].cardId).toBeUndefined()
     })
 

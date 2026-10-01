@@ -15,6 +15,7 @@ import {
     rotateTileFace,
     StandardTileCatalog,
     TileCatalog,
+    TileEdges,
     tileEdgeDirection,
     tilePathsAtEndpoint,
     type TileDefinition,
@@ -23,8 +24,7 @@ import {
     type TileRotation
 } from '../index.js'
 
-const Edges: readonly TileEdge[] = [0, 1, 2, 3, 4, 5]
-const Rotations: readonly TileRotation[] = Edges
+const Rotations: readonly TileRotation[] = TileEdges
 
 describe('tile catalog identity', () => {
     it('preserves distinct same-number variants', () => {
@@ -240,7 +240,7 @@ describe('tile rotation and Common hex integration', () => {
     it.each(Rotations)(
         'rotates every edge by %i clockwise steps without changing node or path identity',
         (rotation) => {
-            for (const edge of Edges) {
+            for (const edge of TileEdges) {
                 expect(rotateTileEdge(edge, rotation)).toBe((edge + rotation) % 6)
             }
             for (const definition of StandardTileCatalog.entries()) {
@@ -259,7 +259,7 @@ describe('tile rotation and Common hex integration', () => {
                         )
                     )
                 }
-                const inverse = Edges[(6 - rotation) % 6]
+                const inverse = TileEdges[(6 - rotation) % 6]
                 expect(rotateTileFace(rotated, inverse)).toEqual(definition.face)
                 expect(parseTileFace(JSON.parse(JSON.stringify(rotated)))).toEqual(rotated)
             }
@@ -267,7 +267,7 @@ describe('tile rotation and Common hex integration', () => {
     )
 
     it('maps tile edges to Common directions for both orientations', () => {
-        expect(Edges.map((edge) => tileEdgeDirection(edge, HexOrientation.Flat))).toEqual([
+        expect(TileEdges.map((edge) => tileEdgeDirection(edge, HexOrientation.Flat))).toEqual([
             FlatHexDirection.South,
             FlatHexDirection.Southwest,
             FlatHexDirection.Northwest,
@@ -275,7 +275,7 @@ describe('tile rotation and Common hex integration', () => {
             FlatHexDirection.Northeast,
             FlatHexDirection.Southeast
         ])
-        expect(Edges.map((edge) => tileEdgeDirection(edge, HexOrientation.Pointy))).toEqual([
+        expect(TileEdges.map((edge) => tileEdgeDirection(edge, HexOrientation.Pointy))).toEqual([
             PointyHexDirection.Southwest,
             PointyHexDirection.West,
             PointyHexDirection.Northwest,
@@ -293,7 +293,7 @@ describe('tile rotation and Common hex integration', () => {
             const grid = new HexGrid({ hexDefinition })
             const center = createCoordinatedNode(origin)
             grid.setNode(center)
-            for (const edge of Edges) {
+            for (const edge of TileEdges) {
                 const direction = tileEdgeDirection(edge, orientation)
                 const coords = hexNeighborCoords(origin, orientation, direction)
                 const neighbor = createCoordinatedNode(coords)

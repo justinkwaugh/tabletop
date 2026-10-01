@@ -52,6 +52,42 @@ export function createCityTileFace(
     }
 }
 
+export type SeparateCity = {
+    edges: readonly TileEdge[]
+    revenue: number | TileRevenue
+    stationSlots: number
+}
+
+/** A face whose cities are separate stops, identified as ``city-0``, ``city-1`` and so on. */
+export function createSeparateCitiesTileFace(
+    color: string,
+    cities: readonly SeparateCity[],
+    labels: readonly string[] = []
+): TileFace {
+    return {
+        color,
+        nodes: cities.map((city, index) => ({
+            id: `city-${index}`,
+            kind: 'city',
+            stationSlots: city.stationSlots,
+            revenue:
+                typeof city.revenue === 'number'
+                    ? { kind: 'fixed', amount: city.revenue }
+                    : city.revenue
+        })),
+        paths: cities.flatMap((city, index) =>
+            city.edges.map((edge) => ({
+                id: `city-${index}-edge-${edge}`,
+                endpoints: [
+                    { kind: 'edge', edge },
+                    { kind: 'node', nodeId: `city-${index}` }
+                ]
+            }))
+        ),
+        labels
+    }
+}
+
 export function createOffboardTileFace(edges: readonly TileEdge[], revenue: TileRevenue): TileFace {
     return {
         color: 'red',

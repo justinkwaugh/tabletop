@@ -11,6 +11,11 @@ Measured on the deployed game's latest State at action 181: 52,360 bytes as comp
 (the exported file is 87 KB pretty-printed). Definition data restated in every State is
 about 45% of it.
 
+Additive optional fields that the deployed game never writes are outside this freeze:
+its states are unchanged, so loaded clients keep accepting them, and the new schema
+accepts a superset. 1830's slice 3 added two (`stockTurnPurchases`, and a player-buyer
+variant of `purchaseOffer`) and regenerated the TOP and 1889 contract snapshots.
+
 ## 1. Certificates carry their definition (about 12 KB)
 
 `certificates` is 22,985 bytes for 134 records. Of each record only `owner`, `poolId`
@@ -53,6 +58,18 @@ the market travels in the opening position only because of this.
 Company names and pool names are definition data; `trainInventory.trains` lists the
 depot's unbought trains as records with `status: 'depot'`. Small; fold into 1–3 if the
 same migration is being written, otherwise leave.
+
+## 5. One buyer field for purchase offers
+
+Since 1830's private sales between players, `purchaseOffer` is a union: a company's
+offer names its buyer with `companyId`, and a player's offer is told apart by that
+field's absence (`isCompanyPurchaseOffer`).
+
+Change: replace `companyId` with `buyer: Owner` in both, so one offer shape covers
+either buyer and the presence check goes. The `OfferPurchase` action and the offer
+recorded in `OfferPurchase` and `RespondToPurchaseOffer` metadata change with it, as do
+the stored deployed-game actions; migrate them with the State or keep reading the old
+field during hydration. Do this with whichever migration is open.
 
 ## Not a change
 

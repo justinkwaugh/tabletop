@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import type { TravelWay } from '$lib/model/actionOffers.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
@@ -18,14 +19,14 @@
 </script>
 
 <div class="flex flex-col gap-1">
-    <p class="text-xs text-stone-400">How do you pay for this Travel?</p>
+    <p class="text-xs text-oath-text-muted">How do you pay for this Travel?</p>
     {#each gameSession.travelChoices as way, index (index)}
         <button
-            class="rounded border border-amber-500/40 bg-stone-800/60 hover:border-amber-300 px-2 py-1 text-sm text-left first-letter:uppercase"
+            class="rounded border border-oath-frame bg-oath-surface-raised hover:border-oath-accent px-2 py-1 text-sm text-left first-letter:uppercase"
             disabled={busy}
             onclick={() => gameSession.chooseTravelWay(way)}
         >
-            {label(way)}
+            <TokenText text={label(way)} />
         </button>
     {/each}
 </div>

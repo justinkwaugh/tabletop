@@ -16,7 +16,8 @@ import { RouteEvaluation, type RouteRules } from './routeEvaluation.js'
 import type { TrainRunningState, TrainRoute } from './route.js'
 function fixture(
     faces: TileFace[],
-    distance: TrainDistance = { measure: 'revenue-centers', maximum: 3 }
+    distance: TrainDistance = { measure: 'revenue-centers', maximum: 3 },
+    stopGroups: Readonly<Record<number, string>> = {}
 ) {
     const map = new RailwayMap({
         id: 'routes',
@@ -26,7 +27,8 @@ function fixture(
             id: String(r),
             coordinates: { q: 0, r },
             preprintedTile,
-            buildable: true
+            buildable: true,
+            ...(stopGroups[r] ? { stopGroup: stopGroups[r] } : {})
         }))
     })
     const tileSet = new TileSet({ id: 'empty', entries: [] }, [])
@@ -373,4 +375,27 @@ it('rejects a repeated center even when its track segments are distinct', () => 
             }
         ]).reason
     ).toContain('revisit')
+})
+it('counts the locations of a stop group as one stop', () => {
+    const faces = [
+        city('yellow', [0], 20, 1),
+        town('yellow', [[3, 0]], 10),
+        town('yellow', [[3]], 10)
+    ]
+    const ungrouped = fixture(faces)
+    expect(ungrouped.running.evaluate('A', [ungrouped.route]).result?.revenue).toBe(40)
+    const grouped = fixture(faces, undefined, { 1: 'Canada', 2: 'Canada' })
+    expect(grouped.running.evaluate('A', [grouped.route]).reason).toBe(
+        'A route may visit Canada only once.'
+    )
+    expect(
+        grouped.running.evaluate('A', [
+            { ...grouped.route, paths: grouped.route.paths.slice(0, 2) }
+        ]).result?.revenue
+    ).toBe(30)
+})
+it('rejects a stop group with a single location', () => {
+    expect(() => fixture([city('yellow', [0], 20, 1)], undefined, { 0: 'Gulf' })).toThrow(
+        'Stop group Gulf needs more than one location'
+    )
 })

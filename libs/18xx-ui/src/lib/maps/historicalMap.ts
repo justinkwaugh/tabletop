@@ -95,12 +95,11 @@ export class HistoricalMaps {
                     tileSet: view.tileSet,
                     inventory: snapshot.tileInventory
                 },
-                view.layouts,
-                view.markerArt,
-                view.placements
+                view
             ),
             tokens: stationMapTokens(snapshot, view.stations),
             reservations: snapshot.stationReservations,
+            stationAppearances: view.stations,
             routes,
             selection,
             locations: locationId ? [locationId] : routeLocationIds(routes)
@@ -119,6 +118,7 @@ export type HistoricalMap = {
     scene: ReturnType<typeof createMapDrawing>
     tokens: ReturnType<typeof stationMapTokens>
     reservations: EighteenXXState['stationReservations']
+    stationAppearances: MapViewDefinition['stations']
     routes: MapRoute[]
     selection?: MapSelection
     locations: string[]

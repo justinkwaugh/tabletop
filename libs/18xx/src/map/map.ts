@@ -51,6 +51,8 @@ export const MapLocation = Type.Object(
             )
         ),
         reservations: Type.Optional(Type.Array(CityReservation)),
+        /** Locations sharing a stop group count as one stop; a route may visit only one. */
+        stopGroup: Type.Optional(Identifier),
         upgradeLabels: Type.Optional(
             Type.Array(
                 Type.Object(
@@ -103,6 +105,12 @@ export class RailwayMap {
         deepFreeze(this.definition)
         this.locationsById = new Map()
         this.grid = new HexGrid({ hexDefinition: { orientation: value.orientation } })
+        const groups = this.definition.locations.flatMap((location) => location.stopGroup ?? [])
+        for (const group of groups)
+            assert(
+                groups.filter((other) => other === group).length > 1,
+                `Stop group ${group} needs more than one location`
+            )
         for (const location of this.definition.locations) {
             assert(!this.locationsById.has(location.id), `Duplicate map location: ${location.id}`)
             assert(
@@ -189,13 +197,16 @@ export function createLetterNumberLocationFactory(options: {
     numberOffset: number
     fixedColors: readonly string[]
     names: Readonly<Record<string, string>>
-    homes: Readonly<Record<string, string>>
+    /** A company id reserving every city of a location, or the company and one city node. */
+    homes: Readonly<Record<string, string | CityReservation>>
     markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>>
 }) {
     return (
         ids: string,
         preprintedTile: TileFace,
-        details: Partial<Pick<MapLocation, 'terrain' | 'upgradeLabels'>> = {}
+        details: Partial<
+            Pick<MapLocation, 'terrain' | 'upgradeLabels' | 'borders' | 'stopGroup'>
+        > = {}
     ): MapLocation[] =>
         ids.split(' ').map((id) => ({
             id,
@@ -205,8 +216,15 @@ export function createLetterNumberLocationFactory(options: {
             ...details,
             ...(options.names[id] ? { name: options.names[id] } : {}),
             ...(options.homes[id]
-                ? { reservations: [{ companyId: options.homes[id], nodeId: 'city' }] }
+                ? { reservations: homeReservations(options.homes[id], preprintedTile) }
                 : {}),
             ...(options.markers[id] ? { markers: options.markers[id] } : {})
         }))
+}
+
+function homeReservations(home: string | CityReservation, tile: TileFace): CityReservation[] {
+    if (typeof home !== 'string') return [{ ...home }]
+    const cities = tile.nodes.filter((node) => node.kind === 'city')
+    assert(cities.length > 0, 'A home requires a city')
+    return cities.map((node) => ({ companyId: home, nodeId: node.id }))
 }

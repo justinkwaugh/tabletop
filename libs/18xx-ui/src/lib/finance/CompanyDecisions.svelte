@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    import { getCompany } from '@tabletop/18xx'
+    import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateBuying from '../privates/PrivateBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
@@ -85,10 +85,15 @@
                 onAccept={() => session.decisions.respondToPurchaseOffer(true)}
                 onDecline={() => session.decisions.respondToPurchaseOffer(false)}
             >
-                <CompanyToken appearance={session.mapView.stations[offer.companyId]} size={24} />
+                {#if isCompanyPurchaseOffer(offer)}<CompanyToken
+                        appearance={session.mapView.stations[offer.companyId]}
+                        size={24}
+                    />{/if}
                 <span
-                    >{getCompany(gameState, offer.companyId).name} offers {money(offer.price)} for {offer
-                        .asset.kind === 'private'
+                    >{isCompanyPurchaseOffer(offer)
+                        ? getCompany(gameState, offer.companyId).name
+                        : session.getPlayerName(offer.buyerPlayerId)} offers {money(offer.price)} for
+                    {offer.asset.kind === 'private'
                         ? getCompany(gameState, offer.asset.privateCompanyId).name
                         : offer.asset.trainId}</span
                 >

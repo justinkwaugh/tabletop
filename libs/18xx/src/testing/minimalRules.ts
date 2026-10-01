@@ -1,4 +1,9 @@
 import type { CompanyRules } from '../company/companyRules.js'
+import {
+    certificateWealthItem,
+    marketShareValue,
+    type ValuationRules
+} from '../ending/finalWealth.js'
 import type { PrivateRules } from '../privates/privateRules.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { TrainFundingRules } from '../funding/trainFunding.js'
@@ -20,7 +25,7 @@ export const minimalStockRules: StockRules = {
     certificateWeight: () => 1,
     ownershipLimit: () => 60,
     presidencyCandidates: () => [],
-    sellAfterBuying: true
+    turnOrder: 'sell-buy-or-buy-sell'
 }
 
 export const minimalCompanyRules: CompanyRules = {
@@ -71,4 +76,10 @@ export const minimalTransferRules: TransferRules = {
     canPurchase: () => false,
     priceRange: () => undefined,
     afterPurchase: () => {}
+}
+
+export const minimalValuationRules: ValuationRules = {
+    certificateItems: (state, certificate) => [
+        certificateWealthItem(state, certificate, marketShareValue(state, certificate))
+    ]
 }

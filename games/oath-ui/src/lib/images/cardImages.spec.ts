@@ -41,7 +41,9 @@ describe('card art coverage', () => {
         }
     })
 
-    it('no kind falls back to the denizen back', () => {
-        expect(cardBack(undefined)).toBe(cardBack(CardKind.Denizen))
+    it('no kind falls back to the denizen back: each draws its own', () => {
+        for (const kind of [CardKind.Vision, CardKind.Site, CardKind.Relic]) {
+            expect(cardBack(kind)).not.toBe(cardBack(CardKind.Denizen))
+        }
     })
 })

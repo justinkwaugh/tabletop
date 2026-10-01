@@ -2,6 +2,8 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     BuyShares,
     FinishStockTurn,
+    OfferPrivatePurchase,
+    ParCompany,
     SellShares,
     StartCompany,
     evaluateCompanyStart,
@@ -16,6 +18,9 @@ import {
     isSellShares,
     isStartCompany,
     isStartOperatingSet,
+    privateSaleChoices,
+    privateSaleOfferReason,
+    suggestedPrivateSalePrice,
     sameOwner,
     sharesOwned,
     type CompanyStartRequest,
@@ -24,7 +29,8 @@ import {
     type Owner,
     type PurchaseRequest,
     type SaleRequest,
-    type ShareSale
+    type ShareSale,
+    type ValuationRules
 } from '@tabletop/18xx'
 import {
     StockActionStageOrder,
@@ -45,11 +51,14 @@ type StockState = Parameters<typeof evaluateCompanyStart>[0] &
     Parameters<typeof evaluateShareSale>[0] &
     Parameters<typeof flotationAfterPurchase>[0] &
     Parameters<typeof exceedsStockLimits>[0] &
-    Pick<EighteenXXState, 'machineState' | 'stockRound' | 'activePlayerIds'>
+    Pick<
+        EighteenXXState,
+        'machineState' | 'stockRound' | 'activePlayerIds' | 'purchaseOffer' | 'pendingPar'
+    >
 
 export type StockSession = ModuleSession<
     StockState,
-    Pick<EighteenXXTitleRules, 'stockRules' | 'companyRules'>
+    Pick<EighteenXXTitleRules, 'stockRules' | 'companyRules'> & { endingRules: ValuationRules }
 >
 
 export class StockModule implements LocalSelection {
@@ -64,7 +73,10 @@ export class StockModule implements LocalSelection {
     ) {}
 
     private trading = $derived.by(
-        () => this.session.selectionsVisible && this.session.state.machineState === 'StockRound'
+        () =>
+            this.session.selectionsVisible &&
+            this.session.state.machineState === 'StockRound' &&
+            !this.session.state.purchaseOffer
     )
     availableMenus = $derived.by(() => {
         const choices: StockActionStages['action'][] = []
@@ -76,6 +88,7 @@ export class StockModule implements LocalSelection {
         )
         if (start) choices.push({ menu: 'start', buyer: start.request.buyer })
         if (this.exchangeAvailable()) choices.push({ menu: 'exchange' })
+        if (this.privateChoices.length) choices.push({ menu: 'privates' })
         return choices
     })
     private menuSelection = $derived.by(() => {
@@ -159,10 +172,32 @@ export class StockModule implements LocalSelection {
             : undefined
     )
 
+    canPar = $derived.by(
+        () => this.session.interactive && this.session.validActionTypes.includes('ParCompany')
+    )
+    parSpaceIds = $derived.by(() =>
+        this.session.state.pendingPar
+            ? this.session.rules.companyRules.startMarketSpaces(
+                  this.session.state,
+                  this.session.state.pendingPar.companyId
+              )
+            : []
+    )
+    async parCompany(marketSpaceId: string) {
+        const pending = this.session.state.pendingPar
+        assert(this.canPar && pending, 'No par is awaiting this player')
+        await this.session.applyAction(
+            this.session.createPlayerAction(ParCompany, {
+                companyId: pending.companyId,
+                marketSpaceId
+            })
+        )
+    }
+
     purchaseChoices = $derived.by(() => {
         const { state, rules, playerId } = this.session
-        if (!playerId || !this.trading || state.stockRound.turn.bought) return []
-        return rules.stockRules.buyers(state, playerId).flatMap((buyer) =>
+        if (!playerId || !this.trading) return []
+        const choices = rules.stockRules.buyers(state, playerId).flatMap((buyer) =>
             state.certificates
                 .filter((certificate) => !certificate.retired)
                 .filter(
@@ -178,6 +213,9 @@ export class StockModule implements LocalSelection {
                     }
                 })
         )
+        return state.stockRound.turn.bought
+            ? choices.filter((choice) => choice.result.details)
+            : choices
     })
     saleChoices = $derived.by(() => {
         const { state, rules, playerId } = this.session
@@ -382,6 +420,34 @@ export class StockModule implements LocalSelection {
             this.menu.clear()
             this.menu.choose('action', { menu: 'sell' }, 'auto')
         }
+    }
+    sellsPrivates = $derived.by(() => !!this.session.rules.stockRules.privateSales)
+    privateChoices = $derived.by(() => {
+        const { state, rules, playerId } = this.session
+        if (!playerId || !this.trading) return []
+        return privateSaleChoices(state, rules.stockRules, playerId).map((choice) => ({
+            ...choice,
+            suggestedPrice: suggestedPrivateSalePrice(state, choice, rules.endingRules)
+        }))
+    })
+    privateOfferReason(privateCompanyId: string, price: number): string | undefined {
+        const playerId = this.session.playerId
+        if (!playerId) return 'Only a player may offer for a private.'
+        return privateSaleOfferReason(this.session.state, this.session.rules.stockRules, {
+            playerId,
+            privateCompanyId,
+            price
+        })
+    }
+    async offerPrivatePurchase(privateCompanyId: string, price: number) {
+        const playerId = this.session.playerId
+        assert(
+            playerId && !this.privateOfferReason(privateCompanyId, price),
+            'Choose a private and a price this player may offer'
+        )
+        await this.session.applyAction(
+            this.session.createPlayerAction(OfferPrivatePurchase, { privateCompanyId, price })
+        )
     }
     async finishTurn() {
         this.assertAvailable(this.session.playerId)

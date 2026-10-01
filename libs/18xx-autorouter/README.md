@@ -55,9 +55,10 @@ separate encoding, solving, final validation and the Rust search stages.
 
 These mechanisms come from `RouteRules`, `TrainDefinition`, `RouteNetwork` and
 station state. The encoder does not maintain a second title configuration.
-The native core additionally supports exclusive stop groups and additive
-traversal/first-stop bonuses. Those mechanisms have no consumer in these two
-titles' current repository models and are not invented as title policies here.
+Map locations that share a `stopGroup` (1830's Canada) are encoded as the native
+core's exclusive stop groups, so a route visits one of them. The core's additive
+traversal/first-stop bonuses have no consumer in the current repository models and
+are not invented as title policies here.
 
 The internal wire format is version 2. It is private to this package; callers use
 the shared game models. Other distance, gauge, payment-selection or fleet-coupled

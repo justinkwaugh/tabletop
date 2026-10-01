@@ -5,7 +5,7 @@ import { CardKind, Region } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { MachineState } from '../definition/states.js'
 import { createOathVault } from '../model/vault.js'
-import { OathRuntime } from '../definition/runtime.js'
+import { OathVisibility } from '../definition/runtime.js'
 import { testPlayer, testState } from '../testing/fixture.js'
 import { spectator } from '../testing/projection.js'
 import { required } from '../testing/required.js'
@@ -100,8 +100,8 @@ describe('a discard pile, as a player saw it, by position from the bottom', () =
         expect(s.getPlayerState('p2').knownDiscardPiles?.provinces).toEqual([])
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
-        expect(OathRuntime.visibility.state.project(state, spectator).seenDiscardPiles.provinces).toEqual([null, WOLVES, { back: CardKind.Denizen }])
-        expect(JSON.stringify(OathRuntime.visibility.state.project(state, spectator))).not.toContain(ELDERS)
+        expect(OathVisibility.state.project(state, spectator).seenDiscardPiles.provinces).toEqual([null, WOLVES, { back: CardKind.Denizen }])
+        expect(JSON.stringify(OathVisibility.state.project(state, spectator))).not.toContain(ELDERS)
     })
 
     it('before an action, a card on the table is everyone’s to have seen, and a hand or facedown adviser its holder’s', () => {
@@ -198,7 +198,7 @@ describe('a known relic drawn back out of the relic deck', () => {
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
         const relicOf = (perspective: Visibility.Perspective) => {
-            const question = OathRuntime.visibility.state.project(state, perspective).pendingQuestions?.queue[0]
+            const question = OathVisibility.state.project(state, perspective).pendingQuestions?.queue[0]
             return question && 'relicCardId' in question ? question.relicCardId : undefined
         }
         expect(relicOf({ kind: 'player', playerId: 'p2' })).toBe(CUP)
@@ -252,7 +252,7 @@ describe('R-9.4 — the backs of held cards are public', () => {
         expect(p2.advisers).toEqual([{ faceUp: false, vision: true }, { faceUp: false }])
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
-        const seen = OathRuntime.visibility.state.project(state, spectator).players[1]
+        const seen = OathVisibility.state.project(state, spectator).players[1]
         expect(seen.handVisions).toBe(1)
         expect(seen.advisers).toEqual([{ faceUp: false, vision: true }, { faceUp: false }])
         expect(JSON.stringify(seen)).not.toContain(VISION)
@@ -364,7 +364,7 @@ describe('retained knowledge in projections', () => {
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the fixture is canonical')
         const fields = ['peekedSites', 'knownWorldDeckTop', 'knownDiscardPiles', 'knownRelicDeckBottom']
-        const own = OathRuntime.visibility.state.project(state, { kind: 'player', playerId: 'p1' }).players[0]
+        const own = OathVisibility.state.project(state, { kind: 'player', playerId: 'p1' }).players[0]
         expect(own).toMatchObject({
             peekedSites: { h1: 'site.mountain' },
             knownWorldDeckTop: [INN],
@@ -372,7 +372,7 @@ describe('retained knowledge in projections', () => {
             knownRelicDeckBottom: [CUP]
         })
         for (const perspective of [{ kind: 'player', playerId: 'p2' } as const, spectator]) {
-            const seen = OathRuntime.visibility.state.project(state, perspective).players[0]
+            const seen = OathVisibility.state.project(state, perspective).players[0]
             for (const field of fields) expect(seen).not.toHaveProperty(field)
             expect(JSON.stringify(seen)).not.toContain('site.mountain')
         }

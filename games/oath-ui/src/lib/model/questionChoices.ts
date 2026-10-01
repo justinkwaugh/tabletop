@@ -1,11 +1,13 @@
 import {
     HydratedAnswerQuestion,
+    type CardKind,
     PowerQuestionKind,
     SearchPlay,
     type HydratedOathGameState,
     type QuestionAnswer
 } from '@tabletop/oath'
 import { adviserRowText, cardName } from './names.js'
+import { adviserBack } from './cardBacks.js'
 
 export function playVisionAnswer(
     play: SearchPlay,
@@ -45,7 +47,7 @@ export function advisersToDiscardForVision(
         .filter((cardId) => reasonFor(playVisionAnswer(SearchPlay.Adviser, cardId)) === undefined)
 }
 
-export type AdviserRowOffer = { row: number; label: string; cardId?: string }
+export type AdviserRowOffer = { row: number; label: string; cardId?: string; back: CardKind }
 
 /** R-9.4 — every adviser row may be offered; a facedown card is named only to the viewer who holds it. */
 export function offerableAdviserRows(
@@ -61,9 +63,15 @@ export function offerableAdviserRows(
             return {
                 row,
                 cardId: own.cardId,
+                back: adviserBack(adviser),
                 label: `${cardName(own.cardId)}${own.faceUp ? '' : ' (facedown)'}`
             }
         }
-        return { row, cardId: adviser.cardId, label: adviserRowText(state, giverId, row) }
+        return {
+            row,
+            cardId: adviser.cardId,
+            back: adviserBack(adviser),
+            label: adviserRowText(state, giverId, row)
+        }
     })
 }

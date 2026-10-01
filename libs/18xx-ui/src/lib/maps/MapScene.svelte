@@ -2,6 +2,7 @@
     import MapTrackJoins from './MapTrackJoins.svelte'
     import MapRoutes from './MapRoutes.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import type { StationAppearance } from './stationPresentation.js'
     import type { StationReservation } from '@tabletop/18xx'
     import type { BoundingBox } from '@tabletop/common'
     import TileArtwork from '../tiles/TileArtwork.svelte'
@@ -28,6 +29,7 @@
         selection,
         tokens = [],
         reservations,
+        stationAppearances = {},
         routes = [],
         appearance = ClassicTileAppearance,
         revenueStageColors,
@@ -45,6 +47,7 @@
         selection?: MapSelection
         tokens?: readonly MapToken[]
         reservations?: readonly StationReservation[]
+        stationAppearances?: Readonly<Record<string, StationAppearance>>
         routes?: readonly MapRoute[]
         revenueStageColors?: Readonly<Record<string, string>>
         appearance?: TileAppearance
@@ -53,7 +56,8 @@
         extents?: readonly BoundingBox[]
         onselect?: (selection: MapSelection) => void
     } = $props()
-    const tokenSize = $derived(appearance.mapTokenSize ?? 18)
+    const citySlotRadius = $derived(appearance.citySlotRadius ?? 10)
+    const tokenSize = $derived(2 * citySlotRadius)
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
     const perimeterMaskId = $props.id()
     const perimeterRoundingId = `${perimeterMaskId}-rounding`
@@ -209,7 +213,9 @@
                     <TileArtwork
                         face={entry.face}
                         drawing={entry.drawing}
-                        {appearance}
+                        appearance={entry.outline.length < 6
+                            ? { ...appearance, edge: { color: 'none', width: 0 } }
+                            : appearance}
                         {revenueStageColors}
                         showZeroRevenue={false}
                     >
@@ -221,13 +227,12 @@
                     {@render selectedTrack()}
                 {/if}
                 {#each entry.drawing.nodes as node (node.node.id)}
-                    {@const reservationLabel = currentReservations
+                    {@const reservedCompanyIds = currentReservations
                         .filter(
                             (reservation) =>
                                 reservation.locationId === id && reservation.nodeId === node.node.id
                         )
-                        .map((reservation) => reservation.companyId)
-                        .join('/')}
+                        .map((reservation) => reservation.companyId)}
                     {#each node.slots as point, slot (slot)}
                         {@const token = tokens.find(
                             (token) =>
@@ -245,7 +250,21 @@
                                 />
                             </g>
                         {/if}
-                        {#if slot === 0 && reservationLabel && !token}
+                        {@const reservedAppearance = stationAppearances[reservedCompanyIds[slot]]}
+                        {#if !token && reservedAppearance}
+                            <g
+                                class="reserved-token"
+                                data-map-reservation={reservedCompanyIds[slot]}
+                            >
+                                <title>{`Reserved for ${reservedAppearance.label}`}</title>
+                                <CompanyToken
+                                    appearance={reservedAppearance}
+                                    size={tokenSize}
+                                    x={point.x - tokenSize / 2}
+                                    y={point.y - tokenSize / 2}
+                                />
+                            </g>
+                        {:else if slot === 0 && reservedCompanyIds.length && !token && !stationAppearances[reservedCompanyIds[0]]}
                             <text
                                 x={point.x}
                                 y={point.y}
@@ -256,7 +275,7 @@
                                 paint-order="stroke"
                                 stroke="none"
                                 stroke-width="1"
-                                data-map-reservation>{reservationLabel}</text
+                                data-map-reservation>{reservedCompanyIds.join('/')}</text
                             >
                         {/if}
                     {/each}
@@ -393,7 +412,7 @@
                             data-map-slot={`${node.node.id}:${slot}`}
                             cx={point.x}
                             cy={point.y}
-                            r={appearance.citySlotRadius ?? 10}
+                            r={citySlotRadius}
                             fill="transparent"
                             stroke={selected &&
                             selection?.kind === 'slot' &&
@@ -417,12 +436,17 @@
     {#if !artwork}
         <g data-map-layer="outlines" fill="none" pointer-events="none" aria-hidden="true">
             {#each entries as entry (entry.location.id)}
-                <polygon
+                <g
+                    data-map-outline={entry.location.id}
                     transform={`translate(${entry.center.x} ${entry.center.y})`}
-                    points={entry.drawing.polygon}
                     stroke="#566368"
                     stroke-width="0.6"
-                ></polygon>
+                    stroke-linecap="round"
+                >
+                    {#each entry.outline as { start, end }, index (index)}
+                        <line x1={start.x} y1={start.y} x2={end.x} y2={end.y}></line>
+                    {/each}
+                </g>
             {/each}
         </g>
     {/if}
@@ -475,6 +499,47 @@
             {/each}
         </g>
     {/if}
+    <g data-map-layer="local-lines" pointer-events="none" aria-hidden="true">
+        {#each entries.filter((entry) => !entry.placed) as entry (entry.location.id)}
+            {#each (entry.location.markers ?? []).filter((marker) => {
+                const art = entry.markerArt[marker.id]
+                return art && 'localLine' in art
+            }) as marker (marker.id)}
+                <g
+                    data-map-marker-local-line={marker.id}
+                    transform={`translate(${entry.center.x + 4} ${entry.center.y + 32})`}
+                    fill={appearance.ink}
+                    dominant-baseline="central"
+                >
+                    <text
+                        x="-2"
+                        text-anchor="end"
+                        font-size="8"
+                        font-weight="850"
+                        paint-order="stroke"
+                        stroke={appearance.colors[entry.face.color]}
+                        stroke-width="2.4"
+                        stroke-linejoin="round">{marker.label}</text
+                    >
+                    <path d="M4 0H14" stroke={appearance.ink} stroke-width="1.6"></path>
+                    <circle
+                        cx="4"
+                        r="2.6"
+                        fill={appearance.paper}
+                        stroke={appearance.ink}
+                        stroke-width="1"
+                    ></circle>
+                    <circle
+                        cx="14"
+                        r="2.6"
+                        fill={appearance.paper}
+                        stroke={appearance.ink}
+                        stroke-width="1"
+                    ></circle>
+                </g>
+            {/each}
+        {/each}
+    </g>
     {#if maskUnavailableLocations}
         <g
             data-map-layer="unavailable"
@@ -520,6 +585,10 @@
 </svg>
 
 <style>
+    .reserved-token {
+        filter: grayscale(1);
+        opacity: 0.4;
+    }
     .map-scene {
         display: block;
         font-family: ui-sans-serif, system-ui, sans-serif;

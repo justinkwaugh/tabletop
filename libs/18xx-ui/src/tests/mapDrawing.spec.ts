@@ -91,3 +91,27 @@ it.each([HexOrientation.Flat, HexOrientation.Pointy])(
         expect(generic.x + generic.width / 2).toBeCloseTo((point.x - scene.bounds.x) * 1.4)
     }
 )
+
+it('leaves joined edges out of the outline and hides a duplicate revenue', () => {
+    const map = new RailwayMap({
+        id: 'joined',
+        name: 'Joined',
+        orientation: HexOrientation.Pointy,
+        locations: [0, 1].map((r) => ({
+            id: `location-${r}`,
+            coordinates: { q: 0, r },
+            buildable: false,
+            preprintedTile: createCityTileFace('red', [r ? 2 : 5], 30, 1)
+        }))
+    })
+    const scene = createMapDrawing(map, undefined, {
+        layouts: { 'location-0': { hideRevenue: true } },
+        joinedEdges: { 'location-0': [5], 'location-1': [2] }
+    })
+    const [first, second] = scene.locations
+    expect([first.outline.length, second.outline.length]).toEqual([5, 5])
+    expect(first.drawing.nodes[0].revenueHidden).toBe(true)
+    expect(second.drawing.nodes[0].revenueHidden).toBe(false)
+    const plain = createMapDrawing(map).locations[0]
+    expect(plain.outline).toHaveLength(6)
+})

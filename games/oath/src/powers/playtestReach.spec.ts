@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { PLAYTEST_DECK, PLAYTEST_RELICS } from '../data/playtestDeck.js'
+import { PLAYTEST_DECK, PLAYTEST_RELICS } from '../testing/playtestCards.js'
 import { cardDefinition } from '../data/cardRegistry.js'
 import { BattlePlanSide, cardPowers, PowerTiming } from '../data/cardPowers.js'
 import { MachineState } from '../definition/states.js'
