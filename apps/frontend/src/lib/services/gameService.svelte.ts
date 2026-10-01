@@ -30,6 +30,7 @@ import {
     GameStorage,
     GameCategory,
     PlayerStatus,
+    gameUserIds,
     isYourTurnNotification
 } from '@tabletop/common'
 import * as Type from 'typebox'
@@ -379,14 +380,16 @@ export class GameService implements GameServiceInterface {
 
     private upsertCachedGame(game: Game) {
         const myUserId = this.authorizationService.getSessionUser()?.id
-        const mine = game.players.find(
+        const seatedPlayers = game.players.filter(
             (player) =>
-                player.userId === myUserId &&
-                (player.status === PlayerStatus.Joined || player.status === PlayerStatus.Reserved)
+                player.status === PlayerStatus.Joined || player.status === PlayerStatus.Reserved
         )
+        const isMember =
+            myUserId !== undefined &&
+            gameUserIds({ ...game, players: seatedPlayers }).includes(myUserId)
 
         if (!game.isPublic) {
-            if (!mine) {
+            if (!isMember) {
                 this.removeFromPrivateCache(game.id)
             } else if (game.storage === GameStorage.Local) {
                 this.localGamesById.set(game.id, game)
@@ -405,7 +408,7 @@ export class GameService implements GameServiceInterface {
                 this.openGamesByTitleId.set(game.typeId, titleGames)
             }
 
-            if (!mine && game.ownerId !== myUserId) {
+            if (!isMember) {
                 this.removeFromPrivateCache(game.id)
             } else {
                 this.gamesById.set(game.id, game)

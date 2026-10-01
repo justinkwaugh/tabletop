@@ -1142,7 +1142,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             assertExists(game.state)
             for (const user of [users[0], admin]) {
                 await expect(
-                    games.updateGame({ gameId, fields: { name: 'Changed' }, owner: user })
+                    games.updateGame({ gameId, fields: { name: 'Changed' }, user })
                 ).rejects.toThrow('managed by the tournament')
                 await expect(games.joinGame({ gameId, user })).rejects.toThrow(
                     'managed by the tournament'
@@ -1164,7 +1164,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 'membership cannot be supplied'
             )
             await expect(
-                games.updateGame({ gameId, fields: { tournament: undefined }, owner: admin })
+                games.updateGame({ gameId, fields: { tournament: undefined }, user: admin })
             ).rejects.toThrow('membership cannot be changed')
             const fork = createGameFork({
                 game,

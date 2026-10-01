@@ -63,9 +63,6 @@
 
     let canJoin = $derived.by(() => {
         if (game.tournament) return false
-        if (isOwnedByMe) {
-            return false
-        }
 
         if (hasPendingGameInvitation(game, sessionUser?.id)) {
             return true

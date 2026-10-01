@@ -35,6 +35,7 @@ import {
     validateGameResult,
     generateSeed,
     GameStatusCategory,
+    gameUserIds,
     getGameStatusesForCategory,
     GameStorage,
     Tournament,
@@ -68,7 +69,7 @@ import {
     type CacheWriteLocks,
     type ValueWriter
 } from '../../cache/cacheService.js'
-import { GameCacheKeys, gameUserIds } from './gameCacheKeys.js'
+import { GameCacheKeys } from './gameCacheKeys.js'
 import { gameChatBookmarks } from './gameChatDocuments.js'
 import { nanoid } from 'nanoid'
 import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
@@ -506,7 +507,7 @@ export class FirestoreGameStore implements GameStore {
 
                 transaction.update(
                     this.games.doc(updatedGame.id),
-                    this.createGameUpdateDocument(fieldsToUpdate)
+                    this.createGameUpdateDocument(fieldsToUpdate, updatedGame)
                 )
             }
 
@@ -933,7 +934,10 @@ export class FirestoreGameStore implements GameStore {
                 }
             }
 
-            transaction.update(this.games.doc(gameId), this.createGameUpdateDocument(gameUpdates))
+            transaction.update(
+                this.games.doc(gameId),
+                this.createGameUpdateDocument(gameUpdates, updatedGame)
+            )
             transaction.set(stateCollection.doc(gameId), state)
 
             return { storedActions, updatedGame, relatedActions, priorState: existingState }
@@ -1239,7 +1243,10 @@ export class FirestoreGameStore implements GameStore {
                 }
             }
 
-            transaction.update(this.games.doc(gameId), this.createGameUpdateDocument(gameUpdates))
+            transaction.update(
+                this.games.doc(gameId),
+                this.createGameUpdateDocument(gameUpdates, updatedGame)
+            )
             transaction.set(stateCollection.doc(gameId), state)
 
             return {
@@ -1792,10 +1799,10 @@ export class FirestoreGameStore implements GameStore {
         if (keys.length) await locks.addKeys(keys)
     }
 
-    private createGameUpdateDocument(fields: Partial<Game>): DocumentData {
+    private createGameUpdateDocument(fields: Partial<Game>, updatedGame: Game): DocumentData {
         const document = this.createUpdateDocument(fields)
         if (fields.players !== undefined) {
-            document.userIds = gameUserIds({ players: fields.players })
+            document.userIds = gameUserIds(updatedGame)
         }
         return document
     }

@@ -29,17 +29,17 @@ export default async function (fastify: FastifyInstance) {
             const {
                 game: { id, name, isPublic, players, config }
             } = request.body
-            const updates = {
-                name,
-                isPublic,
-                players,
-                config
+            const updates: Partial<Game> = {
+                ...(name === undefined ? {} : { name }),
+                ...(isPublic === undefined ? {} : { isPublic }),
+                ...(players === undefined ? {} : { players }),
+                ...(config === undefined ? {} : { config })
             }
 
             const updatedGame = await fastify.gameService.updateGame({
                 gameId: id,
                 fields: updates,
-                owner: request.user
+                user: request.user
             })
 
             console.log(`Updated this game ${JSON.stringify(updatedGame)}`)

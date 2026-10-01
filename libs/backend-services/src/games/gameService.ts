@@ -20,6 +20,7 @@ import {
     replaceSupersededAction,
     unnamedDuplicateReason,
     findPlayerForUserId,
+    gameUserIds,
     Game,
     GameAction,
     GameDefinition,
@@ -72,6 +73,7 @@ import {
     GameUpdateCollisionError,
     InvalidPlayerIdError,
     InvalidPlayerUserError,
+    OwnerNotPlayingError,
     PlayersNotFoundError,
     PrivateGameNotFullError,
     UnauthorizedAccessError,
@@ -170,6 +172,8 @@ export class GameService {
         this.checkForDuplicatePlayers(newGame.players)
 
         this.validatePlayerCount(newGame.id, newGame.players, definition)
+
+        this.assertOwnerSeatedUnlessDeveloper(newGame, owner)
 
         // Private games have to be full
         if (!newGame.isPublic && Object.keys(usersByPlayerId).length !== newGame.players.length) {
@@ -348,7 +352,7 @@ export class GameService {
     }
 
     canAccessHostView(user: User): boolean {
-        return user.roles.includes(Role.Admin) || user.roles.includes(Role.Developer)
+        return this.hasDeveloperAccess(user)
     }
 
     async getGameEtag(gameId: string): Promise<string> {
@@ -563,11 +567,11 @@ export class GameService {
     async updateGame({
         gameId,
         fields,
-        owner
+        user
     }: {
         gameId: string
         fields: Partial<Game>
-        owner: User
+        user: User
     }): Promise<Game> {
         if (Object.hasOwn(fields, 'tournament'))
             throw new TournamentGameError('Tournament membership cannot be changed')
@@ -577,6 +581,11 @@ export class GameService {
             throw new GameNotFoundError({ id: gameId })
         }
         assertOrdinaryGame(game)
+
+        if (game.ownerId !== user.id && !user.roles.includes(Role.Admin)) {
+            throw new UnauthorizedAccessError({ user, gameId })
+        }
+        const owner = user.id === game.ownerId ? user : await this.userService.getUser(game.ownerId)
 
         if (fields.name !== undefined) {
             fields.name = fields.name.trim()
@@ -635,6 +644,10 @@ export class GameService {
                         if (!player.userId) {
                             continue
                         }
+                        if (player.userId === existingGame.ownerId) {
+                            player.status = PlayerStatus.Joined
+                            continue
+                        }
                         const existingStatus = existingGameStatusesByUserId[player.userId]
                         if (
                             !existingStatus ||
@@ -646,6 +659,11 @@ export class GameService {
                             player.status = existingStatus
                         }
                     }
+
+                    this.assertOwnerSeatedUnlessDeveloper(
+                        { ...existingGame, players: fieldsToUpdate.players },
+                        owner
+                    )
                 }
 
                 if (fieldsToUpdate.isPublic === false && fieldsToUpdate.players === undefined) {
@@ -668,7 +686,7 @@ export class GameService {
             }
 
             for (const player of updatedGame.players) {
-                if (!player.userId) {
+                if (!player.userId || player.userId === updatedGame.ownerId) {
                     continue
                 }
 
@@ -678,13 +696,13 @@ export class GameService {
                     (preExistingStatus === PlayerStatus.Declined &&
                         player.status === PlayerStatus.Reserved)
                 ) {
-                    const user = usersByPlayerId[player.id]
-                    if (!user) {
+                    const invitee = usersByPlayerId[player.id]
+                    if (!invitee) {
                         // This really should never happen, so lets not bother with an error
                         continue
                     }
-                    await this.inviteUserToGame({ owner, game: updatedGame, user })
-                    await this.notifyWasInvited(user, owner, updatedGame)
+                    await this.inviteUserToGame({ owner: user, game: updatedGame, user: invitee })
+                    await this.notifyWasInvited(invitee, user, updatedGame)
                 }
             }
         }
@@ -751,7 +769,9 @@ export class GameService {
         } else {
             await this.notifyGamePlayers(GameNotificationAction.Update, { game: updatedGame })
         }
-        await this.notifyJoined(user, updatedGame, player)
+        if (user.id !== updatedGame.ownerId) {
+            await this.notifyJoined(user, updatedGame, player)
+        }
         await this.ensureAutoStartScheduled(updatedGame)
         return updatedGame
     }
@@ -1602,6 +1622,19 @@ export class GameService {
         }
     }
 
+    private assertOwnerSeatedUnlessDeveloper(
+        game: Pick<Game, 'id' | 'ownerId' | 'players'>,
+        owner: User | undefined
+    ): void {
+        if (findPlayerForUserId(game, game.ownerId)) return
+        if (owner && this.hasDeveloperAccess(owner)) return
+        throw new OwnerNotPlayingError({ id: game.id })
+    }
+
+    private hasDeveloperAccess(user: User): boolean {
+        return user.roles.includes(Role.Admin) || user.roles.includes(Role.Developer)
+    }
+
     private getRequiredTitle(game: Game): GameDefinition {
         const definition = this.getTitle(game.typeId)
         assertExists(definition, `Game definition ${game.typeId} is unavailable`)
@@ -1702,12 +1735,9 @@ export class GameService {
         data: GameNotificationData
     ): Promise<void> {
         const notification = createGameNotification(action, data)
-        const userTopics = data.game.players.flatMap((player) =>
-            player.userId === undefined ? [] : [`user-${player.userId}`]
-        )
         await this.notificationService.sendNotification({
             notification,
-            topics: [...userTopics],
+            topics: gameUserIds(data.game).map((userId) => `user-${userId}`),
             channels: [NotificationDistributionMethod.Topical]
         })
     }
