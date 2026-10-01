@@ -90,7 +90,7 @@
 </script>
 
 <div
-    class="relative rounded-lg border border-gray-500 text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
+    class="history relative rounded-lg border border-gray-500 text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
 >
     <div
         class={`${replayUiState ? 'overflow-hidden' : 'overflow-auto'} h-full w-full`}
@@ -220,7 +220,7 @@
 
 <!--  fixes a styling issue with timeline-item -->
 <style>
-    :global(.timeline-item > div) {
+    .history :global(.timeline-item > div) {
         display: none;
     }
 </style>

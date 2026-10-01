@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
     ActionSource,
+    GameEngine,
     GameResult,
     PlayerStatus,
     assert,
@@ -20,9 +21,9 @@ import { GameLength } from './config.js'
 import { Definition } from './definition.js'
 import { MagnaGreciaRuntime } from './runtime.js'
 import { MachineState } from './states.js'
-import { SeededEngine } from './testEngine.js'
 
-const engine = new SeededEngine(97)
+const engine = new GameEngine(MagnaGreciaRuntime)
+const masterSeed = '0123456789abcdef0123456789abcdef'
 const spaces = [...BOARD_GRID]
 
 function createGame(count: number, gameLength: GameLength) {
@@ -119,7 +120,7 @@ function botAction(
 
 function playToEnd(count: number, gameLength: GameLength): MagnaGreciaProjectedState {
     const game = createGame(count, gameLength)
-    let state = engine.startGame(game).initialState
+    let state = engine.startGame(game, { masterSeed }).initialState
     for (let step = 0; state.result === undefined; step++) {
         assert(step < 5000, 'Playthrough did not finish')
         const [playerId] = state.activePlayerIds

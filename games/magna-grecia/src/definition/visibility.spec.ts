@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
     ActionSource,
+    GameEngine,
     PlayerStatus,
     assertExists,
     getPrng,
@@ -17,19 +18,18 @@ import { ActionType } from './actions.js'
 import { Definition } from './definition.js'
 import { sampleDeck } from './exploration.js'
 import { MagnaGreciaRuntime } from './runtime.js'
-import { SeededEngine } from './testEngine.js'
 
 const spectator = { kind: 'spectator' } as const
 
-const engine = new SeededEngine(11)
+const engine = new GameEngine(MagnaGreciaRuntime)
+const masterSeed = '0123456789abcdef0123456789abcdef'
 
-function createGame(seed = 5): Game {
+function createGame(): Game {
     return MagnaGreciaRuntime.initializer.initializeGame(
         {
             id: 'magna-grecia-visibility',
             typeId: Definition.info.id,
             ownerId: 'owner',
-            seed,
             config: {},
             players: ['p0', 'p1', 'p2'].map((id) => ({
                 id,
@@ -75,18 +75,25 @@ function layersHoldEveryColour(deck: readonly string[]): boolean {
 
 describe('Magna Grecia visibility', () => {
     it('shuffles the deck from the protected stream so the public seed cannot rebuild it', () => {
-        const first = engine.startGame(createGame(5)).initialState
-        const otherPublicSeed = engine.startGame(createGame(6)).initialState
-        const otherProtectedSeed = new SeededEngine(12).startGame(createGame(5)).initialState
-        expect(otherPublicSeed.prng.seed).not.toBe(first.prng.seed)
-        expect(otherPublicSeed.deck).toEqual(first.deck)
-        expect(otherProtectedSeed.deck).not.toEqual(first.deck)
-        expect(first.protectedPrng?.invocations).toBeGreaterThan(0)
+        const game = createGame()
+        const first = engine.startGame(game, { masterSeed }).initialState
+        const again = engine.startGame(game, { masterSeed }).initialState
+        const otherSeed = engine.startGame(game, {
+            masterSeed: 'fedcba9876543210fedcba9876543210'
+        }).initialState
+        expect(again.deck).toEqual(first.deck)
+        expect(first.protectedPrng).toMatchObject({ algorithm: 'chacha20-v1' })
+        expect(otherSeed.deck).not.toEqual(first.deck)
+        const projected = MagnaGreciaRuntime.visibility.state.project(canonical(first), spectator, {
+            config: game.config
+        })
+        expect(projected.protectedPrng).toEqual({ seed: 0, invocations: 0 })
+        expect(projected).not.toHaveProperty('masterSeed')
     })
 
     it('shows only the played, current and upcoming cards', () => {
         const game = createGame()
-        const { initialState } = engine.startGame(game)
+        const { initialState } = engine.startGame(game, { masterSeed })
         const perspectives = [spectator, { kind: 'player', playerId: 'p0' } as const]
         for (const perspective of perspectives) {
             const projected = MagnaGreciaRuntime.visibility.state.project(
@@ -105,7 +112,7 @@ describe('Magna Grecia visibility', () => {
 
     it('marks the turn that reveals the next card as information-revealing', () => {
         const game = createGame()
-        let state = engine.startGame(game).initialState
+        let state = engine.startGame(game, { masterSeed }).initialState
         const players = state.roundOrder.length
         for (let turn = 0; turn < players - 1; turn++) {
             const result = endTurn(game, state)
@@ -119,7 +126,7 @@ describe('Magna Grecia visibility', () => {
 
     it('samples an exploration deck that keeps the revealed cards and the colour layers', () => {
         const game = createGame()
-        const { initialState } = engine.startGame(game)
+        const { initialState } = engine.startGame(game, { masterSeed })
         const projected = MagnaGreciaRuntime.visibility.state.project(
             canonical(initialState),
             spectator,

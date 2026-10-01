@@ -7,9 +7,10 @@ import {
     shuffle,
     type Game,
     type GameInitializer,
+    type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
-import { buildActionDeck } from '../components/actionCards.js'
+import { actionCard, buildActionDeck } from '../components/actionCards.js'
 import { BOARD_GRID } from '../components/boardGrid.js'
 import type { Oracle } from '../components/pieces.js'
 import {
@@ -33,7 +34,13 @@ export class MagnaGreciaGameInitializer
     extends BaseGameInitializer<MagnaGreciaProjectedState, HydratedMagnaGreciaGameState>
     implements GameInitializer<MagnaGreciaProjectedState, HydratedMagnaGreciaGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedMagnaGreciaGameState {
+    readonly supportsStartingPositions = true
+
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedMagnaGreciaGameState {
         const prng = new Prng(state.prng)
         const colors = [...MagnaGreciaColors]
         shuffle(colors, prng.random)
@@ -49,9 +56,12 @@ export class MagnaGreciaGameInitializer
                     stagingCities: TILES_PER_TYPE - STARTING_SUPPLY
                 })
         )
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
         assertExists(state.protectedPrng, 'Shuffling the action deck requires protectedPrng')
         const deck = buildActionDeck(new Prng(state.protectedPrng).random)
+        if (assignment) {
+            this.seatByFirstCard(players, assignment, actionCard(deck[0]).turnOrder)
+        }
 
         const magnaGreciaState: MagnaGreciaGameState = Object.assign(state, {
             players: this.playersInColorOrder(players),
@@ -74,6 +84,21 @@ export class MagnaGreciaGameInitializer
         const hydrated = new HydratedMagnaGreciaGameState(magnaGreciaState)
         hydrated.beginRound(0)
         return hydrated
+    }
+
+    private seatByFirstCard(
+        players: HydratedMagnaGreciaPlayerState[],
+        assignment: StartingPositionAssignment,
+        cardOrder: Color[]
+    ) {
+        const seatColors = cardOrder.filter((color) =>
+            players.some((player) => player.color === color)
+        )
+        assignment.playerIds.forEach((playerId, seat) => {
+            const player = players.find((candidate) => candidate.playerId === playerId)
+            assertExists(player, `No player ${playerId} for seat ${seat}`)
+            player.color = seatColors[seat]
+        })
     }
 
     private playersInColorOrder(

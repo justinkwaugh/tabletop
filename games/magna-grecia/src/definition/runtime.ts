@@ -14,6 +14,7 @@ import { MagnaGreciaScoring } from './scoring.js'
 import { MagnaGreciaStateHandlers } from './stateHandlers.js'
 
 export const MagnaGreciaRuntime = {
+    randomnessVersion: 1,
     initializer: new MagnaGreciaGameInitializer(),
     exploration: new MagnaGreciaGameExploration(),
     canonicalStateValidator: MagnaGreciaGameStateValidator,

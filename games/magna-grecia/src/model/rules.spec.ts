@@ -3,6 +3,7 @@ import {
     ActionSource,
     ClockwisePointyHexDirections,
     Color,
+    GameEngine,
     GameResult,
     MachineContext,
     PlayerStatus,
@@ -26,7 +27,6 @@ import { marketCost, marketValue } from './marketRules.js'
 import { ROAD_END_OPTIONS, RoadShape, roadShape } from './roadRules.js'
 import { newTurn } from './turn.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
-import { SeededEngine } from '../definition/testEngine.js'
 
 const E = PointyHexDirection.East
 const W = PointyHexDirection.West
@@ -35,7 +35,8 @@ const SW = PointyHexDirection.Southwest
 const NE = PointyHexDirection.Northeast
 const NW = PointyHexDirection.Northwest
 
-const engine = new SeededEngine(1234)
+const engine = new GameEngine(MagnaGreciaRuntime)
+const masterSeed = '0123456789abcdef0123456789abcdef'
 
 const FRONTIER = offsetToAxial({ row: 0, col: 1 })
 const INLAND = offsetToAxial({ row: 2, col: 3 })
@@ -60,7 +61,7 @@ function createGame(count: number) {
 }
 
 function freshState(count = 3): HydratedMagnaGreciaGameState {
-    const { initialState } = engine.startGame(createGame(count))
+    const { initialState } = engine.startGame(createGame(count), { masterSeed })
     const state = MagnaGreciaRuntime.hydrator.hydrateState(initialState)
     state.board.oracles = []
     return state
@@ -133,7 +134,7 @@ describe('setup', () => {
     ])(
         '%i players start on %i points with %i oracles on inland villages',
         (count, points, oracles) => {
-            const { initialState } = engine.startGame(createGame(count))
+            const { initialState } = engine.startGame(createGame(count), { masterSeed })
             const state = MagnaGreciaRuntime.hydrator.hydrateState(initialState)
             expect(state.players.every((player) => player.points === points)).toBe(true)
             expect(state.board.oracles).toHaveLength(oracles)

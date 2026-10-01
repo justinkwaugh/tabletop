@@ -24,7 +24,6 @@ The requirements below concern new games adopting protected delivery. Existing v
 | Bus | None identified | None identified | None beyond public setup/identity |
 | Bridges of Shangri-La | None identified | None identified | None beyond public setup |
 | Urbino | None identified | None identified | None beyond public setup |
-| Magna Grecia | Order of the action cards beyond the current and face-up upcoming cards; `deck` is host-only and `revealedCardIds` is public | None identified | Action-deck ordering |
 
 “Until reveal” does not mean an old submission Action should be dynamically unredacted later. Keep private historical submissions protected and publish a separate complete result at the reveal transition.
 

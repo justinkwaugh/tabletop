@@ -18,4 +18,5 @@ The implementation follows the reformatted Rio Grande rulebook. This file record
 - **Founding market.** The free market is placed when the founding completes, which is on the village tile when the founding takes several tiles.
 - **Oracle attention.** Attention is re-evaluated after every road and city tile. An oracle turns only to a connected city with strictly more connections than the city it favours; among equally important newcomers the oldest city wins.
 - **Markets.** Market supply is derived as 20 minus the player's markets on the board, sold ones included. A market may be sold only while active, even if its current value is 0.
+- **Starting positions.** Magna Grecia has no fixed seats: each round's card sets the turn order by colour. When a tournament assigns seats, the game keeps the colours an ordinary game would draw and hands them out so the first card's colour order matches the seats, so seat one plays first and round 1 follows the assigned seats; later rounds follow their cards as usual.
 - **Ties.** Tied highest totals share the win and the result is a draw.
