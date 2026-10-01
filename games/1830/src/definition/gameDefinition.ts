@@ -30,6 +30,7 @@ export const EighteenThirtyTitleRules: EighteenXXTitleRules = {
     trainFundingRules: EighteenThirtyTrainFundingRules,
     transferRules: EighteenThirtyTransferRules,
     privatePowerRules: EighteenThirtyPrivatePowerRules,
+    outOfTurnPrivatePowers: true,
     createOpening: createEighteenThirtyOpening,
     stockRules: EighteenThirtyStockRules,
     companyRules: EighteenThirtyCompanyRules,

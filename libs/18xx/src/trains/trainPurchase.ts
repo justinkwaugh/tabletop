@@ -17,6 +17,8 @@ export interface TrainRules {
     phaseAfterPurchase(state: TrainPurchaseState, definitionId: string): string
     trainLimit(state: TrainPurchaseState, companyId: string): number
     purchaseLimit(state: TrainPurchaseState, companyId: string): number | 'unlimited'
+    /** Privates that close when the company acquires a train by any purchase. */
+    privatesClosedByPurchase?(state: TrainPurchaseState, companyId: string): readonly string[]
 }
 export const TrainPurchaseRequest = Type.Object(
     {

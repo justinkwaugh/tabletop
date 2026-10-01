@@ -10,11 +10,13 @@
     "ContinueOperatingRound": "9739c28a94fcb60ac7e05435f2d25ccba70f5534d4a28a43ac2107ec3f896637",
     "ContributeTrainFunds": "85fd1b57cdfc74e0e0f0957a5e663792f1cb12ab188988ba50b44dd5dc613931",
     "DeclareBankruptcy": "5ca00ef2afae7da19d8382234c57cd00091c69f2ad589e3567a9fa05be5509ed",
+    "DeclinePrivateStation": "ce1bfbb0f0ac4408af2b725bfbe1037ae3dc04df978e59fc50b3164d7f4dd57b",
     "DeclinePrivateTile": "c4982db809f4f024354b9e0731dd49c5dcdf66c07687110e8325a3de35e0c8c4",
     "DiscardTrain": "8d2c18c38e3ffb08d8e767feedeb10f8cdaa07040957663c99cd38d350c50748",
     "DistributeEarnings": "988bf4d9f9caadcc669ceaf88c4049b0c6c6bf2baa69c42ab537d17527b3faae",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "ExchangePrivate": "04f1cc7dcb50539f7b72478c94a84f3996458316fc713deec6d5ecb20931dac0",
+    "ExchangePrivateOutOfTurn": "6cd048241f9e32fe09307b717575faaeaf44b3efc7b0e8aeb1360b8b64511065",
     "FinishOperatingTurn": "5e9be2c15f5d19459fbfb1bd77c2c5d5d1a17860434e9ab50c813192dfae400b",
     "FinishStations": "844f37a3e8db6526dc8a4ae6cdbf8396fb3d353a05b4a154957a5dc62d2aa9b6",
     "FinishStockTurn": "79fc138318816a4f6d12247426c0b62f68decdbb963f468023074a96a65c1d3c",
@@ -23,11 +25,14 @@
     "FundTrain": "5c7f49d1dd2ddceaa51ef5898e96eadd7d79642915f997edc5fdd7fb5b0bccb0",
     "IssueTreasuryShares": "3bbce033d8ebe42dac7bc33733bf426d5713ddb6c2ce9543190d51d3aaf41d9f",
     "LayPrivateTile": "c8d97811dbc839c2d8fdf5e51ddac49143a685df1c80e2d5573dcd1c286bf298",
+    "LayPrivateTileOutOfTurn": "36048a1ec0ce97465063e728db991361857ee8c3e07b5f812390c62b73fa23f3",
     "LayTile": "3f0147c9c4ed30ee48cfe700899573e878d44011c2c89363ce05b2682226ee16",
     "OfferPrivatePurchase": "5e3f4cd958e602c80f8cd44f6c630cf77376ea025dc6c93ca69980fa7779f6f6",
     "OfferPurchase": "51b45483436aeef619c452fa43f86c4d58cc47d99f7aaaaf64359fd7312c23ed",
+    "ParCompany": "6a409055ad56f428380545ba22bbc86b94d09e7b434d52455ab1872d17cc5af7",
     "PassAuction": "0787d832446a6a789d06e769e79b3f3ef5b630bebc1247a975940bb6979e64a1",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
+    "PlacePrivateStation": "53e12862b2c005cf6bc053fe7855bcd6fdf3aec9607976e3d8b5eb543514e8c0",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
     "RaiseAuctionBid": "57f6e49b2afa7412f2013d16dc6a2d38e83627165798e3eed00cb1566354e055",
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
@@ -1733,6 +1738,24 @@
         },
         "type": "array"
       },
+      "pendingPar": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "playerId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyId",
+          "playerId"
+        ],
+        "type": "object"
+      },
       "phaseChange": {
         "additionalProperties": false,
         "properties": {
@@ -1994,6 +2017,34 @@
         "required": [
           "companyId",
           "passedPlayerIds"
+        ],
+        "type": "object"
+      },
+      "privateStation": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "locationId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "playerId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "privateCompanyId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyId",
+          "locationId",
+          "playerId",
+          "privateCompanyId"
         ],
         "type": "object"
       },

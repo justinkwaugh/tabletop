@@ -64,6 +64,7 @@ export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'
 export { default as AuctionBidControl } from './auctions/AuctionBidControl.svelte'
 export { default as OfferAuctionBidding } from './auctions/OfferAuctionBidding.svelte'
 export { default as WaterfallAuctionLots } from './auctions/WaterfallAuctionLots.svelte'
+export { default as CompanyPar } from './stock/CompanyPar.svelte'
 export { default as WaterfallAuctionBidding } from './auctions/WaterfallAuctionBidding.svelte'
 
 export { default as PrivateCard } from './privates/PrivateCard.svelte'

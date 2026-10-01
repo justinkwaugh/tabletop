@@ -10,6 +10,7 @@ import {
 import { settleCashPayments } from '../finance/cashPayments.js'
 import { trainCanBeTraded, trainsOwnedBy } from '../trains/train.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
+import { closePrivatesOnTrainPurchase } from '../trains/buyTrain.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
 
 const Id = Type.String({ minLength: 1 })
@@ -156,6 +157,7 @@ export function settlePurchaseOffer(
         const train = state.trainInventory.trains.find((item) => item.id === asset.trainId)
         assert(train?.status === 'owned', 'The train must still be owned')
         train.owner = owner
+        closePrivatesOnTrainPurchase(state, trains, offer.companyId)
     } else {
         const certificate = state.certificates.find(
             (item) =>

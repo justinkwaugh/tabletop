@@ -1,7 +1,10 @@
 import { assert } from '@tabletop/common'
 import {
     ChooseHomeStation,
+    DeclinePrivateStation,
     FinishStations,
+    PlacePrivateStation,
+    privateStationPositions,
     PlaceStation,
     pendingHomeChoice,
     StationPlacement,
@@ -9,6 +12,7 @@ import {
     type EighteenXXState,
     type EighteenXXTitleRules,
     type HomePosition,
+    type StationPosition,
     type StationRequest
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
@@ -21,7 +25,7 @@ import {
 } from './stationSelection.js'
 
 export type StationsState = ConstructorParameters<typeof StationPlacement>[0] &
-    Pick<EighteenXXState, 'machineState'>
+    Pick<EighteenXXState, 'machineState' | 'privateStation'>
 export type StationsSession<State extends StationsState = StationsState> = ModuleSession<
     State,
     Pick<EighteenXXTitleRules, 'stationRules'>
@@ -102,6 +106,43 @@ export class StationsModule<State extends StationsState> {
             : []
     )
 
+    privateStation = $derived.by(() =>
+        this.session.interactive && this.session.validActionTypes.includes('PlacePrivateStation')
+            ? this.session.state.privateStation
+            : undefined
+    )
+    privateStationPositions = $derived.by(() =>
+        this.privateStation
+            ? privateStationPositions(
+                  this.session.state,
+                  this.session.rules.stationRules,
+                  this.privateStation
+              )
+            : []
+    )
+    privateStationLocationIds = $derived.by(() => [
+        ...new Set(this.privateStationPositions.map((position) => position.locationId))
+    ])
+
+    async placePrivateStation(position: StationPosition) {
+        const pending = this.privateStation
+        assert(pending, 'No private station is pending')
+        await this.session.applyAction(
+            this.session.createPlayerAction(PlacePrivateStation, {
+                privateCompanyId: pending.privateCompanyId,
+                position
+            })
+        )
+    }
+    async declinePrivateStation() {
+        const pending = this.privateStation
+        assert(pending, 'No private station is pending')
+        await this.session.applyAction(
+            this.session.createPlayerAction(DeclinePrivateStation, {
+                privateCompanyId: pending.privateCompanyId
+            })
+        )
+    }
     async chooseHome(position: HomePosition) {
         const choice = this.homeChoice
         assert(this.canChooseHome && choice, 'No home city choice is pending')

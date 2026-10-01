@@ -35,6 +35,10 @@ describe('company flotation', () => {
         }
         const player = () => ({ kind: 'player', playerId: state.activePlayerIds[0] }) as const
         while (state.machineState === 'WaterfallAuction') {
+            if (state.pendingPar) {
+                act('ParCompany', { companyId: 'BO', marketSpaceId: '0:6' })
+                continue
+            }
             const auction = new ReserveBidAuction(state, EighteenThirtyAuctionRules)
             const lotId = auction.auction.remainingLotIds[0]
             act('BuyAuctionLot', { lotId, expectedPrice: auction.price(lotId) })

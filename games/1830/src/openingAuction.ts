@@ -1,7 +1,8 @@
 import { EighteenThirtyMajors } from './majors.js'
 import { assert } from '@tabletop/common'
 import {
-    awardPrivate,
+    awardCertificates,
+    requirePar,
     createOrdinaryShareCertificates,
     privateIncomePayments,
     settleCashPayments,
@@ -29,11 +30,23 @@ export const EighteenThirtyStartingCash: Readonly<Record<number, number>> = {
     6: 400
 }
 
+// C&A's first buyer receives a PRR share; B&O's receives B&O's president's certificate.
+const EighteenThirtyAwardedShares: Readonly<Record<string, readonly string[]>> = {
+    CA: ['PRR:share:1'],
+    BOP: ['BO:president']
+}
+
 export const EighteenThirtyAuctionRules: WaterfallAuctionRules = {
     lots: (state) => EighteenThirtyPrivateCatalog.lots(state),
     increment: 5,
     bidOrder: 'lowest-bid-first',
-    award: awardPrivate,
+    award(state, award) {
+        awardCertificates(state, award, [
+            `${award.lotId}:charter`,
+            ...(EighteenThirtyAwardedShares[award.lotId] ?? [])
+        ])
+        if (award.lotId === 'BOP') requirePar(state, 'BO', award.playerId)
+    },
     payIncome(state) {
         settleCashPayments(state, privateIncomePayments(state))
     }

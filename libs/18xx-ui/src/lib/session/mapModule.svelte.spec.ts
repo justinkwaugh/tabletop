@@ -218,4 +218,61 @@ describe('MapModule', () => {
             { type: 'ChooseHomeStation', companyId: TestCompanyId, ...home }
         ])
     })
+
+    it('places a pending private station on a click anywhere on its one-city tile', async () => {
+        const base = minimalPlayState()
+        const state = {
+            ...base,
+            machineState: 'LayingTrack',
+            companies: base.companies.map((company) => ({ ...company, floated: true })),
+            tileInventory: tileSet.createInventory(),
+            trackStep: { companyId: TestCompanyId, lays: [], completed: false },
+            usedPrivatePowerIds: [],
+            stations: [
+                {
+                    id: `${TestCompanyId}:station:1`,
+                    companyId: TestCompanyId,
+                    status: 'available' as const
+                }
+            ],
+            privateStation: {
+                privateCompanyId: 'P',
+                companyId: TestCompanyId,
+                playerId: base.players[0].playerId,
+                locationId: TestTrackHomeLocationId
+            }
+        }
+        const { session, applied } = testSession(state, rules, [
+            'PlacePrivateStation',
+            'DeclinePrivateStation'
+        ])
+        const stations = new StationsModule(
+            session,
+            () => {},
+            () => false
+        )
+        const track = new TrackModule(
+            session,
+            () => view,
+            { selection: undefined, trackPowerSelection: undefined },
+            { selectPrivateTile: () => {}, confirm: async () => {} },
+            () => {}
+        )
+        const routes = new RoutesModule(
+            session,
+            () => {},
+            () => []
+        )
+        const map = new MapModule(session, () => view, track, stations, routes)
+        expect(stations.privateStationLocationIds).toEqual([TestTrackHomeLocationId])
+        map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
+        await Promise.resolve()
+        expect(applied).toMatchObject([
+            {
+                type: 'PlacePrivateStation',
+                privateCompanyId: 'P',
+                position: { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
+            }
+        ])
+    })
 })

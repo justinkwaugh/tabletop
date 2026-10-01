@@ -9,7 +9,7 @@ The public entry point exports `EighteenThirtyMap` (the complete pointy-hex map)
 `EighteenThirtyTileSet` (46 shared definitions, 85 pieces), the companies, privates,
 trains, phases and market, and the `Definition` whose opening is the reserved
 waterfall auction for 2–6 players. The configurator offers the extra 6-train and
-multiple brown shares from the IPO; the latter has no effect yet. Scenario
+multiple brown shares from the IPO. Scenario
 initialization is available from `@tabletop/1830/scenarios`.
 
 ## Rule evidence
@@ -17,8 +17,10 @@ initialization is available from `@tabletop/1830/scenarios`.
 The research site's implementation defines the rules (project decision,
 2026-10-01). It follows the Lookout 1830-RE rulebook. See the
 [title design note](../../research/18xx/1830-title-design.md) for sources, the
-delivery slices, and the intentional limits so far: privates have no powers or
-awards, and offboard groups are not yet enforced. Stock turns are sell–buy–sell,
+delivery slices, and the intentional limits so far: offboard groups are not yet
+enforced. The privates carry their powers and awards: C&A's PRR share, B&O's
+presidency and par (and its closure on B&O's first train), C&StL's and D&H's lays,
+D&H's station, and M&H's exchange for an NYC share. Stock turns are sell–buy–sell,
 brown-zone shares of one company can be bought several at a time, and players sell
 privates to one another by offer and acceptance. Erie reserves both Buffalo cities; its home goes in the first
 city when it first operates, unless Buffalo already has a tile with track, when its president

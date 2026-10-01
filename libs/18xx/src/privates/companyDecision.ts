@@ -13,6 +13,11 @@ export const PrivateTrackLay = Type.Object(
     { additionalProperties: false }
 )
 export type PrivateTrackLay = Type.Static<typeof PrivateTrackLay>
+export const PrivateStation = Type.Object(
+    { privateCompanyId: Id, companyId: Id, playerId: Id, locationId: Id },
+    { additionalProperties: false }
+)
+export type PrivateStation = Type.Static<typeof PrivateStation>
 export const TrackConsent = Type.Object(
     { id: Id, playerId: Id, details: TrackLayDetails },
     { additionalProperties: false }
@@ -28,6 +33,7 @@ export const CompanyDecisionFields = {
     privatePowerRequests: Type.Optional(Type.Array(Id, { uniqueItems: true })),
     purchaseOffer: Type.Optional(PendingPurchaseOffer),
     privateTrackLay: Type.Optional(PrivateTrackLay),
+    privateStation: Type.Optional(PrivateStation),
     trackConsent: Type.Optional(TrackConsent),
     usedPrivatePowerIds: Type.Array(Id, { uniqueItems: true })
 }
@@ -38,13 +44,23 @@ export type CompanyDecisionState = StockState &
     PhaseState &
     Type.Static<Type.TObject<typeof CompanyDecisionFields>> & { machineState: string }
 export function pendingCompanyDecision(state: CompanyDecisionState): boolean {
-    return !!(state.purchaseOffer || state.privateTrackLay || state.trackConsent)
+    return !!(
+        state.purchaseOffer ||
+        state.privateTrackLay ||
+        state.privateStation ||
+        state.trackConsent
+    )
 }
 
 export function validateCompanyDecisions(
     state: Pick<
         CompanyDecisionState,
-        'machineState' | 'privatePowerWindow' | 'purchaseOffer' | 'privateTrackLay' | 'trackConsent'
+        | 'machineState'
+        | 'privatePowerWindow'
+        | 'purchaseOffer'
+        | 'privateTrackLay'
+        | 'privateStation'
+        | 'trackConsent'
     > & { players: readonly { playerId: string }[] }
 ): void {
     if (state.privatePowerWindow)
@@ -52,7 +68,12 @@ export function validateCompanyDecisions(
             state.machineState === 'OperatingSet',
             'The private power window belongs between companies'
         )
-    const pending = [state.purchaseOffer, state.privateTrackLay, state.trackConsent].filter(Boolean)
+    const pending = [
+        state.purchaseOffer,
+        state.privateTrackLay,
+        state.privateStation,
+        state.trackConsent
+    ].filter(Boolean)
     assert(pending.length <= 1, 'Resolve the current company decision before starting another')
     if (!pending.length) return
     assert(
@@ -65,6 +86,7 @@ export function validateCompanyDecisions(
     const playerId =
         state.purchaseOffer?.sellerPlayerId ??
         state.privateTrackLay?.playerId ??
+        state.privateStation?.playerId ??
         state.trackConsent?.details.consentPlayerId
     assert(
         state.players.some((player) => player.playerId === playerId),

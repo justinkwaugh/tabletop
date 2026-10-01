@@ -17,6 +17,8 @@ import {
     type TrainRules
 } from './trainPurchase.js'
 import { unownedTrain, type TrainPurchaseState } from './train.js'
+import { getCompany } from '../finance/finance.js'
+import { closePrivate } from '../privates/privateCompany.js'
 export const BuyTrain = Type.Object(
     {
         ...PlayerAction.properties,
@@ -88,8 +90,18 @@ export function applyTrainPurchase(
     })
     if (state.trainPurchaseStep?.companyId === details.companyId)
         state.trainPurchaseStep.purchasedTrainIds.push(details.trainId)
+    closePrivatesOnTrainPurchase(state, rules, details.companyId)
     preparePhaseChange(state, details.trainId, details.definitionId, toPhaseId, {
         machineState: state.machineState,
         companyId: details.companyId
     })
+}
+
+export function closePrivatesOnTrainPurchase(
+    state: TrainPurchaseState,
+    rules: TrainRules,
+    companyId: string
+): void {
+    for (const privateCompanyId of rules.privatesClosedByPurchase?.(state, companyId) ?? [])
+        if (!getCompany(state, privateCompanyId).closed) closePrivate(state, privateCompanyId)
 }

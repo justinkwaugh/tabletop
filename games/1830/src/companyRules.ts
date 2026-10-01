@@ -7,6 +7,8 @@ import {
 } from '@tabletop/18xx'
 
 export const EighteenThirtyCompanyRules: CompanyRules = {
+    // The B&O private's buyer receives B&O's president's certificate and sets its par at once.
+    parAfterAward: true,
     startMarketSpaces: (state) =>
         state.stockMarket.spaces.filter((space) => space.color === 'pink').map((space) => space.id),
     startTerms(state, companyId, buyer, marketSpaceId) {

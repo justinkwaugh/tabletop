@@ -2,6 +2,7 @@
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
     import {
+        CompanyPar,
         GameTable,
         OperatingActions,
         WaterfallAuctionBidding,
@@ -19,7 +20,9 @@
 
 <GameTable {session} privateOperationDescription={noPrivateOperations}>
     {#snippet actions(_focusLocation, focusRoute)}
-        {#if session.waterfall.model && !session.waterfall.model.auction.completed}
+        {#if session.gameState.pendingPar}
+            <CompanyPar {session} />
+        {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
             {#if session.waterfall.model.auction.bidding}
                 <WaterfallAuctionBidding {session} />
             {:else}

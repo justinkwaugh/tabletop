@@ -3,6 +3,7 @@ import {
     BuyShares,
     FinishStockTurn,
     OfferPrivatePurchase,
+    ParCompany,
     SellShares,
     StartCompany,
     evaluateCompanyStart,
@@ -48,7 +49,10 @@ type StockState = Parameters<typeof evaluateCompanyStart>[0] &
     Parameters<typeof evaluateShareSale>[0] &
     Parameters<typeof flotationAfterPurchase>[0] &
     Parameters<typeof exceedsStockLimits>[0] &
-    Pick<EighteenXXState, 'machineState' | 'stockRound' | 'activePlayerIds' | 'purchaseOffer'>
+    Pick<
+        EighteenXXState,
+        'machineState' | 'stockRound' | 'activePlayerIds' | 'purchaseOffer' | 'pendingPar'
+    >
 
 export type StockSession = ModuleSession<
     StockState,
@@ -165,6 +169,29 @@ export class StockModule implements LocalSelection {
               )
             : undefined
     )
+
+    pendingPar = $derived.by(() => this.session.state.pendingPar)
+    canPar = $derived.by(
+        () => this.session.interactive && this.session.validActionTypes.includes('ParCompany')
+    )
+    parSpaceIds = $derived.by(() =>
+        this.pendingPar
+            ? this.session.rules.companyRules.startMarketSpaces(
+                  this.session.state,
+                  this.pendingPar.companyId
+              )
+            : []
+    )
+    async parCompany(marketSpaceId: string) {
+        const pending = this.pendingPar
+        assert(this.canPar && pending, 'No par is awaiting this player')
+        await this.session.applyAction(
+            this.session.createPlayerAction(ParCompany, {
+                companyId: pending.companyId,
+                marketSpaceId
+            })
+        )
+    }
 
     purchaseChoices = $derived.by(() => {
         const { state, rules, playerId } = this.session

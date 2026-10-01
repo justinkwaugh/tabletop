@@ -370,6 +370,103 @@ private-company sales between players.
   cash and private move, or declines and the buyer's turn continues. Neither is
   possible in the first stock round or for B&O.
 
+## Slice 4 design: private powers
+
+Slice 4 gives the six privates their reference powers and awards: C&A's PRR
+share, B&O's presidency and par, B&O closing on its railroad's first train,
+C&StL's extra lay, D&H's lay and station, and M&H's exchange for an NYC share.
+
+### Evidence
+
+The reference's [entities] define each private's abilities.
+
+- **C&A** has a `shares` ability for `PRR_1`: the first buyer receives one PRR
+  share free when the auction awards the private. The share counts as sold
+  towards PRR's float and may be kept or sold under the ordinary rules.
+- **B&O** has `shares` for `B&O_0`, the president's certificate. The auction
+  then waits for its owner to set B&O's par before anything else happens. B&O is
+  the last lot of the waterfall, so in practice the par comes just before the
+  first stock round. B&O also has `close` `when: 'bought_train'` for the B&O
+  railroad, which closes it on any train the railroad buys (from the depot or
+  another company), and `no_buy`.
+- **C&StL** has `tile_lay`, `owner_type: 'corporation'`, `when:
+'owning_corp_or_turn'`, on B20 with tiles 3, 4 or 58, once. The lay comes in
+  addition to the ordinary lay, needs no connection, and costs nothing (B20 has
+  no terrain).
+- **D&H** has `teleport`, `owner_type: 'corporation'`, with tile 57 on F16. The
+  lay is the company's ordinary lay for the turn and pays F16's $120 mountain.
+  The company may then place its next station on F16 free and without a
+  connection, and that station is the turn's station. The station can be
+  declined.
+- **M&H** has `exchange`, `owner_type: 'player'`, `when: 'any'`, for an NYC
+  share from the IPO or the market. The exchange is subject to the ordinary
+  60% holding limit, is allowed before NYC has a par, and closes M&H.
+
+### Decisions
+
+- **Awards are title code.** 1830's auction `award` gives the private, then C&A's
+  PRR share or B&O's president's certificate, through the family's
+  `awardCertificates`, as TOP does.
+- **An awarded presidency is parred at once.** `CompanyRules.parAfterAward`
+  opts a title into the family's pending par. The award records `pendingPar`
+  (company and player), an optional family field. The waterfall auction then
+  moves to a `ParringCompany` state, where that player's `ParCompany` action
+  chooses a starting space from `startMarketSpaces`. The action starts the
+  company and makes the player president without a purchase. Play then returns
+  to the auction, which completes and starts the first stock round. Titles
+  without the option register neither the state nor the action.
+- **Closing on a train purchase is a train rule.**
+  `TrainRules.privatesClosedByPurchase` names the open privates that close when
+  a company buys a train. The family applies it to depot purchases, private-power
+  train purchases and accepted intercompany offers. 1830 names B&O for the B&O
+  railroad.
+- **C&StL uses the family's private tile lay.** Its `trackTerms` apply while the
+  company that owns C&StL is operating, in any operating step. The lay is free
+  and unconnected, and the operating company is the payer.
+- **D&H extends the private tile lay.** `PrivateTrackTerms` gains two optional
+  flags:
+    - `ordinaryLay`: the lay counts as the company's ordinary lay, so D&H is
+      offered only before the company has laid a tile this turn;
+    - `station`: after the lay, the company decides whether to place a station
+      there.
+
+    The station decision is a new optional family field, `privateStation`. The
+    president answers it with `PlacePrivateStation` (any open slot on the laid
+    tile, free, no connection) or `DeclinePrivateStation`. A placed station opens
+    the turn's station step with that station already placed, so the station
+    step has no placement left. The decision is skipped when the company has no
+    station left or the tile has no open slot.
+
+- **M&H uses the family exchange.** Its `exchangeTerms` offer NYC's single
+  shares from the IPO and the market, `any-turn`, with no stock action and the
+  ordinary holding limit. 1830 sets `outOfTurnPrivatePowers`, so the exchange is
+  also offered between other players' and companies' turns.
+- **Interface.** A shared par prompt replaces the auction panel while a par is
+  pending, with the starting prices as market-coloured buttons. The D&H station
+  is chosen by clicking F16 on the map, with a Decline button; the track picker
+  gives up map clicks while the decision is pending. The other powers use the
+  existing private-lay and exchange controls.
+
+### Limits after slice 4
+
+- Private cards describe the powers in text only; there is no title artwork.
+
+### Acceptance examples
+
+- The C&A winner owns `PRR:share:1` without paying more, and it counts towards
+  PRR's float.
+- The B&O winner owns B&O's president's certificate and must set B&O's par
+  before the first stock round. The par starts B&O with that player as president
+  and no cash moved.
+- B&O's first train purchase, of any kind, closes the B&O private.
+- A company owning C&StL lays tile 3, 4 or 58 on B20 without a connection, in
+  addition to its ordinary lay.
+- A company owning D&H lays 57 on F16, which uses its ordinary lay and pays $120,
+  then places a free station there that uses its station placement, or
+  declines it.
+- The M&H owner exchanges it for an NYC share in their stock turn, between
+  turns, or during an operating round, within the 60% limit.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/entities.rb

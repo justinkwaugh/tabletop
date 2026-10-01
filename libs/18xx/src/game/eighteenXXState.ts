@@ -2,10 +2,12 @@ import { GameEnding } from '../ending/gameEnding.js'
 import { EndingFields, type PlayerWealth } from '../ending/finalWealth.js'
 import { OfferPileFields, type OfferPileAuction } from '../auctions/offerPileAuction.js'
 import { AuctionFields, type WaterfallAuction } from '../auctions/waterfallAuction.js'
+import { validatePendingPar, type PendingPar } from '../company/pendingPar.js'
 import { FundingFields, type TrainFunding, type Bankruptcy } from '../funding/trainFunding.js'
 import {
     CompanyDecisionFields,
     type PrivateTrackLay,
+    type PrivateStation,
     type TrackConsent,
     type PrivatePowerWindow
 } from '../privates/companyDecision.js'
@@ -143,6 +145,7 @@ export class HydratedEighteenXXState
 {
     declare offerAuction?: OfferPileAuction
     declare openingAuction?: WaterfallAuction
+    declare pendingPar?: PendingPar
     declare trainFunding?: TrainFunding
     declare bankruptcy?: Bankruptcy
     declare gameEnding?: GameEnding
@@ -152,6 +155,7 @@ export class HydratedEighteenXXState
     declare purchaseOffer?: PendingPurchaseOffer
     declare stockTurnPurchases?: StockTurnPurchase[]
     declare privateTrackLay?: PrivateTrackLay
+    declare privateStation?: PrivateStation
     declare trackConsent?: TrackConsent
     declare usedPrivatePowerIds: string[]
     declare earningsDistribution?: EarningsDetails
@@ -195,6 +199,7 @@ export class HydratedEighteenXXState
         validateTrackStep(this)
         validateStationStep(this)
         validateWaterfallAuction(this)
+        validatePendingPar(this)
         validateTrainFunding(this)
         validateFinalResults(this)
         validateCompanyDecisions(this)

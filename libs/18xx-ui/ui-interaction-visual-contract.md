@@ -602,6 +602,20 @@ round. Continuing declines only that window, retaining the unused power. The cho
 and resulting automatic company start form a normal Undo history step. Automatic
 private income and required home stations resolve before this optional window.
 
+A private lay that offers a station (a title's `stationPrivateIds`, such as 1830's D&H)
+leaves a committed private station decision in Game State. While it is pending the
+track picker gives up map clicks, the placement mask and focus show the laid hex, and
+the action panel prompts "[company]: click the highlighted city for [private]'s free
+station, or Decline". A click anywhere on a one-city tile, or on an offered city of a
+multi-city tile, submits PlacePrivateStation directly; Decline submits
+DeclinePrivateStation. There is no confirmation stage. A placed station shows the
+station step as Placed and the step completes automatically.
+
+A pending par after an opening award (a title's `parAfterAward`, such as 1830's B&O)
+replaces the auction panel with "[player] sets [company]'s par." Only the entitled
+player sees the par prices, as buttons in market colours. A click submits ParCompany
+directly; the auction then completes and the first stock round begins.
+
 ### Compulsory train funding
 
 The prototype funding panel shows the selected train, remaining shortfall,

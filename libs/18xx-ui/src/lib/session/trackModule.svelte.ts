@@ -22,7 +22,7 @@ import { TrackStageOrder, type TrackSelection, type TrackStages } from './trackS
 
 type TrackState = ConstructorParameters<typeof TrackConstruction>[0] &
     Parameters<typeof privateTrackConstruction>[0] &
-    Pick<EighteenXXState, 'machineState' | 'trackStep' | 'trackConsent'>
+    Pick<EighteenXXState, 'machineState' | 'trackStep' | 'trackConsent' | 'privateStation'>
 
 export type TrackSession = ModuleSession<
     TrackState,
@@ -48,7 +48,9 @@ export class TrackModule {
     private laying = $derived.by(
         () =>
             !!this.privateActions.trackPowerSelection ||
-            (this.session.state.machineState === 'LayingTrack' && !this.privateActions.selection)
+            (this.session.state.machineState === 'LayingTrack' &&
+                !this.session.state.privateStation &&
+                !this.privateActions.selection)
     )
     selection = $derived.by(
         (): TrackSelection =>

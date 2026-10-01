@@ -19,6 +19,9 @@ import {
     isCompleteStockRound,
     isPrivateExchangeAction,
     isOfferPrivatePurchase,
+    isParCompany,
+    isPlacePrivateStation,
+    isDeclinePrivateStation,
     isCompanyPurchaseOffer,
     isReserveBid,
     isRaiseAuctionBid,
@@ -112,6 +115,13 @@ export function historyDescription(
             text: `Laid track at ${action.locationId} with ${companyName(action.privateCompanyId)}`,
             value: action.expectedCost ? money(action.expectedCost) : undefined
         }
+    if (isPlacePrivateStation(action))
+        return {
+            text: `Station at ${action.position.locationId} with ${companyName(action.privateCompanyId)}`,
+            value: 'Free'
+        }
+    if (isDeclinePrivateStation(action))
+        return { text: `Declined the ${companyName(action.privateCompanyId)} station` }
     if (isPlaceStation(action))
         return {
             text: `Station at ${action.position.locationId}`,
@@ -221,6 +231,14 @@ export function historyDescription(
                 : undefined,
             important: true
         }
+    if (isParCompany(action)) {
+        const space = state.stockMarket.spaces.find((item) => item.id === action.marketSpaceId)
+        assertExists(space, 'Recorded par requires its market space')
+        return {
+            text: `Set ${companyName(action.companyId)}’s par at ${money(space.price)}`,
+            important: true
+        }
+    }
     if (isPrivateExchangeAction(action))
         return {
             text: `Exchanged ${companyName(action.privateCompanyId)}`,

@@ -27,6 +27,7 @@ import {
 } from './layPrivateTile.js'
 import { hasLegalPrivateTrackUse } from './privatePowerRequest.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
+import { HydratedDeclinePrivateStation, HydratedPlacePrivateStation } from './privateStation.js'
 import { pendingCompanyDecision, type CompanyDecisionState } from './companyDecision.js'
 import type { PrivatePowerRules } from './privatePowers.js'
 export function isCompanyDecisionAction(
@@ -39,6 +40,8 @@ export function isCompanyDecisionAction(
     | HydratedLayPrivateTile
     | HydratedLayPrivateTileOutOfTurn
     | HydratedDeclinePrivateTile
+    | HydratedPlacePrivateStation
+    | HydratedDeclinePrivateStation
     | HydratedBuyPrivateTrain {
     return (
         action instanceof HydratedOfferPurchase ||
@@ -48,6 +51,8 @@ export function isCompanyDecisionAction(
         action instanceof HydratedLayPrivateTile ||
         action instanceof HydratedLayPrivateTileOutOfTurn ||
         action instanceof HydratedDeclinePrivateTile ||
+        action instanceof HydratedPlacePrivateStation ||
+        action instanceof HydratedDeclinePrivateStation ||
         action instanceof HydratedBuyPrivateTrain
     )
 }
@@ -94,6 +99,10 @@ export class CompanyDecisionsHandler<
             return state.privateTrackLay.playerId === playerId
                 ? ['LayPrivateTile', 'DeclinePrivateTile']
                 : []
+        if (state.privateStation)
+            return state.privateStation.playerId === playerId
+                ? ['PlacePrivateStation', 'DeclinePrivateStation']
+                : []
         const actions = this.handler.validActionsForPlayer(playerId, context)
         const companyId = this.transfers.operatingCompany(state)
         if (companyId && controllingOwner(state, companyId)?.playerId === playerId) {
@@ -138,6 +147,7 @@ export class CompanyDecisionsHandler<
         const playerId =
             state.purchaseOffer?.sellerPlayerId ??
             state.privateTrackLay?.playerId ??
+            state.privateStation?.playerId ??
             state.trackConsent?.details.consentPlayerId
         if (pendingCompanyDecision(state)) {
             assert(playerId, 'A pending decision requires its player')

@@ -38,6 +38,9 @@ type Stations = Pick<
     | 'homeChoice'
     | 'homeLocationIds'
     | 'chooseHome'
+    | 'privateStationPositions'
+    | 'privateStationLocationIds'
+    | 'placePrivateStation'
 >
 type Routes = Pick<
     RoutesModule<RoutesSession['state']>,
@@ -204,6 +207,8 @@ export class MapModule {
             this.routes.selectStart({ locationId: selection.locationId, nodeId: selection.nodeId })
         else if (this.stations.homeLocationIds.includes(selection.locationId))
             this.chooseHome(selection)
+        else if (this.stations.privateStationLocationIds.includes(selection.locationId))
+            this.placePrivateStation(selection)
         else if (this.stations.canPlace && this.stations.locationIds.includes(selection.locationId))
             this.placeStation(selection)
         else if (allowInspection) this.inspect(selection)
@@ -216,6 +221,20 @@ export class MapModule {
                 position.locationId === selection.locationId && position.nodeId === selection.nodeId
         )
         if (position) void this.stations.chooseHome(position)
+    }
+    private placePrivateStation(selection: MapSelection) {
+        const positions = this.stations.privateStationPositions.filter(
+            (position) => position.locationId === selection.locationId
+        )
+        const position =
+            positions.length === 1
+                ? positions[0]
+                : positions.find(
+                      (position) =>
+                          (selection.kind === 'slot' || selection.kind === 'node') &&
+                          position.nodeId === selection.nodeId
+                  )
+        if (position) void this.stations.placePrivateStation(position)
     }
     private placeStation(selection: MapSelection) {
         const location = this.scene.locations.find(

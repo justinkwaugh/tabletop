@@ -1727,6 +1727,24 @@
         },
         "type": "array"
       },
+      "pendingPar": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "playerId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyId",
+          "playerId"
+        ],
+        "type": "object"
+      },
       "phaseChange": {
         "additionalProperties": false,
         "properties": {
@@ -1988,6 +2006,34 @@
         "required": [
           "companyId",
           "passedPlayerIds"
+        ],
+        "type": "object"
+      },
+      "privateStation": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "locationId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "playerId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "privateCompanyId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyId",
+          "locationId",
+          "playerId",
+          "privateCompanyId"
         ],
         "type": "object"
       },

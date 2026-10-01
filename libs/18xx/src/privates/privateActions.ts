@@ -2,6 +2,7 @@ import { defineAction, type ActionDefinition } from '../actions/actionDefinition
 import type { StockRules } from '../stock/stockRules.js'
 import type { TrackRules } from '../construction/trackConstruction.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
+import type { StationRules } from '../stations/stationPlacement.js'
 import type { PrivatePowerRules } from './privatePowers.js'
 import type { PrivateRules } from './privateRules.js'
 import {
@@ -37,6 +38,14 @@ import {
     isExchangePrivate,
     isExchangePrivateOutOfTurn
 } from './exchangePrivate.js'
+import {
+    DeclinePrivateStation,
+    HydratedDeclinePrivateStation,
+    HydratedPlacePrivateStation,
+    PlacePrivateStation,
+    isDeclinePrivateStation,
+    isPlacePrivateStation
+} from './privateStation.js'
 
 export function privateActions(rules: {
     privateRules: PrivateRules
@@ -44,8 +53,14 @@ export function privateActions(rules: {
     stockRules: StockRules
     trackRules: TrackRules
     trainRules: TrainRules
+    stationRules: StationRules
     outOfTurnPrivatePowers?: boolean
 }): ActionDefinition[] {
+    const layRules = {
+        powers: rules.privatePowerRules,
+        track: rules.trackRules,
+        stations: rules.stationRules
+    }
     const outOfTurnActions = rules.outOfTurnPrivatePowers
         ? [
               defineAction(
@@ -61,12 +76,7 @@ export function privateActions(rules: {
               defineAction(
                   LayPrivateTileOutOfTurn,
                   isLayPrivateTileOutOfTurn,
-                  (action) =>
-                      new HydratedLayPrivateTileOutOfTurn(
-                          action,
-                          rules.privatePowerRules,
-                          rules.trackRules
-                      )
+                  (action) => new HydratedLayPrivateTileOutOfTurn(action, layRules)
               )
           ]
         : []
@@ -81,6 +91,20 @@ export function privateActions(rules: {
                   DropPrivatePowerRequest,
                   isDropPrivatePowerRequest,
                   (action) => new HydratedDropPrivatePowerRequest(action)
+              )
+          ]
+        : []
+    const stationActions = rules.privatePowerRules.stationPrivateIds?.length
+        ? [
+              defineAction(
+                  PlacePrivateStation,
+                  isPlacePrivateStation,
+                  (action) => new HydratedPlacePrivateStation(action, rules.stationRules)
+              ),
+              defineAction(
+                  DeclinePrivateStation,
+                  isDeclinePrivateStation,
+                  (action) => new HydratedDeclinePrivateStation(action)
               )
           ]
         : []
@@ -104,8 +128,7 @@ export function privateActions(rules: {
         defineAction(
             LayPrivateTile,
             isLayPrivateTile,
-            (action) =>
-                new HydratedLayPrivateTile(action, rules.privatePowerRules, rules.trackRules)
+            (action) => new HydratedLayPrivateTile(action, layRules)
         ),
         defineAction(
             ExchangePrivate,
@@ -113,6 +136,7 @@ export function privateActions(rules: {
             (action) => new HydratedExchangePrivate(action, rules.privateRules, rules.stockRules)
         ),
         ...outOfTurnActions,
-        ...requestActions
+        ...requestActions,
+        ...stationActions
     ]
 }
