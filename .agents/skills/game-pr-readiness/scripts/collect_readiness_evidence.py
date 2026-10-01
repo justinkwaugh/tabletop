@@ -24,6 +24,8 @@ TEST_NAME = re.compile(r"\.(?:spec|test|fixture)\.[^/]+$")
 HARNESS_CAST = "UiDefinition as unknown as GameUiDefinition<GameState, HydratedGameState>"
 CATALOGUE_PATH = "config/config-games/src/games.json"
 LOCKFILE_PATH = "pnpm-lock.yaml"
+PLATFORM_PACKAGES = {"@tabletop/common", "@tabletop/frontend-components"}
+ACTION_PATCH_READ = re.compile(r"\b(?:undoPatch|forwardPatch)\b")
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -190,6 +192,18 @@ def source_files(roots: list[Path]) -> list[Path]:
             if path.is_file() and path.suffix.lower() in SOURCE_SUFFIXES and not (set(path.parts) & IGNORED_PARTS):
                 files.append(path)
     return sorted(files)
+
+
+def family_library_roots(package_roots: list[Path], repo: Path) -> list[Path]:
+    libraries = {}
+    for package_json in (repo / "libs").glob("*/package.json"):
+        libraries[json.loads(package_json.read_text(encoding="utf-8"))["name"]] = package_json.parent
+    names: set[str] = set()
+    for root in package_roots:
+        manifest = json.loads((root / "package.json").read_text(encoding="utf-8"))
+        names.update(manifest.get("dependencies", {}))
+        names.update(manifest.get("devDependencies", {}))
+    return sorted(libraries[name] for name in names - PLATFORM_PACKAGES if name in libraries)
 
 
 def is_test_file(path: Path) -> bool:
@@ -450,6 +464,8 @@ def main() -> int:
     exempt_paths = [CATALOGUE_PATH] if added_entry is not None else []
     if lockfile is not None and lockfile["exempt"]:
         exempt_paths.append(LOCKFILE_PATH)
+    family_roots = family_library_roots([logic_root, ui_root], repo)
+    family_sources = [path for path in source_files([root / "src" for root in family_roots]) if not is_test_file(path)]
     images = sorted(
         path for path in ui_root.rglob("*")
         if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES and not (set(path.parts) & IGNORED_PARTS)
@@ -478,6 +494,7 @@ def main() -> int:
             r"document\.(?:body|documentElement)\.(?:style|classList|className)|document\.head\.(?:append|insertBefore)|"
             r"createElement\(['\"]style|adoptedStyleSheets|insertRule\("
         ),
+        "action_patch_read": ACTION_PATCH_READ,
     }
     logic_patterns = {
         "nondeterminism": re.compile(
@@ -527,6 +544,8 @@ def main() -> int:
         "type_escapes": type_escapes(production_scripts, ui_root, repo),
         "production_hits": find_hits(production_sources, production_patterns),
         "logic_hits": find_hits(logic_sources, logic_patterns),
+        "family_libraries": [root.relative_to(repo).as_posix() for root in family_roots],
+        "family_library_hits": find_hits(family_sources, {"action_patch_read": ACTION_PATCH_READ}),
         "versions": {
             "logic_package": package_version(logic_root),
             "ui_package": package_version(ui_root),
