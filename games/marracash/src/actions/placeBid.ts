@@ -53,7 +53,7 @@ export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implemen
         if (!isWholeDirhamAmount(amount)) {
             return { valid: false, reason: 'A bid must be a whole number of 25 Dirham' }
         }
-        if (playerId === auction.auctioneerId && amount < MinimumAuctionBid) {
+        if (amount < state.minimumBid(playerId)) {
             return { valid: false, reason: `The auctioneer must bid at least ${MinimumAuctionBid}` }
         }
         if (amount > state.getPlayerState(playerId).getMoney()) {

@@ -213,6 +213,10 @@ export class HydratedMarracashGameState extends HydratableGameState<
         )
     }
 
+    minimumBid(playerId: string): number {
+        return playerId === this.auction?.auctioneerId ? MinimumAuctionBid : 0
+    }
+
     hasVisitorsToMove(): boolean {
         return this.fountains.some((fountain) => fountain.visitors.length > 0)
     }

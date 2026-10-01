@@ -5,15 +5,12 @@
 
     const gameSession = getGameSession()
 
-    let myMoney = $derived(
-        gameSession.myPlayer
-            ? gameSession.gameState.getPlayerState(gameSession.myPlayer.id).getMoney()
-            : 0
-    )
+    let myMoney = $derived(gameSession.myMoney())
+    let minimumBid = $derived(gameSession.myMinimumBid())
     let shopId = $derived(gameSession.gameState.auctionShopId)
     let shop = $derived(shopId ? getShop(shopId) : undefined)
-    let amount = $state(gameSession.minimumBid)
-    let clampedAmount = $derived(Math.min(Math.max(amount, gameSession.minimumBid), myMoney))
+    let amount = $state(gameSession.myMinimumBid())
+    let clampedAmount = $derived(Math.min(Math.max(amount, minimumBid), myMoney))
 
     function change(step: number) {
         amount = clampedAmount + step
@@ -28,7 +25,7 @@
         <button
             class="h-8 w-8 rounded-md border border-[#8a6a46]"
             aria-label="Lower bid"
-            disabled={clampedAmount <= gameSession.minimumBid}
+            disabled={clampedAmount <= minimumBid}
             onclick={() => change(-DirhamIncrement)}>−</button
         >
         <span class="w-24 text-xl font-bold">{clampedAmount}</span>

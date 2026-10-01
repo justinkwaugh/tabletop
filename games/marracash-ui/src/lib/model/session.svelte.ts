@@ -5,7 +5,6 @@ import {
     BringVisitors,
     isValidVisitorCount,
     MaxVisitorsBroughtIn,
-    MinimumAuctionBid,
     MoveVisitors,
     PlaceBid,
     routesFrom,
@@ -95,9 +94,15 @@ export class MarracashGameSession extends GameSession<
         this.chosenVisitorCount === undefined ? [] : this.gameState.emptyEntranceIds()
     )
 
-    readonly minimumBid: number = $derived(
-        this.gameState.auction?.auctioneerId === this.myPlayer?.id ? MinimumAuctionBid : 0
-    )
+    myMoney(): number {
+        assertExists(this.myPlayer, 'Only a seated player has money to show')
+        return this.gameState.getPlayerState(this.myPlayer.id).getMoney()
+    }
+
+    myMinimumBid(): number {
+        assertExists(this.myPlayer, 'Only a seated player can bid')
+        return this.gameState.minimumBid(this.myPlayer.id)
+    }
 
     override beforeNewState() {
         this.resetAction()
