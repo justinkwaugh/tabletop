@@ -147,8 +147,8 @@ describe('setup', () => {
             ).toBe(true)
             expect(state.deck).toHaveLength(12)
             expect(state.revealedCardIds).toEqual(state.deck?.slice(0, 2))
-            expect(state.roundOrder).toHaveLength(count)
-            expect(state.activePlayerIds).toEqual([state.roundOrder[0]])
+            expect(state.turnManager.turnOrder).toHaveLength(count)
+            expect(state.activePlayerIds).toEqual([state.turnManager.turnOrder[0]])
             expect(state.players[0]).toMatchObject({ supplyRoads: 4, stagingRoads: 16 })
         }
     )
@@ -161,6 +161,21 @@ describe('setup', () => {
             Color.Gray,
             Color.Blue
         ])
+    })
+
+    it('sets the shared turn order from each round’s card', () => {
+        const state = freshState()
+        const cardColours = () =>
+            state
+                .currentCard()
+                .turnOrder.filter((color) => state.players.some((player) => player.color === color))
+        const turnOrderColours = () =>
+            state.turnManager.turnOrder.map((playerId) => state.getPlayerState(playerId).color)
+        expect(turnOrderColours()).toEqual(cardColours())
+        for (let round = 1; round < state.roundCount; round++) {
+            state.beginRound(round)
+            expect(turnOrderColours()).toEqual(cardColours())
+        }
     })
 
     it('reveals the next round’s card until the final round', () => {
@@ -680,7 +695,7 @@ describe('network, markets and oracles', () => {
         let next = MachineState.TakingTurn
         while (next === MachineState.TakingTurn) {
             handler.enter(context)
-            const playerId = state.roundOrder[state.turnIndex]
+            const playerId = state.turnManager.turnOrder[state.turnIndex]
             const predicted = state.endTurnOutcome()
             const roundBefore = state.round
             const revealedBefore = state.revealedCardIds.length

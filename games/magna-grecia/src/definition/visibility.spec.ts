@@ -113,7 +113,7 @@ describe('Magna Grecia visibility', () => {
     it('marks the turn that reveals the next card as information-revealing', () => {
         const game = createGame()
         let state = engine.startGame(game, { masterSeed }).initialState
-        const players = state.roundOrder.length
+        const players = state.turnManager.turnOrder.length
         for (let turn = 0; turn < players - 1; turn++) {
             const result = endTurn(game, state)
             expect(result.processedActions[0].revealsInfo).toBeUndefined()

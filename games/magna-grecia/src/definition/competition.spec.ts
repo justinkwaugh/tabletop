@@ -83,7 +83,6 @@ describe.each([2, 3, 4])('Magna Grecia tournaments with %i players', (count) => 
                 })
                 expect(startedGame.protectedInformation).toBe(true)
                 expect(initialState.turnManager.turnOrder).toEqual(order)
-                expect(initialState.roundOrder).toEqual(order)
                 let state = initialState
                 for (const playerId of order) {
                     expect(state.round).toBe(0)
@@ -106,19 +105,19 @@ describe.each([2, 3, 4])('Magna Grecia tournaments with %i players', (count) => 
                     )
                     .dehydrate()
             const normal = initialize()
-            expect({ ...initialize(normal.roundOrder), turnManager: normal.turnManager }).toEqual(
-                normal
-            )
+            expect({
+                ...initialize(normal.turnManager.turnOrder),
+                turnManager: normal.turnManager
+            }).toEqual(normal)
             for (const order of seatOrders(game.players.map((player) => player.id))) {
                 const assigned = initialize(order)
                 expect(initialize(order)).toEqual(assigned)
-                expect(assigned.roundOrder).toEqual(order)
+                expect(assigned.turnManager.turnOrder).toEqual(order)
                 expect(sortedColors(assigned)).toEqual(sortedColors(normal))
                 expect({
                     ...assigned,
                     players: normal.players,
-                    turnManager: normal.turnManager,
-                    roundOrder: normal.roundOrder
+                    turnManager: normal.turnManager
                 }).toEqual(normal)
                 for (const perspective of [
                     { kind: 'spectator' } as const,
@@ -130,7 +129,7 @@ describe.each([2, 3, 4])('Magna Grecia tournaments with %i players', (count) => 
                         { config: game.config }
                     )
                     expect(view).not.toHaveProperty('deck')
-                    expect(view.roundOrder).toEqual(order)
+                    expect(view.turnManager.turnOrder).toEqual(order)
                     expect(() => MagnaGreciaRuntime.hydrator.hydrateState(view)).not.toThrow()
                 }
             }

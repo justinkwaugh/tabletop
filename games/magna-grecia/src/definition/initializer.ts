@@ -78,7 +78,6 @@ export class MagnaGreciaGameInitializer
             revealedCardIds: [],
             roundCount: roundCount(game.config),
             round: 0,
-            roundOrder: [],
             turnIndex: 0
         })
         const hydrated = new HydratedMagnaGreciaGameState(magnaGreciaState)

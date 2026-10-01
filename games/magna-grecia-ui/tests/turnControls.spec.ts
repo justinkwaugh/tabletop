@@ -238,7 +238,9 @@ test('warns the last player of a round before an early End turn', async ({ page 
     const warning =
         'Ending your turn starts the next round and reveals a new action card. It cannot be undone.'
     const turnIndex = () => page.evaluate(() => window.magnaGreciaSession.gameState.turnIndex)
-    const players = await page.evaluate(() => window.magnaGreciaSession.gameState.roundOrder.length)
+    const players = await page.evaluate(
+        () => window.magnaGreciaSession.gameState.turnManager.turnOrder.length
+    )
     for (let turn = 0; turn < players - 1; turn++) {
         await expect(page.getByText(warning)).toHaveCount(0)
         await expect(endTurn).not.toHaveClass(/caution/)

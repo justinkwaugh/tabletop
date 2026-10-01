@@ -54,7 +54,6 @@ export const MagnaGreciaGameState = Type.Object({
     revealedCardIds: Type.Array(Type.String()),
     roundCount: Type.Number(),
     round: Type.Number(),
-    roundOrder: Type.Array(Type.String()),
     turnIndex: Type.Number(),
     turn: Type.Optional(TurnProgress)
 })
@@ -85,7 +84,6 @@ export class HydratedMagnaGreciaGameState
     declare revealedCardIds: string[]
     declare roundCount: number
     declare round: number
-    declare roundOrder: string[]
     declare turnIndex: number
     declare turn?: TurnProgress
 
@@ -115,12 +113,12 @@ export class HydratedMagnaGreciaGameState
         assertExists(deck, 'Starting a round requires the action deck')
         this.round = round
         this.revealedCardIds = deck.slice(0, this.revealedCardCount(round))
-        this.roundOrder = this.turnOrderForCard(this.currentCard())
+        this.turnManager.turnOrder = this.turnOrderForCard(this.currentCard())
         this.turnIndex = 0
     }
 
     endTurnOutcome(): EndTurnOutcome {
-        if (this.turnIndex < this.roundOrder.length - 1) {
+        if (this.turnIndex < this.turnManager.turnOrder.length - 1) {
             return EndTurnOutcome.NextPlayer
         }
         if (this.round + 1 >= this.roundCount) {
@@ -136,7 +134,7 @@ export class HydratedMagnaGreciaGameState
     }
 
     beginTurn(): string {
-        const playerId = this.roundOrder[this.turnIndex]
+        const playerId = this.turnManager.turnOrder[this.turnIndex]
         assertExists(playerId, `No player for turn ${this.turnIndex} of round ${this.round}`)
         this.turn = newTurn(playerId)
         return playerId

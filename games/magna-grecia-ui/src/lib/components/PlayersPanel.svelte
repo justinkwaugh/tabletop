@@ -8,7 +8,7 @@
 
     const scores = $derived(gameSession.gameState.scores())
     const orderedPlayers = $derived(
-        gameSession.gameState.roundOrder.map((playerId) =>
+        gameSession.gameState.turnManager.turnOrder.map((playerId) =>
             gameSession.gameState.getPlayerState(playerId)
         )
     )

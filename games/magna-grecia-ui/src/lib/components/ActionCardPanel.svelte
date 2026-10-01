@@ -8,7 +8,7 @@
     const state = $derived(gameSession.gameState)
     const card = $derived(state.currentCard())
     const turnOrder: RoundCardSeat[] = $derived(
-        state.roundOrder.map((playerId, index) => ({
+        state.turnManager.turnOrder.map((playerId, index) => ({
             playerId,
             name: gameSession.getPlayerName(playerId),
             color: gameSession.colors.getPlayerUiColor(playerId),
