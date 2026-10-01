@@ -56,7 +56,8 @@
         extents?: readonly BoundingBox[]
         onselect?: (selection: MapSelection) => void
     } = $props()
-    const tokenSize = $derived(appearance.mapTokenSize ?? 18)
+    const citySlotRadius = $derived(appearance.citySlotRadius ?? 10)
+    const tokenSize = $derived(2 * citySlotRadius)
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
     const perimeterMaskId = $props.id()
     const perimeterRoundingId = `${perimeterMaskId}-rounding`
@@ -411,7 +412,7 @@
                             data-map-slot={`${node.node.id}:${slot}`}
                             cx={point.x}
                             cy={point.y}
-                            r={appearance.citySlotRadius ?? 10}
+                            r={citySlotRadius}
                             fill="transparent"
                             stroke={selected &&
                             selection?.kind === 'slot' &&
