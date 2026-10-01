@@ -10,6 +10,7 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import VisitorQueue from '$lib/components/VisitorQueue.svelte'
+    import ActionPanel from '$lib/components/ActionPanel.svelte'
     import { MarracashGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
@@ -43,9 +44,12 @@
             </DefaultSideContent>
         {/snippet}
         {#snippet gameContent()}
+            <div class="shrink-0">
+                <ActionPanel />
+            </div>
             <div class="grow-0 overflow-hidden" style="flex:1;">
                 <ScalingWrapper justify="center" controls="bottom-left">
-                    <div class="flex flex-col items-center gap-3 p-2">
+                    <div class="flex flex-col items-center gap-3 p-2 pb-14">
                         <Board />
                         <VisitorQueue />
                     </div>

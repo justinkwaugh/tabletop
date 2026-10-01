@@ -3,7 +3,17 @@
     import Pawn from '$lib/components/Pawn.svelte'
     import { cellCenter, clusterPositions } from '$lib/utils/boardGeometry.js'
 
-    let { fountain }: { fountain: FountainState } = $props()
+    let {
+        fountain,
+        selectable,
+        selected,
+        onselect
+    }: {
+        fountain: FountainState
+        selectable: boolean
+        selected: boolean
+        onselect: () => void
+    } = $props()
 
     let definition = $derived(getFountain(fountain.fountainId))
     let center = $derived(cellCenter(definition.coords))
@@ -16,7 +26,18 @@
     )
 </script>
 
-<g>
+{#snippet body()}
+    {#if selectable || selected}
+        <circle
+            cx={center.x}
+            cy={center.y}
+            r="39"
+            fill="none"
+            stroke={selected ? '#1f1f1f' : '#ffffff'}
+            stroke-width="4"
+            stroke-dasharray={selected ? undefined : '8 5'}
+        />
+    {/if}
     <circle
         cx={center.x}
         cy={center.y}
@@ -36,4 +57,19 @@
     {#each pawns as pawn, index (index)}
         <Pawn color={pawn.color} x={pawn.x} y={pawn.y} size={pawnSize} />
     {/each}
-</g>
+{/snippet}
+
+{#if selectable}
+    <g
+        role="button"
+        tabindex="0"
+        aria-label={`Fountain ${fountain.fountainId}`}
+        class="cursor-pointer"
+        onclick={() => onselect()}
+        onkeydown={(event) => event.key === 'Enter' && onselect()}
+    >
+        {@render body()}
+    </g>
+{:else}
+    <g>{@render body()}</g>
+{/if}

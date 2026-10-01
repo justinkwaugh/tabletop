@@ -5,7 +5,7 @@
     import { MarketPalettes } from '$lib/utils/marketColors.js'
     import MarketMark from '$lib/components/MarketMark.svelte'
 
-    let { shop }: { shop: ShopState } = $props()
+    let { shop, selectable }: { shop: ShopState; selectable: boolean } = $props()
     const gameSession = getGameSession()
 
     let rect = $derived(shopRect(shop.shopId, 6))
@@ -15,7 +15,22 @@
     let centerY = $derived(rect.y + rect.height / 2)
 </script>
 
-<g>
+{#snippet body()}
+        selectable && event.key === 'Enter' && gameSession.startAuction(shop.shopId)}
+>
+    {#if selectable}
+        <rect
+            x={rect.x - 4}
+            y={rect.y - 4}
+            width={rect.width + 8}
+            height={rect.height + 8}
+            rx="13"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="4"
+            stroke-dasharray="8 5"
+        />
+    {/if}
     <rect
         x={rect.x}
         y={rect.y}
@@ -58,4 +73,19 @@
             >
         {/if}
     {/if}
-</g>
+{/snippet}
+
+{#if selectable}
+    <g
+        role="button"
+        tabindex="0"
+        aria-label={`Auction shop ${shop.shopId}`}
+        class="cursor-pointer"
+        onclick={() => gameSession.startAuction(shop.shopId)}
+        onkeydown={(event) => event.key === 'Enter' && gameSession.startAuction(shop.shopId)}
+    >
+        {@render body()}
+    </g>
+{:else}
+    <g>{@render body()}</g>
+{/if}

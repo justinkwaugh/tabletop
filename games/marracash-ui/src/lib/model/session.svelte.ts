@@ -1,7 +1,173 @@
 import { GameSession } from '@tabletop/frontend-components'
-import type { HydratedMarracashGameState, MarracashProjectedState } from '@tabletop/marracash'
+import { assertExists, type CardinalDirection } from '@tabletop/common'
+import {
+    ActionType,
+    BringVisitors,
+    isValidVisitorCount,
+    MaxVisitorsBroughtIn,
+    MinimumAuctionBid,
+    MoveVisitors,
+    PlaceBid,
+    routesFrom,
+    StartAuction,
+    type FountainId,
+    type HydratedMarracashGameState,
+    type MarracashProjectedState,
+    type QueueEnd,
+    type Route,
+    type ShopId
+} from '@tabletop/marracash'
+import {
+    hasManualMarracashSelection,
+    popMarracashSelection,
+    setMarracashSelection,
+    type MarracashSelection,
+    type MarracashSelectionValues
+} from './stagedSelection.js'
 
 export class MarracashGameSession extends GameSession<
     MarracashProjectedState,
     HydratedMarracashGameState
-> {}
+> {
+    private selection: MarracashSelection = $state({})
+    readonly hasManualSelection = $derived(hasManualMarracashSelection(this.selection))
+    readonly canUndo = $derived(
+        this.isPlayable &&
+            !this.isViewingHistory &&
+            (this.hasManualSelection || Boolean(this.undoableAction))
+    )
+
+    private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)
+
+    readonly canMove = $derived(this.canAct && this.validActionTypes.includes(ActionType.MoveVisitors))
+    readonly canAuction = $derived(
+        this.canAct && this.validActionTypes.includes(ActionType.StartAuction)
+    )
+    readonly canBid = $derived(this.canAct && this.validActionTypes.includes(ActionType.PlaceBid))
+    readonly canRefill = $derived(
+        this.canAct && this.validActionTypes.includes(ActionType.BringVisitors)
+    )
+
+    readonly selectedFountainId: FountainId | undefined = $derived(
+        this.canMove ? this.selection.fountain?.value : undefined
+    )
+
+    readonly movableFountainIds: FountainId[] = $derived(
+        this.canMove
+            ? this.gameState.fountains
+                  .filter((fountain) => fountain.visitors.length > 0)
+                  .map((fountain) => fountain.fountainId)
+            : []
+    )
+
+    readonly auctionableShopIds: ShopId[] = $derived(
+        this.canAuction && this.selectedFountainId === undefined
+            ? this.gameState.shops
+                  .filter((shop) => shop.ownerId === undefined)
+                  .map((shop) => shop.shopId)
+            : []
+    )
+
+    readonly selectedRoutes: readonly Route[] = $derived(
+        this.selectedFountainId === undefined ? [] : routesFrom(this.selectedFountainId)
+    )
+
+    readonly chosenQueueEnd: QueueEnd | undefined = $derived(
+        this.canRefill ? this.selection.queueEnd?.value : undefined
+    )
+
+    readonly visitorCountOptions: number[] = $derived.by(() => {
+        const queueLength = this.gameState.queue.length
+        const counts: number[] = []
+        for (let count = 1; count <= MaxVisitorsBroughtIn; count++) {
+            if (isValidVisitorCount(count, queueLength)) counts.push(count)
+        }
+        return counts
+    })
+
+    readonly chosenVisitorCount: number | undefined = $derived.by(() => {
+        if (!this.canRefill || this.chosenQueueEnd === undefined) return undefined
+        if (this.visitorCountOptions.length === 1) return this.visitorCountOptions[0]
+        return this.selection.visitorCount?.value
+    })
+
+    readonly fillableEntranceIds: FountainId[] = $derived(
+        this.chosenVisitorCount === undefined ? [] : this.gameState.emptyEntranceIds()
+    )
+
+    readonly minimumBid: number = $derived(
+        this.gameState.auction?.auctioneerId === this.myPlayer?.id ? MinimumAuctionBid : 0
+    )
+
+    override beforeNewState() {
+        this.resetAction()
+    }
+
+    override async undo() {
+        if (!this.canUndo || this.busy) return
+        if (this.hasManualSelection) {
+            this.selection = popMarracashSelection(this.selection)
+            return
+        }
+        await super.undo()
+    }
+
+    back() {
+        if (this.hasManualSelection) {
+            this.selection = popMarracashSelection(this.selection)
+        }
+    }
+
+    resetAction() {
+        this.selection = {}
+    }
+
+    selectFountain(fountainId: FountainId | undefined) {
+        this.setSelection('fountain', fountainId)
+    }
+
+    chooseQueueEnd(end: QueueEnd) {
+        this.setSelection('queueEnd', end)
+    }
+
+    chooseVisitorCount(count: number) {
+        this.setSelection('visitorCount', count)
+    }
+
+    async startAuction(shopId: ShopId) {
+        await this.applyAction(this.createPlayerAction(StartAuction, { shopId }))
+    }
+
+    async placeBid(amount: number) {
+        await this.applyAction(
+            this.createPlayerAction(PlaceBid, {
+                amount,
+                simultaneousGroupId: this.gameState.auction?.id
+            })
+        )
+    }
+
+    async moveVisitors(direction: CardinalDirection) {
+        const fountainId = this.selectedFountainId
+        assertExists(fountainId, 'Moving visitors requires a selected fountain')
+        await this.applyAction(this.createPlayerAction(MoveVisitors, { fountainId, direction }))
+    }
+
+    async bringVisitorsTo(entranceId: FountainId) {
+        const end = this.chosenQueueEnd
+        const count = this.chosenVisitorCount
+        assertExists(end, 'Bringing visitors requires a chosen queue end')
+        assertExists(count, 'Bringing visitors requires a chosen visitor count')
+        await this.applyAction(
+            this.createPlayerAction(BringVisitors, { end, count, entranceId })
+        )
+    }
+
+    private setSelection<TStage extends keyof MarracashSelectionValues>(
+        stage: TStage,
+        value: MarracashSelectionValues[TStage] | undefined
+    ) {
+        this.selection = setMarracashSelection(this.selection, stage, value)
+    }
+}
+

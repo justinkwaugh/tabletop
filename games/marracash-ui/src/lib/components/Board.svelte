@@ -3,6 +3,9 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ShopTile from '$lib/components/ShopTile.svelte'
     import FountainSpot from '$lib/components/FountainSpot.svelte'
+    import DirectionArrows from '$lib/components/DirectionArrows.svelte'
+    import RoutePreview from '$lib/components/RoutePreview.svelte'
+    import type { FountainId, Route } from '@tabletop/marracash'
     import {
         BoardHeight,
         BoardWidth,
@@ -13,6 +16,25 @@
     } from '$lib/utils/boardGeometry.js'
 
     const gameSession = getGameSession()
+
+    let hoveredRoute: Route | undefined = $state()
+    let previewRoute = $derived(
+        !gameSession.updatingVisibleState &&
+            hoveredRoute !== undefined &&
+            hoveredRoute.from === gameSession.selectedFountainId
+            ? hoveredRoute
+            : undefined
+    )
+
+    function chooseFountain(fountainId: FountainId) {
+        if (gameSession.fillableEntranceIds.includes(fountainId)) {
+            void gameSession.bringVisitorsTo(fountainId)
+        } else {
+            gameSession.selectFountain(
+                gameSession.selectedFountainId === fountainId ? undefined : fountainId
+            )
+        }
+    }
 
     const gates = Fountains.filter((fountain) => fountain.entrance).map((fountain) =>
         gateRect(fountain.coords)
@@ -72,10 +94,26 @@
     {/each}
 
     {#each gameSession.gameState.shops as shop (shop.shopId)}
-        <ShopTile {shop} />
+        <ShopTile {shop} selectable={gameSession.auctionableShopIds.includes(shop.shopId)} />
     {/each}
 
     {#each gameSession.gameState.fountains as fountain (fountain.fountainId)}
-        <FountainSpot {fountain} />
+        <FountainSpot
+            {fountain}
+            selectable={gameSession.movableFountainIds.includes(fountain.fountainId) ||
+                gameSession.fillableEntranceIds.includes(fountain.fountainId)}
+            selected={gameSession.selectedFountainId === fountain.fountainId}
+            onselect={() => chooseFountain(fountain.fountainId)}
+        />
     {/each}
+
+    {#if previewRoute}
+        <RoutePreview route={previewRoute} />
+    {/if}
+
+    <DirectionArrows
+        routes={gameSession.selectedRoutes}
+        onpreview={(route) => (hoveredRoute = route)}
+        onchoose={(direction) => gameSession.moveVisitors(direction)}
+    />
 </svg>
