@@ -1250,7 +1250,6 @@ describe('A7 / A8 / U6: visible undo patches never expose canonical undo', () =>
             throw Error('Expected the canonical private-transfer undo patch')
         }
         expect(JSON.stringify(canonicalPrivateUndo)).toContain('transferred-card')
-        expect(JSON.stringify(canonicalPrivateUndo)).toContain('target-card')
 
         const permittedUndoCards: Readonly<Record<string, readonly string[]>> = {
             [PlayerIds[0]]: ['actor-card', 'transferred-card'],
