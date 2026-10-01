@@ -1418,6 +1418,7 @@
         --workspace-focus: var(--rail-focus, #7c634b);
         --workspace-hover: var(--rail-hover, #69554016);
         --workspace-surface: var(--rail-surface, #faf7f2);
+        --workspace-danger: var(--rail-negative, #b33a32);
     }
     .railway-table {
         color-scheme: dark;
