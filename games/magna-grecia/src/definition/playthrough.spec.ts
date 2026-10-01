@@ -13,6 +13,7 @@ import { BOARD_GRID } from '../components/boardGrid.js'
 import { marketCost } from '../model/marketRules.js'
 import type { HydratedMagnaGreciaGameState, MagnaGreciaProjectedState } from '../model/gameState.js'
 import { legalRoadEnds } from '../model/roadRules.js'
+import { PendingCityKind } from '../model/turn.js'
 import { ActionType } from './actions.js'
 import { GameLength } from './config.js'
 import { Definition } from './definition.js'
@@ -58,12 +59,12 @@ function botAction(
 ): GameAction {
     const base = { id: `a${step}`, gameId: state.gameId, source: ActionSource.User, playerId }
     const player = state.getPlayerState(playerId)
-    const claim = state.turn?.pendingClaim
-    if (claim) {
-        return act({ ...base, type: ActionType.PlaceCity, coords: claim.village })
+    const pending = state.turn?.pendingCity
+    if (pending?.kind === PendingCityKind.Claim) {
+        return act({ ...base, type: ActionType.PlaceCity, coords: pending.village })
     }
 
-    if (state.turn?.pendingFounding) {
+    if (pending?.kind === PendingCityKind.Founding) {
         const next = spaces.find(
             (space) => state.cityPlacementPlan(playerId, space.coords) !== undefined
         )

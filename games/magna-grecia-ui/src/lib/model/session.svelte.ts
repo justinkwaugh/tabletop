@@ -8,6 +8,7 @@ import {
     EndTurn,
     EndTurnOutcome,
     MachineState,
+    PendingCityKind,
     PlaceCity,
     PlaceRoad,
     Resupply,
@@ -77,11 +78,13 @@ export class MagnaGreciaGameSession extends GameSession<
 
     private turnKey = $derived(`${this.gameState.round}:${this.gameState.turnIndex}`)
 
-    pendingClaim = $derived(this.canAct ? this.gameState.turn?.pendingClaim : undefined)
+    private pendingCity = $derived(this.canAct ? this.gameState.turn?.pendingCity : undefined)
 
-    pendingFounding = $derived(this.canAct ? this.gameState.turn?.pendingFounding : undefined)
+    pendingClaim = $derived(this.pendingCity?.kind === PendingCityKind.Claim)
 
-    cityUnfinished = $derived(!!this.pendingClaim || !!this.pendingFounding)
+    pendingFounding = $derived(this.pendingCity?.kind === PendingCityKind.Founding)
+
+    cityUnfinished = $derived(this.pendingCity !== undefined)
 
     private legalRoadTargets: Map<SpaceKey, RoadTarget> = $derived.by(() => {
         const playerId = this.myPlayerId

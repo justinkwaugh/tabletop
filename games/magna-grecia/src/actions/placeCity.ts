@@ -12,6 +12,7 @@ import { cityPlaceId } from '../components/places.js'
 import { OracleChange, type HydratedBoard } from '../model/board.js'
 import { CityPlacementKind, type CityPlacementPlan } from '../model/cityRules.js'
 import type { HydratedMagnaGreciaGameState } from '../model/gameState.js'
+import { PendingCityKind } from '../model/turn.js'
 
 export type PlaceCityMetadata = Type.Static<typeof PlaceCityMetadata>
 export const PlaceCityMetadata = Type.Object({
@@ -70,18 +71,19 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
         if (outcome.founded) {
             turn.foundedCity = true
         }
-        const continuesFounding = turn.pendingFounding === outcome.cityId
-        turn.pendingClaim = outcome.claimVillage
+        const continuesFounding =
+            turn.pendingCity?.kind === PendingCityKind.Founding &&
+            turn.pendingCity.cityId === outcome.cityId
+        turn.pendingCity = outcome.claimVillage
             ? {
+                  kind: PendingCityKind.Claim,
                   village: outcome.claimVillage,
                   cityId: outcome.cityId,
                   founding: outcome.founded || continuesFounding
               }
-            : undefined
-        turn.pendingFounding =
-            outcome.awaitsVillage || (continuesFounding && !outcome.claimVillage)
-                ? outcome.cityId
-                : undefined
+            : outcome.awaitsVillage || continuesFounding
+              ? { kind: PendingCityKind.Founding, cityId: outcome.cityId }
+              : undefined
 
         const foundingMarket =
             outcome.completesFounding && this.placeFoundingMarket(state, outcome.cityId)

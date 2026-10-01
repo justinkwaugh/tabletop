@@ -5,7 +5,7 @@ import {
 } from '@tabletop/common'
 import { BOARD_GRID, neighborCoords, spaceKey } from '../components/boardGrid.js'
 import type { HydratedBoard } from './board.js'
-import type { TurnProgress } from './turn.js'
+import { PendingCityKind, type TurnProgress } from './turn.js'
 
 export enum CityPlacementKind {
     Found = 'Found',
@@ -32,15 +32,15 @@ export function planCityPlacement(input: CityPlacementInput): CityPlacementPlan 
         return undefined
     }
 
-    if (turn.pendingClaim) {
-        const { village, cityId, founding } = turn.pendingClaim
-        return sameCoordinates(village, coords)
-            ? { kind: CityPlacementKind.CompleteClaim, cityId, founding }
-            : undefined
-    }
-
-    if (turn.pendingFounding) {
-        return planFoundingStep(input, turn.pendingFounding)
+    switch (turn.pendingCity?.kind) {
+        case PendingCityKind.Claim: {
+            const { village, cityId, founding } = turn.pendingCity
+            return sameCoordinates(village, coords)
+                ? { kind: CityPlacementKind.CompleteClaim, cityId, founding }
+                : undefined
+        }
+        case PendingCityKind.Founding:
+            return planFoundingStep(input, turn.pendingCity.cityId)
     }
 
     const adjacentVillages = board.adjacentOpenVillages(coords)

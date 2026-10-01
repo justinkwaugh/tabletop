@@ -25,7 +25,7 @@ import type { RoadEnds } from '../components/pieces.js'
 import { EndTurnOutcome, type HydratedMagnaGreciaGameState } from './gameState.js'
 import { marketCost, marketValue } from './marketRules.js'
 import { ROAD_END_OPTIONS, RoadShape, roadShape } from './roadRules.js'
-import { newTurn } from './turn.js'
+import { PendingCityKind, newTurn } from './turn.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 import { TakingTurnStateHandler } from '../stateHandlers/takingTurn.js'
 import { MachineState } from '../definition/states.js'
@@ -227,14 +227,14 @@ describe('cities', () => {
         const besideVillage = at(INLAND, NE)
         const first = placeCity(state, 'p0', besideVillage)
         expect(first.metadata).toMatchObject({ founded: true, claimVillage: INLAND })
-        expect(state.turn.pendingClaim).toBeDefined()
+        expect(state.turn.pendingCity?.kind).toBe(PendingCityKind.Claim)
         expect(state.roadPlacementsRemaining('p0')).toBe(0)
         expect(state.canFinishTurn('p0')).toBe(false)
         expect(state.cityPlacementPlan('p0', at(besideVillage, E))).toBeUndefined()
 
         const second = placeCity(state, 'p0', INLAND)
         expect(second.metadata).toMatchObject({ foundingMarket: true })
-        expect(state.turn.pendingClaim).toBeUndefined()
+        expect(state.turn.pendingCity).toBeUndefined()
         expect(state.board.city(first.metadata!.cityId).spaces).toHaveLength(2)
     })
 
@@ -250,19 +250,25 @@ describe('cities', () => {
 
         const first = placeCity(state, 'p0', start)
         expect(first.metadata).toMatchObject({ founded: true, foundingMarket: false })
-        expect(state.turn?.pendingFounding).toBe(first.metadata!.cityId)
+        expect(state.turn?.pendingCity).toEqual({
+            kind: PendingCityKind.Founding,
+            cityId: first.metadata!.cityId
+        })
         expect(state.canFinishTurn('p0')).toBe(false)
         expect(state.roadPlacementsRemaining('p0')).toBe(0)
         expect(state.resupplyAllowance('p0')).toBe(0)
         expect(state.cityPlacementPlan('p0', offsetToAxial({ row: 1, col: 3 }))).toBeUndefined()
 
         placeCity(state, 'p0', besideVillage)
-        expect(state.turn?.pendingFounding).toBeUndefined()
-        expect(state.turn?.pendingClaim).toMatchObject({ village: FRONTIER, founding: true })
+        expect(state.turn?.pendingCity).toMatchObject({
+            kind: PendingCityKind.Claim,
+            village: FRONTIER,
+            founding: true
+        })
 
         const last = placeCity(state, 'p0', FRONTIER)
         expect(last.metadata).toMatchObject({ foundingMarket: true })
-        expect(state.turn?.pendingClaim).toBeUndefined()
+        expect(state.turn?.pendingCity).toBeUndefined()
         expect(state.canFinishTurn('p0')).toBe(true)
         expect(state.board.city(first.metadata!.cityId).spaces).toHaveLength(3)
         expect(state.getPlayerState('p0').points).toBe(9)
@@ -307,7 +313,7 @@ describe('cities', () => {
         const start = at(at(INLAND, W), W)
         state.board.roads = [{ coords: at(start, W), playerId: 'p0', ends: [E, W] }]
         placeCity(state, 'p0', start)
-        expect(state.turn?.pendingFounding).toBeDefined()
+        expect(state.turn?.pendingCity?.kind).toBe(PendingCityKind.Founding)
         expect(state.cityPlacementPlan('p0', at(INLAND, W))).toMatchObject({
             kind: 'Expand',
             claimVillage: INLAND
@@ -319,7 +325,7 @@ describe('cities', () => {
         giveTurn(state, 'p0', 'G1')
         const start = at(at(INLAND, W), W)
         placeCity(state, 'p0', start)
-        expect(state.turn?.pendingFounding).toBeDefined()
+        expect(state.turn?.pendingCity?.kind).toBe(PendingCityKind.Founding)
         expect(state.cityPlacementPlan('p0', at(INLAND, W))).toBeUndefined()
     })
 
@@ -741,7 +747,12 @@ describe('network, markets and oracles', () => {
     it('does not end a turn while a village claim is pending', () => {
         const state = freshState()
         giveTurn(state, 'p0', 'G2')
-        state.turn!.pendingClaim = { village: INLAND, cityId: 'C1', founding: false }
+        state.turn!.pendingCity = {
+            kind: PendingCityKind.Claim,
+            village: INLAND,
+            cityId: 'C1',
+            founding: false
+        }
         expect(HydratedEndTurn.canEndTurn(state, 'p0')).toBe(false)
     })
 })

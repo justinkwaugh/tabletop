@@ -2,12 +2,24 @@ import * as Type from 'typebox'
 import { AxialCoordinates } from '@tabletop/common'
 import { enhancedResupply, type ActionCard } from '../components/actionCards.js'
 
-export type PendingClaim = Type.Static<typeof PendingClaim>
-export const PendingClaim = Type.Object({
-    village: AxialCoordinates,
-    cityId: Type.String(),
-    founding: Type.Boolean()
-})
+export enum PendingCityKind {
+    Claim = 'Claim',
+    Founding = 'Founding'
+}
+
+export type PendingCity = Type.Static<typeof PendingCity>
+export const PendingCity = Type.Union([
+    Type.Object({
+        kind: Type.Literal(PendingCityKind.Claim),
+        village: AxialCoordinates,
+        cityId: Type.String(),
+        founding: Type.Boolean()
+    }),
+    Type.Object({
+        kind: Type.Literal(PendingCityKind.Founding),
+        cityId: Type.String()
+    })
+])
 
 export type TurnProgress = Type.Static<typeof TurnProgress>
 export const TurnProgress = Type.Object({
@@ -16,9 +28,8 @@ export const TurnProgress = Type.Object({
     citiesPlaced: Type.Number(),
     foundedCity: Type.Boolean(),
     resupplied: Type.Boolean(),
-    marketDone: Type.Optional(Type.Boolean()),
-    pendingClaim: Type.Optional(PendingClaim),
-    pendingFounding: Type.Optional(Type.String())
+    marketDone: Type.Boolean(),
+    pendingCity: Type.Optional(PendingCity)
 })
 
 export function newTurn(playerId: string): TurnProgress {
@@ -27,17 +38,18 @@ export function newTurn(playerId: string): TurnProgress {
         roadsPlaced: 0,
         citiesPlaced: 0,
         foundedCity: false,
-        resupplied: false
+        resupplied: false,
+        marketDone: false
     }
 }
 
 export function hasUnfinishedCity(turn: TurnProgress): boolean {
-    return !!turn.pendingClaim || !!turn.pendingFounding
+    return turn.pendingCity !== undefined
 }
 
 // Building or selling a market follows the tile actions, so it closes them and leaves only End turn.
 export function marketPhaseDone(turn: TurnProgress): boolean {
-    return turn.marketDone === true
+    return turn.marketDone
 }
 
 // A player takes up to two of the card's three basic actions, or one of them enhanced by one step.
