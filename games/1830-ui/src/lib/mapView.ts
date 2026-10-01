@@ -42,7 +42,7 @@ export const EighteenThirtyMapView: MapViewDefinition = {
     ),
     stations: {
         PRR: { color: '#32763f', label: 'PRR', imageUrl: PRRLogo },
-        NYC: { color: '#474548', label: 'NYC', imageUrl: NYCLogo },
+        NYC: { color: '#000', label: 'NYC', imageUrl: NYCLogo },
         CPR: { color: '#d1232a', label: 'CPR', imageUrl: CPRLogo },
         BO: { color: '#025aaa', label: 'B&O', imageUrl: BOLogo },
         CO: { color: '#add8e6', label: 'C&O', imageUrl: COLogo },
