@@ -12,5 +12,5 @@ export const MarracashRuntime: GameRuntime<MarracashGameState, HydratedMarracash
     stateHandlers: MarracashStateHandlers,
     apiActions: MarracashApiActions,
     playerColors: MarracashColors,
-    stateLogger: new DefaultStateLogger() // This never really got used, but it could do some custom logging if desired
+    stateLogger: new DefaultStateLogger()
 }

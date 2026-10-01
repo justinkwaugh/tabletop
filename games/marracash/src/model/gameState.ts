@@ -15,8 +15,8 @@ export const MarracashGameState = Type.Evaluate(
     Type.Intersect([
         Type.Omit(GameState, ['players', 'machineState']),
         Type.Object({
-            players: Type.Array(MarracashPlayerState), // Redefine with the specific player state type
-            machineState: Type.Enum(MachineState) // Redefine with the specific machine states
+            players: Type.Array(MarracashPlayerState),
+            machineState: Type.Enum(MachineState)
         })
     ])
 )
@@ -27,7 +27,6 @@ export class HydratedMarracashGameState
     extends HydratableGameState<typeof MarracashGameState, HydratedMarracashPlayerState>
     implements MarracashGameState
 {
-    // Declare properties to satisfy the interface, they will be populated by the base class
     declare id: string
     declare gameId: string
     declare prng: PrngState

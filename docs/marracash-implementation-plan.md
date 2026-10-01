@@ -45,7 +45,7 @@ Create `games/marracash` and `games/marracash-ui` with the turbo generators (`cr
 
 **`MarracashPlayerState`:**
 
-- `money`: protected with `anyOf(Owner, configEquals('concealedCash', false), stateEquals('machineState', EndOfGame))`, as in Estates.
+- `money`: protected with `anyOf(Owner, configEquals('concealedCash', false, { defaultValue: false }), stateEquals('machineState', EndOfGame))`, as in Estates.
 - `antiques`: the player's 5 cards, protected with `Policy.Owner`.
 - `revealedAntiques`: public. Cards move here from `antiques` when the set is completed.
 
@@ -58,6 +58,7 @@ One Boolean option, `concealedCash`, named "Concealed Cash", default `false`. Re
 ## Setup
 
 - Turn order and start player come from public randomness.
+- **Starting positions:** the initializer declares `supportsStartingPositions` and passes the optional assignment to `HydratedTurnManager.generate`, as every published title does ([tournament game capabilities](tournament-game-capabilities.md)). Position zero is the start player.
 - **Queue:** generated from public randomness, because the order is public anyway. Rejection-sample (or build) an order where the three entrance trios each have three different colours and the remaining queue never has more than 3 of one colour in a row. That's 3 trios of 9 visitors, plus a queue of 55.
 - **Antiques:** shuffled and dealt from protected randomness (`getProtectedPrng()`), with `randomnessVersion: 1` as in Fresh Fish and Sol.
 - Every player starts with 1200 Dirham.
@@ -83,9 +84,11 @@ Results needed for history, logging and animation go in Action `metadata`: who e
 - `Bidding`: every participant still to bid is active at once. Leaves when all bids are in.
 - `AuctionResolving` (entry schedules `ResolveAuction`), then back to `ChoosingAction` or on to refilling.
 - `RefillingEntrances`: entered at the end of a turn when an entrance is empty and visitors are left in the queue.
-- `EndOfGame`: terminal. Cash becomes public. The most cash wins, and ties share the win.
+- `EndOfGame`: terminal. Cash becomes public. The most cash wins, and ties share the win. It records `GameResult.Win` or `GameResult.Draw` with `winningPlayerIds`, and the runtime declares `scoring.finalScores` as each player's final cash, per [tournament game capabilities](tournament-game-capabilities.md).
 
 Every state needs a handler, and every serialized Action must be registered in the API schemas and the hydrator.
+
+`ChoosingAction` and `EndOfGame` were written by hand in step 1, because `add-state` needs an existing action. They lack the template's anchor comments, so `add-state-action` won't insert into them: wire their actions by hand. Use the generators for every other state and action.
 
 ## Hidden information
 
@@ -94,11 +97,13 @@ Register `runtime.visibility.state` and `.actions`. That's required because the 
 - **Projected schemas:** derive them with `Visibility.createProjectionSchema`, keep the canonical validator on `runtime.canonicalStateValidator`, and follow Estates' accessor pattern (`getMoney()` asserting the value is present).
 - **What stays public:** the queue, fountains, shops, customers, revealed antiques, reveal order, and all bids after resolution.
 - **Optimistic play:** moves and auction resolution read other players' hands (and their cash when it's concealed). Those Actions will fall back to the host rather than run optimistically. That's expected, not a bug.
+- **Undo:** the final bid that resolves an auction, and any move or auction that completes an antique set, are Information-Revealing Actions (`revealsInfo`). Bids and antique hands become known, so Undo can't cross them. Sealed bids form a Simultaneous Action Group.
 - **Exploration:** a population hook samples hypothetical antique hands and the undealt deck from the cards not yet revealed. With Concealed Cash it also samples hidden cash, following Estates.
 - **Tests:** visibility tests in the style of `games/estates/src/definition/visibility.spec.ts`, covering player, spectator and the end-of-game reveal, with Concealed Cash on and off.
 
 ## UI
 
+- **Player colours:** the scaffold's palette (green, yellow, blue, red, black) overlaps the five shop colours. Pick owner colours that stay distinct on any shop, since the colour is shown on a stall of a different colour.
 - **The board:** independent artwork, per the notes. Generic pawns for visitors and player-coloured discs for shop owners. Show the board as the grid, with the queue as a U-shaped line around the wall.
 - **Session methods:** `startAuction`, `placeBid`, `moveVisitors` and `bringVisitors`. Components call these and never build Actions themselves.
 - **Staged selections** ([user interactions](user-interactions.md)):
@@ -115,15 +120,16 @@ Register `runtime.visibility.state` and `.actions`. That's required because the 
 
 Each step ends with tests passing:
 
-1. Scaffold both packages, plus the `concealedCash` config.
+1. Scaffold both packages, plus the `concealedCash` config. Done.
 2. The board module, with route derivation and the test pinning it to the board map.
-3. State, player state, initializer (queue generation, antique deal) and hydration round-trip tests.
+3. State, player state, initializer (queue generation, antique deal, starting positions) and hydration round-trip tests, plus a `competition.spec.ts` covering 3 and 4 players.
 4. The auction flow: `StartAuction`, `PlaceBid`, `ResolveAuction`, the pull-in, and the 6-shop rule.
 5. Movement: `MoveVisitors`, sequential payments, mover's cut and `CompleteAntiqueSet`.
 6. Refilling, turn options, the end of game and scoring.
 7. Visibility registration, projected hydration, Exploration population and visibility tests.
 8. The UI package.
-9. A readiness check with the `game-pr-readiness` skill.
+9. Add the title to the Game Catalogue (`config/config-games/src/games.json`, `gameId` and `packageId` both `marracash`). The local hosted site reads it, so this is needed before testing with the `local-hosted-game` skill.
+10. A readiness check with the `game-pr-readiness` skill.
 
 ## Questions for the user
 
