@@ -10,4 +10,6 @@ export * from './definition/states.js'
 export * from './model/gameState.js'
 export * from './model/playerState.js'
 
+export * from './components/antiques.js'
 export * from './components/board.js'
+export * from './components/visitors.js'

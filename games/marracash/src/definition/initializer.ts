@@ -1,53 +1,84 @@
 import {
-    type GameInitializer,
+    assertExists,
     BaseGameInitializer,
+    Game,
+    type GameInitializer,
+    HydratedTurnManager,
+    Player,
     Prng,
+    shuffle,
+    type StartingPositionAssignment,
     type UninitializedGameState
 } from '@tabletop/common'
-import { assertExists, Game, Player, HydratedTurnManager, shuffle } from '@tabletop/common'
-import { HydratedMarracashGameState, MarracashGameState } from '../model/gameState.js'
-import { HydratedMarracashPlayerState, MarracashPlayerState } from '../model/playerState.js'
-
+import {
+    HydratedMarracashGameState,
+    MarracashGameState,
+    type FountainState,
+    type MarracashProjectedState,
+    type ShopState
+} from '../model/gameState.js'
+import { MarracashPlayerState, StartingMoney } from '../model/playerState.js'
+import { AntiquesPerPlayer, HydratedAntiqueDeck } from '../components/antiques.js'
+import { EntranceFountainIds, Fountains, Shops } from '../components/board.js'
+import { generateVisitorSetup } from '../components/visitors.js'
 import { MachineState } from './states.js'
 import { MarracashColors } from './colors.js'
 
 export class MarracashGameInitializer
-    extends BaseGameInitializer<MarracashGameState, HydratedMarracashGameState>
-    implements GameInitializer<MarracashGameState, HydratedMarracashGameState>
+    extends BaseGameInitializer<MarracashProjectedState, HydratedMarracashGameState>
+    implements GameInitializer<MarracashProjectedState, HydratedMarracashGameState>
 {
-    initializeGameState(game: Game, state: UninitializedGameState): HydratedMarracashGameState {
+    readonly supportsStartingPositions = true
+
+    initializeGameState(
+        game: Game,
+        state: UninitializedGameState,
+        assignment?: StartingPositionAssignment
+    ): HydratedMarracashGameState {
         const prng = new Prng(state.prng)
+        assertExists(state.protectedPrng, 'Dealing antiques requires protectedPrng')
+        const protectedPrng = new Prng(state.protectedPrng)
+
         const players = this.initializePlayers(game, prng)
+        const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
 
-        const turnManager = HydratedTurnManager.generate(players, prng.random)
+        const visitorSetup = generateVisitorSetup(EntranceFountainIds.length, prng.random)
+        const fountains: FountainState[] = Fountains.map((fountain) => {
+            const entranceIndex = EntranceFountainIds.indexOf(fountain.id)
+            return {
+                fountainId: fountain.id,
+                visitors: entranceIndex >= 0 ? visitorSetup.entranceGroups[entranceIndex] : []
+            }
+        })
+        const shops: ShopState[] = Shops.map((shop) => ({ shopId: shop.id, customers: 0 }))
 
-        const orderedPlayers: MarracashPlayerState[] = []
-        for (const playerId of turnManager.turnOrder) {
-            const player = players.find((p) => p.playerId === playerId)
-            assertExists(player, `Player ${playerId} in the turn order has no player state`)
-            orderedPlayers.push(player)
+        const antiqueDeck = HydratedAntiqueDeck.create(protectedPrng.random)
+        for (const player of players) {
+            player.antiques = antiqueDeck.drawItems(AntiquesPerPlayer)
         }
 
-        const marracashGameState: MarracashGameState = Object.assign(state, {
-            players: orderedPlayers,
+        const marracashState: MarracashGameState = Object.assign(state, {
+            players,
             machineState: MachineState.ChoosingAction,
-            turnManager: turnManager
+            turnManager,
+            shops,
+            fountains,
+            queue: visitorSetup.queue,
+            antiqueDeck
         })
 
-        return new HydratedMarracashGameState(marracashGameState)
+        return new HydratedMarracashGameState(marracashState)
     }
 
     private initializePlayers(game: Game, prng: Prng): MarracashPlayerState[] {
         const colors = structuredClone(MarracashColors)
         shuffle(colors, prng.random)
 
-        const players = game.players.map((player: Player, index: number) => {
-            return new HydratedMarracashPlayerState({
-                playerId: player.id,
-                color: colors[index]
-            })
-        })
-
-        return players
+        return game.players.map((player: Player, index: number) => ({
+            playerId: player.id,
+            color: colors[index],
+            money: StartingMoney,
+            antiques: []
+        }))
     }
 }

@@ -1,10 +1,10 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
-    import { MarracashPlayerState } from '@tabletop/marracash'
+    import type { HydratedMarracashPlayerState } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
-    let { player, playerState }: { player: Player; playerState: MarracashPlayerState } = $props()
+    let { player, playerState }: { player: Player; playerState: HydratedMarracashPlayerState } = $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))

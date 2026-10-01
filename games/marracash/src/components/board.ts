@@ -227,6 +227,7 @@ export const Shops = [
 ] as const satisfies readonly ShopDefinition[]
 
 export type ShopId = (typeof Shops)[number]['id']
+export const ShopIds: ShopId[] = Shops.map((shop) => shop.id)
 
 export const Fountains = [
     { id: 1, coords: { row: 0, col: 9 }, entrance: true },
@@ -248,6 +249,7 @@ export const Fountains = [
 ] as const satisfies readonly FountainDefinition[]
 
 export type FountainId = (typeof Fountains)[number]['id']
+export const FountainIds: FountainId[] = Fountains.map((fountain) => fountain.id)
 
 export const EntranceFountainIds: readonly FountainId[] = Fountains.filter(
     (fountain) => fountain.entrance

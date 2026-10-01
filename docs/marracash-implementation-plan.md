@@ -46,7 +46,7 @@ Create `games/marracash` and `games/marracash-ui` with the turbo generators (`cr
 **`MarracashPlayerState`:**
 
 - `money`: protected with `anyOf(Owner, configEquals('concealedCash', false, { defaultValue: false }), stateEquals('machineState', EndOfGame))`, as in Estates.
-- `antiques`: the player's 5 cards, protected with `Policy.Owner`.
+- `antiques`: the player's 5 cards, protected with `Policy.Owner` and the empty-array redaction, so other players see `[]`. Protecting it with the default omission breaks the projected type inference for the whole player.
 - `revealedAntiques`: public. Cards move here from `antiques` when the set is completed.
 
 A player's shop count is derived from `shops`.
@@ -122,7 +122,7 @@ Each step ends with tests passing:
 
 1. Scaffold both packages, plus the `concealedCash` config. Done.
 2. The board module, with route derivation and the test pinning it to the board map. Done.
-3. State, player state, initializer (queue generation, antique deal, starting positions) and hydration round-trip tests, plus a `competition.spec.ts` covering 3 and 4 players.
+3. State, player state, initializer (queue generation, antique deal, starting positions) and hydration round-trip tests, plus a `competition.spec.ts` covering 3 and 4 players. Done. Players stay in game order and the turn manager holds the seating, as in Estates, so assigned positions change nothing else. Step 4 adds first-round play to the tournament test, and step 7 adds its projection checks.
 4. The auction flow: `StartAuction`, `PlaceBid`, `ResolveAuction`, the pull-in, and the 6-shop rule.
 5. Movement: `MoveVisitors`, sequential payments, mover's cut and `CompleteAntiqueSet`.
 6. Refilling, turn options, the end of game and scoring.

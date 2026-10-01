@@ -1,8 +1,8 @@
 import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
-import { HydratedMarracashGameState, MarracashGameState } from '../model/gameState.js'
+import { HydratedMarracashGameState, type MarracashProjectedState } from '../model/gameState.js'
 
 export class MarracashHydrator implements GameHydrator<
-    MarracashGameState,
+    MarracashProjectedState,
     HydratedMarracashGameState
 > {
     hydrateAction(data: GameAction): HydratedAction {
@@ -13,7 +13,7 @@ export class MarracashHydrator implements GameHydrator<
         }
     }
 
-    hydrateState(state: MarracashGameState): HydratedMarracashGameState {
+    hydrateState(state: MarracashProjectedState): HydratedMarracashGameState {
         return new HydratedMarracashGameState(state)
     }
 }

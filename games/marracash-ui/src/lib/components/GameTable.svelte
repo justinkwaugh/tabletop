@@ -11,12 +11,12 @@
     import Board from '$lib/components/Board.svelte'
 
     import type { MarracashGameSession } from '$lib/model/session.svelte'
-    import type { HydratedMarracashGameState, MarracashGameState } from '@tabletop/marracash'
+    import type { HydratedMarracashGameState, MarracashProjectedState } from '@tabletop/marracash'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
     let {
         gameSession
-    }: { gameSession: GameSession<MarracashGameState, HydratedMarracashGameState> } = $props()
+    }: { gameSession: GameSession<MarracashProjectedState, HydratedMarracashGameState> } = $props()
     setGameSession(gameSession as MarracashGameSession)
 </script>
 

@@ -22,7 +22,12 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
         return []
     }
 
-    enter(_context: MachineContext<HydratedMarracashGameState>) {}
+    enter(context: MachineContext<HydratedMarracashGameState>) {
+        const gameState = context.gameState
+        if (!gameState.turnManager.currentTurn()) {
+            gameState.activePlayerIds = [gameState.turnManager.startNextTurn(gameState.actionCount)]
+        }
+    }
 
     onAction(
         _action: ChoosingActionAction,

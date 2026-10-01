@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import type { HydratedMarracashPlayerState, MarracashPlayerState } from '@tabletop/marracash'
+    import type { HydratedMarracashPlayerState } from '@tabletop/marracash'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -35,7 +35,7 @@
 
         return turnOrderSorted
     })
-    function getPlayerForState(playerState: MarracashPlayerState) {
+    function getPlayerForState(playerState: HydratedMarracashPlayerState) {
         return gameSession.game.players.find((player) => player.id === playerState.playerId)
     }
 </script>
