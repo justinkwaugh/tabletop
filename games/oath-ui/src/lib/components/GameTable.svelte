@@ -92,7 +92,7 @@
                 {/if}
             </FitBox>
             <div class="grow-0 overflow-hidden min-h-0" style="flex:1;">
-                <ScalingWrapper justify="center" controls="bottom-left" coverThreshold={0.5}>
+                <ScalingWrapper justify="center" controls="bottom-left" coverBelowScale={0.3}>
                     <Board />
                 </ScalingWrapper>
             </div>

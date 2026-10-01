@@ -74,7 +74,7 @@
         maxScale = 1,
         insetTop = 0,
         overpan = 'none',
-        coverThreshold,
+        coverBelowScale,
         onManualViewChange
     }: {
         children: Snippet
@@ -86,8 +86,8 @@
         /** Screen pixels at the top kept clear when fitting, focusing and resting the content, for overlaid controls. */
         insetTop?: number
         overpan?: 'none' | 'focus' | 'x' | 'y' | 'both'
-        /** Rest at a cover fit instead when a contain fit would fill less than this fraction of the other axis. */
-        coverThreshold?: number
+        /** Rest at a cover fit instead when a contain fit would draw the content smaller than this scale. */
+        coverBelowScale?: number
         expandable?: boolean
         allowFullscreenShortcut?: () => boolean
         onManualViewChange?: () => void
@@ -199,7 +199,7 @@
         wrapperWidth
         wrapperHeight
         insetTop
-        coverThreshold
+        coverBelowScale
         contentWidth
         contentHeight
 
@@ -242,12 +242,11 @@
     }
 
     function computeRestScale(containScale: number) {
-        if (coverThreshold === undefined) {
+        if (coverBelowScale === undefined || containScale >= coverBelowScale) {
             return containScale
         }
 
-        const coverScale = Math.min(Math.max(wrapperWidth / contentWidth, availableHeight() / contentHeight), 1)
-        return containScale < coverScale * coverThreshold ? coverScale : containScale
+        return Math.min(Math.max(wrapperWidth / contentWidth, availableHeight() / contentHeight), 1)
     }
 
     function updateDiscreteLevels(lowestScale: number) {

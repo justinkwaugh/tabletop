@@ -131,8 +131,8 @@ for (const maximum of [1, 2]) {
     })
 }
 
-test('a lopsided board rests filling its short side and still zooms out to fit whole', async ({ page }) => {
-    await mountWrapper(page, { coverThreshold: 0.5, boardWidth: 2000, boardHeight: 500 })
+test('a board drawn below the cover scale rests filling its short side and still zooms out to fit whole', async ({ page }) => {
+    await mountWrapper(page, { coverBelowScale: 0.3, boardWidth: 2000, boardHeight: 500 })
     const board = page.getByTestId('board')
     await expect.poll(async () => (await board.boundingBox())?.height).toBe(300)
     expect((await viewportOffset(board)).x).toBeCloseTo(-400)
@@ -141,8 +141,8 @@ test('a lopsided board rests filling its short side and still zooms out to fit w
     await expect.poll(async () => (await board.boundingBox())?.width).toBe(400)
 })
 
-test('a board filling at least the cover threshold rests whole', async ({ page }) => {
-    await mountWrapper(page, { coverThreshold: 0.5, boardWidth: 1000, boardHeight: 500 })
+test('a board drawn at or above the cover scale rests whole', async ({ page }) => {
+    await mountWrapper(page, { coverBelowScale: 0.3, boardWidth: 1000, boardHeight: 500 })
     const board = page.getByTestId('board')
     await expect.poll(async () => (await board.boundingBox())?.width).toBe(400)
 })
