@@ -190,7 +190,8 @@ it('places all newly floated 1889 homes before construction, without payment or 
     expect(result.processedActions.map((action) => action.type)).toEqual([
         'StartOperatingSet',
         'StartOperatingRound',
-        'PlaceHomeStations'
+        'PlaceHomeStations',
+        'StartOperatingTurn'
     ])
     expect(
         result.updatedState.stations.filter((station) => station.status === 'placed')
@@ -202,7 +203,7 @@ it('places all newly floated 1889 homes before construction, without payment or 
         action: result.processedActions[1]
     })
     expect(result.updatedState.cash).toEqual(afterIncome.cash)
-    expect(result.updatedState.machineState).toBe('OperatingSet')
+    expect(result.updatedState.machineState).toBe('LayingTrack')
     expect(result.updatedState.stationStep).toBeUndefined()
     let replay = state
     for (const action of result.processedActions)

@@ -93,11 +93,6 @@
         )
     )
 
-    function exchangeCompany(certificateId: string) {
-        const certificate = session.gameState.certificates.find((item) => item.id === certificateId)
-        assertExists(certificate, 'An exchange requires its destination certificate')
-        return getCompany(session.gameState, certificate.companyId)
-    }
     function buyerCash(buyer: Owner): string {
         const cash = cashOwnedBy(session.gameState, buyer)
         assertExists(cash, 'A stock buyer company requires a cash account')
@@ -407,15 +402,12 @@
                     </div>
                 {:else if menu === 'exchange'}
                     {#each session.privates.exchangeOptions as offer, index (index)}
-                        {@const company = exchangeCompany(offer.certificateId)}
+                        {@const company = session.privates.exchangeCompany(offer.certificateId)}
                         <button
                             class="exchange-choice"
                             aria-label={`Exchange ${getCompany(session.gameState, offer.privateCompanyId).name} for ${company.name}`}
                             {disabled}
-                            onclick={() => {
-                                session.privates.selectExchange(offer)
-                                void session.privates.confirmExchange()
-                            }}
+                            onclick={() => void session.privates.exchange(offer)}
                         >
                             <span class="exchange-private"
                                 >{getCompany(session.gameState, offer.privateCompanyId).name}</span

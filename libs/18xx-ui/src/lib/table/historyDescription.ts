@@ -1,6 +1,7 @@
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
     isLayTile,
+    isPrivateTileLay,
     isRequestTrackConsent,
     isRespondToTrackConsent,
     isPlaceStation,
@@ -16,7 +17,7 @@ import {
     isFinishStockTurn,
     isAdvancePhase,
     isCompleteStockRound,
-    isExchangePrivate,
+    isPrivateExchangeAction,
     isReserveBid,
     isRaiseAuctionBid,
     isContributeTrainFunds,
@@ -102,6 +103,11 @@ export function historyDescription(
     if (isLayTile(action))
         return {
             text: `Laid track at ${action.locationId}`,
+            value: action.expectedCost ? money(action.expectedCost) : undefined
+        }
+    if (isPrivateTileLay(action))
+        return {
+            text: `Laid track at ${action.locationId} with ${companyName(action.privateCompanyId)}`,
             value: action.expectedCost ? money(action.expectedCost) : undefined
         }
     if (isPlaceStation(action))
@@ -213,7 +219,7 @@ export function historyDescription(
                 : undefined,
             important: true
         }
-    if (isExchangePrivate(action))
+    if (isPrivateExchangeAction(action))
         return {
             text: `Exchanged ${companyName(action.privateCompanyId)}`,
             detail: action.metadata

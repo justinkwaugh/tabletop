@@ -15,7 +15,7 @@
         const encodedHost = encodeURIComponent(FRONTEND_HOST ?? '')
         let url = ''
         if (mode === 'bot') {
-            url = `https://discord.com/oauth2/authorize?client_id=1260059992589865133`
+            url = `https://discord.com/oauth2/authorize?client_id=1260059992589865133&integration_type=1&scope=applications.commands`
         } else {
             url = `https://discord.com/oauth2/authorize?client_id=1260059992589865133&response_type=code&redirect_uri=${encodedHost}%2Foauth%2Fdiscord${mode === 'login' ? '' : '%2Flink'}&scope=identify+email`
         }

@@ -55,8 +55,8 @@ layout. `onLayoutChange` receives a `SavedWorkspace` after structural changes,
 including completed divider drags. Selecting a tab alone does not save a layout.
 
 The v1 format stores ordered tab IDs, a recursive split tree, integer percentages,
-intentionally closed tabs, and `locked: true` while panes are locked. Runtime IDs
-and active selections are omitted.
+and intentionally closed tabs. Runtime IDs and active selections are omitted.
+Layouts saved with the retired `locked` field restore normally and drop it.
 The historical `sidebar` field means the optional fixed pane, regardless of its
 physical position. Its name stays unchanged to preserve existing saved layouts.
 Unknown/duplicate tabs are removed, missing required tabs are restored, optional
@@ -75,7 +75,7 @@ containing element, including the fixed-pane target's ancestor when applicable:
 
 - `--workspace-text`, `--workspace-muted`, `--workspace-inactive`
 - `--workspace-border`, `--workspace-focus`, `--workspace-hover`
-- `--workspace-surface`
+- `--workspace-surface`, `--workspace-danger`
 
 Game-specific colors and dark mode belong to the caller. The 18xx table maps its
 railway theme to these properties; the base module never reads railway variables.

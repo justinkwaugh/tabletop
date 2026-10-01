@@ -7,14 +7,14 @@ readonly AUTHORIZED_KEYS_FILE="${HOME}/.ssh/authorized_keys.tabletop-devcontaine
 readonly SSHD_STATE_DIR="/var/lib/tabletop-sshd"
 readonly SSHD_HOST_KEY="${SSHD_STATE_DIR}/ssh_host_ed25519_key"
 readonly SSHD_CONFIG_DROP_IN="/etc/ssh/sshd_config.d/99-tabletop-devcontainer.conf"
-readonly SSH_SESSION_PATH="/home/node/.codex/bin:/home/node/.local/bin:/usr/local/share/npm-global/bin:/usr/local/share/nvm/current/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games"
+readonly SSH_SESSION_PATH="/home/node/.codex/bin:/home/node/.cargo/bin:/home/node/.local/bin:/opt/pnpm:/usr/local/share/npm-global/bin:/usr/local/share/nvm/current/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games"
 
 sudo service ssh stop
 
 managed_public_key=""
 key_validation_error=""
 if [ -f "${AUTHORIZED_KEY_SOURCE}" ]; then
-    mapfile -t configured_keys < <(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "${AUTHORIZED_KEY_SOURCE}")
+    mapfile -t configured_keys < <(sed 's/\r$//; /^[[:space:]]*#/d; /^[[:space:]]*$/d' "${AUTHORIZED_KEY_SOURCE}")
     if [ "${#configured_keys[@]}" -ne 1 ] || [[ ! "${configured_keys[0]}" =~ ^ssh-ed25519[[:space:]] ]]; then
         key_validation_error="${AUTHORIZED_KEY_SOURCE} must contain exactly one Ed25519 public key."
     else
@@ -22,7 +22,7 @@ if [ -f "${AUTHORIZED_KEY_SOURCE}" ]; then
     fi
 else
     echo "Managed ChatGPT SSH access is disabled until ${AUTHORIZED_KEY_SOURCE} is created." >&2
-    echo "Follow docs/runbooks/devcontainer-ssh-access.md from the host Mac, then restart the container." >&2
+    echo "Follow docs/runbooks/devcontainer-ssh-access.md on the host machine, then restart the container." >&2
 fi
 
 install -d -m 700 "${HOME}/.ssh"

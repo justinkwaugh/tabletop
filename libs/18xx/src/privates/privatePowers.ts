@@ -24,6 +24,7 @@ export interface PrivatePowerRules {
         privateCompanyId: string,
         playerId: string
     ): string | undefined
+    betweenTurnsPrivateIds?: readonly string[]
 }
 export function privateTrackConstruction(
     state: CompanyDecisionState,

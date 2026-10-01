@@ -22,11 +22,10 @@
     const initial = untrack(() => restoreWorkspaceTabs(savedLayout, tabs, fixedPane?.tabs, initialSplit, initialLayout))
     let root: WorkspaceNode = $state(initial.root)
     let fixed: WorkspacePane = $state(initial.fixed)
-    let locked = $state(initial.locked)
-    let lastLayout = JSON.stringify(saveWorkspace(initial.root, initial.fixed, recordedClosableTabs, locked))
+    let lastLayout = JSON.stringify(saveWorkspace(initial.root, initial.fixed, recordedClosableTabs))
     $effect(() => {
         if (resize) return
-        const value = saveWorkspace(root, fixed, recordedClosableTabs, locked)
+        const value = saveWorkspace(root, fixed, recordedClosableTabs)
         const serialized = JSON.stringify(value)
         if (serialized === lastLayout) return
         lastLayout = serialized
@@ -159,6 +158,7 @@
 
 <div class="workspace" aria-label={label} bind:this={element}>
     {#snippet paneHeader(item: PaneLayout)}
+        {@const menuId = `${instanceId}-menu-${item.pane.id}`}
         <section class="pane" class:fixed={item.pane.id === 'fixed'} class:drop-target={dropTarget === item.pane.id}
             aria-label={paneLabel(item)}
             use:mountPane={item.pane.id === 'fixed' ? fixedPane?.target : undefined}
@@ -180,24 +180,20 @@
                     {/each}
                 </div>
                 {#if splittable && (item.pane.id !== 'fixed' || item.pane.tabs.length || availableTabs(item.pane.id).length)}<div class="split-controls">
-                    <button class="split-button" aria-label={`Pane options for ${paneLabel(item)}`} title="Pane options" popovertarget={`${instanceId}-add-${item.pane.id}`}
+                    <button class="split-button" aria-label={`Pane options for ${paneLabel(item)}`} title="Pane options" popovertarget={menuId}
                         onclick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); menuPosition = { top: rect.bottom + 4, right: Math.max(8, window.innerWidth - Math.max(188, rect.right)) } }}>
                         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 9v2m6-2v2m6-2v2" stroke-width="3" stroke-linecap="round"/></svg>
                     </button>
-                    <div class="widget-menu" id={`${instanceId}-add-${item.pane.id}`} popover style:top={`${menuPosition.top}px`} style:right={`${menuPosition.right}px`}>
+                    <div class="widget-menu" id={menuId} popover style:top={`${menuPosition.top}px`} style:right={`${menuPosition.right}px`}>
                         {#if item.pane.id !== 'fixed'}
                         <div class="pane-actions">
                             {#each ['horizontal', 'vertical'] as const as axis (axis)}
                                 <button aria-label={`Split pane ${layout.panes.indexOf(item) + 1} ${axis === 'horizontal' ? 'horizontally' : 'vertically'}`}
-                                    title={axis === 'horizontal' ? 'Split top / bottom' : 'Split left / right'} disabled={!item.available.includes(axis)} popovertarget={`${instanceId}-add-${item.pane.id}`} popovertargetaction="hide"
+                                    title={axis === 'horizontal' ? 'Split top / bottom' : 'Split left / right'} disabled={!item.available.includes(axis)} popovertarget={menuId} popovertargetaction="hide"
                                     onclick={() => root = splitPane(root, item.pane.id, axis)}>
                                     <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="2" y="3" width="16" height="14" rx="1" />{#if axis === 'horizontal'}<path d="M2 10h16" />{:else}<path d="M10 3v14" />{/if}</svg>
                                 </button>
                             {/each}
-                            <button aria-label={locked ? 'Unlock panes' : 'Lock panes'} title={locked ? 'Unlock panes so they can be deleted' : 'Lock panes to hide their delete buttons'}
-                                onclick={() => locked = !locked}>
-                                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="4" y="9" width="12" height="9" rx="1.5" />{#if locked}<path d="M7 9V6.5a3 3 0 0 1 5.8-1.1" />{:else}<path d="M7 9V6.5a3 3 0 0 1 6 0V9" />{/if}</svg>
-                            </button>
                         </div>
                         {/if}
                         {#if item.pane.tabs.length}{#if item.pane.id !== 'fixed'}<hr />{/if}
@@ -211,18 +207,19 @@
                         {#if availableTabs(item.pane.id).length}{#if item.pane.id !== 'fixed' || item.pane.tabs.length}<hr />{/if}
                         <strong>Add tabs</strong>
                         {#each availableTabs(item.pane.id) as tab (tab.id)}
-                            <button class="add-tab" popovertarget={`${instanceId}-add-${item.pane.id}`} popovertargetaction="hide" onclick={() => addWidget(tab.id, item.pane.id)}>
+                            <!-- Adding unmounts this button before popovertargetaction would run, so close the menu first. -->
+                            <button class="add-tab" onclick={(event) => { event.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover(); addWidget(tab.id, item.pane.id) }}>
                                 {tab.label}
                             </button>
                         {/each}
                         {/if}
+                        {#if item.pane.id !== 'fixed' && mainLayout.panes.length > 1}<hr />
+                            <button class="delete-pane" aria-label={`Delete pane ${layout.panes.indexOf(item) + 1}`}
+                                onclick={() => { root = deletePane(root, item.pane.id); if (selected) root = activateTab(root, selected) }}>
+                                Delete pane
+                            </button>
+                        {/if}
                     </div>
-                    {#if item.pane.id !== 'fixed' && mainLayout.panes.length > 1 && !locked}
-                        <button class="split-button" aria-label={`Delete pane ${layout.panes.indexOf(item) + 1}`} title="Delete pane"
-                            onclick={() => { root = deletePane(root, item.pane.id); if (selected) root = activateTab(root, selected) }}>
-                            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" /></svg>
-                        </button>
-                    {/if}
                 </div>{/if}
             </header>
             {#if !item.pane.tabs.length}<div class="empty">Drag a tab here</div>{/if}
@@ -292,7 +289,8 @@
     .widget-menu hr { border: 0; border-top: 1px solid var(--workspace-border, #d1d5db); margin: 6px 0 10px; }
     .widget-menu button:disabled { opacity: .35; cursor: default; }
     .widget-menu strong { display: block; margin: 0 4px 4px; font-size: 11px; font-weight: 600; color: var(--workspace-muted, #6b7280); }
-    .widget-menu .add-tab { min-height: 26px; padding: 4px; font-size: 12px; }
+    .widget-menu .add-tab, .widget-menu .delete-pane { min-height: 26px; padding: 4px; font-size: 12px; }
+    .widget-menu .delete-pane, .widget-menu .delete-pane:hover:enabled { color: var(--workspace-danger, #dc2626); }
     .widget-menu button { display: flex; justify-content: space-between; gap: 24px; width: 100%; padding: 8px; border: 0; text-align: left; }
     .widget-menu button:hover { background: var(--workspace-hover, #0000000a); }
     .swap-sides { opacity: 0; pointer-events: none; position: absolute; z-index: 5; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--workspace-border, #d1d5db); border-radius: 5px; background: var(--workspace-surface, #ffffff); color: var(--workspace-muted, #6b7280); }

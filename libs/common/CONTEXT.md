@@ -40,7 +40,7 @@ The portion of Game State associated with a Player.
 The stable identity of one Player within a Game Instance. A relationship to that Player remains the same when the Player's attributes or presentation change.
 
 **Active Player**:
-A Player to whom an Action may currently be attributed under the Game State Machine. Multiple Players may be active simultaneously.
+A Player the Game State Machine is currently waiting on to act. Multiple Players may be active simultaneously, and an Out-of-Turn Action may also come from a Player who is not.
 
 ## Execution authority
 
@@ -78,8 +78,12 @@ The stable history identity assigned to a generated System Action. It belongs to
 An Action attributed to a particular Player, regardless of whether its origin is User or System.
 
 **Out-of-Turn Action**:
-A User Action whose registered schema requires the literal `outOfTurn: true`. The Game Runtime accepts it from any seated Player without regard to the Active Players or the current Action count, and its Machine State Handler alone decides validity. It records a standing declaration whose later consequences arrive as System Actions; it does not itself take a turn.
+A User Action whose registered schema requires the literal `outOfTurn: true`, accepted from any seated Player whether or not they are active, with validity left to its Machine State Handler. Unless it is a Sequenced Out-of-Turn Action, it is a standing declaration whose later consequences arrive as System Actions.
 _Avoid_: Background Action, Programmed Action
+
+**Sequenced Out-of-Turn Action**:
+An Out-of-Turn Action, also marked `sequenced: true`, whose immediate consequences later Actions depend on. It is ordered and undone like any other User Action and is never a Supersedable Action.
+_Avoid_: Interrupt, Restricted Action
 
 **Supersedable Action**:
 A User Action whose registered schema requires the literal `supersedable: true`. A later Action of the same type by the same Player may name it in `supersedesActionId`; the host or Local Game reverses the named Action and re-executes the Actions after it, honouring the replacement only when every later Action replays unchanged, which proves no later Action depended on it. An unnamed Action of a supersedable type is rejected while such an Action stands at the tail.

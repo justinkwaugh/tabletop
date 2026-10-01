@@ -15,10 +15,11 @@ import {
     SyntheticDefinition as Definition,
     SyntheticRuntime,
     type Note,
-    type Step
+    type Step,
+    type Tally
 } from './tests/syntheticGame.js'
 import { GameService } from './gameService.js'
-import { DisallowedActionError, DisallowedUndoError } from './errors.js'
+import { DisallowedActionError, DisallowedUndoError, RacedActionError } from './errors.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { UserService } from '../users/userService.js'
@@ -203,12 +204,28 @@ function createHost() {
         index,
         ...(supersedesActionId ? { supersedesActionId } : {})
     })
+    const tally = (
+        id: string,
+        playerId: string,
+        index = state.actionCount,
+        options: { board?: true } = {}
+    ): Tally => ({
+        id,
+        gameId: game.id,
+        type: 'tally',
+        source: ActionSource.User,
+        playerId,
+        outOfTurn: true,
+        sequenced: true,
+        index,
+        ...options
+    })
     const apply = (action: GameAction) =>
         service.applyActionToGame({ definition: Definition, action, user: user(action.playerId!) })
     const undo = (actionId: string, by: string) =>
         service.undoAction({ definition: Definition, gameId: game.id, actionId, user: user(by) })
     const summary = () => actions.map((action) => `${action.index}:${action.id}`)
-    return { game, store, service, step, note, apply, undo, summary, state: () => state }
+    return { game, store, service, step, note, tally, apply, undo, summary, state: () => state }
 }
 
 describe('Out-of-turn Actions on the host', () => {
@@ -284,5 +301,56 @@ describe('Out-of-turn Actions on the host', () => {
         expect(Reflect.get(host.state(), 'notes')).toEqual({ p1: 'standing' })
 
         await expect(host.undo('s1', 'p2')).rejects.toBeInstanceOf(DisallowedUndoError)
+    })
+})
+
+describe('Sequenced Out-of-Turn Actions on the host', () => {
+    it('records a commuting race after the Action it raced and reports that Action', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        const result = await host.apply(host.tally('t1', 'p3', 0))
+        expect(host.summary()).toEqual(['0:s1', '1:t1'])
+        expect(result.actions.map((action) => action.index)).toEqual([1])
+        expect(result.missingActions?.map((action) => action.id)).toEqual(['s1'])
+        expect(Reflect.get(host.state(), 'tallies')).toEqual({ p3: 1 })
+        expect(host.state().activePlayerIds).toEqual(['p2'])
+    })
+
+    it('records a turn-taking Action that raced a sequenced one', async () => {
+        const host = createHost()
+        await host.apply(host.tally('t1', 'p3'))
+        const late = host.step('s1', 'p1')
+        late.index = 0
+        await host.apply(late)
+        expect(host.summary()).toEqual(['0:t1', '1:s1'])
+    })
+
+    it('rejects a race whose outcome depends on the order', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        await expect(host.apply(host.tally('t1', 'p3', 0, { board: true }))).rejects.toBeInstanceOf(
+            RacedActionError
+        )
+        expect(host.summary()).toEqual(['0:s1'])
+    })
+
+    it('keeps rejecting stale turn-taking races that involve no sequenced Action', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        const late = host.step('s2', 'p2')
+        late.index = 0
+        await expect(host.apply(late)).rejects.toThrow('Action index is not valid')
+        expect(host.summary()).toEqual(['0:s1'])
+    })
+
+    it('blocks another Player’s Undo and is undone only by its own Player', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        await host.apply(host.tally('t1', 'p3'))
+        await expect(host.undo('s1', 'p1')).rejects.toBeInstanceOf(DisallowedUndoError)
+        await expect(host.undo('t1', 'p1')).rejects.toBeInstanceOf(DisallowedUndoError)
+        await host.undo('t1', 'p3')
+        expect(host.summary()).toEqual(['0:s1'])
+        expect(Reflect.get(host.state(), 'tallies')).toBeUndefined()
     })
 })

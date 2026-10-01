@@ -17,10 +17,7 @@
             aria-label="Game"
             bind:value={title}
             onchange={(event) => {
-                if (
-                    event.currentTarget.value !== 'TOP' &&
-                    (position === 'finished' || position === 'funding-chain')
-                )
+                if (event.currentTarget.value !== 'TOP' && position === 'funding-chain')
                     position = 'opening'
                 if (event.currentTarget.value === 'TOP' && position === 'diesel')
                     position = 'trains'
@@ -47,7 +44,7 @@
             <option value="powers">Buy privates</option>
             <option value="transfers">Negotiated purchases</option>
             <option value="ending">Final operating turn</option>
-            {#if title === 'TOP'}<option value="finished">Finished game</option>{/if}
+            <option value="finished">Finished game</option>
         </select>
     </nav>
     {#key `${title}:${position}`}<FinanceExampleHost

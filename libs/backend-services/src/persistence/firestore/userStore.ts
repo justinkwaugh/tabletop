@@ -327,6 +327,15 @@ export class FirestoreUserStore implements UserStore {
             }
 
             if (
+                fieldsToUpdate.roles &&
+                (fieldsToUpdate.roles.length !== existingUser.roles.length ||
+                    fieldsToUpdate.roles.some((role, index) => role !== existingUser.roles[index]))
+            ) {
+                updatedUser.roles = fieldsToUpdate.roles
+                updatedFields.push('roles')
+            }
+
+            if (
                 fieldsToUpdate.emailVerified !== undefined &&
                 existingUser.emailVerified !== fieldsToUpdate.emailVerified
             ) {

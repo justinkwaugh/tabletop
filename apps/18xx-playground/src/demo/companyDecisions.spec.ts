@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { trackConsentDecline } from '../../../../libs/18xx-ui/src/lib/session/trackConsentNotice.js'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, replaceSupersededAction, type GameAction } from '@tabletop/common'
 import {
     Definition as Top,
     TheOldPrinceTransferRules,
@@ -353,30 +353,58 @@ it('1889 limits private purchases to player ownership, phases 3/4 and half to do
         )
     ).toBeUndefined()
 })
-it('Mitsubishi can be used once by a player without a railway, outside a rival’s operation', () => {
-    const { game, engine, state } = example(Shikoku, 'privates')
+function requestWindow(state: EighteenXXState, requested = true) {
+    return action(state, 'SetPrivatePowerRequest', {
+        playerId: 'casey',
+        outOfTurn: true,
+        supersedable: true,
+        requested
+    })
+}
+function portLay(state: EighteenXXState, type: 'LayPrivateTile' | 'LayPrivateTileOutOfTurn') {
     const hydrated = Shikoku.runtime.hydrator.hydrateState(state)
     const terms = Shikoku1889PrivatePowerRules.trackTerms(hydrated, 'MF', 'casey')!
-    expect(terms).toBeDefined()
     const { companyId, locationId, definitionId, rotation, nodeMapping, cost } =
         privateTrackConstruction(hydrated, terms, Shikoku1889TrackRules).choices('B11')[0]
-    const result = engine.executeCanonicalAction({
+    return action(state, type, {
+        playerId: 'casey',
+        privateCompanyId: 'MF',
+        companyId,
+        locationId,
+        definitionId,
+        rotation,
+        nodeMapping,
+        expectedCost: cost,
+        ...(type === 'LayPrivateTileOutOfTurn'
+            ? { outOfTurn: true, sequenced: true, index: state.actionCount }
+            : {})
+    })
+}
+it('Mitsubishi can be used once off-turn in a stock round, ending its owner’s request, but not during a rival’s operation', () => {
+    const { game, engine, state } = example(Shikoku, 'privates')
+    expect(state.activePlayerIds).not.toContain('casey')
+    expect(engine.getValidActionTypesForPlayer(game, state, 'casey')).toContain(
+        'LayPrivateTileOutOfTurn'
+    )
+    expect(() =>
+        engine.executeCanonicalAction({ game, state, action: portLay(state, 'LayPrivateTile') })
+    ).toThrow()
+    const requested = engine.executeCanonicalAction({
         game,
         state,
-        action: action(state, 'LayPrivateTile', {
-            playerId: 'casey',
-            privateCompanyId: 'MF',
-            companyId,
-            locationId,
-            definitionId,
-            rotation,
-            nodeMapping,
-            expectedCost: cost
-        })
+        action: requestWindow(state)
+    }).updatedState
+    expect(requested.privatePowerRequests).toEqual(['casey'])
+    const result = engine.executeCanonicalAction({
+        game,
+        state: requested,
+        action: portLay(requested, 'LayPrivateTileOutOfTurn')
     }).updatedState
     expect(result.usedPrivatePowerIds).toContain('MF')
+    expect(result.privatePowerRequests).toBeUndefined()
     expect(result.stockRound).toEqual(state.stockRound)
     expect(result.turnManager).toEqual(state.turnManager)
+    expect(result.activePlayerIds).toEqual(state.activePlayerIds)
     expect(getCompany(result, 'MF').closed).not.toBe(true)
     expect(
         Shikoku1889PrivatePowerRules.trackTerms(
@@ -385,14 +413,17 @@ it('Mitsubishi can be used once by a player without a railway, outside a rival�
             'casey'
         )
     ).toBeUndefined()
-    const rival = example(Shikoku, 'transfers').state
+    const rival = example(Shikoku, 'transfers')
     expect(
         Shikoku1889PrivatePowerRules.trackTerms(
-            Shikoku.runtime.hydrator.hydrateState(rival),
+            Shikoku.runtime.hydrator.hydrateState(rival.state),
             'MF',
             'casey'
         )
     ).toBeUndefined()
+    expect(engine.getValidActionTypesForPlayer(rival.game, rival.state, 'casey')).toEqual([
+        'SetPrivatePowerRequest'
+    ])
 })
 it('Sumitomo relieves the owning company’s mountain cost but preserves combined river terrain', () => {
     const { state } = example(Shikoku, 'powers')
@@ -707,37 +738,41 @@ it('construction entitlement stays owner-specific and uses the ordinary allowanc
     )
     expect(hydrated.tileInventory.retiredPieceIds).not.toContain(details.placement.pieceId)
 })
+it('Mitsubishi gets no between-company window without a request', () => {
+    const { game, engine, state } = example(Shikoku, 'transfers')
+    const result = engine.executeCanonicalAction({
+        game,
+        state,
+        action: action(state, 'FinishOperatingTurn', { companyId: 'IR' })
+    }).updatedState
+    expect(result.privatePowerWindow).toBeUndefined()
+    expect(result.machineState).toBe('LayingTrack')
+    expect(result.trackStep?.companyId).toBe('AR')
+})
 it.each([true, false])(
-    'Mitsubishi gets a between-company window and preserves its right when skipped, use=%s',
+    'Mitsubishi’s requested window opens before a rival company and ends the request, use=%s',
     (use) => {
         const { game, engine, state } = example(Shikoku, 'transfers')
-        const result = engine.executeCanonicalAction({
+        const requested = engine.executeCanonicalAction({
             game,
             state,
-            action: action(state, 'FinishOperatingTurn', { companyId: 'IR' })
-        })
-        const pending = result.updatedState
+            action: requestWindow(state)
+        }).updatedState
+        const pending = engine.executeCanonicalAction({
+            game,
+            state: requested,
+            action: action(requested, 'FinishOperatingTurn', { companyId: 'IR' })
+        }).updatedState
         expect(pending.privatePowerWindow).toEqual({ companyId: 'AR', passedPlayerIds: [] })
         expect(pending.activePlayerIds).toEqual(['casey'])
         expect(engine.getValidActionTypesForPlayer(game, pending, 'blair')).toEqual([])
         expect(Shikoku.runtime.hydrator.hydrateState(pending).dehydrate()).toEqual(pending)
-        const hydrated = Shikoku.runtime.hydrator.hydrateState(pending)
-        const terms = Shikoku1889PrivatePowerRules.trackTerms(hydrated, 'MF', 'casey')!
-        const { companyId, locationId, definitionId, rotation, nodeMapping, cost } =
-            privateTrackConstruction(hydrated, terms, Shikoku1889TrackRules).choices('B11')[0]
         const choice = use
-            ? action(pending, 'LayPrivateTile', {
-                  privateCompanyId: 'MF',
-                  companyId,
-                  locationId,
-                  definitionId,
-                  rotation,
-                  nodeMapping,
-                  expectedCost: cost
-              })
+            ? portLay(pending, 'LayPrivateTile')
             : action(pending, 'ContinueOperatingRound', { companyId: 'AR' })
         const resolved = engine.executeCanonicalAction({ game, state: pending, action: choice })
         expect(resolved.updatedState.privatePowerWindow).toBeUndefined()
+        expect(resolved.updatedState.privatePowerRequests).toBeUndefined()
         expect(resolved.updatedState.machineState).toBe('LayingTrack')
         expect(resolved.updatedState.trackStep?.companyId).toBe('AR')
         expect(resolved.updatedState.usedPrivatePowerIds.includes('MF')).toBe(use)
@@ -747,6 +782,57 @@ it.each([true, false])(
         expect(undone).toEqual(pending)
     }
 )
+it('Mitsubishi’s standing request is cancelled by superseding it', () => {
+    const { game, engine, state } = example(Shikoku, 'transfers')
+    const request = engine.executeCanonicalAction({ game, state, action: requestWindow(state) })
+    const cancel = { ...requestWindow(request.updatedState, false), id: 'cancel' }
+    const outcome = replaceSupersededAction({
+        engine,
+        apiActions: Shikoku.runtime.apiActions,
+        game,
+        state: request.updatedState,
+        window: request.processedActions,
+        replacement: { ...cancel, supersedesActionId: request.processedActions[0].id }
+    })
+    expect(outcome.kind).toBe('replace')
+    if (outcome.kind !== 'replace') return
+    const cancelled = engine.executeCanonicalAction({
+        game,
+        state: outcome.state,
+        action: cancel
+    }).updatedState
+    expect(cancelled.privatePowerRequests).toBeUndefined()
+})
+it('Mitsubishi’s request can be cancelled, and is dropped with its reason when the private closes', () => {
+    const { game, engine, state } = example(Shikoku, 'transfers')
+    const requested = engine.executeCanonicalAction({
+        game,
+        state,
+        action: requestWindow(state)
+    }).updatedState
+    const cancelled = engine.executeCanonicalAction({
+        game,
+        state: requested,
+        action: requestWindow(requested, false)
+    }).updatedState
+    expect(cancelled.privatePowerRequests).toBeUndefined()
+    getCompany(requested, 'MF').closed = true
+    const result = engine.executeCanonicalAction({
+        game,
+        state: requested,
+        action: action(requested, 'FinishOperatingTurn', { companyId: 'IR' })
+    })
+    expect(result.processedActions).toContainEqual(
+        expect.objectContaining({
+            type: 'DropPrivatePowerRequest',
+            requesterId: 'casey',
+            reason: 'private-closed'
+        })
+    )
+    expect(result.updatedState.privatePowerRequests).toBeUndefined()
+    expect(result.updatedState.privatePowerWindow).toBeUndefined()
+    expect(result.updatedState.machineState).toBe('LayingTrack')
+})
 it('Hunslet resolves compulsory discards before returning to construction', () => {
     const { game, engine, state } = example(Top, 'powers')
     state.phaseId = '6H'

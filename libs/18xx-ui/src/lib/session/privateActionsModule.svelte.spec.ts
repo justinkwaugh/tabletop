@@ -10,7 +10,8 @@ const Beta = { privateCompanyId: 'beta', playerId: 'alex' }
 function privateActions(
     powers: { privateCompanyId: string; playerId: string }[],
     state: PrivateActionsSession['state'] = {},
-    availability = {}
+    availability = {},
+    exchangeOptions: { playerId: string; privateCompanyId: string; certificateId: string }[] = []
 ) {
     let trackSelected = false
     let trackCleared = 0
@@ -35,7 +36,7 @@ function privateActions(
     }
     const { session } = testSession(state, undefined, [], availability)
     return {
-        module: new PrivateActionsModule(session, decisions, track),
+        module: new PrivateActionsModule(session, decisions, track, { exchangeOptions }),
         decisions,
         selectTrack: () => {
             trackSelected = true
@@ -59,6 +60,15 @@ const tileDetails: PrivateTileOption['details'] = {
 }
 
 describe('PrivateActionsModule', () => {
+    it('counts an available private exchange as a usable private power', () => {
+        expect(privateActions([]).module.powersAvailable).toBe(false)
+        expect(
+            privateActions([], {}, {}, [
+                { playerId: 'alex', privateCompanyId: 'DR', certificateId: 'IR:share:5' }
+            ]).module.powersAvailable
+        ).toBe(true)
+    })
+
     it('lists each private tile power once however many lays it offers', () => {
         expect(privateActions([Alpha, Beta]).module.trackPowers).toEqual([Alpha, Beta])
     })

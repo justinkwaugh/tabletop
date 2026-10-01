@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { putLocalRecords, readLocalRecords } from './localGameStore.js'
 
 test('history shows recorded auction details without action controls', async ({ page }) => {
     test.setTimeout(60000)
@@ -31,33 +32,15 @@ test('a local spectator sees the active player and a disabled stock strip', asyn
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('trading')
     await expect(page.getByRole('navigation', { name: 'Stock actions' })).toBeVisible()
-    await page.evaluate(
-        () =>
-            new Promise<void>((resolve, reject) => {
-                const request = indexedDB.open('tabletop-local')
-                request.onerror = () => reject(request.error)
-                request.onsuccess = () => {
-                    const db = request.result
-                    const transaction = db.transaction('games', 'readwrite')
-                    const store = transaction.objectStore('games')
-                    const read = store.getAll()
-                    read.onsuccess = () => {
-                        for (const game of read.result) {
-                            game.hotseat = false
-                            for (const player of game.players) player.userId = 'another-user'
-                            store.put(game)
-                        }
-                    }
-                    transaction.oncomplete = () => {
-                        db.close()
-                        resolve()
-                    }
-                    transaction.onerror = () => {
-                        db.close()
-                        reject(transaction.error)
-                    }
-                }
-            })
+    const games = await readLocalRecords(page, 'games')
+    await putLocalRecords(
+        page,
+        'games',
+        games.map((game) => ({
+            ...game,
+            hotseat: false,
+            players: game.players.map((player) => ({ ...player, userId: 'another-user' }))
+        }))
     )
     await page.reload()
     await page.getByLabel('Position', { exact: true }).selectOption('trading')

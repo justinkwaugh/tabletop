@@ -4,6 +4,7 @@ import {
     ContinueOperatingRound,
     DeclinePrivateTile,
     LayPrivateTile,
+    LayPrivateTileOutOfTurn,
     OfferPurchase,
     RespondToPurchaseOffer,
     RespondToTrackConsent,
@@ -47,11 +48,19 @@ type CompanyDecisionsState = Parameters<typeof purchaseChoices>[0] &
         | 'privateTrackLay'
         | 'privatePowerWindow'
         | 'usedPrivatePowerIds'
+        | 'machineState'
     >
 
 export type CompanyDecisionsSession = ModuleSession<
     CompanyDecisionsState,
-    Pick<EighteenXXTitleRules, 'transferRules' | 'trainRules' | 'trackRules' | 'privatePowerRules'>
+    Pick<
+        EighteenXXTitleRules,
+        | 'transferRules'
+        | 'trainRules'
+        | 'trackRules'
+        | 'privatePowerRules'
+        | 'outOfTurnPrivatePowers'
+    >
 >
 
 export class CompanyDecisionsModule {
@@ -77,7 +86,24 @@ export class CompanyDecisionsModule {
     privatePurchases = $derived.by(() =>
         this.purchaseOptions.filter((option) => option.request.asset.kind === 'private')
     )
-    players = $derived.by(() => (this.canResolve ? this.session.actingPlayerIds : []))
+    players = $derived.by(() => {
+        if (!this.canResolve) return []
+        const { state, rules } = this.session
+        const active = this.session.actingPlayerIds.filter((playerId) =>
+            state.activePlayerIds.includes(playerId)
+        )
+        const offTurn =
+            rules.outOfTurnPrivatePowers && state.machineState === 'StockRound'
+                ? state.players
+                      .map((player) => player.playerId)
+                      .filter(
+                          (playerId) =>
+                              !state.activePlayerIds.includes(playerId) &&
+                              this.session.canActFor(playerId)
+                      )
+                : []
+        return [...active, ...offTurn]
+    })
     privateTileOptions = $derived.by((): PrivateTileOption[] => {
         const { state, rules } = this.session
         if (state.purchaseOffer || state.trackConsent) return []
@@ -218,7 +244,7 @@ export class CompanyDecisionsModule {
                 this.players.includes(decision.playerId),
                 'Only the entitled player may lay this tile'
             )
-            const action = this.session.createPlayerAction(LayPrivateTile, {
+            const lay = {
                 privateCompanyId: decision.privateCompanyId,
                 companyId,
                 locationId,
@@ -226,7 +252,14 @@ export class CompanyDecisionsModule {
                 rotation,
                 nodeMapping,
                 expectedCost: cost
-            })
+            }
+            const action = this.session.state.activePlayerIds.includes(decision.playerId)
+                ? this.session.createPlayerAction(LayPrivateTile, lay)
+                : this.session.createPlayerAction(LayPrivateTileOutOfTurn, {
+                      ...lay,
+                      outOfTurn: true,
+                      sequenced: true
+                  })
             action.playerId = decision.playerId
             await this.session.applyAction(action)
         } else {

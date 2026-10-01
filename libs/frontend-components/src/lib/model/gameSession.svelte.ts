@@ -9,6 +9,7 @@ import {
     unnamedDuplicateReason,
     isSupersedableActionType,
     isOutOfTurnActionType,
+    isOutOfTurnDeclaration,
     Game,
     GameAction,
     GameEngine,
@@ -259,7 +260,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 break
             }
 
-            if (action.source !== ActionSource.User || action.outOfTurn) {
+            if (action.source !== ActionSource.User || isOutOfTurnDeclaration(action)) {
                 continue
             }
 
@@ -1233,6 +1234,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                     before: priorContext,
                     result: actionResults
                 })
+                this.announceReconciledRace(action, response.missingActions)
             }
         } catch (e) {
             console.log(e)
@@ -1241,7 +1243,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 relevantContext.restoreFrom(priorContext)
             }
             if (!this.isMajorChange()) {
-                toast.error('An error occurred processing your action, resyncing')
+                toast.error(
+                    e instanceof Error && e.name === 'RacedActionError'
+                        ? 'Another player acted first, so your action was not applied'
+                        : 'An error occurred processing your action, resyncing'
+                )
                 if (representationRequestStale) {
                     await this.representations.reload()
                 } else {
@@ -1254,6 +1260,15 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
                 this.processingActions = false
             }
         }
+    }
+
+    private announceReconciledRace(action: GameAction, raced: readonly GameAction[] = []) {
+        const racers = raced.filter(
+            (other) => other.source === ActionSource.User && other.playerId !== action.playerId
+        )
+        if (!racers.length || ![action, ...racers].some((other) => other.sequenced)) return
+        const names = [...new Set(racers.map((other) => this.getPlayerName(other.playerId)))]
+        toast.info(`Your action was applied after ${names.join(' and ')}’s`)
     }
 
     private async applyActionInPrivilegedView(action: GameAction): Promise<void> {

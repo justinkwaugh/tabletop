@@ -26,6 +26,7 @@
                 "ABLY_API_KEY",
                 "SESSION_SECRET",
                 "SESSION_SALT",
+                "SESSION_KEY",
                 "TEST_DISCORD_USER_ID",
                 "STATIC_ROOT"
             ]

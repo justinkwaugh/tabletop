@@ -29,6 +29,21 @@ export function isOutOfTurnActionType(
     return hasRequiredTrueLiteral(apiActions[type], 'outOfTurn')
 }
 
+export function isSequencedActionType(
+    apiActions: Readonly<Record<string, Type.TSchema>>,
+    type: string
+): boolean {
+    return (
+        isOutOfTurnActionType(apiActions, type) &&
+        hasRequiredTrueLiteral(apiActions[type], 'sequenced') &&
+        !isSupersedableActionType(apiActions, type)
+    )
+}
+
+export function isOutOfTurnDeclaration(action: Pick<GameAction, 'outOfTurn' | 'sequenced'>) {
+    return action.outOfTurn === true && action.sequenced !== true
+}
+
 export function isSupersedableActionType(
     apiActions: Readonly<Record<string, Type.TSchema>>,
     type: string

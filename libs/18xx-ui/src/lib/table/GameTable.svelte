@@ -13,6 +13,8 @@
     } from './tableWorkspace.js'
     import { historyMapFocus } from '../maps/historyMapFocus.js'
     import { routeColor } from '../routes/routePresentation.js'
+    import TableNotices from './TableNotices.svelte'
+    import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
     import {
         companyFocusLocations,
@@ -779,7 +781,7 @@
     />
 {/snippet}
 
-{#snippet sidebarInformation()}
+{#snippet gameInformationStrip()}
     <div class="game-information" aria-label="Game information">
         <button
             class="game-information-item depot-information phase-information"
@@ -824,6 +826,9 @@
             {:else}<span>Empty</span>{/each}
         </button>
     </div>
+{/snippet}
+{#snippet sidebarInformation()}
+    {#if paneLayout.current}{@render gameInformationStrip()}{/if}
     {#if gameInformation}{@render gameInformation()}{/if}
 {/snippet}
 {#snippet chatPanel()}
@@ -985,6 +990,10 @@
                     {/snippet}
                     {#snippet actionContent()}
                         <div class="action-body">
+                            <div class="action-information">
+                                {@render gameInformationStrip()}
+                            </div>
+                            <TableNotices notices={session.notices} />
                             <OperatingSteps
                                 {session}
                                 {privatePurchaseLabel}
@@ -996,6 +1005,7 @@
                                     additionalActions={additionalStockActions}
                                     readOnly={readOnlyPosition}
                                 />
+                                <PrivatePowerControls {session} />
                             {/if}
                             <section class="action-panel" aria-label="Current action">
                                 {#if readOnlyPosition}
@@ -1371,6 +1381,12 @@
         min-height: 0;
         overflow: auto;
     }
+    .action-information .game-information {
+        justify-content: center;
+        column-gap: 24px;
+        margin-top: 0;
+        padding: 4px 12px;
+    }
     .actions-area .action-panel {
         flex: 1 0 auto;
     }
@@ -1402,6 +1418,7 @@
         --workspace-focus: var(--rail-focus, #7c634b);
         --workspace-hover: var(--rail-hover, #69554016);
         --workspace-surface: var(--rail-surface, #faf7f2);
+        --workspace-danger: var(--rail-negative, #b33a32);
     }
     .railway-table {
         color-scheme: dark;

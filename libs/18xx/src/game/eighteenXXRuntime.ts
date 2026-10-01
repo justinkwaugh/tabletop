@@ -24,6 +24,7 @@ import { StartOperatingSetHandler } from '../operating/startOperatingSetHandler.
 import { TerminalStateHandler, assert, type GameRuntime } from '@tabletop/common'
 import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
 import { StockInstructionHandler } from '../stock/stockInstructionHandler.js'
+import { PrivatePowerRequestHandler } from '../privates/privatePowerRequestHandler.js'
 import { StockRoundHandler } from '../stock/stockRoundHandler.js'
 import {
     EighteenXXState,
@@ -86,7 +87,8 @@ export function createEighteenXXRuntime(
             handler,
             options.privateRules,
             rules,
-            companyRules
+            companyRules,
+            options.outOfTurnPrivatePowers === true
         )
     const allowsCompanyDecisions = (handler: Handler): Handler =>
         new CompanyDecisionsHandler<HydratedEighteenXXState>(
@@ -95,11 +97,19 @@ export function createEighteenXXRuntime(
             options.privatePowerRules,
             options.trainRules,
             companyRules,
-            options.trackRules
+            options.trackRules,
+            options.outOfTurnPrivatePowers === true
         )
+    const allowsPrivatePowerRequests = (handler: Handler): Handler =>
+        options.privatePowerRules.betweenTurnsPrivateIds?.length
+            ? new PrivatePowerRequestHandler<HydratedEighteenXXState>(
+                  handler,
+                  options.privatePowerRules
+              )
+            : handler
     const after = stateAfterOperatingStep
     const operatingStep = (handler: Handler): Handler =>
-        endsGame(allowsCompanyDecisions(allowsExchange(handler)))
+        endsGame(allowsPrivatePowerRequests(allowsCompanyDecisions(allowsExchange(handler))))
     const familyStateHandlers: Record<string, Handler> = {
         ...(options.offerAuctionRules
             ? {
@@ -137,32 +147,40 @@ export function createEighteenXXRuntime(
             decides('RustingTrains', new RustingTrainsHandler(after('RunningTrains')))
         ),
         StockRound: endsGame(
-            new StockInstructionHandler(
-                allowsCompanyDecisions(
-                    new AutomaticStockTurnHandler(
-                        allowsExchange(
-                            decides(
-                                'StockRound',
-                                new StockRoundHandler(rules, 'StartingOperatingSet', companyRules)
+            allowsPrivatePowerRequests(
+                new StockInstructionHandler(
+                    allowsCompanyDecisions(
+                        new AutomaticStockTurnHandler(
+                            allowsExchange(
+                                decides(
+                                    'StockRound',
+                                    new StockRoundHandler(
+                                        rules,
+                                        'StartingOperatingSet',
+                                        companyRules
+                                    )
+                                )
                             )
                         )
-                    )
-                ),
-                rules
+                    ),
+                    rules
+                )
             )
         ),
         StartingOperatingSet: endsGame(
             decides('StartingOperatingSet', new StartOperatingSetHandler(BetweenCompaniesState))
         ),
         OperatingSet: endsGame(
-            new BetweenCompaniesHandler(
-                decides(
-                    'OperatingSet',
-                    new StartOperatingTurnHandler(options.stationRules, OperatingStepStates[0])
-                ),
-                options.privatePowerRules,
-                options.trackRules,
-                options.stationRules
+            allowsPrivatePowerRequests(
+                new BetweenCompaniesHandler(
+                    decides(
+                        'OperatingSet',
+                        new StartOperatingTurnHandler(options.stationRules, OperatingStepStates[0])
+                    ),
+                    options.privatePowerRules,
+                    options.trackRules,
+                    options.stationRules
+                )
             )
         ),
         LayingTrack: new AutomaticTrackCompletionHandler(

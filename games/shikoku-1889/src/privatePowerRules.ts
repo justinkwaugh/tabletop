@@ -53,5 +53,6 @@ export const Shikoku1889PrivatePowerRules: PrivatePowerRules = {
             connected: false
         }
     },
-    earlyTrainCompany: () => undefined
+    earlyTrainCompany: () => undefined,
+    betweenTurnsPrivateIds: ['MF']
 }

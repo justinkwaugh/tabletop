@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { putLocalRecords, readLocalRecords } from './localGameStore.js'
 
 test('rebuilds a finished example with outdated funding-sale metadata', async ({ page }) => {
     test.setTimeout(60000)
@@ -11,37 +12,16 @@ test('rebuilds a finished example with outdated funding-sale metadata', async ({
     await expect(
         page.getByRole('heading', { name: 'Player 2 wins', exact: true })
     ).not.toBeVisible()
-    await page.evaluate(
-        () =>
-            new Promise<void>((resolve, reject) => {
-                const open = indexedDB.open('tabletop-local')
-                open.onerror = () => reject(open.error)
-                open.onsuccess = () => {
-                    const db = open.result
-                    const transaction = db.transaction('actions', 'readwrite')
-                    const store = transaction.objectStore('actions')
-                    const request = store.get('top-finished')
-                    request.onsuccess = () => {
-                        const record = request.result
-                        for (const sale of record.actions.filter(
-                            (action: { type: string }) => action.type === 'SellFundingShares'
-                        )) {
-                            Reflect.deleteProperty(sale.metadata, 'requiredContribution')
-                            Reflect.deleteProperty(sale.metadata, 'cashShortfall')
-                        }
-                        store.put(record)
-                    }
-                    transaction.oncomplete = () => {
-                        db.close()
-                        resolve()
-                    }
-                    transaction.onerror = () => {
-                        db.close()
-                        reject(transaction.error)
-                    }
-                }
-            })
+    const recorded = (await readLocalRecords(page, 'actions')).find(
+        (record) => record.gameId === 'top-finished'
     )
+    if (!recorded) throw new Error('The finished TOP actions were not saved')
+    for (const sale of recorded.actions.filter((action) => action.type === 'SellFundingShares')) {
+        if (!sale.metadata) throw new Error('Funding sales record their metadata')
+        Reflect.deleteProperty(sale.metadata, 'requiredContribution')
+        Reflect.deleteProperty(sale.metadata, 'cashShortfall')
+    }
+    await putLocalRecords(page, 'actions', [recorded])
     await page.reload()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
     await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({

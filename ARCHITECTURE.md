@@ -10,7 +10,7 @@ Very little logic is found in the backend workspace itself, rather a set of serv
 
 **Discord**
 
-This service handles interactions received via HTTP. A Bot is not used to handle interactions because it would require a single instance, and this architecture is intended to not require specific instances for things.
+This service handles interactions and webhook events (such as a user adding the bot, which subscribes them to notifications) received via HTTP. A Bot is not used to handle interactions because it would require a single instance, and this architecture is intended to not require specific instances for things.
 
 **Email**
 

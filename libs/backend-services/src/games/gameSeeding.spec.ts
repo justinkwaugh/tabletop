@@ -68,8 +68,9 @@ function fixture() {
             ownerId: admin.id,
             isPublic: true,
             config: {},
-            players: ['p1', 'p2', 'p3'].map((id) => ({
+            players: ['p1', 'p2', 'p3'].map((id, index) => ({
                 id,
+                ...(index === 0 ? { userId: admin.id } : {}),
                 name: '',
                 isHuman: true,
                 status: PlayerStatus.Joined
@@ -89,7 +90,7 @@ describe('hosted reproduction seeds', () => {
             await expect(
                 service.updateGame({
                     gameId: game.id,
-                    owner: admin,
+                    user: admin,
                     fields: { protectedInformation }
                 })
             ).rejects.toThrow('protection cannot be changed')

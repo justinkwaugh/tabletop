@@ -20,7 +20,9 @@ for (const title of ['TOP', '1889']) {
                     if (!action || !map) throw new Error('Missing action or map column')
                     return header.evaluate(
                         (element, bounds) => {
-                            const visible = [...element.querySelectorAll('.phase, .turn, button')]
+                            const visible = [
+                                ...element.querySelectorAll('.phase, .turn, button')
+                            ].filter((child) => child.checkVisibility())
                             return (
                                 visible.every((child) => {
                                     const rect = child.getBoundingClientRect()

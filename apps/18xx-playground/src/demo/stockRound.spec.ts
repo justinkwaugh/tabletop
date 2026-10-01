@@ -79,17 +79,14 @@ it.each([Top, Shikoku])(
             'CompleteStockRound',
             'StartOperatingSet',
             'StartOperatingRound',
-            ...(definition === Top ? ['StartOperatingTurn'] : [])
+            'StartOperatingTurn'
         ])
-        if (definition === Top)
-            expect(result.processedActions.at(-1)).toMatchObject({
-                type: 'StartOperatingTurn',
-                source: ActionSource.System
-            })
-        if (definition === Top) expect(result.processedActions.at(-1)?.playerId).toBeUndefined()
-        expect(result.updatedState.machineState).toBe(
-            definition === Top ? 'LayingTrack' : 'OperatingSet'
-        )
+        expect(result.processedActions.at(-1)).toMatchObject({
+            type: 'StartOperatingTurn',
+            source: ActionSource.System
+        })
+        expect(result.processedActions.at(-1)?.playerId).toBeUndefined()
+        expect(result.updatedState.machineState).toBe('LayingTrack')
         expect(result.updatedState.stockRound.completed).toBe(true)
         expect(result.updatedState.turnManager.turnOrder).toEqual(['alex', 'blair', 'casey'])
         expect(result.updatedState.operatingSet).toMatchObject({
@@ -101,7 +98,7 @@ it.each([Top, Shikoku])(
             definition === Top ? ['ML', 'So', 'PEIR'] : ['IR', 'AR']
         )
         expect(engine.getValidActionTypesForPlayer(game, result.updatedState, 'casey')).toEqual(
-            definition === Top ? [] : ['LayPrivateTile', 'ContinueOperatingRound']
+            definition === Top ? [] : ['SetPrivatePowerRequest']
         )
         const repeated = engine.executeCanonicalAction({ game, state: current, action })
         expect(repeated.updatedState).toEqual(result.updatedState)

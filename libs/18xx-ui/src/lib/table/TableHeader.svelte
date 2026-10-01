@@ -123,11 +123,11 @@
                 {gameState.operatingSet?.number}.{gameState.operatingSet?.roundNumber}
             {/if}
         </strong>
-        <span class="separator">/</span><button
+        <span class="separator phase-separator">/</span><button
             class="phase-button"
             aria-haspopup="dialog"
             onclick={() => (showPhaseChart = true)}
-            ><span class="max-sm:hidden">Phase</span><TrainBadge
+            ><span>Phase</span><TrainBadge
                 name={gameState.phaseId}
                 color={trainColors[gameState.phaseId]}
             /></button
@@ -243,6 +243,12 @@
     @media (width < 40rem) {
         header {
             min-height: 36px;
+        }
+    }
+    @media (width < 64rem) {
+        .phase .phase-separator,
+        .phase .phase-button {
+            display: none;
         }
     }
     .phase,

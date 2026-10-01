@@ -20,11 +20,11 @@ export default defineProject(
             fs: { strict: false },
             proxy: {
                 '/api': {
-                    target: 'http://localhost:3000',
+                    target: 'http://127.0.0.1:3000',
                     changeOrigin: true
                 },
                 '/games': {
-                    target: process.env.PUBLIC_API_HOST ?? 'http://localhost:3000',
+                    target: process.env.PUBLIC_API_HOST ?? 'http://127.0.0.1:3000',
                     changeOrigin: true,
                     configure: (proxy: ProxyServer) => {
                         proxy.on('proxyReq', (proxyReq: ClientRequest, req: IncomingMessage) => {

@@ -1,15 +1,10 @@
 import {
     GameStatus,
     GameStatusCategory,
+    gameUserIds,
     getGameStatusesForCategory,
     type Game
 } from '@tabletop/common'
-
-export function gameUserIds(game: Pick<Game, 'players'>): string[] {
-    return [
-        ...new Set(game.players.flatMap((player) => (player.userId == null ? [] : [player.userId])))
-    ]
-}
 
 export class GameCacheKeys {
     static game(gameId: string): string {

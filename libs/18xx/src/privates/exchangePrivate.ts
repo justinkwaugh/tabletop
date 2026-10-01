@@ -13,7 +13,8 @@ import type { StockRules } from '../stock/stockRules.js'
 import {
     PrivateExchangeDetails,
     evaluatePrivateExchange,
-    applyPrivateShareExchange
+    applyPrivateShareExchange,
+    type PrivateExchangeRequest
 } from './privateExchange.js'
 import type { PrivateRules, PrivateState } from './privateRules.js'
 export const ExchangePrivate = Type.Object(
@@ -34,6 +35,46 @@ export function isExchangePrivate(action: GameAction): action is ExchangePrivate
         (action.type === 'ExchangePrivate' && Validator.Check(action))
     )
 }
+export const ExchangePrivateOutOfTurn = Type.Object(
+    {
+        ...ExchangePrivate.properties,
+        type: Type.Literal('ExchangePrivateOutOfTurn'),
+        outOfTurn: Type.Literal(true),
+        sequenced: Type.Literal(true)
+    },
+    { additionalProperties: false }
+)
+export type ExchangePrivateOutOfTurn = Type.Static<typeof ExchangePrivateOutOfTurn>
+const OutOfTurnValidator = Compile(ExchangePrivateOutOfTurn)
+export function isExchangePrivateOutOfTurn(action: GameAction): action is ExchangePrivateOutOfTurn {
+    return (
+        action instanceof HydratedExchangePrivateOutOfTurn ||
+        (action.type === 'ExchangePrivateOutOfTurn' && OutOfTurnValidator.Check(action))
+    )
+}
+export function isPrivateExchangeAction(
+    action: GameAction
+): action is ExchangePrivate | ExchangePrivateOutOfTurn {
+    return isExchangePrivate(action) || isExchangePrivateOutOfTurn(action)
+}
+
+function applyExchange(
+    state: HydratedGameState & PrivateState,
+    request: PrivateExchangeRequest,
+    details: PrivateExchangeDetails,
+    stockRules: StockRules
+): void {
+    applyPrivateShareExchange(
+        state,
+        request.privateCompanyId,
+        request.certificateId,
+        details.exemptOwnershipLimit,
+        stockRules
+    )
+    if (state.machineState === 'StockRound' && details.stockAction === 'additional')
+        recordStockAction(state, request.playerId, stockRules.round)
+}
+
 export class HydratedExchangePrivate
     extends HydratableAction<typeof ExchangePrivate>
     implements ExchangePrivate
@@ -57,15 +98,44 @@ export class HydratedExchangePrivate
         )
         const result = evaluatePrivateExchange(state, this, this.#rules, this.#stockRules)
         assert(result.details, result.reason ?? 'Invalid private exchange')
-        applyPrivateShareExchange(
-            state,
-            this.privateCompanyId,
-            this.certificateId,
-            result.details.exemptOwnershipLimit,
-            this.#stockRules
+        applyExchange(state, this, result.details, this.#stockRules)
+        this.metadata = result.details
+    }
+}
+
+export class HydratedExchangePrivateOutOfTurn
+    extends HydratableAction<typeof ExchangePrivateOutOfTurn>
+    implements ExchangePrivateOutOfTurn
+{
+    declare type: 'ExchangePrivateOutOfTurn'
+    declare playerId: string
+    declare privateCompanyId: string
+    declare certificateId: string
+    declare outOfTurn: true
+    declare sequenced: true
+    declare metadata?: PrivateExchangeDetails
+    readonly #rules: PrivateRules
+    readonly #stockRules: StockRules
+    constructor(data: ExchangePrivateOutOfTurn, rules: PrivateRules, stockRules: StockRules) {
+        super(
+            data instanceof HydratedExchangePrivateOutOfTurn ? data.dehydrate() : data,
+            OutOfTurnValidator
         )
-        if (state.machineState === 'StockRound' && result.details.stockAction === 'additional')
-            recordStockAction(state, this.playerId, this.#stockRules.round)
+        this.#rules = rules
+        this.#stockRules = stockRules
+    }
+    apply(state: HydratedGameState & PrivateState): void {
+        assert(
+            this.source === ActionSource.User && !state.activePlayerIds.includes(this.playerId),
+            'An out-of-turn exchange comes from a player the game is not waiting on'
+        )
+        const result = evaluatePrivateExchange(state, this, this.#rules, this.#stockRules)
+        assert(result.details, result.reason ?? 'Invalid private exchange')
+        assert(
+            result.details.stockAction === 'none',
+            'An out-of-turn exchange cannot record a stock action'
+        )
+        applyExchange(state, this, result.details, this.#stockRules)
         this.metadata = result.details
     }
 }

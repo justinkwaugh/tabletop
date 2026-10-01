@@ -1549,6 +1549,12 @@ Titles may mark a private through their presentation with either a company's tok
 
 Map markers may carry title-supplied art in place of their text label: an image drawn across an unplaced hex (TOP's Vernon River Bridge) or a shared tile symbol drawn at the marker position near the lower edge, with the marker label as its hover title. Images appear only on unplaced hexes in the generic presentation. Symbols follow text-marker visibility: unplaced hexes in the generic presentation and placed tiles in either presentation, except where the placed face already shows that symbol; unplaced hexes on the published board show its printed markers. 1889 draws its four eligible port locations with the same anchor as the port tile rather than the word Port.
 
+Private powers a player who is not active may use appear in a centred strip beneath the stock action strip, labelled with the private, prefixed with the owner's name only when it is not the viewer's own, each with a compact Exchange button carrying the receiving company's token. The same button sits beside the private on its owner's player card whether or not it is their turn; an active player exchanges from the stock menu during a stock round, or from Use privates during an operating turn. A player the game is not waiting on uses the sequenced out-of-turn exchange; an active player uses the ordinary one. In local hotseat the controls act for the owner directly.
+
+The same strip offers a player who is not active their off-turn private tile powers during a stock round, labelled with the title's tile prompt (an active player uses the ordinary private power controls instead); choosing one hands placement to the map's private-lay picker, and the strip shows "Choose a location on the map" with Cancel until the lay is committed. The owner's player card has a compact Use button beside that private. A player who may request a Private Power Window sees a "Place before next company" toggle when they cannot use the power right now, or while a request stands so they can cancel it (pressed while it stands); after a drop it shows "Placement request dropped" with the reason, as autobuy shows its stop. Requests and drops are history bookkeeping and never appear as history entries.
+
+When another player's exchange or private tile lay arrives, a short notice naming the player and effect appears at the top of the action area for six seconds, with a dismiss button. Notices never appear in history views or local hotseat, and only present arriving Actions.
+
 Auction share cards use the issuing company’s token in their upper-right corner, including each numbered PEIR share. Auction lists, pile popovers, and active bidding cards share the same lot token resolution.
 
 Schreiber and Burpee Construction uses a yellow straight-track tile icon, exported from the standard tile 9 geometry and classic palette, in auction lists and the card corner. Card titles balance within 22ch so this long title occupies two lines.
@@ -1648,7 +1654,8 @@ rows receive the operating-company outline when the axes are reversed. In the pl
 the currently operating company column has a continuous outline from its header
 to the final statistic. Neither outline tints the cells.
 
-Workspace tabs can be reordered by dropping before another tab. Every pane has a Delete button when multiple panes exist. Deleting one merges
+Workspace tabs can be reordered by dropping before another tab. While multiple panes exist, each pane's options popover ends with a
+Delete pane item in the table's negative color (`--rail-negative`). Deleting one merges
 its tabs into its sibling and expands that sibling without remounting tab content.
 The last pane cannot be deleted. Workspace headers use a compact 35px height.
 
@@ -1708,10 +1715,10 @@ the wide layout it replaces the Actions footer and is absent until added. The
 original narrow layout retains its operating-order strip.
 
 Pane headers consolidate splitting and adding/moving tabs into a compact options
-popover anchored below an ellipsis button. Delete remains the far-right control.
+popover anchored below an ellipsis button, which is the only header control.
 
 The options popup uses a consistent compact width, with split icons followed by
-Current tabs and Add tabs sections. Add tabs is always visible when tabs can be added;
+Current tabs, Add tabs and Delete pane sections. Add tabs is always visible when tabs can be added;
 there is no separate plus button.
 
 The Add list contains only tabs absent from every pane. Already placed tabs move

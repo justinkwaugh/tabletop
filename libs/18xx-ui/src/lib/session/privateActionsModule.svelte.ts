@@ -2,6 +2,7 @@ import { assert } from '@tabletop/common'
 import type { EighteenXXState } from '@tabletop/18xx'
 import type { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import type { LocalSelection } from './localSelections.js'
+import type { PrivatesModule } from './privatesModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection } from './stagedSelection.svelte.js'
 
@@ -19,6 +20,7 @@ type Decisions = Pick<
     'choice' | 'privateTileOptions' | 'privateTrainOptions'
 >
 type TrackSelection = Pick<LocalSelection, 'undo' | 'clear'>
+type Exchanges = Pick<PrivatesModule, 'exchangeOptions'>
 
 function samePower(left: PrivateTrackPower, right: PrivateTrackPower) {
     return left.privateCompanyId === right.privateCompanyId && left.playerId === right.playerId
@@ -29,7 +31,8 @@ export class PrivateActionsModule implements LocalSelection {
     constructor(
         private readonly session: PrivateActionsSession,
         private readonly decisions: Decisions,
-        private readonly track: TrackSelection
+        private readonly track: TrackSelection,
+        private readonly exchanges: Exchanges
     ) {}
 
     selection = $derived.by(() =>
@@ -39,7 +42,8 @@ export class PrivateActionsModule implements LocalSelection {
     get powersAvailable() {
         return (
             this.decisions.privateTileOptions.length > 0 ||
-            this.decisions.privateTrainOptions.length > 0
+            this.decisions.privateTrainOptions.length > 0 ||
+            this.exchanges.exchangeOptions.length > 0
         )
     }
     trackPowers = $derived.by(() => {
@@ -70,6 +74,10 @@ export class PrivateActionsModule implements LocalSelection {
     }
     choosePurchaseSource(source: 'mine' | 'other') {
         this.chooseSource(source)
+    }
+    startTrackPower(power: PrivateTrackPower) {
+        this.chooseSource('powers')
+        this.chooseTrackPower(power)
     }
     chooseTrackPower(power: PrivateTrackPower) {
         assert(

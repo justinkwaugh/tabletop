@@ -16,9 +16,27 @@ import {
     LayPrivateTile,
     HydratedLayPrivateTile,
     isDeclinePrivateTile,
-    isLayPrivateTile
+    isLayPrivateTile,
+    LayPrivateTileOutOfTurn,
+    HydratedLayPrivateTileOutOfTurn,
+    isLayPrivateTileOutOfTurn
 } from './layPrivateTile.js'
-import { ExchangePrivate, HydratedExchangePrivate, isExchangePrivate } from './exchangePrivate.js'
+import {
+    DropPrivatePowerRequest,
+    HydratedDropPrivatePowerRequest,
+    HydratedSetPrivatePowerRequest,
+    SetPrivatePowerRequest,
+    isDropPrivatePowerRequest,
+    isSetPrivatePowerRequest
+} from './privatePowerRequest.js'
+import {
+    ExchangePrivate,
+    ExchangePrivateOutOfTurn,
+    HydratedExchangePrivate,
+    HydratedExchangePrivateOutOfTurn,
+    isExchangePrivate,
+    isExchangePrivateOutOfTurn
+} from './exchangePrivate.js'
 
 export function privateActions(rules: {
     privateRules: PrivateRules
@@ -26,7 +44,46 @@ export function privateActions(rules: {
     stockRules: StockRules
     trackRules: TrackRules
     trainRules: TrainRules
+    outOfTurnPrivatePowers?: boolean
 }): ActionDefinition[] {
+    const outOfTurnActions = rules.outOfTurnPrivatePowers
+        ? [
+              defineAction(
+                  ExchangePrivateOutOfTurn,
+                  isExchangePrivateOutOfTurn,
+                  (action) =>
+                      new HydratedExchangePrivateOutOfTurn(
+                          action,
+                          rules.privateRules,
+                          rules.stockRules
+                      )
+              ),
+              defineAction(
+                  LayPrivateTileOutOfTurn,
+                  isLayPrivateTileOutOfTurn,
+                  (action) =>
+                      new HydratedLayPrivateTileOutOfTurn(
+                          action,
+                          rules.privatePowerRules,
+                          rules.trackRules
+                      )
+              )
+          ]
+        : []
+    const requestActions = rules.privatePowerRules.betweenTurnsPrivateIds?.length
+        ? [
+              defineAction(
+                  SetPrivatePowerRequest,
+                  isSetPrivatePowerRequest,
+                  (action) => new HydratedSetPrivatePowerRequest(action, rules.privatePowerRules)
+              ),
+              defineAction(
+                  DropPrivatePowerRequest,
+                  isDropPrivatePowerRequest,
+                  (action) => new HydratedDropPrivatePowerRequest(action)
+              )
+          ]
+        : []
     return [
         defineAction(
             ContinueOperatingRound,
@@ -54,6 +111,8 @@ export function privateActions(rules: {
             ExchangePrivate,
             isExchangePrivate,
             (action) => new HydratedExchangePrivate(action, rules.privateRules, rules.stockRules)
-        )
+        ),
+        ...outOfTurnActions,
+        ...requestActions
     ]
 }

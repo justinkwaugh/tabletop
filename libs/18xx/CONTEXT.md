@@ -25,6 +25,14 @@ Its income, abilities, assets, and permitted owners depend on the title.
 Surrendering a private company in return for a share or other entitlement specified
 by that private's rules, consuming its exchange right.
 
+**Private Power Window**:
+A pause before the Operating Turn of a company a player does not control, in which the game waits on that player because they made a Private Power Request, so they may use a private power allowed only between other companies' turns.
+_Avoid_: Interrupt, Between-companies pause
+
+**Private Power Request**:
+A player's standing declaration, recorded as an Out-of-Turn Action, asking for a Private Power Window before the next Operating Turn of a company they do not control. A player holds at most one, and it ends when they use the power, when their window closes, or when it is dropped with a recorded reason.
+_Avoid_: Pause request, Hold
+
 **Bank**:
 The game's central source and recipient of money, governed by the title's banking rules.
 

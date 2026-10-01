@@ -2,6 +2,7 @@ import { RoutesModule } from './routesModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
+import { TableNotices } from './tableNotices.svelte.js'
 import { PrivatesModule } from './privatesModule.svelte.js'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
@@ -45,7 +46,14 @@ import { GameSession } from '@tabletop/frontend-components'
 import { assert } from '@tabletop/common'
 import type { TitlePresentation } from './titlePresentation.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
-import { type EighteenXXState, getCompany, type Owner, type Portfolio } from '@tabletop/18xx'
+import {
+    type EighteenXXState,
+    getCompany,
+    isPrivateExchangeAction,
+    isPrivateTileLay,
+    type Owner,
+    type Portfolio
+} from '@tabletop/18xx'
 
 type SessionOptions = ConstructorParameters<
     typeof GameSession<EighteenXXState, HydratedEighteenXXState>
@@ -125,6 +133,11 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     readonly offers = new OfferAuctionModule(this.moduleSession)
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
     readonly privates = new PrivatesModule(this.moduleSession)
+    readonly notices = new TableNotices(
+        () => this.isViewingHistory || this.localHotseat,
+        () => this.myPlayer?.id,
+        (action) => this.noticeText(action)
+    )
     readonly trainFunding = new TrainFundingModule(this.moduleSession)
     readonly decisions = new CompanyDecisionsModule(this.moduleSession)
     readonly privateActions: PrivateActionsModule = new PrivateActionsModule(
@@ -133,7 +146,8 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         {
             undo: (): boolean => this.track.stages.undo(),
             clear: () => this.track.stages.clear()
-        }
+        },
+        this.privates
     )
     readonly track: TrackModule = new TrackModule(
         this.moduleSession,
@@ -295,6 +309,19 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         )
         this.historicalMaps = new HistoricalMaps(() => this.mapView)
         this.registerLocalSelections()
+        this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
+    }
+    private noticeText(action: GameAction): string | undefined {
+        if (isPrivateTileLay(action)) {
+            const location = this.mapView.map.definition.locations.find(
+                (item) => item.id === action.locationId
+            )
+            return `${this.getPlayerName(action.playerId)} used ${getCompany(this.gameState, action.privateCompanyId).name} at ${location?.name ?? action.locationId}`
+        }
+        if (!isPrivateExchangeAction(action)) return undefined
+        const company = this.privates.exchangeCompany(action.certificateId)
+        const article = /^[AEIOU]/i.test(company.name) ? 'an' : 'a'
+        return `${this.getPlayerName(action.playerId)} exchanged ${getCompany(this.gameState, action.privateCompanyId).name} for ${article} ${company.name} share`
     }
     auctionLotsFor(state: EighteenXXState) {
         return (

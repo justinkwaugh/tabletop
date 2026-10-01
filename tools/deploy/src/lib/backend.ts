@@ -3,6 +3,7 @@ import { BackendManifest, DeployConfig } from './types.js'
 
 export type BackendManifestResult = {
     manifest?: BackendManifest
+    servedFrontendVersion?: string
     error?: string
 }
 
@@ -43,7 +44,8 @@ export const fetchBackendManifest = async (
             }
             return { error: 'backend manifest missing frontend/games' }
         }
-        return { manifest }
+        const servedFrontendVersion = response.headers.get('x-tabletop-version') ?? undefined
+        return { manifest, servedFrontendVersion }
     } catch (error) {
         return { error: error instanceof Error ? error.message : 'backend manifest fetch failed' }
     }

@@ -11,6 +11,7 @@ enum GameServiceError {
     GameUpdateCollisionError = 'GameUpdateCollisionError',
     PlayersNotFound = 'PlayersNotFoundError',
     PrivateGameNotFull = 'PrivateGameNotFullError',
+    OwnerNotPlaying = 'OwnerNotPlayingError',
     InvalidPlayerUser = 'InvalidPlayerUserError',
     InvalidPlayerId = 'InvalidPlayerIdError',
     UserIsNotAllowedPlayer = 'UserIsNotAllowedPlayerError',
@@ -19,7 +20,8 @@ enum GameServiceError {
     DuplicatePlayer = 'DuplicatePlayerError',
     UnauthorizedAccess = 'UnauthorizedAccessError',
     DisallowedUndo = 'DisallowedUndoError',
-    DisallowedAction = 'DisallowedActionError'
+    DisallowedAction = 'DisallowedActionError',
+    RacedAction = 'RacedActionError'
 }
 
 export class GamePlayerCountInvalidError extends BaseError {
@@ -132,6 +134,16 @@ export class PrivateGameNotFullError extends BaseError {
     }
 }
 
+export class OwnerNotPlayingError extends BaseError {
+    constructor({ id }: { id: string }) {
+        super({
+            name: GameServiceError.OwnerNotPlaying,
+            message: `The owner of the game with id ${id} must be one of its players`,
+            metadata: { id }
+        })
+    }
+}
+
 export class InvalidPlayerUserError extends BaseError {
     constructor({ user }: { user: User }) {
         super({
@@ -233,6 +245,24 @@ export class DisallowedActionError extends BaseError {
         super({
             name: GameServiceError.DisallowedAction,
             message: `Action ${actionId} cannot be applied to game ${gameId} because ${reason}`,
+            metadata: { gameId, actionId, reason }
+        })
+    }
+}
+
+export class RacedActionError extends BaseError {
+    constructor({
+        gameId,
+        actionId,
+        reason
+    }: {
+        gameId: string
+        actionId: string
+        reason: string
+    }) {
+        super({
+            name: GameServiceError.RacedAction,
+            message: `Action ${actionId} cannot be applied to game ${gameId} because it raced Actions it does not commute with: ${reason}`,
             metadata: { gameId, actionId, reason }
         })
     }

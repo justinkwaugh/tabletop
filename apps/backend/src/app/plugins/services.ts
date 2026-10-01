@@ -1,5 +1,4 @@
 import path from 'node:path'
-import { STATIC_ROOT } from '../lib/staticRoot.js'
 import {
     AblyService,
     AblyTransport,
@@ -34,6 +33,7 @@ import {
     RedisService,
     ResendEmailService,
     SecretsService,
+    STATIC_ROOT,
     TaskService,
     TokenService,
     TournamentService,
@@ -128,17 +128,20 @@ export default fp(async (fastify: FastifyInstance) => {
         availableTitles
     )
 
-    const discordService = new DiscordService(notificationService, userService)
     const catalogService = new CatalogService(path.join(STATIC_ROOT, 'games'))
 
-    if (process.env['DISCORD_BOT_TOKEN']) {
-        const discordTransport = await DiscordTransport.createDiscordTransport(
-            secretsService,
-            libraryService,
-            catalogService
-        )
+    const discordTransport = process.env['DISCORD_BOT_TOKEN']
+        ? await DiscordTransport.createDiscordTransport(
+              secretsService,
+              libraryService,
+              catalogService
+          )
+        : undefined
+    if (discordTransport) {
         notificationService.addTransport(discordTransport)
     }
+
+    const discordService = new DiscordService(notificationService, userService, discordTransport)
 
     const webPushTransport = await WebPushTransport.createWebPushTransport(secretsService)
     notificationService.addTransport(webPushTransport)

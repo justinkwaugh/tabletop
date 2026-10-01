@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/the-old-prince-ui",
-    "version": "1.14.1",
+    "version": "1.18.0",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",
@@ -22,7 +22,7 @@
         "build": "pnpm run package",
         "package": "svelte-kit sync && svelte-package",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-        "bundle": "rimraf bundle && rollup -c ./rollup.config.ts",
+        "bundle": "svelte-kit sync && rimraf bundle && rollup -c ./rollup.config.ts",
         "test": "pnpm run bundle && node --test tests/bundledStyles.test.mjs",
         "stage-ui": "node ../../tools/deploy/scripts/stage-ui.mjs",
         "dev": "vite dev",

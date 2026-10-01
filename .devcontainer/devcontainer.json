@@ -4,6 +4,8 @@
     "service": "tabletop",
     "workspaceFolder": "/workspace",
     "shutdownAction": "stopCompose",
+    // tabletop-backend is external, so Compose won't create it. `||` works in both sh and cmd.
+    "initializeCommand": "docker network inspect tabletop-backend || docker network create tabletop-backend",
     "postCreateCommand": "bash .devcontainer/post-create.sh",
     "postStartCommand": "bash .devcontainer/post-start.sh",
     // Declared explicitly so VS Code establishes these tunnels when the container starts,

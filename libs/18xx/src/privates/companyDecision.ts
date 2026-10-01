@@ -25,6 +25,7 @@ export const PrivatePowerWindow = Type.Object(
 export type PrivatePowerWindow = Type.Static<typeof PrivatePowerWindow>
 export const CompanyDecisionFields = {
     privatePowerWindow: Type.Optional(PrivatePowerWindow),
+    privatePowerRequests: Type.Optional(Type.Array(Id, { uniqueItems: true })),
     purchaseOffer: Type.Optional(PurchaseOffer),
     privateTrackLay: Type.Optional(PrivateTrackLay),
     trackConsent: Type.Optional(TrackConsent),

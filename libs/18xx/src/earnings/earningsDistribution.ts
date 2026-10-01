@@ -192,7 +192,7 @@ export function validateEarningsDistribution(
         AfterEarningsStates.includes(state.machineState) &&
             earnings.companyId === state.routeStep?.result?.companyId &&
             earnings.revenue === state.routeStep.result.revenue &&
-            state.trainPurchaseStep?.companyId === earnings.companyId,
+            (!state.trainPurchaseStep || state.trainPurchaseStep.companyId === earnings.companyId),
         'Earnings must match the completed train run and current company'
     )
 }

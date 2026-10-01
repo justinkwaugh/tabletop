@@ -28,6 +28,7 @@ export const Shikoku1889TitleRules: EighteenXXTitleRules = {
     trainFundingRules: Shikoku1889TrainFundingRules,
     transferRules: Shikoku1889TransferRules,
     privatePowerRules: Shikoku1889PrivatePowerRules,
+    outOfTurnPrivatePowers: true,
     createOpening: createShikoku1889Opening,
     stockRules: Shikoku1889StockRules,
     companyRules: Shikoku1889CompanyRules,

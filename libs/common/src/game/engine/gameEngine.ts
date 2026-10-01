@@ -8,7 +8,11 @@ import { getGameVisibility } from '../visibility/gameVisibility.js'
 import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
 import { GameAction, type HydratedAction, Patch } from './gameAction.js'
-import { isOutOfTurnActionType } from './actionHistory.js'
+import {
+    isOutOfTurnActionType,
+    isOutOfTurnDeclaration,
+    isSequencedActionType
+} from './actionHistory.js'
 import { Game, GameStatus } from '../model/game.js'
 import {
     GameState,
@@ -329,13 +333,17 @@ export class GameEngine<
             !action.outOfTurn || isOutOfTurnActionType(this.runtime.apiActions, action.type),
             `Action of type ${action.type} is not an out-of-turn Action`
         )
+        assert(
+            !action.sequenced || isSequencedActionType(this.runtime.apiActions, action.type),
+            `Action of type ${action.type} is not a sequenced out-of-turn Action`
+        )
 
         const indexOffset =
-            action.index && action.index !== hydratedState.actionCount
+            action.index !== undefined && action.index !== hydratedState.actionCount
                 ? hydratedState.actionCount - action.index
                 : 0
 
-        if (indexOffset !== 0 && !action.simultaneousGroupId && !action.outOfTurn) {
+        if (indexOffset !== 0 && !action.simultaneousGroupId && !isOutOfTurnDeclaration(action)) {
             throw Error(
                 `Action index is not valid, expected ${hydratedState.actionCount}, got ${action.index}`
             )

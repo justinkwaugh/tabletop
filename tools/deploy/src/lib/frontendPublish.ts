@@ -48,7 +48,9 @@ const frontendArtifact = (bucket: string, version: string): PublishedArtifact =>
     )
 
 export const fetchFrontendServingVersion = (context: PublishContext): Promise<ServingLookup> =>
-    fetchServing(context.deployConfig, (manifest) => ({ frontend: manifest.frontend.version }))
+    fetchServing(context.deployConfig, (_manifest, servedFrontendVersion) =>
+        servedFrontendVersion ? { frontend: servedFrontendVersion } : null
+    )
 
 type PublishableFrontend = {
     version: string

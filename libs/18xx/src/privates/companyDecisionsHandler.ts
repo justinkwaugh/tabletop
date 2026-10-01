@@ -20,7 +20,12 @@ import {
     HydratedRespondToTrackConsent
 } from '../construction/trackConsent.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
-import { HydratedLayPrivateTile, HydratedDeclinePrivateTile } from './layPrivateTile.js'
+import {
+    HydratedLayPrivateTile,
+    HydratedLayPrivateTileOutOfTurn,
+    HydratedDeclinePrivateTile
+} from './layPrivateTile.js'
+import { hasLegalPrivateTrackUse } from './privatePowerRequest.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
 import { pendingCompanyDecision, type CompanyDecisionState } from './companyDecision.js'
 import type { PrivatePowerRules } from './privatePowers.js'
@@ -32,6 +37,7 @@ export function isCompanyDecisionAction(
     | HydratedRequestTrackConsent
     | HydratedRespondToTrackConsent
     | HydratedLayPrivateTile
+    | HydratedLayPrivateTileOutOfTurn
     | HydratedDeclinePrivateTile
     | HydratedBuyPrivateTrain {
     return (
@@ -40,6 +46,7 @@ export function isCompanyDecisionAction(
         action instanceof HydratedRequestTrackConsent ||
         action instanceof HydratedRespondToTrackConsent ||
         action instanceof HydratedLayPrivateTile ||
+        action instanceof HydratedLayPrivateTileOutOfTurn ||
         action instanceof HydratedDeclinePrivateTile ||
         action instanceof HydratedBuyPrivateTrain
     )
@@ -53,7 +60,8 @@ export class CompanyDecisionsHandler<
         private readonly powers: PrivatePowerRules,
         private readonly trains: TrainRules,
         private readonly companies: CompanyRules,
-        private readonly track: TrackRules
+        private readonly track: TrackRules,
+        private readonly outOfTurnPowers: boolean
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         if (isCompanyDecisionAction(action))
@@ -68,8 +76,14 @@ export class CompanyDecisionsHandler<
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
-        if (!state.activePlayerIds.includes(playerId) || nextCompanyToFloat(state, this.companies))
-            return []
+        if (nextCompanyToFloat(state, this.companies)) return []
+        if (!state.activePlayerIds.includes(playerId)) {
+            if (pendingCompanyDecision(state)) return []
+            const actions = this.handler.validActionsForPlayer(playerId, context)
+            return this.offersOutOfTurnLay(state, playerId)
+                ? [...actions, 'LayPrivateTileOutOfTurn']
+                : actions
+        }
         if (state.purchaseOffer)
             return state.purchaseOffer.sellerPlayerId === playerId ? ['RespondToPurchaseOffer'] : []
         if (state.trackConsent)
@@ -131,20 +145,19 @@ export class CompanyDecisionsHandler<
             return
         }
         this.handler.enter(context)
-        if (nextCompanyToFloat(state, this.companies)) return
-        for (const player of state.players) {
-            if (state.activePlayerIds.includes(player.playerId)) continue
-            if (
-                state.companies.some(
-                    (company) =>
-                        company.kind === 'private' &&
-                        !company.closed &&
-                        !state.usedPrivatePowerIds.includes(company.id) &&
-                        this.powers.trackTerms(state, company.id, player.playerId)
-                )
+    }
+    private offersOutOfTurnLay(state: State, playerId: string): boolean {
+        return (
+            this.outOfTurnPowers &&
+            state.machineState === 'StockRound' &&
+            state.companies.some(
+                (company) =>
+                    company.kind === 'private' &&
+                    !company.closed &&
+                    !state.usedPrivatePowerIds.includes(company.id) &&
+                    hasLegalPrivateTrackUse(state, company.id, playerId, this.powers, this.track)
             )
-                state.activePlayerIds.push(player.playerId)
-        }
+        )
     }
     onAction(action: HydratedAction, context: MachineContext<State>): string {
         return isCompanyDecisionAction(action)

@@ -1,7 +1,16 @@
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
     ExchangePrivate,
+    ExchangePrivateOutOfTurn,
     evaluatePrivateExchange,
+    getCompany,
+    hasPrivatePowerRequest,
+    isDropPrivatePowerRequest,
+    isSetPrivatePowerRequest,
+    requestablePrivateIds,
+    SetPrivatePowerRequest,
+    type PrivatePowerRequestDropReason,
+    outOfTurnExchangeOffers,
     nextCompanyToFloat,
     pendingCompanyDecision,
     privateExchangeOffers,
@@ -13,11 +22,19 @@ import { singleChoice } from './stagedSelection.svelte.js'
 
 type PrivatesState = Parameters<typeof privateExchangeOffers>[0] &
     Parameters<typeof pendingCompanyDecision>[0] &
-    Parameters<typeof nextCompanyToFloat>[0]
+    Parameters<typeof nextCompanyToFloat>[0] &
+    Parameters<typeof requestablePrivateIds>[0]
 
 export type PrivatesSession = ModuleSession<
     PrivatesState,
-    Pick<EighteenXXTitleRules, 'privateRules' | 'stockRules' | 'companyRules'>
+    Pick<
+        EighteenXXTitleRules,
+        | 'privateRules'
+        | 'stockRules'
+        | 'companyRules'
+        | 'outOfTurnPrivatePowers'
+        | 'privatePowerRules'
+    >
 >
 
 function sameExchange(a: PrivateExchangeRequest, b: PrivateExchangeRequest) {
@@ -52,21 +69,131 @@ export class PrivatesModule {
                 rules.privateRules.exchangeTerms(state, company.id) !== undefined
         )
     })
-    exchangeOffers = $derived.by(() => {
+    private exchangesBlocked = $derived.by(() => {
         const { state, rules } = this.session
-        if (
+        return (
             !this.session.interactive ||
             pendingCompanyDecision(state) ||
-            nextCompanyToFloat(state, rules.companyRules)
-        )
-            return []
-        return this.session.actingPlayerIds.flatMap((playerId) =>
-            privateExchangeOffers(state, playerId, rules.privateRules, rules.stockRules)
+            !!nextCompanyToFloat(state, rules.companyRules)
         )
     })
-    exchangeOptions = $derived.by(() => {
+    exchangeOffers = $derived.by(() => {
+        const { state, rules } = this.session
+        if (this.exchangesBlocked) return []
+        return this.session.actingPlayerIds
+            .filter((playerId) => state.activePlayerIds.includes(playerId))
+            .flatMap((playerId) =>
+                privateExchangeOffers(state, playerId, rules.privateRules, rules.stockRules)
+            )
+    })
+    outOfTurnExchangeOffers = $derived.by(() => {
+        const { state, rules } = this.session
+        if (this.exchangesBlocked || !rules.outOfTurnPrivatePowers) return []
+        return state.players
+            .filter(({ playerId }) => this.session.canActFor(playerId))
+            .flatMap(({ playerId }) =>
+                outOfTurnExchangeOffers(state, playerId, rules.privateRules, rules.stockRules)
+            )
+    })
+    exchangeOptions = $derived(this.distinctOffers(this.exchangeOffers))
+    outOfTurnExchangeOptions = $derived(this.distinctOffers(this.outOfTurnExchangeOffers))
+    allExchangeOptions = $derived([...this.exchangeOptions, ...this.outOfTurnExchangeOptions])
+    exchangeSelection = $derived.by(() => {
+        const chosen = this.exchangeChoice.value('choice')
+        return this.session.selectionsVisible && chosen && this.isOffered(chosen)
+            ? chosen
+            : undefined
+    })
+
+    requestPlayers = $derived.by(() => {
+        const { state, rules } = this.session
+        if (!this.session.interactive) return []
+        return state.players
+            .map((player) => player.playerId)
+            .filter(
+                (playerId) =>
+                    this.session.canActFor(playerId) &&
+                    (hasPrivatePowerRequest(state, playerId) ||
+                        requestablePrivateIds(state, playerId, rules.privatePowerRules).length > 0)
+            )
+    })
+    requestablePrivateNames(playerId: string) {
+        const { state, rules } = this.session
+        return requestablePrivateIds(state, playerId, rules.privatePowerRules).map(
+            (id) => getCompany(state, id).name
+        )
+    }
+    hasRequest(playerId: string) {
+        return hasPrivatePowerRequest(this.session.state, playerId)
+    }
+    lastRequestDrop(playerId: string): PrivatePowerRequestDropReason | undefined {
+        const last = this.session.recordedActions.findLast(
+            (action) =>
+                (isSetPrivatePowerRequest(action) && action.playerId === playerId) ||
+                (isDropPrivatePowerRequest(action) && action.requesterId === playerId)
+        )
+        return last && isDropPrivatePowerRequest(last) ? last.reason : undefined
+    }
+    async setRequest(playerId: string, requested: boolean) {
+        assert(this.requestPlayers.includes(playerId), 'This player cannot request a pause')
+        const action = this.session.createPlayerAction(SetPrivatePowerRequest, {
+            outOfTurn: true,
+            supersedable: true,
+            requested
+        })
+        action.playerId = playerId
+        await this.session.applyAction(this.session.withSupersededAction(action))
+    }
+    exchangeCompany(certificateId: string) {
+        const certificate = this.session.state.certificates.find(
+            (item) => item.id === certificateId
+        )
+        assertExists(certificate, 'An exchange requires its destination certificate')
+        return getCompany(this.session.state, certificate.companyId)
+    }
+    async exchange(request: PrivateExchangeRequest) {
+        this.selectExchange(request)
+        await this.confirmExchange()
+    }
+    selectExchange(request: PrivateExchangeRequest) {
+        assert(this.isOffered(request), 'Choose an available private exchange')
+        this.exchangeChoice.choose('choice', request)
+    }
+    async confirmExchange() {
+        const request = this.exchangeSelection
+        assert(request, 'Choose an available private exchange')
+        assert(
+            this.session.canActFor(request.playerId),
+            'Only the owning player can confirm this exchange'
+        )
+        const { state, rules } = this.session
+        assert(
+            evaluatePrivateExchange(state, request, rules.privateRules, rules.stockRules).details,
+            'This private exchange is unavailable'
+        )
+        const exchange = {
+            privateCompanyId: request.privateCompanyId,
+            certificateId: request.certificateId
+        }
+        const action = state.activePlayerIds.includes(request.playerId)
+            ? this.session.createPlayerAction(ExchangePrivate, exchange)
+            : this.session.createPlayerAction(ExchangePrivateOutOfTurn, {
+                  ...exchange,
+                  outOfTurn: true,
+                  sequenced: true
+              })
+        action.playerId = request.playerId
+        await this.session.applyAction(action)
+    }
+
+    private isOffered(request: PrivateExchangeRequest) {
+        return [...this.exchangeOffers, ...this.outOfTurnExchangeOffers].some((offer) =>
+            sameExchange(offer, request)
+        )
+    }
+    private distinctOffers(offers: readonly PrivateExchangeRequest[]) {
         const seen = new Set<string>()
-        return this.exchangeOffers.filter((offer) => {
+        return offers.filter((offer) => {
             const certificate = this.session.state.certificates.find(
                 (item) => item.id === offer.certificateId
             )
@@ -89,40 +216,5 @@ export class PrivatesModule {
             seen.add(key)
             return true
         })
-    })
-    exchangeSelection = $derived.by(() => {
-        const chosen = this.exchangeChoice.value('choice')
-        return this.session.selectionsVisible &&
-            chosen &&
-            this.exchangeOffers.some((offer) => sameExchange(offer, chosen))
-            ? chosen
-            : undefined
-    })
-
-    selectExchange(request: PrivateExchangeRequest) {
-        assert(
-            this.exchangeOffers.some((offer) => sameExchange(offer, request)),
-            'Choose an available private exchange'
-        )
-        this.exchangeChoice.choose('choice', request)
-    }
-    async confirmExchange() {
-        const request = this.exchangeSelection
-        assert(request, 'Choose an available private exchange')
-        assert(
-            this.session.canActFor(request.playerId),
-            'Only the owning player can confirm this exchange'
-        )
-        const { state, rules } = this.session
-        assert(
-            evaluatePrivateExchange(state, request, rules.privateRules, rules.stockRules).details,
-            'This private exchange is unavailable'
-        )
-        const action = this.session.createPlayerAction(ExchangePrivate, {
-            privateCompanyId: request.privateCompanyId,
-            certificateId: request.certificateId
-        })
-        action.playerId = request.playerId
-        await this.session.applyAction(action)
     }
 }

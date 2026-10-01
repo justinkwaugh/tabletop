@@ -11,6 +11,8 @@ import {
     isStartOperatingRound,
     isSetStockInstruction,
     isStopStockInstruction,
+    isSetPrivatePowerRequest,
+    isDropPrivatePowerRequest,
     type EighteenXXState,
     type AuctionAward
 } from '@tabletop/18xx'
@@ -80,7 +82,11 @@ export function historyRounds(
             section.operatingOrder = order
         }
         const entry =
-            startsOperatingRound || isSetStockInstruction(action) || isStopStockInstruction(action)
+            startsOperatingRound ||
+            isSetStockInstruction(action) ||
+            isStopStockInstruction(action) ||
+            isSetPrivatePowerRequest(action) ||
+            isDropPrivatePowerRequest(action)
                 ? undefined
                 : (entries.get(action.id) ??
                   (orderChanges.has(action.id) ||

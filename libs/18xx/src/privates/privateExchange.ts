@@ -125,6 +125,20 @@ export function privateExchangeOffers(
         .filter((request) => evaluatePrivateExchange(state, request, rules, stockRules).details)
 }
 
+export function outOfTurnExchangeOffers(
+    state: PrivateState,
+    playerId: string,
+    rules: PrivateRules,
+    stockRules: StockRules
+): PrivateExchangeRequest[] {
+    if (state.activePlayerIds.includes(playerId)) return []
+    return privateExchangeOffers(state, playerId, rules, stockRules).filter(
+        (request) =>
+            evaluatePrivateExchange(state, request, rules, stockRules).details?.stockAction ===
+            'none'
+    )
+}
+
 export function applyPrivateShareExchange(
     state: StockState,
     privateCompanyId: string,

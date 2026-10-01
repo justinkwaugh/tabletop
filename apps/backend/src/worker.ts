@@ -3,16 +3,24 @@ import rawBody from 'fastify-raw-body'
 import { Visibility } from '@tabletop/common'
 import { app } from './app/app.js'
 import { installHandlerDrain } from './runtime/handlerDrain.js'
+import { lazyValidatorCompiler, type AjvCompilerOptions } from './runtime/lazyValidation.js'
 
 if (!process.send) throw new Error('Backend worker requires a supervisor IPC channel')
 const send = process.send.bind(process)
 
+const ajvOptions: AjvCompilerOptions = {
+    customOptions: { keywords: [Visibility.MetadataKey, Visibility.ScopeKey] },
+    plugins: []
+}
 const server = Fastify({
     logger: true,
     trustProxy: '127.0.0.1',
-    ajv: { customOptions: { keywords: [Visibility.MetadataKey, Visibility.ScopeKey] } },
-    pluginTimeout: 20_000
+    ajv: ajvOptions,
+    // The supervisor bounds startup; a replacement starting beside a serving child on a
+    // throttled CPU can take far longer than a fresh instance.
+    pluginTimeout: 0
 })
+server.setValidatorCompiler(lazyValidatorCompiler(() => server.getSchemas(), ajvOptions))
 installHandlerDrain(server)
 server.get('/__health/ready', () => ({ status: 'ready' }))
 let closing = false

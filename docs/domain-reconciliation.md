@@ -15,18 +15,11 @@ Unless stated otherwise, every open item below is documented but not implemented
 
 ## Game Runtime
 
-### Supplied Action index zero bypasses stale-index handling
-
-- **Classification**: Defect
-- **Observed**: Truthiness checks treat Action index `0` as absent. A stale Action based at index zero can therefore bypass the usual offset calculation and non-simultaneous rejection. Hosted missing-Action handling repeats the same check for `initialIndex`.
-- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:107`; `libs/backend-services/src/games/gameService.ts:793`
-- **Invariant**: Every supplied Action index is checked, including zero. Acceptance from a stale base is limited to members of a Simultaneous Action Group.
-
 ### Action Reversal and Undo policy are correctly separated
 
 - **Classification**: Aligned
-- **Observed**: `GameEngine.undoAction` mechanically applies an undo patch. Candidate selection and authorization are performed by the Game Client and Game Lifecycle layers.
-- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:175`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:182`; `libs/backend-services/src/games/gameService.ts:914`
+- **Observed**: `GameEngine.undoProcessedAction` mechanically applies an undo patch. Candidate selection and authorization are performed by the Game Client and Game Lifecycle layers.
+- **Evidence**: `libs/common/src/game/engine/gameEngine.ts:277`; `libs/frontend-components/src/lib/model/gameSession.svelte.ts:231`; `libs/backend-services/src/games/gameService.ts:1228`
 - **Invariant**: Game Runtime owns Action Reversal; Game Client selects an Undo Candidate; Game Lifecycle authorizes Hosted Undo.
 
 ## Game Client

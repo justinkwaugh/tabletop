@@ -48,5 +48,6 @@ export interface EighteenXXTitleRules {
     privateRules: PrivateRules
     transferRules: TransferRules
     privatePowerRules: PrivatePowerRules
+    outOfTurnPrivatePowers?: boolean
     trackRules: TrackRules
 }

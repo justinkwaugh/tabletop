@@ -144,9 +144,7 @@ it.each(Titles)(
         }
         expect(result.updatedState.bankruptcy).toBeUndefined()
         expect(result.updatedState.trainFunding).toBeUndefined()
-        expect(result.updatedState.machineState).toBe(
-            definition === Top ? 'LayingTrack' : 'OperatingSet'
-        )
+        expect(result.updatedState.machineState).toBe('LayingTrack')
         expect(
             result.updatedState.trainInventory.trains.find((train) => train.id === purchase.trainId)
         ).toMatchObject({

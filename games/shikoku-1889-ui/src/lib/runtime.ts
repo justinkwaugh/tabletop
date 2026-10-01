@@ -1,3 +1,4 @@
+import './styles.css'
 import { Shikoku1889TitleRules } from '@tabletop/shikoku-1889'
 
 import { Shikoku1889MapView } from './mapView.js'
