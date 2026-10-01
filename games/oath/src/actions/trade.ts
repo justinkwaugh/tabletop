@@ -129,13 +129,13 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
             state.addTokensOn(this.cardId, { favor: 2 })
         }
 
-        const wanted = foldNumber(
-            forFavor ? 'tradeFavor' : 'tradeSecrets',
-            forFavor ? 1 + matching : matching,
+        const wanted = HydratedTrade.wanted(
             state,
             this.playerId,
+            this.cardId,
+            this.option,
             active,
-            particulars
+            matching
         )
         // R-9.3 — favor is component-limited: take as many as possible.
         const favorGained = forFavor ? gainFavorFromBank(state, this.playerId, suit, wanted) : 0
@@ -185,6 +185,26 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         return (
             player.faceupAdviserIds().filter((cardId) => suitIn(cardId) === suit).length +
             persistentMatchingAdvisers(state, sourceId, suit)
+        )
+    }
+
+    /** R-5.3.2 — favor or secrets the trade asks for, before the favor bank's limit (R-9.3). */
+    static wanted(
+        state: HydratedOathGameState,
+        playerId: string,
+        cardId: string,
+        option: TradeOption,
+        active: readonly ActiveModifier[],
+        matching: number
+    ): number {
+        const forFavor = option === TradeOption.ForFavor
+        return foldNumber(
+            forFavor ? 'tradeFavor' : 'tradeSecrets',
+            forFavor ? 1 + matching : matching,
+            state,
+            playerId,
+            active,
+            { cardId, tradeOption: option }
         )
     }
 
@@ -276,33 +296,29 @@ export class HydratedTrade extends HydratableAction<typeof Trade> implements Tra
         return [...sites]
     }
 
+    /** R-5.3, R-7.4 — each card judged as its own trade, with the declared modifiers and the default tolls. */
     static legalCards(
         state: HydratedOathGameState,
         playerId: string,
         modifiers?: readonly ModifierUse[]
     ): string[] {
-        const resolved = resolveModifiers(state, playerId, ActionType.Trade, modifiers, {})
-        if (resolved.reason) return []
-        return HydratedTrade.tradeableSitesFor(state, playerId, resolved.active).flatMap((siteId) =>
-            state
-                .denizensAt(siteId)
-                .filter(
-                    (cardId) =>
+        const own = pawnSiteId(state, playerId)
+        const sites = [own, ...state.faceupSiteIds().filter((siteId) => siteId !== own)]
+        return sites.flatMap((siteId) =>
+            state.denizensAt(siteId).filter((cardId) => {
+                const tolls = defaultTolls(state, playerId, { kind: 'trade', cardId })
+                return [TradeOption.ForFavor, TradeOption.ForSecrets].some(
+                    (option) =>
                         HydratedTrade.reasonCannotTrade(
                             state,
                             playerId,
                             cardId,
-                            TradeOption.ForFavor,
-                            modifiers
-                        ) === undefined ||
-                        HydratedTrade.reasonCannotTrade(
-                            state,
-                            playerId,
-                            cardId,
-                            TradeOption.ForSecrets,
-                            modifiers
+                            option,
+                            modifiers,
+                            tolls
                         ) === undefined
                 )
+            })
         )
     }
 

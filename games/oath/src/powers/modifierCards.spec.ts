@@ -278,6 +278,28 @@ describe('Trade modifiers', () => {
             /not trading for secrets/
         )
     })
+
+    it('a declared modifier that asks which trade leaves its cards among the cards to trade with', () => {
+        expect(HydratedTrade.legalCards(board([INN], [SIGNAL]), 'ruler', [modifierUse(SIGNAL)])).toEqual([INN])
+        expect(HydratedTrade.legalCards(board([OAK], [BIRDSONG]), 'ruler', [modifierUse(OAK)])).toEqual([OAK])
+    })
+
+    it('the wanted count a client reads before a trade is what the trade then asks for', () => {
+        const wantedOf = (state: ReturnType<typeof board>, cardId: string, option: TradeOption, used: ModifierUse[]) => {
+            const { active } = HydratedTrade.plan(state, 'ruler', cardId, option, used)
+            const matching = HydratedTrade.matchingAdvisers(state, 'ruler', cardId, active)
+            return HydratedTrade.wanted(state, 'ruler', cardId, option, active, matching)
+        }
+        const signal = board([INN], [SIGNAL])
+        expect(wantedOf(signal, INN, TradeOption.ForFavor, [modifierUse(SIGNAL)])).toBe(2)
+        trade(INN, TradeOption.ForFavor, [modifierUse(SIGNAL)]).apply(signal)
+        expect(signal.getPlayerState('ruler').favor).toBe(3 + 2)
+
+        const oak = board([OAK], [BIRDSONG])
+        expect(wantedOf(oak, OAK, TradeOption.ForSecrets, [modifierUse(OAK)])).toBe(2)
+        trade(OAK, TradeOption.ForSecrets, [modifierUse(OAK)]).apply(oak)
+        expect(oak.getPlayerState('ruler').secrets).toBe(2 + 2)
+    })
 })
 
 describe('Search modifiers', () => {
