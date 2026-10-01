@@ -35,6 +35,7 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
 - **Cash visibility:** a game creation option, like Fresh Fish's `BooleanConfigOption`s in `games/fresh-fish/src/definition/gameConfig.ts`:
   - **Concealed Cash**, off by default. Cash is public unless the creator turns the option on. The default may be switched later.
   - When it's on, each player's cash is hidden from opponents until the game ends, using Fresh Fish's hidden-information mechanism.
+  - Every money movement stays public: winning bids, auctioneer cuts, customer payments, mover's cuts and antique payouts. So, as at a real table, a player who tracks the history can work out everyone's cash. Concealed Cash hides the running totals, not the payments. Estates' Hidden Money works the same way.
 - **Auction eligibility:**
   - A player who owns 6 shops can't start an auction.
   - A player needs at least 100 Dirham at the moment they start an auction.

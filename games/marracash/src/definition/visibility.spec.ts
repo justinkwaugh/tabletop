@@ -255,6 +255,39 @@ describe('MarraCash exploration', () => {
         }
     })
 
+    it('samples the same way whatever the hidden hands really are', () => {
+        const { session } = startSession()
+        playOpeningRound(session)
+        const [explorer, first, second] = session.state.turnManager.turnOrder
+        const perspective = asPlayer(explorer)
+        const swapped = structuredClone(session.state)
+        const firstPlayer = swapped.players.find((player) => player.playerId === first)
+        const secondPlayer = swapped.players.find((player) => player.playerId === second)
+        assertExists(firstPlayer, 'Expected the first opponent')
+        assertExists(secondPlayer, 'Expected the second opponent')
+        ;[firstPlayer.antiques, secondPlayer.antiques] = [
+            secondPlayer.antiques,
+            firstPlayer.antiques
+        ]
+        swapped.antiqueDeck.items.reverse()
+
+        const sampleFrom = (state: MarracashProjectedState) => {
+            assertExists(
+                MarracashRuntime.exploration.createFromProjectedState,
+                'Expected population'
+            )
+            return MarracashRuntime.exploration.createFromProjectedState({
+                game: session.game,
+                state: project(session, perspective, state),
+                actions: session.actions,
+                perspective,
+                random: getPrng(7)
+            })
+        }
+        expect(project(session, perspective, swapped)).toEqual(project(session, perspective))
+        expect(sampleFrom(swapped)).toEqual(sampleFrom(session.state))
+    })
+
     it('fills in sealed bids that are still hidden', () => {
         const { session } = startSession()
         const [auctioneer, second] = session.state.turnManager.turnOrder

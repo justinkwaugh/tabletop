@@ -63,7 +63,7 @@ export class MarracashGameExploration implements GameExploration<MarracashProjec
                 ? [...player.antiques, ...player.revealedAntiques]
                 : player.revealedAntiques
         )
-        const unseen = withoutCards(AllAntiques, seen)
+        const unseen = this.withoutCards(AllAntiques, seen)
         assert(
             unseen.length ===
                 unknownHolders.length * AntiquesPerPlayer + sample.antiqueDeck.remaining,
@@ -116,16 +116,16 @@ export class MarracashGameExploration implements GameExploration<MarracashProjec
             participant.bid = minimum + Math.floor(random() * (steps + 1)) * DirhamIncrement
         }
     }
-}
 
-function withoutCards(cards: readonly Antique[], removed: readonly Antique[]): Antique[] {
-    const remaining = structuredClone([...cards])
-    for (const card of removed) {
-        const index = remaining.findIndex(
-            (candidate) => candidate.color === card.color && candidate.value === card.value
-        )
-        assert(index >= 0, `Card ${card.color} ${card.value} is not in the antique population`)
-        remaining.splice(index, 1)
+    private withoutCards(cards: readonly Antique[], removed: readonly Antique[]): Antique[] {
+        const remaining = structuredClone([...cards])
+        for (const card of removed) {
+            const index = remaining.findIndex(
+                (candidate) => candidate.color === card.color && candidate.value === card.value
+            )
+            assert(index >= 0, `Card ${card.color} ${card.value} is not in the antique population`)
+            remaining.splice(index, 1)
+        }
+        return remaining
     }
-    return remaining
 }
