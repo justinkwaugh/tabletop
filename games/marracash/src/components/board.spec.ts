@@ -21,7 +21,7 @@ import { MarketColor } from '../definition/marketColor.js'
 
 type ExpectedRoute = [FountainId, CardinalDirection, FountainId, number, ShopId[]]
 
-// Every exit route on the printed board: start fountain, direction, destination, steps and the shops passed in order.
+// Mirrors the route table in docs/board-map.md.
 const ExpectedRoutes: ExpectedRoute[] = [
     [1, CardinalDirection.East, 2, 3, ['G2']],
     [1, CardinalDirection.South, 6, 3, ['G2', 'P2', 'R2', 'B3']],
