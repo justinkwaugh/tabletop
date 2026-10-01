@@ -542,6 +542,25 @@ test('scenario 39: Trade lists every trade at the site, a strip tap marks a row,
     await expect(page.getByRole('list', { name: 'Trades at your site' })).toHaveCount(0)
 })
 
+test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
+    await openTable(page, 'trade')
+    await tile(page, 'Muster').click()
+    const list = page.getByRole('list', { name: 'Musters at your site' })
+    const rows = list.getByRole('listitem')
+    await expect(rows).toHaveCount(2)
+    await expect(rows.nth(0)).toContainText('Book Binders')
+    await expect(rows.nth(1)).toContainText('Assassin')
+    await expect(list).not.toContainText('Council Seat')
+    await expect(page.getByRole('button', { name: 'Muster at Book Binders: place 1 favor, get 2 warbands' })).toBeVisible()
+
+    await page.locator('.panel').getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(list).toHaveCount(0)
+    await tile(page, 'Muster').click()
+    await page.getByRole('button', { name: 'Muster at Assassin: place 1 favor, get 2 warbands' }).click()
+    await expect.poll(() => call(page, 'cardTokens', 'denizen.discord.assassin')).toEqual({ favor: 1, secrets: 0 })
+    await expect(list).toHaveCount(0)
+})
+
 test('card backs: another seat’s facedown Vision and the Vision in its hand show the Vision back', async ({ page }) => {
     await openTable(page, 'visionBacks')
     const backsOf = (label: string) =>

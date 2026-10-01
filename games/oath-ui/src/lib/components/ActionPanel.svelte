@@ -11,6 +11,7 @@
     import MinorActionPanel from '$lib/components/MinorActionPanel.svelte'
     import ModifierPicker from '$lib/components/ModifierPicker.svelte'
     import PowerPanel from '$lib/components/PowerPanel.svelte'
+    import MusterMenu from '$lib/components/MusterMenu.svelte'
     import TradeMenu from '$lib/components/TradeMenu.svelte'
     import BannerRecoverPanel from '$lib/components/BannerRecoverPanel.svelte'
     import TravelWayPanel from '$lib/components/TravelWayPanel.svelte'
@@ -178,6 +179,12 @@
             {#if chosen === ActionType.UseActionPower}
                 <div class="mb-2">
                     <PowerPanel />
+                </div>
+            {/if}
+
+            {#if chosen === ActionType.Muster}
+                <div class="mb-2">
+                    <MusterMenu />
                 </div>
             {/if}
 

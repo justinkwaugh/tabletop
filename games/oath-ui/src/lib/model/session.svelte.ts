@@ -121,6 +121,7 @@ import {
     type SiteOffer
 } from './actionOffers.js'
 import { tollLabel } from './offerText.js'
+import { musterRows, type MusterRow } from './musterRows.js'
 import { tradeRows, type TradeRow } from './tradeRows.js'
 import { SetupDraft } from './setupDraft.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
@@ -889,6 +890,19 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Trade) return []
         return tradeRows(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    // R-5.2, R-7.4 — every Muster at the site, with the declared modifiers.
+    get musterRows(): MusterRow[] {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.Muster) return []
+        return musterRows(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    /** R-5.2.2 — a Citizen musters the Empire's warbands. */
+    get musterWarbandOwner(): WarbandOwner | undefined {
+        const playerId = this.liveTurnSeatId
+        return playerId ? HydratedMuster.warbandOwnerFor(this.gameState, playerId) : undefined
     }
 
     // R-5.4, R-6.3 — relic slots, never card ids: a facedown relic's identity
