@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, Visibility } from '@tabletop/common'
+import { assertExists, GameAction, HydratableAction, Visibility } from '@tabletop/common'
 import { HydratedMarracashGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { isWholeDirhamAmount, MinimumAuctionBid } from '../components/payments.js'
@@ -37,7 +37,8 @@ export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implemen
         if (!valid) {
             throw Error(reason)
         }
-        state.auction?.placeBid(this.playerId, this.amount)
+        assertExists(state.auction, 'There is no auction to bid in')
+        state.auction.placeBid(this.playerId, this.amount)
     }
 
     static isValidBid(

@@ -39,9 +39,6 @@ export class HydratedStartAuction
         if (!state.canStartAuction(this.playerId)) {
             throw Error(`Player ${this.playerId} cannot start an auction now`)
         }
-        if (state.getShopState(this.shopId).ownerId !== undefined) {
-            throw Error(`Shop ${this.shopId} is already owned`)
-        }
         state.startAuction(this.id, this.playerId, this.shopId)
     }
 }

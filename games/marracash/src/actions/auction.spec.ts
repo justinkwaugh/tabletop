@@ -1,4 +1,7 @@
+import { GameEngine } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { ActionType } from '../definition/actions.js'
+import { MarracashRuntime } from '../definition/runtime.js'
 import { MarketColor } from '../definition/marketColor.js'
 import { MachineState } from '../definition/states.js'
 import { StartingMoney } from '../model/playerState.js'
@@ -57,6 +60,32 @@ describe('MarraCash auctions', () => {
         expect(money(session, auctioneer)).toBe(StartingMoney + 100)
         expect(resolution?.revealsInfo).toBe(true)
         expect(resolution?.metadata).toMatchObject({ price: 500, auctioneerCut: 100 })
+    })
+
+    it('reveals every bid in the auction result', () => {
+        const session = startTestGame(3)
+        const { clockwise, resolution } = runAuction(session, 'Y1', [150, 0, 325])
+        expect(resolution?.metadata?.bids).toEqual([
+            { playerId: clockwise[0], amount: 150 },
+            { playerId: clockwise[1], amount: 0 },
+            { playerId: clockwise[2], amount: 325 }
+        ])
+    })
+
+    it('offers an auction only to the active player, without reading hidden cash', () => {
+        const session = startTestGame(3)
+        const active = session.currentPlayerId()
+        const state = structuredClone(session.state)
+        for (const player of state.players) {
+            if (player.playerId !== active) delete player.money
+        }
+        const engine = new GameEngine(MarracashRuntime)
+        for (const playerId of seats(session)) {
+            const expected = playerId === active ? [ActionType.StartAuction] : []
+            expect(engine.getValidActionTypesForPlayer(session.game, state, playerId)).toEqual(
+                expected
+            )
+        }
     })
 
     it('gives the auctioneer a 200 cut above 500', () => {

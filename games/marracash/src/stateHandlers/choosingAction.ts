@@ -14,14 +14,14 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
         action: HydratedAction,
         context: MachineContext<HydratedMarracashGameState>
     ): action is ChoosingActionAction {
-        return isStartAuction(action) && context.gameState.canStartAuction(action.playerId)
+        return isStartAuction(action) && this.canStartAuction(context, action.playerId)
     }
 
     validActionsForPlayer(
         playerId: string,
         context: MachineContext<HydratedMarracashGameState>
     ): ActionType[] {
-        return context.gameState.canStartAuction(playerId) ? [ActionType.StartAuction] : []
+        return this.canStartAuction(context, playerId) ? [ActionType.StartAuction] : []
     }
 
     enter(context: MachineContext<HydratedMarracashGameState>) {
@@ -30,6 +30,14 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
         gameState.activePlayerIds = [
             currentTurn?.playerId ?? gameState.turnManager.startNextTurn(gameState.actionCount)
         ]
+    }
+
+    private canStartAuction(
+        context: MachineContext<HydratedMarracashGameState>,
+        playerId: string
+    ): boolean {
+        const gameState = context.gameState
+        return gameState.activePlayerIds.includes(playerId) && gameState.canStartAuction(playerId)
     }
 
     onAction(

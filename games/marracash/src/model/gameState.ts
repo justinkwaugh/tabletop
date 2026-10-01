@@ -59,9 +59,16 @@ export const PullIn = Type.Object({
     income: Type.Number()
 })
 
+export type RevealedBid = Type.Static<typeof RevealedBid>
+export const RevealedBid = Type.Object({
+    playerId: Type.String(),
+    amount: Type.Number()
+})
+
 export type AuctionResult = Type.Static<typeof AuctionResult>
 export const AuctionResult = Type.Object({
     shopId: Type.Enum(ShopIds),
+    bids: Type.Array(RevealedBid),
     winnerId: Type.String(),
     price: Type.Number(),
     auctioneerCut: Type.Number(),
@@ -212,6 +219,10 @@ export class HydratedMarracashGameState extends HydratableGameState<
 
         return {
             shopId,
+            bids: auction.participants.map((participant) => {
+                assertExists(participant.bid, `Player ${participant.playerId} has not bid`)
+                return { playerId: participant.playerId, amount: participant.bid }
+            }),
             winnerId: auction.winnerId,
             price: auction.highBid,
             auctioneerCut: cut,
