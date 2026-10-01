@@ -19,8 +19,8 @@
 </script>
 
 {#if usable.length > 0}
-    <div class="mb-2 rounded border border-stone-700 px-2 py-1.5 text-xs">
-        <div class="mb-1 text-stone-300">Tap a card to use it with this action:</div>
+    <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
+        <div class="mb-1 text-oath-text-muted">Tap a card to use it with this action:</div>
         <CardChoiceRow
             choices={powerUseCards(usable)}
             picked={usable
@@ -41,7 +41,7 @@
                 {@const legal = gameSession.modifiers.choicesOf(power)}
                 {#if legal.length > 0}
                     <div class="mt-1">
-                        <div class="text-stone-400 mb-0.5">
+                        <div class="text-oath-text-muted mb-0.5">
                             {cardName(power.cardId)}:
                         </div>
                         <PowerChoicePicker

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { PowerQuestionKind, discardRegionFor, type PowerQuestion } from '@tabletop/oath'
     import DiscardOrderCards from '$lib/components/DiscardOrderCards.svelte'
     import { cardName, humanizeReason, regionName } from '$lib/model/names.js'
@@ -37,17 +38,19 @@
         ontap={(cardId) => draft.tapStack(cardId)}
     />
 </div>
-{#if refused}<p class="mb-2 text-[11px] text-rose-300">{humanizeReason(refused)}</p>{/if}
+{#if refused}<p class="mb-2 text-[11px] text-oath-danger">
+        <TokenText text={humanizeReason(refused) ?? ''} />
+    </p>{/if}
 <div class="flex gap-2">
     <button
-        class="grow rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !draft.stackComplete || !!refused}
         onclick={() => draft.stack()}
     >
         Stack them
     </button>
     <button
-        class="grow rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        class="grow rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || draft.stackTapped.length === 0}
         onclick={() => gameSession.back()}
     >

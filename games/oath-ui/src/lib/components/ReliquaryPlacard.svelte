@@ -45,8 +45,7 @@
             {:else}
                 <CardImage
                     cardId={known}
-                    faceDown={known === undefined}
-                    backKind={CardKind.Relic}
+                    back={known === undefined ? CardKind.Relic : undefined}
                     width={RELIC_THUMB}
                     label={known ? cardName(known) : 'Facedown relic on ' + reliquaryLabel(slotId)}
                     inspect

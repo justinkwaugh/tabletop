@@ -23,13 +23,13 @@ import { SetupVariant } from '../model/oathEnums.js'
 import { testGame } from '../testing/game.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
-const MASTER_SEED = '0123456789abcdef0123456789abcdef'
+const MASTER_SEED = '00000000000000000000000000000004'
 const PLAYERS = ['p1', 'p2', 'p3']
 
 /** Starts through the engine rather than the initializer, so the first state's `enter()` runs. */
 function startGame() {
-    // Pinned to Curated because MASTER_SEED's deal depends on the deck variant.
-    const game = testGame(PLAYERS, { status: GameStatus.WaitingToStart, config: { setupVariant: SetupVariant.Curated } })
+    // Pinned to the random deck because MASTER_SEED's deal depends on the deck variant.
+    const game = testGame(PLAYERS, { status: GameStatus.WaitingToStart, config: { setupVariant: SetupVariant.Randomized } })
     const { startedGame, initialState } = engine.startGame(game, { masterSeed: MASTER_SEED })
 
     const vault = vaultOf(initialState)

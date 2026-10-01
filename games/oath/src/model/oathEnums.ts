@@ -24,7 +24,7 @@ export enum OathType {
 /** R-1.1, R-1.21 */
 export enum SetupVariant {
     Randomized = 'randomized',
-    /** `PLAYTEST_DECK` pins the composition; the order still comes from the vault seed. */
+    /** Retired with the fixed deck: never offered, accepted in a stored state; `normalizeOathConfig` maps a waiting game to Randomized. */
     Curated = 'curated'
 }
 

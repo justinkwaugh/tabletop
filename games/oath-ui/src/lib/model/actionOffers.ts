@@ -3,11 +3,9 @@ import {
     Banner,
     HydratedRecover,
     HydratedSetupChoice,
-    HydratedTrade,
     HydratedTravel,
     RecoverTargetKind,
     Suit,
-    TradeOption,
     defaultTolls,
     tollsFor,
     usableFavor,
@@ -85,21 +83,6 @@ export function chosenTolls(
 ): Toll[] {
     const chosen = defaultTolls(state, playerId, occasion)
     return tollsFor(state, playerId, occasion).filter((t) => chosen.includes(t.cardId))
-}
-
-/** R-5.3.2 — Trade's legality is per option. */
-export function tradeOptions(
-    state: HydratedOathGameState,
-    playerId: string,
-    cardId: string,
-    modifiers: ModifierUse[]
-): TradeOption[] {
-    const tolls = defaultTolls(state, playerId, { kind: 'trade', cardId })
-    return [TradeOption.ForFavor, TradeOption.ForSecrets].filter(
-        (option) =>
-            HydratedTrade.reasonCannotTrade(state, playerId, cardId, option, modifiers, tolls) ===
-            undefined
-    )
 }
 
 // R-5.4, R-6.3 — relic slots, never card ids: a facedown relic's identity is in the vault.

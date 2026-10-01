@@ -62,7 +62,7 @@
         height: 100%;
     }
     .die:hover {
-        outline: 2px solid #fbbf24;
+        outline: 2px solid var(--oath-accent);
     }
     .die--dim {
         opacity: 0.28;
@@ -71,7 +71,7 @@
     .total {
         margin-left: 6px;
         font-size: 13px;
-        color: #a8a29e;
+        color: var(--oath-text-muted);
         white-space: nowrap;
     }
 </style>

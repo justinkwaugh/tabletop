@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
     import { CardKind, MachineState, forceTotal, type WarbandGroup } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -46,22 +47,18 @@
     let spoilsList = $derived(spoilsSummary(gameState, campaign.targets, spoils.placeCounts))
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-rose-500/40 px-3 py-2 text-stone-100">
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-rose-200/80 mb-2">
+<div>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">
         Campaign — the battle
     </h3>
 
-    <div class="text-sm mb-1 flex gap-4">
-        <span>Swords <span class="font-semibold">{campaign.swords}</span></span>
-        <span>Defense <span class="font-semibold">{campaign.defense}</span></span>
-    </div>
-    <p class="text-[11px] text-stone-400 mb-2">
+    <p class="text-[11px] text-oath-text-muted mb-2">
         Defending: {defence}.
     </p>
 
     {#if gameState.machineState === MachineState.CampaignDefeat}
         {#if !iChooseLosses}
-            <p class="text-sm text-stone-400">
+            <p class="text-sm text-oath-text-muted">
                 The attacker won. Waiting for {chooserId
                     ? gameSession.getPlayerName(chooserId)
                     : 'the defending side'} to choose which defending warbands die.
@@ -71,7 +68,7 @@
                 The attacker won. Choose which {plural(defeat.required, 'warband')} of the defending force
                 die; the rest go home to their boards.
             </p>
-            <div class="mb-2 rounded border border-rose-500/40 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 {#each defeat.groups as group, index (JSON.stringify(group.at) + group.owner)}
                     <label class="block mb-1">
                         {defeat.picked[index] ?? 0} of {group.count}
@@ -91,17 +88,19 @@
                 {/each}
                 <div
                     class={defeat.pickedTotal === defeat.required
-                        ? 'text-stone-400'
-                        : 'text-rose-300'}
+                        ? 'text-oath-text-muted'
+                        : 'text-oath-danger'}
                 >
                     Chosen {defeat.pickedTotal} of {defeat.required}
                 </div>
             </div>
             {#if defeat.blockedBecause}
-                <p class="mb-2 text-[11px] text-rose-300">{defeat.blockedBecause}</p>
+                <p class="mb-2 text-[11px] text-oath-danger">
+                    <TokenText text={defeat.blockedBecause ?? ''} />
+                </p>
             {/if}
             <button
-                class="w-full rounded bg-rose-700 hover:bg-rose-600 disabled:opacity-40
+                class="w-full rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40
                        px-2 py-1.5 text-sm font-semibold"
                 disabled={busy || !!defeat.blockedBecause}
                 onclick={() => defeat.choose()}
@@ -110,7 +109,7 @@
             </button>
         {/if}
     {:else if !isAttacker}
-        <p class="text-sm text-stone-400">
+        <p class="text-sm text-oath-text-muted">
             Waiting for {gameSession.getPlayerName(attackerId)}, the attacker.
         </p>
     {:else if gameState.machineState === MachineState.CampaignSacrifice}
@@ -127,7 +126,7 @@
             {/if}
         </p>
         {#if losses.choosesSacrifice}
-            <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1">To win, sacrifice {needed} of these:</div>
                 {#each losses.force as group, index (JSON.stringify(group.at) + group.owner)}
                     <label class="block mb-1">
@@ -149,7 +148,7 @@
             </div>
         {/if}
         {#if losses.choosesDefeat}
-            <div class="mb-2 rounded border border-stone-600 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1">
                     If you sacrifice nothing and lose, {losses.defeatRequired} of these die:
                 </div>
@@ -173,7 +172,7 @@
             </div>
         {/if}
         {#if needed > 0 && winBlockedBecause}
-            <p class="mb-2 text-[11px] text-rose-300">
+            <p class="mb-2 text-[11px] text-oath-danger">
                 You cannot win this battle: {winBlockedBecause}
             </p>
         {/if}
@@ -181,7 +180,7 @@
         <div class="flex gap-2">
             {#if needed > 0}
                 <button
-                    class="grow rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                    class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                            px-2 py-1.5 text-sm font-semibold"
                     disabled={busy || !!winBlockedBecause}
                     onclick={() => losses.win()}
@@ -190,7 +189,7 @@
                 </button>
             {/if}
             <button
-                class="grow rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40
+                class="grow rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40
                        px-2 py-1.5 text-sm"
                 disabled={busy || !!loseBlockedBecause}
                 onclick={() => losses.lose()}
@@ -200,22 +199,22 @@
         </div>
 
         {#if loseBlockedBecause}
-            <p class="mt-2 text-[11px] text-rose-300">{loseBlockedBecause}</p>
+            <p class="mt-2 text-[11px] text-oath-danger">{loseBlockedBecause}</p>
         {/if}
 
-        <p class="mt-2 text-[11px] text-stone-500">
+        <p class="mt-2 text-[11px] text-oath-text-muted">
             Defeated, you lose half your force. Victorious, the defending side chooses its own
             losses.
         </p>
     {:else if gameState.machineState === MachineState.CampaignVictory}
         <p class="text-sm mb-1">You were victorious. The spoils:</p>
-        <ul class="mb-2 list-disc pl-5 text-sm text-stone-200">
+        <ul class="mb-2 list-disc pl-5 text-sm text-oath-text">
             {#each spoilsList as item (item)}
                 <li>{item}</li>
             {/each}
         </ul>
         {#if spoils.relicTargets.length > 0}
-            <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1">
                     The relics you targeted are yours, and you have seen them. Any you tap go to the
                     bottom of the relic deck instead.
@@ -226,7 +225,7 @@
                         const at = relicSiteName(gameState, slotId)
                         return known
                             ? { key: slotId, cardId: known, label: `${cardName(known)} at ${at}` }
-                            : { key: slotId, backKind: CardKind.Relic, label: `the relic at ${at}` }
+                            : { key: slotId, back: CardKind.Relic, label: `the relic at ${at}` }
                     })}
                     picked={spoils.bottomSlots}
                     onpick={(slotId) =>
@@ -237,7 +236,7 @@
             </div>
         {/if}
         {#if spoils.capturedSites.length > 0 && spoils.forceOwners.length > 0}
-            <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1">
                     Place warbands on the sites you took — {spoils.placedTotal} of
                     {spoils.forceAvailable} in your force. This is how you come to rule them.
@@ -254,7 +253,7 @@
                             >
                             <button
                                 type="button"
-                                class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5"
+                                class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
                                 disabled={busy || count <= 0}
                                 onclick={() => spoils.setPlaceCount(siteId, owner, count - 1)}
                             >
@@ -263,7 +262,7 @@
                             <span class="w-6 text-center font-semibold">{count}</span>
                             <button
                                 type="button"
-                                class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5"
+                                class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
                                 disabled={busy || count >= ceiling}
                                 onclick={() => spoils.setPlaceCount(siteId, owner, count + 1)}
                             >
@@ -288,10 +287,10 @@
         {/if}
         {#if spoils.banishSites.length > 0}
             <label class="mb-2 flex items-center gap-2 text-xs">
-                <span class="text-stone-400">Banish their pawn to:</span>
+                <span class="text-oath-text-muted">Banish their pawn to:</span>
                 <select
                     disabled={busy}
-                    class="rounded bg-stone-800 px-1 py-0.5 text-xs grow"
+                    class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
                     value={spoils.banishSite ?? ''}
                     onchange={(e) => spoils.setBanishSite(e.currentTarget.value || undefined)}
                 >
@@ -303,11 +302,13 @@
             </label>
         {/if}
         {#if spoils.blockedBecause}
-            <p class="mb-2 text-[11px] text-rose-300">{spoils.blockedBecause}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={spoils.blockedBecause ?? ''} />
+            </p>
         {/if}
         <div class="flex gap-2">
             <button
-                class="grow rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                        px-2 py-1.5 text-sm font-semibold"
                 disabled={busy || !!spoils.blockedBecause}
                 onclick={() => spoils.takeSpoils(false)}
@@ -317,14 +318,14 @@
             {#if spoils.mayBurnFavor}
                 <!-- R-5.5.7.III — "may burn half their favor" is a choice, so a second button. -->
                 <button
-                    class="grow rounded bg-rose-700 hover:bg-rose-600 disabled:opacity-40
+                    class="grow rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40
                            px-2 py-1.5 text-sm font-semibold flex items-center justify-center gap-2"
                     disabled={busy || !!spoils.blockedBecause}
                     title="Take the spoils and burn half the defeated player's favor, {spoils.burnAmount} of it"
                     onclick={() => spoils.takeSpoils(true)}
                 >
-                    <img class="h-5 w-auto burn" src={favorTokenImage()} alt="" />
-                    …and burn {spoils.burnAmount} favor
+                    …and burn {spoils.burnAmount}
+                    <img class="h-5 w-auto burn" src={favorTokenImage()} alt="favor" />
                 </button>
             {/if}
         </div>

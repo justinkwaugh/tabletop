@@ -189,7 +189,7 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
     await expect(reasonLine(page)).toHaveText('')
 
     await tapDimmed(muster)
-    await expect(reasonLine(page)).toHaveText('no card at your site to place favor on')
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
     await travel.hover()
     await expect(reasonLine(page)).toContainText('Move your pawn to any site')
     await expect(reasonLine(page)).not.toContainText('no card at your site')
@@ -198,9 +198,9 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
 
     await tapDimmed(muster)
     await restMouse(page)
-    await expect(reasonLine(page)).toHaveText('no card at your site to place favor on')
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
     await muster.hover()
-    await expect(reasonLine(page)).toHaveText('no card at your site to place favor on')
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
     await restMouse(page)
     await expect(boardOffers(page)).toHaveCount(0)
     await expect(dimmedSites(page)).toHaveCount(0)
@@ -211,12 +211,28 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
 
     await tapDimmed(muster)
     await restMouse(page)
-    await expect(reasonLine(page)).toHaveText('no card at your site to place favor on')
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
     await call(page, 'seatTravels', 'slot.cradle.1')
     await expect(muster).toHaveAttribute('aria-disabled', 'false')
     await expect(reasonLine(page)).toHaveText('')
     await expect(boardOffers(page)).toHaveCount(0)
     await expect(dimmedSites(page)).toHaveCount(0)
+})
+
+test('Undo reads "Undo"; its tooltip names the action it reverses, or the picks it steps back through', async ({
+    page
+}) => {
+    await openTable(page, 'actPhase')
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    await expect(undo).toHaveCount(0)
+
+    await call(page, 'seatTravels', 'slot.cradle.1')
+    await expect(undo).toBeVisible()
+    await expect(undo).toHaveAttribute('title', /travelled to/)
+
+    await tile(page, 'Travel').click()
+    await expect(undo).toHaveText('Undo')
+    await expect(undo).toHaveAttribute('title', /picks not yet sent/)
 })
 
 /** Scenario 30: a warband move that needs the Chancellor's permission (R-6.5.a). */
@@ -325,7 +341,7 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
         await expect(kill).toBeEnabled()
         await expect(grid(page)).not.toContainText('must kill exactly')
 
-        await page.getByRole('button', { name: /Undo — your last pick/ }).click()
+        await page.getByRole('button', { name: 'Undo', exact: true }).click()
         await expect(grid(page)).toContainText('Chosen 0 of 2')
         await expect(kill).toBeDisabled()
         expect((await call(page, 'defeatPicks')).picked).toEqual([0, 0])
@@ -408,6 +424,229 @@ test.describe('scenario 32: waiting on a send', () => {
         expect((await call(page, 'searchPicks')).kept).toBeDefined()
     })
 })
+
+type ColourProperty = 'color' | 'backgroundColor' | 'borderTopColor'
+
+async function rgbOf(locator: ReturnType<Page['locator']>, property: ColourProperty) {
+    return locator.evaluate((element, property) => {
+        const canvas = document.createElement('canvas')
+        canvas.width = 1
+        canvas.height = 1
+        const context = canvas.getContext('2d')
+        if (!context) throw Error('A canvas has a 2d context')
+        context.fillStyle = getComputedStyle(element)[property]
+        context.fillRect(0, 0, 1, 1)
+        const [red, green, blue] = context.getImageData(0, 0, 1, 1).data
+        return { red, green, blue }
+    }, property)
+}
+
+async function luminanceOf(locator: ReturnType<Page['locator']>, property: ColourProperty) {
+    const { red, green, blue } = await rgbOf(locator, property)
+    return (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255
+}
+
+/** Amber and its tints: red well above blue. Stone and the platform's greys are near neutral. */
+async function isAmber(locator: ReturnType<Page['locator']>, property: ColourProperty) {
+    const { red, blue } = await rgbOf(locator, property)
+    return red - blue > 40
+}
+
+test('scenario 38: the side tabs, history controls, chat, panel and Undo wear Oath’s palette on the dark page', async ({
+    page
+}) => {
+    await openTable(page, 'setup')
+    expect(await luminanceOf(page.locator('body'), 'backgroundColor')).toBeLessThan(0.2)
+
+    const players = page.getByRole('tab', { name: 'Players' })
+    await expect(players).toHaveAttribute('aria-selected', 'true')
+    expect(await luminanceOf(players, 'color')).toBeGreaterThan(0.85)
+    expect(await isAmber(players, 'borderTopColor')).toBe(true)
+
+    const history = page.getByRole('tab', { name: 'History' })
+    await expect(history).toHaveAttribute('aria-selected', 'false')
+    const muted = await luminanceOf(history, 'color')
+    expect(muted).toBeGreaterThan(0.5)
+    expect(muted).toBeLessThan(0.8)
+
+    expect(await isAmber(page.getByRole('button', { name: 'fork game' }).locator('svg'), 'color')).toBe(true)
+    expect(await isAmber(page.locator('.panel'), 'borderTopColor')).toBe(true)
+    expect(await isAmber(page.locator('.info'), 'borderTopColor')).toBe(true)
+
+    await page.getByRole('tab', { name: 'Chat' }).click()
+    expect(await luminanceOf(page.locator('textarea'), 'color')).toBeGreaterThan(0.85)
+
+    await openTable(page, 'actPhase')
+    await call(page, 'seatTravels', 'slot.cradle.1')
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    await expect(undo).toBeVisible()
+    expect(await isAmber(undo, 'backgroundColor')).toBe(true)
+    expect(await luminanceOf(undo, 'color')).toBeGreaterThan(0.9)
+})
+
+test('scenario 40: panel text shows favor as its token, the word only as the token’s name', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tapDimmed(tile(page, 'Muster'))
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
+    await expect(reasonLine(page).getByRole('img', { name: 'favor' })).toBeVisible()
+    await expect(reasonLine(page)).not.toContainText('favor')
+    await restMouse(page)
+
+    await call(page, 'seatTravels', 'slot.cradle.1')
+    await tile(page, 'Muster').click()
+    const prompt = page.locator('.panel').getByText('Choose a card at your site to place')
+    await expect(prompt).toBeVisible()
+    await expect(prompt.getByRole('img', { name: 'favor' })).toBeVisible()
+    await expect(prompt).not.toContainText('favor')
+})
+
+test('scenario 39: Trade lists every trade at the site, a strip tap marks a row, a button sends', async ({ page }) => {
+    await openTable(page, 'trade')
+    await tile(page, 'Trade').click()
+    const rows = page.getByRole('list', { name: 'Trades at your site' }).getByRole('listitem')
+    await expect(rows).toHaveCount(2)
+    await expect(rows.nth(0)).toContainText('Book Binders')
+    await expect(rows.nth(1)).toContainText('Assassin')
+    await expect(page.getByRole('list', { name: 'Trades at your site' })).not.toContainText('Council Seat')
+    await expect(
+        page.getByRole('button', { name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank' })
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Trade with Book Binders: pay 2 favor, get 2 secrets' })).toBeVisible()
+    await expect(rows.nth(1)).toContainText('bank empty')
+    await expect(rows.nth(1)).toContainText('no faceup')
+
+    await page.getByRole('button', { name: 'Assassin', exact: true }).click()
+    await expect(rows.nth(1)).toHaveClass(/ring-2/)
+    await expect(rows.nth(0)).not.toHaveClass(/ring-2/)
+    expect(await call(page, 'cardTokens', 'denizen.discord.assassin')).toEqual({ favor: 0, secrets: 0 })
+
+    await page.getByRole('button', { name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank' }).click()
+    await expect.poll(() => call(page, 'cardTokens', 'denizen.hearth.book-binders')).toEqual({ favor: 0, secrets: 1 })
+    await expect(page.getByRole('list', { name: 'Trades at your site' })).toHaveCount(0)
+})
+
+test('card backs: another seat’s facedown Vision and the Vision in its hand show the Vision back', async ({ page }) => {
+    await openTable(page, 'visionBacks')
+    const backsOf = (label: string) =>
+        page.getByRole('img', { name: label }).evaluateAll((images) =>
+            images.map((image) => (image.getAttribute('src') ?? '').includes('vision') ? 'vision' : 'denizen')
+        )
+    expect((await backsOf('A facedown adviser')).sort()).toEqual(['denizen', 'vision'])
+    expect(await backsOf('A Vision in hand')).toEqual(['vision'])
+    expect(await backsOf('A denizen in hand')).toEqual(['denizen'])
+
+    await page.getByTitle("Open ann's seat").click()
+    expect((await backsOf('A facedown adviser')).sort()).toEqual(['denizen', 'denizen', 'vision', 'vision'])
+    expect(await backsOf('A Vision in hand')).toEqual(['vision', 'vision'])
+})
+
+test('scenario 35: a favor bank is chosen by its suit symbol, ringed when picked, and the pick is what is sent', async ({ page }) => {
+    await openTable(page, 'restBanks')
+    const banks = grid(page).getByRole('button', { name: /bank, \d+ favor$/ })
+    await expect(banks.first()).toBeVisible()
+    await expect(grid(page).locator('select')).toHaveCount(0)
+    await expect(banks.first()).toHaveAttribute('aria-pressed', 'true')
+
+    const arcane = grid(page).getByRole('button', { name: /^Arcane bank, \d+ favor$/ })
+    await arcane.click()
+    await expect(arcane).toHaveAttribute('aria-pressed', 'true')
+    await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(1)
+
+    const before = await call(page, 'tableFacts')
+    await grid(page).getByRole('button', { name: 'Use', exact: true }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before.favorOf.me + 1)
+    expect((await call(page, 'tableFacts')).favorBank.arcane).toBe(before.favorBank.arcane - 1)
+})
+
+test('scenario 36: the rolled dice sit in the Campaign panel, faces and totals, for the deciding seat and a waiting one, and not on the rail', async ({ page }) => {
+    await openTable(page, 'exileDefeated')
+    const dice = grid(page).getByRole('region', { name: 'the Campaign\'s dice' })
+    await expect(dice).toBeVisible()
+    await expect(dice).toContainText(/\d+ swords?/)
+    await expect(dice).toContainText(/\d+ defense/)
+    await expect(dice.locator('img').first()).toBeVisible()
+    await expect(page.locator('.rail').getByText(/swords?$/)).toHaveCount(0)
+
+    const watcher = await call(page, 'viewOffTheClock')
+    expect(watcher).not.toBe('def')
+    await expect(grid(page).getByText('Waiting for another player')).toBeVisible()
+    await expect(grid(page).getByRole('region', { name: 'the Campaign\'s dice' })).toContainText(/\d+ defense/)
+})
+
+test('scenario 37: the goals on the rail, tap-only, with the next win; the seat cards keep only Visions and Successor', async ({ page }) => {
+    await openTable(page, 'goalsRail')
+    const rail = page.getByRole('button', { name: 'Goals: open the enlarged view' })
+    await expect(rail).toContainText('Next to win')
+    await expect(rail).toContainText('is the Oathkeeper')
+    await expect(rail).toContainText('Vision of Conquest')
+    await expect(rail).not.toContainText('Goals')
+    await expect(rail.getByRole('img', { name: 'sites ruled' })).toHaveCount(2)
+    await expect(rail.getByRole('img', { name: 'relics and banners' })).toHaveCount(1)
+    await expect(page.getByRole('img', { name: /^Oathkeeper of/ })).toHaveCount(0)
+    await expect(page.getByRole('img', { name: 'Oathkeeper', exact: true })).toHaveCount(1)
+
+    const goals = page.getByRole('dialog', { name: 'Goals' })
+    await rail.hover()
+    await page.waitForTimeout(600)
+    await expect(goals).toHaveCount(0)
+
+    await rail.click()
+    await expect(goals).toBeVisible()
+    await expect(goals).toContainText(/wins as the Oathkeeper if the end die ends the game after round 5 \(on a 6\)/)
+    await expect(goals.locator('[title="ann: 2 sites ruled"]')).toHaveCount(2)
+    await expect(goals).not.toContainText('sites ruled')
+    await expect(goals.getByText('not met')).toHaveCount(2)
+    await page.keyboard.press('Escape')
+    await expect(goals).toHaveCount(0)
+
+    await rail.click()
+    await expect(goals).toBeVisible()
+    await page.mouse.click(5, 5)
+    await expect(goals).toHaveCount(0)
+})
+
+test('scenario 37: under a banner Oath the Oath is held, one ringed disc and no counts', async ({ page }) => {
+    await openTable(page, 'goalsRailDevotion')
+    const rail = page.getByRole('button', { name: 'Goals: open the enlarged view' })
+    await expect(rail).toContainText('The Oath of Devotion')
+    await expect(rail.getByRole('img', { name: 'the Darkest Secret' })).toHaveCount(1)
+    await expect(rail.locator('[title="ann holds the Darkest Secret"]')).toHaveCount(1)
+})
+
+function framesInsidePanel(page: Page) {
+    return page.locator('.panel').evaluate((panel) =>
+        [...panel.querySelectorAll('*')]
+            .filter((element) => !element.closest('button, [role="button"], input, select, textarea'))
+            .filter((element) => {
+                const style = getComputedStyle(element)
+                return ['top', 'right', 'bottom', 'left'].every(
+                    (side) =>
+                        style.getPropertyValue(`border-${side}-style`) !== 'none' &&
+                        parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0
+                )
+            })
+            .map((element) => `${element.tagName.toLowerCase()}.${element.className}`)
+    )
+}
+
+const FRAMED_TABLES: TableFixture.TableName[] = [
+    'setup',
+    'searching',
+    'prophets',
+    'actPhase',
+    'warbandMoveAsked',
+    'joinDefenceAsked',
+    'exileDefeated',
+    'imperialDefeated'
+]
+
+for (const name of FRAMED_TABLES) {
+    test(`one frame per panel: inside the ${name} panel only controls are framed`, async ({ page }) => {
+        await openTable(page, name)
+        await expect(page.locator('.panel')).toBeVisible()
+        expect(await framesInsidePanel(page)).toEqual([])
+    })
+}
 
 test('the fixture opens the Chancellor setup with the hand offered', async ({ page }) => {
     const errors: string[] = []

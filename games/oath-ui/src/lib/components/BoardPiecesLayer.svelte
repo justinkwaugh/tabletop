@@ -20,7 +20,7 @@
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
 
-    const SITE_ASPECT = cardAspect({ backKind: CardKind.Site, faceDown: true })
+    const SITE_ASPECT = cardAspect({ back: CardKind.Site })
 
     function banditsTitle(slotId: string, servingIds: string[]): string {
         const site = siteName(gameState, slotId)

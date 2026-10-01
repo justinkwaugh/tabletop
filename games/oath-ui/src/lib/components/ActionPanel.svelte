@@ -1,14 +1,17 @@
 <script lang="ts">
-    import { ActionType, MachineState, TradeOption } from '@tabletop/oath'
+    import TokenText from '$lib/components/TokenText.svelte'
+    import { ActionType, MachineState } from '@tabletop/oath'
     import ActionGrid from '$lib/components/ActionGrid.svelte'
     import SearchPanel from '$lib/components/SearchPanel.svelte'
     import CampaignPanel from '$lib/components/CampaignPanel.svelte'
     import CampaignBattlePanel from '$lib/components/CampaignBattlePanel.svelte'
+    import CampaignDice from '$lib/components/CampaignDice.svelte'
     import CampaignPlansPanel from '$lib/components/CampaignPlansPanel.svelte'
     import AttackPlansPanel from '$lib/components/AttackPlansPanel.svelte'
     import MinorActionPanel from '$lib/components/MinorActionPanel.svelte'
     import ModifierPicker from '$lib/components/ModifierPicker.svelte'
     import PowerPanel from '$lib/components/PowerPanel.svelte'
+    import TradeMenu from '$lib/components/TradeMenu.svelte'
     import BannerRecoverPanel from '$lib/components/BannerRecoverPanel.svelte'
     import TravelWayPanel from '$lib/components/TravelWayPanel.svelte'
     import CitizenshipPanel from '$lib/components/CitizenshipPanel.svelte'
@@ -45,24 +48,15 @@
               })
     )
 
-    // R-5.3.2 — both options are offered only when the card allows both.
-    let tradeOptions = $derived.by(() => {
-        const cardId = selection.value('card')
-        if (chosen !== ActionType.Trade || cardId === undefined) return []
-        return gameSession.tradeOptionsFor(cardId)
-    })
-
-    const TRADE_LABELS: Record<TradeOption, string> = {
-        [TradeOption.ForFavor]: 'Place a secret, gain favor',
-        [TradeOption.ForSecrets]: 'Place two favor, gain secrets'
-    }
-
     let inActPhase = $derived(gameState.machineState === MachineState.ActPhase)
     let wakeNeedsDecision = $derived(gameSession.wakeNeedsDecision)
 </script>
 
-<div class="panel rounded-lg bg-stone-900/70 border border-stone-700 px-3 py-2 text-stone-100">
+<div class="panel rounded-lg bg-oath-surface border border-oath-frame px-3 py-2 text-oath-text">
     <ActorOnlyNotice />
+    {#if gameState.campaign}
+        <CampaignDice campaign={gameState.campaign} />
+    {/if}
     <!-- Interrupt states come first: the clock is usually on a player whose turn it is not. -->
     {#if gameSession.campaign.open}
         <div class="mb-2">
@@ -70,7 +64,7 @@
         </div>
         <button
             disabled={busy}
-            class="mb-2 w-full rounded bg-stone-700 hover:bg-stone-600 px-2 py-1 text-xs"
+            class="mb-2 w-full rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs"
             onclick={() => gameSession.resetAction()}
         >
             {gameSession.sneakAttackDefenderId ? 'Back to the question' : 'Cancel the Campaign'}
@@ -88,7 +82,7 @@
             <CampaignPlansPanel />
         {/if}
     {:else if !isMyTurn}
-        <p class="text-sm text-stone-400">Waiting for another player.</p>
+        <p class="text-sm text-oath-text-muted">Waiting for another player.</p>
     {:else if gameState.machineState === MachineState.CampaignSacrifice || gameState.machineState === MachineState.CampaignDefeat || gameState.machineState === MachineState.CampaignVictory}
         <CampaignBattlePanel />
     {:else if gameState.machineState === MachineState.Searching}
@@ -99,12 +93,12 @@
         {#if wakeNeedsDecision}
             <WakePanel />
         {:else}
-            <p class="text-sm text-stone-400">Starting the turn.</p>
+            <p class="text-sm text-oath-text-muted">Starting the turn.</p>
         {/if}
     {:else if gameState.machineState === MachineState.RestPhase}
         <RestPanel />
     {:else if !inActPhase}
-        <p class="text-sm text-stone-300">
+        <p class="text-sm text-oath-text-muted">
             Nothing to choose here — no panel is wired for {gameState.machineState}.
         </p>
     {:else}
@@ -114,7 +108,7 @@
             </div>
             <button
                 disabled={busy}
-                class="mb-2 w-full rounded bg-stone-700 hover:bg-stone-600 px-2 py-1 text-xs"
+                class="mb-2 w-full rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs"
                 onclick={() => gameSession.resetAction()}
             >
                 Cancel the offer
@@ -122,13 +116,13 @@
         {:else if chosen}
             <!-- docs/user-interactions.md — `Back` unwinds local selection only. -->
             <div
-                class="mb-2 rounded border border-amber-400/60 bg-amber-950/40 px-2 py-1.5
+                class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5
                        flex items-center justify-between gap-2"
             >
-                <span class="text-sm">{prompt}</span>
+                <span class="text-sm"><TokenText text={prompt ?? ''} /></span>
                 <button
                     disabled={busy}
-                    class="shrink-0 rounded bg-stone-700 hover:bg-stone-600 px-2 py-1
+                    class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1
                            text-xs font-semibold"
                     onclick={() => gameSession.back()}
                 >
@@ -155,10 +149,12 @@
                         )} chooses where you go.
                     </p>
                     {#if woodReason}
-                        <p class="text-[11px] text-rose-300">{humanizeReason(woodReason)}</p>
+                        <p class="text-[11px] text-oath-danger">
+                            <TokenText text={humanizeReason(woodReason) ?? ''} />
+                        </p>
                     {/if}
                     <button
-                        class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1 text-xs"
+                        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
                         disabled={busy || !!woodReason}
                         onclick={() => gameSession.travelFromShroudedWood()}
                     >
@@ -185,18 +181,9 @@
                 </div>
             {/if}
 
-            {#if tradeOptions.length > 1}
-                <div class="mb-2 flex flex-col gap-1">
-                    {#each tradeOptions as option (option)}
-                        <button
-                            class="rounded border border-amber-500/40 bg-stone-800/60
-                                   hover:border-amber-300 px-2 py-1 text-sm text-left"
-                            disabled={busy}
-                            onclick={() => gameSession.chooseTradeOption(option)}
-                        >
-                            {TRADE_LABELS[option]}
-                        </button>
-                    {/each}
+            {#if chosen === ActionType.Trade}
+                <div class="mb-2">
+                    <TradeMenu />
                 </div>
             {/if}
         {/if}

@@ -30,8 +30,8 @@
             <button
                 type="button"
                 class="rounded-[5px] {on
-                    ? 'ring-2 ring-amber-300'
-                    : 'ring-1 ring-stone-600 hover:ring-amber-400'}"
+                    ? 'ring-2 ring-oath-accent'
+                    : 'ring-1 ring-oath-control-hover hover:ring-oath-accent'}"
                 aria-pressed={on}
                 title={choice.label}
                 disabled={busy}
@@ -39,19 +39,15 @@
             >
                 <CardImage
                     cardId={choice.cardId}
-                    faceDown={choice.cardId === undefined}
-                    backKind={choice.backKind}
-                    width={widthAtHeight(height, {
-                        cardId: choice.cardId,
-                        faceDown: choice.cardId === undefined,
-                        backKind: choice.backKind
-                    })}
+                    back={choice.back}
+                    width={widthAtHeight(height, choice)}
                     label={choice.label}
                     inspect
                 />
             </button>
             {#if choice.caption}
-                <span class="max-w-[7rem] text-center text-[10px] leading-tight text-stone-300"
+                <span
+                    class="max-w-[7rem] text-center text-[10px] leading-tight text-oath-text-muted"
                     >{choice.caption}</span
                 >
             {/if}

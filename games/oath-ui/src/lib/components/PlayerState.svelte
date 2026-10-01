@@ -1,6 +1,6 @@
 <script lang="ts">
     import { range, type Player } from '@tabletop/common'
-    import { CardKind, OathProjectedPlayerState, PlayerStatus, oathTypeName } from '@tabletop/oath'
+    import { OathProjectedPlayerState, PlayerStatus, oathTypeName } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import CardWarbands from '$lib/components/CardWarbands.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
@@ -22,10 +22,11 @@
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
     import { goalCardPreview } from '$lib/model/seatPreviews.js'
     import { seatAdvisers } from '$lib/model/seatAdvisers.js'
+    import { handBacks } from '$lib/model/cardBacks.js'
     import { seatFacts } from '$lib/model/seatFacts.js'
     import { seatGoals, type SeatGoal } from '$lib/model/seatGoals.js'
 
-    // R-9.4 — a facedown adviser is a back to others and a dimmed front to its owner; a hand is a count.
+    // R-9.4 — a facedown adviser is a back to others and a dimmed front to its owner; a hand is its backs.
     let gameSession = getGameSession()
     let { player, playerState }: { player: Player; playerState: OathProjectedPlayerState } =
         $props()
@@ -48,8 +49,6 @@
         switch (goal.kind) {
             case 'successor':
                 return `Successor goal for the Oath of ${oathName}`
-            case 'oathkeeper':
-                return `Oathkeeper of ${oathName}`
             case 'vision':
                 return goal.shared
                     ? `${cardName(goal.visionId)} — shared through a warband on it`
@@ -69,7 +68,7 @@
     style="--ground:{ground}; --seat:{seatColor};"
 >
     <header class="strip">
-        <img class="word" src={titleImage(status, color)} alt={status} />
+        <img class="word" src={titleImage(status)} alt={status} />
         <button
             type="button"
             class="pill"
@@ -165,10 +164,9 @@
                         {/if}
                     {:else}
                         <!-- R-2.10 — one card prints the Oathkeeper goal on top and the
-                             Successor goal below; the box shows one half. -->
+                             Successor goal below; a Citizen's box shows the lower half. -->
                         <img
                             class="goal__art"
-                            class:goal__art--successor={goal.kind === 'successor'}
                             src={goalCardImage(gameState.oathType)}
                             alt={goalTitle(goal)}
                             use:inspectImage={{
@@ -227,12 +225,7 @@
                             inspect
                         />
                     {:else}
-                        <CardImage
-                            faceDown
-                            backKind={CardKind.Denizen}
-                            width={50}
-                            label="A facedown adviser"
-                        />
+                        <CardImage back={adviser.back} width={50} label="A facedown adviser" />
                     {/if}
                     <figcaption>{adviser.faceUp ? '' : 'facedown'}</figcaption>
                 </figure>
@@ -251,7 +244,7 @@
         <div class="let-peek">
             <button
                 type="button"
-                class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5 text-xs font-semibold"
+                class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5 text-xs font-semibold"
                 disabled={gameSession.busy}
                 aria-expanded={gameSession.letPeekOpen}
                 onclick={() => gameSession.toggleLetPeek()}
@@ -265,7 +258,12 @@
     {/if}
 
     {#if playerState.handCount > 0}
-        <p class="hand">hand {playerState.handCount}</p>
+        <div class="hand">
+            <span>hand {playerState.handCount}</span>
+            {#each handBacks(playerState) as { back, label }, index (index)}
+                <CardImage {back} width={18} {label} />
+            {/each}
+        </div>
     {/if}
 
     {#if hasHoldings}
@@ -285,7 +283,6 @@
                     class:thumb--pickable={bid !== undefined}
                     use:inspectImage={{
                         preview: {
-                            faceDown: false,
                             imageSrc: bannerImage(banner, gameState.isOnMobSide(banner)),
                             aspect: 2,
                             label: `the ${bannerName(banner)}`,
@@ -380,7 +377,6 @@
         flex: 0 1 auto;
         object-fit: contain;
         object-position: left;
-        border-radius: 3px;
     }
     .pill {
         cursor: pointer;
@@ -574,15 +570,11 @@
     .goal__art {
         display: block;
         width: 100px;
-        height: 76px;
+        height: 59px;
         object-fit: cover;
-        object-position: top;
+        object-position: bottom;
         border-radius: 4px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-    }
-    .goal__art--successor {
-        height: 59px;
-        object-position: bottom;
     }
     .tile {
         display: block;
@@ -674,7 +666,13 @@
         text-align: center;
         color: #fbbf24;
     }
+    .hand span {
+        margin-right: 4px;
+    }
     .hand {
+        display: flex;
+        align-items: center;
+        gap: 3px;
         margin: 0;
         padding: 2px 10px 4px;
         font-size: 10px;

@@ -45,7 +45,7 @@
     // R-10.21 — a denizen's ruler, which the Grand Mask can part from its site's.
     let cardFacts = $derived.by(() => {
         const cardId = preview?.cardId
-        if (!cardId || preview?.faceDown || preview?.slotId) return undefined
+        if (!cardId || preview?.back !== undefined || preview?.slotId) return undefined
         const gameState = gameSession.gameState
         const hasWarbands = warbandsOnCardOf(gameState, cardId).length > 0
         const rulerIds = siteHolding(gameState, cardId) ? cardRulerIds(gameState, cardId) : []
@@ -123,8 +123,7 @@
                         {:else}
                             <CardImage
                                 cardId={preview.cardId}
-                                faceDown={preview.faceDown}
-                                backKind={preview.backKind}
+                                back={preview.back}
                                 label={preview.label}
                                 {width}
                             />
@@ -138,8 +137,7 @@
                                     count={preview.badge.count}
                                     size={40}
                                 />
-                                {preview.badge.count}
-                                {preview.badge.kind === 'favor' ? 'favor' : 'secrets'} on it
+                                on it
                             </span>
                         </div>
                     {/if}
@@ -262,9 +260,9 @@
         gap: 6px 12px;
         padding: 8px 12px;
         border-radius: 10px;
-        background: rgba(12, 10, 9, 0.92);
-        border: 1px solid rgba(251, 191, 36, 0.45);
-        color: #e7e5e4;
+        background: var(--oath-surface-raised);
+        border: 1px solid var(--oath-frame);
+        color: var(--oath-text);
         font-size: 15px;
         font-weight: 600;
         line-height: 1.2;
@@ -277,14 +275,14 @@
     }
 
     .piece.muted {
-        color: #a8a29e;
+        color: var(--oath-text-muted);
         font-weight: 400;
     }
 
     .card-preview__frame {
         border-radius: 12px;
         box-shadow:
-            0 0 0 2px rgba(251, 191, 36, 0.55),
+            0 0 0 2px var(--oath-frame),
             0 24px 60px rgba(0, 0, 0, 0.65);
         overflow: hidden;
         line-height: 0;

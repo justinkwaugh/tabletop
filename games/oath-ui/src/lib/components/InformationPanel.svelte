@@ -30,6 +30,17 @@
     let steppingBack = $derived(!gameSession.isViewingHistory && gameSession.hasManualDraft)
     let busy = $derived(gameSession.busy)
 
+    let undoTooltip = $derived.by(() => {
+        if (steppingBack) return 'Steps back through your picks not yet sent, as Back does.'
+        if (!undoable) return undefined
+        const description = describeAction(
+            undoable,
+            gameSession.historyNames,
+            gameSession.myPlayer?.id
+        )
+        return `Reverses for everyone: ${description}. Not the same as Back.`
+    })
+
     function undo() {
         if (!undoable && !steppingBack) return
         void gameSession.undo()
@@ -44,7 +55,7 @@
 </script>
 
 <div
-    class="info mb-2 rounded-lg bg-stone-900/70 border border-stone-700 px-3 py-1.5 text-stone-100"
+    class="info mb-2 rounded-lg bg-oath-surface border border-oath-frame px-3 py-1.5 text-oath-text"
 >
     <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         {#if heldTurn}
@@ -53,7 +64,7 @@
                 {heldTurn.campaignerId === gameSession.myPlayer?.id ? 'are' : 'is'} campaigning out of
                 turn
             </span>
-            <span class="text-xs text-stone-300">
+            <span class="text-xs text-oath-text-muted">
                 <PlayerName playerId={heldTurn.turnPlayerId} possessive /> turn is held
             </span>
         {:else if activePlayerId}
@@ -66,39 +77,21 @@
                 {/if}
             </span>
         {/if}
-        <span class="text-sm text-stone-300">{phase}</span>
+        <span class="text-sm text-oath-text-muted">{phase}</span>
         {#if endDieLive}
-            <span class="text-xs rounded bg-rose-900/70 text-rose-100 px-2 py-0.5"
+            <span class="text-xs rounded bg-oath-danger-soft text-oath-danger px-2 py-0.5"
                 >end die live</span
             >
         {/if}
-        {#if steppingBack}
+        {#if undoTooltip}
             <button
-                class="ml-auto shrink-0 rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40
-                       px-2 py-0.5 text-xs font-semibold"
+                type="button"
+                class="ml-auto shrink-0 self-center rounded-lg bg-oath-primary text-oath-primary-text
+                       hover:bg-oath-primary-hover disabled:opacity-40 px-3 py-1.5 text-sm font-semibold"
                 disabled={busy}
-                title="Steps back through the picks not yet sent, as Back does."
-                onclick={undo}
+                title={undoTooltip}
+                onclick={undo}>Undo</button
             >
-                Undo — <span class="font-normal">your last pick</span>
-            </button>
-        {:else if undoable}
-            <button
-                class="ml-auto shrink-0 max-w-[22rem] truncate rounded bg-stone-700
-                       hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5
-                       text-xs font-semibold"
-                disabled={busy}
-                title="Reverses the last action for everyone (R-X.3). Not the same as Back."
-                onclick={undo}
-            >
-                Undo — <span class="font-normal"
-                    >{describeAction(
-                        undoable,
-                        gameSession.historyNames,
-                        gameSession.myPlayer?.id
-                    )}</span
-                >
-            </button>
         {/if}
     </div>
 </div>

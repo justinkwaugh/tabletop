@@ -14,6 +14,7 @@
     } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { seatAdvisers } from '$lib/model/seatAdvisers.js'
+    import { handBacks } from '$lib/model/cardBacks.js'
     import { seatFacts } from '$lib/model/seatFacts.js'
     import { seatVisions } from '$lib/model/seatGoals.js'
     import { reliquarySpaces } from '$lib/model/reliquary.js'
@@ -115,6 +116,17 @@
                 </div>
             {/if}
 
+            {#if seat.handCount > 0}
+                <h3>Hand</h3>
+                <div class="cards">
+                    {#each handBacks(seat) as { back, label }, index (index)}
+                        <figure>
+                            <CardImage {back} width={60} {label} />
+                        </figure>
+                    {/each}
+                </div>
+            {/if}
+
             <h3>Advisers</h3>
             <div class="cards">
                 {#each seatAdvisers(seat, gameSession.myPlayer?.id) as adviser (adviser.key)}
@@ -133,12 +145,7 @@
                                 inspect
                             />
                         {:else}
-                            <CardImage
-                                faceDown
-                                backKind={CardKind.Denizen}
-                                width={120}
-                                label="A facedown adviser"
-                            />
+                            <CardImage back={adviser.back} width={120} label="A facedown adviser" />
                         {/if}
                         <figcaption>
                             {adviser.faceUp && cardId ? cardName(cardId) : 'facedown'}
@@ -207,8 +214,7 @@
                                 <figcaption>{cardName(known)}</figcaption>
                             {:else}
                                 <CardImage
-                                    faceDown
-                                    backKind={CardKind.Relic}
+                                    back={CardKind.Relic}
                                     width={110}
                                     label="Facedown relic"
                                 />

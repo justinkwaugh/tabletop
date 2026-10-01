@@ -8,7 +8,7 @@ export const BOARD_WIDTH = 2572
 export const BOARD_HEIGHT = 1024
 
 // The rail under the map carries what the map does not print.
-export const RAIL_HEIGHT = 220
+export const RAIL_HEIGHT = 270
 export const SURFACE_HEIGHT = BOARD_HEIGHT + RAIL_HEIGHT
 
 export function centerOf(rect: BoundingBox): Point {

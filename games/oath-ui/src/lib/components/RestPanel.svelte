@@ -1,5 +1,7 @@
 <script lang="ts">
-    import { FINAL_ROUND, powerKey, type LegalPowerUse, type Suit } from '@tabletop/oath'
+    import TokenText from '$lib/components/TokenText.svelte'
+    import { FINAL_ROUND, powerKey, type LegalPowerUse } from '@tabletop/oath'
+    import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, humanizeReason } from '$lib/model/names.js'
 
@@ -12,22 +14,18 @@
     function reasonFor(p: LegalPowerUse) {
         return draft.reasonCannotUse(p)
     }
-    function pickBank(p: LegalPowerUse, value: string) {
-        const suit = draft.bankOptions(p).find((bank: Suit) => bank === value)
-        if (suit !== undefined) draft.pickBank(p, suit)
-    }
 
     let rollsEndDie = $derived(draft.rollsEndDie)
     let blockedBecause = $derived(draft.completeBlockedBecause)
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">Rest Phase</h3>
+<div>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">Rest Phase</h3>
 
     <p class="text-sm mb-2">Your Supply refreshes and your turn ends.</p>
 
     {#if draft.powers.length > 0}
-        <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+        <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
             <div class="mb-1">Rest powers you may use, once each:</div>
             {#each draft.powers as p (powerKey(p.cardId, p.powerIndex))}
                 {@const banks = draft.bankOptions(p)}
@@ -36,20 +34,8 @@
                     <span class="grow">
                         <span class="font-semibold">{cardName(p.cardId)}</span>
                     </span>
-                    {#if banks.length > 0}
-                        <select
-                            disabled={busy}
-                            class="rounded bg-stone-800 px-1 py-0.5 text-xs"
-                            value={draft.pickedSuit(p)}
-                            onchange={(event) => pickBank(p, event.currentTarget.value)}
-                        >
-                            {#each banks as suit (suit)}
-                                <option value={suit}>{suit} bank</option>
-                            {/each}
-                        </select>
-                    {/if}
                     <button
-                        class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-0.5"
+                        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5"
                         disabled={busy || !!reason}
                         title={reason ?? ''}
                         onclick={() => draft.use(p)}
@@ -57,8 +43,21 @@
                         Use
                     </button>
                 </div>
+                {#if banks.length > 0}
+                    {@const picked = draft.pickedSuit(p)}
+                    <div class="mb-1">
+                        <SuitPicker
+                            suits={banks}
+                            picked={picked === undefined ? [] : [picked]}
+                            onpick={(suit) => draft.pickBank(p, suit)}
+                            {busy}
+                        />
+                    </div>
+                {/if}
                 {#if reason}
-                    <p class="mb-1 text-[11px] text-rose-300">{humanizeReason(reason)}</p>
+                    <p class="mb-1 text-[11px] text-oath-danger">
+                        <TokenText text={humanizeReason(reason) ?? ''} />
+                    </p>
                 {/if}
             {/each}
         </div>
@@ -66,7 +65,7 @@
 
     {#if rollsEndDie}
         <p
-            class="mb-2 rounded border border-amber-400/60 bg-amber-950/40 px-2 py-1
+            class="mb-2 rounded bg-oath-accent-soft px-2 py-1
                   text-[11px] leading-snug"
         >
             This is the last turn of round {gameState.round} of {FINAL_ROUND}, so the end die is
@@ -75,11 +74,11 @@
     {/if}
 
     {#if blockedBecause}
-        <p class="mb-2 text-[11px] text-rose-300">{blockedBecause}</p>
+        <p class="mb-2 text-[11px] text-oath-danger"><TokenText text={blockedBecause ?? ''} /></p>
     {/if}
 
     <button
-        class="w-full rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+        class="w-full rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!blockedBecause}
         onclick={() => gameSession.completeRest()}

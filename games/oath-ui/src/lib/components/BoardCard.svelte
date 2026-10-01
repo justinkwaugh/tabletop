@@ -8,27 +8,28 @@
     // On touch a pickable card's tap is its pick and a hold opens the preview.
     let {
         cardId,
-        faceDown = false,
-        backKind,
+        back,
         label,
         x,
         y,
         width,
         zIndex = 0,
         pickable = false,
+        picked = false,
         onpick,
         title,
         previewSlotId
     }: {
         cardId?: string
-        faceDown?: boolean
-        backKind?: CardKind
+        back?: CardKind
         label: string
         x: number
         y: number
         width: number
         zIndex?: number
         pickable?: boolean
+        /** A pick the player has made and may still change. */
+        picked?: boolean
         onpick?: () => void
         title?: string
         previewSlotId?: string
@@ -36,14 +37,13 @@
 
     let preview = $derived<CardPreview>({
         cardId,
-        faceDown,
-        backKind,
+        back,
         label,
         slotId: previewSlotId
     })
 
     // R-9.4 — a facedown card's front is private, so there is nothing to enlarge.
-    let inspectable = $derived(!faceDown && cardId !== undefined)
+    let inspectable = $derived(back === undefined && cardId !== undefined)
 
     const style = $derived(`left:${x}px; top:${y}px; width:${width}px; z-index:${zIndex};`)
 
@@ -55,12 +55,13 @@
     <button
         type="button"
         class="board-card pickable"
+        class:picked
         {style}
         title={tooltip}
         onclick={() => onpick?.()}
         use:inspectImage={{ preview, enabled: inspectable, pickable: true, focus: true }}
     >
-        <CardImage {cardId} {faceDown} {backKind} {label} {width} />
+        <CardImage {cardId} {back} {label} {width} />
     </button>
 {:else}
     <!-- An inert card is not a control, so
@@ -72,7 +73,7 @@
         title={tooltip}
         use:inspectImage={{ preview, enabled: inspectable, pickable: false }}
     >
-        <CardImage {cardId} {faceDown} {backKind} {label} {width} />
+        <CardImage {cardId} {back} {label} {width} />
     </div>
 {/if}
 
@@ -106,6 +107,11 @@
     .board-card.pickable:focus-visible {
         outline-color: #fde68a;
         box-shadow: 0 0 0 9px rgba(253, 230, 138, 0.36);
+    }
+
+    .board-card.pickable.picked {
+        outline: 5px solid var(--oath-accent);
+        box-shadow: 0 0 18px 6px rgba(252, 211, 77, 0.55);
     }
 
     .board-card.pickable:focus {
