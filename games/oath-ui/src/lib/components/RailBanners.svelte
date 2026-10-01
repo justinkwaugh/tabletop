@@ -38,7 +38,6 @@
                         : `${label}, unclaimed — ${value} on it`}
                     use:inspectImage={{
                         preview: {
-                            faceDown: false,
                             imageSrc: src,
                             aspect: 2,
                             label,

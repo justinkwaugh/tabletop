@@ -8,8 +8,7 @@
     // On touch a pickable card's tap is its pick and a hold opens the preview.
     let {
         cardId,
-        faceDown = false,
-        backKind,
+        back,
         label,
         x,
         y,
@@ -21,8 +20,7 @@
         previewSlotId
     }: {
         cardId?: string
-        faceDown?: boolean
-        backKind?: CardKind
+        back?: CardKind
         label: string
         x: number
         y: number
@@ -36,14 +34,13 @@
 
     let preview = $derived<CardPreview>({
         cardId,
-        faceDown,
-        backKind,
+        back,
         label,
         slotId: previewSlotId
     })
 
     // R-9.4 — a facedown card's front is private, so there is nothing to enlarge.
-    let inspectable = $derived(!faceDown && cardId !== undefined)
+    let inspectable = $derived(back === undefined && cardId !== undefined)
 
     const style = $derived(`left:${x}px; top:${y}px; width:${width}px; z-index:${zIndex};`)
 
@@ -60,7 +57,7 @@
         onclick={() => onpick?.()}
         use:inspectImage={{ preview, enabled: inspectable, pickable: true, focus: true }}
     >
-        <CardImage {cardId} {faceDown} {backKind} {label} {width} />
+        <CardImage {cardId} {back} {label} {width} />
     </button>
 {:else}
     <!-- An inert card is not a control, so
@@ -72,7 +69,7 @@
         title={tooltip}
         use:inspectImage={{ preview, enabled: inspectable, pickable: false }}
     >
-        <CardImage {cardId} {faceDown} {backKind} {label} {width} />
+        <CardImage {cardId} {back} {label} {width} />
     </div>
 {/if}
 

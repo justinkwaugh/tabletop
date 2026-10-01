@@ -1,10 +1,12 @@
-import type { OathProjectedPlayerState } from '@tabletop/oath'
+import type { CardKind, OathProjectedPlayerState } from '@tabletop/oath'
+import { adviserBack } from './cardBacks.js'
 
 /** One adviser as a seat draws it: named when faceup, to its holder, or to a player it was shown to; a back otherwise. */
 export interface SeatAdviser {
     key: string
     cardId?: string
     faceUp: boolean
+    back: CardKind
     /** R-9.4 — this viewer was let peek at it; it is still facedown to the table. */
     shownToMe: boolean
 }
@@ -25,6 +27,7 @@ export function seatAdvisers(
             key: cardId ?? `facedown-${index}`,
             cardId,
             faceUp: row.faceUp,
+            back: adviserBack(row),
             shownToMe: shown !== undefined
         }
     })

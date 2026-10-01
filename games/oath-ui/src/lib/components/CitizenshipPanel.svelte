@@ -45,7 +45,7 @@
                     ? { key: space.slotId, cardId: known, label: cardName(known) }
                     : {
                           key: space.slotId,
-                          backKind: CardKind.Relic,
+                          back: CardKind.Relic,
                           label: `Facedown relic on ${reliquaryLabel(space.slotId)}`
                       }
             })}

@@ -3,8 +3,7 @@ import type { CardKind } from '@tabletop/oath'
 // The preview renders once outside `ScalingWrapper`, in screen pixels.
 export type CardPreview = {
     cardId?: string
-    faceDown: boolean
-    backKind?: CardKind
+    back?: CardKind
     label?: string
     slotId?: string
     imageSrc?: string

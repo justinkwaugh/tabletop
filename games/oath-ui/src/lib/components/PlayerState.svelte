@@ -1,6 +1,6 @@
 <script lang="ts">
     import { range, type Player } from '@tabletop/common'
-    import { CardKind, OathProjectedPlayerState, PlayerStatus, oathTypeName } from '@tabletop/oath'
+    import { OathProjectedPlayerState, PlayerStatus, oathTypeName } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import CardWarbands from '$lib/components/CardWarbands.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
@@ -22,10 +22,11 @@
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
     import { goalCardPreview } from '$lib/model/seatPreviews.js'
     import { seatAdvisers } from '$lib/model/seatAdvisers.js'
+    import { handBacks } from '$lib/model/cardBacks.js'
     import { seatFacts } from '$lib/model/seatFacts.js'
     import { seatGoals, type SeatGoal } from '$lib/model/seatGoals.js'
 
-    // R-9.4 — a facedown adviser is a back to others and a dimmed front to its owner; a hand is a count.
+    // R-9.4 — a facedown adviser is a back to others and a dimmed front to its owner; a hand is its backs.
     let gameSession = getGameSession()
     let { player, playerState }: { player: Player; playerState: OathProjectedPlayerState } =
         $props()
@@ -227,12 +228,7 @@
                             inspect
                         />
                     {:else}
-                        <CardImage
-                            faceDown
-                            backKind={CardKind.Denizen}
-                            width={50}
-                            label="A facedown adviser"
-                        />
+                        <CardImage back={adviser.back} width={50} label="A facedown adviser" />
                     {/if}
                     <figcaption>{adviser.faceUp ? '' : 'facedown'}</figcaption>
                 </figure>
@@ -265,7 +261,12 @@
     {/if}
 
     {#if playerState.handCount > 0}
-        <p class="hand">hand {playerState.handCount}</p>
+        <div class="hand">
+            <span>hand {playerState.handCount}</span>
+            {#each handBacks(playerState) as { back, label }, index (index)}
+                <CardImage {back} width={18} {label} />
+            {/each}
+        </div>
     {/if}
 
     {#if hasHoldings}
@@ -285,7 +286,6 @@
                     class:thumb--pickable={bid !== undefined}
                     use:inspectImage={{
                         preview: {
-                            faceDown: false,
                             imageSrc: bannerImage(banner, gameState.isOnMobSide(banner)),
                             aspect: 2,
                             label: `the ${bannerName(banner)}`,
@@ -674,7 +674,13 @@
         text-align: center;
         color: #fbbf24;
     }
+    .hand span {
+        margin-right: 4px;
+    }
     .hand {
+        display: flex;
+        align-items: center;
+        gap: 3px;
         margin: 0;
         padding: 2px 10px 4px;
         font-size: 10px;

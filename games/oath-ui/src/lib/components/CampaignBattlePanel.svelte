@@ -226,7 +226,7 @@
                         const at = relicSiteName(gameState, slotId)
                         return known
                             ? { key: slotId, cardId: known, label: `${cardName(known)} at ${at}` }
-                            : { key: slotId, backKind: CardKind.Relic, label: `the relic at ${at}` }
+                            : { key: slotId, back: CardKind.Relic, label: `the relic at ${at}` }
                     })}
                     picked={spoils.bottomSlots}
                     onpick={(slotId) =>

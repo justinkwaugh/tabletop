@@ -39,13 +39,8 @@
             >
                 <CardImage
                     cardId={choice.cardId}
-                    faceDown={choice.cardId === undefined}
-                    backKind={choice.backKind}
-                    width={widthAtHeight(height, {
-                        cardId: choice.cardId,
-                        faceDown: choice.cardId === undefined,
-                        backKind: choice.backKind
-                    })}
+                    back={choice.back}
+                    width={widthAtHeight(height, choice)}
                     label={choice.label}
                     inspect
                 />

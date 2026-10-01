@@ -13,7 +13,6 @@
         type ExchangeSide
     } from '$lib/model/exchangeTerms.js'
     import {
-        CardKind,
         sitesRuledBy,
         usableFavor,
         type ExchangeAllowance,
@@ -158,12 +157,15 @@
                 {@const rows = offerableAdviserRows(gameState, giver, gameSession.myPlayer?.id)}
                 <!-- R-9.4 — another player's facedown adviser is a back, offered by its row. -->
                 <CardChoiceRow
-                    choices={rows.map((adviser) => ({
-                        key: String(adviser.row),
-                        cardId: adviser.cardId,
-                        backKind: CardKind.Denizen,
-                        label: adviser.label
-                    }))}
+                    choices={rows.map((adviser) =>
+                        adviser.cardId === undefined
+                            ? { key: String(adviser.row), back: adviser.back, label: adviser.label }
+                            : {
+                                  key: String(adviser.row),
+                                  cardId: adviser.cardId,
+                                  label: adviser.label
+                              }
+                    )}
                     picked={(side(key).adviserRows ?? []).map(String)}
                     onpick={(row) =>
                         set(key, {

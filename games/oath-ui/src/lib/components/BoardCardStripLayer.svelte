@@ -82,8 +82,7 @@
                 {@const relicSlotId = space.slotId}
                 <BoardCard
                     cardId={space.cardId}
-                    faceDown={space.cardId === undefined}
-                    backKind={CardKind.Relic}
+                    back={space.cardId === undefined ? CardKind.Relic : undefined}
                     label={space.cardId ? cardName(space.cardId) : 'Facedown relic'}
                     x={placed.x}
                     y={placed.y}

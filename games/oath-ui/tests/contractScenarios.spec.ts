@@ -451,6 +451,21 @@ test('the side tabs and the chat read light on the dark page', async ({ page }) 
     expect(await luminanceOf(page.locator('textarea'), 'color')).toBeGreaterThan(0.6)
 })
 
+test('card backs: another seat’s facedown Vision and the Vision in its hand show the Vision back', async ({ page }) => {
+    await openTable(page, 'visionBacks')
+    const backsOf = (label: string) =>
+        page.getByRole('img', { name: label }).evaluateAll((images) =>
+            images.map((image) => (image.getAttribute('src') ?? '').includes('vision') ? 'vision' : 'denizen')
+        )
+    expect((await backsOf('A facedown adviser')).sort()).toEqual(['denizen', 'vision'])
+    expect(await backsOf('A Vision in hand')).toEqual(['vision'])
+    expect(await backsOf('A denizen in hand')).toEqual(['denizen'])
+
+    await page.getByTitle("Open ann's seat").click()
+    expect((await backsOf('A facedown adviser')).sort()).toEqual(['denizen', 'denizen', 'vision', 'vision'])
+    expect(await backsOf('A Vision in hand')).toEqual(['vision', 'vision'])
+})
+
 function framesInsidePanel(page: Page) {
     return page.locator('.panel').evaluate((panel) =>
         [...panel.querySelectorAll('*')]

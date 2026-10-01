@@ -57,6 +57,7 @@ export type TableName =
     | 'joinDefenceAsked'
     | 'exileDefeated'
     | 'imperialDefeated'
+    | 'visionBacks'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -126,6 +127,31 @@ function offTurnTable(): PlayedTable {
     )
     openTurn(state, 'ann')
     state.activePlayerIds = ['ann']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-9.4: another seat holds a facedown Vision among its advisers and a Vision in hand. */
+function visionBacksTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1' }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1',
+                advisers: [
+                    { cardId: 'vision.conquest', faceUp: false },
+                    { cardId: 'denizen.arcane.tutor', faceUp: false }
+                ],
+                handIds: ['vision.conspiracy', 'denizen.order.scouts']
+            })
+        ],
+        { machineState: MachineState.ActPhase, chancellorPlayerId: 'ann' }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
     state.vault = testVaultWithRelics({})
     return tableOf(state)
 }
@@ -342,7 +368,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     staleWarbandMoveAsked: staleWarbandMoveAskedTable,
     joinDefenceAsked: joinDefenceAskedTable,
     exileDefeated: () => defeatedTable('exile'),
-    imperialDefeated: () => defeatedTable('imperial')
+    imperialDefeated: () => defeatedTable('imperial'),
+    visionBacks: visionBacksTable
 }
 
 let session: OathGameSession | undefined

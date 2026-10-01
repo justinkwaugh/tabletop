@@ -45,7 +45,7 @@
     // R-10.21 — a denizen's ruler, which the Grand Mask can part from its site's.
     let cardFacts = $derived.by(() => {
         const cardId = preview?.cardId
-        if (!cardId || preview?.faceDown || preview?.slotId) return undefined
+        if (!cardId || preview?.back !== undefined || preview?.slotId) return undefined
         const gameState = gameSession.gameState
         const hasWarbands = warbandsOnCardOf(gameState, cardId).length > 0
         const rulerIds = siteHolding(gameState, cardId) ? cardRulerIds(gameState, cardId) : []
@@ -123,8 +123,7 @@
                         {:else}
                             <CardImage
                                 cardId={preview.cardId}
-                                faceDown={preview.faceDown}
-                                backKind={preview.backKind}
+                                back={preview.back}
                                 label={preview.label}
                                 {width}
                             />

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import {
+    CardKind,
     HydratedAnswerQuestion,
     MachineState,
     PowerQuestionKind,
@@ -127,14 +128,25 @@ describe('the advisers an exchange may offer (R-10.8, R-9.4)', () => {
     it('offers every row by position, naming and picturing a facedown card to its holder alone', () => {
         const state = holders()
         expect(offerableAdviserRows(state, 'me', 'me')).toEqual([
-            { row: 0, cardId: ADVISERS[0], label: 'Messenger (facedown)' },
-            { row: 1, cardId: ADVISERS[1], label: 'Longbows' }
+            { row: 0, cardId: ADVISERS[0], back: CardKind.Denizen, label: 'Messenger (facedown)' },
+            { row: 1, cardId: ADVISERS[1], back: CardKind.Denizen, label: 'Longbows' }
         ])
         expect(offerableAdviserRows(state, 'them', 'me')).toEqual([
-            { row: 0, label: 'the facedown adviser in row 1' }
+            { row: 0, back: CardKind.Denizen, label: 'the facedown adviser in row 1' }
         ])
         expect(offerableAdviserRows(state, 'them', 'me')[0]).not.toHaveProperty('cardId', ADVISERS[2])
         expect(offerableAdviserRows(state, 'me', 'them').map((row) => row.cardId)).toEqual([undefined, ADVISERS[1]])
         expect(JSON.stringify(offerableAdviserRows(state, 'me', 'them'))).not.toContain('Messenger')
+    })
+
+    it('offers a facedown Vision with the Vision back to everyone, named to its holder alone', () => {
+        const state = testState([
+            testPlayer({ playerId: 'me', color: Color.Red }),
+            testPlayer({ playerId: 'them', color: Color.Blue, advisers: [{ cardId: 'vision.conquest', faceUp: false }] })
+        ])
+        expect(offerableAdviserRows(state, 'them', 'me')).toEqual([
+            { row: 0, back: CardKind.Vision, label: 'the facedown adviser in row 1' }
+        ])
+        expect(offerableAdviserRows(state, 'them', 'them')[0]).toMatchObject({ cardId: 'vision.conquest', back: CardKind.Vision })
     })
 })

@@ -10,6 +10,7 @@
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
+    import { adviserBack } from '$lib/model/cardBacks.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         cardName,
@@ -64,6 +65,8 @@
                 playerId,
                 index
             ),
+        facedownAdviserBack: (playerId, index) =>
+            adviserBack(gameSession.gameState.getPlayerState(playerId).advisers[index]),
         siteLabel: (siteId) => siteName(gameSession.gameState, siteId),
         warbandOwnerName: (owner) => ownerName(owner)
     }
