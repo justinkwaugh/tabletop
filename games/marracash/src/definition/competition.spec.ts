@@ -12,9 +12,15 @@ function rotations(playerIds: string[]): string[][] {
     return playerIds.map((_, offset) => [...playerIds.slice(offset), ...playerIds.slice(0, offset)])
 }
 
-describe.each([3, 4])('MarraCash tournaments with %i players', (count) => {
+// Antique Cards changes setup, so seating is checked with the option on and off
+describe.each([
+    [3, true],
+    [3, false],
+    [4, true],
+    [4, false]
+])('MarraCash tournaments with %i players (antique cards %s)', (count, antiqueCards) => {
     it('seats players in the assigned order with position zero starting', () => {
-        const game = createGame(count)
+        const game = createGame(count, { antiqueCards })
         for (const order of rotations(game.players.map((player) => player.id))) {
             const { initialState } = engine.startGame(game, {
                 masterSeed: TestMasterSeed,
@@ -26,7 +32,7 @@ describe.each([3, 4])('MarraCash tournaments with %i players', (count) => {
     })
 
     it('lets every seat auction once, in order, through the first round', () => {
-        const game = createGame(count)
+        const game = createGame(count, { antiqueCards })
         for (const order of rotations(game.players.map((player) => player.id))) {
             const { initialState } = engine.startGame(game, {
                 masterSeed: TestMasterSeed,
@@ -48,7 +54,7 @@ describe.each([3, 4])('MarraCash tournaments with %i players', (count) => {
     })
 
     it('changes nothing but the seating when positions are assigned', () => {
-        const game = createGame(count)
+        const game = createGame(count, { antiqueCards })
         const uninitialized = engine.generateUninitializedState(game, TestMasterSeed)
         const initialize = (playerIds?: string[]) =>
             MarracashRuntime.initializer
