@@ -69,9 +69,9 @@ export class TakingTurnStateHandler implements MachineStateHandler<
             case isPlaceRoad(action):
             case isPlaceCity(action):
             case isResupply(action):
-                return MachineState.TakingTurn
             case isBuildMarket(action):
             case isSellMarket(action):
+                return MachineState.TakingTurn
             case isEndTurn(action):
                 return this.finishTurn(action, context.gameState)
             default:

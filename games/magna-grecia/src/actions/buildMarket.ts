@@ -53,6 +53,7 @@ export class HydratedBuildMarket
             coords: place.spaces[0],
             sold: false
         })
+        state.activeTurn(this.playerId).marketDone = true
         this.metadata = { cost }
     }
 

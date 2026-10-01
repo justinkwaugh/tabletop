@@ -47,6 +47,7 @@ export class HydratedSellMarket extends HydratableAction<typeof SellMarket> impl
         const value = marketValue(state.board, state.board.network(), market)
         state.getPlayerState(this.playerId).points += value
         market.sold = true
+        state.activeTurn(this.playerId).marketDone = true
         this.metadata = { value }
     }
 

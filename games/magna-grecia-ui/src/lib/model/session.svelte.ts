@@ -21,6 +21,7 @@ import {
     marketCost,
     marketValue,
     spaceKey,
+    type Allowance,
     type HydratedMagnaGreciaGameState,
     type MagnaGreciaProjectedState,
     type Place,
@@ -49,6 +50,15 @@ export enum BuildTool {
     Market = 'Market',
     Sell = 'Sell'
 }
+
+export enum EndTurnOutcome {
+    NextPlayer = 'NextPlayer',
+    NextRound = 'NextRound',
+    RevealsCard = 'RevealsCard',
+    EndsGame = 'EndsGame'
+}
+
+const NO_ALLOWANCE: Allowance = { basic: 0, bonus: 0 }
 
 export type RoadTarget = { coords: AxialCoordinates; options: RoadEnds[] }
 export type MarketTarget = { place: Place; amount: number }
@@ -207,6 +217,55 @@ export class MagnaGreciaGameSession extends GameSession<
     resupplyAllowance = $derived(
         this.canAct && this.myPlayerId ? this.gameState.resupplyAllowance(this.myPlayerId) : 0
     )
+
+    roadAllowance: Allowance = $derived(
+        this.canAct && this.myPlayerId
+            ? this.gameState.roadAllowance(this.myPlayerId)
+            : NO_ALLOWANCE
+    )
+
+    cityAllowance: Allowance = $derived(
+        this.canAct && this.myPlayerId
+            ? this.gameState.cityAllowance(this.myPlayerId)
+            : NO_ALLOWANCE
+    )
+
+    resupplySplit: Allowance = $derived(
+        this.canAct && this.myPlayerId
+            ? this.gameState.resupplySplit(this.myPlayerId)
+            : NO_ALLOWANCE
+    )
+
+    enhancedAction = $derived(
+        this.canAct && this.myPlayerId ? this.gameState.enhancedAction(this.myPlayerId) : undefined
+    )
+
+    canEndTurn = $derived(this.canAct && this.validActionTypes.includes(ActionType.EndTurn))
+
+    // Roads, cities and resupply are the turn's tile actions; a market action closes them.
+    tileActionsOpen = $derived(
+        this.availableTools.some((tool) => tool === BuildTool.Road || tool === BuildTool.City) ||
+            this.resupplyAllowance > 0
+    )
+
+    marketActionsOpen = $derived(
+        this.availableTools.some((tool) => tool === BuildTool.Market || tool === BuildTool.Sell)
+    )
+
+    onlyEndTurnLeft = $derived(this.canEndTurn && !this.tileActionsOpen && !this.marketActionsOpen)
+
+    endTurnOutcome: EndTurnOutcome = $derived.by(() => {
+        const state = this.gameState
+        if (state.turnIndex < state.roundOrder.length - 1) {
+            return EndTurnOutcome.NextPlayer
+        }
+        if (state.round + 1 >= state.roundCount) {
+            return EndTurnOutcome.EndsGame
+        }
+        return state.round + 2 < state.roundCount
+            ? EndTurnOutcome.RevealsCard
+            : EndTurnOutcome.NextRound
+    })
 
     chooseTool(tool: BuildTool) {
         this.draft = emptyDraft()

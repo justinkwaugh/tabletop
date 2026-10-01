@@ -2,12 +2,15 @@
 
 ## Visual intents
 
+- **Turn phases.** The action panel lays the turn out left to right as three labelled phases joined by arrows: "1 · Two actions, or one ★ enhanced" (Roads, Cities, then Resupply), "2 · Market" (Build market, Sell market) and "3 · Finish" (End turn). Each button appears only while it has a legal target or allowance. A phase with nothing left is greyed and says why: the tile phase says Done (naming a ★ enhanced action when one was taken) or Skipped, and the market phase says Done or None available. Choosing a market tool while tile actions remain warns that a market action skips them.
+- **Enhanced allowance.** Roads, Cities and Resupply show the count within the card's basic value and, while the enhanced step is still open, a gold "+n ★" chip for the extra that only an enhanced (sole) action allows. With the Roads, Cities or Resupply mode active, a hint under the prompt spells out both limits; the resupply confirm button says "(★ enhanced)" when the amount chosen goes past the basic value.
+- **End turn.** A market action no longer ends the turn. When End turn is the only thing left, the prompt says the turn is complete and the End turn button turns solid gold with a slow glow (no glow under reduced motion). If ending the turn starts the next round, a warning under the prompt says so and, when a new action card will be revealed, that it cannot be undone; on the game's final turn it says the turn ends the game.
 - **Tool targeting.** On the acting player's turn the action panel offers Roads, Cities, Build market and Sell market for whichever have a legal target, plus Resupply and End turn. No tool is preselected at the start of a turn: the prompt asks the player to choose an action and no board space pulses until they pick one. The active tool alone decides which board spaces pulse as targets; every other space stays inert. Targets are focusable and activate with Enter or Space.
 - **City placement.** City targets are filled a pale cream so they stand out from the land and show a brown outline of the city tile's temple and houses, drawn at tile size in the same colour as the road target arc; hovering one previews a ghost city tile in the player's colour. Spaces that commit the player to further tiles use a fainter, dotted outline: a space beside a village (the next tile must cover it) and a plain space that founds a city which must reach a village this turn.
 - **Pending village claim.** After a tile is placed beside a village, only that village is targeted, the tool buttons disappear, and the prompt asks for the village tile.
 - **Pending founding.** After founding on a plain space, only spaces that extend the new city toward a village it can legally cover are targeted, the tool buttons disappear, and the prompt asks the player to keep building until the city covers a village.
 - **Road targets.** Road targets use the same pale cream fill and carry a thick, wide arc glyph.
-- **Road tile laying.** Choosing a road space opens the tile laying widget, modelled on the 18xx track picker. The legal tile shapes (straight, curved) fan out in an arc beside the space, above it unless the board edge forces another side. Choosing a shape moves it onto the space as a full-size preview in its first legal orientation; a single legal shape is auto-selected. Clicking the preview (or its rotate badge) cycles that shape's legal orientations. A red ✕ and green ✓ sit above the space: ✕ cancels, ✓ places the road. Nothing is committed until ✓.
+- **Road tile laying.** Choosing a road space opens the tile laying widget, modelled on the 18xx track picker. The legal tile shapes (straight, curved) fan out in an arc beside the space, above it unless the board edge forces another side. Choosing a shape moves it onto the space as a full-size preview in its first legal orientation; a single legal shape is auto-selected. Clicking the preview (or its rotate badge) cycles that shape's legal orientations. A red ✕ and green ✓ (28-unit radius, 1.75× the original size) sit on the side of the space away from the shape arc, below it unless the arc or the board edge is there: ✕ cancels, ✓ places the road. Nothing is committed until ✓.
 - **Market targeting.** Build and sell targets show a price tag with the cost (−n) or value (+n) above the place.
 - **Resupply.** The Resupply button toggles an inline picker bounded by the allowance and the staging area.
 
@@ -47,7 +50,7 @@ In History View and for inactive players `canAct` is false, so no tool, target, 
 
 ## Verification scenarios
 
-Scenarios 1, 4–9 and confirming a resupply were exercised manually in the single-game harness. Scenario 2, the mode and Back paths of scenario 3, and the empty tool selection at the start of a turn are automated in `tests/turnControls.spec.ts`.
+Scenarios 1, 4–9 and confirming a resupply were exercised manually in the single-game harness. Scenario 2, the mode and Back paths of scenario 3, the empty tool selection at the start of a turn, the enhanced chip and hint of scenario 11, and the market and End turn path of scenario 10 are automated in `tests/turnControls.spec.ts`.
 
 1. **Claim start and Undo.**
     - Start: a new 4-player game.
@@ -68,7 +71,7 @@ Scenarios 1, 4–9 and confirming a resupply were exercised manually in the sing
     - Mode: while the picker is open no tool button is highlighted and no board space pulses; choosing Roads or Cities closes it, and closing it with its button or Back restores the previously chosen tool.
 4. **Market targets.**
     - Input: choose Build market.
-    - Expected: price tags appear on eligible villages and rival cities, and clicking one builds the market and passes the turn.
+    - Expected: price tags appear on eligible villages and rival cities, and clicking one builds the market, keeps the turn open with only End turn left (highlighted) and marks the tile phase Skipped if no tile action was taken.
     - Merge: a market built on a village or city tile stays on that tile when the place is covered or merged into a larger city.
 5. **History navigation.**
     - Start: the Roads tool is active.
@@ -85,8 +88,18 @@ Scenarios 1, 4–9 and confirming a resupply were exercised manually in the sing
 8. **Sell market.**
     - Start: the player owns an active market.
     - Input: choose Sell market.
-    - Expected: a +n price tag appears on each place holding one of the player's active markets, including a market worth 0; clicking one lays the market on its side and passes the turn.
+    - Expected: a +n price tag appears on each place holding one of the player's active markets, including a market worth 0; clicking one lays the market on its side and leaves only the highlighted End turn.
 9. **Silent history replay.**
     - Start: a game at least one round past a round whose card changed the turn order.
     - Input: click an action from the earlier round in the history list to replay it.
     - Expected: the player list switches order instantly when the replay starts and ends; it only slides when a live or stepped state change reorders it.
+10. **Turn phases and End turn.**
+    - Start: the first turn of a new game.
+    - Input: choose Build market and click a price tag.
+    - Expected: the market is built, the turn stays with the same player, the tile phase reads Skipped, no Roads, Cities, Resupply or market buttons remain and End turn is solid gold.
+    - Round end: on the last turn of a round the warning says the next round starts and, when a card will be revealed, that this cannot be undone; End turn passes the turn.
+11. **Enhanced allowance.**
+    - Start: the first turn of a new game.
+    - Expected: Cities, Roads (once reachable) and Resupply show the basic count and a "+1 ★" (or "+n ★") chip; choosing Cities shows a hint with the basic limit and the enhanced total.
+    - Input: place cities past the basic value.
+    - Expected: Roads and Resupply disappear and the tile phase reads "Done: ★ enhanced cities".

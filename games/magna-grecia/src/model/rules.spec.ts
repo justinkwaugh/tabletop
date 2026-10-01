@@ -27,6 +27,8 @@ import { marketCost, marketValue } from './marketRules.js'
 import { ROAD_END_OPTIONS, RoadShape, roadShape } from './roadRules.js'
 import { newTurn } from './turn.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import { TakingTurnStateHandler } from '../stateHandlers/takingTurn.js'
+import { MachineState } from '../definition/states.js'
 
 const E = PointyHexDirection.East
 const W = PointyHexDirection.West
@@ -431,6 +433,28 @@ describe('action allowance', () => {
         expect(state.cityPlacementsRemaining('p0')).toBe(1)
     })
 
+    it('tells the basic allowance apart from the enhanced extra', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G2')
+        state.getPlayerState('p0').supplyRoads = 10
+        expect(state.roadAllowance('p0')).toEqual({ basic: 2, bonus: 1 })
+        expect(state.cityAllowance('p0')).toEqual({ basic: 2, bonus: 1 })
+        expect(state.resupplySplit('p0')).toEqual({ basic: 5, bonus: 2 })
+        expect(state.enhancedAction('p0')).toBeUndefined()
+
+        placeCity(state, 'p0', FRONTIER)
+        expect(state.roadAllowance('p0')).toEqual({ basic: 2, bonus: 0 })
+        expect(state.cityAllowance('p0')).toEqual({ basic: 1, bonus: 1 })
+        expect(state.resupplySplit('p0')).toEqual({ basic: 5, bonus: 0 })
+
+        const enhanced = freshState()
+        giveTurn(enhanced, 'p0', 'G2')
+        enhanced.turn!.citiesPlaced = 3
+        expect(enhanced.enhancedAction('p0')).toBe('cities')
+        expect(enhanced.roadAllowance('p0')).toEqual({ basic: 0, bonus: 0 })
+        expect(enhanced.resupplySplit('p0')).toEqual({ basic: 0, bonus: 0 })
+    })
+
     it('resupplies last, moving tiles from staging to supply', () => {
         const state = freshState()
         giveTurn(state, 'p0', 'G2')
@@ -591,6 +615,44 @@ describe('network, markets and oracles', () => {
         expect(state.marketSites('p0').map((place) => place.id)).not.toContain(
             villagePlaceId(FRONTIER)
         )
+    })
+
+    it('keeps the turn open after a market action and then allows only End turn', () => {
+        const state = oracleLine()
+        giveTurn(state, 'p0', 'G2')
+        state.getPlayerState('p0').supplyRoads = 10
+        const handler = new TakingTurnStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+        const build = new HydratedBuildMarket({
+            ...base('p0'),
+            type: ActionType.BuildMarket,
+            placeId: villagePlaceId(FRONTIER)
+        })
+        build.apply(state)
+        expect(handler.onAction(build, context)).toBe(MachineState.TakingTurn)
+        expect(state.turn?.playerId).toBe('p0')
+        expect(build.revealsInfo).toBeUndefined()
+        expect(state.roadPlacementsRemaining('p0')).toBe(0)
+        expect(state.cityPlacementsRemaining('p0')).toBe(0)
+        expect(state.resupplyAllowance('p0')).toBe(0)
+        expect(state.marketSites('p0')).toEqual([])
+        expect(state.sellableMarkets('p0')).toEqual([])
+        expect(handler.validActionsForPlayer('p0', context)).toEqual([ActionType.EndTurn])
+
+        const selling = oracleLine()
+        selling.board.markets = [
+            { playerId: 'p0', placeId: cityPlaceId('C1'), coords: row(3), sold: false }
+        ]
+        giveTurn(selling, 'p0', 'G2')
+        const sellContext = new MachineContext({ gameConfig: {}, gameState: selling })
+        const sell = new HydratedSellMarket({
+            ...base('p0'),
+            type: ActionType.SellMarket,
+            placeId: cityPlaceId('C1')
+        })
+        sell.apply(selling)
+        expect(handler.onAction(sell, sellContext)).toBe(MachineState.TakingTurn)
+        expect(handler.validActionsForPlayer('p0', sellContext)).toEqual([ActionType.EndTurn])
     })
 
     it('does not end a turn while a village claim is pending', () => {

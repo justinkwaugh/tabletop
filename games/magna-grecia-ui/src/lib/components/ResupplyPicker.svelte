@@ -7,6 +7,7 @@
 
     const player = $derived(gameSession.myPlayerState)
     const allowance = $derived(gameSession.resupplyAllowance)
+    const basic = $derived(gameSession.resupplySplit.basic)
 
     let roads = $state(0)
     let cities = $state(0)
@@ -60,7 +61,7 @@
         disabled={total === 0}
         onclick={() => gameSession.resupply(roads, cities)}
     >
-        Move {total} of {allowance} to supply
+        Move {total} of {allowance} to supply{total > basic ? ' (★ enhanced)' : ''}
     </button>
 </div>
 

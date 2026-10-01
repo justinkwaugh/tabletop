@@ -16,6 +16,7 @@ export const TurnProgress = Type.Object({
     citiesPlaced: Type.Number(),
     foundedCity: Type.Boolean(),
     resupplied: Type.Boolean(),
+    marketDone: Type.Optional(Type.Boolean()),
     pendingClaim: Type.Optional(PendingClaim),
     pendingFounding: Type.Optional(Type.String())
 })
@@ -34,9 +35,19 @@ export function hasUnfinishedCity(turn: TurnProgress): boolean {
     return !!turn.pendingClaim || !!turn.pendingFounding
 }
 
+// Building or selling a market follows the tile actions, so it closes them and leaves only End turn.
+export function marketPhaseDone(turn: TurnProgress): boolean {
+    return turn.marketDone === true
+}
+
 // A player takes up to two of the card's three basic actions, or one of them enhanced by one step.
 export function remainingRoadPlacements(card: ActionCard, turn: TurnProgress): number {
-    if (turn.resupplied || hasUnfinishedCity(turn) || turn.citiesPlaced > card.cities) {
+    if (
+        turn.resupplied ||
+        marketPhaseDone(turn) ||
+        hasUnfinishedCity(turn) ||
+        turn.citiesPlaced > card.cities
+    ) {
         return 0
     }
     const limit = turn.citiesPlaced > 0 ? card.roads : card.roads + 1
@@ -44,7 +55,7 @@ export function remainingRoadPlacements(card: ActionCard, turn: TurnProgress): n
 }
 
 export function remainingCityPlacements(card: ActionCard, turn: TurnProgress): number {
-    if (turn.resupplied || turn.roadsPlaced > card.roads) {
+    if (turn.resupplied || marketPhaseDone(turn) || turn.roadsPlaced > card.roads) {
         return 0
     }
     const limit = turn.roadsPlaced > 0 ? card.cities : card.cities + 1
@@ -52,7 +63,7 @@ export function remainingCityPlacements(card: ActionCard, turn: TurnProgress): n
 }
 
 export function resupplyLimit(card: ActionCard, turn: TurnProgress): number {
-    if (turn.resupplied || hasUnfinishedCity(turn)) {
+    if (turn.resupplied || marketPhaseDone(turn) || hasUnfinishedCity(turn)) {
         return 0
     }
     const usedRoads = turn.roadsPlaced > 0
@@ -65,4 +76,26 @@ export function resupplyLimit(card: ActionCard, turn: TurnProgress): number {
         return 0
     }
     return usedRoads || usedCities ? card.resupply : enhancedResupply(card.resupply)
+}
+
+// The enhanced action is the one taken past the card's basic value; it is then the turn's only action.
+export function enhancedAction(
+    card: ActionCard,
+    turn: TurnProgress
+): 'roads' | 'cities' | undefined {
+    if (turn.roadsPlaced > card.roads) {
+        return 'roads'
+    }
+    if (turn.citiesPlaced > card.cities) {
+        return 'cities'
+    }
+    return undefined
+}
+
+// Splits what is left of an action into the part within the card's basic value and the enhanced extra.
+export type Allowance = { basic: number; bonus: number }
+
+export function splitAllowance(available: number, basicLeft: number): Allowance {
+    const basic = Math.min(available, Math.max(0, basicLeft))
+    return { basic, bonus: available - basic }
 }

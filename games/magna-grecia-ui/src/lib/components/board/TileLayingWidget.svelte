@@ -31,10 +31,20 @@
             bounds: { width: BOARD_WIDTH, height: BOARD_HEIGHT }
         })
     )
-    const CONTROLS_OFFSET = HEX.yRadius + 20
-    const controlsY = $derived(
-        center.y - CONTROLS_OFFSET < 20 ? center.y + CONTROLS_OFFSET : center.y - CONTROLS_OFFSET
-    )
+    // The ✕ and ✓ buttons are drawn at 16px radius and scaled up so the strokes grow with them.
+    const CONTROL_SCALE = 1.75
+    const CONTROL_RADIUS = 16 * CONTROL_SCALE
+    const CONTROL_SPREAD = 19 * CONTROL_SCALE
+    const CONTROLS_OFFSET = HEX.yRadius + CONTROL_RADIUS + 4
+    // The controls sit on the side of the space away from the shape arc, below it by default.
+    const controlsY = $derived.by(() => {
+        const below = center.y + CONTROLS_OFFSET
+        const above = center.y - CONTROLS_OFFSET
+        const arcBelow = choices.length > 1 && arc.some((point) => point.y > center.y + HEX.yRadius)
+        const fitsBelow = below + CONTROL_RADIUS <= BOARD_HEIGHT
+        const fitsAbove = above - CONTROL_RADIUS >= 0
+        return (fitsBelow && !arcBelow) || !fitsAbove ? below : above
+    })
 
     function activate(event: KeyboardEvent, handler: () => void) {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -96,7 +106,7 @@
                 tabindex="0"
                 aria-label="Cancel road placement"
                 class="control cancel cursor-pointer"
-                transform="translate(-19 0)"
+                transform="translate({-CONTROL_SPREAD} 0) scale({CONTROL_SCALE})"
                 onclick={() => gameSession.cancelRoad()}
                 onkeydown={(event) => activate(event, () => gameSession.cancelRoad())}
             >
@@ -108,7 +118,7 @@
                 tabindex="0"
                 aria-label="Place this road tile"
                 class="control accept cursor-pointer"
-                transform="translate(19 0)"
+                transform="translate({CONTROL_SPREAD} 0) scale({CONTROL_SCALE})"
                 onclick={() => gameSession.confirmRoad()}
                 onkeydown={(event) => activate(event, () => gameSession.confirmRoad())}
             >

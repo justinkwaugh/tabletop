@@ -173,9 +173,7 @@ test('closing the resupply picker restores the chosen tool', async ({ page }) =>
     await expect.poll(tool).toBeUndefined()
     await page.getByRole('button', { name: 'BACK', exact: true }).click()
     await expect.poll(tool).toBe(chosen)
-    await expect
-        .poll(() => page.evaluate(() => window.magnaGreciaSession.resupplyOpen))
-        .toBe(false)
+    await expect.poll(() => page.evaluate(() => window.magnaGreciaSession.resupplyOpen)).toBe(false)
 })
 
 test('the keyboard jump button jumps to history without starting a replay', async ({ page }) => {
@@ -192,4 +190,43 @@ test('the keyboard jump button jumps to history without starting a replay', asyn
         .poll(() => page.evaluate(() => window.magnaGreciaSession.isViewingHistory))
         .toBe(true)
     await expect(page.getByText('Replaying', { exact: true })).toHaveCount(0)
+})
+
+test('marks the enhanced extra apart from the basic allowance', async ({ page }) => {
+    await createGame(page)
+    const cities = page.getByRole('button', { name: /^Cities/ })
+    const split = await page.evaluate(() => window.magnaGreciaSession.cityAllowance)
+    expect(split.bonus).toBe(1)
+    await expect(cities.locator('.count')).toHaveText(String(split.basic))
+    await expect(cities.locator('.bonus')).toHaveText('+1 ★')
+    await cities.click()
+    await expect(
+        page.getByText(`or ${split.basic + 1} as your only action (★ enhanced)`, { exact: false })
+    ).toBeVisible()
+})
+
+test('a market action keeps the turn open and highlights End turn', async ({ page }) => {
+    await createGame(page)
+    const turnOf = () => page.evaluate(() => window.magnaGreciaSession.gameState.turn?.playerId)
+    const first = await turnOf()
+    const endTurn = page.getByRole('button', { name: 'End turn', exact: true })
+    await expect(endTurn).not.toHaveClass(/ready/)
+
+    await page.getByRole('button', { name: 'Build market', exact: true }).click()
+    await expect(
+        page.getByText('A market action skips the tile actions you have left')
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Build a market here', exact: true }).first().click()
+    await expect
+        .poll(() => page.evaluate(() => window.magnaGreciaSession.gameState.board.markets.length))
+        .toBe(1)
+    expect(await turnOf()).toBe(first)
+    await expect(endTurn).toHaveClass(/ready/)
+    await expect(page.getByText('Skipped', { exact: true })).toBeVisible()
+    await expect(
+        page.getByRole('button', { name: /^(Roads|Cities|Resupply|Build market|Sell market)/ })
+    ).toHaveCount(0)
+
+    await endTurn.click()
+    await expect.poll(turnOf).not.toBe(first)
 })

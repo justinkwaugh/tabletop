@@ -24,7 +24,11 @@ import { canPlaceRoad } from './roadRules.js'
 import { scoreBreakdown, type ScoreBreakdown } from './scoring.js'
 import {
     TurnProgress,
+    enhancedAction,
     hasUnfinishedCity,
+    splitAllowance,
+    type Allowance,
+    marketPhaseDone,
     newTurn,
     remainingCityPlacements,
     remainingRoadPlacements,
@@ -166,6 +170,34 @@ export class HydratedMagnaGreciaGameState
         )
     }
 
+    roadAllowance(playerId: string): Allowance {
+        const available = this.roadPlacementsRemaining(playerId)
+        if (available === 0) {
+            return { basic: 0, bonus: 0 }
+        }
+        const turn = this.activeTurn(playerId)
+        return splitAllowance(available, this.currentCard().roads - turn.roadsPlaced)
+    }
+
+    cityAllowance(playerId: string): Allowance {
+        const available = this.cityPlacementsRemaining(playerId)
+        if (available === 0) {
+            return { basic: 0, bonus: 0 }
+        }
+        const turn = this.activeTurn(playerId)
+        return splitAllowance(available, this.currentCard().cities - turn.citiesPlaced)
+    }
+
+    resupplySplit(playerId: string): Allowance {
+        return splitAllowance(this.resupplyAllowance(playerId), this.currentCard().resupply)
+    }
+
+    enhancedAction(playerId: string): 'roads' | 'cities' | undefined {
+        return this.isTurnOf(playerId)
+            ? enhancedAction(this.currentCard(), this.activeTurn(playerId))
+            : undefined
+    }
+
     canPlaceRoad(playerId: string, coords: AxialCoordinates, ends: RoadEnds): boolean {
         return (
             this.roadPlacementsRemaining(playerId) > 0 &&
@@ -190,8 +222,12 @@ export class HydratedMagnaGreciaGameState
         return this.isTurnOf(playerId) && !this.hasUnfinishedCity(playerId)
     }
 
+    canTakeMarketAction(playerId: string): boolean {
+        return this.canFinishTurn(playerId) && !marketPhaseDone(this.activeTurn(playerId))
+    }
+
     marketSites(playerId: string): Place[] {
-        if (!this.canFinishTurn(playerId)) {
+        if (!this.canTakeMarketAction(playerId)) {
             return []
         }
         const points = this.getPlayerState(playerId).points
@@ -201,7 +237,7 @@ export class HydratedMagnaGreciaGameState
     }
 
     sellableMarkets(playerId: string): Market[] {
-        if (!this.canFinishTurn(playerId)) {
+        if (!this.canTakeMarketAction(playerId)) {
             return []
         }
         const network = this.board.network()
