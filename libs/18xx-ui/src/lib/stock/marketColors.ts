@@ -3,6 +3,7 @@ export const marketColors: Record<string, string> = {
     pink: '#f2c7d4',
     yellow: '#f6df81',
     orange: '#efa960',
+    brown: '#c49a74',
     green: '#9cccaa',
     blue: '#accbe9',
     red: '#e8a59f'
