@@ -121,7 +121,7 @@ Register `runtime.visibility.state` and `.actions`. That's required because the 
 Each step ends with tests passing:
 
 1. Scaffold both packages, plus the `concealedCash` config. Done.
-2. The board module, with route derivation and the test pinning it to the board map.
+2. The board module, with route derivation and the test pinning it to the board map. Done.
 3. State, player state, initializer (queue generation, antique deal, starting positions) and hydration round-trip tests, plus a `competition.spec.ts` covering 3 and 4 players.
 4. The auction flow: `StartAuction`, `PlaceBid`, `ResolveAuction`, the pull-in, and the 6-shop rule.
 5. Movement: `MoveVisitors`, sequential payments, mover's cut and `CompleteAntiqueSet`.
