@@ -24,7 +24,7 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
   - 64 visitors: 12 each of red, blue, green and purple, plus 16 yellow.
   - Sealed simultaneous bids.
   - Revised ending: finish the current round.
-  - Secret antique hands: 5 cards per player, paying out the best 5/4/3/2 cards by finishing order.
+  - Secret antique hands: 5 cards per player, paying out the best 5/4/3/2 cards by finishing order. This is an optional variant (see Antique cards).
 - **Players:** 3–4, with 4 recommended. Ignore the 2-player rules.
 - **Auction payment:** the designer's post doesn't cover payment, so the original rulebook's rules apply:
   - Only the winner pays, and pays the winning bid to the bank.
@@ -49,6 +49,7 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
   - Nobody gets a mover's cut for them, because nobody moved them. The auctioneer still gets the usual cut of the winning bid.
 - **New visitors:** they come from either end of the queue outside the wall and are placed on one of the three entrance fountains. No entrance fountain is next to a shop, so new visitors never enter a shop when they're placed. The route map data should confirm this.
 - **Antique cards:**
+  - An optional variant, chosen when the game is created with the **Antique Cards** option. It's on by default for now; the default may change based on player feedback. With it off, no cards are dealt and sets are never checked. The original rulebook calls it the Souvenir Variant and the player aid the Antiques Variant.
   - Each player is dealt 5 cards at the start, visible to them and hidden from everyone else.
   - Every customer in a player's shops counts toward their set, from the start of the game.
   - Two cards of one colour need two customers of that colour.

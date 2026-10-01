@@ -119,6 +119,7 @@ export const MarracashGameState = Type.Evaluate(
             shops: Type.Array(ShopState),
             fountains: Type.Array(FountainState),
             queue: Type.Array(Type.Enum(MarketColor)),
+            antiqueCards: Type.Boolean(),
             antiqueDeck: AntiqueDeck,
             round: Type.Number(),
             turnActions: Type.Array(Type.Enum(TurnAction)),
@@ -154,6 +155,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
     declare shops: ShopState[]
     declare fountains: FountainState[]
     declare queue: MarketColor[]
+    declare antiqueCards: boolean
     declare antiqueDeck: HydratedAntiqueDeck
     declare round: number
     declare turnActions: TurnAction[]
@@ -396,7 +398,11 @@ export class HydratedMarracashGameState extends HydratableGameState<
 
     private noteAntiqueSetIfComplete(playerId: string) {
         const player = this.getPlayerState(playerId)
-        if (player.revealedAntiques.length > 0 || this.pendingAntiqueSets.includes(playerId)) {
+        if (
+            !this.antiqueCards ||
+            player.revealedAntiques.length > 0 ||
+            this.pendingAntiqueSets.includes(playerId)
+        ) {
             return
         }
         assert(

@@ -126,3 +126,19 @@ describe('MarraCash visitor rules', () => {
         expect(hasDistinctColors([Red, Blue, Red])).toBe(false)
     })
 })
+
+describe('MarraCash without antique cards', () => {
+    it('deals no antiques and keeps no deck', () => {
+        const state = engine.startGame(createGame(4, { antiqueCards: false }), {
+            masterSeed: TestMasterSeed
+        }).initialState
+        expect(state.antiqueCards).toBe(false)
+        expect(state.players.every((player) => player.antiques.length === 0)).toBe(true)
+        expect(state.antiqueDeck).toEqual({ items: [], remaining: 0 })
+        expect(MarracashGameStateValidator.Check(state)).toBe(true)
+    })
+
+    it('turns antique cards on by default', () => {
+        expect(start(4).antiqueCards).toBe(true)
+    })
+})

@@ -229,6 +229,22 @@ describe('MarraCash antique sets', () => {
         expect(money(session, mover)).toBe(1000 + 50)
     })
 
+    it('never completes a set when antique cards are turned off', () => {
+        const session = startTestGame(3, { antiqueCards: false })
+        const { other } = players(session)
+        arrange(session, {
+            fountains: { 9: [Blue] },
+            shops: {
+                B4: { ownerId: other, customers: 1 },
+                R1: { ownerId: other, customers: 2 },
+                G1: { ownerId: other, customers: 1 }
+            }
+        })
+        const processed = move(session, 9, CardinalDirection.East)
+        expect(processed.find(isCompleteAntiqueSet)).toBeUndefined()
+        expect(session.state.antiqueRevealOrder).toEqual([])
+    })
+
     it('refuses to judge a set from a hand it cannot see', () => {
         const session = startTestGame(3)
         const { other } = players(session)

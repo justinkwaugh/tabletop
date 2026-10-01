@@ -53,7 +53,10 @@ A player's shop count is derived from `shops`.
 
 ## Configuration
 
-One Boolean option, `concealedCash`, named "Concealed Cash", default `false`. Register it through `info.configurator` and `defineGame`.
+Two Boolean options, registered through `info.configurator`:
+
+- `concealedCash`, named "Concealed Cash", default `false`.
+- `antiqueCards`, named "Antique Cards", default `true`. The initializer copies it into the public `antiqueCards` state field, which set detection checks. With it off, no cards are dealt and the antique deck is empty.
 
 ## Setup
 

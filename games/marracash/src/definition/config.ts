@@ -3,7 +3,8 @@ import { ConfigOptionType, GameConfigOptions } from '@tabletop/common'
 
 export type MarracashGameConfig = Type.Static<typeof MarracashGameConfig>
 export const MarracashGameConfig = Type.Object({
-    concealedCash: Type.Boolean()
+    concealedCash: Type.Boolean(),
+    antiqueCards: Type.Boolean()
 })
 
 export const MarracashGameConfigOptions: GameConfigOptions = [
@@ -13,5 +14,13 @@ export const MarracashGameConfigOptions: GameConfigOptions = [
         name: 'Concealed Cash',
         description: "Hide each player's cash from the other players until the game ends",
         default: false
+    },
+    {
+        id: 'antiqueCards',
+        type: ConfigOptionType.Boolean,
+        name: 'Antique Cards',
+        description:
+            'Deal each player 5 secret antique cards that pay out when their shops attract matching customers',
+        default: true
     }
 ]

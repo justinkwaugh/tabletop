@@ -44,6 +44,10 @@ export class HydratedAntiqueDeck
         return deck
     }
 
+    static createEmpty(): HydratedAntiqueDeck {
+        return new HydratedAntiqueDeck({ items: [], remaining: 0 })
+    }
+
     constructor(data: AntiqueDeck) {
         super(data, AntiqueDeckValidator)
     }

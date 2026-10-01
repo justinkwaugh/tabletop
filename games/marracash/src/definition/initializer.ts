@@ -52,9 +52,14 @@ export class MarracashGameInitializer
         })
         const shops: ShopState[] = Shops.map((shop) => ({ shopId: shop.id, customers: 0 }))
 
-        const antiqueDeck = HydratedAntiqueDeck.create(protectedPrng.random)
-        for (const player of players) {
-            player.antiques = antiqueDeck.drawItems(AntiquesPerPlayer)
+        const antiqueCards = game.config?.antiqueCards === true
+        const antiqueDeck = antiqueCards
+            ? HydratedAntiqueDeck.create(protectedPrng.random)
+            : HydratedAntiqueDeck.createEmpty()
+        if (antiqueCards) {
+            for (const player of players) {
+                player.antiques = antiqueDeck.drawItems(AntiquesPerPlayer)
+            }
         }
 
         const marracashState: MarracashGameState = Object.assign(state, {
@@ -64,6 +69,7 @@ export class MarracashGameInitializer
             shops,
             fountains,
             queue: visitorSetup.queue,
+            antiqueCards,
             antiqueDeck,
             round: 1,
             turnActions: [],
