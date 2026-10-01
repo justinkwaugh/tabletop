@@ -49,7 +49,7 @@ export class HydratedBringVisitors
     }
 
     apply(state: HydratedMarracashGameState) {
-        if (!state.canBringVisitors(this.end, this.count, this.entranceId)) {
+        if (!state.canBringVisitors(this.count, this.entranceId)) {
             throw Error(
                 `Cannot bring ${this.count} visitors from the ${this.end} of the queue to fountain ${this.entranceId}`
             )

@@ -5,7 +5,6 @@ import { EntranceFountainIds, type FountainId, type ShopId } from '../components
 import { ActionType } from '../definition/actions.js'
 import { MarketColor } from '../definition/marketColor.js'
 import { MachineState } from '../definition/states.js'
-import type { MarracashProjectedState } from '../model/gameState.js'
 import { startTestGame, type TestSession } from '../util/testHelper.js'
 import { isCompleteAntiqueSet } from './completeAntiqueSet.js'
 import { isMoveVisitors } from './moveVisitors.js'
@@ -21,22 +20,24 @@ type Setup = {
 }
 
 function arrange(session: TestSession, setup: Setup) {
-    const state: MarracashProjectedState = structuredClone(session.state)
-    state.round = setup.round ?? 2
-    for (const fountain of state.fountains) {
-        const entranceDefault = EntranceFountainIds.includes(fountain.fountainId) ? [Yellow] : []
-        fountain.visitors = setup.fountains?.[fountain.fountainId] ?? entranceDefault
-    }
-    for (const shop of state.shops) {
-        const arranged = setup.shops?.[shop.shopId]
-        shop.ownerId = arranged?.ownerId
-        shop.customers = arranged?.customers ?? 0
-    }
-    for (const player of state.players) {
-        player.money = setup.money?.[player.playerId] ?? player.money
-        player.antiques = setup.antiques?.[player.playerId] ?? player.antiques
-    }
-    session.state = state
+    session.edit((state) => {
+        state.round = setup.round ?? 2
+        for (const fountain of state.fountains) {
+            const entranceDefault = EntranceFountainIds.includes(fountain.fountainId)
+                ? [Yellow]
+                : []
+            fountain.visitors = setup.fountains?.[fountain.fountainId] ?? entranceDefault
+        }
+        for (const shop of state.shops) {
+            const arranged = setup.shops?.[shop.shopId]
+            shop.ownerId = arranged?.ownerId
+            shop.customers = arranged?.customers ?? 0
+        }
+        for (const player of state.players) {
+            player.money = setup.money?.[player.playerId] ?? player.money
+            player.antiques = setup.antiques?.[player.playerId] ?? player.antiques
+        }
+    })
 }
 
 function move(session: TestSession, fountainId: FountainId, direction: CardinalDirection) {
@@ -270,9 +271,9 @@ describe('MarraCash antique sets', () => {
             money: { [other]: 1000 },
             antiques: { [other]: hand }
         })
-        const state = structuredClone(session.state)
-        state.antiqueRevealOrder = [mover, third]
-        session.state = state
+        session.edit((state) => {
+            state.antiqueRevealOrder = [mover, third]
+        })
         const processed = move(session, 9, CardinalDirection.East)
         expect(processed.find(isCompleteAntiqueSet)?.metadata?.payout).toBe(225 + 200 + 150)
     })

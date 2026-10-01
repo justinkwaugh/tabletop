@@ -19,7 +19,7 @@ export class RefillingEntrancesStateHandler implements MachineStateHandler<
         return (
             isBringVisitors(action) &&
             gameState.activePlayerIds.includes(action.playerId) &&
-            gameState.canBringVisitors(action.end, action.count, action.entranceId)
+            gameState.canBringVisitors(action.count, action.entranceId)
         )
     }
 

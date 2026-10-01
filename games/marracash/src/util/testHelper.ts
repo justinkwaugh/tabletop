@@ -72,8 +72,10 @@ export function createTestSession(game: TestGame, initialState: MarracashProject
         get state() {
             return state
         },
-        set state(next: MarracashProjectedState) {
-            state = next
+        edit(change: (draft: MarracashProjectedState) => void) {
+            const draft = structuredClone(state)
+            change(draft)
+            state = draft
         },
         hydrated() {
             return MarracashRuntime.hydrator.hydrateState(structuredClone(state))

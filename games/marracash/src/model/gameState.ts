@@ -363,9 +363,8 @@ export class HydratedMarracashGameState extends HydratableGameState<
         return this.queue.length > 0 && this.emptyEntranceIds().length > 0
     }
 
-    canBringVisitors(end: QueueEnd, count: number, entranceId: FountainId): boolean {
+    canBringVisitors(count: number, entranceId: FountainId): boolean {
         return (
-            Object.values(QueueEnd).includes(end) &&
             this.emptyEntranceIds().includes(entranceId) &&
             isValidVisitorCount(count, this.queue.length)
         )

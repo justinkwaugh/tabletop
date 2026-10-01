@@ -35,11 +35,11 @@ function runAuction(session: TestSession, shopId: ShopId, bids: number[]) {
 }
 
 function giveShops(session: TestSession, playerId: string, count: number) {
-    const state = structuredClone(session.state)
-    for (const shop of state.shops.slice(-count)) {
-        shop.ownerId = playerId
-    }
-    session.state = state
+    session.edit((state) => {
+        for (const shop of state.shops.slice(-count)) {
+            shop.ownerId = playerId
+        }
+    })
 }
 
 describe('MarraCash auctions', () => {
@@ -124,10 +124,10 @@ describe('MarraCash auctions', () => {
 
     it('pulls matching visitors next to the auctioned shop in as customers', () => {
         const session = startTestGame(3)
-        const state = structuredClone(session.state)
-        const fountain = state.fountains.find((candidate) => candidate.fountainId === 3)
-        if (fountain) fountain.visitors = [MarketColor.Blue, MarketColor.Red, MarketColor.Blue]
-        session.state = state
+        session.edit((state) => {
+            const fountain = state.fountains.find((candidate) => candidate.fountainId === 3)
+            if (fountain) fountain.visitors = [MarketColor.Blue, MarketColor.Red, MarketColor.Blue]
+        })
 
         const { clockwise, resolution } = runAuction(session, 'B1', [100, 0, 400])
         const winner = clockwise[2]
@@ -164,10 +164,12 @@ describe('MarraCash auctions', () => {
         expect(fullSession.hydrated().canStartAuction(fullSession.currentPlayerId())).toBe(false)
 
         const poorSession = startTestGame(3)
-        const state = structuredClone(poorSession.state)
-        const poor = state.players.find((player) => player.playerId === state.activePlayerIds[0])
-        if (poor) poor.money = 75
-        poorSession.state = state
+        poorSession.edit((state) => {
+            const poor = state.players.find(
+                (player) => player.playerId === state.activePlayerIds[0]
+            )
+            if (poor) poor.money = 75
+        })
         expect(poorSession.hydrated().canStartAuction(poorSession.currentPlayerId())).toBe(false)
     })
 

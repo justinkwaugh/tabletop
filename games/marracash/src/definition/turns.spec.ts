@@ -10,12 +10,6 @@ import { MarracashRuntime } from './runtime.js'
 
 const { Red, Blue, Green, Yellow } = MarketColor
 
-function edit(session: TestSession, change: (state: MarracashProjectedState) => void) {
-    const state = structuredClone(session.state)
-    change(state)
-    session.state = state
-}
-
 function fountain(state: MarracashProjectedState, fountainId: number) {
     const found = state.fountains.find((candidate) => candidate.fountainId === fountainId)
     if (!found) throw Error(`No fountain ${fountainId}`)
@@ -30,7 +24,7 @@ function moveTwice(session: TestSession) {
 
 function roundTwoWithEmptyEntrance(queue: MarketColor[] = [Red, Blue, Green, Yellow, Red]) {
     const session = startTestGame(3)
-    edit(session, (state) => {
+    session.edit((state) => {
         state.round = 2
         for (const candidate of state.fountains) candidate.visitors = []
         fountain(state, 9).visitors = [Red]
@@ -69,7 +63,7 @@ describe('MarraCash refilling entrances', () => {
 
     it('refills every empty entrance', () => {
         const session = roundTwoWithEmptyEntrance([Red, Blue, Green, Yellow, Red, Blue])
-        edit(session, (state) => {
+        session.edit((state) => {
             fountain(state, 8).visitors = []
             fountain(state, 14).visitors = [Green]
         })
@@ -121,7 +115,7 @@ describe('MarraCash end of game', () => {
     it('ends straight away when the last seat empties the queue', () => {
         const session = roundTwoWithEmptyEntrance([Yellow, Yellow])
         const order = session.state.turnManager.turnOrder
-        edit(session, (state) => {
+        session.edit((state) => {
             state.turnManager.turnOrder = [order[1], order[2], order[0]]
         })
         moveTwice(session)
@@ -131,7 +125,7 @@ describe('MarraCash end of game', () => {
 
     it('leaves entrances empty once the queue has run out', () => {
         const session = roundTwoWithEmptyEntrance([])
-        edit(session, (state) => {
+        session.edit((state) => {
             state.finalRound = true
         })
         const playerId = session.currentPlayerId()
@@ -143,7 +137,7 @@ describe('MarraCash end of game', () => {
     it('skips a player who cannot do anything', () => {
         const session = startTestGame(3)
         const [first, second, third] = session.state.turnManager.turnOrder
-        edit(session, (state) => {
+        session.edit((state) => {
             state.round = 2
             for (const candidate of state.fountains) candidate.visitors = []
             fountain(state, 9).visitors = [Red]
