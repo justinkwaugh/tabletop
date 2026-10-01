@@ -47,7 +47,7 @@ export const EighteenThirtyMapView: MapViewDefinition = {
         BO: { color: '#025aaa', label: 'B&O', imageUrl: BOLogo },
         CO: { color: '#add8e6', label: 'C&O', imageUrl: COLogo },
         ERIE: { color: '#fff500', label: 'Erie', imageUrl: ERIELogo },
-        NYNH: { color: '#d88e39', label: 'NYNH', imageUrl: NYNHLogo },
+        NYNH: { color: '#ec7f05', label: 'NYNH', imageUrl: NYNHLogo },
         BM: { color: '#95c054', label: 'B&M', imageUrl: BMLogo }
     }
 }
