@@ -80,8 +80,29 @@
         if (gameSession.enhancedAction) {
             return `Done: ★ enhanced ${ENHANCED_NOUNS[gameSession.enhancedAction]}`
         }
-        return tookTileAction ? 'Done' : 'Skipped'
+        if (tookTileAction) {
+            return 'Done'
+        }
+        return tookMarketAction ? 'Skipped' : 'None available'
     })
+
+    // What ending the turn now would do, on every turn, not only once End turn is all that is left.
+    const endTurnWarning = $derived.by(() => {
+        switch (gameSession.endTurnOutcome) {
+            case EndTurnOutcome.RevealsCard:
+                return 'Ending your turn starts the next round and reveals a new action card. It cannot be undone.'
+            case EndTurnOutcome.NextRound:
+                return 'Ending your turn starts the final round.'
+            case EndTurnOutcome.EndsGame:
+                return 'Ending your turn ends the game. It cannot be undone.'
+            default:
+                return undefined
+        }
+    })
+    const endTurnIsFinal = $derived(
+        gameSession.endTurnOutcome === EndTurnOutcome.RevealsCard ||
+            gameSession.endTurnOutcome === EndTurnOutcome.EndsGame
+    )
 
     const message = $derived.by(() => {
         if (gameSession.pendingClaim) {
@@ -120,22 +141,7 @@
         }
     })
 
-    const hint = $derived.by(() => {
-        if (gameSession.cityUnfinished) {
-            return undefined
-        }
-        if (gameSession.onlyEndTurnLeft) {
-            switch (gameSession.endTurnOutcome) {
-                case EndTurnOutcome.RevealsCard:
-                    return 'Ending your turn starts the next round and reveals a new action card. It cannot be undone.'
-                case EndTurnOutcome.NextRound:
-                    return 'Ending your turn starts the next round.'
-                case EndTurnOutcome.EndsGame:
-                    return 'Ending your turn ends the game.'
-                default:
-                    return undefined
-            }
-        }
+    const toolHint = $derived.by(() => {
         if (gameSession.resupplyOpen) {
             const split = gameSession.resupplySplit
             return split.bonus > 0
@@ -156,6 +162,17 @@
                 return undefined
         }
     })
+    // A chosen tool keeps the hint line; the End turn button then carries the warning.
+    const hint = $derived.by(() => {
+        if (gameSession.cityUnfinished) {
+            return undefined
+        }
+        if (!gameSession.onlyEndTurnLeft && (gameSession.resupplyOpen || gameSession.activeTool)) {
+            return toolHint
+        }
+        return endTurnWarning
+    })
+    const hintIsWarning = $derived(endTurnIsFinal && hint !== undefined && hint === endTurnWarning)
 </script>
 
 <div class="flex min-h-[50px] flex-col items-center justify-center gap-1 px-4 py-1 text-[#4a2c12]">
@@ -166,7 +183,7 @@
     {:else}
         <div class="text-center text-[17px] tracking-[0.02em]">{message}</div>
         {#if hint}
-            <div class="hint" class:warning={gameSession.onlyEndTurnLeft}>{hint}</div>
+            <div class="hint" class:warning={hintIsWarning}>{hint}</div>
         {/if}
         {#if !gameSession.cityUnfinished}
             <div class="phases">
@@ -217,6 +234,8 @@
                                 type="button"
                                 class="tool end"
                                 class:ready={gameSession.onlyEndTurnLeft}
+                                class:caution={endTurnIsFinal && !gameSession.onlyEndTurnLeft}
+                                title={endTurnWarning}
                                 onclick={() => gameSession.endTurn()}
                             >
                                 End turn
@@ -318,6 +337,12 @@
 
     .tool.end {
         border-style: dashed;
+    }
+
+    .tool.end.caution {
+        border: 2px solid #b0361a;
+        color: #8a2d12;
+        font-weight: 600;
     }
 
     .tool.end.ready {

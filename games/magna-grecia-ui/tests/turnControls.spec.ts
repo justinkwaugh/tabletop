@@ -230,3 +230,28 @@ test('a market action keeps the turn open and highlights End turn', async ({ pag
     await endTurn.click()
     await expect.poll(turnOf).not.toBe(first)
 })
+
+test('warns the last player of a round before an early End turn', async ({ page }) => {
+    await createGame(page)
+    const endTurn = page.getByRole('button', { name: 'End turn', exact: true })
+    const cities = page.getByRole('button', { name: /^Cities/ })
+    const warning =
+        'Ending your turn starts the next round and reveals a new action card. It cannot be undone.'
+    const turnIndex = () => page.evaluate(() => window.magnaGreciaSession.gameState.turnIndex)
+    const players = await page.evaluate(() => window.magnaGreciaSession.gameState.roundOrder.length)
+    for (let turn = 0; turn < players - 1; turn++) {
+        await expect(page.getByText(warning)).toHaveCount(0)
+        await expect(endTurn).not.toHaveClass(/caution/)
+        await endTurn.click()
+        await expect.poll(turnIndex).toBe(turn + 1)
+    }
+
+    await expect(cities).toBeVisible()
+    await expect(page.getByText(warning)).toBeVisible()
+    await expect(endTurn).toHaveClass(/caution/)
+    await expect(endTurn).toHaveAttribute('title', warning)
+
+    await cities.click()
+    await expect(page.getByText(warning)).toHaveCount(0)
+    await expect(endTurn).toHaveClass(/caution/)
+})
