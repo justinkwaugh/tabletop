@@ -175,3 +175,19 @@ test('closing the resupply picker restores the chosen tool', async ({ page }) =>
         .poll(() => page.evaluate(() => window.magnaGreciaSession.resupplyOpen))
         .toBe(false)
 })
+
+test('the keyboard jump button jumps to history without starting a replay', async ({ page }) => {
+    await createGame(page)
+    await page.getByRole('button', { name: /^Cities/ }).click()
+    await page.getByRole('button', { name: 'Place a city tile here', exact: true }).first().click()
+    await page.getByRole('button', { name: 'End turn', exact: true }).click()
+    await page.getByRole('tab', { name: 'History' }).click()
+
+    const jump = page.getByRole('button', { name: 'Jump to this action in history' }).last()
+    await jump.focus()
+    await page.keyboard.press('Enter')
+    await expect
+        .poll(() => page.evaluate(() => window.magnaGreciaSession.isViewingHistory))
+        .toBe(true)
+    await expect(page.getByText('Replaying', { exact: true })).toHaveCount(0)
+})

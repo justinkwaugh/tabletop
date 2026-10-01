@@ -126,7 +126,7 @@
                     }`}
                     onclick={async () => await replayHistoryAction(action)}
                     onkeydown={async (event) => {
-                        if (replayUiState) {
+                        if (replayUiState || event.target !== event.currentTarget) {
                             return
                         }
                         if (event.key !== 'Enter' && event.key !== ' ') {
