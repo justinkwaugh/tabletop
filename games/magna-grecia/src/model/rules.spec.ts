@@ -1,0 +1,812 @@
+import { describe, expect, it } from 'vitest'
+import {
+    ActionSource,
+    ClockwisePointyHexDirections,
+    Color,
+    GameEngine,
+    GameResult,
+    MachineContext,
+    PlayerStatus,
+    PointyHexDirection,
+    type AxialCoordinates
+} from '@tabletop/common'
+import { BOARD_GRID, neighborCoords, offsetToAxial } from '../components/boardGrid.js'
+import { cityPlaceId, villagePlaceId } from '../components/places.js'
+import { Definition } from '../definition/definition.js'
+import { MagnaGreciaRuntime } from '../definition/runtime.js'
+import { HydratedBuildMarket } from '../actions/buildMarket.js'
+import { HydratedEndTurn } from '../actions/endTurn.js'
+import { HydratedPlaceCity } from '../actions/placeCity.js'
+import { HydratedPlaceRoad } from '../actions/placeRoad.js'
+import { HydratedResupply } from '../actions/resupply.js'
+import { HydratedSellMarket } from '../actions/sellMarket.js'
+import { ActionType } from '../definition/actions.js'
+import type { RoadEnds } from '../components/pieces.js'
+import { EndTurnOutcome, type HydratedMagnaGreciaGameState } from './gameState.js'
+import { marketCost, marketValue } from './marketRules.js'
+import { ROAD_END_OPTIONS, RoadShape, legalRoadEnds, roadShape } from './roadRules.js'
+import { PendingCityKind, newTurn } from './turn.js'
+import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import { TakingTurnStateHandler } from '../stateHandlers/takingTurn.js'
+import { MachineState } from '../definition/states.js'
+
+const E = PointyHexDirection.East
+const W = PointyHexDirection.West
+const SE = PointyHexDirection.Southeast
+const SW = PointyHexDirection.Southwest
+const NE = PointyHexDirection.Northeast
+const NW = PointyHexDirection.Northwest
+
+const engine = new GameEngine(MagnaGreciaRuntime)
+const masterSeed = '0123456789abcdef0123456789abcdef'
+
+const FRONTIER = offsetToAxial({ row: 0, col: 1 })
+const INLAND = offsetToAxial({ row: 2, col: 3 })
+
+function createGame(count: number) {
+    return MagnaGreciaRuntime.initializer.initializeGame(
+        {
+            id: 'magna-grecia-rules',
+            typeId: Definition.info.id,
+            ownerId: 'owner',
+            seed: 1234,
+            config: {},
+            players: Array.from({ length: count }, (_, index) => ({
+                id: `p${index}`,
+                name: `Player ${index}`,
+                isHuman: true,
+                status: PlayerStatus.Joined
+            }))
+        },
+        Definition
+    )
+}
+
+function freshState(count = 3): HydratedMagnaGreciaGameState {
+    const { initialState } = engine.startGame(createGame(count), { masterSeed })
+    const state = MagnaGreciaRuntime.hydrator.hydrateState(initialState)
+    state.board.oracles = []
+    return state
+}
+
+function giveTurn(state: HydratedMagnaGreciaGameState, playerId: string, cardId: string) {
+    state.revealedCardIds[state.round] = cardId
+    state.turn = newTurn(playerId)
+}
+
+function base(playerId: string) {
+    return { id: 'a', gameId: 'g', source: ActionSource.User, playerId }
+}
+
+function placeCity(
+    state: HydratedMagnaGreciaGameState,
+    playerId: string,
+    coords: AxialCoordinates
+) {
+    const action = new HydratedPlaceCity({ ...base(playerId), type: ActionType.PlaceCity, coords })
+    action.apply(state)
+    return action
+}
+
+function placeRoad(
+    state: HydratedMagnaGreciaGameState,
+    playerId: string,
+    coords: AxialCoordinates,
+    ends: RoadEnds
+) {
+    const action = new HydratedPlaceRoad({
+        ...base(playerId),
+        type: ActionType.PlaceRoad,
+        coords,
+        ends
+    })
+    action.apply(state)
+    return action
+}
+
+function at(coords: AxialCoordinates, direction: PointyHexDirection): AxialCoordinates {
+    return neighborCoords(coords, direction)
+}
+
+describe('board map', () => {
+    it('has ten frontier villages and thirty-two inland villages, none adjacent', () => {
+        const villages = BOARD_GRID.villages()
+        expect(villages.filter((space) => space.frontier)).toHaveLength(10)
+        expect(BOARD_GRID.inlandVillages()).toHaveLength(32)
+        for (const village of villages) {
+            for (const direction of ClockwisePointyHexDirections) {
+                const neighbor = BOARD_GRID.space(at(village.coords, direction))
+                expect(neighbor?.type).not.toBe('Village')
+            }
+        }
+    })
+
+    it('offers nine road orientations: three straight and six curved', () => {
+        const shapes = ROAD_END_OPTIONS.map(roadShape)
+        expect(shapes.filter((shape) => shape === RoadShape.Straight)).toHaveLength(3)
+        expect(shapes.filter((shape) => shape === RoadShape.Curve)).toHaveLength(6)
+    })
+})
+
+describe('setup', () => {
+    it.each([
+        [2, 10, 7],
+        [3, 12, 7],
+        [4, 15, 9]
+    ])(
+        '%i players start on %i points with %i oracles on inland villages',
+        (count, points, oracles) => {
+            const { initialState } = engine.startGame(createGame(count), { masterSeed })
+            const state = MagnaGreciaRuntime.hydrator.hydrateState(initialState)
+            expect(state.players.every((player) => player.points === points)).toBe(true)
+            expect(state.board.oracles).toHaveLength(oracles)
+            expect(
+                state.board.oracles.every(
+                    (oracle) => !BOARD_GRID.requireSpace(oracle.coords).frontier
+                )
+            ).toBe(true)
+            expect(state.deck).toHaveLength(12)
+            expect(state.revealedCardIds).toEqual(state.deck?.slice(0, 2))
+            expect(state.turnManager.turnOrder).toHaveLength(count)
+            expect(state.activePlayerIds).toEqual([state.turnManager.turnOrder[0]])
+            expect(state.players[0]).toMatchObject({ supplyRoads: 4, stagingRoads: 16 })
+        }
+    )
+
+    it('uses the red, yellow, gray and blue player colours', () => {
+        const state = freshState(4)
+        expect(state.players.map((player) => player.color)).toEqual([
+            Color.Red,
+            Color.Yellow,
+            Color.Gray,
+            Color.Blue
+        ])
+    })
+
+    it('sets the shared turn order from each round’s card', () => {
+        const state = freshState()
+        const cardColours = () =>
+            state
+                .currentCard()
+                .turnOrder.filter((color) => state.players.some((player) => player.color === color))
+        const turnOrderColours = () =>
+            state.turnManager.turnOrder.map((playerId) => state.getPlayerState(playerId).color)
+        expect(turnOrderColours()).toEqual(cardColours())
+        for (let round = 1; round < state.roundCount; round++) {
+            state.beginRound(round)
+            expect(turnOrderColours()).toEqual(cardColours())
+        }
+    })
+
+    it('reveals the next round’s card until the final round', () => {
+        const state = freshState()
+        expect(state.upcomingCard()?.id).toBe(state.deck?.[1])
+        state.beginRound(state.roundCount - 1)
+        expect(state.upcomingCard()).toBeUndefined()
+    })
+})
+
+describe('cities', () => {
+    it('founds a city on a frontier village with a free market for one point', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G2')
+        const action = placeCity(state, 'p0', FRONTIER)
+        expect(action.metadata).toMatchObject({ founded: true, foundingMarket: true })
+        expect(state.getPlayerState('p0').points).toBe(11)
+        expect(state.board.marketOf('p0', cityPlaceId('C1'))).toBeDefined()
+        expect(state.cityPlacementPlan('p0', INLAND)).toBeUndefined()
+    })
+
+    it('founds on an inland village only when the player has a road into it', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G2')
+        placeCity(state, 'p0', FRONTIER)
+        placeRoad(state, 'p0', at(FRONTIER, SE), [NW, SE])
+        placeRoad(state, 'p0', at(at(FRONTIER, SE), SE), [NW, E])
+        giveTurn(state, 'p1', 'G2')
+        expect(state.cityPlacementPlan('p1', INLAND)).toBeUndefined()
+        giveTurn(state, 'p0', 'G2')
+        expect(state.cityPlacementPlan('p0', INLAND)).toMatchObject({ kind: 'Found' })
+    })
+
+    it('allows one founding per turn', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        placeCity(state, 'p0', FRONTIER)
+        expect(state.cityPlacementPlan('p0', offsetToAxial({ row: 0, col: 8 }))).toBeUndefined()
+    })
+
+    it('requires a tile beside a village to be followed by one on that village', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        placeCity(state, 'p0', FRONTIER)
+        placeRoad(state, 'p0', at(FRONTIER, SE), [NW, SE])
+        placeRoad(state, 'p0', at(at(FRONTIER, SE), SE), [NW, E])
+
+        state.turn = newTurn('p0')
+        const besideVillage = at(INLAND, NE)
+        const first = placeCity(state, 'p0', besideVillage)
+        expect(first.metadata).toMatchObject({ founded: true, claimVillage: INLAND })
+        expect(state.turn.pendingCity?.kind).toBe(PendingCityKind.Claim)
+        expect(state.roadPlacementsRemaining('p0')).toBe(0)
+        expect(state.canFinishTurn('p0')).toBe(false)
+        expect(state.cityPlacementPlan('p0', at(besideVillage, E))).toBeUndefined()
+
+        const second = placeCity(state, 'p0', INLAND)
+        expect(second.metadata).toMatchObject({ foundingMarket: true })
+        expect(state.turn.pendingCity).toBeUndefined()
+        expect(state.board.city(first.metadata!.cityId).spaces).toHaveLength(2)
+    })
+
+    it('founds on a plain space when further tiles that turn reach a founding village', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        const start = offsetToAxial({ row: 0, col: 3 })
+        const besideVillage = offsetToAxial({ row: 0, col: 2 })
+        expect(state.cityPlacementPlan('p0', start)).toMatchObject({
+            kind: 'Found',
+            awaitsVillage: true
+        })
+
+        const first = placeCity(state, 'p0', start)
+        expect(first.metadata).toMatchObject({ founded: true, foundingMarket: false })
+        expect(state.turn?.pendingCity).toEqual({
+            kind: PendingCityKind.Founding,
+            cityId: first.metadata!.cityId
+        })
+        expect(state.canFinishTurn('p0')).toBe(false)
+        expect(state.roadPlacementsRemaining('p0')).toBe(0)
+        expect(state.resupplyAllowance('p0')).toBe(0)
+        expect(state.cityPlacementPlan('p0', offsetToAxial({ row: 1, col: 3 }))).toBeUndefined()
+
+        placeCity(state, 'p0', besideVillage)
+        expect(state.turn?.pendingCity).toMatchObject({
+            kind: PendingCityKind.Claim,
+            village: FRONTIER,
+            founding: true
+        })
+
+        const last = placeCity(state, 'p0', FRONTIER)
+        expect(last.metadata).toMatchObject({ foundingMarket: true })
+        expect(state.turn?.pendingCity).toBeUndefined()
+        expect(state.canFinishTurn('p0')).toBe(true)
+        expect(state.board.city(first.metadata!.cityId).spaces).toHaveLength(3)
+        expect(state.getPlayerState('p0').points).toBe(9)
+    })
+
+    it('does not let a city still being founded touch another of the player’s cities', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        const start = offsetToAxial({ row: 0, col: 3 })
+        const besideVillage = offsetToAxial({ row: 0, col: 2 })
+        placeCity(state, 'p0', start)
+        expect(state.cityPlacementPlan('p0', besideVillage)).toMatchObject({ kind: 'Expand' })
+
+        state.board.cities.push({
+            id: 'C9',
+            playerId: 'p0',
+            spaces: [offsetToAxial({ row: 1, col: 1 })]
+        })
+        expect(state.cityPlacementPlan('p0', besideVillage)).toBeUndefined()
+    })
+
+    it('founds beside an unreached inland village when the player’s road reaches the first tile', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        const besideVillage = at(INLAND, W)
+        expect(state.cityPlacementPlan('p0', besideVillage)).toBeUndefined()
+
+        state.board.roads = [{ coords: at(besideVillage, W), playerId: 'p0', ends: [E, W] }]
+        expect(state.cityPlacementPlan('p0', besideVillage)).toMatchObject({
+            kind: 'Found',
+            claimVillage: INLAND
+        })
+        placeCity(state, 'p0', besideVillage)
+        const last = placeCity(state, 'p0', INLAND)
+        expect(last.metadata).toMatchObject({ foundingMarket: true })
+        expect(state.canFinishTurn('p0')).toBe(true)
+    })
+
+    it('carries the road connection through every tile of a founding', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        const start = at(at(INLAND, W), W)
+        state.board.roads = [{ coords: at(start, W), playerId: 'p0', ends: [E, W] }]
+        placeCity(state, 'p0', start)
+        expect(state.turn?.pendingCity?.kind).toBe(PendingCityKind.Founding)
+        expect(state.cityPlacementPlan('p0', at(INLAND, W))).toMatchObject({
+            kind: 'Expand',
+            claimVillage: INLAND
+        })
+    })
+
+    it('does not let an unconnected founding end on an unreached inland village', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        const start = at(at(INLAND, W), W)
+        placeCity(state, 'p0', start)
+        expect(state.turn?.pendingCity?.kind).toBe(PendingCityKind.Founding)
+        expect(state.cityPlacementPlan('p0', at(INLAND, W))).toBeUndefined()
+    })
+
+    it('does not found on a plain space that cannot reach a founding village this turn', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'Y1')
+        expect(state.cityPlacementPlan('p0', offsetToAxial({ row: 0, col: 3 }))).toBeUndefined()
+    })
+
+    it('does not start a tile beside a village that could not then be covered', () => {
+        const state = freshState()
+        state.board.oracles = [{ coords: offsetToAxial({ row: 1, col: 0 }) }]
+        giveTurn(state, 'p0', 'G1')
+        expect(state.cityPlacementPlan('p0', offsetToAxial({ row: 0, col: 2 }))).toBeUndefined()
+    })
+
+    it('never places beside an opponent city or an oracle', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G1')
+        placeCity(state, 'p0', FRONTIER)
+        giveTurn(state, 'p1', 'G1')
+        expect(state.cityPlacementPlan('p1', at(FRONTIER, E))).toBeUndefined()
+
+        state.board.oracles = [{ coords: INLAND }]
+        giveTurn(state, 'p0', 'G1')
+        expect(state.cityPlacementPlan('p0', at(FRONTIER, E))).toMatchObject({ kind: 'Expand' })
+        expect(state.cityPlacementPlan('p0', INLAND)).toBeUndefined()
+    })
+
+    it('merges a player’s cities without lifting or un-selling any market', () => {
+        const state = freshState()
+        state.board.cities = [
+            { id: 'C1', playerId: 'p0', spaces: [offsetToAxial({ row: 11, col: 5 })] },
+            { id: 'C2', playerId: 'p0', spaces: [offsetToAxial({ row: 11, col: 7 })] }
+        ]
+        const west = offsetToAxial({ row: 11, col: 5 })
+        const east = offsetToAxial({ row: 11, col: 7 })
+        state.board.markets = [
+            { playerId: 'p0', coords: west, sold: false },
+            { playerId: 'p1', coords: west, sold: false },
+            { playerId: 'p0', coords: east, sold: true },
+            { playerId: 'p1', coords: east, sold: true }
+        ]
+        const marketsBefore = state.board.marketsRemaining('p1')
+        giveTurn(state, 'p0', 'G1')
+        const action = placeCity(state, 'p0', offsetToAxial({ row: 11, col: 6 }))
+        expect(action.metadata?.mergedCityIds).toEqual(['C2'])
+        expect(state.board.cities).toHaveLength(1)
+        expect(state.board.marketsAt(cityPlaceId('C1'))).toEqual([
+            { playerId: 'p0', coords: west, sold: false },
+            { playerId: 'p1', coords: west, sold: false },
+            { playerId: 'p0', coords: east, sold: true },
+            { playerId: 'p1', coords: east, sold: true }
+        ])
+        expect(state.board.marketsRemaining('p1')).toBe(marketsBefore)
+    })
+
+    it('lets a player choose which of two markets in a merged city to sell', () => {
+        const state = freshState()
+        const west = offsetToAxial({ row: 11, col: 5 })
+        const east = offsetToAxial({ row: 11, col: 7 })
+        state.board.cities = [
+            { id: 'C1', playerId: 'p0', spaces: [west] },
+            { id: 'C2', playerId: 'p0', spaces: [east] }
+        ]
+        state.board.markets = [
+            { playerId: 'p0', coords: west, sold: false },
+            { playerId: 'p0', coords: east, sold: false }
+        ]
+        giveTurn(state, 'p0', 'G1')
+        placeCity(state, 'p0', offsetToAxial({ row: 11, col: 6 }))
+        expect(state.board.marketsAt(cityPlaceId('C1'))).toHaveLength(2)
+        expect(state.sellableMarkets('p0').map((market) => market.coords)).toEqual([west, east])
+
+        giveTurn(state, 'p0', 'G1')
+        new HydratedSellMarket({
+            ...base('p0'),
+            type: ActionType.SellMarket,
+            coords: east
+        }).apply(state)
+        expect(state.board.markets).toEqual([
+            { playerId: 'p0', coords: west, sold: false },
+            { playerId: 'p0', coords: east, sold: true }
+        ])
+        giveTurn(state, 'p0', 'G1')
+        expect(state.sellableMarkets('p0').map((market) => market.coords)).toEqual([west])
+    })
+
+    it('moves oracle attention to the city a favoured city merges into', () => {
+        const state = freshState()
+        state.board.cities = [
+            { id: 'C1', playerId: 'p0', spaces: [offsetToAxial({ row: 11, col: 5 })] },
+            { id: 'C2', playerId: 'p0', spaces: [offsetToAxial({ row: 11, col: 7 })] }
+        ]
+        state.board.oracles = [{ coords: offsetToAxial({ row: 9, col: 2 }), attentionCityId: 'C2' }]
+        giveTurn(state, 'p0', 'G1')
+        placeCity(state, 'p0', offsetToAxial({ row: 11, col: 6 }))
+        expect(state.board.oracles[0].attentionCityId).toBe('C1')
+    })
+})
+
+describe('roads', () => {
+    it('must start from a city, or continue the player’s own road', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G2')
+        expect(state.canPlaceRoad('p0', at(FRONTIER, E), [W, E])).toBe(false)
+        placeCity(state, 'p0', FRONTIER)
+        expect(state.canPlaceRoad('p0', at(FRONTIER, E), [W, E])).toBe(true)
+        expect(state.canPlaceRoad('p0', at(FRONTIER, E), [NE, SW])).toBe(false)
+        placeRoad(state, 'p0', at(FRONTIER, E), [W, E])
+        expect(state.canPlaceRoad('p0', at(at(FRONTIER, E), E), [W, SE])).toBe(true)
+
+        giveTurn(state, 'p1', 'G2')
+        expect(state.canPlaceRoad('p1', at(at(FRONTIER, E), E), [W, SE])).toBe(false)
+        expect(state.canPlaceRoad('p1', at(FRONTIER, SE), [NW, SE])).toBe(true)
+    })
+
+    it('starts from a village or oracle only when the player’s road already reaches it', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'Y2')
+        placeCity(state, 'p0', FRONTIER)
+        placeRoad(state, 'p0', at(FRONTIER, SE), [NW, SE])
+        placeRoad(state, 'p0', at(at(FRONTIER, SE), SE), [NW, E])
+        const beyondVillage = at(INLAND, E)
+        expect(state.canPlaceRoad('p0', beyondVillage, [W, E])).toBe(true)
+        giveTurn(state, 'p1', 'Y2')
+        expect(state.canPlaceRoad('p1', beyondVillage, [W, E])).toBe(false)
+    })
+
+    it('may cut off an opponent’s road end but never join it', () => {
+        const state = freshState()
+        const row = (col: number) => offsetToAxial({ row: 1, col })
+        const space = row(4)
+        state.board.cities = [{ id: 'C1', playerId: 'p0', spaces: [row(3)] }]
+        state.board.roads = [{ playerId: 'p1', coords: at(space, SE), ends: [NW, SE] }]
+        giveTurn(state, 'p0', 'G2')
+        expect(state.canPlaceRoad('p0', space, [W, E])).toBe(true)
+        expect(state.canPlaceRoad('p0', space, [W, SE])).toBe(false)
+    })
+})
+
+describe('action allowance', () => {
+    it('finds a road or city target exactly when a full board scan does', () => {
+        const state = freshState()
+        const scan = (playerId: string) => ({
+            road:
+                state.roadPlacementsRemaining(playerId) > 0 &&
+                [...BOARD_GRID].some(
+                    (space) => legalRoadEnds(state.board, playerId, space.coords).length > 0
+                ),
+            city: [...BOARD_GRID].some(
+                (space) => state.cityPlacementPlan(playerId, space.coords) !== undefined
+            )
+        })
+        const quick = (playerId: string) => ({
+            road: state.hasRoadTarget(playerId),
+            city: state.hasCityTarget(playerId)
+        })
+
+        giveTurn(state, 'p0', 'G1')
+        expect(quick('p0')).toEqual({ road: false, city: true })
+        expect(quick('p0')).toEqual(scan('p0'))
+        expect(quick('p1')).toEqual({ road: false, city: false })
+        expect(quick('p1')).toEqual(scan('p1'))
+
+        placeCity(state, 'p0', FRONTIER)
+        expect(quick('p0').road).toBe(true)
+        expect(quick('p0')).toEqual(scan('p0'))
+
+        state.getPlayerState('p0').supplyRoads = 0
+        state.getPlayerState('p0').supplyCities = 0
+        expect(quick('p0')).toEqual({ road: false, city: false })
+        expect(quick('p0')).toEqual(scan('p0'))
+    })
+
+    it('allows two basic actions or one enhanced action', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G2')
+        state.getPlayerState('p0').supplyRoads = 10
+        expect(state.roadPlacementsRemaining('p0')).toBe(3)
+        expect(state.cityPlacementsRemaining('p0')).toBe(3)
+        expect(state.resupplyAllowance('p0')).toBe(7)
+
+        placeCity(state, 'p0', FRONTIER)
+        expect(state.roadPlacementsRemaining('p0')).toBe(2)
+        expect(state.resupplyAllowance('p0')).toBe(5)
+
+        placeRoad(state, 'p0', at(FRONTIER, E), [W, E])
+        expect(state.resupplyAllowance('p0')).toBe(0)
+        expect(state.cityPlacementsRemaining('p0')).toBe(1)
+    })
+
+    it('tells the basic allowance apart from the enhanced extra', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G2')
+        state.getPlayerState('p0').supplyRoads = 10
+        expect(state.roadAllowance('p0')).toEqual({ basic: 2, bonus: 1 })
+        expect(state.cityAllowance('p0')).toEqual({ basic: 2, bonus: 1 })
+        expect(state.resupplySplit('p0')).toEqual({ basic: 5, bonus: 2 })
+        expect(state.enhancedAction('p0')).toBeUndefined()
+
+        placeCity(state, 'p0', FRONTIER)
+        expect(state.roadAllowance('p0')).toEqual({ basic: 2, bonus: 0 })
+        expect(state.cityAllowance('p0')).toEqual({ basic: 1, bonus: 1 })
+        expect(state.resupplySplit('p0')).toEqual({ basic: 5, bonus: 0 })
+
+        const enhanced = freshState()
+        giveTurn(enhanced, 'p0', 'G2')
+        enhanced.turn!.citiesPlaced = 3
+        expect(enhanced.enhancedAction('p0')).toBe('cities')
+        expect(enhanced.roadAllowance('p0')).toEqual({ basic: 0, bonus: 0 })
+        expect(enhanced.resupplySplit('p0')).toEqual({ basic: 0, bonus: 0 })
+    })
+
+    it('resupplies last, moving tiles from staging to supply', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G2')
+        const resupply = new HydratedResupply({
+            ...base('p0'),
+            type: ActionType.Resupply,
+            roads: 4,
+            cities: 3
+        })
+        resupply.apply(state)
+        expect(state.getPlayerState('p0')).toMatchObject({ supplyRoads: 8, supplyCities: 7 })
+        expect(state.roadPlacementsRemaining('p0')).toBe(0)
+        expect(state.cityPlacementsRemaining('p0')).toBe(0)
+    })
+})
+
+describe('network, markets and oracles', () => {
+    const row = (col: number) => offsetToAxial({ row: 1, col })
+
+    function oracleLine(): HydratedMagnaGreciaGameState {
+        const state = freshState()
+        state.board.oracles = [{ coords: row(5) }]
+        state.board.cities = [
+            { id: 'C1', playerId: 'p0', spaces: [row(3)] },
+            { id: 'C2', playerId: 'p1', spaces: [row(7)] },
+            { id: 'C3', playerId: 'p2', spaces: [row(9)] }
+        ]
+        state.board.roads = [{ playerId: 'p0', coords: row(4), ends: [W, E] }]
+        return state
+    }
+
+    it('turns the oracle only toward a strictly more important city', () => {
+        const state = oracleLine()
+        const board = state.board
+        expect(board.updateOracleAttention(board.network())).toHaveLength(1)
+        expect(board.oracles[0].attentionCityId).toBe('C1')
+
+        board.roads.push({ playerId: 'p1', coords: row(6), ends: [W, E] })
+        expect(board.updateOracleAttention(board.network())).toHaveLength(0)
+
+        board.roads.push({ playerId: 'p2', coords: row(8), ends: [W, E] })
+        expect(board.updateOracleAttention(board.network())).toEqual([
+            { oracle: row(5), fromCityId: 'C1', toCityId: 'C2', toPlayerId: 'p1' }
+        ])
+        expect(state.scores().p1.oracles).toBe(4)
+    })
+
+    it('records who an oracle turned to after that city merges away', () => {
+        const state = freshState()
+        state.board.oracles = [{ coords: row(5) }]
+        state.board.cities = [
+            { id: 'C1', playerId: 'p0', spaces: [row(9)] },
+            { id: 'C2', playerId: 'p0', spaces: [row(7)] }
+        ]
+        giveTurn(state, 'p0', 'G1')
+        const road = placeRoad(state, 'p0', row(6), [W, E])
+        giveTurn(state, 'p0', 'G1')
+        placeCity(state, 'p0', row(8))
+        expect(state.board.cities.map((city) => city.id)).toEqual(['C1'])
+        expect(road.metadata?.oracleChanges).toEqual([
+            { oracle: row(5), toCityId: 'C2', toPlayerId: 'p0' }
+        ])
+    })
+
+    it('turns an oracle to the oldest of equally important newcomers', () => {
+        const state = oracleLine()
+        const board = state.board
+        board.roads.push({ playerId: 'p1', coords: row(6), ends: [W, E] })
+        const network = board.network()
+        expect(network.connectionCount(cityPlaceId('C1'))).toBe(
+            network.connectionCount(cityPlaceId('C2'))
+        )
+        board.updateOracleAttention(network)
+        expect(board.oracles[0].attentionCityId).toBe('C1')
+    })
+
+    it('puts each market on a tile of its place', () => {
+        const founding = freshState()
+        giveTurn(founding, 'p0', 'G1')
+        placeCity(founding, 'p0', FRONTIER)
+        expect(founding.board.markets).toEqual([{ playerId: 'p0', coords: FRONTIER, sold: false }])
+
+        const state = oracleLine()
+        giveTurn(state, 'p0', 'G2')
+        new HydratedBuildMarket({
+            ...base('p0'),
+            type: ActionType.BuildMarket,
+            placeId: villagePlaceId(FRONTIER)
+        }).apply(state)
+        expect(state.board.markets.at(-1)?.coords).toEqual(FRONTIER)
+    })
+
+    it('lets an active market worth nothing be sold', () => {
+        const state = oracleLine()
+        state.board.roads = []
+        state.board.markets = [{ playerId: 'p0', coords: row(3), sold: false }]
+        giveTurn(state, 'p0', 'G2')
+        const market = state.board.markets[0]
+        expect(marketValue(state.board, state.board.network(), market)).toBe(0)
+        expect(state.sellableMarkets('p0')).toEqual([market])
+        const pointsBefore = state.getPlayerState('p0').points
+        new HydratedSellMarket({
+            ...base('p0'),
+            type: ActionType.SellMarket,
+            coords: row(3)
+        }).apply(state)
+        expect(market.sold).toBe(true)
+        expect(state.getPlayerState('p0').points).toBe(pointsBefore)
+    })
+
+    it('counts distinct directly connected places and ignores dead ends', () => {
+        const state = oracleLine()
+        state.board.roads.push(
+            { playerId: 'p1', coords: row(6), ends: [W, E] },
+            { playerId: 'p1', coords: row(8), ends: [W, SE] }
+        )
+        const network = state.board.network()
+        expect(network.connectionCount(cityPlaceId('C2'))).toBe(1)
+        expect(network.connectionCount(cityPlaceId('C3'))).toBe(0)
+    })
+
+    it('prices, activates, values and sells markets', () => {
+        const state = oracleLine()
+        const board = state.board
+        board.roads.push({ playerId: 'p1', coords: row(6), ends: [W, E] })
+        board.markets = [
+            { playerId: 'p0', coords: row(3), sold: false },
+            { playerId: 'p2', coords: row(7), sold: false },
+            { playerId: 'p1', coords: row(7), sold: true }
+        ]
+        const c2 = board.place(cityPlaceId('C2'))!
+        expect(marketCost(board, 'p0', c2)).toBe(2)
+
+        giveTurn(state, 'p0', 'G2')
+        const build = new HydratedBuildMarket({
+            ...base('p0'),
+            type: ActionType.BuildMarket,
+            placeId: cityPlaceId('C2')
+        })
+        build.apply(state)
+        expect(build.metadata).toEqual({ cost: 2 })
+        const network = board.network()
+        const p0InC2 = board.marketOf('p0', cityPlaceId('C2'))!
+        expect(marketValue(board, network, p0InC2)).toBe(0)
+        expect(marketValue(board, network, board.marketOf('p0', cityPlaceId('C1'))!)).toBe(1)
+
+        giveTurn(state, 'p0', 'G2')
+        const sell = new HydratedSellMarket({
+            ...base('p0'),
+            type: ActionType.SellMarket,
+            coords: row(3)
+        })
+        const pointsBefore = state.getPlayerState('p0').points
+        sell.apply(state)
+        expect(state.getPlayerState('p0').points).toBe(pointsBefore + 1)
+        expect(state.sellableMarkets('p0')).toHaveLength(0)
+    })
+
+    it('never lets a player build in their own city or twice in one place', () => {
+        const state = oracleLine()
+        giveTurn(state, 'p0', 'G2')
+        const sites = state.marketSites('p0').map((place) => place.id)
+        expect(sites).not.toContain(cityPlaceId('C1'))
+        expect(sites).toContain(villagePlaceId(FRONTIER))
+        state.board.markets.push({
+            playerId: 'p0',
+            coords: FRONTIER,
+            sold: true
+        })
+        expect(state.marketSites('p0').map((place) => place.id)).not.toContain(
+            villagePlaceId(FRONTIER)
+        )
+    })
+
+    it('keeps the turn open after a market action and then allows only End turn', () => {
+        const state = oracleLine()
+        giveTurn(state, 'p0', 'G2')
+        state.getPlayerState('p0').supplyRoads = 10
+        const handler = new TakingTurnStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+        const build = new HydratedBuildMarket({
+            ...base('p0'),
+            type: ActionType.BuildMarket,
+            placeId: villagePlaceId(FRONTIER)
+        })
+        build.apply(state)
+        expect(handler.onAction(build, context)).toBe(MachineState.TakingTurn)
+        expect(state.turn?.playerId).toBe('p0')
+        expect(build.revealsInfo).toBeUndefined()
+        expect(state.roadPlacementsRemaining('p0')).toBe(0)
+        expect(state.cityPlacementsRemaining('p0')).toBe(0)
+        expect(state.resupplyAllowance('p0')).toBe(0)
+        expect(state.marketSites('p0')).toEqual([])
+        expect(state.sellableMarkets('p0')).toEqual([])
+        expect(handler.validActionsForPlayer('p0', context)).toEqual([ActionType.EndTurn])
+
+        const selling = oracleLine()
+        selling.board.markets = [{ playerId: 'p0', coords: row(3), sold: false }]
+        giveTurn(selling, 'p0', 'G2')
+        const sellContext = new MachineContext({ gameConfig: {}, gameState: selling })
+        const sell = new HydratedSellMarket({
+            ...base('p0'),
+            type: ActionType.SellMarket,
+            coords: row(3)
+        })
+        sell.apply(selling)
+        expect(handler.onAction(sell, sellContext)).toBe(MachineState.TakingTurn)
+        expect(handler.validActionsForPlayer('p0', sellContext)).toEqual([ActionType.EndTurn])
+    })
+
+    it('predicts what each End turn does, as the handler then does it', () => {
+        const state = freshState()
+        const handler = new TakingTurnStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+        const seen = new Set<EndTurnOutcome>()
+        let next = MachineState.TakingTurn
+        while (next === MachineState.TakingTurn) {
+            handler.enter(context)
+            const playerId = state.turnManager.turnOrder[state.turnIndex]
+            const predicted = state.endTurnOutcome()
+            const roundBefore = state.round
+            const revealedBefore = state.revealedCardIds.length
+            const endTurn = new HydratedEndTurn({ ...base(playerId), type: ActionType.EndTurn })
+            endTurn.apply(state)
+            next = handler.onAction(endTurn, context)
+            seen.add(predicted)
+            const reveals = predicted === EndTurnOutcome.RevealsCard
+            expect(endTurn.revealsInfo === true).toBe(reveals)
+            expect(state.revealedCardIds.length > revealedBefore).toBe(reveals)
+            expect(state.round > roundBefore).toBe(
+                reveals || predicted === EndTurnOutcome.NextRound
+            )
+            expect(next === MachineState.EndOfGame).toBe(predicted === EndTurnOutcome.EndsGame)
+        }
+        expect([...seen].toSorted()).toEqual(Object.values(EndTurnOutcome).toSorted())
+    })
+
+    it('does not end a turn while a village claim is pending', () => {
+        const state = freshState()
+        giveTurn(state, 'p0', 'G2')
+        state.turn!.pendingCity = {
+            kind: PendingCityKind.Claim,
+            village: INLAND,
+            cityId: 'C1',
+            founding: false
+        }
+        expect(HydratedEndTurn.canEndTurn(state, 'p0')).toBe(false)
+    })
+})
+
+describe('game end', () => {
+    function finish(state: HydratedMagnaGreciaGameState) {
+        new EndOfGameStateHandler().enter(new MachineContext({ gameConfig: {}, gameState: state }))
+    }
+
+    it('shares the win and declares a draw when the highest totals tie', () => {
+        const state = freshState()
+        finish(state)
+        expect(state.result).toBe(GameResult.Draw)
+        expect(state.winningPlayerIds.toSorted()).toEqual(['p0', 'p1', 'p2'])
+    })
+
+    it('declares a single winner when one total is highest', () => {
+        const state = freshState()
+        state.getPlayerState('p1').points += 1
+        finish(state)
+        expect(state.result).toBe(GameResult.Win)
+        expect(state.winningPlayerIds).toEqual(['p1'])
+    })
+})
