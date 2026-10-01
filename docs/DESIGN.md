@@ -102,7 +102,9 @@ An action type defines:
 - Hydrated behavior for validation and application.
 - A type guard for narrowing when the runtime or UI needs one.
 - Immutable input describing the player or system decision.
-- Optional engine-produced metadata describing the result for history, logging, or UI without reconstructing prior state. `metadata` is reserved for Processed Action output; player-supplied input uses domain-specific fields.
+- Optional engine-produced metadata describing the result. `metadata` is reserved for Processed Action output; player-supplied input uses domain-specific fields.
+
+An Action's input and `metadata` are its history record. History, logging, and UI describe what an Action did, including any value from before it, from that record alone; when a description needs a fact, the handler records it in `metadata`. To show the table as it stood at an earlier Action, use History Navigation. `undoPatch` and `forwardPatch` belong to the engine and the shared Game Client for Action Reversal, Processed Action application, and History Navigation, so game and family-library code never reads them: their paths and operations are whatever the engine's state diff emits and change with it, and projection rewrites them per Perspective.
 
 Validation protects the action invariant. The current machine-state handler and shared rule helpers determine when the action is available. User versus System identifies the action’s origin; player attribution is independent of that origin. Set information-reveal and simultaneous-group semantics when the rules require them.
 

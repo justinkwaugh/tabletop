@@ -72,6 +72,7 @@ Report every executable occurrence with file, line, and the behavior it serves. 
 - an explicit `any` type (`type_escapes.violations` with kind `any`);
 - a type-check or lint suppression comment (`production_hits.type_check_suppression`);
 - a nondeterministic source in the logic package (`logic_hits.nondeterminism`) whose value can reach game state, an Action, the system Action cascade, or a rule decision. [Deterministic execution](../../../docs/DESIGN.md#deterministic-execution) requires these values to come from a persisted state PRNG. Record why each remaining hit cannot reach them.
+- a read of an Action's `undoPatch` or `forwardPatch` (`production_hits.action_patch_read`). [Actions](../../../docs/DESIGN.md#actions) makes input and `metadata` the history record. This item is whole-title: `family_library_hits.action_patch_read` covers the shared libraries in `family_libraries`, such as `@tabletop/18xx-ui`, and a library hit counts against every title that ships it, with the fix in the library.
 
 One cast is exempt: `UiDefinition as unknown as GameUiDefinition<GameState, HydratedGameState>` in the dev harness page (gate 7), `games/<slug>-ui/src/routes/+page.svelte`, reported under `type_escapes.exempt_harness_casts`. Every other cast is a violation, including another in the harness page.
 
