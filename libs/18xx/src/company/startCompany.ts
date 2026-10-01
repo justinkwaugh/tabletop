@@ -9,11 +9,10 @@ import {
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { Owner, getCompany } from '../finance/finance.js'
+import { Owner } from '../finance/finance.js'
 import { applySharePurchase } from '../stock/sharePurchase.js'
 import { recordTurnPurchase } from '../stock/turnPurchases.js'
-import { placeStockMarker } from '../stock/stockMarket.js'
-import { CompanyStartDetails, evaluateCompanyStart } from './companyStart.js'
+import { CompanyStartDetails, evaluateCompanyStart, startCompanyAtPar } from './companyStart.js'
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { CompanyRules } from './companyRules.js'
@@ -62,11 +61,7 @@ export class HydratedStartCompany
         assert(result.details, result.reason ?? 'Invalid company start')
         assert(result.details.price === this.expectedPrice, 'Starting price has changed')
         assert(result.details.buyer.kind !== 'bank', 'A company requires a president')
-        const company = getCompany(state, this.companyId)
-        company.started = true
-        company.parPrice = result.details.parPrice
-        company.president = result.details.buyer
-        placeStockMarker(state.stockMarket, this.companyId, this.marketSpaceId)
+        startCompanyAtPar(state, this.companyId, this.marketSpaceId, result.details.buyer)
         recordStockAction(state, this.playerId, this.#stockRules.round)
         recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)

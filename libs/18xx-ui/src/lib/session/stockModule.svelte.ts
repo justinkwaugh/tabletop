@@ -170,20 +170,19 @@ export class StockModule implements LocalSelection {
             : undefined
     )
 
-    pendingPar = $derived.by(() => this.session.state.pendingPar)
     canPar = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('ParCompany')
     )
     parSpaceIds = $derived.by(() =>
-        this.pendingPar
+        this.session.state.pendingPar
             ? this.session.rules.companyRules.startMarketSpaces(
                   this.session.state,
-                  this.pendingPar.companyId
+                  this.session.state.pendingPar.companyId
               )
             : []
     )
     async parCompany(marketSpaceId: string) {
-        const pending = this.pendingPar
+        const pending = this.session.state.pendingPar
         assert(this.canPar && pending, 'No par is awaiting this player')
         await this.session.applyAction(
             this.session.createPlayerAction(ParCompany, {

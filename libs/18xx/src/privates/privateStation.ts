@@ -5,6 +5,7 @@ import {
     PlayerAction,
     HydratableAction,
     assert,
+    assertExists,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
@@ -38,6 +39,15 @@ export function privateStationPositions(
         const slot = placement.openSlots(pending.companyId, pending.locationId, node.id)[0]
         return slot === undefined ? [] : [{ locationId: pending.locationId, nodeId: node.id, slot }]
     })
+}
+
+function useTurnStationPlacement(
+    state: StationPlacementState,
+    companyId: string,
+    stationId: string
+): void {
+    state.stationStep ??= { companyId, placedStationIds: [], completed: false }
+    state.stationStep.placedStationIds.push(stationId)
 }
 
 function pendingFor(
@@ -99,13 +109,13 @@ export class HydratedPlacePrivateStation
     }
     apply(state: HydratedGameState & PrivateStationState): void {
         assert(this.isValid(state), 'Invalid private station')
-        const { companyId } = state.privateStation!
-        const stationId = nextStationId(state, companyId)!
+        assertExists(state.privateStation, 'A private station decision is pending')
+        const { companyId } = state.privateStation
+        const stationId = nextStationId(state, companyId)
+        assertExists(stationId, 'The company has a station to place')
         const details = { companyId, stationId, position: { ...this.position }, cost: 0 }
         applyStationPlacement(state, details)
-        // The station is the company's placement for the turn.
-        state.stationStep ??= { companyId, placedStationIds: [], completed: false }
-        state.stationStep.placedStationIds.push(stationId)
+        useTurnStationPlacement(state, companyId, stationId)
         delete state.privateStation
         this.metadata = details
     }

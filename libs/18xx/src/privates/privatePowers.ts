@@ -12,8 +12,7 @@ export interface PrivateTrackTerms {
     definitionIds: readonly string[]
     payer: Owner
     connected: boolean
-    /** The lay is the company's ordinary lay for the turn. */
-    ordinaryLay?: true
+    countsAsOrdinaryLay?: true
 }
 export interface PrivatePowerRules {
     trackTerms(

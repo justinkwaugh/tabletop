@@ -43,39 +43,38 @@ export type CompanyDecisionState = StockState &
     TrainState &
     PhaseState &
     Type.Static<Type.TObject<typeof CompanyDecisionFields>> & { machineState: string }
-export function pendingCompanyDecision(state: CompanyDecisionState): boolean {
-    return !!(
-        state.purchaseOffer ||
-        state.privateTrackLay ||
-        state.privateStation ||
-        state.trackConsent
-    )
+type PendingDecisions = Pick<
+    CompanyDecisionState,
+    'purchaseOffer' | 'privateTrackLay' | 'privateStation' | 'trackConsent'
+>
+/** The player who must resolve the pending company decision, if one is pending. */
+export function pendingDecisionPlayerId(state: PendingDecisions): string | undefined {
+    const playerIds = [
+        state.purchaseOffer?.sellerPlayerId,
+        state.privateTrackLay?.playerId,
+        state.privateStation?.playerId,
+        state.trackConsent?.details.consentPlayerId
+    ].filter((playerId) => playerId !== undefined)
+    assert(playerIds.length <= 1, 'Resolve the current company decision before starting another')
+    return playerIds[0]
+}
+export function pendingCompanyDecision(state: PendingDecisions): boolean {
+    return pendingDecisionPlayerId(state) !== undefined
 }
 
 export function validateCompanyDecisions(
-    state: Pick<
-        CompanyDecisionState,
-        | 'machineState'
-        | 'privatePowerWindow'
-        | 'purchaseOffer'
-        | 'privateTrackLay'
-        | 'privateStation'
-        | 'trackConsent'
-    > & { players: readonly { playerId: string }[] }
+    state: PendingDecisions &
+        Pick<CompanyDecisionState, 'machineState' | 'privatePowerWindow'> & {
+            players: readonly { playerId: string }[]
+        }
 ): void {
     if (state.privatePowerWindow)
         assert(
             state.machineState === 'OperatingSet',
             'The private power window belongs between companies'
         )
-    const pending = [
-        state.purchaseOffer,
-        state.privateTrackLay,
-        state.privateStation,
-        state.trackConsent
-    ].filter(Boolean)
-    assert(pending.length <= 1, 'Resolve the current company decision before starting another')
-    if (!pending.length) return
+    const playerId = pendingDecisionPlayerId(state)
+    if (playerId === undefined) return
     assert(
         isOperatingStep(state.machineState) ||
             (state.machineState === 'StockRound' &&
@@ -83,11 +82,6 @@ export function validateCompanyDecisions(
                 !isCompanyPurchaseOffer(state.purchaseOffer)),
         'A pending decision requires its operating or stock-round window'
     )
-    const playerId =
-        state.purchaseOffer?.sellerPlayerId ??
-        state.privateTrackLay?.playerId ??
-        state.privateStation?.playerId ??
-        state.trackConsent?.details.consentPlayerId
     assert(
         state.players.some((player) => player.playerId === playerId),
         'Unknown player for the pending decision'

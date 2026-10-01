@@ -8,10 +8,13 @@ import {
 // The company owning C&StL may lay one of these tiles on B20 in addition to its ordinary lay; the
 // company owning D&H may lay 57 on F16 as its ordinary lay, then place a station there.
 const PrivateLays: Readonly<
-    Record<string, { locationId: string; definitionIds: readonly string[]; ordinaryLay?: true }>
+    Record<
+        string,
+        { locationId: string; definitionIds: readonly string[]; countsAsOrdinaryLay?: true }
+    >
 > = {
     CS: { locationId: 'B20', definitionIds: ['18xx:3', '18xx:4', '18xx:58'] },
-    DH: { locationId: 'F16', definitionIds: ['18xx:57'], ordinaryLay: true }
+    DH: { locationId: 'F16', definitionIds: ['18xx:57'], countsAsOrdinaryLay: true }
 }
 
 export const EighteenThirtyPrivatePowerRules: PrivatePowerRules = {
@@ -28,7 +31,7 @@ export const EighteenThirtyPrivatePowerRules: PrivatePowerRules = {
         )
             return undefined
         if (
-            lay.ordinaryLay &&
+            lay.countsAsOrdinaryLay &&
             (state.machineState !== 'LayingTrack' ||
                 state.trackStep?.companyId !== companyId ||
                 state.trackStep.lays.length > 0)
@@ -40,7 +43,7 @@ export const EighteenThirtyPrivatePowerRules: PrivatePowerRules = {
             definitionIds: lay.definitionIds,
             payer: owner,
             connected: false,
-            ...(lay.ordinaryLay ? { ordinaryLay: true } : {})
+            ...(lay.countsAsOrdinaryLay ? { countsAsOrdinaryLay: true } : {})
         }
     },
     earlyTrainCompany: () => undefined,

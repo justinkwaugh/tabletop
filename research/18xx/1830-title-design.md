@@ -402,6 +402,26 @@ The reference's [entities] define each private's abilities.
   share from the IPO or the market. The exchange is subject to the ordinary
   60% holding limit, is allowed before NYC has a par, and closes M&H.
 
+### Family survey
+
+The new family mechanisms were checked against the
+[title traits](/workspace/research/18xx-2026-09-08/data/title-traits.json) and
+the reference source.
+
+- **Pending par** (`interrupting-decisions` = `pending-par`) appears in 39 titles,
+  among them 1826, 1832, 1849, 1880, 1882, 18Chesapeake, 18Mex and 18NY. The
+  family hook covers awards made by the waterfall auction; titles that award a
+  presidency in another opening would wrap that opening's states the same way.
+- **Closing a private on a train purchase** (`close` `when: 'bought_train'`)
+  appears in 25 titles. Each names one corporation, as 1835 (SX), 1848 (CAR) and
+  18NY (D&H) do, so a per-company list of privates fits all of them.
+- **Remote lay with a station** (`teleport`) appears in 11 titles. 1830, 1836jr30,
+  1894, 18Chesapeake and 18Texas match 1830: the company's own next token, free,
+  as the turn's station. Counterexamples the hooks do not yet cover: 1822 and
+  21Moon make the token an extra action (1822 also adds a token rather than
+  using the company's), and 1828, 1829 and 18Rhl waive the lay's terrain cost.
+  Those would need further optional terms.
+
 ### Decisions
 
 - **Awards are title code.** 1830's auction `award` gives the private, then C&A's
@@ -410,11 +430,14 @@ The reference's [entities] define each private's abilities.
 - **An awarded presidency is parred at once.** `CompanyRules.parAfterAward`
   opts a title into the family's pending par. The award records `pendingPar`
   (company and player), an optional family field. The waterfall auction then
-  moves to a `ParringCompany` state, where that player's `ParCompany` action
-  chooses a starting space from `startMarketSpaces`. The action starts the
-  company and makes the player president without a purchase. Play then returns
-  to the auction, which completes and starts the first stock round. Titles
-  without the option register neither the state nor the action.
+  holds in its current state while a wrapping handler offers only that
+  player's `ParCompany` action, which chooses a starting space from
+  `startMarketSpaces`. The action starts the company and makes the player
+  president without a purchase, so the title's `onStart` purchase hook does not
+  run. The auction then resumes, completes and starts the first stock round.
+  Titles without the option register neither the wrapper nor the action; the
+  optional `pendingPar` field is in every title's state schema but only written
+  by titles with the option.
 - **Closing on a train purchase is a train rule.**
   `TrainRules.privatesClosedByPurchase` names the open privates that close when
   a company buys a train. The family applies it to depot purchases, private-power
@@ -423,19 +446,17 @@ The reference's [entities] define each private's abilities.
 - **C&StL uses the family's private tile lay.** Its `trackTerms` apply while the
   company that owns C&StL is operating, in any operating step. The lay is free
   and unconnected, and the operating company is the payer.
-- **D&H extends the private tile lay.** `PrivateTrackTerms` gains two optional
-  flags:
-    - `ordinaryLay`: the lay counts as the company's ordinary lay, so D&H is
-      offered only before the company has laid a tile this turn;
-    - `station`: after the lay, the company decides whether to place a station
-      there.
-
-    The station decision is a new optional family field, `privateStation`. The
-    president answers it with `PlacePrivateStation` (any open slot on the laid
-    tile, free, no connection) or `DeclinePrivateStation`. A placed station opens
-    the turn's station step with that station already placed, so the station
-    step has no placement left. The decision is skipped when the company has no
-    station left or the tile has no open slot.
+- **D&H extends the private tile lay.** `PrivateTrackTerms.countsAsOrdinaryLay`
+  makes the lay the company's ordinary lay, so 1830 offers D&H only before the
+  company has laid a tile this turn. `PrivatePowerRules.stationPrivateIds` names
+  the privates whose lay is followed by a station decision, which registers the
+  station actions for those titles only. The decision is a new optional family
+  field, `privateStation`. The president answers it with `PlacePrivateStation`
+  (the company's next station on any open slot of the laid tile, free, no
+  connection) or `DeclinePrivateStation`. A placed station opens the turn's
+  station step with that station already placed, so the station step has no
+  placement left. The decision is skipped when the company has no station left
+  or the tile has no open slot.
 
 - **M&H uses the family exchange.** Its `exchangeTerms` offer NYC's single
   shares from the IPO and the market, `any-turn`, with no stock action and the

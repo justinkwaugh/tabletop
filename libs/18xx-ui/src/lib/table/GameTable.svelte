@@ -329,12 +329,12 @@
         wrapper.focusRect({ x, y, width: right - x, height: bottom - y }, { animate })
     }
     const consentPreview = $derived(session.gameState.trackConsent)
-    const chosenCityLocationIds = $derived(
+    const offeredCityLocationIds = $derived(
         session.stations.homeLocationIds.length
             ? session.stations.homeLocationIds
             : session.stations.privateStationLocationIds
     )
-    const choosingCity = $derived(chosenCityLocationIds.length > 0)
+    const choosingCity = $derived(offeredCityLocationIds.length > 0)
     const maskPlacementLocations = $derived(
         !consentPreview &&
             (choosingCity ||
@@ -343,7 +343,7 @@
     )
     const placementLocationIds = $derived(
         choosingCity
-            ? chosenCityLocationIds
+            ? offeredCityLocationIds
             : !session.privateActions.trackPowerSelection && session.stations.canPlace
               ? session.stations.locationIds
               : session.track.locationIds

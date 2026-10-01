@@ -3,7 +3,7 @@
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { marketColors } from './marketColors.js'
     let { session }: { session: EighteenXXSession } = $props()
-    const pending = $derived(session.stock.pendingPar)
+    const pending = $derived(session.gameState.pendingPar)
 </script>
 
 {#if pending}

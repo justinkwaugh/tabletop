@@ -101,5 +101,10 @@ export const EighteenThirtyTrainRules: TrainRules = {
     trainLimit: (state) => EighteenThirtyPhases.phase(state.phaseId).trainLimit,
     purchaseLimit: () => 'unlimited',
     // The B&O private closes when the B&O railroad buys its first train.
-    privatesClosedByPurchase: (_state, companyId) => (companyId === 'BO' ? ['BOP'] : [])
+    privatesClosedByPurchase: (state, companyId) =>
+        companyId === 'BO'
+            ? state.companies
+                  .filter((company) => company.id === 'BOP' && !company.closed)
+                  .map((company) => company.id)
+            : []
 }

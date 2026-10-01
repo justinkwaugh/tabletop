@@ -17,7 +17,7 @@ import {
     sameOwner,
     type FinancialState
 } from '../finance/finance.js'
-import { placeStockMarker } from '../stock/stockMarket.js'
+import { startCompanyAtPar } from './companyStart.js'
 import type { FormationState } from './companyState.js'
 import type { CompanyRules } from './companyRules.js'
 
@@ -30,17 +30,17 @@ export type PendingPar = Type.Static<typeof PendingPar>
 export const PendingParFields = { pendingPar: Type.Optional(PendingPar) }
 export type PendingParState = { pendingPar?: PendingPar }
 type ParState = FormationState & PendingParState & { machineState: string }
-type PendingParCheck = FinancialState &
+type AwardedParState = FinancialState &
     PendingParState & { players: readonly { playerId: string }[] }
 
 /** Records that a player awarded a company's president's certificate must set its par. */
-export function requirePar(state: PendingParCheck, companyId: string, playerId: string): void {
+export function requirePar(state: AwardedParState, companyId: string, playerId: string): void {
     assert(!state.pendingPar, 'Only one par may be pending')
     state.pendingPar = { companyId, playerId }
     validatePendingPar(state)
 }
 
-export function validatePendingPar(state: PendingParCheck): void {
+export function validatePendingPar(state: AwardedParState): void {
     const pending = state.pendingPar
     if (!pending) return
     assert(
@@ -103,13 +103,10 @@ export class HydratedParCompany extends HydratableAction<typeof ParCompany> impl
     }
     apply(state: HydratedGameState & ParState): void {
         assert(this.isValid(state), 'Invalid par')
-        const company = getCompany(state, this.companyId)
-        const space = state.stockMarket.spaces.find((space) => space.id === this.marketSpaceId)
-        assert(space, 'Unknown stock market space')
-        company.started = true
-        company.parPrice = space.price
-        company.president = { kind: 'player', playerId: this.playerId }
-        placeStockMarker(state.stockMarket, this.companyId, this.marketSpaceId)
+        startCompanyAtPar(state, this.companyId, this.marketSpaceId, {
+            kind: 'player',
+            playerId: this.playerId
+        })
         delete state.pendingPar
     }
 }

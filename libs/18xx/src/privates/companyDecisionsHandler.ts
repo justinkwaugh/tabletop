@@ -1,7 +1,6 @@
 import { TrackConstruction, type TrackRules } from '../construction/trackConstruction.js'
 import { purchaseChoices } from '../transfers/purchaseChoices.js'
 import {
-    assert,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext,
@@ -28,7 +27,11 @@ import {
 import { hasLegalPrivateTrackUse } from './privatePowerRequest.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
 import { HydratedDeclinePrivateStation, HydratedPlacePrivateStation } from './privateStation.js'
-import { pendingCompanyDecision, type CompanyDecisionState } from './companyDecision.js'
+import {
+    pendingCompanyDecision,
+    pendingDecisionPlayerId,
+    type CompanyDecisionState
+} from './companyDecision.js'
 import type { PrivatePowerRules } from './privatePowers.js'
 export function isCompanyDecisionAction(
     action: HydratedAction
@@ -144,13 +147,8 @@ export class CompanyDecisionsHandler<
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
-        const playerId =
-            state.purchaseOffer?.sellerPlayerId ??
-            state.privateTrackLay?.playerId ??
-            state.privateStation?.playerId ??
-            state.trackConsent?.details.consentPlayerId
-        if (pendingCompanyDecision(state)) {
-            assert(playerId, 'A pending decision requires its player')
+        const playerId = pendingDecisionPlayerId(state)
+        if (playerId !== undefined) {
             state.activePlayerIds = [playerId]
             return
         }

@@ -6,6 +6,7 @@ import {
     cashOwnedBy,
     getCompany,
     privateTrackConstruction,
+    settlePurchaseOffer,
     type EighteenXXState,
     type Owner
 } from '@tabletop/18xx'
@@ -14,11 +15,13 @@ import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
 import { Definition } from './definition/gameDefinition.js'
 import {
     EighteenThirtyAuctionRules,
+    EighteenThirtyCompanyRules,
     EighteenThirtyPrivatePowerRules,
     EighteenThirtyPrivates,
     EighteenThirtyTrackRules,
     EighteenThirtyTrainDepot,
-    EighteenThirtyTrainRules
+    EighteenThirtyTrainRules,
+    EighteenThirtyTransferRules
 } from './index.js'
 import { EighteenThirtyScenarios } from './scenarios/index.js'
 
@@ -108,6 +111,7 @@ describe('auction awards', () => {
         expect(certificateOwner(game.state, 'PRR:share:1')).toEqual(buyer)
         expect(certificateOwner(game.state, 'CA:charter')).toEqual(buyer)
         expect(cash(game.state, buyer)).toBe(before - 160)
+        expect(EighteenThirtyCompanyRules.sharesToFloat?.(game.state, 'PRR')).toBe(5)
     })
 
     it('holds the auction until the B&O buyer sets B&O’s par, then starts the stock round', () => {
@@ -148,6 +152,32 @@ describe('auction awards', () => {
     })
 })
 
+describe('contested B&O', () => {
+    it('awaits the par of the B&O won by bidding', () => {
+        const game = play('opening')
+        const first = game.state.activePlayerIds[0]
+        game.act('ReserveBid', { lotId: 'BOP', amount: 225 })
+        const rival = game.state.activePlayerIds[0]
+        game.act('ReserveBid', { lotId: 'BOP', amount: 230 })
+        while (
+            new ReserveBidAuction(game.state, EighteenThirtyAuctionRules).auction
+                .remainingLotIds[0] !== 'BOP'
+        ) {
+            const auction = new ReserveBidAuction(game.state, EighteenThirtyAuctionRules)
+            const lotId = auction.auction.remainingLotIds[0]
+            game.act('BuyAuctionLot', { lotId, expectedPrice: auction.price(lotId) })
+        }
+        expect(game.state.machineState).toBe('AuctionBidding')
+        expect(game.state.activePlayerIds).toEqual([first])
+        game.act('PassAuction')
+        expect(game.state.pendingPar).toEqual({ companyId: 'BO', playerId: rival })
+        expect(game.valid(rival)).toEqual(['ParCompany'])
+        game.act('ParCompany', { companyId: 'BO', marketSpaceId: '0:6' })
+        expect(game.state.machineState).toBe('StockRound')
+        expect(getCompany(game.state, 'BO').president).toEqual({ kind: 'player', playerId: rival })
+    })
+})
+
 describe('B&O private closure', () => {
     it('closes when the B&O railroad buys a train, not when another company does', () => {
         const { game } = auctionToBaltimore()
@@ -170,6 +200,52 @@ describe('B&O private closure', () => {
         expect(state.certificates.find((item) => item.id === 'BOP:charter')).toMatchObject({
             retired: true
         })
+    })
+})
+
+describe('B&O private closure by an intercompany train purchase', () => {
+    it('closes when B&O buys a train from another company', () => {
+        const { game, buyers } = auctionToBaltimore()
+        game.act('ParCompany', { companyId: 'BO', marketSpaceId: '0:6' })
+        const seller = game.state.players.find((player) => player.playerId !== buyers.BOP)
+        assert(seller, 'Another player presides PRR')
+        const state = structuredClone(game.state)
+        getCompany(state, 'PRR').president = { kind: 'player', playerId: seller.playerId }
+        state.machineState = 'BuyingTrains'
+        state.operatingSet = {
+            number: 1,
+            roundNumber: 1,
+            roundCount: 1,
+            companyOrder: ['BO'],
+            completedCompanyIds: [],
+            privateIncomePaid: true,
+            completed: false
+        }
+        state.trainPurchaseStep = { companyId: 'BO', purchasedTrainIds: [] }
+        for (const account of state.cash)
+            if (account.owner.kind === 'company' && account.owner.companyId === 'BO')
+                account.amount = 200
+        const train = EighteenThirtyTrainDepot.nextTrain(state.trainInventory, '2')
+        assert(train, 'The depot has a 2-train')
+        EighteenThirtyTrainDepot.purchase(state.trainInventory, train.id, '2', {
+            kind: 'company',
+            companyId: 'PRR'
+        })
+        settlePurchaseOffer(
+            state,
+            {
+                id: 'offer',
+                companyId: 'BO',
+                asset: { kind: 'train', trainId: train.id },
+                seller: { kind: 'company', companyId: 'PRR' },
+                price: 50,
+                buyerPlayerId: buyers.BOP,
+                sellerPlayerId: seller.playerId
+            },
+            EighteenThirtyTransferRules,
+            EighteenThirtyTrainRules
+        )
+        expect(getCompany(state, 'BOP').closed).toBe(true)
     })
 })
 
@@ -297,6 +373,7 @@ describe('Delaware & Hudson', () => {
 })
 
 describe('Mohawk & Hudson', () => {
+    const alex = { kind: 'player', playerId: 'alex' } as const
     it('exchanges for an NYC share in its owner’s stock turn', () => {
         const game = play('trading', (state) =>
             givePrivate(state, 'MH', { kind: 'player', playerId: 'alex' })
@@ -308,6 +385,39 @@ describe('Mohawk & Hudson', () => {
             playerId: 'alex'
         })
         expect(getCompany(game.state, 'MH').closed).toBe(true)
+    })
+
+    it('exchanges between turns of an operating round, within the 60% limit', () => {
+        const game = play('construction', (state) =>
+            givePrivate(state, 'MH', { kind: 'player', playerId: 'casey' })
+        )
+        expect(game.state.machineState).toBe('LayingTrack')
+        expect(game.valid('casey')).toContain('ExchangePrivateOutOfTurn')
+        game.act(
+            'ExchangePrivateOutOfTurn',
+            {
+                privateCompanyId: 'MH',
+                certificateId: 'NYC:share:5',
+                outOfTurn: true,
+                sequenced: true
+            },
+            'casey'
+        )
+        expect(certificateOwner(game.state, 'NYC:share:5')).toEqual({
+            kind: 'player',
+            playerId: 'casey'
+        })
+
+        const limited = play('construction', (state) => {
+            givePrivate(state, 'MH', alex)
+            for (const id of ['NYC:share:5', 'NYC:share:6', 'NYC:share:7']) {
+                const certificate = state.certificates.find((item) => item.id === id)
+                assert(certificate && !certificate.retired, `Missing ${id}`)
+                certificate.owner = alex
+                delete certificate.poolId
+            }
+        })
+        expect(limited.valid('alex')).not.toContain('ExchangePrivateOutOfTurn')
     })
 
     it('exchanges out of turn', () => {

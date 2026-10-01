@@ -39,6 +39,7 @@ import {
     isBuyAuctionLot,
     isPassAuction,
     isResolveAuction,
+    stockMarketSpace,
     type Owner,
     type PresidencyChange,
     type EighteenXXState
@@ -84,9 +85,7 @@ export function historyDescription(
         return `${certificate.shares} ${companyName(certificate.companyId)}`
     }
     function marketPrice(id: string) {
-        const space = state.stockMarket.spaces.find((item) => item.id === id)
-        assertExists(space, 'Recorded market movement requires its space')
-        return space.price
+        return stockMarketSpace(state.stockMarket, id).price
     }
     function shares(certificateId: string) {
         const certificate = state.certificates.find((item) => item.id === certificateId)
@@ -231,14 +230,11 @@ export function historyDescription(
                 : undefined,
             important: true
         }
-    if (isParCompany(action)) {
-        const space = state.stockMarket.spaces.find((item) => item.id === action.marketSpaceId)
-        assertExists(space, 'Recorded par requires its market space')
+    if (isParCompany(action))
         return {
-            text: `Set ${companyName(action.companyId)}’s par at ${money(space.price)}`,
+            text: `Set ${companyName(action.companyId)}’s par at ${money(marketPrice(action.marketSpaceId))}`,
             important: true
         }
-    }
     if (isPrivateExchangeAction(action))
         return {
             text: `Exchanged ${companyName(action.privateCompanyId)}`,

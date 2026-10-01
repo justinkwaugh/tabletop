@@ -215,25 +215,11 @@ export class MapModule {
     }
 
     private chooseHome(selection: MapSelection) {
-        if (selection.kind !== 'slot' && selection.kind !== 'node') return
-        const position = this.stations.homeChoice?.positions.find(
-            (position) =>
-                position.locationId === selection.locationId && position.nodeId === selection.nodeId
-        )
+        const position = offeredCity(this.stations.homeChoice?.positions ?? [], selection)
         if (position) void this.stations.chooseHome(position)
     }
     private placePrivateStation(selection: MapSelection) {
-        const positions = this.stations.privateStationPositions.filter(
-            (position) => position.locationId === selection.locationId
-        )
-        const position =
-            positions.length === 1
-                ? positions[0]
-                : positions.find(
-                      (position) =>
-                          (selection.kind === 'slot' || selection.kind === 'node') &&
-                          position.nodeId === selection.nodeId
-                  )
+        const position = offeredCity(this.stations.privateStationPositions, selection)
         if (position) void this.stations.placePrivateStation(position)
     }
     private placeStation(selection: MapSelection) {
@@ -264,4 +250,15 @@ export class MapModule {
             view.placements
         )
     }
+}
+
+function offeredCity<Position extends { locationId: string; nodeId: string }>(
+    positions: readonly Position[],
+    selection: MapSelection
+): Position | undefined {
+    const offered = positions.filter((position) => position.locationId === selection.locationId)
+    if (offered.length === 1) return offered[0]
+    return selection.kind === 'slot' || selection.kind === 'node'
+        ? offered.find((position) => position.nodeId === selection.nodeId)
+        : undefined
 }

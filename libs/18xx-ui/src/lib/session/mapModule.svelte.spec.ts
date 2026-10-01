@@ -210,8 +210,6 @@ describe('MapModule', () => {
         )
         const map = new MapModule(session, () => view, track, stations, routes)
         expect(stations.homeLocationIds).toEqual([TestTrackHomeLocationId])
-        map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
-        expect(applied).toEqual([])
         map.select({ kind: 'slot', ...home, slot: 0 })
         await Promise.resolve()
         expect(applied).toMatchObject([

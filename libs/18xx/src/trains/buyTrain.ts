@@ -102,6 +102,11 @@ export function closePrivatesOnTrainPurchase(
     rules: TrainRules,
     companyId: string
 ): void {
-    for (const privateCompanyId of rules.privatesClosedByPurchase?.(state, companyId) ?? [])
-        if (!getCompany(state, privateCompanyId).closed) closePrivate(state, privateCompanyId)
+    for (const privateCompanyId of rules.privatesClosedByPurchase?.(state, companyId) ?? []) {
+        assert(
+            !getCompany(state, privateCompanyId).closed,
+            'Only an open private closes on a train purchase'
+        )
+        closePrivate(state, privateCompanyId)
+    }
 }
