@@ -527,6 +527,10 @@ test('scenario 39: Trade lists every trade at the site, a strip tap marks a row,
     await expect(page.getByRole('button', { name: 'Trade with Book Binders: pay 2 favor, get 2 secrets' })).toBeVisible()
     await expect(rows.nth(1)).toContainText('bank empty')
     await expect(rows.nth(1)).toContainText('no faceup')
+    const name = await rows.nth(0).getByText('Book Binders', { exact: true }).boundingBox()
+    const firstButton = await rows.nth(0).getByRole('button').first().boundingBox()
+    if (!name || !firstButton) throw Error('The row is on screen')
+    expect(firstButton.x - name.x).toBeLessThan(260)
 
     await page.getByRole('button', { name: 'Assassin', exact: true }).click()
     await expect(rows.nth(1)).toHaveClass(/ring-2/)

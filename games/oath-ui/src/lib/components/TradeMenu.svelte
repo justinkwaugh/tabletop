@@ -36,7 +36,8 @@
             class:ring-oath-accent={marked === row.cardId}
         >
             <img class="h-8 w-8 shrink-0" src={suitImage(row.suit)} alt={suitName(row.suit)} />
-            <span class="min-w-0 flex-1 text-[15px] font-bold max-sm:basis-[calc(100%-3rem)]"
+            <span
+                class="w-56 min-w-0 shrink-0 text-[15px] font-bold max-sm:w-auto max-sm:basis-[calc(100%-3rem)]"
                 >{cardName(row.cardId)}</span
             >
             <span class="flex gap-1.5 max-sm:basis-full">
