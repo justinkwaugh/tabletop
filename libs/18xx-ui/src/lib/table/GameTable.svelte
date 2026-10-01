@@ -877,7 +877,6 @@
     use:frameStartCompany={session.stock.selectedStartCompany}
     use:frameHistory={settledHistoricalFocus}
     style:--rail-table-background={boardArtwork?.backgroundColor}
-    style:--rail-map-background={boardArtwork?.backgroundColor}
     style:--table-header-offset="calc(var(--app-navbar-height, 0px) + {session.isViewingHistory
         ? 14
         : 0}px)"
@@ -1452,7 +1451,6 @@
         --rail-shadow: #00000055;
         --rail-backdrop: #080f18bb;
         --rail-table-background: #18212b;
-        --rail-map-background: #172832;
     }
     /* Published artwork: the board's own palette. Bright text is its light tan paper, dimmed
        text the grey-tan of its stock market figures, and surfaces its slate market cells on the
@@ -1627,7 +1625,6 @@
         font-weight: 400;
     }
     .map-area {
-        background: var(--rail-map-background, #cbdfe8);
         position: relative;
     }
     .map-area.board-area {
