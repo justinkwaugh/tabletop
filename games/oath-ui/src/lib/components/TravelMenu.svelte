@@ -60,7 +60,7 @@
                         cardBack(CardKind.Site)}
                     imageAlt=""
                     name={nameOf(row)}
-                    wide
+                    shape="wide"
                 >
                     {#each row.ways as way, index (index)}
                         <MenuChoice

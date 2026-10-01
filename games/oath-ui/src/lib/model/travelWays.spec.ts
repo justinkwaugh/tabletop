@@ -88,9 +88,9 @@ describe('R-7.4 — a declared modifier lights the Muster and Search targets it 
     it('Mushrooms lights the discard pile to search at 0 Supply', () => {
         const MUSHROOMS = 'denizen.beast.mushrooms'
         const session = actingAt0Supply({}, { c1: [MUSHROOMS] }, ActionType.Search)
-        expect(session.searchSources).not.toContain(SearchSource.Discard)
+        expect(session.searchRows.map((row) => row.source)).not.toContain(SearchSource.Discard)
         session.modifiers.declare({ cardId: MUSHROOMS, powerIndex: powerIndexOf(MUSHROOMS, PowerTiming.Modifier) }, true)
-        expect(session.searchSources).toContain(SearchSource.Discard)
+        expect(session.searchRows.map((row) => row.source)).toContain(SearchSource.Discard)
     })
 })
 

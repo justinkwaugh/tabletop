@@ -1,14 +1,29 @@
 import {
+    PowerChoiceKind,
     legalChoices,
     usableModifiers,
     type CardPower,
     type LegalChoice,
     type ModifierUse,
-    type PowerUseKey
+    type PowerUseKey,
+    type Region
 } from '@tabletop/oath'
-import { emptyPicks, powerChoicesFrom, type PowerChoicePicks } from './powerChoices.js'
+import {
+    emptyPicks,
+    powerChoicesFrom,
+    withOptionPick,
+    type PowerChoicePicks
+} from './powerChoices.js'
 import { samePowerUse } from './powerUse.js'
 import type { OathGameSession } from './session.svelte.js'
+
+/** One region a declared modifier may name, with the declarations that would name it. */
+export type RegionVariant = {
+    region: Region
+    modifiers: ModifierUse[]
+    use: PowerUseKey
+    picks: PowerChoicePicks
+}
 
 /** R-7.4 — the modifiers usable with the staged action, and the choices each one's text opens. */
 export class ModifierDeclarations {
@@ -55,6 +70,34 @@ export class ModifierDeclarations {
             this.session.selection.modifiers.find((m) => samePowerUse(m.use, use))?.picks ??
             emptyPicks()
         )
+    }
+
+    /** R-7.4 — each region a declared modifier lets the player name, as Errand Boy and Observatory do. */
+    get regionVariants(): RegionVariant[] {
+        const playerId = this.session.liveSeatId
+        const action = this.session.selection.action
+        if (!playerId || !action) return []
+        const state = this.session.gameState
+        const usable = usableModifiers(state, playerId, action)
+        const declared = this.declared
+        for (const entry of this.session.selection.modifiers) {
+            const power = usable.find((p) => samePowerUse(p, entry.use))
+            if (!power) continue
+            const legal = legalChoices(state, playerId, power)
+            const index = legal.findIndex((choice) =>
+                choice.options.some((option) => option.kind === PowerChoiceKind.Region)
+            )
+            const choice = legal[index]
+            if (!choice) continue
+            return choice.options.flatMap((option, pick) => {
+                if (option.kind !== PowerChoiceKind.Region) return []
+                const picks = withOptionPick(entry.picks ?? emptyPicks(), choice, index, pick)
+                const named = { ...entry.use, choices: powerChoicesFrom(legal, picks) }
+                const modifiers = declared.map((m) => (samePowerUse(m, entry.use) ? named : m))
+                return [{ region: option.region, modifiers, use: entry.use, picks }]
+            })
+        }
+        return []
     }
 
     setPicks(use: PowerUseKey, picks: PowerChoicePicks): void {

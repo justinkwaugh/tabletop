@@ -12,6 +12,7 @@
     import ModifierPicker from '$lib/components/ModifierPicker.svelte'
     import PowerPanel from '$lib/components/PowerPanel.svelte'
     import MusterMenu from '$lib/components/MusterMenu.svelte'
+    import SearchMenu from '$lib/components/SearchMenu.svelte'
     import TradeMenu from '$lib/components/TradeMenu.svelte'
     import TravelMenu from '$lib/components/TravelMenu.svelte'
     import BannerRecoverPanel from '$lib/components/BannerRecoverPanel.svelte'
@@ -186,6 +187,12 @@
             {#if chosen === ActionType.UseActionPower}
                 <div class="mb-2">
                     <PowerPanel />
+                </div>
+            {/if}
+
+            {#if chosen === ActionType.Search}
+                <div class="mb-2">
+                    <SearchMenu />
                 </div>
             {/if}
 

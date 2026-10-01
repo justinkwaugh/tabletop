@@ -1,9 +1,7 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
     import {
-        ActionType,
         CardKind,
-        DISCARD_SEARCH_SUPPLY_COST,
         FAVOR_BANK_ORDER,
         FINAL_ROUND,
         type Region,
@@ -14,6 +12,7 @@
     import { visionsMarkerImage } from '$lib/images/tileImages.js'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import type { SearchRow } from '$lib/model/searchRows.js'
     import { cardAspect } from '$lib/images/cardShape.js'
     import {
         DISCARD_CARD_INSET,
@@ -57,16 +56,12 @@
 
     let roundCenter = $derived(roundMarkerCenter(gameState.round))
 
-    // R-5.1.1 — a Search picks its source.
-    let searching = $derived(gameSession.selection.action === ActionType.Search)
-    let sources = $derived(searching ? gameSession.searchSources : [])
-    let myRegion = $derived.by(() => {
-        const siteId = gameSession.myPlayerState?.siteId
-        return siteId ? gameState.regionOf(siteId) : undefined
-    })
-    let worldDeckPickable = $derived(sources.includes(SearchSource.WorldDeck))
-    function discardPickable(region: Region): boolean {
-        return sources.includes(SearchSource.Discard) && region === myRegion
+    // R-5.1.1, R-7.4 — the board lights each source the Search menu lists, at its price.
+    let rows = $derived(gameSession.searchRows)
+    let worldDeckRow = $derived(rows.find((row) => row.source === SearchSource.WorldDeck))
+    let worldDeckPickable = $derived(worldDeckRow !== undefined)
+    function discardRow(region: Region): SearchRow | undefined {
+        return rows.find((row) => row.source === SearchSource.Discard && row.region === region)
     }
 </script>
 
@@ -127,7 +122,8 @@
     {@const box = DISCARD_RECTS[region]}
     {@const count = gameState.discardPileCountIn(region)}
     {@const back = gameState.discardTopBackIn(region)}
-    {@const pickable = discardPickable(region)}
+    {@const row = discardRow(region)}
+    {@const pickable = row !== undefined}
     <button
         type="button"
         class="discard"
@@ -135,10 +131,12 @@
         class:pickable
         disabled={!pickable}
         title={pickable
-            ? `Search this discard pile — ${DISCARD_SEARCH_SUPPLY_COST} Supply`
+            ? `Search this discard pile — ${row.cost} Supply`
             : `${count} cards in the ${region} discard pile`}
         style="left:{box.x}px; top:{box.y}px; width:{box.width}px; height:{box.height}px;"
-        onclick={() => void gameSession.chooseSearchSource(SearchSource.Discard)}
+        onclick={() => {
+            if (row) void gameSession.searchFrom(row)
+        }}
     >
         {#if count > 0 && back}
             {@const pile = laidCardIn(box, WORLD_ASPECT, DISCARD_CARD_INSET)}
@@ -151,9 +149,7 @@
             </span>
         {/if}
         <span class="discard__count">{count}</span>
-        {#if pickable}<span class="pick-cost pick-cost--discard"
-                >{DISCARD_SEARCH_SUPPLY_COST} supply</span
-            >{/if}
+        {#if row}<span class="pick-cost pick-cost--discard">{row.cost} supply</span>{/if}
     </button>
 {/each}
 
@@ -165,10 +161,8 @@
 <!-- R-2.7 — the World Deck, sideways. Its count is private; the top card's back
      type is public and is what says a Vision is next (R-2.7.1). -->
 {#snippet worldDeckFace()}
-    {#if worldDeckPickable}
-        <span class="pick-cost pick-cost--deck"
-            >{worldDeckSearchCost(gameState.visionsDrawn)} supply</span
-        >
+    {#if worldDeckRow}
+        <span class="pick-cost pick-cost--deck">{worldDeckRow.cost} supply</span>
     {/if}
     {#if gameState.worldDeckExhausted}
         <span class="deck__exhausted" style="width:{worldDeckCard.height}px;">exhausted</span>
@@ -184,9 +178,11 @@
     <button
         type="button"
         class="deck deck--laid pickable"
-        title="Search the world deck — {worldDeckSearchCost(gameState.visionsDrawn)} Supply"
+        title="Search the world deck — {worldDeckRow?.cost} Supply"
         style="left:{worldDeckCenter.x}px; top:{worldDeckCenter.y}px;"
-        onclick={() => void gameSession.chooseSearchSource(SearchSource.WorldDeck)}
+        onclick={() => {
+            if (worldDeckRow) void gameSession.searchFrom(worldDeckRow)
+        }}
     >
         {@render worldDeckFace()}
     </button>

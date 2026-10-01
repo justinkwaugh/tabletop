@@ -24,7 +24,6 @@ import {
     HydratedMuster,
     HydratedPeek,
     HydratedPlayFacedownAdviser,
-    HydratedSearch,
     HydratedTrade,
     HydratedTravel,
     MachineState,
@@ -122,6 +121,7 @@ import {
 } from './actionOffers.js'
 import { tollLabel } from './offerText.js'
 import { musterRows, type MusterRow } from './musterRows.js'
+import { searchRows, type SearchRow } from './searchRows.js'
 import { tradeRows, type TradeRow } from './tradeRows.js'
 import { travelRows, type TravelRow } from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
@@ -987,11 +987,25 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    get searchSources(): SearchSource[] {
+    // R-5.1.1, R-7.4 — every source with its price, each pile a declared modifier may name.
+    get searchRows(): SearchRow[] {
         const playerId = this.liveTurnSeatId
-        if (!playerId) return []
-        if (this.selection.action !== ActionType.Search) return []
-        return HydratedSearch.legalSources(this.gameState, playerId, this.modifiers.declared)
+        if (!playerId || this.selection.action !== ActionType.Search) return []
+        return searchRows(
+            this.gameState,
+            playerId,
+            this.modifiers.declared,
+            this.modifiers.regionVariants
+        )
+    }
+
+    async searchFrom(row: SearchRow): Promise<void> {
+        if (row.variant !== undefined) {
+            const variant = this.modifiers.regionVariants[row.variant]
+            if (!variant) return
+            this.modifiers.setPicks(variant.use, variant.picks)
+        }
+        await this.chooseSearchSource(row.source)
     }
 
     knownRelicAt(slotId: string | undefined): string | undefined {

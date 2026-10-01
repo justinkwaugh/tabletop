@@ -560,6 +560,18 @@ test('scenario 4: Travel lists every affordable destination under its region, a 
     await expect(cradle).toHaveCount(0)
 })
 
+test('scenario 49: Search lists each source it can draw from, a button draws', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Search').click()
+    const rows = page.getByRole('list', { name: 'Sources to search' }).getByRole('listitem')
+    await expect(rows.first()).toContainText('The world deck')
+    const deck = page.getByRole('button', { name: /^Search the world deck: spend \d Supply, draw 3$/ })
+    await expect(deck).toBeVisible()
+    await expect(boardOffers(page).or(page.locator('.deck.pickable'))).not.toHaveCount(0)
+    await deck.click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('Searching')
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()

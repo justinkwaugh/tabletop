@@ -173,7 +173,7 @@ export function actionPrompt(action: ActionType, state: PromptState): string {
         case ActionType.Recover:
             return 'Tap a lit relic at your site, or a lit banner — on the map or on its holder.'
         case ActionType.Search:
-            return 'Tap the deck or discard pile to draw from.'
+            return 'Choose where to draw from.'
         case ActionType.PlayFacedownAdviser:
             return state.adviserChosen
                 ? 'Choose where it goes.'
