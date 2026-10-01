@@ -3,12 +3,14 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { shopRect } from '$lib/utils/boardGeometry.js'
     import { MarketPalettes } from '$lib/utils/marketColors.js'
+    import MarketMark from '$lib/components/MarketMark.svelte'
 
     let { shop }: { shop: ShopState } = $props()
     const gameSession = getGameSession()
 
     let rect = $derived(shopRect(shop.shopId, 6))
-    let palette = $derived(MarketPalettes[getShop(shop.shopId).color])
+    let shopColor = $derived(getShop(shop.shopId).color)
+    let palette = $derived(MarketPalettes[shopColor])
     let centerX = $derived(rect.x + rect.width / 2)
     let centerY = $derived(rect.y + rect.height / 2)
 </script>
@@ -33,6 +35,7 @@
         fill={palette.fill}
         opacity="0.55"
     />
+    <MarketMark color={shopColor} x={rect.x + 20} y={rect.y + 20} size={20} />
     {#if shop.ownerId}
         <circle
             cx={centerX}

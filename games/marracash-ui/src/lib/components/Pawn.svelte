@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { MarketColor } from '@tabletop/marracash'
     import { MarketPalettes } from '$lib/utils/marketColors.js'
+    import MarketMark from '$lib/components/MarketMark.svelte'
 
     let { color, x, y, size = 18 }: { color: MarketColor; x: number; y: number; size?: number } =
         $props()
@@ -16,4 +17,5 @@
         stroke={palette.stroke}
         stroke-width="1.5"
     />
+    <MarketMark {color} x={0} y={4} size={7} />
 </g>
