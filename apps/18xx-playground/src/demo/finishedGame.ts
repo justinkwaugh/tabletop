@@ -1,16 +1,27 @@
 import { assert, assertExists, Game, GameAction, GameEngine, GameStatus } from '@tabletop/common'
-import { EighteenXXStateValidator } from '@tabletop/18xx'
+import type { EighteenXXState } from '@tabletop/18xx'
 import * as Value from 'typebox/value'
-import { PlaygroundTitles } from '../titles.js'
+import { PlaygroundTitles, type FinishedGameFixture, type PlaygroundTitle } from '../titles.js'
 
 export async function finishedGame(ownerId: string, name: string, typeId: string) {
     const title = PlaygroundTitles.find((candidate) => candidate.scenarios.info.id === typeId)
     assertExists(title?.finishedGame, 'This title has no finished game')
-    const fixture = (await title.finishedGame()).default
+    return replayFinishedGame(title, (await title.finishedGame()).default, ownerId, name)
+}
+
+export async function replayFinishedGame(
+    title: PlaygroundTitle,
+    fixture: FinishedGameFixture,
+    ownerId: string,
+    name: string
+) {
     const game = Value.Convert(Game, structuredClone(fixture.game))
     assert(Value.Check(Game, game), 'Invalid finished game definition')
     const initialState: unknown = structuredClone(fixture.initialState)
-    assert(EighteenXXStateValidator.Check(initialState), 'Invalid finished game opening state')
+    const validator = title.scenarios.runtime.canonicalStateValidator
+    assertExists(validator, 'An 18xx runtime validates its canonical state')
+    const isTitleState = (value: unknown): value is EighteenXXState => validator.Check(value)
+    assert(isTitleState(initialState), 'Invalid finished game opening state')
     game.ownerId = ownerId
     game.name = name
     game.players = game.players.map((player) => ({ ...player, userId: ownerId }))

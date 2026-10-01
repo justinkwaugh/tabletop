@@ -70,8 +70,7 @@ export function privateSaleReason(
     if (cash === undefined || (cash !== 'unlimited' && cash < price))
         return 'The buyer cannot afford this price.'
     const certificate = privateCharter(state, privateCompanyId)
-    // Stricter than the reference engine, which forces sales afterwards; 1830's rules forbid
-    // buying past the certificate limit.
+    // 1830's rules forbid buying past the certificate limit rather than forcing sales afterwards.
     if (!certificateLimitAllows(state, { kind: 'player', playerId }, certificate, rules))
         return 'The purchase exceeds the certificate limit.'
     return undefined

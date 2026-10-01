@@ -1,7 +1,7 @@
 import { FlatHexDirection, HexOrientation, PointyHexDirection } from '@tabletop/common'
 import type { TileEdge, TileEndpoint, TileFace, TilePath, TileRotation } from './tile.js'
 
-const Edges: readonly TileEdge[] = [0, 1, 2, 3, 4, 5]
+export const TileEdges: readonly TileEdge[] = [0, 1, 2, 3, 4, 5]
 const FlatDirections: Record<TileEdge, FlatHexDirection> = {
     0: FlatHexDirection.South,
     1: FlatHexDirection.Southwest,
@@ -39,7 +39,7 @@ export function tileEdgeDirection(
 }
 
 export function rotateTileEdge(edge: TileEdge, rotation: TileRotation): TileEdge {
-    return Edges[(edge + rotation) % 6]
+    return TileEdges[(edge + rotation) % 6]
 }
 
 export function rotateTileFace(face: TileFace, rotation: TileRotation): TileFace {

@@ -1,21 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
 import {
-    ReserveBidAuction,
     StandardTileCatalog,
     StationPlacement,
     TrackConstruction,
-    EighteenXXStateValidator,
     rotateTileFace,
     tileUpgradeMappings,
     type EighteenXXState,
     type TileRotation
 } from '@tabletop/18xx'
-import { exampleGame } from '@tabletop/18xx/scenarios'
+import { exampleGame, playExample } from '@tabletop/18xx/scenarios'
 import { Definition } from './definition/gameDefinition.js'
-import { EighteenThirtyScenarios } from './scenarios/index.js'
+import { EighteenThirtyScenarios, completeOpeningAuction } from './scenarios/index.js'
 import {
-    EighteenThirtyAuctionRules,
     EighteenThirtyMap,
     EighteenThirtyStationRules,
     EighteenThirtyTileSet,
@@ -27,55 +23,27 @@ const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
 // Plays the opening auction, floats Erie at $100 and passes to Erie's first operating turn,
 // optionally changing the map before the stock round ends.
 function erieOperates(prepareMap: (state: EighteenXXState) => EighteenXXState = (state) => state) {
-    const { game, engine, state: initial } = exampleGame(EighteenThirtyScenarios, 'opening', 3)
-    let state: EighteenXXState = initial
-    const act = (type: string, fields: object = {}) => {
-        const action: GameAction = {
-            id: `action:${state.actionCount}`,
-            gameId: game.id,
-            source: ActionSource.User,
-            playerId: state.activePlayerIds[0],
-            type,
-            ...fields
-        }
-        state = engine.executeCanonicalAction({ game, state, action }).updatedState
-        expect(EighteenXXStateValidator.Check(state)).toBe(true)
-    }
-    const player = () => ({ kind: 'player', playerId: state.activePlayerIds[0] }) as const
-    while (state.machineState === 'WaterfallAuction') {
-        if (state.pendingPar) {
-            act('ParCompany', { companyId: 'BO', marketSpaceId: '0:6' })
-            continue
-        }
-        const auction = new ReserveBidAuction(state, EighteenThirtyAuctionRules)
-        const lotId = auction.auction.remainingLotIds[0]
-        act('BuyAuctionLot', { lotId, expectedPrice: auction.price(lotId) })
-    }
-    act('StartCompany', {
+    const play = playExample(EighteenThirtyScenarios, 'opening', 3)
+    const player = () => ({ kind: 'player', playerId: play.state.activePlayerIds[0] }) as const
+    completeOpeningAuction(play)
+    play.act('StartCompany', {
         buyer: player(),
         companyId: 'ERIE',
         marketSpaceId: '0:6',
         expectedPrice: 200
     })
-    act('FinishStockTurn')
+    play.act('FinishStockTurn')
     for (const share of [1, 2, 3, 4]) {
-        act('BuyShares', {
+        play.act('BuyShares', {
             buyer: player(),
             certificateId: `ERIE:share:${share}`,
             expectedPrice: 100
         })
-        act('FinishStockTurn')
+        play.act('FinishStockTurn')
     }
-    state = prepareMap(state)
-    expect(EighteenXXStateValidator.Check(state)).toBe(true)
-    while (state.machineState === 'StockRound') act('FinishStockTurn')
-    return {
-        get state() {
-            return state
-        },
-        act,
-        valid: (playerId: string) => engine.getValidActionTypesForPlayer(game, state, playerId)
-    }
+    play.replaceState(prepareMap(play.state))
+    while (play.state.machineState === 'StockRound') play.act('FinishStockTurn')
+    return play
 }
 
 describe("Erie's whole-hex home", () => {

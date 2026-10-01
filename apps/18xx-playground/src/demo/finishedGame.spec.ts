@@ -5,7 +5,8 @@ import { historyGroups } from '../../../../libs/18xx-ui/src/lib/table/historyGro
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { shouldContinueHistoryStep } from '../../../../libs/18xx-ui/src/lib/table/historyNavigation.js'
 import { historyRounds } from '../../../../libs/18xx-ui/src/lib/table/historyRounds.js'
-import { finishedGame } from './finishedGame.js'
+import { finishedGame, replayFinishedGame } from './finishedGame.js'
+import { playgroundTitle } from '../titles.js'
 import { reorderPendingOperatingCompanies, isRunTrains, isDistributeEarnings } from '@tabletop/18xx'
 import { ActionSource, assertExists } from '@tabletop/common'
 
@@ -210,3 +211,27 @@ it('replays the finished 1830 game to its bank-break ending and back', async () 
         restored = engine.applyProcessedAction({ game, state: restored, action })
     expect(restored).toEqual(state)
 }, 120000)
+
+it.each([
+    ['26855', { '82': 2127, '117': 310, '330': 2212, '1627': 1831 }],
+    ['29133', { '1668': 416, '4631': 1477, '4639': 951, '4836': 887 }]
+] as const)(
+    'replays recorded 1830 game %s to its bankruptcy',
+    async (id, wealth) => {
+        const fixture = (await import(`./fixtures/1830-bankruptcy-${id}.json`)).default
+        const { state } = await replayFinishedGame(
+            playgroundTitle('1830'),
+            fixture,
+            'local-user',
+            'Recorded game'
+        )
+        expect(state.machineState).toBe('GameOver')
+        expect(state.gameEnding?.reason).toBe('Bankruptcy')
+        expect(
+            Object.fromEntries(
+                state.finalWealth?.map(({ playerId, total }) => [playerId, total]) ?? []
+            )
+        ).toEqual(wealth)
+    },
+    120000
+)

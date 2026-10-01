@@ -1,49 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
-import {
-    ReserveBidAuction,
-    TrackConstruction,
-    applyStationPlacement,
-    cashOwnedBy,
-    getCompany,
-    EighteenXXStateValidator,
-    type EighteenXXState
-} from '@tabletop/18xx'
-import { exampleGame } from '@tabletop/18xx/scenarios'
-import { EighteenThirtyScenarios } from './scenarios/index.js'
-import {
-    EighteenThirtyAuctionRules,
-    EighteenThirtyTileSet,
-    EighteenThirtyTrackRules
-} from './index.js'
+import { TrackConstruction, applyStationPlacement, cashOwnedBy, getCompany } from '@tabletop/18xx'
+import { exampleGame, playExample } from '@tabletop/18xx/scenarios'
+import { EighteenThirtyScenarios, completeOpeningAuction } from './scenarios/index.js'
+import { EighteenThirtyTileSet, EighteenThirtyTrackRules } from './index.js'
 
 describe('company flotation', () => {
     it('floats NYC at 60% sold with ten times its $100 par', () => {
-        const { game, engine, state: initial } = exampleGame(EighteenThirtyScenarios, 'opening', 3)
-        let state: EighteenXXState = initial
-        const act = (type: string, fields: object = {}) => {
-            const action: GameAction = {
-                id: `action:${state.actionCount}`,
-                gameId: game.id,
-                source: ActionSource.User,
-                playerId: state.activePlayerIds[0],
-                type,
-                ...fields
-            }
-            state = engine.executeCanonicalAction({ game, state, action }).updatedState
-            expect(EighteenXXStateValidator.Check(state)).toBe(true)
-        }
-        const player = () => ({ kind: 'player', playerId: state.activePlayerIds[0] }) as const
-        while (state.machineState === 'WaterfallAuction') {
-            if (state.pendingPar) {
-                act('ParCompany', { companyId: 'BO', marketSpaceId: '0:6' })
-                continue
-            }
-            const auction = new ReserveBidAuction(state, EighteenThirtyAuctionRules)
-            const lotId = auction.auction.remainingLotIds[0]
-            act('BuyAuctionLot', { lotId, expectedPrice: auction.price(lotId) })
-        }
-        expect(state.machineState).toBe('StockRound')
+        const play = playExample(EighteenThirtyScenarios, 'opening', 3)
+        const act = play.act
+        const player = () => ({ kind: 'player', playerId: play.state.activePlayerIds[0] }) as const
+        completeOpeningAuction(play)
+        expect(play.state.machineState).toBe('StockRound')
         act('StartCompany', {
             buyer: player(),
             companyId: 'NYC',
@@ -59,10 +26,10 @@ describe('company flotation', () => {
             })
             act('FinishStockTurn')
         }
-        expect(getCompany(state, 'NYC').floated).toBe(false)
+        expect(getCompany(play.state, 'NYC').floated).toBe(false)
         act('BuyShares', { buyer: player(), certificateId: 'NYC:share:4', expectedPrice: 100 })
-        expect(getCompany(state, 'NYC').floated).toBe(true)
-        expect(cashOwnedBy(state, { kind: 'company', companyId: 'NYC' })).toBe(1000)
+        expect(getCompany(play.state, 'NYC').floated).toBe(true)
+        expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'NYC' })).toBe(1000)
     })
 })
 

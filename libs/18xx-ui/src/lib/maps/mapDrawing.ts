@@ -1,4 +1,4 @@
-import type { StationAppearance } from './stationPresentation.js'
+import type { MapViewDefinition, StationAppearance } from './stationPresentation.js'
 import {
     assert,
     assertExists,
@@ -11,6 +11,7 @@ import {
     type Point
 } from '@tabletop/common'
 import {
+    TileEdges,
     tileEdgeDirection,
     RailwayMapState,
     type RoutePath,
@@ -72,12 +73,9 @@ export type MapDrawnLocation = {
         end: Point
         border: NonNullable<MapLocation['borders']>[number]
     }[]
-    /** Outline segments, without the edges joined to a neighbour of the same area. */
     outline: readonly HexSegment[]
-    joined: boolean
 }
 type HexSegment = { start: Point; end: Point }
-const TileEdges: readonly TileEdge[] = [0, 1, 2, 3, 4, 5]
 export type BoardArtwork = {
     backgroundColor?: string
     imageUrl: string
@@ -152,10 +150,12 @@ function remapFaceEdges(face: TileFace, edges: Readonly<Record<number, number>>)
 export function createMapDrawing(
     map: RailwayMap,
     supply?: { tileSet: TileSet; inventory: TileInventory },
-    layouts: Readonly<Record<string, TileLayout>> = {},
-    markerArt: Readonly<Record<string, MapMarkerArt>> = {},
-    placements: Readonly<Record<string, MapPlacement>> = {},
-    joinedEdges: Readonly<Record<string, readonly TileEdge[]>> = {}
+    {
+        layouts = {},
+        markerArt = {},
+        placements = {},
+        joinedEdges = {}
+    }: Pick<MapViewDefinition, 'layouts' | 'markerArt' | 'placements' | 'joinedEdges'> = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
     const locations = map.definition.locations.map((location): MapDrawnLocation => {
@@ -236,8 +236,7 @@ export function createMapDrawing(
             drawing,
             markerArt,
             borders,
-            outline: TileEdges.filter((edge) => !joined.includes(edge)).map(segment),
-            joined: joined.length > 0
+            outline: TileEdges.filter((edge) => !joined.includes(edge)).map(segment)
         }
     })
     const vertices = locations.flatMap(

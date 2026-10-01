@@ -40,7 +40,6 @@ export type MapViewDefinition = {
      * while the published artwork toggle is on.
      */
     publishedPlacements?: Readonly<Record<string, MapPlacement>>
-    /** Hex edges drawn without an outline so that neighbouring hexes read as one area. */
     joinedEdges?: Readonly<Record<string, readonly TileEdge[]>>
 }
 export function stationMapTokens(

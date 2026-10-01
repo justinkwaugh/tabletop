@@ -21,7 +21,7 @@
                 tileSet: example.tileSet,
                 inventory: prepared ? example.prepared : example.initial
             },
-            example.layouts
+            { layouts: example.layouts }
         )
     )
     let selection = $derived.by((): MapSelection | undefined => {

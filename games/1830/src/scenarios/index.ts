@@ -15,3 +15,4 @@ export const EighteenThirtyScenarios = withScenarios(Definition, EighteenThirtyT
     createFinances: createEighteenThirtyCompanyExample,
     prepareEnding: prepareEighteenThirtyEnding
 })
+export * from './openingPlay.js'

@@ -1,0 +1,7971 @@
+{
+ "game": {
+  "id": "1830-29133",
+  "isPublic": false,
+  "status": "waitingForPlayers",
+  "typeId": "1830",
+  "deleted": false,
+  "name": "Finished game",
+  "ownerId": "user",
+  "players": [
+   {
+    "id": "4836",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "4631",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "4639",
+    "name": "Player 3",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "1668",
+    "name": "Player 4",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "examplePosition": "opening"
+  },
+  "hotseat": true,
+  "winningPlayerIds": [],
+  "seed": 101,
+  "activePlayerIds": [],
+  "createdAt": "2026-10-01T00:00:00.000Z",
+  "storage": "local",
+  "category": "standard"
+ },
+ "initialState": {
+  "systemVersion": 3,
+  "id": "s4S3nGK7x4m-WlXvnxOOn",
+  "gameId": "1830-29133",
+  "seed": 1840195017,
+  "prng": {
+   "seed": 1840195017,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "4240f1ceb6e5af7f13e728bfe3e5744fdc70275bc160af12745af5bd2726e364",
+   "invocations": 0
+  },
+  "masterSeed": "263ddc09134ccd0376ad7c12c666d14b",
+  "activePlayerIds": [
+   "4836"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "4836",
+    "color": "blue"
+   },
+   {
+    "playerId": "4631",
+    "color": "red"
+   },
+   {
+    "playerId": "4639",
+    "color": "green"
+   },
+   {
+    "playerId": "1668",
+    "color": "yellow"
+   }
+  ],
+  "example": "finances",
+  "phaseEvents": [],
+  "usedPrivatePowerIds": [],
+  "machineState": "WaterfallAuction",
+  "stockRound": {
+   "number": 1,
+   "completed": false,
+   "passedPlayerIds": [],
+   "turn": {
+    "acted": false,
+    "bought": false,
+    "soldBeforeBuying": false,
+    "companiesSold": []
+   },
+   "sales": [],
+   "companyPurchases": []
+  },
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "4836",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "4836",
+    "4631",
+    "4639",
+    "1668"
+   ],
+   "turnCounts": {
+    "1668": 0,
+    "4631": 0,
+    "4639": 0,
+    "4836": 0
+   }
+  },
+  "stockMarket": {
+   "spaces": [
+    {
+     "id": "0:0",
+     "price": 60,
+     "row": 0,
+     "column": 0,
+     "color": "yellow",
+     "moves": {
+      "down": "1:0",
+      "right": "0:1"
+     }
+    },
+    {
+     "id": "0:1",
+     "price": 67,
+     "row": 0,
+     "column": 1,
+     "color": "white",
+     "moves": {
+      "down": "1:1",
+      "left": "0:0",
+      "right": "0:2"
+     }
+    },
+    {
+     "id": "0:2",
+     "price": 71,
+     "row": 0,
+     "column": 2,
+     "color": "white",
+     "moves": {
+      "down": "1:2",
+      "left": "0:1",
+      "right": "0:3"
+     }
+    },
+    {
+     "id": "0:3",
+     "price": 76,
+     "row": 0,
+     "column": 3,
+     "color": "white",
+     "moves": {
+      "down": "1:3",
+      "left": "0:2",
+      "right": "0:4"
+     }
+    },
+    {
+     "id": "0:4",
+     "price": 82,
+     "row": 0,
+     "column": 4,
+     "color": "white",
+     "moves": {
+      "down": "1:4",
+      "left": "0:3",
+      "right": "0:5"
+     }
+    },
+    {
+     "id": "0:5",
+     "price": 90,
+     "row": 0,
+     "column": 5,
+     "color": "white",
+     "moves": {
+      "down": "1:5",
+      "left": "0:4",
+      "right": "0:6"
+     }
+    },
+    {
+     "id": "0:6",
+     "price": 100,
+     "row": 0,
+     "column": 6,
+     "color": "pink",
+     "moves": {
+      "down": "1:6",
+      "left": "0:5",
+      "right": "0:7"
+     }
+    },
+    {
+     "id": "0:7",
+     "price": 112,
+     "row": 0,
+     "column": 7,
+     "color": "white",
+     "moves": {
+      "down": "1:7",
+      "left": "0:6",
+      "right": "0:8"
+     }
+    },
+    {
+     "id": "0:8",
+     "price": 126,
+     "row": 0,
+     "column": 8,
+     "color": "white",
+     "moves": {
+      "down": "1:8",
+      "left": "0:7",
+      "right": "0:9"
+     }
+    },
+    {
+     "id": "0:9",
+     "price": 142,
+     "row": 0,
+     "column": 9,
+     "color": "white",
+     "moves": {
+      "down": "1:9",
+      "left": "0:8",
+      "right": "0:10"
+     }
+    },
+    {
+     "id": "0:10",
+     "price": 160,
+     "row": 0,
+     "column": 10,
+     "color": "white",
+     "moves": {
+      "down": "1:10",
+      "left": "0:9",
+      "right": "0:11"
+     }
+    },
+    {
+     "id": "0:11",
+     "price": 180,
+     "row": 0,
+     "column": 11,
+     "color": "white",
+     "moves": {
+      "down": "1:11",
+      "left": "0:10",
+      "right": "0:12"
+     }
+    },
+    {
+     "id": "0:12",
+     "price": 200,
+     "row": 0,
+     "column": 12,
+     "color": "white",
+     "moves": {
+      "down": "1:12",
+      "left": "0:11",
+      "right": "0:13"
+     }
+    },
+    {
+     "id": "0:13",
+     "price": 225,
+     "row": 0,
+     "column": 13,
+     "color": "white",
+     "moves": {
+      "down": "1:13",
+      "left": "0:12",
+      "right": "0:14"
+     }
+    },
+    {
+     "id": "0:14",
+     "price": 250,
+     "row": 0,
+     "column": 14,
+     "color": "white",
+     "moves": {
+      "down": "1:14",
+      "left": "0:13",
+      "right": "0:15"
+     }
+    },
+    {
+     "id": "0:15",
+     "price": 275,
+     "row": 0,
+     "column": 15,
+     "color": "white",
+     "moves": {
+      "down": "1:15",
+      "left": "0:14",
+      "right": "0:16"
+     }
+    },
+    {
+     "id": "0:16",
+     "price": 300,
+     "row": 0,
+     "column": 16,
+     "color": "white",
+     "moves": {
+      "down": "1:16",
+      "left": "0:15",
+      "right": "0:17"
+     }
+    },
+    {
+     "id": "0:17",
+     "price": 325,
+     "row": 0,
+     "column": 17,
+     "color": "white",
+     "moves": {
+      "down": "1:17",
+      "left": "0:16",
+      "right": "0:18"
+     }
+    },
+    {
+     "id": "0:18",
+     "price": 350,
+     "row": 0,
+     "column": 18,
+     "color": "white",
+     "moves": {
+      "down": "1:18",
+      "left": "0:17"
+     }
+    },
+    {
+     "id": "1:0",
+     "price": 53,
+     "row": 1,
+     "column": 0,
+     "color": "yellow",
+     "moves": {
+      "up": "0:0",
+      "down": "2:0",
+      "right": "1:1"
+     }
+    },
+    {
+     "id": "1:1",
+     "price": 60,
+     "row": 1,
+     "column": 1,
+     "color": "yellow",
+     "moves": {
+      "up": "0:1",
+      "down": "2:1",
+      "left": "1:0",
+      "right": "1:2"
+     }
+    },
+    {
+     "id": "1:2",
+     "price": 66,
+     "row": 1,
+     "column": 2,
+     "color": "white",
+     "moves": {
+      "up": "0:2",
+      "down": "2:2",
+      "left": "1:1",
+      "right": "1:3"
+     }
+    },
+    {
+     "id": "1:3",
+     "price": 70,
+     "row": 1,
+     "column": 3,
+     "color": "white",
+     "moves": {
+      "up": "0:3",
+      "down": "2:3",
+      "left": "1:2",
+      "right": "1:4"
+     }
+    },
+    {
+     "id": "1:4",
+     "price": 76,
+     "row": 1,
+     "column": 4,
+     "color": "white",
+     "moves": {
+      "up": "0:4",
+      "down": "2:4",
+      "left": "1:3",
+      "right": "1:5"
+     }
+    },
+    {
+     "id": "1:5",
+     "price": 82,
+     "row": 1,
+     "column": 5,
+     "color": "white",
+     "moves": {
+      "up": "0:5",
+      "down": "2:5",
+      "left": "1:4",
+      "right": "1:6"
+     }
+    },
+    {
+     "id": "1:6",
+     "price": 90,
+     "row": 1,
+     "column": 6,
+     "color": "pink",
+     "moves": {
+      "up": "0:6",
+      "down": "2:6",
+      "left": "1:5",
+      "right": "1:7"
+     }
+    },
+    {
+     "id": "1:7",
+     "price": 100,
+     "row": 1,
+     "column": 7,
+     "color": "white",
+     "moves": {
+      "up": "0:7",
+      "down": "2:7",
+      "left": "1:6",
+      "right": "1:8"
+     }
+    },
+    {
+     "id": "1:8",
+     "price": 112,
+     "row": 1,
+     "column": 8,
+     "color": "white",
+     "moves": {
+      "up": "0:8",
+      "down": "2:8",
+      "left": "1:7",
+      "right": "1:9"
+     }
+    },
+    {
+     "id": "1:9",
+     "price": 126,
+     "row": 1,
+     "column": 9,
+     "color": "white",
+     "moves": {
+      "up": "0:9",
+      "down": "2:9",
+      "left": "1:8",
+      "right": "1:10"
+     }
+    },
+    {
+     "id": "1:10",
+     "price": 142,
+     "row": 1,
+     "column": 10,
+     "color": "white",
+     "moves": {
+      "up": "0:10",
+      "down": "2:10",
+      "left": "1:9",
+      "right": "1:11"
+     }
+    },
+    {
+     "id": "1:11",
+     "price": 160,
+     "row": 1,
+     "column": 11,
+     "color": "white",
+     "moves": {
+      "up": "0:11",
+      "down": "2:11",
+      "left": "1:10",
+      "right": "1:12"
+     }
+    },
+    {
+     "id": "1:12",
+     "price": 180,
+     "row": 1,
+     "column": 12,
+     "color": "white",
+     "moves": {
+      "up": "0:12",
+      "down": "2:12",
+      "left": "1:11",
+      "right": "1:13"
+     }
+    },
+    {
+     "id": "1:13",
+     "price": 200,
+     "row": 1,
+     "column": 13,
+     "color": "white",
+     "moves": {
+      "up": "0:13",
+      "down": "2:13",
+      "left": "1:12",
+      "right": "1:14"
+     }
+    },
+    {
+     "id": "1:14",
+     "price": 220,
+     "row": 1,
+     "column": 14,
+     "color": "white",
+     "moves": {
+      "up": "0:14",
+      "down": "2:14",
+      "left": "1:13",
+      "right": "1:15"
+     }
+    },
+    {
+     "id": "1:15",
+     "price": 240,
+     "row": 1,
+     "column": 15,
+     "color": "white",
+     "moves": {
+      "up": "0:15",
+      "down": "2:15",
+      "left": "1:14",
+      "right": "1:16"
+     }
+    },
+    {
+     "id": "1:16",
+     "price": 260,
+     "row": 1,
+     "column": 16,
+     "color": "white",
+     "moves": {
+      "up": "0:16",
+      "left": "1:15",
+      "right": "1:17"
+     }
+    },
+    {
+     "id": "1:17",
+     "price": 280,
+     "row": 1,
+     "column": 17,
+     "color": "white",
+     "moves": {
+      "up": "0:17",
+      "left": "1:16",
+      "right": "1:18"
+     }
+    },
+    {
+     "id": "1:18",
+     "price": 300,
+     "row": 1,
+     "column": 18,
+     "color": "white",
+     "moves": {
+      "up": "0:18",
+      "left": "1:17"
+     }
+    },
+    {
+     "id": "2:0",
+     "price": 46,
+     "row": 2,
+     "column": 0,
+     "color": "yellow",
+     "moves": {
+      "up": "1:0",
+      "down": "3:0",
+      "right": "2:1"
+     }
+    },
+    {
+     "id": "2:1",
+     "price": 55,
+     "row": 2,
+     "column": 1,
+     "color": "yellow",
+     "moves": {
+      "up": "1:1",
+      "down": "3:1",
+      "left": "2:0",
+      "right": "2:2"
+     }
+    },
+    {
+     "id": "2:2",
+     "price": 60,
+     "row": 2,
+     "column": 2,
+     "color": "yellow",
+     "moves": {
+      "up": "1:2",
+      "down": "3:2",
+      "left": "2:1",
+      "right": "2:3"
+     }
+    },
+    {
+     "id": "2:3",
+     "price": 65,
+     "row": 2,
+     "column": 3,
+     "color": "white",
+     "moves": {
+      "up": "1:3",
+      "down": "3:3",
+      "left": "2:2",
+      "right": "2:4"
+     }
+    },
+    {
+     "id": "2:4",
+     "price": 70,
+     "row": 2,
+     "column": 4,
+     "color": "white",
+     "moves": {
+      "up": "1:4",
+      "down": "3:4",
+      "left": "2:3",
+      "right": "2:5"
+     }
+    },
+    {
+     "id": "2:5",
+     "price": 76,
+     "row": 2,
+     "column": 5,
+     "color": "white",
+     "moves": {
+      "up": "1:5",
+      "down": "3:5",
+      "left": "2:4",
+      "right": "2:6"
+     }
+    },
+    {
+     "id": "2:6",
+     "price": 82,
+     "row": 2,
+     "column": 6,
+     "color": "pink",
+     "moves": {
+      "up": "1:6",
+      "down": "3:6",
+      "left": "2:5",
+      "right": "2:7"
+     }
+    },
+    {
+     "id": "2:7",
+     "price": 90,
+     "row": 2,
+     "column": 7,
+     "color": "white",
+     "moves": {
+      "up": "1:7",
+      "down": "3:7",
+      "left": "2:6",
+      "right": "2:8"
+     }
+    },
+    {
+     "id": "2:8",
+     "price": 100,
+     "row": 2,
+     "column": 8,
+     "color": "white",
+     "moves": {
+      "up": "1:8",
+      "down": "3:8",
+      "left": "2:7",
+      "right": "2:9"
+     }
+    },
+    {
+     "id": "2:9",
+     "price": 111,
+     "row": 2,
+     "column": 9,
+     "color": "white",
+     "moves": {
+      "up": "1:9",
+      "down": "3:9",
+      "left": "2:8",
+      "right": "2:10"
+     }
+    },
+    {
+     "id": "2:10",
+     "price": 125,
+     "row": 2,
+     "column": 10,
+     "color": "white",
+     "moves": {
+      "up": "1:10",
+      "down": "3:10",
+      "left": "2:9",
+      "right": "2:11"
+     }
+    },
+    {
+     "id": "2:11",
+     "price": 140,
+     "row": 2,
+     "column": 11,
+     "color": "white",
+     "moves": {
+      "up": "1:11",
+      "down": "3:11",
+      "left": "2:10",
+      "right": "2:12"
+     }
+    },
+    {
+     "id": "2:12",
+     "price": 155,
+     "row": 2,
+     "column": 12,
+     "color": "white",
+     "moves": {
+      "up": "1:12",
+      "down": "3:12",
+      "left": "2:11",
+      "right": "2:13"
+     }
+    },
+    {
+     "id": "2:13",
+     "price": 170,
+     "row": 2,
+     "column": 13,
+     "color": "white",
+     "moves": {
+      "up": "1:13",
+      "left": "2:12",
+      "right": "2:14"
+     }
+    },
+    {
+     "id": "2:14",
+     "price": 185,
+     "row": 2,
+     "column": 14,
+     "color": "white",
+     "moves": {
+      "up": "1:14",
+      "left": "2:13",
+      "right": "2:15"
+     }
+    },
+    {
+     "id": "2:15",
+     "price": 200,
+     "row": 2,
+     "column": 15,
+     "color": "white",
+     "moves": {
+      "up": "1:15",
+      "left": "2:14"
+     }
+    },
+    {
+     "id": "3:0",
+     "price": 39,
+     "row": 3,
+     "column": 0,
+     "color": "orange",
+     "moves": {
+      "up": "2:0",
+      "down": "4:0",
+      "right": "3:1"
+     }
+    },
+    {
+     "id": "3:1",
+     "price": 48,
+     "row": 3,
+     "column": 1,
+     "color": "yellow",
+     "moves": {
+      "up": "2:1",
+      "down": "4:1",
+      "left": "3:0",
+      "right": "3:2"
+     }
+    },
+    {
+     "id": "3:2",
+     "price": 54,
+     "row": 3,
+     "column": 2,
+     "color": "yellow",
+     "moves": {
+      "up": "2:2",
+      "down": "4:2",
+      "left": "3:1",
+      "right": "3:3"
+     }
+    },
+    {
+     "id": "3:3",
+     "price": 60,
+     "row": 3,
+     "column": 3,
+     "color": "yellow",
+     "moves": {
+      "up": "2:3",
+      "down": "4:3",
+      "left": "3:2",
+      "right": "3:4"
+     }
+    },
+    {
+     "id": "3:4",
+     "price": 66,
+     "row": 3,
+     "column": 4,
+     "color": "white",
+     "moves": {
+      "up": "2:4",
+      "down": "4:4",
+      "left": "3:3",
+      "right": "3:5"
+     }
+    },
+    {
+     "id": "3:5",
+     "price": 71,
+     "row": 3,
+     "column": 5,
+     "color": "white",
+     "moves": {
+      "up": "2:5",
+      "down": "4:5",
+      "left": "3:4",
+      "right": "3:6"
+     }
+    },
+    {
+     "id": "3:6",
+     "price": 76,
+     "row": 3,
+     "column": 6,
+     "color": "pink",
+     "moves": {
+      "up": "2:6",
+      "down": "4:6",
+      "left": "3:5",
+      "right": "3:7"
+     }
+    },
+    {
+     "id": "3:7",
+     "price": 82,
+     "row": 3,
+     "column": 7,
+     "color": "white",
+     "moves": {
+      "up": "2:7",
+      "down": "4:7",
+      "left": "3:6",
+      "right": "3:8"
+     }
+    },
+    {
+     "id": "3:8",
+     "price": 90,
+     "row": 3,
+     "column": 8,
+     "color": "white",
+     "moves": {
+      "up": "2:8",
+      "down": "4:8",
+      "left": "3:7",
+      "right": "3:9"
+     }
+    },
+    {
+     "id": "3:9",
+     "price": 100,
+     "row": 3,
+     "column": 9,
+     "color": "white",
+     "moves": {
+      "up": "2:9",
+      "down": "4:9",
+      "left": "3:8",
+      "right": "3:10"
+     }
+    },
+    {
+     "id": "3:10",
+     "price": 110,
+     "row": 3,
+     "column": 10,
+     "color": "white",
+     "moves": {
+      "up": "2:10",
+      "down": "4:10",
+      "left": "3:9",
+      "right": "3:11"
+     }
+    },
+    {
+     "id": "3:11",
+     "price": 120,
+     "row": 3,
+     "column": 11,
+     "color": "white",
+     "moves": {
+      "up": "2:11",
+      "left": "3:10",
+      "right": "3:12"
+     }
+    },
+    {
+     "id": "3:12",
+     "price": 130,
+     "row": 3,
+     "column": 12,
+     "color": "white",
+     "moves": {
+      "up": "2:12",
+      "left": "3:11"
+     }
+    },
+    {
+     "id": "4:0",
+     "price": 32,
+     "row": 4,
+     "column": 0,
+     "color": "orange",
+     "moves": {
+      "up": "3:0",
+      "down": "5:0",
+      "right": "4:1"
+     }
+    },
+    {
+     "id": "4:1",
+     "price": 41,
+     "row": 4,
+     "column": 1,
+     "color": "orange",
+     "moves": {
+      "up": "3:1",
+      "down": "5:1",
+      "left": "4:0",
+      "right": "4:2"
+     }
+    },
+    {
+     "id": "4:2",
+     "price": 48,
+     "row": 4,
+     "column": 2,
+     "color": "yellow",
+     "moves": {
+      "up": "3:2",
+      "down": "5:2",
+      "left": "4:1",
+      "right": "4:3"
+     }
+    },
+    {
+     "id": "4:3",
+     "price": 55,
+     "row": 4,
+     "column": 3,
+     "color": "yellow",
+     "moves": {
+      "up": "3:3",
+      "down": "5:3",
+      "left": "4:2",
+      "right": "4:4"
+     }
+    },
+    {
+     "id": "4:4",
+     "price": 62,
+     "row": 4,
+     "column": 4,
+     "color": "white",
+     "moves": {
+      "up": "3:4",
+      "down": "5:4",
+      "left": "4:3",
+      "right": "4:5"
+     }
+    },
+    {
+     "id": "4:5",
+     "price": 67,
+     "row": 4,
+     "column": 5,
+     "color": "white",
+     "moves": {
+      "up": "3:5",
+      "down": "5:5",
+      "left": "4:4",
+      "right": "4:6"
+     }
+    },
+    {
+     "id": "4:6",
+     "price": 71,
+     "row": 4,
+     "column": 6,
+     "color": "pink",
+     "moves": {
+      "up": "3:6",
+      "down": "5:6",
+      "left": "4:5",
+      "right": "4:7"
+     }
+    },
+    {
+     "id": "4:7",
+     "price": 76,
+     "row": 4,
+     "column": 7,
+     "color": "white",
+     "moves": {
+      "up": "3:7",
+      "down": "5:7",
+      "left": "4:6",
+      "right": "4:8"
+     }
+    },
+    {
+     "id": "4:8",
+     "price": 82,
+     "row": 4,
+     "column": 8,
+     "color": "white",
+     "moves": {
+      "up": "3:8",
+      "down": "5:8",
+      "left": "4:7",
+      "right": "4:9"
+     }
+    },
+    {
+     "id": "4:9",
+     "price": 90,
+     "row": 4,
+     "column": 9,
+     "color": "white",
+     "moves": {
+      "up": "3:9",
+      "down": "5:9",
+      "left": "4:8",
+      "right": "4:10"
+     }
+    },
+    {
+     "id": "4:10",
+     "price": 100,
+     "row": 4,
+     "column": 10,
+     "color": "white",
+     "moves": {
+      "up": "3:10",
+      "left": "4:9"
+     }
+    },
+    {
+     "id": "5:0",
+     "price": 25,
+     "row": 5,
+     "column": 0,
+     "color": "brown",
+     "moves": {
+      "up": "4:0",
+      "down": "6:0",
+      "right": "5:1"
+     }
+    },
+    {
+     "id": "5:1",
+     "price": 34,
+     "row": 5,
+     "column": 1,
+     "color": "orange",
+     "moves": {
+      "up": "4:1",
+      "down": "6:1",
+      "left": "5:0",
+      "right": "5:2"
+     }
+    },
+    {
+     "id": "5:2",
+     "price": 42,
+     "row": 5,
+     "column": 2,
+     "color": "orange",
+     "moves": {
+      "up": "4:2",
+      "down": "6:2",
+      "left": "5:1",
+      "right": "5:3"
+     }
+    },
+    {
+     "id": "5:3",
+     "price": 50,
+     "row": 5,
+     "column": 3,
+     "color": "yellow",
+     "moves": {
+      "up": "4:3",
+      "down": "6:3",
+      "left": "5:2",
+      "right": "5:4"
+     }
+    },
+    {
+     "id": "5:4",
+     "price": 58,
+     "row": 5,
+     "column": 4,
+     "color": "yellow",
+     "moves": {
+      "up": "4:4",
+      "down": "6:4",
+      "left": "5:3",
+      "right": "5:5"
+     }
+    },
+    {
+     "id": "5:5",
+     "price": 65,
+     "row": 5,
+     "column": 5,
+     "color": "white",
+     "moves": {
+      "up": "4:5",
+      "down": "6:5",
+      "left": "5:4",
+      "right": "5:6"
+     }
+    },
+    {
+     "id": "5:6",
+     "price": 67,
+     "row": 5,
+     "column": 6,
+     "color": "pink",
+     "moves": {
+      "up": "4:6",
+      "down": "6:6",
+      "left": "5:5",
+      "right": "5:7"
+     }
+    },
+    {
+     "id": "5:7",
+     "price": 71,
+     "row": 5,
+     "column": 7,
+     "color": "white",
+     "moves": {
+      "up": "4:7",
+      "down": "6:7",
+      "left": "5:6",
+      "right": "5:8"
+     }
+    },
+    {
+     "id": "5:8",
+     "price": 75,
+     "row": 5,
+     "column": 8,
+     "color": "white",
+     "moves": {
+      "up": "4:8",
+      "down": "6:8",
+      "left": "5:7",
+      "right": "5:9"
+     }
+    },
+    {
+     "id": "5:9",
+     "price": 80,
+     "row": 5,
+     "column": 9,
+     "color": "white",
+     "moves": {
+      "up": "4:9",
+      "left": "5:8"
+     }
+    },
+    {
+     "id": "6:0",
+     "price": 18,
+     "row": 6,
+     "column": 0,
+     "color": "brown",
+     "moves": {
+      "up": "5:0",
+      "down": "7:0",
+      "right": "6:1"
+     }
+    },
+    {
+     "id": "6:1",
+     "price": 27,
+     "row": 6,
+     "column": 1,
+     "color": "brown",
+     "moves": {
+      "up": "5:1",
+      "down": "7:1",
+      "left": "6:0",
+      "right": "6:2"
+     }
+    },
+    {
+     "id": "6:2",
+     "price": 36,
+     "row": 6,
+     "column": 2,
+     "color": "orange",
+     "moves": {
+      "up": "5:2",
+      "down": "7:2",
+      "left": "6:1",
+      "right": "6:3"
+     }
+    },
+    {
+     "id": "6:3",
+     "price": 45,
+     "row": 6,
+     "column": 3,
+     "color": "orange",
+     "moves": {
+      "up": "5:3",
+      "down": "7:3",
+      "left": "6:2",
+      "right": "6:4"
+     }
+    },
+    {
+     "id": "6:4",
+     "price": 54,
+     "row": 6,
+     "column": 4,
+     "color": "yellow",
+     "moves": {
+      "up": "5:4",
+      "down": "7:4",
+      "left": "6:3",
+      "right": "6:5"
+     }
+    },
+    {
+     "id": "6:5",
+     "price": 63,
+     "row": 6,
+     "column": 5,
+     "color": "white",
+     "moves": {
+      "up": "5:5",
+      "down": "7:5",
+      "left": "6:4",
+      "right": "6:6"
+     }
+    },
+    {
+     "id": "6:6",
+     "price": 67,
+     "row": 6,
+     "column": 6,
+     "color": "white",
+     "moves": {
+      "up": "5:6",
+      "down": "7:6",
+      "left": "6:5",
+      "right": "6:7"
+     }
+    },
+    {
+     "id": "6:7",
+     "price": 69,
+     "row": 6,
+     "column": 7,
+     "color": "white",
+     "moves": {
+      "up": "5:7",
+      "down": "7:7",
+      "left": "6:6",
+      "right": "6:8"
+     }
+    },
+    {
+     "id": "6:8",
+     "price": 70,
+     "row": 6,
+     "column": 8,
+     "color": "white",
+     "moves": {
+      "up": "5:8",
+      "left": "6:7"
+     }
+    },
+    {
+     "id": "7:0",
+     "price": 10,
+     "row": 7,
+     "column": 0,
+     "color": "brown",
+     "moves": {
+      "up": "6:0",
+      "right": "7:1"
+     }
+    },
+    {
+     "id": "7:1",
+     "price": 20,
+     "row": 7,
+     "column": 1,
+     "color": "brown",
+     "moves": {
+      "up": "6:1",
+      "down": "8:1",
+      "left": "7:0",
+      "right": "7:2"
+     }
+    },
+    {
+     "id": "7:2",
+     "price": 30,
+     "row": 7,
+     "column": 2,
+     "color": "brown",
+     "moves": {
+      "up": "6:2",
+      "down": "8:2",
+      "left": "7:1",
+      "right": "7:3"
+     }
+    },
+    {
+     "id": "7:3",
+     "price": 40,
+     "row": 7,
+     "column": 3,
+     "color": "orange",
+     "moves": {
+      "up": "6:3",
+      "down": "8:3",
+      "left": "7:2",
+      "right": "7:4"
+     }
+    },
+    {
+     "id": "7:4",
+     "price": 50,
+     "row": 7,
+     "column": 4,
+     "color": "yellow",
+     "moves": {
+      "up": "6:4",
+      "down": "8:4",
+      "left": "7:3",
+      "right": "7:5"
+     }
+    },
+    {
+     "id": "7:5",
+     "price": 60,
+     "row": 7,
+     "column": 5,
+     "color": "yellow",
+     "moves": {
+      "up": "6:5",
+      "down": "8:5",
+      "left": "7:4",
+      "right": "7:6"
+     }
+    },
+    {
+     "id": "7:6",
+     "price": 67,
+     "row": 7,
+     "column": 6,
+     "color": "white",
+     "moves": {
+      "up": "6:6",
+      "down": "8:6",
+      "left": "7:5",
+      "right": "7:7"
+     }
+    },
+    {
+     "id": "7:7",
+     "price": 68,
+     "row": 7,
+     "column": 7,
+     "color": "white",
+     "moves": {
+      "up": "6:7",
+      "left": "7:6"
+     }
+    },
+    {
+     "id": "8:1",
+     "price": 10,
+     "row": 8,
+     "column": 1,
+     "color": "brown",
+     "moves": {
+      "up": "7:1",
+      "right": "8:2"
+     }
+    },
+    {
+     "id": "8:2",
+     "price": 20,
+     "row": 8,
+     "column": 2,
+     "color": "brown",
+     "moves": {
+      "up": "7:2",
+      "down": "9:2",
+      "left": "8:1",
+      "right": "8:3"
+     }
+    },
+    {
+     "id": "8:3",
+     "price": 30,
+     "row": 8,
+     "column": 3,
+     "color": "brown",
+     "moves": {
+      "up": "7:3",
+      "down": "9:3",
+      "left": "8:2",
+      "right": "8:4"
+     }
+    },
+    {
+     "id": "8:4",
+     "price": 40,
+     "row": 8,
+     "column": 4,
+     "color": "orange",
+     "moves": {
+      "up": "7:4",
+      "down": "9:4",
+      "left": "8:3",
+      "right": "8:5"
+     }
+    },
+    {
+     "id": "8:5",
+     "price": 50,
+     "row": 8,
+     "column": 5,
+     "color": "yellow",
+     "moves": {
+      "up": "7:5",
+      "down": "9:5",
+      "left": "8:4",
+      "right": "8:6"
+     }
+    },
+    {
+     "id": "8:6",
+     "price": 60,
+     "row": 8,
+     "column": 6,
+     "color": "yellow",
+     "moves": {
+      "up": "7:6",
+      "down": "9:6",
+      "left": "8:5"
+     }
+    },
+    {
+     "id": "9:2",
+     "price": 10,
+     "row": 9,
+     "column": 2,
+     "color": "brown",
+     "moves": {
+      "up": "8:2",
+      "right": "9:3"
+     }
+    },
+    {
+     "id": "9:3",
+     "price": 20,
+     "row": 9,
+     "column": 3,
+     "color": "brown",
+     "moves": {
+      "up": "8:3",
+      "down": "10:3",
+      "left": "9:2",
+      "right": "9:4"
+     }
+    },
+    {
+     "id": "9:4",
+     "price": 30,
+     "row": 9,
+     "column": 4,
+     "color": "brown",
+     "moves": {
+      "up": "8:4",
+      "down": "10:4",
+      "left": "9:3",
+      "right": "9:5"
+     }
+    },
+    {
+     "id": "9:5",
+     "price": 40,
+     "row": 9,
+     "column": 5,
+     "color": "orange",
+     "moves": {
+      "up": "8:5",
+      "down": "10:5",
+      "left": "9:4",
+      "right": "9:6"
+     }
+    },
+    {
+     "id": "9:6",
+     "price": 50,
+     "row": 9,
+     "column": 6,
+     "color": "yellow",
+     "moves": {
+      "up": "8:6",
+      "down": "10:6",
+      "left": "9:5"
+     }
+    },
+    {
+     "id": "10:3",
+     "price": 10,
+     "row": 10,
+     "column": 3,
+     "color": "brown",
+     "moves": {
+      "up": "9:3",
+      "right": "10:4"
+     }
+    },
+    {
+     "id": "10:4",
+     "price": 20,
+     "row": 10,
+     "column": 4,
+     "color": "brown",
+     "moves": {
+      "up": "9:4",
+      "left": "10:3",
+      "right": "10:5"
+     }
+    },
+    {
+     "id": "10:5",
+     "price": 30,
+     "row": 10,
+     "column": 5,
+     "color": "brown",
+     "moves": {
+      "up": "9:5",
+      "left": "10:4",
+      "right": "10:6"
+     }
+    },
+    {
+     "id": "10:6",
+     "price": 40,
+     "row": 10,
+     "column": 6,
+     "color": "orange",
+     "moves": {
+      "up": "9:6",
+      "left": "10:5"
+     }
+    }
+   ],
+   "stacks": []
+  },
+  "bank": {
+   "name": "Bank",
+   "unlimitedAfterExhaustion": true
+  },
+  "companies": [
+   {
+    "id": "PRR",
+    "name": "Pennsylvania Railroad",
+    "kind": "major",
+    "shareCount": 10,
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "NYC",
+    "name": "New York Central Railroad",
+    "kind": "major",
+    "shareCount": 10,
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "CPR",
+    "name": "Canadian Pacific Railroad",
+    "kind": "major",
+    "shareCount": 10,
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "BO",
+    "name": "Baltimore & Ohio Railroad",
+    "kind": "major",
+    "shareCount": 10,
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "CO",
+    "name": "Chesapeake & Ohio Railroad",
+    "kind": "major",
+    "shareCount": 10,
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "ERIE",
+    "name": "Erie Railroad",
+    "kind": "major",
+    "shareCount": 10,
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "NYNH",
+    "name": "New York, New Haven & Hartford Railroad",
+    "kind": "major",
+    "shareCount": 10,
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "BM",
+    "name": "Boston & Maine Railroad",
+    "kind": "major",
+    "shareCount": 10,
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "SV",
+    "name": "Schuylkill Valley",
+    "kind": "private",
+    "privateRevenue": 5
+   },
+   {
+    "id": "CS",
+    "name": "Champlain & St. Lawrence",
+    "kind": "private",
+    "privateRevenue": 10
+   },
+   {
+    "id": "DH",
+    "name": "Delaware & Hudson",
+    "kind": "private",
+    "privateRevenue": 15
+   },
+   {
+    "id": "MH",
+    "name": "Mohawk & Hudson",
+    "kind": "private",
+    "privateRevenue": 20
+   },
+   {
+    "id": "CA",
+    "name": "Camden & Amboy",
+    "kind": "private",
+    "privateRevenue": 25
+   },
+   {
+    "id": "BOP",
+    "name": "Baltimore & Ohio",
+    "kind": "private",
+    "privateRevenue": 30
+   }
+  ],
+  "cash": [
+   {
+    "owner": {
+     "kind": "bank"
+    },
+    "amount": 9600
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "4836"
+    },
+    "amount": 600
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "4631"
+    },
+    "amount": 600
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "4639"
+    },
+    "amount": 600
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "1668"
+    },
+    "amount": 600
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "PRR"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "NYC"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "CPR"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "BO"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "CO"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "ERIE"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "NYNH"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "BM"
+    },
+    "amount": 0
+   }
+  ],
+  "certificatePools": [
+   {
+    "id": "initial-offering",
+    "name": "IPO",
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "open-market",
+    "name": "Market",
+    "owner": {
+     "kind": "bank"
+    }
+   }
+  ],
+  "certificates": [
+   {
+    "id": "PRR:president",
+    "companyId": "PRR",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "PRR:share:1",
+    "companyId": "PRR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "PRR:share:2",
+    "companyId": "PRR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "PRR:share:3",
+    "companyId": "PRR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "PRR:share:4",
+    "companyId": "PRR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "PRR:share:5",
+    "companyId": "PRR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "PRR:share:6",
+    "companyId": "PRR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "PRR:share:7",
+    "companyId": "PRR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "PRR:share:8",
+    "companyId": "PRR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYC:president",
+    "companyId": "NYC",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYC:share:1",
+    "companyId": "NYC",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYC:share:2",
+    "companyId": "NYC",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYC:share:3",
+    "companyId": "NYC",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYC:share:4",
+    "companyId": "NYC",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYC:share:5",
+    "companyId": "NYC",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYC:share:6",
+    "companyId": "NYC",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYC:share:7",
+    "companyId": "NYC",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYC:share:8",
+    "companyId": "NYC",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:president",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:1",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:2",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:3",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:4",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:5",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:6",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:7",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:8",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BO:president",
+    "companyId": "BO",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BO:share:1",
+    "companyId": "BO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BO:share:2",
+    "companyId": "BO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BO:share:3",
+    "companyId": "BO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BO:share:4",
+    "companyId": "BO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BO:share:5",
+    "companyId": "BO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BO:share:6",
+    "companyId": "BO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BO:share:7",
+    "companyId": "BO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BO:share:8",
+    "companyId": "BO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CO:president",
+    "companyId": "CO",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CO:share:1",
+    "companyId": "CO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CO:share:2",
+    "companyId": "CO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CO:share:3",
+    "companyId": "CO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CO:share:4",
+    "companyId": "CO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CO:share:5",
+    "companyId": "CO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CO:share:6",
+    "companyId": "CO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CO:share:7",
+    "companyId": "CO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CO:share:8",
+    "companyId": "CO",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ERIE:president",
+    "companyId": "ERIE",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ERIE:share:1",
+    "companyId": "ERIE",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ERIE:share:2",
+    "companyId": "ERIE",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ERIE:share:3",
+    "companyId": "ERIE",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ERIE:share:4",
+    "companyId": "ERIE",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ERIE:share:5",
+    "companyId": "ERIE",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ERIE:share:6",
+    "companyId": "ERIE",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ERIE:share:7",
+    "companyId": "ERIE",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ERIE:share:8",
+    "companyId": "ERIE",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYNH:president",
+    "companyId": "NYNH",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYNH:share:1",
+    "companyId": "NYNH",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYNH:share:2",
+    "companyId": "NYNH",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYNH:share:3",
+    "companyId": "NYNH",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYNH:share:4",
+    "companyId": "NYNH",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYNH:share:5",
+    "companyId": "NYNH",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYNH:share:6",
+    "companyId": "NYNH",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYNH:share:7",
+    "companyId": "NYNH",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NYNH:share:8",
+    "companyId": "NYNH",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BM:president",
+    "companyId": "BM",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BM:share:1",
+    "companyId": "BM",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BM:share:2",
+    "companyId": "BM",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BM:share:3",
+    "companyId": "BM",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BM:share:4",
+    "companyId": "BM",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BM:share:5",
+    "companyId": "BM",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BM:share:6",
+    "companyId": "BM",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BM:share:7",
+    "companyId": "BM",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "BM:share:8",
+    "companyId": "BM",
+    "kind": "share",
+    "shares": 1,
+    "president": false,
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SV:charter",
+    "companyId": "SV",
+    "kind": "private",
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "CS:charter",
+    "companyId": "CS",
+    "kind": "private",
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "DH:charter",
+    "companyId": "DH",
+    "kind": "private",
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "MH:charter",
+    "companyId": "MH",
+    "kind": "private",
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "CA:charter",
+    "companyId": "CA",
+    "kind": "private",
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "BOP:charter",
+    "companyId": "BOP",
+    "kind": "private",
+    "certificateLimitCount": 1,
+    "retired": false,
+    "owner": {
+     "kind": "bank"
+    }
+   }
+  ],
+  "tranches": [],
+  "ownershipLimitExemptions": [],
+  "stations": [
+   {
+    "id": "PRR:home",
+    "companyId": "PRR",
+    "status": "available"
+   },
+   {
+    "id": "PRR:station:1",
+    "companyId": "PRR",
+    "status": "available"
+   },
+   {
+    "id": "PRR:station:2",
+    "companyId": "PRR",
+    "status": "available"
+   },
+   {
+    "id": "PRR:station:3",
+    "companyId": "PRR",
+    "status": "available"
+   },
+   {
+    "id": "NYC:home",
+    "companyId": "NYC",
+    "status": "available"
+   },
+   {
+    "id": "NYC:station:1",
+    "companyId": "NYC",
+    "status": "available"
+   },
+   {
+    "id": "NYC:station:2",
+    "companyId": "NYC",
+    "status": "available"
+   },
+   {
+    "id": "NYC:station:3",
+    "companyId": "NYC",
+    "status": "available"
+   },
+   {
+    "id": "CPR:home",
+    "companyId": "CPR",
+    "status": "available"
+   },
+   {
+    "id": "CPR:station:1",
+    "companyId": "CPR",
+    "status": "available"
+   },
+   {
+    "id": "CPR:station:2",
+    "companyId": "CPR",
+    "status": "available"
+   },
+   {
+    "id": "CPR:station:3",
+    "companyId": "CPR",
+    "status": "available"
+   },
+   {
+    "id": "BO:home",
+    "companyId": "BO",
+    "status": "available"
+   },
+   {
+    "id": "BO:station:1",
+    "companyId": "BO",
+    "status": "available"
+   },
+   {
+    "id": "BO:station:2",
+    "companyId": "BO",
+    "status": "available"
+   },
+   {
+    "id": "CO:home",
+    "companyId": "CO",
+    "status": "available"
+   },
+   {
+    "id": "CO:station:1",
+    "companyId": "CO",
+    "status": "available"
+   },
+   {
+    "id": "CO:station:2",
+    "companyId": "CO",
+    "status": "available"
+   },
+   {
+    "id": "ERIE:home",
+    "companyId": "ERIE",
+    "status": "available"
+   },
+   {
+    "id": "ERIE:station:1",
+    "companyId": "ERIE",
+    "status": "available"
+   },
+   {
+    "id": "ERIE:station:2",
+    "companyId": "ERIE",
+    "status": "available"
+   },
+   {
+    "id": "NYNH:home",
+    "companyId": "NYNH",
+    "status": "available"
+   },
+   {
+    "id": "NYNH:station:1",
+    "companyId": "NYNH",
+    "status": "available"
+   },
+   {
+    "id": "BM:home",
+    "companyId": "BM",
+    "status": "available"
+   },
+   {
+    "id": "BM:station:1",
+    "companyId": "BM",
+    "status": "available"
+   }
+  ],
+  "stationReservations": [
+   {
+    "companyId": "CO",
+    "nodeId": "city",
+    "locationId": "F6"
+   },
+   {
+    "companyId": "PRR",
+    "nodeId": "city",
+    "locationId": "H12"
+   },
+   {
+    "companyId": "CPR",
+    "nodeId": "city",
+    "locationId": "A19"
+   },
+   {
+    "companyId": "NYC",
+    "nodeId": "city",
+    "locationId": "E19"
+   },
+   {
+    "companyId": "ERIE",
+    "nodeId": "city-0",
+    "locationId": "E11"
+   },
+   {
+    "companyId": "ERIE",
+    "nodeId": "city-1",
+    "locationId": "E11"
+   },
+   {
+    "companyId": "BO",
+    "nodeId": "city",
+    "locationId": "I15"
+   },
+   {
+    "companyId": "NYNH",
+    "nodeId": "city-0",
+    "locationId": "G19"
+   },
+   {
+    "companyId": "BM",
+    "nodeId": "city",
+    "locationId": "E23"
+   }
+  ],
+  "tileInventory": {
+   "tileSetId": "1830:standard",
+   "placements": {},
+   "retiredPieceIds": []
+  },
+  "trainInventory": {
+   "depotId": "1830",
+   "trains": [
+    {
+     "id": "1830/2/1",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1830/2/2",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1830/2/3",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1830/2/4",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1830/2/5",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1830/2/6",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1830/3/7",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1830/3/8",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1830/3/9",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1830/3/10",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1830/3/11",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1830/4/12",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1830/4/13",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1830/4/14",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1830/4/15",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1830/5/16",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1830/5/17",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1830/5/18",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1830/6/19",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1830/6/20",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1830/6/21",
+     "definitionId": "6",
+     "status": "removed"
+    }
+   ],
+   "nextTrainNumber": 22
+  },
+  "phaseId": "2",
+  "openingAuction": {
+   "remainingLotIds": [
+    "SV",
+    "CS",
+    "DH",
+    "MH",
+    "CA",
+    "BOP"
+   ],
+   "reservations": [],
+   "nextPlayerId": "4836",
+   "passedPlayerIds": [],
+   "discount": 0,
+   "awards": [],
+   "completed": false
+  }
+ },
+ "actions": [
+  {
+   "id": "recorded:0",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "ReserveBid",
+   "lotId": "CA",
+   "amount": 165
+  },
+  {
+   "id": "recorded:1",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "ReserveBid",
+   "lotId": "CA",
+   "amount": 170
+  },
+  {
+   "id": "recorded:2",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "ReserveBid",
+   "lotId": "MH",
+   "amount": 115
+  },
+  {
+   "id": "recorded:3",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "ReserveBid",
+   "lotId": "CS",
+   "amount": 45
+  },
+  {
+   "id": "recorded:4",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "ReserveBid",
+   "lotId": "DH",
+   "amount": 75
+  },
+  {
+   "id": "recorded:5",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "ReserveBid",
+   "lotId": "CS",
+   "amount": 50
+  },
+  {
+   "id": "recorded:6",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyAuctionLot",
+   "lotId": "SV",
+   "expectedPrice": 20
+  },
+  {
+   "id": "recorded:7",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "RaiseAuctionBid",
+   "lotId": "CS",
+   "amount": 55
+  },
+  {
+   "id": "recorded:8",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "PassAuction"
+  },
+  {
+   "id": "recorded:9",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "RaiseAuctionBid",
+   "lotId": "CA",
+   "amount": 195
+  },
+  {
+   "id": "recorded:10",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RaiseAuctionBid",
+   "lotId": "CA",
+   "amount": 200
+  },
+  {
+   "id": "recorded:11",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "RaiseAuctionBid",
+   "lotId": "CA",
+   "amount": 205
+  },
+  {
+   "id": "recorded:12",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RaiseAuctionBid",
+   "lotId": "CA",
+   "amount": 210
+  },
+  {
+   "id": "recorded:13",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "RaiseAuctionBid",
+   "lotId": "CA",
+   "amount": 225
+  },
+  {
+   "id": "recorded:14",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "PassAuction"
+  },
+  {
+   "id": "recorded:15",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "PassAuction"
+  },
+  {
+   "id": "recorded:16",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "PassAuction"
+  },
+  {
+   "id": "recorded:17",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyAuctionLot",
+   "lotId": "BOP",
+   "expectedPrice": 220
+  },
+  {
+   "id": "recorded:18",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "ParCompany",
+   "companyId": "BO",
+   "marketSpaceId": "0:6"
+  },
+  {
+   "id": "recorded:19",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "StartCompany",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "companyId": "PRR",
+   "marketSpaceId": "1:6",
+   "expectedPrice": 180
+  },
+  {
+   "id": "recorded:20",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:21",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:22",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "PRR:share:2",
+   "expectedPrice": 90
+  },
+  {
+   "id": "recorded:23",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:24",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "certificateId": "PRR:share:3",
+   "expectedPrice": 90
+  },
+  {
+   "id": "recorded:25",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:26",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "BO:share:1",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:27",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "BO:share:2",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:28",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:29",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "certificateId": "BO:share:3",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:30",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:31",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "StartCompany",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "companyId": "NYNH",
+   "marketSpaceId": "4:6",
+   "expectedPrice": 142
+  },
+  {
+   "id": "recorded:32",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "BO:share:4",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:33",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "BO:share:5",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:34",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "certificateId": "PRR:share:4",
+   "expectedPrice": 90
+  },
+  {
+   "id": "recorded:35",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:36",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYNH:share:1",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:37",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:38",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:39",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYNH:share:2",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:40",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:41",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:42",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYNH:share:3",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:43",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:44",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:45",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYNH:share:4",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:46",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:47",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:48",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "LayTile",
+   "companyId": "BO",
+   "locationId": "I17",
+   "definitionId": "18xx:7",
+   "rotation": 1,
+   "nodeMapping": {},
+   "expectedCost": 80
+  },
+  {
+   "id": "recorded:49",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyTrain",
+   "companyId": "BO",
+   "trainId": "1830/2/1",
+   "definitionId": "2",
+   "expectedPrice": 80
+  },
+  {
+   "id": "recorded:50",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "companyId": "BO",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:51",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "LayTile",
+   "companyId": "PRR",
+   "locationId": "H14",
+   "definitionId": "18xx:9",
+   "rotation": 1,
+   "nodeMapping": {},
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:52",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyTrain",
+   "companyId": "PRR",
+   "trainId": "1830/2/2",
+   "definitionId": "2",
+   "expectedPrice": 80
+  },
+  {
+   "id": "recorded:53",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyTrain",
+   "companyId": "PRR",
+   "trainId": "1830/2/3",
+   "definitionId": "2",
+   "expectedPrice": 80
+  },
+  {
+   "id": "recorded:54",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "companyId": "PRR",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:55",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYNH",
+   "locationId": "F20",
+   "definitionId": "18xx:1",
+   "rotation": 0,
+   "nodeMapping": {
+    "town-0": "town-0",
+    "town-1": "town-1"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:56",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyTrain",
+   "companyId": "NYNH",
+   "trainId": "1830/2/4",
+   "definitionId": "2",
+   "expectedPrice": 80
+  },
+  {
+   "id": "recorded:57",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyTrain",
+   "companyId": "NYNH",
+   "trainId": "1830/2/5",
+   "definitionId": "2",
+   "expectedPrice": 80
+  },
+  {
+   "id": "recorded:58",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyTrain",
+   "companyId": "NYNH",
+   "trainId": "1830/2/6",
+   "definitionId": "2",
+   "expectedPrice": 80
+  },
+  {
+   "id": "recorded:59",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyTrain",
+   "companyId": "NYNH",
+   "trainId": "1830/3/7",
+   "definitionId": "3",
+   "expectedPrice": 180
+  },
+  {
+   "id": "recorded:60",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "OfferPurchase",
+   "companyId": "NYNH",
+   "asset": {
+    "kind": "private",
+    "privateCompanyId": "CS"
+   },
+   "seller": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "price": 80
+  },
+  {
+   "id": "recorded:61",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "companyId": "NYNH",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:62",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:63",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "NYNH:share:5",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:64",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:65",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:66",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "PRR:share:5",
+   "expectedPrice": 90
+  },
+  {
+   "id": "recorded:67",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:68",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:69",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "PRR:share:6",
+   "expectedPrice": 90
+  },
+  {
+   "id": "recorded:70",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:71",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:72",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:73",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:74",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "BO:share:6",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:75",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:76",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:77",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:78",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "sales": [
+    {
+     "companyId": "PRR",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 82
+  },
+  {
+   "id": "recorded:79",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "sales": [
+    {
+     "companyId": "BO",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 90
+  },
+  {
+   "id": "recorded:80",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:81",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:82",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:83",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:84",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "NYNH:share:6",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:85",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:86",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:87",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:88",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:89",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:90",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "LayTile",
+   "companyId": "BO",
+   "locationId": "J14",
+   "definitionId": "18xx:57",
+   "rotation": 0,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 80
+  },
+  {
+   "id": "recorded:91",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "companyId": "BO",
+   "type": "FinishStations"
+  },
+  {
+   "id": "recorded:92",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RunTrains",
+   "companyId": "BO",
+   "routes": [
+    {
+     "trainId": "1830/2/1",
+     "start": {
+      "locationId": "I15",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "I15",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "J14",
+       "pathId": "edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:93",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "DistributeEarnings",
+   "companyId": "BO",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:94",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyTrain",
+   "companyId": "BO",
+   "trainId": "1830/3/8",
+   "definitionId": "3",
+   "expectedPrice": 180
+  },
+  {
+   "id": "recorded:95",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "companyId": "BO",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:96",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "LayTile",
+   "companyId": "PRR",
+   "locationId": "H16",
+   "definitionId": "18xx:57",
+   "rotation": 1,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:97",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "PlaceStation",
+   "companyId": "PRR",
+   "stationId": "PRR:station:1",
+   "position": {
+    "locationId": "H16",
+    "nodeId": "city",
+    "slot": 0
+   },
+   "expectedCost": 40
+  },
+  {
+   "id": "recorded:98",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "RunTrains",
+   "companyId": "PRR",
+   "routes": [
+    {
+     "trainId": "1830/2/2",
+     "start": {
+      "locationId": "H16",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "H16",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "H14",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "H12",
+       "pathId": "edge-4"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:99",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "DistributeEarnings",
+   "companyId": "PRR",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:100",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyTrain",
+   "companyId": "PRR",
+   "trainId": "1830/3/9",
+   "definitionId": "3",
+   "expectedPrice": 180
+  },
+  {
+   "id": "recorded:101",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "companyId": "PRR",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:102",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYNH",
+   "locationId": "F22",
+   "definitionId": "18xx:57",
+   "rotation": 1,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 80
+  },
+  {
+   "id": "recorded:103",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishTrack",
+   "companyId": "NYNH"
+  },
+  {
+   "id": "recorded:104",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "PlaceStation",
+   "companyId": "NYNH",
+   "stationId": "NYNH:station:1",
+   "position": {
+    "locationId": "F22",
+    "nodeId": "city",
+    "slot": 0
+   },
+   "expectedCost": 40
+  },
+  {
+   "id": "recorded:105",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "RunTrains",
+   "companyId": "NYNH",
+   "routes": [
+    {
+     "trainId": "1830/2/4",
+     "start": {
+      "locationId": "F20",
+      "nodeId": "town-1"
+     },
+     "paths": [
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-0-edge-3"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/3/7",
+     "start": {
+      "locationId": "E23",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "E23",
+       "pathId": "edge-5"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-2"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-1"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-3"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/2/6",
+     "start": {
+      "locationId": "F22",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:106",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "DistributeEarnings",
+   "companyId": "NYNH",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:107",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "companyId": "NYNH",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:108",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "LayTile",
+   "companyId": "BO",
+   "locationId": "H16",
+   "definitionId": "18xx:14",
+   "rotation": 1,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:109",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "PlaceStation",
+   "companyId": "BO",
+   "stationId": "BO:station:1",
+   "position": {
+    "locationId": "H16",
+    "nodeId": "city",
+    "slot": 1
+   },
+   "expectedCost": 40
+  },
+  {
+   "id": "recorded:110",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RunTrains",
+   "companyId": "BO",
+   "routes": [
+    {
+     "trainId": "1830/2/1",
+     "start": {
+      "locationId": "I15",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "I15",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "I17",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-4"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/3/8",
+     "start": {
+      "locationId": "I15",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "I15",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "J14",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "J14",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "K13",
+       "pathId": "edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:111",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "DistributeEarnings",
+   "companyId": "BO",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:112",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "companyId": "BO",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:113",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "LayTile",
+   "companyId": "PRR",
+   "locationId": "H10",
+   "definitionId": "18xx:57",
+   "rotation": 1,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:114",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "companyId": "PRR",
+   "type": "FinishStations"
+  },
+  {
+   "id": "recorded:115",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "RunTrains",
+   "companyId": "PRR",
+   "routes": [
+    {
+     "trainId": "1830/2/2",
+     "start": {
+      "locationId": "H16",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "H16",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "H14",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "H12",
+       "pathId": "edge-4"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/3/9",
+     "start": {
+      "locationId": "H16",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "H16",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "I17",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "I15",
+       "pathId": "edge-4"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/2/3",
+     "start": {
+      "locationId": "H12",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "H12",
+       "pathId": "edge-1"
+      },
+      {
+       "locationId": "H10",
+       "pathId": "edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:116",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "DistributeEarnings",
+   "companyId": "PRR",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:117",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "OfferPurchase",
+   "companyId": "PRR",
+   "asset": {
+    "kind": "private",
+    "privateCompanyId": "MH"
+   },
+   "seller": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "price": 220
+  },
+  {
+   "id": "recorded:118",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "OfferPurchase",
+   "companyId": "PRR",
+   "asset": {
+    "kind": "private",
+    "privateCompanyId": "SV"
+   },
+   "seller": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "price": 40
+  },
+  {
+   "id": "recorded:119",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "companyId": "PRR",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:120",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYNH",
+   "locationId": "F22",
+   "definitionId": "18xx:15",
+   "rotation": 1,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:121",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishTrack",
+   "companyId": "NYNH"
+  },
+  {
+   "id": "recorded:122",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "RunTrains",
+   "companyId": "NYNH",
+   "routes": [
+    {
+     "trainId": "1830/2/4",
+     "start": {
+      "locationId": "F20",
+      "nodeId": "town-1"
+     },
+     "paths": [
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-0-edge-3"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/3/7",
+     "start": {
+      "locationId": "E23",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "E23",
+       "pathId": "edge-5"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-2"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-1"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-3"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/2/6",
+     "start": {
+      "locationId": "F22",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:123",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "DistributeEarnings",
+   "companyId": "NYNH",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:124",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "companyId": "NYNH",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:125",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:126",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "sales": [
+    {
+     "companyId": "BO",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 100
+  },
+  {
+   "id": "recorded:127",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "sales": [
+    {
+     "companyId": "PRR",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 90
+  },
+  {
+   "id": "recorded:128",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "StartCompany",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "companyId": "BM",
+   "marketSpaceId": "0:6",
+   "expectedPrice": 200
+  },
+  {
+   "id": "recorded:129",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:130",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "sales": [
+    {
+     "companyId": "PRR",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 82
+  },
+  {
+   "id": "recorded:131",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "sales": [
+    {
+     "companyId": "BO",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 90
+  },
+  {
+   "id": "recorded:132",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "sales": [
+    {
+     "companyId": "NYNH",
+     "shares": 3
+    }
+   ],
+   "expectedProceeds": 228
+  },
+  {
+   "id": "recorded:133",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "StartCompany",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "companyId": "NYC",
+   "marketSpaceId": "0:6",
+   "expectedPrice": 200
+  },
+  {
+   "id": "recorded:134",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:135",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "sales": [
+    {
+     "companyId": "BO",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 82
+  },
+  {
+   "id": "recorded:136",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "sales": [
+    {
+     "companyId": "PRR",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 76
+  },
+  {
+   "id": "recorded:137",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "sales": [
+    {
+     "companyId": "NYNH",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 68
+  },
+  {
+   "id": "recorded:138",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "StartCompany",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "companyId": "CO",
+   "marketSpaceId": "2:6",
+   "expectedPrice": 164
+  },
+  {
+   "id": "recorded:139",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "sales": [
+    {
+     "companyId": "NYNH",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 68
+  },
+  {
+   "id": "recorded:140",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "PRR:share:1",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:141",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:142",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "certificateId": "BM:share:1",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:143",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:144",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYC:share:1",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:145",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:146",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "CO:share:1",
+   "expectedPrice": 82
+  },
+  {
+   "id": "recorded:147",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:148",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "PRR:share:2",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:149",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:150",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "certificateId": "BM:share:2",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:151",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:152",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYC:share:2",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:153",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:154",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "CO:share:2",
+   "expectedPrice": 82
+  },
+  {
+   "id": "recorded:155",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:156",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "PRR:share:3",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:157",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:158",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "certificateId": "BM:share:3",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:159",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:160",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYC:share:3",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:161",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:162",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "CO:share:3",
+   "expectedPrice": 82
+  },
+  {
+   "id": "recorded:163",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:164",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:165",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "certificateId": "BM:share:4",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:166",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:167",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYC:share:4",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:168",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:169",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "CO:share:4",
+   "expectedPrice": 82
+  },
+  {
+   "id": "recorded:170",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:171",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:172",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:173",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:174",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:175",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "LayTile",
+   "companyId": "BM",
+   "locationId": "G19",
+   "definitionId": "18xx:54",
+   "rotation": 0,
+   "nodeMapping": {
+    "city-0": "city-1",
+    "city-1": "city-0"
+   },
+   "expectedCost": 80
+  },
+  {
+   "id": "recorded:176",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "PlaceStation",
+   "companyId": "BM",
+   "stationId": "BM:station:1",
+   "position": {
+    "locationId": "F22",
+    "nodeId": "city",
+    "slot": 1
+   },
+   "expectedCost": 40
+  },
+  {
+   "id": "recorded:177",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyTrain",
+   "companyId": "BM",
+   "trainId": "1830/3/10",
+   "definitionId": "3",
+   "expectedPrice": 180
+  },
+  {
+   "id": "recorded:178",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyTrain",
+   "companyId": "BM",
+   "trainId": "1830/3/11",
+   "definitionId": "3",
+   "expectedPrice": 180
+  },
+  {
+   "id": "recorded:179",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "companyId": "BM",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:180",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYC",
+   "locationId": "E19",
+   "definitionId": "18xx:57",
+   "rotation": 0,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:181",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "OfferPurchase",
+   "companyId": "NYC",
+   "asset": {
+    "kind": "train",
+    "trainId": "1830/2/4"
+   },
+   "seller": {
+    "kind": "company",
+    "companyId": "NYNH"
+   },
+   "price": 181
+  },
+  {
+   "id": "recorded:182",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyTrain",
+   "companyId": "NYC",
+   "trainId": "1830/4/12",
+   "definitionId": "4",
+   "expectedPrice": 300
+  },
+  {
+   "id": "recorded:183",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "companyId": "NYC",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:184",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "LayTile",
+   "companyId": "CO",
+   "locationId": "G5",
+   "definitionId": "18xx:7",
+   "rotation": 2,
+   "nodeMapping": {},
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:185",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyTrain",
+   "companyId": "CO",
+   "trainId": "1830/4/13",
+   "definitionId": "4",
+   "expectedPrice": 300
+  },
+  {
+   "id": "recorded:186",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "OfferPurchase",
+   "companyId": "CO",
+   "asset": {
+    "kind": "private",
+    "privateCompanyId": "DH"
+   },
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "price": 140
+  },
+  {
+   "id": "recorded:187",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "OfferPurchase",
+   "companyId": "CO",
+   "asset": {
+    "kind": "private",
+    "privateCompanyId": "CA"
+   },
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "price": 200
+  },
+  {
+   "id": "recorded:188",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishOperatingTurn",
+   "companyId": "CO"
+  },
+  {
+   "id": "recorded:189",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "LayTile",
+   "companyId": "BO",
+   "locationId": "I15",
+   "definitionId": "18xx:53",
+   "rotation": 0,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:190",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "companyId": "BO",
+   "type": "FinishStations"
+  },
+  {
+   "id": "recorded:191",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RunTrains",
+   "companyId": "BO",
+   "routes": [
+    {
+     "trainId": "1830/3/8",
+     "start": {
+      "locationId": "I15",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "I15",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "J14",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "J14",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "K13",
+       "pathId": "edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:192",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "DistributeEarnings",
+   "companyId": "BO",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:193",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "companyId": "BO",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:194",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "LayTile",
+   "companyId": "PRR",
+   "locationId": "H18",
+   "definitionId": "18xx:59",
+   "rotation": 5,
+   "nodeMapping": {
+    "city-0": "city-0",
+    "city-1": "city-1"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:195",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "companyId": "PRR",
+   "type": "FinishStations"
+  },
+  {
+   "id": "recorded:196",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RunTrains",
+   "companyId": "PRR",
+   "routes": [
+    {
+     "trainId": "1830/3/9",
+     "start": {
+      "locationId": "H18",
+      "nodeId": "city-1"
+     },
+     "paths": [
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "I17",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "I15",
+       "pathId": "edge-4"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:197",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "DistributeEarnings",
+   "companyId": "PRR",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:198",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyTrain",
+   "companyId": "PRR",
+   "trainId": "1830/4/14",
+   "definitionId": "4",
+   "expectedPrice": 300
+  },
+  {
+   "id": "recorded:199",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "companyId": "PRR",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:200",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayPrivateTile",
+   "privateCompanyId": "CS",
+   "companyId": "NYNH",
+   "locationId": "B20",
+   "definitionId": "18xx:4",
+   "rotation": 2,
+   "nodeMapping": {
+    "town": "town"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:201",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYNH",
+   "locationId": "F18",
+   "definitionId": "18xx:8",
+   "rotation": 3,
+   "nodeMapping": {},
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:202",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "RunTrains",
+   "companyId": "NYNH",
+   "routes": [
+    {
+     "trainId": "1830/3/7",
+     "start": {
+      "locationId": "F22",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:203",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "DistributeEarnings",
+   "companyId": "NYNH",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:204",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyTrain",
+   "companyId": "NYNH",
+   "trainId": "1830/4/15",
+   "definitionId": "4",
+   "expectedPrice": 300
+  },
+  {
+   "id": "recorded:205",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "companyId": "NYNH",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:206",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "companyId": "BM",
+   "type": "FinishTrack"
+  },
+  {
+   "id": "recorded:207",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "RunTrains",
+   "companyId": "BM",
+   "routes": [
+    {
+     "trainId": "1830/3/10",
+     "start": {
+      "locationId": "E23",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "E23",
+       "pathId": "edge-5"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-2"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-1"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-3"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/3/11",
+     "start": {
+      "locationId": "G19",
+      "nodeId": "city-1"
+     },
+     "paths": [
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-3"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:208",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "DistributeEarnings",
+   "companyId": "BM",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:209",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyTrain",
+   "companyId": "BM",
+   "trainId": "1830/5/16",
+   "definitionId": "5",
+   "expectedPrice": 450
+  },
+  {
+   "id": "recorded:210",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "DiscardTrain",
+   "companyId": "BM",
+   "trainId": "1830/3/10"
+  },
+  {
+   "id": "recorded:211",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYC",
+   "locationId": "G19",
+   "definitionId": "18xx:62",
+   "rotation": 0,
+   "nodeMapping": {
+    "city-0": "city-0",
+    "city-1": "city-1"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:212",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "PlaceStation",
+   "companyId": "NYC",
+   "stationId": "NYC:station:1",
+   "position": {
+    "locationId": "G19",
+    "nodeId": "city-1",
+    "slot": 1
+   },
+   "expectedCost": 40
+  },
+  {
+   "id": "recorded:213",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "RunTrains",
+   "companyId": "NYC",
+   "routes": [
+    {
+     "trainId": "1830/4/12",
+     "start": {
+      "locationId": "F22",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-3"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "F18",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "E19",
+       "pathId": "edge-0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:214",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "DistributeEarnings",
+   "companyId": "NYC",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:215",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyTrain",
+   "companyId": "NYC",
+   "trainId": "1830/5/17",
+   "definitionId": "5",
+   "expectedPrice": 450
+  },
+  {
+   "id": "recorded:216",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "LayTile",
+   "companyId": "BO",
+   "locationId": "H18",
+   "definitionId": "18xx:67",
+   "rotation": 5,
+   "nodeMapping": {
+    "city-0": "city-0",
+    "city-1": "city-1"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:217",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "companyId": "BO",
+   "type": "FinishStations"
+  },
+  {
+   "id": "recorded:218",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RunTrains",
+   "companyId": "BO",
+   "routes": [
+    {
+     "trainId": "1830/3/8",
+     "start": {
+      "locationId": "G19",
+      "nodeId": "city-0"
+     },
+     "paths": [
+      {
+       "locationId": "G19",
+       "pathId": "city-0-edge-0"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-4"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:219",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "DistributeEarnings",
+   "companyId": "BO",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:220",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "OfferPurchase",
+   "companyId": "BO",
+   "asset": {
+    "kind": "train",
+    "trainId": "1830/4/14"
+   },
+   "seller": {
+    "kind": "company",
+    "companyId": "PRR"
+   },
+   "price": 1
+  },
+  {
+   "id": "recorded:221",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "LayTile",
+   "companyId": "CO",
+   "locationId": "F4",
+   "definitionId": "18xx:57",
+   "rotation": 5,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 80
+  },
+  {
+   "id": "recorded:222",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "companyId": "CO",
+   "type": "FinishStations"
+  },
+  {
+   "id": "recorded:223",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "RunTrains",
+   "companyId": "CO",
+   "routes": [
+    {
+     "trainId": "1830/4/13",
+     "start": {
+      "locationId": "F4",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "F4",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "G5",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "F6",
+       "pathId": "edge-0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:224",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "DistributeEarnings",
+   "companyId": "CO",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:225",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "companyId": "CO",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:226",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "LayTile",
+   "companyId": "PRR",
+   "locationId": "G17",
+   "definitionId": "18xx:2",
+   "rotation": 3,
+   "nodeMapping": {
+    "town-0": "town-0",
+    "town-1": "town-1"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:227",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RunTrains",
+   "companyId": "PRR",
+   "routes": [
+    {
+     "trainId": "1830/3/9",
+     "start": {
+      "locationId": "G19",
+      "nodeId": "city-0"
+     },
+     "paths": [
+      {
+       "locationId": "G19",
+       "pathId": "city-0-edge-0"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-4"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:228",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "DistributeEarnings",
+   "companyId": "PRR",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:229",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "OfferPurchase",
+   "companyId": "PRR",
+   "asset": {
+    "kind": "train",
+    "trainId": "1830/3/8"
+   },
+   "seller": {
+    "kind": "company",
+    "companyId": "BO"
+   },
+   "price": 55
+  },
+  {
+   "id": "recorded:230",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYNH",
+   "locationId": "E19",
+   "definitionId": "18xx:15",
+   "rotation": 0,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:231",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "RunTrains",
+   "companyId": "NYNH",
+   "routes": [
+    {
+     "trainId": "1830/3/7",
+     "start": {
+      "locationId": "G19",
+      "nodeId": "city-1"
+     },
+     "paths": [
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "F18",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "E19",
+       "pathId": "edge-0"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/4/15",
+     "start": {
+      "locationId": "F24",
+      "nodeId": "town"
+     },
+     "paths": [
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-1"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:232",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "DistributeEarnings",
+   "companyId": "NYNH",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:233",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "sales": [
+    {
+     "companyId": "PRR",
+     "shares": 3
+    }
+   ],
+   "expectedProceeds": 240
+  },
+  {
+   "id": "recorded:234",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "NYNH:share:1",
+   "expectedPrice": 70
+  },
+  {
+   "id": "recorded:235",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:236",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "certificateId": "NYNH:share:2",
+   "expectedPrice": 70
+  },
+  {
+   "id": "recorded:237",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:238",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "BO:share:1",
+   "expectedPrice": 90
+  },
+  {
+   "id": "recorded:239",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:240",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "sales": [
+    {
+     "companyId": "CO",
+     "shares": 4
+    }
+   ],
+   "expectedProceeds": 328
+  },
+  {
+   "id": "recorded:241",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "StartCompany",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "companyId": "ERIE",
+   "marketSpaceId": "0:6",
+   "expectedPrice": 200
+  },
+  {
+   "id": "recorded:242",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "BO:share:7",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:243",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:244",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "certificateId": "NYC:share:5",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:245",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:246",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "BO:share:2",
+   "expectedPrice": 90
+  },
+  {
+   "id": "recorded:247",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "sales": [
+    {
+     "companyId": "BO",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 90
+  },
+  {
+   "id": "recorded:248",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:249",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "BM:share:5",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:250",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "sales": [
+    {
+     "companyId": "BM",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 100
+  },
+  {
+   "id": "recorded:251",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "BM:share:5",
+   "expectedPrice": 90
+  },
+  {
+   "id": "recorded:252",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:253",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:254",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYNH:share:3",
+   "expectedPrice": 70
+  },
+  {
+   "id": "recorded:255",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:256",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "ERIE:share:1",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:257",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:258",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "NYC:share:6",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:259",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:260",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:261",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "sales": [
+    {
+     "companyId": "BO",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 80
+  },
+  {
+   "id": "recorded:262",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYNH:share:5",
+   "expectedPrice": 70
+  },
+  {
+   "id": "recorded:263",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:264",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "NYC:share:7",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:265",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:266",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:267",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:268",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "certificateId": "NYNH:share:6",
+   "expectedPrice": 70
+  },
+  {
+   "id": "recorded:269",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:270",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "NYC:share:8",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:271",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "sales": [
+    {
+     "companyId": "NYC",
+     "shares": 2
+    }
+   ],
+   "expectedProceeds": 200
+  },
+  {
+   "id": "recorded:272",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:273",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "NYC:share:7",
+   "expectedPrice": 82
+  },
+  {
+   "id": "recorded:274",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "SellShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "sales": [
+    {
+     "companyId": "NYC",
+     "shares": 1
+    }
+   ],
+   "expectedProceeds": 82
+  },
+  {
+   "id": "recorded:275",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:276",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:277",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:278",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "ERIE:share:2",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:279",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:280",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4631"
+   },
+   "certificateId": "BO:share:8",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:281",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:282",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:283",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:284",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "ERIE:share:3",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:285",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:286",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:287",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:288",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:289",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "ERIE:share:4",
+   "expectedPrice": 100
+  },
+  {
+   "id": "recorded:290",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:291",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:292",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:293",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:294",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "BO:share:1",
+   "expectedPrice": 80
+  },
+  {
+   "id": "recorded:295",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:296",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:297",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:298",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:299",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4836"
+   },
+   "certificateId": "NYNH:share:7",
+   "expectedPrice": 71
+  },
+  {
+   "id": "recorded:300",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:301",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:302",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:303",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:304",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:305",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "LayTile",
+   "companyId": "ERIE",
+   "locationId": "E11",
+   "definitionId": "18xx:59",
+   "rotation": 4,
+   "nodeMapping": {
+    "city-0": "city-0",
+    "city-1": "city-1"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:306",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyTrain",
+   "companyId": "ERIE",
+   "trainId": "1830/5/18",
+   "definitionId": "5",
+   "expectedPrice": 450
+  },
+  {
+   "id": "recorded:307",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "companyId": "ERIE",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:308",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "LayTile",
+   "companyId": "BM",
+   "locationId": "E23",
+   "definitionId": "18xx:53",
+   "rotation": 1,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:309",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "RunTrains",
+   "companyId": "BM",
+   "routes": [
+    {
+     "trainId": "1830/3/11",
+     "start": {
+      "locationId": "G19",
+      "nodeId": "city-1"
+     },
+     "paths": [
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-3"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/5/16",
+     "start": {
+      "locationId": "E23",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "E23",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-2"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-1"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:310",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "DistributeEarnings",
+   "companyId": "BM",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:311",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "LayTile",
+   "companyId": "PRR",
+   "locationId": "H16",
+   "definitionId": "18xx:63",
+   "rotation": 0,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:312",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "RunTrains",
+   "companyId": "PRR",
+   "routes": [
+    {
+     "trainId": "1830/3/9",
+     "start": {
+      "locationId": "G19",
+      "nodeId": "city-0"
+     },
+     "paths": [
+      {
+       "locationId": "G19",
+       "pathId": "city-0-edge-0"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-4"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-4"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/3/8",
+     "start": {
+      "locationId": "I15",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "I15",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "I17",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-5"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-1"
+      },
+      {
+       "locationId": "H14",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "H12",
+       "pathId": "bypass"
+      },
+      {
+       "locationId": "H10",
+       "pathId": "edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:313",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "DistributeEarnings",
+   "companyId": "PRR",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:314",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "LayTile",
+   "companyId": "BO",
+   "locationId": "F18",
+   "definitionId": "18xx:24",
+   "rotation": 3,
+   "nodeMapping": {},
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:315",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "PlaceStation",
+   "companyId": "BO",
+   "stationId": "BO:station:2",
+   "position": {
+    "locationId": "H18",
+    "nodeId": "city-1",
+    "slot": 0
+   },
+   "expectedCost": 100
+  },
+  {
+   "id": "recorded:316",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RunTrains",
+   "companyId": "BO",
+   "routes": [
+    {
+     "trainId": "1830/4/14",
+     "start": {
+      "locationId": "G19",
+      "nodeId": "city-0"
+     },
+     "paths": [
+      {
+       "locationId": "G19",
+       "pathId": "city-0-edge-0"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-4"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-5"
+      },
+      {
+       "locationId": "I17",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "I15",
+       "pathId": "edge-4"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:317",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "DistributeEarnings",
+   "companyId": "BO",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:318",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "BuyTrain",
+   "companyId": "BO",
+   "trainId": "1830/6/19",
+   "definitionId": "6",
+   "expectedPrice": 630
+  },
+  {
+   "id": "recorded:319",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYC",
+   "locationId": "D18",
+   "definitionId": "18xx:8",
+   "rotation": 5,
+   "nodeMapping": {},
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:320",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "RunTrains",
+   "companyId": "NYC",
+   "routes": [
+    {
+     "trainId": "1830/4/12",
+     "start": {
+      "locationId": "F22",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-3"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/5/17",
+     "start": {
+      "locationId": "G19",
+      "nodeId": "city-1"
+     },
+     "paths": [
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "F18",
+       "pathId": "path-1"
+      },
+      {
+       "locationId": "E19",
+       "pathId": "edge-0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:321",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "DistributeEarnings",
+   "companyId": "NYC",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:322",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYNH",
+   "locationId": "E23",
+   "definitionId": "18xx:61",
+   "rotation": 3,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:323",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "RunTrains",
+   "companyId": "NYNH",
+   "routes": [
+    {
+     "trainId": "1830/4/15",
+     "start": {
+      "locationId": "E23",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "E23",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-2"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:324",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "DistributeEarnings",
+   "companyId": "NYNH",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:325",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "companyId": "NYNH",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:326",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "LayTile",
+   "companyId": "CO",
+   "locationId": "E3",
+   "definitionId": "18xx:7",
+   "rotation": 5,
+   "nodeMapping": {},
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:327",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "companyId": "CO",
+   "type": "FinishStations"
+  },
+  {
+   "id": "recorded:328",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "RunTrains",
+   "companyId": "CO",
+   "routes": [
+    {
+     "trainId": "1830/4/13",
+     "start": {
+      "locationId": "F2",
+      "nodeId": "offboard"
+     },
+     "paths": [
+      {
+       "locationId": "F2",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "E3",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "F4",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "F4",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "G5",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "F6",
+       "pathId": "edge-0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:329",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "DistributeEarnings",
+   "companyId": "CO",
+   "choice": "withhold"
+  },
+  {
+   "id": "recorded:330",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "OfferPurchase",
+   "companyId": "CO",
+   "asset": {
+    "kind": "train",
+    "trainId": "1830/5/18"
+   },
+   "seller": {
+    "kind": "company",
+    "companyId": "ERIE"
+   },
+   "price": 259
+  },
+  {
+   "id": "recorded:331",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "companyId": "BM",
+   "type": "FinishTrack"
+  },
+  {
+   "id": "recorded:332",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "RunTrains",
+   "companyId": "BM",
+   "routes": [
+    {
+     "trainId": "1830/5/16",
+     "start": {
+      "locationId": "E23",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "E23",
+       "pathId": "edge-2"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-2"
+      },
+      {
+       "locationId": "F24",
+       "pathId": "town-edge-1"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "F22",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-4"
+      },
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:333",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "DistributeEarnings",
+   "companyId": "BM",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:334",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "companyId": "BM",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:335",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "LayTile",
+   "companyId": "PRR",
+   "locationId": "H10",
+   "definitionId": "18xx:14",
+   "rotation": 0,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:336",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "companyId": "PRR",
+   "type": "FinishStations"
+  },
+  {
+   "id": "recorded:337",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "FundTrain",
+   "companyId": "PRR",
+   "trainId": "1830/6/20",
+   "definitionId": "6",
+   "expectedPrice": 630
+  },
+  {
+   "id": "recorded:338",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "SellFundingShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "companyId": "NYC",
+   "shares": 1,
+   "expectedProceeds": 82
+  },
+  {
+   "id": "recorded:339",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "SellFundingShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "companyId": "NYNH",
+   "shares": 1,
+   "expectedProceeds": 75
+  },
+  {
+   "id": "recorded:340",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "ContributeTrainFunds",
+   "owner": {
+    "kind": "player",
+    "playerId": "4639"
+   },
+   "amount": 518
+  },
+  {
+   "id": "recorded:341",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4639",
+   "type": "BuyTrain",
+   "companyId": "PRR",
+   "trainId": "1830/6/20",
+   "definitionId": "6",
+   "expectedPrice": 630
+  },
+  {
+   "id": "recorded:342",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "LayTile",
+   "companyId": "BO",
+   "locationId": "F18",
+   "definitionId": "18xx:42",
+   "rotation": 0,
+   "nodeMapping": {},
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:343",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "RunTrains",
+   "companyId": "BO",
+   "routes": [
+    {
+     "trainId": "1830/4/14",
+     "start": {
+      "locationId": "H10",
+      "nodeId": "city"
+     },
+     "paths": [
+      {
+       "locationId": "H10",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "H12",
+       "pathId": "bypass"
+      },
+      {
+       "locationId": "H14",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-1"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "G17",
+       "pathId": "town-0-edge-3"
+      },
+      {
+       "locationId": "G17",
+       "pathId": "town-0-edge-0"
+      },
+      {
+       "locationId": "F18",
+       "pathId": "path-2"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-2"
+      }
+     ]
+    },
+    {
+     "trainId": "1830/6/19",
+     "start": {
+      "locationId": "K13",
+      "nodeId": "offboard"
+     },
+     "paths": [
+      {
+       "locationId": "K13",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "J14",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "J14",
+       "pathId": "edge-3"
+      },
+      {
+       "locationId": "I15",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "I15",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "I17",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-5"
+      },
+      {
+       "locationId": "H16",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "H18",
+       "pathId": "city-1-edge-4"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-0-edge-0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:344",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4631",
+   "type": "DistributeEarnings",
+   "companyId": "BO",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:345",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "LayTile",
+   "companyId": "ERIE",
+   "locationId": "E13",
+   "definitionId": "18xx:8",
+   "rotation": 1,
+   "nodeMapping": {},
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:346",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "companyId": "ERIE",
+   "type": "FinishStations"
+  },
+  {
+   "id": "recorded:347",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "OfferPurchase",
+   "companyId": "ERIE",
+   "asset": {
+    "kind": "train",
+    "trainId": "1830/4/13"
+   },
+   "seller": {
+    "kind": "company",
+    "companyId": "CO"
+   },
+   "price": 5
+  },
+  {
+   "id": "recorded:348",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "type": "BuyTrain",
+   "companyId": "ERIE",
+   "trainId": "1830/D/22",
+   "definitionId": "D",
+   "exchangeTrainId": "1830/4/13",
+   "expectedPrice": 800
+  },
+  {
+   "id": "recorded:349",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "4836",
+   "companyId": "ERIE",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:350",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "LayTile",
+   "companyId": "NYC",
+   "locationId": "D16",
+   "definitionId": "18xx:9",
+   "rotation": 1,
+   "nodeMapping": {},
+   "expectedCost": 0
+  },
+  {
+   "id": "recorded:351",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "RunTrains",
+   "companyId": "NYC",
+   "routes": [
+    {
+     "trainId": "1830/5/17",
+     "start": {
+      "locationId": "F20",
+      "nodeId": "town-1"
+     },
+     "paths": [
+      {
+       "locationId": "F20",
+       "pathId": "town-1-edge-0"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-3"
+      },
+      {
+       "locationId": "G19",
+       "pathId": "city-1-edge-2"
+      },
+      {
+       "locationId": "F18",
+       "pathId": "path-1"
+      },
+      {
+       "locationId": "E19",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "E19",
+       "pathId": "edge-2"
+      },
+      {
+       "locationId": "D18",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "D16",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "D14",
+       "pathId": "edge-4"
+      },
+      {
+       "locationId": "D14",
+       "pathId": "edge-0"
+      },
+      {
+       "locationId": "E13",
+       "pathId": "path-0"
+      },
+      {
+       "locationId": "E11",
+       "pathId": "city-0-edge-0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:352",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "DistributeEarnings",
+   "companyId": "NYC",
+   "choice": "pay"
+  },
+  {
+   "id": "recorded:353",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "companyId": "NYC",
+   "type": "FinishOperatingTurn"
+  },
+  {
+   "id": "recorded:354",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "companyId": "NYNH",
+   "type": "FinishTrack"
+  },
+  {
+   "id": "recorded:355",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "FundTrain",
+   "companyId": "NYNH",
+   "trainId": "1830/D/23",
+   "definitionId": "D",
+   "expectedPrice": 1100
+  },
+  {
+   "id": "recorded:356",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "SellFundingShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "companyId": "NYC",
+   "shares": 2,
+   "expectedProceeds": 164
+  },
+  {
+   "id": "recorded:357",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "SellFundingShares",
+   "seller": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "companyId": "NYNH",
+   "shares": 4,
+   "expectedProceeds": 276
+  },
+  {
+   "id": "recorded:358",
+   "gameId": "1830-29133",
+   "source": "user",
+   "playerId": "1668",
+   "type": "ContributeTrainFunds",
+   "owner": {
+    "kind": "player",
+    "playerId": "1668"
+   },
+   "amount": 794
+  }
+ ],
+ "finalWealth": {
+  "1668": 416,
+  "4631": 1477,
+  "4639": 951,
+  "4836": 887
+ }
+}

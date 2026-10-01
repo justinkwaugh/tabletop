@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, assert, type GameAction } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
     cashOwnedBy,
     evaluateSharePurchase,
@@ -11,47 +11,31 @@ import {
     privateOwner,
     type EighteenXXState
 } from '@tabletop/18xx'
-import { exampleGame } from '@tabletop/18xx/scenarios'
-import { Definition } from './definition/gameDefinition.js'
+import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenThirtyStockRules } from './index.js'
 import { EighteenThirtyScenarios } from './scenarios/index.js'
 
 const alex = { kind: 'player', playerId: 'alex' } as const
 
 // The trading example: the second stock round with alex to act.
-function trading(prepare: (state: EighteenXXState) => void = () => {}) {
-    const { game, engine, state: initial } = exampleGame(EighteenThirtyScenarios, 'trading', 3)
-    let state: EighteenXXState = structuredClone(initial)
-    prepare(state)
-    const validator = Definition.runtime.canonicalStateValidator
-    const act = (type: string, fields: object = {}) => {
-        const action: GameAction = {
-            id: `action:${state.actionCount}`,
-            gameId: game.id,
-            source: ActionSource.User,
-            playerId: state.activePlayerIds[0],
-            type,
-            ...fields
-        }
-        state = engine.executeCanonicalAction({ game, state, action }).updatedState
-        expect(validator?.Check(state)).toBe(true)
-    }
+function trading(prepare?: (state: EighteenXXState) => void) {
+    const play = playExample(EighteenThirtyScenarios, 'trading', 3, prepare)
     return {
         get state() {
-            return state
+            return play.state
         },
-        act,
-        valid: (playerId: string) => engine.getValidActionTypesForPlayer(game, state, playerId),
+        act: play.act,
+        valid: play.valid,
         sell(companyId: string, shares = 1) {
             const request = { playerId: 'alex', seller: alex, sales: [{ companyId, shares }] }
-            const result = evaluateShareSale(state, request, EighteenThirtyStockRules)
+            const result = evaluateShareSale(play.state, request, EighteenThirtyStockRules)
             expect(result.reason).toBeUndefined()
-            act('SellShares', { ...request, expectedProceeds: result.details!.proceeds })
+            play.act('SellShares', { ...request, expectedProceeds: result.details!.proceeds })
             return result.details!.proceeds
         },
         purchase(certificateId: string) {
             return evaluateSharePurchase(
-                state,
+                play.state,
                 { playerId: 'alex', buyer: alex, certificateId },
                 EighteenThirtyStockRules
             )
@@ -59,7 +43,11 @@ function trading(prepare: (state: EighteenXXState) => void = () => {}) {
         buy(certificateId: string) {
             const result = this.purchase(certificateId)
             expect(result.reason).toBeUndefined()
-            act('BuyShares', { buyer: alex, certificateId, expectedPrice: result.details!.price })
+            play.act('BuyShares', {
+                buyer: alex,
+                certificateId,
+                expectedPrice: result.details!.price
+            })
         }
     }
 }

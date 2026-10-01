@@ -104,19 +104,14 @@ it('leaves joined edges out of the outline and hides a duplicate revenue', () =>
             preprintedTile: createCityTileFace('red', [r ? 2 : 5], 30, 1)
         }))
     })
-    const scene = createMapDrawing(
-        map,
-        undefined,
-        { 'location-0': { hideRevenue: true } },
-        {},
-        {},
-        { 'location-0': [5], 'location-1': [2] }
-    )
+    const scene = createMapDrawing(map, undefined, {
+        layouts: { 'location-0': { hideRevenue: true } },
+        joinedEdges: { 'location-0': [5], 'location-1': [2] }
+    })
     const [first, second] = scene.locations
-    expect([first.joined, second.joined]).toEqual([true, true])
     expect([first.outline.length, second.outline.length]).toEqual([5, 5])
     expect(first.drawing.nodes[0].revenueHidden).toBe(true)
     expect(second.drawing.nodes[0].revenueHidden).toBe(false)
     const plain = createMapDrawing(map).locations[0]
-    expect([plain.joined, plain.outline.length]).toEqual([false, 6])
+    expect(plain.outline).toHaveLength(6)
 })

@@ -47,12 +47,12 @@ describe('complete title maps', () => {
     it.each(Object.values(MapExamples))(
         'preserves location facts and aligns map edges for $map.definition.name',
         (example) => {
-            const scene = createMapDrawing(example.map, undefined, example.layouts)
+            const scene = createMapDrawing(example.map, undefined, { layouts: example.layouts })
             expect(alignedEdges(scene, example.map)).toBeGreaterThan(10)
             const prepared = createMapDrawing(
                 example.map,
                 { tileSet: example.tileSet, inventory: example.prepared },
-                example.layouts
+                { layouts: example.layouts }
             )
             expect(prepared.locations.filter((entry) => entry.placed)).toHaveLength(1)
             alignedEdges(prepared, example.map, (entry) => entry.placed)
@@ -73,7 +73,7 @@ describe('complete title maps', () => {
         const prepared = createMapDrawing(
             example.map,
             { tileSet: example.tileSet, inventory: example.prepared },
-            example.layouts
+            { layouts: example.layouts }
         )
         expect(alignedEdges(prepared, example.map, (entry) => entry.placed)).toBe(2)
     })

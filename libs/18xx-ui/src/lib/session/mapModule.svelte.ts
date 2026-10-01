@@ -242,14 +242,7 @@ export class MapModule {
     }
     private draw(inventory: MapState['tileInventory']) {
         const view = this.view()
-        return createMapDrawing(
-            view.map,
-            { tileSet: view.tileSet, inventory },
-            view.layouts,
-            view.markerArt,
-            view.placements,
-            view.joinedEdges
-        )
+        return createMapDrawing(view.map, { tileSet: view.tileSet, inventory }, view)
     }
 }
 

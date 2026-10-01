@@ -54,3 +54,10 @@ emergency purchases go through our train funding.
 
 Replay produces 612 player actions and 424 automatic actions. Final wealth is 12,025 for
 Player 1, 13,048 for Player 2, and 12,109 for Player 3, as upstream records.
+
+# Recorded 1830 bankruptcies
+
+`1830-bankruptcy-26855.json` and `1830-bankruptcy-29133.json` are the two four-player
+18xx.games recordings that end in bankruptcy (26855 with brown shares from the IPO), converted
+the same way. They are test fixtures only: `finishedGame.spec.ts` replays each to game over and
+checks the recorded final wealth.

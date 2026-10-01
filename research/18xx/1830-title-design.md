@@ -500,7 +500,10 @@ company's train with its president's help, and replays the three recorded games.
   visit a group twice, so Canada is one stop and the Gulf's two hexes are two.
   Each pair also has untyped borders between its hexes (A9 edge 4 and A11 edge
   1, I1 edge 5 and J2 edge 2), which the reference draws as missing hex outlines.
-  `hide:1` on A9 and I1 leaves one revenue value per pair.
+  `hide:1` on A9 and I1 leaves one revenue value per pair. The printed board
+  draws each pair as one area; the printed rulebook is not in the research
+  package, so whether it counts the Gulf as one stop is unconfirmed. Following
+  the reference, the Gulf's hexes are separate stops.
 - **Emergency purchases.** The base engine's `EBUY_FROM_OTHERS` is `:value`
   (1889 sets `:never`). While a company must buy a train and its treasury is
   short of a train's price, it may buy another company's train for at most its
@@ -533,8 +536,10 @@ company's train with its president's help, and replays the three recorded games.
   president.
 - **Verification by replay.** A research converter applies the reference's undo
   and redo, expands programmed actions and maps each recorded action to ours. All
-  three games reach game over with upstream's final wealth. The bank-ended game
-  is the playground's finished 1830 game.
+  three games reach game over with upstream's final wealth, and the playground's
+  tests replay all three and assert it. The bank-ended game is the playground's
+  finished 1830 game. None of the recorded games has a president fund another
+  company's train, so the 1830 specs cover that case.
 
 ### Differences found by replay
 
@@ -555,7 +560,7 @@ None of these needed rule changes; the converter bridges them.
 ### Limits after slice 5
 
 - A president cannot sell shares to fund another company's train; only their cash
-  contributes, as in the recorded games.
+  contributes. The reference allows the sales first.
 - The offer form does not show how much the president would contribute.
 
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/game.rb

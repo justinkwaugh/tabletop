@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, assert, type GameAction } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
-    ReserveBidAuction,
     applyTrainPurchase,
     cashOwnedBy,
     getCompany,
@@ -10,11 +9,8 @@ import {
     type EighteenXXState,
     type Owner
 } from '@tabletop/18xx'
-import { exampleGame } from '@tabletop/18xx/scenarios'
-import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
-import { Definition } from './definition/gameDefinition.js'
+import { playExample, type ScenarioPosition } from '@tabletop/18xx/scenarios'
 import {
-    EighteenThirtyAuctionRules,
     EighteenThirtyCompanyRules,
     EighteenThirtyPrivatePowerRules,
     EighteenThirtyPrivates,
@@ -23,33 +19,10 @@ import {
     EighteenThirtyTrainRules,
     EighteenThirtyTransferRules
 } from './index.js'
-import { EighteenThirtyScenarios } from './scenarios/index.js'
+import { EighteenThirtyScenarios, buyOpeningPrivates } from './scenarios/index.js'
 
-function play(position: ScenarioPosition, prepare: (state: EighteenXXState) => void = () => {}) {
-    const { game, engine, state: initial } = exampleGame(EighteenThirtyScenarios, position, 3)
-    let state: EighteenXXState = structuredClone(initial)
-    prepare(state)
-    const validator = Definition.runtime.canonicalStateValidator
-    const act = (type: string, fields: object = {}, playerId = state.activePlayerIds[0]) => {
-        const action: GameAction = {
-            id: `action:${state.actionCount}`,
-            gameId: game.id,
-            source: ActionSource.User,
-            playerId,
-            type,
-            ...fields
-        }
-        state = engine.executeCanonicalAction({ game, state, action }).updatedState
-        expect(validator?.Check(state)).toBe(true)
-    }
-    return {
-        get state() {
-            return state
-        },
-        act,
-        valid: (playerId: string) => engine.getValidActionTypesForPlayer(game, state, playerId)
-    }
-}
+const play = (position: ScenarioPosition, prepare?: (state: EighteenXXState) => void) =>
+    playExample(EighteenThirtyScenarios, position, 3, prepare)
 
 function givePrivate(state: EighteenXXState, privateCompanyId: string, owner: Owner) {
     const existing = state.certificates.find(
@@ -84,27 +57,15 @@ const certificateOwner = (state: EighteenXXState, id: string) => {
     return certificate.owner
 }
 
-// Each player in turn buys the cheapest private until the B&O is bought.
 function auctionToBaltimore() {
     const game = play('opening')
-    const buyers: Record<string, string> = {}
-    while (!game.state.pendingPar) {
-        const auction = new ReserveBidAuction(game.state, EighteenThirtyAuctionRules)
-        const lotId = auction.auction.remainingLotIds[0]
-        buyers[lotId] = game.state.activePlayerIds[0]
-        game.act('BuyAuctionLot', { lotId, expectedPrice: auction.price(lotId) })
-    }
-    return { game, buyers }
+    return { game, buyers: buyOpeningPrivates(game) }
 }
 
 describe('auction awards', () => {
     it('gives the C&A buyer a PRR share without further payment', () => {
         const game = play('opening')
-        const auction = () => new ReserveBidAuction(game.state, EighteenThirtyAuctionRules)
-        while (auction().auction.remainingLotIds[0] !== 'CA') {
-            const lotId = auction().auction.remainingLotIds[0]
-            game.act('BuyAuctionLot', { lotId, expectedPrice: auction().price(lotId) })
-        }
+        buyOpeningPrivates(game, 'CA')
         const buyer = { kind: 'player', playerId: game.state.activePlayerIds[0] } as const
         const before = cash(game.state, buyer)
         game.act('BuyAuctionLot', { lotId: 'CA', expectedPrice: 160 })
@@ -159,14 +120,7 @@ describe('contested B&O', () => {
         game.act('ReserveBid', { lotId: 'BOP', amount: 225 })
         const rival = game.state.activePlayerIds[0]
         game.act('ReserveBid', { lotId: 'BOP', amount: 230 })
-        while (
-            new ReserveBidAuction(game.state, EighteenThirtyAuctionRules).auction
-                .remainingLotIds[0] !== 'BOP'
-        ) {
-            const auction = new ReserveBidAuction(game.state, EighteenThirtyAuctionRules)
-            const lotId = auction.auction.remainingLotIds[0]
-            game.act('BuyAuctionLot', { lotId, expectedPrice: auction.price(lotId) })
-        }
+        buyOpeningPrivates(game, 'BOP')
         expect(game.state.machineState).toBe('AuctionBidding')
         expect(game.state.activePlayerIds).toEqual([first])
         game.act('PassAuction')

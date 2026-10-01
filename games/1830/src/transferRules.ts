@@ -19,8 +19,7 @@ export const EighteenThirtyTransferRules: TransferRules = {
             : undefined
     },
     // A company that must buy a train may take another company's train for up to its face
-    // value, with its president paying what the treasury cannot (the reference's
-    // EBUY_FROM_OTHERS = :value).
+    // value, with its president paying what the treasury cannot.
     purchaseFunding(state, companyId, asset) {
         if (
             asset.kind !== 'train' ||

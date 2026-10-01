@@ -36,7 +36,6 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
-    /** Leaves out revenue values another hex of the same area already shows. */
     hideRevenue?: true
 }
 

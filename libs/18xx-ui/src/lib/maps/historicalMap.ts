@@ -95,10 +95,7 @@ export class HistoricalMaps {
                     tileSet: view.tileSet,
                     inventory: snapshot.tileInventory
                 },
-                view.layouts,
-                view.markerArt,
-                view.placements,
-                view.joinedEdges
+                view
             ),
             tokens: stationMapTokens(snapshot, view.stations),
             reservations: snapshot.stationReservations,

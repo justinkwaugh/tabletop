@@ -18,7 +18,6 @@ export const EighteenThirtyMapView: MapViewDefinition = {
             nodePositions: { 'city-0': towardTileEdge(3, 20), 'city-1': towardTileEdge(1, 18) }
         },
         H12: { nodePositions: { city: towardTileEdge(2.5, 22) } },
-        // Canada and the Gulf each show one revenue for their two hexes.
         A9: { hideRevenue: true },
         I1: { hideRevenue: true }
     },
