@@ -62,6 +62,7 @@ export type TableName =
     | 'visionBacks'
     | 'restBanks'
     | 'goalsRail'
+    | 'trade'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -276,6 +277,57 @@ function actPhaseTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-5.3.2: three denizens at the seat's site, one carrying favor, two Hearth advisers and an empty Discord bank. */
+function tradeTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                secrets: 1,
+                favor: 3,
+                advisers: [
+                    { cardId: 'denizen.hearth.a-round-of-ale', faceUp: true },
+                    { cardId: 'denizen.hearth.armed-mob', faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: {
+                [home]: [
+                    'denizen.hearth.book-binders',
+                    'denizen.order.council-seat',
+                    'denizen.discord.assassin'
+                ]
+            },
+            cardTokens: { 'denizen.order.council-seat': { favor: 1, secrets: 0 } },
+            favorBank: {
+                [Suit.Discord]: 0,
+                [Suit.Arcane]: 3,
+                [Suit.Order]: 3,
+                [Suit.Hearth]: 3,
+                [Suit.Beast]: 3,
+                [Suit.Nomad]: 3
+            }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-6.5.a — the Citizen asks to move two Imperial warbands off their site, so the Chancellor is asked. */
 function warbandMoveAskedTable(): PlayedTable {
     const state = testState(
@@ -445,7 +497,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     imperialDefeated: () => defeatedTable('imperial'),
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
-    goalsRail: goalsRailTable
+    goalsRail: goalsRailTable,
+    trade: tradeTable
 }
 
 let session: OathGameSession | undefined
@@ -635,4 +688,8 @@ export function defeatPicks(): { required: number; picked: number[]; blockedBeca
         picked: defeat.picked,
         blockedBecause: defeat.blockedBecause
     }
+}
+
+export function cardTokens(cardId: string): { favor: number; secrets: number } {
+    return current().gameState.tokensOn(cardId)
 }

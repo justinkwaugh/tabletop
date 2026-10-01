@@ -484,6 +484,31 @@ test('scenario 38: the side tabs, history controls, chat, panel and Undo wear Oa
     expect(await luminanceOf(undo, 'color')).toBeGreaterThan(0.9)
 })
 
+test('scenario 39: Trade lists every trade at the site, a strip tap marks a row, a button sends', async ({ page }) => {
+    await openTable(page, 'trade')
+    await tile(page, 'Trade').click()
+    const rows = page.getByRole('list', { name: 'Trades at your site' }).getByRole('listitem')
+    await expect(rows).toHaveCount(2)
+    await expect(rows.nth(0)).toContainText('Book Binders')
+    await expect(rows.nth(1)).toContainText('Assassin')
+    await expect(page.getByRole('list', { name: 'Trades at your site' })).not.toContainText('Council Seat')
+    await expect(
+        page.getByRole('button', { name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank' })
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Trade with Book Binders: pay 2 favor, get 2 secrets' })).toBeVisible()
+    await expect(rows.nth(1)).toContainText('bank empty')
+    await expect(rows.nth(1)).toContainText('no faceup')
+
+    await page.getByRole('button', { name: 'Assassin', exact: true }).click()
+    await expect(rows.nth(1)).toHaveClass(/ring-2/)
+    await expect(rows.nth(0)).not.toHaveClass(/ring-2/)
+    expect(await call(page, 'cardTokens', 'denizen.discord.assassin')).toEqual({ favor: 0, secrets: 0 })
+
+    await page.getByRole('button', { name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank' }).click()
+    await expect.poll(() => call(page, 'cardTokens', 'denizen.hearth.book-binders')).toEqual({ favor: 0, secrets: 1 })
+    await expect(page.getByRole('list', { name: 'Trades at your site' })).toHaveCount(0)
+})
+
 test('card backs: another seat’s facedown Vision and the Vision in its hand show the Vision back', async ({ page }) => {
     await openTable(page, 'visionBacks')
     const backsOf = (label: string) =>

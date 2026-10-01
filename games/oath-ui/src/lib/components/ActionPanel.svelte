@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ActionType, MachineState, TradeOption } from '@tabletop/oath'
+    import { ActionType, MachineState } from '@tabletop/oath'
     import ActionGrid from '$lib/components/ActionGrid.svelte'
     import SearchPanel from '$lib/components/SearchPanel.svelte'
     import CampaignPanel from '$lib/components/CampaignPanel.svelte'
@@ -10,6 +10,7 @@
     import MinorActionPanel from '$lib/components/MinorActionPanel.svelte'
     import ModifierPicker from '$lib/components/ModifierPicker.svelte'
     import PowerPanel from '$lib/components/PowerPanel.svelte'
+    import TradeMenu from '$lib/components/TradeMenu.svelte'
     import BannerRecoverPanel from '$lib/components/BannerRecoverPanel.svelte'
     import TravelWayPanel from '$lib/components/TravelWayPanel.svelte'
     import CitizenshipPanel from '$lib/components/CitizenshipPanel.svelte'
@@ -46,17 +47,6 @@
               })
     )
 
-    // R-5.3.2 — both options are offered only when the card allows both.
-    let tradeOptions = $derived.by(() => {
-        const cardId = selection.value('card')
-        if (chosen !== ActionType.Trade || cardId === undefined) return []
-        return gameSession.tradeOptionsFor(cardId)
-    })
-
-    const TRADE_LABELS: Record<TradeOption, string> = {
-        [TradeOption.ForFavor]: 'Place a secret, gain favor',
-        [TradeOption.ForSecrets]: 'Place two favor, gain secrets'
-    }
 
     let inActPhase = $derived(gameState.machineState === MachineState.ActPhase)
     let wakeNeedsDecision = $derived(gameSession.wakeNeedsDecision)
@@ -189,18 +179,9 @@
                 </div>
             {/if}
 
-            {#if tradeOptions.length > 1}
-                <div class="mb-2 flex flex-col gap-1">
-                    {#each tradeOptions as option (option)}
-                        <button
-                            class="rounded border border-oath-frame bg-oath-surface-raised
-                                   hover:border-oath-accent px-2 py-1 text-sm text-left"
-                            disabled={busy}
-                            onclick={() => gameSession.chooseTradeOption(option)}
-                        >
-                            {TRADE_LABELS[option]}
-                        </button>
-                    {/each}
+            {#if chosen === ActionType.Trade}
+                <div class="mb-2">
+                    <TradeMenu />
                 </div>
             {/if}
         {/if}

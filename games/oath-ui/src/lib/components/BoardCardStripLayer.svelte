@@ -105,6 +105,7 @@
                 width={placed.width}
                 zIndex={placed.zIndex}
                 pickable={space.pickable}
+                picked={gameSession.tradeCard === denizenCardId}
                 onpick={() => gameSession.chooseCard(denizenCardId)}
             />
             {#if tokens.favor > 0 || tokens.secrets > 0}

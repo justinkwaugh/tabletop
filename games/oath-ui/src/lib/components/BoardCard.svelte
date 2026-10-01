@@ -15,6 +15,7 @@
         width,
         zIndex = 0,
         pickable = false,
+        picked = false,
         onpick,
         title,
         previewSlotId
@@ -27,6 +28,8 @@
         width: number
         zIndex?: number
         pickable?: boolean
+        /** A pick the player has made and may still change. */
+        picked?: boolean
         onpick?: () => void
         title?: string
         previewSlotId?: string
@@ -52,6 +55,7 @@
     <button
         type="button"
         class="board-card pickable"
+        class:picked
         {style}
         title={tooltip}
         onclick={() => onpick?.()}
@@ -103,6 +107,11 @@
     .board-card.pickable:focus-visible {
         outline-color: #fde68a;
         box-shadow: 0 0 0 9px rgba(253, 230, 138, 0.36);
+    }
+
+    .board-card.pickable.picked {
+        outline: 5px solid var(--oath-accent);
+        box-shadow: 0 0 18px 6px rgba(252, 211, 77, 0.55);
     }
 
     .board-card.pickable:focus {
