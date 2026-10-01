@@ -1,4 +1,4 @@
-/** R-9.4 — the pool is public; the deck's order still comes from the vault seed. */
+/** The 54 denizens of the first playtests, which the corpus and reach specs walk card by card. */
 export const PLAYTEST_DECK: readonly string[] = [
     'denizen.hearth.wayside-inn',
     'denizen.hearth.storyteller',
@@ -57,18 +57,8 @@ export const PLAYTEST_DECK: readonly string[] = [
 ]
 
 /** R-2.1.1 — one site per map slot. */
-export const PLAYTEST_SITES: readonly string[] = Object.freeze([
-    'site.mine',
-    'site.salt-flats',
-    'site.marshes',
-    'site.plains',
-    'site.mountain',
-    'site.river',
-    'site.fertile-valley',
-    'site.standing-stones'
-])
 
-/** R-1.18 leaves the relic deck unpinned, so setup never reads this; the reach review does. */
+/** The relics the first playtests held, which the reach review walks with the deck. */
 export const PLAYTEST_RELICS: readonly string[] = [
     'relic.map',
     'relic.dragonskin-drum',

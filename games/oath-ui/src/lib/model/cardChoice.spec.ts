@@ -7,6 +7,7 @@ const resolve: CardResolvers = {
     faceupSiteCardAt: (siteId) => (siteId === 'c1' ? 'site.plains' : undefined),
     relicSlotLabel: (slotId) => `relic ${slotId}`,
     facedownAdviserLabel: (playerId, index) => `${playerId}'s facedown adviser ${index + 1}`,
+    facedownAdviserBack: (_playerId, index) => (index === 2 ? CardKind.Vision : CardKind.Denizen),
     siteLabel: (siteId) => `site ${siteId}`,
     warbandOwnerName: (owner) => `${owner}'s`
 }
@@ -32,8 +33,9 @@ describe('a power choice drawn as cards', () => {
     it('a card by its face, a relic by its face when known and a back when not, a facedown adviser by a back', () => {
         expect(powerChoiceCard({ kind: PowerChoiceKind.Card, cardId: 'denizen.nomad.tents' }, '0', resolve)).toMatchObject({ cardId: 'denizen.nomad.tents' })
         expect(powerChoiceCard({ kind: PowerChoiceKind.RelicSlot, slotId: 'c1.relic.0' }, '0', resolve)).toMatchObject({ cardId: 'relic.map' })
-        expect(powerChoiceCard({ kind: PowerChoiceKind.RelicSlot, slotId: 'p1.relic.0' }, '0', resolve)).toEqual({ key: '0', backKind: CardKind.Relic, label: 'relic p1.relic.0' })
-        expect(powerChoiceCard({ kind: PowerChoiceKind.FacedownAdviser, playerId: 'ann', index: 1 }, '0', resolve)).toEqual({ key: '0', backKind: CardKind.Denizen, label: "ann's facedown adviser 2" })
+        expect(powerChoiceCard({ kind: PowerChoiceKind.RelicSlot, slotId: 'p1.relic.0' }, '0', resolve)).toEqual({ key: '0', back: CardKind.Relic, label: 'relic p1.relic.0' })
+        expect(powerChoiceCard({ kind: PowerChoiceKind.FacedownAdviser, playerId: 'ann', index: 1 }, '0', resolve)).toEqual({ key: '0', back: CardKind.Denizen, label: "ann's facedown adviser 2" })
+        expect(powerChoiceCard({ kind: PowerChoiceKind.FacedownAdviser, playerId: 'ann', index: 2 }, '0', resolve)).toEqual({ key: '0', back: CardKind.Vision, label: "ann's facedown adviser 3" })
     })
 
     it('warbands at a site by the site card, captioned with the group; on a board they are no card', () => {

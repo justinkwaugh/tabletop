@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Visibility } from '@tabletop/common'
-import { OathRuntime } from './runtime.js'
+import { OathVisibility } from './runtime.js'
 import { OathApiActions } from './apiActions.js'
 
 // R-9.4 — a record of every action type, with every optional field present, reaches no other seat's secret.
@@ -105,9 +105,9 @@ describe('every registered action type projects without naming a secret to anoth
                 const sampling: Sampling = { variant, secrets: 0 }
                 const record = recordOf(schema, type, sampling)
                 if (!validator.Check(record)) continue
-                expect(() => OathRuntime.visibility.actions.project(record, { kind: 'player', playerId: ACTOR })).not.toThrow()
+                expect(() => OathVisibility.actions.project(record, { kind: 'player', playerId: ACTOR })).not.toThrow()
                 for (const perspective of perspectives) {
-                    const json = JSON.stringify(OathRuntime.visibility.actions.project(record, perspective))
+                    const json = JSON.stringify(OathVisibility.actions.project(record, perspective))
                     expect(json).not.toContain('secret.card-')
                 }
             }
@@ -118,7 +118,7 @@ describe('every registered action type projects without naming a secret to anoth
         const schema = OathApiActions.useActionPower
         const record = recordOf(schema, 'useActionPower', { variant: 0, secrets: 0 })
         expect(Compile(schema).Check(record)).toBe(true)
-        const own = JSON.stringify(OathRuntime.visibility.actions.project(record, { kind: 'player', playerId: ACTOR }))
+        const own = JSON.stringify(OathVisibility.actions.project(record, { kind: 'player', playerId: ACTOR }))
         expect(own).toContain('secret.card-')
     })
 

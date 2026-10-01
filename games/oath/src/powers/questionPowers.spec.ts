@@ -8,7 +8,7 @@ import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { AnswerQuestion, HydratedAnswerQuestion } from '../actions/answerQuestion.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { OathRuntime } from '../definition/runtime.js'
+import { OathRuntime, OathVisibility } from '../definition/runtime.js'
 import { Suit, PlayerStatus } from '../model/oathEnums.js'
 import { PowerQuestionKind, type ExchangeTerms } from '../model/question.js'
 import { exchangeAllowanceOf, PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
@@ -273,7 +273,7 @@ describe('The Gathering — a round of pawns, then a round of proposals', () => 
     function publicView(s: ReturnType<typeof rulerTable>): string {
         const state = s.dehydrate()
         assert(OathGameStateValidator.Check(state), 'the engine holds canonical state')
-        return JSON.stringify(OathRuntime.visibility.state.project(state, spectator))
+        return JSON.stringify(OathVisibility.state.project(state, spectator))
     }
 
     it("a counterparty's facedown adviser is asked for by row, and the answer is the same whatever the card is (R-9.4)", () => {

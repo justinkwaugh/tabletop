@@ -38,7 +38,6 @@
                         : `${label}, unclaimed — ${value} on it`}
                     use:inspectImage={{
                         preview: {
-                            faceDown: false,
                             imageSrc: src,
                             aspect: 2,
                             label,
@@ -72,7 +71,7 @@
     }
     h3 {
         margin: 0;
-        color: rgba(253, 230, 138, 0.72);
+        color: var(--oath-heading);
         font-size: 20px;
         font-weight: 600;
         letter-spacing: 0.22em;
@@ -103,12 +102,12 @@
     }
     .banner--pickable {
         cursor: pointer;
-        outline: 4px solid #fbbf24;
+        outline: 4px solid var(--oath-accent);
         outline-offset: 2px;
         box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.55);
     }
     .banner--pickable:hover {
-        outline-color: #fde68a;
+        outline-color: var(--oath-heading);
     }
     .banner__value {
         position: absolute;
@@ -123,8 +122,8 @@
         transform: translateX(-50%);
         padding: 3px 12px;
         border-radius: 999px;
-        background: rgba(251, 191, 36, 0.96);
-        color: #1c1917;
+        background: var(--oath-accent);
+        color: var(--oath-surface-raised);
         font-size: 24px;
         font-weight: 800;
         line-height: 1;

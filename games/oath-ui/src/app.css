@@ -27,6 +27,53 @@
     --color-secondary-900: #0c4a6e;
 }
 
+/* Oath's palette: the contract's "Palette" section. Components name these, never a raw colour.
+   The scope plugin in postcss.config.js rewrites `:root` to the title root, `[data-game-ui="oath"]`. */
+:root {
+    --oath-surface: --alpha(var(--color-stone-900) / 70%);
+    --oath-surface-raised: var(--color-stone-800);
+    --oath-frame: --alpha(var(--color-amber-500) / 40%);
+    --oath-text: var(--color-stone-100);
+    --oath-text-muted: var(--color-stone-400);
+    --oath-heading: --alpha(var(--color-amber-200) / 80%);
+    --oath-accent: var(--color-amber-300);
+    --oath-accent-soft: --alpha(var(--color-amber-950) / 60%);
+    --oath-control: var(--color-stone-700);
+    --oath-control-hover: var(--color-stone-600);
+    --oath-primary: var(--color-amber-700);
+    --oath-primary-hover: var(--color-amber-600);
+    --oath-primary-text: var(--color-stone-50);
+    --oath-danger: var(--color-rose-400);
+    --oath-danger-soft: --alpha(var(--color-rose-900) / 70%);
+    --oath-divider: --alpha(var(--color-stone-700) / 60%);
+    /* The goal symbols' colours: the Oath, a Vision, the Successor (the goal tile's purple). */
+    --oath-goal-oath: var(--color-amber-500);
+    --oath-goal-vision: var(--color-stone-100);
+    --oath-goal-successor: #913f78;
+}
+
+@theme inline {
+    --color-oath-surface: var(--oath-surface);
+    --color-oath-surface-raised: var(--oath-surface-raised);
+    --color-oath-frame: var(--oath-frame);
+    --color-oath-text: var(--oath-text);
+    --color-oath-text-muted: var(--oath-text-muted);
+    --color-oath-heading: var(--oath-heading);
+    --color-oath-accent: var(--oath-accent);
+    --color-oath-accent-soft: var(--oath-accent-soft);
+    --color-oath-control: var(--oath-control);
+    --color-oath-control-hover: var(--oath-control-hover);
+    --color-oath-primary: var(--oath-primary);
+    --color-oath-primary-hover: var(--oath-primary-hover);
+    --color-oath-primary-text: var(--oath-primary-text);
+    --color-oath-danger: var(--oath-danger);
+    --color-oath-danger-soft: var(--oath-danger-soft);
+    --color-oath-divider: var(--oath-divider);
+    --color-oath-goal-oath: var(--oath-goal-oath);
+    --color-oath-goal-vision: var(--oath-goal-vision);
+    --color-oath-goal-successor: var(--oath-goal-successor);
+}
+
 @source "../node_modules/flowbite-svelte/dist";
 @source "../node_modules/flowbite-svelte-icons/dist";
 @source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";

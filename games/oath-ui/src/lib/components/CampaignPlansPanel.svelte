@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
@@ -40,8 +41,8 @@
     let blockedBecause = $derived(defence.blockedBecause)
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-rose-500/40 px-3 py-2 text-stone-100">
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-rose-200/80 mb-2">
+<div>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">
         Campaign — battle plans
     </h3>
 
@@ -50,7 +51,7 @@
         <span>Defense dice <span class="font-semibold">{campaign.defensePool}</span></span>
     </div>
     {#if campaign.plansUsed.length > 0}
-        <p class="text-[11px] text-stone-400 mb-2">
+        <p class="text-[11px] text-oath-text-muted mb-2">
             {attackerName} used: {campaign.plansUsed.map(cardName).join(', ')}
         </p>
     {/if}
@@ -81,7 +82,7 @@
             {@const choices = defence.planChoicesOf(power)}
             {#if defence.isDeclared(power) && choices.length > 0}
                 <div class="mb-1">
-                    <div class="text-xs text-stone-400">{cardName(power.cardId)}:</div>
+                    <div class="text-xs text-oath-text-muted">{cardName(power.cardId)}:</div>
                     <PowerChoicePicker
                         {choices}
                         bind:picks={
@@ -93,10 +94,12 @@
             {/if}
         {/each}
         {#if blockedBecause}
-            <p class="mb-2 text-[11px] text-rose-300">{humanizeReason(blockedBecause)}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={humanizeReason(blockedBecause) ?? ''} />
+            </p>
         {/if}
         <button
-            class="w-full rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+            class="w-full rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                    px-2 py-1.5 text-sm font-semibold"
             disabled={busy || !!blockedBecause}
             onclick={() => defence.answer()}
@@ -104,7 +107,7 @@
             {plans.length > 0 ? `Use ${plans.length} and roll` : 'Use none and roll'}
         </button>
     {:else}
-        <p class="text-sm text-stone-400">
+        <p class="text-sm text-oath-text-muted">
             {#if ally}
                 Waiting for {ally.name}, {ally.defender}'s ally, to use battle plans.
             {:else}

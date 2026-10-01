@@ -14,7 +14,7 @@
 <label class="flex items-center gap-2 text-xs mb-2">
     with
     <select
-        class="rounded bg-stone-800 px-1 py-0.5 grow"
+        class="rounded bg-oath-surface-raised px-1 py-0.5 grow"
         disabled={busy}
         value={draft.floorWith ?? ''}
         onchange={(e) => draft.chooseFloorWith(e.currentTarget.value || undefined)}

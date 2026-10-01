@@ -356,7 +356,7 @@ describe('Order', () => {
 })
 
 describe('The doorway with the room furnished', () => {
-    it('a card outside the curated deck still refuses, unimplemented, and pays nothing', () => {
+    it('a card outside the playtest deck still refuses, unimplemented, and pays nothing', () => {
         const s = board([UNBUILT])
         expect(() => actionPowerUse('ruler', UNBUILT).apply(s)).toThrow(/not implemented yet/)
         expect(s.tokensOn(UNBUILT).favor).toBe(0)

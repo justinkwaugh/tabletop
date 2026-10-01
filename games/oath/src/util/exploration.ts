@@ -6,10 +6,9 @@ import {
 } from '../model/gameState.js'
 import type { OathVault } from '../model/vault.js'
 import type { KnownPositions, TablePositions } from '../model/playerState.js'
-import { CardKind, Region, SetupVariant, Suit } from '../model/oathEnums.js'
+import { CardKind, Region, Suit } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { cardIdsOfKind, isVision, kindOf, suitOf } from '../data/cardRegistry.js'
-import { PLAYTEST_DECK, PLAYTEST_SITES } from '../data/playtestDeck.js'
 import { ALL_SITE_IDS } from '../data/sites.js'
 import { RELIC_DECK_IDS } from '../data/relics.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
@@ -272,29 +271,24 @@ function namedWorldCards(
     return named
 }
 
-/** R-1.21 — the Curated deck, or nine denizens of each suit, some of which the table has not seen. */
+/** R-1.21 — nine denizens of each suit, some of which the table has not seen. */
 function unnamedWorldCards(
     state: OathProjectedState,
     named: ReadonlySet<string>,
     random: RandomFunction
 ): { visions: string[]; denizens: string[] } {
     const visions = cardIdsOfKind(CardKind.Vision).filter((cardId) => !named.has(cardId))
-    const denizens =
-        state.setupVariant === SetupVariant.Curated
-            ? PLAYTEST_DECK.filter((cardId) => !named.has(cardId))
-            : Object.values(Suit).flatMap((suit) => {
-                  const ofSuit = cardIdsOfKind(CardKind.Denizen).filter(
-                      (cardId) => suitOf(cardId) === suit
-                  )
-                  const inPlay = ofSuit.filter((cardId) => named.has(cardId)).length
-                  assert(
-                      inPlay <= DENIZENS_PER_SUIT_IN_PLAY,
-                      `More than ${DENIZENS_PER_SUIT_IN_PLAY} ${suit} denizens are in play`
-                  )
-                  const unseen = ofSuit.filter((cardId) => !named.has(cardId))
-                  shuffle(unseen, random)
-                  return unseen.slice(0, DENIZENS_PER_SUIT_IN_PLAY - inPlay)
-              })
+    const denizens = Object.values(Suit).flatMap((suit) => {
+        const ofSuit = cardIdsOfKind(CardKind.Denizen).filter((cardId) => suitOf(cardId) === suit)
+        const inPlay = ofSuit.filter((cardId) => named.has(cardId)).length
+        assert(
+            inPlay <= DENIZENS_PER_SUIT_IN_PLAY,
+            `More than ${DENIZENS_PER_SUIT_IN_PLAY} ${suit} denizens are in play`
+        )
+        const unseen = ofSuit.filter((cardId) => !named.has(cardId))
+        shuffle(unseen, random)
+        return unseen.slice(0, DENIZENS_PER_SUIT_IN_PLAY - inPlay)
+    })
     shuffle(visions, random)
     shuffle(denizens, random)
     return { visions, denizens }
@@ -669,9 +663,7 @@ function dealSites(state: OathProjectedState, random: RandomFunction) {
             if (facedownSlots.includes(slotId)) siteFacedown[slotId] = siteCardId
     const named = new Set([...Object.values(state.siteCards), ...Object.values(siteFacedown)])
     const pool = shuffled(
-        (state.setupVariant === SetupVariant.Curated ? PLAYTEST_SITES : ALL_SITE_IDS).filter(
-            (siteCardId) => !named.has(siteCardId)
-        ),
+        ALL_SITE_IDS.filter((siteCardId) => !named.has(siteCardId)),
         random
     )
     for (const slotId of facedownSlots) {

@@ -238,7 +238,7 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
 
     it('R-1.16 — a deal the bank cannot pay leaves the sites\' favor for the Chancellor to split', () => {
         const playerCount = 6
-        // Seed 54 exhausts the bank at six players; the Curated variant deals only eight sites.
+        // Seed 54 exhausts the bank at six players.
         const state = setUpState(playerCount, { setupVariant: SetupVariant.Randomized }, 54)
 
         // R-1.5, R-1.6, R-1.11, R-1.15
@@ -364,11 +364,6 @@ describe('setup — the public build (R-1.2, R-1.4–R-1.18)', () => {
         const state = setUpState(4)
         expect(state.setupVariant).toBe(SetupVariant.Randomized)
         expect(state.oathType).toBe(OathType.Supremacy)
-    })
-
-    it('the Curated option deals the pinned playtest pool instead of a random one', () => {
-        const state = setUpState(4, { setupVariant: SetupVariant.Curated })
-        expect(state.setupVariant).toBe(SetupVariant.Curated)
     })
 
     it('the Random option is available explicitly, matching the default', () => {

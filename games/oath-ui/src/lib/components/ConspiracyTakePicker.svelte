@@ -38,7 +38,7 @@
 <label class="flex items-center gap-2 text-xs mb-1">
     take from
     <select
-        class="rounded bg-stone-800 px-1 py-0.5 grow"
+        class="rounded bg-oath-surface-raised px-1 py-0.5 grow"
         disabled={busy}
         value={target ?? ''}
         onchange={(e) => onchange({ targetPlayerId: e.currentTarget.value || undefined })}
@@ -72,8 +72,8 @@
                     <button
                         type="button"
                         class="rounded border px-2 py-0.5 {pick.prizeIndex === index
-                            ? 'border-amber-300 bg-amber-950/60'
-                            : 'border-stone-700 hover:border-amber-400'}"
+                            ? 'border-oath-accent bg-oath-accent-soft'
+                            : 'border-oath-divider hover:border-oath-accent'}"
                         aria-pressed={pick.prizeIndex === index}
                         disabled={busy}
                         onclick={() => tapPrize(index)}

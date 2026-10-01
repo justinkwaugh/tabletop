@@ -29,7 +29,7 @@ import { PowerChoiceKind, legalChoices } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
 import { reasonCannotPlayConspiracy } from '../util/cardPlay.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
-import { OathRuntime } from '../definition/runtime.js'
+import { OathVisibility } from '../definition/runtime.js'
 import { buildAction, defendingSideChooses } from '../testing/actions.js'
 import { ongoingCampaign, required } from '../testing/required.js'
 import { card, facedown, player, site, slot, actionPowerUse, battlePlanUse, modifierUse } from '../testing/choices.js'
@@ -234,7 +234,7 @@ describe('the peeking and taking relics', () => {
         expect(served(s, { kind: 'player', playerId: 'me' }).players[1].advisers).toEqual([{ faceUp: false, shownTo: ['me'], shownCardId: TENTS }])
         for (const perspective of [{ kind: 'player', playerId: 'far' } as const, spectator]) {
             expect(served(s, perspective).players[1].advisers).toEqual([{ faceUp: false, shownTo: ['me'] }])
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(eye.dehydrate(), perspective))).not.toContain(TENTS)
+            expect(JSON.stringify(OathVisibility.actions.project(eye.dehydrate(), perspective))).not.toContain(TENTS)
         }
         const t = relicBoard([EYE], {}, { relicsBySite: { c2: [{ slotId: 'c2-r1' }] } })
         use(t, EYE, [slot('c2-r1')], (vault) => { vault.relicFacedown['c2-r1'] = 'relic.cup' })
@@ -303,11 +303,11 @@ describe('Truthful Harp — "you must reveal every card you draw and the card yo
         const search = new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: harp }))
         search.apply(s)
         expect(search.metadata?.revealedDraw).toEqual([TENTS, FILLER, WOLVES])
-        expect(OathRuntime.visibility.actions.project(search.dehydrate(), spectator)).toHaveProperty('metadata.revealedDraw', [TENTS, FILLER, WOLVES])
+        expect(OathVisibility.actions.project(search.dehydrate(), spectator)).toHaveProperty('metadata.revealedDraw', [TENTS, FILLER, WOLVES])
         const keep = new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'me', keptCardId: TENTS, discardOrder: [FILLER, WOLVES], play: SearchPlay.Adviser, faceUp: false }))
         keep.apply(s)
         expect(keep.metadata?.revealedKeptCardId).toBe(TENTS)
-        expect(OathRuntime.visibility.actions.project(keep.dehydrate(), spectator)).toHaveProperty('metadata.revealedKeptCardId', TENTS)
+        expect(OathVisibility.actions.project(keep.dehydrate(), spectator)).toHaveProperty('metadata.revealedKeptCardId', TENTS)
         expect(keep.revealsInfo).toBe(true)
     })
 
@@ -317,7 +317,7 @@ describe('Truthful Harp — "you must reveal every card you draw and the card yo
         const search = new HydratedSearch(buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true }))
         search.apply(s)
         expect(search.metadata?.revealedDraw).toBeUndefined()
-        expect(JSON.stringify(OathRuntime.visibility.actions.project(search.dehydrate(), spectator))).not.toContain(TENTS)
+        expect(JSON.stringify(OathVisibility.actions.project(search.dehydrate(), spectator))).not.toContain(TENTS)
     })
 })
 

@@ -14,20 +14,14 @@ const VISION_FRONT_ASPECT = 1016 / 651
 
 export interface CardFace {
     cardId?: string
-    faceDown?: boolean
-    backKind?: CardKind
+    back?: CardKind
 }
 
-// R-9.4 — when facedown the back's kind decides; the id is not consulted.
-export function cardAspect(options: CardFace): number {
-    const kind = options.faceDown
-        ? options.backKind
-        : options.cardId
-          ? kindOf(options.cardId)
-          : undefined
-    if (!options.faceDown && kind === CardKind.Vision) {
-        return VISION_FRONT_ASPECT
-    }
+// R-9.4 — a facedown card is sized by its back; the id is not consulted.
+export function cardAspect(face: CardFace): number {
+    if (face.back !== undefined) return CARD_ASPECT[face.back]
+    const kind = face.cardId ? kindOf(face.cardId) : undefined
+    if (kind === CardKind.Vision) return VISION_FRONT_ASPECT
     return CARD_ASPECT[kind ?? CardKind.Denizen]
 }
 

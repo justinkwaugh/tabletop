@@ -43,8 +43,8 @@
         return cell
     })
 
-    const RELIC_ASPECT = cardAspect({ backKind: CardKind.Relic, faceDown: true })
-    const WORLD_ASPECT = cardAspect({ backKind: CardKind.Denizen, faceDown: true })
+    const RELIC_ASPECT = cardAspect({ back: CardKind.Relic })
+    const WORLD_ASPECT = cardAspect({ back: CardKind.Denizen })
 
     const relicDeckCard = fitRect(RELIC_DECK_RECT, RELIC_ASPECT)
 
@@ -147,12 +147,7 @@
                 class:discard__pile--laid={DISCARD_ROTATED}
                 style="left:{pile.center.x - box.x}px; top:{pile.center.y - box.y}px;"
             >
-                <CardImage
-                    faceDown
-                    backKind={back}
-                    width={pile.width}
-                    label="{region} discard pile"
-                />
+                <CardImage {back} width={pile.width} label="{region} discard pile" />
             </span>
         {/if}
         <span class="discard__count">{count}</span>
@@ -164,7 +159,7 @@
 
 <!-- R-2.7 — the Relic Deck; R-9.4 makes its count private. -->
 <div class="deck" style="left:{relicDeckCard.x}px; top:{relicDeckCard.y}px;" title="The relic deck">
-    <CardImage faceDown backKind={CardKind.Relic} width={relicDeckCard.width} label="Relic deck" />
+    <CardImage back={CardKind.Relic} width={relicDeckCard.width} label="Relic deck" />
 </div>
 
 <!-- R-2.7 — the World Deck, sideways. Its count is private; the top card's back
@@ -177,12 +172,11 @@
     {/if}
     {#if gameState.worldDeckExhausted}
         <span class="deck__exhausted" style="width:{worldDeckCard.height}px;">exhausted</span>
-    {:else}
+    {:else if gameState.topCardBackType}
         <CardImage
-            faceDown
-            backKind={gameState.topCardBackType ?? CardKind.Denizen}
+            back={gameState.topCardBackType}
             width={worldDeckCard.width}
-            label="World deck — next card is a {gameState.topCardBackType ?? 'card'}"
+            label="World deck — next card is a {gameState.topCardBackType}"
         />
     {/if}
 {/snippet}

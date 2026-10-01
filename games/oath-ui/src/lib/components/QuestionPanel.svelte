@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
     import { PowerQuestionKind, RerolledRollKind, type RerolledRoll } from '@tabletop/oath'
     import QuestionConspiracy from '$lib/components/QuestionConspiracy.svelte'
@@ -7,6 +8,7 @@
     import QuestionVision from '$lib/components/QuestionVision.svelte'
     import QuestionYesNo from '$lib/components/QuestionYesNo.svelte'
     import ShownCards from '$lib/components/ShownCards.svelte'
+    import SuitPicker from '$lib/components/SuitPicker.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { cardName, reliquaryLabel, siteName, transferText } from '$lib/model/names.js'
@@ -37,15 +39,15 @@
     }
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">
+<div>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
         {question ? cardName(question.cardId) : 'A question'}
     </h3>
 
     {#if !question}
-        <p class="text-sm text-stone-400">Nothing is waiting on an answer.</p>
+        <p class="text-sm text-oath-text-muted">Nothing is waiting on an answer.</p>
     {:else if !mine}
-        <p class="text-sm text-stone-300">
+        <p class="text-sm text-oath-text-muted">
             Waiting on {gameSession.getPlayerName(question.askedPlayerId)} to answer {cardName(
                 question.cardId
             )}
@@ -55,7 +57,9 @@
         </p>
     {:else if mine.kind === PowerQuestionKind.BurnFavorForSecrets}
         <p class="text-sm mb-2">
-            You may burn any number of favor to gain as many secrets. You have {draft.myFavor} favor.
+            <TokenText
+                text="You may burn any number of favor to gain as many secrets. You have {draft.myFavor} favor."
+            />
         </p>
         <label class="flex items-center gap-2 text-xs mb-2">
             burn
@@ -66,48 +70,44 @@
                 disabled={busy}
                 value={draft.burn}
                 oninput={(e) => draft.setBurn(Number(e.currentTarget.value) || 0)}
-                class="w-16 rounded bg-stone-800 px-1 py-0.5"
+                class="w-16 rounded bg-oath-surface-raised px-1 py-0.5"
             />
-            favor
+            <TokenText text="favor" />
         </label>
         <QuestionYesNo yes="Burn {draft.burn} for {draft.burn} secrets" no="Burn none" />
     {:else if mine.kind === PowerQuestionKind.PayOrLoseRelic}
         <p class="text-sm mb-2">
-            {gameSession.getPlayerName(mine.takerPlayerId)} takes {cardName(mine.relicCardId)} unless
-            you give them {mine.price} favor. You have {draft.myFavor}.
+            <TokenText
+                text="{gameSession.getPlayerName(mine.takerPlayerId)} takes {cardName(
+                    mine.relicCardId
+                )} unless you give them {mine.price} favor. You have {draft.myFavor} favor."
+            />
         </p>
         <QuestionYesNo yes="Pay {mine.price} favor, keep it" no="Let them take it" />
     {:else if mine.kind === PowerQuestionKind.PickFavorBank}
-        <p class="text-sm mb-2">You gain {mine.amount} favor from any one favor bank.</p>
-        <div class="flex flex-wrap gap-1">
-            {#each draft.favorBanks as suit (suit)}
-                <button
-                    class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1 text-xs capitalize"
-                    disabled={busy}
-                    onclick={() => draft.takeFavorFrom(suit)}
-                >
-                    {suit} ({gameState.favorBank[suit]})
-                </button>
-            {/each}
-        </div>
+        <p class="text-sm mb-2">
+            <TokenText text="You gain {mine.amount} favor from any one favor bank." />
+        </p>
+        <SuitPicker
+            suits={draft.favorBanks}
+            picked={[]}
+            onpick={(suit) => draft.takeFavorFrom(suit)}
+            {busy}
+        />
     {:else if mine.kind === PowerQuestionKind.Exchange}
         <p class="text-sm mb-1">
             {gameSession.getPlayerName(mine.proposerPlayerId)} proposes a binding exchange (R-7.6.3):
         </p>
-        <div class="mb-2 rounded border border-stone-700 px-2 py-1.5 text-xs">
+        <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
             <div>
-                {gameSession.getPlayerName(mine.proposerPlayerId)} gives {transferText(
-                    gameState,
-                    mine.terms.fromProposer,
-                    mine.proposerPlayerId
-                )}
+                {gameSession.getPlayerName(mine.proposerPlayerId)} gives <TokenText
+                    text={transferText(gameState, mine.terms.fromProposer, mine.proposerPlayerId)}
+                />
             </div>
             <div>
-                {gameSession.getPlayerName(mine.askedPlayerId)} gives {transferText(
-                    gameState,
-                    mine.terms.fromCounterparty,
-                    mine.askedPlayerId
-                )}
+                {gameSession.getPlayerName(mine.askedPlayerId)} gives <TokenText
+                    text={transferText(gameState, mine.terms.fromCounterparty, mine.askedPlayerId)}
+                />
             </div>
         </div>
         <QuestionYesNo yes="Accept" no="Refuse" />
@@ -132,7 +132,7 @@
             {cardName(mine.cardId)}: you drew {relic}. Put it, or a relic you hold, on the bottom of
             the relic deck.
         </p>
-        <p class="text-xs text-stone-400 mb-1">Tap the relic that goes to the bottom:</p>
+        <p class="text-xs text-oath-text-muted mb-1">Tap the relic that goes to the bottom:</p>
         <CardChoiceRow
             choices={[
                 ...(mine.relicCardId !== undefined
@@ -171,7 +171,7 @@
         <div class="flex flex-wrap gap-1">
             {#each mine.siteIds as siteId (siteId)}
                 <button
-                    class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1 text-xs"
+                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
                     disabled={busy}
                     onclick={() => draft.travelTo(siteId)}
                 >
@@ -188,7 +188,7 @@
         <div class="flex flex-wrap gap-1">
             {#each draft.woodDestinations as siteId (siteId)}
                 <button
-                    class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1 text-xs"
+                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
                     disabled={busy}
                     onclick={() => draft.sendThrough(siteId)}
                 >
@@ -227,7 +227,7 @@
             may discard one Beast card you rule instead.
         </p>
         <div class="mb-2 text-xs">
-            <span class="text-stone-400">Tap the Beast card to discard instead:</span>
+            <span class="text-oath-text-muted">Tap the Beast card to discard instead:</span>
             <CardChoiceRow
                 choices={cardChoices(mine.insteadCardIds)}
                 picked={draft.instead ? [draft.instead] : []}
