@@ -41,7 +41,7 @@
     }
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
+<div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">
         Campaign
         <span class="ml-2 normal-case tracking-normal text-stone-400">
@@ -99,7 +99,7 @@
 
         {#if draft.lossSources.length > 1}
             <!-- R-5.5.5, R-10.22 — the attacker chooses where the skulls' kills come from. -->
-            <div class="mb-2 rounded border border-stone-700 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
                 <div class="mb-1 text-stone-400">Skulls kill your warbands from, in order:</div>
                 {#each draft.lossOrder as source, index (JSON.stringify(source))}
                     <div class="flex items-center gap-2 mb-0.5">
@@ -130,7 +130,7 @@
             </p>
         {/if}
         {#if draft.planOptions.length > 0}
-            <div class="mb-2 rounded border border-stone-700 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
                 <div class="mb-1 text-stone-300">Battle plans to use:</div>
                 <CardChoiceRow
                     choices={powerUseCards(draft.planOptions)}

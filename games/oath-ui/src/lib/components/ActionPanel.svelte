@@ -122,7 +122,7 @@
         {:else if chosen}
             <!-- docs/user-interactions.md — `Back` unwinds local selection only. -->
             <div
-                class="mb-2 rounded border border-amber-400/60 bg-amber-950/40 px-2 py-1.5
+                class="mb-2 rounded bg-amber-950/40 px-2 py-1.5
                        flex items-center justify-between gap-2"
             >
                 <span class="text-sm">{prompt}</span>

@@ -21,13 +21,13 @@
     let blockedBecause = $derived(draft.completeBlockedBecause)
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
+<div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">Rest Phase</h3>
 
     <p class="text-sm mb-2">Your Supply refreshes and your turn ends.</p>
 
     {#if draft.powers.length > 0}
-        <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+        <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
             <div class="mb-1">Rest powers you may use, once each:</div>
             {#each draft.powers as p (powerKey(p.cardId, p.powerIndex))}
                 {@const banks = draft.bankOptions(p)}
@@ -66,7 +66,7 @@
 
     {#if rollsEndDie}
         <p
-            class="mb-2 rounded border border-amber-400/60 bg-amber-950/40 px-2 py-1
+            class="mb-2 rounded bg-amber-950/40 px-2 py-1
                   text-[11px] leading-snug"
         >
             This is the last turn of round {gameState.round} of {FINAL_ROUND}, so the end die is

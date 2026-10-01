@@ -15,7 +15,7 @@
     let reliquarySlotId = $derived(offer.reliquarySlotId)
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
+<div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">Offer Citizenship</h3>
 
     {#if !exilePlayerId}
@@ -62,7 +62,7 @@
         </p>
 
         <div class="mb-2 grid grid-cols-2 gap-2 text-xs">
-            <div class="rounded border border-stone-700 px-2 py-1.5">
+            <div class="border-t border-stone-700/60 pt-1.5">
                 <div class="text-stone-400 mb-1">You also give</div>
                 <label class="block mb-1">
                     Favor {offer.offerTerms.givenFavor} of {held.offerer.favor}
@@ -118,7 +118,7 @@
                     </label>
                 {/each}
             </div>
-            <div class="rounded border border-stone-700 px-2 py-1.5">
+            <div class="border-t border-stone-700/60 pt-1.5">
                 <div class="text-stone-400 mb-1">They give</div>
                 <label class="block mb-1">
                     Favor {offer.offerTerms.askedFavor} of {held.exile.favor}

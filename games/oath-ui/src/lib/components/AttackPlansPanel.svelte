@@ -16,7 +16,7 @@
     let reason = $derived(mine ? draft.blockedBecause : undefined)
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-rose-500/40 px-3 py-2 text-stone-100">
+<div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-rose-200/80 mb-2">
         Campaign — the attacker's battle plans
     </h3>

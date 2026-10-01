@@ -21,7 +21,7 @@
     let blockedBecause = $derived(wake.blockedBecause)
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
+<div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">Wake Phase</h3>
 
     {#if stepCount > 0}
@@ -30,7 +30,7 @@
                 The People’s Favor{#if stepCount > 1}, twice on the Mob side{/if}
             </div>
             {#each kinds as kind, index (index)}
-                <div class="mb-1 rounded border border-stone-700 px-2 py-1">
+                <div class="mb-1 border-t border-stone-700/60 pt-1">
                     <div class="flex gap-1 mb-1">
                         {#each wake.optionsAt(index) as option (option)}
                             <button

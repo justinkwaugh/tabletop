@@ -60,7 +60,7 @@
     {#each sides as { key, giver, receiver } (key)}
         {@const player = gameState.getPlayerState(giver)}
         {@const favor = usableFavor(gameState, giver)}
-        <div class="rounded border border-stone-700 px-2 py-1.5">
+        <div class="border-t border-stone-700/60 pt-1.5">
             <div class="text-stone-400 mb-1">{gameSession.getPlayerName(giver)} gives</div>
             <label class="flex items-center gap-2 mb-1">
                 <span class="w-14">favor</span>

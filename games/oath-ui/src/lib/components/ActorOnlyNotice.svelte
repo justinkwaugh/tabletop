@@ -9,7 +9,7 @@
 </script>
 
 {#if notice}
-    <div class="mb-2 rounded border border-amber-500/30 bg-amber-950/30 px-2 py-1 text-xs">
+    <div class="mb-2 rounded bg-amber-950/30 px-2 py-1 text-xs">
         <p class="text-amber-200">
             {notice.shownBy ? `${cardName(notice.shownBy)} showed you` : 'You were shown'}
             {#if notice.relicToDeckBottom !== undefined}

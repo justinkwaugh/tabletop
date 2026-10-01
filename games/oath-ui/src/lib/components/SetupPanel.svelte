@@ -22,12 +22,12 @@
     let canGoBack = $derived(gameSession.selection.hasManualSelection())
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
+<div>
     {#if choosing && gameSession.setup.siteFavor && !adviserCardId}
         {@const split = gameSession.setup.siteFavor}
         {@const pending = gameSession.setup.pendingSiteFavor}
         <!-- R-1.16 — "if there is not enough favor, the Chancellor chooses how to place it". -->
-        <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+        <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
             <div class="mb-1">
                 The bank holds {gameState.favorSupply} favor, not enough for every site. Place all of
                 it:

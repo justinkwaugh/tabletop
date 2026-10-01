@@ -27,7 +27,7 @@
     {/if}
     {#each draft.powers as p (powerKey(p.cardId, p.powerIndex))}
         {@const reason = reasonFor(p)}
-        <div class="rounded border border-stone-700 px-2 py-1.5 flex gap-2 items-start">
+        <div class="border-t border-stone-700/60 pt-1.5 flex gap-2 items-start">
             <div class="shrink-0">
                 <CardImage cardId={p.cardId} width={64} label={cardName(p.cardId)} inspect />
             </div>

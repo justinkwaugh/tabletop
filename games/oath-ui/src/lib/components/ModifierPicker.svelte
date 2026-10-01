@@ -19,7 +19,7 @@
 </script>
 
 {#if usable.length > 0}
-    <div class="mb-2 rounded border border-stone-700 px-2 py-1.5 text-xs">
+    <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
         <div class="mb-1 text-stone-300">Tap a card to use it with this action:</div>
         <CardChoiceRow
             choices={powerUseCards(usable)}

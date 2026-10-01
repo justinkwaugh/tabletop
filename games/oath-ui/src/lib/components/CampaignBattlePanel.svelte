@@ -46,7 +46,7 @@
     let spoilsList = $derived(spoilsSummary(gameState, campaign.targets, spoils.placeCounts))
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-rose-500/40 px-3 py-2 text-stone-100">
+<div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-rose-200/80 mb-2">
         Campaign — the battle
     </h3>
@@ -71,7 +71,7 @@
                 The attacker won. Choose which {plural(defeat.required, 'warband')} of the defending force
                 die; the rest go home to their boards.
             </p>
-            <div class="mb-2 rounded border border-rose-500/40 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
                 {#each defeat.groups as group, index (JSON.stringify(group.at) + group.owner)}
                     <label class="block mb-1">
                         {defeat.picked[index] ?? 0} of {group.count}
@@ -127,7 +127,7 @@
             {/if}
         </p>
         {#if losses.choosesSacrifice}
-            <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
                 <div class="mb-1">To win, sacrifice {needed} of these:</div>
                 {#each losses.force as group, index (JSON.stringify(group.at) + group.owner)}
                     <label class="block mb-1">
@@ -149,7 +149,7 @@
             </div>
         {/if}
         {#if losses.choosesDefeat}
-            <div class="mb-2 rounded border border-stone-600 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
                 <div class="mb-1">
                     If you sacrifice nothing and lose, {losses.defeatRequired} of these die:
                 </div>
@@ -215,7 +215,7 @@
             {/each}
         </ul>
         {#if spoils.relicTargets.length > 0}
-            <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
                 <div class="mb-1">
                     The relics you targeted are yours, and you have seen them. Any you tap go to the
                     bottom of the relic deck instead.
@@ -237,7 +237,7 @@
             </div>
         {/if}
         {#if spoils.capturedSites.length > 0 && spoils.forceOwners.length > 0}
-            <div class="mb-2 rounded border border-amber-500/40 px-2 py-1.5 text-xs">
+            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
                 <div class="mb-1">
                     Place warbands on the sites you took — {spoils.placedTotal} of
                     {spoils.forceAvailable} in your force. This is how you come to rule them.

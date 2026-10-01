@@ -451,6 +451,41 @@ test('the side tabs and the chat read light on the dark page', async ({ page }) 
     expect(await luminanceOf(page.locator('textarea'), 'color')).toBeGreaterThan(0.6)
 })
 
+function framesInsidePanel(page: Page) {
+    return page.locator('.panel').evaluate((panel) =>
+        [...panel.querySelectorAll('*')]
+            .filter((element) => !element.closest('button, [role="button"], input, select, textarea'))
+            .filter((element) => {
+                const style = getComputedStyle(element)
+                return ['top', 'right', 'bottom', 'left'].every(
+                    (side) =>
+                        style.getPropertyValue(`border-${side}-style`) !== 'none' &&
+                        parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0
+                )
+            })
+            .map((element) => `${element.tagName.toLowerCase()}.${element.className}`)
+    )
+}
+
+const FRAMED_TABLES: TableFixture.TableName[] = [
+    'setup',
+    'searching',
+    'prophets',
+    'actPhase',
+    'warbandMoveAsked',
+    'joinDefenceAsked',
+    'exileDefeated',
+    'imperialDefeated'
+]
+
+for (const name of FRAMED_TABLES) {
+    test(`one frame per panel: inside the ${name} panel only controls are framed`, async ({ page }) => {
+        await openTable(page, name)
+        await expect(page.locator('.panel')).toBeVisible()
+        expect(await framesInsidePanel(page)).toEqual([])
+    })
+}
+
 test('the fixture opens the Chancellor setup with the hand offered', async ({ page }) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))

@@ -37,7 +37,7 @@
     }
 </script>
 
-<div class="rounded-lg bg-stone-900/70 border border-amber-500/40 px-3 py-2 text-stone-100">
+<div>
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">
         {question ? cardName(question.cardId) : 'A question'}
     </h3>
@@ -94,7 +94,7 @@
         <p class="text-sm mb-1">
             {gameSession.getPlayerName(mine.proposerPlayerId)} proposes a binding exchange (R-7.6.3):
         </p>
-        <div class="mb-2 rounded border border-stone-700 px-2 py-1.5 text-xs">
+        <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
             <div>
                 {gameSession.getPlayerName(mine.proposerPlayerId)} gives {transferText(
                     gameState,
