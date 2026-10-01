@@ -5,23 +5,31 @@
         DefaultTableLayout,
         GameSession
     } from '@tabletop/frontend-components'
-
+    import type { HydratedMarracashGameState, MarracashProjectedState } from '@tabletop/marracash'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import VisitorQueue from '$lib/components/VisitorQueue.svelte'
-
-    import type { MarracashGameSession } from '$lib/model/session.svelte'
-    import type { HydratedMarracashGameState, MarracashProjectedState } from '@tabletop/marracash'
+    import { MarracashGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
     let {
         gameSession
     }: { gameSession: GameSession<MarracashProjectedState, HydratedMarracashGameState> } = $props()
-    setGameSession(gameSession as MarracashGameSession)
+
+    function ensureMarracashGameSession(
+        session: GameSession<MarracashProjectedState, HydratedMarracashGameState>
+    ): MarracashGameSession {
+        if (session instanceof MarracashGameSession) {
+            return session
+        }
+        throw new Error('GameTable expected a MarracashGameSession')
+    }
+
+    // svelte-ignore state_referenced_locally
+    setGameSession(ensureMarracashGameSession(gameSession))
 </script>
 
-<!-- Full Height and Width with 8px padding-->
 <div>
     <DefaultTableLayout>
         {#snippet sideContent()}
@@ -30,21 +38,11 @@
                     <PlayersPanel />
                 {/snippet}
                 {#snippet history()}
-                   <History />
+                    <History />
                 {/snippet}
             </DefaultSideContent>
         {/snippet}
         {#snippet gameContent()}
-            <!--  Top part is not allowed to shrink -->
-            <div class="shrink-0">
-                {#if gameSession.gameState.result}
-                    <!-- <GameEndPanel /> -->
-                {:else}
-                    <!-- <InformationPanel /> -->
-                {/if}
-            </div>
-            <!--  Bottom part fills the remaining space, but hides overflow to keep it's height fixed.
-              This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="grow-0 overflow-hidden" style="flex:1;">
                 <ScalingWrapper justify="center" controls="bottom-left">
                     <div class="flex flex-col items-center gap-3 p-2">
