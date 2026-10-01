@@ -65,6 +65,7 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
 - **Board:** build the map from `Marracash_Tablero.jpg`, the clearest redraw, and check it against the original board images. Every shop edge facing a walkway counts as a door, because the shops are open-air tents or stalls.
 - **Artwork:** recreate it independently, using generic pawns for visitors and player-coloured discs for shop signs. Shop sign names don't matter. The user may ask the rights holders for permission to use the supplied images later. The user has provided the cover image (see Sources).
 - **Tooling:** build with the turbo gen generators (`create-game`, `create-game-ui`, `add-action`, `add-state`). Use `games/estates` as the main pattern reference (concealed cash with sealed bids) and `games/fresh-fish` for protected randomness; see the implementation plan.
+- **Maturity:** MarraCash is pre-alpha until Justin first pulls it into the upstream project. The platform has no pre-alpha level, so the title uses the most restrictive one, `GameVisibility.Alpha` (admins and alpha testers only), the same as The Old Prince. Change it when the game moves to alpha or beta.
 - **Scope:** don't modify other games or shared libraries without explaining why first.
 
 ## Rulings from the BGG forums
