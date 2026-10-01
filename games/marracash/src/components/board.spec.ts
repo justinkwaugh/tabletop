@@ -90,6 +90,20 @@ describe('MarraCash board', () => {
         expect(EntranceFountainIds).toEqual([1, 8, 16])
     })
 
+    it('gives every shop, fountain and palm its own cells', () => {
+        const counts = new Map<BoardCellType, number>()
+        for (let row = 0; row < BoardRows; row++) {
+            for (let col = 0; col < BoardColumns; col++) {
+                const type = cellAt({ row, col })?.type
+                assertExists(type, `missing cell ${row},${col}`)
+                counts.set(type, (counts.get(type) ?? 0) + 1)
+            }
+        }
+        expect(counts.get(BoardCellType.Shop)).toBe(50)
+        expect(counts.get(BoardCellType.Fountain)).toBe(16)
+        expect(counts.get(BoardCellType.Palm)).toBe(2)
+    })
+
     it('derives exactly the routes in the board map', () => {
         const actual = allRoutes.map((route) => [
             route.from,

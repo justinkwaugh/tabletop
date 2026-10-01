@@ -330,10 +330,6 @@ function buildCellGrid(): BoardCell[][] {
         Array.from({ length: BoardColumns }, () => ({ type: BoardCellType.Walkway }))
     )
     const place = (coords: OffsetCoordinates, cell: BoardCell) => {
-        assert(
-            grid[coords.row][coords.col].type === BoardCellType.Walkway,
-            `Board cell ${coords.row},${coords.col} is defined twice`
-        )
         grid[coords.row][coords.col] = cell
     }
     for (const shop of Shops) {
