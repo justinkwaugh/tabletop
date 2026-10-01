@@ -155,6 +155,14 @@ describe('MarraCash movement', () => {
         expect(money(session, mover)).toBe(1100)
     })
 
+    it('rejects a move from an empty fountain or in a blocked direction', () => {
+        const session = startTestGame(3)
+        arrange(session, { fountains: { 9: [Red] } })
+        expect(() => move(session, 10, CardinalDirection.East)).toThrow()
+        expect(() => move(session, 2, CardinalDirection.North)).toThrow()
+        expect(visitorsAt(session, 9)).toEqual([Red])
+    })
+
     it('allows move then auction, but not auction then move', () => {
         const session = startTestGame(3)
         const { mover } = players(session)
@@ -219,6 +227,17 @@ describe('MarraCash antique sets', () => {
         expect(session.state.antiqueRevealOrder).toEqual([other])
         expect(money(session, other)).toBe(1000 + 200 - 50 + 725)
         expect(money(session, mover)).toBe(1000 + 50)
+    })
+
+    it('refuses to judge a set from a hand it cannot see', () => {
+        const session = startTestGame(3)
+        const { other } = players(session)
+        arrange(session, {
+            fountains: { 9: [Blue] },
+            shops: { B4: { ownerId: other } },
+            antiques: { [other]: [] }
+        })
+        expect(() => move(session, 9, CardinalDirection.East)).toThrow(/not known/)
     })
 
     it('pays later collectors for fewer of their best cards', () => {

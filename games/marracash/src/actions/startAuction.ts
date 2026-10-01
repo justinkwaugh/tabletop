@@ -36,8 +36,8 @@ export class HydratedStartAuction
     }
 
     apply(state: HydratedMarracashGameState) {
-        if (!state.canStartAuction(this.playerId)) {
-            throw Error(`Player ${this.playerId} cannot start an auction now`)
+        if (!state.canAuctionShop(this.playerId, this.shopId)) {
+            throw Error(`Player ${this.playerId} cannot auction shop ${this.shopId} now`)
         }
         state.startAuction(this.id, this.playerId, this.shopId)
     }

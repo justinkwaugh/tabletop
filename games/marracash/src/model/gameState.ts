@@ -20,6 +20,7 @@ import { emptyColorCounts, MarketColor } from '../definition/marketColor.js'
 import {
     Antique,
     AntiqueDeck,
+    AntiquesPerPlayer,
     antiqueSetPayout,
     coversAntiqueSet,
     HydratedAntiqueDeck
@@ -210,6 +211,18 @@ export class HydratedMarracashGameState extends HydratableGameState<
         return this.fountains.some((fountain) => fountain.visitors.length > 0)
     }
 
+    canMoveVisitorsFrom(fountainId: FountainId, direction: CardinalDirection): boolean {
+        return (
+            this.canMoveVisitors() &&
+            this.getFountainState(fountainId).visitors.length > 0 &&
+            routeFrom(fountainId, direction) !== undefined
+        )
+    }
+
+    canAuctionShop(playerId: string, shopId: ShopId): boolean {
+        return this.canStartAuction(playerId) && this.getShopState(shopId).ownerId === undefined
+    }
+
     canMoveVisitors(): boolean {
         return (
             this.round > 1 &&
@@ -383,14 +396,16 @@ export class HydratedMarracashGameState extends HydratableGameState<
 
     private noteAntiqueSetIfComplete(playerId: string) {
         const player = this.getPlayerState(playerId)
-        if (
-            player.revealedAntiques.length > 0 ||
-            this.pendingAntiqueSets.includes(playerId) ||
-            !coversAntiqueSet(player.antiques, this.customersByColor(playerId))
-        ) {
+        if (player.revealedAntiques.length > 0 || this.pendingAntiqueSets.includes(playerId)) {
             return
         }
-        this.pendingAntiqueSets.push(playerId)
+        assert(
+            player.antiques.length === AntiquesPerPlayer,
+            `Player ${playerId}'s antique hand is not known in this representation`
+        )
+        if (coversAntiqueSet(player.antiques, this.customersByColor(playerId))) {
+            this.pendingAntiqueSets.push(playerId)
+        }
     }
 
     private customersByColor(playerId: string): Record<MarketColor, number> {

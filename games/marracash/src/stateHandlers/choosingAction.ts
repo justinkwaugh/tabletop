@@ -28,8 +28,18 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
                 context.gameState.pendingAntiqueSets[0] === action.collectorId
             )
         }
-        if (isStartAuction(action) || isMoveVisitors(action)) {
-            return this.availableActions(context.gameState, action.playerId).includes(action.type)
+        const gameState = context.gameState
+        if (isStartAuction(action)) {
+            return (
+                this.availableActions(gameState, action.playerId).includes(action.type) &&
+                gameState.canAuctionShop(action.playerId, action.shopId)
+            )
+        }
+        if (isMoveVisitors(action)) {
+            return (
+                this.availableActions(gameState, action.playerId).includes(action.type) &&
+                gameState.canMoveVisitorsFrom(action.fountainId, action.direction)
+            )
         }
         return false
     }

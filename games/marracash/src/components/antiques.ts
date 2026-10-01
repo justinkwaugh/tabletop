@@ -59,7 +59,7 @@ export function coversAntiqueSet(
 }
 
 export function antiqueSetPayout(cards: readonly Antique[], revealRank: number): number {
-    const paidCards = Math.max(AntiquesPerPlayer - revealRank, 0)
+    const paidCards = AntiquesPerPlayer - revealRank
     return cards
         .map((card) => card.value)
         .toSorted((a, b) => b - a)

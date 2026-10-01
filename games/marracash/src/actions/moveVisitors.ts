@@ -40,8 +40,10 @@ export class HydratedMoveVisitors
     }
 
     apply(state: HydratedMarracashGameState) {
-        if (!state.canMoveVisitors()) {
-            throw Error(`Player ${this.playerId} cannot move visitors now`)
+        if (!state.canMoveVisitorsFrom(this.fountainId, this.direction)) {
+            throw Error(
+                `Player ${this.playerId} cannot move visitors from fountain ${this.fountainId} heading ${this.direction}`
+            )
         }
         this.metadata = state.moveVisitors(this.playerId, this.fountainId, this.direction)
     }
