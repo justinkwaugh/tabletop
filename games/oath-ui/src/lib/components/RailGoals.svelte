@@ -15,7 +15,6 @@
     aria-expanded={gameSession.goalsView.open}
     onclick={() => gameSession.goalsView.toggle()}
 >
-    <h3>Goals</h3>
     <GoalRows {board} scale={1} across />
 </button>
 
@@ -30,13 +29,5 @@
         color: inherit;
         text-align: left;
         cursor: pointer;
-    }
-    h3 {
-        margin: 0;
-        color: rgba(253, 230, 138, 0.72);
-        font-size: 20px;
-        font-weight: 600;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
     }
 </style>

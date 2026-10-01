@@ -564,6 +564,9 @@ test('scenario 37: the goals on the rail, tap-only, with the next win; the seat 
     await expect(rail).toContainText('Next to win')
     await expect(rail).toContainText('is the Oathkeeper')
     await expect(rail).toContainText('Vision of Conquest')
+    await expect(rail).not.toContainText('Goals')
+    await expect(rail.getByRole('img', { name: 'sites ruled' })).toHaveCount(2)
+    await expect(rail.getByRole('img', { name: 'relics and banners' })).toHaveCount(1)
     await expect(page.getByRole('img', { name: /^Oathkeeper of/ })).toHaveCount(0)
     await expect(page.getByRole('img', { name: 'Oathkeeper', exact: true })).toHaveCount(1)
 
@@ -575,7 +578,8 @@ test('scenario 37: the goals on the rail, tap-only, with the next win; the seat 
     await rail.click()
     await expect(goals).toBeVisible()
     await expect(goals).toContainText(/wins as the Oathkeeper if the end die ends the game after round 5 \(on a 6\)/)
-    await expect(goals).toContainText('2 sites')
+    await expect(goals.locator('[title="ann: 2 sites ruled"]')).toHaveCount(2)
+    await expect(goals).not.toContainText('sites ruled')
     await expect(goals.getByText('not met')).toHaveCount(2)
     await page.keyboard.press('Escape')
     await expect(goals).toHaveCount(0)
@@ -584,6 +588,14 @@ test('scenario 37: the goals on the rail, tap-only, with the next win; the seat 
     await expect(goals).toBeVisible()
     await page.mouse.click(5, 5)
     await expect(goals).toHaveCount(0)
+})
+
+test('scenario 37: under a banner Oath the Oath is held, one ringed disc and no counts', async ({ page }) => {
+    await openTable(page, 'goalsRailDevotion')
+    const rail = page.getByRole('button', { name: 'Goals: open the enlarged view' })
+    await expect(rail).toContainText('The Oath of Devotion')
+    await expect(rail.getByRole('img', { name: 'the Darkest Secret' })).toHaveCount(1)
+    await expect(rail.locator('[title="ann holds the Darkest Secret"]')).toHaveCount(1)
 })
 
 function framesInsidePanel(page: Page) {

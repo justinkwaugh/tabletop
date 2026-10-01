@@ -1,14 +1,17 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import CardImage from '$lib/components/CardImage.svelte'
-    import { goalCardImage } from '$lib/images/tileImages.js'
-    import { avatarImage } from '$lib/images/boardImages.js'
-    import { cardName } from '$lib/model/names.js'
+    import { goalSymbolImage } from '$lib/images/goalImages.js'
+    import { cardName, oathName } from '$lib/model/names.js'
     import { nextWinPhrase } from '$lib/model/nextWin.js'
-    import { tallyLabel, type GoalBoard, type GoalTally } from '$lib/model/goalBoard.js'
+    import {
+        standingWords,
+        type GoalBoard,
+        type GoalKind,
+        type Standing
+    } from '$lib/model/goalBoard.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    // R-3 — every live win condition: the next win, the Oath, each Vision and the Successor goal.
+    // R-3 — every live win condition: the next win, then a box for the Oath, each Vision and each Successor.
     let {
         board,
         scale,
@@ -17,21 +20,49 @@
 
     let gameSession = getGameSession()
     let viewerId = $derived(gameSession.myPlayer?.id)
-    let cardWidth = $derived(Math.round(110 * scale))
+
+    function discStyle(playerId: string): string {
+        const colors = gameSession.colors
+        return `background:${colors.getPlayerBgColorValue(playerId)};color:${colors.getPlayerTextColorValue(playerId)}`
+    }
 </script>
 
-{#snippet counts(tally: GoalTally)}
-    <div class="counts">
-        {#each tally.counts as { playerId, count } (playerId)}
-            <span class="count">
+{#snippet symbol(kind: GoalKind)}
+    {@const src = goalSymbolImage(kind)}
+    <span
+        class="symbol"
+        role="img"
+        aria-label={standingWords(kind)}
+        style:mask-image={`url("${src}")`}
+        style:-webkit-mask-image={`url("${src}")`}
+    ></span>
+{/snippet}
+
+{#snippet standing(kind: GoalKind, value: Standing)}
+    <div class="discs">
+        {#if value.shape === 'count'}
+            {#each value.counts as { playerId, count } (playerId)}
+                {@const words = `${gameSession.getPlayerName(playerId)}: ${standingWords(kind, count)}`}
                 <span
-                    class="swatch"
-                    style="background:{gameSession.colors.getPlayerUiColor(playerId)}"
-                ></span>
-                <PlayerName {playerId} />
-                {tallyLabel(tally.unit, count)}
-            </span>
-        {/each}
+                    class="disc"
+                    class:disc--ring={playerId === value.ringedId}
+                    style={discStyle(playerId)}
+                    title={words}
+                    aria-label={words}>{count}</span
+                >
+            {/each}
+        {:else if value.holderId}
+            {@const words = `${gameSession.getPlayerName(value.holderId)} holds ${standingWords(kind)}`}
+            <span
+                class="disc disc--ring"
+                style={discStyle(value.holderId)}
+                title={words}
+                aria-label={words}
+            ></span>
+        {:else}
+            <span class="disc disc--empty" title="{standingWords(kind)}: unclaimed"></span>
+            <span class="unclaimed">unclaimed</span>
+        {/if}
     </div>
 {/snippet}
 
@@ -49,170 +80,197 @@
         </p>
     {/if}
 
-    <section class="goal">
-        <img class="half" src={goalCardImage(board.oath.oathType)} alt="" />
-        <div class="facts">
-            <h4>The Oath</h4>
-            {#if board.oath.holderId}
-                {@const holder = gameSession.gameState.getPlayerState(board.oath.holderId)}
-                <p class="who">
-                    <img
-                        class="avatar"
-                        src={avatarImage(
-                            holder.status,
-                            gameSession.colors.getPlayerColor(board.oath.holderId)
-                        )}
-                        alt=""
-                    />
-                    <PlayerName playerId={board.oath.holderId} />
-                    {board.oath.holderId === viewerId ? 'are' : 'is'} the {board.oath.usurper
-                        ? 'Usurper'
-                        : 'Oathkeeper'}
-                </p>
-            {/if}
-            {#if board.oath.tally}{@render counts(board.oath.tally)}{/if}
-        </div>
-    </section>
-
-    {#each board.visions as vision (vision.playerId + vision.visionId)}
-        <section class="goal">
-            <CardImage
-                cardId={vision.visionId}
-                width={cardWidth}
-                label={cardName(vision.visionId)}
-            />
-            <div class="facts">
-                <h4>Vision{vision.shared ? ', shared' : ''}</h4>
-                <p class="who">
-                    <PlayerName playerId={vision.playerId} possessive />
-                    {cardName(vision.visionId)}
-                    {@render chip(vision.met)}
-                </p>
+    <div class="boxes">
+        <section class="box" style="--goal:var(--oath-goal-oath)">
+            <h4>The Oath of {oathName(board.oath.oathType)}</h4>
+            <div class="goal">
+                {@render symbol(board.oath.kind)}
+                <div class="facts">
+                    {#if board.oath.holderId}
+                        <p class="who">
+                            <PlayerName playerId={board.oath.holderId} />
+                            {board.oath.holderId === viewerId ? 'are' : 'is'} the {board.oath
+                                .usurper
+                                ? 'Usurper'
+                                : 'Oathkeeper'}
+                        </p>
+                    {:else}
+                        <p class="who who--none">No one is the Oathkeeper</p>
+                    {/if}
+                    {@render standing(board.oath.kind, board.oath.standing)}
+                </div>
             </div>
         </section>
-    {/each}
 
-    {#if board.successor}
-        {@const successor = board.successor}
-        <section class="goal">
-            <img class="half half--successor" src={goalCardImage(board.oath.oathType)} alt="" />
-            <div class="facts">
-                <h4>Successor</h4>
-                {#each successor.citizens as citizen (citizen.playerId)}
-                    <p class="who">
-                        <PlayerName playerId={citizen.playerId} />
-                        {@render chip(citizen.met)}
-                    </p>
-                {/each}
-                {#if successor.tally}{@render counts(successor.tally)}{/if}
-            </div>
-        </section>
-    {/if}
+        {#each board.visions as vision (vision.playerId + vision.visionId)}
+            <section class="box" style="--goal:var(--oath-goal-vision)">
+                <h4>Vision {@render chip(vision.met)}</h4>
+                <div class="goal">
+                    {@render symbol(vision.kind)}
+                    <div class="facts">
+                        <p class="who">
+                            <PlayerName playerId={vision.ownerId ?? vision.playerId} possessive />
+                            {cardName(vision.visionId)}
+                            {#if vision.shared}
+                                <span class="shared"
+                                    >shared with <PlayerName playerId={vision.playerId} /></span
+                                >
+                            {/if}
+                        </p>
+                        {@render standing(vision.kind, vision.standing)}
+                    </div>
+                </div>
+            </section>
+        {/each}
+
+        {#each board.successors as successor (successor.citizenId)}
+            <section class="box" style="--goal:var(--oath-goal-successor)">
+                <h4>Successor {@render chip(successor.met)}</h4>
+                <div class="goal">
+                    {@render symbol(successor.kind)}
+                    <div class="facts">
+                        <p class="who">
+                            <PlayerName playerId={successor.citizenId} />
+                            {successor.citizenId === viewerId ? 'are' : 'is'} a Citizen
+                        </p>
+                        {@render standing(successor.kind, successor.standing)}
+                    </div>
+                </div>
+            </section>
+        {/each}
+    </div>
 </div>
 
 <style>
     .goals {
         display: flex;
         flex-direction: column;
-        gap: calc(var(--s) * 10px);
-        color: #e7e5e4;
-        font-size: calc(var(--s) * 15px);
-    }
-    .goals--across {
-        flex-flow: row wrap;
-        column-gap: calc(var(--s) * 28px);
-        row-gap: calc(var(--s) * 6px);
-    }
-    .goals--across .goal {
-        max-width: calc(var(--s) * 430px);
+        gap: calc(var(--s) * 12px);
+        color: var(--oath-text);
     }
     .next {
-        flex-basis: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: calc(var(--s) * 10px);
         margin: 0;
+        font-size: calc(var(--s) * 22px);
         font-weight: 600;
-        color: #fef3c7;
     }
     .next__label {
-        margin-right: calc(var(--s) * 6px);
-        font-size: calc(var(--s) * 11px);
-        letter-spacing: 0.14em;
+        font-size: calc(var(--s) * 16px);
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: #fbbf24;
+        color: var(--oath-heading);
+    }
+    .boxes {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: calc(var(--s) * 18px);
+    }
+    .goals--across .boxes {
+        flex-direction: row;
+        gap: calc(var(--s) * 28px);
+    }
+    .box {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--s) * 8px);
+        padding: calc(var(--s) * 12px) calc(var(--s) * 20px) calc(var(--s) * 14px);
+        border-radius: calc(var(--s) * 10px);
+        background: rgba(0, 0, 0, 0.3);
+    }
+    h4 {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: calc(var(--s) * 12px);
+        margin: 0;
+        font-size: calc(var(--s) * 22px);
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--oath-heading);
     }
     .goal {
         display: flex;
-        align-items: flex-start;
-        gap: calc(var(--s) * 12px);
+        align-items: center;
+        gap: calc(var(--s) * 20px);
     }
-    .half {
+    .symbol {
         flex: none;
-        width: calc(var(--s) * 110px);
-        height: calc(var(--s) * 80px);
-        object-fit: cover;
-        object-position: top;
-        border-radius: calc(var(--s) * 4px);
-    }
-    .half--successor {
-        height: calc(var(--s) * 64px);
-        object-position: bottom;
+        width: calc(var(--s) * 96px);
+        height: calc(var(--s) * 100px);
+        background: var(--goal);
+        mask-position: center;
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        -webkit-mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
     }
     .facts {
         display: flex;
         flex-direction: column;
-        gap: calc(var(--s) * 4px);
-    }
-    h4 {
-        margin: 0;
-        font-size: calc(var(--s) * 11px);
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: rgba(253, 230, 138, 0.75);
+        gap: calc(var(--s) * 12px);
     }
     .who {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: calc(var(--s) * 6px);
+        gap: calc(var(--s) * 8px);
         margin: 0;
+        font-size: calc(var(--s) * 21px);
         font-weight: 600;
-        color: #fde68a;
     }
-    .avatar {
-        width: calc(var(--s) * 30px);
-        height: calc(var(--s) * 30px);
-        border-radius: 999px;
-        border: calc(var(--s) * 2px) solid #fbbf24;
+    .who--none,
+    .shared {
+        color: var(--oath-text-muted);
     }
-    .counts {
-        display: flex;
-        flex-wrap: wrap;
-        gap: calc(var(--s) * 12px);
+    .shared {
+        font-size: calc(var(--s) * 15px);
+        font-weight: 400;
     }
-    .count {
+    .discs {
         display: flex;
         align-items: center;
-        gap: calc(var(--s) * 4px);
-        white-space: nowrap;
+        gap: calc(var(--s) * 10px);
     }
-    .swatch {
+    .disc {
         flex: none;
-        width: calc(var(--s) * 10px);
-        height: calc(var(--s) * 10px);
+        width: calc(var(--s) * 36px);
+        height: calc(var(--s) * 36px);
         border-radius: 999px;
+        font-size: calc(var(--s) * 20px);
+        font-weight: 800;
+        line-height: calc(var(--s) * 36px);
+        text-align: center;
+    }
+    .disc--ring {
+        box-shadow:
+            0 0 0 calc(var(--s) * 3px) var(--oath-surface-raised),
+            0 0 0 calc(var(--s) * 6px) var(--oath-accent);
+    }
+    .disc--empty {
+        border: calc(var(--s) * 2px) dashed var(--oath-text-muted);
+    }
+    .unclaimed {
+        font-size: calc(var(--s) * 17px);
+        font-style: italic;
+        color: var(--oath-text-muted);
     }
     .chip {
-        padding: calc(var(--s) * 1px) calc(var(--s) * 7px);
+        padding: calc(var(--s) * 1px) calc(var(--s) * 9px);
         border-radius: 999px;
-        background: #d6d3d1;
-        color: #292524;
-        font-size: calc(var(--s) * 11px);
+        background: var(--oath-control);
+        color: var(--oath-text-muted);
+        font-size: calc(var(--s) * 14px);
         font-weight: 800;
         letter-spacing: 0.1em;
-        text-transform: uppercase;
     }
     .chip--met {
-        background: #fbbf24;
-        color: #1c1917;
+        background: var(--oath-accent);
+        color: var(--oath-surface-raised);
     }
 </style>

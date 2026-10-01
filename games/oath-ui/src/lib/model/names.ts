@@ -10,6 +10,7 @@ import {
     RELIQUARY_MODIFIERS,
     Suit,
     IMPERIAL_WARBANDS,
+    OathType,
     type WarbandOwner
 } from '@tabletop/oath'
 
@@ -52,6 +53,18 @@ const SUIT_NAMES: Record<Suit, string> = {
     [Suit.Hearth]: 'Hearth',
     [Suit.Beast]: 'Beast',
     [Suit.Nomad]: 'Nomad'
+}
+
+const OATH_NAMES: Record<OathType, string> = {
+    [OathType.Supremacy]: 'Supremacy',
+    [OathType.ThePeople]: 'the People',
+    [OathType.Protection]: 'Protection',
+    [OathType.Devotion]: 'Devotion'
+}
+
+/** R-2.10 — the Oath as the goal tile prints it, "the Oath of …". */
+export function oathName(oathType: OathType): string {
+    return OATH_NAMES[oathType]
 }
 
 export function suitName(suit: Suit): string {

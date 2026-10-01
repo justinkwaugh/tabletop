@@ -6,9 +6,13 @@
     // Mounted beside the open seat, outside the board's transform; it shows the displayed state.
     let gameSession = getGameSession()
     let goalsView = $derived(gameSession.goalsView)
+    let viewportWidth = $state(1024)
+    // A phone's sheet draws the same boxes a size smaller.
+    let scale = $derived(viewportWidth < 640 ? 0.66 : 0.8)
 </script>
 
 <svelte:window
+    bind:innerWidth={viewportWidth}
     onkeydown={(e) => {
         if (e.key === 'Escape' && goalsView.open) goalsView.close()
     }}
@@ -25,7 +29,6 @@
             onpointerdown={(e) => e.stopPropagation()}
         >
             <header class="head">
-                <h2>Goals</h2>
                 <button
                     type="button"
                     class="close"
@@ -33,7 +36,7 @@
                     aria-label="Close">×</button
                 >
             </header>
-            <GoalRows board={goalBoard(gameSession.gameState)} scale={1.15} />
+            <GoalRows board={goalBoard(gameSession.gameState)} {scale} />
         </div>
     </div>
 {/if}
@@ -61,31 +64,23 @@
         overscroll-behavior: contain;
         width: 100%;
         border-radius: 12px;
-        background: rgba(20, 17, 15, 0.97);
-        border: 1px solid rgba(251, 191, 36, 0.45);
-        color: #e7e5e4;
+        background: var(--oath-surface-raised);
+        border: 1px solid var(--oath-frame);
+        color: var(--oath-text);
         padding: 12px 18px 18px;
         box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
     }
     .head {
         display: flex;
         align-items: baseline;
-        margin-bottom: 12px;
-    }
-    .head h2 {
-        margin: 0;
-        color: rgba(253, 230, 138, 0.85);
-        font-size: 14px;
-        font-weight: 700;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
+        margin-bottom: 4px;
     }
     .close {
         margin-left: auto;
         padding: 2px 8px;
         border: 0;
         background: none;
-        color: #a8a29e;
+        color: var(--oath-text-muted);
         font-size: 22px;
         line-height: 1;
         cursor: pointer;

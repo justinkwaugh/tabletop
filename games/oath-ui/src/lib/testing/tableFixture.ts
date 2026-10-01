@@ -1,6 +1,7 @@
 import { mount, tick, unmount } from 'svelte'
 import { ActionSource, Color, assertExists, createAction, range } from '@tabletop/common'
 import {
+    Banner,
     CampaignSacrifice,
     CampaignTargetKind,
     Campaign,
@@ -32,6 +33,7 @@ import {
     PROVINCES,
     campaignRecords,
     openTurn,
+    testBanners,
     testPlayer,
     testState,
     testVaultWithRelics
@@ -62,6 +64,9 @@ export type TableName =
     | 'visionBacks'
     | 'restBanks'
     | 'goalsRail'
+    | 'goalsRailThePeople'
+    | 'goalsRailProtection'
+    | 'goalsRailDevotion'
     | 'trade'
 
 const PROPHET_ADVISERS = [
@@ -187,7 +192,7 @@ function restBanksTable(): PlayedTable {
 }
 
 /** R-3: every live goal at once: a tied Oath held by the Chancellor, a revealed Vision, a Citizen. */
-function goalsRailTable(): PlayedTable {
+function goalsRailTable(oathType = OathType.Supremacy): PlayedTable {
     const state = testState(
         [
             testPlayer({
@@ -214,8 +219,13 @@ function goalsRailTable(): PlayedTable {
         {
             machineState: MachineState.ActPhase,
             chancellorPlayerId: 'ann',
-            oathType: OathType.Supremacy,
+            oathType,
             oathkeeperPlayerId: 'ann',
+            // R-2.11 — under a banner Oath the title follows its banner.
+            banners: testBanners({
+                [Banner.PeoplesFavor]: oathType === OathType.ThePeople ? 'ann' : undefined,
+                [Banner.DarkestSecret]: oathType === OathType.Devotion ? 'ann' : undefined
+            }),
             warbandsBySite: {
                 c1: { me: 1 },
                 c2: { me: 1 },
@@ -497,7 +507,10 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     imperialDefeated: () => defeatedTable('imperial'),
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
-    goalsRail: goalsRailTable,
+    goalsRail: () => goalsRailTable(),
+    goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),
+    goalsRailProtection: () => goalsRailTable(OathType.Protection),
+    goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
     trade: tradeTable
 }
 

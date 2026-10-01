@@ -46,6 +46,10 @@
     --oath-danger: var(--color-rose-400);
     --oath-danger-soft: --alpha(var(--color-rose-900) / 70%);
     --oath-divider: --alpha(var(--color-stone-700) / 60%);
+    /* The goal symbols' colours: the Oath, a Vision, the Successor (the goal tile's purple). */
+    --oath-goal-oath: var(--color-amber-500);
+    --oath-goal-vision: var(--color-stone-100);
+    --oath-goal-successor: #913f78;
 }
 
 @theme inline {
@@ -65,6 +69,9 @@
     --color-oath-danger: var(--oath-danger);
     --color-oath-danger-soft: var(--oath-danger-soft);
     --color-oath-divider: var(--oath-divider);
+    --color-oath-goal-oath: var(--oath-goal-oath);
+    --color-oath-goal-vision: var(--oath-goal-vision);
+    --color-oath-goal-successor: var(--oath-goal-successor);
 }
 
 @source "../node_modules/flowbite-svelte/dist";

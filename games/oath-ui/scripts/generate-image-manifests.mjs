@@ -16,6 +16,7 @@ const GROUPS = [
     { name: 'actionFiles', dir: 'actions', exts: ['.svg'], recursive: false },
     { name: 'diceFiles', dir: 'dice', exts: ['.svg'], recursive: false },
     { name: 'suitFiles', dir: 'suits', exts: ['.svg'], recursive: false },
+    { name: 'goalFiles', dir: 'goals', exts: ['.svg'], recursive: false },
     { name: 'playerBoardFiles', dir: 'playerBoards', exts: ['.jpg', '.svg'], recursive: false },
     { name: 'tileFiles', dir: 'tiles', exts: ['.png', '.jpg'], recursive: false },
     { name: 'bannerFiles', dir: 'banners', exts: ['.jpg'], recursive: false }
