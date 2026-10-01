@@ -345,35 +345,6 @@
                             {#if art && 'imageUrl' in art && !entry.placed}
                                 <image href={art.imageUrl} x="-25" y="-25" width="50" height="40"
                                 ></image>
-                            {:else if art && 'localLine' in art && !entry.placed}
-                                <g
-                                    data-map-marker-local-line={marker.id}
-                                    transform="translate(0 36)"
-                                    fill={appearance.ink}
-                                    stroke="none"
-                                    dominant-baseline="central"
-                                >
-                                    <title>{marker.description}</title>
-                                    <text x="-2" text-anchor="end" font-size="8" font-weight="850"
-                                        >{marker.label}</text
-                                    >
-                                    <path d="M4 0H14" stroke={appearance.ink} stroke-width="1.6"
-                                    ></path>
-                                    <circle
-                                        cx="4"
-                                        r="2.6"
-                                        fill={appearance.paper}
-                                        stroke={appearance.ink}
-                                        stroke-width="1"
-                                    ></circle>
-                                    <circle
-                                        cx="14"
-                                        r="2.6"
-                                        fill={appearance.paper}
-                                        stroke={appearance.ink}
-                                        stroke-width="1"
-                                    ></circle>
-                                </g>
                             {:else if art && 'tileSymbol' in art && !entry.face.symbols?.includes(art.tileSymbol)}
                                 <g
                                     data-map-marker-symbol={art.tileSymbol}
@@ -527,6 +498,47 @@
             {/each}
         </g>
     {/if}
+    <g data-map-layer="local-lines" pointer-events="none" aria-hidden="true">
+        {#each entries.filter((entry) => !entry.placed) as entry (entry.location.id)}
+            {#each (entry.location.markers ?? []).filter((marker) => {
+                const art = entry.markerArt[marker.id]
+                return art && 'localLine' in art
+            }) as marker (marker.id)}
+                <g
+                    data-map-marker-local-line={marker.id}
+                    transform={`translate(${entry.center.x + 4} ${entry.center.y + 32})`}
+                    fill={appearance.ink}
+                    dominant-baseline="central"
+                >
+                    <text
+                        x="-2"
+                        text-anchor="end"
+                        font-size="8"
+                        font-weight="850"
+                        paint-order="stroke"
+                        stroke={appearance.colors[entry.face.color]}
+                        stroke-width="2.4"
+                        stroke-linejoin="round">{marker.label}</text
+                    >
+                    <path d="M4 0H14" stroke={appearance.ink} stroke-width="1.6"></path>
+                    <circle
+                        cx="4"
+                        r="2.6"
+                        fill={appearance.paper}
+                        stroke={appearance.ink}
+                        stroke-width="1"
+                    ></circle>
+                    <circle
+                        cx="14"
+                        r="2.6"
+                        fill={appearance.paper}
+                        stroke={appearance.ink}
+                        stroke-width="1"
+                    ></circle>
+                </g>
+            {/each}
+        {/each}
+    </g>
     {#if maskUnavailableLocations}
         <g
             data-map-layer="unavailable"

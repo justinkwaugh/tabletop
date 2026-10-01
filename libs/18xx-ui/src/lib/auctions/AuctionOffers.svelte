@@ -59,7 +59,9 @@
                                 }}
                             >
                                 {#if token}<CompanyToken appearance={token} size={26} />
-                                {:else}<span class="private-icon" aria-hidden="true">{lot.id}</span
+                                {:else}<span class="private-icon" aria-hidden="true"
+                                        >{session.presentation.companyNames?.[lot.id]?.initials ??
+                                            lot.id}</span
                                     >{/if}
                             </button>
                             <PrivateDescription

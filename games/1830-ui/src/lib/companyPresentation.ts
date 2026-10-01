@@ -8,5 +8,11 @@ export const EighteenThirtyCompanyNames: Readonly<Record<string, CompanyNameVari
     CO: { short: 'Chesapeake & Ohio', initials: 'C&O' },
     ERIE: { short: 'Erie', initials: 'Erie' },
     NYNH: { short: 'New Haven', initials: 'NYNH' },
-    BM: { short: 'Boston & Maine', initials: 'B&M' }
+    BM: { short: 'Boston & Maine', initials: 'B&M' },
+    SV: { short: 'Schuylkill Valley', initials: 'SV' },
+    CS: { short: 'Champlain & St. Lawrence', initials: 'C&StL' },
+    DH: { short: 'Delaware & Hudson', initials: 'D&H' },
+    MH: { short: 'Mohawk & Hudson', initials: 'M&H' },
+    CA: { short: 'Camden & Amboy', initials: 'C&A' },
+    BOP: { short: 'Baltimore & Ohio', initials: 'B&O' }
 }

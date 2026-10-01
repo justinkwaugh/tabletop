@@ -27,7 +27,7 @@ import { stagedRevenueLayout, type RevenueCell } from './stagedRevenueLayout.js'
 
 export type { TileDrawnPath } from './tileTrackGeometry.js'
 
-const OffboardSpikeReach = 0.42
+const OffboardSpikeReach = 0.6
 
 export type TileLayout = {
     annotationExclusions?: readonly Point[]

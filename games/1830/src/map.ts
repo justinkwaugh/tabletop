@@ -66,6 +66,15 @@ const Homes: Readonly<Record<string, string | CityReservation>> = {
     E23: 'BM'
 }
 
+const PrivateInitials: Readonly<Record<string, string>> = {
+    SV: 'SV',
+    CS: 'C&StL',
+    DH: 'D&H',
+    MH: 'M&H',
+    CA: 'C&A',
+    BOP: 'B&O'
+}
+
 const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
     G15: [blocker('SV', 'Schuylkill Valley')],
     B20: [blocker('CS', 'Champlain & St. Lawrence')],
@@ -79,7 +88,7 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
 function blocker(id: string, name: string) {
     return {
         id: `blocks-${id}`,
-        label: id === 'BOP' ? 'B&O' : id,
+        label: PrivateInitials[id],
         description: `No track while ${name} is player-owned.`
     }
 }

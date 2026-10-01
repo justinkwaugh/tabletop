@@ -122,9 +122,9 @@ A reserved city slot without a token shows the reserving company's token in gray
 at reduced opacity, titled "Reserved for [company]"; without a company appearance it
 falls back to the company id as small text. Track into an offboard ends in a short
 filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
-own. A marker whose art is a local line shows its label beside two linked circles at
-the foot of the hex while the hex has no tile; 1830 marks its private-reserved hexes
-this way.
+own. A marker whose art is a local line shows its label beside two linked circles near
+the foot of the hex while the hex has no tile, drawn above track with a halo in the
+hex's colour; 1830 marks its private-reserved hexes this way.
 
 A map view's joined edges draw no outline, in the hex artwork or the map's outline
 layer, so neighbouring hexes read as one area (1830's Canada and Gulf). A tile layout

@@ -1,3 +1,11 @@
+import PRRLogo from './images/logos/PRR.svg'
+import NYCLogo from './images/logos/NYC.svg'
+import CPRLogo from './images/logos/CPR.svg'
+import BOLogo from './images/logos/BO.svg'
+import COLogo from './images/logos/CO.svg'
+import ERIELogo from './images/logos/ERIE.svg'
+import NYNHLogo from './images/logos/NYNH.svg'
+import BMLogo from './images/logos/BM.svg'
 import { EighteenThirtyMap, EighteenThirtyTileSet } from '@tabletop/1830'
 import { towardTileEdge, type MapViewDefinition, type TileLayout } from '@tabletop/18xx-ui'
 
@@ -33,13 +41,13 @@ export const EighteenThirtyMapView: MapViewDefinition = {
         ['SV', 'CS', 'DH', 'MH', 'CA', 'BOP'].map((id) => [`blocks-${id}`, { localLine: true }])
     ),
     stations: {
-        PRR: { color: '#32763f', label: 'PRR' },
-        NYC: { color: '#474548', label: 'NYC' },
-        CPR: { color: '#d1232a', label: 'CPR' },
-        BO: { color: '#025aaa', label: 'B&O' },
-        CO: { color: '#add8e6', label: 'C&O' },
-        ERIE: { color: '#fff500', label: 'Erie' },
-        NYNH: { color: '#d88e39', label: 'NYNH' },
-        BM: { color: '#95c054', label: 'B&M' }
+        PRR: { color: '#32763f', label: 'PRR', imageUrl: PRRLogo },
+        NYC: { color: '#474548', label: 'NYC', imageUrl: NYCLogo },
+        CPR: { color: '#d1232a', label: 'CPR', imageUrl: CPRLogo },
+        BO: { color: '#025aaa', label: 'B&O', imageUrl: BOLogo },
+        CO: { color: '#add8e6', label: 'C&O', imageUrl: COLogo },
+        ERIE: { color: '#fff500', label: 'Erie', imageUrl: ERIELogo },
+        NYNH: { color: '#d88e39', label: 'NYNH', imageUrl: NYNHLogo },
+        BM: { color: '#95c054', label: 'B&M', imageUrl: BMLogo }
     }
 }

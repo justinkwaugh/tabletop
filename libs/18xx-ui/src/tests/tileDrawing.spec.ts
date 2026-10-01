@@ -221,8 +221,8 @@ describe('offboard track', () => {
                 path.spike!.tip.x - path.start.x,
                 path.spike!.tip.y - path.start.y
             )
-            expect(length).toBeGreaterThan(toCenter * 0.3)
-            expect(length).toBeLessThan(toCenter * 0.5)
+            expect(length).toBeGreaterThan(toCenter * 0.5)
+            expect(length).toBeLessThan(toCenter * 0.7)
         }
         const city = createTileDrawing(
             createCityTileFace('yellow', [0], 20, 1),
