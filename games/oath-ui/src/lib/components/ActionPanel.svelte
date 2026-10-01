@@ -4,6 +4,7 @@
     import SearchPanel from '$lib/components/SearchPanel.svelte'
     import CampaignPanel from '$lib/components/CampaignPanel.svelte'
     import CampaignBattlePanel from '$lib/components/CampaignBattlePanel.svelte'
+    import CampaignDice from '$lib/components/CampaignDice.svelte'
     import CampaignPlansPanel from '$lib/components/CampaignPlansPanel.svelte'
     import AttackPlansPanel from '$lib/components/AttackPlansPanel.svelte'
     import MinorActionPanel from '$lib/components/MinorActionPanel.svelte'
@@ -63,6 +64,9 @@
 
 <div class="panel rounded-lg bg-stone-900/70 border border-stone-700 px-3 py-2 text-stone-100">
     <ActorOnlyNotice />
+    {#if gameState.campaign}
+        <CampaignDice campaign={gameState.campaign} />
+    {/if}
     <!-- Interrupt states come first: the clock is usually on a player whose turn it is not. -->
     {#if gameSession.campaign.open}
         <div class="mb-2">

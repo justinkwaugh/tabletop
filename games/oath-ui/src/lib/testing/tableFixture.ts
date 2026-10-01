@@ -1,5 +1,5 @@
 import { mount, tick, unmount } from 'svelte'
-import { ActionSource, Color, assertExists, createAction } from '@tabletop/common'
+import { ActionSource, Color, assertExists, createAction, range } from '@tabletop/common'
 import {
     CampaignSacrifice,
     CampaignTargetKind,
@@ -367,10 +367,10 @@ function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
                 targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
                 attackPool: 4,
                 defensePool: 1,
-                attackRoll: [],
-                defenseRoll: [],
+                attackRoll: range(0, 4).map(() => ({ swords: 1, hollowSwords: 0, skulls: 0 })),
+                defenseRoll: [{ shields: 1, doubling: false }],
                 defense: 1,
-                swords: 9,
+                swords: 4,
                 defendingForce,
                 defendingBandits: 0,
                 ...campaignRecords()

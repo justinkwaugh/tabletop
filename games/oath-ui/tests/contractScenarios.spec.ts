@@ -484,6 +484,21 @@ test('scenario 35: a favor bank is chosen by its suit symbol, ringed when picked
     expect((await call(page, 'tableFacts')).favorBank.arcane).toBe(before.favorBank.arcane - 1)
 })
 
+test('scenario 36: the rolled dice sit in the Campaign panel, faces and totals, for the deciding seat and a waiting one, and not on the rail', async ({ page }) => {
+    await openTable(page, 'exileDefeated')
+    const dice = grid(page).getByRole('region', { name: 'the Campaign\'s dice' })
+    await expect(dice).toBeVisible()
+    await expect(dice).toContainText(/\d+ swords?/)
+    await expect(dice).toContainText(/\d+ defense/)
+    await expect(dice.locator('img').first()).toBeVisible()
+    await expect(page.locator('.rail').getByText(/swords?$/)).toHaveCount(0)
+
+    const watcher = await call(page, 'viewOffTheClock')
+    expect(watcher).not.toBe('def')
+    await expect(grid(page).getByText('Waiting for another player')).toBeVisible()
+    await expect(grid(page).getByRole('region', { name: 'the Campaign\'s dice' })).toContainText(/\d+ defense/)
+})
+
 function framesInsidePanel(page: Page) {
     return page.locator('.panel').evaluate((panel) =>
         [...panel.querySelectorAll('*')]

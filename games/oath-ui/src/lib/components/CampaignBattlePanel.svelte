@@ -51,10 +51,6 @@
         Campaign — the battle
     </h3>
 
-    <div class="text-sm mb-1 flex gap-4">
-        <span>Swords <span class="font-semibold">{campaign.swords}</span></span>
-        <span>Defense <span class="font-semibold">{campaign.defense}</span></span>
-    </div>
     <p class="text-[11px] text-stone-400 mb-2">
         Defending: {defence}.
     </p>
