@@ -47,7 +47,12 @@ export class HydratedBuildMarket
         assertExists(place, 'Invalid BuildMarket action')
         const cost = marketCost(state.board, this.playerId, place)
         state.getPlayerState(this.playerId).points -= cost
-        state.board.addMarket({ playerId: this.playerId, placeId: this.placeId, sold: false })
+        state.board.addMarket({
+            playerId: this.playerId,
+            placeId: this.placeId,
+            coords: place.spaces[0],
+            sold: false
+        })
         this.metadata = { cost }
     }
 

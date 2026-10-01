@@ -248,7 +248,7 @@ export class HydratedBoard extends Hydratable<typeof Board> implements Board {
         }
     }
 
-    // Markets are never lifted when places combine; a sold market stays sold on the board.
+    // Merging never lifts a market: it keeps its tile and sold flag and scores for the new place.
     private relocateMarkets(fromPlaceId: PlaceId, toPlaceId: PlaceId) {
         for (const market of this.marketsAt(fromPlaceId)) {
             market.placeId = toPlaceId

@@ -75,18 +75,20 @@ export function oracleViews(board: HydratedBoard, network: Network): OracleView[
 }
 
 export function marketViews(board: HydratedBoard, network: Network): MarketView[] {
-    return board.places().flatMap((place) => {
-        const center = placeCenter(place)
-        return board.marketsAt(place.id).map((market, index) => {
-            const slot = MARKET_SLOTS[index % MARKET_SLOTS.length]
-            return {
-                key: `${place.id}:${index}`,
-                point: { x: center.x + slot.x, y: center.y + slot.y },
-                playerId: market.playerId,
-                sold: market.sold,
-                active: !market.sold && isMarketActive(board, network, market)
-            }
-        })
+    const slotsUsed = new Map<string, number>()
+    return board.markets.map((market) => {
+        const tileKey = `${market.coords.q},${market.coords.r}`
+        const index = slotsUsed.get(tileKey) ?? 0
+        slotsUsed.set(tileKey, index + 1)
+        const center = hexCenter(market.coords)
+        const slot = MARKET_SLOTS[index % MARKET_SLOTS.length]
+        return {
+            key: `${tileKey}:${index}`,
+            point: { x: center.x + slot.x, y: center.y + slot.y },
+            playerId: market.playerId,
+            sold: market.sold,
+            active: !market.sold && isMarketActive(board, network, market)
+        }
     })
 }
 
