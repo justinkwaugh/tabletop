@@ -71,6 +71,12 @@ remain HTTP/1. Both stream requests to the child over HTTP/1, preserving request
 bodies, authorization, cookies, status codes and streaming responses. The parent
 sets the forwarded client address; the child trusts only its loopback proxy.
 
+Each child resolves the frontend version once at startup. It serves that build and
+reports it in `X-Tabletop-Version`, so the header changes only when a replacement
+serving the new build takes over, and clients are never told to refresh into a build
+the backend does not yet serve. The deploy tool reads that header as the served
+frontend version and waits for it after a frontend publication.
+
 On a manifest mismatch, the child sends an IPC reload notification. The supervisor
 starts a replacement while the current child continues serving. Only after the
 replacement finishes Fastify registration, loads game definitions and starts
@@ -101,7 +107,10 @@ children, plus the lightweight parent. The overlap shares the container's existi
 memory limit; this bounds version accumulation, not peak memory for two heaps.
 
 Failed startup leaves the existing child serving and retries after 30 seconds.
-Startup is bounded to 120 seconds. A serving-child crash also triggers replacement;
+Startup is bounded to 120 seconds, by the supervisor alone: Fastify's plugin timeout
+is disabled because a replacement starting beside a serving child on a throttled
+instance takes several times longer than a fresh boot, and a 20-second plugin
+timeout failed every frontend replacement from 2026-09-29. A serving-child crash also triggers replacement;
 new requests wait in a recovery queue (up to 500 waiters and 120 seconds per
 request). Client cancellation removes a queued request. Only an exhausted queue,
 expired wait or shutdown returns a generic service-unavailable response; internal

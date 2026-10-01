@@ -11,7 +11,9 @@ const server = Fastify({
     logger: true,
     trustProxy: '127.0.0.1',
     ajv: { customOptions: { keywords: [Visibility.MetadataKey, Visibility.ScopeKey] } },
-    pluginTimeout: 20_000
+    // The supervisor bounds startup; a replacement starting beside a serving child on a
+    // throttled CPU can take far longer than a fresh instance.
+    pluginTimeout: 0
 })
 installHandlerDrain(server)
 server.get('/__health/ready', () => ({ status: 'ready' }))
