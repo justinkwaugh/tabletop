@@ -3,6 +3,7 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     cashOwnedBy,
     evaluatePurchaseOffer,
+    fundingContributions,
     settleCashPayments,
     type EighteenXXState,
     type Owner,
@@ -68,6 +69,9 @@ it('lets the president fund another company’s train with their own cash', () =
     expect(price).toBeLessThan(face)
     expect(reason(price)).toBeUndefined()
     expect(reason(price + 1)).toBe('The buyer cannot afford the offer.')
+    expect(fundingContributions(play.state, request(price), EighteenThirtyTransferRules)).toEqual([
+        { from: president, to: prr, amount: price - 70 }
+    ])
     const before = cash(play.state, nyc)
     play.act('OfferPurchase', request(price))
     const offer = play.state.purchaseOffer

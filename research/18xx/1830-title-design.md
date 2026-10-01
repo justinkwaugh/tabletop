@@ -356,7 +356,7 @@ private-company sales between players.
 - A buyer cannot withdraw a private purchase offer; the owner answers it.
 - Standing buy instructions still buy one share per turn.
 - The offer form starts at the minimum price, not the private's face value, which
-  the family state does not hold.
+  the family state does not hold. (Slice 6 starts it at the private's value.)
 
 ### Acceptance examples
 
@@ -562,7 +562,29 @@ None of these needed rule changes; the converter bridges them.
 
 - A president cannot sell shares to fund another company's train; only their cash
   contributes. The reference allows the sales first.
-- The offer form does not show how much the president would contribute.
+- The offer form does not show how much the president would contribute. (Slice 6
+  shows it.)
+
+## Slice 6 design: title UI
+
+Most of the interface each slice needed shipped with it: the Buffalo home choice
+on the map (slice 2), the Privates menu (slice 3), and the B&O par prompt and
+D&H station choice (slice 4). Slice 6 adds what the shared table lacked for
+1830:
+
+- C&StL's and D&H's private lays prompt "Place a tile in Burlington" and "Place
+  #57 in Scranton".
+- The C&A, B&O and M&H cards carry the PRR, B&O and NYC tokens of the share,
+  presidency or exchange they bring.
+- A company card describes C&StL's or D&H's unused power where the card has room
+  for descriptions.
+- A private-sale offer starts at the private's value rather than $1.
+- A funded train offer states what the president pays toward it.
+
+### Limits after slice 6
+
+- The playground offers no 1830 position in which a president funds another
+  company's train; the 1830 specs cover it.
 
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/meta.rb

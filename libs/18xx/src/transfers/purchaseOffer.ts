@@ -207,9 +207,9 @@ function canFund(
     )
 }
 
-function fundingContributions(
+export function fundingContributions(
     state: CompanyDecisionState,
-    offer: PurchaseOffer,
+    offer: PurchaseOfferRequest,
     rules: TransferRules
 ): CashPayment[] {
     const buyer = { kind: 'company', companyId: offer.companyId } as const

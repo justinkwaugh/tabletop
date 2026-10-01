@@ -15,10 +15,17 @@
     let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
         $props()
     const session = $derived(requireEighteenXXSession(gameSession))
-    const noPrivateOperations = () => undefined
+    const privateOperationDescription = (id: string) =>
+        session.gameState.usedPrivatePowerIds.includes(id)
+            ? undefined
+            : id === 'CS'
+              ? 'May lay tile 3, 4 or 58 in Burlington (B20) without a connection, besides its own lay.'
+              : id === 'DH'
+                ? 'May lay #57 in Scranton (F16) as its lay for $120, then place a free station there.'
+                : undefined
 </script>
 
-<GameTable {session} privateOperationDescription={noPrivateOperations}>
+<GameTable {session} {privateOperationDescription}>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />
@@ -30,7 +37,7 @@
             {/if}
         {:else}
             <OperatingActions
-                privateOperationDescription={noPrivateOperations}
+                {privateOperationDescription}
                 onFocusRoute={focusRoute}
                 {session}
                 {createRouteWorker}

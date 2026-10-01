@@ -7,12 +7,12 @@
         void session.gameState
         return {}
     })
-    const price = (id: string, minimum: number) => prices[id] ?? minimum
+    const price = (id: string, suggested: number) => prices[id] ?? suggested
 </script>
 
 <div class="private-offers" aria-label="Buy a private from a player">
     {#each session.stock.privateChoices as choice (choice.privateCompanyId)}
-        {@const amount = price(choice.privateCompanyId, choice.range.minimum)}
+        {@const amount = price(choice.privateCompanyId, choice.suggestedPrice)}
         {@const reason = session.stock.privateOfferReason(choice.privateCompanyId, amount)}
         {@const name = getCompany(session.gameState, choice.privateCompanyId).name}
         <form

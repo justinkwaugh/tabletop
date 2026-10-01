@@ -11,5 +11,10 @@ export const EighteenThirtyPresentation: TitlePresentation = {
     phaseColors: EighteenThirtyTrainColors,
     marketPoolId: 'open-market',
     companyNames: EighteenThirtyCompanyNames,
-    privatePurchaseHeading: 'Available privates'
+    privatePurchaseHeading: 'Available privates',
+    privateTilePrompts: {
+        CS: 'Place a tile in Burlington',
+        DH: 'Place #57 in Scranton'
+    },
+    privateTokens: { CA: { companyId: 'PRR' }, BOP: { companyId: 'BO' }, MH: { companyId: 'NYC' } }
 }

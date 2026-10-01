@@ -1,4 +1,6 @@
 import type { CompanyRules } from '../company/companyRules.js'
+import type { EndingRules } from '../ending/gameEnding.js'
+import { certificateWealthItem, marketShareValue } from '../ending/finalWealth.js'
 import type { PrivateRules } from '../privates/privateRules.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { TrainFundingRules } from '../funding/trainFunding.js'
@@ -71,4 +73,11 @@ export const minimalTransferRules: TransferRules = {
     canPurchase: () => false,
     priceRange: () => undefined,
     afterPurchase: () => {}
+}
+
+export const minimalEndingRules: EndingRules = {
+    trigger: () => undefined,
+    certificateItems: (state, certificate) => [
+        certificateWealthItem(state, certificate, marketShareValue(state, certificate))
+    ]
 }

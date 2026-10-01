@@ -97,6 +97,12 @@
                 >{session.trainBuying.source === 'mine' ? 'Buy' : 'Offer'}</button
             >
         </div>
+        {#each session.trainBuying.companyContributions as contribution, index (index)}<p
+                role="status"
+                data-train-contribution
+            >
+                {session.ownerName(contribution.from)} pays {money(contribution.amount)} toward it.
+            </p>{/each}
         {#if session.trainBuying.companyEvaluation?.reason}<p role="status">
                 {session.trainBuying.companyEvaluation.reason}
             </p>{/if}

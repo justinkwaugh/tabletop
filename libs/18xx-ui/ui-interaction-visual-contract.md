@@ -595,7 +595,9 @@ Selections hide during updatingVisibleState and History View and clear in before
 Committed offers, seller tile choices, and track-permission requests remain in
 Game State across reload. Their entitled player decides before ordinary play resumes.
 Other stock, construction, route, and train controls remain unavailable meanwhile.
-Same-player purchases settle with one explicit confirmation. Another player's
+Same-player purchases settle with one explicit confirmation. When a title lets owners
+fund a train offer the treasury cannot cover, the offer form states each contribution,
+"[owner] pays [amount] toward it", above any reason the offer is unavailable. Another player's
 private lay is selectable only through explicit Local Hotseat input; Hosted clients
 remain limited to their associated player. All Actions are constructed by the
 Game Session. Tile previews reuse the shared tile renderer, and committed changes
@@ -1371,7 +1373,8 @@ the action content whenever that area scrolls vertically.
 
 Titles with private sales between players add a Privates category while the active
 player may offer for another player's private. Its panel lists those privates with
-their owners, a price field starting at the title's minimum, and an Offer button that
+their owners, a price field starting at the private's value within the title's price
+bounds, and an Offer button that
 submits OfferPrivatePurchase directly. While the offer awaits its answer, ordinary
 stock choices and the strip's pills are withheld and the action panel shows the
 shared purchase response, "[buyer] offers [price] for [private]" with Accept and

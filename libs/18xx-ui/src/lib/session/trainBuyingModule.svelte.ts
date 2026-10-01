@@ -4,6 +4,7 @@ import {
     OfferPurchase,
     TrainPurchase,
     evaluatePurchaseOffer,
+    fundingContributions,
     isBuyTrain,
     isDistributeEarnings,
     isOfferPurchase,
@@ -66,6 +67,12 @@ export class TrainBuyingModule {
     companyEvaluation = $derived.by(() => {
         const request = this.selection.purchase?.value
         return request ? this.evaluateOffer(request) : undefined
+    })
+    companyContributions = $derived.by(() => {
+        const request = this.selection.purchase?.value
+        return request && this.companyEvaluation && !this.companyEvaluation.reason
+            ? fundingContributions(this.session.state, request, this.session.rules.transferRules)
+            : []
     })
     depotSelection = $derived.by(() =>
         this.session.selectionsVisible && this.buying ? this.depotChoice.value('choice') : undefined
