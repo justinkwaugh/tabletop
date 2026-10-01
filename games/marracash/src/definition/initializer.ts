@@ -64,7 +64,9 @@ export class MarracashGameInitializer
             shops,
             fountains,
             queue: visitorSetup.queue,
-            antiqueDeck
+            antiqueDeck,
+            round: 1,
+            turnActions: []
         })
 
         return new HydratedMarracashGameState(marracashState)

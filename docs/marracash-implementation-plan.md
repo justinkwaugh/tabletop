@@ -82,7 +82,7 @@ Results needed for history, logging and animation go in Action `metadata`: who e
 
 - `ChoosingAction`: the active player chooses their next action. In round 1 that's `StartAuction` only, one per player. From round 2 the options are A (move, move), B (move, auction) and C (auction, auction). The option is tracked by the actions taken this turn, not chosen up front: after an auction, only another auction is allowed. Auction actions aren't offered if the player has less than 100 Dirham at that moment, already owns 6 shops, or if no shop is unowned. Money is checked when the auction would start, not at the start of the turn: a first move pays everyone straight away, so its profits count toward a second-action auction.
 - `Bidding`: every participant still to bid is active at once. Leaves when all bids are in.
-- `AuctionResolving` (entry schedules `ResolveAuction`), then back to `ChoosingAction` or on to refilling.
+- `ResolveAuction` is processed in `Bidding`, as Fresh Fish handles `EndAuction` in its bidding state. It is queued once every bid is in, and play then returns to `ChoosingAction` for the same player or the next turn.
 - `RefillingEntrances`: entered at the end of a turn when an entrance is empty and visitors are left in the queue.
 - `EndOfGame`: terminal. Cash becomes public. The most cash wins, and ties share the win. It records `GameResult.Win` or `GameResult.Draw` with `winningPlayerIds`, and the runtime declares `scoring.finalScores` as each player's final cash, per [tournament game capabilities](tournament-game-capabilities.md).
 
@@ -123,7 +123,7 @@ Each step ends with tests passing:
 1. Scaffold both packages, plus the `concealedCash` config. Done.
 2. The board module, with route derivation and the test pinning it to the board map. Done.
 3. State, player state, initializer (queue generation, antique deal, starting positions) and hydration round-trip tests, plus a `competition.spec.ts` covering 3 and 4 players. Done. Players stay in game order and the turn manager holds the seating, as in Estates, so assigned positions change nothing else. Step 4 adds first-round play to the tournament test, and step 7 adds its projection checks.
-4. The auction flow: `StartAuction`, `PlaceBid`, `ResolveAuction`, the pull-in, and the 6-shop rule.
+4. The auction flow: `StartAuction`, `PlaceBid`, `ResolveAuction`, the pull-in, and the 6-shop rule. Done. A player with 6 shops stays in the active list only until their automatic 0 bid is processed, because the engine requires an action's player to be active. They are never offered a bid.
 5. Movement: `MoveVisitors`, sequential payments, mover's cut and `CompleteAntiqueSet`.
 6. Refilling, turn options, the end of game and scoring.
 7. Visibility registration, projected hydration, Exploration population and visibility tests.
