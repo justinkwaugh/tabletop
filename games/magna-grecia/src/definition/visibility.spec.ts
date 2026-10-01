@@ -3,6 +3,7 @@ import {
     ActionSource,
     GameEngine,
     PlayerStatus,
+    Visibility,
     assertExists,
     getPrng,
     type Game
@@ -65,6 +66,15 @@ function endTurn(game: Game, state: MagnaGreciaProjectedState) {
     })
 }
 
+function thrownBy(run: () => unknown): unknown {
+    try {
+        run()
+    } catch (error) {
+        return error
+    }
+    return undefined
+}
+
 function layersHoldEveryColour(deck: readonly string[]): boolean {
     return [0, 1, 2].every(
         (layer) =>
@@ -122,6 +132,50 @@ describe('Magna Grecia visibility', () => {
         const roundEnd = endTurn(game, state)
         expect(roundEnd.processedActions[0].revealsInfo).toBe(true)
         expect(roundEnd.updatedState.revealedCardIds).toEqual(state.deck?.slice(0, 3))
+    })
+
+    it('lets a player apply the End turn into the final round without the hidden deck', () => {
+        const { initialState, startedGame } = engine.startGame(createGame(), { masterSeed })
+        let state = initialState
+        const lastTurnOf = (round: number) =>
+            state.round === round && state.turnIndex === state.turnManager.turnOrder.length - 1
+        const endTurnAsPlayer = () => {
+            const [playerId] = state.activePlayerIds
+            assertExists(playerId, 'Expected an acting player')
+            const perspective = { kind: 'player', playerId } as const
+            return engine.executeAction({
+                game: startedGame,
+                state: MagnaGreciaRuntime.visibility.state.project(canonical(state), perspective, {
+                    config: startedGame.config
+                }),
+                perspective,
+                action: {
+                    id: `end-${state.actionCount}`,
+                    gameId: startedGame.id,
+                    source: ActionSource.User,
+                    playerId,
+                    type: ActionType.EndTurn
+                }
+            })
+        }
+
+        while (!lastTurnOf(0)) {
+            state = endTurn(startedGame, state).updatedState
+        }
+        expect(Visibility.isUnavailableProjectedValueError(thrownBy(endTurnAsPlayer))).toBe(true)
+
+        while (!lastTurnOf(state.roundCount - 2)) {
+            state = endTurn(startedGame, state).updatedState
+        }
+        const local = endTurnAsPlayer()
+        const host = endTurn(startedGame, state)
+        expect(local.updatedState.round).toBe(state.roundCount - 1)
+        expect(local.updatedState.revealedCardIds).toEqual(state.revealedCardIds)
+        expect(local.updatedState.turnManager.turnOrder).toEqual(
+            host.updatedState.turnManager.turnOrder
+        )
+        expect(local.processedActions[0].revealsInfo).toBeUndefined()
+        expect(host.processedActions[0].revealsInfo).toBeUndefined()
     })
 
     it('samples an exploration deck that keeps the revealed cards and the colour layers', () => {

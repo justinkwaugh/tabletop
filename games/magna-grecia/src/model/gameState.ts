@@ -109,10 +109,13 @@ export class HydratedMagnaGreciaGameState
     }
 
     beginRound(round: number) {
-        const deck = this.deck
-        assertExists(deck, 'Starting a round requires the action deck')
+        const revealedCount = this.revealedCardCount(round)
+        if (revealedCount > this.revealedCardIds.length) {
+            const deck = this.deck
+            assertExists(deck, 'Starting a round requires the action deck')
+            this.revealedCardIds = deck.slice(0, revealedCount)
+        }
         this.round = round
-        this.revealedCardIds = deck.slice(0, this.revealedCardCount(round))
         this.turnManager.turnOrder = this.turnOrderForCard(this.currentCard())
         this.turnIndex = 0
     }
