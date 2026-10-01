@@ -17,7 +17,7 @@ import {
     isSellShares,
     isStartCompany,
     isStartOperatingSet,
-    privateOwner,
+    privateSaleChoices,
     privateSaleOfferReason,
     sameOwner,
     sharesOwned,
@@ -66,7 +66,6 @@ export class StockModule implements LocalSelection {
         private readonly additionalMenuCount: () => number = () => 0
     ) {}
 
-    // An offer awaiting its seller's answer suspends ordinary trading.
     private trading = $derived.by(
         () =>
             this.session.selectionsVisible &&
@@ -186,7 +185,6 @@ export class StockModule implements LocalSelection {
                     }
                 })
         )
-        // After the turn's purchase, only shares the title lets follow it remain choices.
         return state.stockRound.turn.bought
             ? choices.filter((choice) => choice.result.details)
             : choices
@@ -396,35 +394,23 @@ export class StockModule implements LocalSelection {
         }
     }
     sellsPrivates = $derived.by(() => !!this.session.rules.stockRules.privateSales)
-    /** Other players' privates this player may offer to buy, with their price bounds. */
     privateChoices = $derived.by(() => {
         const { state, rules, playerId } = this.session
-        const sales = rules.stockRules.privateSales
-        if (!playerId || !this.trading || !sales) return []
-        return state.companies.flatMap((company) => {
-            if (company.kind !== 'private' || company.closed) return []
-            const range = sales.priceRange(state, company.id)
-            const owner = privateOwner(state, company.id)
-            if (!range || owner?.kind !== 'player' || owner.playerId === playerId) return []
-            const reason = privateSaleOfferReason(state, rules.stockRules, {
-                playerId,
-                privateCompanyId: company.id,
-                price: range.minimum
-            })
-            return reason
-                ? []
-                : [{ privateCompanyId: company.id, sellerPlayerId: owner.playerId, range }]
-        })
+        return playerId && this.trading ? privateSaleChoices(state, rules.stockRules, playerId) : []
     })
+    privateOfferReason(privateCompanyId: string, price: number): string | undefined {
+        const playerId = this.session.playerId
+        if (!playerId) return 'Only a player may offer for a private.'
+        return privateSaleOfferReason(this.session.state, this.session.rules.stockRules, {
+            playerId,
+            privateCompanyId,
+            price
+        })
+    }
     async offerPrivatePurchase(privateCompanyId: string, price: number) {
         const playerId = this.session.playerId
         assert(
-            playerId &&
-                !privateSaleOfferReason(this.session.state, this.session.rules.stockRules, {
-                    playerId,
-                    privateCompanyId,
-                    price
-                }),
+            playerId && !this.privateOfferReason(privateCompanyId, price),
             'Choose a private and a price this player may offer'
         )
         await this.session.applyAction(

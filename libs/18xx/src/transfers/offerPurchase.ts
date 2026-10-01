@@ -10,7 +10,11 @@ import {
 } from '@tabletop/common'
 import { pendingCompanyDecision, type CompanyDecisionState } from '../privates/companyDecision.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
-import { privateSaleReason, settlePlayerPurchaseOffer } from '../stock/privateSale.js'
+import {
+    offerSaleRequest,
+    privateSaleReason,
+    settlePlayerPurchaseOffer
+} from '../stock/privateSale.js'
 import type { StockRules } from '../stock/stockRules.js'
 import {
     PendingPurchaseOffer,
@@ -130,13 +134,7 @@ export class HydratedRespondToPurchaseOffer
             return false
         if (!this.accept) return true
         if (!isCompanyPurchaseOffer(offer))
-            return (
-                privateSaleReason(state, this.#stocks, {
-                    playerId: offer.buyerPlayerId,
-                    privateCompanyId: offer.asset.privateCompanyId,
-                    price: offer.price
-                }) === undefined
-            )
+            return privateSaleReason(state, this.#stocks, offerSaleRequest(offer)) === undefined
         const result = evaluatePurchaseOffer(state, offer, this.#rules, this.#trains)
         return (
             result.buyerPlayerId === offer.buyerPlayerId &&
@@ -150,7 +148,6 @@ export class HydratedRespondToPurchaseOffer
             if (this.accept) settlePurchaseOffer(state, offer, this.#rules, this.#trains)
         } else {
             if (this.accept) settlePlayerPurchaseOffer(state, offer, this.#stocks)
-            // The buyer's stock turn resumes.
             state.activePlayerIds = [offer.buyerPlayerId]
         }
         delete state.purchaseOffer

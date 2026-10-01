@@ -341,8 +341,12 @@ private-company sales between players.
   `OfferPrivatePurchase` creates the offer during their stock turn; the seller
   answers with the shared `RespondToPurchaseOffer` and prompt while the buyer's
   turn waits. Acceptance transfers the private and the cash and counts as the
-  turn's purchase. 1830 allows it from phase 2 after the first stock round, for any
-  privately agreed price of at least $1, except for B&O.
+  turn's purchase. 1830 allows it from the second stock round, for any privately
+  agreed price of at least $1, except for B&O; its privates all close at phase 5,
+  so no separate phase check is needed. A buyer over a holding limit may only
+  sell, as in the reference, and the purchase must fit the buyer's certificate
+  limit, which the printed rules require where the reference instead forces sales
+  afterwards.
 - **Emergency train purchases from other companies move to slice 5.** They belong
   to train funding, not the stock turn, and must precede replaying the recorded
   games.

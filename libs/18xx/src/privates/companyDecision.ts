@@ -60,7 +60,7 @@ export function validateCompanyDecisions(
             (state.machineState === 'StockRound' &&
                 !!state.purchaseOffer &&
                 !isCompanyPurchaseOffer(state.purchaseOffer)),
-        'A company decision requires an operating decision window'
+        'A pending decision requires its operating or stock-round window'
     )
     const playerId =
         state.purchaseOffer?.sellerPlayerId ??

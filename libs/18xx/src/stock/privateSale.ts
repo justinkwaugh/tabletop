@@ -12,7 +12,8 @@ import { settleCashPayments } from '../finance/cashPayments.js'
 import { cashOwnedBy, privateOwner } from '../finance/finance.js'
 import type { PendingPurchaseOffer, PlayerPurchaseOffer } from '../transfers/purchaseOffer.js'
 import type { StockState } from './stockState.js'
-import { certificateLimitAllows, type StockRules } from './stockRules.js'
+import { certificateLimitAllows, exceedsStockLimits, type StockRules } from './stockRules.js'
+import { markTurnPurchase } from './sharePurchase.js'
 import { recordStockAction } from './stockRoundRules.js'
 import { recordTurnPurchase, type StockTurnPurchaseState } from './turnPurchases.js'
 
@@ -28,8 +29,20 @@ export interface PrivateSaleRules {
 }
 
 type PrivateSaleRequest = { playerId: string; privateCompanyId: string; price: number }
+export type PrivateSaleChoice = {
+    privateCompanyId: string
+    sellerPlayerId: string
+    range: { minimum: number; maximum?: number }
+}
 
-/** Why the player may not buy this private at this price from its owner now, if they may not. */
+export function offerSaleRequest(offer: PlayerPurchaseOffer): PrivateSaleRequest {
+    return {
+        playerId: offer.buyerPlayerId,
+        privateCompanyId: offer.asset.privateCompanyId,
+        price: offer.price
+    }
+}
+
 export function privateSaleReason(
     state: PrivateSaleState,
     rules: StockRules,
@@ -40,6 +53,8 @@ export function privateSaleReason(
     if (state.machineState !== 'StockRound' || state.stockRound.completed)
         return 'Privates are sold between players during stock rounds.'
     if (state.stockRound.turn.bought) return 'A private must be the turn’s first purchase.'
+    if (exceedsStockLimits(state, { kind: 'player', playerId }, rules))
+        return 'Sell down to the stock limits before buying.'
     const company = state.companies.find((company) => company.id === privateCompanyId)
     if (company?.kind !== 'private' || company.closed) return 'This is not an open private.'
     const owner = privateOwner(state, privateCompanyId)
@@ -55,12 +70,13 @@ export function privateSaleReason(
     if (cash === undefined || (cash !== 'unlimited' && cash < price))
         return 'The buyer cannot afford this price.'
     const certificate = privateCharter(state, privateCompanyId)
+    // Stricter than the reference engine, which forces sales afterwards; 1830's rules forbid
+    // buying past the certificate limit.
     if (!certificateLimitAllows(state, { kind: 'player', playerId }, certificate, rules))
         return 'The purchase exceeds the certificate limit.'
     return undefined
 }
 
-/** Why the active player may not offer this price for another player's private now. */
 export function privateSaleOfferReason(
     state: PrivateSaleState,
     rules: StockRules,
@@ -71,25 +87,19 @@ export function privateSaleOfferReason(
     return privateSaleReason(state, rules, request)
 }
 
-/** Completes an accepted player offer: the private and cash change hands as the turn's purchase. */
 export function settlePlayerPurchaseOffer(
     state: PrivateSaleState,
     offer: PlayerPurchaseOffer,
     rules: StockRules
 ): void {
-    const reason = privateSaleReason(state, rules, {
-        playerId: offer.buyerPlayerId,
-        privateCompanyId: offer.asset.privateCompanyId,
-        price: offer.price
-    })
+    const reason = privateSaleReason(state, rules, offerSaleRequest(offer))
     assert(reason === undefined, reason ?? 'Invalid private sale')
     const buyer = { kind: 'player', playerId: offer.buyerPlayerId } as const
     settleCashPayments(state, [{ from: buyer, to: offer.seller, amount: offer.price }])
     privateCharter(state, offer.asset.privateCompanyId).owner = buyer
     recordStockAction(state, offer.buyerPlayerId, rules.round)
     recordTurnPurchase(state, rules, { kind: 'private', companyId: offer.asset.privateCompanyId })
-    state.stockRound.turn.soldBeforeBuying = state.stockRound.turn.companiesSold.length > 0
-    state.stockRound.turn.bought = true
+    markTurnPurchase(state)
 }
 
 function privateCharter(state: StockState, privateCompanyId: string) {
@@ -118,7 +128,6 @@ export function isOfferPrivatePurchase(action: GameAction): action is OfferPriva
         (action.type === 'OfferPrivatePurchase' && OfferValidator.Check(action))
     )
 }
-/** A player's offer for another player's private, answered with ``RespondToPurchaseOffer``. */
 export class HydratedOfferPrivatePurchase
     extends HydratableAction<typeof OfferPrivatePurchase>
     implements OfferPrivatePurchase
@@ -156,24 +165,19 @@ export class HydratedOfferPrivatePurchase
     }
 }
 
-/** Whether the player may offer for some other player's private now. */
-export function offersPrivatePurchase(
+export function privateSaleChoices(
     state: PrivateSaleState,
     rules: StockRules,
     playerId: string
-): boolean {
-    return state.companies.some((company) => {
-        const range =
-            company.kind === 'private' && !company.closed
-                ? rules.privateSales?.priceRange(state, company.id)
-                : undefined
-        return (
-            range !== undefined &&
-            privateSaleOfferReason(state, rules, {
-                playerId,
-                privateCompanyId: company.id,
-                price: range.minimum
-            }) === undefined
-        )
+): PrivateSaleChoice[] {
+    return state.companies.flatMap((company) => {
+        if (company.kind !== 'private' || company.closed) return []
+        const range = rules.privateSales?.priceRange(state, company.id)
+        const owner = privateOwner(state, company.id)
+        if (!range || owner?.kind !== 'player') return []
+        const request = { playerId, privateCompanyId: company.id, price: range.minimum }
+        return privateSaleOfferReason(state, rules, request)
+            ? []
+            : [{ privateCompanyId: company.id, sellerPlayerId: owner.playerId, range }]
     })
 }

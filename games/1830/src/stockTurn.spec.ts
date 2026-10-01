@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, assert, type GameAction } from '@tabletop/common'
 import {
     cashOwnedBy,
     evaluateSharePurchase,
     evaluateShareSale,
+    furtherShareAllowed,
     placeStockMarker,
+    privateSaleChoices,
+    privateSaleOfferReason,
     privateOwner,
     type EighteenXXState
 } from '@tabletop/18xx'
@@ -106,6 +109,31 @@ describe('brown-zone purchases', () => {
         option.buy('NYC:share:4')
     })
 
+    it('ends the run after a company start this turn', () => {
+        const turn = brown()
+        const state = {
+            ...turn.state,
+            stockRound: {
+                ...turn.state.stockRound,
+                turn: { ...turn.state.stockRound.turn, bought: true }
+            },
+            stockTurnPurchases: [{ kind: 'start' as const, companyId: 'CO' }]
+        }
+        const certificate = state.certificates.find((item) => item.id === 'NYC:share:4')
+        assert(certificate && !certificate.retired && certificate.kind === 'share')
+        expect(furtherShareAllowed(state, certificate, EighteenThirtyStockRules)).toBe(false)
+        expect(
+            furtherShareAllowed(
+                {
+                    ...state,
+                    stockTurnPurchases: [{ kind: 'share', companyId: 'NYC', poolId: 'open-market' }]
+                },
+                certificate,
+                EighteenThirtyStockRules
+            )
+        ).toBe(true)
+    })
+
     it('allows one purchase outside the brown zone', () => {
         const turn = trading()
         turn.buy('NYC:share:4')
@@ -146,7 +174,53 @@ describe('private sales between players', () => {
             state.stockRound.number = 1
         })
         expect(first.valid('alex')).not.toContain('OfferPrivatePurchase')
-        const rules = EighteenThirtyStockRules.privateSales!
-        expect(rules.priceRange(first.state, 'BOP')).toBeUndefined()
+        const withBaltimore = trading((state) => {
+            state.companies.push({
+                id: 'BOP',
+                name: 'Baltimore & Ohio',
+                kind: 'private',
+                privateRevenue: 30
+            })
+            state.certificates.push({
+                id: 'BOP:charter',
+                companyId: 'BOP',
+                kind: 'private',
+                certificateLimitCount: 1,
+                retired: false,
+                owner: { kind: 'player', playerId: 'casey' }
+            })
+        })
+        expect(
+            privateSaleOfferReason(withBaltimore.state, EighteenThirtyStockRules, {
+                playerId: 'alex',
+                privateCompanyId: 'BOP',
+                price: 220
+            })
+        ).toBe('This private cannot be sold between players now.')
+        expect(
+            privateSaleChoices(withBaltimore.state, EighteenThirtyStockRules, 'alex').map(
+                (choice) => choice.privateCompanyId
+            )
+        ).toEqual(['CS'])
+    })
+
+    it('lets a player over a holding limit only sell', () => {
+        const turn = trading((state) => {
+            for (const id of ['PRR:share:5', 'PRR:share:6', 'PRR:share:7', 'PRR:share:8']) {
+                const certificate = state.certificates.find((item) => item.id === id)
+                if (certificate && !certificate.retired && certificate.kind === 'share') {
+                    certificate.owner = alex
+                    delete certificate.poolId
+                }
+            }
+        })
+        expect(
+            privateSaleOfferReason(turn.state, EighteenThirtyStockRules, {
+                playerId: 'alex',
+                privateCompanyId: 'CS',
+                price: 75
+            })
+        ).toBe('Sell down to the stock limits before buying.')
+        expect(turn.valid('alex')).not.toContain('OfferPrivatePurchase')
     })
 })

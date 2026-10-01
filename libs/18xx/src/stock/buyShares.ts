@@ -56,12 +56,10 @@ export class HydratedBuyShares extends HydratableAction<typeof BuyShares> implem
         assert(result.details, result.reason ?? 'Invalid purchase')
         assert(this.expectedPrice === result.details.price, 'The purchase price has changed')
         recordStockAction(state, this.playerId, this.#rules.round)
-        const certificate = state.certificates.find((item) => item.id === this.certificateId)
-        assert(certificate && !certificate.retired, 'A purchase requires its certificate')
         recordTurnPurchase(state, this.#rules, {
             kind: 'share',
             companyId: result.details.companyId,
-            ...(certificate.poolId ? { poolId: certificate.poolId } : {})
+            ...(result.poolId ? { poolId: result.poolId } : {})
         })
         applySharePurchase(state, result.details)
         this.metadata = result.details

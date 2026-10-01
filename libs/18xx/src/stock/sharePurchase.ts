@@ -38,23 +38,27 @@ export type SharePurchaseDetails = Type.Static<typeof SharePurchaseDetails>
 export type SharePurchaseResult =
     | { details: SharePurchaseDetails; reason?: never }
     | { details?: never; reason: string }
+export type ShareBuyResult =
+    | { details: SharePurchaseDetails; poolId?: string; reason?: never }
+    | { details?: never; reason: string }
 export type SharePurchaseTerms = { price: number; recipient: Owner; payers: Owner[] }
 export function evaluateSharePurchase(
     state: StockState,
     request: PurchaseRequest,
     rules: StockRules
-): SharePurchaseResult {
+): ShareBuyResult {
     const certificate = state.certificates.find((item) => item.id === request.certificateId)
     if (!certificate || certificate.retired || certificate.kind !== 'share')
         return { reason: 'This is not an available share certificate.' }
     if (state.stockRound.turn.bought && !furtherShareAllowed(state, certificate, rules))
         return { reason: 'Only one purchase is allowed this turn.' }
-    return evaluateShareAcquisition(
+    const result = evaluateShareAcquisition(
         state,
         request,
         rules,
         rules.purchaseTerms(state, certificate, request.buyer)
     )
+    return result.details && certificate.poolId ? { ...result, poolId: certificate.poolId } : result
 }
 
 export function evaluateShareAcquisition(
@@ -145,6 +149,10 @@ export function applySharePurchase(state: StockState, details: SharePurchaseDeta
     if (details.buyer.kind === 'company')
         state.stockRound.companyPurchases.push(details.buyer.companyId)
     if (details.presidency) applyPresidencyChange(state, details.presidency)
+    markTurnPurchase(state)
+}
+
+export function markTurnPurchase(state: StockState): void {
     state.stockRound.turn.soldBeforeBuying = state.stockRound.turn.companiesSold.length > 0
     state.stockRound.turn.bought = true
 }

@@ -18,7 +18,7 @@ import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import { sharesOwned } from '../finance/finance.js'
 import { isBuyShares, type HydratedBuyShares } from './buyShares.js'
-import { HydratedOfferPrivatePurchase, offersPrivatePurchase } from './privateSale.js'
+import { HydratedOfferPrivatePurchase, privateSaleChoices } from './privateSale.js'
 import { isSellShares, type HydratedSellShares } from './sellShares.js'
 import { isFinishStockTurn, type HydratedFinishStockTurn } from './finishStockTurn.js'
 import { evaluateSharePurchase } from './sharePurchase.js'
@@ -154,7 +154,7 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
             )
         )
             actions.push('SellShares')
-        if (this.rules.privateSales && offersPrivatePurchase(state, this.rules, playerId))
+        if (privateSaleChoices(state, this.rules, playerId).length)
             actions.push('OfferPrivatePurchase')
         if (!exceedsStockLimits(state, { kind: 'player', playerId }, this.rules))
             actions.push('FinishStockTurn')

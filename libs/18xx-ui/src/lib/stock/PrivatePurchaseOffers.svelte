@@ -3,38 +3,47 @@
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, disabled }: { session: EighteenXXSession; disabled: boolean } = $props()
     const money = $derived(session.presentation.money)
-    let prices: Record<string, number> = $state({})
+    let prices = $derived.by((): Record<string, number> => {
+        void session.gameState
+        return {}
+    })
     const price = (id: string, minimum: number) => prices[id] ?? minimum
 </script>
 
 <div class="private-offers" aria-label="Buy a private from a player">
     {#each session.stock.privateChoices as choice (choice.privateCompanyId)}
         {@const amount = price(choice.privateCompanyId, choice.range.minimum)}
+        {@const reason = session.stock.privateOfferReason(choice.privateCompanyId, amount)}
+        {@const name = getCompany(session.gameState, choice.privateCompanyId).name}
         <form
             class="private-offer"
             data-private-offer={choice.privateCompanyId}
             onsubmit={(event) => {
                 event.preventDefault()
-                void session.stock.offerPrivatePurchase(choice.privateCompanyId, amount)
+                if (!reason)
+                    void session.stock.offerPrivatePurchase(choice.privateCompanyId, amount)
             }}
         >
-            <span class="private-name"
-                >{getCompany(session.gameState, choice.privateCompanyId).name}</span
-            >
+            <span class="private-name">{name}</span>
             <span class="private-owner">{session.getPlayerName(choice.sellerPlayerId)}</span>
             <input
                 type="number"
-                aria-label={`Offer for ${getCompany(session.gameState, choice.privateCompanyId).name}`}
+                aria-label={`Offer for ${name}`}
                 min={choice.range.minimum}
                 max={choice.range.maximum}
                 step="1"
                 value={amount}
                 {disabled}
                 oninput={(event) => {
-                    prices[choice.privateCompanyId] = Number(event.currentTarget.value)
+                    prices = {
+                        ...prices,
+                        [choice.privateCompanyId]: event.currentTarget.valueAsNumber
+                    }
                 }}
             />
-            <button type="submit" {disabled}>Offer {money(amount)}</button>
+            <button type="submit" disabled={disabled || !!reason} title={reason}
+                >Offer {Number.isFinite(amount) ? money(amount) : ''}</button
+            >
         </form>
     {/each}
 </div>

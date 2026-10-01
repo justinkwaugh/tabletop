@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { assertExists } from '@tabletop/common'
+    import { assert, assertExists } from '@tabletop/common'
     import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import DecisionResponse from '../finance/DecisionResponse.svelte'
@@ -11,10 +11,11 @@
     }: { session: EighteenXXSession; trainColors: Readonly<Record<string, string>> } = $props()
     const money = $derived(session.presentation.money)
     const request = $derived(session.trainBuying.selection.purchase?.value)
-    // Train offers are always a company's.
     const response = $derived.by(() => {
         const offer = session.gameState.purchaseOffer
-        return offer && isCompanyPurchaseOffer(offer) ? offer : undefined
+        if (offer?.asset.kind !== 'train') return undefined
+        assert(isCompanyPurchaseOffer(offer), 'Only a company buys a train')
+        return offer
     })
     const companies = $derived.by(() => {
         const groups = new Map<string, typeof session.trainBuying.companyChoices>()
