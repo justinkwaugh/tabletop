@@ -23,7 +23,7 @@
 </p>
 {#if draft.visionDiscards.length > 0}
     <div class="mb-2 text-xs">
-        <span class="text-stone-400">To keep it as an adviser, tap the adviser to discard:</span>
+        <span class="text-oath-text-muted">To keep it as an adviser, tap the adviser to discard:</span>
         <CardChoiceRow
             choices={cardChoices(draft.visionDiscards)}
             picked={draft.visionDiscard ? [draft.visionDiscard] : []}
@@ -36,7 +36,7 @@
 {/if}
 <div class="flex flex-col gap-1">
     <button
-        class="rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!reveal}
         title={humanizeReason(reveal)}
         onclick={() => draft.playVision(SearchPlay.RevealedVision)}
@@ -44,7 +44,7 @@
         Reveal it as your Vision
     </button>
     <button
-        class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!adviser}
         title={humanizeReason(adviser)}
         onclick={() => draft.playVision(SearchPlay.Adviser)}
@@ -52,7 +52,7 @@
         Keep it as a facedown adviser
     </button>
     <button
-        class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+        class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!discard}
         title={humanizeReason(discard)}
         onclick={() => draft.playVision(SearchPlay.Discard)}

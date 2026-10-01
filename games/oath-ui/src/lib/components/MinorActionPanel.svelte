@@ -47,7 +47,7 @@
 <div class="flex flex-col gap-1">
     {#if action === ActionType.PlayFacedownAdviser}
         {#if !chosenAdviser}
-            <p class="text-xs text-stone-400">
+            <p class="text-xs text-oath-text-muted">
                 {advisers.length === 0
                     ? 'No facedown adviser to play.'
                     : 'Tap one of your facedown advisers, on your card.'}
@@ -66,10 +66,10 @@
                     <div class="grow">
                         {#if gameSession.adviserOtherSites.length > 0}
                             <label class="mb-1 flex items-center gap-2 text-xs">
-                                <span class="text-stone-400">Play to:</span>
+                                <span class="text-oath-text-muted">Play to:</span>
                                 <select
                                     disabled={busy}
-                                    class="rounded bg-stone-800 px-1 py-0.5 text-xs grow"
+                                    class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
                                     value={gameSession.adviserToSite ?? ''}
                                     onchange={(e) =>
                                         gameSession.setAdviserToSite(
@@ -87,7 +87,7 @@
                         {/if}
                         {#if gameSession.adviserDiscardFirstOptions.length > 0}
                             <div class="mb-1 text-xs">
-                                <span class="text-stone-400">Discard first:</span>
+                                <span class="text-oath-text-muted">Discard first:</span>
                                 <CardChoiceRow
                                     choices={cardChoices(gameSession.adviserDiscardFirstOptions)}
                                     picked={gameSession.adviserDiscardFirst
@@ -103,7 +103,7 @@
                             </div>
                         {/if}
                         {#if gameSession.adviserPlayRoom.needed > 0}
-                            <p class="text-xs text-stone-300 mb-1">
+                            <p class="text-xs text-oath-text-muted mb-1">
                                 Over the adviser limit: discard {gameSession.adviserPlayRoom
                                     .needed}.
                             </p>
@@ -127,7 +127,7 @@
                             />
                         {/if}
                         {#if gameSession.adviserPlayChoices.length > 0}
-                            <p class="text-xs text-stone-300 mb-1">
+                            <p class="text-xs text-oath-text-muted mb-1">
                                 Choose for its When Played power.
                             </p>
                             <PowerChoicePicker
@@ -139,10 +139,10 @@
                             />
                         {/if}
                         {#if reason}
-                            <p class="text-[11px] text-rose-300">{humanizeReason(reason)}</p>
+                            <p class="text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
                         {/if}
                         <button
-                            class="mt-1 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-0.5 text-xs"
+                            class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
                             disabled={busy || !!reason}
                             onclick={() => gameSession.confirmAdviserPlay()}
                         >
@@ -153,14 +153,14 @@
                     <div class="flex flex-wrap gap-1 grow">
                         {#each adviser.placements as option (option.label)}
                             <button
-                                class="rounded bg-stone-800 hover:bg-stone-700 disabled:opacity-40 px-2 py-1 text-xs text-left"
+                                class="rounded bg-oath-surface-raised hover:bg-oath-control disabled:opacity-40 px-2 py-1 text-xs text-left"
                                 disabled={busy || option.blockedBecause !== undefined}
                                 title={humanizeReason(option.blockedBecause)}
                                 onclick={() =>
                                     gameSession.chooseAdviserPlay(adviser.cardId, option.play)}
                             >
                                 {option.label}{#if option.blockedBecause}<span
-                                        class="text-stone-500"
+                                        class="text-oath-text-muted"
                                         >&nbsp;— {humanizeReason(option.blockedBecause)}</span
                                     >{/if}
                             </button>
@@ -170,7 +170,7 @@
             </div>
         {/if}
     {:else if action === ActionType.Peek}
-        <p class="text-xs text-stone-400">
+        <p class="text-xs text-oath-text-muted">
             {peekTargets.length === 0 ? 'Nothing to peek at.' : 'Tap a lit relic at your site.'}
         </p>
     {:else if action === ActionType.LetPeek}
@@ -178,17 +178,17 @@
     {:else if action === ActionType.MoveWarbands}
         {#if chosenMove}
             {@const otherPlayerId = otherPlayerOf(chosenMove.move)}
-            <div class="text-xs text-stone-300 mb-1">
+            <div class="text-xs text-oath-text-muted mb-1">
                 {MOVE_LABELS[chosenMove.move.kind]}
                 {#if otherPlayerId}
                     — {gameSession.getPlayerName(otherPlayerId)}
                 {/if}
-                <span class="text-stone-500">— how many?</span>
+                <span class="text-oath-text-muted">— how many?</span>
             </div>
             <div class="flex gap-1 flex-wrap">
                 {#each range(1, chosenMove.max) as count (count)}
                     <button
-                        class="rounded bg-amber-700 hover:bg-amber-600 px-2.5 py-1 text-sm font-semibold"
+                        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover px-2.5 py-1 text-sm font-semibold"
                         disabled={busy}
                         onclick={() => gameSession.warbandMoves.send(count)}
                     >
@@ -197,19 +197,19 @@
                 {/each}
             </div>
         {:else}
-            <p class="text-xs text-stone-400">
+            <p class="text-xs text-oath-text-muted">
                 {moves.length === 0
                     ? 'No warbands you may move.'
                     : `Tap ${gameSession.warbandMoves.boardToSite ? 'your site on the map to move warbands onto it' : ''}${gameSession.warbandMoves.boardToSite && gameSession.warbandMoves.siteToBoard ? ', or ' : ''}${gameSession.warbandMoves.siteToBoard ? 'the Board counter on your card to bring them back' : ''}.`}
             </p>
             {#each gameSession.warbandMoves.byOwner as option (option.move.kind + option.owner)}
                 <button
-                    class="rounded border border-amber-500/40 bg-stone-800/60 hover:border-amber-300 px-2 py-1 text-xs text-left"
+                    class="rounded border border-oath-frame bg-oath-surface-raised hover:border-oath-accent px-2 py-1 text-xs text-left"
                     disabled={busy}
                     onclick={() => gameSession.warbandMoves.choose(option)}
                 >
                     {MOVE_LABELS[option.move.kind]}
-                    <span class="text-stone-500"
+                    <span class="text-oath-text-muted"
                         >({gameSession.warbandOwnerName(option.owner)}, up to {option.max})</span
                     >
                 </button>
@@ -217,14 +217,14 @@
             {#each imperialMoves as option (JSON.stringify(option.move) + option.owner)}
                 {@const otherPlayerId = otherPlayerOf(option.move)}
                 <button
-                    class="rounded border border-amber-500/40 bg-stone-800/60 hover:border-amber-300 px-2 py-1 text-xs text-left"
+                    class="rounded border border-oath-frame bg-oath-surface-raised hover:border-oath-accent px-2 py-1 text-xs text-left"
                     disabled={busy}
                     onclick={() => gameSession.warbandMoves.choose(option)}
                 >
                     {MOVE_LABELS[option.move.kind]} — {otherPlayerId
                         ? gameSession.getPlayerName(otherPlayerId)
                         : ''}
-                    <span class="text-stone-500"
+                    <span class="text-oath-text-muted"
                         >({gameSession.warbandOwnerName(option.owner)}, up to {option.max})</span
                     >
                 </button>
@@ -233,7 +233,7 @@
     {:else if action === ActionType.ExileCitizen}
         {#each citizens as citizenPlayerId (citizenPlayerId)}
             <button
-                class="rounded border border-amber-500/40 bg-stone-800/60 hover:border-amber-300
+                class="rounded border border-oath-frame bg-oath-surface-raised hover:border-oath-accent
                        px-2 py-1 text-sm text-left"
                 disabled={busy}
                 onclick={() => gameSession.exileCitizen(citizenPlayerId)}

@@ -40,7 +40,7 @@
         </span>
         {#if search.kept}
             <button
-                class="shrink-0 rounded bg-stone-700 hover:bg-stone-600 px-2 py-1 text-xs font-semibold"
+                class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs font-semibold"
                 disabled={busy}
                 onclick={() => gameSession.back()}
             >
@@ -54,7 +54,7 @@
             {#each search.drawn as cardId (cardId)}
                 <button
                     type="button"
-                    class="rounded-[5px] ring-1 ring-stone-600 hover:ring-amber-400"
+                    class="rounded-[5px] ring-1 ring-oath-control-hover hover:ring-oath-accent"
                     disabled={busy}
                     onclick={() => search.keep(cardId)}
                 >
@@ -70,10 +70,10 @@
     {:else if !search.placement}
         {#if search.otherSites.length > 0}
             <label class="mb-2 flex items-center gap-2 text-xs">
-                <span class="text-stone-400">Play to:</span>
+                <span class="text-oath-text-muted">Play to:</span>
                 <select
                     disabled={busy}
-                    class="rounded bg-stone-800 px-1 py-0.5 text-xs grow"
+                    class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
                     value={search.toSite ?? ''}
                     onchange={(e) => search.setToSite(e.currentTarget.value || undefined)}
                 >
@@ -87,7 +87,7 @@
         {#if search.secondAllowed && search.drawn.length > 1}
             {@const second = search.second}
             <div class="mb-2 text-xs">
-                <span class="text-stone-400">Also play one, and how:</span>
+                <span class="text-oath-text-muted">Also play one, and how:</span>
                 <CardChoiceRow
                     choices={cardChoices(search.secondCandidates)}
                     picked={second ? [second.cardId] : []}
@@ -100,8 +100,8 @@
                             <button
                                 type="button"
                                 class="rounded border px-1 text-[10px] {second?.key === option.key
-                                    ? 'border-amber-300 bg-amber-950/60'
-                                    : 'border-stone-700 hover:border-amber-400'}"
+                                    ? 'border-oath-accent bg-oath-accent-soft'
+                                    : 'border-oath-divider hover:border-oath-accent'}"
                                 aria-pressed={second?.key === option.key}
                                 disabled={busy}
                                 onclick={() =>
@@ -116,7 +116,7 @@
         {/if}
         {#if search.discardFirstOptions.length > 0}
             <div class="mb-2 text-xs">
-                <span class="text-stone-400">If played to a site, discard first:</span>
+                <span class="text-oath-text-muted">If played to a site, discard first:</span>
                 <CardChoiceRow
                     choices={cardChoices(search.discardFirstOptions)}
                     picked={search.discardFirst ? [search.discardFirst] : []}
@@ -138,8 +138,8 @@
                 {#each search.placements as option (option.label)}
                     <button
                         class="rounded border px-2 py-1 text-sm text-left {option.blockedBecause
-                            ? 'border-stone-800 bg-stone-900/40 opacity-55'
-                            : 'border-amber-500/40 bg-stone-800/60 hover:border-amber-300'}"
+                            ? 'border-oath-divider bg-oath-surface opacity-55'
+                            : 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent'}"
                         disabled={busy || !!option.blockedBecause}
                         title={option.blockedBecause ? humanizeReason(option.blockedBecause) : ''}
                         onclick={() =>
@@ -147,7 +147,7 @@
                     >
                         {option.label}
                         {#if option.blockedBecause}
-                            <span class="block text-[11px] text-stone-400 leading-snug">
+                            <span class="block text-[11px] text-oath-text-muted leading-snug">
                                 {humanizeReason(option.blockedBecause)}
                             </span>
                         {/if}
@@ -160,11 +160,11 @@
             {#each search.displaceable as cardId (cardId)}
                 <button
                     type="button"
-                    class="rounded-[5px] ring-1 hover:ring-amber-400 {search.displaced.includes(
+                    class="rounded-[5px] ring-1 hover:ring-oath-accent {search.displaced.includes(
                         cardId
                     )
-                        ? 'ring-2 ring-rose-400'
-                        : 'ring-stone-600'}"
+                        ? 'ring-2 ring-oath-danger'
+                        : 'ring-oath-control-hover'}"
                     disabled={busy}
                     onclick={() => search.chooseDisplaced(cardId)}
                 >
@@ -186,10 +186,10 @@
             onchange={(pick) => search.setConspiracyPick(pick)}
         />
         {#if reason}
-            <p class="text-[11px] text-rose-300">{humanizeReason(reason)}</p>
+            <p class="text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
         {/if}
         <button
-            class="mt-1 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-0.5 text-xs"
+            class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
             disabled={busy || !!reason}
             onclick={() => search.confirmConspiracy()}
         >
@@ -202,10 +202,10 @@
             bind:picks={() => search.picks, (picks) => search.setPicks(picks)}
         />
         {#if reason}
-            <p class="text-[11px] text-rose-300">{humanizeReason(reason)}</p>
+            <p class="text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
         {/if}
         <button
-            class="mt-1 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-0.5 text-xs"
+            class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
             disabled={busy || !!reason}
             onclick={() => search.confirmWhenPlayed()}
         >

@@ -19,12 +19,12 @@
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">Rest Phase</h3>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">Rest Phase</h3>
 
     <p class="text-sm mb-2">Your Supply refreshes and your turn ends.</p>
 
     {#if draft.powers.length > 0}
-        <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
+        <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
             <div class="mb-1">Rest powers you may use, once each:</div>
             {#each draft.powers as p (powerKey(p.cardId, p.powerIndex))}
                 {@const banks = draft.bankOptions(p)}
@@ -34,7 +34,7 @@
                         <span class="font-semibold">{cardName(p.cardId)}</span>
                     </span>
                     <button
-                        class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-0.5"
+                        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5"
                         disabled={busy || !!reason}
                         title={reason ?? ''}
                         onclick={() => draft.use(p)}
@@ -54,7 +54,7 @@
                     </div>
                 {/if}
                 {#if reason}
-                    <p class="mb-1 text-[11px] text-rose-300">{humanizeReason(reason)}</p>
+                    <p class="mb-1 text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
                 {/if}
             {/each}
         </div>
@@ -62,7 +62,7 @@
 
     {#if rollsEndDie}
         <p
-            class="mb-2 rounded bg-amber-950/40 px-2 py-1
+            class="mb-2 rounded bg-oath-accent-soft px-2 py-1
                   text-[11px] leading-snug"
         >
             This is the last turn of round {gameState.round} of {FINAL_ROUND}, so the end die is
@@ -71,11 +71,11 @@
     {/if}
 
     {#if blockedBecause}
-        <p class="mb-2 text-[11px] text-rose-300">{blockedBecause}</p>
+        <p class="mb-2 text-[11px] text-oath-danger">{blockedBecause}</p>
     {/if}
 
     <button
-        class="w-full rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+        class="w-full rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                px-2 py-1.5 text-sm font-semibold"
         disabled={busy || !!blockedBecause}
         onclick={() => gameSession.completeRest()}

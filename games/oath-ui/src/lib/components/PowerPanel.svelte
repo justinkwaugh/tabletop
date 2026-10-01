@@ -23,18 +23,18 @@
 
 <div class="flex flex-col gap-1">
     {#if draft.powers.length === 0}
-        <p class="text-xs text-stone-400">No usable "Action:" power right now.</p>
+        <p class="text-xs text-oath-text-muted">No usable "Action:" power right now.</p>
     {/if}
     {#each draft.powers as p (powerKey(p.cardId, p.powerIndex))}
         {@const reason = reasonFor(p)}
-        <div class="border-t border-stone-700/60 pt-1.5 flex gap-2 items-start">
+        <div class="border-t border-oath-divider pt-1.5 flex gap-2 items-start">
             <div class="shrink-0">
                 <CardImage cardId={p.cardId} width={64} label={cardName(p.cardId)} inspect />
             </div>
             <div class="grow min-w-0">
                 <div class="text-sm">
                     <span class="font-semibold">{cardName(p.cardId)}</span>
-                    <span class="text-stone-400 text-xs"> — {textOf(p)}</span>
+                    <span class="text-oath-text-muted text-xs"> — {textOf(p)}</span>
                 </div>
                 {#if p.choices.length > 0}
                     <div class="mt-1">
@@ -45,10 +45,10 @@
                     </div>
                 {/if}
                 {#if reason}
-                    <p class="text-[11px] text-rose-300">{humanizeReason(reason)}</p>
+                    <p class="text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
                 {/if}
                 <button
-                    class="mt-1 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-0.5 text-xs"
+                    class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
                     disabled={busy || !!reason}
                     onclick={() => draft.use(p)}
                 >

@@ -40,14 +40,14 @@
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
         A question for you
     </h3>
 
     {#if !pending}
-        <p class="text-sm text-stone-400">Nothing is waiting on an answer.</p>
+        <p class="text-sm text-oath-text-muted">Nothing is waiting on an answer.</p>
     {:else if !iAmAsked}
-        <p class="text-sm text-stone-300">
+        <p class="text-sm text-oath-text-muted">
             Waiting on {gameSession.getPlayerName(pending.askedPlayerId)} to answer
             {gameSession.getPlayerName(pending.askingPlayerId)}{isCitizenshipOffer
                 ? '’s offer of Citizenship'
@@ -58,11 +58,11 @@
             {consentQuestion(gameState, asked, (id) => gameSession.getPlayerName(id))}
         </p>
         {#if grantBlockedBecause}
-            <p class="mb-2 text-[11px] text-rose-300">{grantBlockedBecause}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">{grantBlockedBecause}</p>
         {/if}
         <div class="flex gap-2">
             <button
-                class="grow rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                        px-2 py-1.5 text-sm font-semibold"
                 disabled={busy || !!grantBlockedBecause}
                 onclick={() => gameSession.answerConsent(true)}
@@ -70,7 +70,7 @@
                 {asked.request.kind === ConsentRequestKind.JoinDefence ? 'Join' : 'Allow'}
             </button>
             <button
-                class="grow rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40
+                class="grow rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40
                        px-2 py-1.5 text-sm font-semibold"
                 disabled={busy}
                 onclick={() => gameSession.answerConsent(false)}
@@ -84,8 +84,8 @@
             offers you Citizenship, and the relic in {request.reliquarySlotId}.
         </p>
 
-        <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
-            <div class="text-stone-400 mb-1">The binding exchange</div>
+        <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
+            <div class="text-oath-text-muted mb-1">The binding exchange</div>
             <div>
                 They also give: {transferText(
                     gameState,
@@ -98,13 +98,13 @@
             </div>
         </div>
 
-        <p class="mb-2 text-[11px] text-stone-400 leading-snug">
+        <p class="mb-2 text-[11px] text-oath-text-muted leading-snug">
             Accepting flips your board to its Citizen side, makes your warbands Imperial, discards
             your revealed Vision and refreshes your Supply. Refusing changes nothing at all.
         </p>
 
         {#if mustChoose}
-            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
+            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1">
                     The Empire has only {imperialAvailable} Imperial warbands for
                     {forceTotal(groups)} of yours. Choose which are replaced — exactly
@@ -127,19 +127,19 @@
                         />
                     </label>
                 {/each}
-                <div class={pickedTotal === imperialAvailable ? 'text-stone-400' : 'text-rose-300'}>
+                <div class={pickedTotal === imperialAvailable ? 'text-oath-text-muted' : 'text-oath-danger'}>
                     Chosen {pickedTotal} of {imperialAvailable}
                 </div>
             </div>
         {/if}
 
         {#if blockedBecause}
-            <p class="mb-2 text-[11px] text-rose-300">{blockedBecause}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">{blockedBecause}</p>
         {/if}
 
         <div class="flex gap-2">
             <button
-                class="grow rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                        px-2 py-1.5 text-sm font-semibold"
                 disabled={busy || !!blockedBecause}
                 onclick={() => consent.answer(true)}
@@ -147,7 +147,7 @@
                 Accept Citizenship
             </button>
             <button
-                class="grow rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40
+                class="grow rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40
                        px-2 py-1.5 text-sm font-semibold"
                 disabled={busy}
                 onclick={() => consent.answer(false)}

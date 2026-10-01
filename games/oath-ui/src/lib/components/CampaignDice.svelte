@@ -24,7 +24,7 @@
 
 <section class="campaign-dice mb-2" aria-label="the Campaign's dice">
     <!-- "vs", not a verb: `PlayerName` prints "you" for the viewer. -->
-    <div class="text-[11px] uppercase tracking-[0.2em] text-rose-200/80 mb-1">
+    <div class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-1">
         <PlayerName playerId={campaign.attackerPlayerId} /> vs
         {#if campaign.defenderPlayerId}<PlayerName playerId={campaign.defenderPlayerId} />{:else}the
             bandits{/if}
@@ -104,7 +104,7 @@
     .dice__total {
         margin-left: 4px;
         font-size: 13px;
-        color: #d6d3d1;
+        color: var(--oath-text-muted);
         white-space: nowrap;
     }
 </style>

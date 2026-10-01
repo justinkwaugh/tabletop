@@ -62,7 +62,7 @@
     let wakeNeedsDecision = $derived(gameSession.wakeNeedsDecision)
 </script>
 
-<div class="panel rounded-lg bg-stone-900/70 border border-stone-700 px-3 py-2 text-stone-100">
+<div class="panel rounded-lg bg-oath-surface border border-oath-frame px-3 py-2 text-oath-text">
     <ActorOnlyNotice />
     {#if gameState.campaign}
         <CampaignDice campaign={gameState.campaign} />
@@ -74,7 +74,7 @@
         </div>
         <button
             disabled={busy}
-            class="mb-2 w-full rounded bg-stone-700 hover:bg-stone-600 px-2 py-1 text-xs"
+            class="mb-2 w-full rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs"
             onclick={() => gameSession.resetAction()}
         >
             {gameSession.sneakAttackDefenderId ? 'Back to the question' : 'Cancel the Campaign'}
@@ -92,7 +92,7 @@
             <CampaignPlansPanel />
         {/if}
     {:else if !isMyTurn}
-        <p class="text-sm text-stone-400">Waiting for another player.</p>
+        <p class="text-sm text-oath-text-muted">Waiting for another player.</p>
     {:else if gameState.machineState === MachineState.CampaignSacrifice || gameState.machineState === MachineState.CampaignDefeat || gameState.machineState === MachineState.CampaignVictory}
         <CampaignBattlePanel />
     {:else if gameState.machineState === MachineState.Searching}
@@ -103,12 +103,12 @@
         {#if wakeNeedsDecision}
             <WakePanel />
         {:else}
-            <p class="text-sm text-stone-400">Starting the turn.</p>
+            <p class="text-sm text-oath-text-muted">Starting the turn.</p>
         {/if}
     {:else if gameState.machineState === MachineState.RestPhase}
         <RestPanel />
     {:else if !inActPhase}
-        <p class="text-sm text-stone-300">
+        <p class="text-sm text-oath-text-muted">
             Nothing to choose here — no panel is wired for {gameState.machineState}.
         </p>
     {:else}
@@ -118,7 +118,7 @@
             </div>
             <button
                 disabled={busy}
-                class="mb-2 w-full rounded bg-stone-700 hover:bg-stone-600 px-2 py-1 text-xs"
+                class="mb-2 w-full rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1 text-xs"
                 onclick={() => gameSession.resetAction()}
             >
                 Cancel the offer
@@ -126,13 +126,13 @@
         {:else if chosen}
             <!-- docs/user-interactions.md — `Back` unwinds local selection only. -->
             <div
-                class="mb-2 rounded bg-amber-950/40 px-2 py-1.5
+                class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5
                        flex items-center justify-between gap-2"
             >
                 <span class="text-sm">{prompt}</span>
                 <button
                     disabled={busy}
-                    class="shrink-0 rounded bg-stone-700 hover:bg-stone-600 px-2 py-1
+                    class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1
                            text-xs font-semibold"
                     onclick={() => gameSession.back()}
                 >
@@ -159,10 +159,10 @@
                         )} chooses where you go.
                     </p>
                     {#if woodReason}
-                        <p class="text-[11px] text-rose-300">{humanizeReason(woodReason)}</p>
+                        <p class="text-[11px] text-oath-danger">{humanizeReason(woodReason)}</p>
                     {/if}
                     <button
-                        class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1 text-xs"
+                        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
                         disabled={busy || !!woodReason}
                         onclick={() => gameSession.travelFromShroudedWood()}
                     >
@@ -193,8 +193,8 @@
                 <div class="mb-2 flex flex-col gap-1">
                     {#each tradeOptions as option (option)}
                         <button
-                            class="rounded border border-amber-500/40 bg-stone-800/60
-                                   hover:border-amber-300 px-2 py-1 text-sm text-left"
+                            class="rounded border border-oath-frame bg-oath-surface-raised
+                                   hover:border-oath-accent px-2 py-1 text-sm text-left"
                             disabled={busy}
                             onclick={() => gameSession.chooseTradeOption(option)}
                         >

@@ -34,8 +34,8 @@
         <button
             type="button"
             class="suit rounded-full {on
-                ? 'ring-2 ring-amber-300'
-                : 'ring-1 ring-transparent hover:ring-amber-400'}"
+                ? 'ring-2 ring-oath-accent'
+                : 'ring-1 ring-transparent hover:ring-oath-accent'}"
             aria-pressed={on}
             aria-label={bankName(suit)}
             title={bankName(suit)}

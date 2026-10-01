@@ -38,7 +38,7 @@
 
     h3 {
         margin: 0;
-        color: rgba(253, 230, 138, 0.72);
+        color: var(--oath-heading);
         font-size: 16px;
         font-weight: 600;
         letter-spacing: 0.22em;
@@ -85,7 +85,7 @@
     .dice__total {
         margin-left: 6px;
         font-size: 26px;
-        color: #a8a29e;
+        color: var(--oath-text-muted);
         white-space: nowrap;
     }
 </style>

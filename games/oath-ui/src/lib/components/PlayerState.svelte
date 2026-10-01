@@ -244,7 +244,7 @@
         <div class="let-peek">
             <button
                 type="button"
-                class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-0.5 text-xs font-semibold"
+                class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5 text-xs font-semibold"
                 disabled={gameSession.busy}
                 aria-expanded={gameSession.letPeekOpen}
                 onclick={() => gameSession.toggleLetPeek()}

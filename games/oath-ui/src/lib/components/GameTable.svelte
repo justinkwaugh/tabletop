@@ -4,6 +4,7 @@
         ScalingWrapper,
         HistoryControls,
         DefaultTabs,
+        GameChat,
         DefaultTableLayout,
         GameSession
     } from '@tabletop/frontend-components'
@@ -33,16 +34,33 @@
     <DefaultTableLayout>
         {#snippet sideContent()}
             <div class="max-sm:hidden">
-                <HistoryControls />
+                <HistoryControls
+                    enabledColor="text-oath-heading"
+                    disabledColor="text-oath-text-muted/40"
+                    borderClass="border-b border-oath-divider"
+                />
             </div>
             <DefaultTabs
-                activeTabClass="py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-black font-semibold"
+                activeTabClass="py-1 px-3 bg-oath-accent-soft border-2 border-oath-frame rounded-lg text-oath-text font-semibold"
+                inactiveTabClass="py-1 px-3 border-2 border-transparent rounded-lg text-oath-text-muted hover:text-oath-text hover:border-oath-frame"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />
                 {/snippet}
                 {#snippet history()}
                     <History />
+                {/snippet}
+                {#snippet chat()}
+                    <GameChat
+                        timeColor="text-oath-text-muted"
+                        messageTextColor="text-oath-text"
+                        composerTextColor="text-oath-text"
+                        messageHoverColor="hover:bg-oath-divider"
+                        bgColor="bg-oath-surface"
+                        inputBgColor="bg-oath-surface-raised"
+                        inputBorderColor="border-oath-divider"
+                        borderColor="border-oath-frame"
+                    />
                 {/snippet}
             </DefaultTabs>
         {/snippet}

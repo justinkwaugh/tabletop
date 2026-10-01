@@ -96,14 +96,14 @@
 </script>
 
 <div class="head flex items-center justify-between gap-2 mb-2">
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80">
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading">
         Act Phase
-        <span class="ml-2 normal-case tracking-normal text-stone-400">Supply {seat.supply}</span>
+        <span class="ml-2 normal-case tracking-normal text-oath-text-muted">Supply {seat.supply}</span>
     </h3>
     {#if valid.has(ActionType.EndActPhase)}
         <!-- R-4.2 — the phase may end after zero actions. -->
         <button
-            class="shrink-0 rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40
+            class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40
                    px-2 py-1 text-xs font-semibold"
             disabled={busy}
             onclick={() => send(ActionType.EndActPhase)}
@@ -116,10 +116,10 @@
 {#if freeActionDue}
     <!-- R-10.2 — a granted free action comes next or not at all. -->
     <div class="due mb-1.5 flex items-center justify-between gap-2 text-[11px] leading-snug">
-        <span class="text-amber-200">{freeActionDue}</span>
+        <span class="text-oath-heading">{freeActionDue}</span>
         {#if valid.has(ActionType.ForgoFreeAction)}
             <button
-                class="shrink-0 rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40
+                class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40
                        px-2 py-1 text-xs font-semibold"
                 disabled={busy}
                 onclick={() => void gameSession.forgoFreeAction()}
@@ -138,8 +138,8 @@
                 class="group flex w-[92px] flex-col items-center gap-1 rounded border px-1
                        py-1.5 text-center transition-colors
                        {t.ok
-                    ? 'border-amber-500/50 bg-stone-800/70 hover:border-amber-300 hover:bg-stone-800 cursor-pointer'
-                    : 'border-stone-800 bg-stone-900/40 opacity-55 cursor-not-allowed'}"
+                    ? 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent hover:bg-oath-surface-raised cursor-pointer'
+                    : 'border-oath-divider bg-oath-surface opacity-55 cursor-not-allowed'}"
                 {...t.attrs}
             >
                 <img
@@ -148,7 +148,7 @@
                     class="h-9 w-9 {t.ok ? '' : 'grayscale'}"
                 />
                 <span class="text-[11px] font-semibold leading-none">{entry.label}</span>
-                <span class="text-[10px] leading-none text-stone-500">{costLabel(entry)}</span>
+                <span class="text-[10px] leading-none text-oath-text-muted">{costLabel(entry)}</span>
             </button>
         {/each}
     </div>
@@ -159,8 +159,8 @@
             <button
                 class="rounded border px-2 py-1 text-[11px] font-medium transition-colors
                        {t.ok
-                    ? 'border-amber-500/40 bg-stone-800/70 hover:border-amber-300 cursor-pointer'
-                    : 'border-stone-800 bg-stone-900/40 text-stone-500 opacity-70 cursor-not-allowed'}"
+                    ? 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent cursor-pointer'
+                    : 'border-oath-divider bg-oath-surface text-oath-text-muted opacity-70 cursor-not-allowed'}"
                 {...t.attrs}
             >
                 {entry.label}
@@ -172,11 +172,11 @@
 <!-- One fixed line: what the hovered action does, or why the tapped one is refused. -->
 <div class="strip mt-1.5 min-h-[1.5rem] text-[11px] leading-snug">
     {#if tappedReason}
-        <span class="text-rose-300">{humanizeReason(tappedReason)}</span>
+        <span class="text-oath-danger">{humanizeReason(tappedReason)}</span>
     {:else if hoveredEntry}
-        <span class="font-semibold text-stone-100">{hoveredEntry.label}</span>
-        <span class="text-stone-500">{hoveredEntry.cost}</span>
-        <span class="text-stone-300">— {hoveredEntry.summary}</span>
+        <span class="font-semibold text-oath-text">{hoveredEntry.label}</span>
+        <span class="text-oath-text-muted">{hoveredEntry.cost}</span>
+        <span class="text-oath-text-muted">— {hoveredEntry.summary}</span>
     {/if}
 </div>
 

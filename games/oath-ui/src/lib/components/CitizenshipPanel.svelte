@@ -16,7 +16,7 @@
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">Offer Citizenship</h3>
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">Offer Citizenship</h3>
 
     {#if !exilePlayerId}
         <p class="text-sm mb-1">Choose an Exile. They will be asked, and may refuse.</p>
@@ -24,8 +24,8 @@
             {#each offer.exiles as playerId (playerId)}
                 <button
                     disabled={busy}
-                    class="rounded border border-amber-500/40 bg-stone-800/60
-                           hover:border-amber-300 px-2 py-1 text-sm text-left"
+                    class="rounded border border-oath-frame bg-oath-surface-raised
+                           hover:border-oath-accent px-2 py-1 text-sm text-left"
                     onclick={() => offer.chooseExile(playerId)}
                 >
                     {gameSession.getPlayerName(playerId)}{playerId === me?.id ? ' (yourself)' : ''}
@@ -62,8 +62,8 @@
         </p>
 
         <div class="mb-2 grid grid-cols-2 gap-2 text-xs">
-            <div class="border-t border-stone-700/60 pt-1.5">
-                <div class="text-stone-400 mb-1">You also give</div>
+            <div class="border-t border-oath-divider pt-1.5">
+                <div class="text-oath-text-muted mb-1">You also give</div>
                 <label class="block mb-1">
                     Favor {offer.offerTerms.givenFavor} of {held.offerer.favor}
                     <input
@@ -118,8 +118,8 @@
                     </label>
                 {/each}
             </div>
-            <div class="border-t border-stone-700/60 pt-1.5">
-                <div class="text-stone-400 mb-1">They give</div>
+            <div class="border-t border-oath-divider pt-1.5">
+                <div class="text-oath-text-muted mb-1">They give</div>
                 <label class="block mb-1">
                     Favor {offer.offerTerms.askedFavor} of {held.exile.favor}
                     <input
@@ -177,12 +177,12 @@
         </div>
 
         {#if offer.blockedBecause}
-            <p class="mb-2 text-[11px] text-rose-300">{offer.blockedBecause}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">{offer.blockedBecause}</p>
         {/if}
 
         <div class="flex gap-2">
             <button
-                class="grow rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                        px-2 py-1.5 text-sm font-semibold"
                 disabled={busy || !!offer.blockedBecause}
                 onclick={() => offer.offer()}
@@ -191,7 +191,7 @@
             </button>
             <button
                 disabled={busy}
-                class="rounded bg-stone-700 hover:bg-stone-600 px-2 py-1.5 text-sm"
+                class="rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1.5 text-sm"
                 onclick={() => gameSession.back()}
             >
                 Back

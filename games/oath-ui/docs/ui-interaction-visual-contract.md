@@ -27,7 +27,7 @@
 - **Choose the defending side's losses (R-5.5.6.a):** when the attacker wins and the defending force leaves a choice, the Chancellor (for an Imperial defence) or the defender is on the clock with one slider per group of the defending force and a count of chosen against owed; "Kill these warbands" is dimmed with the engine's reason until the count is right. A defeated attacker chooses their own losses in the sacrifice step, and only when their force holds more than one group; a loss with only one possible pick is made by the engine.
 - **Stack the Pilgrimage draw (Law Glossary "Discard"):** the asked player's question shows the drawn denizens as cards; each tap puts the next card down, labelled with its place in the stack, and the last untapped card goes on top. "Stack them" sends the answer once the order is fixed; Back untaps the last card and never sends anything. Other seats see only that the player is answering, never the cards.
 - **What only you saw:** after an action that showed its actor a card nobody else saw (a peek, or the relic they sent to the bottom of the relic deck), a notice above the action panel pictures those cards, captioned with the card that showed them, until the next Action by anyone. The actor's own discards and kept card are never in the notice; the history row pictures those to the actor. Other seats see neither.
-- **Undo:** the turn banner offers one light button labelled Undo, the platform's own as Estates uses. With a Manual Draft Entry in progress (the staged action or any panel's picks) it steps back one pick, as Back does, and its tooltip says so; otherwise its tooltip names the last Processed Action it would reverse (the history names it too), and it stops at the first one that revealed information (R-X.3).
+- **Undo:** the turn banner offers one button labelled Undo, in the primary amber so it is seen. With a Manual Draft Entry in progress (the staged action or any panel's picks) it steps back one pick, as Back does, and its tooltip says so; otherwise its tooltip names the last Processed Action it would reverse (the history names it too), and it stops at the first one that revealed information (R-X.3).
 - **Browse history:** the history controls above the side tabs on a wide screen, and the phone controls on a narrow one, move History View backward and forward. The table shows the displayed state; the action panel gives way to that state's turn banner, and nothing on the board is offered.
 - **Fit the panel:** the panel above the board is scaled down, never scrolled and never clipped, to a fraction of the column so the map keeps its size; it refits when its content grows or shrinks, including growth that lands while a fit is being read (an image finishing, a step's cards arriving), and a fit that ran short overlaps the board until the next read rather than hiding cards.
 - **Waiting on a send:** while an Action is being sent or the next state is being shown, every panel control is disabled and every draft reads as empty, so each panel shows its first step and the board offers nothing. The send ends every draft whether or not it is accepted, and a newly shown state does too; a state update that shows no new state gives the picks back.
@@ -74,7 +74,7 @@ Silent restoration replaces the displayed state and every derived offer follows 
 - A pickable board card widens its hit area by twelve screen pixels on each side, drawn nowhere. The board reads its on-screen scale whenever the wrapper's transform changes, not on a timer.
 - The enlarged card and the open seat are mounted after the table layout, outside its scroll columns, the board's wrapper and the fitted panel, because a transform is the containing block for fixed layers. They cover the whole viewport rather than the table, so each pads itself by the device's safe-area insets: the open seat is capped at the dynamic viewport height less those insets and scrolls inside itself, and the enlarged card is sized from its layer's measured safe area, with the card and the boxes under it scaled together when they would not fit.
 - One frame per panel: the action panel's container draws the only frame around a step, and the panel inside it draws none. Groups within a panel are set apart by spacing, a heading or a faint top divider, and a note by a tint; a border marks only a control, and the amber border its picked state.
-- The side column has no background of its own: the history controls, the side tabs and the chat sit on the site's dark page in the platform's own colours, and Oath passes them none. Oath's own panels in the tabs paint their own backgrounds.
+- The side column has no background of its own: the history controls, the side tabs and the chat sit on the site's dark page and are drawn in Oath's palette through the shared components' own colour props; Oath restyles no shared component from outside. The board's zoom controls keep the platform's colours, since the shared wrapper takes none. Oath's own panels in the tabs paint their own backgrounds.
 - The Campaign's dice are drawn by one row at the top of the action panel, read from the Campaign in game state; the rail draws the goals, the banners and the end die. The goals on the rail and in their overlay are drawn by one component from one pure reading of the state (`goalBoard`), so the two never differ.
 - Warband counts on a card are drawn by one component from game state, wherever the card is drawn. A seat's warband counts come from one reading shared by the seat card and the open seat: Imperial seats count purple from the one Imperial bank, an Exile their own colour.
 - Every card-valued choice is drawn by one row component from the options its panel's draft computes; the panel owns what a pick does, and the row owns only the ring, the untap and the enlarge.
@@ -82,6 +82,30 @@ Silent restoration replaces the displayed state and every derived offer follows 
 - Actor-only facts (what a peek showed, a relic sent to the bottom of the relic deck, a pile deposit's cards, a Search's discards) are shown only when the action's player is this player, never because the client holds the data: a Local game or Host View holds every field. The notice, the history row and the questions that show a relic picture each card, enlarged on hover or hold.
 - Hidden information is rendered by rule, not by data availability. This player's hand is drawn as cards where a panel asks for it; on the seat card and in the open seat every hand is a row of backs, its Visions with the Vision back by the public `handVisions` count. A relic is drawn as a back unless this player's own peeks name it. A facedown site shows a back and no denizen or relic spaces. A discard pile shows its count and the back of its top card; the world deck shows the back of its top card and no count; the relic deck shows a back and no count. Another player's facedown adviser is a back drawn from the public row, the Vision back where the row says `vision`; this player's own is a dimmed front named from their own list, even in a Local game or Host View. The history names a kept or played card only when the engine recorded that the play showed it. Every facedown card draws the back the state publishes for it, never one assumed by the drawing site: the world deck's top by `topCardBackType`, each discard pile's top by its recorded back, a facedown adviser by its row on the seat card, in the open seat, in a power's choice row and in an exchange's terms, a hand by `handVisions`, and relics and sites by their own kind. A Vision whose back shows always shows the Vision back, wherever it is drawn. A card is drawn facedown only by naming the back it shows, so no drawing site has a default back; before the opening deal the world deck has no top card and shows none.
 - Motion: none is state-derived. History rows appear and leave without animation, keyed by action, in engine order. The only motion is hover feedback and the turn pulse on the active seat's border. The Supply marker snaps to its circle.
+
+## Palette
+
+Every colour an Oath component names is one of these tokens, declared once in `src/app.css` under the title's scope and used as utility classes (`bg-oath-surface`, `text-oath-text-muted`) or as variables in a component's style block. No component names a raw colour class; `palette.spec.ts` fails on one, and on a token class or variable that is not declared. The seat colours are the exception: a seat, its pieces, its name chip and its discs wear the player's colour, which is a game fact, from the colourizer. The printed board, cards and dice are art and keep their own colours.
+
+| Token | Value | Used for |
+|---|---|---|
+| `surface` | stone-900 at 70 % | panel and tile backgrounds over the page |
+| `surface-raised` | stone-800 | inner groups, inputs, the enlarged goals and preview captions |
+| `frame` | amber-500 at 40 % | the one frame per panel, tile borders, the active tab's border |
+| `text` | stone-100 | body text |
+| `text-muted` | stone-400 | captions, labels, inactive tabs, disabled text |
+| `heading` | amber-200 at 80 % | the small uppercase headings, the history controls |
+| `accent` | amber-300 | the pick ring, the picked border, the holder's ring |
+| `accent-soft` | amber-950 at 60 % | the picked item's and the active tab's background |
+| `control`, `control-hover` | stone-700, stone-600 | buttons that are not the primary action |
+| `primary`, `primary-hover`, `primary-text` | amber-700, amber-600, stone-50 | the one primary button per panel, and Undo |
+| `danger`, `danger-soft` | rose-400, rose-900 at 70 % | targets, losses, refusals, the end die live |
+| `divider` | stone-700 at 60 % | faint rules between groups, unpicked option borders |
+
+- Amber means "yours to act on": a pick, the staged action, the primary button, Undo. Nothing decorative is amber beyond the frame.
+- Rose means "costs or threatens": a Campaign target, a loss, a refusal's reason, the end die while it is live, and the buttons that kill warbands or burn favor.
+- Text on a surface is `text` or `text-muted`, never black; dark text appears only on an amber chip.
+- The phone layout uses the same tokens; nothing is re-coloured for width.
 
 ## Viewport
 
@@ -126,6 +150,7 @@ The platform's table layout (`DefaultTableLayout`) owns the bottom safe-area ins
 35. Choose a bank: at Rest with Vow of Obedience, the panel shows the six suit symbols in the board's order with their favor counts, the first ringed; tap Arcane: only Arcane is ringed; Use takes one favor from the Arcane bank.
 36. The Campaign's dice: an attacker beats an Exile's defence and the Exile chooses losses; the panel opens with the attacker's four sword faces, "4 swords", the defender's face and "1 defense", and the rail shows no dice. A waiting seat sees the same row above "Waiting for another player".
 37. The goals: under Supremacy an Exile with the Vision of Conquest ties the Chancellor, who holds the title, and a Citizen sits. The rail reads the next win (the Chancellor, as the Oathkeeper, if the end die ends the game after round 5, on a 6), "is the Oathkeeper" with each seat's sites, the Vision "not met" and the Successor "not met"; no seat card shows the Oathkeeper goal and the Chancellor's shows the tile. A hover opens nothing; a tap opens the readable view; Escape closes it, and a press outside closes it.
+38. The palette: on the site's dark page at setup, the Players tab reads light on the amber-soft fill inside the amber frame, the History and Chat tabs read in muted stone, the history controls in the heading amber, the chat's messages and composer light on the raised input, and the action panel and turn banner sit in the amber frame. Pick a card to keep: Undo appears in the primary amber with light text. Automated (`tests/contractScenarios.spec.ts`; the components' colours by `palette.spec.ts`).
 
 ## Exercise record
 
@@ -166,3 +191,4 @@ The platform's table layout (`DefaultTableLayout`) owns the bottom safe-area ins
 35. pass, automated (`tests/contractScenarios.spec.ts`)
 36. pass, automated (`tests/contractScenarios.spec.ts`)
 37. pass, automated (`tests/contractScenarios.spec.ts`); the next-win cases and the standings by `nextWin.spec.ts` and `goalBoard.spec.ts`
+38. pass, automated (`tests/contractScenarios.spec.ts`), and checked by eye in the harness on the dark page and at phone width

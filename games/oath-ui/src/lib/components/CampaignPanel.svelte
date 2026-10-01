@@ -42,9 +42,9 @@
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
         Campaign
-        <span class="ml-2 normal-case tracking-normal text-stone-400">
+        <span class="ml-2 normal-case tracking-normal text-oath-text-muted">
             {draft.supplyCost === 0 ? 'no Supply' : `${draft.supplyCost} Supply`}
         </span>
     </h3>
@@ -54,8 +54,8 @@
         <div class="flex flex-col gap-1">
             {#each draft.defenderOptions as candidate (defenderLabel(candidate))}
                 <button
-                    class="rounded border border-amber-500/40 bg-stone-800/60
-                           hover:border-amber-300 disabled:opacity-40 px-2 py-1 text-sm text-left"
+                    class="rounded border border-oath-frame bg-oath-surface-raised
+                           hover:border-oath-accent disabled:opacity-40 px-2 py-1 text-sm text-left"
                     disabled={busy}
                     onclick={() => draft.chooseDefender(candidate)}
                 >
@@ -80,10 +80,10 @@
                 <button
                     class="rounded border px-2 py-1 text-sm text-left
                            {chosen
-                        ? 'border-amber-300 bg-amber-950/60'
+                        ? 'border-oath-accent bg-oath-accent-soft'
                         : legal
-                          ? 'border-stone-700 bg-stone-800/60 hover:border-amber-400'
-                          : 'border-stone-800 bg-stone-900/40 opacity-45'}"
+                          ? 'border-oath-divider bg-oath-surface-raised hover:border-oath-accent'
+                          : 'border-oath-divider bg-oath-surface opacity-45'}"
                     disabled={busy || (!chosen && !legal)}
                     onclick={() => draft.toggleTarget(target)}
                 >
@@ -99,8 +99,8 @@
 
         {#if draft.lossSources.length > 1}
             <!-- R-5.5.5, R-10.22 — the attacker chooses where the skulls' kills come from. -->
-            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
-                <div class="mb-1 text-stone-400">Skulls kill your warbands from, in order:</div>
+            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
+                <div class="mb-1 text-oath-text-muted">Skulls kill your warbands from, in order:</div>
                 {#each draft.lossOrder as source, index (JSON.stringify(source))}
                     <div class="flex items-center gap-2 mb-0.5">
                         <span class="grow"
@@ -112,7 +112,7 @@
                         {#if index > 0}
                             <button
                                 type="button"
-                                class="rounded bg-stone-700 hover:bg-stone-600 px-2 py-0.5"
+                                class="rounded bg-oath-control hover:bg-oath-control-hover px-2 py-0.5"
                                 disabled={busy}
                                 onclick={() => draft.moveLossSourceUp(index)}
                             >
@@ -125,13 +125,13 @@
         {/if}
 
         {#if draft.plansWaitForAllies}
-            <p class="mb-2 text-[11px] text-stone-400">
+            <p class="mb-2 text-[11px] text-oath-text-muted">
                 A Citizen may join the defence, so your battle plans are chosen after they answer.
             </p>
         {/if}
         {#if draft.planOptions.length > 0}
-            <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
-                <div class="mb-1 text-stone-300">Battle plans to use:</div>
+            <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
+                <div class="mb-1 text-oath-text-muted">Battle plans to use:</div>
                 <CardChoiceRow
                     choices={powerUseCards(draft.planOptions)}
                     picked={draft.planOptions
@@ -154,7 +154,7 @@
                     {@const choices = draft.planChoicesOf(power)}
                     {#if draft.isPlanDeclared(use) && choices.length > 0}
                         <div class="mt-1 mb-1">
-                            <div class="text-stone-400">{cardName(power.cardId)}:</div>
+                            <div class="text-oath-text-muted">{cardName(power.cardId)}:</div>
                             <PowerChoicePicker
                                 {choices}
                                 bind:picks={
@@ -169,14 +169,14 @@
         {/if}
 
         {#if draft.blockedBecause}
-            <p class="mb-2 text-[11px] text-rose-300">
+            <p class="mb-2 text-[11px] text-oath-danger">
                 {humanizeReason(draft.blockedBecause)}
             </p>
         {/if}
 
         <div class="flex gap-2">
             <button
-                class="grow rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-40
+                class="grow rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
                        px-2 py-1.5 text-sm font-semibold"
                 disabled={busy || !draft.declarable}
                 onclick={() => draft.declare()}
@@ -185,7 +185,7 @@
             </button>
             {#if draft.hasManualSelection()}
                 <button
-                    class="rounded bg-stone-700 hover:bg-stone-600 disabled:opacity-40 px-2 py-1.5 text-sm"
+                    class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-1.5 text-sm"
                     disabled={busy}
                     onclick={() => gameSession.back()}
                 >

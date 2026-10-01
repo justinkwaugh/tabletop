@@ -151,19 +151,19 @@
     <div class="mb-1 text-xs">
         {#if legal.spec.kind === PowerChoiceKind.Count}
             <label class="flex items-center gap-2">
-                <span class="text-stone-400">{legal.spec.what ?? 'how many'}:</span>
+                <span class="text-oath-text-muted">{legal.spec.what ?? 'how many'}:</span>
                 <input
                     disabled={busy}
                     type="number"
                     min="0"
                     value={picks.count[i] ?? 0}
-                    class="w-16 rounded bg-stone-800 px-1 py-0.5 text-xs"
+                    class="w-16 rounded bg-oath-surface-raised px-1 py-0.5 text-xs"
                     oninput={(event) => setCount(legal, i, Number(event.currentTarget.value))}
                 />
             </label>
         {:else if legal.spec.kind === PowerChoiceKind.FavorBank}
             {@const banks = favorBankSuits(legal.options)}
-            <div class="text-stone-400 mb-1">{legal.spec.what ?? 'a favor bank'}:</div>
+            <div class="text-oath-text-muted mb-1">{legal.spec.what ?? 'a favor bank'}:</div>
             <SuitPicker
                 suits={banks}
                 picked={option?.kind === PowerChoiceKind.FavorBank ? [option.suit] : []}
@@ -172,7 +172,7 @@
             />
         {:else if allowsSeveral(legal) && powerChoiceCards(legal.options, resolve) && !legal.options.some((o) => o.kind === PowerChoiceKind.Warbands)}
             {@const cards = powerChoiceCards(legal.options, resolve) ?? []}
-            <div class="text-stone-400">{legal.spec.what ?? legal.spec.kind}:</div>
+            <div class="text-oath-text-muted">{legal.spec.what ?? legal.spec.kind}:</div>
             <CardChoiceRow
                 choices={cards}
                 picked={(picks.several[i] ?? []).map(String)}
@@ -182,7 +182,7 @@
                 height={80}
             />
         {:else if allowsSeveral(legal)}
-            <div class="text-stone-400">{legal.spec.what ?? legal.spec.kind}:</div>
+            <div class="text-oath-text-muted">{legal.spec.what ?? legal.spec.kind}:</div>
             {#each legal.options as choice, j (j)}
                 {@const ticked = (picks.several[i] ?? []).includes(j)}
                 <div class="flex items-center gap-2">
@@ -204,7 +204,7 @@
                             {max}
                             aria-label="how many"
                             value={picks.severalCount[severalCountKey(i, j)] ?? max}
-                            class="w-14 rounded bg-stone-800 px-1 py-0.5 text-xs"
+                            class="w-14 rounded bg-oath-surface-raised px-1 py-0.5 text-xs"
                             oninput={(event) =>
                                 setSeveralCount(legal, i, j, Number(event.currentTarget.value))}
                         />
@@ -225,7 +225,7 @@
         {:else}
             {@const cards = powerChoiceCards(legal.options, resolve)}
             {#if cards}
-                <div class="text-stone-400">{legal.spec.what ?? legal.spec.kind}:</div>
+                <div class="text-oath-text-muted">{legal.spec.what ?? legal.spec.kind}:</div>
                 <CardChoiceRow
                     choices={cards}
                     picked={pick >= 0 ? [String(pick)] : []}
@@ -235,10 +235,10 @@
                 />
             {:else}
                 <label class="flex items-center gap-2">
-                    <span class="text-stone-400">{legal.spec.what ?? legal.spec.kind}:</span>
+                    <span class="text-oath-text-muted">{legal.spec.what ?? legal.spec.kind}:</span>
                     <select
                         disabled={busy}
-                        class="rounded bg-stone-800 px-1 py-0.5 text-xs grow"
+                        class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
                         value={pick}
                         onchange={(event) => setOption(legal, i, Number(event.currentTarget.value))}
                     >
@@ -265,21 +265,21 @@
             {#if option?.kind === PowerChoiceKind.Warbands}
                 {@const max = option.group.count}
                 <label class="flex items-center gap-2 mt-1">
-                    <span class="text-stone-400">how many:</span>
+                    <span class="text-oath-text-muted">how many:</span>
                     <input
                         disabled={busy}
                         type="number"
                         min="1"
                         {max}
                         value={picks.count[i] ?? max}
-                        class="w-16 rounded bg-stone-800 px-1 py-0.5 text-xs"
+                        class="w-16 rounded bg-oath-surface-raised px-1 py-0.5 text-xs"
                         oninput={(event) => setCount(legal, i, Number(event.currentTarget.value))}
                     />
                 </label>
             {/if}
         {/if}
         {#if legal.options.length === 0 && legal.spec.min > 0}
-            <p class="text-rose-300">no legal {legal.spec.what ?? legal.spec.kind} right now</p>
+            <p class="text-oath-danger">no legal {legal.spec.what ?? legal.spec.kind} right now</p>
         {/if}
     </div>
 {/each}

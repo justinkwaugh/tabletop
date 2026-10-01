@@ -17,11 +17,11 @@
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-rose-200/80 mb-2">
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-danger mb-2">
         Campaign — the attacker's battle plans
     </h3>
     {#if !mine}
-        <p class="text-sm text-stone-400">
+        <p class="text-sm text-oath-text-muted">
             Waiting for {draft.attackerId
                 ? gameSession.getPlayerName(draft.attackerId)
                 : 'the attacker'}
@@ -49,7 +49,7 @@
             {@const choices = draft.planChoicesOf(power)}
             {#if draft.isDeclared(power) && choices.length > 0}
                 <div class="mb-1">
-                    <div class="text-xs text-stone-400">{cardName(power.cardId)}:</div>
+                    <div class="text-xs text-oath-text-muted">{cardName(power.cardId)}:</div>
                     <PowerChoicePicker
                         {choices}
                         bind:picks={
@@ -61,10 +61,10 @@
             {/if}
         {/each}
         {#if reason}
-            <p class="mb-2 text-[11px] text-rose-300">{humanizeReason(reason)}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
         {/if}
         <button
-            class="w-full rounded bg-rose-700 hover:bg-rose-600 disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
+            class="w-full rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"
             disabled={busy || !!reason}
             onclick={() => draft.declare()}
         >

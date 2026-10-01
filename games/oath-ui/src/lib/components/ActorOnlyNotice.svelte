@@ -9,14 +9,14 @@
 </script>
 
 {#if notice}
-    <div class="mb-2 rounded bg-amber-950/30 px-2 py-1 text-xs">
-        <p class="text-amber-200">
+    <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1 text-xs">
+        <p class="text-oath-heading">
             {notice.shownBy ? `${cardName(notice.shownBy)} showed you` : 'You were shown'}
             {#if notice.relicToDeckBottom !== undefined}
                 , and {cardName(notice.relicToDeckBottom)} went to the bottom of the relic deck
             {/if}
         </p>
         <ShownCards cardIds={notice.cards} />
-        <p class="text-stone-500">Only you see this.</p>
+        <p class="text-oath-text-muted">Only you see this.</p>
     </div>
 {/if}

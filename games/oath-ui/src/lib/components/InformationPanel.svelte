@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { Button } from 'flowbite-svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { MachineState, endDieIsRolled } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -56,7 +55,7 @@
 </script>
 
 <div
-    class="info mb-2 rounded-lg bg-stone-900/70 border border-stone-700 px-3 py-1.5 text-stone-100"
+    class="info mb-2 rounded-lg bg-oath-surface border border-oath-frame px-3 py-1.5 text-oath-text"
 >
     <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         {#if heldTurn}
@@ -65,7 +64,7 @@
                 {heldTurn.campaignerId === gameSession.myPlayer?.id ? 'are' : 'is'} campaigning out of
                 turn
             </span>
-            <span class="text-xs text-stone-300">
+            <span class="text-xs text-oath-text-muted">
                 <PlayerName playerId={heldTurn.turnPlayerId} possessive /> turn is held
             </span>
         {:else if activePlayerId}
@@ -78,20 +77,20 @@
                 {/if}
             </span>
         {/if}
-        <span class="text-sm text-stone-300">{phase}</span>
+        <span class="text-sm text-oath-text-muted">{phase}</span>
         {#if endDieLive}
-            <span class="text-xs rounded bg-rose-900/70 text-rose-100 px-2 py-0.5"
+            <span class="text-xs rounded bg-oath-danger-soft text-oath-danger px-2 py-0.5"
                 >end die live</span
             >
         {/if}
         {#if undoTooltip}
-            <Button
-                color="light"
-                size="sm"
-                class="ml-auto shrink-0 font-semibold"
+            <button
+                type="button"
+                class="ml-auto shrink-0 self-center rounded-lg bg-oath-primary text-oath-primary-text
+                       hover:bg-oath-primary-hover disabled:opacity-40 px-3 py-1.5 text-sm font-semibold"
                 disabled={busy}
                 title={undoTooltip}
-                onclick={undo}>Undo</Button
+                onclick={undo}>Undo</button
             >
         {/if}
     </div>

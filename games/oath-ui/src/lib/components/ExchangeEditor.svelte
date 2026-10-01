@@ -59,8 +59,8 @@
     {#each sides as { key, giver, receiver } (key)}
         {@const player = gameState.getPlayerState(giver)}
         {@const favor = usableFavor(gameState, giver)}
-        <div class="border-t border-stone-700/60 pt-1.5">
-            <div class="text-stone-400 mb-1">{gameSession.getPlayerName(giver)} gives</div>
+        <div class="border-t border-oath-divider pt-1.5">
+            <div class="text-oath-text-muted mb-1">{gameSession.getPlayerName(giver)} gives</div>
             <label class="flex items-center gap-2 mb-1">
                 <span class="w-14">favor</span>
                 <input
@@ -68,12 +68,12 @@
                     type="number"
                     min="0"
                     max={favor}
-                    class="w-16 rounded bg-stone-800 px-1 py-0.5"
+                    class="w-16 rounded bg-oath-surface-raised px-1 py-0.5"
                     value={side(key).favor ?? 0}
                     oninput={(e) =>
                         set(key, { favor: Math.max(0, Number(e.currentTarget.value) || 0) })}
                 />
-                <span class="text-stone-500">of {favor}</span>
+                <span class="text-oath-text-muted">of {favor}</span>
             </label>
             <label class="flex items-center gap-2 mb-1">
                 <span class="w-14">secrets</span>
@@ -82,12 +82,12 @@
                     type="number"
                     min="0"
                     max={player.secrets}
-                    class="w-16 rounded bg-stone-800 px-1 py-0.5"
+                    class="w-16 rounded bg-oath-surface-raised px-1 py-0.5"
                     value={side(key).secrets ?? 0}
                     oninput={(e) =>
                         set(key, { secrets: Math.max(0, Number(e.currentTarget.value) || 0) })}
                 />
-                <span class="text-stone-500">of {player.secrets}</span>
+                <span class="text-oath-text-muted">of {player.secrets}</span>
             </label>
             {#if allows.relics && player.relicIds.length > 0}
                 <div class="mb-1">
@@ -134,7 +134,7 @@
                                 disabled={busy}
                                 type="number"
                                 min="1"
-                                class="w-14 rounded bg-stone-800 px-1 py-0.5"
+                                class="w-14 rounded bg-oath-surface-raised px-1 py-0.5"
                                 value={siteWarbandsIn(side(key), siteId)}
                                 oninput={(e) =>
                                     set(
@@ -146,7 +146,7 @@
                                         )
                                     )}
                             />
-                            <span class="text-stone-500"
+                            <span class="text-oath-text-muted"
                                 >of {warbandsOnBoardOf(gameState, receiver)} on board</span
                             >
                         </label>

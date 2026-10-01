@@ -26,14 +26,14 @@
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
         The Oathkeeper title
     </h3>
 
     {#if !pending}
-        <p class="text-sm text-stone-400">No title is waiting to be settled.</p>
+        <p class="text-sm text-oath-text-muted">No title is waiting to be settled.</p>
     {:else if !isMine}
-        <p class="text-sm text-stone-300">
+        <p class="text-sm text-oath-text-muted">
             Waiting for <PlayerName playerId={pending.holderPlayerId} /> to choose who takes the Oathkeeper
             title.
         </p>
@@ -42,7 +42,7 @@
             You no longer {GOAL_TEXT[OATHKEEPER_GOALS[gameState.oathType]]}, and more than one
             player now does. Choose who takes the Oathkeeper title.
         </p>
-        <p class="mb-2 text-[11px] text-stone-400 leading-snug">
+        <p class="mb-2 text-[11px] text-oath-text-muted leading-snug">
             You cannot keep it, and you cannot decline — the rules give the outgoing holder the
             choice, not a veto.
         </p>
@@ -52,14 +52,14 @@
                 {@const why = blockedBecause(candidateId)}
                 <button
                     class="rounded border px-2 py-1 text-sm text-left {why
-                        ? 'border-stone-800 bg-stone-900/40 opacity-55'
-                        : 'border-amber-500/40 bg-stone-800/60 hover:border-amber-300'}"
+                        ? 'border-oath-divider bg-oath-surface opacity-55'
+                        : 'border-oath-frame bg-oath-surface-raised hover:border-oath-accent'}"
                     disabled={busy || !!why}
                     onclick={() => gameSession.resolveOathkeeper(candidateId)}
                 >
                     Give it to {gameSession.getPlayerName(candidateId)}
                     {#if why}
-                        <span class="block text-[11px] text-stone-400">{why}</span>
+                        <span class="block text-[11px] text-oath-text-muted">{why}</span>
                     {/if}
                 </button>
             {/each}

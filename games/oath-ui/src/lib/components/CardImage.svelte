@@ -48,12 +48,12 @@
     />
 {:else}
     <div
-        class="rounded-[4px] border border-dashed border-stone-500 bg-stone-800/60
+        class="rounded-[4px] border border-dashed border-oath-text-muted/50 bg-oath-surface-raised
                flex items-center justify-center p-1 {className}"
         style="width:{width}px; height:{height}px;"
         title={name}
     >
-        <span class="text-stone-300 text-[9px] leading-tight text-center break-all">
+        <span class="text-oath-text-muted text-[9px] leading-tight text-center break-all">
             {name}
         </span>
     </div>

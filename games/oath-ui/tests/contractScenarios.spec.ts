@@ -425,7 +425,9 @@ test.describe('scenario 32: waiting on a send', () => {
     })
 })
 
-async function luminanceOf(locator: ReturnType<Page['locator']>, property: 'color' | 'backgroundColor') {
+type ColourProperty = 'color' | 'backgroundColor' | 'borderTopColor'
+
+async function rgbOf(locator: ReturnType<Page['locator']>, property: ColourProperty) {
     return locator.evaluate((element, property) => {
         const canvas = document.createElement('canvas')
         canvas.width = 1
@@ -435,20 +437,51 @@ async function luminanceOf(locator: ReturnType<Page['locator']>, property: 'colo
         context.fillStyle = getComputedStyle(element)[property]
         context.fillRect(0, 0, 1, 1)
         const [red, green, blue] = context.getImageData(0, 0, 1, 1).data
-        return (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255
+        return { red, green, blue }
     }, property)
 }
 
-test('the side tabs and the chat read light on the dark page', async ({ page }) => {
+async function luminanceOf(locator: ReturnType<Page['locator']>, property: ColourProperty) {
+    const { red, green, blue } = await rgbOf(locator, property)
+    return (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255
+}
+
+/** Amber and its tints: red well above blue. Stone and the platform's greys are near neutral. */
+async function isAmber(locator: ReturnType<Page['locator']>, property: ColourProperty) {
+    const { red, blue } = await rgbOf(locator, property)
+    return red - blue > 40
+}
+
+test('scenario 38: the side tabs, history controls, chat, panel and Undo wear Oath’s palette on the dark page', async ({
+    page
+}) => {
     await openTable(page, 'setup')
     expect(await luminanceOf(page.locator('body'), 'backgroundColor')).toBeLessThan(0.2)
+
+    const players = page.getByRole('tab', { name: 'Players' })
+    await expect(players).toHaveAttribute('aria-selected', 'true')
+    expect(await luminanceOf(players, 'color')).toBeGreaterThan(0.85)
+    expect(await isAmber(players, 'borderTopColor')).toBe(true)
+
     const history = page.getByRole('tab', { name: 'History' })
     await expect(history).toHaveAttribute('aria-selected', 'false')
-    expect(await luminanceOf(history, 'color')).toBeGreaterThan(0.6)
+    const muted = await luminanceOf(history, 'color')
+    expect(muted).toBeGreaterThan(0.5)
+    expect(muted).toBeLessThan(0.8)
+
+    expect(await isAmber(page.getByRole('button', { name: 'fork game' }).locator('svg'), 'color')).toBe(true)
+    expect(await isAmber(page.locator('.panel'), 'borderTopColor')).toBe(true)
+    expect(await isAmber(page.locator('.info'), 'borderTopColor')).toBe(true)
 
     await page.getByRole('tab', { name: 'Chat' }).click()
-    expect(await luminanceOf(page.getByRole('tab', { name: 'Players' }), 'color')).toBeGreaterThan(0.6)
-    expect(await luminanceOf(page.locator('textarea'), 'color')).toBeGreaterThan(0.6)
+    expect(await luminanceOf(page.locator('textarea'), 'color')).toBeGreaterThan(0.85)
+
+    await openTable(page, 'actPhase')
+    await call(page, 'seatTravels', 'slot.cradle.1')
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    await expect(undo).toBeVisible()
+    expect(await isAmber(undo, 'backgroundColor')).toBe(true)
+    expect(await luminanceOf(undo, 'color')).toBeGreaterThan(0.9)
 })
 
 test('card backs: another seat’s facedown Vision and the Vision in its hand show the Vision back', async ({ page }) => {

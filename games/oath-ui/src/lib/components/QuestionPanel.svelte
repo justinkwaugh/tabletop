@@ -39,14 +39,14 @@
 </script>
 
 <div>
-    <h3 class="text-[11px] uppercase tracking-[0.2em] text-amber-200/80 mb-2">
+    <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading mb-2">
         {question ? cardName(question.cardId) : 'A question'}
     </h3>
 
     {#if !question}
-        <p class="text-sm text-stone-400">Nothing is waiting on an answer.</p>
+        <p class="text-sm text-oath-text-muted">Nothing is waiting on an answer.</p>
     {:else if !mine}
-        <p class="text-sm text-stone-300">
+        <p class="text-sm text-oath-text-muted">
             Waiting on {gameSession.getPlayerName(question.askedPlayerId)} to answer {cardName(
                 question.cardId
             )}
@@ -67,7 +67,7 @@
                 disabled={busy}
                 value={draft.burn}
                 oninput={(e) => draft.setBurn(Number(e.currentTarget.value) || 0)}
-                class="w-16 rounded bg-stone-800 px-1 py-0.5"
+                class="w-16 rounded bg-oath-surface-raised px-1 py-0.5"
             />
             favor
         </label>
@@ -90,7 +90,7 @@
         <p class="text-sm mb-1">
             {gameSession.getPlayerName(mine.proposerPlayerId)} proposes a binding exchange (R-7.6.3):
         </p>
-        <div class="mb-2 border-t border-stone-700/60 pt-1.5 text-xs">
+        <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
             <div>
                 {gameSession.getPlayerName(mine.proposerPlayerId)} gives {transferText(
                     gameState,
@@ -128,7 +128,7 @@
             {cardName(mine.cardId)}: you drew {relic}. Put it, or a relic you hold, on the bottom of
             the relic deck.
         </p>
-        <p class="text-xs text-stone-400 mb-1">Tap the relic that goes to the bottom:</p>
+        <p class="text-xs text-oath-text-muted mb-1">Tap the relic that goes to the bottom:</p>
         <CardChoiceRow
             choices={[
                 ...(mine.relicCardId !== undefined
@@ -167,7 +167,7 @@
         <div class="flex flex-wrap gap-1">
             {#each mine.siteIds as siteId (siteId)}
                 <button
-                    class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1 text-xs"
+                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
                     disabled={busy}
                     onclick={() => draft.travelTo(siteId)}
                 >
@@ -184,7 +184,7 @@
         <div class="flex flex-wrap gap-1">
             {#each draft.woodDestinations as siteId (siteId)}
                 <button
-                    class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1 text-xs"
+                    class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"
                     disabled={busy}
                     onclick={() => draft.sendThrough(siteId)}
                 >
@@ -223,7 +223,7 @@
             may discard one Beast card you rule instead.
         </p>
         <div class="mb-2 text-xs">
-            <span class="text-stone-400">Tap the Beast card to discard instead:</span>
+            <span class="text-oath-text-muted">Tap the Beast card to discard instead:</span>
             <CardChoiceRow
                 choices={cardChoices(mine.insteadCardIds)}
                 picked={draft.instead ? [draft.instead] : []}
