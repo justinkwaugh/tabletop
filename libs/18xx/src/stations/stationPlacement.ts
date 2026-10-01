@@ -37,6 +37,12 @@ export const StationPlacementDetails = Type.Object(
 )
 export type StationPlacementDetails = Type.Static<typeof StationPlacementDetails>
 export type HomeStation = { stationId: string; locationId: string; nodeId: string }
+/** A home station whose city the company's president chooses among the offered positions. */
+export type HomeStationChoice = {
+    companyId: string
+    stationId: string
+    positions: readonly { locationId: string; nodeId: string }[]
+}
 export interface StationRules {
     map: RailwayMap
     tileSet: TileSet
@@ -44,6 +50,10 @@ export interface StationRules {
     placementLimit(state: StationPlacementState, companyId: string): number
     /** The operating set is present while operating rounds are in progress. */
     pendingHomes(state: StationPlacementState & { operatingSet?: OperatingSet }): HomeStation[]
+    /** A title that lets presidents choose a home city returns the next operating company's choice. */
+    homeChoice?(
+        state: StationPlacementState & { operatingSet?: OperatingSet }
+    ): HomeStationChoice | undefined
     reservationOccupant?(reservation: StationReservation): string | undefined
 }
 export type StationEvaluation =

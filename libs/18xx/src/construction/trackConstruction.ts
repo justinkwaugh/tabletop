@@ -146,7 +146,8 @@ export class TrackConstruction {
                         rotation,
                         nodeMapping
                     })
-                    if (result.details) choices.push(result.details)
+                    if (result.details && !choices.some((choice) => samePlacement(choice, result.details)))
+                        choices.push(result.details)
                 }
             }
         }
@@ -361,6 +362,16 @@ export class TrackConstruction {
         )
         return { stations, stationReservations }
     }
+}
+
+// Node mappings that leave every station and reservation in the same place lay the same tile.
+function samePlacement(first: TrackLayDetails, second: TrackLayDetails): boolean {
+    return (
+        first.definitionId === second.definitionId &&
+        first.rotation === second.rotation &&
+        JSON.stringify(first.stations) === JSON.stringify(second.stations) &&
+        JSON.stringify(first.stationReservations) === JSON.stringify(second.stationReservations)
+    )
 }
 
 export function validateTrackStep(state: {

@@ -1,5 +1,9 @@
 import { expect, it } from 'vitest'
-import { createTrackTileFace, createCityTileFace } from '../tiles/faces.js'
+import {
+    createTrackTileFace,
+    createCityTileFace,
+    createSeparateCitiesTileFace
+} from '../tiles/faces.js'
 import { tileUpgradeMappings, preservesPath } from './trackUpgrade.js'
 import type { TileFace } from '../tiles/tile.js'
 it('preserves independent tracks, not merely their exits', () => {
@@ -52,4 +56,17 @@ it('maps renamed cities and preserves distinct cities unless they merge', () => 
         ]
     }
     expect(tileUpgradeMappings(city, after)).toEqual([{ city: 'new' }])
+})
+it('keeps the order of cities that have no track', () => {
+    const cities = (color: string, first: readonly (0 | 2)[], second: readonly (0 | 2)[]) =>
+        createSeparateCitiesTileFace(color, [
+            { edges: first, revenue: 0, stationSlots: 1 },
+            { edges: second, revenue: 0, stationSlots: 1 }
+        ])
+    expect(tileUpgradeMappings(cities('yellow', [], []), cities('green', [0], [2]))).toEqual([
+        { 'city-0': 'city-0', 'city-1': 'city-1' }
+    ])
+    expect(tileUpgradeMappings(cities('yellow', [0], []), cities('green', [2], [0]))).toEqual([
+        { 'city-0': 'city-1', 'city-1': 'city-0' }
+    ])
 })

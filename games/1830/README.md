@@ -17,9 +17,10 @@ initialization is available from `@tabletop/1830/scenarios`.
 The research site's implementation defines the rules (project decision,
 2026-10-01). It follows the Lookout 1830-RE rulebook. See the
 [title design note](../../research/18xx/1830-title-design.md) for sources, the
-delivery slices, and the intentional limits of the current slice: Erie cannot yet
-be started, stock turns are sell–buy or buy–sell with one purchase, privates have
-no powers or awards, and offboard groups are not yet enforced.
+delivery slices, and the intentional limits so far: stock turns are sell–buy or
+buy–sell with one purchase, privates have no powers or awards, and offboard groups
+are not yet enforced. Erie reserves both Buffalo cities, and its president chooses
+its home city when it first operates.
 
 ## Development
 

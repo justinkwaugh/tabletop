@@ -55,13 +55,12 @@ const Names: Readonly<Record<string, string>> = {
     H16: 'Lancaster'
 }
 
-// Erie's home is the whole Buffalo hex (E11), with its city chosen when it is placed. That
-// reservation arrives with two-city hex support; until then Erie cannot be started.
 const Homes: Readonly<Record<string, string | CityReservation>> = {
     H12: 'PRR',
     E19: 'NYC',
     A19: 'CPR',
     I15: 'BO',
+    E11: 'ERIE',
     F6: 'CO',
     G19: { companyId: 'NYNH', nodeId: 'city-0' },
     E23: 'BM'

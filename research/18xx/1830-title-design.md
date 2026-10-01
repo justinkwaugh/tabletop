@@ -181,8 +181,8 @@ Decisions made while implementing, beyond the design above:
   (catalog tiles) and the title map view (printed hexes).
 - **Blocked-hex markers:** the map marks each hex a private blocks while
   player-owned.
-- **Companies without a home cannot start.** This keeps Erie out until its
-  whole-hex reservation exists.
+- **Companies without a home cannot start.** This kept Erie out until slice 2
+  gave it a whole-hex reservation; slice 2 removes the guard.
 
 ## Intentional limits after slice 1
 
@@ -214,9 +214,77 @@ Decisions made while implementing, beyond the design above:
 - An OO hex upgrades from preprint to #59 to a brown OO tile.
 - Parring NYC and buying 60% floats it with $1,000 at a $100 par.
 
+## Slice 2 design: two-city hexes
+
+Slice 2 lets Erie start from its whole-hex home and makes upgrades of the two-city
+hexes keep stations and reservations in the right city.
+
+### Evidence
+
+- **Reservations.** The [title-trait survey](/workspace/research/18xx-2026-09-08/data/title-traits.json)
+  records station blocking as filled-city blocking (126 titles), slot reservations
+  (94), whole-tile reservations (15, including 1830), outstanding-home blocking
+  (13), single-slot reservation blocks (4) and future capacity (3). The reference
+  engine's tile reservation with `TILE_RESERVATION_BLOCKS_OTHERS = :always` (16
+  titles) stops other companies placing in any city of the hex until the home is
+  placed; `:single_slot_cities` (3) and `:never` (2) differ.
+- **Home choice.** Home establishment is a fixed home in 110 titles, a choice among
+  eligible locations in 35, several homes in 10, and other forms in 17. The
+  reference's home-token step lets the president choose when the home hex has
+  more than one available city.
+- **Upgrade mapping.** The reference's [hex lay][hex-lay] maps the cities of a tile
+  whose cities have no track to the new tile by index, and otherwise keeps each
+  city's exits as a subset of the new city's exits. Our family enumerates every
+  path-preserving node mapping and offers each as a separate choice.
+
+### Decisions
+
+- **A whole-hex home reserves every city on the hex.** The map factory's string
+  home already means "this hex"; it now reserves each city of the printed tile
+  rather than a node named `city`. Single-city homes are unchanged, so TOP and 1889
+  keep their data and reservations. Reserving each single-slot city has exactly the
+  `:always` effect for 1830, whose OO cities have one slot at every stage.
+  **Limit:** a whole-hex reservation over multi-slot cities, as in some `:always`
+  titles, would need its own representation.
+- **The president chooses among reserved cities.** `StationRules` gains an
+  optional `homeChoice` hook returning the operating company's choice as a list
+  of city positions, which also covers choices among several locations. When a
+  title supplies it, the runtime registers a `ChooseHomeStation` action and holds
+  the operating set before the company's turn until its president chooses.
+  Placing the home there releases the company's other reservations on that hex.
+  Titles without the hook get no new action or state, so TOP's and 1889's
+  runtime contracts are unchanged. 1830's ordinary homes stay automatic.
+- **Cities without track map by index.** When every city on the old face is
+  without track, an upgrade maps the first city to the first, and so on, as the
+  reference does. This decides where Erie's home or a reservation lands when the
+  printed Buffalo hex becomes #59. No current TOP or 1889 hex has several cities
+  without track.
+- **Identical construction choices are offered once.** Mappings that leave every
+  station and reservation where an alternative would are the same placement; the
+  track step keeps the first. This removes duplicate options for two-town hexes
+  and for empty two-city hexes.
+
+### Limits after slice 2
+
+- Whole-hex reservations over multi-slot cities are not represented (no 1830 case).
+- The president chooses Erie's city from buttons in the action panel, not by
+  selecting it on the map.
+
+### Acceptance examples
+
+- Erie's opening reservation covers both Buffalo cities, and no other company can
+  place a station in either while it stands.
+- When Erie first operates, its president chooses a Buffalo city; the home is
+  placed there, the other city is released, and the turn begins.
+- Upgrading the printed Buffalo hex to #59 keeps Erie's station in the same city
+  index, and each rotation of an empty two-city or two-town hex is offered once.
+- Upgrading New York to #54 keeps NYNH's reservation on the city joined to its
+  original track.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/entities.rb
 [map]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/map.rb
 [stock]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/step/buy_sell_par_shares.rb
 [auction]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/waterfall_auction.rb
+[hex-lay]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/hex.rb#L115-L291

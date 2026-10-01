@@ -189,7 +189,7 @@ export function createLetterNumberLocationFactory(options: {
     numberOffset: number
     fixedColors: readonly string[]
     names: Readonly<Record<string, string>>
-    /** Company ids by location, or the company and city node on a multi-city location. */
+    /** A company id reserving every city of a location, or the company and one city node. */
     homes: Readonly<Record<string, string | CityReservation>>
     markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>>
 }) {
@@ -205,11 +205,17 @@ export function createLetterNumberLocationFactory(options: {
             buildable: !options.fixedColors.includes(preprintedTile.color),
             ...details,
             ...(options.names[id] ? { name: options.names[id] } : {}),
-            ...(options.homes[id] ? { reservations: [homeReservation(options.homes[id])] } : {}),
+            ...(options.homes[id]
+                ? { reservations: homeReservations(options.homes[id], preprintedTile) }
+                : {}),
             ...(options.markers[id] ? { markers: options.markers[id] } : {})
         }))
 }
 
-function homeReservation(home: string | CityReservation): CityReservation {
-    return typeof home === 'string' ? { companyId: home, nodeId: 'city' } : { ...home }
+// A company id reserves every city on the hex; a city reservation names one of them.
+function homeReservations(home: string | CityReservation, tile: TileFace): CityReservation[] {
+    if (typeof home !== 'string') return [{ ...home }]
+    const cities = tile.nodes.filter((node) => node.kind === 'city')
+    assert(cities.length > 0, 'A home requires a city')
+    return cities.map((node) => ({ companyId: home, nodeId: node.id }))
 }

@@ -2,7 +2,6 @@ import { expect, it } from 'vitest'
 import { cashOwnedBy, EighteenXXStateValidator } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import {
-    EighteenThirtyCompanyRules,
     EighteenThirtyStockRules,
     EighteenThirtyTrainDepot,
     EighteenThirtyTrainRules
@@ -33,24 +32,24 @@ it.each([2, 3, 4, 5, 6] as const)('creates the %i-player opening', (count) => {
     expect(state.machineState).toBe('WaterfallAuction')
 })
 
-it('reserves homes, with NYNH in the first New York city and Erie not yet reserved', () => {
+it('reserves homes, with NYNH in the first New York city and Erie on both Buffalo cities', () => {
     const { state } = exampleGame(EighteenThirtyScenarios, 'opening', 4)
     expect(
-        Object.fromEntries(
-            state.stationReservations.map((reservation) => [
-                reservation.companyId,
-                `${reservation.locationId}/${reservation.nodeId}`
-            ])
+        state.stationReservations.map(
+            (reservation) =>
+                `${reservation.companyId} ${reservation.locationId}/${reservation.nodeId}`
         )
-    ).toEqual({
-        PRR: 'H12/city',
-        NYC: 'E19/city',
-        CPR: 'A19/city',
-        BO: 'I15/city',
-        CO: 'F6/city',
-        NYNH: 'G19/city-0',
-        BM: 'E23/city'
-    })
+    ).toEqual([
+        'CO F6/city',
+        'PRR H12/city',
+        'CPR A19/city',
+        'NYC E19/city',
+        'ERIE E11/city-0',
+        'ERIE E11/city-1',
+        'BO I15/city',
+        'NYNH G19/city-0',
+        'BM E23/city'
+    ])
     expect(
         state.stations.filter((station) => station.companyId === 'PRR').map((station) => station.id)
     ).toEqual(['PRR:home', 'PRR:station:1', 'PRR:station:2', 'PRR:station:3'])
@@ -82,15 +81,4 @@ function trainOffersAfterTwoSixes(config: Record<string, boolean>) {
 it('offers a third 6-train only with the optional rule', () => {
     expect(trainOffersAfterTwoSixes({})).toEqual(['D'])
     expect(trainOffersAfterTwoSixes({ extraSixTrain: true })).toEqual(['6', 'D'])
-})
-
-it('cannot start Erie before its home exists', () => {
-    const { state } = exampleGame(EighteenThirtyScenarios, 'opening', 3)
-    const buyer = { kind: 'player', playerId: state.players[0].playerId } as const
-    expect(EighteenThirtyCompanyRules.startTerms(state, 'ERIE', buyer, '0:6')).toBe(
-        'This company cannot be started yet.'
-    )
-    expect(EighteenThirtyCompanyRules.startTerms(state, 'NYC', buyer, '0:6')).toMatchObject({
-        price: 200
-    })
 })

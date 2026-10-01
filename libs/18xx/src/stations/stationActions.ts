@@ -1,3 +1,8 @@
+import {
+    ChooseHomeStation,
+    HydratedChooseHomeStation,
+    isChooseHomeStation
+} from './chooseHomeStation.js'
 import { defineAction, type ActionDefinition } from '../actions/actionDefinition.js'
 import type { StationRules } from './stationPlacement.js'
 import { PlaceStation, HydratedPlaceStation, isPlaceStation } from './placeStation.js'
@@ -24,6 +29,15 @@ export function stationActions(rules: StationRules): ActionDefinition[] {
             PlaceHomeStations,
             isPlaceHomeStations,
             (action) => new HydratedPlaceHomeStations(action, rules)
-        )
+        ),
+        ...(rules.homeChoice
+            ? [
+                  defineAction(
+                      ChooseHomeStation,
+                      isChooseHomeStation,
+                      (action) => new HydratedChooseHomeStation(action, rules)
+                  )
+              ]
+            : [])
     ]
 }

@@ -7,6 +7,7 @@ import { FinalWealthScoring } from '../ending/finalScores.js'
 import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
 import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
+import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
 import { BankruptHandler } from '../funding/bankruptHandler.js'
 import { BetweenCompaniesHandler } from '../privates/betweenCompaniesHandler.js'
 import { CompanyDecisionsHandler } from '../privates/companyDecisionsHandler.js'
@@ -107,6 +108,10 @@ export function createEighteenXXRuntime(
                   options.privatePowerRules
               )
             : handler
+    const choosesHome = (handler: Handler): Handler =>
+        options.stationRules.homeChoice
+            ? new HomeStationChoiceHandler(handler, options.stationRules, 'OperatingSet')
+            : handler
     const after = stateAfterOperatingStep
     const operatingStep = (handler: Handler): Handler =>
         endsGame(allowsPrivatePowerRequests(allowsCompanyDecisions(allowsExchange(handler))))
@@ -175,7 +180,12 @@ export function createEighteenXXRuntime(
                 new BetweenCompaniesHandler(
                     decides(
                         'OperatingSet',
-                        new StartOperatingTurnHandler(options.stationRules, OperatingStepStates[0])
+                        choosesHome(
+                            new StartOperatingTurnHandler(
+                                options.stationRules,
+                                OperatingStepStates[0]
+                            )
+                        )
                     ),
                     options.privatePowerRules,
                     options.trackRules,

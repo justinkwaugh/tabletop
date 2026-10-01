@@ -1,7 +1,9 @@
 import { assert } from '@tabletop/common'
 import {
+    ChooseHomeStation,
     FinishStations,
     PlaceStation,
+    pendingHomeChoice,
     StationPlacement,
     applyStationPlacement,
     type EighteenXXState,
@@ -86,6 +88,24 @@ export class StationsModule<State extends StationsState> {
         return state
     })
 
+    homeChoice = $derived.by(() =>
+        pendingHomeChoice(this.session.state, this.session.rules.stationRules)
+    )
+    canChooseHome = $derived.by(
+        () =>
+            this.session.interactive && this.session.validActionTypes.includes('ChooseHomeStation')
+    )
+
+    async chooseHome(position: { locationId: string; nodeId: string }) {
+        const choice = this.homeChoice
+        assert(this.canChooseHome && choice, 'No home city choice is pending')
+        await this.session.applyAction(
+            this.session.createPlayerAction(ChooseHomeStation, {
+                companyId: choice.companyId,
+                ...position
+            })
+        )
+    }
     placementCost(stationId: string): number {
         const { state, rules } = this.session
         const station = state.stations.find((entry) => entry.id === stationId)
