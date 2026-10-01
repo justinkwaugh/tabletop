@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { untrack } from 'svelte'
     import {
         ScalingWrapper,
         DefaultSideContent,
@@ -27,8 +28,7 @@
         throw new Error('GameTable expected a MarracashGameSession')
     }
 
-    // svelte-ignore state_referenced_locally
-    setGameSession(ensureMarracashGameSession(gameSession))
+    setGameSession(untrack(() => ensureMarracashGameSession(gameSession)))
 </script>
 
 <div>
