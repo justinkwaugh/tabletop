@@ -97,6 +97,7 @@ import {
 } from './phaseDrafts.js'
 import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
+import { GoalsView } from './goalsView.svelte.js'
 import { siteName } from './names.js'
 import type { HistoryNames } from './actionDescription.js'
 import { peekedRelicAt } from './relicKnowledge.js'
@@ -151,6 +152,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly citizenship = new CitizenshipDraft(this)
     readonly consent = new ConsentDraft(this)
     readonly seatDetail = new SeatDetail(this)
+    readonly goalsView = new GoalsView()
 
     readonly campaign = new CampaignDraft(this)
     readonly setup = new SetupDraft(this)

@@ -499,6 +499,34 @@ test('scenario 36: the rolled dice sit in the Campaign panel, faces and totals, 
     await expect(grid(page).getByRole('region', { name: 'the Campaign\'s dice' })).toContainText(/\d+ defense/)
 })
 
+test('scenario 37: the goals on the rail, tap-only, with the next win; the seat cards keep only Visions and Successor', async ({ page }) => {
+    await openTable(page, 'goalsRail')
+    const rail = page.getByRole('button', { name: 'Goals: open the enlarged view' })
+    await expect(rail).toContainText('Next to win')
+    await expect(rail).toContainText('is the Oathkeeper')
+    await expect(rail).toContainText('Vision of Conquest')
+    await expect(page.getByRole('img', { name: /^Oathkeeper of/ })).toHaveCount(0)
+    await expect(page.getByRole('img', { name: 'Oathkeeper', exact: true })).toHaveCount(1)
+
+    const goals = page.getByRole('dialog', { name: 'Goals' })
+    await rail.hover()
+    await page.waitForTimeout(600)
+    await expect(goals).toHaveCount(0)
+
+    await rail.click()
+    await expect(goals).toBeVisible()
+    await expect(goals).toContainText(/wins as the Oathkeeper if the end die ends the game after round 5 \(on a 6\)/)
+    await expect(goals).toContainText('2 sites')
+    await expect(goals.getByText('not met')).toHaveCount(2)
+    await page.keyboard.press('Escape')
+    await expect(goals).toHaveCount(0)
+
+    await rail.click()
+    await expect(goals).toBeVisible()
+    await page.mouse.click(5, 5)
+    await expect(goals).toHaveCount(0)
+})
+
 function framesInsidePanel(page: Page) {
     return page.locator('.panel').evaluate((panel) =>
         [...panel.querySelectorAll('*')]

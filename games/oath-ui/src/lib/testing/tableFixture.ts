@@ -9,6 +9,7 @@ import {
     LetPeekSubjectKind,
     MachineState,
     MoveWarbands,
+    OathType,
     PlayerStatus,
     PowerQuestionKind,
     Region,
@@ -60,6 +61,7 @@ export type TableName =
     | 'imperialDefeated'
     | 'visionBacks'
     | 'restBanks'
+    | 'goalsRail'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -176,6 +178,51 @@ function restBanksTable(): PlayedTable {
             })
         ],
         { machineState: MachineState.RestPhase, chancellorPlayerId: 'ann' }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-3: every live goal at once: a tied Oath held by the Chancellor, a revealed Vision, a Citizen. */
+function goalsRailTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                revealedVisionId: 'vision.conquest'
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1'
+            }),
+            testPlayer({
+                playerId: 'bo',
+                color: Color.Yellow,
+                status: PlayerStatus.Citizen,
+                siteId: 'p2',
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 0, bo: 14 }
+            }),
+            testPlayer({ playerId: 'cy', color: Color.Blue, siteId: 'h1' })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'ann',
+            warbandsBySite: {
+                c1: { me: 1 },
+                c2: { me: 1 },
+                p1: { [IMPERIAL_WARBANDS]: 1 },
+                p2: { [IMPERIAL_WARBANDS]: 1 },
+                h1: { cy: 1 }
+            }
+        }
     )
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
@@ -397,7 +444,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     exileDefeated: () => defeatedTable('exile'),
     imperialDefeated: () => defeatedTable('imperial'),
     visionBacks: visionBacksTable,
-    restBanks: restBanksTable
+    restBanks: restBanksTable,
+    goalsRail: goalsRailTable
 }
 
 let session: OathGameSession | undefined

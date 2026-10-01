@@ -16,6 +16,7 @@
     import Board from '$lib/components/Board.svelte'
     import CardPreviewLayer from '$lib/components/CardPreviewLayer.svelte'
     import SeatDetailLayer from '$lib/components/SeatDetailLayer.svelte'
+    import GoalsLayer from '$lib/components/GoalsLayer.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
     import { MachineState } from '@tabletop/oath'
 
@@ -76,6 +77,7 @@
          `ScalingWrapper`, a scaled panel) would be the containing block for these
          fixed layers and scale or clip them with it. -->
     <SeatDetailLayer />
+    <GoalsLayer />
     <CardPreviewLayer />
 </div>
 

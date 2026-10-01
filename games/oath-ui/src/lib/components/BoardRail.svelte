@@ -1,9 +1,11 @@
 <script lang="ts">
     import RailBanners from '$lib/components/RailBanners.svelte'
     import RailEndDie from '$lib/components/RailEndDie.svelte'
+    import RailGoals from '$lib/components/RailGoals.svelte'
 </script>
 
 <div class="rail">
+    <RailGoals />
     <RailBanners />
     <RailEndDie />
 </div>

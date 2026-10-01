@@ -49,8 +49,6 @@
         switch (goal.kind) {
             case 'successor':
                 return `Successor goal for the Oath of ${oathName}`
-            case 'oathkeeper':
-                return `Oathkeeper of ${oathName}`
             case 'vision':
                 return goal.shared
                     ? `${cardName(goal.visionId)} — shared through a warband on it`
@@ -166,10 +164,9 @@
                         {/if}
                     {:else}
                         <!-- R-2.10 — one card prints the Oathkeeper goal on top and the
-                             Successor goal below; the box shows one half. -->
+                             Successor goal below; a Citizen's box shows the lower half. -->
                         <img
                             class="goal__art"
-                            class:goal__art--successor={goal.kind === 'successor'}
                             src={goalCardImage(gameState.oathType)}
                             alt={goalTitle(goal)}
                             use:inspectImage={{
@@ -573,15 +570,11 @@
     .goal__art {
         display: block;
         width: 100px;
-        height: 76px;
+        height: 59px;
         object-fit: cover;
-        object-position: top;
+        object-position: bottom;
         border-radius: 4px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-    }
-    .goal__art--successor {
-        height: 59px;
-        object-position: bottom;
     }
     .tile {
         display: block;
