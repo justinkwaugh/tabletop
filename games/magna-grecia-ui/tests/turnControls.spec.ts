@@ -80,6 +80,23 @@ async function chooseAShape(page: Page) {
     await expect(page.getByRole('button', { name: 'Place this road tile' })).toBeVisible()
 }
 
+test('starts each turn with no tool selected', async ({ page }) => {
+    await createGame(page)
+    const tool = () => page.evaluate(() => window.magnaGreciaSession.activeTool)
+    await expect(page.getByText('Choose an action', { exact: true })).toBeVisible()
+    await expect.poll(tool).toBeUndefined()
+    await expect(
+        page.getByRole('button', { name: 'Place a city tile here', exact: true })
+    ).toHaveCount(0)
+
+    await page.getByRole('button', { name: /^Cities/ }).click()
+    await expect.poll(tool).toBe('City')
+    await page.getByRole('button', { name: 'Place a city tile here', exact: true }).first().click()
+    await page.getByRole('button', { name: 'End turn', exact: true }).click()
+    await expect.poll(tool).toBeUndefined()
+    await expect(roadTargets(page)).toHaveCount(0)
+})
+
 test('choosing, rotating and confirming lays the previewed road and closes the widget', async ({
     page
 }) => {

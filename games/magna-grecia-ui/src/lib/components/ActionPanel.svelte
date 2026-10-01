@@ -61,7 +61,11 @@
             case BuildTool.Sell:
                 return 'Sell an active market for its value — this ends your turn'
             default:
-                return 'Build or sell a market, or end your turn'
+                return gameSession.availableTools.some(
+                    (tool) => tool === BuildTool.Road || tool === BuildTool.City
+                )
+                    ? 'Choose an action'
+                    : 'Build or sell a market, or end your turn'
         }
     })
 </script>

@@ -2,7 +2,7 @@
 
 ## Visual intents
 
-- **Tool targeting.** On the acting player's turn the action panel offers Roads, Cities, Build market and Sell market for whichever have a legal target, plus Resupply and End turn. The active tool alone decides which board spaces pulse as targets; every other space stays inert. Targets are focusable and activate with Enter or Space.
+- **Tool targeting.** On the acting player's turn the action panel offers Roads, Cities, Build market and Sell market for whichever have a legal target, plus Resupply and End turn. No tool is preselected at the start of a turn: the prompt asks the player to choose an action and no board space pulses until they pick one. The active tool alone decides which board spaces pulse as targets; every other space stays inert. Targets are focusable and activate with Enter or Space.
 - **City placement.** City targets are filled a pale cream so they stand out from the land and show a brown outline of the city tile's temple and houses, drawn at tile size in the same colour as the road target arc; hovering one previews a ghost city tile in the player's colour. Spaces that commit the player to further tiles use a fainter, dotted outline: a space beside a village (the next tile must cover it) and a plain space that founds a city which must reach a village this turn.
 - **Pending village claim.** After a tile is placed beside a village, only that village is targeted, the tool buttons disappear, and the prompt asks for the village tile.
 - **Pending founding.** After founding on a plain space, only spaces that extend the new city toward a village it can legally cover are targeted, the tool buttons disappear, and the prompt asks the player to keep building until the city covers a village.
@@ -21,7 +21,7 @@
 
 | State          | Meaning                              | Producer                                                                                        | Consumers                              | Lifetime                                                                                | Validity                                            |
 | -------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `activeTool`   | Which kind of target the board shows | Session: pending claim, else none while resupplying, else the chosen tool, else the first of Roads/Cities | Action panel, target layer             | The choice is keyed to the round and turn, so it lapses when the turn changes           | Derived from currently available tools              |
+| `activeTool`   | Which kind of target the board shows | Session: pending claim, else none while resupplying, else the chosen tool, else none | Action panel, target layer             | The choice is keyed to the round and turn, so it lapses when the turn changes           | Derived from currently available tools              |
 | `roadSpace`    | Road space being laid (manual)       | Target layer                                                                                    | Target layer, tile laying widget, action panel, header Back | Cleared by `resetAction()` before each published state, by ✕, by Back, and by choosing a tool | Options are re-derived from current legal road ends |
 | `roadShape`    | Tile shape previewed on the space    | Widget (manual), or auto when only one shape is legal                                          | Tile laying widget, action panel       | Cleared with `roadSpace`; Back clears a manual shape first                              | A manual shape no longer legal falls back to auto or none |
 | `roadRotation` | Which legal orientation is previewed | Widget (click preview to rotate)                                                                | Tile laying widget                     | Reset whenever the space or shape changes                                               | Taken modulo the shape's legal orientations       |
@@ -47,7 +47,7 @@ In History View and for inactive players `canAct` is false, so no tool, target, 
 
 ## Verification scenarios
 
-Scenarios 1 and 4–6 were exercised manually in the single-game harness with Playwright. Scenario 2 and the mode and Back paths of scenario 3 are automated in `tests/turnControls.spec.ts`; confirming a resupply and scenarios 7–9 still need a manual pass.
+Scenarios 1, 4–9 and confirming a resupply were exercised manually in the single-game harness. Scenario 2, the mode and Back paths of scenario 3, and the empty tool selection at the start of a turn are automated in `tests/turnControls.spec.ts`.
 
 1. **Claim start and Undo.**
     - Start: a new 4-player game.

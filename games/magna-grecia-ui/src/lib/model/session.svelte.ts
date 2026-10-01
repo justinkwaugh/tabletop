@@ -143,9 +143,7 @@ export class MagnaGreciaGameSession extends GameSession<
         ) {
             return chosen.tool
         }
-        return this.availableTools.find(
-            (tool) => tool === BuildTool.Road || tool === BuildTool.City
-        )
+        return undefined
     })
 
     roadTargets: Map<SpaceKey, RoadTarget> = $derived(
