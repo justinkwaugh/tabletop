@@ -41,3 +41,9 @@ it('draws impassable borders between existing hexes', () => {
         for (const border of location.borders ?? [])
             expect(EighteenThirtyMap.neighbor(location.id, border.edge)).toBeDefined()
 })
+
+it('makes Canada one stop and, as the reference does, leaves the Gulf hexes separate', () => {
+    const group = (id: string) => EighteenThirtyMap.location(id).stopGroup
+    expect([group('A9'), group('A11')]).toEqual(['Canada', 'Canada'])
+    expect([group('I1'), group('J2')]).toEqual([undefined, undefined])
+})

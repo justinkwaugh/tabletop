@@ -7,7 +7,7 @@ import {
     privateOwner,
     sameOwner
 } from '../finance/finance.js'
-import { settleCashPayments } from '../finance/cashPayments.js'
+import { settleCashPayments, type CashPayment } from '../finance/cashPayments.js'
 import { trainCanBeTraded, trainsOwnedBy } from '../trains/train.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { closePrivatesOnTrainPurchase } from '../trains/buyTrain.js'
@@ -73,7 +73,17 @@ export interface TransferRules {
         asset: PurchaseAsset
     ): { minimum: number; maximum?: number } | undefined
     afterPurchase(state: CompanyDecisionState, offer: PurchaseOffer): void
+    /**
+     * Who makes up a price the buyer's treasury cannot cover, in order, and the highest price
+     * they may fund; undefined when the treasury must pay alone.
+     */
+    purchaseFunding?(
+        state: CompanyDecisionState,
+        companyId: string,
+        asset: PurchaseAsset
+    ): PurchaseFunding | undefined
 }
+export type PurchaseFunding = { contributors: readonly Owner[]; maximumPrice: number }
 export function assetOwner(state: CompanyDecisionState, asset: PurchaseAsset): Owner | undefined {
     if (asset.kind === 'private') {
         const company = state.companies.find((item) => item.id === asset.privateCompanyId)
@@ -122,9 +132,7 @@ export function evaluatePurchaseOffer(
         (range.maximum !== undefined && request.price > range.maximum)
     )
         return { reason: 'This purchase or price is not permitted.' }
-    const cash = cashOwnedBy(state, { kind: 'company', companyId: request.companyId })
-    if (cash === undefined || (cash !== 'unlimited' && cash < request.price))
-        return { reason: 'The buyer cannot afford the offer.' }
+    if (!canFund(state, request, rules)) return { reason: 'The buyer cannot afford the offer.' }
     if (request.asset.kind === 'train') {
         if (owner.kind !== 'company')
             return { reason: 'Intercompany trains must belong to another company.' }
@@ -151,7 +159,10 @@ export function settlePurchaseOffer(
         evaluation.reason ?? 'Decision authority has changed'
     )
     const owner = { kind: 'company', companyId: offer.companyId } as const
-    settleCashPayments(state, [{ from: owner, to: offer.seller, amount: offer.price }])
+    settleCashPayments(state, [
+        ...fundingContributions(state, offer, rules),
+        { from: owner, to: offer.seller, amount: offer.price }
+    ])
     const asset = offer.asset
     if (asset.kind === 'train') {
         const train = state.trainInventory.trains.find((item) => item.id === asset.trainId)
@@ -171,4 +182,44 @@ export function settlePurchaseOffer(
         delete certificate.poolId
     }
     rules.afterPurchase(state, offer)
+}
+
+function finiteCash(state: CompanyDecisionState, owner: Owner): number {
+    const cash = cashOwnedBy(state, owner)
+    assert(typeof cash === 'number', 'Purchase funding requires finite balances')
+    return cash
+}
+
+function canFund(
+    state: CompanyDecisionState,
+    request: PurchaseOfferRequest,
+    rules: TransferRules
+): boolean {
+    const treasury = cashOwnedBy(state, { kind: 'company', companyId: request.companyId })
+    if (treasury === undefined) return false
+    if (treasury === 'unlimited' || treasury >= request.price) return true
+    const funding = rules.purchaseFunding?.(state, request.companyId, request.asset)
+    return (
+        !!funding &&
+        request.price <= funding.maximumPrice &&
+        funding.contributors.reduce((sum, owner) => sum + finiteCash(state, owner), treasury) >=
+            request.price
+    )
+}
+
+function fundingContributions(
+    state: CompanyDecisionState,
+    offer: PurchaseOffer,
+    rules: TransferRules
+): CashPayment[] {
+    const buyer = { kind: 'company', companyId: offer.companyId } as const
+    let shortfall = offer.price - finiteCash(state, buyer)
+    if (shortfall <= 0) return []
+    const funding = rules.purchaseFunding?.(state, offer.companyId, offer.asset)
+    assertExists(funding, 'A purchase beyond the treasury requires funding')
+    return funding.contributors.flatMap((owner) => {
+        const amount = Math.min(shortfall, finiteCash(state, owner))
+        shortfall -= amount
+        return amount ? [{ from: owner, to: buyer, amount }] : []
+    })
 }

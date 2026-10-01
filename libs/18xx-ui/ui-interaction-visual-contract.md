@@ -118,6 +118,11 @@ Changing appearance preserves the current selection. The development host's
 Show sample tile, token & route switch replaces its displayed inventory and overlays; choosing
 a different map replaces the whole scene. Neither operation is a game Action.
 
+A map view's joined edges draw no outline, in the hex artwork or the map's outline
+layer, so neighbouring hexes read as one area (1830's Canada and Gulf). A tile layout
+may hide a revenue value that another hex of the area already shows. Each hex stays
+separately selectable.
+
 ### Coexistence and precedence
 
 Slot and stop hit targets take precedence over tracks beneath them; track targets

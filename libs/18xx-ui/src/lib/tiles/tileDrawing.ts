@@ -36,6 +36,8 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
+    /** Leaves out revenue values another hex of the same area already shows. */
+    hideRevenue?: true
 }
 
 export type TileDrawnNode = {
@@ -44,6 +46,7 @@ export type TileDrawnNode = {
     slots: readonly Point[]
     revenuePosition: Point
     revenueCells: readonly RevenueCell[]
+    revenueHidden: boolean
     townAngle?: number
 }
 
@@ -209,6 +212,7 @@ export function createTileDrawing(
             slots: node.kind === 'city' ? stationPositions(node.stationSlots, center, angle) : [],
             revenuePosition,
             revenueCells,
+            revenueHidden: layout.hideRevenue === true,
             townAngle
         }
     })

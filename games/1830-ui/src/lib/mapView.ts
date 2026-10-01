@@ -17,8 +17,12 @@ export const EighteenThirtyMapView: MapViewDefinition = {
         G19: {
             nodePositions: { 'city-0': towardTileEdge(3, 20), 'city-1': towardTileEdge(1, 18) }
         },
-        H12: { nodePositions: { city: towardTileEdge(2.5, 22) } }
+        H12: { nodePositions: { city: towardTileEdge(2.5, 22) } },
+        // Canada and the Gulf each show one revenue for their two hexes.
+        A9: { hideRevenue: true },
+        I1: { hideRevenue: true }
     },
+    joinedEdges: { A9: [4], A11: [1], I1: [5], J2: [2] },
     stations: {
         PRR: { color: '#32763f', label: 'PRR' },
         NYC: { color: '#474548', label: 'NYC' },

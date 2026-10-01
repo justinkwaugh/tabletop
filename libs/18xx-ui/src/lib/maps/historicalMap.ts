@@ -97,7 +97,8 @@ export class HistoricalMaps {
                 },
                 view.layouts,
                 view.markerArt,
-                view.placements
+                view.placements,
+                view.joinedEdges
             ),
             tokens: stationMapTokens(snapshot, view.stations),
             reservations: snapshot.stationReservations,

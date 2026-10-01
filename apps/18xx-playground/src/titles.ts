@@ -99,7 +99,8 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         mapLayouts: EighteenThirtyMapView.layouts,
         mapExample: { locationId: 'H10', definitionId: '18xx:57', rotation: 1, label: 'PRR' },
         tileSets: { '1830': EighteenThirtyTileSet },
-        positions: ['diesel']
+        positions: ['diesel'],
+        finishedGame: () => import('./demo/fixtures/1830-finished.json')
     }
 ]
 

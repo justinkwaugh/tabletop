@@ -51,6 +51,8 @@ export const MapLocation = Type.Object(
             )
         ),
         reservations: Type.Optional(Type.Array(CityReservation)),
+        /** Locations sharing a stop group count as one stop; a route may visit only one. */
+        stopGroup: Type.Optional(Identifier),
         upgradeLabels: Type.Optional(
             Type.Array(
                 Type.Object(
@@ -103,6 +105,12 @@ export class RailwayMap {
         deepFreeze(this.definition)
         this.locationsById = new Map()
         this.grid = new HexGrid({ hexDefinition: { orientation: value.orientation } })
+        const groups = this.definition.locations.flatMap((location) => location.stopGroup ?? [])
+        for (const group of groups)
+            assert(
+                groups.filter((other) => other === group).length > 1,
+                `Stop group ${group} needs more than one location`
+            )
         for (const location of this.definition.locations) {
             assert(!this.locationsById.has(location.id), `Duplicate map location: ${location.id}`)
             assert(
@@ -196,7 +204,9 @@ export function createLetterNumberLocationFactory(options: {
     return (
         ids: string,
         preprintedTile: TileFace,
-        details: Partial<Pick<MapLocation, 'terrain' | 'upgradeLabels' | 'borders'>> = {}
+        details: Partial<
+            Pick<MapLocation, 'terrain' | 'upgradeLabels' | 'borders' | 'stopGroup'>
+        > = {}
     ): MapLocation[] =>
         ids.split(' ').map((id) => ({
             id,

@@ -107,6 +107,7 @@ export class EncodedRoutes {
             assertExists(node, 'Route requires an existing node')
             return node
         })
+        const groupIds = new Map<string, number>()
         const stops = this.centers.map((center, index) => {
             const node = nodes[index]
             assertExists(node, 'Revenue center requires a node')
@@ -124,7 +125,7 @@ export class EncodedRoutes {
                     cityIsBlocked(state, companyId, center.locationId, node),
                 endpoint: true,
                 allowed: true,
-                groups: []
+                groups: this.stopGroups(groupIds, rules.map.location(center.locationId).stopGroup)
             }
         })
         const trains = trainsOwnedBy(state, { kind: 'company', companyId }).map((train) => {
@@ -161,7 +162,7 @@ export class EncodedRoutes {
             arcs,
             trains,
             resource_count: resources.size,
-            group_count: 0,
+            group_count: groupIds.size,
             hex_bonuses: locations.map(() => 0),
             budget_ms: timeLimitMs
         }
@@ -189,6 +190,12 @@ export class EncodedRoutes {
         })
     }
 
+    private stopGroups(groupIds: Map<string, number>, group: string | undefined): number[] {
+        if (group === undefined) return []
+        const id = groupIds.get(group) ?? groupIds.size
+        groupIds.set(group, id)
+        return [id]
+    }
     private resourceId(resources: Map<string, number>, key: string): number {
         const existing = resources.get(key)
         if (existing !== undefined) return existing

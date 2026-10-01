@@ -247,7 +247,8 @@ export class MapModule {
             { tileSet: view.tileSet, inventory },
             view.layouts,
             view.markerArt,
-            view.placements
+            view.placements,
+            view.joinedEdges
         )
     }
 }

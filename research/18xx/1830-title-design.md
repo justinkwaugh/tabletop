@@ -488,6 +488,76 @@ the reference source.
 - The M&H owner exchanges it for an NYC share in their stock turn, between
   turns, or during an operating round, within the 60% limit.
 
+## Slice 5 design: routes, emergency purchases and verification
+
+Slice 5 makes Canada one stop, lets a company that must buy a train take another
+company's train with its president's help, and replays the three recorded games.
+
+### Evidence
+
+- **Offboard groups.** In the reference [map], A9 and A11 carry `groups:Canada`;
+  of the Gulf only I1 carries `groups:Gulf`, so J2 has no group. A route may not
+  visit a group twice, so Canada is one stop and the Gulf's two hexes are two.
+  Each pair also has untyped borders between its hexes (A9 edge 4 and A11 edge
+  1, I1 edge 5 and J2 edge 2), which the reference draws as missing hex outlines.
+  `hide:1` on A9 and I1 leaves one revenue value per pair.
+- **Emergency purchases.** The base engine's `EBUY_FROM_OTHERS` is `:value`
+  (1889 sets `:never`). While a company must buy a train and its treasury is
+  short of a train's price, it may buy another company's train for at most its
+  face value, the president paying the difference.
+- **Family survey.** In the reference source, 49 of 262 title maps use `groups`.
+  The base engine's `:value` applies to every title that does not override it;
+  30 titles set `:never` (as 1889 does), one sets `:always`, and six restate
+  `:value`. The funding hook therefore names contributors and a price cap per
+  title rather than assuming face value.
+- **Recorded games.** Three games: a three-player game ended by the bank, and two
+  four-player games ended by bankruptcy, one with brown shares from the IPO.
+
+### Decisions
+
+- **Stop groups are map data.** A map location may name a `stopGroup`; the family
+  route evaluation rejects a route visiting a group twice, and the autorouter
+  sends the groups to its solver, which already supported exclusive groups. A
+  group needs more than one location. 1830 groups A9 and A11 as Canada and, like
+  the reference, leaves I1 and J2 ungrouped.
+- **Joined offboards are presentation.** A map view's `joinedEdges` leaves those
+  edges out of the hex outlines, and a tile layout's `hideRevenue` leaves out a
+  duplicate revenue value. 1830 joins Canada and the Gulf and shows their
+  revenue on A11 and J2.
+- **Purchase funding is a transfer rule.** `TransferRules.purchaseFunding` names,
+  for a purchase the treasury cannot cover, who makes up the difference and the
+  highest price they may fund. The family checks the combined cash and, on
+  settlement, takes the contributions before paying the seller. 1830 names the
+  president, up to the train's face value, while the company owns no train and
+  must buy one. The purchase is still an offer accepted by the selling company's
+  president.
+- **Verification by replay.** A research converter applies the reference's undo
+  and redo, expands programmed actions and maps each recorded action to ours. All
+  three games reach game over with upstream's final wealth. The bank-ended game
+  is the playground's finished 1830 game.
+
+### Differences found by replay
+
+None of these needed rule changes; the converter bridges them.
+
+- Upstream ends or skips a stock turn when nothing else is possible. Ours keeps it
+  open while the owner may still exchange M&H.
+- Upstream's track step ends after the company's lay. Ours stays open while a
+  private lay remains, so a following pass belongs to the station step.
+- Upstream lifts the tokens on a trackless multi-city hex when track is laid there
+  and the owner places them again; ours carries them over through the lay's node
+  mapping, which the layer chooses.
+- On bankruptcy, upstream sells each company's largest sellable bundle and gives
+  the player's cash to the bank. Ours has the president make the sales during
+  train funding before bankruptcy is declared, and the contributed cash stays in
+  the treasury. Players' final wealth is the same.
+
+### Limits after slice 5
+
+- A president cannot sell shares to fund another company's train; only their cash
+  contributes, as in the recorded games.
+- The offer form does not show how much the president would contribute.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/entities.rb

@@ -282,8 +282,8 @@
                 <TileSymbol symbol="port" ink={appearance.ink} paper={appearance.paper} />
             </g>
         {/if}
-        {#each drawing.nodes as { node, revenuePosition, revenueCells } (node.id)}
-            {#if node.kind !== 'junction' && (showZeroRevenue || node.revenue.kind === 'staged' || node.revenue.amount !== 0)}
+        {#each drawing.nodes as { node, revenuePosition, revenueCells, revenueHidden } (node.id)}
+            {#if node.kind !== 'junction' && !revenueHidden && (showZeroRevenue || node.revenue.kind === 'staged' || node.revenue.amount !== 0)}
                 <g
                     data-revenue-for={node.id}
                     transform={`translate(${revenuePosition.x} ${revenuePosition.y})`}

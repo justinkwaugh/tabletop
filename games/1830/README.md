@@ -17,8 +17,11 @@ initialization is available from `@tabletop/1830/scenarios`.
 The research site's implementation defines the rules (project decision,
 2026-10-01). It follows the Lookout 1830-RE rulebook. See the
 [title design note](../../research/18xx/1830-title-design.md) for sources, the
-delivery slices, and the intentional limits so far: offboard groups are not yet
-enforced. The privates carry their powers and awards: C&A's PRR share, B&O's
+delivery slices, and the intentional limits so far. Canada's two hexes are one
+stop; as in the reference, the Gulf's are two. A company that must buy a train may
+buy another company's for up to its face value, its president paying what the
+treasury cannot. The three recorded games replay to their recorded final wealth;
+one is the playground's finished game. The privates carry their powers and awards: C&A's PRR share, B&O's
 presidency and par (and its closure on B&O's first train), C&StL's and D&H's lays,
 D&H's station, and M&H's exchange for an NYC share. Stock turns are sell–buy–sell,
 brown-zone shares of one company can be bought several at a time, and players sell

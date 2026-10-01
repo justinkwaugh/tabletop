@@ -189,3 +189,24 @@ it('replays the finished 1889 game to its bank-break ending and back', async () 
         restored = engine.applyProcessedAction({ game, state: restored, action })
     expect(restored).toEqual(state)
 }, 60000)
+
+it('replays the finished 1830 game to its bank-break ending and back', async () => {
+    const { game, state, initialState, actions, engine } = await finishedGame(
+        'local-user',
+        'Finished game',
+        '1830'
+    )
+    expect(state.machineState).toBe('GameOver')
+    expect(
+        Object.fromEntries(state.finalWealth?.map(({ playerId, total }) => [playerId, total]) ?? [])
+    ).toEqual({ '15698': 12025, '13430': 13048, '15688': 12109 })
+    expect(state.winningPlayerIds).toEqual(['13430'])
+    for (const action of actions) expect(historyDescription(action, state).text).toBeTruthy()
+    let restored = state
+    for (const action of [...actions].reverse())
+        restored = engine.undoProcessedAction({ state: restored, action })
+    expect(restored).toEqual(initialState)
+    for (const action of actions)
+        restored = engine.applyProcessedAction({ game, state: restored, action })
+    expect(restored).toEqual(state)
+}, 120000)

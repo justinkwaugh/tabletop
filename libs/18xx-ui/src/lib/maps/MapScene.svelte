@@ -209,7 +209,9 @@
                     <TileArtwork
                         face={entry.face}
                         drawing={entry.drawing}
-                        {appearance}
+                        appearance={entry.joined
+                            ? { ...appearance, edge: { color: 'none', width: 0 } }
+                            : appearance}
                         {revenueStageColors}
                         showZeroRevenue={false}
                     >
@@ -417,12 +419,26 @@
     {#if !artwork}
         <g data-map-layer="outlines" fill="none" pointer-events="none" aria-hidden="true">
             {#each entries as entry (entry.location.id)}
-                <polygon
-                    transform={`translate(${entry.center.x} ${entry.center.y})`}
-                    points={entry.drawing.polygon}
-                    stroke="#566368"
-                    stroke-width="0.6"
-                ></polygon>
+                {#if entry.joined}
+                    <g
+                        data-joined-outline={entry.location.id}
+                        transform={`translate(${entry.center.x} ${entry.center.y})`}
+                        stroke="#566368"
+                        stroke-width="0.6"
+                        stroke-linecap="round"
+                    >
+                        {#each entry.outline as { start, end }, index (index)}
+                            <line x1={start.x} y1={start.y} x2={end.x} y2={end.y}></line>
+                        {/each}
+                    </g>
+                {:else}
+                    <polygon
+                        transform={`translate(${entry.center.x} ${entry.center.y})`}
+                        points={entry.drawing.polygon}
+                        stroke="#566368"
+                        stroke-width="0.6"
+                    ></polygon>
+                {/if}
             {/each}
         </g>
     {/if}

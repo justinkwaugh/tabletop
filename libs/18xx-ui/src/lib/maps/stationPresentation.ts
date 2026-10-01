@@ -1,5 +1,5 @@
 import { assertExists, type BoundingBox } from '@tabletop/common'
-import type { StationState, RailwayMap, TileSet } from '@tabletop/18xx'
+import type { StationState, RailwayMap, TileEdge, TileSet } from '@tabletop/18xx'
 import type { BoardArtwork, MapMarkerArt, MapPlacement, MapToken } from './mapDrawing.js'
 import type { TileLayout } from '../tiles/tileDrawing.js'
 import type { TileAppearance } from '../tiles/tileAppearance.js'
@@ -40,6 +40,8 @@ export type MapViewDefinition = {
      * while the published artwork toggle is on.
      */
     publishedPlacements?: Readonly<Record<string, MapPlacement>>
+    /** Hex edges drawn without an outline so that neighbouring hexes read as one area. */
+    joinedEdges?: Readonly<Record<string, readonly TileEdge[]>>
 }
 export function stationMapTokens(
     state: StationState,
