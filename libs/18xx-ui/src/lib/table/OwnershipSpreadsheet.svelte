@@ -151,6 +151,10 @@
             shareConfirmation?.hidePopover()
     })
     let scrolled = $state(false)
+    const maxPinnedLabelShare = 0.35
+    let scrollViewportWidth = $state(0)
+    let labelColumnWidth = $state(0)
+    const pinLabelColumn = $derived(labelColumnWidth <= scrollViewportWidth * maxPinnedLabelShare)
     const view = $derived(
         session.preferences.values.spreadsheetView === 'company' ? 'Company' : 'Player'
     )
@@ -718,6 +722,8 @@
             <div
                 class="table-scroll"
                 class:scrolled
+                class:pin-label-column={pinLabelColumn}
+                bind:clientWidth={scrollViewportWidth}
                 onscroll={(event) => (scrolled = event.currentTarget.scrollLeft > 0)}
             >
                 <div class="outlined-table">
@@ -742,7 +748,11 @@
                         </colgroup>
                         <thead>
                             <tr>
-                                <th scope="col" class="axis-corner">
+                                <th
+                                    scope="col"
+                                    class="axis-corner"
+                                    bind:offsetWidth={labelColumnWidth}
+                                >
                                     <span class="axis-labels"
                                         >{#if view === 'Player'}{@render turnOrderSort()}{:else}Company{/if}<span
                                             class="axis-split"
@@ -1616,10 +1626,13 @@
         padding-left: 12px;
     }
     tr > th:first-child {
-        position: sticky;
-        left: 0;
+        position: relative;
         z-index: 1;
         border-right: 2px solid var(--sheet-divider);
+    }
+    .pin-label-column tr > th:first-child {
+        position: sticky;
+        left: 0;
     }
     .scrolled tr > th:first-child {
         z-index: 3;
