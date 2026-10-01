@@ -39,25 +39,22 @@ Player 1, 4,444 for Player 2, 4,317 for Player 3, and 3,091 for Player 4.
 
 # Finished 1830 game
 
-`1830-finished.json` is the three-player 18xx.games recording in the research package
-(`source/public/fixtures/1830/1830_game_end_bank.json`), in the same form: a canonical
-opening state, native player actions, and expected final wealth. Select **Finished game** in
-the 1830 table's Position menu.
+`1830-finished.json` is a recorded three-player game in the same form: a canonical opening
+state, native player actions, and expected final wealth. Select **Finished game** in the 1830
+table's Position menu.
 
 The bank breaks in operating set 9, so the game ends when that set completes. The recording
-is converted by `fixture-conversion/convert1830.spec.ts`, which applies upstream's undo and
-redo, expands its programmed purchases, and maps its actions to ours. Upstream ends or skips
-turns that ours leaves open while an optional private power remains (M&H's exchange, C&StL's
-lay), so the conversion adds those finishes; a pass after a lay belongs to the station step;
-private and inter-company train purchases become offers accepted by the seller; and
-emergency purchases go through our train funding.
+ended or skipped turns while an optional private power remained (M&H's exchange, C&StL's lay),
+which ours leaves open, so the fixture includes those finishes; a pass after a lay belongs to
+the station step; private and inter-company train purchases are offers accepted by the seller;
+and emergency purchases go through our train funding.
 
 Replay produces 612 player actions and 424 automatic actions. Final wealth is 12,025 for
-Player 1, 13,048 for Player 2, and 12,109 for Player 3, as upstream records.
+Player 1, 13,048 for Player 2, and 12,109 for Player 3, as recorded.
 
 # Recorded 1830 bankruptcies
 
-`1830-bankruptcy-26855.json` and `1830-bankruptcy-29133.json` are the two four-player
-18xx.games recordings that end in bankruptcy (26855 with brown shares from the IPO), converted
-the same way. They are test fixtures only: `finishedGame.spec.ts` replays each to game over and
-checks the recorded final wealth.
+`1830-bankruptcy-26855.json` and `1830-bankruptcy-29133.json` are recorded four-player games
+that end in bankruptcy (26855 with brown shares from the IPO), in the same form. They are test
+fixtures only: `finishedGame.spec.ts` replays each to game over and checks the recorded final
+wealth.

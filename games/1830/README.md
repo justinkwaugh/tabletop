@@ -14,8 +14,7 @@ initialization is available from `@tabletop/1830/scenarios`.
 
 ## Rule evidence
 
-The research site's implementation defines the rules (project decision,
-2026-10-01). It follows the Lookout 1830-RE rulebook. See the
+The rules follow the Lookout 1830-RE rulebook. See the
 [title design note](../../research/18xx/1830-title-design.md) for sources, the
 delivery slices, and the intentional limits so far. Canada's two hexes are one
 area, as are the Gulf's: a route visits only one of each pair. A company that must buy a train may
