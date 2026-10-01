@@ -28,7 +28,7 @@
 <div
     class="rounded-lg border border-[#ad9c80] text-center p-2 h-full flex flex-col justify-start items-start overflow-hidden min-h-[300px] bg-black"
 >
-    <div class="overflow-auto h-full w-full">
+    <div class="history overflow-auto h-full w-full">
         <Timeline class="ms-2 dark:border-[#ad9c80]">
             {#if gameSession.game.finishedAt && !gameSession.isViewingHistory}
                 <div
@@ -88,7 +88,7 @@
 
 <!--  fixes a styling issue with timeline-item -->
 <style>
-    :global(.timeline-item > div) {
+    .history :global(.timeline-item > div) {
         display: none;
     }
 </style>

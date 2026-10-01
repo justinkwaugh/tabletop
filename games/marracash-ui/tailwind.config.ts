@@ -1,7 +1,7 @@
 import flowbitePlugin from 'flowbite/plugin'
-import { Config } from 'tailwindcss'
+import type { Config } from 'tailwindcss'
 
-export default {
+const config: Config = {
     content: [
         './src/**/*.{html,js,svelte,ts}',
         '../../node_modules/flowbite-svelte/**/*.{html,js,svelte,ts}'
@@ -29,4 +29,6 @@ export default {
 
     plugins: [flowbitePlugin],
     darkMode: 'class'
-} as Config
+}
+
+export default config
