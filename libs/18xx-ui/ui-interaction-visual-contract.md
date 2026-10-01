@@ -339,6 +339,7 @@ the ordinary ownership ceiling and what the player could buy by spending
 current cash on the preferred pool while it holds shares, or otherwise on the
 cheapest other pool, at each share's own price, and a "then pass" switch. Pool and
 goal segments are sliding toggles whose thumb sizes to the selected segment.
+The then-pass switch shares the board Auto zoom switch's track, green when on.
 The tray's corners round fully on one line and soften when it wraps. A green Enable follows the tray and
 stays disabled until a company is chosen.
 With an instruction declared the toggle
@@ -666,7 +667,7 @@ controls. Browser coverage checks TOP and 1889 at phone, breakpoint and desktop
 widths, including resizing back to mobile.
 The operating company in the phase header uses title-defined initials below that
 same breakpoint and its full name at wider sizes; its token remains visible.
-In the paned layout the header centers the round / phase / company group and
+In the paned layout the header centers the round / company group and
 appends the active player names, or History, after a further separator; Undo and
 the artwork toggle stay at the right edge. When the centered group cannot fit
 with symmetric margins, the round label compacts first and the group then yields
@@ -746,6 +747,18 @@ Choosing one animates the view to fit the whole board or that area and marks it
 selected; choosing the selected one again animates back to the view captured
 before the first focus, even after switching between targets. A manual pan or
 zoom clears the selection and forgets that view. Focus never changes Game State.
+
+An Auto zoom switch on the board, labelled Auto below the phone breakpoint, sits at
+the top right of the paned Board tab's overlay and at the right end of the strip
+above the board below the paned breakpoint. Its on track uses the table's positive
+green. Turning it off stops the board's map framing for placement choices, route
+previews and their restores, company starts, and history steps, including restores
+captured before it was turned off. The Map tab keeps framing when the board is a
+separate tab. Explicit hex, company and route focus, board focus and artwork fitting
+still move the board. The boardAutoZoom family preference persists the choice
+across reloads and 18xx titles and defaults to on. TOP and 1889 need updated Logic
+and matching UI Artifacts because the backend validates the added preference key
+against the published Logic schema.
 Market cells share single-width borders with values at the upper left. In the
 dark table, neutral (white) cells use the raised table surface and table borders,
 while colored cells keep each market color's hue at dark-surface lightness,
@@ -1093,9 +1106,10 @@ when the preview disappears. Empty route sets do not move the camera. Returning
 to RunningTrains through Undo recalculates and focuses the new preview.
 
 The turn header pairs the current operating company's name with its title-owned
-token. The phase is a button opening a native modal phase chart with a full-screen
-backdrop. A faint dotted underline, like the spreadsheet sort headers',
-runs beneath both the Phase label and its badge and turns solid on hover. Its independent phase and train tables use canonical title data and
+token. The header does not show the phase; the game-information strip of phase,
+train limit and depot is a single button opening a native modal phase chart with a
+full-screen backdrop, and hovering anywhere on it highlights the whole strip. The
+chart's independent phase and train tables use canonical title data and
 highlight the current visible phase, including history positions. Special rust
 timing is explicit in the chart notes. Opening/closing is local presentation with
 no Action or Undo step. The native dialog owns focus containment, Escape,
@@ -1107,7 +1121,7 @@ spacing makes room for those notes beside their phase; delayed rusting remains
 an explicitly marked train footnote. General rules that do not belong to a
 particular phase remain beneath the chart.
 
-The clickable header phase uses the same colored badge and contrasting text as
+The game-information phase uses the same colored badge and contrasting text as
 its phase-chart entry, following the title's train-phase palette rather than its
 available tile colors.
 
@@ -1435,9 +1449,9 @@ Switching the buyer recomputes legal options from the session.
 
 Sidebar game information pairs train limit with depot availability. Each currently
 available depot type uses the title's train badge and canonical remaining count
-(infinity for unlimited supply); sold-out types are omitted. Clicking Depot opens
-a depot-only roster with live remaining counts and the same current-row highlight
-as the phase chart. All available types are highlighted; exhausted rows are muted.
+(infinity for unlimited supply); sold-out types are omitted. Clicking anywhere on
+the strip, Depot included, opens the full phase chart, whose train roster shows live
+remaining counts. All available types are highlighted; exhausted rows are muted.
 Title-specific company roles share the compact information row; TOP labels them
 Main and Short. Additional title information such as tranches follows below.
 
@@ -1566,7 +1580,7 @@ The zoom wrapper does not permanently promote its content with `will-change: tra
 
 The track picker keeps its entire overlay in a persistent compositing layer above the transformed map, including tile choices, placement cost, and accept/cancel controls. Its stacking order must remain stable during and after entry animations, dragging, and fullscreen transitions. TOP and 1889 UI artifacts need republication to adopt this Safari rendering workaround; game logic and the host bridge are unchanged.
 
-In the non-pane layout, the phase and Undo header stays within the same column as the action panel and map. Phase and turn controls wrap when they cannot fit together, and long company/player names wrap within their group. Pane-layout header alignment is unchanged.
+In the non-pane layout, the round and Undo header stays within the same column as the action panel and map. Phase and turn controls wrap when they cannot fit together, and long company/player names wrap within their group. Pane-layout header alignment is unchanged.
 
 Wheel-event trackpad pinch (Ctrl-marked wheel events) uses a 0.006 zoom coefficient, independently of ordinary mouse-wheel zoom at 0.003. Touch-distance pinch and native Safari gesture scaling are unchanged. This internal shared-wrapper change requires republication of consuming UI artifacts to adopt it, without host-bridge changes.
 
@@ -1584,8 +1598,6 @@ Concession descriptions start by identifying the president’s certificate and
 the actual assigned company, then retain the closure conditions. This descriptive
 text lives in TOP’s private rules module; the icon metadata lives in its UI.
 No host-bridge member or gameplay rule changes.
-
-The round/phase header uses a 4px gap between the Phase label and its badge when both are visible. Mobile retains the badge alone.
 
 Operating-history footnotes wrap within the table’s available width and do not contribute intrinsic width; income and payout tables remain centered beneath the full-width controls strip.
 
@@ -1824,9 +1836,9 @@ limit without discarding tabs or existing dividers. Existing valid saved layouts
 win over the default when returning to pane mode. This needs updated TOP/1889 UI
 Artifacts only, with no host bridge or Logic schema change.
 
-The pane-mode history navigation and round/phase header share one bottom border
-across the workspace width. Game info keeps an eight-pixel inset around its
-phase/depot buttons so controls do not touch the pane divider.
+The pane-mode history navigation and round header share one bottom border
+across the workspace width. Game info keeps an eight-pixel inset inside its
+game-information button so its contents do not touch the pane divider.
 
 Player portfolio headers share the auction header’s 15% player-color tint in both
 compact and expanded views and both themes. Non-player portfolio headers retain

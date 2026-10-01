@@ -62,6 +62,7 @@
     import { marketLowerRightSpace } from '../stock/marketTokenLayout.js'
     import BoardInset from '../maps/BoardInset.svelte'
     import BoardFocus from './BoardFocus.svelte'
+    import BoardAutoZoom from './BoardAutoZoom.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
     import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
@@ -130,7 +131,6 @@
     const readOnlyPosition = $derived(
         session.isViewingHistory || !session.myPlayer || !session.isMyTurn
     )
-    let showDepot = $state(false)
     let showPhaseChart = $state(false)
     const depotState = $derived({
         depot: session.trainDepot,
@@ -169,13 +169,29 @@
             ...(boardWrapper ? [{ wrapper: boardWrapper, extents: boardExtents }] : [])
         ]
     }
-    function fitMaps(options?: { animate?: boolean }) {
-        for (const { wrapper } of mapViewers()) wrapper.fitToContent(options)
+    function boardViewer() {
+        return boardMode ? mapWrapper : boardWrapper
+    }
+    const boardAutoZoom = $derived(session.preferences.values.boardAutoZoom)
+    function toggleBoardAutoZoom() {
+        session.preferences.set({ boardAutoZoom: !boardAutoZoom }, 'family')
+    }
+    function autoZooms(wrapper: ScalingWrapper) {
+        return boardAutoZoom || wrapper !== boardViewer()
+    }
+    function autoZoomViewers() {
+        return mapViewers().filter(({ wrapper }) => autoZooms(wrapper))
+    }
+    function fitMaps(options?: { animate?: boolean }, viewers = mapViewers()) {
+        for (const { wrapper } of viewers) wrapper.fitToContent(options)
     }
     function captureMaps(): ReturnType<ScalingWrapper['captureView']> {
-        const restores = mapViewers().map(({ wrapper }) => wrapper.captureView())
+        const views = autoZoomViewers().map(({ wrapper }) => ({
+            wrapper,
+            restore: wrapper.captureView()
+        }))
         return (options) => {
-            for (const restore of restores) restore(options)
+            for (const { wrapper, restore } of views) if (autoZooms(wrapper)) restore(options)
         }
     }
     function showMap() {
@@ -277,7 +293,7 @@
         restore: ReturnType<ScalingWrapper['captureView']>
     }>()
     function focusBoard(target: BoardFocusTarget, area?: BoundingBox) {
-        const wrapper = boardMode ? mapWrapper : boardWrapper
+        const wrapper = boardViewer()
         if (!wrapper) return
         if (boardFocus?.target === target) {
             const { restore } = boardFocus
@@ -304,8 +320,11 @@
                 onSelect: () => focusBoard(target, area)
             }))
     )
-    function focusLocations(locations: readonly string[], animate = true) {
-        for (const viewer of mapViewers()) focusViewerLocations(viewer, locations, animate)
+    function focusLocations(locations: readonly string[], animate = true, viewers = mapViewers()) {
+        for (const viewer of viewers) focusViewerLocations(viewer, locations, animate)
+    }
+    function autoFocusLocations(locations: readonly string[], animate = true) {
+        focusLocations(locations, animate, autoZoomViewers())
     }
     function focusViewerLocations(
         { wrapper, extents }: ReturnType<typeof mapViewers>[number],
@@ -373,7 +392,7 @@
             if (!locations.length) return
             showMap()
             void tick().then(() => {
-                if (current === request) focusLocations(locations)
+                if (current === request) autoFocusLocations(locations)
             })
         }
         frame(initialKey)
@@ -421,7 +440,7 @@
                     route.paths.map((path) => path.locationId)
                 )
                 restoreRouteView ??= captureMaps()
-                focusLocations([...new Set(locations)])
+                autoFocusLocations([...new Set(locations)])
             })
         }
         frame(initial)
@@ -465,7 +484,7 @@
                     session.stations.displayState,
                     selected.companyId
                 )
-                if (locations.length) focusLocations(locations)
+                if (locations.length) autoFocusLocations(locations)
             })
         }
         frame(initial)
@@ -537,8 +556,8 @@
             if (!target) return
             void tick().then(() => {
                 if (current !== request) return
-                if (target.locations.length) focusLocations(target.locations, false)
-                else fitMaps()
+                if (target.locations.length) autoFocusLocations(target.locations, false)
+                else fitMaps({}, autoZoomViewers())
             })
         }
         frame(initial)
@@ -793,32 +812,27 @@
 {/snippet}
 
 {#snippet gameInformationStrip()}
-    <div class="game-information" aria-label="Game information">
-        <button
-            class="game-information-item depot-information phase-information"
-            onclick={() => (showPhaseChart = true)}
-            aria-haspopup="dialog"
-            aria-label="Open phase chart"
-        >
+    <button
+        class="game-information"
+        onclick={() => (showPhaseChart = true)}
+        aria-haspopup="dialog"
+        aria-label="Open phase chart"
+    >
+        <span class="game-information-item">
             <span class="information-label">Phase</span>
             <TrainBadge
                 name={session.gameState.phaseId}
                 color={trainColors[session.gameState.phaseId]}
             />
-        </button>
-        <div class="game-information-item">
+        </span>
+        <span class="game-information-item">
             <span class="information-label train-limit-label">Train limit</span>
             <span class="train-limit-value"
                 >{phaseChart.phases.find((phase) => phase.id === session.gameState.phaseId)
                     ?.trainLimit}</span
             >
-        </div>
-        <button
-            class="game-information-item depot-information"
-            onclick={() => (showDepot = true)}
-            aria-haspopup="dialog"
-            aria-label="Open depot"
-        >
+        </span>
+        <span class="game-information-item depot-information">
             <span class="information-label">Depot</span>
             {#each currentDepotIds as currentDepotId (currentDepotId)}
                 {@const remaining = session.trainDepot.remaining(
@@ -835,8 +849,8 @@
                     ></span
                 >
             {:else}<span>Empty</span>{/each}
-        </button>
-    </div>
+        </span>
+    </button>
 {/snippet}
 {#snippet sidebarInformation()}
     {#if paneLayout.current}{@render gameInformationStrip()}{/if}
@@ -919,10 +933,6 @@
                                 {publishedArtwork}
                                 onToggleArtwork={toggleArtwork}
                                 {session}
-                                {phaseChart}
-                                {trainColors}
-                                tileColors={tileAppearance.colors}
-                                tileColorNames={tileAppearance.colorNames}
                                 {companyNames}
                                 bordered={!paneLayout.current}
                                 centered={paneLayout.current}
@@ -1082,6 +1092,10 @@
                             >
                                 {#if boardMode}<div class="board-focus-strip">
                                         <BoardFocus options={boardFocusOptions} />
+                                        <BoardAutoZoom
+                                            enabled={boardAutoZoom}
+                                            onToggle={toggleBoardAutoZoom}
+                                        />
                                     </div>{/if}
                                 <ScalingWrapper
                                     bind:this={mapWrapper}
@@ -1131,6 +1145,12 @@
                                     {#snippet overlay(viewport)}
                                         <div class="board-focus-overlay">
                                             <BoardFocus options={boardFocusOptions} />
+                                        </div>
+                                        <div class="board-auto-zoom-overlay">
+                                            <BoardAutoZoom
+                                                enabled={boardAutoZoom}
+                                                onToggle={toggleBoardAutoZoom}
+                                            />
                                         </div>
                                         {#if active && session.track.canBuild && session.track.selection.locationId}
                                             <TrackTilePicker
@@ -1256,17 +1276,6 @@
                 tileColorNames={tileAppearance.colorNames}
                 onclose={() => (showPhaseChart = false)}
             />{/if}
-        {#if showDepot}<PhaseChart
-                {money}
-                {depotState}
-                depotOnly
-                chart={phaseChart}
-                currentPhaseId={session.gameState.phaseId}
-                {trainColors}
-                tileColors={tileAppearance.colors}
-                tileColorNames={tileAppearance.colorNames}
-                onclose={() => (showDepot = false)}
-            />{/if}
 
         {#if session.historicalMap}
             <HistoricalMapViewer
@@ -1355,12 +1364,6 @@
     }
     .game-info-pane .game-information {
         padding-inline: 8px;
-    }
-    .game-info-pane .depot-information {
-        margin-inline: 0;
-    }
-    .game-info-pane .phase-information {
-        padding-left: 0;
     }
     .original-actions {
         --stock-buy-wrap: nowrap;
@@ -1484,12 +1487,26 @@
         flex: none;
         gap: 3px;
         flex-wrap: wrap;
+        width: 100%;
+        box-sizing: border-box;
         margin-top: -8px;
         padding: 6px;
+        border: 0;
         border-bottom: 1px solid var(--rail-border, #b8a995);
+        background: transparent;
         color: var(--rail-text, #514536);
+        font: inherit;
         font-size: 12px;
         line-height: 20px;
+        text-align: inherit;
+        cursor: pointer;
+    }
+    .game-information:hover {
+        background: var(--rail-hover, #ffffff66);
+    }
+    .game-information:focus-visible {
+        outline: 2px solid var(--rail-focus, #9e7752);
+        outline-offset: -2px;
     }
     @media (width < 40rem) {
         .game-information {
@@ -1501,23 +1518,6 @@
         align-items: center;
         gap: 5px;
         white-space: nowrap;
-    }
-    .depot-information {
-        border: 0;
-        padding: 4px 5px;
-        margin: -4px -5px;
-        border-radius: 4px;
-        background: transparent;
-        color: inherit;
-        font: inherit;
-        cursor: pointer;
-    }
-    .depot-information:hover {
-        background: var(--rail-hover, #ffffff66);
-    }
-    .depot-information:focus-visible {
-        outline: 2px solid var(--rail-focus, #9e7752);
-        outline-offset: 2px;
     }
     .depot-type {
         display: inline-flex;
@@ -1636,22 +1636,37 @@
         min-height: 0;
     }
     .board-focus-strip {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(max-content, 1fr);
         flex: none;
-        justify-content: center;
+        align-items: center;
         border-bottom: 1px solid var(--rail-border, #b8a995);
+    }
+    .board-focus-strip > :global(:first-child) {
+        grid-column: 2;
     }
     .board-focus-strip > :global(:first-child button) {
         padding: 2px 12px;
         font-size: 11px;
     }
-    .board-focus-overlay {
+    .board-focus-strip > :global(.board-auto-zoom) {
+        justify-self: end;
+        padding-block: 2px;
+        font-size: 11px;
+    }
+    .board-focus-overlay,
+    .board-auto-zoom-overlay {
         position: absolute;
         top: 8px;
-        left: 8px;
         z-index: 2;
         border-radius: 999px;
         box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+    }
+    .board-focus-overlay {
+        left: 8px;
+    }
+    .board-auto-zoom-overlay {
+        right: 8px;
     }
     .board-view {
         position: relative;
