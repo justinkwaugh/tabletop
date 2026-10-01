@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/frontend",
-    "version": "22.5.12",
+    "version": "22.6.0",
     "private": true,
     "type": "module",
     "scripts": {
