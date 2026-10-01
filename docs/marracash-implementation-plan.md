@@ -138,7 +138,7 @@ Each step ends with tests passing:
    - The tournament test now plays whole games to the end, with antique cards on and off.
 7. Visibility registration, projected hydration, Exploration population and visibility tests.
    - A skipped turn adds an `EndTurn` that depends on the skipped player's cash, so with Concealed Cash on it shows that player has under 100. Players at a table see a skipped turn too, so this matches the rules. Turn ends check movement first, so cash is only read when no visitors are left to move.
-   - Antique hands that were never completed stay hidden after the game ends, because finishing a game doesn't reveal secrets automatically. Confirm with the user whether they should be shown at the end.
+   - Antique hands that were never completed stay hidden after the game ends, as the user decided. Revisit if player feedback asks for them to be shown.
 8. The UI package.
 9. Add the title to the Game Catalogue (`config/config-games/src/games.json`, `gameId` and `packageId` both `marracash`). The local hosted site reads it, so this is needed before testing with the `local-hosted-game` skill.
 10. A readiness check with the `game-pr-readiness` skill.

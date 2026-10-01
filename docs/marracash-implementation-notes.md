@@ -56,6 +56,7 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
   - A completed set is detected, revealed and paid automatically.
   - Every player is told in the game when someone completes their set, so players who check in now and then don't miss it. This is an in-game event they see when they next load the game, not a notification sent outside BoardTogether.
   - Undealt cards stay hidden all game.
+  - Hands that were never completed stay hidden after the game ends. Revisit if player feedback asks for them to be shown.
   - Antique payouts don't count toward the mover's-cut profit. The player aid and the original souvenir variant counted card money, but that was for face-up cards sold one customer at a time. A completed set pays out all at once.
   - If one move completes two sets, they're ranked by the order the final customers entered.
 - **Game end:** the game ends once the last visitor in the queue has been placed on an entrance. The current round is then played out, until the player to the right of the start player has had their turn. Entrances that are emptied after the queue runs out stay empty.
