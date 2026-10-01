@@ -6,7 +6,7 @@ import {
     EighteenThirtyPreprintedTiles
 } from './index.js'
 
-it('selects 46 shared definitions with the reference counts', () => {
+it('selects 46 shared definitions with the 1830 counts', () => {
     expect(EighteenThirtyTiles).toHaveLength(46)
     expect(EighteenThirtyTileSet.pieces).toHaveLength(85)
     for (const tile of EighteenThirtyTiles) {

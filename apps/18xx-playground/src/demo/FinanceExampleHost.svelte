@@ -1,12 +1,10 @@
 <script lang="ts">
     import { onMount, onDestroy, untrack } from 'svelte'
     import { migrateOperatingIncome } from './migrateOperatingIncome.js'
-    import { TheOldPrinceEndingRules } from '@tabletop/the-old-prince'
-    import { Shikoku1889EndingRules } from '@tabletop/shikoku-1889'
+    import { playgroundTitleForType } from '../titles.js'
     import { migrateCompanyNames } from './migrateCompanyNames.js'
     import { Compile } from 'typebox/compile'
     import {
-        assert,
         assertExists,
         GameEngine,
         GameStatus,
@@ -100,9 +98,7 @@
                     loaded.game.state,
                     loaded.actions,
                     new GameEngine(runtime),
-                    definition.info.id === 'the-old-prince'
-                        ? TheOldPrinceEndingRules
-                        : Shikoku1889EndingRules
+                    playgroundTitleForType(definition.info.id).rules.endingRules
                 )
             ) {
                 await app.gameService.saveGameLocally({
@@ -126,10 +122,8 @@
                     loaded = undefined
             }
             if (!loaded && scenario === 'finished') {
-                const { finishedGame, hasFinishedGame } = await import('./finishedGame.js')
-                const typeId = definition.info.id
-                assert(hasFinishedGame(typeId), 'This title has no finished game')
-                const completed = await finishedGame(owner.id, exampleName, typeId)
+                const { finishedGame } = await import('./finishedGame.js')
+                const completed = await finishedGame(owner.id, exampleName, definition.info.id)
                 if (disposed) return
                 await app.gameService.saveGameLocally(completed)
                 loaded = await app.gameService.loadGame(completed.game.id)

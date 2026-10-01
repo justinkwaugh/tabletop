@@ -1,27 +1,12 @@
-import { assert, Game, GameAction, GameEngine, GameStatus } from '@tabletop/common'
+import { assert, assertExists, Game, GameAction, GameEngine, GameStatus } from '@tabletop/common'
 import { EighteenXXStateValidator } from '@tabletop/18xx'
-import { Definition as TheOldPrince } from '@tabletop/the-old-prince'
-import { Definition as Shikoku1889 } from '@tabletop/shikoku-1889'
 import * as Value from 'typebox/value'
+import { PlaygroundTitles } from '../titles.js'
 
-const finishedGames = {
-    'the-old-prince': {
-        definition: TheOldPrince,
-        fixture: () => import('./fixtures/top-finished.json')
-    },
-    'shikoku-1889': {
-        definition: Shikoku1889,
-        fixture: () => import('./fixtures/1889-finished.json')
-    }
-}
-export type FinishedGameTitle = keyof typeof finishedGames
-export function hasFinishedGame(typeId: string): typeId is FinishedGameTitle {
-    return typeId in finishedGames
-}
-
-export async function finishedGame(ownerId: string, name: string, typeId: FinishedGameTitle) {
-    const { definition, fixture: load } = finishedGames[typeId]
-    const fixture = (await load()).default
+export async function finishedGame(ownerId: string, name: string, typeId: string) {
+    const title = PlaygroundTitles.find((candidate) => candidate.scenarios.info.id === typeId)
+    assertExists(title?.finishedGame, 'This title has no finished game')
+    const fixture = (await title.finishedGame()).default
     const game = Value.Convert(Game, structuredClone(fixture.game))
     assert(Value.Check(Game, game), 'Invalid finished game definition')
     const initialState: unknown = structuredClone(fixture.initialState)
@@ -29,7 +14,7 @@ export async function finishedGame(ownerId: string, name: string, typeId: Finish
     game.ownerId = ownerId
     game.name = name
     game.players = game.players.map((player) => ({ ...player, userId: ownerId }))
-    const engine = new GameEngine(definition.runtime)
+    const engine = new GameEngine(title.scenarios.runtime)
     let state = initialState
     const actions: GameAction[] = []
     for (const [index, command] of fixture.actions.entries()) {

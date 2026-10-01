@@ -68,8 +68,7 @@
                 <h3>{lot.name} <small>{lot.id}</small></h3>
                 <p>Price {model.price(lot.id)}</p>
                 <ul aria-label="Reserved bids">
-                    {#each commitments.filter((bid) => bid.lotId === lot.id) as bid (bid.playerId)}<li
-                        >
+                    {#each commitments.filter((bid) => bid.lotId === lot.id) as bid (bid.playerId)}<li>
                             {playerName(bid.playerId)}: {bid.amount}
                         </li>{:else}<li>No bids</li>{/each}
                 </ul>

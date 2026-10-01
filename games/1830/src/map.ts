@@ -8,6 +8,7 @@ import {
     createCityTileFace as city,
     createSeparateCitiesTileFace as cities,
     createOffboardTileFace as offboard,
+    type CityReservation,
     type MapLocation,
     type TileEdge,
     type TileFace
@@ -56,7 +57,7 @@ const Names: Readonly<Record<string, string>> = {
 
 // Erie's home is the whole Buffalo hex (E11), with its city chosen when it is placed. That
 // reservation arrives with two-city hex support; until then Erie cannot be started.
-const Homes: Readonly<Record<string, string | { companyId: string; nodeId: string }>> = {
+const Homes: Readonly<Record<string, string | CityReservation>> = {
     H12: 'PRR',
     E19: 'NYC',
     A19: 'CPR',

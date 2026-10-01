@@ -89,9 +89,10 @@ recorded in the [tile evidence](tile-library-evidence.md).
 
 **Decision:** add all sixteen as `18xx:<number>` shared definitions matching the
 research's base catalog. Title variants stay separate definitions when a later
-title needs them. Multi-city faces (54, 59, 62, 64–68) and multi-town faces (2,
-55, 69) get explicit node layouts in `standardTileLayouts.ts`. The renderer
-already refuses to guess multi-node positions. Each new face is checked so its
+title needs them. Multi-city faces (54, 59, 62, 64–68) get explicit node
+layouts in `standardTileLayouts.ts`; the renderer refuses to guess city
+positions. Multi-town faces place their towns along their own track, so only
+those whose tracks cross (55, 69) need town positions. Each new face is checked so its
 drawn paths and hit targets match the logical topology in both orientations,
 as earlier catalog additions were.
 
@@ -138,8 +139,8 @@ its rulebook order; this difference is recorded in the
 - **Corporations:** eight majors, 60% float, full capitalization, station
   schedules as in [entities][entities] (PRR/NYC/CPR 4, B&O/C&O/Erie 3, NYNH/B&M 2).
 - **Trains and phases:** as 1889. The D-train costs $1,100, or $800 trading in a
-  4, 5 or 6 from phase 6. Phase 2 allows interplayer private sales; that status
-  is recorded but its action comes in slice 3.
+  4, 5 or 6 from phase 6. Interplayer private sales, allowed from phase 2 after
+  the first stock round, come with their action in slice 3.
 - **Track:** permissive usefulness. A connected lay or upgrade is always
   useful, whereas 1889 requires new track or a higher city value. Mountains cost
   $120 and water $80.
@@ -171,8 +172,8 @@ Decisions made while implementing, beyond the design above:
 - **Homes are placed when a company first operates**, as the reference engine
   does, rather than at the start of the operating round as in 1889. The
   `pendingHomes` hook now receives the operating set to support this.
-- **Station costs** follow each company's schedule (0, 40, 100, 100), charged for
-  the lowest-numbered unplaced station.
+- **Station costs** follow each company's schedule (0, 40, 100, 100): each
+  placement costs the entry after the stations the company has already used.
 - **Emergency presidency changes:** emergency sales may change the presidency of
   other companies, but never of the company buying the train.
 - **Multi-city faces** use node ids `city-0`, `city-1` from a new
@@ -180,6 +181,8 @@ Decisions made while implementing, beyond the design above:
   (catalog tiles) and the title map view (printed hexes).
 - **Blocked-hex markers:** the map marks each hex a private blocks while
   player-owned.
+- **Companies without a home cannot start.** This keeps Erie out until its
+  whole-hex reservation exists.
 
 ## Intentional limits after slice 1
 
@@ -193,6 +196,9 @@ Decisions made while implementing, beyond the design above:
 - A route may count both hexes of Canada or of the Gulf (slice 5).
 - The table harness has no finished 1830 game until the recorded games are
   replayed (slice 5).
+- The divider lines between the two hexes of Canada and of the Gulf, and the
+  single revenue label per group, are drawn with the offboard groups (slice 5).
+- The brown-zone IPO option is offered but not yet enforced (slice 3).
 
 ## Acceptance examples
 

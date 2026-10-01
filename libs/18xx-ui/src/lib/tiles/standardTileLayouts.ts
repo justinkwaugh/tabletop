@@ -1,10 +1,11 @@
+import type { Point } from '@tabletop/common'
 import type { TileLayout } from './tileDrawing.js'
 
 /**
  * A point toward an edge (integer) or corner (half step) of the canonical flat hex, where edge 0
  * is at the bottom and positions run clockwise.
  */
-export function towardTileEdge(position: number, distance: number): { x: number; y: number } {
+export function towardTileEdge(position: number, distance: number): Point {
     const angle = ((90 + position * 60) * Math.PI) / 180
     return {
         x: Math.round(distance * Math.cos(angle) * 100) / 100,
@@ -12,7 +13,7 @@ export function towardTileEdge(position: number, distance: number): { x: number;
     }
 }
 
-const cities = (first: { x: number; y: number }, second: { x: number; y: number }) => ({
+const cities = (first: Point, second: Point): TileLayout => ({
     nodePositions: { 'city-0': first, 'city-1': second }
 })
 

@@ -7,9 +7,10 @@ const edgesOf = (locationId: string) =>
         path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
     )
 
+const Edges: readonly TileEdge[] = [0, 1, 2, 3, 4, 5]
+
 it('places neighbors around pointy hexes', () => {
-    const neighbors = (id: string) =>
-        ([0, 1, 2, 3, 4, 5] as TileEdge[]).map((edge) => EighteenThirtyMap.neighbor(id, edge)?.id)
+    const neighbors = (id: string) => Edges.map((edge) => EighteenThirtyMap.neighbor(id, edge)?.id)
     expect(neighbors('H12')).toEqual(['I11', 'H10', 'G11', 'G13', 'H14', 'I13'])
     expect(neighbors('A19')).toEqual(['B18', 'A17', undefined, undefined, undefined, 'B20'])
 })

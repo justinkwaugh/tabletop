@@ -7,9 +7,10 @@
         type MapSelection
     } from '@tabletop/18xx-ui'
     import { MapExamples } from '../../demo/maps.js'
+    import { PlaygroundTitles } from '../../titles.js'
     import '../../map.css'
 
-    let title = $state<'TOP' | '1889' | '1830'>('TOP')
+    let title = $state(PlaygroundTitles[0].key)
     let prepared = $state(false)
     let appearance = $state(ClassicTileAppearance)
     const example = $derived(MapExamples[title])
@@ -39,9 +40,8 @@
     <header>
         <label
             >Map<select bind:value={title}
-                ><option value="TOP">The Old Prince 1871</option><option value="1889"
-                    >Shikoku 1889</option
-                ><option value="1830">1830</option></select
+                >{#each PlaygroundTitles as { key, name } (key)}<option value={key}>{name}</option
+                    >{/each}</select
             ></label
         >
         <label

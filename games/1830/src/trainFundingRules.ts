@@ -1,13 +1,12 @@
 import { assertExists } from '@tabletop/common'
 import {
-    companyMarketSpace,
     getCompany,
     sharesOwned,
     reorderPendingOperatingCompanies,
     type TrainFundingRules
 } from '@tabletop/18xx'
 import { EighteenThirtyOperatingRules } from './roundRules.js'
-import { eighteenThirtySaleTerms } from './stockRules.js'
+import { eighteenThirtySaleTerms, exemptFromOwnershipLimit } from './stockRules.js'
 export const EighteenThirtyTrainFundingRules: TrainFundingRules = {
     afterShareSale(state) {
         reorderPendingOperatingCompanies(state, EighteenThirtyOperatingRules.companyOrder(state))
@@ -32,7 +31,7 @@ export const EighteenThirtyTrainFundingRules: TrainFundingRules = {
             !company.started ||
             !company.shareCount ||
             company.closed ||
-            ['orange', 'brown'].includes(companyMarketSpace(state.stockMarket, companyId).color)
+            exemptFromOwnershipLimit(state, companyId)
         )
             return 0
         return Math.max(

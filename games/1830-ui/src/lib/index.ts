@@ -7,16 +7,4 @@ export const UiDefinition: GameUiDefinition<EighteenXXState, HydratedEighteenXXS
     runtime: async () => (await import('./runtime.js')).UiRuntime
 }
 
-export const PrototypeUiDefinition: GameUiDefinition<EighteenXXState, HydratedEighteenXXState> = {
-    ...UiDefinition,
-    runtime: async () => {
-        const runtime = await UiDefinition.runtime()
-        const Table = (await import('./PrototypeTable.svelte')).default
-        return {
-            ...runtime,
-            gameUI: { ...runtime.gameUI, component: Table, load: async () => Table }
-        }
-    }
-}
-
 export { EighteenThirtyMapView } from './mapView.js'

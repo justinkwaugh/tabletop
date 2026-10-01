@@ -5,11 +5,15 @@ import {
     stockMarketSpace,
     type CompanyRules
 } from '@tabletop/18xx'
+import { EighteenThirtyMap } from './map.js'
 
 export const EighteenThirtyCompanyRules: CompanyRules = {
     startMarketSpaces: (state) =>
         state.stockMarket.spaces.filter((space) => space.color === 'pink').map((space) => space.id),
     startTerms(state, companyId, buyer, marketSpaceId) {
+        // Erie's whole-hex home arrives with two-city hex support; until then it has no home.
+        if (!EighteenThirtyMap.reservedLocationIds(companyId).length)
+            return 'This company cannot be started yet.'
         const certificate = presidentCertificate(state, companyId)
         if (
             !certificate ||

@@ -21,7 +21,7 @@ const multipleBrownFromIpoOption: BooleanConfigOption = {
     type: ConfigOptionType.Boolean,
     name: 'Multiple brown shares from IPO',
     description:
-        'Multiple shares of a company in the brown market zone may be bought from the IPO as well as the market.',
+        'Multiple shares of a company in the brown market zone may be bought from the IPO as well as the market. Not yet enforced: only one share may be bought per turn.',
     default: false
 }
 

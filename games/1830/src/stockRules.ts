@@ -9,6 +9,18 @@ import {
     type StockRules
 } from '@tabletop/18xx'
 
+// Shares priced in these market zones are free of the certificate limit, and the last two
+// also of the 60% ownership limit.
+const CertificateLimitFreeZones = ['yellow', 'orange', 'brown']
+const OwnershipLimitFreeZones = ['orange', 'brown']
+
+export function exemptFromOwnershipLimit(
+    state: Pick<StockState, 'stockMarket'>,
+    companyId: string
+): boolean {
+    return OwnershipLimitFreeZones.includes(companyMarketSpace(state.stockMarket, companyId).color)
+}
+
 export function eighteenThirtySaleTerms(
     state: Pick<StockState, 'stockMarket'>,
     companyId: string,
@@ -59,15 +71,14 @@ export const EighteenThirtyStockRules: StockRules = {
             if (!getCompany(state, certificate.companyId).started)
                 return certificate.certificateLimitCount
             const color = companyMarketSpace(state.stockMarket, certificate.companyId).color
-            if (color === 'yellow' || color === 'orange' || color === 'brown') return 0
+            if (CertificateLimitFreeZones.includes(color)) return 0
         }
         return certificate.certificateLimitCount
     },
     ownershipLimit(state, companyId) {
         const company = getCompany(state, companyId)
         if (!company.shareCount || !company.started) return 100
-        const color = companyMarketSpace(state.stockMarket, companyId).color
-        return color === 'orange' || color === 'brown' ? 100 : 60
+        return exemptFromOwnershipLimit(state, companyId) ? 100 : 60
     },
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),

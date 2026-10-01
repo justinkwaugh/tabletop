@@ -1,8 +1,8 @@
+import { assertExists } from '@tabletop/common'
 import { homeStationId, nextOperatingCompany, type StationRules } from '@tabletop/18xx'
 import { EighteenThirtyMap } from './map.js'
 import { EighteenThirtyTileSet } from './tiles.js'
 
-// Each company's stations are placed in order; the home station is free.
 export const EighteenThirtyStationCosts: Readonly<Record<string, readonly number[]>> = {
     PRR: [0, 40, 100, 100],
     NYC: [0, 40, 100, 100],
@@ -20,25 +20,18 @@ export const EighteenThirtyStationCounts: Readonly<Record<string, number>> = Obj
     ])
 )
 
-function stationIndex(stationId: string): number {
-    return stationId.endsWith(':home') ? 0 : Number(stationId.slice(stationId.lastIndexOf(':') + 1))
-}
-
 export const EighteenThirtyStationRules: StationRules = {
     map: EighteenThirtyMap,
     tileSet: EighteenThirtyTileSet,
     placementCost(state, stationId) {
         const station = state.stations.find((station) => station.id === stationId)
-        const costs = station ? EighteenThirtyStationCosts[station.companyId] : undefined
-        if (!station || !costs) return 0
-        const next = Math.min(
-            ...state.stations
-                .filter(
-                    (entry) => entry.companyId === station.companyId && entry.status === 'available'
-                )
-                .map((entry) => stationIndex(entry.id))
-        )
-        return costs[next] ?? 0
+        assertExists(station, 'A station placement requires a known station')
+        const used = state.stations.filter(
+            (entry) => entry.companyId === station.companyId && entry.status !== 'available'
+        ).length
+        const cost = EighteenThirtyStationCosts[station.companyId]?.[used]
+        assertExists(cost, 'Every 1830 station has a cost')
+        return cost
     },
     placementLimit: () => 1,
     // A floated company places its home station as it begins its first operating turn.

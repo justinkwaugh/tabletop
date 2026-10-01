@@ -1,32 +1,14 @@
-import { TheOldPrinceMap, TheOldPrinceTileSet } from '@tabletop/the-old-prince'
-import { Shikoku1889Map, Shikoku1889TileSet } from '@tabletop/shikoku-1889'
-import { EighteenThirtyMapView } from '@tabletop/1830-ui'
-import { type RailwayMap, type TileSet, type TileRotation } from '@tabletop/18xx'
-import { type MapToken, type MapRoute, type TileLayout } from '@tabletop/18xx-ui'
+import { type MapToken, type MapRoute } from '@tabletop/18xx-ui'
+import { PlaygroundTitles, type PlaygroundTitle } from '../titles.js'
 
-export const MapExamples = {
-    TOP: example(TheOldPrinceMap, TheOldPrinceTileSet, 'K19', 0, 'CB'),
-    '1889': example(Shikoku1889Map, Shikoku1889TileSet, 'I2', 2, 'SR'),
-    '1830': example(
-        EighteenThirtyMapView.map,
-        EighteenThirtyMapView.tileSet,
-        'H10',
-        1,
-        'PRR',
-        '18xx:57',
-        EighteenThirtyMapView.layouts
-    )
-}
+export const MapExamples = Object.fromEntries(
+    PlaygroundTitles.map((title) => [title.key, example(title)])
+)
 
-function example(
-    map: RailwayMap,
-    tileSet: TileSet,
-    locationId: string,
-    rotation: TileRotation,
-    label: string,
-    definitionId = '18xx:5',
-    layouts: Readonly<Record<string, TileLayout>> = {}
-) {
+function example(title: PlaygroundTitle) {
+    const { map, mapLayouts: layouts = {} } = title
+    const { locationId, definitionId, rotation, label } = title.mapExample
+    const tileSet = title.rules.trackRules.tileSet
     const initial = tileSet.createInventory()
     const prepared = tileSet.createInventory([{ locationId, definitionId, rotation }])
     const tokens: readonly MapToken[] = [

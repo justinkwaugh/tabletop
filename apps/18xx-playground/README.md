@@ -5,6 +5,9 @@ This app composes `@tabletop/18xx-ui`, TOP, Shikoku 1889, and 1830. Shared libra
 not depend on game packages, including through development dependencies or tests.
 Title definitions remain in their game packages; the app supplies them to the
 reusable viewer through its public interface.
+Each hosted title is registered once in `src/titles.ts` (rules, scenarios, UI,
+map example, tile sets, title-specific positions and finished-game fixture); the
+maps, tile library and table pages read that registry.
 
 ## Regular title harness vs scenario playground
 

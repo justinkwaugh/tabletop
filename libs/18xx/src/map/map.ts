@@ -190,7 +190,7 @@ export function createLetterNumberLocationFactory(options: {
     fixedColors: readonly string[]
     names: Readonly<Record<string, string>>
     /** Company ids by location, or the company and city node on a multi-city location. */
-    homes: Readonly<Record<string, string | { companyId: string; nodeId: string }>>
+    homes: Readonly<Record<string, string | CityReservation>>
     markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>>
 }) {
     return (
@@ -210,6 +210,6 @@ export function createLetterNumberLocationFactory(options: {
         }))
 }
 
-function homeReservation(home: string | { companyId: string; nodeId: string }) {
+function homeReservation(home: string | CityReservation): CityReservation {
     return typeof home === 'string' ? { companyId: home, nodeId: 'city' } : { ...home }
 }

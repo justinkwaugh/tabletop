@@ -1,13 +1,44 @@
 <script lang="ts">
-    import { UiDefinition as Top } from '@tabletop/the-old-prince-ui'
-    import { UiDefinition as Shikoku } from '@tabletop/shikoku-1889-ui'
-    import { UiDefinition as EighteenThirty } from '@tabletop/1830-ui'
     import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
     import { withScenarioUi } from '../../scenarios/uiDefinitions.js'
     import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
+    import { PlaygroundTitles, playgroundTitle, type PlaygroundTitle } from '../../titles.js'
     import '../../table.css'
-    let title = $state('TOP')
-    let position = $state<ScenarioPosition | 'finished'>('construction')
+
+    type Position = ScenarioPosition | 'finished'
+    // In menu order; title-specific positions appear only for titles that offer them.
+    const Positions: readonly { id: Position; label: string; titleSpecific?: true }[] = [
+        { id: 'opening', label: 'Opening auction' },
+        { id: 'trading', label: 'Stock round' },
+        { id: 'starting', label: 'Company starts' },
+        { id: 'flotation', label: 'Company flotation' },
+        { id: 'split', label: 'Branch split', titleSpecific: true },
+        { id: 'construction', label: 'Track construction' },
+        { id: 'stations', label: 'Station placement' },
+        { id: 'routes', label: 'Run trains' },
+        { id: 'operations', label: 'Operating rounds' },
+        { id: 'trains', label: 'Buy trains' },
+        { id: 'diesel', label: 'Diesel exchange', titleSpecific: true },
+        { id: 'funding-chain', label: 'Union Bank train funding', titleSpecific: true },
+        { id: 'bankruptcy', label: 'Bankruptcy' },
+        { id: 'powers', label: 'Buy privates' },
+        { id: 'transfers', label: 'Negotiated purchases' },
+        { id: 'ending', label: 'Final operating turn' },
+        { id: 'finished', label: 'Finished game', titleSpecific: true }
+    ]
+    function positionsFor(title: PlaygroundTitle) {
+        return Positions.filter(
+            ({ id, titleSpecific }) =>
+                !titleSpecific ||
+                (id === 'finished'
+                    ? !!title.finishedGame
+                    : title.positions.some((position) => position === id))
+        )
+    }
+
+    let titleKey = $state(PlaygroundTitles[0].key)
+    let position = $state<Position>('construction')
+    const title = $derived(playgroundTitle(titleKey))
 </script>
 
 <svelte:head><title>18xx table</title></svelte:head>
@@ -16,44 +47,21 @@
         <a href="/">18xx</a>
         <select
             aria-label="Game"
-            bind:value={title}
+            bind:value={titleKey}
             onchange={(event) => {
-                if (event.currentTarget.value !== 'TOP' && position === 'funding-chain')
-                    position = 'opening'
-                if (event.currentTarget.value === 'TOP' && position === 'diesel')
-                    position = 'trains'
-                if (event.currentTarget.value === '1830' && position === 'finished')
-                    position = 'opening'
+                const next = playgroundTitle(event.currentTarget.value)
+                if (!positionsFor(next).some(({ id }) => id === position)) position = 'opening'
             }}
-            ><option value="TOP">The Old Prince 1871</option><option value="1889"
-                >Shikoku 1889</option
-            ><option value="1830">1830</option></select
+            >{#each PlaygroundTitles as { key, name } (key)}<option value={key}>{name}</option
+                >{/each}</select
         >
         <select aria-label="Position" bind:value={position}>
-            <option value="opening">Opening auction</option>
-            <option value="trading">Stock round</option>
-            <option value="starting">Company starts</option>
-            <option value="flotation">Company flotation</option>
-            {#if title === 'TOP'}<option value="split">Branch split</option>{/if}
-            <option value="construction">Track construction</option>
-            <option value="stations">Station placement</option>
-            <option value="routes">Run trains</option>
-            <option value="operations">Operating rounds</option>
-            <option value="trains">Buy trains</option>
-            {#if title !== 'TOP'}<option value="diesel">Diesel exchange</option>{/if}
-            {#if title === 'TOP'}<option value="funding-chain">Union Bank train funding</option
-                >{/if}
-            <option value="bankruptcy">Bankruptcy</option>
-            <option value="powers">Buy privates</option>
-            <option value="transfers">Negotiated purchases</option>
-            <option value="ending">Final operating turn</option>
-            {#if title !== '1830'}<option value="finished">Finished game</option>{/if}
+            {#each positionsFor(title) as { id, label } (id)}<option value={id}>{label}</option
+                >{/each}
         </select>
     </nav>
-    {#key `${title}:${position}`}<FinanceExampleHost
-            definition={withScenarioUi(
-                title === 'TOP' ? Top : title === '1889' ? Shikoku : EighteenThirty
-            )}
+    {#key `${titleKey}:${position}`}<FinanceExampleHost
+            definition={withScenarioUi(title.ui)}
             {position}
         />{/key}
 </div>

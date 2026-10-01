@@ -1,45 +1,61 @@
 import { describe, expect, it } from 'vitest'
 import { createMapDrawing, mapSelectionPoint, assertMapOverlays } from '@tabletop/18xx-ui'
+import { rotateTileEdge, type RailwayMap } from '@tabletop/18xx'
 import { MapExamples } from './maps.js'
+
+type MapScene = ReturnType<typeof createMapDrawing>
+
+// Counts drawn track ends that meet a neighbor at the shared edge midpoint, failing on any that don't.
+function alignedEdges(
+    scene: MapScene,
+    map: RailwayMap,
+    include: (entry: MapScene['locations'][number]) => boolean = () => true
+): number {
+    let checked = 0
+    for (const entry of scene.locations.filter(include)) {
+        for (const path of entry.drawing.paths) {
+            expect(path.d).not.toMatch(/NaN|Infinity|undefined/)
+            for (const [index, endpoint] of entry.face.paths
+                .find((candidate) => candidate.id === path.id)!
+                .endpoints.entries()) {
+                if (endpoint.kind !== 'edge') continue
+                const neighbor = map.neighbor(
+                    entry.location.id,
+                    rotateTileEdge(endpoint.edge, entry.rotation)
+                )
+                if (!neighbor) continue
+                checked++
+                const other = scene.locations.find(
+                    (candidate) => candidate.location.id === neighbor.id
+                )!
+                const point = index === 0 ? path.start : path.end
+                expect(entry.center.x + point.x).toBeCloseTo(
+                    (entry.center.x + other.center.x) / 2,
+                    1
+                )
+                expect(entry.center.y + point.y).toBeCloseTo(
+                    (entry.center.y + other.center.y) / 2,
+                    1
+                )
+            }
+        }
+    }
+    return checked
+}
 
 describe('complete title maps', () => {
     it.each(Object.values(MapExamples))(
         'preserves location facts and aligns map edges for $map.definition.name',
         (example) => {
             const scene = createMapDrawing(example.map, undefined, example.layouts)
-            let checkedConnections = 0
-            for (const entry of scene.locations) {
-                for (const path of entry.drawing.paths) {
-                    expect(path.d).not.toMatch(/NaN|Infinity|undefined/)
-                    for (const [index, endpoint] of entry.face.paths
-                        .find((candidate) => candidate.id === path.id)!
-                        .endpoints.entries()) {
-                        if (endpoint.kind !== 'edge') continue
-                        const neighbor = example.map.neighbor(entry.location.id, endpoint.edge)
-                        if (!neighbor) continue
-                        checkedConnections++
-                        const other = scene.locations.find(
-                            (candidate) => candidate.location.id === neighbor.id
-                        )!
-                        const point = index === 0 ? path.start : path.end
-                        expect(entry.center.x + point.x).toBeCloseTo(
-                            (entry.center.x + other.center.x) / 2,
-                            1
-                        )
-                        expect(entry.center.y + point.y).toBeCloseTo(
-                            (entry.center.y + other.center.y) / 2,
-                            1
-                        )
-                    }
-                }
-            }
-            expect(checkedConnections).toBeGreaterThan(10)
+            expect(alignedEdges(scene, example.map)).toBeGreaterThan(10)
             const prepared = createMapDrawing(
                 example.map,
                 { tileSet: example.tileSet, inventory: example.prepared },
                 example.layouts
             )
             expect(prepared.locations.filter((entry) => entry.placed)).toHaveLength(1)
+            alignedEdges(prepared, example.map, (entry) => entry.placed)
             for (const entry of prepared.locations)
                 expect(entry.location).toBe(example.map.location(entry.location.id))
             expect(() => assertMapOverlays(prepared, example.tokens, example.routes)).not.toThrow()
@@ -52,6 +68,15 @@ describe('complete title maps', () => {
             ).toThrow('Multiple tokens')
         }
     )
+    it('draws a rotated pointy-hex tile meeting both neighbors', () => {
+        const example = MapExamples['1830']
+        const prepared = createMapDrawing(
+            example.map,
+            { tileSet: example.tileSet, inventory: example.prepared },
+            example.layouts
+        )
+        expect(alignedEdges(prepared, example.map, (entry) => entry.placed)).toBe(2)
+    })
     it('includes every location and title-specific printed rule', () => {
         const top = MapExamples.TOP.map
         const shikoku = MapExamples['1889'].map

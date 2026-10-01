@@ -14,11 +14,10 @@
     let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
         $props()
     const session = $derived(requireEighteenXXSession(gameSession))
-    // 1830's private companies have no operating powers yet.
-    const privateOperationDescription = () => undefined
+    const noPrivateOperations = () => undefined
 </script>
 
-<GameTable {session} {privateOperationDescription}>
+<GameTable {session} privateOperationDescription={noPrivateOperations}>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.waterfall.model && !session.waterfall.model.auction.completed}
             {#if session.waterfall.model.auction.bidding}
@@ -28,7 +27,7 @@
             {/if}
         {:else}
             <OperatingActions
-                {privateOperationDescription}
+                privateOperationDescription={noPrivateOperations}
                 onFocusRoute={focusRoute}
                 {session}
                 {createRouteWorker}

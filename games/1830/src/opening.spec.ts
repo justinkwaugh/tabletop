@@ -1,10 +1,15 @@
 import { expect, it } from 'vitest'
 import { cashOwnedBy, EighteenXXStateValidator } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
-import { EighteenThirtyStockRules, EighteenThirtyTrainDepot } from './index.js'
+import {
+    EighteenThirtyCompanyRules,
+    EighteenThirtyStockRules,
+    EighteenThirtyTrainDepot,
+    EighteenThirtyTrainRules
+} from './index.js'
 import { EighteenThirtyScenarios } from './scenarios/index.js'
 import { createEighteenThirtyOpening } from './openingAuction.js'
-import { Prng, type PlayerState } from '@tabletop/common'
+import { assertExists, Color, Prng, type PlayerState } from '@tabletop/common'
 
 const StartingCash = { 2: 1200, 3: 800, 4: 600, 5: 480, 6: 400 } as const
 const CertificateLimits = { 2: 28, 3: 20, 4: 16, 5: 13, 6: 11 } as const
@@ -51,13 +56,41 @@ it('reserves homes, with NYNH in the first New York city and Erie not yet reserv
     ).toEqual(['PRR:home', 'PRR:station:1', 'PRR:station:2', 'PRR:station:3'])
 })
 
-function sixTrains(config: Record<string, boolean>) {
-    const players: PlayerState[] = ['a', 'b', 'c'].map((playerId) => ({ playerId }) as PlayerState)
+function trainOffersAfterTwoSixes(config: Record<string, boolean>) {
+    const players: PlayerState[] = ['a', 'b', 'c'].map((playerId) => ({
+        playerId,
+        color: Color.Blue
+    }))
     const { position } = createEighteenThirtyOpening({ players, prng: new Prng(1), config })
-    return EighteenThirtyTrainDepot.remaining(position.trainInventory, '6')
+    const { state } = exampleGame(EighteenThirtyScenarios, 'opening', 3)
+    const trainInventory = position.trainInventory
+    let sixes = 0
+    while (sixes < 2) {
+        const definitionId = EighteenThirtyTrainDepot.nextDefinitionId(trainInventory)
+        assertExists(definitionId, 'The depot still has trains')
+        const train = EighteenThirtyTrainDepot.nextTrain(trainInventory, definitionId)
+        assertExists(train, `The depot supplies a ${definitionId}-train`)
+        EighteenThirtyTrainDepot.purchase(trainInventory, train.id, definitionId, {
+            kind: 'company',
+            companyId: 'PRR'
+        })
+        if (definitionId === '6') sixes++
+    }
+    return EighteenThirtyTrainRules.availableDefinitions({ ...state, phaseId: '6', trainInventory })
 }
 
-it('supplies a third 6-train only with the optional rule', () => {
-    expect(sixTrains({})).toBe(2)
-    expect(sixTrains({ extraSixTrain: true })).toBe(3)
+it('offers a third 6-train only with the optional rule', () => {
+    expect(trainOffersAfterTwoSixes({})).toEqual(['D'])
+    expect(trainOffersAfterTwoSixes({ extraSixTrain: true })).toEqual(['6', 'D'])
+})
+
+it('cannot start Erie before its home exists', () => {
+    const { state } = exampleGame(EighteenThirtyScenarios, 'opening', 3)
+    const buyer = { kind: 'player', playerId: state.players[0].playerId } as const
+    expect(EighteenThirtyCompanyRules.startTerms(state, 'ERIE', buyer, '0:6')).toBe(
+        'This company cannot be started yet.'
+    )
+    expect(EighteenThirtyCompanyRules.startTerms(state, 'NYC', buyer, '0:6')).toMatchObject({
+        price: 200
+    })
 })

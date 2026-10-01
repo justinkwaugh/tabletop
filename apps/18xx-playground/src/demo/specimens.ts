@@ -1,12 +1,6 @@
 import { parseTileDefinition, StandardTileCatalog, type TileDefinition } from '@tabletop/18xx'
 import { HexOrientation } from '@tabletop/common'
-import { TheOldPrinceTiles, TheOldPrinceTileSet } from '@tabletop/the-old-prince'
-import {
-    Shikoku1889Tiles,
-    Shikoku1889TileSet,
-    Shikoku1889BeginnerTileSet
-} from '@tabletop/shikoku-1889'
-import { EighteenThirtyTiles, EighteenThirtyTileSet } from '@tabletop/1830'
+import { PlaygroundTitles } from '../titles.js'
 import type { TileInventoryCount } from '@tabletop/18xx'
 import { StandardTileLayouts, type TileLayout } from '@tabletop/18xx-ui'
 
@@ -95,30 +89,24 @@ export const SpecimenLayouts: Readonly<Record<string, TileLayout>> = {
     }
 }
 
+const TitleTileSets = PlaygroundTitles.flatMap((title) => Object.entries(title.tileSets))
+
 export const TileSpecimenGroups: Readonly<Record<string, readonly TileDefinition[]>> = {
     'All specimens': [
         ...new Map(
             [
                 ...StandardTileCatalog.entries(),
-                ...TheOldPrinceTiles,
-                ...Shikoku1889Tiles,
+                ...TitleTileSets.flatMap(([, tileSet]) => tileSet.definitions),
                 variant,
                 doubleCity,
                 offboard
             ].map((tile) => [tile.id, tile])
         ).values()
     ],
-    'The Old Prince 1871': TheOldPrinceTiles,
-    'Shikoku 1889': Shikoku1889Tiles,
-    'Shikoku 1889 beginner': Shikoku1889BeginnerTileSet.definitions,
-    '1830': EighteenThirtyTiles
+    ...Object.fromEntries(TitleTileSets.map(([name, tileSet]) => [name, tileSet.definitions]))
 }
 
-export const TileInventoryGroups: Readonly<Record<string, readonly TileInventoryCount[]>> = {
-    'The Old Prince 1871': TheOldPrinceTileSet.counts(TheOldPrinceTileSet.createInventory()),
-    'Shikoku 1889': Shikoku1889TileSet.counts(Shikoku1889TileSet.createInventory()),
-    'Shikoku 1889 beginner': Shikoku1889BeginnerTileSet.counts(
-        Shikoku1889BeginnerTileSet.createInventory()
-    ),
-    '1830': EighteenThirtyTileSet.counts(EighteenThirtyTileSet.createInventory())
-}
+export const TileInventoryGroups: Readonly<Record<string, readonly TileInventoryCount[]>> =
+    Object.fromEntries(
+        TitleTileSets.map(([name, tileSet]) => [name, tileSet.counts(tileSet.createInventory())])
+    )

@@ -114,12 +114,9 @@ describe('tile drawing geometry', () => {
             )
             for (const tile of StandardTileCatalog.entries()) {
                 for (const rotation of rotations) {
-                    const drawing = createTileDrawing(
-                        tile.face,
-                        orientation,
-                        rotation,
-                        { nodePositions: StandardTileLayouts[tile.id]?.nodePositions }
-                    )
+                    const drawing = createTileDrawing(tile.face, orientation, rotation, {
+                        nodePositions: StandardTileLayouts[tile.id]?.nodePositions
+                    })
                     for (const { node, revenuePosition } of drawing.nodes) {
                         if (node.kind === 'junction' || node.revenue.kind !== 'fixed') continue
                         expect(
