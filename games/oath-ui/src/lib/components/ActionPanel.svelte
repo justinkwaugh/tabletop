@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { ActionType, MachineState } from '@tabletop/oath'
     import ActionGrid from '$lib/components/ActionGrid.svelte'
     import SearchPanel from '$lib/components/SearchPanel.svelte'
@@ -46,7 +47,6 @@
                   moveChosen: gameSession.warbandMoves.chosen !== undefined
               })
     )
-
 
     let inActPhase = $derived(gameState.machineState === MachineState.ActPhase)
     let wakeNeedsDecision = $derived(gameSession.wakeNeedsDecision)
@@ -119,7 +119,7 @@
                 class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5
                        flex items-center justify-between gap-2"
             >
-                <span class="text-sm">{prompt}</span>
+                <span class="text-sm"><TokenText text={prompt ?? ''} /></span>
                 <button
                     disabled={busy}
                     class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover px-2 py-1
@@ -149,7 +149,9 @@
                         )} chooses where you go.
                     </p>
                     {#if woodReason}
-                        <p class="text-[11px] text-oath-danger">{humanizeReason(woodReason)}</p>
+                        <p class="text-[11px] text-oath-danger">
+                            <TokenText text={humanizeReason(woodReason) ?? ''} />
+                        </p>
                     {/if}
                     <button
                         class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-1 text-xs"

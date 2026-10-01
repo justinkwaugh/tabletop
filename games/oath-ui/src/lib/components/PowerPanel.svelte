@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
     import { cardPower, powerKey, type LegalPowerUse, type PowerUseKey } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
@@ -45,7 +46,9 @@
                     </div>
                 {/if}
                 {#if reason}
-                    <p class="text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
+                    <p class="text-[11px] text-oath-danger">
+                        <TokenText text={humanizeReason(reason) ?? ''} />
+                    </p>
                 {/if}
                 <button
                     class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"

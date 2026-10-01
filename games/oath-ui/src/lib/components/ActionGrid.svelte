@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
     import { ActionType } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -98,7 +99,9 @@
 <div class="head flex items-center justify-between gap-2 mb-2">
     <h3 class="text-[11px] uppercase tracking-[0.2em] text-oath-heading">
         Act Phase
-        <span class="ml-2 normal-case tracking-normal text-oath-text-muted">Supply {seat.supply}</span>
+        <span class="ml-2 normal-case tracking-normal text-oath-text-muted"
+            >Supply {seat.supply}</span
+        >
     </h3>
     {#if valid.has(ActionType.EndActPhase)}
         <!-- R-4.2 — the phase may end after zero actions. -->
@@ -148,7 +151,8 @@
                     class="h-9 w-9 {t.ok ? '' : 'grayscale'}"
                 />
                 <span class="text-[11px] font-semibold leading-none">{entry.label}</span>
-                <span class="text-[10px] leading-none text-oath-text-muted">{costLabel(entry)}</span>
+                <span class="text-[10px] leading-none text-oath-text-muted">{costLabel(entry)}</span
+                >
             </button>
         {/each}
     </div>
@@ -172,11 +176,12 @@
 <!-- One fixed line: what the hovered action does, or why the tapped one is refused. -->
 <div class="strip mt-1.5 min-h-[1.5rem] text-[11px] leading-snug">
     {#if tappedReason}
-        <span class="text-oath-danger">{humanizeReason(tappedReason)}</span>
+        <span class="text-oath-danger"><TokenText text={humanizeReason(tappedReason) ?? ''} /></span
+        >
     {:else if hoveredEntry}
         <span class="font-semibold text-oath-text">{hoveredEntry.label}</span>
         <span class="text-oath-text-muted">{hoveredEntry.cost}</span>
-        <span class="text-oath-text-muted">— {hoveredEntry.summary}</span>
+        <span class="text-oath-text-muted">— <TokenText text={hoveredEntry.summary} /></span>
     {/if}
 </div>
 

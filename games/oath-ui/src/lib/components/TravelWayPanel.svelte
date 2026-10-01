@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import type { TravelWay } from '$lib/model/actionOffers.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName } from '$lib/model/names.js'
@@ -25,7 +26,7 @@
             disabled={busy}
             onclick={() => gameSession.chooseTravelWay(way)}
         >
-            {label(way)}
+            <TokenText text={label(way)} />
         </button>
     {/each}
 </div>

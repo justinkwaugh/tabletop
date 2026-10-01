@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
     import { PowerQuestionKind, RerolledRollKind, type RerolledRoll } from '@tabletop/oath'
     import QuestionConspiracy from '$lib/components/QuestionConspiracy.svelte'
@@ -56,7 +57,9 @@
         </p>
     {:else if mine.kind === PowerQuestionKind.BurnFavorForSecrets}
         <p class="text-sm mb-2">
-            You may burn any number of favor to gain as many secrets. You have {draft.myFavor} favor.
+            <TokenText
+                text="You may burn any number of favor to gain as many secrets. You have {draft.myFavor} favor."
+            />
         </p>
         <label class="flex items-center gap-2 text-xs mb-2">
             burn
@@ -69,17 +72,22 @@
                 oninput={(e) => draft.setBurn(Number(e.currentTarget.value) || 0)}
                 class="w-16 rounded bg-oath-surface-raised px-1 py-0.5"
             />
-            favor
+            <TokenText text="favor" />
         </label>
         <QuestionYesNo yes="Burn {draft.burn} for {draft.burn} secrets" no="Burn none" />
     {:else if mine.kind === PowerQuestionKind.PayOrLoseRelic}
         <p class="text-sm mb-2">
-            {gameSession.getPlayerName(mine.takerPlayerId)} takes {cardName(mine.relicCardId)} unless
-            you give them {mine.price} favor. You have {draft.myFavor}.
+            <TokenText
+                text="{gameSession.getPlayerName(mine.takerPlayerId)} takes {cardName(
+                    mine.relicCardId
+                )} unless you give them {mine.price} favor. You have {draft.myFavor} favor."
+            />
         </p>
         <QuestionYesNo yes="Pay {mine.price} favor, keep it" no="Let them take it" />
     {:else if mine.kind === PowerQuestionKind.PickFavorBank}
-        <p class="text-sm mb-2">You gain {mine.amount} favor from any one favor bank.</p>
+        <p class="text-sm mb-2">
+            <TokenText text="You gain {mine.amount} favor from any one favor bank." />
+        </p>
         <SuitPicker
             suits={draft.favorBanks}
             picked={[]}
@@ -92,18 +100,14 @@
         </p>
         <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
             <div>
-                {gameSession.getPlayerName(mine.proposerPlayerId)} gives {transferText(
-                    gameState,
-                    mine.terms.fromProposer,
-                    mine.proposerPlayerId
-                )}
+                {gameSession.getPlayerName(mine.proposerPlayerId)} gives <TokenText
+                    text={transferText(gameState, mine.terms.fromProposer, mine.proposerPlayerId)}
+                />
             </div>
             <div>
-                {gameSession.getPlayerName(mine.askedPlayerId)} gives {transferText(
-                    gameState,
-                    mine.terms.fromCounterparty,
-                    mine.askedPlayerId
-                )}
+                {gameSession.getPlayerName(mine.askedPlayerId)} gives <TokenText
+                    text={transferText(gameState, mine.terms.fromCounterparty, mine.askedPlayerId)}
+                />
             </div>
         </div>
         <QuestionYesNo yes="Accept" no="Refuse" />

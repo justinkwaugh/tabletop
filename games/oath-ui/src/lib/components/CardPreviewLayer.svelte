@@ -137,8 +137,7 @@
                                     count={preview.badge.count}
                                     size={40}
                                 />
-                                {preview.badge.count}
-                                {preview.badge.kind === 'favor' ? 'favor' : 'secrets'} on it
+                                on it
                             </span>
                         </div>
                     {/if}

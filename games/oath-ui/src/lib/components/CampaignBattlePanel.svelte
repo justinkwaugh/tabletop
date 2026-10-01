@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
     import { CardKind, MachineState, forceTotal, type WarbandGroup } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -94,7 +95,9 @@
                 </div>
             </div>
             {#if defeat.blockedBecause}
-                <p class="mb-2 text-[11px] text-oath-danger">{defeat.blockedBecause}</p>
+                <p class="mb-2 text-[11px] text-oath-danger">
+                    <TokenText text={defeat.blockedBecause ?? ''} />
+                </p>
             {/if}
             <button
                 class="w-full rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40
@@ -299,7 +302,9 @@
             </label>
         {/if}
         {#if spoils.blockedBecause}
-            <p class="mb-2 text-[11px] text-oath-danger">{spoils.blockedBecause}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={spoils.blockedBecause ?? ''} />
+            </p>
         {/if}
         <div class="flex gap-2">
             <button
@@ -319,8 +324,8 @@
                     title="Take the spoils and burn half the defeated player's favor, {spoils.burnAmount} of it"
                     onclick={() => spoils.takeSpoils(true)}
                 >
-                    <img class="h-5 w-auto burn" src={favorTokenImage()} alt="" />
-                    …and burn {spoils.burnAmount} favor
+                    …and burn {spoils.burnAmount}
+                    <img class="h-5 w-auto burn" src={favorTokenImage()} alt="favor" />
                 </button>
             {/if}
         </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import DiscardOrderCards from '$lib/components/DiscardOrderCards.svelte'
@@ -148,7 +149,7 @@
                         {option.label}
                         {#if option.blockedBecause}
                             <span class="block text-[11px] text-oath-text-muted leading-snug">
-                                {humanizeReason(option.blockedBecause)}
+                                <TokenText text={humanizeReason(option.blockedBecause) ?? ''} />
                             </span>
                         {/if}
                     </button>
@@ -186,7 +187,9 @@
             onchange={(pick) => search.setConspiracyPick(pick)}
         />
         {#if reason}
-            <p class="text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
+            <p class="text-[11px] text-oath-danger">
+                <TokenText text={humanizeReason(reason) ?? ''} />
+            </p>
         {/if}
         <button
             class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"
@@ -202,7 +205,9 @@
             bind:picks={() => search.picks, (picks) => search.setPicks(picks)}
         />
         {#if reason}
-            <p class="text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
+            <p class="text-[11px] text-oath-danger">
+                <TokenText text={humanizeReason(reason) ?? ''} />
+            </p>
         {/if}
         <button
             class="mt-1 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs"

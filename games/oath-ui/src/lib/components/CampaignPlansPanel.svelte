@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { assertExists } from '@tabletop/common'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
@@ -93,7 +94,9 @@
             {/if}
         {/each}
         {#if blockedBecause}
-            <p class="mb-2 text-[11px] text-oath-danger">{humanizeReason(blockedBecause)}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={humanizeReason(blockedBecause) ?? ''} />
+            </p>
         {/if}
         <button
             class="w-full rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40

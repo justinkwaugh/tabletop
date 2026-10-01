@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { type OpportunityTake } from '@tabletop/oath'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -41,9 +42,11 @@
                                     : 'border-oath-divider bg-oath-surface-raised hover:border-oath-accent'}"
                                 onclick={() => wake.setKind(index, option)}
                             >
-                                {option === 'place'
-                                    ? 'Place one of your favor on it'
-                                    : 'Return one of its favor to a bank'}
+                                <TokenText
+                                    text={option === 'place'
+                                        ? 'Place one of your favor on it'
+                                        : 'Return one of its favor to a bank'}
+                                />
                             </button>
                         {/each}
                     </div>
@@ -61,8 +64,9 @@
         </div>
     {:else if holdsPeoplesFavor}
         <p class="mb-2 text-[11px] text-oath-text-muted">
-            You hold the People’s Favor but can neither place nor return a favor, so the step is
-            skipped.
+            <TokenText
+                text="You hold the People’s Favor but can neither place nor return a favor, so the step is skipped."
+            />
         </p>
     {/if}
 
@@ -88,7 +92,9 @@
     {/if}
 
     {#if blockedBecause}
-        <p class="mb-2 text-[11px] text-oath-danger">{humanizeReason(blockedBecause)}</p>
+        <p class="mb-2 text-[11px] text-oath-danger">
+            <TokenText text={humanizeReason(blockedBecause) ?? ''} />
+        </p>
     {/if}
 
     <button

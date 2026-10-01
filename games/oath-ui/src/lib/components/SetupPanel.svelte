@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { ActionType, discardRegionFor } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
@@ -29,8 +30,9 @@
         <!-- R-1.16 — "if there is not enough favor, the Chancellor chooses how to place it". -->
         <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
             <div class="mb-1">
-                The bank holds {gameState.favorSupply} favor, not enough for every site. Place all of
-                it:
+                <TokenText
+                    text="The bank holds {gameState.favorSupply} favor, not enough for every site. Place all of it:"
+                />
                 {gameSession.setup.siteFavorPlaced} of {gameState.favorSupply} placed.
             </div>
             {#each split as { siteCardId, favor }, index (siteCardId)}
@@ -121,7 +123,9 @@
                 <p class="text-sm">
                     Keeping <span class="font-semibold">{cardName(adviserCardId)}</span>.
                     <span class="font-semibold">Tap the site where your pawn starts.</span>
-                    <span class="text-oath-text-muted">Any faceup site — they are lit on the map.</span>
+                    <span class="text-oath-text-muted"
+                        >Any faceup site — they are lit on the map.</span
+                    >
                 </p>
             {:else}
                 <p class="text-sm">

@@ -189,7 +189,8 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
     await expect(reasonLine(page)).toHaveText('')
 
     await tapDimmed(muster)
-    await expect(reasonLine(page)).toHaveText('no card at your site to place favor on')
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
+    await expect(reasonLine(page).getByRole('img', { name: 'favor' })).toBeVisible()
     await travel.hover()
     await expect(reasonLine(page)).toContainText('Move your pawn to any site')
     await expect(reasonLine(page)).not.toContainText('no card at your site')
@@ -198,9 +199,9 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
 
     await tapDimmed(muster)
     await restMouse(page)
-    await expect(reasonLine(page)).toHaveText('no card at your site to place favor on')
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
     await muster.hover()
-    await expect(reasonLine(page)).toHaveText('no card at your site to place favor on')
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
     await restMouse(page)
     await expect(boardOffers(page)).toHaveCount(0)
     await expect(dimmedSites(page)).toHaveCount(0)
@@ -211,7 +212,7 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
 
     await tapDimmed(muster)
     await restMouse(page)
-    await expect(reasonLine(page)).toHaveText('no card at your site to place favor on')
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
     await call(page, 'seatTravels', 'slot.cradle.1')
     await expect(muster).toHaveAttribute('aria-disabled', 'false')
     await expect(reasonLine(page)).toHaveText('')

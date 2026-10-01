@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices } from '$lib/model/cardChoice.js'
     import { siteName } from '$lib/model/names.js'
@@ -62,7 +63,7 @@
         <div class="border-t border-oath-divider pt-1.5">
             <div class="text-oath-text-muted mb-1">{gameSession.getPlayerName(giver)} gives</div>
             <label class="flex items-center gap-2 mb-1">
-                <span class="w-14">favor</span>
+                <span class="w-14"><TokenText text="favor" /></span>
                 <input
                     disabled={busy}
                     type="number"
@@ -76,7 +77,7 @@
                 <span class="text-oath-text-muted">of {favor}</span>
             </label>
             <label class="flex items-center gap-2 mb-1">
-                <span class="w-14">secrets</span>
+                <span class="w-14"><TokenText text="secrets" /></span>
                 <input
                     disabled={busy}
                     type="number"

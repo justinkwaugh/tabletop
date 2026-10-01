@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { powerKey } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
@@ -61,7 +62,9 @@
             {/if}
         {/each}
         {#if reason}
-            <p class="mb-2 text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={humanizeReason(reason) ?? ''} />
+            </p>
         {/if}
         <button
             class="w-full rounded bg-oath-danger-soft border border-oath-danger/60 text-oath-text hover:border-oath-danger disabled:opacity-40 px-2 py-1.5 text-sm font-semibold"

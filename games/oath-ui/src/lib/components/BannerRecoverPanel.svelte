@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { FAVOR_BANK_ORDER } from '@tabletop/oath'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -27,7 +28,9 @@
             />
         </label>
         {#if gameSession.needsFavorStart}
-            <div class="text-oath-text-muted">Return the favor on it starting at:</div>
+            <div class="text-oath-text-muted">
+                <TokenText text="Return the favor on it starting at:" />
+            </div>
             {@const start = gameSession.favorStart}
             <SuitPicker
                 suits={FAVOR_BANK_ORDER}
@@ -37,7 +40,9 @@
             />
         {/if}
         {#if reason}
-            <p class="text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
+            <p class="text-[11px] text-oath-danger">
+                <TokenText text={humanizeReason(reason) ?? ''} />
+            </p>
         {/if}
         <button
             class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 self-start"

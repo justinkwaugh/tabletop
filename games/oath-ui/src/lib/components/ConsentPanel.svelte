@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { siteName, transferText } from '$lib/model/names.js'
     import { ConsentRequestKind, forceTotal, type WarbandGroup } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -87,14 +88,18 @@
         <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
             <div class="text-oath-text-muted mb-1">The binding exchange</div>
             <div>
-                They also give: {transferText(
-                    gameState,
-                    request.terms?.fromScepterHolder,
-                    pending.askingPlayerId
-                )}
+                They also give: <TokenText
+                    text={transferText(
+                        gameState,
+                        request.terms?.fromScepterHolder,
+                        pending.askingPlayerId
+                    )}
+                />
             </div>
             <div>
-                You give: {transferText(gameState, request.terms?.fromExile, pending.askedPlayerId)}
+                You give: <TokenText
+                    text={transferText(gameState, request.terms?.fromExile, pending.askedPlayerId)}
+                />
             </div>
         </div>
 
@@ -127,14 +132,20 @@
                         />
                     </label>
                 {/each}
-                <div class={pickedTotal === imperialAvailable ? 'text-oath-text-muted' : 'text-oath-danger'}>
+                <div
+                    class={pickedTotal === imperialAvailable
+                        ? 'text-oath-text-muted'
+                        : 'text-oath-danger'}
+                >
                     Chosen {pickedTotal} of {imperialAvailable}
                 </div>
             </div>
         {/if}
 
         {#if blockedBecause}
-            <p class="mb-2 text-[11px] text-oath-danger">{blockedBecause}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={blockedBecause ?? ''} />
+            </p>
         {/if}
 
         <div class="flex gap-2">

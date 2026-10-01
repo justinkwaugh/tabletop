@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { FINAL_ROUND, powerKey, type LegalPowerUse } from '@tabletop/oath'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -54,7 +55,9 @@
                     </div>
                 {/if}
                 {#if reason}
-                    <p class="mb-1 text-[11px] text-oath-danger">{humanizeReason(reason)}</p>
+                    <p class="mb-1 text-[11px] text-oath-danger">
+                        <TokenText text={humanizeReason(reason) ?? ''} />
+                    </p>
                 {/if}
             {/each}
         </div>
@@ -71,7 +74,7 @@
     {/if}
 
     {#if blockedBecause}
-        <p class="mb-2 text-[11px] text-oath-danger">{blockedBecause}</p>
+        <p class="mb-2 text-[11px] text-oath-danger"><TokenText text={blockedBecause ?? ''} /></p>
     {/if}
 
     <button

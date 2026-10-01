@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { CardKind } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -65,7 +66,8 @@
             <div class="border-t border-oath-divider pt-1.5">
                 <div class="text-oath-text-muted mb-1">You also give</div>
                 <label class="block mb-1">
-                    Favor {offer.offerTerms.givenFavor} of {held.offerer.favor}
+                    <TokenText text="favor" />
+                    {offer.offerTerms.givenFavor} of {held.offerer.favor}
                     <input
                         disabled={busy}
                         type="range"
@@ -77,7 +79,8 @@
                     />
                 </label>
                 <label class="block">
-                    Secrets {offer.offerTerms.givenSecrets} of {held.offerer.secrets}
+                    <TokenText text="secrets" />
+                    {offer.offerTerms.givenSecrets} of {held.offerer.secrets}
                     <input
                         disabled={busy}
                         type="range"
@@ -121,7 +124,8 @@
             <div class="border-t border-oath-divider pt-1.5">
                 <div class="text-oath-text-muted mb-1">They give</div>
                 <label class="block mb-1">
-                    Favor {offer.offerTerms.askedFavor} of {held.exile.favor}
+                    <TokenText text="favor" />
+                    {offer.offerTerms.askedFavor} of {held.exile.favor}
                     <input
                         disabled={busy}
                         type="range"
@@ -133,7 +137,8 @@
                     />
                 </label>
                 <label class="block">
-                    Secrets {offer.offerTerms.askedSecrets} of {held.exile.secrets}
+                    <TokenText text="secrets" />
+                    {offer.offerTerms.askedSecrets} of {held.exile.secrets}
                     <input
                         disabled={busy}
                         type="range"
@@ -177,7 +182,9 @@
         </div>
 
         {#if offer.blockedBecause}
-            <p class="mb-2 text-[11px] text-oath-danger">{offer.blockedBecause}</p>
+            <p class="mb-2 text-[11px] text-oath-danger">
+                <TokenText text={offer.blockedBecause ?? ''} />
+            </p>
         {/if}
 
         <div class="flex gap-2">

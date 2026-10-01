@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TokenText from '$lib/components/TokenText.svelte'
     import {
         CampaignTargetKind,
         type CampaignDefender,
@@ -100,7 +101,9 @@
         {#if draft.lossSources.length > 1}
             <!-- R-5.5.5, R-10.22 — the attacker chooses where the skulls' kills come from. -->
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
-                <div class="mb-1 text-oath-text-muted">Skulls kill your warbands from, in order:</div>
+                <div class="mb-1 text-oath-text-muted">
+                    Skulls kill your warbands from, in order:
+                </div>
                 {#each draft.lossOrder as source, index (JSON.stringify(source))}
                     <div class="flex items-center gap-2 mb-0.5">
                         <span class="grow"
@@ -170,7 +173,7 @@
 
         {#if draft.blockedBecause}
             <p class="mb-2 text-[11px] text-oath-danger">
-                {humanizeReason(draft.blockedBecause)}
+                <TokenText text={humanizeReason(draft.blockedBecause) ?? ''} />
             </p>
         {/if}
 
