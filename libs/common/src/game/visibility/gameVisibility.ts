@@ -1,5 +1,6 @@
 import jsonpatch from 'fast-json-patch'
 import { ActionSource, type GameAction } from '../engine/gameAction.js'
+import { createPatch } from '../engine/statePatch.js'
 import type {
     ActionCascadeResult,
     ActionResult,
@@ -99,8 +100,8 @@ export function projectActionCascade<State extends GameState, ProjectedState ext
             options.perspective,
             context
         )
-        action.forwardPatch = jsonpatch.compare(previous, after)
-        action.undoPatch = jsonpatch.compare(after, previous)
+        action.forwardPatch = createPatch(previous, after)
+        action.undoPatch = createPatch(after, previous)
         transitions.push({ action, after })
         previous = after
     }
