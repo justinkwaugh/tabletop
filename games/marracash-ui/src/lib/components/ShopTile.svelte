@@ -16,8 +16,6 @@
 </script>
 
 {#snippet body()}
-        selectable && event.key === 'Enter' && gameSession.startAuction(shop.shopId)}
->
     {#if selectable}
         <rect
             x={rect.x - 4}

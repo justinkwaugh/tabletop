@@ -14,7 +14,13 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
 ## Status (2026-10-01)
 
 - Steps 1–8 of the implementation plan are done and pushed. Step 9 (Game Catalogue) and step 10 (readiness check) remain.
-- Step 8d: the cover image and final UI checks are done. The 5 Playwright tests in `games/marracash-ui/tests/` pass. Their Playwright config uses the dev server on port 5185, like Estates, and `createGame` retries the `New game` click because the dev server can ignore a click made before hydration. Next: finish the step 8d checks (protected mode, release bundles, a full game played to the end in the harness), then step 9.
+- Step 8d is done. `main` (with Justin's 12-gate `game-pr-readiness` skill) is merged in, and the 8d checks follow its gates:
+  - Release bundle: the UI entry is metadata only (`index.js` plus a 92 KB chunk of info, configurator, cover and TypeBox; the 1.8 MB runtime loads only through `runtime()`). The CSS scan finds 3216 prefixed rules and no leaks, global at-rules or wrong prefixes. No casts outside the exempt harness cast.
+  - Protected mode: `tests/protected.spec.ts` checks in the harness that each view sees only the cash and sealed bids it is entitled to.
+  - Full game: `tests/fullGame.spec.ts` plays a hotseat game to the end through the UI (about 100 steps, 33 s).
+  - Known platform failure: `svelte-check` fails on `createGameSessionContext` in `sessionContext.svelte.ts`; Estates and Oath fail identically on `main`, so it doesn't count against the title.
+  - Open for step 10: the three `docs/marracash-*.md` files are outside the allowed change roots (gate 6) and must leave the PR. 14 UI files aren't Prettier-formatted (the `lint` script only runs ESLint).
+- Next: step 9, the Game Catalogue entry.
 
 ## Decisions
 
