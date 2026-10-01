@@ -131,6 +131,22 @@ for (const maximum of [1, 2]) {
     })
 }
 
+test('a lopsided board rests filling its short side and still zooms out to fit whole', async ({ page }) => {
+    await mountWrapper(page, { coverThreshold: 0.5, boardWidth: 2000, boardHeight: 500 })
+    const board = page.getByTestId('board')
+    await expect.poll(async () => (await board.boundingBox())?.height).toBe(300)
+    expect((await viewportOffset(board)).x).toBeCloseTo(-400)
+    await page.mouse.move(200, 150)
+    await page.mouse.wheel(0, 2000)
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(400)
+})
+
+test('a board filling at least the cover threshold rests whole', async ({ page }) => {
+    await mountWrapper(page, { coverThreshold: 0.5, boardWidth: 1000, boardHeight: 500 })
+    const board = page.getByTestId('board')
+    await expect.poll(async () => (await board.boundingBox())?.width).toBe(400)
+})
+
 for (const mode of ['pan', 'pinch', 'gesture']) {
     test(`${mode} renders a burst of trackpad updates once per frame`, async ({ page }) => {
         await mountWrapper(page, { maxScale: 2 })

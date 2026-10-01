@@ -74,6 +74,7 @@
         maxScale = 1,
         insetTop = 0,
         overpan = 'none',
+        coverThreshold,
         onManualViewChange
     }: {
         children: Snippet
@@ -85,12 +86,15 @@
         /** Screen pixels at the top kept clear when fitting, focusing and resting the content, for overlaid controls. */
         insetTop?: number
         overpan?: 'none' | 'focus' | 'x' | 'y' | 'both'
+        /** Rest at a cover fit instead when a contain fit would fill less than this fraction of the other axis. */
+        coverThreshold?: number
         expandable?: boolean
         allowFullscreenShortcut?: () => boolean
         onManualViewChange?: () => void
     } = $props()
 
-    let baseScale = $state(1)
+    let minScale = $state(1)
+    let restScale = $state(1)
     let currentScale = $state(1)
     let zoomLevels = $state(0)
 
@@ -195,6 +199,7 @@
         wrapperWidth
         wrapperHeight
         insetTop
+        coverThreshold
         contentWidth
         contentHeight
 
@@ -232,20 +237,25 @@
         return insetTop + availableHeight() / 2
     }
 
-    function computeFitScale() {
-        if (!wrapperWidth || !wrapperHeight || !contentWidth || !contentHeight) {
-            return 1
-        }
-
+    function computeContainScale() {
         return Math.min(wrapperWidth / contentWidth, availableHeight() / contentHeight, 1)
     }
 
-    function updateDiscreteLevels(fitScale: number) {
-        zoomLevels = fitScale === maxScale ? 0 : Math.floor((maxScale - fitScale) / DISCRETE_ZOOM_STEP)
+    function computeRestScale(containScale: number) {
+        if (coverThreshold === undefined) {
+            return containScale
+        }
+
+        const coverScale = Math.min(Math.max(wrapperWidth / contentWidth, availableHeight() / contentHeight), 1)
+        return containScale < coverScale * coverThreshold ? coverScale : containScale
+    }
+
+    function updateDiscreteLevels(lowestScale: number) {
+        zoomLevels = lowestScale === maxScale ? 0 : Math.floor((maxScale - lowestScale) / DISCRETE_ZOOM_STEP)
     }
 
     function clampScale(scale: number) {
-        return clamp(scale, baseScale, maxScale)
+        return clamp(scale, minScale, maxScale)
     }
 
     function getOffsetX(scaledWidth: number) {
@@ -292,7 +302,7 @@
     }
 
     function getOverpanFraction(scale: number) {
-        return overpan === 'none' ? 0 : clamp((scale / baseScale - 1) / OVERPAN_EASE_RELATIVE_ZOOM, 0, 1)
+        return overpan === 'none' ? 0 : clamp((scale / minScale - 1) / OVERPAN_EASE_RELATIVE_ZOOM, 0, 1)
     }
 
     function getOverpanRange(range: PanRange, scaledSize: number, viewportCenter: number, fraction: number): PanRange {
@@ -705,15 +715,16 @@
             return
         }
 
-        const nextBaseScale = computeFitScale()
-        const previousBaseScale = baseScale
-        const wasAtFitScale = initialized && Math.abs(currentScale - baseScale) < EPSILON
+        const nextMinScale = computeContainScale()
+        const nextRestScale = computeRestScale(nextMinScale)
+        const wasAtRestScale = initialized && Math.abs(currentScale - restScale) < EPSILON
         const centerPoint = initialized
             ? getViewportCenterContentPoint()
             : { x: contentWidth / 2, y: contentHeight / 2 }
 
-        baseScale = nextBaseScale
-        updateDiscreteLevels(nextBaseScale)
+        minScale = nextMinScale
+        restScale = nextRestScale
+        updateDiscreteLevels(nextMinScale)
 
         if (activeFocusTarget) {
             const targetView = getViewForFocusTarget(activeFocusTarget)
@@ -727,8 +738,8 @@
         }
 
         const targetScale =
-            !initialized || wasAtFitScale || Math.abs(currentScale - previousBaseScale) < EPSILON
-                ? nextBaseScale
+            !initialized || wasAtRestScale
+                ? nextRestScale
                 : clampScale(currentScale)
         const targetView = getViewForContentPointAtViewportPoint(
             centerPoint.x,
@@ -749,7 +760,7 @@
             return 0
         }
 
-        return (maxScale - baseScale) / zoomLevels
+        return (maxScale - minScale) / zoomLevels
     }
 
     function getNextDiscreteScale(direction: 'in' | 'out') {
@@ -758,17 +769,17 @@
             return null
         }
 
-        const rawPosition = (currentScale - baseScale) / step
+        const rawPosition = (currentScale - minScale) / step
         const nearest = Math.round(rawPosition)
         const isOnDiscrete = Math.abs(rawPosition - nearest) < EPSILON
 
         if (direction === 'in') {
             const index = isOnDiscrete ? nearest + 1 : Math.ceil(rawPosition)
-            return index <= zoomLevels ? baseScale + step * index : null
+            return index <= zoomLevels ? minScale + step * index : null
         }
 
         const index = isOnDiscrete ? nearest - 1 : Math.floor(rawPosition)
-        return index >= 0 ? baseScale + step * index : null
+        return index >= 0 ? minScale + step * index : null
     }
 
     const canZoomIn = $derived(getNextDiscreteScale('in') !== null)
@@ -857,7 +868,7 @@
             contentHeight / 2,
             wrapperWidth / 2,
             viewportCenterY(),
-            baseScale,
+            restScale,
             'programmatic'
         )
 
