@@ -49,7 +49,6 @@ export class HydratedBuildMarket
         state.getPlayerState(this.playerId).points -= cost
         state.board.addMarket({
             playerId: this.playerId,
-            placeId: this.placeId,
             coords: place.spaces[0],
             sold: false
         })

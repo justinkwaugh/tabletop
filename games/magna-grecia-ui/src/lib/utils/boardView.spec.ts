@@ -18,8 +18,8 @@ function board() {
         cities: [{ id: 'C1', playerId: 'p0', spaces: [row(3)] }],
         oracles: [{ coords: row(5), attentionCityId: 'C1' }],
         markets: [
-            { playerId: 'p0', placeId: 'city:C1', coords: row(3), sold: false },
-            { playerId: 'p1', placeId: 'city:C1', coords: row(3), sold: true }
+            { playerId: 'p0', coords: row(3), sold: false },
+            { playerId: 'p1', coords: row(3), sold: true }
         ],
         nextCityNumber: 2
     })
@@ -41,7 +41,7 @@ describe('board view', () => {
 
     it('marks a market active only while it serves one of its owner’s cities', () => {
         const hydrated = board()
-        hydrated.markets.push({ playerId: 'p2', placeId: 'city:C1', coords: row(3), sold: false })
+        hydrated.markets.push({ playerId: 'p2', coords: row(3), sold: false })
         const views = marketViews(hydrated, hydrated.network())
         expect(views.map((view) => view.active)).toEqual([true, false, false])
     })
@@ -49,7 +49,7 @@ describe('board view', () => {
     it('keeps each market on its own tile when places merge', () => {
         const hydrated = board()
         hydrated.cities[0].spaces.push(row(2))
-        hydrated.markets.push({ playerId: 'p2', placeId: 'city:C1', coords: row(2), sold: false })
+        hydrated.markets.push({ playerId: 'p2', coords: row(2), sold: false })
         const views = marketViews(hydrated, hydrated.network())
         const onFirstTile = hexCenter(row(3))
         const onSecondTile = hexCenter(row(2))

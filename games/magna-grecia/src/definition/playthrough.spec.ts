@@ -11,10 +11,7 @@ import {
 } from '@tabletop/common'
 import { BOARD_GRID } from '../components/boardGrid.js'
 import { marketCost } from '../model/marketRules.js'
-import type {
-    HydratedMagnaGreciaGameState,
-    MagnaGreciaProjectedState
-} from '../model/gameState.js'
+import type { HydratedMagnaGreciaGameState, MagnaGreciaProjectedState } from '../model/gameState.js'
 import { legalRoadEnds } from '../model/roadRules.js'
 import { ActionType } from './actions.js'
 import { GameLength } from './config.js'
@@ -103,7 +100,7 @@ function botAction(
 
     const sellable = state.sellableMarkets(playerId)
     if (player.points < 3 && sellable.length > 0) {
-        return act({ ...base, type: ActionType.SellMarket, placeId: sellable[0].placeId })
+        return act({ ...base, type: ActionType.SellMarket, coords: sellable[0].coords })
     }
 
     const site = state

@@ -1,10 +1,5 @@
 import { GameSession, type AnimationContext } from '@tabletop/frontend-components'
-import {
-    assertExists,
-    sameCoordinates,
-    type AxialCoordinates,
-    type GameAction
-} from '@tabletop/common'
+import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     BOARD_GRID,
@@ -56,6 +51,7 @@ const NO_ALLOWANCE: Allowance = { basic: 0, bonus: 0 }
 
 export type RoadTarget = { coords: AxialCoordinates; options: RoadEnds[] }
 export type MarketTarget = { place: Place; amount: number }
+export type SellTarget = { coords: AxialCoordinates; amount: number }
 export type CityTarget = { coords: AxialCoordinates; startsClaim: boolean; startsFounding: boolean }
 
 export class MagnaGreciaGameSession extends GameSession<
@@ -169,20 +165,17 @@ export class MagnaGreciaGameSession extends GameSession<
         }))
     })
 
-    sellTargets: MarketTarget[] = $derived.by(() => {
+    sellTargets: SellTarget[] = $derived.by(() => {
         const playerId = this.myPlayerId
         if (this.activeTool !== BuildTool.Sell || !playerId) {
             return []
         }
         const board = this.gameState.board
         const network = board.network()
-        const byPlace = new Map<PlaceId, MarketTarget>()
-        for (const market of this.gameState.sellableMarkets(playerId)) {
-            const place = board.place(market.placeId)
-            assertExists(place, `Market stands on unknown place ${market.placeId}`)
-            byPlace.set(place.id, { place, amount: marketValue(board, network, market) })
-        }
-        return [...byPlace.values()]
+        return this.gameState.sellableMarkets(playerId).map((market) => ({
+            coords: market.coords,
+            amount: marketValue(board, network, market)
+        }))
     })
 
     roadOptions: RoadEnds[] = $derived.by(() => {
@@ -357,11 +350,11 @@ export class MagnaGreciaGameSession extends GameSession<
         await this.applyAction(this.createPlayerAction(BuildMarket, { placeId }))
     }
 
-    async sellMarket(placeId: PlaceId) {
+    async sellMarket(coords: AxialCoordinates) {
         if (!this.validActionTypes.includes(ActionType.SellMarket)) {
             return
         }
-        await this.applyAction(this.createPlayerAction(SellMarket, { placeId }))
+        await this.applyAction(this.createPlayerAction(SellMarket, { coords }))
     }
 
     async endTurn() {

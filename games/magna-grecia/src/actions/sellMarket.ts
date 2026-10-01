@@ -1,6 +1,13 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
+import {
+    AxialCoordinates,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    assertExists,
+    sameCoordinates
+} from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedMagnaGreciaGameState } from '../model/gameState.js'
 import { marketValue } from '../model/marketRules.js'
@@ -18,7 +25,7 @@ export const SellMarket = Type.Evaluate(
             type: Type.Literal(ActionType.SellMarket),
             playerId: Type.String(),
             metadata: Type.Optional(SellMarketMetadata),
-            placeId: Type.String()
+            coords: AxialCoordinates
         })
     ])
 )
@@ -33,7 +40,7 @@ export class HydratedSellMarket extends HydratableAction<typeof SellMarket> impl
     declare type: ActionType.SellMarket
     declare playerId: string
     declare metadata?: SellMarketMetadata
-    declare placeId: string
+    declare coords: AxialCoordinates
 
     constructor(data: SellMarket) {
         super(data, SellMarketValidator)
@@ -42,7 +49,7 @@ export class HydratedSellMarket extends HydratableAction<typeof SellMarket> impl
     apply(state: HydratedMagnaGreciaGameState, _context?: MachineContext) {
         const market = state
             .sellableMarkets(this.playerId)
-            .find((candidate) => candidate.placeId === this.placeId)
+            .find((candidate) => sameCoordinates(candidate.coords, this.coords))
         assertExists(market, 'Invalid SellMarket action')
         const value = marketValue(state.board, state.board.network(), market)
         state.getPlayerState(this.playerId).points += value

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import { spaceKey } from '@tabletop/magna-grecia'
-    import { BuildTool, type MarketTarget } from '$lib/model/session.svelte.js'
+    import { BuildTool } from '$lib/model/session.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
     import { placeCenter } from '$lib/utils/boardView.js'
@@ -22,29 +22,32 @@
 
     const myColor = $derived(gameSession.colors.getPlayerUiColor(gameSession.myPlayerId))
     const roadTargets = $derived([...gameSession.roadTargets.values()])
-    const placeTargets = $derived.by(() => {
-        const tool = gameSession.activeTool
-        const targets: MarketTarget[] =
-            tool === BuildTool.Market
-                ? gameSession.marketTargets
-                : tool === BuildTool.Sell
-                  ? gameSession.sellTargets
-                  : []
-        return targets.map((target) => ({ ...target, center: placeCenter(target.place) }))
+    const priceTargets = $derived.by(() => {
+        if (gameSession.activeTool === BuildTool.Market) {
+            return gameSession.marketTargets.map((target) => ({
+                key: target.place.id,
+                center: placeCenter(target.place),
+                label: 'Build a market here',
+                price: `−${target.amount}`,
+                choose: () => gameSession.buildMarket(target.place.id)
+            }))
+        }
+        if (gameSession.activeTool === BuildTool.Sell) {
+            return gameSession.sellTargets.map((target) => ({
+                key: spaceKey(target.coords),
+                center: hexCenter(target.coords),
+                label: 'Sell this market',
+                price: `+${target.amount}`,
+                choose: () => gameSession.sellMarket(target.coords)
+            }))
+        }
+        return []
     })
 
     function activate(event: KeyboardEvent, handler: () => void) {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
             handler()
-        }
-    }
-
-    function choosePlace(target: MarketTarget) {
-        if (gameSession.activeTool === BuildTool.Sell) {
-            gameSession.sellMarket(target.place.id)
-        } else {
-            gameSession.buildMarket(target.place.id)
         }
     }
 </script>
@@ -104,24 +107,20 @@
     </g>
 {/each}
 
-{#each placeTargets as target (target.place.id)}
+{#each priceTargets as target (target.key)}
     <g
         role="button"
         tabindex="0"
-        aria-label={gameSession.activeTool === BuildTool.Sell
-            ? 'Sell this market'
-            : 'Build a market here'}
+        aria-label={target.label}
         class="target cursor-pointer"
         transform="translate({target.center.x} {target.center.y})"
-        onclick={() => choosePlace(target)}
-        onkeydown={(event) => activate(event, () => choosePlace(target))}
+        onclick={target.choose}
+        onkeydown={(event) => activate(event, target.choose)}
     >
         <polygon points={targetShape} class="target-hex"></polygon>
         <g transform="translate(0 -30)">
             <rect x="-17" y="-11" width="34" height="20" rx="10" class="price-tag"></rect>
-            <text y="4" text-anchor="middle" class="price-text"
-                >{gameSession.activeTool === BuildTool.Sell ? '+' : '−'}{target.amount}</text
-            >
+            <text y="4" text-anchor="middle" class="price-text">{target.price}</text>
         </g>
     </g>
 {/each}

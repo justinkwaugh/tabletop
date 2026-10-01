@@ -141,7 +141,6 @@ export class HydratedPlaceCity extends HydratableAction<typeof PlaceCity> implem
         }
         state.board.addMarket({
             playerId: this.playerId,
-            placeId,
             coords: this.coords,
             sold: false
         })

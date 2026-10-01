@@ -27,7 +27,6 @@ export const Oracle = Type.Object({
 export type Market = Type.Static<typeof Market>
 export const Market = Type.Object({
     playerId: Type.String(),
-    placeId: Type.String(),
     coords: AxialCoordinates,
     sold: Type.Boolean()
 })

@@ -164,14 +164,18 @@ export class HydratedBoard extends Hydratable<typeof Board> implements Board {
         )
     }
 
+    marketPlace(market: Market): Place {
+        const place = this.placeAt(market.coords)
+        assertExists(place, `No place under the market at ${market.coords.q},${market.coords.r}`)
+        return place
+    }
+
     marketsAt(placeId: PlaceId): Market[] {
-        return this.markets.filter((market) => market.placeId === placeId)
+        return this.markets.filter((market) => this.marketPlace(market).id === placeId)
     }
 
     marketOf(playerId: string, placeId: PlaceId): Market | undefined {
-        return this.markets.find(
-            (market) => market.playerId === playerId && market.placeId === placeId
-        )
+        return this.marketsAt(placeId).find((market) => market.playerId === playerId)
     }
 
     marketsRemaining(playerId: string): number {
@@ -189,14 +193,12 @@ export class HydratedBoard extends Hydratable<typeof Board> implements Board {
         const city: City = { id: `C${this.nextCityNumber}`, playerId, spaces: [coords] }
         this.nextCityNumber += 1
         this.cities.push(city)
-        this.absorbVillage(city, coords)
         return city
     }
 
     extendCity(cityId: string, coords: AxialCoordinates): string[] {
         const city = this.city(cityId)
         city.spaces.push(coords)
-        this.absorbVillage(city, coords)
         const mergedIds = this.adjacentCities(coords)
             .filter((other) => other.id !== city.id && other.playerId === city.playerId)
             .map((other) => other.id)
@@ -238,26 +240,13 @@ export class HydratedBoard extends Hydratable<typeof Board> implements Board {
         return changes
     }
 
-    private absorbVillage(city: City, coords: AxialCoordinates) {
-        const villageId = villagePlaceId(coords)
-        this.relocateMarkets(villageId, cityPlaceId(city.id))
-    }
-
     private mergeCity(into: City, merged: City) {
         into.spaces.push(...merged.spaces)
         this.cities = this.cities.filter((city) => city.id !== merged.id)
-        this.relocateMarkets(cityPlaceId(merged.id), cityPlaceId(into.id))
         for (const oracle of this.oracles) {
             if (oracle.attentionCityId === merged.id) {
                 oracle.attentionCityId = into.id
             }
-        }
-    }
-
-    // Merging never lifts a market: it keeps its tile and sold flag and scores for the new place.
-    private relocateMarkets(fromPlaceId: PlaceId, toPlaceId: PlaceId) {
-        for (const market of this.marketsAt(fromPlaceId)) {
-            market.placeId = toPlaceId
         }
     }
 

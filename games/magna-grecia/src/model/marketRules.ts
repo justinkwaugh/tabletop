@@ -36,14 +36,15 @@ export function isMarketActive(board: HydratedBoard, network: Network, market: M
     const ownCityIds = board.cities
         .filter((city) => city.playerId === market.playerId)
         .map((city) => cityPlaceId(city.id))
+    const placeId = board.marketPlace(market).id
     return (
-        ownCityIds.includes(market.placeId) ||
-        network.neighbors(market.placeId).some((placeId) => ownCityIds.includes(placeId))
+        ownCityIds.includes(placeId) ||
+        network.neighbors(placeId).some((neighbor) => ownCityIds.includes(neighbor))
     )
 }
 
 export function marketValue(board: HydratedBoard, network: Network, market: Market): number {
     return !market.sold && isMarketActive(board, network, market)
-        ? network.connectionCount(market.placeId)
+        ? network.connectionCount(board.marketPlace(market).id)
         : 0
 }

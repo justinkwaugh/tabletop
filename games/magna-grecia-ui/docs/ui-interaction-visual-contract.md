@@ -11,7 +11,7 @@
 - **Pending founding.** After founding on a plain space, only spaces that extend the new city toward a village it can legally cover are targeted, the tool buttons disappear, and the prompt asks the player to keep building until the city covers a village.
 - **Road targets.** Road targets use the same pale cream fill and carry a thick, wide arc glyph.
 - **Road tile laying.** Choosing a road space opens the tile laying widget, modelled on the 18xx track picker. The legal tile shapes (straight, curved) fan out in an arc beside the space, above it unless the board edge forces another side. Choosing a shape moves it onto the space as a full-size preview in its first legal orientation; a single legal shape is auto-selected. Clicking the preview (or its rotate badge) cycles that shape's legal orientations. A red ✕ and green ✓ (28-unit radius, 1.75× the original size) sit on the side of the space away from the shape arc, below it unless the arc or the board edge is there: ✕ cancels, ✓ places the road. Nothing is committed until ✓.
-- **Market targeting.** Build and sell targets show a price tag with the cost (−n) or value (+n) above the place.
+- **Market targeting.** Build targets show a price tag with the cost (−n) above the place. Sell targets show a price tag with the value (+n) above the tile of each sellable market, one per market, so a player with two markets in one merged city chooses which one to sell.
 - **Resupply.** The Resupply button toggles an inline picker bounded by the allowance and the staging area.
 - **Oracle history rows.** A road or city action that turns an oracle adds "— an oracle turns to <player>'s city" to its history row, naming the player recorded in the action's metadata when the oracle turned, so the name stays after that city merges into another.
 
@@ -89,7 +89,7 @@ Scenarios 1, 4–9 and confirming a resupply were exercised manually in the sing
 8. **Sell market.**
     - Start: the player owns an active market.
     - Input: choose Sell market.
-    - Expected: a +n price tag appears on each place holding one of the player's active markets, including a market worth 0; clicking one lays the market on its side and leaves only the highlighted End turn.
+    - Expected: a +n price tag appears on the tile of each of the player's active markets, including a market worth 0; clicking one lays that market on its side and leaves only the highlighted End turn.
 9. **Silent history replay.**
     - Start: a game at least one round past a round whose card changed the turn order.
     - Input: click an action from the earlier round in the history list to replay it.

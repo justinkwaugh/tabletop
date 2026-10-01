@@ -358,10 +358,10 @@ describe('cities', () => {
         const west = offsetToAxial({ row: 11, col: 5 })
         const east = offsetToAxial({ row: 11, col: 7 })
         state.board.markets = [
-            { playerId: 'p0', placeId: cityPlaceId('C1'), coords: west, sold: false },
-            { playerId: 'p1', placeId: cityPlaceId('C1'), coords: west, sold: false },
-            { playerId: 'p0', placeId: cityPlaceId('C2'), coords: east, sold: true },
-            { playerId: 'p1', placeId: cityPlaceId('C2'), coords: east, sold: true }
+            { playerId: 'p0', coords: west, sold: false },
+            { playerId: 'p1', coords: west, sold: false },
+            { playerId: 'p0', coords: east, sold: true },
+            { playerId: 'p1', coords: east, sold: true }
         ]
         const marketsBefore = state.board.marketsRemaining('p1')
         giveTurn(state, 'p0', 'G1')
@@ -369,12 +369,43 @@ describe('cities', () => {
         expect(action.metadata?.mergedCityIds).toEqual(['C2'])
         expect(state.board.cities).toHaveLength(1)
         expect(state.board.marketsAt(cityPlaceId('C1'))).toEqual([
-            { playerId: 'p0', placeId: cityPlaceId('C1'), coords: west, sold: false },
-            { playerId: 'p1', placeId: cityPlaceId('C1'), coords: west, sold: false },
-            { playerId: 'p0', placeId: cityPlaceId('C1'), coords: east, sold: true },
-            { playerId: 'p1', placeId: cityPlaceId('C1'), coords: east, sold: true }
+            { playerId: 'p0', coords: west, sold: false },
+            { playerId: 'p1', coords: west, sold: false },
+            { playerId: 'p0', coords: east, sold: true },
+            { playerId: 'p1', coords: east, sold: true }
         ])
         expect(state.board.marketsRemaining('p1')).toBe(marketsBefore)
+    })
+
+    it('lets a player choose which of two markets in a merged city to sell', () => {
+        const state = freshState()
+        const west = offsetToAxial({ row: 11, col: 5 })
+        const east = offsetToAxial({ row: 11, col: 7 })
+        state.board.cities = [
+            { id: 'C1', playerId: 'p0', spaces: [west] },
+            { id: 'C2', playerId: 'p0', spaces: [east] }
+        ]
+        state.board.markets = [
+            { playerId: 'p0', coords: west, sold: false },
+            { playerId: 'p0', coords: east, sold: false }
+        ]
+        giveTurn(state, 'p0', 'G1')
+        placeCity(state, 'p0', offsetToAxial({ row: 11, col: 6 }))
+        expect(state.board.marketsAt(cityPlaceId('C1'))).toHaveLength(2)
+        expect(state.sellableMarkets('p0').map((market) => market.coords)).toEqual([west, east])
+
+        giveTurn(state, 'p0', 'G1')
+        new HydratedSellMarket({
+            ...base('p0'),
+            type: ActionType.SellMarket,
+            coords: east
+        }).apply(state)
+        expect(state.board.markets).toEqual([
+            { playerId: 'p0', coords: west, sold: false },
+            { playerId: 'p0', coords: east, sold: true }
+        ])
+        giveTurn(state, 'p0', 'G1')
+        expect(state.sellableMarkets('p0').map((market) => market.coords)).toEqual([west])
     })
 
     it('moves oracle attention to the city a favoured city merges into', () => {
@@ -550,9 +581,7 @@ describe('network, markets and oracles', () => {
         const founding = freshState()
         giveTurn(founding, 'p0', 'G1')
         placeCity(founding, 'p0', FRONTIER)
-        expect(founding.board.markets).toEqual([
-            { playerId: 'p0', placeId: cityPlaceId('C1'), coords: FRONTIER, sold: false }
-        ])
+        expect(founding.board.markets).toEqual([{ playerId: 'p0', coords: FRONTIER, sold: false }])
 
         const state = oracleLine()
         giveTurn(state, 'p0', 'G2')
@@ -567,9 +596,7 @@ describe('network, markets and oracles', () => {
     it('lets an active market worth nothing be sold', () => {
         const state = oracleLine()
         state.board.roads = []
-        state.board.markets = [
-            { playerId: 'p0', placeId: cityPlaceId('C1'), coords: row(3), sold: false }
-        ]
+        state.board.markets = [{ playerId: 'p0', coords: row(3), sold: false }]
         giveTurn(state, 'p0', 'G2')
         const market = state.board.markets[0]
         expect(marketValue(state.board, state.board.network(), market)).toBe(0)
@@ -578,7 +605,7 @@ describe('network, markets and oracles', () => {
         new HydratedSellMarket({
             ...base('p0'),
             type: ActionType.SellMarket,
-            placeId: cityPlaceId('C1')
+            coords: row(3)
         }).apply(state)
         expect(market.sold).toBe(true)
         expect(state.getPlayerState('p0').points).toBe(pointsBefore)
@@ -600,9 +627,9 @@ describe('network, markets and oracles', () => {
         const board = state.board
         board.roads.push({ playerId: 'p1', coords: row(6), ends: [W, E] })
         board.markets = [
-            { playerId: 'p0', placeId: cityPlaceId('C1'), coords: row(3), sold: false },
-            { playerId: 'p2', placeId: cityPlaceId('C2'), coords: row(7), sold: false },
-            { playerId: 'p1', placeId: cityPlaceId('C2'), coords: row(7), sold: true }
+            { playerId: 'p0', coords: row(3), sold: false },
+            { playerId: 'p2', coords: row(7), sold: false },
+            { playerId: 'p1', coords: row(7), sold: true }
         ]
         const c2 = board.place(cityPlaceId('C2'))!
         expect(marketCost(board, 'p0', c2)).toBe(2)
@@ -624,7 +651,7 @@ describe('network, markets and oracles', () => {
         const sell = new HydratedSellMarket({
             ...base('p0'),
             type: ActionType.SellMarket,
-            placeId: cityPlaceId('C1')
+            coords: row(3)
         })
         const pointsBefore = state.getPlayerState('p0').points
         sell.apply(state)
@@ -640,7 +667,6 @@ describe('network, markets and oracles', () => {
         expect(sites).toContain(villagePlaceId(FRONTIER))
         state.board.markets.push({
             playerId: 'p0',
-            placeId: villagePlaceId(FRONTIER),
             coords: FRONTIER,
             sold: true
         })
@@ -672,15 +698,13 @@ describe('network, markets and oracles', () => {
         expect(handler.validActionsForPlayer('p0', context)).toEqual([ActionType.EndTurn])
 
         const selling = oracleLine()
-        selling.board.markets = [
-            { playerId: 'p0', placeId: cityPlaceId('C1'), coords: row(3), sold: false }
-        ]
+        selling.board.markets = [{ playerId: 'p0', coords: row(3), sold: false }]
         giveTurn(selling, 'p0', 'G2')
         const sellContext = new MachineContext({ gameConfig: {}, gameState: selling })
         const sell = new HydratedSellMarket({
             ...base('p0'),
             type: ActionType.SellMarket,
-            placeId: cityPlaceId('C1')
+            coords: row(3)
         })
         sell.apply(selling)
         expect(handler.onAction(sell, sellContext)).toBe(MachineState.TakingTurn)
