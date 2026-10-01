@@ -13,6 +13,7 @@ import {
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { actionCard, type ActionCard } from '../components/actionCards.js'
+import { BOARD_GRID } from '../components/boardGrid.js'
 import type { RoadEnds } from '../components/pieces.js'
 import type { Market } from '../components/pieces.js'
 import type { Place } from '../components/places.js'
@@ -20,7 +21,7 @@ import { Board, HydratedBoard } from './board.js'
 import { planCityPlacement, type CityPlacementPlan } from './cityRules.js'
 import { canBuildMarket, isMarketActive } from './marketRules.js'
 import { HydratedMagnaGreciaPlayerState, MagnaGreciaPlayerState } from './playerState.js'
-import { canPlaceRoad } from './roadRules.js'
+import { ROAD_END_OPTIONS, canPlaceRoad } from './roadRules.js'
 import { scoreBreakdown, type ScoreBreakdown } from './scoring.js'
 import {
     TurnProgress,
@@ -226,6 +227,26 @@ export class HydratedMagnaGreciaGameState
         return (
             this.roadPlacementsRemaining(playerId) > 0 &&
             canPlaceRoad(this.board, playerId, coords, ends)
+        )
+    }
+
+    hasRoadTarget(playerId: string): boolean {
+        return (
+            this.roadPlacementsRemaining(playerId) > 0 &&
+            [...BOARD_GRID].some((space) =>
+                ROAD_END_OPTIONS.some((ends) =>
+                    canPlaceRoad(this.board, playerId, space.coords, ends)
+                )
+            )
+        )
+    }
+
+    hasCityTarget(playerId: string): boolean {
+        return (
+            this.cityPlacementsRemaining(playerId) > 0 &&
+            [...BOARD_GRID].some(
+                (space) => this.cityPlacementPlan(playerId, space.coords) !== undefined
+            )
         )
     }
 

@@ -24,7 +24,7 @@ import { ActionType } from '../definition/actions.js'
 import type { RoadEnds } from '../components/pieces.js'
 import { EndTurnOutcome, type HydratedMagnaGreciaGameState } from './gameState.js'
 import { marketCost, marketValue } from './marketRules.js'
-import { ROAD_END_OPTIONS, RoadShape, roadShape } from './roadRules.js'
+import { ROAD_END_OPTIONS, RoadShape, legalRoadEnds, roadShape } from './roadRules.js'
 import { PendingCityKind, newTurn } from './turn.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 import { TakingTurnStateHandler } from '../stateHandlers/takingTurn.js'
@@ -468,6 +468,39 @@ describe('roads', () => {
 })
 
 describe('action allowance', () => {
+    it('finds a road or city target exactly when a full board scan does', () => {
+        const state = freshState()
+        const scan = (playerId: string) => ({
+            road:
+                state.roadPlacementsRemaining(playerId) > 0 &&
+                [...BOARD_GRID].some(
+                    (space) => legalRoadEnds(state.board, playerId, space.coords).length > 0
+                ),
+            city: [...BOARD_GRID].some(
+                (space) => state.cityPlacementPlan(playerId, space.coords) !== undefined
+            )
+        })
+        const quick = (playerId: string) => ({
+            road: state.hasRoadTarget(playerId),
+            city: state.hasCityTarget(playerId)
+        })
+
+        giveTurn(state, 'p0', 'G1')
+        expect(quick('p0')).toEqual({ road: false, city: true })
+        expect(quick('p0')).toEqual(scan('p0'))
+        expect(quick('p1')).toEqual({ road: false, city: false })
+        expect(quick('p1')).toEqual(scan('p1'))
+
+        placeCity(state, 'p0', FRONTIER)
+        expect(quick('p0').road).toBe(true)
+        expect(quick('p0')).toEqual(scan('p0'))
+
+        state.getPlayerState('p0').supplyRoads = 0
+        state.getPlayerState('p0').supplyCities = 0
+        expect(quick('p0')).toEqual({ road: false, city: false })
+        expect(quick('p0')).toEqual(scan('p0'))
+    })
+
     it('allows two basic actions or one enhanced action', () => {
         const state = freshState()
         giveTurn(state, 'p0', 'G2')

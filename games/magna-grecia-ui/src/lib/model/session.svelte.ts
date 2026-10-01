@@ -86,45 +86,22 @@ export class MagnaGreciaGameSession extends GameSession<
 
     cityUnfinished = $derived(this.pendingCity !== undefined)
 
-    private legalRoadTargets: Map<SpaceKey, RoadTarget> = $derived.by(() => {
+    private canTarget(actionType: ActionType): string | undefined {
         const playerId = this.myPlayerId
-        if (!this.canAct || !playerId || !this.validActionTypes.includes(ActionType.PlaceRoad)) {
-            return new Map()
-        }
-        return new Map(
-            [...BOARD_GRID]
-                .map((space) => ({
-                    coords: space.coords,
-                    options: legalRoadEnds(this.gameState.board, playerId, space.coords)
-                }))
-                .filter((target) => target.options.length > 0)
-                .map((target) => [spaceKey(target.coords), target])
-        )
-    })
-
-    private legalCityTargets: CityTarget[] = $derived.by(() => {
-        const playerId = this.myPlayerId
-        if (!this.canAct || !playerId || !this.validActionTypes.includes(ActionType.PlaceCity)) {
-            return []
-        }
-        return [...BOARD_GRID].flatMap((space) => {
-            const plan = this.gameState.cityPlacementPlan(playerId, space.coords)
-            if (!plan) {
-                return []
-            }
-            const startsClaim = plan.kind !== CityPlacementKind.CompleteClaim && !!plan.claimVillage
-            const startsFounding = plan.kind === CityPlacementKind.Found && !!plan.awaitsVillage
-            return [{ coords: space.coords, startsClaim, startsFounding }]
-        })
-    })
+        return this.canAct && playerId && this.validActionTypes.includes(actionType)
+            ? playerId
+            : undefined
+    }
 
     availableTools: BuildTool[] = $derived.by(() => {
         if (!this.canAct) {
             return []
         }
+        const roadPlayer = this.canTarget(ActionType.PlaceRoad)
+        const cityPlayer = this.canTarget(ActionType.PlaceCity)
         const hasTargets: Record<BuildTool, boolean> = {
-            [BuildTool.Road]: this.legalRoadTargets.size > 0,
-            [BuildTool.City]: this.legalCityTargets.length > 0,
+            [BuildTool.Road]: !!roadPlayer && this.gameState.hasRoadTarget(roadPlayer),
+            [BuildTool.City]: !!cityPlayer && this.gameState.hasCityTarget(cityPlayer),
             [BuildTool.Market]: this.validActionTypes.includes(ActionType.BuildMarket),
             [BuildTool.Sell]: this.validActionTypes.includes(ActionType.SellMarket)
         }
@@ -149,13 +126,37 @@ export class MagnaGreciaGameSession extends GameSession<
         return undefined
     })
 
-    roadTargets: Map<SpaceKey, RoadTarget> = $derived(
-        this.activeTool === BuildTool.Road ? this.legalRoadTargets : new Map()
-    )
+    roadTargets: Map<SpaceKey, RoadTarget> = $derived.by(() => {
+        const playerId = this.canTarget(ActionType.PlaceRoad)
+        if (this.activeTool !== BuildTool.Road || !playerId) {
+            return new Map()
+        }
+        return new Map(
+            [...BOARD_GRID]
+                .map((space) => ({
+                    coords: space.coords,
+                    options: legalRoadEnds(this.gameState.board, playerId, space.coords)
+                }))
+                .filter((target) => target.options.length > 0)
+                .map((target) => [spaceKey(target.coords), target])
+        )
+    })
 
-    cityTargets: CityTarget[] = $derived(
-        this.activeTool === BuildTool.City ? this.legalCityTargets : []
-    )
+    cityTargets: CityTarget[] = $derived.by(() => {
+        const playerId = this.canTarget(ActionType.PlaceCity)
+        if (this.activeTool !== BuildTool.City || !playerId) {
+            return []
+        }
+        return [...BOARD_GRID].flatMap((space) => {
+            const plan = this.gameState.cityPlacementPlan(playerId, space.coords)
+            if (!plan) {
+                return []
+            }
+            const startsClaim = plan.kind !== CityPlacementKind.CompleteClaim && !!plan.claimVillage
+            const startsFounding = plan.kind === CityPlacementKind.Found && !!plan.awaitsVillage
+            return [{ coords: space.coords, startsClaim, startsFounding }]
+        })
+    })
 
     marketTargets: MarketTarget[] = $derived.by(() => {
         const playerId = this.myPlayerId
