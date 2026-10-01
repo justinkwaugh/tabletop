@@ -597,7 +597,7 @@ Game State across reload. Their entitled player decides before ordinary play res
 Other stock, construction, route, and train controls remain unavailable meanwhile.
 Same-player purchases settle with one explicit confirmation. When a title lets owners
 fund a train offer the treasury cannot cover, the offer form states each contribution,
-"[owner] pays [amount] toward it", above any reason the offer is unavailable. Another player's
+"[owner] pays [amount] toward it", while the offer is valid. Another player's
 private lay is selectable only through explicit Local Hotseat input; Hosted clients
 remain limited to their associated player. All Actions are constructed by the
 Game Session. Tile previews reuse the shared tile renderer, and committed changes

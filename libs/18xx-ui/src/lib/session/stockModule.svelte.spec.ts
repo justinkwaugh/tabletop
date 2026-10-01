@@ -3,7 +3,7 @@ import {
     TestCompanyId,
     TestPlayerId,
     minimalCompanyRules,
-    minimalEndingRules,
+    minimalValuationRules,
     minimalPlayState,
     minimalStockRules
 } from '@tabletop/18xx/testing'
@@ -26,7 +26,7 @@ function trading(valid: string[] = [], availability = {}) {
         {
             stockRules: minimalStockRules,
             companyRules: minimalCompanyRules,
-            endingRules: minimalEndingRules
+            endingRules: minimalValuationRules
         },
         valid,
         availability

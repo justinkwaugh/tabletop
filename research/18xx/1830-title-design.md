@@ -576,10 +576,20 @@ D&H station choice (slice 4). Slice 6 adds what the shared table lacked for
   #57 in Scranton".
 - The C&A, B&O and M&H cards carry the PRR, B&O and NYC tokens of the share,
   presidency or exchange they bring.
-- A company card describes C&StL's or D&H's unused power where the card has room
-  for descriptions.
+- A company card describes C&StL's or D&H's power while it can still be used
+  (not yet used, and its hex still without a tile) where the card has room for
+  descriptions.
 - A private-sale offer starts at the private's value rather than $1.
 - A funded train offer states what the president pays toward it.
+- History names the extra certificates of an award ("with 1 PRR", "with the B&O
+  president's certificate"), privates that close on a train purchase, and a
+  chosen home city.
+
+The two shared behaviours are family features. The starting offer is the
+private's value under the title's valuation rules, kept within its price bounds;
+1830, 1889 and TOP all value an open private at face value, and only 1830 sells
+privates between players. The contribution line appears for any title with
+`purchaseFunding`, which only 1830 sets.
 
 ### Limits after slice 6
 

@@ -20,6 +20,7 @@ import {
     isStartOperatingSet,
     privateSaleChoices,
     privateSaleOfferReason,
+    suggestedPrivateSalePrice,
     sameOwner,
     sharesOwned,
     type CompanyStartRequest,
@@ -28,7 +29,8 @@ import {
     type Owner,
     type PurchaseRequest,
     type SaleRequest,
-    type ShareSale
+    type ShareSale,
+    type ValuationRules
 } from '@tabletop/18xx'
 import {
     StockActionStageOrder,
@@ -56,7 +58,7 @@ type StockState = Parameters<typeof evaluateCompanyStart>[0] &
 
 export type StockSession = ModuleSession<
     StockState,
-    Pick<EighteenXXTitleRules, 'stockRules' | 'companyRules' | 'endingRules'>
+    Pick<EighteenXXTitleRules, 'stockRules' | 'companyRules'> & { endingRules: ValuationRules }
 >
 
 export class StockModule implements LocalSelection {
@@ -425,23 +427,9 @@ export class StockModule implements LocalSelection {
         if (!playerId || !this.trading) return []
         return privateSaleChoices(state, rules.stockRules, playerId).map((choice) => ({
             ...choice,
-            suggestedPrice: Math.min(
-                Math.max(this.privateValue(choice.privateCompanyId), choice.range.minimum),
-                choice.range.maximum ?? Infinity
-            )
+            suggestedPrice: suggestedPrivateSalePrice(state, choice, rules.endingRules)
         }))
     })
-    private privateValue(privateCompanyId: string): number {
-        const { state, rules } = this.session
-        const charter = state.certificates.find(
-            (certificate) =>
-                certificate.kind === 'private' && certificate.companyId === privateCompanyId
-        )
-        assert(charter && !charter.retired, 'An offered private has its charter')
-        return rules.endingRules
-            .certificateItems(state, charter)
-            .reduce((sum, item) => sum + item.value, 0)
-    }
     privateOfferReason(privateCompanyId: string, price: number): string | undefined {
         const playerId = this.session.playerId
         if (!playerId) return 'Only a player may offer for a private.'

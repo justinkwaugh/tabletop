@@ -15,14 +15,28 @@
     let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
         $props()
     const session = $derived(requireEighteenXXSession(gameSession))
-    const privateOperationDescription = (id: string) =>
-        session.gameState.usedPrivatePowerIds.includes(id)
-            ? undefined
-            : id === 'CS'
-              ? 'May lay tile 3, 4 or 58 in Burlington (B20) without a connection, besides its own lay.'
-              : id === 'DH'
-                ? 'May lay #57 in Scranton (F16) as its lay for $120, then place a free station there.'
-                : undefined
+    // A company-owned C&StL or D&H power lasts until used or until its hex has a tile.
+    const PrivatePowers: Readonly<Record<string, { locationId: string; description: string }>> = {
+        CS: {
+            locationId: 'B20',
+            description:
+                'May lay tile 3, 4 or 58 in Burlington (B20) without a connection, besides its own lay.'
+        },
+        DH: {
+            locationId: 'F16',
+            description:
+                'May lay #57 in Scranton (F16) as its lay for $120, then place a free station there.'
+        }
+    }
+    const privateOperationDescription = (id: string) => {
+        const power = PrivatePowers[id]
+        const { usedPrivatePowerIds, tileInventory } = session.gameState
+        return power &&
+            !usedPrivatePowerIds.includes(id) &&
+            !tileInventory.placements[power.locationId]
+            ? power.description
+            : undefined
+    }
 </script>
 
 <GameTable {session} {privateOperationDescription}>

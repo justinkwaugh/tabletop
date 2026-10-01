@@ -16,6 +16,7 @@ import { certificateLimitAllows, exceedsStockLimits, type StockRules } from './s
 import { markTurnPurchase } from './sharePurchase.js'
 import { recordStockAction } from './stockRoundRules.js'
 import { recordTurnPurchase, type StockTurnPurchaseState } from './turnPurchases.js'
+import { certificateValue, type ValuationRules } from '../ending/finalWealth.js'
 
 export type PrivateSaleState = StockState &
     StockTurnPurchaseState & { machineState: string; purchaseOffer?: PendingPurchaseOffer }
@@ -101,7 +102,7 @@ export function settlePlayerPurchaseOffer(
     markTurnPurchase(state)
 }
 
-function privateCharter(state: StockState, privateCompanyId: string) {
+export function privateCharter(state: StockState, privateCompanyId: string) {
     const certificate = state.certificates.find(
         (certificate) =>
             certificate.kind === 'private' && certificate.companyId === privateCompanyId
@@ -179,4 +180,13 @@ export function privateSaleChoices(
             ? []
             : [{ privateCompanyId: company.id, sellerPlayerId: owner.playerId, range }]
     })
+}
+
+export function suggestedPrivateSalePrice(
+    state: StockState,
+    choice: PrivateSaleChoice,
+    valuation: ValuationRules
+): number {
+    const value = certificateValue(state, privateCharter(state, choice.privateCompanyId), valuation)
+    return Math.min(Math.max(value, choice.range.minimum), choice.range.maximum ?? Infinity)
 }

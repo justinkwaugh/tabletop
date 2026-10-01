@@ -9,10 +9,12 @@ import {
     privateSaleChoices,
     privateSaleOfferReason,
     privateOwner,
+    suggestedPrivateSalePrice,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenThirtyStockRules } from './index.js'
+import { EighteenThirtyEndingRules } from './endingRules.js'
 import { EighteenThirtyScenarios } from './scenarios/index.js'
 
 const alex = { kind: 'player', playerId: 'alex' } as const
@@ -210,5 +212,16 @@ describe('private sales between players', () => {
             })
         ).toBe('Sell down to the stock limits before buying.')
         expect(turn.valid('alex')).not.toContain('OfferPrivatePurchase')
+    })
+
+    it('suggests the private’s value as the starting offer, within the price bounds', () => {
+        const turn = trading()
+        const [choice] = privateSaleChoices(turn.state, EighteenThirtyStockRules, 'alex')
+        const suggest = (range: { minimum: number; maximum?: number }) =>
+            suggestedPrivateSalePrice(turn.state, { ...choice, range }, EighteenThirtyEndingRules)
+        expect(choice.privateCompanyId).toBe('CS')
+        expect(suggest(choice.range)).toBe(40)
+        expect(suggest({ minimum: 50 })).toBe(50)
+        expect(suggest({ minimum: 1, maximum: 30 })).toBe(30)
     })
 })

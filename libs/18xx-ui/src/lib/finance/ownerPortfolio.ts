@@ -1,4 +1,5 @@
 import {
+    certificateValue,
     cashOwnedBy,
     certificatesOwnedBy,
     getCompany,
@@ -49,9 +50,7 @@ export function ownerPortfolio(state: StockState, owner: Owner, rules: Valuation
             return {
                 company,
                 income: company.closed ? 0 : (company.privateRevenue ?? 0),
-                value: rules
-                    .certificateItems(state, item)
-                    .reduce((sum, asset) => sum + asset.value, 0)
+                value: certificateValue(state, item, rules)
             }
         })
         .filter((item) => !item.company.closed)
