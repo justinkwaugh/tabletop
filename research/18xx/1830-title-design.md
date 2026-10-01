@@ -267,15 +267,14 @@ hexes keep stations and reservations in the right city.
 ### Limits after slice 2
 
 - Whole-hex reservations over multi-slot cities are not represented (no 1830 case).
-- The president chooses Erie's city from buttons in the action panel, not by
-  selecting it on the map.
 
 ### Acceptance examples
 
 - Erie's opening reservation covers both Buffalo cities, and no other company can
   place a station in either while it stands.
-- When Erie first operates, its president chooses a Buffalo city; the home is
-  placed there, the other city is released, and the turn begins.
+- When Erie first operates, the map highlights Buffalo and its president clicks
+  a city; the home is placed there, the other city is released, and the turn
+  begins.
 - Upgrading the printed Buffalo hex to #59 keeps Erie's station in the same city
   index, and each rotation of an empty two-city or two-town hex is offered once.
 - Upgrading New York to #54 keeps NYNH's reservation on the city joined to its

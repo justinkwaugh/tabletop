@@ -331,12 +331,16 @@
     const consentPreview = $derived(session.gameState.trackConsent)
     const maskPlacementLocations = $derived(
         !consentPreview &&
-            (session.track.showChoices || session.gameState.machineState === 'PlacingStation')
+            (session.track.showChoices ||
+                session.gameState.machineState === 'PlacingStation' ||
+                session.stations.homeLocationIds.length > 0)
     )
     const placementLocationIds = $derived(
-        !session.privateActions.trackPowerSelection && session.stations.canPlace
-            ? session.stations.locationIds
-            : session.track.locationIds
+        session.stations.homeLocationIds.length
+            ? session.stations.homeLocationIds
+            : !session.privateActions.trackPowerSelection && session.stations.canPlace
+              ? session.stations.locationIds
+              : session.track.locationIds
     )
     const highlightedPlacementLocationIds = $derived(
         session.track.showChoices

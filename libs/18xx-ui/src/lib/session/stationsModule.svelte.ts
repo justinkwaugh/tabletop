@@ -95,6 +95,11 @@ export class StationsModule<State extends StationsState> {
         () =>
             this.session.interactive && this.session.validActionTypes.includes('ChooseHomeStation')
     )
+    homeLocationIds = $derived.by(() =>
+        this.canChooseHome && this.homeChoice
+            ? [...new Set(this.homeChoice.positions.map((position) => position.locationId))]
+            : []
+    )
 
     async chooseHome(position: { locationId: string; nodeId: string }) {
         const choice = this.homeChoice
