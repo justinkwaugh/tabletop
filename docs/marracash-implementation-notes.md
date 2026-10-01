@@ -14,7 +14,7 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
 ## Status (2026-10-01)
 
 - Steps 1–8 of the implementation plan are done and pushed. Step 9 (Game Catalogue) and step 10 (readiness check) remain.
-- **In progress when work paused:** the step 8d review. New Playwright tests in `games/marracash-ui/tests/` time out in the `createGame` helper on a `locator.fill`, so all 5 fail. The cause isn't known yet. Next: run `pnpm exec playwright test -g Concealed` in `games/marracash-ui` and read which locator it waits for. The Playwright config now uses the dev server on port 5185, like Estates.
+- Step 8d: the cover image and final UI checks are done. The 5 Playwright tests in `games/marracash-ui/tests/` pass. Their Playwright config uses the dev server on port 5185, like Estates, and `createGame` retries the `New game` click because the dev server can ignore a click made before hydration. Next: finish the step 8d checks (protected mode, release bundles, a full game played to the end in the harness), then step 9.
 
 ## Decisions
 

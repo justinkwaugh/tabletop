@@ -2,8 +2,13 @@ import { expect, type Locator, type Page } from '@playwright/test'
 
 export async function createGame(page: Page, { concealedCash = false } = {}) {
     await page.goto('/')
-    await page.getByRole('button', { name: 'New game', exact: true }).click()
-    await page.getByPlaceholder('choose a name for your game').fill('Market check')
+    // The dev server hydrates slowly, so a click before hydration is ignored
+    const gameName = page.getByPlaceholder('choose a name for your game')
+    await expect(async () => {
+        await page.getByRole('button', { name: 'New game', exact: true }).click()
+        await expect(gameName).toBeVisible({ timeout: 2_000 })
+    }).toPass()
+    await gameName.fill('Market check')
     await page
         .getByPlaceholder('optional reproduction seed')
         .fill('0123456789abcdef0123456789abcdef')

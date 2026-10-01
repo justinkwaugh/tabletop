@@ -78,11 +78,13 @@ test('Concealed Cash hides other players’ cash', async ({ page }) => {
     await expect(page.getByText('1200 Dirham')).toHaveCount(1)
 })
 
-test('the history keeps other players’ bids sealed until the auction resolves', async ({ page }) => {
+test('the history keeps other players’ bids sealed until the auction resolves', async ({
+    page
+}) => {
     await createGame(page)
     await auctionableShops(page).first().click()
     await finishBidding(page)
     await page.getByText('History', { exact: true }).click()
     await expect(page.getByText('placed a sealed bid')).toHaveCount(3)
-    await expect(page.getByText(/bought the .* shop .* Bids:/)).toBeVisible()
+    await expect(page.getByText(/bought the .* shop .* Bids:/s)).toBeVisible()
 })
