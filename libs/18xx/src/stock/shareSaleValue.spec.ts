@@ -84,7 +84,7 @@ const rules: StockRules = {
     certificateLimit: () => 20,
     certificateWeight: () => 1,
     ownershipLimit: () => 60,
-    sellAfterBuying: false,
+    turnOrder: 'sell-buy',
     round: { passing: 'consecutive', nextPlayerOrder: () => [], soldOut: () => false }
 }
 
@@ -168,7 +168,7 @@ it.each([false, true])(
         const state = example()
         const extended: StockRules = {
             ...rules,
-            extendSaleBlocks: true,
+            repeatSales: 'extend-block',
             saleTerms: (current, companyId, shares) => ({
                 payer: bank,
                 price: companyMarketSpace(current.stockMarket, companyId).price,
@@ -287,7 +287,7 @@ it('uses the actual asset owner for directional sales, independently of the acti
             seller,
             sales: [{ companyId: 'R', shares: 1 }]
         },
-        { ...directional, extendSaleBlocks: true }
+        { ...directional, repeatSales: 'extend-block' }
     )
     expect(extended.details?.sales[0].toMarketSpaceId).toBe('0:0')
 })

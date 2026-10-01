@@ -48,8 +48,10 @@ first stock round.
 4. **Private powers:** C&A and B&O awards, B&O's par before the first stock round,
    B&O closing on its first train, C&StL's lay, D&H's tile-then-station power, and
    M&H's exchange window.
-5. **Routes and verification:** offboard groups (Canada A9/A11, Gulf I1/J2) in
-   route validation and the autorouter encoding, then replaying the recorded games.
+5. **Routes, emergency purchases and verification:** offboard groups (Canada
+   A9/A11, Gulf I1/J2) in route validation and the autorouter encoding; emergency
+   train purchases from other companies at no more than face value; then replaying
+   the recorded games.
 6. **Title UI:** prompts and panels the shared table lacks for slices 2–4.
 
 ## Slice 1 design
@@ -191,7 +193,7 @@ Decisions made while implementing, beyond the design above:
   A company's shares are sold in one block per turn; the reference engine allows
   separate sales at the moved price (slice 3).
 - Emergency train purchases from other corporations, allowed up to face value by
-  the reference engine, are not offered (slice 3).
+  the reference engine, are not offered (slice 5).
 - Private companies have no powers or awards (slice 4).
 - A route may count both hexes of Canada or of the Gulf (slice 5).
 - The table harness has no finished 1830 game until the recorded games are
@@ -285,6 +287,81 @@ hexes keep stations and reservations in the right city.
 - Upgrading New York to #54 keeps NYNH's reservation on the city joined to its
   original track.
 
+## Slice 3 design: stock-round rules
+
+Slice 3 makes the 1830 stock turn follow the reference: sell-buy-sell, separate
+sales of one company, several brown-zone purchases (with the IPO option), and
+private-company sales between players.
+
+### Evidence
+
+- **Turn order.** The [trait survey](/workspace/research/18xx-2026-09-08/data/title-traits.json)
+  records sell-buy in 88 titles, sell-buy-or-buy-sell in 25 (1889) and
+  sell-buy-sell in 18 (1830). TOP is sell-buy.
+- **Repeat sales.** The reference's `MUST_SELL_IN_BLOCKS` (1889: true) makes later
+  sales of a company in the same turn extend the first block at its price; 1830
+  leaves it false, so each sale is separate and moves the price again.
+- **Several purchases.** In the reference's [stock step][stock-step] a second share
+  purchase in a turn needs the company in a multiple-buy (brown) zone, no company
+  started this turn, and no shares of another company bought this turn. Unless
+  `multiple_brown_from_ipo` is on, it must come from the market and no share may
+  have come from the IPO that turn.
+- **Private sales between players.** 1830's stock step offers other players'
+  privates from the phase that allows it, except in the first stock round and
+  after the turn's purchase; a private bought this way is the turn's purchase, so
+  only brown-zone shares may follow. B&O cannot be bought. The engine takes the
+  agreed price without checking it; the rules call for the seller's agreement.
+- **State shape.** A hosted TOP game is in progress, and the
+  [state-shape backlog](state-shape-backlog.md) holds shared state changes until it
+  ends.
+
+### Decisions
+
+- **Turn order and repeat sales are rule policies.** `StockRules.sellAfterBuying`
+  becomes `turnOrder` (`sell-buy`, `sell-buy-or-buy-sell`, `sell-buy-sell`) and
+  `extendSaleBlocks` becomes `repeatSales` (`extend-block` or `separate`; absent
+  means one sale per company per turn). TOP and 1889 keep their behaviour. 1830
+  uses `sell-buy-sell` and `separate`. Neither needs new state.
+- **Purchases this turn and private-sale offers are opt-in shared state.** The
+  family defines the fields and their rules, and a title enables a feature by
+  adding its fields to its state and its rules to `StockRules`. TOP and 1889 add
+  neither, so their schemas and runtime contracts stay unchanged. When the backlog
+  migration runs, these can join the family state.
+- **Several purchases.** `StockRules.multipleBuys` names when a further share may
+  be bought: the title says whether the company's price allows it and whether it
+  may come from the IPO; the family enforces the turn's earlier purchases. The
+  turn's purchases are recorded in `stockTurnPurchases`, cleared when the turn
+  ends. 1830 allows brown-zone companies, from the IPO only with the option, which
+  the opening records in the state because rules see only state.
+- **Private sales between players.** `StockRules.privateSales` names when a player
+  may buy another player's private and its price bounds. The buyer offers a price
+  on their turn; the seller accepts or declines out of turn while the buyer's turn
+  waits. Acceptance transfers the private and the cash and counts as the turn's
+  purchase. 1830 allows it from phase 2 after the first stock round, for any
+  privately agreed price of at least $1, except for B&O.
+- **Emergency train purchases from other companies move to slice 5.** They belong
+  to train funding, not the stock turn, and must precede replaying the recorded
+  games.
+
+### Limits after slice 3
+
+- A buyer cannot withdraw a private purchase offer; the owner answers it.
+- Standing buy instructions still buy one share per turn.
+- The offer form starts at the minimum price, not the private's face value, which
+  the family state does not hold.
+
+### Acceptance examples
+
+- An 1830 player sells, buys, then sells again in one turn, and sells the same
+  company twice with the price moving each time; 1889 and TOP keep their order.
+- In the brown zone a player buys several market shares of one company; a share of
+  another company, a company started that turn, or (without the option) an IPO
+  share ends the run.
+- With the option, brown IPO shares can be bought several at a time.
+- A player offers to buy another player's private; the seller accepts and both
+  cash and private move, or declines and the buyer's turn continues. Neither is
+  possible in the first stock round or for B&O.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/entities.rb
@@ -293,3 +370,4 @@ hexes keep stations and reservations in the right city.
 [auction]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/waterfall_auction.rb
 [hex-lay]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/hex.rb#L115-L291
 [home-token]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/base.rb#L1684-L1735
+[stock-step]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/buy_sell_par_shares.rb

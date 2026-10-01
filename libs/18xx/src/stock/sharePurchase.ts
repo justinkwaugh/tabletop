@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { furtherShareAllowed } from './turnPurchases.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     Owner,
@@ -46,6 +47,8 @@ export function evaluateSharePurchase(
     const certificate = state.certificates.find((item) => item.id === request.certificateId)
     if (!certificate || certificate.retired || certificate.kind !== 'share')
         return { reason: 'This is not an available share certificate.' }
+    if (state.stockRound.turn.bought && !furtherShareAllowed(state, certificate, rules))
+        return { reason: 'Only one purchase is allowed this turn.' }
     return evaluateShareAcquisition(
         state,
         request,
@@ -61,7 +64,6 @@ export function evaluateShareAcquisition(
     terms: SharePurchaseTerms | string
 ): SharePurchaseResult {
     const { playerId, buyer, certificateId } = request
-    if (state.stockRound.turn.bought) return { reason: 'Only one purchase is allowed this turn.' }
     if (exceedsStockLimits(state, { kind: 'player', playerId }, rules))
         return { reason: 'Sell down to the stock limits before buying.' }
     if (!state.activePlayerIds.includes(playerId))

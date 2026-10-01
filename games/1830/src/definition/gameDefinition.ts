@@ -15,6 +15,7 @@ import { EighteenThirtyCompanyRules } from '../companyRules.js'
 import { EighteenThirtyStockRules } from '../stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
 import { EighteenThirtyInfo } from './info.js'
+import { EighteenThirtyStateDefinition } from '../state.js'
 import {
     createEighteenXXRuntime,
     type EighteenXXState,
@@ -23,6 +24,7 @@ import {
 } from '@tabletop/18xx'
 
 export const EighteenThirtyTitleRules: EighteenXXTitleRules = {
+    state: EighteenThirtyStateDefinition,
     endingRules: EighteenThirtyEndingRules,
     auctionRules: EighteenThirtyAuctionRules,
     trainFundingRules: EighteenThirtyTrainFundingRules,

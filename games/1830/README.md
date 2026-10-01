@@ -17,9 +17,10 @@ initialization is available from `@tabletop/1830/scenarios`.
 The research site's implementation defines the rules (project decision,
 2026-10-01). It follows the Lookout 1830-RE rulebook. See the
 [title design note](../../research/18xx/1830-title-design.md) for sources, the
-delivery slices, and the intentional limits so far: stock turns are sell–buy or
-buy–sell with one purchase, privates have no powers or awards, and offboard groups
-are not yet enforced. Erie reserves both Buffalo cities; its home goes in the first
+delivery slices, and the intentional limits so far: privates have no powers or
+awards, and offboard groups are not yet enforced. Stock turns are sell–buy–sell,
+brown-zone shares of one company can be bought several at a time, and players sell
+privates to one another by offer and acceptance. Erie reserves both Buffalo cities; its home goes in the first
 city when it first operates, unless Buffalo already has a tile with track, when its president
 clicks the city on the map.
 

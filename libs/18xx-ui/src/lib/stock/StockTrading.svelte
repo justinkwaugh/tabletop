@@ -162,7 +162,7 @@
                 {/each}
             </div>
         </details>
-        {#if !session.stock.selectedSale && !gameState.stockRound.turn.bought}
+        {#if !session.stock.selectedSale && (!gameState.stockRound.turn.bought || session.stock.purchaseChoices.length)}
             <details open>
                 <summary>Buy shares</summary>
                 <div class="choices">

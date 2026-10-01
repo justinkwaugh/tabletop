@@ -7,6 +7,14 @@ import {
     isCompleteStockRound
 } from './completeStockRound.js'
 import { BuyShares, HydratedBuyShares, isBuyShares } from './buyShares.js'
+import {
+    AnswerPrivatePurchase,
+    HydratedAnswerPrivatePurchase,
+    HydratedOfferPrivatePurchase,
+    OfferPrivatePurchase,
+    isAnswerPrivatePurchase,
+    isOfferPrivatePurchase
+} from './privateSale.js'
 import { SellShares, HydratedSellShares, isSellShares } from './sellShares.js'
 import { FinishStockTurn, HydratedFinishStockTurn, isFinishStockTurn } from './finishStockTurn.js'
 import {
@@ -48,6 +56,20 @@ export function stockActions(rules: StockRules): ActionDefinition[] {
             StopStockInstruction,
             isStopStockInstruction,
             (action) => new HydratedStopStockInstruction(action, rules)
-        )
+        ),
+        ...(rules.privateSales
+            ? [
+                  defineAction(
+                      OfferPrivatePurchase,
+                      isOfferPrivatePurchase,
+                      (action) => new HydratedOfferPrivatePurchase(action, rules)
+                  ),
+                  defineAction(
+                      AnswerPrivatePurchase,
+                      isAnswerPrivatePurchase,
+                      (action) => new HydratedAnswerPrivatePurchase(action, rules)
+                  )
+              ]
+            : [])
     ]
 }

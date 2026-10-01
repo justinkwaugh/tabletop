@@ -8,6 +8,7 @@ import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
 import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
 import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
+import { PrivateSaleHandler } from '../stock/privateSale.js'
 import { BankruptHandler } from '../funding/bankruptHandler.js'
 import { BetweenCompaniesHandler } from '../privates/betweenCompaniesHandler.js'
 import { CompanyDecisionsHandler } from '../privates/companyDecisionsHandler.js'
@@ -108,6 +109,8 @@ export function createEighteenXXRuntime(
                   options.privatePowerRules
               )
             : handler
+    const sellsPrivates = (handler: Handler): Handler =>
+        rules.privateSales ? new PrivateSaleHandler(handler, rules) : handler
     const choosesHome = (handler: Handler): Handler =>
         options.stationRules.homeChoice
             ? new HomeStationChoiceHandler(handler, options.stationRules)
@@ -159,10 +162,12 @@ export function createEighteenXXRuntime(
                             allowsExchange(
                                 decides(
                                     'StockRound',
-                                    new StockRoundHandler(
-                                        rules,
-                                        'StartingOperatingSet',
-                                        companyRules
+                                    sellsPrivates(
+                                        new StockRoundHandler(
+                                            rules,
+                                            'StartingOperatingSet',
+                                            companyRules
+                                        )
                                     )
                                 )
                             )

@@ -82,5 +82,25 @@ export const EighteenThirtyStockRules: StockRules = {
     },
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
-    sellAfterBuying: true
+    turnOrder: 'sell-buy-sell',
+    repeatSales: 'separate',
+    // Brown-zone shares of one company may be bought several at a time: from the market, or
+    // also from the IPO when the game's option allows it.
+    // Players sell privates to one another at any agreed price from the second stock round;
+    // the B&O private cannot be bought.
+    privateSales: {
+        priceRange: (state, privateCompanyId) =>
+            state.stockRound.number > 1 && privateCompanyId !== 'BOP' ? { minimum: 1 } : undefined
+    },
+    multipleBuys: {
+        allowsAnother(state, certificate, earlier) {
+            if (companyMarketSpace(state.stockMarket, certificate.companyId).color !== 'brown')
+                return false
+            if ('multipleBrownFromIpo' in state && state.multipleBrownFromIpo === true) return true
+            return (
+                certificate.poolId === 'open-market' &&
+                earlier.every((purchase) => purchase.poolId !== 'initial-offering')
+            )
+        }
+    }
 }

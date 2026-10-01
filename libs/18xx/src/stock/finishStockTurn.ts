@@ -1,4 +1,5 @@
 import { allPlayersPassed } from './stockRoundRules.js'
+import { clearTurnPurchases } from './turnPurchases.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -58,6 +59,7 @@ export class HydratedFinishStockTurn
         if (passed && !state.stockRound.passedPlayerIds.includes(this.playerId))
             state.stockRound.passedPlayerIds.push(this.playerId)
         state.turnManager.endTurn(state.actionCount)
+        clearTurnPurchases(state)
         if (!allPlayersPassed(state)) {
             state.activePlayerIds = [state.turnManager.startNextTurn(state.actionCount + 1)]
             state.stockRound.turn = {

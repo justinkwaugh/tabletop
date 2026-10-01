@@ -1,6 +1,7 @@
 {
   "actionSchemaDigests": {
     "AdvancePhase": "c6c8fd9f31c5f61a3c338173a80fb01a820a0508bf46e406b3aa5cf9f4bd8e89",
+    "AnswerPrivatePurchase": "10c02bf743f2e820e5deabb8797dbc1cb8ac42252f9b401a29b76de222cbb140",
     "BuyAuctionLot": "558d1bb0e677c3a7bbe2b06c0d394d7d12a2ec51edc49b649b1aa7b184968a79",
     "BuyPrivateTrain": "696b3122d45f99995e1d55d288ae6e0028d2a22240bccabde6de5184f2f8dd51",
     "BuyShares": "bbd497f746488f390f4fc3cc0e9bda155b4e59e2d1d8776b758b85cd80279205",
@@ -24,6 +25,7 @@
     "IssueTreasuryShares": "3bbce033d8ebe42dac7bc33733bf426d5713ddb6c2ce9543190d51d3aaf41d9f",
     "LayPrivateTile": "c8d97811dbc839c2d8fdf5e51ddac49143a685df1c80e2d5573dcd1c286bf298",
     "LayTile": "3f0147c9c4ed30ee48cfe700899573e878d44011c2c89363ce05b2682226ee16",
+    "OfferPrivatePurchase": "9e93c2d4fdf045872f91953892990b077430e46205d148c50331420e42d707c1",
     "OfferPurchase": "51b45483436aeef619c452fa43f86c4d58cc47d99f7aaaaf64359fd7312c23ed",
     "PassAuction": "0787d832446a6a789d06e769e79b3f3ef5b630bebc1247a975940bb6979e64a1",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
@@ -1308,6 +1310,10 @@
           }
         }
       },
+      "multipleBrownFromIpo": {
+        "const": true,
+        "type": "boolean"
+      },
       "offerAuction": {
         "additionalProperties": false,
         "properties": {
@@ -1989,6 +1995,31 @@
         "required": [
           "companyId",
           "passedPlayerIds"
+        ],
+        "type": "object"
+      },
+      "privateSaleOffer": {
+        "additionalProperties": false,
+        "properties": {
+          "buyerPlayerId": {
+            "type": "string"
+          },
+          "price": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "privateCompanyId": {
+            "type": "string"
+          },
+          "sellerPlayerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "buyerPlayerId",
+          "price",
+          "privateCompanyId",
+          "sellerPlayerId"
         ],
         "type": "object"
       },
@@ -3031,6 +3062,41 @@
           "turn"
         ],
         "type": "object"
+      },
+      "stockTurnPurchases": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "companyId": {
+              "type": "string"
+            },
+            "kind": {
+              "anyOf": [
+                {
+                  "const": "share",
+                  "type": "string"
+                },
+                {
+                  "const": "start",
+                  "type": "string"
+                },
+                {
+                  "const": "private",
+                  "type": "string"
+                }
+              ]
+            },
+            "poolId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "companyId",
+            "kind"
+          ],
+          "type": "object"
+        },
+        "type": "array"
       },
       "systemVersion": {
         "type": "number"

@@ -18,6 +18,8 @@ import {
     isAdvancePhase,
     isCompleteStockRound,
     isPrivateExchangeAction,
+    isOfferPrivatePurchase,
+    isAnswerPrivatePurchase,
     isReserveBid,
     isRaiseAuctionBid,
     isContributeTrainFunds,
@@ -380,6 +382,23 @@ export function historyDescription(
             detail: `From ${offer.seller.kind === 'bank' ? state.bank.name : ownerName(offer.seller)}`,
             important: accepted
         }
+    }
+    if (isOfferPrivatePurchase(action))
+        return {
+            text: `Offered ${money(action.price)} for ${companyName(action.privateCompanyId)}`
+        }
+    if (isAnswerPrivatePurchase(action)) {
+        assertExists(action.metadata, 'A recorded answer requires its offer')
+        const { privateCompanyId, buyerPlayerId, price } = action.metadata
+        return action.accept
+            ? {
+                  text: `Sold ${companyName(privateCompanyId)} to ${playerName(buyerPlayerId)}`,
+                  value: money(price),
+                  important: true
+              }
+            : {
+                  text: `Declined ${playerName(buyerPlayerId)}’s offer for ${companyName(privateCompanyId)}`
+              }
     }
     if (isFinishTrack(action)) return { text: 'Finished track', routine: true }
     if (isFinishStations(action)) return { text: 'Finished stations', routine: true }

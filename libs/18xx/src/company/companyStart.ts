@@ -49,6 +49,8 @@ export function evaluateCompanyStart(
     )
     if (!certificate || certificate.retired)
         return { reason: 'The president’s certificate is unavailable.' }
+    if (state.stockRound.turn.bought)
+        return { reason: 'A company cannot be started after this turn’s purchase.' }
     const terms = rules.startTerms(state, company.id, request.buyer, space.id)
     if (typeof terms === 'string') return { reason: terms }
     const projected: FormationState = {

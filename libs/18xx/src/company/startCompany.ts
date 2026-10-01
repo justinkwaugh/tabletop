@@ -11,6 +11,7 @@ import {
 } from '@tabletop/common'
 import { Owner, getCompany } from '../finance/finance.js'
 import { applySharePurchase } from '../stock/sharePurchase.js'
+import { recordTurnPurchase } from '../stock/turnPurchases.js'
 import { placeStockMarker } from '../stock/stockMarket.js'
 import { CompanyStartDetails, evaluateCompanyStart } from './companyStart.js'
 import type { FormationState } from './companyState.js'
@@ -67,6 +68,7 @@ export class HydratedStartCompany
         company.president = result.details.buyer
         placeStockMarker(state.stockMarket, this.companyId, this.marketSpaceId)
         recordStockAction(state, this.playerId, this.#stockRules.round)
+        recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)
         this.#companyRules.onStart?.(state, result.details)
         this.metadata = result.details

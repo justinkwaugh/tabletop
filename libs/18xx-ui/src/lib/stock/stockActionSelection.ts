@@ -1,11 +1,12 @@
 import type { Owner } from '@tabletop/18xx'
 
-export type StockAction = 'buy' | 'sell' | 'start' | 'exchange'
+export type StockAction = 'buy' | 'sell' | 'start' | 'exchange' | 'privates'
 export const stockActionLabels: Readonly<Record<StockAction, string>> = {
     buy: 'Buy',
     sell: 'Sell',
     start: 'Start',
-    exchange: 'Exchange'
+    exchange: 'Exchange',
+    privates: 'Privates'
 }
 export type StockActionStages = {
     action: { menu: StockAction; buyer?: Owner }

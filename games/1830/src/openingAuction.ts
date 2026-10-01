@@ -112,6 +112,7 @@ export function createEighteenThirtyOpening({
     }
     return {
         position,
+        ...(options.multipleBrownFromIpo ? { titleState: { multipleBrownFromIpo: true } } : {}),
         begin: beginWaterfallAuction(EighteenThirtyAuctionRules, startingPositions)
     }
 }

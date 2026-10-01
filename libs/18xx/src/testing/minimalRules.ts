@@ -20,7 +20,7 @@ export const minimalStockRules: StockRules = {
     certificateWeight: () => 1,
     ownershipLimit: () => 60,
     presidencyCandidates: () => [],
-    sellAfterBuying: true
+    turnOrder: 'sell-buy-or-buy-sell'
 }
 
 export const minimalCompanyRules: CompanyRules = {

@@ -18,6 +18,8 @@
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import StandingInstruction from '../stock/StandingInstruction.svelte'
+    import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
+    import PrivateSaleAnswer from '../stock/PrivateSaleAnswer.svelte'
     let {
         session,
         poolName
@@ -106,7 +108,9 @@
 <section class="stock-trading centered-panel" aria-label="Stock trading">
     <div class="stock-controls">
         {#if session.stock.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
-        {#if menu}
+        {#if session.stock.privateSaleOffer}
+            <PrivateSaleAnswer {session} disabled={session.busy || session.isViewingHistory} />
+        {:else if menu}
             <div class="heading available-shares">
                 <span
                     >{menu === 'buy'
@@ -117,7 +121,9 @@
                           ? 'Available Sales'
                           : menu === 'start'
                             ? 'Available Companies'
-                            : 'Available Exchanges'}</span
+                            : menu === 'privates'
+                              ? 'Players’ Privates'
+                              : 'Available Exchanges'}</span
                 >
             </div>
             {#if (menu === 'buy' && buyers.length > 1) || (menu === 'start' && startBuyers.length > 1)}
@@ -420,6 +426,8 @@
                                 />
                             </span>
                         </button>{/each}
+                {:else if menu === 'privates'}
+                    <PrivatePurchaseOffers {session} {disabled} />
                 {/if}
             </div>
         {:else}

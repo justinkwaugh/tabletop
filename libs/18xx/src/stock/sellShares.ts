@@ -56,7 +56,7 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
         assert(result.details, result.reason ?? 'Invalid sale')
         assert(this.expectedProceeds === result.details.proceeds, 'Sale proceeds have changed')
         let saleBlockId: string | undefined
-        if (this.#rules.extendSaleBlocks) {
+        if (this.#rules.repeatSales === 'extend-block') {
             const sale = result.details.sales[0]
             const blocks = (state.stockRound.turn.saleBlocks ??= [])
             const previous = blocks.find(
