@@ -1353,11 +1353,10 @@ the action content whenever that area scrolls vertically.
 Titles with private sales between players add a Privates category while the active
 player may offer for another player's private. Its panel lists those privates with
 their owners, a price field starting at the title's minimum, and an Offer button that
-submits OfferPrivatePurchase directly. While an offer awaits its answer, ordinary
-stock choices and the strip's pills are withheld; the action panel shows "[buyer]
-offers [price] for [private]." with Sell for [price] and Decline buttons for the
-owner, and a waiting line for everyone else. The answer returns the panel to the
-buyer's turn.
+submits OfferPrivatePurchase directly. While the offer awaits its answer, ordinary
+stock choices and the strip's pills are withheld and the action panel shows the
+shared purchase response, "[buyer] offers [price] for [private]" with Accept and
+Decline for the owner. The answer returns the panel to the buyer's turn.
 
 After a turn's purchase, Buy remains available only while the title allows a
 further share (such as several brown-zone shares of one company); it then lists

@@ -53,9 +53,9 @@ export interface StockRules {
      * a separate sale at the current price. Without it, each company sells once per turn.
      */
     repeatSales?: 'extend-block' | 'separate'
-    /** Further share purchases in a turn; the title adds ``StockTurnPurchaseFields`` to its state. */
+    /** Further share purchases in a turn after the first. */
     multipleBuys?: MultipleBuyRules
-    /** Private sales between players; the title adds ``PrivateSaleFields`` to its state. */
+    /** Private sales between players, offered and answered like a company's purchase offer. */
     privateSales?: PrivateSaleRules
 }
 export function stockCertificateCount(state: StockState, owner: Owner, rules: StockRules): number {

@@ -1,6 +1,5 @@
 import { assert, assertExists } from '@tabletop/common'
 import {
-    AnswerPrivatePurchase,
     BuyShares,
     FinishStockTurn,
     OfferPrivatePurchase,
@@ -26,7 +25,6 @@ import {
     type EighteenXXState,
     type EighteenXXTitleRules,
     type Owner,
-    type PrivateSaleOffer,
     type PurchaseRequest,
     type SaleRequest,
     type ShareSale
@@ -50,9 +48,7 @@ type StockState = Parameters<typeof evaluateCompanyStart>[0] &
     Parameters<typeof evaluateShareSale>[0] &
     Parameters<typeof flotationAfterPurchase>[0] &
     Parameters<typeof exceedsStockLimits>[0] &
-    Pick<EighteenXXState, 'machineState' | 'stockRound' | 'activePlayerIds'> & {
-        privateSaleOffer?: PrivateSaleOffer
-    }
+    Pick<EighteenXXState, 'machineState' | 'stockRound' | 'activePlayerIds' | 'purchaseOffer'>
 
 export type StockSession = ModuleSession<
     StockState,
@@ -70,13 +66,12 @@ export class StockModule implements LocalSelection {
         private readonly additionalMenuCount: () => number = () => 0
     ) {}
 
-    /** A private purchase offer awaiting its owner's answer suspends ordinary trading. */
-    privateSaleOffer = $derived.by(() => this.session.state.privateSaleOffer)
+    // An offer awaiting its seller's answer suspends ordinary trading.
     private trading = $derived.by(
         () =>
             this.session.selectionsVisible &&
             this.session.state.machineState === 'StockRound' &&
-            !this.privateSaleOffer
+            !this.session.state.purchaseOffer
     )
     availableMenus = $derived.by(() => {
         const choices: StockActionStages['action'][] = []
@@ -434,15 +429,6 @@ export class StockModule implements LocalSelection {
         )
         await this.session.applyAction(
             this.session.createPlayerAction(OfferPrivatePurchase, { privateCompanyId, price })
-        )
-    }
-    async answerPrivatePurchase(accept: boolean) {
-        assert(
-            this.privateSaleOffer?.sellerPlayerId === this.session.playerId,
-            'Only the private’s owner answers the offer'
-        )
-        await this.session.applyAction(
-            this.session.createPlayerAction(AnswerPrivatePurchase, { accept })
         )
     }
     async finishTurn() {

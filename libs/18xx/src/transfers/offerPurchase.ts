@@ -10,9 +10,13 @@ import {
 } from '@tabletop/common'
 import { pendingCompanyDecision, type CompanyDecisionState } from '../privates/companyDecision.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
+import { privateSaleReason, settlePlayerPurchaseOffer } from '../stock/privateSale.js'
+import type { StockRules } from '../stock/stockRules.js'
 import {
+    PendingPurchaseOffer,
     PurchaseOfferRequest,
     PurchaseOffer,
+    isCompanyPurchaseOffer,
     evaluatePurchaseOffer,
     settlePurchaseOffer,
     type TransferRules
@@ -80,7 +84,9 @@ export const RespondToPurchaseOffer = Type.Object(
         type: Type.Literal('RespondToPurchaseOffer'),
         offerId: Type.String(),
         accept: Type.Boolean(),
-        metadata: Type.Optional(Type.Object({ offer: PurchaseOffer, accepted: Type.Boolean() }))
+        metadata: Type.Optional(
+            Type.Object({ offer: PendingPurchaseOffer, accepted: Type.Boolean() })
+        )
     },
     { additionalProperties: false }
 )
@@ -97,13 +103,20 @@ export class HydratedRespondToPurchaseOffer
     declare metadata?: RespondToPurchaseOffer['metadata']
     readonly #rules: TransferRules
     readonly #trains: TrainRules
-    constructor(data: RespondToPurchaseOffer, rules: TransferRules, trains: TrainRules) {
+    readonly #stocks: StockRules
+    constructor(
+        data: RespondToPurchaseOffer,
+        rules: TransferRules,
+        trains: TrainRules,
+        stocks: StockRules
+    ) {
         super(
             data instanceof HydratedRespondToPurchaseOffer ? data.dehydrate() : data,
             ResponseValidator
         )
         this.#rules = rules
         this.#trains = trains
+        this.#stocks = stocks
     }
     isValid(state: CompanyDecisionState): boolean {
         const offer = state.purchaseOffer
@@ -116,6 +129,14 @@ export class HydratedRespondToPurchaseOffer
         )
             return false
         if (!this.accept) return true
+        if (!isCompanyPurchaseOffer(offer))
+            return (
+                privateSaleReason(state, this.#stocks, {
+                    playerId: offer.buyerPlayerId,
+                    privateCompanyId: offer.asset.privateCompanyId,
+                    price: offer.price
+                }) === undefined
+            )
         const result = evaluatePurchaseOffer(state, offer, this.#rules, this.#trains)
         return (
             result.buyerPlayerId === offer.buyerPlayerId &&
@@ -125,7 +146,13 @@ export class HydratedRespondToPurchaseOffer
     apply(state: HydratedGameState & CompanyDecisionState): void {
         assert(this.isValid(state), 'Invalid or stale purchase response')
         const offer = state.purchaseOffer!
-        if (this.accept) settlePurchaseOffer(state, offer, this.#rules, this.#trains)
+        if (isCompanyPurchaseOffer(offer)) {
+            if (this.accept) settlePurchaseOffer(state, offer, this.#rules, this.#trains)
+        } else {
+            if (this.accept) settlePlayerPurchaseOffer(state, offer, this.#stocks)
+            // The buyer's stock turn resumes.
+            state.activePlayerIds = [offer.buyerPlayerId]
+        }
         delete state.purchaseOffer
         this.metadata = { offer, accepted: this.accept }
     }

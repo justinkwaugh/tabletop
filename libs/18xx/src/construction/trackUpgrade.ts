@@ -23,7 +23,8 @@ export function tileUpgradeMappings(before: TileFace, after: TileFace): TileNode
         }
         for (const target of after.nodes) {
             if (node.kind !== target.kind) continue
-            if (cityTargets && node.kind === 'city' && cityTargets.get(node.id) !== target.id) continue
+            if (cityTargets && node.kind === 'city' && cityTargets.get(node.id) !== target.id)
+                continue
             if (
                 Object.values(mapping).includes(target.id) &&
                 (node.kind !== 'city' ||

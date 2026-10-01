@@ -19,7 +19,6 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import StandingInstruction from '../stock/StandingInstruction.svelte'
     import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
-    import PrivateSaleAnswer from '../stock/PrivateSaleAnswer.svelte'
     let {
         session,
         poolName
@@ -108,9 +107,7 @@
 <section class="stock-trading centered-panel" aria-label="Stock trading">
     <div class="stock-controls">
         {#if session.stock.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
-        {#if session.stock.privateSaleOffer}
-            <PrivateSaleAnswer {session} disabled={session.busy || session.isViewingHistory} />
-        {:else if menu}
+        {#if menu}
             <div class="heading available-shares">
                 <span
                     >{menu === 'buy'

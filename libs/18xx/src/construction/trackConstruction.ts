@@ -146,7 +146,10 @@ export class TrackConstruction {
                         rotation,
                         nodeMapping
                     })
-                    if (result.details && !choices.some((choice) => samePlacement(choice, result.details)))
+                    if (
+                        result.details &&
+                        !choices.some((choice) => samePlacement(choice, result.details))
+                    )
                         choices.push(result.details)
                 }
             }

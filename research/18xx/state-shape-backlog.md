@@ -11,6 +11,11 @@ Measured on the deployed game's latest State at action 181: 52,360 bytes as comp
 (the exported file is 87 KB pretty-printed). Definition data restated in every State is
 about 45% of it.
 
+Additive optional fields that the deployed game never writes are outside this freeze:
+its states are unchanged, so loaded clients keep accepting them, and the new schema
+accepts a superset. 1830's slice 3 added two (`stockTurnPurchases`, and a player-buyer
+variant of `purchaseOffer`) and regenerated the TOP and 1889 contract snapshots.
+
 ## 1. Certificates carry their definition (about 12 KB)
 
 `certificates` is 22,985 bytes for 134 records. Of each record only `owner`, `poolId`

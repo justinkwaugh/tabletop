@@ -5,7 +5,7 @@ import type { OperatingState } from '../operating/operatingSet.js'
 import { TrackLayDetails, type ConstructionState } from '../construction/trackConstruction.js'
 import type { TrainState } from '../trains/train.js'
 import type { PhaseState } from '../phases/phaseChange.js'
-import { PurchaseOffer } from '../transfers/purchaseOffer.js'
+import { PendingPurchaseOffer, isCompanyPurchaseOffer } from '../transfers/purchaseOffer.js'
 import { assert } from '@tabletop/common'
 const Id = Type.String({ minLength: 1 })
 export const PrivateTrackLay = Type.Object(
@@ -26,7 +26,7 @@ export type PrivatePowerWindow = Type.Static<typeof PrivatePowerWindow>
 export const CompanyDecisionFields = {
     privatePowerWindow: Type.Optional(PrivatePowerWindow),
     privatePowerRequests: Type.Optional(Type.Array(Id, { uniqueItems: true })),
-    purchaseOffer: Type.Optional(PurchaseOffer),
+    purchaseOffer: Type.Optional(PendingPurchaseOffer),
     privateTrackLay: Type.Optional(PrivateTrackLay),
     trackConsent: Type.Optional(TrackConsent),
     usedPrivatePowerIds: Type.Array(Id, { uniqueItems: true })
@@ -56,7 +56,10 @@ export function validateCompanyDecisions(
     assert(pending.length <= 1, 'Resolve the current company decision before starting another')
     if (!pending.length) return
     assert(
-        isOperatingStep(state.machineState),
+        isOperatingStep(state.machineState) ||
+            (state.machineState === 'StockRound' &&
+                !!state.purchaseOffer &&
+                !isCompanyPurchaseOffer(state.purchaseOffer)),
         'A company decision requires an operating decision window'
     )
     const playerId =

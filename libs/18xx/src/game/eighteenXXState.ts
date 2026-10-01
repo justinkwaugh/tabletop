@@ -9,7 +9,7 @@ import {
     type TrackConsent,
     type PrivatePowerWindow
 } from '../privates/companyDecision.js'
-import { type PurchaseOffer } from '../transfers/purchaseOffer.js'
+import { type PendingPurchaseOffer } from '../transfers/purchaseOffer.js'
 import { PhaseFields, type PhaseEvent, type PhaseChange } from '../phases/phaseChange.js'
 import { EarningsFields, type EarningsDetails } from '../earnings/earningsDistribution.js'
 import { RouteFields, type RouteStep } from '../routes/route.js'
@@ -44,6 +44,7 @@ import { validateWaterfallAuction } from '../auctions/waterfallAuction.js'
 import { validateTrainFunding } from '../funding/trainFunding.js'
 import { validateFinalResults } from '../ending/finalWealth.js'
 import { validateCompanyDecisions } from '../privates/companyDecision.js'
+import { StockTurnPurchaseFields, type StockTurnPurchase } from '../stock/turnPurchases.js'
 import { validateRouteStep } from '../routes/route.js'
 import { validatePhaseChange } from '../phases/phaseChange.js'
 import { validateEarningsDistribution } from '../earnings/earningsDistribution.js'
@@ -91,7 +92,8 @@ const FamilyFields = Type.Object({
     ...PhaseFields,
     ...EarningsFields,
     ...CompanyDecisionFields,
-    ...RouteFields
+    ...RouteFields,
+    ...StockTurnPurchaseFields
 })
 export const EighteenXXState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof FamilyFields.properties
@@ -147,7 +149,8 @@ export class HydratedEighteenXXState
     declare finalWealth?: PlayerWealth[]
     declare privatePowerWindow?: PrivatePowerWindow
     declare privatePowerRequests?: string[]
-    declare purchaseOffer?: PurchaseOffer
+    declare purchaseOffer?: PendingPurchaseOffer
+    declare stockTurnPurchases?: StockTurnPurchase[]
     declare privateTrackLay?: PrivateTrackLay
     declare trackConsent?: TrackConsent
     declare usedPrivatePowerIds: string[]

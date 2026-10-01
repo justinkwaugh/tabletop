@@ -8,7 +8,6 @@ import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
 import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
 import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
-import { PrivateSaleHandler } from '../stock/privateSale.js'
 import { BankruptHandler } from '../funding/bankruptHandler.js'
 import { BetweenCompaniesHandler } from '../privates/betweenCompaniesHandler.js'
 import { CompanyDecisionsHandler } from '../privates/companyDecisionsHandler.js'
@@ -109,8 +108,6 @@ export function createEighteenXXRuntime(
                   options.privatePowerRules
               )
             : handler
-    const sellsPrivates = (handler: Handler): Handler =>
-        rules.privateSales ? new PrivateSaleHandler(handler, rules) : handler
     const choosesHome = (handler: Handler): Handler =>
         options.stationRules.homeChoice
             ? new HomeStationChoiceHandler(handler, options.stationRules)
@@ -162,12 +159,10 @@ export function createEighteenXXRuntime(
                             allowsExchange(
                                 decides(
                                     'StockRound',
-                                    sellsPrivates(
-                                        new StockRoundHandler(
-                                            rules,
-                                            'StartingOperatingSet',
-                                            companyRules
-                                        )
+                                    new StockRoundHandler(
+                                        rules,
+                                        'StartingOperatingSet',
+                                        companyRules
                                     )
                                 )
                             )
@@ -257,7 +252,7 @@ export function createEighteenXXRuntime(
         ...fundingActions(options.trainFundingRules, rules, options.trainRules),
         ...privateActions(options),
         ...trackActions(options.trackRules),
-        ...transferActions(options.transferRules, options.trainRules),
+        ...transferActions(options.transferRules, options.trainRules, rules),
         ...phaseActions(options),
         ...operatingActions(operatingRules, options.trainRules, options.endingRules),
         ...stockActions(rules),

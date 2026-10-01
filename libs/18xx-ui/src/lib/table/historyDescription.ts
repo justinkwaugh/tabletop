@@ -19,7 +19,7 @@ import {
     isCompleteStockRound,
     isPrivateExchangeAction,
     isOfferPrivatePurchase,
-    isAnswerPrivatePurchase,
+    isCompanyPurchaseOffer,
     isReserveBid,
     isRaiseAuctionBid,
     isContributeTrainFunds,
@@ -354,6 +354,12 @@ export function historyDescription(
         assertExists(action.metadata, 'Recorded purchase offer requires its terms')
         const { offer, accepted } = action.metadata
         if (isRespondToPurchaseOffer(action) && !accepted) return { text: 'Declined offer' }
+        if (!isCompanyPurchaseOffer(offer))
+            return {
+                text: `Sold ${companyName(offer.asset.privateCompanyId)} to ${playerName(offer.buyerPlayerId)}`,
+                value: money(offer.price),
+                important: true
+            }
         const purchaseAsset = offer.asset
         if (purchaseAsset.kind === 'train' && accepted) {
             const train = state.trainInventory.trains.find(
@@ -387,19 +393,6 @@ export function historyDescription(
         return {
             text: `Offered ${money(action.price)} for ${companyName(action.privateCompanyId)}`
         }
-    if (isAnswerPrivatePurchase(action)) {
-        assertExists(action.metadata, 'A recorded answer requires its offer')
-        const { privateCompanyId, buyerPlayerId, price } = action.metadata
-        return action.accept
-            ? {
-                  text: `Sold ${companyName(privateCompanyId)} to ${playerName(buyerPlayerId)}`,
-                  value: money(price),
-                  important: true
-              }
-            : {
-                  text: `Declined ${playerName(buyerPlayerId)}’s offer for ${companyName(privateCompanyId)}`
-              }
-    }
     if (isFinishTrack(action)) return { text: 'Finished track', routine: true }
     if (isFinishStations(action)) return { text: 'Finished stations', routine: true }
     if (isFinishOperatingTurn(action)) return { text: 'Finished operating', routine: true }

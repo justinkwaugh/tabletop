@@ -13,10 +13,7 @@ export const StockTurnPurchase = Type.Object(
 )
 export type StockTurnPurchase = Type.Static<typeof StockTurnPurchase>
 
-/**
- * State fields a title adds with ``StockRules.multipleBuys``. They stay out of the family state
- * until titles in play can take a state migration.
- */
+/** Purchases this stock turn, recorded only for titles with ``StockRules.multipleBuys``. */
 export const StockTurnPurchaseFields = {
     stockTurnPurchases: Type.Optional(Type.Array(StockTurnPurchase))
 }

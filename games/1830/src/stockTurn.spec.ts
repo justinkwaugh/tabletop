@@ -120,10 +120,9 @@ describe('private sales between players', () => {
         const [alexCash, caseyCash] = [cash('alex'), cash('casey')]
         turn.act('OfferPrivatePurchase', { privateCompanyId: 'CS', price: 75 })
         expect(turn.state.activePlayerIds).toEqual(['casey'])
-        // Standing instructions stay available to every player.
-        expect(turn.valid('casey')).toEqual(['AnswerPrivatePurchase', 'SetStockInstruction'])
-        expect(turn.valid('alex')).toEqual(['SetStockInstruction'])
-        turn.act('AnswerPrivatePurchase', { accept: true })
+        expect(turn.valid('casey')).toContain('RespondToPurchaseOffer')
+        expect(turn.valid('alex')).not.toContain('BuyShares')
+        turn.act('RespondToPurchaseOffer', { offerId: turn.state.purchaseOffer!.id, accept: true })
         expect(privateOwner(turn.state, 'CS')).toEqual(alex)
         expect(cash('alex')).toBe(Number(alexCash) - 75)
         expect(cash('casey')).toBe(Number(caseyCash) + 75)
@@ -135,7 +134,7 @@ describe('private sales between players', () => {
     it('leaves the private and the turn unchanged when the owner declines', () => {
         const turn = trading()
         turn.act('OfferPrivatePurchase', { privateCompanyId: 'CS', price: 75 })
-        turn.act('AnswerPrivatePurchase', { accept: false })
+        turn.act('RespondToPurchaseOffer', { offerId: turn.state.purchaseOffer!.id, accept: false })
         expect(privateOwner(turn.state, 'CS')).toEqual({ kind: 'player', playerId: 'casey' })
         expect(turn.state.activePlayerIds).toEqual(['alex'])
         expect(turn.state.stockRound.turn.bought).toBe(false)

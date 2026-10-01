@@ -41,6 +41,28 @@ export const PurchaseOffer = Type.Object(
     { additionalProperties: false }
 )
 export type PurchaseOffer = Type.Static<typeof PurchaseOffer>
+/** A player's offer, during their stock turn, for a private another player owns. */
+export const PlayerPurchaseOffer = Type.Object(
+    {
+        id: Id,
+        asset: Type.Object(
+            { kind: Type.Literal('private'), privateCompanyId: Id },
+            { additionalProperties: false }
+        ),
+        seller: Owner,
+        price: Type.Integer({ minimum: 1 }),
+        buyerPlayerId: Id,
+        sellerPlayerId: Id
+    },
+    { additionalProperties: false }
+)
+export type PlayerPurchaseOffer = Type.Static<typeof PlayerPurchaseOffer>
+/** The offer awaiting its seller's answer: a company's purchase or a player's. */
+export const PendingPurchaseOffer = Type.Union([PurchaseOffer, PlayerPurchaseOffer])
+export type PendingPurchaseOffer = Type.Static<typeof PendingPurchaseOffer>
+export function isCompanyPurchaseOffer(offer: PendingPurchaseOffer): offer is PurchaseOffer {
+    return 'companyId' in offer
+}
 export interface TransferRules {
     operatingCompany(state: CompanyDecisionState): string | undefined
     canPurchase(state: CompanyDecisionState, companyId: string, asset: PurchaseAsset): boolean

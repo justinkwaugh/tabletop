@@ -322,22 +322,26 @@ private-company sales between players.
   `extendSaleBlocks` becomes `repeatSales` (`extend-block` or `separate`; absent
   means one sale per company per turn). TOP and 1889 keep their behaviour. 1830
   uses `sell-buy-sell` and `separate`. Neither needs new state.
-- **Purchases this turn and private-sale offers are opt-in shared state.** The
-  family defines the fields and their rules, and a title enables a feature by
-  adding its fields to its state and its rules to `StockRules`. TOP and 1889 add
-  neither, so their schemas and runtime contracts stay unchanged. When the backlog
-  migration runs, these can join the family state.
+- **New state is additive and optional.** The turn's purchases are an optional
+  family field, and the pending purchase offer gains a player-buyer variant beside
+  the existing company shape. TOP and 1889 never write either, so every state they
+  produce is unchanged and loaded clients keep accepting them; the new schemas
+  accept a superset. Their runtime-contract snapshots were regenerated for this.
+  The backlog's freeze covers changes to fields existing states already hold.
 - **Several purchases.** `StockRules.multipleBuys` names when a further share may
   be bought: the title says whether the company's price allows it and whether it
   may come from the IPO; the family enforces the turn's earlier purchases. The
   turn's purchases are recorded in `stockTurnPurchases`, cleared when the turn
   ends. 1830 allows brown-zone companies, from the IPO only with the option, which
   the opening records in the state because rules see only state.
-- **Private sales between players.** `StockRules.privateSales` names when a player
-  may buy another player's private and its price bounds. The buyer offers a price
-  on their turn; the seller accepts or declines out of turn while the buyer's turn
-  waits. Acceptance transfers the private and the cash and counts as the turn's
-  purchase. 1830 allows it from phase 2 after the first stock round, for any
+- **Private sales between players reuse the purchase offer.** The family's
+  negotiated purchase (a company buying a private or train with its owner's
+  consent) gains a player buyer. `StockRules.privateSales` names when a player may
+  buy another player's private and its price bounds. The buyer's
+  `OfferPrivatePurchase` creates the offer during their stock turn; the seller
+  answers with the shared `RespondToPurchaseOffer` and prompt while the buyer's
+  turn waits. Acceptance transfers the private and the cash and counts as the
+  turn's purchase. 1830 allows it from phase 2 after the first stock round, for any
   privately agreed price of at least $1, except for B&O.
 - **Emergency train purchases from other companies move to slice 5.** They belong
   to train funding, not the stock turn, and must precede replaying the recorded
