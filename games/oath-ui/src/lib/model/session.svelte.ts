@@ -123,6 +123,7 @@ import {
 import { tollLabel } from './offerText.js'
 import { musterRows, type MusterRow } from './musterRows.js'
 import { tradeRows, type TradeRow } from './tradeRows.js'
+import { travelRows, type TravelRow } from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
 import { WarbandMoveDraft } from './warbandMoveDraft.js'
@@ -1133,16 +1134,31 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    async chooseTravelWay(way: TravelWay): Promise<void> {
+    // R-5.6, R-7.1.4 — every destination with its ways to pay, unless one is already staged.
+    get travelRows(): TravelRow[] {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.Travel) return []
+        if (this.selection.value('site') !== undefined || this.shroudedWoodChooser) return []
+        return travelRows(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    async chooseTravelWay(way: TravelTerms): Promise<void> {
         const siteId = this.selection.value('site')
-        if (siteId === undefined || this.selection.action !== ActionType.Travel) return
+        if (siteId === undefined) return
+        await this.travelTo(siteId, way)
+    }
+
+    async travelTo(siteId: string, way: TravelTerms): Promise<void> {
+        if (this.selection.action !== ActionType.Travel) return
         const legal = this.travelWaysTo(siteId).some(
             (w) =>
                 w.flipSecret === way.flipSecret &&
                 w.tolls.length === way.tolls.length &&
                 w.tolls.every((t) => way.tolls.includes(t))
         )
-        if (legal) await this.travelBy(siteId, way)
+        if (!legal) return
+        this.selection.set('site', siteId)
+        await this.travelBy(siteId, way)
     }
 
     // One legal way is taken at once; several wait for the player's pick.

@@ -13,6 +13,7 @@
     import PowerPanel from '$lib/components/PowerPanel.svelte'
     import MusterMenu from '$lib/components/MusterMenu.svelte'
     import TradeMenu from '$lib/components/TradeMenu.svelte'
+    import TravelMenu from '$lib/components/TravelMenu.svelte'
     import BannerRecoverPanel from '$lib/components/BannerRecoverPanel.svelte'
     import TravelWayPanel from '$lib/components/TravelWayPanel.svelte'
     import CitizenshipPanel from '$lib/components/CitizenshipPanel.svelte'
@@ -161,6 +162,12 @@
                     >
                         Travel for 2 Supply
                     </button>
+                </div>
+            {/if}
+
+            {#if chosen === ActionType.Travel && gameSession.travelRows.length > 0}
+                <div class="mb-2">
+                    <TravelMenu />
                 </div>
             {/if}
 

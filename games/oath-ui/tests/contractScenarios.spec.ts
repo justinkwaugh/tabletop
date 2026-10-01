@@ -542,6 +542,24 @@ test('scenario 39: Trade lists every trade at the site, a strip tap marks a row,
     await expect(page.getByRole('list', { name: 'Trades at your site' })).toHaveCount(0)
 })
 
+test('scenario 4: Travel lists every affordable destination under its region, a button travels', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Travel').click()
+    const cradle = page.getByRole('list', { name: 'Destinations in the Cradle' })
+    await expect(cradle.getByRole('listitem')).toHaveCount(1)
+    const go = cradle.getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
+    await expect(go).toBeVisible()
+    await expect(dimmedSites(page).first()).toBeVisible()
+
+    await page.locator('.panel').getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(cradle).toHaveCount(0)
+    await expect(dimmedSites(page)).toHaveCount(0)
+    await tile(page, 'Travel').click()
+    await go.click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+    await expect(cradle).toHaveCount(0)
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()

@@ -165,7 +165,7 @@ export type PromptState = { cardChosen: boolean; adviserChosen: boolean; moveCho
 export function actionPrompt(action: ActionType, state: PromptState): string {
     switch (action) {
         case ActionType.Travel:
-            return 'Choose a destination on the map.'
+            return 'Choose a destination.'
         case ActionType.Muster:
             return 'Choose a card at your site to place favor on.'
         case ActionType.Trade:

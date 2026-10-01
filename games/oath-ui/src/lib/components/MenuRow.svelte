@@ -6,12 +6,15 @@
         image,
         imageAlt,
         name,
+        wide = false,
         marked = false,
         children
     }: {
         image: string
         imageAlt: string
         name: string
+        /** A landscape card, such as a site, drawn as a thumbnail rather than a symbol. */
+        wide?: boolean
         marked?: boolean
         children: Snippet
     } = $props()
@@ -23,7 +26,11 @@
     class:ring-2={marked}
     class:ring-oath-accent={marked}
 >
-    <img class="h-8 w-8 shrink-0" src={image} alt={imageAlt} />
+    <img
+        class="h-8 shrink-0 {wide ? 'w-11 rounded object-cover' : 'w-8'}"
+        src={image}
+        alt={imageAlt}
+    />
     <span
         class="w-56 min-w-0 shrink-0 text-[15px] font-bold max-sm:w-auto max-sm:basis-[calc(100%-3rem)]"
         >{name}</span
