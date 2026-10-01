@@ -69,6 +69,7 @@ export type TableName =
     | 'goalsRailDevotion'
     | 'trade'
     | 'peek'
+    | 'advisers'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -495,6 +496,40 @@ function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
     ])
 }
 
+/** R-6.1: the seat's Act Phase with two facedown advisers to play. */
+function advisersTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                advisers: [
+                    { cardId: 'denizen.order.curfew', faceUp: false },
+                    { cardId: 'denizen.nomad.elders', faceUp: false }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-6.3: two relics at the seat's site, the second already peeked by the seat. */
 function peekTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -547,7 +582,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     goalsRailProtection: () => goalsRailTable(OathType.Protection),
     goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
     trade: tradeTable,
-    peek: peekTable
+    peek: peekTable,
+    advisers: advisersTable
 }
 
 let session: OathGameSession | undefined

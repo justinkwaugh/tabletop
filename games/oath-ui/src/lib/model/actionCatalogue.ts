@@ -177,7 +177,7 @@ export function actionPrompt(action: ActionType, state: PromptState): string {
         case ActionType.PlayFacedownAdviser:
             return state.adviserChosen
                 ? 'Choose where it goes.'
-                : 'Tap a facedown adviser on your card.'
+                : 'Choose one of your facedown advisers.'
         case ActionType.Peek:
             return 'Choose a relic to look at.'
         case ActionType.LetPeek:

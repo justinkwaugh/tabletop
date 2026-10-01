@@ -607,6 +607,19 @@ test('scenario 50: Peek lists only the relics not yet seen, Look sends', async (
     await expect(reasonLine(page)).toContainText('you have already seen every relic here')
 })
 
+test('scenario 6: the facedown advisers to play are cards in the panel, a tap shows the placements', async ({ page }) => {
+    await openTable(page, 'advisers')
+    await grid(page).getByRole('button', { name: 'Play or discard an adviser', exact: true }).click()
+    await expect(grid(page).getByRole('button', { name: /Curfew/ })).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: /Elders/ })).toBeVisible()
+    await grid(page).getByRole('button', { name: /Curfew/ }).first().click()
+    const discard = grid(page).getByRole('button', { name: /^Discard it: Curfew$/ })
+    await expect(discard).toBeVisible()
+    await grid(page).getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(discard).toHaveCount(0)
+    await expect(grid(page).getByRole('button', { name: /Elders/ })).toBeVisible()
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()

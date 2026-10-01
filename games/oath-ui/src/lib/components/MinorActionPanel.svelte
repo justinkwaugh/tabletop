@@ -2,12 +2,12 @@
     import TokenText from '$lib/components/TokenText.svelte'
     import { range } from '@tabletop/common'
     import { ActionType, WarbandMoveKind, type WarbandMove } from '@tabletop/oath'
-    import CardImage from '$lib/components/CardImage.svelte'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
     import PeekMenu from '$lib/components/PeekMenu.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import MenuChoice from '$lib/components/MenuChoice.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, humanizeReason, siteName } from '$lib/model/names.js'
@@ -47,21 +47,20 @@
 
 <div class="flex flex-col gap-1">
     {#if action === ActionType.PlayFacedownAdviser}
-        {#if !chosenAdviser}
-            <p class="text-xs text-oath-text-muted">
-                {advisers.length === 0
-                    ? 'No facedown adviser to play.'
-                    : 'Tap one of your facedown advisers, on your card.'}
-            </p>
+        {#if advisers.length === 0}
+            <p class="text-xs text-oath-text-muted">No facedown adviser to play.</p>
         {:else}
+            <CardChoiceRow
+                choices={cardChoices(advisers.map((adviser) => adviser.cardId))}
+                picked={chosenAdviser ? [chosenAdviser.cardId] : []}
+                onpick={(cardId) => gameSession.chooseAdviser(cardId)}
+                {busy}
+                height={100}
+            />
+        {/if}
+        {#if chosenAdviser}
             {@const adviser = chosenAdviser}
             <div class="flex items-start gap-2">
-                <CardImage
-                    cardId={adviser.cardId}
-                    width={44}
-                    label={cardName(adviser.cardId)}
-                    inspect
-                />
                 {#if gameSession.adviserPlay !== undefined}
                     {@const reason = gameSession.adviserPlayReason}
                     <div class="grow">
@@ -153,22 +152,16 @@
                         </button>
                     </div>
                 {:else}
-                    <div class="flex flex-wrap gap-1 grow">
-                        {#each adviser.placements as option (option.label)}
-                            <button
-                                class="rounded bg-oath-surface-raised hover:bg-oath-control disabled:opacity-40 px-2 py-1 text-xs text-left"
-                                disabled={busy || option.blockedBecause !== undefined}
-                                title={humanizeReason(option.blockedBecause)}
+                    <div class="flex flex-wrap gap-1.5 grow">
+                        {#each adviser.placements.filter((p) => p.blockedBecause === undefined) as option (option.label)}
+                            <MenuChoice
+                                label="{option.label}: {cardName(adviser.cardId)}"
+                                disabled={busy}
                                 onclick={() =>
                                     gameSession.chooseAdviserPlay(adviser.cardId, option.play)}
                             >
-                                {option.label}{#if option.blockedBecause}<span
-                                        class="text-oath-text-muted"
-                                        >&nbsp;— <TokenText
-                                            text={humanizeReason(option.blockedBecause) ?? ''}
-                                        /></span
-                                    >{/if}
-                            </button>
+                                {option.label}
+                            </MenuChoice>
                         {/each}
                     </div>
                 {/if}
