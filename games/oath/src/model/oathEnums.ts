@@ -23,7 +23,9 @@ export enum OathType {
 
 /** R-1.1, R-1.21 */
 export enum SetupVariant {
-    Randomized = 'randomized'
+    Randomized = 'randomized',
+    /** Retired with the fixed deck: never offered, accepted in a stored state; `normalizeOathConfig` maps a waiting game to Randomized. */
+    Curated = 'curated'
 }
 
 /** R-1.4, R-9.3 — favor is component-limited; the total is a conservation invariant. */

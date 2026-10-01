@@ -45,11 +45,10 @@ export const OathGameConfigOptions: GameConfigOptions = [
 ]
 
 // The retired fixed 54-card deck: a stored setup still waiting to start begins with a random one.
-const RETIRED_FIXED_DECK = 'curated'
 
 export function normalizeOathConfig(config: GameConfig): OathGameConfig {
     const normalized =
-        config.setupVariant === RETIRED_FIXED_DECK
+        config.setupVariant === SetupVariant.Curated
             ? { ...config, setupVariant: SetupVariant.Randomized }
             : config
     assert(

@@ -9,6 +9,8 @@ import { required } from '../testing/required.js'
 import { engine } from '../testing/engine.js'
 import { waitingGame } from '../testing/game.js'
 import { OathRuntime } from './runtime.js'
+import { OathGameStateValidator } from '../model/gameState.js'
+import { testPlayer, testState } from '../testing/fixture.js'
 
 describe('OathGameConfigOptions — the lobby configurator', () => {
     it('defaults to the random deck and the Oath of Supremacy', () => {
@@ -94,5 +96,16 @@ describe('normalizeOathConfig — stored configuration', () => {
         expect(new OathConfigurator().normalizeConfig({ setupVariant: 'curated' })).toEqual({
             setupVariant: SetupVariant.Randomized
         })
+    })
+})
+
+/** DESIGN, stored-game compatibility — a game started under 0.1.0 with the fixed deck still loads. */
+describe('a stored state naming the retired fixed deck', () => {
+    it('validates as canonical state and hydrates unchanged', () => {
+        const state = testState([testPlayer({ playerId: 'p1' }), testPlayer({ playerId: 'p2' })], {
+            setupVariant: SetupVariant.Curated
+        }).dehydrate()
+        expect(OathGameStateValidator.Check(state)).toBe(true)
+        expect(OathRuntime.hydrator.hydrateState(state).dehydrate()).toEqual(state)
     })
 })
