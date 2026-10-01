@@ -23,7 +23,9 @@
 </p>
 {#if draft.visionDiscards.length > 0}
     <div class="mb-2 text-xs">
-        <span class="text-oath-text-muted">To keep it as an adviser, tap the adviser to discard:</span>
+        <span class="text-oath-text-muted"
+            >To keep it as an adviser, tap the adviser to discard:</span
+        >
         <CardChoiceRow
             choices={cardChoices(draft.visionDiscards)}
             picked={draft.visionDiscard ? [draft.visionDiscard] : []}

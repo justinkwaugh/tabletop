@@ -46,7 +46,8 @@
                 />
             </button>
             {#if choice.caption}
-                <span class="max-w-[7rem] text-center text-[10px] leading-tight text-oath-text-muted"
+                <span
+                    class="max-w-[7rem] text-center text-[10px] leading-tight text-oath-text-muted"
                     >{choice.caption}</span
                 >
             {/if}

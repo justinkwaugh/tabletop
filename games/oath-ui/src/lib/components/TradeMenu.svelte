@@ -54,9 +54,15 @@
                         onclick={() => gameSession.chooseTrade(row.cardId, choice.option)}
                     >
                         <span class="flex items-center gap-1.5">
-                            {@render count(choice.pay, forFavor ? secretTokenImage() : favorTokenImage())}
+                            {@render count(
+                                choice.pay,
+                                forFavor ? secretTokenImage() : favorTokenImage()
+                            )}
                             <span class="text-oath-text-muted">→</span>
-                            {@render count(choice.gain, forFavor ? favorTokenImage() : secretTokenImage())}
+                            {@render count(
+                                choice.gain,
+                                forFavor ? favorTokenImage() : secretTokenImage()
+                            )}
                         </span>
                         {#if forFavor && choice.bankShort}
                             <!-- R-9.3 — the bank gives what it holds. -->
