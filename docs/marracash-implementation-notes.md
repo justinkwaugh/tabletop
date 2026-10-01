@@ -29,7 +29,7 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
   - If someone other than the auctioneer wins, the bank pays the auctioneer a cut: 100 Dirham for a winning bid of 500 or less, 200 Dirham for a bid over 500.
   - If the auctioneer wins, they get no cut.
 - **Bid ties:** the auctioneer counts as closest to themselves, so they win any tie they're part of. Other tied players are ranked by clockwise distance from the auctioneer.
-- **Route map:** write a map data file listing each fountain's exits, with the destination and the ordered shop edges passed for each one. Also produce an annotated Tablero image with the routes drawn on it, for the user to check.
+- **Route map:** the board as a grid, with each fountain's exits, destinations and the ordered shops passed, is in `docs/marracash-board-map.md`. The annotated image for checking it is `my-materials/marracash/Marracash_Tablero_routes.jpg`.
 - **Cash visibility:** a game creation option, like Fresh Fish's `BooleanConfigOption`s in `games/fresh-fish/src/definition/gameConfig.ts`:
   - **Concealed Cash**, off by default. Cash is public unless the creator turns the option on. The default may be switched later.
   - When it's on, each player's cash is hidden from opponents until the game ends, using Fresh Fish's hidden-information mechanism.
