@@ -13,10 +13,8 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
 
 ## Status (2026-10-01)
 
-- Phase 1, the rules review, is done.
-- All the open questions are answered (see Decisions).
-- Phase 2: the board map is done (`docs/marracash-board-map.md`). The implementation plan is drafted in `docs/marracash-implementation-plan.md`, with all its questions answered. Next: build step 1.
-- No game code has been written yet.
+- Steps 1–8 of the implementation plan are done and pushed. Step 9 (Game Catalogue) and step 10 (readiness check) remain.
+- **In progress when work paused:** the step 8d review. New Playwright tests in `games/marracash-ui/tests/` time out in the `createGame` helper on a `locator.fill`, so all 5 fail. The cause isn't known yet. Next: run `pnpm exec playwright test -g Concealed` in `games/marracash-ui` and read which locator it waits for. The Playwright config now uses the dev server on port 5185, like Estates.
 
 ## Decisions
 
