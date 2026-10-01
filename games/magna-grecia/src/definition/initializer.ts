@@ -3,6 +3,7 @@ import {
     Color,
     HydratedTurnManager,
     Prng,
+    assertExists,
     shuffle,
     type Game,
     type GameInitializer,
@@ -11,7 +12,11 @@ import {
 import { buildActionDeck } from '../components/actionCards.js'
 import { BOARD_GRID } from '../components/boardGrid.js'
 import type { Oracle } from '../components/pieces.js'
-import { HydratedMagnaGreciaGameState, type MagnaGreciaGameState } from '../model/gameState.js'
+import {
+    HydratedMagnaGreciaGameState,
+    type MagnaGreciaGameState,
+    type MagnaGreciaProjectedState
+} from '../model/gameState.js'
 import {
     HydratedMagnaGreciaPlayerState,
     STARTING_SUPPLY,
@@ -25,8 +30,8 @@ const STARTING_POINTS: Record<number, number> = { 2: 10, 3: 12, 4: 15 }
 const ORACLES_BY_PLAYER_COUNT: Record<number, number> = { 2: 7, 3: 7, 4: 9 }
 
 export class MagnaGreciaGameInitializer
-    extends BaseGameInitializer<MagnaGreciaGameState, HydratedMagnaGreciaGameState>
-    implements GameInitializer<MagnaGreciaGameState, HydratedMagnaGreciaGameState>
+    extends BaseGameInitializer<MagnaGreciaProjectedState, HydratedMagnaGreciaGameState>
+    implements GameInitializer<MagnaGreciaProjectedState, HydratedMagnaGreciaGameState>
 {
     initializeGameState(game: Game, state: UninitializedGameState): HydratedMagnaGreciaGameState {
         const prng = new Prng(state.prng)
@@ -45,7 +50,8 @@ export class MagnaGreciaGameInitializer
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random)
-        const deck = buildActionDeck(prng.random)
+        assertExists(state.protectedPrng, 'Shuffling the action deck requires protectedPrng')
+        const deck = buildActionDeck(new Prng(state.protectedPrng).random)
 
         const magnaGreciaState: MagnaGreciaGameState = Object.assign(state, {
             players: this.playersInColorOrder(players),
@@ -59,6 +65,7 @@ export class MagnaGreciaGameInitializer
                 nextCityNumber: 1
             },
             deck,
+            revealedCardIds: [],
             roundCount: roundCount(game.config),
             round: 0,
             roundOrder: [],

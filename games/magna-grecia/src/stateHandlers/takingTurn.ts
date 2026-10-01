@@ -73,13 +73,16 @@ export class TakingTurnStateHandler implements MachineStateHandler<
             case isBuildMarket(action):
             case isSellMarket(action):
             case isEndTurn(action):
-                return this.finishTurn(context.gameState)
+                return this.finishTurn(action, context.gameState)
             default:
                 throw Error('Invalid action type')
         }
     }
 
-    private finishTurn(state: HydratedMagnaGreciaGameState): MachineState {
+    private finishTurn(
+        action: TakingTurnAction,
+        state: HydratedMagnaGreciaGameState
+    ): MachineState {
         state.turnManager.endTurn(state.actionCount)
         state.turn = undefined
         state.turnIndex += 1
@@ -89,7 +92,11 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         if (state.round + 1 >= state.roundCount) {
             return MachineState.EndOfGame
         }
+        const revealedBefore = state.revealedCardIds.length
         state.beginRound(state.round + 1)
+        if (state.revealedCardIds.length > revealedBefore) {
+            action.revealsInfo = true
+        }
         return MachineState.TakingTurn
     }
 }

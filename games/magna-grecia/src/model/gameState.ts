@@ -6,7 +6,9 @@ import {
     HydratableGameState,
     HydratedTurnManager,
     PrngState,
+    Visibility,
     assertExists,
+    type RandomState,
     type AxialCoordinates
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
@@ -30,32 +32,35 @@ import {
 } from './turn.js'
 
 export type MagnaGreciaGameState = Type.Static<typeof MagnaGreciaGameState>
-export const MagnaGreciaGameState = Type.Evaluate(
-    Type.Intersect([
-        Type.Omit(GameState, ['players', 'machineState']),
-        Type.Object({
-            players: Type.Array(MagnaGreciaPlayerState),
-            machineState: Type.Enum(MachineState),
-            board: Board,
-            deck: Type.Array(Type.String()),
-            roundCount: Type.Number(),
-            round: Type.Number(),
-            roundOrder: Type.Array(Type.String()),
-            turnIndex: Type.Number(),
-            turn: Type.Optional(TurnProgress)
-        })
-    ])
-)
+export const MagnaGreciaGameState = Type.Object({
+    ...Type.Omit(GameState, ['players', 'machineState']).properties,
+    players: Type.Array(MagnaGreciaPlayerState),
+    machineState: Type.Enum(MachineState),
+    board: Board,
+    deck: Visibility.protect(Type.Array(Type.String()), {
+        policy: Visibility.Policy.HostOnly
+    }),
+    revealedCardIds: Type.Array(Type.String()),
+    roundCount: Type.Number(),
+    round: Type.Number(),
+    roundOrder: Type.Array(Type.String()),
+    turnIndex: Type.Number(),
+    turn: Type.Optional(TurnProgress)
+})
 
 export const MagnaGreciaGameStateValidator = Compile(MagnaGreciaGameState)
+export const MagnaGreciaProjectedState = Visibility.createProjectionSchema(MagnaGreciaGameState)
+export type MagnaGreciaProjectedState = Type.Static<typeof MagnaGreciaProjectedState>
+export const MagnaGreciaProjectedStateValidator = Compile(MagnaGreciaProjectedState)
 
 export class HydratedMagnaGreciaGameState
-    extends HydratableGameState<typeof MagnaGreciaGameState, HydratedMagnaGreciaPlayerState>
-    implements MagnaGreciaGameState
+    extends HydratableGameState<typeof MagnaGreciaProjectedState, HydratedMagnaGreciaPlayerState>
+    implements MagnaGreciaProjectedState
 {
     declare id: string
     declare gameId: string
     declare prng: PrngState
+    declare protectedPrng?: RandomState
     declare activePlayerIds: string[]
     declare actionCount: number
     declare actionChecksum: number
@@ -65,26 +70,27 @@ export class HydratedMagnaGreciaGameState
     declare result?: GameResult
     declare winningPlayerIds: string[]
     declare board: HydratedBoard
-    declare deck: string[]
+    declare deck?: string[]
+    declare revealedCardIds: string[]
     declare roundCount: number
     declare round: number
     declare roundOrder: string[]
     declare turnIndex: number
     declare turn?: TurnProgress
 
-    constructor(data: MagnaGreciaGameState) {
-        super(data, MagnaGreciaGameStateValidator)
+    constructor(data: MagnaGreciaProjectedState) {
+        super(data, MagnaGreciaProjectedStateValidator)
         this.players = data.players.map((player) => new HydratedMagnaGreciaPlayerState(player))
         this.board = new HydratedBoard(data.board)
     }
 
     currentCard(): ActionCard {
-        return actionCard(this.deck[this.round])
+        return actionCard(this.revealedCardIds[this.round])
     }
 
     upcomingCard(): ActionCard | undefined {
-        const nextRound = this.round + 1
-        return nextRound < this.roundCount ? actionCard(this.deck[nextRound]) : undefined
+        const upcoming = this.revealedCardIds[this.round + 1]
+        return upcoming === undefined ? undefined : actionCard(upcoming)
     }
 
     turnOrderForCard(card: ActionCard): string[] {
@@ -94,7 +100,10 @@ export class HydratedMagnaGreciaGameState
     }
 
     beginRound(round: number) {
+        const deck = this.deck
+        assertExists(deck, 'Starting a round requires the action deck')
         this.round = round
+        this.revealedCardIds = deck.slice(0, Math.min(round + 2, this.roundCount))
         this.roundOrder = this.turnOrderForCard(this.currentCard())
         this.turnIndex = 0
     }

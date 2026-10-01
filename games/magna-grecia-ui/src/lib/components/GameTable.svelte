@@ -8,7 +8,10 @@
         DefaultTabs
     } from '@tabletop/frontend-components'
     import { assert } from '@tabletop/common'
-    import type { HydratedMagnaGreciaGameState, MagnaGreciaGameState } from '@tabletop/magna-grecia'
+    import type {
+        HydratedMagnaGreciaGameState,
+        MagnaGreciaProjectedState
+    } from '@tabletop/magna-grecia'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
@@ -20,7 +23,9 @@
 
     let {
         gameSession
-    }: { gameSession: GameSession<MagnaGreciaGameState, HydratedMagnaGreciaGameState> } = $props()
+    }: {
+        gameSession: GameSession<MagnaGreciaProjectedState, HydratedMagnaGreciaGameState>
+    } = $props()
     assert(gameSession instanceof MagnaGreciaGameSession, 'Magna Grecia needs its own game session')
     setGameSession(gameSession)
 </script>

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
     ActionSource,
-    GameEngine,
     GameResult,
     PlayerStatus,
     assert,
@@ -11,15 +10,19 @@ import {
 } from '@tabletop/common'
 import { BOARD_GRID } from '../components/boardGrid.js'
 import { marketCost } from '../model/marketRules.js'
-import type { HydratedMagnaGreciaGameState, MagnaGreciaGameState } from '../model/gameState.js'
+import type {
+    HydratedMagnaGreciaGameState,
+    MagnaGreciaProjectedState
+} from '../model/gameState.js'
 import { legalRoadEnds } from '../model/roadRules.js'
 import { ActionType } from './actions.js'
 import { GameLength } from './config.js'
 import { Definition } from './definition.js'
 import { MagnaGreciaRuntime } from './runtime.js'
 import { MachineState } from './states.js'
+import { SeededEngine } from './testEngine.js'
 
-const engine = new GameEngine(MagnaGreciaRuntime)
+const engine = new SeededEngine(97)
 const spaces = [...BOARD_GRID]
 
 function createGame(count: number, gameLength: GameLength) {
@@ -114,7 +117,7 @@ function botAction(
     return act({ ...base, type: ActionType.EndTurn })
 }
 
-function playToEnd(count: number, gameLength: GameLength): MagnaGreciaGameState {
+function playToEnd(count: number, gameLength: GameLength): MagnaGreciaProjectedState {
     const game = createGame(count, gameLength)
     let state = engine.startGame(game).initialState
     for (let step = 0; state.result === undefined; step++) {
@@ -147,8 +150,6 @@ describe.each([2, 3, 4])('a %i player game', (count) => {
         const best = Math.max(...Object.values(scores))
         expect(finished.winningPlayerIds.every((playerId) => scores[playerId] === best)).toBe(true)
         const again = playToEnd(count, gameLength)
-        expect({ ...again, id: finished.id, protectedPrng: finished.protectedPrng }).toEqual(
-            finished
-        )
+        expect({ ...again, id: finished.id }).toEqual(finished)
     })
 })

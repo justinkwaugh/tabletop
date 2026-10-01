@@ -3,7 +3,6 @@ import {
     ActionSource,
     ClockwisePointyHexDirections,
     Color,
-    GameEngine,
     GameResult,
     MachineContext,
     PlayerStatus,
@@ -27,6 +26,7 @@ import { marketCost, marketValue } from './marketRules.js'
 import { ROAD_END_OPTIONS, RoadShape, roadShape } from './roadRules.js'
 import { newTurn } from './turn.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import { SeededEngine } from '../definition/testEngine.js'
 
 const E = PointyHexDirection.East
 const W = PointyHexDirection.West
@@ -35,7 +35,7 @@ const SW = PointyHexDirection.Southwest
 const NE = PointyHexDirection.Northeast
 const NW = PointyHexDirection.Northwest
 
-const engine = new GameEngine(MagnaGreciaRuntime)
+const engine = new SeededEngine(1234)
 
 const FRONTIER = offsetToAxial({ row: 0, col: 1 })
 const INLAND = offsetToAxial({ row: 2, col: 3 })
@@ -67,7 +67,7 @@ function freshState(count = 3): HydratedMagnaGreciaGameState {
 }
 
 function giveTurn(state: HydratedMagnaGreciaGameState, playerId: string, cardId: string) {
-    state.deck[state.round] = cardId
+    state.revealedCardIds[state.round] = cardId
     state.turn = newTurn(playerId)
 }
 
@@ -143,6 +143,7 @@ describe('setup', () => {
                 )
             ).toBe(true)
             expect(state.deck).toHaveLength(12)
+            expect(state.revealedCardIds).toEqual(state.deck?.slice(0, 2))
             expect(state.roundOrder).toHaveLength(count)
             expect(state.activePlayerIds).toEqual([state.roundOrder[0]])
             expect(state.players[0]).toMatchObject({ supplyRoads: 4, stagingRoads: 16 })
@@ -161,7 +162,7 @@ describe('setup', () => {
 
     it('reveals the next round’s card until the final round', () => {
         const state = freshState()
-        expect(state.upcomingCard()?.id).toBe(state.deck[1])
+        expect(state.upcomingCard()?.id).toBe(state.deck?.[1])
         state.beginRound(state.roundCount - 1)
         expect(state.upcomingCard()).toBeUndefined()
     })

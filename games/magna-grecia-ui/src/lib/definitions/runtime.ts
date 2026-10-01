@@ -2,7 +2,7 @@ import type { GameUIRuntime } from '@tabletop/frontend-components/definition/gam
 import {
     MagnaGreciaRuntime,
     type HydratedMagnaGreciaGameState,
-    type MagnaGreciaGameState
+    type MagnaGreciaProjectedState
 } from '@tabletop/magna-grecia'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
 import { MagnaGreciaColorizer } from './colorizer.js'
@@ -12,7 +12,7 @@ import { MagnaGreciaGameSession } from '$lib/model/session.svelte.js'
 import '../../app.css'
 
 export const MagnaGreciaUiRuntime: GameUIRuntime<
-    MagnaGreciaGameState,
+    MagnaGreciaProjectedState,
     HydratedMagnaGreciaGameState
 > = {
     ...MagnaGreciaRuntime,

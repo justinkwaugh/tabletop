@@ -1,5 +1,8 @@
 import type { GameAction, GameHydrator, HydratedAction } from '@tabletop/common'
-import { HydratedMagnaGreciaGameState, type MagnaGreciaGameState } from '../model/gameState.js'
+import {
+    HydratedMagnaGreciaGameState,
+    type MagnaGreciaProjectedState
+} from '../model/gameState.js'
 import { HydratedBuildMarket, isBuildMarket } from '../actions/buildMarket.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { HydratedPlaceCity, isPlaceCity } from '../actions/placeCity.js'
@@ -8,7 +11,7 @@ import { HydratedResupply, isResupply } from '../actions/resupply.js'
 import { HydratedSellMarket, isSellMarket } from '../actions/sellMarket.js'
 
 export class MagnaGreciaHydrator implements GameHydrator<
-    MagnaGreciaGameState,
+    MagnaGreciaProjectedState,
     HydratedMagnaGreciaGameState
 > {
     hydrateAction(data: GameAction): HydratedAction {
@@ -30,7 +33,7 @@ export class MagnaGreciaHydrator implements GameHydrator<
         }
     }
 
-    hydrateState(state: MagnaGreciaGameState): HydratedMagnaGreciaGameState {
+    hydrateState(state: MagnaGreciaProjectedState): HydratedMagnaGreciaGameState {
         return new HydratedMagnaGreciaGameState(state)
     }
 }

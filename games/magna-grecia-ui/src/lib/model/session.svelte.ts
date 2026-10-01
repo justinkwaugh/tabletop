@@ -22,7 +22,7 @@ import {
     marketValue,
     spaceKey,
     type HydratedMagnaGreciaGameState,
-    type MagnaGreciaGameState,
+    type MagnaGreciaProjectedState,
     type Place,
     type PlaceId,
     type RoadEnds,
@@ -55,7 +55,7 @@ export type MarketTarget = { place: Place; amount: number }
 export type CityTarget = { coords: AxialCoordinates; startsClaim: boolean; startsFounding: boolean }
 
 export class MagnaGreciaGameSession extends GameSession<
-    MagnaGreciaGameState,
+    MagnaGreciaProjectedState,
     HydratedMagnaGreciaGameState
 > {
     private chosenTool: { tool: BuildTool; turnKey: string } | undefined = $state()

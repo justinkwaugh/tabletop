@@ -6,7 +6,7 @@ The implementation follows the reformatted Rio Grande rulebook. This file record
 
 - **Board.** `src/components/boardGrid.ts` is transcribed from overhead photos of the published board: 16 rows of pointy hexes with odd rows shifted right, 10 green-bordered (frontier) villages on the edges and 32 inland villages. No two villages are adjacent. Sea spaces and the southern bay are excluded.
 - **Action cards.** All twelve cards come from the 2026 card sheet: three led by each of red, yellow, gray and blue, each printing a four-colour turn order and one highlighted value for tracks (roads), cities and resupply. The sheet repeats four cards to fill its second page; the deck uses each card once.
-- **Upcoming card.** The card for the round after the current one is face up for everyone, so the UI shows it; cards further down the deck stay unrevealed.
+- **Upcoming card.** The first player takes the round's card off the face-up stack, so the next card is visible to everyone and the UI shows it. Cards further down the stack stay hidden: the deck is shuffled with protected randomness and delivered only to the host, while the played, current and upcoming cards are public in `revealedCardIds`. The turn that starts a round reveals a new card, so Undo cannot cross it.
 
 ## Rulings
 
