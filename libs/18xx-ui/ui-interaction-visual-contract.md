@@ -1182,6 +1182,8 @@ Ordinary station placement automatically selects the cheapest available token wi
 
 Station placement masks map hexes without legal placements. Clicking anywhere on a valid single-city hex submits PlaceStation directly; interchangeable slots use the first legal slot. Hexes containing multiple separate cities require a city/slot click, even when only one city is eligible. No location dropdown or confirmation stage is shown; committed placement is undone through action history.
 
+A pending home choice (a title's homeChoice hook, before the company's operating turn) uses the same placement mask and focus with the offered hexes as the legal set. The action panel only prompts "[company]: choose a highlighted city on the map for its home station." A city or slot click on an offered city submits ChooseHomeStation directly; hex, path and non-offered city clicks do nothing. The home choice takes precedence over station placement and inspection while pending. There is no confirmation stage; a committed choice is undone through action history.
+
 Reaching the title’s ordinary station-placement limit produces a canonical system FinishStations action in the placement cascade. The UI advances without an extra click. Titles permitting additional placements retain the placement step. Undo reverses the placement and its automatic completion together.
 
 A trainless company entering RunningTrains receives a canonical empty RunTrains system action. With zero revenue and no trains, withholding is automatic when permitted by the title. The distribution still applies market movement and operation effects, then advances to BuyingTrains without either player prompt. Existing recorded runs with revenue retain their dividend decision even if their trains rusted afterward.

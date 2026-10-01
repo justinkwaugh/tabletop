@@ -110,7 +110,7 @@ export function createEighteenXXRuntime(
             : handler
     const choosesHome = (handler: Handler): Handler =>
         options.stationRules.homeChoice
-            ? new HomeStationChoiceHandler(handler, options.stationRules, 'OperatingSet')
+            ? new HomeStationChoiceHandler(handler, options.stationRules)
             : handler
     const after = stateAfterOperatingStep
     const operatingStep = (handler: Handler): Handler =>

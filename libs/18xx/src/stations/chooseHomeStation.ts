@@ -13,17 +13,18 @@ import {
     type MachineStateHandler
 } from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
-import { nextOperatingCompany, type OperatingSet } from '../operating/operatingSet.js'
+import { nextOperatingCompany } from '../operating/operatingSet.js'
 import {
     StationPlacement,
     StationPlacementDetails,
     applyStationPlacement,
+    releaseHomeReservations,
     type HomeStationChoice,
-    type StationPlacementState,
+    type OperatingStationState,
     type StationRules
 } from './stationPlacement.js'
 
-type State = HydratedGameState & StationPlacementState & { operatingSet?: OperatingSet }
+type State = HydratedGameState & OperatingStationState
 
 export const ChooseHomeStation = Type.Object(
     {
@@ -45,14 +46,22 @@ export function isChooseHomeStation(action: GameAction): action is ChooseHomeSta
     )
 }
 
-/** The home choice that holds the operating set before its company's turn, if any. */
 export function pendingHomeChoice(
-    state: StationPlacementState & { operatingSet?: OperatingSet },
+    state: OperatingStationState,
     rules: StationRules
 ): HomeStationChoice | undefined {
     if (!state.operatingSet?.privateIncomePaid) return undefined
     const choice = rules.homeChoice?.(state)
-    return choice && choice.companyId === nextOperatingCompany(state) ? choice : undefined
+    assert(
+        !choice || choice.companyId === nextOperatingCompany(state),
+        'A home choice belongs to the next operating company'
+    )
+    return choice
+}
+
+/** Home placement holds the operating set, whether the home is placed automatically or chosen. */
+export function homeStationPending(state: OperatingStationState, rules: StationRules): boolean {
+    return rules.pendingHomes(state).length > 0 || pendingHomeChoice(state, rules) !== undefined
 }
 
 export class HydratedChooseHomeStation
@@ -79,18 +88,15 @@ export class HydratedChooseHomeStation
             choice.positions.some(
                 (position) =>
                     position.locationId === this.locationId && position.nodeId === this.nodeId
-            )
+            ) &&
+            this.openSlot(state) !== undefined
         )
     }
     apply(state: State): void {
         assert(this.isValid(state), 'Only the president may choose an offered home city')
         const choice = pendingHomeChoice(state, this.#rules)
+        const slot = this.openSlot(state)
         assertExists(choice, 'A home choice is pending')
-        const slot = new StationPlacement(state, this.#rules).openSlots(
-            this.companyId,
-            this.locationId,
-            this.nodeId
-        )[0]
         assertExists(slot, 'The chosen home city has an open slot')
         const details = {
             companyId: this.companyId,
@@ -99,32 +105,34 @@ export class HydratedChooseHomeStation
             cost: 0
         }
         applyStationPlacement(state, details)
-        // The home fulfils the company's reservation of the whole hex.
-        state.stationReservations = state.stationReservations.filter(
-            (reservation) =>
-                reservation.companyId !== this.companyId ||
-                reservation.locationId !== this.locationId
-        )
+        releaseHomeReservations(state, this.companyId, [
+            ...new Set(choice.positions.map((position) => position.locationId))
+        ])
         this.metadata = details
+    }
+    private openSlot(state: State): number | undefined {
+        return new StationPlacement(state, this.#rules).openSlots(
+            this.companyId,
+            this.locationId,
+            this.nodeId
+        )[0]
     }
 }
 
-/** Holds a machine state for a pending home choice by the operating company's president. */
-export class HomeStationChoiceHandler<State extends HydratedGameState & StationPlacementState>
-    implements MachineStateHandler<HydratedAction, State>
-{
+/** Holds the operating set before a company's turn until its president chooses its home city. */
+export class HomeStationChoiceHandler<
+    State extends HydratedGameState & OperatingStationState
+> implements MachineStateHandler<HydratedAction, State> {
     constructor(
         private readonly handler: MachineStateHandler<HydratedAction, State>,
-        private readonly rules: StationRules,
-        private readonly machineState: string
+        private readonly rules: StationRules
     ) {}
     private president(state: State): string | undefined {
         const choice = pendingHomeChoice(state, this.rules)
         return choice ? controllingOwner(state, choice.companyId)?.playerId : undefined
     }
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
-        if (!this.president(context.gameState))
-            return this.handler.isValidAction(action, context)
+        if (!this.president(context.gameState)) return this.handler.isValidAction(action, context)
         return action instanceof HydratedChooseHomeStation && action.isValid(context.gameState)
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
@@ -139,7 +147,7 @@ export class HomeStationChoiceHandler<State extends HydratedGameState & StationP
     }
     onAction(action: HydratedAction, context: MachineContext<State>): string {
         return action instanceof HydratedChooseHomeStation
-            ? this.machineState
+            ? 'OperatingSet'
             : this.handler.onAction(action, context)
     }
 }

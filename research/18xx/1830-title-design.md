@@ -230,8 +230,9 @@ hexes keep stations and reservations in the right city.
   placed; `:single_slot_cities` (3) and `:never` (2) differ.
 - **Home choice.** Home establishment is a fixed home in 110 titles, a choice among
   eligible locations in 35, several homes in 10, and other forms in 17. The
-  reference's home-token step lets the president choose when the home hex has
-  more than one available city.
+  reference's [home-token placement][home-token] places a whole-hex home in the
+  first city while the hex has no track, leaving the tile lay to settle which way
+  that city faces; once the hex has track, the president chooses.
 - **Upgrade mapping.** The reference's [hex lay][hex-lay] maps the cities of a tile
   whose cities have no track to the new tile by index, and otherwise keeps each
   city's exits as a subset of the new city's exits. Our family enumerates every
@@ -246,19 +247,22 @@ hexes keep stations and reservations in the right city.
   `:always` effect for 1830, whose OO cities have one slot at every stage.
   **Limit:** a whole-hex reservation over multi-slot cities, as in some `:always`
   titles, would need its own representation.
-- **The president chooses among reserved cities.** `StationRules` gains an
-  optional `homeChoice` hook returning the operating company's choice as a list
-  of city positions, which also covers choices among several locations. When a
-  title supplies it, the runtime registers a `ChooseHomeStation` action and holds
-  the operating set before the company's turn until its president chooses.
-  Placing the home there releases the company's other reservations on that hex.
-  Titles without the hook get no new action or state, so TOP's and 1889's
-  runtime contracts are unchanged. 1830's ordinary homes stay automatic.
-- **Cities without track map by index.** When every city on the old face is
-  without track, an upgrade maps the first city to the first, and so on, as the
-  reference does. This decides where Erie's home or a reservation lands when the
-  printed Buffalo hex becomes #59. No current TOP or 1889 hex has several cities
-  without track.
+- **A trackless home hex uses its first city; a tracked one is the president's
+  choice.** Until track reaches Buffalo its cities are interchangeable, so Erie's
+  home goes in the first. After an upgrade gives them different connections, they
+  are not, and Erie's president chooses by clicking a city on the map.
+  `StationRules` gains an optional `homeChoice` hook returning the operating
+  company's choice as city positions, possibly on several hexes. When a title
+  supplies it, the runtime registers a `ChooseHomeStation` action and holds the
+  operating set before the company's turn, including any between-company private
+  requests, until the president chooses. A placed home, automatic or chosen,
+  releases the company's other home reservations. Titles without the hook get no
+  new action or state, so TOP's and 1889's runtime contracts are unchanged.
+- **Cities without track keep their order.** Track is what distinguishes the
+  cities of a hex, so when no city on the old face has any, an upgrade maps the
+  first city to the first, and so on; the rotation of the new tile then decides
+  which way each faces. The reference's tile lay does the same. No current TOP or
+  1889 hex has several cities without track.
 - **Identical construction choices are offered once.** Mappings that leave every
   station and reservation where an alternative would are the same placement; the
   track step keeps the first. This removes duplicate options for two-town hexes
@@ -272,11 +276,12 @@ hexes keep stations and reservations in the right city.
 
 - Erie's opening reservation covers both Buffalo cities, and no other company can
   place a station in either while it stands.
-- When Erie first operates, the map highlights Buffalo and its president clicks
-  a city; the home is placed there, the other city is released, and the turn
-  begins.
-- Upgrading the printed Buffalo hex to #59 keeps Erie's station in the same city
-  index, and each rotation of an empty two-city or two-town hex is offered once.
+- When Erie first operates on the printed Buffalo hex, its home goes in the first
+  city, the other is released, and the turn begins.
+- If Buffalo already has #59 when Erie first operates, the map highlights it and
+  Erie's president clicks a city; the home is placed there.
+- Upgrading Buffalo to #59 keeps Erie's station in its city, and each rotation
+  of an empty two-city or two-town hex is offered once.
 - Upgrading New York to #54 keeps NYNH's reservation on the city joined to its
   original track.
 
@@ -287,3 +292,4 @@ hexes keep stations and reservations in the right city.
 [stock]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/step/buy_sell_par_shares.rb
 [auction]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/waterfall_auction.rb
 [hex-lay]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/hex.rb#L115-L291
+[home-token]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/base.rb#L1684-L1735

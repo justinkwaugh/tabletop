@@ -152,4 +152,70 @@ describe('MapModule', () => {
         map.setStyle('muted')
         expect(map.style).toBe('muted')
     })
+
+    it('gives a city click to a pending home choice before inspection', async () => {
+        const home = { locationId: TestTrackHomeLocationId, nodeId: 'city' }
+        const base = minimalPlayState()
+        const state = {
+            ...base,
+            machineState: 'OperatingSet',
+            companies: base.companies.map((company) => ({ ...company, floated: true })),
+            tileInventory: tileSet.createInventory(),
+            usedPrivatePowerIds: [],
+            operatingSet: {
+                number: 1,
+                roundNumber: 1,
+                roundCount: 1,
+                companyOrder: [TestCompanyId],
+                completedCompanyIds: [],
+                privateIncomePaid: true,
+                completed: false
+            },
+            stations: [
+                {
+                    id: `${TestCompanyId}:home`,
+                    companyId: TestCompanyId,
+                    status: 'available' as const
+                }
+            ]
+        }
+        const choosingRules = {
+            ...rules,
+            stationRules: {
+                ...rules.stationRules,
+                homeChoice: () => ({
+                    companyId: TestCompanyId,
+                    stationId: `${TestCompanyId}:home`,
+                    positions: [home]
+                })
+            }
+        }
+        const { session, applied } = testSession(state, choosingRules, ['ChooseHomeStation'])
+        const stations = new StationsModule(
+            session,
+            () => {},
+            () => false
+        )
+        const track = new TrackModule(
+            session,
+            () => view,
+            { selection: undefined, trackPowerSelection: undefined },
+            { selectPrivateTile: () => {}, confirm: async () => {} },
+            () => {}
+        )
+        const routes = new RoutesModule(
+            session,
+            () => {},
+            () => []
+        )
+        const map = new MapModule(session, () => view, track, stations, routes)
+        expect(stations.homeLocationIds).toEqual([TestTrackHomeLocationId])
+        map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
+        expect(applied).toEqual([])
+        map.select({ kind: 'slot', ...home, slot: 0 })
+        await Promise.resolve()
+        expect(applied).toMatchObject([
+            { type: 'ChooseHomeStation', companyId: TestCompanyId, ...home }
+        ])
+    })
 })

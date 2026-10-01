@@ -1,4 +1,5 @@
 import type { StationRules } from '../stations/stationPlacement.js'
+import { homeStationPending } from '../stations/chooseHomeStation.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -72,7 +73,7 @@ export class BetweenCompaniesHandler<
         if (
             !companyId ||
             !state.operatingSet?.privateIncomePaid ||
-            this.stations.pendingHomes(state).length
+            homeStationPending(state, this.stations)
         )
             return []
         const operator = controllingOwner(state, companyId)?.playerId

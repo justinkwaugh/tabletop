@@ -212,7 +212,6 @@ export function createLetterNumberLocationFactory(options: {
         }))
 }
 
-// A company id reserves every city on the hex; a city reservation names one of them.
 function homeReservations(home: string | CityReservation, tile: TileFace): CityReservation[] {
     if (typeof home !== 'string') return [{ ...home }]
     const cities = tile.nodes.filter((node) => node.kind === 'city')

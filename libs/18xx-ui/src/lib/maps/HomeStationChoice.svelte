@@ -1,17 +1,15 @@
 <script lang="ts">
+    import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session }: { session: EighteenXXSession } = $props()
     const choice = $derived(session.stations.homeChoice)
-    const company = $derived(
-        session.gameState.companies.find((company) => company.id === choice?.companyId)
-    )
 </script>
 
 {#if choice}
     <section aria-label="Home city choice">
         <p>
-            {company?.name ?? choice.companyId}: choose a highlighted city on the map for its home
-            station.
+            {getCompany(session.gameState, choice.companyId).name}: choose a highlighted city on the
+            map for its home station.
         </p>
     </section>
 {/if}

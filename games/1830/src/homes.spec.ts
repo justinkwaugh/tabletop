@@ -18,13 +18,15 @@ import {
     EighteenThirtyAuctionRules,
     EighteenThirtyMap,
     EighteenThirtyStationRules,
+    EighteenThirtyTileSet,
     EighteenThirtyTrackRules
 } from './index.js'
 
 const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
 
-// Plays the opening auction, floats Erie at $100 and passes to Erie's first operating turn.
-function erieOperates() {
+// Plays the opening auction, floats Erie at $100 and passes to Erie's first operating turn,
+// optionally changing the map before the stock round ends.
+function erieOperates(prepareMap: (state: EighteenXXState) => EighteenXXState = (state) => state) {
     const { game, engine, state: initial } = exampleGame(EighteenThirtyScenarios, 'opening', 3)
     let state: EighteenXXState = initial
     const act = (type: string, fields: object = {}) => {
@@ -60,6 +62,8 @@ function erieOperates() {
         })
         act('FinishStockTurn')
     }
+    state = prepareMap(state)
+    expect(EighteenXXStateValidator.Check(state)).toBe(true)
     while (state.machineState === 'StockRound') act('FinishStockTurn')
     return {
         get state() {
@@ -71,7 +75,7 @@ function erieOperates() {
 }
 
 describe("Erie's whole-hex home", () => {
-    it('keeps other companies out of both Buffalo cities until Erie chooses', () => {
+    it('keeps other companies out of both Buffalo cities until Erie places its home', () => {
         const { state } = exampleGame(EighteenThirtyScenarios, 'opening', 3)
         const placement = new StationPlacement(state, EighteenThirtyStationRules)
         expect(placement.openSlots('PRR', 'E11', 'city-0')).toEqual([])
@@ -79,8 +83,26 @@ describe("Erie's whole-hex home", () => {
         expect(placement.openSlots('ERIE', 'E11', 'city-1')).toEqual([0])
     })
 
-    it("lets Erie's president choose a Buffalo city before Erie's first turn", () => {
+    it('places Erie in the first Buffalo city while Buffalo has no track', () => {
         const game = erieOperates()
+        expect(game.state.stations.find((station) => station.id === 'ERIE:home')).toMatchObject({
+            status: 'placed',
+            position: { locationId: 'E11', nodeId: 'city-0' }
+        })
+        expect(
+            game.state.stationReservations.filter((reservation) => reservation.companyId === 'ERIE')
+        ).toEqual([])
+        expect(game.state.machineState).toBe('LayingTrack')
+        expect(game.state.trackStep?.companyId).toBe('ERIE')
+    })
+
+    it("lets Erie's president choose a Buffalo city once Buffalo has track", () => {
+        const game = erieOperates((state) => ({
+            ...state,
+            tileInventory: EighteenThirtyTileSet.createInventory([
+                { locationId: 'E11', definitionId: '18xx:59', rotation: 0 }
+            ])
+        }))
         const president = game.state.activePlayerIds[0]
         expect(game.state.machineState).toBe('OperatingSet')
         expect(game.valid(president)).toEqual(['ChooseHomeStation'])
@@ -93,12 +115,10 @@ describe("Erie's whole-hex home", () => {
             game.state.stationReservations.filter((reservation) => reservation.companyId === 'ERIE')
         ).toEqual([])
         expect(game.state.machineState).toBe('LayingTrack')
-        expect(game.state.trackStep?.companyId).toBe('ERIE')
     })
 
     it("upgrades Buffalo to #59 with Erie's station still in its city, once per rotation", () => {
         const game = erieOperates()
-        game.act('ChooseHomeStation', { companyId: 'ERIE', locationId: 'E11', nodeId: 'city-1' })
         const choices = new TrackConstruction(
             { ...game.state, phaseId: '3' },
             EighteenThirtyTrackRules
@@ -109,7 +129,7 @@ describe("Erie's whole-hex home", () => {
             expect(choice.definitionId).toBe('18xx:59')
             expect(choice.nodeMapping).toEqual({ 'city-0': 'city-0', 'city-1': 'city-1' })
             expect(choice.stations.find((station) => station.id === 'ERIE:home')).toMatchObject({
-                position: { locationId: 'E11', nodeId: 'city-1' }
+                position: { locationId: 'E11', nodeId: 'city-0' }
             })
         }
     })

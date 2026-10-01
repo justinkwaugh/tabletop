@@ -8,6 +8,7 @@ import {
     applyStationPlacement,
     type EighteenXXState,
     type EighteenXXTitleRules,
+    type HomePosition,
     type StationRequest
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
@@ -101,7 +102,7 @@ export class StationsModule<State extends StationsState> {
             : []
     )
 
-    async chooseHome(position: { locationId: string; nodeId: string }) {
+    async chooseHome(position: HomePosition) {
         const choice = this.homeChoice
         assert(this.canChooseHome && choice, 'No home city choice is pending')
         await this.session.applyAction(

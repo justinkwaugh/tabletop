@@ -19,8 +19,9 @@ The research site's implementation defines the rules (project decision,
 [title design note](../../research/18xx/1830-title-design.md) for sources, the
 delivery slices, and the intentional limits so far: stock turns are sell–buy or
 buy–sell with one purchase, privates have no powers or awards, and offboard groups
-are not yet enforced. Erie reserves both Buffalo cities, and its president chooses
-its home city when it first operates.
+are not yet enforced. Erie reserves both Buffalo cities; its home goes in the first
+city when it first operates, unless Buffalo already has a tile with track, when its president
+clicks the city on the map.
 
 ## Development
 

@@ -13,7 +13,7 @@ export function sameStopCounts(before: TileFace, after: TileFace): boolean {
 
 export function tileUpgradeMappings(before: TileFace, after: TileFace): TileNodeMapping[] {
     const mappings: TileNodeMapping[] = []
-    const cityIndex = trackLessCityIndex(before, after)
+    const cityTargets = trackLessCityTargets(before, after)
     function visit(index: number, mapping: Record<string, string>) {
         const node = before.nodes[index]
         if (!node) {
@@ -23,7 +23,7 @@ export function tileUpgradeMappings(before: TileFace, after: TileFace): TileNode
         }
         for (const target of after.nodes) {
             if (node.kind !== target.kind) continue
-            if (cityIndex && node.kind === 'city' && cityIndex.get(node.id) !== target.id) continue
+            if (cityTargets && node.kind === 'city' && cityTargets.get(node.id) !== target.id) continue
             if (
                 Object.values(mapping).includes(target.id) &&
                 (node.kind !== 'city' ||
@@ -44,7 +44,7 @@ export function tileUpgradeMappings(before: TileFace, after: TileFace): TileNode
  * Cities with no track have nothing to preserve, so an upgrade keeps their order: the first
  * city becomes the first city of the new tile, and so on.
  */
-function trackLessCityIndex(before: TileFace, after: TileFace): Map<string, string> | undefined {
+function trackLessCityTargets(before: TileFace, after: TileFace): Map<string, string> | undefined {
     const cities = before.nodes.filter((node) => node.kind === 'city')
     const targets = after.nodes.filter((node) => node.kind === 'city')
     if (
