@@ -13,7 +13,7 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
 ## Status (2026-10-01)
 
 - Phase 1, the rules review, is done.
-- Phase 2, the implementation plan, is waiting on answers to the open questions below.
+- All the open questions are answered (see Decisions). Phase 2, the implementation plan, is next.
 - No game code has been written yet.
 
 ## Decisions
@@ -29,6 +29,31 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
   - If someone other than the auctioneer wins, the bank pays the auctioneer a cut: 100 Dirham for a winning bid of 500 or less, 200 Dirham for a bid over 500.
   - If the auctioneer wins, they get no cut.
 - **Bid ties:** the auctioneer counts as closest to themselves, so they win any tie they're part of. Other tied players are ranked by clockwise distance from the auctioneer.
+- **Route map:** write a map data file listing each fountain's exits, with the destination and the ordered shop edges passed for each one. Also produce an annotated Tablero image with the routes drawn on it, for the user to check.
+- **Cash visibility:** a game creation option, like Fresh Fish's `BooleanConfigOption`s in `games/fresh-fish/src/definition/gameConfig.ts`:
+  - **Concealed Cash**, off by default. Cash is public unless the creator turns the option on. The default may be switched later.
+  - When it's on, each player's cash is hidden from opponents until the game ends, using Fresh Fish's hidden-information mechanism.
+- **Sealed bids:**
+  - Non-auctioneers may bid 0, which counts as passing. The auctioneer must bid at least 100.
+  - A player with 6 shops is entered as 0 automatically and isn't asked to bid.
+  - All bids are revealed after the auction resolves, even with Concealed Cash on.
+- **Auction pull-in** (a special callout in the rulebook): when a shop is auctioned, every visitor of the shop's colour in any group next to its doors goes straight in as a customer.
+  - The new owner gets those customers' payments straight away.
+  - Nobody gets a mover's cut for them, because nobody moved them. The auctioneer still gets the usual cut of the winning bid.
+- **New visitors:** they come from either end of the queue outside the wall and are placed on one of the three entrance fountains. No entrance fountain is next to a shop, so new visitors never enter a shop when they're placed. The route map data should confirm this.
+- **Antique cards:**
+  - Each player is dealt 5 cards at the start, visible to them and hidden from everyone else.
+  - Every customer in a player's shops counts toward their set, from the start of the game.
+  - Two cards of one colour need two customers of that colour.
+  - A completed set is detected, revealed and paid automatically.
+  - Every player is told in the game when someone completes their set, so players who check in now and then don't miss it. This is an in-game event they see when they next load the game, not a notification sent outside BoardTogether.
+  - Undealt cards stay hidden all game.
+  - Antique money isn't part of the mover's-cut profit.
+  - If one move completes two sets, they're ranked by the order the final customers entered.
+- **Game end:** the game ends once the last visitor in the queue has been placed on an entrance. The current round is then played out, until the player to the right of the start player has had their turn. Entrances that are emptied after the queue runs out stay empty.
+- **Winner:** the player with the most cash wins. Shops don't count toward the cash total. The rulebook gives no tie-break, so tied players share the win.
+- **Queue setup:** the queue is generated at random from the game seed, following the setup rules: entrance trios are all different colours, and there are never more than 3 of one colour in a row. The whole order is public.
+- **Round 1:** the start player is chosen at random. In round 1, each player in clockwise order auctions exactly one shop. Normal turns start in round 2.
 - **Currency:** original Dirham only, not New Dirham.
 - **Board:** build the map from `Marracash_Tablero.jpg`, the clearest redraw, and check it against the original board images. Every shop edge facing a walkway counts as a door, because the shops are open-air tents or stalls.
 - **Artwork:** recreate it independently, using generic pawns for visitors and player-coloured discs for shop signs. Shop sign names don't matter. The user may ask the rights holders for permission to use the supplied images later, and will provide a cover image.
@@ -46,39 +71,18 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
 | Movement | Start in any direction and continue to the next fountain that way, following corners in the road. The path can't cross another fountain. Moving into an entrance fountain is allowed | Forum |
 | Customer payments | Paid one after another, so the 3rd and 4th customers pay 300 + 400. No customer limit, and the 5th and later pay 500 | Forum |
 | Mover's cut | Worked out per shop and per move, from the sequential payments | Forum |
-| Customers pulled in by an auction | No cut for anyone | Forum |
 | Last visitor | A single visitor left in the queue is still placed | Forum |
 | Under 100 Dirham | The player can't choose an auction option | Forum |
 
 ## Revised rules: key wording
 
-From the designer's post, for checking the defaults below:
+From the designer's post, for checking the decisions above:
 
 - **Bidding:** "bieten jetzt alle Spieler für einen Laden einmal verdeckt einen beliebigen Betrag". The auctioneer "muss nach wie vor, mindestens 100 Dirham bieten". The post doesn't say whether other players may pass.
 - **Bid ties:** "erhält der Spieler den Zuschlag, der im Uhrzeigersinn dichter am Versteigerer sitzt".
 - **Antiques:** "Sobald der erste Spieler 5 Kunden in den Farben seiner 5 Kärtchen in seine Läden gelockt hat, deckt er seine Kärtchen auf". The second player to reveal gets only their 4 most valuable cards, and so on.
 - **Game end:** "Sobald die letzte Figur von der Mauer auf ein Eingangsfeld zur Altstadt gestellt wurde, endet das Spiel. Die aktuelle Runde wird jedoch noch zu Ende gespielt".
 
-## Open questions and proposed defaults
+## Open questions
 
-Answering "use the defaults" accepts all of these.
-
-1. **Visitor colours:** use 5 colours, including purple. The user's answers listed only red, green, blue and yellow.
-2. **Route map:** write a map data file listing each fountain's exits, with the destination and the ordered shop edges passed for each one. Also produce an annotated Tablero image with the routes drawn on it, for the user to check.
-3. **Cash visibility:** cash is hidden until the end, using the same mechanism as Fresh Fish's hidden bids.
-4. **Sealed bids:**
-   - Non-auctioneers may bid 0, which counts as passing.
-   - A player with 6 shops is entered as 0 automatically.
-   - Bids are revealed after the auction resolves.
-5. **New visitors on an entrance:** they don't enter an adjacent shop of their colour until they're moved, or until that shop is auctioned.
-6. **Antique cards:**
-   - Customers count from the start of the game.
-   - Two cards of one colour need two customers of that colour.
-   - A completed set is detected, revealed and paid automatically.
-   - Undealt cards stay hidden.
-   - Antique money isn't part of the mover's-cut profit.
-   - If one move completes two sets, they're ranked by the order the final customers entered.
-7. **Revised ending:** play continues until the player to the right of the start player has had their turn. Entrances that are still empty stay empty.
-8. **Winner tie-break:** tied players share the win.
-9. **Queue setup:** generate the queue randomly from the game seed, following the setup rules (entrance trios are all different colours, and no more than 3 of one colour in a row). The whole order is public.
-10. **Round 1:** starting with a random start player, each player auctions exactly one shop.
+None. All the planning questions are answered.
