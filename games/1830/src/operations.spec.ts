@@ -31,6 +31,22 @@ describe('company flotation', () => {
         expect(getCompany(play.state, 'NYC').floated).toBe(true)
         expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'NYC' })).toBe(1000)
     })
+
+    it('offers every unstarted major in the company starts example', () => {
+        const play = playExample(EighteenThirtyScenarios, 'starting', 3)
+        expect(
+            play.state.companies
+                .filter((company) => company.kind === 'major' && !company.started)
+                .map((company) => company.id)
+        ).toEqual(['CPR', 'BO', 'CO', 'ERIE', 'NYNH', 'BM'])
+        play.act('StartCompany', {
+            buyer: { kind: 'player', playerId: play.state.activePlayerIds[0] },
+            companyId: 'ERIE',
+            marketSpaceId: '0:6',
+            expectedPrice: 200
+        })
+        expect(getCompany(play.state, 'ERIE').started).toBe(true)
+    })
 })
 
 describe('track construction', () => {

@@ -9,6 +9,7 @@ import {
     createOrdinaryShareCertificates,
     applyStationPlacement,
     getCompany,
+    homeStationId,
     type CompanyState,
     type TrainState,
     type MapStateData
@@ -38,24 +39,27 @@ export function createEighteenThirtyCompanyExample(
         tileInventory: EighteenThirtyTileSet.createInventory()
     }
     if (position === 'starting' || position === 'flotation') {
-        state.companies.push({
-            ...EighteenThirtyMajors.CO,
-            kind: 'major',
-            shareCount: 10,
-            started: false,
-            funded: false,
-            floated: false,
-            operated: false
-        })
         const offering = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
-        state.certificates.push(
-            ...createOrdinaryShareCertificates(
-                'CO',
-                Array.from({ length: 8 }, () => offering),
-                offering
+        for (const major of Object.values(EighteenThirtyMajors)) {
+            if (state.companies.some((company) => company.id === major.id)) continue
+            state.companies.push({
+                ...major,
+                kind: 'major',
+                shareCount: 10,
+                started: false,
+                funded: false,
+                floated: false,
+                operated: false
+            })
+            state.certificates.push(
+                ...createOrdinaryShareCertificates(
+                    major.id,
+                    Array.from({ length: 8 }, () => offering),
+                    offering
+                )
             )
-        )
-        state.cash.push({ owner: { kind: 'company', companyId: 'CO' }, amount: 0 })
+            state.cash.push({ owner: { kind: 'company', companyId: major.id }, amount: 0 })
+        }
     }
     if (position === 'flotation') {
         const company = getCompany(state, 'CO')
@@ -79,16 +83,25 @@ export function createEighteenThirtyCompanyExample(
         for (const reservation of location.reservations ?? []) {
             const company = state.companies.find((company) => company.id === reservation.companyId)
             if (!company) continue
-            state.stations.push(
-                company.operated
-                    ? {
-                          id: `${company.id}:home`,
-                          companyId: company.id,
-                          status: 'placed',
-                          position: { locationId: location.id, nodeId: reservation.nodeId, slot: 0 }
-                      }
-                    : { id: `${company.id}:home`, companyId: company.id, status: 'available' }
-            )
+            if (!state.stations.some((station) => station.id === homeStationId(company.id)))
+                state.stations.push(
+                    company.operated
+                        ? {
+                              id: homeStationId(company.id),
+                              companyId: company.id,
+                              status: 'placed',
+                              position: {
+                                  locationId: location.id,
+                                  nodeId: reservation.nodeId,
+                                  slot: 0
+                              }
+                          }
+                        : {
+                              id: homeStationId(company.id),
+                              companyId: company.id,
+                              status: 'available'
+                          }
+                )
             if (!company.operated)
                 state.stationReservations.push({ ...reservation, locationId: location.id })
         }
