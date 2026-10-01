@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { IMPERIAL_WARBANDS, OathType, PlayerStatus, WinKind } from '@tabletop/oath'
+import { IMPERIAL_WARBANDS, MachineState, OathType, PlayerStatus, WinKind } from '@tabletop/oath'
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { nextWin, nextWinPhrase } from './nextWin.js'
 
@@ -14,6 +14,7 @@ function table(options: {
     bo?: Parameters<typeof testPlayer>[0]
     sites?: Record<string, Record<string, number>>
     visionsDrawn?: number
+    machineState?: MachineState
 }) {
     const state = testState(
         [
@@ -28,7 +29,8 @@ function table(options: {
             oathkeeperPlayerId: options.holder,
             oathkeeperIsUsurper: options.usurper,
             warbandsBySite: options.sites ?? { p1: { [IMPERIAL_WARBANDS]: 1 } },
-            visionsDrawn: options.visionsDrawn ?? 0
+            visionsDrawn: options.visionsDrawn ?? 0,
+            ...(options.machineState ? { machineState: options.machineState } : {})
         }
     )
     openTurn(state, options.current ?? 'me')
@@ -66,6 +68,13 @@ describe('the next win', () => {
     it('R-3.1 — the seat on the clock has had this Wake, so theirs is next round’s', () => {
         const state = table({ holder: 'me', usurper: true, round: 6 })
         expect(nextWin(state)).toEqual({ when: 'wake', playerId: 'me', kind: WinKind.Usurper })
+    })
+
+    it('R-4.1.2 — a Wake still being resolved counts: the Usurper on the clock wins at this one', () => {
+        const state = table({ holder: 'me', usurper: true, round: 6, machineState: MachineState.WakePhase })
+        expect(nextWin(state)).toEqual({ when: 'wake', playerId: 'me', kind: WinKind.Usurper })
+        const chancellorsWake = table({ holder: 'me', usurper: true, round: 6, current: 'ann', machineState: MachineState.WakePhase })
+        expect(nextWin(chancellorsWake)).toEqual({ when: 'wake', playerId: 'me', kind: WinKind.Usurper })
     })
 
     it('R-3.2 — an Exile meeting their Vision alone, three Visions drawn, wins at their next Wake', () => {

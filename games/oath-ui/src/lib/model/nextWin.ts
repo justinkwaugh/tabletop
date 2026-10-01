@@ -1,5 +1,6 @@
 import {
     FINAL_ROUND,
+    MachineState,
     PlayerStatus,
     WinKind,
     citizensMeetingSuccessorGoal,
@@ -23,7 +24,11 @@ type Moment = { kind: 'wake'; playerId: string } | { kind: 'roundEnd'; round: nu
 function momentsAhead(state: HydratedOathGameState): Moment[] {
     const order = state.turnManager.turnOrder
     const current = state.turnManager.currentTurn()?.playerId
-    const later = order.slice(current === undefined ? 0 : order.indexOf(current) + 1)
+    // R-4.1.2 — a Wake still being resolved is ahead of its seat, not behind it.
+    const wakePending = state.machineState === MachineState.WakePhase
+    const later = order.slice(
+        current === undefined ? 0 : order.indexOf(current) + (wakePending ? 0 : 1)
+    )
     const moments: Moment[] = later.map((playerId) => ({ kind: 'wake', playerId }))
     for (let round = state.round; round <= FINAL_ROUND; round++) {
         if (round > state.round) {
