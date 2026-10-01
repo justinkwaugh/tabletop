@@ -9,6 +9,7 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
+    import VisitorQueue from '$lib/components/VisitorQueue.svelte'
 
     import type { MarracashGameSession } from '$lib/model/session.svelte'
     import type { HydratedMarracashGameState, MarracashProjectedState } from '@tabletop/marracash'
@@ -46,7 +47,10 @@
               This allows the wrapper to scale to its bounds regardless of its content size-->
             <div class="grow-0 overflow-hidden" style="flex:1;">
                 <ScalingWrapper justify="center" controls="bottom-left">
-                    <Board />
+                    <div class="flex flex-col items-center gap-3 p-2">
+                        <Board />
+                        <VisitorQueue />
+                    </div>
                 </ScalingWrapper>
             </div>
         {/snippet}
