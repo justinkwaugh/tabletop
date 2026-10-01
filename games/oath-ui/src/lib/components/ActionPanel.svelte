@@ -12,6 +12,7 @@
     import ModifierPicker from '$lib/components/ModifierPicker.svelte'
     import PowerPanel from '$lib/components/PowerPanel.svelte'
     import MusterMenu from '$lib/components/MusterMenu.svelte'
+    import RecoverMenu from '$lib/components/RecoverMenu.svelte'
     import SearchMenu from '$lib/components/SearchMenu.svelte'
     import TradeMenu from '$lib/components/TradeMenu.svelte'
     import TravelMenu from '$lib/components/TravelMenu.svelte'
@@ -175,6 +176,12 @@
             {#if chosen === ActionType.Travel && gameSession.travelChoices.length > 0}
                 <div class="mb-2">
                     <TravelWayPanel />
+                </div>
+            {/if}
+
+            {#if chosen === ActionType.Recover && !gameSession.stagedBanner}
+                <div class="mb-2">
+                    <RecoverMenu />
                 </div>
             {/if}
 

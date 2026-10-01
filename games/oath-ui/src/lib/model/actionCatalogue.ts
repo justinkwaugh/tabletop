@@ -171,7 +171,7 @@ export function actionPrompt(action: ActionType, state: PromptState): string {
         case ActionType.Trade:
             return 'Choose a trade, or tap a card at your site to find its row.'
         case ActionType.Recover:
-            return 'Tap a lit relic at your site, or a lit banner — on the map or on its holder.'
+            return 'Choose a relic or a banner.'
         case ActionType.Search:
             return 'Choose where to draw from.'
         case ActionType.PlayFacedownAdviser:

@@ -572,6 +572,26 @@ test('scenario 49: Search lists each source it can draw from, a button draws', a
     await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('Searching')
 })
 
+test('scenario 20: Recover lists the banners to outbid, the price is a row of number buttons', async ({ page }) => {
+    await openTable(page, 'trade')
+    const before = (await call(page, 'tableFacts')).favorOf.me ?? 0
+    await tile(page, 'Recover').click()
+    const banners = page.getByRole('list', { name: 'Banners to recover' })
+    const peoples = banners.getByRole('button', { name: /^Recover the People’s Favor: pay \d+ favor/ })
+    await expect(peoples).toBeVisible()
+    await peoples.click()
+    const amounts = grid(page).getByRole('button', { name: /^pay \d+ favor$/ })
+    await expect(amounts.first()).toHaveAttribute('aria-pressed', 'true')
+    const count = await amounts.count()
+    const choice = amounts.nth(count > 1 ? 1 : 0)
+    const paid = Number((await choice.textContent())?.trim())
+    await choice.click()
+    await expect(choice).toHaveAttribute('aria-pressed', 'true')
+    await grid(page).getByRole('button', { name: /^(Arcane|Order|Hearth|Discord|Beast|Nomad) bank/ }).first().click()
+    await grid(page).getByRole('button', { name: 'Recover the People’s Favor', exact: true }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before - paid)
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()

@@ -121,6 +121,7 @@ import {
 } from './actionOffers.js'
 import { tollLabel } from './offerText.js'
 import { musterRows, type MusterRow } from './musterRows.js'
+import { recoverRows, type RecoverRelicRow } from './recoverRows.js'
 import { searchRows, type SearchRow } from './searchRows.js'
 import { tradeRows, type TradeRow } from './tradeRows.js'
 import { travelRows, type TravelRow } from './travelRows.js'
@@ -926,6 +927,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     /** The lowest bid a Recover may pay for this banner, while it is one the seat may take. */
+    // R-5.4 — every relic and banner to recover, until a banner is picked and its price asked.
+    get recoverRows(): { relics: RecoverRelicRow[]; banners: BannerBid[] } {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.Recover || this.stagedBanner) {
+            return { relics: [], banners: [] }
+        }
+        return recoverRows(this.gameState, playerId, this.modifiers.declared)
+    }
+
     bannerBid(banner: Banner): number | undefined {
         return this.bidsFor(banner)[0]
     }
