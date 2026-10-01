@@ -38,7 +38,9 @@ export class MarracashGameSession extends GameSession<
 
     private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)
 
-    readonly canMove = $derived(this.canAct && this.validActionTypes.includes(ActionType.MoveVisitors))
+    readonly canMove = $derived(
+        this.canAct && this.validActionTypes.includes(ActionType.MoveVisitors)
+    )
     readonly canAuction = $derived(
         this.canAct && this.validActionTypes.includes(ActionType.StartAuction)
     )
@@ -171,9 +173,7 @@ export class MarracashGameSession extends GameSession<
         const count = this.chosenVisitorCount
         assertExists(end, 'Bringing visitors requires a chosen queue end')
         assertExists(count, 'Bringing visitors requires a chosen visitor count')
-        await this.applyAction(
-            this.createPlayerAction(BringVisitors, { end, count, entranceId })
-        )
+        await this.applyAction(this.createPlayerAction(BringVisitors, { end, count, entranceId }))
     }
 
     private setSelection<TStage extends keyof MarracashSelectionValues>(
@@ -183,4 +183,3 @@ export class MarracashGameSession extends GameSession<
         this.selection = setMarracashSelection(this.selection, stage, value)
     }
 }
-

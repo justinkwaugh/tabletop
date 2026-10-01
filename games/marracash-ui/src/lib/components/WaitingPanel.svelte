@@ -7,7 +7,7 @@
 
 <p class="font-semibold">
     Waiting for
-        {#each gameSession.gameState.activePlayerIds as playerId, index (playerId)}
-            {index > 0 ? ', ' : ''}<PlayerTag {playerId} />
-        {/each}
+    {#each gameSession.gameState.activePlayerIds as playerId, index (playerId)}
+        {index > 0 ? ', ' : ''}<PlayerTag {playerId} />
+    {/each}
 </p>

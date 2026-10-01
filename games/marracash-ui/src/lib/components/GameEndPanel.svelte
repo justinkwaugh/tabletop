@@ -16,7 +16,9 @@
     <p class="text-lg font-bold">
         The game is over.
         {#each winners as playerId, index (playerId)}
-            {index === 0 ? '' : index === winners.length - 1 ? ' and ' : ', '}<PlayerTag {playerId} />
+            {index === 0 ? '' : index === winners.length - 1 ? ' and ' : ', '}<PlayerTag
+                {playerId}
+            />
         {/each}
         {winners.length > 1 ? 'share the win' : 'wins'}.
     </p>

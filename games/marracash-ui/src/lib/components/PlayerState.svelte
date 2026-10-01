@@ -25,7 +25,9 @@
 </script>
 
 <div
-    class="rounded-lg {gameSession.colors.getPlayerBgColor(player.id)} {textColor} px-3 py-1 text-left"
+    class="rounded-lg {gameSession.colors.getPlayerBgColor(
+        player.id
+    )} {textColor} px-3 py-1 text-left"
     class:pulse-border={isTurn}
     class:border-2={isTurn}
 >
@@ -44,7 +46,9 @@
                 <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                     <MarketMark {color} x={6} y={6} size={10} />
                 </svg>
-                <span class="mr-1 font-semibold" aria-label="{color} customers">{customers[color]}</span>
+                <span class="mr-1 font-semibold" aria-label="{color} customers"
+                    >{customers[color]}</span
+                >
             {/each}
         </span>
     </div>
@@ -61,7 +65,8 @@
                 </div>
             {:else if player.id === gameSession.myPlayer?.id && playerState.antiques.length > 0}
                 <p class="font-semibold">
-                    Your antiques: {hand.filter((entry) => entry.covered).length}/{AntiquesPerPlayer}
+                    Your antiques: {hand.filter((entry) => entry.covered)
+                        .length}/{AntiquesPerPlayer}
                     matched
                 </p>
                 <div class="flex gap-1 rounded bg-white/85 p-1">

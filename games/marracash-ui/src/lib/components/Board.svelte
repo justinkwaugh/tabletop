@@ -48,14 +48,14 @@
     role="img"
     aria-label="MarraCash market"
 >
-    <rect width={BoardWidth} height={BoardHeight} rx="14" fill="#8a6a46" />
+    <rect width={BoardWidth} height={BoardHeight} rx="14" fill="#8a6a46"></rect>
     <rect
         x={WallThickness}
         y={WallThickness}
         width={BoardColumns * CellSize}
         height={BoardRows * CellSize}
         fill="#e8d7b5"
-    />
+    ></rect>
     {#each { length: BoardRows + 1 } as _, row (row)}
         <line
             x1={WallThickness}
@@ -63,7 +63,7 @@
             y1={WallThickness + row * CellSize}
             y2={WallThickness + row * CellSize}
             stroke="#d6c29b"
-        />
+        ></line>
     {/each}
     {#each { length: BoardColumns + 1 } as _, col (col)}
         <line
@@ -72,7 +72,7 @@
             x1={WallThickness + col * CellSize}
             x2={WallThickness + col * CellSize}
             stroke="#d6c29b"
-        />
+        ></line>
     {/each}
 
     {#each gates as gate (`${gate.x},${gate.y}`)}
@@ -84,13 +84,13 @@
             fill="#e8d7b5"
             stroke="#c99a2e"
             stroke-width="3"
-        />
+        ></rect>
     {/each}
 
     {#each Palms as palm (`${palm.row},${palm.col}`)}
         {@const center = cellCenter(palm)}
-        <circle cx={center.x} cy={center.y} r="30" fill="#3f8a4b" />
-        <circle cx={center.x} cy={center.y} r="12" fill="#6fb25f" />
+        <circle cx={center.x} cy={center.y} r="30" fill="#3f8a4b"></circle>
+        <circle cx={center.x} cy={center.y} r="12" fill="#6fb25f"></circle>
     {/each}
 
     {#each gameSession.gameState.shops as shop (shop.shopId)}

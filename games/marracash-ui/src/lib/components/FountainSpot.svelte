@@ -50,7 +50,7 @@
             stroke={selected ? '#1f1f1f' : '#ffffff'}
             stroke-width="4"
             stroke-dasharray={selected ? undefined : '8 5'}
-        />
+        ></circle>
     {/if}
     <circle
         cx={center.x}
@@ -59,24 +59,16 @@
         fill="#9fd3e6"
         stroke={definition.entrance ? '#c99a2e' : '#5b8fa3'}
         stroke-width={definition.entrance ? 6 : 3}
-    />
-    <circle cx={center.x} cy={center.y} r="26" fill="#cfeaf3" opacity="0.7" />
-    <text
-        x={center.x - 30}
-        y={center.y - 22}
-        font-size="12"
-        font-weight="700"
-        fill="#2d5566">{fountain.fountainId}</text
+    ></circle>
+    <circle cx={center.x} cy={center.y} r="26" fill="#cfeaf3" opacity="0.7"></circle>
+    <text x={center.x - 30} y={center.y - 22} font-size="12" font-weight="700" fill="#2d5566"
+        >{fountain.fountainId}</text
     >
     {#if crowded}
         {#each tally as entry (entry.color)}
             <Pawn color={entry.color} x={entry.x - 6} y={entry.y} size={15} />
-            <text
-                x={entry.x + 3}
-                y={entry.y + 5}
-                font-size="12"
-                font-weight="700"
-                fill="#1f3c47">{entry.count}</text
+            <text x={entry.x + 3} y={entry.y + 5} font-size="12" font-weight="700" fill="#1f3c47"
+                >{entry.count}</text
             >
         {/each}
     {:else}

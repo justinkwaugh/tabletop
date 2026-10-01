@@ -27,7 +27,7 @@
             stroke="#ffffff"
             stroke-width="4"
             stroke-dasharray="8 5"
-        />
+        ></rect>
     {/if}
     <rect
         x={rect.x}
@@ -38,7 +38,7 @@
         fill={palette.tint}
         stroke={palette.stroke}
         stroke-width="3"
-    />
+    ></rect>
     <rect
         x={rect.x + 6}
         y={rect.y + 6}
@@ -47,7 +47,7 @@
         rx="7"
         fill={palette.fill}
         opacity="0.55"
-    />
+    ></rect>
     <MarketMark color={shopColor} x={rect.x + 20} y={rect.y + 20} size={20} />
     {#if shop.ownerId}
         <circle
@@ -57,8 +57,9 @@
             fill={gameSession.colors.getPlayerBgColorValue(shop.ownerId)}
             stroke="#1f1f1f"
             stroke-width="3"
-        />
-        <circle cx={centerX} cy={centerY} r="23" fill="none" stroke="#ffffff" stroke-width="2" />
+        ></circle>
+        <circle cx={centerX} cy={centerY} r="23" fill="none" stroke="#ffffff" stroke-width="2"
+        ></circle>
         {#if shop.customers > 0}
             <text
                 x={centerX}

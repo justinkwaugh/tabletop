@@ -7,7 +7,10 @@ import GameTable from '../components/GameTable.svelte'
 import { MarracashGameSession } from '$lib/model/session.svelte.js'
 import '../../app.css'
 
-export const MarracashUiRuntime: GameUIRuntime<MarracashProjectedState, HydratedMarracashGameState> = {
+export const MarracashUiRuntime: GameUIRuntime<
+    MarracashProjectedState,
+    HydratedMarracashGameState
+> = {
     ...MarracashRuntime,
     gameUI: {
         component: GameTable,

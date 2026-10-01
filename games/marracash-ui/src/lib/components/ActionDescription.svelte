@@ -37,8 +37,8 @@
 {:else if isResolveAuction(action) && action.metadata}
     {@const result = action.metadata}
     <PlayerTag playerId={result.winnerId} /> bought {shopName(result.shopId)} for {result.price}
-    Dirham{#if result.auctioneerCut > 0}, and the auctioneer took a {result.auctioneerCut} Dirham
-        cut{/if}. Bids:
+    Dirham{#if result.auctioneerCut > 0}, and the auctioneer took a {result.auctioneerCut} Dirham cut{/if}.
+    Bids:
     {#each result.bids as bid, index (bid.playerId)}
         {index > 0 ? ', ' : ''}<PlayerTag playerId={bid.playerId} />
         {bid.amount}

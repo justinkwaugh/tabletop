@@ -3,8 +3,12 @@
     import { MarketPalettes } from '$lib/utils/marketColors.js'
     import MarketMark from '$lib/components/MarketMark.svelte'
 
-    let { color, x, y, size = 18 }: { color: MarketColor; x: number; y: number; size?: number } =
-        $props()
+    let {
+        color,
+        x,
+        y,
+        size = 18
+    }: { color: MarketColor; x: number; y: number; size?: number } = $props()
 
     let palette = $derived(MarketPalettes[color])
     let scale = $derived(size / 18)
@@ -16,6 +20,6 @@
         fill={palette.fill}
         stroke={palette.stroke}
         stroke-width="1.5"
-    />
+    ></path>
     <MarketMark {color} x={0} y={4} size={7} />
 </g>

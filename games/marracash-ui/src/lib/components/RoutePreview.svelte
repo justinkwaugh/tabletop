@@ -22,7 +22,7 @@
         stroke-linecap="round"
         stroke-linejoin="round"
         opacity="0.55"
-    />
+    ></polyline>
     <polyline
         {points}
         fill="none"
@@ -31,7 +31,7 @@
         stroke-dasharray="10 8"
         stroke-linecap="round"
         stroke-linejoin="round"
-    />
+    ></polyline>
     <circle
         cx={destination.x}
         cy={destination.y}
@@ -39,5 +39,5 @@
         fill="none"
         stroke="#ffffff"
         stroke-width="4"
-    />
+    ></circle>
 </g>

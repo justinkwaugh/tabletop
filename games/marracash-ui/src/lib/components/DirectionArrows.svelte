@@ -44,7 +44,7 @@
         onclick={() => onchoose(arrow.route.direction)}
         onkeydown={(event) => event.key === 'Enter' && onchoose(arrow.route.direction)}
     >
-        <circle r="24" fill="#1f1f1f" opacity="0.85" />
-        <path d="M 0 -14 L 12 4 L 4 4 L 4 14 L -4 14 L -4 4 L -12 4 Z" fill="#ffffff" />
+        <circle r="24" fill="#1f1f1f" opacity="0.85"></circle>
+        <path d="M 0 -14 L 12 4 L 4 4 L 4 14 L -4 14 L -4 4 L -12 4 Z" fill="#ffffff"></path>
     </g>
 {/each}

@@ -19,7 +19,7 @@ Planning notes for implementing MarraCash (Stefan Dorra) as a new game. The sour
   - Protected mode: `tests/protected.spec.ts` checks in the harness that each view sees only the cash and sealed bids it is entitled to.
   - Full game: `tests/fullGame.spec.ts` plays a hotseat game to the end through the UI (about 100 steps, 33 s).
   - Known platform failure: `svelte-check` fails on `createGameSessionContext` in `sessionContext.svelte.ts`; Estates and Oath fail identically on `main`, so it doesn't count against the title.
-  - Open for step 10: the three `docs/marracash-*.md` files are outside the allowed change roots (gate 6) and must leave the PR. 14 UI files aren't Prettier-formatted (the `lint` script only runs ESLint).
+  - Open for step 10: the three `docs/marracash-*.md` files are outside the allowed change roots (gate 6) and must leave the PR. All tracked MarraCash files are Prettier-formatted.
 - Next: step 9, the Game Catalogue entry.
 
 ## Decisions

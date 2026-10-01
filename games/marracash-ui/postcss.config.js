@@ -45,8 +45,5 @@ const scopeGameCssPlugin = {
 }
 
 export default {
-    plugins: [
-        tailwindcss(),
-        scopeGameCssPlugin
-    ]
+    plugins: [tailwindcss(), scopeGameCssPlugin]
 }
