@@ -13,6 +13,7 @@
 - **Road tile laying.** Choosing a road space opens the tile laying widget, modelled on the 18xx track picker. The legal tile shapes (straight, curved) fan out in an arc beside the space, above it unless the board edge forces another side. Choosing a shape moves it onto the space as a full-size preview in its first legal orientation; a single legal shape is auto-selected. Clicking the preview (or its rotate badge) cycles that shape's legal orientations. A red ✕ and green ✓ (28-unit radius, 1.75× the original size) sit on the side of the space away from the shape arc, below it unless the arc or the board edge is there: ✕ cancels, ✓ places the road. Nothing is committed until ✓.
 - **Market targeting.** Build and sell targets show a price tag with the cost (−n) or value (+n) above the place.
 - **Resupply.** The Resupply button toggles an inline picker bounded by the allowance and the staging area.
+- **Oracle history rows.** A road or city action that turns an oracle adds "— an oracle turns to <player>'s city" to its history row, naming the player recorded in the action's metadata when the oracle turned, so the name stays after that city merges into another.
 
 ## Coexistence and precedence
 

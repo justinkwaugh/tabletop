@@ -497,9 +497,26 @@ describe('network, markets and oracles', () => {
 
         board.roads.push({ playerId: 'p2', coords: row(8), ends: [W, E] })
         expect(board.updateOracleAttention(board.network())).toEqual([
-            { oracle: row(5), fromCityId: 'C1', toCityId: 'C2' }
+            { oracle: row(5), fromCityId: 'C1', toCityId: 'C2', toPlayerId: 'p1' }
         ])
         expect(state.scores().p1.oracles).toBe(4)
+    })
+
+    it('records who an oracle turned to after that city merges away', () => {
+        const state = freshState()
+        state.board.oracles = [{ coords: row(5) }]
+        state.board.cities = [
+            { id: 'C1', playerId: 'p0', spaces: [row(9)] },
+            { id: 'C2', playerId: 'p0', spaces: [row(7)] }
+        ]
+        giveTurn(state, 'p0', 'G1')
+        const road = placeRoad(state, 'p0', row(6), [W, E])
+        giveTurn(state, 'p0', 'G1')
+        placeCity(state, 'p0', row(8))
+        expect(state.board.cities.map((city) => city.id)).toEqual(['C1'])
+        expect(road.metadata?.oracleChanges).toEqual([
+            { oracle: row(5), toCityId: 'C2', toPlayerId: 'p0' }
+        ])
     })
 
     it('turns an oracle to the oldest of equally important newcomers', () => {

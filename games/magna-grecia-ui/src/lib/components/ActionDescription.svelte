@@ -10,20 +10,13 @@
         type OracleChange
     } from '@tabletop/magna-grecia'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
         $props()
 
-    const gameSession = getGameSession()
-
     const oracleChanges: OracleChange[] = $derived(
         isPlaceRoad(action) || isPlaceCity(action) ? (action.metadata?.oracleChanges ?? []) : []
     )
-
-    function cityOwner(cityId: string): string | undefined {
-        return gameSession.gameState.board.cities.find((city) => city.id === cityId)?.playerId
-    }
 
     function plural(count: number, noun: string): string {
         return `${count} ${noun}${count === 1 ? '' : 's'}`
@@ -64,10 +57,9 @@
         <span>{action.type}</span>
     {/if}
     {#each oracleChanges as change (`${change.oracle.q},${change.oracle.r}`)}
-        {@const owner = cityOwner(change.toCityId)}
         <span>— an oracle turns to</span>
-        {#if owner}
-            <PlayerName playerId={owner} possessive={true} />
+        {#if change.toPlayerId}
+            <PlayerName playerId={change.toPlayerId} possessive={true} />
         {/if}
         <span>city</span>
     {/each}

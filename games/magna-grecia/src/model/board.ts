@@ -30,7 +30,8 @@ export type OracleChange = Type.Static<typeof OracleChange>
 export const OracleChange = Type.Object({
     oracle: AxialCoordinates,
     fromCityId: Type.Optional(Type.String()),
-    toCityId: Type.String()
+    toCityId: Type.String(),
+    toPlayerId: Type.Optional(Type.String())
 })
 
 export type Board = Type.Static<typeof Board>
@@ -225,7 +226,12 @@ export class HydratedBoard extends Hydratable<typeof Board> implements Board {
             const current = oracle.attentionCityId
             const currentImportance = current === undefined ? -1 : importance(current)
             if (best.id !== current && importance(best.id) > currentImportance) {
-                changes.push({ oracle: oracle.coords, fromCityId: current, toCityId: best.id })
+                changes.push({
+                    oracle: oracle.coords,
+                    fromCityId: current,
+                    toCityId: best.id,
+                    toPlayerId: best.playerId
+                })
                 oracle.attentionCityId = best.id
             }
         }
