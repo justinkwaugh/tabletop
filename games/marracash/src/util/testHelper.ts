@@ -7,8 +7,9 @@ import {
     PlayerStatus,
     type GameAction
 } from '@tabletop/common'
-import type { FountainId, ShopId } from '../components/board.js'
-import type { QueueEnd } from '../components/visitors.js'
+import { routesFrom, type FountainId, type ShopId } from '../components/board.js'
+import { QueueEnd } from '../components/visitors.js'
+import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import type { MarracashProjectedState } from '../model/gameState.js'
 import type { MarracashGameConfig } from '../definition/config.js'
@@ -52,6 +53,7 @@ export function createTestSession(game: TestGame, initialState: MarracashProject
     const engine = new GameEngine(MarracashRuntime)
     let state = initialState
     let actionCount = 0
+    const actions: GameAction[] = []
 
     function act(playerId: string, type: ActionType, payload: Record<string, unknown> = {}) {
         const action: GameAction = {
@@ -64,11 +66,14 @@ export function createTestSession(game: TestGame, initialState: MarracashProject
         }
         const result = engine.executeCanonicalAction({ game, state, action })
         state = result.updatedState
+        actions.push(...result.processedActions)
         return result.processedActions
     }
 
     return {
         game,
+        actions,
+        initialState,
         get state() {
             return state
         },
@@ -100,3 +105,49 @@ export function createTestSession(game: TestGame, initialState: MarracashProject
 }
 
 export type TestSession = ReturnType<typeof createTestSession>
+
+export function playToEnd(session: TestSession): MarracashProjectedState {
+    for (
+        let step = 0;
+        step < 5000 && session.state.machineState !== MachineState.EndOfGame;
+        step++
+    ) {
+        const state = session.hydrated()
+        const playerId = session.currentPlayerId()
+        switch (state.machineState) {
+            case MachineState.ChoosingAction: {
+                const start = state.fountains.find((fountain) => fountain.visitors.length > 0)
+                if (state.canMoveVisitors() && start) {
+                    session.move(
+                        playerId,
+                        start.fountainId,
+                        routesFrom(start.fountainId)[0].direction
+                    )
+                } else {
+                    const shop = state.shops.find((candidate) => candidate.ownerId === undefined)
+                    if (!shop) throw Error('Expected an unowned shop to auction')
+                    session.startAuction(playerId, shop.shopId)
+                }
+                break
+            }
+            case MachineState.Bidding: {
+                const auction = state.auction
+                if (!auction) throw Error('Expected an auction')
+                for (const bidder of [...state.activePlayerIds]) {
+                    session.bid(bidder, bidder === auction.auctioneerId ? 100 : 0)
+                }
+                break
+            }
+            case MachineState.RefillingEntrances: {
+                const count =
+                    state.queue.length < 2 ? state.queue.length : Math.min(4, state.queue.length)
+                session.bringVisitors(playerId, QueueEnd.Front, count, state.emptyEntranceIds()[0])
+                break
+            }
+        }
+    }
+    if (session.state.machineState !== MachineState.EndOfGame) {
+        throw Error('The game did not finish')
+    }
+    return session.state
+}

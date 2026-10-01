@@ -458,7 +458,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
         }
     }
 
-    private customersByColor(playerId: string): Record<MarketColor, number> {
+    customersByColor(playerId: string): Record<MarketColor, number> {
         const counts = emptyColorCounts()
         for (const shop of this.shops) {
             if (shop.ownerId === playerId) {

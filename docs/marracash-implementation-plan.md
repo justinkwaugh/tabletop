@@ -101,7 +101,7 @@ Register `runtime.visibility.state` and `.actions`. That's required because the 
 - **What stays public:** the queue, fountains, shops, customers, revealed antiques, reveal order, and all bids after resolution.
 - **Optimistic play:** moves and auction resolution read other players' hands (and their cash when it's concealed). Those Actions will fall back to the host rather than run optimistically. That's expected, not a bug.
 - **Undo:** the final bid that resolves an auction, and any move or auction that completes an antique set, are Information-Revealing Actions (`revealsInfo`). Bids and antique hands become known, so Undo can't cross them. Sealed bids form a Simultaneous Action Group.
-- **Exploration:** a population hook samples hypothetical antique hands and the undealt deck from the cards not yet revealed. With Concealed Cash it also samples hidden cash, following Estates.
+- **Exploration:** a population hook samples hypothetical antique hands and the undealt deck from the cards the explorer hasn't seen. It rejects samples that would give a player a set their current customers already complete, because that player would have revealed it. It fills hidden sealed bids with legal amounts, using 0 for players with 6 shops. Like Estates with Hidden Money, exploration is unavailable when Concealed Cash is on.
 - **Tests:** visibility tests in the style of `games/estates/src/definition/visibility.spec.ts`, covering player, spectator and the end-of-game reveal, with Concealed Cash on and off.
 
 ## UI
@@ -136,7 +136,7 @@ Each step ends with tests passing:
    - A player who can't move or auction at the start of their turn is skipped this way too, still refilling entrances if needed.
    - `finalRound` is set when the queue empties. The game ends when the last seat's turn finishes during the final round.
    - The tournament test now plays whole games to the end, with antique cards on and off.
-7. Visibility registration, projected hydration, Exploration population and visibility tests.
+7. Visibility registration, projected hydration, Exploration population and visibility tests. Done. Guarded client-side execution only applies to games marked as protecting information, which every new hosted game is. In such a game, a move that needs an opponent's hidden hand raises the guard's unavailable-value error and goes to the host.
    - A skipped turn adds an `EndTurn` that depends on the skipped player's cash, so with Concealed Cash on it shows that player has under 100. Players at a table see a skipped turn too, so this matches the rules. Turn ends check movement first, so cash is only read when no visitors are left to move.
    - Antique hands that were never completed stay hidden after the game ends, as the user decided. Revisit if player feedback asks for them to be shown.
 8. The UI package.
