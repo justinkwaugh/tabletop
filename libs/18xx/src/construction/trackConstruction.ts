@@ -72,7 +72,16 @@ export interface TrackRules {
     allowance(state: ConstructionState, color: string): { cost: number } | { reason: string }
     preservesStops(before: TileFace, after: TileFace): boolean
     restriction(state: ConstructionState, request: TrackRequest): string | undefined
-    useful(change: { home: boolean; newTrack: boolean; increasedCityRevenue: boolean }): boolean
+    /**
+     * Whether a lay is allowed: on a home hex, touching the company's network (``connected``),
+     * adding connected track, or raising a connected city's revenue.
+     */
+    useful(change: {
+        home: boolean
+        connected: boolean
+        newTrack: boolean
+        increasedCityRevenue: boolean
+    }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
@@ -107,6 +116,7 @@ export class TrackConstruction {
             (this.network(companyId).canReach(locationId) ||
                 this.rules.useful({
                     home: this.rules.homeLocations(companyId).includes(locationId),
+                    connected: false,
                     newTrack: false,
                     increasedCityRevenue: false
                 }))
@@ -244,6 +254,7 @@ export class TrackConstruction {
         if (
             !this.rules.useful({
                 home: this.rules.homeLocations(companyId).includes(locationId),
+                connected: after.paths.some((path) => network.paths.has(path.id)),
                 newTrack,
                 increasedCityRevenue
             })

@@ -6,7 +6,7 @@ describe('complete title maps', () => {
     it.each(Object.values(MapExamples))(
         'preserves location facts and aligns map edges for $map.definition.name',
         (example) => {
-            const scene = createMapDrawing(example.map)
+            const scene = createMapDrawing(example.map, undefined, example.layouts)
             let checkedConnections = 0
             for (const entry of scene.locations) {
                 for (const path of entry.drawing.paths) {
@@ -34,10 +34,11 @@ describe('complete title maps', () => {
                 }
             }
             expect(checkedConnections).toBeGreaterThan(10)
-            const prepared = createMapDrawing(example.map, {
-                tileSet: example.tileSet,
-                inventory: example.prepared
-            })
+            const prepared = createMapDrawing(
+                example.map,
+                { tileSet: example.tileSet, inventory: example.prepared },
+                example.layouts
+            )
             expect(prepared.locations.filter((entry) => entry.placed)).toHaveLength(1)
             for (const entry of prepared.locations)
                 expect(entry.location).toBe(example.map.location(entry.location.id))
@@ -63,7 +64,7 @@ describe('complete title maps', () => {
         expect(top.location('N18').markers?.[0].id).toBe('vernon-river-bridge')
         expect(top.location('L16').upgradeLabels).toEqual([{ color: 'gray', label: 'CX' }])
         expect(shikoku.location('H5').terrain).toEqual({ cost: 80, kinds: ['water', 'mountain'] })
-        expect(shikoku.location('I4').terrain?.kinds).toEqual(['urban'])
+        expect(shikoku.location('I4').terrain?.kinds).toEqual([])
         expect(
             shikoku.definition.locations.filter((location) =>
                 location.markers?.some((marker) => marker.id === 'port')

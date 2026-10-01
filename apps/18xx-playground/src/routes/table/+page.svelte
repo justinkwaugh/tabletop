@@ -1,6 +1,7 @@
 <script lang="ts">
     import { UiDefinition as Top } from '@tabletop/the-old-prince-ui'
     import { UiDefinition as Shikoku } from '@tabletop/shikoku-1889-ui'
+    import { UiDefinition as EighteenThirty } from '@tabletop/1830-ui'
     import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
     import { withScenarioUi } from '../../scenarios/uiDefinitions.js'
     import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
@@ -21,10 +22,12 @@
                     position = 'opening'
                 if (event.currentTarget.value === 'TOP' && position === 'diesel')
                     position = 'trains'
+                if (event.currentTarget.value === '1830' && position === 'finished')
+                    position = 'opening'
             }}
             ><option value="TOP">The Old Prince 1871</option><option value="1889"
                 >Shikoku 1889</option
-            ></select
+            ><option value="1830">1830</option></select
         >
         <select aria-label="Position" bind:value={position}>
             <option value="opening">Opening auction</option>
@@ -37,18 +40,20 @@
             <option value="routes">Run trains</option>
             <option value="operations">Operating rounds</option>
             <option value="trains">Buy trains</option>
-            {#if title === '1889'}<option value="diesel">Diesel exchange</option>{/if}
+            {#if title !== 'TOP'}<option value="diesel">Diesel exchange</option>{/if}
             {#if title === 'TOP'}<option value="funding-chain">Union Bank train funding</option
                 >{/if}
             <option value="bankruptcy">Bankruptcy</option>
             <option value="powers">Buy privates</option>
             <option value="transfers">Negotiated purchases</option>
             <option value="ending">Final operating turn</option>
-            <option value="finished">Finished game</option>
+            {#if title !== '1830'}<option value="finished">Finished game</option>{/if}
         </select>
     </nav>
     {#key `${title}:${position}`}<FinanceExampleHost
-            definition={withScenarioUi(title === 'TOP' ? Top : Shikoku)}
+            definition={withScenarioUi(
+                title === 'TOP' ? Top : title === '1889' ? Shikoku : EighteenThirty
+            )}
             {position}
         />{/key}
 </div>

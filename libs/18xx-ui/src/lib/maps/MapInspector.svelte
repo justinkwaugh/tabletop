@@ -60,7 +60,8 @@
                 </p>
             {/if}
         {/each}
-        {#each tokens.filter((token) => token.locationId === entry.location.id) as token (token.id)}<p>
+        {#each tokens.filter((token) => token.locationId === entry.location.id) as token (token.id)}<p
+            >
                 Station: {token.label} · {token.nodeId} · Space {token.slot + 1}
             </p>{/each}
         {#each currentReservations.filter((reservation) => reservation.locationId === entry.location.id) as reservation, i (i)}<p

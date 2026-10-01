@@ -189,13 +189,14 @@ export function createLetterNumberLocationFactory(options: {
     numberOffset: number
     fixedColors: readonly string[]
     names: Readonly<Record<string, string>>
-    homes: Readonly<Record<string, string>>
+    /** Company ids by location, or the company and city node on a multi-city location. */
+    homes: Readonly<Record<string, string | { companyId: string; nodeId: string }>>
     markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>>
 }) {
     return (
         ids: string,
         preprintedTile: TileFace,
-        details: Partial<Pick<MapLocation, 'terrain' | 'upgradeLabels'>> = {}
+        details: Partial<Pick<MapLocation, 'terrain' | 'upgradeLabels' | 'borders'>> = {}
     ): MapLocation[] =>
         ids.split(' ').map((id) => ({
             id,
@@ -204,9 +205,11 @@ export function createLetterNumberLocationFactory(options: {
             buildable: !options.fixedColors.includes(preprintedTile.color),
             ...details,
             ...(options.names[id] ? { name: options.names[id] } : {}),
-            ...(options.homes[id]
-                ? { reservations: [{ companyId: options.homes[id], nodeId: 'city' }] }
-                : {}),
+            ...(options.homes[id] ? { reservations: [homeReservation(options.homes[id])] } : {}),
             ...(options.markers[id] ? { markers: options.markers[id] } : {})
         }))
+}
+
+function homeReservation(home: string | { companyId: string; nodeId: string }) {
+    return typeof home === 'string' ? { companyId: home, nodeId: 'city' } : { ...home }
 }

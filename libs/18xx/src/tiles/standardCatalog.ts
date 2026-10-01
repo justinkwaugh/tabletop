@@ -1,6 +1,7 @@
 import { TileCatalog } from './catalog.js'
 import {
     createCityTileFace as cityFace,
+    createSeparateCitiesTileFace as citiesFace,
     createTownTileFace as townFace,
     createTrackTileFace as trackFace
 } from './faces.js'
@@ -18,12 +19,24 @@ export const StandardTileCatalog = new TileCatalog([
             10
         )
     ),
+    standardTile(
+        '2',
+        townFace(
+            'yellow',
+            [
+                [0, 3],
+                [1, 2]
+            ],
+            10
+        )
+    ),
     standardTile('3', {
         color: 'yellow',
         nodes: [{ id: 'town', kind: 'town', revenue: { kind: 'fixed', amount: 10 } }],
         paths: pathsToNode([0, 1], 'town'),
         labels: []
     }),
+    standardTile('4', townFace('yellow', [[0, 3]], 10)),
     standardTile('5', cityFace('yellow', [0, 1], 20, 1)),
     standardTile('6', cityFace('yellow', [0, 2], 20, 1)),
     standardTile('7', trackFace('yellow', [[0, 1]])),
@@ -45,6 +58,13 @@ export const StandardTileCatalog = new TileCatalog([
         trackFace('green', [
             [1, 3],
             [0, 4]
+        ])
+    ),
+    standardTile(
+        '18',
+        trackFace('green', [
+            [0, 3],
+            [1, 2]
         ])
     ),
     standardTile(
@@ -215,6 +235,29 @@ export const StandardTileCatalog = new TileCatalog([
             [0, 4]
         ])
     ),
+    standardTile('53', cityFace('green', [0, 2, 4], 50, 1, ['B'])),
+    standardTile(
+        '54',
+        citiesFace(
+            'green',
+            [
+                { edges: [0, 1], revenue: 60, stationSlots: 1 },
+                { edges: [2, 3], revenue: 60, stationSlots: 1 }
+            ],
+            ['NY']
+        )
+    ),
+    standardTile(
+        '55',
+        townFace(
+            'yellow',
+            [
+                [0, 3],
+                [1, 4]
+            ],
+            10
+        )
+    ),
     standardTile(
         '56',
         townFace(
@@ -228,6 +271,62 @@ export const StandardTileCatalog = new TileCatalog([
     ),
     standardTile('57', cityFace('yellow', [0, 3], 20, 1)),
     standardTile('58', townFace('yellow', [[0, 2]], 10)),
+    standardTile(
+        '59',
+        citiesFace(
+            'green',
+            [
+                { edges: [0], revenue: 40, stationSlots: 1 },
+                { edges: [2], revenue: 40, stationSlots: 1 }
+            ],
+            ['OO']
+        )
+    ),
+    standardTile('61', cityFace('brown', [0, 2, 3, 4], 60, 1, ['B'])),
+    standardTile(
+        '62',
+        citiesFace(
+            'brown',
+            [
+                { edges: [0, 1], revenue: 80, stationSlots: 2 },
+                { edges: [2, 3], revenue: 80, stationSlots: 2 }
+            ],
+            ['NY']
+        )
+    ),
+    standardTile('63', cityFace('brown', [0, 1, 2, 3, 4, 5], 40, 2)),
+    ...(
+        [
+            ['64', [0, 2], [3, 4]],
+            ['65', [0, 4], [2, 3]],
+            ['66', [0, 3], [1, 2]],
+            ['67', [0, 3], [2, 4]],
+            ['68', [0, 3], [1, 4]]
+        ] as const
+    ).map(([number, first, second]) =>
+        standardTile(
+            number,
+            citiesFace(
+                'brown',
+                [
+                    { edges: first, revenue: 50, stationSlots: 1 },
+                    { edges: second, revenue: 50, stationSlots: 1 }
+                ],
+                ['OO']
+            )
+        )
+    ),
+    standardTile(
+        '69',
+        townFace(
+            'yellow',
+            [
+                [0, 3],
+                [2, 4]
+            ],
+            10
+        )
+    ),
     standardTile(
         '70',
         trackFace('brown', [

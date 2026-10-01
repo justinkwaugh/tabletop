@@ -155,12 +155,44 @@ option; without it, only the D-train is offered.
 The brown-from-IPO option is declared now but has no effect until slice 3 adds
 brown-zone multiple purchases.
 
+## Implementation notes for slice 1
+
+Decisions made while implementing, beyond the design above:
+
+- **Usefulness needs connectivity.** The family `TrackRules.useful` hook also
+  decides whether a company can reach a hex, so "always useful" would allow lays
+  anywhere. The hook now also receives `connected` (some path of the new tile
+  touches the company's network). 1830 accepts `home || connected`; 1889 and TOP
+  keep their checks. Any connected lay or upgrade remains allowed, matching the
+  reference engine's permissive restriction.
+- **The extra 6-train is removed, not added.** Train inventories are validated
+  against the depot's fixed identities, so the depot supplies three 6-trains and
+  an ordinary game marks the third as removed at setup.
+- **Homes are placed when a company first operates**, as the reference engine
+  does, rather than at the start of the operating round as in 1889. The
+  `pendingHomes` hook now receives the operating set to support this.
+- **Station costs** follow each company's schedule (0, 40, 100, 100), charged for
+  the lowest-numbered unplaced station.
+- **Emergency presidency changes:** emergency sales may change the presidency of
+  other companies, but never of the company buying the train.
+- **Multi-city faces** use node ids `city-0`, `city-1` from a new
+  `createSeparateCitiesTileFace`. Their positions are in `StandardTileLayouts`
+  (catalog tiles) and the title map view (printed hexes).
+- **Blocked-hex markers:** the map marks each hex a private blocks while
+  player-owned.
+
 ## Intentional limits after slice 1
 
 - Erie cannot be started (slice 2).
 - Stock turns are sell-then-buy or buy-then-sell, one purchase per turn (slice 3).
+  A company's shares are sold in one block per turn; the reference engine allows
+  separate sales at the moved price (slice 3).
+- Emergency train purchases from other corporations, allowed up to face value by
+  the reference engine, are not offered (slice 3).
 - Private companies have no powers or awards (slice 4).
 - A route may count both hexes of Canada or of the Gulf (slice 5).
+- The table harness has no finished 1830 game until the recorded games are
+  replayed (slice 5).
 
 ## Acceptance examples
 

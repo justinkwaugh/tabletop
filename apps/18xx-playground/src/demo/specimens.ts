@@ -6,6 +6,7 @@ import {
     Shikoku1889TileSet,
     Shikoku1889BeginnerTileSet
 } from '@tabletop/shikoku-1889'
+import { EighteenThirtyTiles, EighteenThirtyTileSet } from '@tabletop/1830'
 import type { TileInventoryCount } from '@tabletop/18xx'
 import { StandardTileLayouts, type TileLayout } from '@tabletop/18xx-ui'
 
@@ -109,7 +110,8 @@ export const TileSpecimenGroups: Readonly<Record<string, readonly TileDefinition
     ],
     'The Old Prince 1871': TheOldPrinceTiles,
     'Shikoku 1889': Shikoku1889Tiles,
-    'Shikoku 1889 beginner': Shikoku1889BeginnerTileSet.definitions
+    'Shikoku 1889 beginner': Shikoku1889BeginnerTileSet.definitions,
+    '1830': EighteenThirtyTiles
 }
 
 export const TileInventoryGroups: Readonly<Record<string, readonly TileInventoryCount[]>> = {
@@ -117,5 +119,6 @@ export const TileInventoryGroups: Readonly<Record<string, readonly TileInventory
     'Shikoku 1889': Shikoku1889TileSet.counts(Shikoku1889TileSet.createInventory()),
     'Shikoku 1889 beginner': Shikoku1889BeginnerTileSet.counts(
         Shikoku1889BeginnerTileSet.createInventory()
-    )
+    ),
+    '1830': EighteenThirtyTileSet.counts(EighteenThirtyTileSet.createInventory())
 }

@@ -1,0 +1,117 @@
+import { EighteenThirtyMajors } from './majors.js'
+import { assert } from '@tabletop/common'
+import {
+    awardPrivate,
+    createOrdinaryShareCertificates,
+    privateIncomePayments,
+    settleCashPayments,
+    beginWaterfallAuction,
+    createCompanyStations,
+    type WaterfallAuctionRules,
+    type InitialPosition,
+    type Opening,
+    type OpeningSetup
+} from '@tabletop/18xx'
+import { EighteenThirtyPrivateCatalog, EighteenThirtyPrivates } from './privates.js'
+import { EighteenThirtyMap } from './map.js'
+import { EighteenThirtyTileSet } from './tiles.js'
+import { createEighteenThirtyTrainInventory } from './trains.js'
+import { EighteenThirtyStationCounts } from './stationRules.js'
+import { createEighteenThirtyStockMarket } from './stockMarket.js'
+import { EighteenThirtyGameConfig } from './definition/gameConfig.js'
+
+export const EighteenThirtyBank = 12000
+export const EighteenThirtyStartingCash: Readonly<Record<number, number>> = {
+    2: 1200,
+    3: 800,
+    4: 600,
+    5: 480,
+    6: 400
+}
+
+export const EighteenThirtyAuctionRules: WaterfallAuctionRules = {
+    lots: (state) => EighteenThirtyPrivateCatalog.lots(state),
+    increment: 5,
+    bidOrder: 'lowest-bid-first',
+    award: awardPrivate,
+    payIncome(state) {
+        settleCashPayments(state, privateIncomePayments(state))
+    }
+}
+export function createEighteenThirtyOpening({
+    players,
+    config,
+    startingPositions
+}: OpeningSetup): Opening {
+    assert(players.length >= 2 && players.length <= 6, '1830 supports two through six players')
+    const options = EighteenThirtyGameConfig.options(config)
+    const majors = Object.values(EighteenThirtyMajors)
+    const capital = EighteenThirtyStartingCash[players.length]
+    const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
+    const position: InitialPosition = {
+        stockMarket: createEighteenThirtyStockMarket(),
+        bank: { name: 'Bank', unlimitedAfterExhaustion: true },
+        companies: [
+            ...majors.map((company) => ({
+                ...company,
+                kind: 'major',
+                shareCount: 10,
+                started: false,
+                floated: false,
+                funded: false,
+                operated: false
+            })),
+            ...EighteenThirtyPrivates.map((company) => ({
+                id: company.id,
+                name: company.name,
+                kind: 'private',
+                privateRevenue: company.revenue
+            }))
+        ],
+        cash: [
+            { owner: { kind: 'bank' }, amount: EighteenThirtyBank - players.length * capital },
+            ...players.map((player) => ({
+                owner: { kind: 'player' as const, playerId: player.playerId },
+                amount: capital
+            })),
+            ...majors.map((company) => ({
+                owner: { kind: 'company' as const, companyId: company.id },
+                amount: 0
+            }))
+        ],
+        certificatePools: [
+            { id: 'initial-offering', name: 'IPO', owner: { kind: 'bank' } },
+            { id: 'open-market', name: 'Market', owner: { kind: 'bank' } }
+        ],
+        certificates: [
+            ...majors.flatMap((company) =>
+                createOrdinaryShareCertificates(
+                    company.id,
+                    Array.from({ length: 8 }, () => ipo),
+                    ipo
+                )
+            ),
+            ...EighteenThirtyPrivates.map((company) => ({
+                id: `${company.id}:charter`,
+                companyId: company.id,
+                kind: 'private' as const,
+                certificateLimitCount: 1,
+                retired: false as const,
+                owner: { kind: 'bank' as const }
+            }))
+        ],
+        tranches: [],
+        ownershipLimitExemptions: [],
+        stations: majors.flatMap((company) =>
+            createCompanyStations(company.id, EighteenThirtyStationCounts[company.id])
+        ),
+        stationReservations: EighteenThirtyMap.stationReservations(),
+        tileInventory: EighteenThirtyTileSet.createInventory(),
+        trainInventory: createEighteenThirtyTrainInventory(options.extraSixTrain),
+        phaseId: '2'
+    }
+    return {
+        position,
+        begin: beginWaterfallAuction(EighteenThirtyAuctionRules, startingPositions)
+    }
+}

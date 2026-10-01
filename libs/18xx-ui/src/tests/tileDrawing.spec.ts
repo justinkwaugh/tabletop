@@ -114,7 +114,12 @@ describe('tile drawing geometry', () => {
             )
             for (const tile of StandardTileCatalog.entries()) {
                 for (const rotation of rotations) {
-                    const drawing = createTileDrawing(tile.face, orientation, rotation)
+                    const drawing = createTileDrawing(
+                        tile.face,
+                        orientation,
+                        rotation,
+                        { nodePositions: StandardTileLayouts[tile.id]?.nodePositions }
+                    )
                     for (const { node, revenuePosition } of drawing.nodes) {
                         if (node.kind === 'junction' || node.revenue.kind !== 'fixed') continue
                         expect(
@@ -179,9 +184,13 @@ describe('tile viewer filtering', () => {
             )
         ).toEqual([
             '18xx:1',
+            '18xx:2',
             '18xx:3',
+            '18xx:4',
+            '18xx:55',
             '18xx:56',
             '18xx:58',
+            '18xx:69',
             '18xx:143',
             '18xx:144',
             '18xx:437',

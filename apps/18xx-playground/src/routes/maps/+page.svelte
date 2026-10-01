@@ -9,15 +9,19 @@
     import { MapExamples } from '../../demo/maps.js'
     import '../../map.css'
 
-    let title = $state<'TOP' | '1889'>('TOP')
+    let title = $state<'TOP' | '1889' | '1830'>('TOP')
     let prepared = $state(false)
     let appearance = $state(ClassicTileAppearance)
     const example = $derived(MapExamples[title])
     const scene = $derived(
-        createMapDrawing(example.map, {
-            tileSet: example.tileSet,
-            inventory: prepared ? example.prepared : example.initial
-        })
+        createMapDrawing(
+            example.map,
+            {
+                tileSet: example.tileSet,
+                inventory: prepared ? example.prepared : example.initial
+            },
+            example.layouts
+        )
     )
     let selection = $derived.by((): MapSelection | undefined => {
         scene
@@ -37,7 +41,7 @@
             >Map<select bind:value={title}
                 ><option value="TOP">The Old Prince 1871</option><option value="1889"
                     >Shikoku 1889</option
-                ></select
+                ><option value="1830">1830</option></select
             ></label
         >
         <label

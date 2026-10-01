@@ -7,6 +7,7 @@ import { StationPosition, type StationReservation, type StationState } from '../
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import { TrackNetwork } from '../construction/trackNetwork.js'
+import type { OperatingSet } from '../operating/operatingSet.js'
 
 export const StationStep = Type.Object(
     {
@@ -41,7 +42,8 @@ export interface StationRules {
     tileSet: TileSet
     placementCost(state: StationPlacementState, stationId: string): number
     placementLimit(state: StationPlacementState, companyId: string): number
-    pendingHomes(state: StationPlacementState): HomeStation[]
+    /** The operating set is present while operating rounds are in progress. */
+    pendingHomes(state: StationPlacementState & { operatingSet?: OperatingSet }): HomeStation[]
     reservationOccupant?(reservation: StationReservation): string | undefined
 }
 export type StationEvaluation =
