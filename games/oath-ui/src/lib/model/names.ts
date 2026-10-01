@@ -8,6 +8,7 @@ import {
     type HydratedOathGameState,
     Region,
     RELIQUARY_MODIFIERS,
+    Suit,
     IMPERIAL_WARBANDS,
     type WarbandOwner
 } from '@tabletop/oath'
@@ -42,6 +43,19 @@ const REGION_NAMES: Record<Region, string> = {
 
 export function regionName(region: Region): string {
     return REGION_NAMES[region]
+}
+
+const SUIT_NAMES: Record<Suit, string> = {
+    [Suit.Discord]: 'Discord',
+    [Suit.Arcane]: 'Arcane',
+    [Suit.Order]: 'Order',
+    [Suit.Hearth]: 'Hearth',
+    [Suit.Beast]: 'Beast',
+    [Suit.Nomad]: 'Nomad'
+}
+
+export function suitName(suit: Suit): string {
+    return SUIT_NAMES[suit]
 }
 
 export function slotLabel(slotId: string): string {

@@ -8,6 +8,7 @@
         type WarbandOwner
     } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import SuitPicker from '$lib/components/SuitPicker.svelte'
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
     import { adviserBack } from '$lib/model/cardBacks.js'
@@ -22,6 +23,7 @@
     import {
         allowsSeveral,
         emptyPicks,
+        favorBankSuits,
         NO_OPTION,
         optionIndexOf,
         severalCountKey,
@@ -159,6 +161,15 @@
                     oninput={(event) => setCount(legal, i, Number(event.currentTarget.value))}
                 />
             </label>
+        {:else if legal.spec.kind === PowerChoiceKind.FavorBank}
+            {@const banks = favorBankSuits(legal.options)}
+            <div class="text-stone-400 mb-1">{legal.spec.what ?? 'a favor bank'}:</div>
+            <SuitPicker
+                suits={banks}
+                picked={option?.kind === PowerChoiceKind.FavorBank ? [option.suit] : []}
+                onpick={(suit) => tapOption(legal, i, pick, banks.indexOf(suit))}
+                {busy}
+            />
         {:else if allowsSeveral(legal) && powerChoiceCards(legal.options, resolve) && !legal.options.some((o) => o.kind === PowerChoiceKind.Warbands)}
             {@const cards = powerChoiceCards(legal.options, resolve) ?? []}
             <div class="text-stone-400">{legal.spec.what ?? legal.spec.kind}:</div>

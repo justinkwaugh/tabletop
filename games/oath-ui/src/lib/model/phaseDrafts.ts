@@ -36,7 +36,12 @@ import {
     type WarbandGroup
 } from '@tabletop/oath'
 import { assertExists, range } from '@tabletop/common'
-import { emptyPicks, powerChoicesFrom, type PowerChoicePicks } from './powerChoices.js'
+import {
+    emptyPicks,
+    favorBankSuits,
+    powerChoicesFrom,
+    type PowerChoicePicks
+} from './powerChoices.js'
 import { samePowerUse } from './powerUse.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
@@ -225,9 +230,7 @@ export class RestDraft extends OneStepDraft<Record<string, Suit>> {
 
     bankOptions(power: LegalPowerUse): Suit[] {
         const bank = power.choices.find((c) => c.spec.kind === PowerChoiceKind.FavorBank)
-        return (bank?.options ?? []).flatMap((option) =>
-            option.kind === PowerChoiceKind.FavorBank ? [option.suit] : []
-        )
+        return favorBankSuits(bank?.options ?? [])
     }
 
     pickedSuit(power: LegalPowerUse): Suit | undefined {

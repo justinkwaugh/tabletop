@@ -14,6 +14,7 @@ import {
     Region,
     SearchPlay,
     SetupChoice,
+    Suit,
     TOP_CRADLE_SLOT,
     Travel,
     WarbandMoveKind,
@@ -58,6 +59,7 @@ export type TableName =
     | 'exileDefeated'
     | 'imperialDefeated'
     | 'visionBacks'
+    | 'restBanks'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -149,6 +151,31 @@ function visionBacksTable(): PlayedTable {
             })
         ],
         { machineState: MachineState.ActPhase, chancellorPlayerId: 'ann' }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-4.3.5: a Rest with Vow of Obedience, whose power takes favor from a bank the player picks. */
+function restBanksTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                advisers: [{ cardId: 'denizen.order.vow-of-obedience', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            })
+        ],
+        { machineState: MachineState.RestPhase, chancellorPlayerId: 'ann' }
     )
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
@@ -369,7 +396,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     joinDefenceAsked: joinDefenceAskedTable,
     exileDefeated: () => defeatedTable('exile'),
     imperialDefeated: () => defeatedTable('imperial'),
-    visionBacks: visionBacksTable
+    visionBacks: visionBacksTable,
+    restBanks: restBanksTable
 }
 
 let session: OathGameSession | undefined
@@ -532,6 +560,8 @@ export function tableFacts(): {
     boardOf: Record<string, WarbandCounts>
     campaignUnderway: boolean
     staged: string | undefined
+    favorOf: Record<string, number>
+    favorBank: Record<Suit, number>
 } {
     const table = current()
     const state = table.gameState
@@ -544,7 +574,9 @@ export function tableFacts(): {
             state.players.map((player) => [player.playerId, player.warbandsOnBoard])
         ),
         campaignUnderway: state.campaign !== undefined,
-        staged: table.selection.action
+        staged: table.selection.action,
+        favorOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.favor])),
+        favorBank: state.favorBank
     }
 }
 

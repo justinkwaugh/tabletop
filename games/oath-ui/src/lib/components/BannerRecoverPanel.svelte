@@ -1,5 +1,6 @@
 <script lang="ts">
     import { FAVOR_BANK_ORDER } from '@tabletop/oath'
+    import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { bannerName, humanizeReason } from '$lib/model/names.js'
 
@@ -27,20 +28,13 @@
         </label>
         {#if gameSession.needsFavorStart}
             <div class="text-stone-400">Return the favor on it starting at:</div>
-            <div class="flex flex-wrap gap-1">
-                {#each FAVOR_BANK_ORDER as suit (suit)}
-                    <button
-                        class="rounded border px-2 py-0.5 capitalize {gameSession.favorStart ===
-                        suit
-                            ? 'border-amber-300 bg-amber-900/60'
-                            : 'border-stone-600 bg-stone-800/60 hover:border-amber-300'}"
-                        disabled={busy}
-                        onclick={() => gameSession.setFavorStart(suit)}
-                    >
-                        {suit}
-                    </button>
-                {/each}
-            </div>
+            {@const start = gameSession.favorStart}
+            <SuitPicker
+                suits={FAVOR_BANK_ORDER}
+                picked={start === undefined ? [] : [start]}
+                onpick={(suit) => gameSession.setFavorStart(suit)}
+                {busy}
+            />
         {/if}
         {#if reason}
             <p class="text-[11px] text-rose-300">{humanizeReason(reason)}</p>

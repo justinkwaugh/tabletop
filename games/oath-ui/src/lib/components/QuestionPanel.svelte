@@ -7,6 +7,7 @@
     import QuestionVision from '$lib/components/QuestionVision.svelte'
     import QuestionYesNo from '$lib/components/QuestionYesNo.svelte'
     import ShownCards from '$lib/components/ShownCards.svelte'
+    import SuitPicker from '$lib/components/SuitPicker.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { cardName, reliquaryLabel, siteName, transferText } from '$lib/model/names.js'
@@ -79,17 +80,12 @@
         <QuestionYesNo yes="Pay {mine.price} favor, keep it" no="Let them take it" />
     {:else if mine.kind === PowerQuestionKind.PickFavorBank}
         <p class="text-sm mb-2">You gain {mine.amount} favor from any one favor bank.</p>
-        <div class="flex flex-wrap gap-1">
-            {#each draft.favorBanks as suit (suit)}
-                <button
-                    class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-1 text-xs capitalize"
-                    disabled={busy}
-                    onclick={() => draft.takeFavorFrom(suit)}
-                >
-                    {suit} ({gameState.favorBank[suit]})
-                </button>
-            {/each}
-        </div>
+        <SuitPicker
+            suits={draft.favorBanks}
+            picked={[]}
+            onpick={(suit) => draft.takeFavorFrom(suit)}
+            {busy}
+        />
     {:else if mine.kind === PowerQuestionKind.Exchange}
         <p class="text-sm mb-1">
             {gameSession.getPlayerName(mine.proposerPlayerId)} proposes a binding exchange (R-7.6.3):

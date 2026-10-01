@@ -1,5 +1,6 @@
 <script lang="ts">
     import { type OpportunityTake } from '@tabletop/oath'
+    import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { humanizeReason } from '$lib/model/names.js'
 
@@ -47,19 +48,13 @@
                         {/each}
                     </div>
                     {#if kind === 'return'}
-                        <div class="flex flex-wrap gap-1">
-                            {#each wake.leastBanksAt(index) as suit (suit)}
-                                <button
-                                    disabled={busy}
-                                    class="rounded border px-2 py-0.5 text-xs {suits[index] === suit
-                                        ? 'border-amber-300 bg-amber-950/60'
-                                        : 'border-stone-700 bg-stone-800/60 hover:border-amber-400'}"
-                                    onclick={() => wake.setSuit(index, suit)}
-                                >
-                                    {suit}
-                                </button>
-                            {/each}
-                        </div>
+                        {@const suit = suits[index]}
+                        <SuitPicker
+                            suits={wake.leastBanksAt(index)}
+                            picked={suit === undefined ? [] : [suit]}
+                            onpick={(picked) => wake.setSuit(index, picked)}
+                            {busy}
+                        />
                     {/if}
                 </div>
             {/each}

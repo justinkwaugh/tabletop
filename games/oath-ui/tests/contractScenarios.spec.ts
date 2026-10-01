@@ -466,6 +466,24 @@ test('card backs: another seat’s facedown Vision and the Vision in its hand sh
     expect(await backsOf('A Vision in hand')).toEqual(['vision', 'vision'])
 })
 
+test('scenario 35: a favor bank is chosen by its suit symbol, ringed when picked, and the pick is what is sent', async ({ page }) => {
+    await openTable(page, 'restBanks')
+    const banks = grid(page).getByRole('button', { name: /bank, \d+ favor$/ })
+    await expect(banks.first()).toBeVisible()
+    await expect(grid(page).locator('select')).toHaveCount(0)
+    await expect(banks.first()).toHaveAttribute('aria-pressed', 'true')
+
+    const arcane = grid(page).getByRole('button', { name: /^Arcane bank, \d+ favor$/ })
+    await arcane.click()
+    await expect(arcane).toHaveAttribute('aria-pressed', 'true')
+    await expect(grid(page).locator('[aria-pressed="true"]')).toHaveCount(1)
+
+    const before = await call(page, 'tableFacts')
+    await grid(page).getByRole('button', { name: 'Use', exact: true }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before.favorOf.me + 1)
+    expect((await call(page, 'tableFacts')).favorBank.arcane).toBe(before.favorBank.arcane - 1)
+})
+
 function framesInsidePanel(page: Page) {
     return page.locator('.panel').evaluate((panel) =>
         [...panel.querySelectorAll('*')]

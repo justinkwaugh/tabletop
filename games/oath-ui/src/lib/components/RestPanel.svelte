@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { FINAL_ROUND, powerKey, type LegalPowerUse, type Suit } from '@tabletop/oath'
+    import { FINAL_ROUND, powerKey, type LegalPowerUse } from '@tabletop/oath'
+    import SuitPicker from '$lib/components/SuitPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, humanizeReason } from '$lib/model/names.js'
 
@@ -11,10 +12,6 @@
 
     function reasonFor(p: LegalPowerUse) {
         return draft.reasonCannotUse(p)
-    }
-    function pickBank(p: LegalPowerUse, value: string) {
-        const suit = draft.bankOptions(p).find((bank: Suit) => bank === value)
-        if (suit !== undefined) draft.pickBank(p, suit)
     }
 
     let rollsEndDie = $derived(draft.rollsEndDie)
@@ -36,18 +33,6 @@
                     <span class="grow">
                         <span class="font-semibold">{cardName(p.cardId)}</span>
                     </span>
-                    {#if banks.length > 0}
-                        <select
-                            disabled={busy}
-                            class="rounded bg-stone-800 px-1 py-0.5 text-xs"
-                            value={draft.pickedSuit(p)}
-                            onchange={(event) => pickBank(p, event.currentTarget.value)}
-                        >
-                            {#each banks as suit (suit)}
-                                <option value={suit}>{suit} bank</option>
-                            {/each}
-                        </select>
-                    {/if}
                     <button
                         class="rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 px-2 py-0.5"
                         disabled={busy || !!reason}
@@ -57,6 +42,17 @@
                         Use
                     </button>
                 </div>
+                {#if banks.length > 0}
+                    {@const picked = draft.pickedSuit(p)}
+                    <div class="mb-1">
+                        <SuitPicker
+                            suits={banks}
+                            picked={picked === undefined ? [] : [picked]}
+                            onpick={(suit) => draft.pickBank(p, suit)}
+                            {busy}
+                        />
+                    </div>
+                {/if}
                 {#if reason}
                     <p class="mb-1 text-[11px] text-rose-300">{humanizeReason(reason)}</p>
                 {/if}
