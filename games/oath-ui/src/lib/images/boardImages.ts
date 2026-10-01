@@ -3,16 +3,16 @@ import { PlayerStatus } from '@tabletop/oath'
 import { playerBoardFiles } from './imageManifest.generated.js'
 import { imageNamed, indexByName } from './manifestIndex.js'
 
-// Keyed by `PlayerStatus` and, for Exiles and Citizens, colour; every Citizen board prints the same title.
+// Keyed by `PlayerStatus` and, for Exiles and Citizens, colour. A title word is lettering alone,
+// printed the same on every board of its status, so it is keyed by status.
 const byName = indexByName(playerBoardFiles)
 
 export function boardKey(status: PlayerStatus, color: Color | undefined): string {
     return status === PlayerStatus.Chancellor ? 'chancellor' : `${status}.${color ?? ''}`
 }
 
-export function titleImage(status: PlayerStatus, color: Color | undefined): string {
-    const key = status === PlayerStatus.Citizen ? PlayerStatus.Citizen : boardKey(status, color)
-    return imageNamed(byName, `title.${key}`)
+export function titleImage(status: PlayerStatus): string {
+    return imageNamed(byName, `title.${status}`)
 }
 
 export function avatarImage(status: PlayerStatus, color: Color | undefined): string {

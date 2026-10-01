@@ -70,7 +70,7 @@
     style="--ground:{ground}; --seat:{seatColor};"
 >
     <header class="strip">
-        <img class="word" src={titleImage(status, color)} alt={status} />
+        <img class="word" src={titleImage(status)} alt={status} />
         <button
             type="button"
             class="pill"
@@ -380,7 +380,6 @@
         flex: 0 1 auto;
         object-fit: contain;
         object-position: left;
-        border-radius: 3px;
     }
     .pill {
         cursor: pointer;
