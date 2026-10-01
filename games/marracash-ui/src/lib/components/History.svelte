@@ -40,17 +40,13 @@
                     class="timeline-item text-left mb-5"
                     date={timeAgo.format(gameSession.game.finishedAt)}
                 >
-                    <p class="mt-1 text-left text-sm text-base font-normal text-[#ad9c80">
+                    <p class="mt-1 text-left text-sm text-base font-normal text-[#ad9c80]">
                         The game has ended.
                     </p>
                 </TimelineItem>
             {/if}
             {#each reversedActions as action, i (action.id)}
                 <div
-                    role="button"
-                    tabindex={-1}
-                    onfocus={() => {}}
-                    onkeypress={() => {}}
                     in:fade={{ duration: 200, easing: quartIn }}
                     out:fade={{ duration: 50 }}
                     animate:flip={{ duration: 100 }}

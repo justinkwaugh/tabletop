@@ -12,8 +12,10 @@
         QueueEnd,
         type ShopId
     } from '@tabletop/marracash'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { action }: { action: GameAction } = $props()
+    const gameSession = getGameSession()
 
     function shopName(shopId: ShopId): string {
         return `the ${getShop(shopId).color} shop ${shopId}`
@@ -25,7 +27,7 @@
 {#if isStartAuction(action)}
     started an auction for {shopName(action.shopId)}.
 {:else if isPlaceBid(action)}
-    {#if action.amount === undefined}
+    {#if action.amount === undefined || action.playerId !== gameSession.myPlayer?.id}
         placed a sealed bid.
     {:else if action.amount === 0}
         passed.
@@ -38,8 +40,7 @@
     Dirham{#if result.auctioneerCut > 0}, and the auctioneer took a {result.auctioneerCut} Dirham
         cut{/if}. Bids:
     {#each result.bids as bid, index (bid.playerId)}
-        {#if index > 0},
-        {/if}<PlayerTag playerId={bid.playerId} />
+        {index > 0 ? ', ' : ''}<PlayerTag playerId={bid.playerId} />
         {bid.amount}
     {/each}.
     {#each result.pullIns as pullIn (pullIn.fountainId)}

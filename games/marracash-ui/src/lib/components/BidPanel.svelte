@@ -44,8 +44,7 @@
     <p class="text-sm">
         Still to bid:
         {#each gameSession.gameState.auction?.participants.filter((p) => !p.submitted) ?? [] as participant, index (participant.playerId)}
-            {#if index > 0},
-            {/if}<PlayerTag playerId={participant.playerId} />
+            {index > 0 ? ', ' : ''}<PlayerTag playerId={participant.playerId} />
         {/each}
     </p>
 </div>

@@ -16,17 +16,13 @@
     <p class="text-lg font-bold">
         The game is over.
         {#each winners as playerId, index (playerId)}
-            {#if index > 0}
-                and
-            {/if}<PlayerTag {playerId} />
+            {index > 0 ? ' and ' : ''}<PlayerTag {playerId} />
         {/each}
         {winners.length > 1 ? 'share the win' : 'wins'}.
     </p>
     <p class="text-sm">
         {#each standings as standing, index (standing.playerId)}
-            {#if index > 0}
-                ·
-            {/if}<PlayerTag playerId={standing.playerId} />
+            {index > 0 ? ' · ' : ''}<PlayerTag playerId={standing.playerId} />
             {standing.money} Dirham
         {/each}
     </p>
