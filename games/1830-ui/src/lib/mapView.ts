@@ -15,11 +15,11 @@ const separateCities: TileLayout = {
 
 export const EighteenThirtyMapView: MapViewDefinition = {
     // Fitted at TOP's market scale to keep every drawn market cell and the depot 12 map units
-    // clear of every hex: the market's top row runs over the empty northwest, and the depot sits
-    // beneath the market's lower-left staircase.
+    // clear of every hex: the map sits down and left in the market's empty lower-right staircase,
+    // and the depot is top-aligned with the market, above the map's northeast.
     boardAreas: {
-        market: { x: -749, y: -38, width: 1045, height: 668 },
-        depot: { x: -749, y: 627, width: 350, height: 172 }
+        market: { x: -454, y: -261, width: 1045, height: 668 },
+        depot: { x: 602, y: -261, width: 381, height: 187 }
     },
     map: EighteenThirtyMap,
     tileSet: EighteenThirtyTileSet,

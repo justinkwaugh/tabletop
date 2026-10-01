@@ -598,9 +598,11 @@ privates between players. The contribution line appears for any title with
 
 ## Board and map presentation
 
-The 1830 table opens on a Board view: the market to the map's left, at TOP's
-market scale, with its long upper rows over the empty northwest, and the depot
-(phase, train limit and roster) beneath the market's lower-left staircase. The
+The 1830 table opens on a Board view: the market at the upper left, at TOP's
+market scale, with the map nested down and left into its empty lower-right
+staircase, and the depot (phase, train limit and roster) to the market's right,
+above the map's northeast. The board is about 1490 by 1060 map units; placing
+the market beside the map instead would be about 1790 wide. The
 areas were fitted so every drawn market cell and the depot stay 12 map units clear
 of every hex; a playground test checks it. Reserved homes show the company's token
 dimmed in grayscale, offboard track ends in spikes, and the private-reserved hexes

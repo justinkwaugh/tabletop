@@ -719,9 +719,10 @@ including market hover and move animations. A panel's box may overlap hexes in i
 empty corners; only its drawn content takes the pointer, so those hexes stay
 selectable. Shikoku 1889 draws its market at the upper left with the map nested
 into the market's empty lower-right staircase, and the depot to the market's right,
-top-aligned with it, above the island's northeast. 1830 draws its market to the map's
-left, its long upper rows running over the empty northwest, with the depot beneath
-the market's lower-left staircase.
+top-aligned with it, above the island's northeast. 1830 draws its market at the upper
+left with the map nested down and left into the market's empty lower-right
+staircase, and the depot to the market's right, top-aligned with it, above the
+map's northeast.
 
 In the paned layout Board is an optional tab, so a saved arrangement without it is
 left unchanged and can add it from the pane menu. A new arrangement for a title with
