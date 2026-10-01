@@ -7,7 +7,7 @@ import { HydratedPlaceCity, isPlaceCity } from '../actions/placeCity.js'
 import { HydratedPlaceRoad, isPlaceRoad } from '../actions/placeRoad.js'
 import { HydratedResupply, isResupply } from '../actions/resupply.js'
 import { HydratedSellMarket, isSellMarket } from '../actions/sellMarket.js'
-import type { HydratedMagnaGreciaGameState } from '../model/gameState.js'
+import { EndTurnOutcome, type HydratedMagnaGreciaGameState } from '../model/gameState.js'
 
 type TakingTurnAction =
     | HydratedPlaceRoad
@@ -83,20 +83,22 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         action: TakingTurnAction,
         state: HydratedMagnaGreciaGameState
     ): MachineState {
+        const outcome = state.endTurnOutcome()
         state.turnManager.endTurn(state.actionCount)
         state.turn = undefined
         state.turnIndex += 1
-        if (state.turnIndex < state.roundOrder.length) {
-            return MachineState.TakingTurn
+        switch (outcome) {
+            case EndTurnOutcome.NextPlayer:
+                return MachineState.TakingTurn
+            case EndTurnOutcome.EndsGame:
+                return MachineState.EndOfGame
+            case EndTurnOutcome.RevealsCard:
+                action.revealsInfo = true
+                state.beginRound(state.round + 1)
+                return MachineState.TakingTurn
+            case EndTurnOutcome.NextRound:
+                state.beginRound(state.round + 1)
+                return MachineState.TakingTurn
         }
-        if (state.round + 1 >= state.roundCount) {
-            return MachineState.EndOfGame
-        }
-        const revealedBefore = state.revealedCardIds.length
-        state.beginRound(state.round + 1)
-        if (state.revealedCardIds.length > revealedBefore) {
-            action.revealsInfo = true
-        }
-        return MachineState.TakingTurn
     }
 }

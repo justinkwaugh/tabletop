@@ -1,6 +1,6 @@
 <script lang="ts">
-    import type { Allowance } from '@tabletop/magna-grecia'
-    import { BuildTool, EndTurnOutcome } from '$lib/model/session.svelte.js'
+    import { EndTurnOutcome, type Allowance } from '@tabletop/magna-grecia'
+    import { BuildTool } from '$lib/model/session.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import LastActionDescription from './LastActionDescription.svelte'
     import ResupplyPicker from './ResupplyPicker.svelte'

@@ -11,6 +11,7 @@ import {
     BuildMarket,
     CityPlacementKind,
     EndTurn,
+    EndTurnOutcome,
     MachineState,
     PlaceCity,
     PlaceRoad,
@@ -49,13 +50,6 @@ export enum BuildTool {
     City = 'City',
     Market = 'Market',
     Sell = 'Sell'
-}
-
-export enum EndTurnOutcome {
-    NextPlayer = 'NextPlayer',
-    NextRound = 'NextRound',
-    RevealsCard = 'RevealsCard',
-    EndsGame = 'EndsGame'
 }
 
 const NO_ALLOWANCE: Allowance = { basic: 0, bonus: 0 }
@@ -254,18 +248,7 @@ export class MagnaGreciaGameSession extends GameSession<
 
     onlyEndTurnLeft = $derived(this.canEndTurn && !this.tileActionsOpen && !this.marketActionsOpen)
 
-    endTurnOutcome: EndTurnOutcome = $derived.by(() => {
-        const state = this.gameState
-        if (state.turnIndex < state.roundOrder.length - 1) {
-            return EndTurnOutcome.NextPlayer
-        }
-        if (state.round + 1 >= state.roundCount) {
-            return EndTurnOutcome.EndsGame
-        }
-        return state.round + 2 < state.roundCount
-            ? EndTurnOutcome.RevealsCard
-            : EndTurnOutcome.NextRound
-    })
+    endTurnOutcome: EndTurnOutcome = $derived(this.gameState.endTurnOutcome())
 
     chooseTool(tool: BuildTool) {
         this.draft = emptyDraft()

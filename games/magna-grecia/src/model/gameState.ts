@@ -35,6 +35,13 @@ import {
     resupplyLimit
 } from './turn.js'
 
+export enum EndTurnOutcome {
+    NextPlayer = 'NextPlayer',
+    NextRound = 'NextRound',
+    RevealsCard = 'RevealsCard',
+    EndsGame = 'EndsGame'
+}
+
 export type MagnaGreciaGameState = Type.Static<typeof MagnaGreciaGameState>
 export const MagnaGreciaGameState = Type.Object({
     ...Type.Omit(GameState, ['players', 'machineState']).properties,
@@ -107,9 +114,25 @@ export class HydratedMagnaGreciaGameState
         const deck = this.deck
         assertExists(deck, 'Starting a round requires the action deck')
         this.round = round
-        this.revealedCardIds = deck.slice(0, Math.min(round + 2, this.roundCount))
+        this.revealedCardIds = deck.slice(0, this.revealedCardCount(round))
         this.roundOrder = this.turnOrderForCard(this.currentCard())
         this.turnIndex = 0
+    }
+
+    endTurnOutcome(): EndTurnOutcome {
+        if (this.turnIndex < this.roundOrder.length - 1) {
+            return EndTurnOutcome.NextPlayer
+        }
+        if (this.round + 1 >= this.roundCount) {
+            return EndTurnOutcome.EndsGame
+        }
+        return this.revealedCardCount(this.round + 1) > this.revealedCardIds.length
+            ? EndTurnOutcome.RevealsCard
+            : EndTurnOutcome.NextRound
+    }
+
+    private revealedCardCount(round: number): number {
+        return Math.min(round + 2, this.roundCount)
     }
 
     beginTurn(): string {

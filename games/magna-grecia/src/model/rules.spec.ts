@@ -22,7 +22,7 @@ import { HydratedResupply } from '../actions/resupply.js'
 import { HydratedSellMarket } from '../actions/sellMarket.js'
 import { ActionType } from '../definition/actions.js'
 import type { RoadEnds } from '../components/pieces.js'
-import type { HydratedMagnaGreciaGameState } from './gameState.js'
+import { EndTurnOutcome, type HydratedMagnaGreciaGameState } from './gameState.js'
 import { marketCost, marketValue } from './marketRules.js'
 import { ROAD_END_OPTIONS, RoadShape, roadShape } from './roadRules.js'
 import { newTurn } from './turn.js'
@@ -670,6 +670,33 @@ describe('network, markets and oracles', () => {
         sell.apply(selling)
         expect(handler.onAction(sell, sellContext)).toBe(MachineState.TakingTurn)
         expect(handler.validActionsForPlayer('p0', sellContext)).toEqual([ActionType.EndTurn])
+    })
+
+    it('predicts what each End turn does, as the handler then does it', () => {
+        const state = freshState()
+        const handler = new TakingTurnStateHandler()
+        const context = new MachineContext({ gameConfig: {}, gameState: state })
+        const seen = new Set<EndTurnOutcome>()
+        let next = MachineState.TakingTurn
+        while (next === MachineState.TakingTurn) {
+            handler.enter(context)
+            const playerId = state.roundOrder[state.turnIndex]
+            const predicted = state.endTurnOutcome()
+            const roundBefore = state.round
+            const revealedBefore = state.revealedCardIds.length
+            const endTurn = new HydratedEndTurn({ ...base(playerId), type: ActionType.EndTurn })
+            endTurn.apply(state)
+            next = handler.onAction(endTurn, context)
+            seen.add(predicted)
+            const reveals = predicted === EndTurnOutcome.RevealsCard
+            expect(endTurn.revealsInfo === true).toBe(reveals)
+            expect(state.revealedCardIds.length > revealedBefore).toBe(reveals)
+            expect(state.round > roundBefore).toBe(
+                reveals || predicted === EndTurnOutcome.NextRound
+            )
+            expect(next === MachineState.EndOfGame).toBe(predicted === EndTurnOutcome.EndsGame)
+        }
+        expect([...seen].toSorted()).toEqual(Object.values(EndTurnOutcome).toSorted())
     })
 
     it('does not end a turn while a village claim is pending', () => {
