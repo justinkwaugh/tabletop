@@ -1,6 +1,6 @@
 <script lang="ts">
     import { DirhamIncrement, getShop } from '@tabletop/marracash'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import PlayerTag from '$lib/components/PlayerTag.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -45,7 +45,7 @@
         Still to bid:
         {#each gameSession.gameState.auction?.participants.filter((p) => !p.submitted) ?? [] as participant, index (participant.playerId)}
             {#if index > 0},
-            {/if}<PlayerName playerId={participant.playerId} />
+            {/if}<PlayerTag playerId={participant.playerId} />
         {/each}
     </p>
 </div>

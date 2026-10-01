@@ -99,6 +99,14 @@ export class MarracashGameSession extends GameSession<
         return this.gameState.getPlayerState(this.myPlayer.id).getMoney()
     }
 
+    visibleMoney(playerId: string): number | undefined {
+        const concealed =
+            this.primaryGame.config?.concealedCash === true &&
+            playerId !== this.myPlayer?.id &&
+            this.gameState.result === undefined
+        return concealed ? undefined : this.gameState.getPlayerState(playerId).money
+    }
+
     myMinimumBid(): number {
         assertExists(this.myPlayer, 'Only a seated player can bid')
         return this.gameState.minimumBid(this.myPlayer.id)

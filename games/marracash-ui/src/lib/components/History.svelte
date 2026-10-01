@@ -3,8 +3,10 @@
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
+    import { createTimeAgo } from '@tabletop/frontend-components'
+    import PlayerTag from '$lib/components/PlayerTag.svelte'
     import ActionDescription from './ActionDescription.svelte'
+    import { isEndTurn } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const timeAgo = createTimeAgo()
@@ -13,6 +15,7 @@
 
     let reversedActions = $derived.by(() => {
         const reversed = gameSession.actions
+            .filter((action) => !isEndTurn(action))
             .toReversed()
             .toSorted(
                 (a, b) =>
@@ -63,9 +66,9 @@
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-gray-200">
                             {#if action.playerId}
-                                <PlayerName playerId={action.playerId} />
+                                <PlayerTag playerId={action.playerId} />
                             {/if}
-                            <ActionDescription {action} justify="start" />
+                            <ActionDescription {action} />
                         </p>
                     </TimelineItem>
                 </div>

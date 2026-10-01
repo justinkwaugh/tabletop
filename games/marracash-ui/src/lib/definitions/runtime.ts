@@ -2,7 +2,7 @@ import type { GameUIRuntime } from '@tabletop/frontend-components/definition/gam
 import type { HydratedMarracashGameState, MarracashProjectedState } from '@tabletop/marracash'
 import { MarracashRuntime } from '@tabletop/marracash'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
-import { DefaultColorizer } from '@tabletop/frontend-components'
+import { MarracashGameColorizer } from './colorizer.js'
 import GameTable from '../components/GameTable.svelte'
 import { MarracashGameSession } from '$lib/model/session.svelte.js'
 import '../../app.css'
@@ -15,5 +15,5 @@ export const MarracashUiRuntime: GameUIRuntime<MarracashProjectedState, Hydrated
         mount: mountDynamicComponent
     },
     sessionClass: MarracashGameSession,
-    colorizer: new DefaultColorizer()
+    colorizer: new MarracashGameColorizer()
 }

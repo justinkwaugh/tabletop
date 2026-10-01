@@ -1,28 +1,82 @@
 <script lang="ts">
     import { type Player } from '@tabletop/common'
-    import type { HydratedMarracashPlayerState } from '@tabletop/marracash'
+    import {
+        AntiquesPerPlayer,
+        MarketColor,
+        MaxShopsPerPlayer,
+        type HydratedMarracashPlayerState
+    } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import AntiqueCard from '$lib/components/AntiqueCard.svelte'
+    import MarketMark from '$lib/components/MarketMark.svelte'
+    import { antiqueProgress } from '$lib/utils/antiqueProgress.js'
 
-    let gameSession = getGameSession()
-    let { player, playerState }: { player: Player; playerState: HydratedMarracashPlayerState } = $props()
+    let { player, playerState }: { player: Player; playerState: HydratedMarracashPlayerState } =
+        $props()
+    const gameSession = getGameSession()
 
-    let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
-    let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
+    let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(player.id))
+    let customers = $derived(gameSession.gameState.customersByColor(player.id))
+    let shopCount = $derived(gameSession.gameState.ownedShopCount(player.id))
+    let revealRank = $derived(gameSession.gameState.antiqueRevealOrder.indexOf(player.id))
+    let hand = $derived(antiqueProgress(playerState.antiques, customers))
+    let textColor = $derived(gameSession.colors.getPlayerTextColor(player.id))
+    let money = $derived(gameSession.visibleMoney(player.id))
 </script>
 
-<div class="relative">
-    <div
-        class="rounded-lg {bgColor} py-[3px] px-4 text-center {gameSession.colors.getPlayerTextColor(
-            playerState.playerId
-        )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
-    >
-        <h1 class="{isTurn ? 'text-xl font-semibold' : 'text-lg font-medium'} mb-2">
-            {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
+<div
+    class="rounded-lg {gameSession.colors.getPlayerBgColor(player.id)} {textColor} px-3 py-1 text-left"
+    class:pulse-border={isTurn}
+    class:border-2={isTurn}
+>
+    <div class="flex items-baseline justify-between gap-2">
+        <h1 class={isTurn ? 'text-lg font-bold' : 'text-base font-semibold'}>
+            {isTurn ? '⇢ ' : ''}{player.name}
         </h1>
-        {#if gameSession.showDebug}
-            <div class="text-xs mt-2">id: {player.id}</div>
-        {/if}
+        <span class="text-sm font-semibold">
+            {money === undefined ? 'Cash hidden' : `${money} Dirham`}
+        </span>
     </div>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <span>Shops {shopCount}/{MaxShopsPerPlayer}</span>
+        <span class="flex items-center gap-1 rounded bg-white/85 px-1 text-black">
+            {#each Object.values(MarketColor) as color (color)}
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                    <MarketMark {color} x={6} y={6} size={10} />
+                </svg>
+                <span class="mr-1 font-semibold" aria-label="{color} customers">{customers[color]}</span>
+            {/each}
+        </span>
+    </div>
+    {#if gameSession.gameState.antiqueCards}
+        <div class="mt-1 text-xs">
+            {#if playerState.revealedAntiques.length > 0}
+                <p class="font-semibold">
+                    Antique set completed {['1st', '2nd', '3rd', '4th'][revealRank]}
+                </p>
+                <div class="flex gap-1 rounded bg-white/85 p-1">
+                    {#each playerState.revealedAntiques as card, index (index)}
+                        <AntiqueCard {card} />
+                    {/each}
+                </div>
+            {:else if player.id === gameSession.myPlayer?.id && playerState.antiques.length > 0}
+                <p class="font-semibold">
+                    Your antiques: {hand.filter((entry) => entry.covered).length}/{AntiquesPerPlayer}
+                    matched
+                </p>
+                <div class="flex gap-1 rounded bg-white/85 p-1">
+                    {#each hand as entry, index (index)}
+                        <AntiqueCard card={entry.card} dimmed={!entry.covered} />
+                    {/each}
+                </div>
+            {:else}
+                <p>{AntiquesPerPlayer} hidden antique cards</p>
+            {/if}
+        </div>
+    {/if}
+    {#if gameSession.showDebug}
+        <div class="mt-1 text-xs">id: {player.id}</div>
+    {/if}
 </div>
 
 <style>
