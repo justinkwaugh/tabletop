@@ -96,8 +96,9 @@ const locations = createLetterNumberLocationFactory({
 const water = { terrain: { cost: 80, kinds: ['water'] } }
 const mountain = { terrain: { cost: 120, kinds: ['mountain'] } }
 const blank = track('white', [])
-// Canada's two hexes are one stop; the Gulf's two hexes are separate stops.
+// Canada and the Gulf are each one area: a route may visit only one of its two hexes.
 const canada = { stopGroup: 'Canada' }
+const gulf = { stopGroup: 'Gulf' }
 
 // Altoona's city sits beside the through track that bypasses it.
 const Altoona: TileFace = {
@@ -163,7 +164,8 @@ export const EighteenThirtyMap = new RailwayMap({
                     ['yellow', 30],
                     ['brown', 60]
                 ])
-            )
+            ),
+            gulf
         ),
         ...locations(
             'J2',
@@ -173,7 +175,8 @@ export const EighteenThirtyMap = new RailwayMap({
                     ['yellow', 30],
                     ['brown', 60]
                 ])
-            )
+            ),
+            gulf
         ),
         ...locations(
             'A9',

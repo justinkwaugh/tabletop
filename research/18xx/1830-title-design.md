@@ -502,8 +502,8 @@ company's train with its president's help, and replays the three recorded games.
   1, I1 edge 5 and J2 edge 2), which the reference draws as missing hex outlines.
   `hide:1` on A9 and I1 leaves one revenue value per pair. The printed board
   draws each pair as one area; the printed rulebook is not in the research
-  package, so whether it counts the Gulf as one stop is unconfirmed. Following
-  the reference, the Gulf's hexes are separate stops.
+  package. The project treats the Gulf as one area like Canada (decision,
+  2026-10-01), which differs from the reference.
 - **Emergency purchases.** The base engine's `EBUY_FROM_OTHERS` is `:value`
   (1889 sets `:never`). While a company must buy a train and its treasury is
   short of a train's price, it may buy another company's train for at most its
@@ -521,8 +521,9 @@ company's train with its president's help, and replays the three recorded games.
 - **Stop groups are map data.** A map location may name a `stopGroup`; the family
   route evaluation rejects a route visiting a group twice, and the autorouter
   sends the groups to its solver, which already supported exclusive groups. A
-  group needs more than one location. 1830 groups A9 and A11 as Canada and, like
-  the reference, leaves I1 and J2 ungrouped.
+  group needs more than one location. 1830 groups A9 and A11 as Canada and I1
+  and J2 as the Gulf. The reference leaves J2 out of the Gulf, so it lets a route
+  reach both Gulf hexes; none of the recorded games does.
 - **Joined offboards are presentation.** A map view's `joinedEdges` leaves those
   edges out of the hex outlines, and a tile layout's `hideRevenue` leaves out a
   duplicate revenue value. 1830 joins Canada and the Gulf and shows their

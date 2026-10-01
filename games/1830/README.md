@@ -18,7 +18,7 @@ The research site's implementation defines the rules (project decision,
 2026-10-01). It follows the Lookout 1830-RE rulebook. See the
 [title design note](../../research/18xx/1830-title-design.md) for sources, the
 delivery slices, and the intentional limits so far. Canada's two hexes are one
-stop; as in the reference, the Gulf's are two. A company that must buy a train may
+area, as are the Gulf's: a route visits only one of each pair. A company that must buy a train may
 buy another company's for up to its face value, its president paying what the
 treasury cannot. The three recorded games replay to their recorded final wealth;
 one is the playground's finished game. The privates carry their powers and awards: C&A's PRR share, B&O's
