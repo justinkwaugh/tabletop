@@ -596,6 +596,18 @@ privates between players. The contribution line appears for any title with
 - The playground offers no 1830 position in which a president funds another
   company's train; the 1830 specs cover it.
 
+## Board and map presentation
+
+The 1830 table opens on a Board view: the market to the map's left, at TOP's
+market scale, with its long upper rows over the empty northwest, and the depot
+(phase, train limit and roster) beneath the market's lower-left staircase. The
+areas were fitted so every drawn market cell and the depot stay 12 map units clear
+of every hex; a playground test checks it. Reserved homes show the company's token
+dimmed in grayscale, offboard track ends in spikes, and the private-reserved hexes
+carry the local-line marker with the private's label. Company tokens use generic
+coloured discs; the reference's company logos are not used (see the 18xx design
+rule on research assets).
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1830/entities.rb

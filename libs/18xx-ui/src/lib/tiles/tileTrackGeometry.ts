@@ -7,6 +7,21 @@ export type TileDrawnPath = {
     controls: readonly [Point, Point]
     arc?: { center: Point; radius: number; sweep: number }
     d: string
+    spike?: TrackSpike
+}
+export type TrackSpike = { base: Point; tip: Point }
+
+export function spikePoints({ base, tip }: TrackSpike, width: number): string {
+    const length = Math.hypot(tip.x - base.x, tip.y - base.y)
+    const nx = ((base.y - tip.y) / length) * (width / 2)
+    const ny = ((tip.x - base.x) / length) * (width / 2)
+    return [
+        [base.x + nx, base.y + ny],
+        [tip.x, tip.y],
+        [base.x - nx, base.y - ny]
+    ]
+        .map(([x, y]) => `${x},${y}`)
+        .join(' ')
 }
 
 export function createStraightTilePath(id: string, start: Point, end: Point): TileDrawnPath {

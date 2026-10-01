@@ -118,6 +118,14 @@ Changing appearance preserves the current selection. The development host's
 Show sample tile, token & route switch replaces its displayed inventory and overlays; choosing
 a different map replaces the whole scene. Neither operation is a game Action.
 
+A reserved city slot without a token shows the reserving company's token in grayscale
+at reduced opacity, titled "Reserved for [company]"; without a company appearance it
+falls back to the company id as small text. Track into an offboard ends in a short
+filled spike from the hex edge, pointing inward, and the offboard draws no stop of its
+own. A marker whose art is a local line shows its label beside two linked circles at
+the foot of the hex while the hex has no tile; 1830 marks its private-reserved hexes
+this way.
+
 A map view's joined edges draw no outline, in the hex artwork or the map's outline
 layer, so neighbouring hexes read as one area (1830's Canada and Gulf). A tile layout
 may hide a revenue value that another hex of the area already shows. Each hex stays
@@ -711,11 +719,15 @@ including market hover and move animations. A panel's box may overlap hexes in i
 empty corners; only its drawn content takes the pointer, so those hexes stay
 selectable. Shikoku 1889 draws its market at the upper left with the map nested
 into the market's empty lower-right staircase, and the depot to the market's right,
-top-aligned with it, above the island's northeast.
+top-aligned with it, above the island's northeast. 1830 draws its market to the map's
+left, its long upper rows running over the empty northwest, with the depot beneath
+the market's lower-left staircase.
 
-In the paned layout Board is an optional tab added from the pane menu; Map, Market
-and Depot are unchanged. When the paned workspace opens with Board and Map in the
-same pane and Map still the initial selection, Board is selected instead. Below the paned breakpoint the Map tab shows the board
+In the paned layout Board is an optional tab, so a saved arrangement without it is
+left unchanged and can add it from the pane menu. A new arrangement for a title with
+board areas places Board before Map in the map pane. When the paned workspace opens
+with Board and Map in the same pane and Map still the initial selection, Board is
+selected instead. Below the paned breakpoint the Map tab shows the board
 instead, labelled Board and selected by default, and Market is not offered.
 
 Map framing (placement choices, route previews, company starts, hex, company and

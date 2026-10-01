@@ -6,6 +6,13 @@ const separateCities: TileLayout = {
 }
 
 export const EighteenThirtyMapView: MapViewDefinition = {
+    // Fitted at TOP's market scale to keep every drawn market cell and the depot 12 map units
+    // clear of every hex: the market's top row runs over the empty northwest, and the depot sits
+    // beneath the market's lower-left staircase.
+    boardAreas: {
+        market: { x: -749, y: -38, width: 1045, height: 668 },
+        depot: { x: -749, y: 627, width: 350, height: 172 }
+    },
     map: EighteenThirtyMap,
     tileSet: EighteenThirtyTileSet,
     layouts: {
@@ -22,6 +29,9 @@ export const EighteenThirtyMapView: MapViewDefinition = {
         I1: { hideRevenue: true }
     },
     joinedEdges: { A9: [4], A11: [1], I1: [5], J2: [2] },
+    markerArt: Object.fromEntries(
+        ['SV', 'CS', 'DH', 'MH', 'CA', 'BOP'].map((id) => [`blocks-${id}`, { localLine: true }])
+    ),
     stations: {
         PRR: { color: '#32763f', label: 'PRR' },
         NYC: { color: '#474548', label: 'NYC' },

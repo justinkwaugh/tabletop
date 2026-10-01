@@ -27,6 +27,8 @@ import { stagedRevenueLayout, type RevenueCell } from './stagedRevenueLayout.js'
 
 export type { TileDrawnPath } from './tileTrackGeometry.js'
 
+const OffboardSpikeReach = 0.42
+
 export type TileLayout = {
     annotationExclusions?: readonly Point[]
     nodePositions?: Readonly<Record<string, Point>>
@@ -135,6 +137,26 @@ export function createTileDrawing(
         })
     }
 
+    const withOffboardSpike = (
+        path: (typeof face.paths)[number],
+        drawn: TileDrawnPath
+    ): TileDrawnPath => {
+        const offboard = face.nodes.some(
+            (node) =>
+                node.kind === 'offboard' &&
+                path.endpoints.some(
+                    (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === node.id
+                )
+        )
+        if (!offboard) return drawn
+        const [base, center] =
+            path.endpoints[0].kind === 'edge' ? [drawn.start, drawn.end] : [drawn.end, drawn.start]
+        const tip = {
+            x: base.x + (center.x - base.x) * OffboardSpikeReach,
+            y: base.y + (center.y - base.y) * OffboardSpikeReach
+        }
+        return { ...drawn, spike: { base, tip } }
+    }
     const paths = face.paths.map((path): TileDrawnPath => {
         const start = endpointPosition(path.endpoints[0])
         const end = endpointPosition(path.endpoints[1])
@@ -151,7 +173,7 @@ export function createTileDrawing(
                   path.endpoints[0].kind === 'edge' ? inwardControl(start, handleLength) : start,
                   path.endpoints[1].kind === 'edge' ? inwardControl(end, handleLength) : end
               ]
-        return createCubicTilePath(path.id, start, end, controls)
+        return withOffboardSpike(path, createCubicTilePath(path.id, start, end, controls))
     })
 
     const occupied: Point[] = [

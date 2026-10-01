@@ -9,12 +9,20 @@ import {
 } from '@tabletop/frontend-components'
 
 const sidebar = ['Players', 'History', 'Chat']
-export const initialTableLayout: SavedPane = [
-    'cols',
-    20,
-    ['rows', 25, ['Game info'], sidebar],
-    ['rows', 50, ['Actions'], ['Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid']]
-]
+export function initialTableLayout(tabs: readonly WorkspaceTab[]): SavedPane {
+    const board = tabs.some((tab) => tab.id === 'Board') ? ['Board'] : []
+    return [
+        'cols',
+        20,
+        ['rows', 25, ['Game info'], sidebar],
+        [
+            'rows',
+            50,
+            ['Actions'],
+            [...board, 'Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid']
+        ]
+    ]
+}
 
 export function saveTableWorkspace(value: SavedWorkspace) {
     return { ...value, tableLayoutVersion: 2 }
@@ -59,7 +67,13 @@ export function defaultTableView(
     savedLayout: unknown,
     tabs: readonly WorkspaceTab[]
 ): 'Board' | 'Map' {
-    const { root } = restoreWorkspaceTabs(savedLayout, tabs, [], undefined, initialTableLayout)
+    const { root } = restoreWorkspaceTabs(
+        savedLayout,
+        tabs,
+        [],
+        undefined,
+        initialTableLayout(tabs)
+    )
     return workspaceLayout(root).panes.some(
         ({ pane }) => pane.tabs.includes('Board') && pane.tabs.includes('Map')
     )

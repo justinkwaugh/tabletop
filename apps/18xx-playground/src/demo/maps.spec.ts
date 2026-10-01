@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { createMapDrawing, mapSelectionPoint, assertMapOverlays } from '@tabletop/18xx-ui'
 import { rotateTileEdge, type RailwayMap } from '@tabletop/18xx'
 import { MapExamples } from './maps.js'
+import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
+import { createEighteenThirtyStockMarket } from '@tabletop/1830'
+import { EighteenThirtyMapView } from '@tabletop/1830-ui'
+import {
+    MarketCellHeight,
+    MarketCellWidth,
+    MarketScenePadding
+} from '../../../../libs/18xx-ui/src/lib/stock/marketTokenLayout.js'
 
 type MapScene = ReturnType<typeof createMapDrawing>
 
@@ -105,5 +113,47 @@ describe('complete title maps', () => {
                 ]
             }
         })
+    })
+})
+
+describe('1830 board', () => {
+    it('keeps every drawn market cell and the depot clear of every hex', () => {
+        const areas = EighteenThirtyMapView.boardAreas
+        expect(areas?.market && areas.depot).toBeTruthy()
+        const hexes = EighteenThirtyMapView.map.definition.locations.map(
+            (location) =>
+                calculateHexGeometry(
+                    { orientation: HexOrientation.Pointy, dimensions: { radius: 50 } },
+                    location.coordinates
+                ).center
+        )
+        const clear = (x: number, y: number, width: number, height: number) =>
+            hexes.every(
+                (hex) =>
+                    x + width < hex.x - 55.3 ||
+                    x > hex.x + 55.3 ||
+                    y + height < hex.y - 62 ||
+                    y > hex.y + 62
+            )
+        const market = createEighteenThirtyStockMarket()
+        const cells = market.spaces.map((space) => space.id.split(':').map(Number))
+        const columns = Math.max(...cells.map(([, column]) => column)) + 1
+        const rows = Math.max(...cells.map(([row]) => row)) + 1
+        const width = 2 * MarketScenePadding + columns * MarketCellWidth
+        const height = 2 * MarketScenePadding + rows * MarketCellHeight
+        const area = areas!.market!
+        const scale = Math.min(area.width / width, area.height / height)
+        const left = area.x + (area.width - width * scale) / 2
+        for (const [row, column] of cells)
+            expect(
+                clear(
+                    left + (MarketScenePadding + column * MarketCellWidth) * scale,
+                    area.y + (MarketScenePadding + row * MarketCellHeight) * scale,
+                    MarketCellWidth * scale,
+                    MarketCellHeight * scale
+                )
+            ).toBe(true)
+        const depot = areas!.depot!
+        expect(clear(depot.x, depot.y, depot.width, depot.height)).toBe(true)
     })
 })

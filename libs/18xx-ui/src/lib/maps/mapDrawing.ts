@@ -56,7 +56,10 @@ export type MapPlacement = {
     hidden?: boolean
 }
 
-export type MapMarkerArt = { imageUrl: string } | { tileSymbol: TileSymbolName }
+export type MapMarkerArt =
+    | { imageUrl: string }
+    | { tileSymbol: TileSymbolName }
+    | { localLine: true }
 
 export type MapDrawnLocation = {
     location: MapLocation

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
 import {
     StandardTileCatalog,
+    createCityTileFace,
+    createOffboardTileFace,
+    createStagedTileRevenue,
     parseTileDefinition,
     type TileFace,
     type TileRotation
@@ -198,5 +201,34 @@ describe('tile viewer filtering', () => {
             '18xx:767',
             '18xx:769'
         ])
+    })
+})
+
+describe('offboard track', () => {
+    it('ends each offboard path in a spike from its edge toward the centre', () => {
+        const face = createOffboardTileFace(
+            [2, 3],
+            createStagedTileRevenue([
+                ['yellow', 30],
+                ['brown', 60]
+            ])
+        )
+        const drawing = createTileDrawing(face, HexOrientation.Pointy, 0)
+        for (const path of drawing.paths) {
+            expect(path.spike?.base).toEqual(path.start)
+            const toCenter = Math.hypot(path.start.x, path.start.y)
+            const length = Math.hypot(
+                path.spike!.tip.x - path.start.x,
+                path.spike!.tip.y - path.start.y
+            )
+            expect(length).toBeGreaterThan(toCenter * 0.3)
+            expect(length).toBeLessThan(toCenter * 0.5)
+        }
+        const city = createTileDrawing(
+            createCityTileFace('yellow', [0], 20, 1),
+            HexOrientation.Pointy,
+            0
+        )
+        expect(city.paths.every((path) => !path.spike)).toBe(true)
     })
 })

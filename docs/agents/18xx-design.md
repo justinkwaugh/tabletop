@@ -49,6 +49,12 @@ positions; rules and hit targets must not be inferred from artwork pixels.
 The boardless view must convey the same rule-relevant geography, printed track,
 terrain, labels, values, and persistent rights.
 
+Every title's map view declares `boardAreas`, so its table opens on a Board view:
+the map with the stock market and the depot (current phase and train limit) drawn
+into the map's empty regions. Fit the areas to keep every drawn market cell and the
+depot clear of every hex, at TOP's market scale, nesting the market's empty
+staircase into the map's empty corners where the shapes allow, and test the fit.
+
 Allow the presentation to become an individual player's display preference.
 Its storage scope and default remain presentation decisions; changing it must not
 change Game State, generate an Action, or change another player's view. Verify

@@ -2,6 +2,7 @@
     import MapTrackJoins from './MapTrackJoins.svelte'
     import MapRoutes from './MapRoutes.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import type { StationAppearance } from './stationPresentation.js'
     import type { StationReservation } from '@tabletop/18xx'
     import type { BoundingBox } from '@tabletop/common'
     import TileArtwork from '../tiles/TileArtwork.svelte'
@@ -28,6 +29,7 @@
         selection,
         tokens = [],
         reservations,
+        stationAppearances = {},
         routes = [],
         appearance = ClassicTileAppearance,
         revenueStageColors,
@@ -45,6 +47,7 @@
         selection?: MapSelection
         tokens?: readonly MapToken[]
         reservations?: readonly StationReservation[]
+        stationAppearances?: Readonly<Record<string, StationAppearance>>
         routes?: readonly MapRoute[]
         revenueStageColors?: Readonly<Record<string, string>>
         appearance?: TileAppearance
@@ -223,13 +226,12 @@
                     {@render selectedTrack()}
                 {/if}
                 {#each entry.drawing.nodes as node (node.node.id)}
-                    {@const reservationLabel = currentReservations
+                    {@const reservedCompanyIds = currentReservations
                         .filter(
                             (reservation) =>
                                 reservation.locationId === id && reservation.nodeId === node.node.id
                         )
-                        .map((reservation) => reservation.companyId)
-                        .join('/')}
+                        .map((reservation) => reservation.companyId)}
                     {#each node.slots as point, slot (slot)}
                         {@const token = tokens.find(
                             (token) =>
@@ -247,7 +249,21 @@
                                 />
                             </g>
                         {/if}
-                        {#if slot === 0 && reservationLabel && !token}
+                        {@const reservedAppearance = stationAppearances[reservedCompanyIds[slot]]}
+                        {#if !token && reservedAppearance}
+                            <g
+                                class="reserved-token"
+                                data-map-reservation={reservedCompanyIds[slot]}
+                            >
+                                <title>{`Reserved for ${reservedAppearance.label}`}</title>
+                                <CompanyToken
+                                    appearance={reservedAppearance}
+                                    size={tokenSize}
+                                    x={point.x - tokenSize / 2}
+                                    y={point.y - tokenSize / 2}
+                                />
+                            </g>
+                        {:else if slot === 0 && reservedCompanyIds.length && !token && !stationAppearances[reservedCompanyIds[0]]}
                             <text
                                 x={point.x}
                                 y={point.y}
@@ -258,7 +274,7 @@
                                 paint-order="stroke"
                                 stroke="none"
                                 stroke-width="1"
-                                data-map-reservation>{reservationLabel}</text
+                                data-map-reservation>{reservedCompanyIds.join('/')}</text
                             >
                         {/if}
                     {/each}
@@ -329,6 +345,35 @@
                             {#if art && 'imageUrl' in art && !entry.placed}
                                 <image href={art.imageUrl} x="-25" y="-25" width="50" height="40"
                                 ></image>
+                            {:else if art && 'localLine' in art && !entry.placed}
+                                <g
+                                    data-map-marker-local-line={marker.id}
+                                    transform="translate(0 36)"
+                                    fill={appearance.ink}
+                                    stroke="none"
+                                    dominant-baseline="central"
+                                >
+                                    <title>{marker.description}</title>
+                                    <text x="-2" text-anchor="end" font-size="8" font-weight="850"
+                                        >{marker.label}</text
+                                    >
+                                    <path d="M4 0H14" stroke={appearance.ink} stroke-width="1.6"
+                                    ></path>
+                                    <circle
+                                        cx="4"
+                                        r="2.6"
+                                        fill={appearance.paper}
+                                        stroke={appearance.ink}
+                                        stroke-width="1"
+                                    ></circle>
+                                    <circle
+                                        cx="14"
+                                        r="2.6"
+                                        fill={appearance.paper}
+                                        stroke={appearance.ink}
+                                        stroke-width="1"
+                                    ></circle>
+                                </g>
                             {:else if art && 'tileSymbol' in art && !entry.face.symbols?.includes(art.tileSymbol)}
                                 <g
                                     data-map-marker-symbol={art.tileSymbol}
@@ -527,6 +572,10 @@
 </svg>
 
 <style>
+    .reserved-token {
+        filter: grayscale(1);
+        opacity: 0.4;
+    }
     .map-scene {
         display: block;
         font-family: ui-sans-serif, system-ui, sans-serif;

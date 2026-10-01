@@ -713,6 +713,7 @@
         scene={displayedScene}
         artwork={boardArtwork}
         tokens={session.map.displayedTokens}
+        stationAppearances={session.mapView.stations}
         reservations={session.track.displayedPreview?.stationReservations ??
             session.stations.displayState.stationReservations}
         routes={mapRoutes}
@@ -1216,7 +1217,7 @@
                                 tabTitle={sidebarTabIcon}
                                 bind:selected={selectedView}
                                 label="Table views"
-                                initialLayout={initialTableLayout}
+                                initialLayout={initialTableLayout(paneTabs)}
                                 {children}
                             />
                         </div>
