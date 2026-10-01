@@ -134,3 +134,9 @@ Each step ends with tests passing:
 ## Questions for the user
 
 None. All the plan's questions are answered and recorded in the implementation notes.
+
+## Possible shared-code follow-ups
+
+These would touch other games or shared libraries, so they need the user's approval first.
+
+- **`rotations` test helper:** `competition.spec.ts` in Bus, Bridges of Shangri-La, Estates, Indonesia and MarraCash each define the same `rotations` function. The 18xx titles share one in `libs/18xx/test/startingPositions.ts`. Coding policy rule 3 favours one shared helper for all titles.
