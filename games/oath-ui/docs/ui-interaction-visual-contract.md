@@ -154,12 +154,13 @@ The platform's table layout (`DefaultTableLayout`) owns the bottom safe-area ins
 37. The goals: under Supremacy an Exile with the Vision of Conquest ties the Chancellor, who holds the title, and a Citizen sits. The rail, with no "Goals" heading, reads the next win (the Chancellor, as the Oathkeeper, if the end die ends the game after round 5, on a 6), then the Oath's box ("is the Oathkeeper", the sites symbol, each seat's count on its disc, the Chancellor's ringed), the Vision's box ("not met", the Exile's disc ringed) and the Successor's box ("not met", the relics and banners symbol, the Imperial seats' counts); no disc carries a caption, and its tooltip says the count in words. No seat card shows the Oathkeeper goal and the Chancellor's shows the tile. A hover opens nothing; a tap opens the same boxes at a readable size; Escape closes it, and a press outside closes it.
 38. The palette: on the site's dark page at setup, the Players tab reads light on the amber-soft fill inside the amber frame, the History and Chat tabs read in muted stone, the history controls in the heading amber, the chat's messages and composer light on the raised input, and the action panel and turn banner sit in the amber frame. Pick a card to keep: Undo appears in the primary amber with light text. Automated (`tests/contractScenarios.spec.ts`; the components' colours by `palette.spec.ts`).
 39. Trade: at a site holding Book Binders (Hearth), Council Seat carrying a favor, and Assassin (Discord), with one secret, three favor, two faceup Hearth advisers and the Discord bank empty, choose Trade: the panel lists Book Binders (1 secret for 3 favor, 2 favor for 2 secrets) and Assassin (1 secret for 0 favor, "bank empty"; 2 favor for 0 secrets, "no faceup" Discord adviser), and not Council Seat. Tap Assassin in the strip: its row and its card are marked and nothing is sent. Tap Book Binders' first button: the Trade is sent, the secret sits on Book Binders, and the menu closes. Automated (`tests/contractScenarios.spec.ts`; the rows by `tradeRows.spec.ts`, the engine's count and the cards offered by `modifierCards.spec.ts` and `tollPowers.spec.ts`).
+40. Panel text in symbols: in your Act Phase at a site with no card, tap the dimmed Muster: the line under the grid reads "no card at your site to place" with the favor token where the word was, and the word only as the token's accessible name. Travel to a site with a card and choose Muster: the prompt reads "Choose a card at your site to place" and the token, not the word. Automated (`tests/contractScenarios.spec.ts`; the reading of favor, secrets, suits and the banners' names by `tokenText.spec.ts`).
 
 ## Exercise record
 
 1. pass
 2. pass (re-test after round five: hand visible from the start, either pick order, Back and Undo unwind)
-3. pass
+3. pass; re-tested 2026-10-01 after Undo became one amber button labelled Undo: a pick offers Undo with "Steps back through your picks not yet sent", one Undo clears it and the button goes; after the send no Undo is offered and the next seat is on the clock (harness, by hand)
 4. pass
 5. pass
 6. pass
@@ -196,3 +197,4 @@ The platform's table layout (`DefaultTableLayout`) owns the bottom safe-area ins
 37. pass, automated (`tests/contractScenarios.spec.ts`); the next-win cases and the standings by `nextWin.spec.ts` and `goalBoard.spec.ts`
 38. pass, automated (`tests/contractScenarios.spec.ts`), and checked by eye in the harness on the dark page and at phone width
 39. pass, automated (`tests/contractScenarios.spec.ts`), and checked by eye in the harness at desktop and phone width
+40. pass, automated (`tests/contractScenarios.spec.ts`), and checked by eye in the harness on the Trade menu, the Muster prompt and the reason line

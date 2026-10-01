@@ -190,7 +190,6 @@ test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason
 
     await tapDimmed(muster)
     await expect(reasonLine(page)).toContainText('no card at your site to place')
-    await expect(reasonLine(page).getByRole('img', { name: 'favor' })).toBeVisible()
     await travel.hover()
     await expect(reasonLine(page)).toContainText('Move your pawn to any site')
     await expect(reasonLine(page)).not.toContainText('no card at your site')
@@ -483,6 +482,22 @@ test('scenario 38: the side tabs, history controls, chat, panel and Undo wear Oa
     await expect(undo).toBeVisible()
     expect(await isAmber(undo, 'backgroundColor')).toBe(true)
     expect(await luminanceOf(undo, 'color')).toBeGreaterThan(0.9)
+})
+
+test('scenario 40: panel text shows favor as its token, the word only as the token’s name', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tapDimmed(tile(page, 'Muster'))
+    await expect(reasonLine(page)).toContainText('no card at your site to place')
+    await expect(reasonLine(page).getByRole('img', { name: 'favor' })).toBeVisible()
+    await expect(reasonLine(page)).not.toContainText('favor')
+    await restMouse(page)
+
+    await call(page, 'seatTravels', 'slot.cradle.1')
+    await tile(page, 'Muster').click()
+    const prompt = page.locator('.panel').getByText('Choose a card at your site to place')
+    await expect(prompt).toBeVisible()
+    await expect(prompt.getByRole('img', { name: 'favor' })).toBeVisible()
+    await expect(prompt).not.toContainText('favor')
 })
 
 test('scenario 39: Trade lists every trade at the site, a strip tap marks a row, a button sends', async ({ page }) => {

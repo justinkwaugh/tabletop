@@ -17,7 +17,7 @@
             title={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
         />{:else}<span class="token-text__count"
             >{#if part.count !== undefined}{part.count}{/if}<img
-                class="token-text__mark"
+                class="token-text__token"
                 src={part.kind === 'favor' ? favorTokenImage() : secretTokenImage()}
                 alt={part.kind === 'favor' ? 'favor' : part.count === 1 ? 'secret' : 'secrets'}
             /></span
@@ -30,6 +30,12 @@
         align-items: center;
         gap: 0.2em;
         white-space: nowrap;
+    }
+    .token-text__token {
+        display: inline-block;
+        width: auto;
+        height: 1.2em;
+        vertical-align: -0.25em;
     }
     .token-text__mark {
         display: inline-block;

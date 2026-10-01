@@ -23,7 +23,7 @@
 {#snippet count(n: number, image: string)}
     <span class="inline-flex items-center gap-1 whitespace-nowrap">
         <span class={n === 0 ? 'text-oath-text-muted' : ''}>{n}</span>
-        <img class="h-[18px] w-[18px]" src={image} alt="" />
+        <img class="h-[18px] w-auto" src={image} alt="" />
     </span>
 {/snippet}
 
