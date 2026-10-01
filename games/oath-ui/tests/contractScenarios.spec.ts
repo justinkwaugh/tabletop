@@ -37,6 +37,19 @@ async function holdCard(page: Page, card: ReturnType<Page['locator']>) {
     await pressAndHold(page, box.x + box.width / 2, box.y + box.height / 2)
 }
 
+/** The first card of `selector` whose centre is not under another layer, such as the side column. */
+async function uncovered(page: Page, selector: string) {
+    const index = await page.evaluate((selector) => {
+        return [...document.querySelectorAll(selector)].findIndex((card) => {
+            const box = card.getBoundingClientRect()
+            const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+            return top !== null && card.contains(top)
+        })
+    }, selector)
+    if (index < 0) throw Error(`No ${selector} is uncovered`)
+    return page.locator(selector).nth(index)
+}
+
 const preview = (page: Page) => page.locator('.card-preview')
 const panelCards = (page: Page) =>
     page.locator('.panel').getByRole('button').filter({ hasNotText: /Back|Undo/ })
@@ -78,7 +91,7 @@ test.describe('on touch', () => {
         await openTable(page, 'searching')
         await panelCards(page).first().tap()
         await expect(page.getByText('How do you play it?', { exact: false })).toBeVisible()
-        await page.locator('.board-card:not(.pickable)').first().tap()
+        await (await uncovered(page, '.board-card:not(.pickable)')).tap()
         await expect(preview(page)).toBeVisible()
 
         await call(page, 'anotherSeatLetsPeek')
