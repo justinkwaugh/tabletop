@@ -1,4 +1,4 @@
-import { GameEngine } from '@tabletop/common'
+import { Color, GameEngine } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { AllAntiques, AntiquesPerPlayer, type Antique } from '../components/antiques.js'
 import { EntranceFountainIds, Shops } from '../components/board.js'
@@ -12,6 +12,7 @@ import { MarracashGameStateValidator, type MarracashProjectedState } from '../mo
 import { StartingMoney } from '../model/playerState.js'
 import { createGame, TestMasterSeed } from '../util/testHelper.js'
 import { MarketColor } from './marketColor.js'
+import { MarracashColors } from './colors.js'
 import { MarracashRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 
@@ -140,5 +141,20 @@ describe('MarraCash without antique cards', () => {
 
     it('turns antique cards on by default', () => {
         expect(start(4).antiqueCards).toBe(true)
+    })
+})
+
+describe('MarraCash player colours', () => {
+    it('uses every site colour except the five visitor colours', () => {
+        expect(MarracashColors).toEqual([
+            Color.Orange,
+            Color.Pink,
+            Color.Brown,
+            Color.Gray,
+            Color.Black,
+            Color.White
+        ])
+        const state = start(4)
+        expect(state.players.every((player) => MarracashColors.includes(player.color))).toBe(true)
     })
 })

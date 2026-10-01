@@ -106,7 +106,7 @@ Register `runtime.visibility.state` and `.actions`. That's required because the 
 
 ## UI
 
-- **Player colours:** the scaffold's palette (green, yellow, blue, red, black) overlaps the five shop colours. Pick owner colours that stay distinct on any shop, since the colour is shown on a stall of a different colour.
+- **Player colours:** decided; see the notes. The colorizer uses the shared defaults, which cover all six player colours.
 - **The board:** independent artwork, per the notes. Generic pawns for visitors and player-coloured discs for shop owners. Show the board as the grid, with the queue as a U-shaped line around the wall.
 - **Session methods:** `startAuction`, `placeBid`, `moveVisitors` and `bringVisitors`. Components call these and never build Actions themselves.
 - **Staged selections** ([user interactions](user-interactions.md)):
