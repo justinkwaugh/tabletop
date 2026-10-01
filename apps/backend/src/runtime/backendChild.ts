@@ -8,8 +8,16 @@ export class BackendChild {
     private requests = 0
     private readonly idleWaiters = new Set<() => void>()
 
-    constructor(entry: URL, startupTimeoutMs: number, onReload: () => void) {
-        this.child = fork(entry, [], { stdio: ['inherit', 'inherit', 'inherit', 'ipc'] })
+    constructor(
+        entry: URL,
+        startupTimeoutMs: number,
+        onReload: () => void,
+        env: NodeJS.ProcessEnv = {}
+    ) {
+        this.child = fork(entry, [], {
+            stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+            env: { ...process.env, ...env }
+        })
         this.exited = new Promise((resolve) => {
             const exited = () => {
                 this.exitObserved = true

@@ -1,9 +1,20 @@
 import { BackendSupervisor } from './runtime/backendSupervisor.js'
 import { createBackendGateway } from './runtime/backendGateway.js'
 import { createBackendHealthServer } from './runtime/backendHealth.js'
+import { deriveSessionKey } from './runtime/sessionKey.js'
 
 const supervisor = new BackendSupervisor({
-    entry: new URL(import.meta.url.endsWith('.ts') ? './worker.ts' : './worker.js', import.meta.url)
+    entry: new URL(
+        import.meta.url.endsWith('.ts') ? './worker.ts' : './worker.js',
+        import.meta.url
+    ),
+    env: {
+        SESSION_KEY: await deriveSessionKey(
+            process.env['SESSION_SECRET'] ||
+                'youneedtosetthevalueintheenv.localfiletosomethingelse',
+            process.env['SESSION_SALT'] ?? ''
+        )
+    }
 })
 const gateway = createBackendGateway(process.env['K_SERVICE'] === 'backend', supervisor)
 const health = createBackendHealthServer(supervisor, () => gateway.server.listening)

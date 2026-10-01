@@ -1,6 +1,7 @@
 import RequestTimingsPlugin from './plugins/requestTimings.js'
 import { STATIC_ROOT } from '@tabletop/backend-services'
 import { measure } from '@tabletop/backend-services/diagnostics'
+import { assertExists } from '@tabletop/common'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import AutoLoad from '@fastify/autoload'
@@ -36,10 +37,7 @@ const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
 const SESSION_EXPIRY_SECONDS = 30 * 24 * 60 * 60
 let firebaseAppIndex = 0
 
-const SESSION_SECRET = process.env['SESSION_SECRET']
-    ? process.env['SESSION_SECRET']
-    : 'youneedtosetthevalueintheenv.localfiletosomethingelse'
-const SESSION_SALT = process.env['SESSION_SALT'] ?? ''
+const SESSION_KEY = process.env['SESSION_KEY']
 
 export interface AppOptions {
     prefix?: string
@@ -127,11 +125,11 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         exposedHeaders: ['X-Tabletop-Version', 'ETag']
     })
 
+    assertExists(SESSION_KEY, 'The backend supervisor provides SESSION_KEY')
     await fastify.register(SecureSession, {
         sessionName: 'session',
         cookieName: '__session',
-        secret: SESSION_SECRET,
-        salt: SESSION_SALT,
+        key: SESSION_KEY,
         expiry: SESSION_EXPIRY_SECONDS,
         cookie: {
             path: '/',

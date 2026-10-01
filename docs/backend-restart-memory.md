@@ -77,6 +77,15 @@ serving the new build takes over, and clients are never told to refresh into a b
 the backend does not yet serve. The deploy tool reads that header as the served
 frontend version and waits for it after a frontend publication.
 
+Startup work that does not depend on the manifest stays out of the child. The
+supervisor derives the session key from `SESSION_SECRET` and `SESSION_SALT` once per
+instance, with the same derivation `@fastify/secure-session` performs, and passes it to
+every child as `SESSION_KEY`. Route validators compile on each route's first request
+rather than before the child listens, so a schema `ajv` cannot compile now fails that
+route's requests instead of the child's startup. Email templates load with the first
+email. Together these halved a local child's startup (5.6 s to 3.0 s with every
+catalogue title).
+
 On a manifest mismatch, the child sends an IPC reload notification. The supervisor
 starts a replacement while the current child continues serving. Only after the
 replacement finishes Fastify registration, loads game definitions and starts

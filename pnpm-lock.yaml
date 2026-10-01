@@ -123,6 +123,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@fastify/ajv-compiler':
+        specifier: ^4.0.5
+        version: 4.0.5
       '@fastify/auth':
         specifier: ^5.0.4
         version: 5.0.4
@@ -213,6 +216,9 @@ importers:
       resend:
         specifier: ^6.8.0
         version: 6.8.0(@react-email/render@2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
+      sodium-native:
+        specifier: ^5.0.10
+        version: 5.0.10
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
