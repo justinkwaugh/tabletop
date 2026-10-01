@@ -1,4 +1,5 @@
 import RequestTimingsPlugin from './plugins/requestTimings.js'
+import { STATIC_ROOT } from '@tabletop/backend-services'
 import { measure } from '@tabletop/backend-services/diagnostics'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
@@ -20,7 +21,6 @@ import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
-import { STATIC_ROOT } from './lib/staticRoot.js'
 
 const __dirname = import.meta.dirname
 
@@ -44,6 +44,16 @@ const SESSION_SALT = process.env['SESSION_SALT'] ?? ''
 export interface AppOptions {
     prefix?: string
     requestRestart: () => void
+}
+
+async function manifestFrontendVersion(fastify: FastifyInstance): Promise<string | null> {
+    try {
+        const manifest = await measure('manifest.get', () => fastify.libraryService.getManifest())
+        return manifest.frontend?.version ?? null
+    } catch (error) {
+        console.warn('Unable to resolve frontend version from manifest', error)
+        return null
+    }
 }
 
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
@@ -102,19 +112,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         }
     })
 
-    fastify.addHook('onSend', async (request, reply, payload) => {
-        let frontendVersion = FRONTEND_VERSION_OVERRIDE
-        if (!frontendVersion) {
-            try {
-                const manifest = await measure('manifest.get', () =>
-                    fastify.libraryService.getManifest()
-                )
-                frontendVersion = manifest.frontend?.version ?? null
-            } catch (error) {
-                console.warn('Unable to resolve frontend version for response header', error)
-            }
-        }
-        void reply.header('X-Tabletop-Version', frontendVersion ?? '0.0.0')
+    let servedFrontendVersion: string | null = null
+    fastify.addHook('onSend', async (_request, reply, payload) => {
+        void reply.header('X-Tabletop-Version', servedFrontendVersion ?? '0.0.0')
         return payload
     })
 
@@ -168,6 +168,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     await fastify.register(SensiblePlugin)
     await fastify.register(FirestorePlugin)
     await fastify.register(ServicesPlugin)
+    servedFrontendVersion = FRONTEND_VERSION_OVERRIDE ?? (await manifestFrontendVersion(fastify))
 
     if (service !== 'local') {
         fastify.addHook('onRequest', async (request, _reply) => {
@@ -306,26 +307,13 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         })
 
         if (service === 'backend') {
-            let frontendVersion = FRONTEND_VERSION_OVERRIDE
-
-            if (!frontendVersion) {
-                try {
-                    const manifest = await measure('manifest.get', () =>
-                        fastify.libraryService.getManifest()
-                    )
-                    frontendVersion = manifest.frontend?.version ?? null
-                } catch (error) {
-                    console.warn('Unable to resolve frontend version from manifest', error)
-                }
-            }
-
-            if (frontendVersion) {
+            if (servedFrontendVersion) {
                 console.log(
                     'Serving static content for root from: ' +
-                        path.join(STATIC_ROOT, 'frontend', frontendVersion)
+                        path.join(STATIC_ROOT, 'frontend', servedFrontendVersion)
                 )
                 await fastify.register(fastifyStatic, {
-                    root: path.join(STATIC_ROOT, 'frontend', frontendVersion),
+                    root: path.join(STATIC_ROOT, 'frontend', servedFrontendVersion),
                     preCompressed: true,
                     cacheControl: false,
                     setHeaders: (res, pathName) => {

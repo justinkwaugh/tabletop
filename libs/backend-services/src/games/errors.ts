@@ -11,6 +11,7 @@ enum GameServiceError {
     GameUpdateCollisionError = 'GameUpdateCollisionError',
     PlayersNotFound = 'PlayersNotFoundError',
     PrivateGameNotFull = 'PrivateGameNotFullError',
+    OwnerNotPlaying = 'OwnerNotPlayingError',
     InvalidPlayerUser = 'InvalidPlayerUserError',
     InvalidPlayerId = 'InvalidPlayerIdError',
     UserIsNotAllowedPlayer = 'UserIsNotAllowedPlayerError',
@@ -128,6 +129,16 @@ export class PrivateGameNotFullError extends BaseError {
         super({
             name: GameServiceError.PrivateGameNotFull,
             message: `The private game with id ${id} does not have enough players defined`,
+            metadata: { id }
+        })
+    }
+}
+
+export class OwnerNotPlayingError extends BaseError {
+    constructor({ id }: { id: string }) {
+        super({
+            name: GameServiceError.OwnerNotPlaying,
+            message: `The owner of the game with id ${id} must be one of its players`,
             metadata: { id }
         })
     }

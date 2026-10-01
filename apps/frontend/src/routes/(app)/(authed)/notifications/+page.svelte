@@ -21,21 +21,6 @@
             }) ?? []
         )
     })
-
-    function discordBot() {
-        const width = 550
-        const height = 700
-        const left = (screen.width - width) / 2
-        const top = (screen.height - height) / 2
-        const FRONTEND_HOST = window.location.origin
-        const encodedHost = encodeURIComponent(FRONTEND_HOST ?? '')
-        const url = `https://discord.com/oauth2/authorize?client_id=1260059992589865133`
-        window.open(
-            url,
-            'Discord Bot Authorization',
-            `popup=true,resizable=no, width=${width},height=${height},top=${top},left=${left}`
-        )
-    }
 </script>
 
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
@@ -59,7 +44,8 @@
                 </div>
                 {#if linkedAccountIdsByType.get(ExternalAuthService.Discord)}
                     <div class="text-white-600 text-sm dark:text-gray-300 mt-4">
-                        Click the button to add the bot to your Discord account.
+                        Click the button to add the bot to your Discord account. It will start
+                        sending you notifications right away.
                     </div>
                     <div class="flex flex-row justify-center">
                         <DiscordSignIn mode="bot" />

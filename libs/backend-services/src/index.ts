@@ -39,6 +39,7 @@ export * from './redis/redisService.js'
 export * from './cache/cacheService.js'
 export * from './chat/chatService.js'
 export * from './env/envService.js'
+export * from './env/staticRoot.js'
 
 export * from './preferences/preferenceService.js'
 export * from './preferences/firestorePreferenceStore.js'

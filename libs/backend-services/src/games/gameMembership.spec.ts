@@ -239,7 +239,7 @@ describe('public game auto-start', () => {
 
     it('cancels the countdown when the owner makes the game invite-only', async () => {
         const { service, read } = await fillLobby()
-        await service.updateGame({ gameId: 'lobby', owner: users[0], fields: { isPublic: false } })
+        await service.updateGame({ gameId: 'lobby', user: users[0], fields: { isPublic: false } })
         expect(read().autoStartAt).toBeUndefined()
     })
 

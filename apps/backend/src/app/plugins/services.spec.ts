@@ -44,6 +44,7 @@ vi.mock('@tabletop/backend-services', async () => {
         RedisPubSubService,
         RedisCacheService,
         LOCAL_WORKSPACE_ROOT: process.cwd(),
+        STATIC_ROOT: process.cwd(),
         createLocalManifest: vi.fn(),
         EnvService: { isLocal: () => false },
         EnvSecretsService: class {

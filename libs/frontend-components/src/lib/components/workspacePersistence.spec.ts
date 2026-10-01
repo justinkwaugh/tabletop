@@ -44,11 +44,8 @@ it('honors intentional closures but never closes a protected tab during restore'
     expect(ids).toContain('Actions')
     expect(saveWorkspace(restored.root, restored.fixed, ['Tiles']).closed).toEqual(['Tiles'])
 })
-it('round trips the pane lock and ignores anything but true', () => {
-    const saved = { locked: true as const, v: 1 as const, sidebar: ['Chat'], main: ['Actions', 'Map'] }
-    const restored = restoreWorkspace(saved, tabs, sidebar, initial)
-    expect(restored.locked).toBe(true)
-    expect(saveWorkspace(restored.root, restored.fixed, [], restored.locked)).toMatchObject({ locked: true })
-    expect(restoreWorkspace({ ...saved, locked: 'yes' }, tabs, sidebar, initial).locked).toBe(false)
+it('drops the retired pane lock from saved layouts', () => {
+    const restored = restoreWorkspace({ locked: true, v: 1, sidebar: ['Chat'], main: ['Actions', 'Map'] }, tabs, sidebar, initial)
+    expect(workspaceLayout(restored.root).panes[0].pane.tabs.slice(0, 2)).toEqual(['Actions', 'Map'])
     expect(saveWorkspace(restored.root, restored.fixed)).not.toHaveProperty('locked')
 })

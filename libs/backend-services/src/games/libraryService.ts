@@ -5,10 +5,10 @@ import { GameDefinition } from '@tabletop/common'
 import type { SiteManifest } from '@tabletop/games-config'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
+import { STATIC_ROOT } from '../env/staticRoot.js'
 
 const DEFAULT_CACHE_KEY = 'site-manifest'
 
-const STATIC_ROOT = process.env['STATIC_ROOT'] ?? '.local-static'
 const DEFAULT_GAMES_ROOT = path.join(STATIC_ROOT, 'games')
 export const LOCAL_WORKSPACE_ROOT = path.join(process.cwd(), '../..')
 const LOCAL_WORKSPACE_GAMES_ROOT = path.join(LOCAL_WORKSPACE_ROOT, 'games')

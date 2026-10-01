@@ -1654,7 +1654,8 @@ rows receive the operating-company outline when the axes are reversed. In the pl
 the currently operating company column has a continuous outline from its header
 to the final statistic. Neither outline tints the cells.
 
-Workspace tabs can be reordered by dropping before another tab. Every pane has a Delete button when multiple panes exist. Deleting one merges
+Workspace tabs can be reordered by dropping before another tab. While multiple panes exist, each pane's options popover ends with a
+Delete pane item in the table's negative color (`--rail-negative`). Deleting one merges
 its tabs into its sibling and expands that sibling without remounting tab content.
 The last pane cannot be deleted. Workspace headers use a compact 35px height.
 
@@ -1714,10 +1715,10 @@ the wide layout it replaces the Actions footer and is absent until added. The
 original narrow layout retains its operating-order strip.
 
 Pane headers consolidate splitting and adding/moving tabs into a compact options
-popover anchored below an ellipsis button. Delete remains the far-right control.
+popover anchored below an ellipsis button, which is the only header control.
 
 The options popup uses a consistent compact width, with split icons followed by
-Current tabs and Add tabs sections. Add tabs is always visible when tabs can be added;
+Current tabs, Add tabs and Delete pane sections. Add tabs is always visible when tabs can be added;
 there is no separate plus button.
 
 The Add list contains only tabs absent from every pane. Already placed tabs move

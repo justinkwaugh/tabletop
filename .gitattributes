@@ -1,0 +1,2 @@
+# Scripts run inside the Linux dev container; keep LF even on Windows checkouts.
+* text=auto eol=lf

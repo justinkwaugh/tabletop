@@ -104,4 +104,11 @@ export function findPlayerForUserId(
     return game.players.find((player) => player.userId === userId)
 }
 
+export function gameUserIds(game: Pick<Game, 'players' | 'ownerId' | 'tournament'>): string[] {
+    const playerUserIds = game.players.flatMap((player) =>
+        player.userId == null ? [] : [player.userId]
+    )
+    return [...new Set(game.tournament ? playerUserIds : [game.ownerId, ...playerUserIds])]
+}
+
 export const GameValidator = Compile(Game)

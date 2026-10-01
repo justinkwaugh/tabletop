@@ -40,6 +40,10 @@
     "packageId": "lowenherz"
   },
   {
+    "gameId": "oath",
+    "packageId": "oath"
+  },
+  {
     "gameId": "the-old-prince",
     "packageId": "the-old-prince"
   }

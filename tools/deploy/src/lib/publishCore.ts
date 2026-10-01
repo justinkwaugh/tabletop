@@ -150,13 +150,17 @@ export const checkArtifactsPublishable = async (
 
 export const fetchServing = async (
     deployConfig: DeployConfig,
-    select: (manifest: BackendManifest) => ServingVersions | null
+    select: (manifest: BackendManifest, servedFrontendVersion?: string) => ServingVersions | null
 ): Promise<ServingLookup> => {
     const url = deployConfig.backendManifestUrl
     if (!url) return { error: 'backend manifest URL not configured' }
     const result = await fetchBackendManifest(url)
     if (!result.manifest) return { error: result.error ?? 'backend manifest unavailable' }
-    return select(result.manifest) ?? { error: 'backend manifest has no matching entry' }
+    return (
+        select(result.manifest, result.servedFrontendVersion) ?? {
+            error: 'backend manifest has no matching entry'
+        }
+    )
 }
 
 export const describeVersions = (artifacts: PublishedArtifact[]) =>
@@ -178,19 +182,45 @@ const describeDeployment = (serving: ServingLookup, artifacts: PublishedArtifact
     return unchanged.length > 0 ? `${deploying} (${unchanged.join(', ')})` : deploying
 }
 
-const assertServingMatches = (serving: ServingLookup, artifacts: PublishedArtifact[]) => {
+const servesArtifacts = (serving: ServingLookup, artifacts: PublishedArtifact[]) =>
+    !('error' in serving) &&
+    artifacts.every((artifact) => serving[artifact.kind] === artifact.version)
+
+export type ServingSettle = { timeoutMs: number; intervalMs: number }
+
+// The backend swaps in a new frontend by replacing its server process, which can take
+// minutes on a throttled instance, so the served version lags the manifest.
+const DEFAULT_SERVING_SETTLE: ServingSettle = { timeoutMs: 5 * 60_000, intervalMs: 5_000 }
+
+const awaitServing = async (
+    context: PublishContext,
+    label: string,
+    artifacts: PublishedArtifact[],
+    fetchServingVersions: () => Promise<ServingLookup>,
+    settle: ServingSettle
+): Promise<ServingLookup> => {
+    const deadline = Date.now() + settle.timeoutMs
+    let serving = await fetchServingVersions()
+    if (!servesArtifacts(serving, artifacts)) {
+        context.log(`${label} waiting for the backend to serve ${describeVersions(artifacts)}`)
+    }
+    while (!servesArtifacts(serving, artifacts) && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, settle.intervalMs))
+        serving = await fetchServingVersions()
+    }
     if ('error' in serving) {
         throw new Error(
             `Deploy finished but the serving versions could not be read: ${serving.error}`
         )
     }
-    const stale = artifacts.filter((artifact) => serving[artifact.kind] !== artifact.version)
-    if (stale.length > 0) {
+    if (!servesArtifacts(serving, artifacts)) {
         throw new Error(
             `Deploy finished but the backend still serves ${describeServing(serving)}; ` +
-                'check /tmp/manifest-deploy.log and /tmp/manifest-invalidate.log'
+                'check /tmp/manifest-deploy.log, /tmp/manifest-invalidate.log and the backend ' +
+                'logs for a failed process replacement'
         )
     }
+    return serving
 }
 
 export const runReportedDeploy = async (
@@ -199,7 +229,7 @@ export const runReportedDeploy = async (
     artifacts: PublishedArtifact[],
     fetchServingVersions: () => Promise<ServingLookup>,
     deploy: () => Promise<void>,
-    options: { verifyServing: boolean } = { verifyServing: true }
+    options: { verifyServing: boolean; settle?: ServingSettle } = { verifyServing: true }
 ) => {
     const servingBefore = await fetchServingVersions()
     context.log(`${label} serving before deploy: ${describeServing(servingBefore)}`)
@@ -214,10 +244,15 @@ export const runReportedDeploy = async (
         throw error
     }
 
-    const servingAfter = await fetchServingVersions()
-    if (options.verifyServing) {
-        assertServingMatches(servingAfter, artifacts)
-    }
+    const servingAfter = options.verifyServing
+        ? await awaitServing(
+              context,
+              label,
+              artifacts,
+              fetchServingVersions,
+              options.settle ?? DEFAULT_SERVING_SETTLE
+          )
+        : await fetchServingVersions()
     const outcome = options.verifyServing ? '' : ' (staged without traffic)'
     context.log(`${label} deploy SUCCEEDED: ${describeVersions(artifacts)}${outcome}`)
     context.log(`${label} serving now: ${describeServing(servingAfter)}`)

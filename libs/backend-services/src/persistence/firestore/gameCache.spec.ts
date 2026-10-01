@@ -262,32 +262,39 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
         })
 
         it('retains protection from every retry when authoritative membership changes', async () => {
+            const replacement: User = { ...owner, id: `${prefix}-replacement` }
+            Object.assign(game, joinFields())
             await store.createGame(game)
-            const ownerKey = await primeUser(owner, GameStatusCategory.Active)
             const joiningKey = await primeUser(newcomer, GameStatusCategory.Active)
+            const replacementKey = await primeUser(replacement, GameStatusCategory.Active)
             const run = db.runTransaction.bind(db)
             let attempts = 0
             vi.spyOn(db, 'runTransaction').mockImplementation((update, options) =>
                 run(async (transaction) => {
                     attempts++
                     if (attempts === 2) {
+                        const players = structuredClone(game.players)
+                        Object.assign(players[1], { userId: replacement.id })
                         await db.doc(`games/${game.id}`).update({
-                            players: joinFields().players,
-                            userIds: [owner.id, newcomer.id]
+                            players,
+                            userIds: [owner.id, replacement.id]
                         })
                     }
                     const result = await update(transaction)
                     if (attempts === 1)
                         throw Object.assign(new Error('synthetic conflict'), { code: 10 })
-                    expect(await client.get(ownerKey)).toMatch(/^L:W:/)
-                    expect(await client.get(joiningKey)).toBe(await client.get(ownerKey))
+                    expect(await client.get(joiningKey)).toMatch(/^L:W:/)
+                    expect(await client.get(replacementKey)).toBe(await client.get(joiningKey))
                     return result
                 }, options)
             )
             await store.updateGame({ game, fields: { players: [] } })
             expect(attempts).toBe(2)
-            expect(await store.findGamesForUser(owner, GameStatusCategory.Active)).toEqual([])
             expect(await store.findGamesForUser(newcomer, GameStatusCategory.Active)).toEqual([])
+            expect(await store.findGamesForUser(replacement, GameStatusCategory.Active)).toEqual([])
+            expect(
+                (await store.findGamesForUser(owner, GameStatusCategory.Active)).map((g) => g.id)
+            ).toEqual([game.id])
         }, 20_000)
 
         it.each([

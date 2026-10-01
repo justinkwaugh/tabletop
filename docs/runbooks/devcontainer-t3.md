@@ -5,9 +5,30 @@ pins the version; update it and rebuild to upgrade. `post-start.sh` starts
 `t3 serve /workspace` as the `node` user, listening on loopback port 3773.
 Repeated startup calls leave the running server alone.
 
-T3 Connect provides mobile access without publishing a Docker port. On a fresh
-installation, run `t3 connect`, finish sign-in, and decline the systemd service.
-Restart the container after linking so the server picks up the connection.
+T3 runs its agents inside the container, so sign in to Claude Code (`claude`)
+or Codex (`codex login --device-auth`) there first.
+
+The T3 Code desktop app connects over SSH, using the `tabletop-devcontainer`
+host set up in [Devcontainer SSH Access](devcontainer-ssh-access.md).
+
+T3 Connect provides mobile access through T3's relay, without publishing a
+Docker port.
+
+On a fresh installation, link the environment from a terminal in the container:
+
+```bash
+t3 connect link --headless --base-dir "$HOME/.t3"
+```
+
+`--headless` uses the device flow: open the printed URL on your own computer and
+finish sign-in. Decline the systemd service if asked; `post-start.sh` already
+starts the server. Restart the container after linking so the server picks up
+the connection, then confirm it:
+
+```bash
+t3 connect status --base-dir "$HOME/.t3"
+```
+
 Sign into the same account in the mobile app.
 
 The `t3-home` volume retains `/home/node/.t3`, including Connect credentials,

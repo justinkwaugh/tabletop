@@ -51,7 +51,10 @@ test('table always uses dark mode across reloads, titles and dialogs', async ({ 
     const table = page.getByLabel('Game table', { exact: true })
     await expect(table).toHaveAttribute('data-theme', 'dark')
     await expect(table).toHaveCSS('color-scheme', 'dark')
-    await page.getByRole('button', { name: 'Open phase chart', exact: true }).click()
+    await page
+        .locator('.action-information')
+        .getByRole('button', { name: 'Open phase chart', exact: true })
+        .click()
     await expect(page.getByRole('dialog')).toHaveCSS('color-scheme', 'dark')
     await page.keyboard.press('Escape')
     await page.reload()
