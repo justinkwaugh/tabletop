@@ -3,7 +3,7 @@ import { assert, type GameAction } from '@tabletop/common'
 import { engine } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
 import { testGame } from '../testing/game.js'
-import { OathRuntime } from './runtime.js'
+import { OathRuntime, OathVisibility } from './runtime.js'
 import { OathGameStateValidator, HydratedOathGameState, type OathGameState, type OathProjectedState } from '../model/gameState.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { SetupChoice } from '../actions/setupChoice.js'
@@ -51,7 +51,7 @@ describe('Oath hydration', () => {
     it('round-trips every player and spectator projection of the same states', () => {
         for (const state of walk()) {
             for (const perspective of perspectives) {
-                const view = OathRuntime.visibility.state.project(state, perspective)
+                const view = OathVisibility.state.project(state, perspective)
                 expect(view).not.toHaveProperty('vault')
                 expect(OathRuntime.hydrator.hydrateState(view).dehydrate()).toEqual(view)
             }

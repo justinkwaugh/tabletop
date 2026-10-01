@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ActionSource, GameStatus, GameStorage, Visibility, assert, getPrng, type Game, type GameAction } from '@tabletop/common'
 import { buildAction } from '../testing/actions.js'
 import { engine } from '../testing/engine.js'
-import { OathRuntime } from './runtime.js'
+import { OathVisibility } from './runtime.js'
 import { OathApiActions } from './apiActions.js'
 import { ActionType } from './actions.js'
 import { MachineState } from './states.js'
@@ -154,7 +154,7 @@ describe('Oath visibility', () => {
         expect(canonical(engine.startGame(buildGame(), { masterSeed: MASTER_SEED }).initialState).vault).toEqual(state.vault)
 
         for (const perspective of [p1, spectator]) {
-            const view = OathRuntime.visibility.state.project(state, perspective)
+            const view = OathVisibility.state.project(state, perspective)
             expect(view).not.toHaveProperty('vault')
             expect(view).not.toHaveProperty('masterSeed')
             expect(view.discardPileCounts).toEqual(state.discardPileCounts)
@@ -163,10 +163,10 @@ describe('Oath visibility', () => {
 
         // R-1.20 — hands are dealt at initialization, so each is hidden from the start.
         expect(state.players.map((player) => player.handCount)).toEqual([3, 3, 3])
-        const own = OathRuntime.visibility.state.project(state, p1).players
+        const own = OathVisibility.state.project(state, p1).players
         expect(own[0].handIds).toEqual(state.players[0].handIds)
         expect(own[1]).not.toHaveProperty('handIds')
-        expect(OathRuntime.visibility.state.project(state, spectator).players[0]).not.toHaveProperty('handIds')
+        expect(OathVisibility.state.project(state, spectator).players[0]).not.toHaveProperty('handIds')
     })
 
     it('shows a drawn hand to its owner only, in state and in the action record', () => {
@@ -177,14 +177,14 @@ describe('Oath visibility', () => {
         const drawn = after.players[0].handIds
         expect(drawn).toHaveLength(3)
 
-        expect(OathRuntime.visibility.state.project(after, p1).players[0].handIds).toEqual(drawn)
-        expect(OathRuntime.visibility.state.project(after, p2).players[0]).not.toHaveProperty('handIds')
-        expect(OathRuntime.visibility.state.project(after, spectator).players[0].handCount).toBe(3)
+        expect(OathVisibility.state.project(after, p1).players[0].handIds).toEqual(drawn)
+        expect(OathVisibility.state.project(after, p2).players[0]).not.toHaveProperty('handIds')
+        expect(OathVisibility.state.project(after, spectator).players[0].handCount).toBe(3)
 
         const record = result.processedActions[0]
-        expect(OathRuntime.visibility.actions.project(record, p1)).toHaveProperty('metadata.draw')
-        expect(OathRuntime.visibility.actions.project(record, p2)).not.toHaveProperty('metadata.draw')
-        expect(JSON.stringify(OathRuntime.visibility.actions.project(record, spectator))).not.toContain('wayside-inn')
+        expect(OathVisibility.actions.project(record, p1)).toHaveProperty('metadata.draw')
+        expect(OathVisibility.actions.project(record, p2)).not.toHaveProperty('metadata.draw')
+        expect(JSON.stringify(OathVisibility.actions.project(record, spectator))).not.toContain('wayside-inn')
     })
 
     it('refuses to draw from a projection and defers to the host', () => {
@@ -207,7 +207,7 @@ describe('Oath visibility', () => {
         openTurn(board, 'p1')
         const state = canonical(board.dehydrate())
         const inn = buildAction(UseActionPower, { playerId: 'p1', cardId: 'denizen.hearth.wayside-inn', powerIndex: powerIndexOf('denizen.hearth.wayside-inn', PowerTiming.Action), index: state.actionCount })
-        const result = engine.executeAction({ action: inn, state: OathRuntime.visibility.state.project(state, p1), game, perspective: p1 })
+        const result = engine.executeAction({ action: inn, state: OathVisibility.state.project(state, p1), game, perspective: p1 })
         expect(result.processedActions[0].type).toBe(ActionType.UseActionPower)
     })
 
@@ -215,7 +215,7 @@ describe('Oath visibility', () => {
         const game = { ...buildGame(), status: GameStatus.Started, protectedInformation: true as const }
         const before = pilgrimageBoard()
         for (const perspective of [p1, p2, spectator]) {
-            const view = OathRuntime.visibility.state.project(before, perspective)
+            const view = OathVisibility.state.project(before, perspective)
             expect(view).not.toHaveProperty('vault')
             expect(view).not.toHaveProperty('dispossessedIds')
             expect(JSON.stringify(view)).not.toContain(DISPOSSESSED[0])
@@ -231,22 +231,22 @@ describe('Oath visibility', () => {
         expect(after.discardPileCounts.cradle).toBe(1)
 
         const record = result.processedActions[0]
-        const own = OathRuntime.visibility.actions.project(record, p1)
+        const own = OathVisibility.actions.project(record, p1)
         expect(own).toHaveProperty('metadata.reveal', { kind: 'peek', cardIds: drawn })
         expect(own).toHaveProperty('metadata.peeked', drawn)
         expect(own).toHaveProperty('metadata.pileDeposits', [{ region: 'cradle', cardIds: drawn }])
 
         for (const perspective of [p2, spectator]) {
-            const theirs = OathRuntime.visibility.actions.project(record, perspective)
+            const theirs = OathVisibility.actions.project(record, perspective)
             expect(theirs).not.toHaveProperty('metadata.reveal')
             expect(theirs).not.toHaveProperty('metadata.peeked')
             expect(theirs).toHaveProperty('metadata.pileDeposits', [{ region: 'cradle' }])
             expect(JSON.stringify(theirs)).not.toContain(drawn[0])
         }
         // The player who stacked it remembers where it lies; no one else does.
-        expect(OathRuntime.visibility.state.project(after, p1).players[0].knownDiscardPiles?.cradle).toEqual([drawn[0]])
+        expect(OathVisibility.state.project(after, p1).players[0].knownDiscardPiles?.cradle).toEqual([drawn[0]])
         for (const perspective of [p2, spectator]) {
-            const view = OathRuntime.visibility.state.project(after, perspective)
+            const view = OathVisibility.state.project(after, perspective)
             expect(view).not.toHaveProperty('vault')
             expect(JSON.stringify(view)).not.toContain(drawn[0])
         }
@@ -261,9 +261,9 @@ describe('Oath visibility', () => {
         expect(question).toMatchObject({ kind: PowerQuestionKind.OrderDrawnCards, askedPlayerId: 'p1' })
         const drawn = question?.kind === PowerQuestionKind.OrderDrawnCards ? question.cardIds : []
         expect(drawn).toHaveLength(2)
-        expect(OathRuntime.visibility.state.project(asked, p1).pendingQuestions?.queue[0]).toHaveProperty('cardIds', drawn)
+        expect(OathVisibility.state.project(asked, p1).pendingQuestions?.queue[0]).toHaveProperty('cardIds', drawn)
         for (const perspective of [p2, spectator]) {
-            const view = OathRuntime.visibility.state.project(asked, perspective)
+            const view = OathVisibility.state.project(asked, perspective)
             expect(view.pendingQuestions?.queue[0]).not.toHaveProperty('cardIds')
             for (const id of drawn) expect(JSON.stringify(view)).not.toContain(id)
         }
@@ -271,9 +271,9 @@ describe('Oath visibility', () => {
         const answered = engine.executeCanonicalAction({ action: userAction(asked, { type: ActionType.AnswerQuestion, playerId: 'p1', answer: { kind: PowerQuestionKind.OrderDrawnCards, order: [1, 0] } }), state: asked, game })
         expect(canonical(answered.updatedState).vault.discardPiles.cradle).toEqual(drawn)
         const answer = answered.processedActions[0]
-        expect(OathRuntime.visibility.actions.project(answer, p1)).toHaveProperty('metadata.pileDeposits', [{ region: 'cradle', cardIds: [drawn[1], drawn[0]] }])
+        expect(OathVisibility.actions.project(answer, p1)).toHaveProperty('metadata.pileDeposits', [{ region: 'cradle', cardIds: [drawn[1], drawn[0]] }])
         for (const perspective of [p2, spectator]) {
-            const theirs = OathRuntime.visibility.actions.project(answer, perspective)
+            const theirs = OathVisibility.actions.project(answer, perspective)
             expect(theirs).toHaveProperty('metadata.pileDeposits', [{ region: 'cradle' }])
             for (const id of drawn) expect(JSON.stringify(theirs)).not.toContain(id)
         }
@@ -287,19 +287,19 @@ describe('Oath visibility', () => {
         const asked = canonical(played.updatedState)
         const play = played.processedActions[0]
         expect(play.revealsInfo).toBe(true)
-        expect(OathRuntime.visibility.actions.project(play, p1)).toHaveProperty('metadata.peeked', [CUP])
-        expect(OathRuntime.visibility.state.project(asked, p1).pendingQuestions?.queue[0]).toHaveProperty('relicCardId', CUP)
+        expect(OathVisibility.actions.project(play, p1)).toHaveProperty('metadata.peeked', [CUP])
+        expect(OathVisibility.state.project(asked, p1).pendingQuestions?.queue[0]).toHaveProperty('relicCardId', CUP)
         for (const perspective of [p2, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(play, perspective))).not.toContain(CUP)
-            expect(JSON.stringify(OathRuntime.visibility.state.project(asked, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.actions.project(play, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.state.project(asked, perspective))).not.toContain(CUP)
         }
 
         const answered = engine.executeCanonicalAction({ action: userAction(asked, { type: ActionType.AnswerQuestion, playerId: 'p1', answer: { kind: PowerQuestionKind.KeepOrBottomRelic, keep: false } }), state: asked, game })
         const answer = answered.processedActions[0]
         expect(canonical(answered.updatedState).vault.relicDeck.at(-1)).toBe(CUP)
-        expect(OathRuntime.visibility.actions.project(answer, p1)).toHaveProperty('metadata.relicToDeckBottom', CUP)
+        expect(OathVisibility.actions.project(answer, p1)).toHaveProperty('metadata.relicToDeckBottom', CUP)
         for (const perspective of [p2, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(answer, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.actions.project(answer, perspective))).not.toContain(CUP)
         }
     })
 
@@ -311,7 +311,7 @@ describe('Oath visibility', () => {
         expect(canonical(result.updatedState).vault.relicDeck).not.toContain(CUP)
         expect(flip.revealsInfo).toBe(true)
         for (const perspective of [p2, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(flip, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.actions.project(flip, perspective))).not.toContain(CUP)
         }
     })
 
@@ -324,10 +324,10 @@ describe('Oath visibility', () => {
         const used = result.processedActions[0]
         const after = canonical(result.updatedState)
         expect(after.pendingQuestions?.queue[0]).toHaveProperty('relicCardId', CUP)
-        expect(OathRuntime.visibility.actions.project(used, p1)).toHaveProperty('metadata.peeked', [CUP])
+        expect(OathVisibility.actions.project(used, p1)).toHaveProperty('metadata.peeked', [CUP])
         for (const perspective of [p2, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(used, perspective))).not.toContain(CUP)
-            expect(JSON.stringify(OathRuntime.visibility.state.project(after, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.actions.project(used, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.state.project(after, perspective))).not.toContain(CUP)
         }
     })
 
@@ -341,7 +341,7 @@ describe('Oath visibility', () => {
         assert(isUseActionPower(used), 'the record is the Relic Breaker use')
         expect(JSON.stringify(used.metadata)).not.toContain(CUP)
         for (const perspective of [p1, p2, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(used, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.actions.project(used, perspective))).not.toContain(CUP)
         }
     })
 
@@ -360,20 +360,20 @@ describe('Oath visibility', () => {
         const after = canonical(result.updatedState)
         expect(after.players[0].advisers).toEqual([{ faceUp: false }])
         expect(after.players[0].adviserIds).toEqual([TUTOR])
-        expect(OathRuntime.visibility.state.project(after, p1).players[0].adviserIds).toEqual([TUTOR])
-        expect(OathRuntime.visibility.actions.project(result.processedActions[0], p1)).toHaveProperty('keptCardId', TUTOR)
+        expect(OathVisibility.state.project(after, p1).players[0].adviserIds).toEqual([TUTOR])
+        expect(OathVisibility.actions.project(result.processedActions[0], p1)).toHaveProperty('keptCardId', TUTOR)
         for (const perspective of [p2, spectator]) {
-            const view = OathRuntime.visibility.state.project(after, perspective)
+            const view = OathVisibility.state.project(after, perspective)
             expect(view.players[0]).not.toHaveProperty('adviserIds')
             expect(view.players[0].advisers).toEqual([{ faceUp: false }])
             expect(JSON.stringify(view)).not.toContain(TUTOR)
-            const record = OathRuntime.visibility.actions.project(result.processedActions[0], perspective)
+            const record = OathVisibility.actions.project(result.processedActions[0], perspective)
             expect(record).not.toHaveProperty('keptCardId')
             expect(JSON.stringify(record)).not.toContain(TUTOR)
             expect(JSON.stringify(record)).not.toContain(FILLER)
             expect(record).toMatchObject({ metadata: { discardedCount: 1 } })
         }
-        expect(OathRuntime.visibility.actions.project(result.processedActions[0], p1)).toMatchObject({ metadata: { discardedCardIds: [FILLER], discardedCount: 1 } })
+        expect(OathVisibility.actions.project(result.processedActions[0], p1)).toMatchObject({ metadata: { discardedCardIds: [FILLER], discardedCount: 1 } })
     })
 
     it("pays Wild Cry only for a card that shows, so a facedown adviser's suit stays with its holder", () => {
@@ -408,7 +408,7 @@ describe('Oath visibility', () => {
         expect(after.players[0].supply).toBe(3)
         expect(after.players[0].warbandsOnBoard).toEqual({ p1: 2 })
         for (const perspective of [p2, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(hidden.processedActions[0], perspective))).not.toContain('Wild Cry')
+            expect(JSON.stringify(OathVisibility.actions.project(hidden.processedActions[0], perspective))).not.toContain('Wild Cry')
         }
     })
 
@@ -419,9 +419,9 @@ describe('Oath visibility', () => {
         before.vault.worldDeck = [TUTOR, FAITH]
         const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.UseActionPower, playerId: 'p1', cardId: ORACULAR_PIG, powerIndex: 0 }), state: before, game })
         const used = result.processedActions[0]
-        expect(OathRuntime.visibility.actions.project(used, p1)).toHaveProperty('metadata.peeked', [TUTOR, FAITH])
+        expect(OathVisibility.actions.project(used, p1)).toHaveProperty('metadata.peeked', [TUTOR, FAITH])
         for (const perspective of [p2, spectator]) {
-            const record = JSON.stringify(OathRuntime.visibility.actions.project(used, perspective))
+            const record = JSON.stringify(OathVisibility.actions.project(used, perspective))
             expect(record).toContain('Oracular Pig: peeked at the top of the world deck')
             expect(record).not.toMatch(/top \d/)
         }
@@ -433,9 +433,9 @@ describe('Oath visibility', () => {
         const before = relicBoard(MachineState.Searching, [FILLER, 'denizen.hearth.storyteller'], full)
         const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.SearchResolve, playerId: 'p1', keptCardId: FILLER, discardOrder: ['denizen.hearth.storyteller'], play: SearchPlay.Adviser, faceUp: true, discardedAdviserCardIds: [TUTOR] }), state: before, game })
         const record = result.processedActions[0]
-        expect(OathRuntime.visibility.actions.project(record, p1)).toHaveProperty('discardedAdviserCardIds', [TUTOR])
+        expect(OathVisibility.actions.project(record, p1)).toHaveProperty('discardedAdviserCardIds', [TUTOR])
         for (const perspective of [p2, spectator]) {
-            const theirs = OathRuntime.visibility.actions.project(record, perspective)
+            const theirs = OathVisibility.actions.project(record, perspective)
             expect(theirs).not.toHaveProperty('discardedAdviserCardIds')
             expect(theirs).toHaveProperty('metadata.playedCardId', FILLER)
             expect(JSON.stringify(theirs)).not.toContain(TUTOR)
@@ -453,11 +453,11 @@ describe('Oath visibility', () => {
         const owner = { kind: 'player', playerId: seat.playerId } as const
         const other = { kind: 'player', playerId: state.players.find((player) => player.playerId !== seat.playerId)?.playerId ?? '' } as const
         const index = after.players.findIndex((player) => player.playerId === seat.playerId)
-        expect(OathRuntime.visibility.state.project(after, owner).players[index].adviserIds).toEqual([kept])
-        expect(OathRuntime.visibility.actions.project(result.processedActions[0], owner)).toHaveProperty('adviserCardId', kept)
+        expect(OathVisibility.state.project(after, owner).players[index].adviserIds).toEqual([kept])
+        expect(OathVisibility.actions.project(result.processedActions[0], owner)).toHaveProperty('adviserCardId', kept)
         for (const perspective of [other, spectator]) {
-            expect(OathRuntime.visibility.state.project(after, perspective).players[index]).not.toHaveProperty('adviserIds')
-            const record = OathRuntime.visibility.actions.project(result.processedActions[0], perspective)
+            expect(OathVisibility.state.project(after, perspective).players[index]).not.toHaveProperty('adviserIds')
+            const record = OathVisibility.actions.project(result.processedActions[0], perspective)
             expect(record).not.toHaveProperty('adviserCardId')
             expect(JSON.stringify(record)).not.toContain(kept)
         }
@@ -468,10 +468,10 @@ describe('Oath visibility', () => {
         const before = relicBoard(MachineState.ActPhase, [], [{ cardId: TUTOR, faceUp: false }])
         const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.PlayFacedownAdviser, playerId: 'p1', cardId: TUTOR, play: SearchPlay.Discard }), state: before, game })
         const record = result.processedActions[0]
-        expect(OathRuntime.visibility.actions.project(record, p1)).toHaveProperty('cardId', TUTOR)
+        expect(OathVisibility.actions.project(record, p1)).toHaveProperty('cardId', TUTOR)
         expect(JSON.stringify(record)).not.toContain('playedCardId')
         for (const perspective of [p2, spectator]) {
-            const theirs = OathRuntime.visibility.actions.project(record, perspective)
+            const theirs = OathVisibility.actions.project(record, perspective)
             expect(theirs).not.toHaveProperty('cardId')
             expect(JSON.stringify(theirs)).not.toContain(TUTOR)
         }
@@ -485,15 +485,15 @@ describe('Oath visibility', () => {
         const after = canonical(result.updatedState)
         expect(after.relicsBySite['c1']).toEqual([{ slotId: 'c1.relic.0' }])
         expect(after.vault.relicFacedown['c1.relic.0']).toBe(CUP)
-        expect(OathRuntime.visibility.state.project(after, p1).players[0].peekedRelics).toEqual({ 'c1.relic.0': CUP })
+        expect(OathVisibility.state.project(after, p1).players[0].peekedRelics).toEqual({ 'c1.relic.0': CUP })
         const record = result.processedActions[0]
-        expect(OathRuntime.visibility.actions.project(record, p1)).toHaveProperty('metadata.relicCardId', CUP)
+        expect(OathVisibility.actions.project(record, p1)).toHaveProperty('metadata.relicCardId', CUP)
         for (const perspective of [p2, spectator]) {
-            const view = OathRuntime.visibility.state.project(after, perspective)
+            const view = OathVisibility.state.project(after, perspective)
             expect(view.players[0]).not.toHaveProperty('peekedRelics')
             expect(view.players[0].peekedRelicSlotIds).toEqual(['c1.relic.0'])
             expect(JSON.stringify(view)).not.toContain(CUP)
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(record, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.actions.project(record, perspective))).not.toContain(CUP)
         }
     })
 
@@ -507,11 +507,11 @@ describe('Oath visibility', () => {
         expect(holder.playerId).toBe(state.chancellorPlayerId)
         expect(holder.peekedRelicSlotIds).toEqual(slots)
 
-        const own = OathRuntime.visibility.state.project(state, { kind: 'player', playerId: holder.playerId })
+        const own = OathVisibility.state.project(state, { kind: 'player', playerId: holder.playerId })
         expect(own.players.find((player) => player.playerId === holder.playerId)?.peekedRelics).toEqual(Object.fromEntries(slots.map((slotId, i) => [slotId, relics[i]])))
         const exile = required(state.players.find((player) => player.playerId !== holder.playerId), 'an Exile')
         for (const perspective of [{ kind: 'player', playerId: exile.playerId } as const, spectator]) {
-            const view = JSON.stringify(OathRuntime.visibility.state.project(state, perspective))
+            const view = JSON.stringify(OathVisibility.state.project(state, perspective))
             for (const relic of relics) expect(view).not.toContain(`"${relic}"`)
         }
     })
@@ -524,10 +524,10 @@ describe('Oath visibility', () => {
         before.players[1].relicIds = [GRAND_SCEPTER_ID]
         const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.EndActPhase, playerId: 'p1' }), state: before, game })
         const after = canonical(result.updatedState)
-        expect(OathRuntime.visibility.state.project(after, p2).players[1].peekedRelics).toEqual({ 'reliquary.0': CUP })
+        expect(OathVisibility.state.project(after, p2).players[1].peekedRelics).toEqual({ 'reliquary.0': CUP })
         expect(result.processedActions[0].revealsInfo).toBe(true)
         for (const perspective of [p1, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.state.project(after, perspective))).not.toContain(`"${CUP}"`)
+            expect(JSON.stringify(OathVisibility.state.project(after, perspective))).not.toContain(`"${CUP}"`)
         }
     })
 
@@ -535,9 +535,9 @@ describe('Oath visibility', () => {
     it('shows the relic Fae Merchant draws to its user alone while they choose what goes down', () => {
         const state = relicBoard(MachineState.ActPhase, [])
         state.pendingQuestions = { queue: [{ kind: PowerQuestionKind.BottomRelic, cardId: 'denizen.beast.fae-merchant', askedPlayerId: 'p1', relicCardId: CUP }], askingPlayerId: 'p1', resumeMachineState: MachineState.ActPhase }
-        expect(OathRuntime.visibility.state.project(state, p1).pendingQuestions?.queue[0]).toHaveProperty('relicCardId', CUP)
+        expect(OathVisibility.state.project(state, p1).pendingQuestions?.queue[0]).toHaveProperty('relicCardId', CUP)
         for (const perspective of [p2, spectator]) {
-            const view = OathRuntime.visibility.state.project(state, perspective)
+            const view = OathVisibility.state.project(state, perspective)
             expect(view.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.BottomRelic })
             expect(JSON.stringify(view)).not.toContain(CUP)
         }
@@ -550,21 +550,21 @@ describe('Oath visibility', () => {
         const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.LetPeek, outOfTurn: true, sequenced: true, playerId: 'p1', toPlayerId: 'p2', subject: { kind: LetPeekSubjectKind.Adviser, cardId: TUTOR } }), state: before, game })
         const record = result.processedActions[0]
         expect(record.revealsInfo).toBe(true)
-        expect(OathRuntime.visibility.actions.project(record, p1)).toHaveProperty('subject.cardId', TUTOR)
-        expect(OathRuntime.visibility.actions.project(record, p2)).toHaveProperty('subject.cardId', TUTOR)
+        expect(OathVisibility.actions.project(record, p1)).toHaveProperty('subject.cardId', TUTOR)
+        expect(OathVisibility.actions.project(record, p2)).toHaveProperty('subject.cardId', TUTOR)
         const p3 = { kind: 'player', playerId: 'p3' } as const
         for (const perspective of [p3, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(record, perspective))).not.toContain(TUTOR)
-            expect(JSON.stringify(OathRuntime.visibility.state.project(canonical(result.updatedState), perspective))).not.toContain(TUTOR)
+            expect(JSON.stringify(OathVisibility.actions.project(record, perspective))).not.toContain(TUTOR)
+            expect(JSON.stringify(OathVisibility.state.project(canonical(result.updatedState), perspective))).not.toContain(TUTOR)
         }
         // R-9.4 — the shown player keeps seeing the face while the card stays there facedown; the row says who was shown.
         const after = canonical(result.updatedState)
-        const row = OathRuntime.visibility.state.project(after, p2).players[0].advisers[0]
+        const row = OathVisibility.state.project(after, p2).players[0].advisers[0]
         expect(row).toMatchObject({ faceUp: false, shownTo: ['p2'], shownCardId: TUTOR })
-        expect(OathRuntime.visibility.state.project(after, p3).players[0].advisers[0]).not.toHaveProperty('shownCardId')
+        expect(OathVisibility.state.project(after, p3).players[0].advisers[0]).not.toHaveProperty('shownCardId')
         const gone = new HydratedOathGameState(after)
         gone.getPlayerState('p1').removeAdviser(TUTOR)
-        expect(JSON.stringify(OathRuntime.visibility.state.project(canonical(gone.dehydrate()), p2))).not.toContain(TUTOR)
+        expect(JSON.stringify(OathVisibility.state.project(canonical(gone.dehydrate()), p2))).not.toContain(TUTOR)
     })
 
     // R-6.6.1
@@ -578,12 +578,12 @@ describe('Oath visibility', () => {
         const record = result.processedActions[0]
         const after = canonical(result.updatedState)
         expect(record.revealsInfo).toBe(true)
-        expect(OathRuntime.visibility.actions.project(record, p2)).toHaveProperty('metadata.relicCardId', CUP)
-        expect(OathRuntime.visibility.state.project(after, p2).players[1].peekedRelics).toEqual({ 'reliquary.0': CUP })
+        expect(OathVisibility.actions.project(record, p2)).toHaveProperty('metadata.relicCardId', CUP)
+        expect(OathVisibility.state.project(after, p2).players[1].peekedRelics).toEqual({ 'reliquary.0': CUP })
         const p3 = { kind: 'player', playerId: 'p3' } as const
         for (const perspective of [p1, p3, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(record, perspective))).not.toContain(CUP)
-            expect(JSON.stringify(OathRuntime.visibility.state.project(after, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.actions.project(record, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.state.project(after, perspective))).not.toContain(CUP)
         }
     })
 
@@ -595,11 +595,11 @@ describe('Oath visibility', () => {
         const result = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.UseActionPower, playerId: 'p1', cardId: INQUISITOR, powerIndex: powerIndexOf(INQUISITOR, PowerTiming.Action), choices: [{ kind: 'facedownAdviser', playerId: 'p2', index: 0 }] }), state: before, game })
         const record = result.processedActions[0]
         expect(record.revealsInfo).toBe(true)
-        expect(OathRuntime.visibility.actions.project(record, p1)).toHaveProperty('metadata.peeked', [TUTOR])
+        expect(OathVisibility.actions.project(record, p1)).toHaveProperty('metadata.peeked', [TUTOR])
         const p3 = { kind: 'player', playerId: 'p3' } as const
         for (const perspective of [p3, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(record, perspective))).not.toContain(TUTOR)
-            expect(JSON.stringify(OathRuntime.visibility.state.project(canonical(result.updatedState), perspective))).not.toContain(TUTOR)
+            expect(JSON.stringify(OathVisibility.actions.project(record, perspective))).not.toContain(TUTOR)
+            expect(JSON.stringify(OathVisibility.state.project(canonical(result.updatedState), perspective))).not.toContain(TUTOR)
         }
     })
 
@@ -615,21 +615,21 @@ describe('Oath visibility', () => {
         const used = engine.executeCanonicalAction({ action: userAction(before, { type: ActionType.UseActionPower, playerId: 'p1', cardId: SKELETON_KEY, powerIndex: powerIndexOf(SKELETON_KEY, PowerTiming.Action), choices: [{ kind: 'relicSlot', slotId: 'reliquary.0' }] }), state: before, game })
         const asked = canonical(used.updatedState)
         expect(asked.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.TakeOrLeaveRelic, askedPlayerId: 'p1', relicCardId: CUP })
-        expect(OathRuntime.visibility.state.project(asked, p1).pendingQuestions?.queue[0]).toHaveProperty('relicCardId', CUP)
+        expect(OathVisibility.state.project(asked, p1).pendingQuestions?.queue[0]).toHaveProperty('relicCardId', CUP)
         for (const perspective of [p2, spectator]) {
-            const view = OathRuntime.visibility.state.project(asked, perspective)
+            const view = OathVisibility.state.project(asked, perspective)
             expect(view.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.TakeOrLeaveRelic, slotId: 'reliquary.0' })
             expect(view.pendingQuestions?.queue[0]).not.toHaveProperty('relicCardId')
             expect(JSON.stringify(view)).not.toContain(CUP)
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(used.processedActions[0], perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.actions.project(used.processedActions[0], perspective))).not.toContain(CUP)
         }
 
         const left = engine.executeCanonicalAction({ action: userAction(asked, { type: ActionType.AnswerQuestion, playerId: 'p1', answer: { kind: PowerQuestionKind.TakeOrLeaveRelic, take: false } }), state: asked, game })
         const after = canonical(left.updatedState)
         expect(after.vault.relicFacedown['reliquary.0']).toBe(CUP)
         for (const perspective of [p2, spectator]) {
-            expect(JSON.stringify(OathRuntime.visibility.state.project(after, perspective))).not.toContain(CUP)
-            expect(JSON.stringify(OathRuntime.visibility.actions.project(left.processedActions[0], perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.state.project(after, perspective))).not.toContain(CUP)
+            expect(JSON.stringify(OathVisibility.actions.project(left.processedActions[0], perspective))).not.toContain(CUP)
         }
     })
 
@@ -644,11 +644,11 @@ describe('Oath visibility', () => {
         expect(after.pendingQuestions?.queue[0]).toEqual({ kind: PowerQuestionKind.PlayOrDiscardConspiracy, cardId: INQUISITOR, askedPlayerId: 'p1', holderPlayerId: 'p2', index: 0 })
         const p3 = { kind: 'player', playerId: 'p3' } as const
         for (const perspective of [p3, spectator]) {
-            const view = OathRuntime.visibility.state.project(after, perspective)
+            const view = OathVisibility.state.project(after, perspective)
             expect(view.pendingQuestions?.queue[0]).toEqual(after.pendingQuestions?.queue[0])
             expect(view.players[1]).not.toHaveProperty('adviserIds')
             expect(JSON.stringify(view)).not.toContain(TUTOR)
-            const record = OathRuntime.visibility.actions.project(result.processedActions[0], perspective)
+            const record = OathVisibility.actions.project(result.processedActions[0], perspective)
             expect(record).toHaveProperty('metadata.summary', "Inquisitor: p2's adviser is the Conspiracy — play it, or discard it")
             expect(record).not.toHaveProperty('metadata.peeked')
             expect(JSON.stringify(record)).not.toContain(TUTOR)
@@ -665,13 +665,13 @@ describe('Oath visibility', () => {
         const after = canonical(result.updatedState)
         expect(after.players[0].adviserIds).toEqual([FALSE_PROPHET, FILLER, FAITH])
         const record = result.processedActions[0]
-        expect(OathRuntime.visibility.actions.project(record, p1)).toHaveProperty('answer.discardedAdviserCardId', TUTOR)
+        expect(OathVisibility.actions.project(record, p1)).toHaveProperty('answer.discardedAdviserCardId', TUTOR)
         for (const perspective of [p2, spectator]) {
-            const theirs = OathRuntime.visibility.actions.project(record, perspective)
+            const theirs = OathVisibility.actions.project(record, perspective)
             expect(theirs).not.toHaveProperty('answer.discardedAdviserCardId')
             expect(theirs).toHaveProperty('metadata.summary', `played ${FAITH} (adviser)`)
             expect(JSON.stringify(theirs)).not.toContain(TUTOR)
-            expect(JSON.stringify(OathRuntime.visibility.state.project(after, perspective))).not.toContain(TUTOR)
+            expect(JSON.stringify(OathVisibility.state.project(after, perspective))).not.toContain(TUTOR)
         }
     })
 
@@ -682,7 +682,7 @@ describe('Oath visibility', () => {
         before.players[1].advisers = [{ faceUp: false }]
         before.players[1].adviserIds = ['denizen.nomad.tents']
         const canonicalOffer = engine.getValidActionTypesForPlayer(game, before, 'p1')
-        const projected = OathRuntime.visibility.state.project(before, p1)
+        const projected = OathVisibility.state.project(before, p1)
         expect(projected.players[1]).not.toHaveProperty('adviserIds')
         expect(canonicalOffer).toContain(ActionType.UseActionPower)
         expect(engine.getValidActionTypesForPlayer(game, projected, 'p1', { perspective: p1 })).toEqual(canonicalOffer)

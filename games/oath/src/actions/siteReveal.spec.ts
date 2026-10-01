@@ -1,7 +1,7 @@
 import { RunMode, vaultOf, engine } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
 import { describe, expect, it } from 'vitest'
-import { assert, assertExists } from '@tabletop/common'
+import { assert, assertExists, type Visibility } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { SetupChoice } from './setupChoice.js'
@@ -10,13 +10,14 @@ import { siteRevealPrompt } from '../data/cardRegistry.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { SetupVariant } from '../model/oathEnums.js'
 import { testGame } from '../testing/game.js'
+import { OathVisibility } from '../definition/runtime.js'
 
 /** R-5.6.2, R-2.8.2 — dealt for real, because `testState` makes every slot faceup. */
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
 function ready() {
-    // Pinned to Curated because the seeded deal depends on the deck variant.
-    const game = testGame(['p1', 'p2'], { seed: 3, config: { setupVariant: SetupVariant.Curated } })
+    // Pinned to the random deck because the seeded deal depends on the deck variant.
+    const game = testGame(['p1', 'p2'], { seed: 3, config: { setupVariant: SetupVariant.Randomized } })
     const { initialState } = engine.startGame(game, { masterSeed: MASTER_SEED })
     let current = initialState
 
@@ -89,11 +90,18 @@ describe('R-5.6.2 — travelling onto a facedown site reveals it', () => {
         expect(reveal?.revealedSiteCardId).toBe(siteCardId)
         expect(reveal?.relicsRevealed).toBe(expected)
 
-        // The processed action is broadcast, so it must not name any drawn relic.
+        // What every seat and a spectator are served of the action must not name any drawn relic;
+        // the canonical undo patch is host-only and never served.
         const drawn = slots.map((slot) => vaultOf(updatedState).relicFacedown[slot.slotId])
-        const serialized = JSON.stringify(processedActions[0])
-        for (const cardId of drawn) {
-            expect(serialized, `${cardId} leaked onto the action`).not.toContain(cardId)
+        const perspectives: Visibility.Perspective[] = [
+            { kind: 'spectator' },
+            ...state.turnManager.turnOrder.map((id): Visibility.Perspective => ({ kind: 'player', playerId: id }))
+        ]
+        for (const perspective of perspectives) {
+            const serialized = JSON.stringify(OathVisibility.actions.project(processedActions[0], perspective))
+            for (const cardId of drawn) {
+                expect(serialized, `${cardId} leaked onto the action served to ${JSON.stringify(perspective)}`).not.toContain(cardId)
+            }
         }
     })
 

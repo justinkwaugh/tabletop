@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { required } from '../testing/required.js'
 import { ExplorationHistory, GameStatus, GameStorage, assert, deriveGameSeeds } from '@tabletop/common'
 import { engine } from '../testing/engine.js'
 import { OathRuntime } from './runtime.js'
@@ -28,7 +29,7 @@ function source(): OathGameState {
 function explore(state: OathGameState, branchSeed = 'fedcba9876543210fedcba9876543210'): OathGameState {
     const prepared = history.prepareState(state)
     prepared.protectedPrng = { algorithm: 'chacha20-v1', seed: deriveGameSeeds(branchSeed).protectedSeed, invocations: 0 }
-    return canonical(OathRuntime.exploration.createFromCanonicalState(prepared))
+    return canonical(required(OathRuntime.exploration, 'Oath declares exploration').createFromCanonicalState(prepared))
 }
 
 const BRANCH_SEEDS = ['00000000000000000000000000000001', '00000000000000000000000000000002', '00000000000000000000000000000003', '00000000000000000000000000000004']

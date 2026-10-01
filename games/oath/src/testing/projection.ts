@@ -4,7 +4,7 @@ import {
     OathGameStateValidator,
     type OathProjectedState
 } from '../model/gameState.js'
-import { OathRuntime } from '../definition/runtime.js'
+import { OathVisibility } from '../definition/runtime.js'
 
 export const spectator: Visibility.Perspective = { kind: 'spectator' }
 
@@ -16,7 +16,7 @@ export function served(
     const data = state instanceof HydratedOathGameState ? state.dehydrate() : state
     if (!OathGameStateValidator.Check(data))
         throw Error('Serving requires complete canonical state')
-    return OathRuntime.visibility.state.project(data, perspective)
+    return OathVisibility.state.project(data, perspective)
 }
 
 export function servedJson(

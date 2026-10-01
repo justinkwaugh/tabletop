@@ -1,7 +1,6 @@
 import { shuffle, type RandomFunction } from '@tabletop/common'
 import { CardKind, Suit } from '../model/oathEnums.js'
-import { cardDefinition, cardIdsOfKind, kindOf, suitOf } from './cardRegistry.js'
-import { bySuit } from './typedData.js'
+import { cardIdsOfKind, suitOf } from './cardRegistry.js'
 
 /** R-8.8 — the top pile: 10 denizens with 2 Visions shuffled in. */
 export const TOP_PILE_DENIZENS = 10
@@ -18,16 +17,8 @@ export const CIRCULATING_DENIZENS = DENIZENS_PER_SUIT_IN_PLAY * 6
 export const CARDS_IN_PLAY = CIRCULATING_DENIZENS + TOTAL_VISIONS
 
 /** R-9.4 — `random` is the protected stream. */
-export function composeFirstGameDeck(
-    random: RandomFunction,
-    curated?: readonly string[]
-): string[] {
+export function composeFirstGameDeck(random: RandomFunction): string[] {
     const inPlay: string[] = []
-
-    if (curated) {
-        const invalid = reasonCuratedDeckInvalid(curated)
-        if (invalid) throw Error(`Curated first-game deck is not legal: ${invalid}`)
-    }
 
     for (const suit of Object.values(Suit)) {
         const ofSuit = cardIdsOfKind(CardKind.Denizen).filter((id) => suitOf(id) === suit)
@@ -37,13 +28,7 @@ export function composeFirstGameDeck(
                     `play; the ${suit} shard holds ${ofSuit.length}`
             )
         }
-        // Shuffled in both variants so Curated consumes the vault prng exactly as Randomized does.
         shuffle(ofSuit, random)
-        if (curated) {
-            const chosen = new Set(curated.filter((id) => suitOf(id) === suit))
-            inPlay.push(...ofSuit.filter((id) => chosen.has(id)))
-            continue
-        }
         inPlay.push(...ofSuit.slice(0, DENIZENS_PER_SUIT_IN_PLAY))
     }
 
@@ -116,25 +101,3 @@ export function setupDrawTotal(playerCount: number): number {
 export const SETUP_DISCARD_SEED_CARDS = 3
 /** R-1.20 */
 export const SETUP_HAND_SIZE = 3
-
-export function reasonCuratedDeckInvalid(ids: readonly string[]): string | undefined {
-    const seen = new Set<string>()
-    const perSuit = bySuit(() => 0)
-    for (const id of ids) {
-        if (seen.has(id)) return `${id} appears twice`
-        seen.add(id)
-        // `kindOf` reads the id's prefix, so a mistyped id still needs the registry check.
-        if (!cardDefinition(id) || kindOf(id) !== CardKind.Denizen) {
-            return `${id} is not a registered denizen`
-        }
-        const suit = suitOf(id)
-        if (!suit) return `${id} has no suit`
-        perSuit[suit] += 1
-    }
-    for (const suit of Object.values(Suit)) {
-        if (perSuit[suit] !== DENIZENS_PER_SUIT_IN_PLAY) {
-            return `${suit} has ${perSuit[suit]} denizens; a first game needs ${DENIZENS_PER_SUIT_IN_PLAY}`
-        }
-    }
-    return undefined
-}

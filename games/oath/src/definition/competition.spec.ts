@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { required } from '../testing/required.js'
 import {
     ActionSource,
     GameResult,
@@ -12,9 +13,9 @@ import { engine } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
 import { waitingGame } from '../testing/game.js'
 import { OathGameInitializer } from './initializer.js'
-import { OathRuntime } from './runtime.js'
+import { OathRuntime, OathVisibility } from './runtime.js'
 import { MachineState } from './states.js'
-import { Banner, OathType, PlayerStatus, SetupVariant } from '../model/oathEnums.js'
+import { Banner, OathType, PlayerStatus } from '../model/oathEnums.js'
 import {
     HydratedOathGameState,
     OathGameStateValidator,
@@ -35,10 +36,8 @@ import { OathImperialColor } from './colors.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
-/** R-1.1, R-1.13 — both options change setup: the deck and sites, and who holds a banner. */
-const CONFIGS = Object.values(SetupVariant).flatMap((setupVariant) =>
-    Object.values(OathType).map((oathType) => ({ setupVariant, oathType }))
-)
+/** R-1.13 — the Oath changes setup: who holds a banner. The deck has one option, Random. */
+const CONFIGS = Object.values(OathType).map((oathType) => ({ oathType }))
 
 /** R-1.13 — the banner the Chancellor starts with, if the Oath gives one. */
 const OATH_BANNER: Partial<Record<OathType, Banner>> = {
@@ -83,7 +82,7 @@ function playSetup(game: Game, initial: OathProjectedState) {
     return { state, actors }
 }
 
-describe.each(CONFIGS)('Oath tournaments, $setupVariant deck, $oathType', (config) => {
+describe.each(CONFIGS)('Oath tournaments, $oathType', (config) => {
     describe.each([2, 3, 4, 5, 6])('with %i players', (count) => {
         it('R-1.7 — position zero is the Chancellor, and every seat keeps its assigned place through setup', () => {
             const game = waitingGame(count, config)
@@ -186,16 +185,17 @@ function expectOneScoredWinner(game: Game, finished: OathProjectedState, winnerI
     expect(finished.winningPlayerIds).toEqual([winnerId])
     expect(() => validateGameResult(finished)).not.toThrow()
 
-    const finalScores = OathRuntime.scoring.finalScores(finished)
+    const scoring = required(OathRuntime.scoring, 'Oath declares its final scores')
+    const finalScores = scoring.finalScores(finished)
     expect(finalScores).toEqual(
         Object.fromEntries(game.players.map((player) => [player.id, player.id === winnerId ? 1 : 0]))
     )
-    const spectatorView = OathRuntime.visibility.state.project(
+    const spectatorView = OathVisibility.state.project(
         finished,
         { kind: 'spectator' },
         { config: game.config }
     )
-    expect(OathRuntime.scoring.finalScores(spectatorView)).toEqual(finalScores)
+    expect(scoring.finalScores(spectatorView)).toEqual(finalScores)
 }
 
 /** R-3.3 ends a passive game in rounds five to seven, R-3.4 at the end of the eighth; the first seed ending in `rounds`. */

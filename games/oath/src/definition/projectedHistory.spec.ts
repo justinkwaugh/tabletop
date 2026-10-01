@@ -3,7 +3,7 @@ import { GameStatus, Visibility, assert, type GameAction } from '@tabletop/commo
 import { engine } from '../testing/engine.js'
 import { buildAction } from '../testing/actions.js'
 import { waitingGame } from '../testing/game.js'
-import { OathRuntime } from './runtime.js'
+import { OathRuntime, OathVisibility } from './runtime.js'
 import { MachineState } from './states.js'
 import { HydratedOathGameState, OathGameStateValidator, type OathGameState, type OathProjectedState } from '../model/gameState.js'
 import { SetupVariant } from '../model/oathEnums.js'
@@ -32,7 +32,7 @@ function canonical(state: unknown): OathGameState {
 
 /** A protected three-seat game, set up and into the Chancellor's first Act Phase. */
 function table() {
-    const game = { ...waitingGame(3, { setupVariant: SetupVariant.Curated }), status: GameStatus.Started, protectedInformation: true as const }
+    const game = { ...waitingGame(3, { setupVariant: SetupVariant.Randomized }), status: GameStatus.Started, protectedInformation: true as const }
     let state = engine.startGame(game, { masterSeed: MASTER_SEED }).initialState
     while (state.machineState === MachineState.Setup) {
         const hydrated = new HydratedOathGameState(state)
@@ -57,7 +57,7 @@ function perspectivesOf(state: OathGameState): Visibility.Perspective[] {
 }
 
 function project(state: OathGameState, perspective: Visibility.Perspective): OathProjectedState {
-    return OathRuntime.visibility.state.project(state, perspective)
+    return OathVisibility.state.project(state, perspective)
 }
 
 describe('projected history around Peek, LetPeek, Search and SearchResolve', () => {
@@ -91,7 +91,7 @@ describe('projected history around Peek, LetPeek, Search and SearchResolve', () 
                 currentState: state,
                 startIndex: start.actionCount,
                 actions,
-                visibility: OathRuntime.visibility,
+                visibility: OathVisibility,
                 perspective,
                 replay: { game, runtime: OathRuntime }
             })
@@ -181,7 +181,7 @@ describe('Truthful Harp keeps the order of its discards to the searcher', () => 
         for (const perspective of perspectivesOf(oneState).filter((p) => p.kind !== 'player' || p.playerId !== chancellor)) {
             expect(project(oneState, perspective)).toEqual(project(twoState, perspective))
             const historyOf = (currentState: OathGameState, actions: readonly GameAction[]) =>
-                Visibility.projectActionHistory({ game, currentState, startIndex: searching.actionCount, actions, visibility: OathRuntime.visibility, perspective, replay: { game, runtime: OathRuntime } }).actions
+                Visibility.projectActionHistory({ game, currentState, startIndex: searching.actionCount, actions, visibility: OathVisibility, perspective, replay: { game, runtime: OathRuntime } }).actions
             expect(seen(historyOf(oneState, one.processedActions))).toEqual(seen(historyOf(twoState, two.processedActions)))
         }
     })

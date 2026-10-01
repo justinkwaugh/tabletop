@@ -23,9 +23,7 @@ export enum OathType {
 
 /** R-1.1, R-1.21 */
 export enum SetupVariant {
-    Randomized = 'randomized',
-    /** `PLAYTEST_DECK` pins the composition; the order still comes from the vault seed. */
-    Curated = 'curated'
+    Randomized = 'randomized'
 }
 
 /** R-1.4, R-9.3 — favor is component-limited; the total is a conservation invariant. */
