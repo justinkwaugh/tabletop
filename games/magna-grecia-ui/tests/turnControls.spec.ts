@@ -35,9 +35,7 @@ async function createGame(page: Page) {
     await page.goto('/')
     await page.getByRole('button', { name: 'New game', exact: true }).click()
     await page.getByPlaceholder('choose a name for your game').fill('Turn controls')
-    await page
-        .getByPlaceholder('optional reproduction seed')
-        .fill('0123456789abcdef0123456789abcdef')
+    await page.getByPlaceholder('optional reproduction seed').fill('12345')
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
