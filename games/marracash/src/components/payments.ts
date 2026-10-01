@@ -19,3 +19,13 @@ export function auctioneerCut(winningBid: number): number {
 export function isWholeDirhamAmount(amount: number): boolean {
     return Number.isInteger(amount) && amount >= 0 && amount % DirhamIncrement === 0
 }
+
+const LowMoverCutPerCustomer = 50
+const HighMoverCutPerCustomer = 100
+const LowMoverCutProfitLimit = 300
+
+export function moverCut(ownerIncome: number, customers: number): number {
+    const perCustomer =
+        ownerIncome <= LowMoverCutProfitLimit ? LowMoverCutPerCustomer : HighMoverCutPerCustomer
+    return perCustomer * customers
+}

@@ -2,6 +2,7 @@ import {
     assert,
     assertExists,
     AuctionType,
+    CardinalDirection,
     GameResult,
     GameState,
     HydratableGameState,
@@ -15,12 +16,19 @@ import {
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
-import { MarketColor } from '../definition/marketColor.js'
-import { AntiqueDeck, HydratedAntiqueDeck } from '../components/antiques.js'
+import { emptyColorCounts, MarketColor } from '../definition/marketColor.js'
+import {
+    Antique,
+    AntiqueDeck,
+    antiqueSetPayout,
+    coversAntiqueSet,
+    HydratedAntiqueDeck
+} from '../components/antiques.js'
 import {
     fountainsNextToShop,
     FountainIds,
     getShop,
+    routeFrom,
     ShopIds,
     type FountainId,
     type ShopId
@@ -29,12 +37,14 @@ import {
     auctioneerCut,
     customerPayment,
     MaxShopsPerPlayer,
-    MinimumAuctionBid
+    MinimumAuctionBid,
+    moverCut
 } from '../components/payments.js'
 import { HydratedMarracashPlayerState, MarracashPlayerState } from './playerState.js'
 
 export enum TurnAction {
-    Auction = 'auction'
+    Auction = 'auction',
+    Move = 'move'
 }
 
 export const ActionsPerTurn = 2
@@ -75,6 +85,29 @@ export const AuctionResult = Type.Object({
     pullIns: Type.Array(PullIn)
 })
 
+export type ShopEntry = Type.Static<typeof ShopEntry>
+export const ShopEntry = Type.Object({
+    shopId: Type.Enum(ShopIds),
+    ownerId: Type.String(),
+    customers: Type.Number(),
+    income: Type.Number(),
+    moverCut: Type.Number()
+})
+
+export type MoveResult = Type.Static<typeof MoveResult>
+export const MoveResult = Type.Object({
+    destinationId: Type.Enum(FountainIds),
+    entries: Type.Array(ShopEntry),
+    arrivals: Type.Array(Type.Enum(MarketColor))
+})
+
+export type AntiqueSetResult = Type.Static<typeof AntiqueSetResult>
+export const AntiqueSetResult = Type.Object({
+    cards: Type.Array(Antique),
+    rank: Type.Number(),
+    payout: Type.Number()
+})
+
 export type MarracashGameState = Type.Static<typeof MarracashGameState>
 export const MarracashGameState = Type.Evaluate(
     Type.Intersect([
@@ -89,7 +122,9 @@ export const MarracashGameState = Type.Evaluate(
             round: Type.Number(),
             turnActions: Type.Array(Type.Enum(TurnAction)),
             auction: Type.Optional(SimultaneousAuction),
-            auctionShopId: Type.Optional(Type.Enum(ShopIds))
+            auctionShopId: Type.Optional(Type.Enum(ShopIds)),
+            pendingAntiqueSets: Type.Array(Type.String()),
+            antiqueRevealOrder: Type.Array(Type.String())
         })
     ])
 )
@@ -123,6 +158,8 @@ export class HydratedMarracashGameState extends HydratableGameState<
     declare turnActions: TurnAction[]
     declare auction?: HydratedSimultaneousAuction
     declare auctionShopId?: ShopId
+    declare pendingAntiqueSets: string[]
+    declare antiqueRevealOrder: string[]
 
     constructor(data: MarracashProjectedState) {
         super(data, MarracashProjectedStateValidator)
@@ -167,6 +204,69 @@ export class HydratedMarracashGameState extends HydratableGameState<
             this.ownedShopCount(playerId) < MaxShopsPerPlayer &&
             this.getPlayerState(playerId).getMoney() >= MinimumAuctionBid
         )
+    }
+
+    hasVisitorsToMove(): boolean {
+        return this.fountains.some((fountain) => fountain.visitors.length > 0)
+    }
+
+    canMoveVisitors(): boolean {
+        return (
+            this.round > 1 &&
+            this.canTakeTurnAction() &&
+            !this.turnActions.includes(TurnAction.Auction) &&
+            this.hasVisitorsToMove()
+        )
+    }
+
+    moveVisitors(
+        moverId: string,
+        fountainId: FountainId,
+        direction: CardinalDirection
+    ): MoveResult {
+        const route = routeFrom(fountainId, direction)
+        assertExists(route, `No route leaves fountain ${fountainId} heading ${direction}`)
+        const origin = this.getFountainState(fountainId)
+        assert(origin.visitors.length > 0, `Fountain ${fountainId} has no visitors to move`)
+
+        let walking = origin.visitors
+        origin.visitors = []
+        const entries: ShopEntry[] = []
+        for (const shopId of route.shopsPassed) {
+            const ownerId = this.getShopState(shopId).ownerId
+            const color = getShop(shopId).color
+            const customers = walking.filter((visitor) => visitor === color).length
+            if (ownerId === undefined || customers === 0) {
+                continue
+            }
+            walking = walking.filter((visitor) => visitor !== color)
+            const income = this.addCustomers(shopId, customers)
+            const cut = ownerId === moverId ? 0 : moverCut(income, customers)
+            this.transferMoney(ownerId, moverId, cut)
+            entries.push({ shopId, ownerId, customers, income, moverCut: cut })
+        }
+
+        this.getFountainState(route.to).visitors.push(...walking)
+        this.turnActions.push(TurnAction.Move)
+        return { destinationId: route.to, entries, arrivals: walking }
+    }
+
+    completeAntiqueSet(collectorId: string): AntiqueSetResult {
+        assert(
+            this.pendingAntiqueSets[0] === collectorId,
+            `Player ${collectorId} is not next to complete an antique set`
+        )
+        const collector = this.getPlayerState(collectorId)
+        const cards = collector.antiques
+        const rank = this.antiqueRevealOrder.length
+        const payout = antiqueSetPayout(cards, rank)
+
+        collector.revealedAntiques = cards
+        collector.antiques = []
+        collector.money = collector.getMoney() + payout
+        this.pendingAntiqueSets.shift()
+        this.antiqueRevealOrder.push(collectorId)
+        return { cards, rank, payout }
     }
 
     startAuction(auctionId: string, auctioneerId: string, shopId: ShopId) {
@@ -267,6 +367,39 @@ export class HydratedMarracashGameState extends HydratableGameState<
         }
         const owner = this.getPlayerState(shop.ownerId)
         owner.money = owner.getMoney() + income
+        this.noteAntiqueSetIfComplete(shop.ownerId)
         return income
+    }
+
+    private transferMoney(fromId: string, toId: string, amount: number) {
+        if (amount === 0) {
+            return
+        }
+        const from = this.getPlayerState(fromId)
+        const to = this.getPlayerState(toId)
+        from.money = from.getMoney() - amount
+        to.money = to.getMoney() + amount
+    }
+
+    private noteAntiqueSetIfComplete(playerId: string) {
+        const player = this.getPlayerState(playerId)
+        if (
+            player.revealedAntiques.length > 0 ||
+            this.pendingAntiqueSets.includes(playerId) ||
+            !coversAntiqueSet(player.antiques, this.customersByColor(playerId))
+        ) {
+            return
+        }
+        this.pendingAntiqueSets.push(playerId)
+    }
+
+    private customersByColor(playerId: string): Record<MarketColor, number> {
+        const counts = emptyColorCounts()
+        for (const shop of this.shops) {
+            if (shop.ownerId === playerId) {
+                counts[getShop(shop.shopId).color] += shop.customers
+            }
+        }
+        return counts
     }
 }

@@ -66,7 +66,9 @@ export class MarracashGameInitializer
             queue: visitorSetup.queue,
             antiqueDeck,
             round: 1,
-            turnActions: []
+            turnActions: [],
+            pendingAntiqueSets: [],
+            antiqueRevealOrder: []
         })
 
         return new HydratedMarracashGameState(marracashState)
@@ -80,7 +82,8 @@ export class MarracashGameInitializer
             playerId: player.id,
             color: colors[index],
             money: StartingMoney,
-            antiques: []
+            antiques: [],
+            revealedAntiques: []
         }))
     }
 }

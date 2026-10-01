@@ -1,6 +1,7 @@
 import { assertExists, type MachineContext } from '@tabletop/common'
 import { PlaceBid } from '../actions/placeBid.js'
 import { ResolveAuction } from '../actions/resolveAuction.js'
+import { CompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
 import { MaxShopsPerPlayer } from '../components/payments.js'
 import type { HydratedMarracashGameState } from '../model/gameState.js'
 
@@ -17,4 +18,10 @@ export function queueAutomaticPasses(context: MachineContext<HydratedMarracashGa
 
 export function queueAuctionResolution(context: MachineContext<HydratedMarracashGameState>) {
     context.addSystemAction(ResolveAuction, { revealsInfo: true })
+}
+
+export function queueAntiqueSetCompletions(context: MachineContext<HydratedMarracashGameState>) {
+    for (const collectorId of context.gameState.pendingAntiqueSets) {
+        context.addSystemAction(CompleteAntiqueSet, { collectorId, revealsInfo: true })
+    }
 }

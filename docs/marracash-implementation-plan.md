@@ -124,7 +124,10 @@ Each step ends with tests passing:
 2. The board module, with route derivation and the test pinning it to the board map. Done.
 3. State, player state, initializer (queue generation, antique deal, starting positions) and hydration round-trip tests, plus a `competition.spec.ts` covering 3 and 4 players. Done. Players stay in game order and the turn manager holds the seating, as in Estates, so assigned positions change nothing else. Step 4 adds first-round play to the tournament test, and step 7 adds its projection checks.
 4. The auction flow: `StartAuction`, `PlaceBid`, `ResolveAuction`, the pull-in, and the 6-shop rule. Done. A player with 6 shops stays in the active list only until their automatic 0 bid is processed, because the engine requires an action's player to be active. They are never offered a bid.
-5. Movement: `MoveVisitors`, sequential payments, mover's cut and `CompleteAntiqueSet`.
+5. Movement: `MoveVisitors`, sequential payments, mover's cut and `CompleteAntiqueSet`. Done.
+   - A shop entry that completes a set adds the owner to `pendingAntiqueSets`. The move or auction then queues one `CompleteAntiqueSet` per pending player, in the order their sets completed.
+   - `ChoosingAction` decides whether the turn continues only once that list is empty, so completions are recorded before play passes on. The turn decision moved there from `Bidding`.
+   - `CompleteAntiqueSet` names the player in `collectorId`, not `playerId`, because the engine only accepts an action's `playerId` from an active player.
 6. Refilling, turn options, the end of game and scoring.
 7. Visibility registration, projected hydration, Exploration population and visibility tests.
 8. The UI package.

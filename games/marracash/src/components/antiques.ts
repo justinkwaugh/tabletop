@@ -48,3 +48,21 @@ export class HydratedAntiqueDeck
         super(data, AntiqueDeckValidator)
     }
 }
+
+export function coversAntiqueSet(
+    cards: readonly Antique[],
+    customersByColor: Readonly<Record<MarketColor, number>>
+): boolean {
+    return Object.values(MarketColor).every(
+        (color) => cards.filter((card) => card.color === color).length <= customersByColor[color]
+    )
+}
+
+export function antiqueSetPayout(cards: readonly Antique[], revealRank: number): number {
+    const paidCards = Math.max(AntiquesPerPlayer - revealRank, 0)
+    return cards
+        .map((card) => card.value)
+        .toSorted((a, b) => b - a)
+        .slice(0, paidCards)
+        .reduce((total, value) => total + value, 0)
+}

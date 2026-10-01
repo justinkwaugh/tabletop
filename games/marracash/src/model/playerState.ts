@@ -21,7 +21,8 @@ export const MarracashPlayerState = Type.Evaluate(
             antiques: Visibility.protect(Type.Array(Antique), {
                 policy: Visibility.Policy.Owner,
                 redaction: Visibility.redaction.emptyArray()
-            })
+            }),
+            revealedAntiques: Type.Array(Antique)
         })
     ])
 )
@@ -40,6 +41,7 @@ export class HydratedMarracashPlayerState
     declare color: Color
     declare money?: number
     declare antiques: Antique[]
+    declare revealedAntiques: Antique[]
 
     constructor(data: MarracashProjectedPlayerState) {
         super(data, MarracashProjectedPlayerStateValidator)

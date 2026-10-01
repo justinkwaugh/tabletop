@@ -1,10 +1,18 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    ActionSource,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedMarracashGameState } from '../model/gameState.js'
 import { HydratedStartAuction, isStartAuction } from '../actions/startAuction.js'
+import { HydratedMoveVisitors, isMoveVisitors } from '../actions/moveVisitors.js'
+import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
+import { queueAntiqueSetCompletions } from '../util/automaticActions.js'
 
-type ChoosingActionAction = HydratedStartAuction
+type ChoosingActionAction = HydratedStartAuction | HydratedMoveVisitors | HydratedCompleteAntiqueSet
 
 export class ChoosingActionStateHandler implements MachineStateHandler<
     ChoosingActionAction,
@@ -14,43 +22,84 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
         action: HydratedAction,
         context: MachineContext<HydratedMarracashGameState>
     ): action is ChoosingActionAction {
-        return isStartAuction(action) && this.canStartAuction(context, action.playerId)
+        if (isCompleteAntiqueSet(action)) {
+            return (
+                action.source === ActionSource.System &&
+                context.gameState.pendingAntiqueSets[0] === action.collectorId
+            )
+        }
+        if (isStartAuction(action) || isMoveVisitors(action)) {
+            return this.availableActions(context.gameState, action.playerId).includes(action.type)
+        }
+        return false
     }
 
     validActionsForPlayer(
         playerId: string,
         context: MachineContext<HydratedMarracashGameState>
     ): ActionType[] {
-        return this.canStartAuction(context, playerId) ? [ActionType.StartAuction] : []
+        return this.availableActions(context.gameState, playerId)
     }
 
     enter(context: MachineContext<HydratedMarracashGameState>) {
         const gameState = context.gameState
-        const currentTurn = gameState.turnManager.currentTurn()
-        gameState.activePlayerIds = [
-            currentTurn?.playerId ?? gameState.turnManager.startNextTurn(gameState.actionCount)
-        ]
-    }
+        if (gameState.pendingAntiqueSets.length > 0) {
+            return
+        }
 
-    private canStartAuction(
-        context: MachineContext<HydratedMarracashGameState>,
-        playerId: string
-    ): boolean {
-        const gameState = context.gameState
-        return gameState.activePlayerIds.includes(playerId) && gameState.canStartAuction(playerId)
+        const currentTurn = gameState.turnManager.currentTurn()
+        if (currentTurn && this.canAct(gameState, currentTurn.playerId)) {
+            gameState.activePlayerIds = [currentTurn.playerId]
+            return
+        }
+        if (currentTurn) {
+            gameState.endTurn()
+        }
+        gameState.activePlayerIds = [gameState.turnManager.startNextTurn(gameState.actionCount)]
     }
 
     onAction(
         action: ChoosingActionAction,
-        _context: MachineContext<HydratedMarracashGameState>
+        context: MachineContext<HydratedMarracashGameState>
     ): MachineState {
         switch (true) {
             case isStartAuction(action): {
                 return MachineState.Bidding
             }
+            case isMoveVisitors(action): {
+                queueAntiqueSetCompletions(context)
+                return MachineState.ChoosingAction
+            }
+            case isCompleteAntiqueSet(action): {
+                return MachineState.ChoosingAction
+            }
             default: {
                 throw Error('Invalid action type')
             }
         }
+    }
+
+    private availableActions(
+        gameState: HydratedMarracashGameState,
+        playerId: string
+    ): ActionType[] {
+        if (
+            !gameState.activePlayerIds.includes(playerId) ||
+            gameState.pendingAntiqueSets.length > 0
+        ) {
+            return []
+        }
+        const actions: ActionType[] = []
+        if (gameState.canMoveVisitors()) {
+            actions.push(ActionType.MoveVisitors)
+        }
+        if (gameState.canStartAuction(playerId)) {
+            actions.push(ActionType.StartAuction)
+        }
+        return actions
+    }
+
+    private canAct(gameState: HydratedMarracashGameState, playerId: string): boolean {
+        return gameState.canMoveVisitors() || gameState.canStartAuction(playerId)
     }
 }

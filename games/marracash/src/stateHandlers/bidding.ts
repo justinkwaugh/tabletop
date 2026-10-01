@@ -11,7 +11,11 @@ import { HydratedMarracashGameState } from '../model/gameState.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { HydratedResolveAuction, isResolveAuction } from '../actions/resolveAuction.js'
 import { MaxShopsPerPlayer } from '../components/payments.js'
-import { queueAuctionResolution, queueAutomaticPasses } from '../util/automaticActions.js'
+import {
+    queueAntiqueSetCompletions,
+    queueAuctionResolution,
+    queueAutomaticPasses
+} from '../util/automaticActions.js'
 
 type BiddingAction = HydratedPlaceBid | HydratedResolveAuction
 
@@ -68,9 +72,7 @@ export class BiddingStateHandler implements MachineStateHandler<
                 return MachineState.Bidding
             }
             case isResolveAuction(action): {
-                if (!gameState.canStartAuction(this.currentPlayerId(gameState))) {
-                    gameState.endTurn()
-                }
+                queueAntiqueSetCompletions(context)
                 return MachineState.ChoosingAction
             }
             default: {
@@ -88,11 +90,5 @@ export class BiddingStateHandler implements MachineStateHandler<
 
     private canBid(gameState: HydratedMarracashGameState, playerId: string): boolean {
         return gameState.ownedShopCount(playerId) < MaxShopsPerPlayer
-    }
-
-    private currentPlayerId(gameState: HydratedMarracashGameState): string {
-        const currentTurn = gameState.turnManager.currentTurn()
-        assertExists(currentTurn, 'An auction must happen during a turn')
-        return currentTurn.playerId
     }
 }

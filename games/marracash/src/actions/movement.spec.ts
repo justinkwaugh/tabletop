@@ -1,0 +1,270 @@
+import { CardinalDirection } from '@tabletop/common'
+import { describe, expect, it } from 'vitest'
+import type { Antique } from '../components/antiques.js'
+import type { FountainId, ShopId } from '../components/board.js'
+import { ActionType } from '../definition/actions.js'
+import { MarketColor } from '../definition/marketColor.js'
+import { MachineState } from '../definition/states.js'
+import type { MarracashProjectedState } from '../model/gameState.js'
+import { startTestGame, type TestSession } from '../util/testHelper.js'
+import { isCompleteAntiqueSet } from './completeAntiqueSet.js'
+import { isMoveVisitors } from './moveVisitors.js'
+
+const { Red, Blue, Green, Purple, Yellow } = MarketColor
+
+type Setup = {
+    round?: number
+    fountains?: Partial<Record<FountainId, MarketColor[]>>
+    shops?: Partial<Record<ShopId, { ownerId: string; customers?: number }>>
+    money?: Record<string, number>
+    antiques?: Record<string, Antique[]>
+}
+
+function arrange(session: TestSession, setup: Setup) {
+    const state: MarracashProjectedState = structuredClone(session.state)
+    state.round = setup.round ?? 2
+    for (const fountain of state.fountains) {
+        fountain.visitors = setup.fountains?.[fountain.fountainId] ?? []
+    }
+    for (const shop of state.shops) {
+        const arranged = setup.shops?.[shop.shopId]
+        shop.ownerId = arranged?.ownerId
+        shop.customers = arranged?.customers ?? 0
+    }
+    for (const player of state.players) {
+        player.money = setup.money?.[player.playerId] ?? player.money
+        player.antiques = setup.antiques?.[player.playerId] ?? player.antiques
+    }
+    session.state = state
+}
+
+function move(session: TestSession, fountainId: FountainId, direction: CardinalDirection) {
+    return session.act(session.currentPlayerId(), ActionType.MoveVisitors, {
+        fountainId,
+        direction
+    })
+}
+
+function visitorsAt(session: TestSession, fountainId: FountainId): MarketColor[] {
+    return (
+        session.state.fountains.find((fountain) => fountain.fountainId === fountainId)?.visitors ??
+        []
+    )
+}
+
+function customersIn(session: TestSession, shopId: ShopId): number {
+    return session.state.shops.find((shop) => shop.shopId === shopId)?.customers ?? 0
+}
+
+function money(session: TestSession, playerId: string): number {
+    return session.hydrated().getPlayerState(playerId).getMoney()
+}
+
+function players(session: TestSession) {
+    const [mover, other, third] = session.state.turnManager.turnOrder
+    return { mover, other, third }
+}
+
+describe('MarraCash movement', () => {
+    it('does not allow moves in round 1', () => {
+        const session = startTestGame(3)
+        arrange(session, { round: 1, fountains: { 9: [Red] } })
+        expect(() => move(session, 9, CardinalDirection.East)).toThrow()
+    })
+
+    it('moves the whole group to the next fountain along the route', () => {
+        const session = startTestGame(3)
+        arrange(session, { fountains: { 9: [Red, Blue], 10: [Green] } })
+        move(session, 9, CardinalDirection.East)
+        expect(visitorsAt(session, 9)).toEqual([])
+        expect(visitorsAt(session, 10)).toEqual([Green, Red, Blue])
+    })
+
+    it('sends matching visitors into the first owned shop of their colour', () => {
+        const session = startTestGame(3)
+        const { mover, other } = players(session)
+        arrange(session, {
+            fountains: { 4: [Purple, Purple, Yellow] },
+            shops: { P1: { ownerId: other }, P3: { ownerId: mover } }
+        })
+        const processed = move(session, 4, CardinalDirection.North)
+        expect(customersIn(session, 'P1')).toBe(2)
+        expect(customersIn(session, 'P3')).toBe(0)
+        expect(visitorsAt(session, 3)).toEqual([Yellow])
+        const result = processed.find(isMoveVisitors)?.metadata
+        expect(result?.entries).toEqual([
+            { shopId: 'P1', ownerId: other, customers: 2, income: 300, moverCut: 100 }
+        ])
+    })
+
+    it('counts stopping next to a door as passing it', () => {
+        const session = startTestGame(3)
+        const { other } = players(session)
+        arrange(session, { fountains: { 9: [Yellow] }, shops: { Y3: { ownerId: other } } })
+        move(session, 9, CardinalDirection.East)
+        expect(customersIn(session, 'Y3')).toBe(1)
+        expect(visitorsAt(session, 10)).toEqual([])
+    })
+
+    it('pays customers one after another, up to 500 each', () => {
+        const session = startTestGame(3)
+        const { mover, other } = players(session)
+        arrange(session, {
+            fountains: { 9: [Blue, Blue, Blue] },
+            shops: { B4: { ownerId: other, customers: 3 } },
+            money: { [mover]: 1000, [other]: 1000 }
+        })
+        move(session, 9, CardinalDirection.East)
+        expect(customersIn(session, 'B4')).toBe(6)
+        const income = 400 + 500 + 500
+        expect(money(session, other)).toBe(1000 + income - 300)
+        expect(money(session, mover)).toBe(1000 + 300)
+    })
+
+    it('pays the mover 50 per customer up to 300 profit and 100 above', () => {
+        const low = startTestGame(3)
+        const lowPlayers = players(low)
+        arrange(low, {
+            fountains: { 9: [Blue, Blue] },
+            shops: { B4: { ownerId: lowPlayers.other } },
+            money: { [lowPlayers.mover]: 1000 }
+        })
+        move(low, 9, CardinalDirection.East)
+        expect(money(low, lowPlayers.mover)).toBe(1000 + 100)
+
+        const high = startTestGame(3)
+        const highPlayers = players(high)
+        arrange(high, {
+            fountains: { 9: [Blue, Blue] },
+            shops: { B4: { ownerId: highPlayers.other, customers: 1 } },
+            money: { [highPlayers.mover]: 1000 }
+        })
+        move(high, 9, CardinalDirection.East)
+        expect(money(high, highPlayers.mover)).toBe(1000 + 200)
+    })
+
+    it('pays no cut for visitors moved into the mover’s own shop', () => {
+        const session = startTestGame(3)
+        const { mover } = players(session)
+        arrange(session, {
+            fountains: { 9: [Blue] },
+            shops: { B4: { ownerId: mover } },
+            money: { [mover]: 1000 }
+        })
+        move(session, 9, CardinalDirection.East)
+        expect(money(session, mover)).toBe(1100)
+    })
+
+    it('allows move then auction, but not auction then move', () => {
+        const session = startTestGame(3)
+        const { mover } = players(session)
+        arrange(session, { fountains: { 9: [Red], 14: [Green] } })
+        move(session, 9, CardinalDirection.East)
+        expect(session.currentPlayerId()).toBe(mover)
+
+        const auctionFirst = startTestGame(3)
+        arrange(auctionFirst, { fountains: { 9: [Red] } })
+        const auctioneer = auctionFirst.currentPlayerId()
+        auctionFirst.startAuction(auctioneer, 'Y1')
+        for (const playerId of auctionFirst.state.turnManager.turnOrder) {
+            auctionFirst.bid(playerId, playerId === auctioneer ? 100 : 0)
+        }
+        expect(auctionFirst.currentPlayerId()).toBe(auctioneer)
+        expect(() => move(auctionFirst, 9, CardinalDirection.East)).toThrow()
+    })
+
+    it('ends the turn after two moves', () => {
+        const session = startTestGame(3)
+        const { mover, other } = players(session)
+        arrange(session, { fountains: { 9: [Red], 14: [Green] } })
+        move(session, 9, CardinalDirection.East)
+        move(session, 14, CardinalDirection.East)
+        expect(session.currentPlayerId()).toBe(other)
+        expect(session.state.machineState).toBe(MachineState.ChoosingAction)
+        expect(mover).not.toBe(other)
+    })
+})
+
+describe('MarraCash antique sets', () => {
+    const hand: Antique[] = [
+        { color: Blue, value: 225 },
+        { color: Blue, value: 200 },
+        { color: Red, value: 150 },
+        { color: Red, value: 50 },
+        { color: Green, value: 100 }
+    ]
+
+    it('reveals and pays a set the moment its last customer arrives', () => {
+        const session = startTestGame(3)
+        const { mover, other } = players(session)
+        arrange(session, {
+            fountains: { 9: [Blue] },
+            shops: {
+                B4: { ownerId: other, customers: 1 },
+                R1: { ownerId: other, customers: 2 },
+                G1: { ownerId: other, customers: 1 }
+            },
+            money: { [mover]: 1000, [other]: 1000 },
+            antiques: { [other]: hand }
+        })
+        const processed = move(session, 9, CardinalDirection.East)
+        const completion = processed.find(isCompleteAntiqueSet)
+        expect(completion?.collectorId).toBe(other)
+        expect(completion?.revealsInfo).toBe(true)
+        expect(completion?.metadata).toEqual({ cards: hand, rank: 0, payout: 725 })
+
+        const collector = session.state.players.find((player) => player.playerId === other)
+        expect(collector?.revealedAntiques).toEqual(hand)
+        expect(collector?.antiques).toEqual([])
+        expect(session.state.antiqueRevealOrder).toEqual([other])
+        expect(money(session, other)).toBe(1000 + 200 - 50 + 725)
+        expect(money(session, mover)).toBe(1000 + 50)
+    })
+
+    it('pays later collectors for fewer of their best cards', () => {
+        const session = startTestGame(3)
+        const { mover, other, third } = players(session)
+        arrange(session, {
+            fountains: { 9: [Blue] },
+            shops: {
+                B4: { ownerId: other, customers: 1 },
+                R1: { ownerId: other, customers: 2 },
+                G1: { ownerId: other, customers: 1 }
+            },
+            money: { [other]: 1000 },
+            antiques: { [other]: hand }
+        })
+        const state = structuredClone(session.state)
+        state.antiqueRevealOrder = [mover, third]
+        session.state = state
+        const processed = move(session, 9, CardinalDirection.East)
+        expect(processed.find(isCompleteAntiqueSet)?.metadata?.payout).toBe(225 + 200 + 150)
+    })
+
+    it('records a set completed by an auction before the turn passes on', () => {
+        const session = startTestGame(3)
+        const { mover, other } = players(session)
+        arrange(session, {
+            round: 1,
+            fountains: { 3: [Blue] },
+            shops: {
+                B4: { ownerId: mover, customers: 1 },
+                R1: { ownerId: mover, customers: 2 },
+                G1: { ownerId: mover, customers: 1 }
+            },
+            antiques: { [mover]: hand }
+        })
+        session.startAuction(mover, 'B1')
+        let processed: ReturnType<TestSession['bid']> = []
+        for (const playerId of session.state.turnManager.turnOrder) {
+            processed = session.bid(playerId, playerId === mover ? 100 : 0)
+        }
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.PlaceBid,
+            ActionType.ResolveAuction,
+            ActionType.CompleteAntiqueSet
+        ])
+        expect(session.state.antiqueRevealOrder).toEqual([mover])
+        expect(session.currentPlayerId()).toBe(other)
+    })
+})

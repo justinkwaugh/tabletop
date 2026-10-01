@@ -3,6 +3,8 @@ import { HydratedMarracashGameState, type MarracashProjectedState } from '../mod
 import { HydratedStartAuction, isStartAuction } from '../actions/startAuction.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { HydratedResolveAuction, isResolveAuction } from '../actions/resolveAuction.js'
+import { HydratedMoveVisitors, isMoveVisitors } from '../actions/moveVisitors.js'
+import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
 
 export class MarracashHydrator implements GameHydrator<
     MarracashProjectedState,
@@ -18,6 +20,12 @@ export class MarracashHydrator implements GameHydrator<
             }
             case isResolveAuction(data): {
                 return new HydratedResolveAuction(data)
+            }
+            case isMoveVisitors(data): {
+                return new HydratedMoveVisitors(data)
+            }
+            case isCompleteAntiqueSet(data): {
+                return new HydratedCompleteAntiqueSet(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)
