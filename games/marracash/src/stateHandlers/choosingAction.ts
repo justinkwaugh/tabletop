@@ -10,9 +10,15 @@ import { HydratedMarracashGameState } from '../model/gameState.js'
 import { HydratedStartAuction, isStartAuction } from '../actions/startAuction.js'
 import { HydratedMoveVisitors, isMoveVisitors } from '../actions/moveVisitors.js'
 import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
-import { queueAntiqueSetCompletions } from '../util/automaticActions.js'
+import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
+import { queueAntiqueSetCompletions, queueEndTurn } from '../util/automaticActions.js'
+import { closeTurn } from '../util/turns.js'
 
-type ChoosingActionAction = HydratedStartAuction | HydratedMoveVisitors | HydratedCompleteAntiqueSet
+type ChoosingActionAction =
+    | HydratedStartAuction
+    | HydratedMoveVisitors
+    | HydratedCompleteAntiqueSet
+    | HydratedEndTurn
 
 export class ChoosingActionStateHandler implements MachineStateHandler<
     ChoosingActionAction,
@@ -22,6 +28,9 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
         action: HydratedAction,
         context: MachineContext<HydratedMarracashGameState>
     ): action is ChoosingActionAction {
+        if (isEndTurn(action)) {
+            return action.source === ActionSource.System
+        }
         if (isCompleteAntiqueSet(action)) {
             return (
                 action.source === ActionSource.System &&
@@ -57,15 +66,13 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
             return
         }
 
-        const currentTurn = gameState.turnManager.currentTurn()
-        if (currentTurn && this.canAct(gameState, currentTurn.playerId)) {
-            gameState.activePlayerIds = [currentTurn.playerId]
-            return
+        const playerId =
+            gameState.turnManager.currentTurn()?.playerId ??
+            gameState.turnManager.startNextTurn(gameState.actionCount)
+        gameState.activePlayerIds = [playerId]
+        if (!gameState.canAct(playerId)) {
+            queueEndTurn(context)
         }
-        if (currentTurn) {
-            gameState.endTurn()
-        }
-        gameState.activePlayerIds = [gameState.turnManager.startNextTurn(gameState.actionCount)]
     }
 
     onAction(
@@ -82,6 +89,9 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
             }
             case isCompleteAntiqueSet(action): {
                 return MachineState.ChoosingAction
+            }
+            case isEndTurn(action): {
+                return closeTurn(context.gameState)
             }
             default: {
                 throw Error('Invalid action type')
@@ -107,9 +117,5 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
             actions.push(ActionType.StartAuction)
         }
         return actions
-    }
-
-    private canAct(gameState: HydratedMarracashGameState, playerId: string): boolean {
-        return gameState.canMoveVisitors() || gameState.canStartAuction(playerId)
     }
 }

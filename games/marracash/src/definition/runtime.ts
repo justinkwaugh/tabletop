@@ -9,6 +9,7 @@ import { MarracashGameInitializer } from './initializer.js'
 import { MarracashApiActions } from './apiActions.js'
 import { MarracashStateHandlers } from './stateHandlers.js'
 import { MarracashColors } from './colors.js'
+import { MarracashScoring } from './scoring.js'
 
 export const MarracashRuntime = {
     randomnessVersion: 1,
@@ -18,5 +19,6 @@ export const MarracashRuntime = {
     stateHandlers: MarracashStateHandlers,
     apiActions: MarracashApiActions,
     playerColors: MarracashColors,
-    stateLogger: new DefaultStateLogger()
+    stateLogger: new DefaultStateLogger(),
+    scoring: new MarracashScoring()
 } satisfies GameRuntime<MarracashProjectedState, HydratedMarracashGameState>

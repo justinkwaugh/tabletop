@@ -73,6 +73,7 @@ export class MarracashGameInitializer
             antiqueDeck,
             round: 1,
             turnActions: [],
+            finalRound: false,
             pendingAntiqueSets: [],
             antiqueRevealOrder: []
         })

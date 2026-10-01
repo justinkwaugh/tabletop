@@ -51,3 +51,20 @@ export function longestSameColorRun(queue: readonly MarketColor[]): number {
     }
     return longest
 }
+
+export enum QueueEnd {
+    Front = 'front',
+    Back = 'back'
+}
+
+export const MinVisitorsBroughtIn = 2
+export const MaxVisitorsBroughtIn = 4
+
+export function isValidVisitorCount(count: number, queueLength: number): boolean {
+    if (!Number.isInteger(count) || count > queueLength) {
+        return false
+    }
+    return queueLength < MinVisitorsBroughtIn
+        ? count === queueLength
+        : count >= MinVisitorsBroughtIn && count <= MaxVisitorsBroughtIn
+}

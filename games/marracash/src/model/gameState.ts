@@ -26,6 +26,7 @@ import {
     HydratedAntiqueDeck
 } from '../components/antiques.js'
 import {
+    EntranceFountainIds,
     fountainsNextToShop,
     FountainIds,
     getShop,
@@ -41,6 +42,7 @@ import {
     MinimumAuctionBid,
     moverCut
 } from '../components/payments.js'
+import { isValidVisitorCount, QueueEnd } from '../components/visitors.js'
 import { HydratedMarracashPlayerState, MarracashPlayerState } from './playerState.js'
 
 export enum TurnAction {
@@ -125,6 +127,7 @@ export const MarracashGameState = Type.Evaluate(
             turnActions: Type.Array(Type.Enum(TurnAction)),
             auction: Type.Optional(SimultaneousAuction),
             auctionShopId: Type.Optional(Type.Enum(ShopIds)),
+            finalRound: Type.Boolean(),
             pendingAntiqueSets: Type.Array(Type.String()),
             antiqueRevealOrder: Type.Array(Type.String())
         })
@@ -161,6 +164,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
     declare turnActions: TurnAction[]
     declare auction?: HydratedSimultaneousAuction
     declare auctionShopId?: ShopId
+    declare finalRound: boolean
     declare pendingAntiqueSets: string[]
     declare antiqueRevealOrder: string[]
 
@@ -345,12 +349,53 @@ export class HydratedMarracashGameState extends HydratableGameState<
         }
     }
 
-    endTurn() {
+    canAct(playerId: string): boolean {
+        return this.canMoveVisitors() || this.canStartAuction(playerId)
+    }
+
+    emptyEntranceIds(): FountainId[] {
+        return EntranceFountainIds.filter(
+            (fountainId) => this.getFountainState(fountainId).visitors.length === 0
+        )
+    }
+
+    needsRefill(): boolean {
+        return this.queue.length > 0 && this.emptyEntranceIds().length > 0
+    }
+
+    canBringVisitors(end: QueueEnd, count: number, entranceId: FountainId): boolean {
+        return (
+            Object.values(QueueEnd).includes(end) &&
+            this.emptyEntranceIds().includes(entranceId) &&
+            isValidVisitorCount(count, this.queue.length)
+        )
+    }
+
+    bringVisitors(end: QueueEnd, count: number, entranceId: FountainId): MarketColor[] {
+        const visitors =
+            end === QueueEnd.Front ? this.queue.splice(0, count) : this.queue.splice(-count, count)
+        this.getFountainState(entranceId).visitors.push(...visitors)
+        if (this.queue.length === 0) {
+            this.finalRound = true
+        }
+        return visitors
+    }
+
+    finishTurn(): { gameOver: boolean } {
         const endedTurn = this.turnManager.endTurn(this.actionCount)
         this.turnActions = []
-        if (endedTurn.playerId === this.turnManager.turnOrder.at(-1)) {
+        const roundComplete = endedTurn.playerId === this.turnManager.turnOrder.at(-1)
+        if (roundComplete) {
             this.round += 1
         }
+        return { gameOver: this.finalRound && roundComplete }
+    }
+
+    leadingPlayerIds(): string[] {
+        const mostMoney = Math.max(...this.players.map((player) => player.getMoney()))
+        return this.players
+            .filter((player) => player.getMoney() === mostMoney)
+            .map((player) => player.playerId)
     }
 
     private pullInCustomers(shopId: ShopId): PullIn[] {

@@ -1,5 +1,11 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    GameResult,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
+import { ActionType } from '../definition/actions.js'
 import { HydratedMarracashGameState } from '../model/gameState.js'
 
 export class EndOfGameStateHandler implements MachineStateHandler<
@@ -16,12 +22,16 @@ export class EndOfGameStateHandler implements MachineStateHandler<
     validActionsForPlayer(
         _playerId: string,
         _context: MachineContext<HydratedMarracashGameState>
-    ): string[] {
+    ): ActionType[] {
         return []
     }
 
     enter(context: MachineContext<HydratedMarracashGameState>) {
-        context.gameState.activePlayerIds = []
+        const gameState = context.gameState
+        const winners = gameState.leadingPlayerIds()
+        gameState.result = winners.length === 1 ? GameResult.Win : GameResult.Draw
+        gameState.winningPlayerIds = winners
+        gameState.activePlayerIds = []
     }
 
     onAction(

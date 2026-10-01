@@ -4,6 +4,8 @@ import { HydratedStartAuction, isStartAuction } from '../actions/startAuction.js
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { HydratedResolveAuction, isResolveAuction } from '../actions/resolveAuction.js'
 import { HydratedMoveVisitors, isMoveVisitors } from '../actions/moveVisitors.js'
+import { HydratedBringVisitors, isBringVisitors } from '../actions/bringVisitors.js'
+import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
 
 export class MarracashHydrator implements GameHydrator<
@@ -26,6 +28,12 @@ export class MarracashHydrator implements GameHydrator<
             }
             case isCompleteAntiqueSet(data): {
                 return new HydratedCompleteAntiqueSet(data)
+            }
+            case isBringVisitors(data): {
+                return new HydratedBringVisitors(data)
+            }
+            case isEndTurn(data): {
+                return new HydratedEndTurn(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

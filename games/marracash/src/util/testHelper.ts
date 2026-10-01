@@ -1,12 +1,14 @@
 import {
     ActionSource,
+    type CardinalDirection,
     defaultGameConfig,
     GameEngine,
     normalizeGameConfig,
     PlayerStatus,
     type GameAction
 } from '@tabletop/common'
-import type { ShopId } from '../components/board.js'
+import type { FountainId, ShopId } from '../components/board.js'
+import type { QueueEnd } from '../components/visitors.js'
 import { ActionType } from '../definition/actions.js'
 import type { MarracashProjectedState } from '../model/gameState.js'
 import type { MarracashGameConfig } from '../definition/config.js'
@@ -85,6 +87,12 @@ export function createTestSession(game: TestGame, initialState: MarracashProject
         },
         bid(playerId: string, amount: number) {
             return act(playerId, ActionType.PlaceBid, { amount })
+        },
+        move(playerId: string, fountainId: FountainId, direction: CardinalDirection) {
+            return act(playerId, ActionType.MoveVisitors, { fountainId, direction })
+        },
+        bringVisitors(playerId: string, end: QueueEnd, count: number, entranceId: FountainId) {
+            return act(playerId, ActionType.BringVisitors, { end, count, entranceId })
         }
     }
 }

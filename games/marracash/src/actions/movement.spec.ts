@@ -1,7 +1,7 @@
 import { CardinalDirection } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import type { Antique } from '../components/antiques.js'
-import type { FountainId, ShopId } from '../components/board.js'
+import { EntranceFountainIds, type FountainId, type ShopId } from '../components/board.js'
 import { ActionType } from '../definition/actions.js'
 import { MarketColor } from '../definition/marketColor.js'
 import { MachineState } from '../definition/states.js'
@@ -24,7 +24,8 @@ function arrange(session: TestSession, setup: Setup) {
     const state: MarracashProjectedState = structuredClone(session.state)
     state.round = setup.round ?? 2
     for (const fountain of state.fountains) {
-        fountain.visitors = setup.fountains?.[fountain.fountainId] ?? []
+        const entranceDefault = EntranceFountainIds.includes(fountain.fountainId) ? [Yellow] : []
+        fountain.visitors = setup.fountains?.[fountain.fountainId] ?? entranceDefault
     }
     for (const shop of state.shops) {
         const arranged = setup.shops?.[shop.shopId]
@@ -297,7 +298,8 @@ describe('MarraCash antique sets', () => {
         expect(processed.map((action) => action.type)).toEqual([
             ActionType.PlaceBid,
             ActionType.ResolveAuction,
-            ActionType.CompleteAntiqueSet
+            ActionType.CompleteAntiqueSet,
+            ActionType.EndTurn
         ])
         expect(session.state.antiqueRevealOrder).toEqual([mover])
         expect(session.currentPlayerId()).toBe(other)

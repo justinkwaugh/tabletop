@@ -131,7 +131,11 @@ Each step ends with tests passing:
    - A shop entry that completes a set adds the owner to `pendingAntiqueSets`. The move or auction then queues one `CompleteAntiqueSet` per pending player, in the order their sets completed.
    - `ChoosingAction` decides whether the turn continues only once that list is empty, so completions are recorded before play passes on. The turn decision moved there from `Bidding`.
    - `CompleteAntiqueSet` names the player in `collectorId`, not `playerId`, because the engine only accepts an action's `playerId` from an active player.
-6. Refilling, turn options, the end of game and scoring.
+6. Refilling, turn options, the end of game and scoring. Done.
+   - When the current player has nothing left to do, `ChoosingAction` queues the system `EndTurn`, because a state's entry can't change state itself. `EndTurn` leads to `RefillingEntrances` while an entrance is empty and visitors remain in the queue, then to the next turn or `EndOfGame`.
+   - A player who can't move or auction at the start of their turn is skipped this way too, still refilling entrances if needed.
+   - `finalRound` is set when the queue empties. The game ends when the last seat's turn finishes during the final round.
+   - The tournament test now plays whole games to the end, with antique cards on and off.
 7. Visibility registration, projected hydration, Exploration population and visibility tests.
 8. The UI package.
 9. Add the title to the Game Catalogue (`config/config-games/src/games.json`, `gameId` and `packageId` both `marracash`). The local hosted site reads it, so this is needed before testing with the `local-hosted-game` skill.
