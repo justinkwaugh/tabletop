@@ -59,6 +59,18 @@ Company names and pool names are definition data; `trainInventory.trains` lists 
 depot's unbought trains as records with `status: 'depot'`. Small; fold into 1–3 if the
 same migration is being written, otherwise leave.
 
+## 5. One buyer field for purchase offers
+
+Since 1830's private sales between players, `purchaseOffer` is a union: a company's
+offer names its buyer with `companyId`, and a player's offer is told apart by that
+field's absence (`isCompanyPurchaseOffer`).
+
+Change: replace `companyId` with `buyer: Owner` in both, so one offer shape covers
+either buyer and the presence check goes. The `OfferPurchase` action and the offer
+recorded in `OfferPurchase` and `RespondToPurchaseOffer` metadata change with it, as do
+the stored deployed-game actions; migrate them with the State or keep reading the old
+field during hydration. Do this with whichever migration is open.
+
 ## Not a change
 
 `turnManager.series` (6.3 KB, growing one record per turn) stays: it is the index of the
