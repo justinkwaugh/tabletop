@@ -1,7 +1,9 @@
 <script lang="ts">
-    import { getFountain, type FountainState } from '@tabletop/marracash'
+    import { getFountain, MarketColor, type FountainState } from '@tabletop/marracash'
     import Pawn from '$lib/components/Pawn.svelte'
     import { cellCenter, clusterPositions } from '$lib/utils/boardGeometry.js'
+
+    const MaxPawnsShown = 9
 
     let {
         fountain,
@@ -17,13 +19,25 @@
 
     let definition = $derived(getFountain(fountain.fountainId))
     let center = $derived(cellCenter(definition.coords))
-    let pawnSize = $derived(fountain.visitors.length > 9 ? 13 : 18)
+    let crowded = $derived(fountain.visitors.length > MaxPawnsShown)
     let pawns = $derived(
-        clusterPositions(fountain.visitors.length, center, pawnSize + 3).map((position, index) => ({
+        clusterPositions(fountain.visitors.length, center, 21).map((position, index) => ({
             ...position,
             color: fountain.visitors[index]
         }))
     )
+    let tally = $derived.by(() => {
+        const present = Object.values(MarketColor)
+            .map((color) => ({
+                color,
+                count: fountain.visitors.filter((visitor) => visitor === color).length
+            }))
+            .filter((entry) => entry.count > 0)
+        return clusterPositions(present.length, center, 29).map((position, index) => ({
+            ...position,
+            ...present[index]
+        }))
+    })
 </script>
 
 {#snippet body()}
@@ -54,9 +68,22 @@
         font-weight="700"
         fill="#2d5566">{fountain.fountainId}</text
     >
-    {#each pawns as pawn, index (index)}
-        <Pawn color={pawn.color} x={pawn.x} y={pawn.y} size={pawnSize} />
-    {/each}
+    {#if crowded}
+        {#each tally as entry (entry.color)}
+            <Pawn color={entry.color} x={entry.x - 6} y={entry.y} size={15} />
+            <text
+                x={entry.x + 3}
+                y={entry.y + 5}
+                font-size="12"
+                font-weight="700"
+                fill="#1f3c47">{entry.count}</text
+            >
+        {/each}
+    {:else}
+        {#each pawns as pawn, index (index)}
+            <Pawn color={pawn.color} x={pawn.x} y={pawn.y} size={18} />
+        {/each}
+    {/if}
 {/snippet}
 
 {#if selectable}

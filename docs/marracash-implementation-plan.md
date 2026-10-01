@@ -139,7 +139,11 @@ Each step ends with tests passing:
 7. Visibility registration, projected hydration, Exploration population and visibility tests. Done. Guarded client-side execution only applies to games marked as protecting information, which every new hosted game is. In such a game, a move that needs an opponent's hidden hand raises the guard's unavailable-value error and goes to the host.
    - A skipped turn adds an `EndTurn` that depends on the skipped player's cash, so with Concealed Cash on it shows that player has under 100. Players at a table see a skipped turn too, so this matches the rules. Turn ends check movement first, so cash is only read when no visitors are left to move.
    - Antique hands that were never completed stay hidden after the game ends, as the user decided. Revisit if player feedback asks for them to be shown.
-8. The UI package.
+8. The UI package. Done, in four parts:
+   - **8a, board display:** colour shapes for colour-blind players; crowds over 9 visitors show as a per-colour tally.
+   - **8b, turn controls:** a visual contract in `games/marracash-ui/docs/`.
+   - **8c, player panels and history:** in hotseat, the panels hide other players' cash and hands, and the history hides their sealed bids.
+   - **8d:** the cover image, plus checks with protected mode, release bundles and a full game played to the end in the harness.
 9. Add the title to the Game Catalogue (`config/config-games/src/games.json`, `gameId` and `packageId` both `marracash`). The local hosted site reads it, so this is needed before testing with the `local-hosted-game` skill.
 10. A readiness check with the `game-pr-readiness` skill.
 
