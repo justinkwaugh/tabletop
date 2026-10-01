@@ -6,6 +6,7 @@
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
+    import PeekMenu from '$lib/components/PeekMenu.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -22,7 +23,6 @@
     )
     let chosenAdviser = $derived(advisers.find((a) => a.cardId === gameSession.adviserCardId))
     let chosenMove = $derived(gameSession.warbandMoves.chosen)
-    let peekTargets = $derived(gameSession.peekTargets)
     let moves = $derived(gameSession.warbandMoves.options)
     let imperialMoves = $derived(
         moves.filter(
@@ -175,9 +175,7 @@
             </div>
         {/if}
     {:else if action === ActionType.Peek}
-        <p class="text-xs text-oath-text-muted">
-            {peekTargets.length === 0 ? 'Nothing to peek at.' : 'Tap a lit relic at your site.'}
-        </p>
+        <PeekMenu />
     {:else if action === ActionType.LetPeek}
         <LetPeekPicker />
     {:else if action === ActionType.MoveWarbands}

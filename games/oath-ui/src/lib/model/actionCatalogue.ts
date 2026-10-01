@@ -179,7 +179,7 @@ export function actionPrompt(action: ActionType, state: PromptState): string {
                 ? 'Choose where it goes.'
                 : 'Tap a facedown adviser on your card.'
         case ActionType.Peek:
-            return 'Tap a lit relic to look at it.'
+            return 'Choose a relic to look at.'
         case ActionType.LetPeek:
             return 'Choose what to show, and to whom.'
         case ActionType.UseActionPower:

@@ -592,6 +592,21 @@ test('scenario 20: Recover lists the banners to outbid, the price is a row of nu
     await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before - paid)
 })
 
+test('scenario 50: Peek lists only the relics not yet seen, Look sends', async ({ page }) => {
+    await openTable(page, 'peek')
+    const peek = grid(page).getByRole('button', { name: 'Peek at a relic', exact: true })
+    await peek.click()
+    const rows = page.getByRole('list', { name: 'Relics to peek at' }).getByRole('listitem')
+    await expect(rows).toHaveCount(1)
+    await expect(rows.first()).toContainText('space 1')
+    await rows.first().getByRole('button', { name: 'Peek at facedown relic, space 1' }).click()
+    await expect(page.getByRole('list', { name: 'Relics to peek at' })).toHaveCount(0)
+    await expect(peek).toHaveAttribute('aria-disabled', 'true')
+    await expect(peek).toHaveJSProperty('disabled', false)
+    await tapDimmed(peek)
+    await expect(reasonLine(page)).toContainText('you have already seen every relic here')
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()

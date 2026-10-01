@@ -3,7 +3,7 @@ import { Color } from '@tabletop/common'
 import { PlayerStatus } from '@tabletop/oath'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import type { HydratedOathGameState } from '@tabletop/oath'
-import { peekedRelicAt } from './relicKnowledge.js'
+import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
 /** R-6.3, R-6.4, R-9.4 — a peeked relic is named only to the player who peeked it. */
@@ -61,5 +61,12 @@ describe('R-6.3 — a peeked relic is known to the peeker only', () => {
         const state = board()
         expect(state.relicSlotsAt('c1')).toEqual([{ slotId: SLOT }])
         expect(peekedRelicAt(state, PEEKER, SLOT)).toBe(RELIC)
+    })
+})
+
+describe('R-6.3 — Peek offers only a relic the player has not seen', () => {
+    it('offers the relic at the site to a player who has not peeked it, and not to the one who has', () => {
+        expect(unseenPeekSlots(board(), OTHER)).toEqual([SLOT])
+        expect(unseenPeekSlots(board(), PEEKER)).toEqual([])
     })
 })

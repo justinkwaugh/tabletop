@@ -68,6 +68,7 @@ export type TableName =
     | 'goalsRailProtection'
     | 'goalsRailDevotion'
     | 'trade'
+    | 'peek'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -494,6 +495,40 @@ function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
     ])
 }
 
+/** R-6.3: two relics at the seat's site, the second already peeked by the seat. */
+function peekTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const [first, second] = [`${home}.relic.0`, `${home}.relic.1`]
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                peekedRelicSlotIds: [second],
+                peekedRelics: { [second]: 'relic.map' }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            relicsBySite: { [home]: [{ slotId: first }, { slotId: second }] },
+            vault: testVaultWithRelics({ [first]: 'relic.cup-of-plenty', [second]: 'relic.map' })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     setup: setupTable,
     searching: searchingTable,
@@ -511,7 +546,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),
     goalsRailProtection: () => goalsRailTable(OathType.Protection),
     goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
-    trade: tradeTable
+    trade: tradeTable,
+    peek: peekTable
 }
 
 let session: OathGameSession | undefined

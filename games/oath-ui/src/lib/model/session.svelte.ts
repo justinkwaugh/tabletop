@@ -22,7 +22,6 @@ import {
     HydratedResolveWake,
     HydratedExileCitizen,
     HydratedMuster,
-    HydratedPeek,
     HydratedPlayFacedownAdviser,
     HydratedTrade,
     HydratedTravel,
@@ -99,7 +98,7 @@ import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
 import { siteName } from './names.js'
 import type { HistoryNames } from './actionDescription.js'
-import { peekedRelicAt } from './relicKnowledge.js'
+import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
 import {
     adviserDiscardFirstOptions,
     adviserOtherSites,
@@ -108,7 +107,6 @@ import {
 } from './adviserPlacements.js'
 import { CampaignDraft, type CampaignDeclaration } from './campaignDraft.js'
 import {
-    peekSlots,
     reasonCannotRecoverBanner,
     recoverableBanners,
     recoverableRelicSlots,
@@ -485,10 +483,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         }))
     }
 
-    get peekTargets(): PeekTarget[] {
+    // R-6.3 — the relics a Peek can show that this player has not already seen.
+    get peekSlots(): string[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Peek) return []
-        return HydratedPeek.legalTargets(this.gameState, playerId)
+        return unseenPeekSlots(this.gameState, playerId)
     }
 
     // R-9.4 — at any time, from the seat card or the Act Phase grid.
@@ -913,9 +912,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveTurnSeatId
         if (!playerId) return []
         if (this.selection.value('relicSlot') !== undefined) return []
-        if (this.selection.action === ActionType.Peek) {
-            return peekSlots(this.peekTargets)
-        }
+        if (this.selection.action === ActionType.Peek) return this.peekSlots
         if (this.selection.action !== ActionType.Recover) return []
         return recoverableRelicSlots(this.gameState, playerId, this.modifiers.declared)
     }
