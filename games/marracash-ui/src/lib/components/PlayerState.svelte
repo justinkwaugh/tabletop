@@ -31,10 +31,10 @@
     class:border-2={isTurn}
 >
     <div class="flex items-baseline justify-between gap-2">
-        <h1 class={isTurn ? 'text-lg font-bold' : 'text-base font-semibold'}>
+        <h1 class="marracash-display {isTurn ? 'text-lg' : 'text-base'}">
             {isTurn ? '⇢ ' : ''}{player.name}
         </h1>
-        <span class="text-sm font-semibold">
+        <span class="marracash-display text-sm">
             {money === undefined ? 'Cash hidden' : `${money} Dirham`}
         </span>
     </div>

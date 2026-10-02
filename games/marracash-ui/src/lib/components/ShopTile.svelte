@@ -104,7 +104,7 @@
             stroke={ownerDisc.outline}
             stroke-width="2"
         ></circle>
-        <text x={centerX} y={centerY} class="owner-initial" fill={ownerDisc.text}
+        <text x={centerX} y={centerY} class="owner-initial marracash-initial" fill={ownerDisc.text}
             >{ownerDisc.initial}</text
         >
         {#if shop.customers > 0}
@@ -140,9 +140,7 @@
 
 <style>
     .owner-initial {
-        font-family: Merriweather, Georgia, 'Times New Roman', serif;
         font-size: 22px;
-        font-weight: 700;
         text-anchor: middle;
         dominant-baseline: central;
     }

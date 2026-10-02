@@ -13,7 +13,7 @@
 </script>
 
 <div class="flex flex-col items-center gap-1">
-    <p class="text-lg font-bold">
+    <p class="marracash-display text-lg">
         The game is over.
         {#each winners as playerId, index (playerId)}
             {index === 0 ? '' : index === winners.length - 1 ? ' and ' : ', '}<PlayerTag

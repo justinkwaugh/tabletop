@@ -28,7 +28,7 @@
             disabled={clampedAmount <= minimumBid}
             onclick={() => change(-DirhamIncrement)}>−</button
         >
-        <span class="w-24 text-xl font-bold">{clampedAmount}</span>
+        <span class="marracash-display w-24 text-xl">{clampedAmount}</span>
         <button
             class="h-8 w-8 rounded-md border border-[#8a6a46]"
             aria-label="Raise bid"
