@@ -12,6 +12,7 @@
     } from '$lib/model/actionCatalogue.js'
     import { freeActionDueLine, reasonActionUnavailable } from '$lib/model/actionAvailability.js'
     import { actionImage } from '$lib/images/actionImages.js'
+    import { unseenPeekSlots } from '$lib/model/relicKnowledge.js'
 
     // R-4.2 — every action is listed, the unavailable ones dimmed with the engine's reason.
     let gameSession = getGameSession()
@@ -31,8 +32,13 @@
         return gameSession.campaignSupplyCost === 0 ? 'no Supply' : entry.cost
     }
 
+    // R-6.3 — a relic already seen shows its face, so Peek is offered only for one not seen.
     function available(entry: ActionEntry): boolean {
-        return valid.has(entry.type)
+        if (!valid.has(entry.type)) return false
+        if (entry.type === ActionType.Peek) {
+            return unseenPeekSlots(gameState, seat.playerId).length > 0
+        }
+        return true
     }
 
     function blockedBecause(entry: ActionEntry): string | undefined {

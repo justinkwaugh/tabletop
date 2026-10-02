@@ -24,6 +24,7 @@ import {
     type HydratedOathGameState
 } from '@tabletop/oath'
 import type { GridAction } from './actionCatalogue.js'
+import { unseenPeekSlots } from './relicKnowledge.js'
 
 // The engine's own sentence wherever a representative choice exists, else that the list is empty.
 export function reasonActionUnavailable(
@@ -143,9 +144,12 @@ function reasonFor(
                 : 'no facedown adviser to play or discard'
 
         case ActionType.Peek:
-            return HydratedPeek.canDoPeek(gameState, playerId)
+            if (!HydratedPeek.canDoPeek(gameState, playerId)) {
+                return 'no facedown relic you may peek at'
+            }
+            return unseenPeekSlots(gameState, playerId).length > 0
                 ? undefined
-                : 'no facedown relic you may peek at'
+                : 'you have already seen every relic here'
 
         case ActionType.LetPeek:
             return HydratedLetPeek.canDoLetPeek(gameState, playerId)

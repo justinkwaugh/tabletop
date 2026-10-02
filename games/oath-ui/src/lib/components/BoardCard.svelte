@@ -4,8 +4,7 @@
     import type { CardPreview } from '$lib/model/cardPreview.svelte.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
 
-    // A dynamic tag cannot carry a role Svelte can infer, so a pickable card is a `<button>`.
-    // On touch a pickable card's tap is its pick and a hold opens the preview.
+    // Rule 1 — a card on the board is for looking: a press enlarges it and never chooses it.
     let {
         cardId,
         back,
@@ -14,9 +13,8 @@
         y,
         width,
         zIndex = 0,
-        pickable = false,
-        picked = false,
-        onpick,
+        offered = false,
+        pointed = false,
         title,
         previewSlotId
     }: {
@@ -27,10 +25,9 @@
         y: number
         width: number
         zIndex?: number
-        pickable?: boolean
-        /** A pick the player has made and may still change. */
-        picked?: boolean
-        onpick?: () => void
+        /** Rule 3 — the open menu offers this card or site, so it wears the ring. */
+        offered?: boolean
+        pointed?: boolean
         title?: string
         previewSlotId?: string
     } = $props()
@@ -42,79 +39,42 @@
         slotId: previewSlotId
     })
 
-    // R-9.4 — a facedown card's front is private, so there is nothing to enlarge.
-    let inspectable = $derived(back === undefined && cardId !== undefined)
-
     const style = $derived(`left:${x}px; top:${y}px; width:${width}px; z-index:${zIndex};`)
 
     // R-9.4 — the caller's label never names a facedown card.
     let tooltip = $derived(title ?? label)
 </script>
 
-{#if pickable}
-    <button
-        type="button"
-        class="board-card pickable"
-        class:picked
-        {style}
-        title={tooltip}
-        onclick={() => onpick?.()}
-        use:inspectImage={{ preview, enabled: inspectable, pickable: true, focus: true }}
-    >
-        <CardImage {cardId} {back} {label} {width} />
-    </button>
-{:else}
-    <!-- An inert card is not a control, so
-         it cannot be inspected from the keyboard; a pickable one can. -->
-    <div
-        class="board-card"
-        role="presentation"
-        {style}
-        title={tooltip}
-        use:inspectImage={{ preview, enabled: inspectable, pickable: false }}
-    >
-        <CardImage {cardId} {back} {label} {width} />
-    </div>
-{/if}
+<!-- Not a control: the keyboard reaches the panel's rows, never the table's cards. -->
+<div
+    class="board-card"
+    class:offered
+    class:pointed
+    role="presentation"
+    {style}
+    title={tooltip}
+    use:inspectImage={{ preview, enabled: cardId !== undefined || back !== undefined }}
+>
+    <CardImage {cardId} {back} {label} {width} />
+</div>
 
 <style>
     .board-card {
         position: absolute;
         display: block;
-        padding: 0;
-        border: 0;
-        background: none;
         line-height: 0;
         border-radius: 5px;
+        cursor: zoom-in;
     }
 
-    .board-card.pickable {
-        cursor: pointer;
+    .board-card.offered {
         outline: 3px solid #fbbf24;
         outline-offset: 1px;
         box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.28);
     }
 
-    /* A wider hit area, drawn nowhere; `--hit-pad` is set on the board surface
-       from its on-screen scale (`Board.svelte`). */
-    .board-card.pickable::after {
-        content: '';
-        position: absolute;
-        inset: calc(-1 * var(--hit-pad, 0px));
-    }
-
-    .board-card.pickable:hover,
-    .board-card.pickable:focus-visible {
+    .board-card.offered.pointed {
         outline-color: #fde68a;
         box-shadow: 0 0 0 9px rgba(253, 230, 138, 0.36);
-    }
-
-    .board-card.pickable.picked {
-        outline: 5px solid var(--oath-accent);
-        box-shadow: 0 0 18px 6px rgba(252, 211, 77, 0.55);
-    }
-
-    .board-card.pickable:focus {
-        outline-offset: 1px;
     }
 </style>

@@ -21,7 +21,8 @@ import {
     payModifierCosts,
     resolveModifiers,
     runAfter,
-    type ActionPlan
+    type ActionPlan,
+    type ActiveModifier
 } from '../util/modifiers.js'
 import { countOf } from '../util/warbands.js'
 import { pawnSiteId } from '../util/pawn.js'
@@ -90,8 +91,7 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
 
         // R-5.2.1
         player.spendSupply(cost)
-        if (active.some((m) => m.hooks.musterPlacesSecret)) {
-            // Initiation Rite
+        if (HydratedMuster.placesSecret(active)) {
             player.secrets -= 1
             state.addTokensOn(this.cardId, { secrets: 1 })
         } else {
@@ -102,19 +102,10 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
         const owner = HydratedMuster.warbandOwnerFor(state, this.playerId)
         const bank = state.getPlayerState(state.warbandBankHolderOf(owner)).warbandsInPersonalBank
         const available = countOf(bank, owner)
-        // R-7.4, R-7.1.4-H1 (Ring of Devotion), R-11.5 (River)
-        const wanted =
-            foldNumber(
-                'musterWarbands',
-                MUSTER_WARBANDS,
-                state,
-                this.playerId,
-                active,
-                particulars
-            ) +
-            musterWarbandsBonus(state, this.playerId) +
-            riverMusterBonus(state, this.playerId)
-        const gained = Math.min(wanted, available)
+        const gained = Math.min(
+            HydratedMuster.wanted(state, this.playerId, this.cardId, active),
+            available
+        )
 
         bank[owner] = available - gained
         addWarbandsToBoard(state, this.playerId, owner, gained)
@@ -135,6 +126,34 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
     static warbandOwnerFor(state: HydratedOathGameState, playerId: string): WarbandOwner {
         if (state.getPlayerState(playerId).status === PlayerStatus.Citizen) return IMPERIAL_WARBANDS
         return ownWarbandOwner(state, playerId)
+    }
+
+    /** R-5.2.2, R-7.4, R-7.1.4-H1 (Ring of Devotion), R-11.5 (River): the warbands asked for. */
+    static wanted(
+        state: HydratedOathGameState,
+        playerId: string,
+        cardId: string,
+        active: readonly ActiveModifier[]
+    ): number {
+        return (
+            foldNumber('musterWarbands', MUSTER_WARBANDS, state, playerId, active, { cardId }) +
+            musterWarbandsBonus(state, playerId) +
+            riverMusterBonus(state, playerId)
+        )
+    }
+
+    /** R-9.3 — the warbands left in the bank a Muster draws from. */
+    static available(state: HydratedOathGameState, playerId: string): number {
+        const owner = HydratedMuster.warbandOwnerFor(state, playerId)
+        return countOf(
+            state.getPlayerState(state.warbandBankHolderOf(owner)).warbandsInPersonalBank,
+            owner
+        )
+    }
+
+    /** Initiation Rite — "you must place a secret instead of favor". */
+    static placesSecret(active: readonly ActiveModifier[]): boolean {
+        return active.some((m) => m.hooks.musterPlacesSecret)
     }
 
     static plan(
@@ -169,8 +188,7 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
         if (player.supply < cost) {
             return { cost, active, reason: `costs ${cost} Supply, player has ${player.supply}` }
         }
-        // Initiation Rite — "you must place a secret instead of favor".
-        const placesSecret = active.some((m) => m.hooks.musterPlacesSecret)
+        const placesSecret = HydratedMuster.placesSecret(active)
         if (placesSecret && player.secrets < 1)
             return {
                 cost,

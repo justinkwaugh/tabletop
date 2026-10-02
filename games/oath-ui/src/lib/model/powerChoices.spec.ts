@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { IMPERIAL_WARBANDS, PowerChoiceKind, type LegalChoice } from '@tabletop/oath'
-import { emptyPicks, powerChoicesFrom, withSeveralCount } from './powerChoices.js'
+import { Color } from '@tabletop/common'
+import { IMPERIAL_WARBANDS, PowerChoiceKind, Suit, type LegalChoice } from '@tabletop/oath'
+import { testPlayer, testState } from '@tabletop/oath/testing'
+import { emptyPicks, openCountCeiling, powerChoicesFrom, withSeveralCount } from './powerChoices.js'
 
 const cage: LegalChoice = {
     spec: { kind: PowerChoiceKind.Warbands, min: 1, max: 16 },
@@ -46,5 +48,33 @@ describe('powerChoicesFrom — a spec taking one pick', () => {
     it('still defaults a required spec to its first option', () => {
         const one: LegalChoice = { spec: { ...cage.spec, max: 1 }, options: cage.options }
         expect(powerChoicesFrom([one], emptyPicks())).toEqual([cage.options[0]])
+    })
+})
+
+describe('openCountCeiling — how far an open count runs (Witch\'s Bargain)', () => {
+    const holding = (advisers: string[]) => {
+        const state = testState([
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                favor: 0,
+                secrets: 3,
+                advisers: advisers.map((cardId) => ({ cardId, faceUp: true }))
+            })
+        ])
+        state.favorBank[Suit.Nomad] = 8
+        return state
+    }
+
+    it('stops at the secrets or the favor on the board, whichever is more', () => {
+        expect(openCountCeiling(holding([]), 'me')).toBe(3)
+    })
+
+    it('R-7.1.2 — counts the favor Vow of Kinship keeps in the nomad bank', () => {
+        expect(openCountCeiling(holding(['denizen.nomad.vow-of-kinship']), 'me')).toBe(8)
+    })
+
+    it('offers nothing to a viewer with no seat', () => {
+        expect(openCountCeiling(holding([]), undefined)).toBe(0)
     })
 })

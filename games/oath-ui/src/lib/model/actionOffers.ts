@@ -11,7 +11,6 @@ import {
     usableFavor,
     type HydratedOathGameState,
     type ModifierUse,
-    type PeekTarget,
     type Toll,
     type TollOccasion,
     type TravelTerms
@@ -147,8 +146,4 @@ export function reasonCannotRecoverBanner(
         amountPaid,
         redistributeFrom
     })
-}
-
-export function peekSlots(targets: readonly PeekTarget[]): string[] {
-    return targets.map((target) => target.slotId)
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { menuPointer } from '$lib/model/menuPointer.svelte.js'
     import { CardKind } from '@tabletop/oath'
     import BoardCard from '$lib/components/BoardCard.svelte'
     import TokenPair from '$lib/components/TokenPair.svelte'
@@ -28,7 +29,7 @@
         const resting = restingLabel(slotId)
         switch (offer?.intent) {
             case 'start':
-                return { title: `Tap to choose ${siteName(gameState, slotId)}`, chip: offer.label }
+                return { title: `${siteName(gameState, slotId)} — a start site`, chip: offer.label }
             case 'travel':
                 // R-5.6.1 prices by region, R-7.1.4 adds tolls: shown before the tap.
                 return offer.cost === undefined
@@ -40,13 +41,13 @@
             case 'target':
                 return offer.targeted
                     ? {
-                          title: `Targeted — tap to drop ${siteName(gameState, slotId)}`,
+                          title: `${siteName(gameState, slotId)} — targeted`,
                           chip: '✓ target'
                       }
-                    : { title: `Tap to target ${siteName(gameState, slotId)}`, chip: 'target?' }
+                    : { title: `${siteName(gameState, slotId)} — a target`, chip: 'target?' }
             case 'moveWarbands':
                 return {
-                    title: 'Tap to move warbands from your board onto this site',
+                    title: 'Warbands may move from your board onto this site',
                     chip: undefined
                 }
             case undefined:
@@ -77,8 +78,8 @@
             x={0}
             y={0}
             width={rect.width}
-            pickable={offer !== undefined}
-            onpick={() => gameSession.chooseSite(slotId)}
+            offered={offer !== undefined}
+            pointed={menuPointer.is({ kind: 'site', slotId })}
             previewSlotId={slotId}
             title={text.title}
         />

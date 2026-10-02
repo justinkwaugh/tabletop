@@ -1,0 +1,73 @@
+/**
+ * The retired fixed first-game deck (the lobby's old "Curated" World Deck), kept for the games
+ * that started with it: a projected exploration of such a game may deal unknown cards and sites
+ * only from this pool (R-9.4 — the pool was public). Never offered to a new game.
+ */
+export const LEGACY_CURATED_DENIZENS: readonly string[] = [
+    'denizen.hearth.wayside-inn',
+    'denizen.hearth.storyteller',
+    'denizen.hearth.charming-friend',
+    'denizen.hearth.salad-days',
+    'denizen.hearth.fabled-feast',
+    'denizen.hearth.rowdy-pub',
+    'denizen.hearth.awaited-return',
+    'denizen.hearth.welcoming-party',
+    'denizen.hearth.extra-provisions',
+    'denizen.arcane.tutor',
+    'denizen.arcane.spirit-snare',
+    'denizen.arcane.alchemist',
+    'denizen.arcane.wizard-school',
+    'denizen.arcane.forgotten-vault',
+    'denizen.arcane.dazzle',
+    'denizen.arcane.augury',
+    'denizen.arcane.secret-signal',
+    'denizen.arcane.portal',
+    'denizen.beast.wolves',
+    'denizen.beast.memory-of-nature',
+    'denizen.beast.animal-host',
+    'denizen.beast.threatening-roar',
+    'denizen.beast.animal-playmates',
+    'denizen.beast.birdsong',
+    'denizen.beast.the-old-oak',
+    'denizen.beast.wild-cry',
+    'denizen.beast.vow-of-poverty',
+    'denizen.discord.sleight-of-hand',
+    'denizen.discord.gambling-hall',
+    'denizen.discord.assassin',
+    'denizen.discord.a-small-favor',
+    'denizen.discord.charlatan',
+    'denizen.discord.downtrodden',
+    'denizen.discord.insomnia',
+    'denizen.discord.silver-tongue',
+    'denizen.discord.naysayers',
+    'denizen.nomad.elders',
+    'denizen.nomad.resettle',
+    'denizen.nomad.ancient-binding',
+    'denizen.nomad.faithful-friend',
+    'denizen.nomad.great-herd',
+    'denizen.nomad.tents',
+    'denizen.nomad.a-fast-steed',
+    'denizen.nomad.special-envoy',
+    'denizen.nomad.storm-caller',
+    'denizen.order.siege-engines',
+    'denizen.order.messenger',
+    'denizen.order.garrison',
+    'denizen.order.royal-tax',
+    'denizen.order.pressgangs',
+    'denizen.order.tyrant',
+    'denizen.order.scouts',
+    'denizen.order.outriders',
+    'denizen.order.vow-of-obedience'
+]
+
+/** R-2.1.1 — the eight sites the retired fixed deck dealt the map from. */
+export const LEGACY_CURATED_SITES: readonly string[] = [
+    'site.mine',
+    'site.salt-flats',
+    'site.marshes',
+    'site.plains',
+    'site.mountain',
+    'site.river',
+    'site.fertile-valley',
+    'site.standing-stones'
+]

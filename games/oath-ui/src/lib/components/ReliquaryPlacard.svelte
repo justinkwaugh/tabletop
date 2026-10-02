@@ -33,8 +33,7 @@
                 <figure
                     class="trait"
                     use:inspectImage={{
-                        preview: reliquaryTraitPreview(index, reliquaryLabel(slotId)),
-                        pickable: false
+                        preview: reliquaryTraitPreview(index, reliquaryLabel(slotId))
                     }}
                 >
                     <img

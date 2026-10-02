@@ -10,7 +10,6 @@ import {
     CampaignDefend,
     CampaignResolveVictory,
     CampaignSacrifice,
-    CampaignTargetKind,
     CompleteRest,
     ConsentRequestKind,
     EndActPhase,
@@ -22,13 +21,12 @@ import {
     HydratedResolveWake,
     HydratedExileCitizen,
     HydratedMuster,
-    HydratedPeek,
     HydratedPlayFacedownAdviser,
-    HydratedSearch,
     HydratedTrade,
     HydratedTravel,
     MachineState,
     MoveWarbands,
+    WarbandMoveKind,
     Muster,
     OfferCitizenship,
     Peek,
@@ -100,7 +98,7 @@ import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
 import { siteName } from './names.js'
 import type { HistoryNames } from './actionDescription.js'
-import { peekedRelicAt } from './relicKnowledge.js'
+import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
 import {
     adviserDiscardFirstOptions,
     adviserOtherSites,
@@ -109,7 +107,6 @@ import {
 } from './adviserPlacements.js'
 import { CampaignDraft, type CampaignDeclaration } from './campaignDraft.js'
 import {
-    peekSlots,
     reasonCannotRecoverBanner,
     recoverableBanners,
     recoverableRelicSlots,
@@ -121,7 +118,11 @@ import {
     type SiteOffer
 } from './actionOffers.js'
 import { tollLabel } from './offerText.js'
+import { musterRows, type MusterRow } from './musterRows.js'
+import { recoverRows, type RecoverRelicRow } from './recoverRows.js'
+import { searchRows, type SearchRow } from './searchRows.js'
 import { tradeRows, type TradeRow } from './tradeRows.js'
+import { travelRows, type TravelRow } from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
 import { WarbandMoveDraft } from './warbandMoveDraft.js'
@@ -482,10 +483,11 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         }))
     }
 
-    get peekTargets(): PeekTarget[] {
+    // R-6.3 — the relics a Peek can show that this player has not already seen.
+    get peekSlots(): string[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Peek) return []
-        return HydratedPeek.legalTargets(this.gameState, playerId)
+        return unseenPeekSlots(this.gameState, playerId)
     }
 
     // R-9.4 — at any time, from the seat card or the Act Phase grid.
@@ -817,7 +819,10 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.selection.action === ActionType.Campaign) return this.campaign.targetableSites
         if (this.selection.action === ActionType.MoveWarbands) {
             const siteId = this.gameState.getPlayerState(playerId).siteId
-            return this.warbandMoves.boardToSite && siteId ? [siteId] : []
+            const ontoSite = this.warbandMoves.options.some(
+                (option) => option.move.kind === WarbandMoveKind.BoardToSite
+            )
+            return ontoSite && siteId ? [siteId] : []
         }
         if (this.selection.action !== ActionType.Travel) return []
         if (this.selection.value('site') !== undefined) return []
@@ -879,16 +884,24 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return []
     }
 
-    /** The card a tap in the strip marked in the Trade menu. */
-    get tradeCard(): string | undefined {
-        return this.selection.action === ActionType.Trade ? this.selection.value('card') : undefined
-    }
-
     // R-5.3.2, R-7.4 — every trade at the site, priced with the declared modifiers.
     get tradeRows(): TradeRow[] {
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Trade) return []
         return tradeRows(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    // R-5.2, R-7.4 — every Muster at the site, with the declared modifiers.
+    get musterRows(): MusterRow[] {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.Muster) return []
+        return musterRows(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    /** R-5.2.2 — a Citizen musters the Empire's warbands. */
+    get musterWarbandOwner(): WarbandOwner | undefined {
+        const playerId = this.liveTurnSeatId
+        return playerId ? HydratedMuster.warbandOwnerFor(this.gameState, playerId) : undefined
     }
 
     // R-5.4, R-6.3 — relic slots, never card ids: a facedown relic's identity
@@ -897,9 +910,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveTurnSeatId
         if (!playerId) return []
         if (this.selection.value('relicSlot') !== undefined) return []
-        if (this.selection.action === ActionType.Peek) {
-            return peekSlots(this.peekTargets)
-        }
+        if (this.selection.action === ActionType.Peek) return this.peekSlots
         if (this.selection.action !== ActionType.Recover) return []
         return recoverableRelicSlots(this.gameState, playerId, this.modifiers.declared)
     }
@@ -908,6 +919,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const playerId = this.liveTurnSeatId
         if (!playerId || this.selection.action !== ActionType.Recover) return []
         return recoverableBanners(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    // R-5.4 — every relic and banner to recover, until a banner is picked and its price asked.
+    get recoverRows(): { relics: RecoverRelicRow[]; banners: BannerBid[] } {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.Recover || this.stagedBanner) {
+            return { relics: [], banners: [] }
+        }
+        return recoverRows(this.gameState, playerId, this.modifiers.declared)
     }
 
     /** The lowest bid a Recover may pay for this banner, while it is one the seat may take. */
@@ -972,11 +992,25 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    get searchSources(): SearchSource[] {
+    // R-5.1.1, R-7.4 — every source with its price, each pile a declared modifier may name.
+    get searchRows(): SearchRow[] {
         const playerId = this.liveTurnSeatId
-        if (!playerId) return []
-        if (this.selection.action !== ActionType.Search) return []
-        return HydratedSearch.legalSources(this.gameState, playerId, this.modifiers.declared)
+        if (!playerId || this.selection.action !== ActionType.Search) return []
+        return searchRows(
+            this.gameState,
+            playerId,
+            this.modifiers.declared,
+            this.modifiers.regionVariants
+        )
+    }
+
+    async searchFrom(row: SearchRow): Promise<void> {
+        if (row.variant !== undefined) {
+            const variant = this.modifiers.regionVariants[row.variant]
+            assertExists(variant, 'A Search row names a pile its modifier offers')
+            this.modifiers.setPicks(variant.use, variant.picks)
+        }
+        await this.chooseSearchSource(row.source)
     }
 
     knownRelicAt(slotId: string | undefined): string | undefined {
@@ -996,25 +1030,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.selection.action !== type) this.clearActionDrafts()
         this.selection.set('action', type)
         if (type === ActionType.Campaign) this.campaign.begin()
-    }
-
-    async chooseSite(siteId: string): Promise<void> {
-        if (this.setup.boardPick) {
-            this.setup.chooseSite(siteId)
-            return
-        }
-        if (this.selection.action === ActionType.MoveWarbands) {
-            const option = this.warbandMoves.boardToSite
-            if (option && siteId === this.myPlayerState?.siteId)
-                await this.warbandMoves.choose(option)
-            return
-        }
-        if (this.selection.action === ActionType.Campaign) {
-            this.campaign.toggleTarget({ kind: CampaignTargetKind.Site, siteId })
-            return
-        }
-        this.selection.set('site', siteId)
-        if (this.selection.action === ActionType.Travel) await this.travel(siteId)
     }
 
     async chooseCard(cardId: string): Promise<void> {
@@ -1092,13 +1107,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return travelWays(this.gameState, playerId, siteId, this.modifiers.declared)
     }
 
-    /** R-7.1.4, R-11.12, R-X.1 — the ways to pay for the staged destination, when more than one. */
-    get travelChoices(): TravelWay[] {
-        if (this.selection.action !== ActionType.Travel) return []
-        const siteId = this.selection.value('site')
-        return siteId === undefined ? [] : this.travelWaysTo(siteId)
-    }
-
     /** R-11.7 — who chooses where this seat's Travel goes, when an enemy rules its Shrouded Wood. */
     get shroudedWoodChooser(): string | undefined {
         const playerId = this.liveTurnSeatId
@@ -1119,26 +1127,25 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
-    async chooseTravelWay(way: TravelWay): Promise<void> {
-        const siteId = this.selection.value('site')
-        if (siteId === undefined || this.selection.action !== ActionType.Travel) return
+    // R-5.6, R-7.1.4 — every destination with its ways to pay, unless one is already staged.
+    get travelRows(): TravelRow[] {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || this.selection.action !== ActionType.Travel) return []
+        if (this.selection.value('site') !== undefined || this.shroudedWoodChooser) return []
+        return travelRows(this.gameState, playerId, this.modifiers.declared)
+    }
+
+    async travelTo(siteId: string, way: TravelTerms): Promise<void> {
+        if (this.selection.action !== ActionType.Travel) return
         const legal = this.travelWaysTo(siteId).some(
             (w) =>
                 w.flipSecret === way.flipSecret &&
                 w.tolls.length === way.tolls.length &&
                 w.tolls.every((t) => way.tolls.includes(t))
         )
-        if (legal) await this.travelBy(siteId, way)
-    }
-
-    // One legal way is taken at once; several wait for the player's pick.
-    private async travel(siteId: string): Promise<void> {
-        const ways = this.travelWaysTo(siteId)
-        if (ways.length === 1) {
-            await this.travelBy(siteId, ways[0])
-            return
-        }
+        if (!legal) return
         this.selection.set('site', siteId)
+        await this.travelBy(siteId, way)
     }
 
     private async travelBy(siteId: string, { tolls, flipSecret }: TravelTerms): Promise<void> {

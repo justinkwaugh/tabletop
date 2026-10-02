@@ -11,15 +11,19 @@
     let scale = $derived(viewportWidth < 640 ? 0.66 : 0.8)
 </script>
 
-<svelte:window
-    bind:innerWidth={viewportWidth}
-    onkeydown={(e) => {
-        if (e.key === 'Escape' && goalsView.open) goalsView.close()
-    }}
-/>
+<svelte:window bind:innerWidth={viewportWidth} />
 
 {#if goalsView.open}
-    <div class="goals-layer" role="presentation" onpointerdown={() => goalsView.close()}>
+    <!-- Closed on the click, so the press that closes it reaches nothing under it (rule 7). -->
+    <div
+        class="goals-layer"
+        role="presentation"
+        onpointerdown={(event) => event.preventDefault()}
+        onclick={() => goalsView.close()}
+        onkeydown={(event) => {
+            if (event.key === 'Enter') goalsView.close()
+        }}
+    >
         <div
             class="sheet"
             role="dialog"
@@ -27,6 +31,8 @@
             tabindex="-1"
             aria-label="Goals"
             onpointerdown={(e) => e.stopPropagation()}
+            onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => e.stopPropagation()}
         >
             <header class="head">
                 <button

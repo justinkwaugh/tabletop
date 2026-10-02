@@ -6,10 +6,11 @@ import {
 } from '../model/gameState.js'
 import type { OathVault } from '../model/vault.js'
 import type { KnownPositions, TablePositions } from '../model/playerState.js'
-import { CardKind, Region, Suit } from '../model/oathEnums.js'
+import { CardKind, Region, SetupVariant, Suit } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { cardIdsOfKind, isVision, kindOf, suitOf } from '../data/cardRegistry.js'
 import { ALL_SITE_IDS } from '../data/sites.js'
+import { LEGACY_CURATED_DENIZENS, LEGACY_CURATED_SITES } from '../data/legacyCuratedDeck.js'
 import { RELIC_DECK_IDS } from '../data/relics.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
 import {
@@ -271,6 +272,16 @@ function namedWorldCards(
     return named
 }
 
+/** The cards a game's world deck and map were built from: every card, or the retired fixed deck a stored game keeps. */
+export function explorationPools(state: Pick<OathProjectedState, 'setupVariant'>): {
+    denizens: readonly string[]
+    sites: readonly string[]
+} {
+    return state.setupVariant === SetupVariant.Curated
+        ? { denizens: LEGACY_CURATED_DENIZENS, sites: LEGACY_CURATED_SITES }
+        : { denizens: cardIdsOfKind(CardKind.Denizen), sites: ALL_SITE_IDS }
+}
+
 /** R-1.21 — nine denizens of each suit, some of which the table has not seen. */
 function unnamedWorldCards(
     state: OathProjectedState,
@@ -278,8 +289,9 @@ function unnamedWorldCards(
     random: RandomFunction
 ): { visions: string[]; denizens: string[] } {
     const visions = cardIdsOfKind(CardKind.Vision).filter((cardId) => !named.has(cardId))
+    const pools = explorationPools(state)
     const denizens = Object.values(Suit).flatMap((suit) => {
-        const ofSuit = cardIdsOfKind(CardKind.Denizen).filter((cardId) => suitOf(cardId) === suit)
+        const ofSuit = pools.denizens.filter((cardId) => suitOf(cardId) === suit)
         const inPlay = ofSuit.filter((cardId) => named.has(cardId)).length
         assert(
             inPlay <= DENIZENS_PER_SUIT_IN_PLAY,
@@ -663,7 +675,7 @@ function dealSites(state: OathProjectedState, random: RandomFunction) {
             if (facedownSlots.includes(slotId)) siteFacedown[slotId] = siteCardId
     const named = new Set([...Object.values(state.siteCards), ...Object.values(siteFacedown)])
     const pool = shuffled(
-        ALL_SITE_IDS.filter((siteCardId) => !named.has(siteCardId)),
+        explorationPools(state).sites.filter((siteCardId) => !named.has(siteCardId)),
         random
     )
     for (const slotId of facedownSlots) {
