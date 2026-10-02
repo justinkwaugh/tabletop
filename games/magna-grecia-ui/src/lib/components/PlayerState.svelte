@@ -57,12 +57,15 @@
         </div>
     </div>
     <div class="projection" title="Score if the game ended now">
-        <span>Markets <strong>{score.markets}</strong></span>
-        <span class="oracles">
-            <OracleIcon size={18} />
-            <strong>{score.oracles / ORACLE_POINTS}</strong>
-        </span>
-        <span class="total">Total <strong>{score.total}</strong></span>
+        <div class="projection-caption">If the game ended now</div>
+        <div class="projection-row">
+            <span>Markets <strong>{score.markets}</strong></span>
+            <span class="oracles" title="Oracles: {score.oracles} points">
+                <OracleIcon size={18} />
+                <strong>{score.oracles / ORACLE_POINTS}</strong>
+            </span>
+            <span class="total">Total <strong>{score.total}</strong></span>
+        </div>
     </div>
     {#if nextRoundPlace}
         <div class="next-round" title="Turn order in the next round">
@@ -129,7 +132,7 @@
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 4px;
-        padding: 8px 10px 4px;
+        padding: 8px 10px 10px;
     }
 
     .stat {
@@ -146,13 +149,31 @@
     }
 
     .projection {
+        margin: 0 10px;
+        padding: 0 2px 8px;
+        border-top: 1px dashed rgba(107, 63, 29, 0.35);
+        font-size: 13px;
+        color: #7a5732;
+    }
+
+    /* The caption sits on the dashed rule, marking the row below as a projection, not a tally. */
+    .projection-caption {
+        width: fit-content;
+        margin: -7px auto 2px;
+        padding: 0 6px;
+        background: #fbf5e6;
+        font-size: 10px;
+        line-height: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9b7a52;
+    }
+
+    .projection-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 6px;
-        padding: 3px 12px 8px;
-        font-size: 13px;
-        color: #7a5732;
     }
 
     .oracles {
