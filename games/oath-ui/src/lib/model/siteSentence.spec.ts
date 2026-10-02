@@ -4,7 +4,7 @@ import { sentenceParts } from './siteSentence.js'
 
 const text = (t: string) => ({ kind: 'text', text: t })
 
-describe('item 28 — a site sentence draws the symbols the card library prints', () => {
+describe('scenario 53 — a site sentence draws the symbols the card library prints', () => {
     it('draws a suit and a favor as their symbols', () => {
         expect(sentenceParts('If you play a [suit:hearth] card here, you get [favor].')).toEqual([
             text('If you play a '),

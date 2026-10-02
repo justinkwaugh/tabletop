@@ -4,7 +4,7 @@ import { previewSourceWidth, previewWidth } from './previewSize.js'
 const DESKTOP = { width: 1440, height: 900 }
 const PHONE = { width: 390, height: 844 }
 
-describe('the enlarged card’s size (item 12)', () => {
+describe('the enlarged card’s size (scenario 52)', () => {
     it('a wide card runs to its source art on a desktop', () => {
         expect(previewWidth(DESKTOP, 2, 920)).toBe(920)
         expect(previewWidth(DESKTOP, 1016 / 651, 1016)).toBe(1016)

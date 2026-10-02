@@ -72,6 +72,7 @@ export type TableName =
     | 'advisers'
     | 'moves'
     | 'campaign'
+    | 'observatory'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -630,6 +631,33 @@ function peekTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-7.4: the seat stands with the Observatory, the Cradle's pile empty and the others not. */
+function observatoryTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 7 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.arcane.observatory'] },
+            discardPileCounts: { cradle: 0, provinces: 3, hinterland: 2 }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     setup: setupTable,
     searching: searchingTable,
@@ -651,7 +679,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     peek: peekTable,
     advisers: advisersTable,
     moves: movesTable,
-    campaign: campaignTable
+    campaign: campaignTable,
+    observatory: observatoryTable
 }
 
 let session: OathGameSession | undefined

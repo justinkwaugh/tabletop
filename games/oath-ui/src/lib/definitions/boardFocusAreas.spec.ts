@@ -29,7 +29,7 @@ function rectOf(table: Readonly<Record<string, BoundingBox>>, slotId: string): B
 const disjoint = (a: BoundingBox, b: BoundingBox) =>
     a.x + a.width <= b.x || b.x + b.width <= a.x
 
-describe('the board focus views (item 9)', () => {
+describe('the board focus views (scenario 45)', () => {
     it('a region holds its discard pile, its sites and the strips beside them', () => {
         for (const region of [Region.Cradle, Region.Provinces, Region.Hinterland]) {
             const rect = regionFocusRect(region)
