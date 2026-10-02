@@ -11,7 +11,7 @@
     const offer = $derived(session.acquisitionOffer)
     const sale = $derived(session.companySale)
     const choice = $derived(session.acquirerChoice)
-    const acquisition = $derived(session.acquisitionLoans)
+    const acquisition = $derived(session.buyerLoans)
     const zones = {
         offered: 'Offered for sale',
         acquisition: 'Acquisition zone',

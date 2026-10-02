@@ -58,7 +58,7 @@
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
     "RemoveStation": "64b1406d6a8e9a88e481f18d7bf558368087c7726714e016d04236d67f02d09f",
-    "RepayAcquiredLoan": "1f5782dbfd0577a8ff9f582196f67b9779617f26013d3b80eb258b4a782f71da",
+    "RepayAcquiredLoan": "d463de114fe3fbc5dd633f65edc2b55036b594c91949c4def4ca4630fc2bbf95",
     "RepayLoan": "2fab0a1010e7faa0ffa89e0d5e4e0ee85b68f87a72b1a5a44130182e215065a1",
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
     "ResolveSelectionAuction": "65f0765d984b7d4a0a4efcc5ab447d94ff1895a6f437923636e2fb44d5a4fd19",
@@ -96,47 +96,9 @@
                 "minLength": 1,
                 "type": "string"
               },
-              "companyId": {
-                "minLength": 1,
-                "type": "string"
-              },
               "inheritedLoans": {
                 "minimum": 0,
                 "type": "integer"
-              },
-              "kind": {
-                "anyOf": [
-                  {
-                    "const": "offered",
-                    "type": "string"
-                  },
-                  {
-                    "const": "acquisition",
-                    "type": "string"
-                  },
-                  {
-                    "const": "liquidation",
-                    "type": "string"
-                  }
-                ]
-              },
-              "liquidation": {
-                "additionalProperties": false,
-                "properties": {
-                  "cash": {
-                    "minimum": 0,
-                    "type": "integer"
-                  },
-                  "loans": {
-                    "minimum": 0,
-                    "type": "integer"
-                  }
-                },
-                "required": [
-                  "cash",
-                  "loans"
-                ],
-                "type": "object"
               },
               "price": {
                 "minimum": 1,
@@ -145,15 +107,66 @@
               "repaidLoans": {
                 "minimum": 0,
                 "type": "integer"
+              },
+              "sale": {
+                "additionalProperties": false,
+                "properties": {
+                  "companyId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "heldAside": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "cash": {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "loans": {
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "cash",
+                      "loans"
+                    ],
+                    "type": "object"
+                  },
+                  "kind": {
+                    "anyOf": [
+                      {
+                        "const": "offered",
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "const": "acquisition",
+                            "type": "string"
+                          },
+                          {
+                            "const": "liquidation",
+                            "type": "string"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "companyId",
+                  "kind"
+                ],
+                "type": "object"
               }
             },
             "required": [
               "buyerId",
-              "companyId",
               "inheritedLoans",
-              "kind",
               "price",
-              "repaidLoans"
+              "repaidLoans",
+              "sale"
             ],
             "type": "object"
           },
@@ -226,23 +239,7 @@
                 "minLength": 1,
                 "type": "string"
               },
-              "kind": {
-                "anyOf": [
-                  {
-                    "const": "offered",
-                    "type": "string"
-                  },
-                  {
-                    "const": "acquisition",
-                    "type": "string"
-                  },
-                  {
-                    "const": "liquidation",
-                    "type": "string"
-                  }
-                ]
-              },
-              "liquidation": {
+              "heldAside": {
                 "additionalProperties": false,
                 "properties": {
                   "cash": {
@@ -259,6 +256,26 @@
                   "loans"
                 ],
                 "type": "object"
+              },
+              "kind": {
+                "anyOf": [
+                  {
+                    "const": "offered",
+                    "type": "string"
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "const": "acquisition",
+                        "type": "string"
+                      },
+                      {
+                        "const": "liquidation",
+                        "type": "string"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             "required": [

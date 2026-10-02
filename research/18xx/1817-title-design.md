@@ -1285,16 +1285,19 @@ pays it, 1848's company borrows from its president, 18NY writes it off.
 
 - **Actions as built.** `OfferCompany` and `DeclineOffer`; `BidToAcquire` (the family
   already has `BidForCompany`) and `PassOnCompany`; `AcquireCompany`;
-  `RepayAcquiredLoan`, since the family's `RepayLoan` belongs to the Loans step and
-  moves the price; `FinishAcquisitionLoans`. The system actions are
+  `RepayAcquiredLoan`, since the family's `RepayLoan` action belongs to the Loans step;
+  it uses the family's `repayLoan` without the price move; `FinishAcquisitionLoans`. The system actions are
   `StartAcquisitionRound`, `EndAcquisitionRound`, `SkipCompanySale` (entered a zone, or
   nobody could pay an offer), `OpenCompanySale` (a zone company) and
   `CloseCompanySale` (nobody bid; for a liquidated company the bank's liquidation).
 - **Order of settlement.** The buyer borrows what it lacks before taking on the
   target's loans, then pays; after the loans step, loans over its limit are repaid
   without moving its price, each inherited loan still held moves it left, the holders
-  are paid and the charter resets. A liquidated company's cash and loans are set aside
-  when its sale opens.
+  are paid and the charter resets. A liquidated company's cash goes to the bank when
+  its sale opens, while its loans stay with it, out of the bank's supply, until the
+  sale settles them; `transferCompanyAssets` therefore takes whether loans move.
+  The target's own president's bid ceiling is the minimum, which the panel's bid input
+  also uses.
 - **Limits.** A player's limit counts the loans their company may still take from the
   bank's remaining supply; the reference also counts the target's loans as returning
   to the bank, which differs only when the bank is nearly out of loans.

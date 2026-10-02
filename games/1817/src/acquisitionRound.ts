@@ -12,7 +12,7 @@ import {
     type MachineContext
 } from '@tabletop/common'
 import {
-    CashPayment,
+    LoanRecord,
     PassableBidding,
     canTakeLoan,
     isTakeLoan,
@@ -23,7 +23,7 @@ import {
 } from '@tabletop/18xx'
 import {
     acquisitionRoundCompanyIds,
-    bidReason,
+    bidRejection,
     biddingOrder,
     buyersFor,
     enteredClosingZone,
@@ -39,7 +39,7 @@ import {
     canRepayAcquiredLoan,
     holdAside,
     liquidateByBank,
-    repayWithoutMove,
+    repayAcquiredLoan,
     settleBuyerLoans,
     settleHolders
 } from './acquisitionSettlement.js'
@@ -47,12 +47,14 @@ import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { inClosingZone } from './marketZones.js'
 import { presidentOf, stationsOverLimit, trainsOverLimit } from './mergerRules.js'
 import {
+    dropCompany,
     activeAcquisitionRound,
     acquisitionRoundOf,
     mergerRoundOf,
     setAcquisitionRound,
     type Acquisition,
     type AcquisitionRound,
+    ClosingZone,
     type CompanySale,
     type SaleKind
 } from './state.js'
@@ -81,7 +83,7 @@ function requireAcquisition(state: object): Acquisition {
 
 export function acquisitionRoundCompanyId(state: object): string | undefined {
     const round = activeAcquisitionRound(state)
-    return round?.sale?.companyId ?? round?.acquisition?.companyId ?? round?.companyIds[0]
+    return round?.sale?.companyId ?? round?.acquisition?.sale.companyId ?? round?.companyIds[0]
 }
 
 export function stateAfterAcquisition(state: EighteenXXState): string {
@@ -110,7 +112,6 @@ export function acquisitionRoundDue(state: OperatingState): boolean {
     )
 }
 
-/** Whether the current operating round's acquisition round has yet to finish. */
 export function acquisitionRoundPending(state: OperatingState): boolean {
     const set = state.operatingSet
     const latest = acquisitionRoundOf(state)
@@ -139,8 +140,8 @@ function nextCompanyId(state: object): string | undefined {
 
 function openSale(state: EighteenXXState, companyId: string, kind: SaleKind): CompanySale {
     const round = requireRound(state)
-    round.companyIds = round.companyIds.filter((id) => id !== companyId)
-    const liquidation = kind === 'liquidation' ? holdAside(state, companyId) : undefined
+    dropCompany(round, companyId)
+    const heldAside = kind === 'liquidation' ? holdAside(state, companyId) : undefined
     const sale: CompanySale = {
         companyId,
         kind,
@@ -148,7 +149,7 @@ function openSale(state: EighteenXXState, companyId: string, kind: SaleKind): Co
             `acquisition:${round.set}.${round.round}:${companyId}`,
             biddingOrder(state, companyId)
         ),
-        ...(liquidation ? { liquidation } : {})
+        ...(heldAside ? { heldAside } : {})
     }
     round.sale = withdrawUnableBidders(state, sale)
     return round.sale
@@ -205,7 +206,6 @@ export class HydratedStartAcquisitionRound
     }
 }
 
-/** Opens the acquisition round once the merger round after an operating round is done. */
 export function startsAcquisitionRounds(handler: EighteenXXStateHandler): EighteenXXStateHandler {
     return new SystemActionFirstHandler(
         handler,
@@ -295,14 +295,11 @@ export class HydratedSkipCompanySale
     apply(state: State): void {
         assert(this.isValidFor(state), 'Only a company that cannot be sold now is skipped')
         const round = requireRound(state)
-        round.companyIds = round.companyIds.filter((id) => id !== this.companyId)
+        dropCompany(round, this.companyId)
     }
 }
 
-const SaleOpening = Type.Object(
-    { kind: Type.Union([Type.Literal('acquisition'), Type.Literal('liquidation')]) },
-    { additionalProperties: false }
-)
+const SaleOpening = Type.Object({ kind: ClosingZone }, { additionalProperties: false })
 const OpenFields = Type.Object({
     type: Type.Literal('OpenCompanySale'),
     companyId: Type.String(),
@@ -424,7 +421,7 @@ export class HydratedDeclineOffer
             'Only a company’s president may keep it off the market'
         )
         const round = requireRound(state)
-        round.companyIds = round.companyIds.filter((id) => id !== this.companyId)
+        dropCompany(round, this.companyId)
     }
 }
 
@@ -500,12 +497,12 @@ export class HydratedBidToAcquire
         const sale = requireRound(state).sale
         return (
             sale?.companyId === this.companyId &&
-            !bidReason(state, sale, this.playerId, this.amount)
+            !bidRejection(state, sale, this.playerId, this.amount)
         )
     }
     apply(state: State): void {
         const sale = requireSale(state)
-        const reason = bidReason(state, sale, this.playerId, this.amount)
+        const reason = bidRejection(state, sale, this.playerId, this.amount)
         assert(this.source === ActionSource.User && this.isValidFor(state), reason ?? 'Invalid bid')
         requireRound(state).sale = withdrawUnableBidders(state, {
             ...sale,
@@ -606,7 +603,7 @@ export class HydratedCloseCompanySale
         const trainIds = liquidateByBank(state, sale.companyId)
         this.metadata = {
             trainIds,
-            settlement: settleHolders(state, sale.companyId, 0, sale.liquidation)
+            settlement: settleHolders(state, sale.companyId, 0, sale.heldAside)
         }
     }
 }
@@ -665,7 +662,6 @@ export function isAcquireCompany(action: GameAction): action is AcquireCompany {
     )
 }
 
-/** The winner and the companies of theirs that could pay what they bid. */
 export function acquirerChoice(
     state: EighteenXXState
 ): { playerId: string; amount: number; buyerIds: string[] } | undefined {
@@ -704,10 +700,9 @@ export class HydratedAcquireCompany
         const record = acquireCompany(state, sale, this.buyerId, choice.amount)
         const round = requireRound(state)
         delete round.sale
+        const { bidding: _bidding, ...terms } = sale
         round.acquisition = {
-            companyId: sale.companyId,
-            kind: sale.kind,
-            ...(sale.liquidation ? { liquidation: sale.liquidation } : {}),
+            sale: terms,
             buyerId: this.buyerId,
             price: choice.amount,
             inheritedLoans: record.assets.loans,
@@ -770,9 +765,7 @@ export const RepayAcquiredLoan = Type.Object(
     {
         ...CompanyFields,
         type: Type.Literal('RepayAcquiredLoan'),
-        metadata: Type.Optional(
-            Type.Object({ payment: CashPayment }, { additionalProperties: false })
-        )
+        metadata: Type.Optional(LoanRecord)
     },
     { additionalProperties: false }
 )
@@ -806,7 +799,7 @@ export class HydratedRepayAcquiredLoan
             this.source === ActionSource.User && this.isValidFor(state),
             'Only the buyer’s president repays the loans it took on'
         )
-        this.metadata = { payment: repayWithoutMove(state, this.companyId) }
+        this.metadata = repayAcquiredLoan(state, this.companyId)
         requireAcquisition(state).repaidLoans++
     }
 }
@@ -867,16 +860,15 @@ export class HydratedFinishAcquisitionLoans
         delete round.acquisition
         const settlement = settleHolders(
             state,
-            acquisition.companyId,
+            acquisition.sale.companyId,
             acquisition.price,
-            acquisition.liquidation
+            acquisition.sale.heldAside
         )
         const leftRound =
             round.companyIds.includes(acquisition.buyerId) &&
             inClosingZone(state.stockMarket, acquisition.buyerId)
-        if (leftRound)
-            round.companyIds = round.companyIds.filter((id) => id !== acquisition.buyerId)
-        this.metadata = { targetId: acquisition.companyId, loans, settlement, leftRound }
+        if (leftRound) dropCompany(round, acquisition.buyerId)
+        this.metadata = { targetId: acquisition.sale.companyId, loans, settlement, leftRound }
     }
 }
 

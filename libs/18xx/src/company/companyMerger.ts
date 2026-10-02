@@ -27,11 +27,12 @@ export const AssetTransfer = Type.Object(
 )
 export type AssetTransfer = Type.Static<typeof AssetTransfer>
 
-/** Moves one company's cash, trains, privates and loans to another. */
+/** Moves one company's cash, trains, privates and, unless they stay behind, loans to another. */
 export function transferCompanyAssets(
     state: FinancialState & TrainState,
     fromId: string,
-    toId: string
+    toId: string,
+    { loans: movesLoans }: { loans: boolean }
 ): AssetTransfer {
     const from = { kind: 'company' as const, companyId: fromId }
     const to = { kind: 'company' as const, companyId: toId }
@@ -55,7 +56,7 @@ export function transferCompanyAssets(
             privateIds.push(certificate.companyId)
         }
     const source = getCompany(state, fromId)
-    const loans = source.loans ?? 0
+    const loans = movesLoans ? (source.loans ?? 0) : 0
     if (loans) {
         const target = getCompany(state, toId)
         target.loans = (target.loans ?? 0) + loans

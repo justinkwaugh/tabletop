@@ -32,7 +32,8 @@ import {
     type Train
 } from '@tabletop/18xx'
 import { corporationShareCount } from './corporations.js'
-import { closingZone, inClosingZone, type ClosingZone } from './marketZones.js'
+import { closingZone, inClosingZone } from './marketZones.js'
+import type { ClosingZone } from './state.js'
 import { isLiquidated } from './liquidation.js'
 import { MarketPoolId, treasuryPoolId } from './roundRules.js'
 import { StationPrice } from './stockRules.js'
@@ -198,7 +199,7 @@ export function mergeCompanies(
     const targetPresident = controllingOwner(state, targetId)
     assertExists(president, 'A merging company has a president')
     assertExists(targetPresident, 'A merged company has a president')
-    const assets = transferCompanyAssets(state, targetId, companyId)
+    const assets = transferCompanyAssets(state, targetId, companyId, { loans: true })
     const stations = moveCompanyStations(state, targetId, companyId)
     placeStockMarker(state.stockMarket, companyId, mergerSpace(state, price).id)
     const newShareIds = convertCompany(state, companyId)
@@ -215,7 +216,7 @@ export function mergeCompanies(
             giveShare(state, newShareIds[0], targetPresident)
         }
     } else migrateHoldings(state, companyId, targetId, newShareIds)
-    resetCompany(state, targetId, { shareCount: CharterShareCount })
+    resetCompany(state, targetId, CharterShareCount)
     return { price, assets, stations, payments }
 }
 

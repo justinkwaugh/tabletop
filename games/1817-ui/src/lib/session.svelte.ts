@@ -19,7 +19,7 @@ import {
     excessCompanyId,
     minimumBid,
     openingBid,
-    playerLimit,
+    bidCeiling,
     BuyConvertedShare,
     ConvertCompany,
     DiscardMergedTrain,
@@ -126,7 +126,7 @@ export class EighteenSeventeenSession extends BaseSession {
     acquisitionOffer = $derived.by(() => {
         const companyId = this.acquisitionCompanyId
         return companyId && this.validActionTypes.includes('OfferCompany')
-            ? { companyId, openingBid: openingBid(this.gameState, companyId, 'offered') }
+            ? { openingBid: openingBid(this.gameState, companyId, 'offered') }
             : undefined
     })
     companySale = $derived.by(() => {
@@ -143,7 +143,7 @@ export class EighteenSeventeenSession extends BaseSession {
             minimum: minimumBid(state, sale),
             maximum:
                 playerId && this.validActionTypes.includes('BidToAcquire')
-                    ? playerLimit(state, playerId, sale)
+                    ? bidCeiling(state, sale, playerId)
                     : undefined
         }
     })
@@ -152,11 +152,12 @@ export class EighteenSeventeenSession extends BaseSession {
             ? acquirerChoice(this.gameState)
             : undefined
     )
-    acquisitionLoans = $derived(
-        this.gameState.machineState === 'AcquisitionLoans'
-            ? activeAcquisitionRound(this.gameState)?.acquisition
-            : undefined
-    )
+    buyerLoans = $derived.by(() => {
+        const acquisition = activeAcquisitionRound(this.gameState)?.acquisition
+        if (this.gameState.machineState !== 'AcquisitionLoans' || !acquisition) return undefined
+        const { buyerId, price, inheritedLoans, repaidLoans } = acquisition
+        return { buyerId, price, inheritedLoans, repaidLoans }
+    })
     private requireAcquisitionCompanyId(): string {
         const companyId = this.acquisitionCompanyId
         assert(companyId, 'An acquisition round is in progress')
@@ -195,18 +196,19 @@ export class EighteenSeventeenSession extends BaseSession {
             })
         )
     }
+    private requireBuyerId(): string {
+        const buyerId = this.buyerLoans?.buyerId
+        assert(buyerId, 'A company has been bought')
+        return buyerId
+    }
     async repayAcquiredLoan() {
-        const acquisition = this.acquisitionLoans
-        assert(acquisition, 'A company has been bought')
         await this.applyAction(
-            this.createPlayerAction(RepayAcquiredLoan, { companyId: acquisition.buyerId })
+            this.createPlayerAction(RepayAcquiredLoan, { companyId: this.requireBuyerId() })
         )
     }
     async finishAcquisitionLoans() {
-        const acquisition = this.acquisitionLoans
-        assert(acquisition, 'A company has been bought')
         await this.applyAction(
-            this.createPlayerAction(FinishAcquisitionLoans, { companyId: acquisition.buyerId })
+            this.createPlayerAction(FinishAcquisitionLoans, { companyId: this.requireBuyerId() })
         )
     }
     private requireMergerCompanyId(): string {

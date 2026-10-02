@@ -25,7 +25,6 @@ import { activeAcquisitionRound, activeMergerRound } from './state.js'
 type State = HydratedGameState & EighteenXXState
 type Context = MachineContext<HydratedEighteenXXState>
 
-/** The merged or acquiring company, which gives up what it holds over its limits. */
 export function excessCompanyId(state: object): string | undefined {
     return (
         activeMergerRound(state)?.conversion?.companyId ??

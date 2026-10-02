@@ -56,7 +56,7 @@ it('returns a company to an unstarted charter with its president’s certificate
         ],
         stockMarket
     }
-    resetCompany(state, 'A', { shareCount: 2 })
+    resetCompany(state, 'A', 2)
     expect(state.companies[0]).toEqual({ id: 'A', name: 'A', kind: 'major', shareCount: 2 })
     expect(state.stockMarket.stacks).toEqual([])
     expect(

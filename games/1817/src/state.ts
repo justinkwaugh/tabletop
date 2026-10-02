@@ -24,7 +24,8 @@ export const Conversion = Type.Object(
     { additionalProperties: false }
 )
 export type Conversion = Type.Static<typeof Conversion>
-const ClosingZone = Type.Union([Type.Literal('acquisition'), Type.Literal('liquidation')])
+export const ClosingZone = Type.Union([Type.Literal('acquisition'), Type.Literal('liquidation')])
+export type ClosingZone = Type.Static<typeof ClosingZone>
 /** The merger and conversion round that follows an operating round. */
 export const MergerRound = Type.Object(
     {
@@ -48,34 +49,28 @@ export const MergerRoundStates = [
     'BorrowingAfterConversion'
 ] as const
 
-export const SaleKind = Type.Union([
-    Type.Literal('offered'),
-    Type.Literal('acquisition'),
-    Type.Literal('liquidation')
-])
+export const SaleKind = Type.Union([Type.Literal('offered'), ClosingZone])
 export type SaleKind = Type.Static<typeof SaleKind>
-/** A liquidated company's cash and loans, set aside while it is sold. */
+/** A liquidated company's cash, gone to the bank, and the loans its sale must repay. */
 export const HeldAside = Type.Object(
     { cash: Type.Integer({ minimum: 0 }), loans: Type.Integer({ minimum: 0 }) },
     { additionalProperties: false }
 )
 export type HeldAside = Type.Static<typeof HeldAside>
+export const SaleTerms = Type.Object(
+    { companyId: Id, kind: SaleKind, heldAside: Type.Optional(HeldAside) },
+    { additionalProperties: false }
+)
+export type SaleTerms = Type.Static<typeof SaleTerms>
 export const CompanySale = Type.Object(
-    {
-        companyId: Id,
-        kind: SaleKind,
-        bidding: SimpleAuction,
-        liquidation: Type.Optional(HeldAside)
-    },
+    { ...SaleTerms.properties, bidding: SimpleAuction },
     { additionalProperties: false }
 )
 export type CompanySale = Type.Static<typeof CompanySale>
 /** A company bought in the acquisition round, until its buyer's loans and holders settle. */
 export const Acquisition = Type.Object(
     {
-        companyId: Id,
-        kind: SaleKind,
-        liquidation: Type.Optional(HeldAside),
+        sale: SaleTerms,
         buyerId: Id,
         price: Type.Integer({ minimum: 1 }),
         inheritedLoans: Type.Integer({ minimum: 0 }),
@@ -127,6 +122,10 @@ export function mergerRoundOf(state: object): MergerRound | undefined {
     if (!('mergerRound' in state)) return undefined
     assert(MergerRoundValidator.Check(state.mergerRound), 'Invalid merger round')
     return state.mergerRound
+}
+
+export function dropCompany(round: { companyIds: string[] }, companyId: string): void {
+    round.companyIds = round.companyIds.filter((id) => id !== companyId)
 }
 
 export function setMergerRound(state: object, round: MergerRound): void {

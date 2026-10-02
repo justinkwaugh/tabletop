@@ -42,7 +42,7 @@ function assetState(): FinancialState & TrainState {
 
 it('moves cash, trains, privates and loans to the survivor', () => {
     const state = assetState()
-    const transfer = transferCompanyAssets(state, 'B', 'A')
+    const transfer = transferCompanyAssets(state, 'B', 'A', { loans: true })
     expect(transfer).toEqual({
         payment: { from: company('B'), to: company('A'), amount: 40 },
         trainIds: ['t1'],
@@ -53,6 +53,12 @@ it('moves cash, trains, privates and loans to the survivor', () => {
     expect(state.trainInventory.trains[0]).toMatchObject({ owner: company('A') })
     expect(state.certificates[0]).toMatchObject({ owner: company('A') })
     expect(state.companies.map((entry) => entry.loans)).toEqual([3, undefined, undefined])
+})
+
+it('leaves the loans behind when asked', () => {
+    const state = assetState()
+    expect(transferCompanyAssets(state, 'B', 'A', { loans: false }).loans).toBe(0)
+    expect(state.companies.map((entry) => entry.loans)).toEqual([1, 2, undefined])
 })
 
 it('moves stations onto new pieces, returning a shared city’s second one to the charter', () => {

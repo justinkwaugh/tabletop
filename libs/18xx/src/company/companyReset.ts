@@ -12,7 +12,7 @@ import { removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 export function resetCompany(
     state: FinancialState & StationState & { stockMarket: StockMarket },
     companyId: string,
-    charter: { shareCount?: number } = {}
+    shareCount: number
 ): void {
     const company = getCompany(state, companyId)
     assert(company.kind !== 'private', 'Only a company with shares is reset')
@@ -26,7 +26,7 @@ export function resetCompany(
         'loans'
     ] as const)
         delete company[field]
-    if (charter.shareCount) company.shareCount = charter.shareCount
+    company.shareCount = shareCount
     removeStockMarker(state.stockMarket, companyId)
     state.certificates = state.certificates.map((certificate) => {
         if (certificate.retired || certificate.companyId !== companyId) return certificate

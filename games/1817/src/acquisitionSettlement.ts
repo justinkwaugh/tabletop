@@ -10,10 +10,9 @@ import {
     closePrivate,
     companyLoans,
     controllingOwner,
-    finiteCashOwnedBy,
-    getCompany,
     moveCompanyMarker,
     moveCompanyStations,
+    repayLoan,
     resetCompany,
     sameOwner,
     settleCashPayments,
@@ -24,12 +23,19 @@ import {
     unownedTrain,
     type EighteenXXState
 } from '@tabletop/18xx'
-import { perShareProceeds, treasuryCompensation } from './acquisitionRules.js'
+import {
+    companyCash,
+    inheritedLoans,
+    perShareProceeds,
+    treasuryCompensation
+} from './acquisitionRules.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { CharterShareCount, trimStations } from './mergerRules.js'
-import type { Acquisition, CompanySale, HeldAside } from './state.js'
+import type { Acquisition, HeldAside, SaleTerms } from './state.js'
 
 const Loans = EighteenSeventeenLoanRules
+// Repaying the loans an acquisition brings moves no price.
+const { repayMove: _repayMove, ...RepaymentInPlace } = Loans
 
 export const AcquisitionRecord = Type.Object(
     {
@@ -44,17 +50,13 @@ export const AcquisitionRecord = Type.Object(
 )
 export type AcquisitionRecord = Type.Static<typeof AcquisitionRecord>
 
-function companyCash(state: EighteenXXState, companyId: string): number {
-    return finiteCashOwnedBy(state, { kind: 'company', companyId })
-}
-
 /**
  * The buyer takes the sold company's assets and pays the bank, borrowing first for what it
  * lacks, before it takes on the sold company's loans.
  */
 export function acquireCompany(
     state: EighteenXXState,
-    sale: CompanySale,
+    sale: SaleTerms,
     buyerId: string,
     price: number
 ): AcquisitionRecord {
@@ -70,7 +72,9 @@ export function acquireCompany(
     const loans: LoanRecord[] = []
     while (companyCash(state, buyerId) + companyCash(state, sale.companyId) < price)
         loans.push(takeLoan(state, Loans, buyerId))
-    const assets = transferCompanyAssets(state, sale.companyId, buyerId)
+    const assets = transferCompanyAssets(state, sale.companyId, buyerId, {
+        loans: inheritedLoans(state, sale) > 0
+    })
     const stations = moveCompanyStations(state, sale.companyId, buyerId)
     trimStations(state, buyerId)
     const payment = {
@@ -96,18 +100,8 @@ export function canRepayAcquiredLoan(state: EighteenXXState, acquisition: Acquis
     )
 }
 
-/** Repays one of the buyer's loans without moving its price. */
-export function repayWithoutMove(state: EighteenXXState, companyId: string): CashPayment {
-    const payment = {
-        from: { kind: 'company' as const, companyId },
-        to: { kind: 'bank' as const },
-        amount: Loans.value
-    }
-    settleCashPayments(state, [payment])
-    const company = getCompany(state, companyId)
-    if (company.loans === 1) delete company.loans
-    else company.loans = companyLoans(state, companyId) - 1
-    return payment
+export function repayAcquiredLoan(state: EighteenXXState, buyerId: string): LoanRecord {
+    return repayLoan(state, RepaymentInPlace, buyerId)
 }
 
 export const BuyerLoansRecord = Type.Object(
@@ -130,7 +124,7 @@ export function settleBuyerLoans(
         companyLoans(state, buyerId) > Loans.capacity(state, buyerId) &&
         companyCash(state, buyerId) >= Loans.value
     )
-        repayments.push(repayWithoutMove(state, buyerId))
+        repayments.push(repayAcquiredLoan(state, buyerId).payment)
     const unpaid = Math.max(
         0,
         acquisition.inheritedLoans - acquisition.repaidLoans - repayments.length
@@ -194,18 +188,16 @@ export function settleHolders(
         ...(debt && president ? [{ playerId: president.playerId, amount: debt }] : [])
     ])
     const paid = charges.length ? chargePlayers(state, charges, 'AcquisitionRound') : []
-    resetCompany(state, companyId, { shareCount: CharterShareCount })
+    resetCompany(state, companyId, CharterShareCount)
     return { perShare, payments: payout.payments, charges, paid }
 }
 
-/** Sets a liquidated company's cash and loans aside while it is sold. */
+/** A liquidated company's cash goes to the bank while it is sold; its loans stay until settled. */
 export function holdAside(state: EighteenXXState, companyId: string): HeldAside {
     const company = { kind: 'company' as const, companyId }
     const cash = companyCash(state, companyId)
     if (cash) settleCashPayments(state, [{ from: company, to: { kind: 'bank' }, amount: cash }])
-    const loans = companyLoans(state, companyId)
-    delete getCompany(state, companyId).loans
-    return { cash, loans }
+    return { cash, loans: companyLoans(state, companyId) }
 }
 
 /** With no buyer, a liquidated company's trains leave play and its privates close. */

@@ -52,6 +52,7 @@ import {
     trimStations
 } from './mergerRules.js'
 import {
+    dropCompany,
     activeMergerRound,
     mergerRoundOf,
     setMergerRound,
@@ -102,7 +103,7 @@ export function stateAfterConversion(state: EighteenXXState): string {
 
 function beginConversion(state: EighteenXXState, conversion: Omit<Conversion, 'traderIds'>): void {
     const round = requireRound(state)
-    round.companyIds = round.companyIds.filter((id) => id !== conversion.companyId)
+    dropCompany(round, conversion.companyId)
     round.convertedIds.push(conversion.companyId)
     round.conversion = {
         ...conversion,
@@ -339,7 +340,7 @@ export class HydratedMergeCompanies
         )
         const record = mergeCompanies(state, this.companyId, this.targetId)
         const round = requireRound(state)
-        round.companyIds = round.companyIds.filter((id) => id !== this.targetId)
+        dropCompany(round, this.targetId)
         trimStations(state, this.companyId)
         beginConversion(state, {
             companyId: this.companyId,
@@ -389,7 +390,7 @@ export class HydratedPassMerger extends HydratableAction<typeof PassMerger> impl
     apply(state: State): void {
         assert(this.isValidFor(state), 'Only the deciding company’s president may pass')
         const round = requireRound(state)
-        round.companyIds = round.companyIds.filter((id) => id !== this.companyId)
+        dropCompany(round, this.companyId)
     }
 }
 

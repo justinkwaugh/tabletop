@@ -108,7 +108,6 @@ export function placeStockMarker(market: StockMarket, companyId: string, spaceId
     market.stacks = market.stacks.filter((stack) => stack.companyIds.length > 0)
 }
 
-/** Moves the company's marker, recording the move unless it stays put. */
 export function moveCompanyMarker(
     market: StockMarket,
     companyId: string,
