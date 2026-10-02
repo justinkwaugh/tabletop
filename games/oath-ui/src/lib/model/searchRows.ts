@@ -8,16 +8,13 @@ import {
     type Region
 } from '@tabletop/oath'
 
-/** A source a Search can draw from now, with its price; a pile names its region. */
 export type SearchRow = {
     source: SearchSource
     /** The discard pile's region (R-7.4: a modifier may name another pile). */
     region?: Region
     cost: number
     draw: number
-    /** Each toll's favor goes to its ruler, or to the fire (Forced Labor). */
     favorTo: (string | undefined)[]
-    /** Which of the declared modifier's regions this pile is, when one names a pile. */
     variant?: number
 }
 

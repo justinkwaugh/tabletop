@@ -5,7 +5,6 @@
     import { suitName } from '$lib/model/names.js'
     import { sentenceParts } from '$lib/model/siteSentence.js'
 
-    // Item 28 — what a site does, under it when enlarged; the word is each symbol's alt.
     let { sentence }: { sentence: string } = $props()
     let parts = $derived(sentenceParts(sentence))
 </script>

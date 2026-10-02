@@ -2,7 +2,6 @@ import { cardPreview, type CardPreview, type CardPreviewOwner } from './cardPrev
 
 export type InspectImageParams = {
     preview: CardPreview
-    /** False while the card shows nothing to enlarge. */
     enabled?: boolean
 }
 

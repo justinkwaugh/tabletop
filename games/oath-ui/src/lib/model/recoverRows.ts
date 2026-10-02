@@ -6,7 +6,6 @@ import {
 } from '@tabletop/oath'
 import { recoverableBanners, recoverableRelicSlots, type BannerBid } from './actionOffers.js'
 
-/** A relic at the player's site the engine lets them take, with the price its site prints. */
 export type RecoverRelicRow = { slotId: string; cost: RecoverCost }
 
 /** R-5.4.1 to R-5.4.3 — every relic and banner the player can recover now. */

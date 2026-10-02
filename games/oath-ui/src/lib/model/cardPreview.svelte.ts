@@ -30,7 +30,6 @@ class CardPreviewState {
         return this.source !== null
     }
 
-    /** A second press on the same card returns, as its magnifier promises. */
     toggle(owner: CardPreviewOwner, source: CardPreviewSource): void {
         if (this.owner === owner && this.source !== null) {
             this.dismiss()

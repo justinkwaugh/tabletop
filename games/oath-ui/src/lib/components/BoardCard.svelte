@@ -27,7 +27,6 @@
         zIndex?: number
         /** Rule 3 — the open menu offers this card or site, so it wears the ring. */
         offered?: boolean
-        /** A menu row naming this card is pointed at. */
         pointed?: boolean
         title?: string
         previewSlotId?: string

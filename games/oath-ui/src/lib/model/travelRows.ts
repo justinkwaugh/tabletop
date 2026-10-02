@@ -7,10 +7,8 @@ import {
 } from '@tabletop/oath'
 import { travelWays, type TravelWay } from './actionOffers.js'
 
-/** A way to pay for one destination; each toll's favor goes to its ruler, or to the fire. */
 export type TravelChoice = TravelWay & { favorTo: (string | undefined)[] }
 
-/** A destination the engine accepts, in the board's order, with every way to pay for it. */
 export type TravelRow = {
     slotId: string
     region: Region

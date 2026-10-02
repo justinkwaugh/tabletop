@@ -1,6 +1,5 @@
 import { Suit } from '@tabletop/oath'
 
-/** A run of a site's sentence: words, or a symbol the card library prints. */
 export type SentencePart =
     | { kind: 'text'; text: string }
     | { kind: 'suit'; suit: Suit }
@@ -23,7 +22,6 @@ function symbolPart(symbol: string): SentencePart {
     return { kind: 'attackDie' }
 }
 
-/** Item 28 — a site's sentence with its bracketed tokens as the symbols they stand for. */
 export function sentenceParts(sentence: string): SentencePart[] {
     const parts: SentencePart[] = []
     let from = 0

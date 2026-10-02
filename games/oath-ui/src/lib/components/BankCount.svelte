@@ -1,7 +1,6 @@
 <script lang="ts">
     import TokenBadge from '$lib/components/TokenBadge.svelte'
 
-    // A favor bank's count: an empty bank shows a plain 0, with no token, so it reads as empty.
     let { count, size }: { count: number; size: number } = $props()
 </script>
 

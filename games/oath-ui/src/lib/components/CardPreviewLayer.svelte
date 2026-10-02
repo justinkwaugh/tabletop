@@ -84,7 +84,6 @@
         return () => observer.disconnect()
     }
 
-    // Item 12 — a wide card to its source art, an upright one to 460 px, inside the area.
     let width = $derived.by(() => {
         if (!preview) return 0
         const aspect = preview.aspect ?? cardAspect(preview)

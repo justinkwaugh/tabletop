@@ -5,8 +5,6 @@
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import type { CardChoice } from '$lib/model/cardChoice.js'
 
-    // Every card-valued choice is a row of cards: tap to pick, tap a picked card to untap it,
-    // and the corner magnifier to enlarge.
     let {
         choices,
         picked,

@@ -1,5 +1,4 @@
 <script lang="ts">
-    // A count beside its piece; the button's label says it in words.
     let { count, image }: { count: number; image: string } = $props()
 </script>
 

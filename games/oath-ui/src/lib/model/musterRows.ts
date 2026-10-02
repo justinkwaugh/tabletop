@@ -6,7 +6,6 @@ import {
     type Suit
 } from '@tabletop/oath'
 
-/** A card at the player's site a Muster can place on, and the warbands it brings. */
 export type MusterRow = {
     cardId: string
     suit: Suit

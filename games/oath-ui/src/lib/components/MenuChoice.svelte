@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
 
-    // A button in a menu row; its label speaks the whole choice, since the face shows tokens.
     let {
         label,
         disabled,

@@ -17,7 +17,6 @@ import {
 import { samePowerUse } from './powerUse.js'
 import type { OathGameSession } from './session.svelte.js'
 
-/** One region a declared modifier may name, with the declarations that would name it. */
 export type RegionVariant = {
     region: Region
     modifiers: ModifierUse[]

@@ -7,10 +7,8 @@ const BANNER_SOURCE_WIDTH = 920
 const VISION_SOURCE_WIDTH = 1016
 const SITE_SOURCE_WIDTH = 770
 
-/** Upright and square cards keep the size they had, 460 px, on a wide screen. */
 export const UPRIGHT_PREVIEW_CAP = 460
 
-/** The source width that caps a wide preview; an upright card has none. */
 export function previewSourceWidth(preview: CardPreview): number | undefined {
     if (preview.imageSrc) return preview.aspect === 2 ? BANNER_SOURCE_WIDTH : undefined
     if (preview.back !== undefined || !preview.cardId) return undefined
@@ -20,10 +18,6 @@ export function previewSourceWidth(preview: CardPreview): number | undefined {
     return undefined
 }
 
-/**
- * Item 12 — a wide card runs to 0.8 of the area's width, never past its source art; an upright
- * one to 460 px; both inside 0.82 of the area's height.
- */
 export function previewWidth(
     area: { width: number; height: number },
     aspect: number,

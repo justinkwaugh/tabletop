@@ -72,8 +72,7 @@
 
     let windowHeight = $state(0)
 
-    // Item 1 — the wrapper shows full screen as a modal dialog and marks it by its role; the panel,
-    // the goals and the enlarged card are drawn inside it then, and in the page otherwise.
+    // The shared wrapper exposes full screen only as its dialog's role (contract rule 6).
     let expanded = $state(false)
     const watchExpansion: Attachment<HTMLElement> = (node) => {
         const dialog = node.closest('dialog')
@@ -185,8 +184,7 @@
                         <FocusChooser selected={boardFocus?.view} onselect={focusView} />
                     {/snippet}
                     {#snippet toolbar()}
-                        <!-- Item 1 — full screen is a modal dialog, so what must work there is drawn
-                             inside it: the panel docked above the board, the goals and the enlarged card. -->
+                        <!-- Rule 6 — full screen is a modal dialog; anything outside it is behind it. -->
                         <div {@attach watchExpansion}>
                             {#if expanded}
                                 <div class="fullscreen-panel">

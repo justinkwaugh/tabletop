@@ -12,7 +12,6 @@
     }: {
         fraction?: number
         portraitFraction?: number
-        /** A height to take the fraction of, where the parent's own height does not apply. */
         basis?: number
         children: Snippet
     } = $props()

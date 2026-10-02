@@ -921,7 +921,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return recoverableBanners(this.gameState, playerId, this.modifiers.declared)
     }
 
-    /** The lowest bid a Recover may pay for this banner, while it is one the seat may take. */
     // R-5.4 — every relic and banner to recover, until a banner is picked and its price asked.
     get recoverRows(): { relics: RecoverRelicRow[]; banners: BannerBid[] } {
         const playerId = this.liveTurnSeatId
@@ -931,6 +930,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return recoverRows(this.gameState, playerId, this.modifiers.declared)
     }
 
+    /** The lowest bid a Recover may pay for this banner, while it is one the seat may take. */
     bannerBid(banner: Banner): number | undefined {
         return this.bidsFor(banner)[0]
     }

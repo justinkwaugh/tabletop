@@ -1,7 +1,6 @@
 <script lang="ts">
     import { pointsAt, type MenuPointerTarget } from '$lib/model/menuPointer.svelte.js'
 
-    // A menu row that is itself the choice: a tap selects it, a second tap deselects it.
     let {
         image,
         name,
@@ -16,7 +15,6 @@
         image: string
         name: string
         detail?: string
-        /** Shown beside the name while the row is selected. */
         tag: string
         shape?: 'wide' | 'card' | 'piece'
         on: boolean

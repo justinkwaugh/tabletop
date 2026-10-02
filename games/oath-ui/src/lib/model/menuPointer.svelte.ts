@@ -1,7 +1,6 @@
 import type { Attachment } from 'svelte/attachments'
 import type { Banner, Region } from '@tabletop/oath'
 
-/** What a menu row names on the table, so the table can light it while the row is pointed at. */
 export type MenuPointerTarget =
     | { kind: 'site'; slotId: string }
     | { kind: 'card'; cardId: string }
@@ -33,7 +32,6 @@ class MenuPointerState {
 
 export const menuPointer = new MenuPointerState()
 
-/** A row's hover or keyboard focus points at its target; leaving, blurring or unmounting lets go. */
 export function pointsAt(target: MenuPointerTarget | undefined): Attachment<EventTarget> {
     return (node) => {
         if (!target) return

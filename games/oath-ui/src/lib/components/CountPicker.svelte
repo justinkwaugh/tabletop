@@ -1,5 +1,4 @@
 <script lang="ts">
-    // One button per legal number; the picked one is ringed. The panel's own button sends.
     let {
         values,
         picked,

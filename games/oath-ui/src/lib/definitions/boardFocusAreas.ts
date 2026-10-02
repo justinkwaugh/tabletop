@@ -12,7 +12,6 @@ import {
     SURFACE_HEIGHT
 } from './boardGeometry.js'
 
-/** The views the board's toolbar offers; a site's row is reached from the enlarged site. */
 export type FocusView = 'full' | Region | 'banks'
 
 // Neighbouring regions sit 26 px apart, so the sides stay inside half of that; above and below
@@ -67,7 +66,6 @@ export function banksFocusRect(): BoundingBox {
     return padded(union(discs))
 }
 
-/** A site's row: its card and the strip of denizens and relics beside it, warbands included. */
 export function siteFocusRect(slotId: string): BoundingBox {
     return padded(
         union([...present(slotId, SITE_SLOT_RECTS), ...present(slotId, CARD_STRIP_RECTS)])
