@@ -29,6 +29,7 @@ import { HydratedEndActPhase, isEndActPhase } from '../actions/endActPhase.js'
 import { HydratedForgoFreeAction, isForgoFreeAction } from '../actions/forgoFreeAction.js'
 import { HydratedCompleteRest, isCompleteRest } from '../actions/completeRest.js'
 import { HydratedResolveOathkeeper, isResolveOathkeeper } from '../actions/resolveOathkeeper.js'
+import { HydratedTransferOathkeeper, isTransferOathkeeper } from '../actions/transferOathkeeper.js'
 import {
     HydratedPlayFacedownAdviser,
     isPlayFacedownAdviser
@@ -105,6 +106,9 @@ export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOa
             }
             case isResolveOathkeeper(data): {
                 return new HydratedResolveOathkeeper(data)
+            }
+            case isTransferOathkeeper(data): {
+                return new HydratedTransferOathkeeper(data)
             }
             case isPlayFacedownAdviser(data): {
                 return new HydratedPlayFacedownAdviser(data)

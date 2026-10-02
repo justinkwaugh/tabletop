@@ -33,6 +33,7 @@ import {
     isSelfExile,
     isSetupChoice,
     isTrade,
+    isTransferOathkeeper,
     isTravel,
     isUseActionPower,
     isUseRestPower,
@@ -336,6 +337,12 @@ function describeActionCited(
     }
     if (isResolveOathkeeper(action)) {
         return `gave the Oathkeeper title to ${nameOf(action.chosenPlayerId)}`
+    }
+    if (isTransferOathkeeper(action)) {
+        if (action.toPlayerId === undefined) return 'lost the Oathkeeper title; nobody holds it'
+        return action.fromPlayerId === undefined
+            ? 'took the Oathkeeper title'
+            : `took the Oathkeeper title from ${nameOf(action.fromPlayerId)}`
     }
     return UNDESCRIBED
 }

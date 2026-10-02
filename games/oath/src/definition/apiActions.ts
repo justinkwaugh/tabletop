@@ -18,6 +18,7 @@ import { EndActPhase } from '../actions/endActPhase.js'
 import { ForgoFreeAction } from '../actions/forgoFreeAction.js'
 import { CompleteRest } from '../actions/completeRest.js'
 import { ResolveOathkeeper } from '../actions/resolveOathkeeper.js'
+import { TransferOathkeeper } from '../actions/transferOathkeeper.js'
 
 import { PlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
 import { UseActionPower } from '../actions/useActionPower.js'
@@ -63,5 +64,6 @@ export const OathApiActions = {
     [ActionType.EndActPhase]: EndActPhase,
     [ActionType.ForgoFreeAction]: ForgoFreeAction,
     [ActionType.CompleteRest]: CompleteRest,
-    [ActionType.ResolveOathkeeper]: ResolveOathkeeper
+    [ActionType.ResolveOathkeeper]: ResolveOathkeeper,
+    [ActionType.TransferOathkeeper]: TransferOathkeeper
 }

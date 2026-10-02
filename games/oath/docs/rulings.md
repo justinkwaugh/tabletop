@@ -4,7 +4,7 @@ The code cites the Law of Oath as `R-<section>`. A citation ending in `-H1` or `
 house rulings below, where the Law is silent or ambiguous. `R-X` names a rule of this implementation.
 A ruling marked *provisional* is a question put to the publisher's community; it stands until answered.
 
-- **R-2.11-H1:** the Oathkeeper title is re-evaluated after every action, so it can change hands mid-Campaign.
+- **R-2.11-H1:** the Oathkeeper title is re-evaluated after every action, so it can change hands mid-Campaign. Each change is recorded as its own System Action (`TransferOathkeeper`) in games created at the turn-flow revision or later.
 - **R-3.2-H1:** a tie is not a win: a Vision's "the most" means strictly more than every other player.
 - **R-4.1.1-H1:** the People's Favor never drops below one favor during the Wake.
 - **R-4.1.4-H1:** an Opportunity site offers only what its own card prints.
@@ -28,3 +28,4 @@ A ruling marked *provisional* is a question put to the publisher's community; it
 - **R-11.2-H1:** a relic taken through a Homeland site is taken as a Recover takes it, so "after a player takes relics" powers fire.
 - **R-X.1:** every choice arrives as explicit input from the player it belongs to: another player's permission, a Citizen's joining a defence and a defeated defending side's losses are each that player's own answer to a request; the engine never infers one.
 - **R-X.3:** undo stops at an action that revealed information: (a) it advanced the random stream, (b) it moved a card into or out of the vault, or (c) it showed a player a card they had not seen (a faceup play or flip, a Dream Thief swap, a facedown adviser exchanged).
+- **R-X.4:** a game keeps the rules of the revision it was created under (`oathRevision`, set at initialization). A state without one was created before the first revision and keeps that flow to its end, so its stored actions replay unchanged.

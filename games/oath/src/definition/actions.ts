@@ -49,6 +49,8 @@ export enum ActionType {
     CompleteRest = 'completeRest',
     /** R-2.11.b — the outgoing holder chooses who takes the Oathkeeper title. */
     ResolveOathkeeper = 'resolveOathkeeper',
+    /** R-2.11-H1 — the title changing hands, recorded as its own System Action. */
+    TransferOathkeeper = 'transferOathkeeper',
 
     /** R-1.23.1–R-1.23.3 */
     SetupChoice = 'setupChoice'

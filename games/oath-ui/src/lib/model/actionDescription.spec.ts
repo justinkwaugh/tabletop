@@ -49,7 +49,8 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.EndActPhase]: {},
     [ActionType.ForgoFreeAction]: { metadata: { forgone: ActionType.Travel } },
     [ActionType.CompleteRest]: {},
-    [ActionType.ResolveOathkeeper]: { chosenPlayerId: 'p2' }
+    [ActionType.ResolveOathkeeper]: { chosenPlayerId: 'p2' },
+    [ActionType.TransferOathkeeper]: { source: 'system', fromPlayerId: 'p2', toPlayerId: 'p1' }
 }
 
 describe('a history line names a site by its printed name', () => {
@@ -91,10 +92,10 @@ describe('a history line names a site by its printed name', () => {
 })
 
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 30 action types, and reaches no fallback', () => {
+    it('has a sentence for all 31 action types, and reaches no fallback', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(30)
+        expect(types).toHaveLength(31)
 
         for (const type of types) {
             const fields = MINIMAL[type]
@@ -110,6 +111,13 @@ describe('the history tab describes every action', () => {
             describeAction(action({ type: ActionType.ForgoFreeAction, playerId: 'p1', metadata: { forgone } }), nameOf)
         expect(forgo(ActionType.Travel)).toBe('gave up the free Travel')
         expect(forgo(ActionType.Campaign)).toBe('gave up the free Campaign')
+    })
+
+    it('R-2.11-H1 — names who the title came from, or says nobody holds it', () => {
+        const transfer = (fields: Record<string, unknown>) =>
+            describeAction(action({ type: ActionType.TransferOathkeeper, source: 'system', ...fields }), nameOf)
+        expect(transfer({ fromPlayerId: 'p2', toPlayerId: 'p1' })).toBe('took the Oathkeeper title from Bob')
+        expect(transfer({ fromPlayerId: 'p1' })).toBe('lost the Oathkeeper title; nobody holds it')
     })
 
     it('names players rather than printing their ids', () => {
