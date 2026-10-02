@@ -634,6 +634,20 @@ test('scenario 18: each warband move is a row of counts, and a count sends', asy
     await expect(page.getByRole('list', { name: 'Warband moves' })).toHaveCount(0)
 })
 
+test('scenario 5: a Campaign target is a row with its picture, a tap adds it and a second drops it', async ({ page }) => {
+    await openTable(page, 'campaign')
+    await tile(page, 'Campaign').click()
+    await grid(page).getByRole('button', { name: /^ann$/i }).click()
+    const site = grid(page).locator('button[aria-pressed]').first()
+    await expect(site).toHaveAttribute('aria-pressed', 'false')
+    await site.click()
+    await expect(site).toHaveAttribute('aria-pressed', 'true')
+    await expect(site).toContainText('target')
+    await expect(page.locator('.travel-cost.targeted')).toHaveCount(1)
+    await site.click()
+    await expect(site).toHaveAttribute('aria-pressed', 'false')
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()
