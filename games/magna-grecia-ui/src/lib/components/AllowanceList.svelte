@@ -1,19 +1,26 @@
 <script lang="ts">
+    import { MediaQuery } from 'svelte/reactivity'
     import type { ActionCard } from '@tabletop/magna-grecia'
     import { actionAllowances } from '$lib/utils/actionAllowances.js'
     import AllowanceIcon from './icons/AllowanceIcon.svelte'
+
+    type BonusStyle = 'superscript' | 'parens' | 'parensOnPhone'
 
     let {
         card,
         label,
         size,
-        bonusInParens = false
-    }: { card: ActionCard; label: string; size: number; bonusInParens?: boolean } = $props()
+        bonusStyle = 'superscript'
+    }: { card: ActionCard; label: string; size: number; bonusStyle?: BonusStyle } = $props()
 
+    const phone = new MediaQuery('(max-width: 639px)')
     const allowances = $derived(actionAllowances(card))
+    const parens = $derived(
+        bonusStyle === 'parens' || (bonusStyle === 'parensOnPhone' && phone.current)
+    )
 </script>
 
-<ul class="allowances" class:parens={bonusInParens} style:--size="{size}px" aria-label={label}>
+<ul class="allowances" class:parens style:--size="{size}px" aria-label={label}>
     {#each allowances as allowance (allowance.kind)}
         <li title="{allowance.label}: {allowance.basic}, or {allowance.enhanced} enhanced">
             <AllowanceIcon kind={allowance.kind} {size} />
@@ -43,27 +50,28 @@
     }
 
     .basic {
+        display: inline-flex;
+        align-items: flex-start;
         font-size: var(--size);
         font-weight: 700;
         line-height: 1;
     }
 
     .bonus {
+        top: 0;
         margin-left: 2px;
         font-size: calc(var(--size) / 2);
-        vertical-align: 0.7em;
+        line-height: 1;
+        vertical-align: baseline;
     }
 
     .parens .basic {
-        display: inline-flex;
         align-items: center;
     }
 
     .parens .bonus {
-        top: 0;
-        margin-left: 2px;
+        margin: 0 0 0 2px;
         font-size: calc(var(--size) * 0.65);
-        vertical-align: baseline;
     }
 
     .parens .bonus::before {

@@ -16,7 +16,7 @@
             {card}
             label="Next round's actions"
             size={compact ? 18 : 32}
-            bonusInParens={compact}
+            bonusStyle={compact ? 'parens' : 'superscript'}
         />
         <div class="section">
             <SeatSquares

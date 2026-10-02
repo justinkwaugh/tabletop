@@ -227,6 +227,7 @@
                 card={gameSession.gameState.currentCard()}
                 label="This round's actions"
                 size={26}
+                bonusStyle="parensOnPhone"
             />
         </div>
     {:else}
@@ -522,7 +523,6 @@
         [data-step='tiles'] .skip {
             display: inline-flex;
         }
-
 
         .message-detail,
         .hint:not(.warning) {
