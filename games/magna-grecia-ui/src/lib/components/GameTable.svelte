@@ -2,6 +2,7 @@
     import {
         ScalingWrapper,
         DefaultTableLayout,
+        CustomFont,
         GameSession,
         GameChat,
         HistoryControls,
@@ -20,6 +21,8 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import { MagnaGreciaGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
+    import LibreBaskervilleFont from '$lib/fonts/LibreBaskerville.woff2'
+    import LibreBaskervilleItalicFont from '$lib/fonts/LibreBaskerville-Italic.woff2'
 
     let {
         gameSession
@@ -29,6 +32,20 @@
     assert(gameSession instanceof MagnaGreciaGameSession, 'Magna Grecia needs its own game session')
     setGameSession(gameSession)
 </script>
+
+<CustomFont
+    fontFamily="Libre Baskerville"
+    url={LibreBaskervilleFont}
+    format="woff2"
+    fontWeight="400 700"
+/>
+<CustomFont
+    fontFamily="Libre Baskerville"
+    url={LibreBaskervilleItalicFont}
+    format="woff2"
+    fontWeight="400 700"
+    fontStyle="italic"
+/>
 
 <div class="bg-[#f3ecdc]">
     <DefaultTableLayout>
@@ -68,13 +85,15 @@
         {#snippet gameContent()}
             <div class="shrink-0">
                 <Header />
-                {#if gameSession.gameState.result}
-                    <GameEndPanel />
-                {:else}
-                    <ActionPanel />
-                {/if}
+                <div class="action-card">
+                    {#if gameSession.gameState.result}
+                        <GameEndPanel />
+                    {:else}
+                        <ActionPanel />
+                    {/if}
+                </div>
             </div>
-            <div class="grow-0 overflow-hidden" style="flex:1;">
+            <div class="grow-0 overflow-hidden pt-3" style="flex:1;">
                 <ScalingWrapper justify="center" controls="bottom-left">
                     <Board />
                 </ScalingWrapper>
@@ -82,3 +101,16 @@
         {/snippet}
     </DefaultTableLayout>
 </div>
+
+<style>
+    .action-card {
+        width: fit-content;
+        max-width: calc(100% - 16px);
+        margin: 8px auto 0;
+        padding: 4px 12px 8px;
+        border: 1px solid #e2d3b5;
+        border-radius: 14px;
+        background: #fbf7ee;
+        box-shadow: 0 6px 16px rgba(74, 44, 18, 0.14);
+    }
+</style>

@@ -45,7 +45,7 @@
         <text
             y="0"
             text-anchor="middle"
-            font-family="Georgia, 'Times New Roman', serif"
+            font-family="'Libre Baskerville', Georgia, serif"
             font-size="32"
             letter-spacing="6"
             fill="#6b3f1d">MAGNA GRECIA</text
@@ -53,7 +53,7 @@
         <text
             y="23"
             text-anchor="middle"
-            font-family="Georgia, 'Times New Roman', serif"
+            font-family="'Libre Baskerville', Georgia, serif"
             font-size="16"
             font-style="italic"
             letter-spacing="1"

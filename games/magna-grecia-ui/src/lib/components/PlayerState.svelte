@@ -106,8 +106,9 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 18px;
-        font-weight: 600;
+        font-weight: 700;
         letter-spacing: 0.05em;
         text-transform: uppercase;
     }

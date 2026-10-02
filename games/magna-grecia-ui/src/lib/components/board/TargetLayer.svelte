@@ -172,7 +172,7 @@
         stroke-width: 1.5;
     }
     .price-text {
-        font-family: Georgia, 'Times New Roman', serif;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 13px;
         font-weight: 700;
         fill: #6b3f1d;
