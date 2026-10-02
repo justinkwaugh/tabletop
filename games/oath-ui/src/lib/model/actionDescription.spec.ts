@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ActionType, IMPERIAL_WARBANDS, SearchPlay, SearchSource } from '@tabletop/oath'
-import { UNDESCRIBED, describeAction } from './actionDescription.js'
+import { UNDESCRIBED, describeAction, rowWarbandOwner } from './actionDescription.js'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { siteName, slotLabel } from './names.js'
@@ -500,5 +500,22 @@ describe('the history tab describes every action', () => {
             expect(line).not.toContain('denizen.beast.wolves')
             expect(line).not.toContain('denizen.nomad.tents')
         })
+    })
+})
+
+describe('R-10.13 — whose warbands a History row counts', () => {
+    const own = (playerId: string) => (playerId === 'p1' ? IMPERIAL_WARBANDS : playerId)
+
+    it('a warband move counts the owner it names', () => {
+        expect(rowWarbandOwner(action({ type: ActionType.MoveWarbands, playerId: 'p2', owner: IMPERIAL_WARBANDS, count: 2, move: { kind: 'siteToBoard', siteId: 'c1' } }), own)).toBe(IMPERIAL_WARBANDS)
+    })
+
+    it('a power counts the seat it acted on', () => {
+        expect(rowWarbandOwner(action({ type: ActionType.UseActionPower, playerId: 'p1', cardId: 'denizen.beast.wolves', powerIndex: 0, metadata: { summary: '', targetPlayerId: 'p2' } }), own)).toBe('p2')
+    })
+
+    it('anything else counts the actor’s own, the Empire’s for the Chancellor', () => {
+        expect(rowWarbandOwner(action({ type: ActionType.Muster, playerId: 'p1', cardId: CARD }), own)).toBe(IMPERIAL_WARBANDS)
+        expect(rowWarbandOwner(action({ type: ActionType.TransferOathkeeper, source: 'system', toPlayerId: 'p1' }), own)).toBeUndefined()
     })
 })

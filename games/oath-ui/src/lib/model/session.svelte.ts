@@ -73,7 +73,9 @@ import {
     type WakeFavorStep,
     type WarbandGroup,
     type WarbandMoveOption,
-    type WarbandOwner
+    type WarbandOwner,
+    IMPERIAL_WARBANDS,
+    ownWarbandOwner
 } from '@tabletop/oath'
 import { warbandOwnerName } from './names.js'
 import { OathSelection } from './oathSelection.svelte.js'
@@ -97,7 +99,7 @@ import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
 import { siteName } from './names.js'
-import type { HistoryNames } from './actionDescription.js'
+import { rowWarbandOwner, type HistoryNames } from './actionDescription.js'
 import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
 import {
     adviserDiscardFirstOptions,
@@ -1022,6 +1024,15 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /** R-10.13 — warbands show their owner's seat colour; the Empire's show the Chancellor's. */
     warbandColor(owner: WarbandOwner): Color {
         return this.colors.getPlayerColor(this.gameState.warbandBankHolderOf(owner))
+    }
+
+    /** R-10.13 — a History row's warbands in their owner's colour, the Empire's in the Chancellor's. */
+    historyWarbandColors(action: GameAction): { own: Color; imperial: Color } {
+        const imperial = this.warbandColor(IMPERIAL_WARBANDS)
+        const owner = rowWarbandOwner(action, (playerId) =>
+            ownWarbandOwner(this.gameState, playerId)
+        )
+        return { own: owner === undefined ? imperial : this.warbandColor(owner), imperial }
     }
 
     warbandOwnerName(owner: WarbandOwner): string {

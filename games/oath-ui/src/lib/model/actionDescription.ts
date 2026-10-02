@@ -47,7 +47,8 @@ import {
     type Search,
     type UseActionPower,
     type UseRestPower,
-    type WarbandMove
+    type WarbandMove,
+    type WarbandOwner
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
 import {
@@ -93,6 +94,19 @@ function describeLetPeek(action: LetPeek, nameOf: NameOf, viewerId: string | und
     }
     const seen = isRecipient ? action.metadata?.relicCardId : undefined
     return `let ${shownTo} peek at the relic on ${reliquaryLabel(action.subject.slotId)}${seen ? ` (${cardName(seen)})` : ''}`
+}
+
+/** R-10.13 — whose warbands a row counts: those a move names, the seat a power acted on, else the actor's own. */
+export function rowWarbandOwner(
+    action: GameAction,
+    ownWarbandsOf: (playerId: string) => WarbandOwner
+): WarbandOwner | undefined {
+    if (isMoveWarbands(action)) return action.owner
+    const seat =
+        (isUseActionPower(action) || isUseRestPower(action)
+            ? action.metadata?.targetPlayerId
+            : undefined) ?? action.playerId
+    return seat === undefined ? undefined : ownWarbandsOf(seat)
 }
 
 export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {
