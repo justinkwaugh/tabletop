@@ -26,9 +26,13 @@ export class AutomaticTrackCompletionHandler<
             return false
         const actions = this.handler.validActionsForPlayer(playerId, context)
         if (!actions.includes('FinishTrack')) return false
+        // A company that can still borrow may borrow for a lay it cannot yet afford.
         return !state.activePlayerIds.some((id) =>
             (id === playerId ? actions : this.handler.validActionsForPlayer(id, context)).some(
-                (action) => ['LayTile', 'LayPrivateTile', 'RequestTrackConsent'].includes(action)
+                (action) =>
+                    ['LayTile', 'LayPrivateTile', 'RequestTrackConsent', 'TakeLoan'].includes(
+                        action
+                    )
             )
         )
     }

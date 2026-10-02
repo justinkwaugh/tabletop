@@ -78,8 +78,12 @@ export function historyRounds(
     // Walking back from the end, a title's round is open between its end and its start.
     let openRound = titleRounds.find((round) => round.inProgress(state))
     const rounds: HistoryRound[] = []
-    for (const action of actions.toReversed()) {
-        openRound = titleRounds.find((round) => round.ends(action)) ?? openRound
+    const reversed = actions.toReversed()
+    for (const [position, action] of reversed.entries()) {
+        // The game's end belongs to the title round that ends just before it.
+        const ended = isEndGame(action) ? reversed[position + 1] : action
+        assertExists(ended, 'The game ends after another action')
+        openRound = titleRounds.find((round) => round.ends(ended)) ?? openRound
         const heading = auction
             ? AuctionHeading
             : openRound

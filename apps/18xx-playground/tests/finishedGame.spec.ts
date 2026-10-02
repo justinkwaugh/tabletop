@@ -90,3 +90,29 @@ test('finished 1889 ignores an unfinished game saved under its name', async ({ p
         timeout: 30000
     })
 })
+
+test('finished 1817 steps back across its last acquisition round and jumps to its merger round', async ({
+    page
+}) => {
+    test.setTimeout(120000)
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('finished')
+    const winner = page.getByRole('heading', { name: 'Player 4 wins', exact: true })
+    await expect(winner).toBeVisible({ timeout: 90000 })
+    const back = page.getByRole('button', { name: 'step backwards', exact: true })
+    const forward = page.getByRole('button', { name: 'step forwards', exact: true })
+    for (let step = 0; step < 12; step++) await back.click()
+    await expect(winner).toHaveCount(0)
+    for (let step = 0; step < 12; step++) await forward.click()
+    await expect(winner).toBeVisible()
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    const history = page.getByRole('list', { name: 'Action history' })
+    await history.getByRole('button', { name: 'Jump to MR 7.2 in history', exact: true }).click()
+    await expect(winner).toHaveCount(0)
+    await page.getByRole('button', { name: 'go to current', exact: true }).click()
+    await expect(winner).toBeVisible({ timeout: 30000 })
+    expect(errors).toEqual([])
+})

@@ -1,6 +1,6 @@
 {
   "actionSchemaDigests": {
-    "AcquireCompany": "6523267f201d92ec1a007efa448b06fbacedc8fc016ad5b2bea0b29bf82fc9a8",
+    "AcquireCompany": "130615a07342f3a5f01d03f20a0ca2b11abc1c9f4875566697b2d8ddaf7821e6",
     "AdvancePhase": "c6c8fd9f31c5f61a3c338173a80fb01a820a0508bf46e406b3aa5cf9f4bd8e89",
     "AuctionCompany": "d6e1ab4c05282303f508d784d0cef760c50854d2dea3a8115365735998efe5f3",
     "BidForCompany": "cbdac1504eb19b11350f9ffe4630961ed4d9756ce23ea8610e1d47ff27d7d779",
@@ -30,7 +30,7 @@
     "EndMergerRound": "083610f8001cf930908d3d9f76c6ac3e93834732d00a64728d6812927558f09b",
     "ExchangePrivate": "04f1cc7dcb50539f7b72478c94a84f3996458316fc713deec6d5ecb20931dac0",
     "ExportTrains": "a74484665da190c0d031ec797b964d548437ca92e3f2bed4019508b347a41dbb",
-    "FinishAcquisitionLoans": "96b08653e54109754f61a5fd52953e67659f926a8135158ea5ec7fd656f16d99",
+    "FinishAcquisitionLoans": "e30e778ac17758d59eec1630746d4d128e999f3642a02df101d0da53381297b3",
     "FinishConversionLoans": "3f76e10e6d8670b996b4dc66f84ffaad222d01ecfbfe8e897f32402ca8c809f6",
     "FinishOperatingTurn": "5e9be2c15f5d19459fbfb1bd77c2c5d5d1a17860434e9ab50c813192dfae400b",
     "FinishStations": "844f37a3e8db6526dc8a4ae6cdbf8396fb3d353a05b4a154957a5dc62d2aa9b6",

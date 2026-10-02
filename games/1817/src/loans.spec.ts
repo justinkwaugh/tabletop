@@ -93,6 +93,22 @@ describe('loans in the operating turn', () => {
         expect(() => play.act('TakeLoan', { companyId: 'BA' })).toThrow()
     })
 
+    it('keeps the track step open for a lay the company must borrow for', () => {
+        const play = operating((state) => setCash(state, 'BA', 20))
+        play.act('LayTile', {
+            companyId: 'BA',
+            locationId: 'B27',
+            definitionId: '18xx:7',
+            rotation: 0,
+            nodeMapping: {},
+            expectedCost: 20
+        })
+        expect(play.state.machineState).toBe('LayingTrack')
+        expect(play.valid('blair')).not.toContain('LayTile')
+        play.act('TakeLoan', { companyId: 'BA' })
+        expect(play.valid('blair')).toContain('LayTile')
+    })
+
     it('pays interest after trains, borrowing automatically while the treasury is short', () => {
         const play = operating((state) => {
             setLoans(state, 'BA', 2)
@@ -208,7 +224,7 @@ describe('the stock-round corporate action', () => {
         expect(getCompany(play.state, 'BA').loans).toBe(2)
     })
 
-    it('buys back two shares together, after which the player cannot buy shares', () => {
+    it('buys back two shares together, which ends the turn', () => {
         const play = blairsTurn((state) => {
             for (const certificate of state.certificates)
                 if (certificate.id === 'BA:share:1' || certificate.id === 'BA:share:3') {
@@ -226,19 +242,7 @@ describe('the stock-round corporate action', () => {
             certificateIds: ['BA:share:1', 'BA:share:2']
         })
         expect(treasury(play.state, 'BA')).toBe(1000 - 2 * price)
-        expect(play.state.activePlayerIds).toEqual(['blair'])
-        expect(play.valid('blair')).toEqual([
-            'BuyBackShares',
-            'FinishStockTurn',
-            'SetStockInstruction'
-        ])
-        expect(() =>
-            play.act('BuyShares', {
-                buyer: { kind: 'player', playerId: 'blair' },
-                certificateId: 'BA:share:3',
-                expectedPrice: price
-            })
-        ).toThrow()
+        expect(play.state.activePlayerIds).toEqual(['casey'])
     })
 
     it('is not open after the player has bought shares', () => {

@@ -14,6 +14,7 @@ import {
 import {
     LoanRecord,
     PassableBidding,
+    StockMarketMove,
     canTakeLoan,
     isTakeLoan,
     type EighteenXXState,
@@ -33,14 +34,13 @@ import {
 } from './acquisitionRules.js'
 import {
     AcquisitionRecord,
-    BuyerLoansRecord,
     Settlement,
     acquireCompany,
     canRepayAcquiredLoan,
     holdAside,
     liquidateByBank,
     repayAcquiredLoan,
-    settleBuyerLoans,
+    unpaidLoanMoves,
     settleHolders
 } from './acquisitionSettlement.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
@@ -706,7 +706,7 @@ export class HydratedAcquireCompany
             buyerId: this.buyerId,
             price: choice.amount,
             inheritedLoans: record.assets.loans,
-            repaidLoans: 0
+            repaidLoans: record.repayments.length
         }
         this.metadata = record
     }
@@ -812,7 +812,7 @@ export const FinishAcquisitionLoans = Type.Object(
             Type.Object(
                 {
                     targetId: Type.String(),
-                    loans: BuyerLoansRecord,
+                    marketMoves: Type.Array(StockMarketMove),
                     settlement: Settlement,
                     leftRound: Type.Boolean()
                 },
@@ -856,7 +856,7 @@ export class HydratedFinishAcquisitionLoans
         assert(this.isValidFor(state), 'Only the buyer’s president finishes its loans')
         const acquisition = requireAcquisition(state)
         const round = requireRound(state)
-        const loans = settleBuyerLoans(state, acquisition)
+        const marketMoves = unpaidLoanMoves(state, acquisition)
         delete round.acquisition
         const settlement = settleHolders(
             state,
@@ -868,7 +868,12 @@ export class HydratedFinishAcquisitionLoans
             round.companyIds.includes(acquisition.buyerId) &&
             inClosingZone(state.stockMarket, acquisition.buyerId)
         if (leftRound) dropCompany(round, acquisition.buyerId)
-        this.metadata = { targetId: acquisition.sale.companyId, loans, settlement, leftRound }
+        this.metadata = {
+            targetId: acquisition.sale.companyId,
+            marketMoves,
+            settlement,
+            leftRound
+        }
     }
 }
 

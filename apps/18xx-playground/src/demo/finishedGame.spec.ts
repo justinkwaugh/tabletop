@@ -7,9 +7,15 @@ import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/histo
 import { historyCompanyChanges } from '../../../../libs/18xx-ui/src/lib/table/historyCompanyChanges.js'
 import { shouldContinueHistoryStep } from '../../../../libs/18xx-ui/src/lib/table/historyNavigation.js'
 import { historyRounds } from '../../../../libs/18xx-ui/src/lib/table/historyRounds.js'
-import { finishedGame, replayFinishedGame } from './finishedGame.js'
+import { EighteenSeventeenPresentation } from '../../../../games/1817-ui/src/lib/presentation.js'
+import { finishedGame, replayFinishedGame, replayRecordedGame } from './finishedGame.js'
 import { playgroundTitle } from '../titles.js'
-import { reorderPendingOperatingCompanies, isRunTrains, isDistributeEarnings } from '@tabletop/18xx'
+import {
+    finalWealth,
+    reorderPendingOperatingCompanies,
+    isRunTrains,
+    isDistributeEarnings
+} from '@tabletop/18xx'
 import { ActionSource, assertExists } from '@tabletop/common'
 
 it('replays the finished game and restores every history step in both directions', async () => {
@@ -274,6 +280,65 @@ it.each([
                 state.finalWealth?.map(({ playerId, total }) => [playerId, total]) ?? []
             )
         ).toEqual(wealth)
+    },
+    120000
+)
+
+it('replays the finished 1817 game to its ending and back', async () => {
+    const { game, state, initialState, actions, engine } = await finishedGame(
+        'local-user',
+        'Finished game',
+        '1817'
+    )
+    expect(state.machineState).toBe('GameOver')
+    expect(
+        Object.fromEntries(state.finalWealth?.map(({ playerId, total }) => [playerId, total]) ?? [])
+    ).toEqual({ '655': 10127, '1594': 11490, '3370': 6257, '5159': 7066 })
+    const rounds = historyRounds(
+        actions,
+        state,
+        historyOperatingOrder(actions, state),
+        historyCash(actions, state),
+        { rounds: EighteenSeventeenPresentation.titleRounds }
+    )
+    // The game ends with the last acquisition round.
+    expect(rounds.map((round) => round.label).slice(0, 4)).toEqual([
+        'AR 7.2',
+        'MR 7.2',
+        'OR 7.2',
+        'AR 7.1'
+    ])
+    expect(new Set(rounds.map((round) => round.id)).size).toBe(rounds.length)
+    for (const action of actions) expect(historyDescription(action, state).text).toBeTruthy()
+    let restored = state
+    for (const action of [...actions].reverse())
+        restored = engine.undoProcessedAction({ state: restored, action })
+    expect(restored).toEqual(initialState)
+    for (const action of actions)
+        restored = engine.applyProcessedAction({ game, state: restored, action })
+    expect(restored).toEqual(state)
+}, 240000)
+
+// These games were ended by hand, one in a player's cash crisis; what that player still owes
+// counts against them.
+it.each(['16281', '16852', '20758'])(
+    'replays recorded 1817 game %s to its last action and its players’ values',
+    async (id) => {
+        const title = playgroundTitle('1817')
+        const fixture = (await import(`./fixtures/1817-recorded-${id}.json`)).default
+        const { state } = await replayRecordedGame(title, fixture, 'local-user', 'Recorded game')
+        const owed = (playerId: string) =>
+            (state.cashCrisis?.debts ?? [])
+                .filter((debt) => debt.playerId === playerId)
+                .reduce((sum, debt) => sum + debt.amount, 0)
+        expect(
+            Object.fromEntries(
+                finalWealth(state, title.rules.endingRules).map(({ playerId, total }) => [
+                    playerId,
+                    total - owed(playerId)
+                ])
+            )
+        ).toEqual(fixture.finalWealth)
     },
     120000
 )

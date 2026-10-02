@@ -72,6 +72,8 @@ export function buyBackReason(
 ): string | undefined {
     if (!corporateTurnOpen(state, playerId, companyId))
         return 'Only a president may act for their company, in place of their own action.'
+    if (state.stockRound.turn.corporateAction?.boughtBack)
+        return 'A company buys back shares once a turn.'
     const available = buyBackCertificateIds(state, companyId)
     if (
         !certificateIds.length ||
@@ -106,8 +108,8 @@ function buyBackPrice(
 export type CorporateActionOption = {
     companyId: string
     canBorrow: boolean
-    /** The next market share the company could buy back, and what it would pay. */
-    buyBack?: { certificateId: string; price: number }
+    /** Each number of the company's market shares it could buy back, and what it would pay. */
+    buyBacks: { certificateIds: string[]; price: number }[]
 }
 
 /** The companies the player may act for now and what each may do. */
@@ -122,20 +124,16 @@ export function corporateActionOptions(
             controllingOwner(state, company.id)?.playerId !== playerId
         )
             return []
-        const certificateId = buyBackCertificateIds(state, company.id)[0]
-        const option: CorporateActionOption = {
-            companyId: company.id,
-            canBorrow: canTakeCorporateLoan(state, playerId, company.id),
-            ...(certificateId && !buyBackReason(state, playerId, company.id, [certificateId])
-                ? {
-                      buyBack: {
-                          certificateId,
-                          price: buyBackPrice(state, company.id, [certificateId])
-                      }
-                  }
-                : {})
-        }
-        return option.canBorrow || option.buyBack ? [option] : []
+        const available = buyBackCertificateIds(state, company.id)
+        const buyBacks = available
+            .map((_, index) => available.slice(0, index + 1))
+            .filter((certificateIds) => !buyBackReason(state, playerId, company.id, certificateIds))
+            .map((certificateIds) => ({
+                certificateIds,
+                price: buyBackPrice(state, company.id, certificateIds)
+            }))
+        const canBorrow = canTakeCorporateLoan(state, playerId, company.id)
+        return canBorrow || buyBacks.length ? [{ companyId: company.id, canBorrow, buyBacks }] : []
     })
 }
 
@@ -143,7 +141,7 @@ export function corporateActionTypes(state: EighteenXXState, playerId: string): 
     const options = corporateActionOptions(state, playerId)
     return [
         ...(options.some((option) => option.canBorrow) ? ['TakeLoan'] : []),
-        ...(options.some((option) => option.buyBack) ? ['BuyBackShares'] : [])
+        ...(options.some((option) => option.buyBacks.length) ? ['BuyBackShares'] : [])
     ]
 }
 
@@ -203,7 +201,7 @@ export class HydratedBuyBackShares
 
 /**
  * In place of their own action, a player may act for one company they preside: take loans, then
- * buy back its market shares. Afterwards only finishing the turn remains.
+ * buy back its market shares once, which ends the turn.
  */
 export class CorporateActionsHandler implements EighteenXXStateHandler {
     constructor(private readonly handler: EighteenXXStateHandler) {}

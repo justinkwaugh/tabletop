@@ -44,7 +44,8 @@ export const AcquisitionRecord = Type.Object(
         loans: Type.Array(LoanRecord),
         assets: AssetTransfer,
         stations: StationTransfer,
-        payment: CashPayment
+        payment: CashPayment,
+        repayments: Type.Array(CashPayment)
     },
     { additionalProperties: false }
 )
@@ -52,7 +53,8 @@ export type AcquisitionRecord = Type.Static<typeof AcquisitionRecord>
 
 /**
  * The buyer takes the sold company's assets and pays the bank, borrowing first for what it
- * lacks, before it takes on the sold company's loans.
+ * lacks, before it takes on the sold company's loans. Those over its limit are repaid at once,
+ * before it chooses to repay any others.
  */
 export function acquireCompany(
     state: EighteenXXState,
@@ -83,13 +85,20 @@ export function acquireCompany(
         amount: price
     }
     settleCashPayments(state, [payment])
+    const repayments: CashPayment[] = []
+    while (
+        companyLoans(state, buyerId) > Loans.capacity(state, buyerId) &&
+        companyCash(state, buyerId) >= Loans.value
+    )
+        repayments.push(repayAcquiredLoan(state, buyerId).payment)
     return {
         price,
         ...(treasuryPayment ? { treasuryPayment } : {}),
         loans,
         assets,
         stations,
-        payment
+        payment,
+        repayments
     }
 }
 
@@ -104,37 +113,17 @@ export function repayAcquiredLoan(state: EighteenXXState, buyerId: string): Loan
     return repayLoan(state, RepaymentInPlace, buyerId)
 }
 
-export const BuyerLoansRecord = Type.Object(
-    { repayments: Type.Array(CashPayment), marketMoves: Type.Array(StockMarketMove) },
-    { additionalProperties: false }
-)
-export type BuyerLoansRecord = Type.Static<typeof BuyerLoansRecord>
-
-/**
- * Loans over the buyer's limit are repaid from its cash, then each inherited loan it still
- * holds moves its price left.
- */
-export function settleBuyerLoans(
+/** Each inherited loan the buyer still holds moves its price left. */
+export function unpaidLoanMoves(
     state: EighteenXXState,
     acquisition: Acquisition
-): BuyerLoansRecord {
-    const { buyerId } = acquisition
-    const repayments: CashPayment[] = []
-    while (
-        companyLoans(state, buyerId) > Loans.capacity(state, buyerId) &&
-        companyCash(state, buyerId) >= Loans.value
-    )
-        repayments.push(repayAcquiredLoan(state, buyerId).payment)
-    const unpaid = Math.max(
-        0,
-        acquisition.inheritedLoans - acquisition.repaidLoans - repayments.length
-    )
+): StockMarketMove[] {
     const marketMoves: StockMarketMove[] = []
-    for (let loan = 0; loan < unpaid; loan++) {
-        const move = moveCompanyMarker(state.stockMarket, buyerId, 'left', 1)
+    for (let loan = acquisition.repaidLoans; loan < acquisition.inheritedLoans; loan++) {
+        const move = moveCompanyMarker(state.stockMarket, acquisition.buyerId, 'left', 1)
         if (move) marketMoves.push(move)
     }
-    return { repayments, marketMoves }
+    return marketMoves
 }
 
 export const Settlement = Type.Object(

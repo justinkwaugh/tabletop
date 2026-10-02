@@ -293,6 +293,21 @@ describe('the buyer', () => {
         expect(play.state.machineState).toBe('AcquisitionLoans')
     })
 
+    it('repays the loans over its limit before it chooses to repay others', () => {
+        const play = acquisitionRound((state) => {
+            getCompany(state, 'BA').loans = 4
+            setCash(state, 'BA', 600)
+            getCompany(state, 'PLE').loans = 2
+        })
+        play.act('OfferCompany', { companyId: 'PLE' })
+        play.act('BidToAcquire', { companyId: 'PLE', amount: 120 })
+        expect(getCompany(play.state, 'BA').loans).toBe(5)
+        expect(play.state.activePlayerIds).toEqual(['blair'])
+        expect(play.valid('blair')).toContain('RepayAcquiredLoan')
+        play.act('RepayAcquiredLoan', { companyId: 'BA' })
+        expect(play.valid('blair')).not.toContain('RepayAcquiredLoan')
+    })
+
     it('leaves the round when its loans push it into the acquisition zone', () => {
         const play = acquisitionRound((state) => {
             placeStockMarker(state.stockMarket, 'BA', '0:9')
