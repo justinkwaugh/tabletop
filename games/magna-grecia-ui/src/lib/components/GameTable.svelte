@@ -2,6 +2,7 @@
     import {
         ScalingWrapper,
         DefaultTableLayout,
+        CustomFont,
         GameSession,
         GameChat,
         HistoryControls,
@@ -16,10 +17,14 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
+    import ActionCard from '$lib/components/ActionCard.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import UpcomingStrip from '$lib/components/UpcomingStrip.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import { MagnaGreciaGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
+    import LibreBaskervilleFont from '$lib/fonts/LibreBaskerville.woff2'
+    import LibreBaskervilleItalicFont from '$lib/fonts/LibreBaskerville-Italic.woff2'
 
     let {
         gameSession
@@ -29,6 +34,20 @@
     assert(gameSession instanceof MagnaGreciaGameSession, 'Magna Grecia needs its own game session')
     setGameSession(gameSession)
 </script>
+
+<CustomFont
+    fontFamily="Libre Baskerville"
+    url={LibreBaskervilleFont}
+    format="woff2"
+    fontWeight="400 700"
+/>
+<CustomFont
+    fontFamily="Libre Baskerville"
+    url={LibreBaskervilleItalicFont}
+    format="woff2"
+    fontWeight="400 700"
+    fontStyle="italic"
+/>
 
 <div class="bg-[#f3ecdc]">
     <DefaultTableLayout>
@@ -68,13 +87,16 @@
         {#snippet gameContent()}
             <div class="shrink-0">
                 <Header />
-                {#if gameSession.gameState.result}
-                    <GameEndPanel />
-                {:else}
-                    <ActionPanel />
-                {/if}
+                <ActionCard>
+                    {#if gameSession.gameState.result}
+                        <GameEndPanel />
+                    {:else}
+                        <ActionPanel />
+                    {/if}
+                </ActionCard>
+                <UpcomingStrip />
             </div>
-            <div class="grow-0 overflow-hidden" style="flex:1;">
+            <div class="grow-0 overflow-hidden pt-3" style="flex:1; min-height: 40dvh;">
                 <ScalingWrapper justify="center" controls="bottom-left">
                     <Board />
                 </ScalingWrapper>

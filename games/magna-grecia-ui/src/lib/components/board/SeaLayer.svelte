@@ -5,7 +5,7 @@
 
     const bay = hexCenter(offsetToAxial({ row: 15, col: 5 }))
     const westSea = hexCenter(offsetToAxial({ row: 10, col: 0 }))
-    const eastSea = hexCenter(offsetToAxial({ row: 12, col: 15 }))
+    const eastSea = { x: BOARD_WIDTH - 52, y: hexCenter(offsetToAxial({ row: 8, col: 0 })).y }
 
     const waves = Array.from({ length: 34 }, (_, index) => ({
         x: ((index * 373) % (BOARD_WIDTH - 80)) + 40,
@@ -26,7 +26,7 @@
     </g>
 
     <Trireme x={westSea.x - 40} y={westSea.y + 10} scale={0.9} />
-    <Trireme x={eastSea.x + 55} y={eastSea.y + 40} scale={0.8} flip />
+    <Trireme x={eastSea.x} y={eastSea.y + 20} scale={0.8} flip />
 
     <g transform="translate({bay.x - HEX.xRadius} {bay.y + 22 + HEX.yRadius})">
         <path
@@ -45,7 +45,7 @@
         <text
             y="0"
             text-anchor="middle"
-            font-family="Georgia, 'Times New Roman', serif"
+            font-family="'Libre Baskerville', Georgia, serif"
             font-size="32"
             letter-spacing="6"
             fill="#6b3f1d">MAGNA GRECIA</text
@@ -53,7 +53,7 @@
         <text
             y="23"
             text-anchor="middle"
-            font-family="Georgia, 'Times New Roman', serif"
+            font-family="'Libre Baskerville', Georgia, serif"
             font-size="16"
             font-style="italic"
             letter-spacing="1"

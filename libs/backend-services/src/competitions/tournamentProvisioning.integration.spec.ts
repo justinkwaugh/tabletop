@@ -1,4 +1,4 @@
-import { FieldValue, Firestore, Query, Transaction } from '@google-cloud/firestore'
+import { FieldValue, Query, Transaction } from '@google-cloud/firestore'
 import { createClient, type RedisClientType } from 'redis'
 import { randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi, type MockInstance } from 'vitest'
@@ -20,6 +20,7 @@ import {
 import { cacheFixture } from '../cache/tests/cacheFixture.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
 import { FirestoreTournamentStore } from '../persistence/firestore/tournamentStore.js'
+import { isolatedFirestore } from '../persistence/firestore/tests/isolatedFirestore.js'
 import { GameService } from '../games/gameService.js'
 import { UserService } from '../users/userService.js'
 import { TokenService } from '../tokens/tokenService.js'
@@ -65,7 +66,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
     { timeout: 15000 },
     () => {
         const prefix = `demo-provision-${randomUUID()}`
-        const db = new Firestore({ projectId: prefix, ignoreUndefinedProperties: true })
+        const db = isolatedFirestore({ ignoreUndefinedProperties: true })
         const client: RedisClientType = createClient({
             socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
         })

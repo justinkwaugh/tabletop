@@ -7,6 +7,7 @@ import { ActionType } from './actions.js'
 import { MachineState } from './states.js'
 import type { PlaceSpring } from '../actions/placeSpring.js'
 import type { PlaceBid } from '../actions/placeBid.js'
+import type { RevealTiles } from '../actions/revealTiles.js'
 
 const engine = new GameEngine(SantiagoRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
@@ -62,8 +63,19 @@ describe.each([3, 4, 5])('Santiago tournament initialization with %i players', (
                 }).updatedState
             }
             const biddingOrder = [...order.slice(1), order[0]]
-            expect(state.machineState).toBe(MachineState.Bidding)
+            expect(state.machineState).toBe(MachineState.TileReveal)
             expect(state.biddingOrder).toEqual(biddingOrder)
+            expect(state.activePlayerIds).toEqual([order[1]])
+            const reveal: RevealTiles = {
+                id: 'reveal-tiles',
+                gameId: game.id,
+                source: ActionSource.User,
+                playerId: order[1],
+                type: ActionType.RevealTiles
+            }
+            state = engine.executeCanonicalAction({ game: startedGame, state, action: reveal })
+                .updatedState
+            expect(state.machineState).toBe(MachineState.Bidding)
             expect(state.activePlayerIds).toEqual([order[1]])
             for (const [index, playerId] of biddingOrder.entries()) {
                 expect(state.activePlayerIds).toEqual([playerId])

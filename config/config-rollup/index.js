@@ -131,6 +131,11 @@ export const createGameUiRollupConfig = ({ packageRootUrl }) => {
         throw new Error('createGameUiRollupConfig requires packageRootUrl')
     }
 
+    // Tailwind attributes its rules to src/app.css, which each game's CSS scoping plugin keys on,
+    // only when it optimizes in production. Otherwise NODE_ENV is set only by Vite config
+    // resolution inside the Svelte preprocessor, which races the app.css transform.
+    process.env.NODE_ENV ??= 'production'
+
     const packageRoot = toPath(packageRootUrl)
     const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'))
     const packageName = packageJson.name ?? ''

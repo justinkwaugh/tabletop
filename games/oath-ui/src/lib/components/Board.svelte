@@ -13,30 +13,9 @@
     } from '$lib/definitions/boardGeometry.js'
 
     // Layers paint in table order and each owns its highlights (`docs/ui-interaction-visual-contract.md`).
-
-    // The surface is scaled by a CSS transform, so a pickable card's hit area is
-    // widened by `--hit-pad`: the surface pixels that make twelve screen pixels.
-    function hitPad(node: HTMLElement) {
-        const update = () => {
-            const scale = node.getBoundingClientRect().width / node.offsetWidth
-            if (scale > 0) node.style.setProperty('--hit-pad', `${12 / scale}px`)
-        }
-        // `ScalingWrapper` scales by writing an ancestor's inline transform, which no
-        // resize event reports; a board in a hidden tab has no scale to read.
-        const observer = new MutationObserver(update)
-        for (let el = node.parentElement; el; el = el.parentElement) {
-            observer.observe(el, { attributes: true, attributeFilter: ['style'] })
-        }
-        update()
-        return {
-            destroy() {
-                observer.disconnect()
-            }
-        }
-    }
 </script>
 
-<div class="board-surface" use:hitPad style="width:{BOARD_WIDTH}px; height:{SURFACE_HEIGHT}px;">
+<div class="board-surface" style="width:{BOARD_WIDTH}px; height:{SURFACE_HEIGHT}px;">
     <div class="board-map" style="width:{BOARD_WIDTH}px; height:{BOARD_HEIGHT}px;">
         <img
             src={boardImage}

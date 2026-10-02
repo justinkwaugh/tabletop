@@ -291,21 +291,24 @@
     }
 
     .featured-cover img {
+        display: block;
         width: 100%;
-        aspect-ratio: 1;
-        object-fit: cover;
+        height: auto;
         border-radius: 5px;
         border: 1px solid #ffffff26;
     }
 
     .featured-cover[data-game='bus'] {
-        left: 1%;
+        width: 50%;
+        left: -3%;
+        top: 30%;
         transform: rotate(-16deg);
     }
 
     .featured-cover[data-game='indonesia'] {
-        left: 29%;
-        top: 10%;
+        width: 50%;
+        left: 27%;
+        top: 4%;
         z-index: 2;
         transform: rotate(3deg);
     }

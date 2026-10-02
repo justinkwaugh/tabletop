@@ -36,6 +36,7 @@ import {
     testBanners,
     testPlayer,
     testState,
+    testVaultWithDiscards,
     testVaultWithRelics
 } from '@tabletop/oath/testing'
 import GameTable from '$lib/components/GameTable.svelte'
@@ -68,6 +69,11 @@ export type TableName =
     | 'goalsRailProtection'
     | 'goalsRailDevotion'
     | 'trade'
+    | 'peek'
+    | 'advisers'
+    | 'moves'
+    | 'campaign'
+    | 'observatory'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -494,6 +500,173 @@ function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
     ])
 }
 
+/** R-5.5: the seat stands at the Chancellor's site, which the Empire rules. */
+function campaignTable(): PlayedTable {
+    const site = mapSlotId(Region.Provinces, 0)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: site,
+                warbandsOnBoard: { me: 4 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: site
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [site]: [] },
+            warbandsBySite: { [site]: { [IMPERIAL_WARBANDS]: 2 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-6.5: the seat rules its site with three warbands there and four on its board. */
+function movesTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                warbandsOnBoard: { me: 4 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            warbandsBySite: { [home]: { me: 3 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-6.1: the seat's Act Phase with two facedown advisers to play. */
+function advisersTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                advisers: [
+                    { cardId: 'denizen.order.curfew', faceUp: false },
+                    { cardId: 'denizen.nomad.elders', faceUp: false }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-6.3: two relics at the seat's site, the second already peeked by the seat. */
+function peekTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const [first, second] = [`${home}.relic.0`, `${home}.relic.1`]
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                peekedRelicSlotIds: [second],
+                peekedRelics: { [second]: 'relic.map' }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            relicsBySite: { [home]: [{ slotId: first }, { slotId: second }] },
+            vault: testVaultWithRelics({ [first]: 'relic.cup-of-plenty', [second]: 'relic.map' })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-7.4: the seat stands with the Observatory, the Cradle's pile empty and the others not. */
+function observatoryTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply: 7 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.arcane.observatory'] },
+            discardPileCounts: { cradle: 0, provinces: 3, hinterland: 2 },
+            vault: testVaultWithDiscards({
+                [Region.Provinces]: [
+                    'denizen.hearth.book-binders',
+                    'denizen.order.council-seat',
+                    'denizen.discord.assassin'
+                ],
+                [Region.Hinterland]: ['denizen.nomad.a-fast-steed', 'denizen.beast.wolves']
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     setup: setupTable,
     searching: searchingTable,
@@ -511,7 +684,12 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),
     goalsRailProtection: () => goalsRailTable(OathType.Protection),
     goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
-    trade: tradeTable
+    trade: tradeTable,
+    peek: peekTable,
+    advisers: advisersTable,
+    moves: movesTable,
+    campaign: campaignTable,
+    observatory: observatoryTable
 }
 
 let session: OathGameSession | undefined

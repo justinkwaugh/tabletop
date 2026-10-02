@@ -1,5 +1,6 @@
 export enum ActionType {
     PlaceSpring = 'placeSpring',
+    RevealTiles = 'revealTiles',
     PlaceBid = 'placeBid',
     PlaceField = 'placeField',
     PlaceNeutralTile = 'placeNeutralTile',

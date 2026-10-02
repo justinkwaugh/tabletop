@@ -160,32 +160,32 @@ export const MINOR_TARGETED_ACTIONS: ReadonlySet<ActionType> = new Set([
     ActionType.ExileCitizen
 ])
 
-export type PromptState = { cardChosen: boolean; adviserChosen: boolean; moveChosen: boolean }
+export type PromptState = { cardChosen: boolean; adviserChosen: boolean }
 
 export function actionPrompt(action: ActionType, state: PromptState): string {
     switch (action) {
         case ActionType.Travel:
-            return 'Choose a destination on the map.'
+            return 'Choose a destination.'
         case ActionType.Muster:
             return 'Choose a card at your site to place favor on.'
         case ActionType.Trade:
-            return 'Choose a trade, or tap a card at your site to find its row.'
+            return 'Choose a trade.'
         case ActionType.Recover:
-            return 'Tap a lit relic at your site, or a lit banner — on the map or on its holder.'
+            return 'Choose a relic or a banner.'
         case ActionType.Search:
-            return 'Tap the deck or discard pile to draw from.'
+            return 'Choose where to draw from.'
         case ActionType.PlayFacedownAdviser:
             return state.adviserChosen
                 ? 'Choose where it goes.'
-                : 'Tap a facedown adviser on your card.'
+                : 'Choose one of your facedown advisers.'
         case ActionType.Peek:
-            return 'Tap a lit relic to look at it.'
+            return 'Choose a relic to look at.'
         case ActionType.LetPeek:
             return 'Choose what to show, and to whom.'
         case ActionType.UseActionPower:
             return 'Choose a power to use.'
         case ActionType.MoveWarbands:
-            return state.moveChosen ? 'How many?' : 'Tap where the warbands go.'
+            return 'Choose a move and how many.'
         case ActionType.ExileCitizen:
             return 'Choose a Citizen to exile.'
         default:

@@ -86,7 +86,7 @@
             <text
                 y="6"
                 text-anchor="middle"
-                font-family="Georgia, 'Times New Roman', serif"
+                font-family="'Libre Baskerville', Georgia, serif"
                 font-size="18"
                 font-weight="700"
                 fill="#6b3f1d">{badge.count}</text

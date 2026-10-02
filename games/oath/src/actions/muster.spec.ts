@@ -161,6 +161,16 @@ describe('Muster (R-5.2)', () => {
         expect(state.getPlayerState('p1').supply).toBe(6)
     })
 
+    it('reads what a Muster would ask for and the bank it draws from, as its menu shows them', () => {
+        const state = ready()
+        expect(HydratedMuster.wanted(state, 'p1', 'card-a', [])).toBe(2)
+        expect(HydratedMuster.available(state, 'p1')).toBe(14)
+        expect(HydratedMuster.placesSecret([])).toBe(false)
+
+        const imperial = citizenAndChancellor(1)
+        expect(HydratedMuster.available(imperial, 'citizen')).toBe(1)
+    })
+
     it('lists only cards that can actually be mustered on', () => {
         const state = ready()
         state.cardTokens['card-a'] = { favor: 1, secrets: 0 }

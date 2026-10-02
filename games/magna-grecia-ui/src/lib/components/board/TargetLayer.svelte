@@ -1,7 +1,7 @@
 <script lang="ts">
     import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import { spaceKey } from '@tabletop/magna-grecia'
-    import { BuildTool } from '$lib/model/session.svelte.js'
+    import { BuildTool } from '$lib/model/buildTool.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
     import { placeCenter } from '$lib/utils/boardView.js'
@@ -172,7 +172,7 @@
         stroke-width: 1.5;
     }
     .price-text {
-        font-family: Georgia, 'Times New Roman', serif;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 13px;
         font-weight: 700;
         fill: #6b3f1d;

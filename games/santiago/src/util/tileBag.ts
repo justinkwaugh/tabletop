@@ -8,3 +8,8 @@ export function buildTileBag(): PlantingTile[] {
     }
     return bag
 }
+
+// 4 tiles are drawn per round for 3–4 players; 5 for 5 players.
+export function tilesPerRound(playerCount: number): number {
+    return Math.max(4, playerCount)
+}

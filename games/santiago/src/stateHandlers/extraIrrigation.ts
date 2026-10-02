@@ -59,7 +59,7 @@ export class ExtraIrrigationStateHandler
     enter(context: MachineContext<HydratedSantiagoGameState>) {
         const state = context.gameState
 
-        // Fresh entry from CanalBuilding: extraIrrigationPassed was cleared by Bidding.enter()
+        // Fresh entry from CanalBuilding: extraIrrigationPassed was cleared by TileReveal.enter()
         // so length === 0 means no one has acted yet this round.
         if (state.extraIrrigationPassed.length === 0) {
             const turnOrder = state.turnManager.turnOrder
@@ -100,7 +100,7 @@ export class ExtraIrrigationStateHandler
             const isLastRound = state.isBagEmpty()
             state.applyDrought(isLastRound)
             if (!isLastRound) state.collectEscudos()
-            return isLastRound ? MachineState.EndOfGame : MachineState.Bidding
+            return isLastRound ? MachineState.EndOfGame : MachineState.TileReveal
         }
 
         if (!action.playerId) throw new Error('Action requires a playerId')

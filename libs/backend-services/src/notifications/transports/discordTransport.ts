@@ -1,4 +1,3 @@
-import { SecretsService } from '../../secrets/secretsService.js'
 import {
     GameCatalogEntry,
     Notification,
@@ -15,6 +14,7 @@ import {
     TransportType
 } from './notificationTransport.js'
 import { discordNotificationMessage } from './discordNotificationMessage.js'
+import { DiscordBotApi } from '../../discord/discordBotApi.js'
 
 import {
     RESTPostAPIChannelMessageJSONBody,
@@ -23,7 +23,6 @@ import {
 } from 'discord-api-types/v10'
 
 const FRONTEND_HOST = process.env.FRONTEND_HOST ?? ''
-const API_ENDPOINT = 'https://discord.com/api/v10'
 
 export class DiscordTransport implements NotificationTransport {
     type = TransportType.Discord
@@ -32,17 +31,8 @@ export class DiscordTransport implements NotificationTransport {
     constructor(
         private readonly libraryService: LibraryService,
         private readonly catalogService: CatalogService,
-        private readonly botToken: string
+        private readonly discordBotApi: DiscordBotApi
     ) {}
-
-    static async createDiscordTransport(
-        secretsService: SecretsService,
-        libraryService: LibraryService,
-        catalogService: CatalogService
-    ): Promise<DiscordTransport> {
-        const botToken = await secretsService.getSecret('DISCORD_BOT_TOKEN')
-        return new DiscordTransport(libraryService, catalogService, botToken)
-    }
 
     async sendNotification(
         subscription: DiscordSubscription,
@@ -76,17 +66,10 @@ export class DiscordTransport implements NotificationTransport {
             return
         }
 
-        const headers = {
-            'Content-Type': 'application/json',
-            Authorization: `Bot ${this.botToken}`,
-            Accept: 'application/json'
-        }
-
-        const messageResponse = await fetch(`${API_ENDPOINT}/channels/${channelId}/messages`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(message)
-        })
+        const messageResponse = await this.discordBotApi.post(
+            `/channels/${channelId}/messages`,
+            message
+        )
 
         if (!messageResponse.ok) {
             console.error('Could not send DM to user', userId, messageResponse)
@@ -97,20 +80,14 @@ export class DiscordTransport implements NotificationTransport {
     private async getDmChannelId(userId: string): Promise<string | undefined> {
         let channelId = this.dmCache.get(userId)
         if (!channelId) {
-            const headers = {
-                'Content-Type': 'application/json',
-                Authorization: `Bot ${this.botToken}`,
-                Accept: 'application/json'
-            }
             const dmLookupRequestData: RESTPostAPICurrentUserCreateDMChannelJSONBody = {
                 recipient_id: userId
             }
 
-            const response = await fetch(`${API_ENDPOINT}/users/@me/channels`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(dmLookupRequestData)
-            })
+            const response = await this.discordBotApi.post(
+                '/users/@me/channels',
+                dmLookupRequestData
+            )
 
             if (!response.ok) {
                 console.error('Discord error getting dm channel for user', userId, response)

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { FAVOR_BANK_ORDER, type Suit } from '@tabletop/oath'
-    import TokenBadge from '$lib/components/TokenBadge.svelte'
+    import BankCount from '$lib/components/BankCount.svelte'
     import { suitImage } from '$lib/images/suitImages.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { suitName } from '$lib/model/names.js'
@@ -44,7 +44,7 @@
         >
             <img src={suitImage(suit)} alt="" />
             <span class="suit__count">
-                <TokenBadge kind="favor" count={favorBank[suit]} size={20} />
+                <BankCount count={favorBank[suit]} size={20} />
             </span>
         </button>
     {/each}

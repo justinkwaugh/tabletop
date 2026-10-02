@@ -27,17 +27,20 @@
     let isMe = $derived(gameSession.myPlayer?.id === playerId)
 </script>
 
-<svelte:window
-    onkeydown={(e) => {
-        if (e.key === 'Escape' && seatDetail.openPlayerId) seatDetail.close()
-    }}
-/>
-
 {#if playerId}
     {@const seat = gameState.getPlayerState(playerId)}
     {@const facts = seatFacts(gameState, playerId)}
     {@const visions = seatVisions(gameState, playerId)}
-    <div class="seat-detail" role="presentation" onpointerdown={() => seatDetail.close()}>
+    <!-- Closed on the click, so the press that closes it reaches nothing under it (rule 7). -->
+    <div
+        class="seat-detail"
+        role="presentation"
+        onpointerdown={(event) => event.preventDefault()}
+        onclick={() => seatDetail.close()}
+        onkeydown={(event) => {
+            if (event.key === 'Enter') seatDetail.close()
+        }}
+    >
         <div
             class="sheet"
             role="dialog"
@@ -45,6 +48,8 @@
             tabindex="-1"
             aria-label="{gameSession.getPlayerName(playerId)}'s seat"
             onpointerdown={(e) => e.stopPropagation()}
+            onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => e.stopPropagation()}
         >
             <header class="head">
                 <h2>{gameSession.getPlayerName(playerId)}{isMe ? ' · you' : ''}</h2>

@@ -1,12 +1,21 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
     import { range } from '@tabletop/common'
-    import { ActionType, WarbandMoveKind, type WarbandMove } from '@tabletop/oath'
-    import CardImage from '$lib/components/CardImage.svelte'
+    import {
+        ActionType,
+        WarbandMoveKind,
+        type WarbandMove,
+        type WarbandMoveOption
+    } from '@tabletop/oath'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
+    import PeekMenu from '$lib/components/PeekMenu.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import CountPicker from '$lib/components/CountPicker.svelte'
+    import MenuChoice from '$lib/components/MenuChoice.svelte'
+    import MenuRow from '$lib/components/MenuRow.svelte'
+    import { warbandImage } from '$lib/images/pieceImages.js'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, humanizeReason, siteName } from '$lib/model/names.js'
@@ -21,16 +30,7 @@
         action === ActionType.PlayFacedownAdviser ? gameSession.facedownAdviserOptions : []
     )
     let chosenAdviser = $derived(advisers.find((a) => a.cardId === gameSession.adviserCardId))
-    let chosenMove = $derived(gameSession.warbandMoves.chosen)
-    let peekTargets = $derived(gameSession.peekTargets)
     let moves = $derived(gameSession.warbandMoves.options)
-    let imperialMoves = $derived(
-        moves.filter(
-            (o) =>
-                o.move.kind === WarbandMoveKind.GiveToImperial ||
-                o.move.kind === WarbandMoveKind.TakeFromImperial
-        )
-    )
     let citizens = $derived(gameSession.exileTargets)
 
     const MOVE_LABELS: Record<WarbandMoveKind, string> = {
@@ -43,25 +43,30 @@
     function otherPlayerOf(move: WarbandMove): string | undefined {
         return 'otherPlayerId' in move ? move.otherPlayerId : undefined
     }
+
+    function moveName(option: WarbandMoveOption): string {
+        const other = otherPlayerOf(option.move)
+        const to = other ? ` — ${gameSession.getPlayerName(other)}` : ''
+        return `${MOVE_LABELS[option.move.kind]}${to}`
+    }
 </script>
 
 <div class="flex flex-col gap-1">
     {#if action === ActionType.PlayFacedownAdviser}
-        {#if !chosenAdviser}
-            <p class="text-xs text-oath-text-muted">
-                {advisers.length === 0
-                    ? 'No facedown adviser to play.'
-                    : 'Tap one of your facedown advisers, on your card.'}
-            </p>
+        {#if advisers.length === 0}
+            <p class="text-xs text-oath-text-muted">No facedown adviser to play.</p>
         {:else}
+            <CardChoiceRow
+                choices={cardChoices(advisers.map((adviser) => adviser.cardId))}
+                picked={chosenAdviser ? [chosenAdviser.cardId] : []}
+                onpick={(cardId) => gameSession.chooseAdviser(cardId)}
+                {busy}
+                height={100}
+            />
+        {/if}
+        {#if chosenAdviser}
             {@const adviser = chosenAdviser}
             <div class="flex items-start gap-2">
-                <CardImage
-                    cardId={adviser.cardId}
-                    width={44}
-                    label={cardName(adviser.cardId)}
-                    inspect
-                />
                 {#if gameSession.adviserPlay !== undefined}
                     {@const reason = gameSession.adviserPlayReason}
                     <div class="grow">
@@ -153,87 +158,48 @@
                         </button>
                     </div>
                 {:else}
-                    <div class="flex flex-wrap gap-1 grow">
-                        {#each adviser.placements as option (option.label)}
-                            <button
-                                class="rounded bg-oath-surface-raised hover:bg-oath-control disabled:opacity-40 px-2 py-1 text-xs text-left"
-                                disabled={busy || option.blockedBecause !== undefined}
-                                title={humanizeReason(option.blockedBecause)}
+                    <div class="flex flex-wrap gap-1.5 grow">
+                        {#each adviser.placements.filter((p) => p.blockedBecause === undefined) as option (option.label)}
+                            <MenuChoice
+                                label="{option.label}: {cardName(adviser.cardId)}"
+                                disabled={busy}
                                 onclick={() =>
                                     gameSession.chooseAdviserPlay(adviser.cardId, option.play)}
                             >
-                                {option.label}{#if option.blockedBecause}<span
-                                        class="text-oath-text-muted"
-                                        >&nbsp;— <TokenText
-                                            text={humanizeReason(option.blockedBecause) ?? ''}
-                                        /></span
-                                    >{/if}
-                            </button>
+                                {option.label}
+                            </MenuChoice>
                         {/each}
                     </div>
                 {/if}
             </div>
         {/if}
     {:else if action === ActionType.Peek}
-        <p class="text-xs text-oath-text-muted">
-            {peekTargets.length === 0 ? 'Nothing to peek at.' : 'Tap a lit relic at your site.'}
-        </p>
+        <PeekMenu />
     {:else if action === ActionType.LetPeek}
         <LetPeekPicker />
     {:else if action === ActionType.MoveWarbands}
-        {#if chosenMove}
-            {@const otherPlayerId = otherPlayerOf(chosenMove.move)}
-            <div class="text-xs text-oath-text-muted mb-1">
-                {MOVE_LABELS[chosenMove.move.kind]}
-                {#if otherPlayerId}
-                    — {gameSession.getPlayerName(otherPlayerId)}
-                {/if}
-                <span class="text-oath-text-muted">— how many?</span>
-            </div>
-            <div class="flex gap-1 flex-wrap">
-                {#each range(1, chosenMove.max) as count (count)}
-                    <button
-                        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover px-2.5 py-1 text-sm font-semibold"
-                        disabled={busy}
-                        onclick={() => gameSession.warbandMoves.send(count)}
+        {#if moves.length === 0}
+            <p class="text-xs text-oath-text-muted">No warbands you may move.</p>
+        {:else}
+            <div class="flex flex-col gap-1.5" role="list" aria-label="Warband moves">
+                {#each moves as option (JSON.stringify(option.move) + option.owner)}
+                    {@const name = moveName(option)}
+                    <MenuRow
+                        image={warbandImage(gameSession.warbandColor(option.owner))}
+                        imageAlt={gameSession.warbandOwnerName(option.owner)}
+                        {name}
+                        points={gameSession.warbandMoves.points(option)}
                     >
-                        {count}
-                    </button>
+                        <CountPicker
+                            values={range(1, option.max)}
+                            picked={undefined}
+                            label={(count) => `${name}: move ${count}`}
+                            onpick={(count) => gameSession.warbandMoves.sendNow(option, count)}
+                            disabled={busy}
+                        />
+                    </MenuRow>
                 {/each}
             </div>
-        {:else}
-            <p class="text-xs text-oath-text-muted">
-                {moves.length === 0
-                    ? 'No warbands you may move.'
-                    : `Tap ${gameSession.warbandMoves.boardToSite ? 'your site on the map to move warbands onto it' : ''}${gameSession.warbandMoves.boardToSite && gameSession.warbandMoves.siteToBoard ? ', or ' : ''}${gameSession.warbandMoves.siteToBoard ? 'the Board counter on your card to bring them back' : ''}.`}
-            </p>
-            {#each gameSession.warbandMoves.byOwner as option (option.move.kind + option.owner)}
-                <button
-                    class="rounded border border-oath-frame bg-oath-surface-raised hover:border-oath-accent px-2 py-1 text-xs text-left"
-                    disabled={busy}
-                    onclick={() => gameSession.warbandMoves.choose(option)}
-                >
-                    {MOVE_LABELS[option.move.kind]}
-                    <span class="text-oath-text-muted"
-                        >({gameSession.warbandOwnerName(option.owner)}, up to {option.max})</span
-                    >
-                </button>
-            {/each}
-            {#each imperialMoves as option (JSON.stringify(option.move) + option.owner)}
-                {@const otherPlayerId = otherPlayerOf(option.move)}
-                <button
-                    class="rounded border border-oath-frame bg-oath-surface-raised hover:border-oath-accent px-2 py-1 text-xs text-left"
-                    disabled={busy}
-                    onclick={() => gameSession.warbandMoves.choose(option)}
-                >
-                    {MOVE_LABELS[option.move.kind]} — {otherPlayerId
-                        ? gameSession.getPlayerName(otherPlayerId)
-                        : ''}
-                    <span class="text-oath-text-muted"
-                        >({gameSession.warbandOwnerName(option.owner)}, up to {option.max})</span
-                    >
-                </button>
-            {/each}
         {/if}
     {:else if action === ActionType.ExileCitizen}
         {#each citizens as citizenPlayerId (citizenPlayerId)}

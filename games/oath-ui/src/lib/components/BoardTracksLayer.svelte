@@ -1,9 +1,8 @@
 <script lang="ts">
+    import { menuPointer } from '$lib/model/menuPointer.svelte.js'
     import { assertExists } from '@tabletop/common'
     import {
-        ActionType,
         CardKind,
-        DISCARD_SEARCH_SUPPLY_COST,
         FAVOR_BANK_ORDER,
         FINAL_ROUND,
         type Region,
@@ -12,8 +11,9 @@
     } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import { visionsMarkerImage } from '$lib/images/tileImages.js'
-    import TokenBadge from '$lib/components/TokenBadge.svelte'
+    import BankCount from '$lib/components/BankCount.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import type { SearchRow } from '$lib/model/searchRows.js'
     import { cardAspect } from '$lib/images/cardShape.js'
     import {
         DISCARD_CARD_INSET,
@@ -57,16 +57,12 @@
 
     let roundCenter = $derived(roundMarkerCenter(gameState.round))
 
-    // R-5.1.1 — a Search picks its source.
-    let searching = $derived(gameSession.selection.action === ActionType.Search)
-    let sources = $derived(searching ? gameSession.searchSources : [])
-    let myRegion = $derived.by(() => {
-        const siteId = gameSession.myPlayerState?.siteId
-        return siteId ? gameState.regionOf(siteId) : undefined
-    })
-    let worldDeckPickable = $derived(sources.includes(SearchSource.WorldDeck))
-    function discardPickable(region: Region): boolean {
-        return sources.includes(SearchSource.Discard) && region === myRegion
+    // R-5.1.1, R-7.4 — the board lights each source the Search menu lists, at its price.
+    let rows = $derived(gameSession.searchRows)
+    let worldDeckRow = $derived(rows.find((row) => row.source === SearchSource.WorldDeck))
+    let worldDeckPickable = $derived(worldDeckRow !== undefined)
+    function discardRow(region: Region): SearchRow | undefined {
+        return rows.find((row) => row.source === SearchSource.Discard && row.region === region)
     }
 </script>
 
@@ -79,7 +75,7 @@
         style="left:{center.x - FAVOR_BANK_RADIUS}px; top:{center.y - FAVOR_BANK_RADIUS}px;
                width:{FAVOR_BANK_RADIUS * 2}px; height:{FAVOR_BANK_RADIUS * 2}px;"
     >
-        <TokenBadge kind="favor" count={gameState.favorBank[suit]} size={FAVOR_BANK_RADIUS * 2} />
+        <BankCount count={gameState.favorBank[suit]} size={FAVOR_BANK_RADIUS * 2} />
     </span>
 {/each}
 
@@ -91,7 +87,7 @@
         FAVOR_BANK_RADIUS}px;
            width:{FAVOR_BANK_RADIUS * 2}px; height:{FAVOR_BANK_RADIUS * 2}px;"
 >
-    <TokenBadge kind="favor" count={gameState.favorSupply} size={FAVOR_BANK_RADIUS * 2} />
+    <BankCount count={gameState.favorSupply} size={FAVOR_BANK_RADIUS * 2} />
 </span>
 <span
     class="bank-label"
@@ -127,18 +123,17 @@
     {@const box = DISCARD_RECTS[region]}
     {@const count = gameState.discardPileCountIn(region)}
     {@const back = gameState.discardTopBackIn(region)}
-    {@const pickable = discardPickable(region)}
-    <button
-        type="button"
+    {@const row = discardRow(region)}
+    {@const pickable = row !== undefined}
+    <div
         class="discard"
         class:empty={count === 0}
         class:pickable
-        disabled={!pickable}
+        class:pointed={menuPointer.is({ kind: 'pile', region })}
         title={pickable
-            ? `Search this discard pile — ${DISCARD_SEARCH_SUPPLY_COST} Supply`
+            ? `Search this discard pile — ${row.cost} Supply`
             : `${count} cards in the ${region} discard pile`}
         style="left:{box.x}px; top:{box.y}px; width:{box.width}px; height:{box.height}px;"
-        onclick={() => void gameSession.chooseSearchSource(SearchSource.Discard)}
     >
         {#if count > 0 && back}
             {@const pile = laidCardIn(box, WORLD_ASPECT, DISCARD_CARD_INSET)}
@@ -151,10 +146,8 @@
             </span>
         {/if}
         <span class="discard__count">{count}</span>
-        {#if pickable}<span class="pick-cost pick-cost--discard"
-                >{DISCARD_SEARCH_SUPPLY_COST} supply</span
-            >{/if}
-    </button>
+        {#if row}<span class="pick-cost pick-cost--discard">{row.cost} supply</span>{/if}
+    </div>
 {/each}
 
 <!-- R-2.7 — the Relic Deck; R-9.4 makes its count private. -->
@@ -165,10 +158,8 @@
 <!-- R-2.7 — the World Deck, sideways. Its count is private; the top card's back
      type is public and is what says a Vision is next (R-2.7.1). -->
 {#snippet worldDeckFace()}
-    {#if worldDeckPickable}
-        <span class="pick-cost pick-cost--deck"
-            >{worldDeckSearchCost(gameState.visionsDrawn)} supply</span
-        >
+    {#if worldDeckRow}
+        <span class="pick-cost pick-cost--deck">{worldDeckRow.cost} supply</span>
     {/if}
     {#if gameState.worldDeckExhausted}
         <span class="deck__exhausted" style="width:{worldDeckCard.height}px;">exhausted</span>
@@ -180,21 +171,15 @@
         />
     {/if}
 {/snippet}
-{#if worldDeckPickable}
-    <button
-        type="button"
-        class="deck deck--laid pickable"
-        title="Search the world deck — {worldDeckSearchCost(gameState.visionsDrawn)} Supply"
-        style="left:{worldDeckCenter.x}px; top:{worldDeckCenter.y}px;"
-        onclick={() => void gameSession.chooseSearchSource(SearchSource.WorldDeck)}
-    >
-        {@render worldDeckFace()}
-    </button>
-{:else}
-    <div class="deck deck--laid" style="left:{worldDeckCenter.x}px; top:{worldDeckCenter.y}px;">
-        {@render worldDeckFace()}
-    </div>
-{/if}
+<div
+    class="deck deck--laid"
+    class:pickable={worldDeckPickable}
+    class:pointed={menuPointer.is({ kind: 'deck' })}
+    title={worldDeckRow ? `Search the world deck — ${worldDeckRow.cost} Supply` : 'The world deck'}
+    style="left:{worldDeckCenter.x}px; top:{worldDeckCenter.y}px;"
+>
+    {@render worldDeckFace()}
+</div>
 
 <style>
     .bank {
@@ -251,27 +236,13 @@
 
     /* The same amber ring the sites wear when pickable, with the price on a chip. */
     .pickable {
-        cursor: pointer;
         outline: 4px solid #fbbf24;
         outline-offset: 2px;
         border-radius: 8px;
         box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.55);
     }
-    .pickable:hover,
-    .pickable:focus-visible {
+    .pickable.pointed {
         outline-color: #fde68a;
-    }
-    button.discard,
-    button.deck {
-        background: transparent;
-        border: 0;
-        padding: 0;
-        font: inherit;
-        color: inherit;
-        text-align: inherit;
-    }
-    button.discard:disabled {
-        cursor: default;
     }
     .pick-cost {
         position: absolute;

@@ -185,6 +185,11 @@ export function testVaultWithRelics(relicFacedown: Record<string, string>): Oath
     return createOathVault({ relicFacedown }, getPrng(1))
 }
 
+/** R-9.4 — a discard pile's fronts are held in the vault, so a Search from it draws real cards. */
+export function testVaultWithDiscards(discardPiles: Partial<Record<Region, string[]>>): OathVault {
+    return createOathVault({ discardPiles }, getPrng(1))
+}
+
 /** R-2.5 — `value` 1 makes a banner a Recover target (R-5.4.2) worth one die (R-2.5.2). */
 export function testBanners(
     holders: Partial<Record<Banner, string>> = {},

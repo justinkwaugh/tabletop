@@ -112,10 +112,12 @@ describe('R-11.4 — Plains and Mountain', () => {
 describe('R-11.5 — River', () => {
     it('one more warband when mustering here and ruling here; not when unruled', () => {
         const ruled = board('site.river')
+        expect(HydratedMuster.wanted(ruled, 'ruler', INN, [])).toBe(3)
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN })).apply(ruled)
         expect(ruled.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4 + 3)
 
         const unruled = board('site.river', { warbandsBySite: { c1: { other: 1 }, p1: { other: 2 } } })
+        expect(HydratedMuster.wanted(unruled, 'ruler', INN, [])).toBe(2)
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN })).apply(unruled)
         expect(unruled.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4 + 2)
 

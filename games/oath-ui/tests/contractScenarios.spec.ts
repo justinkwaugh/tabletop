@@ -24,46 +24,92 @@ async function openTable(page: Page, name: TableFixture.TableName) {
     return call(page, 'open', name)
 }
 
-async function pressAndHold(page: Page, x: number, y: number) {
-    const cdp = await page.context().newCDPSession(page)
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
-    await page.waitForTimeout(600)
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
-}
-
-async function holdCard(page: Page, card: ReturnType<Page['locator']>) {
-    const box = await card.boundingBox()
-    if (!box) throw Error('The card is on screen')
-    await pressAndHold(page, box.x + box.width / 2, box.y + box.height / 2)
+/** The first card of `selector` whose centre is not under another layer, such as the side column. */
+async function uncovered(page: Page, selector: string) {
+    const index = await page.evaluate((selector) => {
+        return [...document.querySelectorAll(selector)].findIndex((card) => {
+            const box = card.getBoundingClientRect()
+            const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+            return top !== null && card.contains(top)
+        })
+    }, selector)
+    if (index < 0) throw Error(`No ${selector} is uncovered`)
+    return page.locator(selector).nth(index)
 }
 
 const preview = (page: Page) => page.locator('.card-preview')
 const panelCards = (page: Page) =>
-    page.locator('.panel').getByRole('button').filter({ hasNotText: /Back|Undo/ })
+    page.locator('.panel button:not(.magnifier)').filter({ hasNotText: /Back|Undo/ })
+const magnifiers = (page: Page) => page.locator('.panel button.magnifier')
 
-/** docs/ui-interaction-visual-contract.md, scenario 7 (touch half). */
+/** docs/ui-interaction-visual-contract.md, rules 1 and 4 and scenarios 7, 24 and 44, on touch. */
 test.describe('on touch', () => {
     test.use({ hasTouch: true, viewport: { width: 1024, height: 768 } })
 
-    test('scenario 7: a hold on a pickable card keeps its preview open and picks nothing; the next tap closes it', async ({
+    test('scenario 7: a panel card’s magnifier enlarges it and the next tap closes it; a tap on the card picks it', async ({
         page
     }) => {
         await openTable(page, 'setup')
         await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
-        await holdCard(page, panelCards(page).first())
+        await magnifiers(page).first().tap()
         await expect(preview(page)).toBeVisible()
-        await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+        await expect(page.locator('[aria-pressed="true"]')).toHaveCount(0)
 
         await page.touchscreen.tap(20, 20)
         await expect(preview(page)).toHaveCount(0)
-        await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+        await panelCards(page).first().tap()
+        await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toBeVisible()
+        await expect(preview(page)).toHaveCount(0)
     })
 
-    test('scenario 24: a preview held open closes when its card leaves the table, and the new offers show with no ring left over', async ({
+    test('scenario 44: a tap on an offered site enlarges it and travels nowhere; the next tap closes it', async ({
+        page
+    }) => {
+        await openTable(page, 'actPhase')
+        await tile(page, 'Travel').click()
+        await (await uncovered(page, '.board-card.offered')).tap()
+        await expect(preview(page)).toBeVisible()
+        expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+
+        await page.touchscreen.tap(20, 20)
+        await expect(preview(page)).toHaveCount(0)
+        expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+        await expect(page.getByRole('list', { name: 'Destinations in the Cradle' })).toBeVisible()
+    })
+
+    test('scenario 41: with Muster chosen, a tap on a ringed denizen enlarges it and musters nothing', async ({ page }) => {
+        await openTable(page, 'trade')
+        await tile(page, 'Muster').tap()
+        const musters = page.getByRole('list', { name: 'Musters at your site' })
+        await expect(musters).toBeVisible()
+        const before = await call(page, 'tableFacts')
+        await (await uncovered(page, '.board-card.offered')).tap()
+        await expect(preview(page)).toBeVisible()
+        expect(await call(page, 'tableFacts')).toEqual(before)
+        await page.touchscreen.tap(20, 20)
+        await expect(preview(page)).toHaveCount(0)
+        await expect(musters).toBeVisible()
+    })
+
+    test('scenario 44: in a Search, a drawn card’s magnifier enlarges it unpicked; the next tap closes it; a tap on the card picks it', async ({
+        page
+    }) => {
+        await openTable(page, 'searching')
+        await magnifiers(page).first().tap()
+        await expect(preview(page)).toBeVisible()
+        expect(await call(page, 'searchPicks')).toEqual({})
+        await page.touchscreen.tap(20, 20)
+        await expect(preview(page)).toHaveCount(0)
+        expect(await call(page, 'searchPicks')).toEqual({})
+        await panelCards(page).first().tap()
+        await expect.poll(async () => (await call(page, 'searchPicks')).kept).toBeDefined()
+    })
+
+    test('scenario 24: an enlarged card closes when its card leaves the table, and the new offers show with no ring left over', async ({
         page
     }) => {
         await openTable(page, 'setup')
-        await holdCard(page, panelCards(page).first())
+        await magnifiers(page).first().tap()
         await expect(preview(page)).toBeVisible()
 
         await call(page, 'seatMakesSetupChoice')
@@ -72,13 +118,13 @@ test.describe('on touch', () => {
         await expect(page.locator('[aria-pressed="true"]')).toHaveCount(0)
     })
 
-    test('scenario 24: a preview held open over a card still on the table stays, while the picks under it end', async ({
+    test('scenario 24: an enlarged card over a card still on the table stays, while the picks under it end', async ({
         page
     }) => {
         await openTable(page, 'searching')
         await panelCards(page).first().tap()
         await expect(page.getByText('How do you play it?', { exact: false })).toBeVisible()
-        await page.locator('.board-card:not(.pickable)').first().tap()
+        await (await uncovered(page, '.board-card:not(.offered)')).tap()
         await expect(preview(page)).toBeVisible()
 
         await call(page, 'anotherSeatLetsPeek')
@@ -87,12 +133,109 @@ test.describe('on touch', () => {
     })
 })
 
-/** Scenario 24 on desktop: a remote Action lands while the mouse rests on a card. */
-test('scenario 24: a hovered preview closes when its card leaves the table, and the new offers show with no ring left over', async ({
+/** Rule 4 with a mouse: a hover opens nothing, a click enlarges, Escape closes. */
+test('scenario 44: a hover opens nothing; a click on a card on the table enlarges it; Escape closes it', async ({
+    page
+}) => {
+    await openTable(page, 'trade')
+    const denizen = page.locator('.board-card[title="Book Binders"]')
+    const hovered = [
+        denizen,
+        await uncovered(page, '.site .board-card'),
+        await uncovered(page, '.banner'),
+        page.getByRole('img', { name: 'A Round of Ale' }).first()
+    ]
+    for (const target of hovered) {
+        await target.hover()
+        await page.waitForTimeout(400)
+        await expect(preview(page)).toHaveCount(0)
+    }
+    const card = denizen
+    await card.click()
+    await expect(preview(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+})
+
+test('scenario 41: with Recover chosen, a click on a banner on the rail enlarges it and stages nothing', async ({ page }) => {
+    await openTable(page, 'trade')
+    await tile(page, 'Recover').click()
+    const banners = page.getByRole('list', { name: 'Banners to recover' })
+    await expect(banners).toBeVisible()
+    await (await uncovered(page, '.banner')).click()
+    await expect(preview(page)).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: /^pay \d+ favor$/ })).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+    await expect(banners).toBeVisible()
+})
+
+test('scenario 44: the click that closes an enlarged card does nothing else, even over a menu row', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Travel').click()
+    const go = page.getByRole('list', { name: 'Destinations in the Cradle' }).getByRole('button').first()
+    await expect(go).toBeVisible()
+    const row = await go.boundingBox()
+    if (!row) throw Error('The destination’s button is on screen')
+    await (await uncovered(page, '.board-card')).click()
+    await expect(preview(page)).toBeVisible()
+    await page.mouse.click(row.x + row.width / 2, row.y + row.height / 2)
+    await expect(preview(page)).toHaveCount(0)
+    expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+    await expect(go).toBeVisible()
+})
+
+test('scenario 44: the keyboard reaches the panel’s magnifiers and never a card on the table; Enter enlarges, Escape closes', async ({
     page
 }) => {
     await openTable(page, 'setup')
-    await panelCards(page).first().hover()
+    await expect(magnifiers(page).first()).toBeVisible()
+    let onMagnifier = false
+    for (let press = 0; press < 80 && !onMagnifier; press++) {
+        await page.keyboard.press('Tab')
+        const focus = await page.evaluate(() => ({
+            onTableCard: document.activeElement?.closest('.board-card') != null,
+            onMagnifier: document.activeElement?.classList.contains('magnifier') ?? false
+        }))
+        expect(focus.onTableCard).toBe(false)
+        onMagnifier = focus.onMagnifier
+    }
+    expect(onMagnifier).toBe(true)
+    await page.keyboard.press('Enter')
+    await expect(preview(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+})
+
+/** Scenario 52: a wide card runs to its source art. */
+test('scenario 52: a banner enlarges to its 920 px source on a desktop', async ({ page }) => {
+    await openTable(page, 'trade')
+    await (await uncovered(page, '.banner')).click()
+    const shown = preview(page).locator('img').first()
+    await expect(shown).toBeVisible()
+    expect(Math.round((await shown.boundingBox())?.width ?? 0)).toBe(920)
+})
+
+/** Scenario 53: an enlarged site says what it does, its printed symbols drawn. */
+test('scenario 53: an enlarged site shows its sentence under it, with the suit and favor as symbols', async ({ page }) => {
+    await openTable(page, 'setup')
+    await (await uncovered(page, '.site .board-card')).click()
+    const sentence = preview(page).locator('.site-sentence')
+    await expect(sentence).toContainText('card to this site, and you have not discarded a')
+    await expect(sentence.getByRole('img', { name: 'Hearth' })).toHaveCount(2)
+    await expect(sentence.getByRole('img', { name: 'favor' })).toHaveCount(1)
+    await page.keyboard.press('Escape')
+    await (await uncovered(page, '.site .board-card[title^="Facedown site"]')).click()
+    await expect(preview(page)).toBeVisible()
+    await expect(preview(page).locator('.site-sentence')).toHaveCount(0)
+})
+
+/** Scenario 24 with a mouse: a remote Action lands while a card is enlarged. */
+test('scenario 24: an enlarged card closes when its card leaves the table, and the new offers show with no ring left over', async ({
+    page
+}) => {
+    await openTable(page, 'setup')
+    await magnifiers(page).first().click()
     const shown = preview(page).locator('img').first()
     await expect(shown).toBeVisible()
     const name = await shown.getAttribute('alt')
@@ -151,7 +294,7 @@ const grid = (page: Page) => page.locator('.panel')
 const tile = (page: Page, label: string) =>
     grid(page).locator('.majors button').filter({ hasText: label })
 const reasonLine = (page: Page) => grid(page).locator('.strip')
-const boardOffers = (page: Page) => page.locator('.board-card.pickable')
+const boardOffers = (page: Page) => page.locator('.board-card.offered')
 const dimmedSites = (page: Page) => page.locator('.site.dimmed')
 const answer = (page: Page, name: string) => grid(page).getByRole('button', { name, exact: true })
 
@@ -164,13 +307,11 @@ async function tapDimmed(tile: ReturnType<Page['locator']>) {
     await tile.click({ force: true })
 }
 
-async function setSlider(slider: ReturnType<Page['locator']>, value: number) {
-    await slider.evaluate((input, next) => {
-        if (!(input instanceof HTMLInputElement)) throw Error('A slider is a range input')
-        input.value = String(next)
-        input.dispatchEvent(new Event('input', { bubbles: true }))
-    }, value)
+/** A count is a row of number buttons per group, each named "N of the … warbands …". */
+async function pickCount(page: Page, group: number, value: number) {
+    await grid(page).getByRole('button', { name: new RegExp(`^${value} of the `) }).nth(group).click()
 }
+const countRows = (page: Page) => grid(page).getByRole('button', { name: /^0 of the / })
 
 /** Scenario 29: the one line under the Act Phase grid. */
 test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason; a hover replaces the reason and a new state clears it', async ({
@@ -317,7 +458,7 @@ test.describe('scenario 30: answering another player’s request', () => {
 
 /** Scenario 31: the defending side's losses after a won battle (R-5.5.6.a). */
 test.describe('scenario 31: choosing the defending side’s losses', () => {
-    test('one slider per group and a count; Kill is dimmed with the reason until the count is right; Undo clears every count', async ({
+    test('one row of number buttons per group and a count; Kill is dimmed with the reason until the count is right; Undo clears every count', async ({
         page
     }) => {
         await openTable(page, 'exileDefeated')
@@ -326,17 +467,16 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
         expect(facts.machineState).toBe('CampaignDefeat')
         expect((await call(page, 'defeatPicks')).required).toBe(2)
 
-        const sliders = grid(page).locator('input[type="range"]')
         const kill = answer(page, 'Kill these warbands')
-        await expect(sliders).toHaveCount(2)
+        await expect(countRows(page)).toHaveCount(2)
         await expect(grid(page)).toContainText('Chosen 0 of 2')
         await expect(kill).toBeDisabled()
         await expect(grid(page)).toContainText('must kill exactly 2 of the defeated force, not 0')
 
-        await setSlider(sliders.nth(0), 1)
+        await pickCount(page, 0, 1)
         await expect(grid(page)).toContainText('Chosen 1 of 2')
         await expect(kill).toBeDisabled()
-        await setSlider(sliders.nth(1), 1)
+        await pickCount(page, 1, 1)
         await expect(grid(page)).toContainText('Chosen 2 of 2')
         await expect(kill).toBeEnabled()
         await expect(grid(page)).not.toContainText('must kill exactly')
@@ -346,8 +486,8 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
         await expect(kill).toBeDisabled()
         expect((await call(page, 'defeatPicks')).picked).toEqual([0, 0])
 
-        await setSlider(sliders.nth(0), 1)
-        await setSlider(sliders.nth(1), 1)
+        await pickCount(page, 0, 1)
+        await pickCount(page, 1, 1)
         await kill.click()
         await expect
             .poll(async () => (await call(page, 'tableFacts')).machineState)
@@ -362,7 +502,7 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
     }) => {
         await openTable(page, 'imperialDefeated')
         expect((await call(page, 'tableFacts')).seatId).toBe('chan')
-        await expect(grid(page).locator('input[type="range"]')).toHaveCount(2)
+        await expect(countRows(page)).toHaveCount(2)
         await expect(answer(page, 'Kill these warbands')).toBeDisabled()
     })
 })
@@ -373,9 +513,9 @@ test.describe('scenario 32: waiting on a send', () => {
         page
     }) => {
         await openTable(page, 'actPhase')
-        const destination = boardOffers(page).and(
-            page.getByRole('button', { name: 'c2', exact: true })
-        )
+        const destination = page
+            .getByRole('list', { name: 'Destinations in the Cradle' })
+            .getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
 
         await tile(page, 'Travel').click()
         await expect(destination).toHaveCount(1)
@@ -500,7 +640,7 @@ test('scenario 40: panel text shows favor as its token, the word only as the tok
     await expect(prompt).not.toContainText('favor')
 })
 
-test('scenario 39: Trade lists every trade at the site, a strip tap marks a row, a button sends', async ({ page }) => {
+test('scenario 39: Trade lists every trade at the site, a strip tap only enlarges, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Trade').click()
     const rows = page.getByRole('list', { name: 'Trades at your site' }).getByRole('listitem')
@@ -514,15 +654,485 @@ test('scenario 39: Trade lists every trade at the site, a strip tap marks a row,
     await expect(page.getByRole('button', { name: 'Trade with Book Binders: pay 2 favor, get 2 secrets' })).toBeVisible()
     await expect(rows.nth(1)).toContainText('bank empty')
     await expect(rows.nth(1)).toContainText('no faceup')
+    const name = await rows.nth(0).getByText('Book Binders', { exact: true }).boundingBox()
+    const firstButton = await rows.nth(0).getByRole('button').first().boundingBox()
+    if (!name || !firstButton) throw Error('The row is on screen')
+    expect(firstButton.x - name.x).toBeLessThan(260)
 
-    await page.getByRole('button', { name: 'Assassin', exact: true }).click()
-    await expect(rows.nth(1)).toHaveClass(/ring-2/)
-    await expect(rows.nth(0)).not.toHaveClass(/ring-2/)
+    await (await uncovered(page, '.board-card.offered')).click()
+    await expect(preview(page)).toBeVisible()
     expect(await call(page, 'cardTokens', 'denizen.discord.assassin')).toEqual({ favor: 0, secrets: 0 })
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank' }).click()
     await expect.poll(() => call(page, 'cardTokens', 'denizen.hearth.book-binders')).toEqual({ favor: 0, secrets: 1 })
     await expect(page.getByRole('list', { name: 'Trades at your site' })).toHaveCount(0)
+})
+
+test('scenario 4: Travel lists every affordable destination under its region, a button travels', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Travel').click()
+    const cradle = page.getByRole('list', { name: 'Destinations in the Cradle' })
+    await expect(cradle.getByRole('listitem')).toHaveCount(1)
+    const go = cradle.getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
+    await expect(go).toBeVisible()
+    await expect(dimmedSites(page).first()).toBeVisible()
+
+    await page.locator('.panel').getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(cradle).toHaveCount(0)
+    await expect(dimmedSites(page)).toHaveCount(0)
+    await tile(page, 'Travel').click()
+    await go.click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+    await expect(cradle).toHaveCount(0)
+})
+
+test('scenario 49: Search lists each source it can draw from, a button draws', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Search').click()
+    const rows = page.getByRole('list', { name: 'Sources to search' }).getByRole('listitem')
+    await expect(rows.first()).toContainText('The world deck')
+    const deck = page.getByRole('button', { name: /^Search the world deck: spend \d Supply, draw 3$/ })
+    await expect(deck).toBeVisible()
+    await expect(boardOffers(page).or(page.locator('.deck.pickable'))).not.toHaveCount(0)
+    await deck.click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).machineState).toBe('Searching')
+})
+
+test('scenario 20: Recover lists the banners to outbid, the price is a row of number buttons', async ({ page }) => {
+    await openTable(page, 'trade')
+    const before = (await call(page, 'tableFacts')).favorOf.me ?? 0
+    await tile(page, 'Recover').click()
+    const banners = page.getByRole('list', { name: 'Banners to recover' })
+    const peoples = banners.getByRole('button', { name: /^Recover the People’s Favor: pay \d+ favor/ })
+    await expect(peoples).toBeVisible()
+    await peoples.click()
+    const amounts = grid(page).getByRole('button', { name: /^pay \d+ favor$/ })
+    await expect(amounts.first()).toHaveAttribute('aria-pressed', 'true')
+    const count = await amounts.count()
+    const choice = amounts.nth(count > 1 ? 1 : 0)
+    const paid = Number((await choice.textContent())?.trim())
+    await choice.click()
+    await expect(choice).toHaveAttribute('aria-pressed', 'true')
+    await grid(page).getByRole('button', { name: /^(Arcane|Order|Hearth|Discord|Beast|Nomad) bank/ }).first().click()
+    await grid(page).getByRole('button', { name: 'Recover the People’s Favor', exact: true }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before - paid)
+})
+
+test('scenario 50: Peek lists only the relics not yet seen, Look sends', async ({ page }) => {
+    await openTable(page, 'peek')
+    const peek = grid(page).getByRole('button', { name: 'Peek at a relic', exact: true })
+    await peek.click()
+    const rows = page.getByRole('list', { name: 'Relics to peek at' }).getByRole('listitem')
+    await expect(rows).toHaveCount(1)
+    await expect(rows.first()).toContainText('space 1')
+    await rows.first().getByRole('button', { name: 'Peek at facedown relic, space 1' }).click()
+    await expect(page.getByRole('list', { name: 'Relics to peek at' })).toHaveCount(0)
+    await expect(peek).toHaveAttribute('aria-disabled', 'true')
+    await expect(peek).toHaveJSProperty('disabled', false)
+    await tapDimmed(peek)
+    await expect(reasonLine(page)).toContainText('you have already seen every relic here')
+})
+
+test('scenario 6: the facedown advisers to play are cards in the panel, a tap shows the placements', async ({ page }) => {
+    await openTable(page, 'advisers')
+    await grid(page).getByRole('button', { name: 'Play or discard an adviser', exact: true }).click()
+    await expect(grid(page).getByRole('button', { name: 'Curfew', exact: true })).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: 'Elders', exact: true })).toBeVisible()
+    await grid(page).getByRole('button', { name: 'Curfew', exact: true }).click()
+    const discard = grid(page).getByRole('button', { name: /^Discard it: Curfew$/ })
+    await expect(discard).toBeVisible()
+    await grid(page).getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(discard).toHaveCount(0)
+    await expect(grid(page).getByRole('button', { name: 'Elders', exact: true })).toBeVisible()
+})
+
+test('scenario 18: each warband move is a row of counts, and a count sends', async ({ page }) => {
+    await openTable(page, 'moves')
+    await grid(page).getByRole('button', { name: 'Move warbands', exact: true }).click()
+    const rows = page.getByRole('list', { name: 'Warband moves' }).getByRole('listitem')
+    await expect(rows).toHaveCount(2)
+    const onto = rows.filter({ hasText: 'From your board to your site' })
+    await expect(onto.getByRole('button')).toHaveCount(4)
+    await expect(rows.filter({ hasText: 'From your site to your board' }).getByRole('button')).toHaveCount(2)
+    await expect(dimmedSites(page)).toHaveCount(0)
+    await onto.getByRole('button', { name: /move 2$/ }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.me).toEqual({ me: 2 })
+    await expect(page.getByRole('list', { name: 'Warband moves' })).toHaveCount(0)
+})
+
+test('scenario 5: a Campaign target is a row with its picture, a tap adds it and a second drops it', async ({ page }) => {
+    await openTable(page, 'campaign')
+    await tile(page, 'Campaign').click()
+    await grid(page).getByRole('button', { name: /^ann$/i }).click()
+    const site = grid(page).locator('button[aria-pressed]').first()
+    await expect(site).toHaveAttribute('aria-pressed', 'false')
+    await site.click()
+    await expect(site).toHaveAttribute('aria-pressed', 'true')
+    await expect(site).toContainText('target')
+    await expect(page.locator('.travel-cost.targeted')).toHaveCount(1)
+    await site.click()
+    await expect(site).toHaveAttribute('aria-pressed', 'false')
+
+    const rows = grid(page).locator('button[aria-pressed]')
+    await rows.nth(0).click()
+    await rows.nth(1).click()
+    await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(2)
+    const back = grid(page).getByRole('button', { name: 'Back', exact: true })
+    await back.click()
+    await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(1)
+    await expect(rows.nth(0)).toHaveAttribute('aria-pressed', 'true')
+    await back.click()
+    await expect(grid(page).locator('button[aria-pressed="true"]')).toHaveCount(0)
+    await back.click()
+    await expect(grid(page).getByRole('button', { name: /^ann$/i })).toBeVisible()
+    await expect(page.locator('.travel-cost.targeted')).toHaveCount(0)
+    await grid(page).getByRole('button', { name: 'Cancel the Campaign' }).click()
+    await expect(tile(page, 'Campaign')).toBeVisible()
+    expect((await call(page, 'tableFacts')).staged).toBeUndefined()
+})
+
+test('scenario 2: an Exile chooses a start site from the rows, and a tap on another moves the choice', async ({ page }) => {
+    await openTable(page, 'setup')
+    await call(page, 'seatMakesSetupChoice')
+    const sites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]')
+    await expect(sites.first()).toBeVisible()
+    expect(await sites.count()).toBeGreaterThan(1)
+    await sites.nth(0).click()
+    await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'true')
+    await expect(sites.nth(0)).toContainText('start here')
+    await sites.nth(1).click()
+    await expect(sites.nth(1)).toHaveAttribute('aria-pressed', 'true')
+    await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'false')
+})
+
+test('scenario 2: the other sites dim; a card kept first stays marked, and the site picked after takes the ring off the map', async ({
+    page
+}) => {
+    await openTable(page, 'setup')
+    await call(page, 'seatMakesSetupChoice')
+    await expect(page.getByRole('list', { name: 'Start sites' })).toBeVisible()
+    const lit = await boardOffers(page).count()
+    expect(lit).toBeGreaterThan(1)
+    expect(await dimmedSites(page).count()).toBeGreaterThan(0)
+    expect(lit + (await dimmedSites(page).count())).toBe(await page.locator('.site').count())
+
+    const card = grid(page).locator('button[aria-pressed]').first()
+    await card.click()
+    await expect(card).toHaveAttribute('aria-pressed', 'true')
+    await expect(boardOffers(page)).toHaveCount(lit)
+    await page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]').first().click()
+    await expect(boardOffers(page)).toHaveCount(0)
+    await expect(dimmedSites(page)).toHaveCount(0)
+    await expect(page.getByText(/^Keeping /)).toBeVisible()
+})
+
+test('scenario 2: Back and Undo unwind an Exile’s picks, the card then the site, and the lit map returns', async ({ page }) => {
+    await openTable(page, 'setup')
+    await call(page, 'seatMakesSetupChoice')
+    const sites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]')
+    await expect(sites.first()).toBeVisible()
+    const litBefore = await boardOffers(page).count()
+    expect(litBefore).toBeGreaterThan(1)
+    const pickedSites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed="true"]')
+
+    for (const unwind of ['Back', 'Undo']) {
+        await sites.nth(0).click()
+        await expect(pickedSites).toHaveCount(1)
+        await panelCards(page).filter({ hasNotText: /start here/ }).first().click()
+        await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toBeVisible()
+        const button = page.getByRole('button', { name: unwind, exact: true })
+        await button.click()
+        await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toHaveCount(0)
+        await expect(pickedSites).toHaveCount(1)
+        await button.click()
+        await expect(pickedSites).toHaveCount(0)
+        await expect(boardOffers(page)).toHaveCount(litBefore)
+    }
+})
+
+test('scenario 43: a menu row lights what it names on the table while pointed at', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Travel').click()
+    const row = page.getByRole('list', { name: 'Destinations in the Cradle' }).getByRole('listitem').first()
+    const pointed = page.locator('.board-card.offered.pointed')
+    await expect(pointed).toHaveCount(0)
+    await row.hover()
+    await expect(pointed).toHaveCount(1)
+    await restMouse(page)
+    await expect(pointed).toHaveCount(0)
+    await row.getByRole('button').first().focus()
+    await expect(pointed).toHaveCount(1)
+    await row.getByRole('button').first().blur()
+    await expect(pointed).toHaveCount(0)
+})
+
+test('scenario 51: an empty bank shows a plain 0 and no favor token', async ({ page }) => {
+    await openTable(page, 'trade')
+    await expect(page.locator('.bank .bank-empty')).toHaveCount(1)
+    await expect(page.locator('.bank .bank-empty')).toHaveText('0')
+    await expect(page.locator('.bank .token')).toHaveCount(6)
+})
+
+test('scenario 45: the focus views fill the board; Full restores; a zoom by hand clears the choice; an enlarged site zooms the board to its row', async ({ page }) => {
+    await openTable(page, 'setup')
+    const chooser = page.getByRole('group', { name: 'Focus the board' })
+    const site = page.locator('.site .board-card').first()
+    const siteWidth = async () => (await site.boundingBox())?.width ?? 0
+    await expect.poll(siteWidth).toBeGreaterThan(0)
+    await page.waitForTimeout(500)
+    const full = await siteWidth()
+
+    await chooser.getByRole('button', { name: 'Cradle' }).click()
+    await expect(chooser.getByRole('button', { name: 'Cradle' })).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(siteWidth).toBeGreaterThan(full * 1.5)
+
+    await chooser.getByRole('button', { name: 'Full' }).click()
+    await expect(chooser.getByRole('button', { name: 'Full' })).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(siteWidth).toBeLessThan(full * 1.1)
+
+    await chooser.getByRole('button', { name: 'Banks' }).click()
+    await expect(chooser.getByRole('button', { name: 'Banks' })).toHaveAttribute('aria-pressed', 'true')
+    const board = await page.locator('.scaling-surface').first().boundingBox()
+    if (!board) throw Error('The board is on screen')
+    await page.mouse.move(board.x + board.width / 2, board.y + board.height / 2)
+    await page.mouse.wheel(0, 200)
+    await expect(chooser.locator('[aria-pressed="true"]')).toHaveCount(0)
+
+    await chooser.getByRole('button', { name: 'Full' }).click()
+    await expect.poll(siteWidth).toBeLessThan(full * 1.1)
+    await (await uncovered(page, '.site .board-card')).click()
+    await page.getByRole('button', { name: 'Zoom the board here' }).click()
+    await expect(preview(page)).toHaveCount(0)
+    await expect.poll(siteWidth).toBeGreaterThan(full * 1.5)
+})
+
+/** Scenario 54: the focus views are one line on the map's top edge on a desktop, and a phone has none. */
+test('scenario 54: the focus views sit in one line along the top of the map on a desktop, and a phone has none', async ({ page }) => {
+    await openTable(page, 'setup')
+    const chooser = page.getByRole('group', { name: 'Focus the board' })
+    const full = chooser.getByRole('button', { name: 'Full' })
+    const banks = chooser.getByRole('button', { name: 'Banks' })
+    await expect(banks).toBeVisible()
+    const board = await page.locator('.scaling-surface').first().boundingBox()
+    const bar = await chooser.boundingBox()
+    if (!board || !bar) throw Error('The board and its focus views are on screen')
+    expect(bar.y - board.y).toBeLessThan(12)
+    expect(bar.y + bar.height).toBeLessThan(board.y + board.height / 4)
+    expect(Math.abs(((await full.boundingBox())?.y ?? 0) - ((await banks.boundingBox())?.y ?? -100))).toBeLessThan(2)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(chooser).toBeHidden()
+    // At phone width the board sits below the panel; a card is only reachable once it is on screen.
+    await page.locator('.scaling-surface').first().scrollIntoViewIfNeeded()
+    await expect(async () => (await uncovered(page, '.site .board-card')).click()).toPass()
+    await expect(page.getByRole('button', { name: 'Zoom the board here' })).toBeVisible()
+})
+
+test('scenario 45: choosing a focus leaves the staged action, the lit sites and the panel unchanged', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Travel').click()
+    await expect(page.getByRole('list', { name: 'Destinations in the Cradle' })).toBeVisible()
+    const panelBefore = await grid(page).innerText()
+    const offeredBefore = await boardOffers(page).count()
+    const stagedBefore = (await call(page, 'tableFacts')).staged
+    const cradle = page.getByRole('group', { name: 'Focus the board' }).getByRole('button', { name: 'Cradle' })
+    await cradle.click()
+    await expect(cradle).toHaveAttribute('aria-pressed', 'true')
+    expect(await grid(page).innerText()).toBe(panelBefore)
+    expect(await boardOffers(page).count()).toBe(offeredBefore)
+    expect((await call(page, 'tableFacts')).staged).toBe(stagedBefore)
+})
+
+test('scenario 46: in full screen the panel is docked above the board, a Travel goes from it, and a card enlarges inside', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await page.mouse.move(800, 600)
+    await page.keyboard.press('f')
+    const dialog = page.locator('dialog[aria-label="Full screen view"]')
+    await expect(dialog).toHaveCount(1)
+    await dialog.locator('.majors button').filter({ hasText: 'Travel' }).click()
+    const cradle = dialog.getByRole('list', { name: 'Destinations in the Cradle' })
+    await expect(cradle).toBeVisible()
+    await dialog.getByRole('group', { name: 'Focus the board' }).getByRole('button', { name: 'Provinces' }).click()
+    await expect(dialog.getByRole('group', { name: 'Focus the board' }).getByRole('button', { name: 'Provinces' })).toHaveAttribute('aria-pressed', 'true')
+    await dialog.locator('.board-card').first().click()
+    await expect(dialog.locator('.card-preview')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog.locator('.card-preview')).toHaveCount(0)
+    await cradle.getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.1')
+})
+
+test('scenario 47: Escape closes one layer at a time: the enlarged card or the open goals before full screen, a seat’s card before the seat', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await page.mouse.move(800, 600)
+    await page.keyboard.press('f')
+    const dialog = page.locator('dialog[aria-label="Full screen view"]')
+    await expect(dialog).toHaveCount(1)
+    await dialog.locator('.board-card').first().click()
+    await expect(dialog.locator('.card-preview')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog.locator('.card-preview')).toHaveCount(0)
+    await expect(dialog).toHaveCount(1)
+
+    await dialog.getByRole('button', { name: 'Goals: open the enlarged view' }).click()
+    const goals = dialog.getByRole('dialog', { name: 'Goals' })
+    await expect(goals).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(goals).toHaveCount(0)
+    await expect(dialog).toHaveCount(1)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+
+    await openTable(page, 'trade')
+    await page.getByRole('button', { name: /you/ }).first().click()
+    const seat = page.getByRole('dialog', { name: /seat$/ })
+    await expect(seat).toBeVisible()
+    await seat.getByRole('img', { name: 'A Round of Ale' }).first().click()
+    await expect(preview(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+    await expect(seat).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(seat).toHaveCount(0)
+})
+
+/** A point over an offered card that the overlay's backdrop, not its panel, covers. */
+async function backdropOverOffer(page: Page, backdrop: string) {
+    const point = await page.evaluate((backdrop) => {
+        for (const card of document.querySelectorAll('.board-card.offered')) {
+            const box = card.getBoundingClientRect()
+            const x = box.x + box.width / 2
+            const y = box.y + box.height / 2
+            if (document.elementFromPoint(x, y)?.matches(backdrop)) return { x, y }
+        }
+        return undefined
+    }, backdrop)
+    if (!point) throw Error(`No offered card lies under the ${backdrop} backdrop`)
+    return point
+}
+
+test('scenario 47: a press outside an open seat or the goals closes it and reaches nothing under it', async ({ page }) => {
+    await openTable(page, 'trade')
+    await tile(page, 'Travel').click()
+    const destinations = page.getByRole('list', { name: /^Destinations in the / }).first()
+    await expect(destinations).toBeVisible()
+    const before = await call(page, 'tableFacts')
+
+    await page.getByRole('button', { name: /you/ }).first().click()
+    await expect(page.getByRole('dialog', { name: /seat$/ })).toBeVisible()
+    const outsideSeat = await backdropOverOffer(page, '.seat-detail')
+    await page.mouse.click(outsideSeat.x, outsideSeat.y)
+    await expect(page.getByRole('dialog', { name: /seat$/ })).toHaveCount(0)
+    await expect(preview(page)).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Goals: open the enlarged view' }).click()
+    await expect(page.getByRole('dialog', { name: 'Goals' })).toBeVisible()
+    const outsideGoals = await backdropOverOffer(page, '.goals-layer')
+    await page.mouse.click(outsideGoals.x, outsideGoals.y)
+    await expect(page.getByRole('dialog', { name: 'Goals' })).toHaveCount(0)
+    await expect(preview(page)).toHaveCount(0)
+
+    expect(await call(page, 'tableFacts')).toEqual(before)
+    await expect(destinations).toBeVisible()
+})
+
+test('scenario 48: History View offers no choice; a click enlarges, the seat, the goals and the focus views work; the live menu returns', async ({
+    page
+}) => {
+    await openTable(page, 'setup')
+    await call(page, 'seatMakesSetupChoice')
+    const prompt = page.getByText('Tap the site where your pawn starts', { exact: false })
+    await expect(prompt).toBeVisible()
+    await page.getByRole('button', { name: 'step backwards' }).click()
+    await expect(prompt).toHaveCount(0)
+    await expect(boardOffers(page)).toHaveCount(0)
+    await expect(page.getByRole('list', { name: 'Start sites' })).toHaveCount(0)
+
+    await (await uncovered(page, '.site .board-card')).click()
+    await expect(preview(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+    await page.getByRole('button', { name: /you/ }).first().click()
+    await expect(page.getByRole('dialog', { name: /seat$/ })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Goals: open the enlarged view' }).click()
+    await expect(page.getByRole('dialog', { name: 'Goals' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    const cradle = page.getByRole('group', { name: 'Focus the board' }).getByRole('button', { name: 'Cradle' })
+    await cradle.click()
+    await expect(cradle).toHaveAttribute('aria-pressed', 'true')
+
+    await page.getByRole('button', { name: 'go to current' }).click()
+    await expect(prompt).toBeVisible()
+    await expect(page.getByRole('list', { name: 'Start sites' })).toBeVisible()
+    await expect(cradle).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('scenario 49: with Observatory declared every non-empty pile is listed and ringed and the world deck is not; a pile’s button searches it', async ({
+    page
+}) => {
+    await openTable(page, 'observatory')
+    await tile(page, 'Search').click()
+    await expect(grid(page).getByRole('button', { name: /^Search the world deck/ })).toBeVisible()
+    await panelCards(page).first().click()
+    const provinces = grid(page).getByRole('button', { name: /^Search the Provinces discard pile/ })
+    await expect(provinces).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: /^Search the Hinterland discard pile/ })).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: /^Search the world deck/ })).toHaveCount(0)
+    await expect(grid(page).getByRole('button', { name: /^Search the Cradle discard pile/ })).toHaveCount(0)
+    await expect(page.locator('.discard.pickable')).toHaveCount(2)
+    await expect(page.locator('.discard.empty.pickable')).toHaveCount(0)
+    await expect(page.locator('.deck--laid.pickable')).toHaveCount(0)
+    const piles = page.locator('.discard')
+    await expect(piles.nth(1)).toContainText('3')
+    await provinces.click()
+    await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+    expect((await call(page, 'tableFacts')).machineState).toBe('Searching')
+    await expect(piles.nth(1)).toHaveClass(/empty/)
+    await expect(piles.nth(2)).toContainText('2')
+})
+
+test('scenario 22: with Travel chosen, an open seat’s cards enlarge on a press and pick nothing; a press outside closes it and the destinations are still offered', async ({
+    page
+}) => {
+    await openTable(page, 'trade')
+    await tile(page, 'Travel').click()
+    const offeredBefore = await boardOffers(page).count()
+    expect(offeredBefore).toBeGreaterThan(0)
+    await page.getByRole('button', { name: /you/ }).first().click()
+    const seat = page.getByRole('dialog', { name: /seat$/ })
+    await expect(seat).toBeVisible()
+    await seat.getByRole('img', { name: 'A Round of Ale' }).first().click()
+    await expect(preview(page)).toBeVisible()
+    await page.mouse.click(20, 20)
+    await expect(preview(page)).toHaveCount(0)
+    await expect(seat).toBeVisible()
+    const outside = await backdropOverOffer(page, '.seat-detail')
+    await page.mouse.click(outside.x, outside.y)
+    await expect(seat).toHaveCount(0)
+    expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+    expect(await boardOffers(page).count()).toBe(offeredBefore)
+})
+
+test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
+    await openTable(page, 'trade')
+    await tile(page, 'Muster').click()
+    const list = page.getByRole('list', { name: 'Musters at your site' })
+    const rows = list.getByRole('listitem')
+    await expect(rows).toHaveCount(2)
+    await expect(rows.nth(0)).toContainText('Book Binders')
+    await expect(rows.nth(1)).toContainText('Assassin')
+    await expect(list).not.toContainText('Council Seat')
+    await expect(page.getByRole('button', { name: 'Muster at Book Binders: place 1 favor, get 2 warbands' })).toBeVisible()
+
+    await page.locator('.panel').getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(list).toHaveCount(0)
+    await tile(page, 'Muster').click()
+    await page.getByRole('button', { name: 'Muster at Assassin: place 1 favor, get 2 warbands' }).click()
+    await expect.poll(() => call(page, 'cardTokens', 'denizen.discord.assassin')).toEqual({ favor: 1, secrets: 0 })
+    await expect(list).toHaveCount(0)
 })
 
 test('card backs: another seat’s facedown Vision and the Vision in its hand show the Vision back', async ({ page }) => {

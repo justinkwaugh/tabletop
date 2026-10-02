@@ -11,9 +11,12 @@
     import MinorActionPanel from '$lib/components/MinorActionPanel.svelte'
     import ModifierPicker from '$lib/components/ModifierPicker.svelte'
     import PowerPanel from '$lib/components/PowerPanel.svelte'
+    import MusterMenu from '$lib/components/MusterMenu.svelte'
+    import RecoverMenu from '$lib/components/RecoverMenu.svelte'
+    import SearchMenu from '$lib/components/SearchMenu.svelte'
     import TradeMenu from '$lib/components/TradeMenu.svelte'
+    import TravelMenu from '$lib/components/TravelMenu.svelte'
     import BannerRecoverPanel from '$lib/components/BannerRecoverPanel.svelte'
-    import TravelWayPanel from '$lib/components/TravelWayPanel.svelte'
     import CitizenshipPanel from '$lib/components/CitizenshipPanel.svelte'
     import ConsentPanel from '$lib/components/ConsentPanel.svelte'
     import QuestionPanel from '$lib/components/QuestionPanel.svelte'
@@ -43,8 +46,7 @@
             ? undefined
             : actionPrompt(chosen, {
                   cardChosen: selection.value('card') !== undefined,
-                  adviserChosen: gameSession.adviserCardId !== undefined,
-                  moveChosen: gameSession.warbandMoves.chosen !== undefined
+                  adviserChosen: gameSession.adviserCardId !== undefined
               })
     )
 
@@ -163,9 +165,15 @@
                 </div>
             {/if}
 
-            {#if chosen === ActionType.Travel && gameSession.travelChoices.length > 0}
+            {#if chosen === ActionType.Travel && gameSession.travelRows.length > 0}
                 <div class="mb-2">
-                    <TravelWayPanel />
+                    <TravelMenu />
+                </div>
+            {/if}
+
+            {#if chosen === ActionType.Recover && !gameSession.stagedBanner}
+                <div class="mb-2">
+                    <RecoverMenu />
                 </div>
             {/if}
 
@@ -178,6 +186,18 @@
             {#if chosen === ActionType.UseActionPower}
                 <div class="mb-2">
                     <PowerPanel />
+                </div>
+            {/if}
+
+            {#if chosen === ActionType.Search}
+                <div class="mb-2">
+                    <SearchMenu />
+                </div>
+            {/if}
+
+            {#if chosen === ActionType.Muster}
+                <div class="mb-2">
+                    <MusterMenu />
                 </div>
             {/if}
 
