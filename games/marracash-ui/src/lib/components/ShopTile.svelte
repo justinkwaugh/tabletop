@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getShop, type ShopState } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { ownerDiscOutline } from '$lib/utils/playerColors.js'
     import { ShopHaloFilterId, shopRect } from '$lib/utils/boardGeometry.js'
     import { MarketPalettes } from '$lib/utils/marketColors.js'
     import MarketMark from '$lib/components/MarketMark.svelte'
@@ -13,6 +14,17 @@
     let palette = $derived(MarketPalettes[shopColor])
     let centerX = $derived(rect.x + rect.width / 2)
     let centerY = $derived(rect.y + rect.height / 2)
+
+    let ownerDisc = $derived.by(() => {
+        if (!shop.ownerId) return undefined
+        const colors = gameSession.colors
+        return {
+            fill: colors.getPlayerBgColorValue(shop.ownerId),
+            outline: ownerDiscOutline(colors.getPlayerColor(shop.ownerId)),
+            text: colors.getPlayerTextColorValue(shop.ownerId),
+            initial: gameSession.getPlayerName(shop.ownerId).charAt(0).toUpperCase()
+        }
+    })
 </script>
 
 {#snippet body()}
@@ -49,25 +61,28 @@
         opacity="0.55"
     ></rect>
     <MarketMark color={shopColor} x={rect.x + 20} y={rect.y + 20} size={20} />
-    {#if shop.ownerId}
+    {#if ownerDisc}
         <circle
             cx={centerX}
             cy={centerY}
             r="20"
-            fill={gameSession.colors.getPlayerBgColorValue(shop.ownerId)}
-            stroke="#1f1f1f"
-            stroke-width="3"
+            fill={ownerDisc.fill}
+            stroke={ownerDisc.outline}
+            stroke-width="2"
         ></circle>
-        <circle cx={centerX} cy={centerY} r="23" fill="none" stroke="#ffffff" stroke-width="2"
-        ></circle>
+        <text x={centerX} y={centerY} class="owner-initial" fill={ownerDisc.text}
+            >{ownerDisc.initial}</text
+        >
         {#if shop.customers > 0}
-            <text
-                x={centerX}
-                y={centerY + 6}
-                text-anchor="middle"
-                font-size="18"
-                font-weight="700"
-                fill={gameSession.colors.getPlayerTextColorValue(shop.ownerId)}
+            <circle
+                cx={centerX + 18}
+                cy={centerY + 15}
+                r="10"
+                fill="#ffffff"
+                stroke="#1f1f1f"
+                stroke-width="1.5"
+            ></circle>
+            <text x={centerX + 18} y={centerY + 15} class="customer-count" fill="#1f1f1f"
                 >{shop.customers}</text
             >
         {/if}
@@ -88,3 +103,20 @@
 {:else}
     <g>{@render body()}</g>
 {/if}
+
+<style>
+    .owner-initial {
+        font-family: Merriweather, Georgia, 'Times New Roman', serif;
+        font-size: 22px;
+        font-weight: 700;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+
+    .customer-count {
+        font-size: 12px;
+        font-weight: 700;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+</style>
