@@ -2,10 +2,14 @@
     import type { Antique } from '@tabletop/marracash'
     import MarketMark from '$lib/components/MarketMark.svelte'
     import { MarketPalettes } from '$lib/utils/marketColors.js'
+    import { withLightness } from '$lib/utils/colorLightness.js'
 
     let { card, dimmed = false }: { card: Antique; dimmed?: boolean } = $props()
 
+    const InkLightness = 0.15
+
     let palette = $derived(MarketPalettes[card.color])
+    let ink = $derived(withLightness(palette.fill, InkLightness))
 </script>
 
 <svg
@@ -23,11 +27,11 @@
         height="42"
         rx="5"
         fill={palette.tint}
-        stroke={palette.stroke}
+        stroke={ink}
         stroke-width="2"
     ></rect>
-    <MarketMark color={card.color} x={17} y={14} size={14} />
-    <text x="17" y="36" text-anchor="middle" font-size="11" font-weight="700" fill={palette.stroke}
+    <MarketMark color={card.color} x={17} y={14} size={14} filled />
+    <text x="17" y="36" text-anchor="middle" font-size="11" font-weight="700" fill={ink}
         >{card.value}</text
     >
 </svg>
