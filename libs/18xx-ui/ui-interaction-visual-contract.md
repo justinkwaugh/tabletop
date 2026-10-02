@@ -603,6 +603,21 @@ A title's own stock-round corporate actions (1817's loans and buy-backs) appear
 above the stock actions while the player may still act for a company they preside,
 each as an immediately committed button.
 
+### Cash crisis and bankruptcy
+
+A player who owes the bank more than they have gets a Cash crisis panel in the
+operating step that caused it (the Loans step for unpaid interest), naming the debt.
+It lists each sale that would raise cash without selling more than needed, with its
+proceeds, as immediately committed buttons, or says none is possible. Go bankrupt
+stages a confirmation that explains the consequences; Back or Undo withdraws it, and
+history, reload and state replacement discard it. History records sales to pay the
+bank and the bankruptcy with the companies it liquidated and the debt forgiven.
+
+Bankrupt players leave the turn order. The players panel lists them after the others,
+marked Bankrupt, and the ownership spreadsheet's turn-order sort places them last.
+History also shows system events that change no company's cash when they matter:
+exports, interest, and any system action the title describes.
+
 ## Private exchanges and lifecycle
 
 Private-company cards show ownership, income, closure, and eligible exchanges.

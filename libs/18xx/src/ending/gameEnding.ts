@@ -19,6 +19,7 @@ export type EndingState = OperatingState &
     TrainState &
     Pick<GameState, 'machineState'> & {
         bankruptcy?: Bankruptcy
+        bankruptPlayerIds?: string[]
         gameEnding?: GameEnding
     }
 export interface EndingRules extends ValuationRules {

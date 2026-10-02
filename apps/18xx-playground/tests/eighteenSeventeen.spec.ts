@@ -67,3 +67,28 @@ test('1817 companies borrow during their turn and settle interest in a Loans ste
     await expect(history).toContainText('Borrowed for')
     await expect(history).toContainText('Repaid a loan for')
 })
+
+test('1817 presidents in a cash crisis can go bankrupt after confirming', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('bankruptcy')
+    const trains = page.getByRole('region', { name: 'Train purchases' })
+    await trains.getByRole('button', { name: 'finish', exact: true }).click()
+
+    const crisis = page.getByRole('region', { name: 'Cash crisis' })
+    await expect(crisis).toContainText('owes the bank $25')
+    await crisis.getByRole('button', { name: 'Go bankrupt' }).click()
+    await expect(crisis.getByRole('button', { name: 'Confirm bankruptcy' })).toBeVisible()
+    await crisis.getByRole('button', { name: 'Back' }).click()
+    await expect(crisis.getByRole('button', { name: 'Go bankrupt' })).toBeVisible()
+    await crisis.getByRole('button', { name: 'Go bankrupt' }).click()
+    await crisis.getByRole('button', { name: 'Confirm bankruptcy' }).click()
+    await expect(page.getByRole('region', { name: 'Cash crisis' })).toHaveCount(0)
+
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    const history = page.getByRole('list', { name: 'Action history' })
+    await expect(history).toContainText('could not pay interest and was liquidated')
+    await expect(history).toContainText('Went bankrupt')
+    await page.getByRole('tab', { name: 'Players', exact: true }).click()
+    await expect(page.getByText('Bankrupt', { exact: true })).toBeVisible()
+})

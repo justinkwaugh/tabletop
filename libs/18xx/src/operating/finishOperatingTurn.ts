@@ -7,6 +7,7 @@ import {
     PlayerAction,
     HydratableAction,
     assert,
+    assertExists,
     type HydratedGameState,
     type GameAction
 } from '@tabletop/common'
@@ -83,14 +84,23 @@ export class HydratedFinishOperatingTurn
         )
         const reason = finishOperatingTurnReason(state, this.#rules, this.companyId)
         assert(!reason, reason ?? 'Cannot finish operating turn')
-        state.operatingSet!.completedCompanyIds.push(this.companyId)
-        state.turnManager.endTurn(state.actionCount)
-        delete state.trackStep
-        delete state.stationStep
-        delete state.routeStep
-        delete state.earningsDistribution
-        delete state.loanStep
+        endOperatingTurn(state, this.companyId)
         this.metadata = operatingRoundSnapshot(state, this.#valuationRules)
         delete state.trainPurchaseStep
     }
+}
+
+/** Completes the company's turn and clears its steps, leaving its train purchases to the caller. */
+export function endOperatingTurn(
+    state: HydratedGameState & OperatingTurnState,
+    companyId: string
+): void {
+    assertExists(state.operatingSet, 'A turn belongs to an operating set')
+    state.operatingSet.completedCompanyIds.push(companyId)
+    state.turnManager.endTurn(state.actionCount)
+    delete state.trackStep
+    delete state.stationStep
+    delete state.routeStep
+    delete state.earningsDistribution
+    delete state.loanStep
 }

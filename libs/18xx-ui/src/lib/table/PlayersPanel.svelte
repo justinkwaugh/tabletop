@@ -47,10 +47,15 @@
     const stockRoundActive = $derived(session.gameState.machineState === 'StockRound')
     const passOrderPositions = $derived(session.passing === 'pass-order')
     const players = $derived([
-        ...session.gameState.turnManager.turnOrder.map((playerId) => ({
+        ...[
+            ...session.gameState.turnManager.turnOrder,
+            ...(session.gameState.bankruptPlayerIds ?? [])
+        ].map((playerId) => ({
             id: `player:${playerId}`,
             owner: { kind: 'player', playerId } as const,
-            controller: undefined,
+            controller: session.gameState.bankruptPlayerIds?.includes(playerId)
+                ? 'Bankrupt'
+                : undefined,
             description: undefined,
             playerId,
             name: session.getPlayerName(playerId),
@@ -174,7 +179,9 @@
                         />{:else}<span>{player.name}</span>{/if}
                 </h3>
                 {#if player.controller}<span class="controller"
-                        >Controlled by {player.controller}</span
+                        >{player.playerId
+                            ? player.controller
+                            : `Controlled by ${player.controller}`}</span
                     >{/if}
                 <div class="header-controls">
                     {#if player.playerId}<button

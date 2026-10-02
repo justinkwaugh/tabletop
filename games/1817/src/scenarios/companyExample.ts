@@ -49,6 +49,17 @@ export function createEighteenSeventeenCompanyExample(
     })
     givePrivate(state, 'MAIL', casey)
     givePrivate(state, 'MINC', alex)
+    // Boston & Albany is at its loan limit with nothing to pay interest, and its president has
+    // no cash: it defaults when its trains are done.
+    if (position === 'bankruptcy') {
+        getCompany(state, 'BA').loans = 5
+        for (const cash of state.cash)
+            if (
+                (cash.owner.kind === 'company' && cash.owner.companyId === 'BA') ||
+                (cash.owner.kind === 'player' && cash.owner.playerId === blair.playerId)
+            )
+                cash.amount = 0
+    }
     if (position !== 'trading' && position !== 'starting')
         for (const companyId of ['PLE', 'BA']) {
             const train = EighteenSeventeenTrainDepot.nextTrain(state.trainInventory, '2')

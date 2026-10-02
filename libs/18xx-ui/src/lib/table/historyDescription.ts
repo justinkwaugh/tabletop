@@ -53,6 +53,8 @@ import {
     isPayInterest,
     isRepayLoan,
     isTakeLoan,
+    isSellSharesToPay,
+    isGoBankrupt,
     stockMarketSpace,
     type Owner,
     type PresidencyChange,
@@ -251,6 +253,28 @@ export function historyDescription(
         }
     }
     if (isFinishTrains(action)) return { text: 'Finished trains', routine: true }
+    if (isSellSharesToPay(action)) {
+        assertExists(action.metadata, 'Recorded sale requires its settlement')
+        return {
+            text: `Sold ${action.sale.shares} ${companyName(action.sale.companyId)} to pay the bank`,
+            value: money(action.metadata.details.proceeds),
+            detail: `Paid ${money(action.metadata.paid)}`
+        }
+    }
+    if (isGoBankrupt(action)) {
+        assertExists(action.metadata, 'Recorded bankruptcy requires its consequences')
+        return {
+            text: 'Went bankrupt',
+            detail:
+                [
+                    ...action.metadata.record.liquidatedCompanyIds.map(
+                        (id) => `${companyName(id)} liquidated`
+                    ),
+                    `${money(action.metadata.forgiven)} forgiven`
+                ].join(' · ') || undefined,
+            important: true
+        }
+    }
     if (isExportTrains(action)) {
         assertExists(action.metadata, 'Recorded export requires its trains')
         const definitionIds = action.metadata.trains.map((train) => train.definitionId)

@@ -13,6 +13,7 @@
     import CompanyAuctionBidding from '../stock/CompanyAuctionBidding.svelte'
     import CompanyFormation from '../stock/CompanyFormation.svelte'
     import LoanRepayment from '../loans/LoanRepayment.svelte'
+    import CashCrisis from '../funding/CashCrisis.svelte'
     let {
         session,
         createRouteWorker,
@@ -67,6 +68,7 @@
                 {session}
                 showUndo={false}
             />
+        {:else if gameState.machineState === 'RaisingCash'}<CashCrisis {session} showUndo={false} />
         {:else if gameState.machineState === 'RepayingLoans'}<LoanRepayment
                 {session}
                 showUndo={false}

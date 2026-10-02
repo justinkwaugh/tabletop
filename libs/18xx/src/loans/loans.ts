@@ -141,7 +141,7 @@ function withMarketMove(
 
 export function validateLoanStep(state: { machineState: string; loanStep?: LoanStep }): void {
     assert(
-        !state.loanStep || state.machineState === 'RepayingLoans',
+        !state.loanStep || ['RepayingLoans', 'RaisingCash'].includes(state.machineState),
         'A loan step belongs to its operating step'
     )
 }

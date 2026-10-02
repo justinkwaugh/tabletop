@@ -323,7 +323,11 @@
     let companySort = $state<SpreadsheetSort<CompanyStatistic>>()
     const seatedPlayers = $derived(
         seatOrder.map((playerId) => {
-            const turn = session.gameState.turnManager.turnOrder.indexOf(playerId)
+            // Bankrupt players have left the turn order and sort after those still playing.
+            const turn = [
+                ...session.gameState.turnManager.turnOrder,
+                ...(session.gameState.bankruptPlayerIds ?? [])
+            ].indexOf(playerId)
             assert(turn >= 0, 'Every seated player has a turn position')
             return {
                 playerId,

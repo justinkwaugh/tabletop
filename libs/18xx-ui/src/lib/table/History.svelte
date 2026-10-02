@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { assertExists, type GameAction } from '@tabletop/common'
+    import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
     import { controllingOwner } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
     import { historyCash } from './historyCash.js'
@@ -50,7 +50,17 @@
     const orderChanges = $derived(historyOperatingOrder(context.actions, gameState))
     const cash = $derived(historyCash(context.actions, gameState))
     const companyChanges = $derived(historyCompanyChanges(context.actions, gameState))
-    const rounds = $derived(historyRounds(context.actions, gameState, orderChanges, cash))
+    // A system action the title describes is one of its own events.
+    const rounds = $derived(
+        historyRounds(
+            context.actions,
+            gameState,
+            orderChanges,
+            cash,
+            (action) =>
+                action.source === ActionSource.System && !!describeAction?.(action, companyName)
+        )
+    )
     const currentHeaderId = $derived(session.isViewingHistory ? rounds[0]?.id : undefined)
     function returnToCurrent() {
         if (!jumpDisabled) void session.history.goToEnd()

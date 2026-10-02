@@ -17,11 +17,12 @@ import { nextOperatingCompany } from '../operating/operatingSet.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { companyLoans, type LoanRules, type LoanState } from './loans.js'
+import type { CashCrisisState } from '../funding/cashCrisis.js'
 import { PayInterest, isPayInterest } from './payInterest.js'
 import { canRepayLoan, isRepayLoan } from './repayLoan.js'
 import { canTakeLoan, isTakeLoan } from './takeLoan.js'
 
-type State = HydratedGameState & OperatingTurnState & LoanState
+type State = HydratedGameState & OperatingTurnState & LoanState & CashCrisisState
 
 /**
  * The turn's last step: interest is paid on entry, then the president repays or takes loans and
@@ -97,8 +98,7 @@ export class RepayingLoansHandler implements MachineStateHandler<HydratedAction,
     }
 
     onAction(action: HydratedAction, context: MachineContext<State>): string {
-        return isFinishOperatingTurn(action)
-            ? BetweenCompaniesState
-            : context.gameState.machineState
+        if (isFinishOperatingTurn(action)) return BetweenCompaniesState
+        return context.gameState.cashCrisis ? 'RaisingCash' : context.gameState.machineState
     }
 }

@@ -14,6 +14,8 @@ import {
     isStopStockInstruction,
     isSetPrivatePowerRequest,
     isDropPrivatePowerRequest,
+    isExportTrains,
+    isPayInterest,
     type EighteenXXState,
     type AuctionAward
 } from '@tabletop/18xx'
@@ -43,7 +45,8 @@ export function historyRounds(
         actions,
         state
     ),
-    cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state)
+    cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state),
+    titleEvent: (action: GameAction) => boolean = () => false
 ): HistoryRound[] {
     const awards: readonly AuctionAward[] = state.offerAuction?.awards ?? []
     const entries = new Map(auctionHistory(actions, awards).map((entry) => [entry.id, entry]))
@@ -104,6 +107,9 @@ export function historyRounds(
                           (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
                       )) ||
                   isEndGame(action) ||
+                  isExportTrains(action) ||
+                  isPayInterest(action) ||
+                  titleEvent(action) ||
                   (isResolveAuction(action) && !state.offerAuction) ||
                   isResolveSelectionAuction(action)
                       ? { kind: 'action' as const, id: action.id, action }

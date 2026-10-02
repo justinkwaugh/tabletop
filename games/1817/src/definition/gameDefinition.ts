@@ -24,6 +24,7 @@ import { EighteenSeventeenStockRules } from '../stockRules.js'
 import { EighteenSeventeenInfo } from './info.js'
 import { EighteenSeventeenStateDefinition } from '../state.js'
 import { EighteenSeventeenLoanRules } from '../loanRules.js'
+import { EighteenSeventeenCashCrisisRules } from '../bankruptcy.js'
 import {
     BuyBackShares,
     CorporateActionsHandler,
@@ -64,6 +65,7 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
     phaseRules: EighteenSeventeenPhaseRules,
     trainRules: EighteenSeventeenTrainRules,
     loanRules: EighteenSeventeenLoanRules,
+    cashCrisisRules: EighteenSeventeenCashCrisisRules,
     decisionHandlers: {
         StockRound: (family) => new OwedStationsHandler(new CorporateActionsHandler(family)),
         StartingOperatingSet: (family) =>

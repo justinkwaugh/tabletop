@@ -874,14 +874,34 @@ crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
 - **The train step waits while the company may borrow.** The reference waits only
   when borrowing could buy a train; here the president finishes the step whenever a
   loan is still possible.
-- **Until 3b, a defaulting president pays what they have.** `PayInterest` records the
-  unpaid rest, which 3b turns into a cash crisis.
+- **A defaulting president pays what they have,** and `PayInterest` records the
+  unpaid rest as their cash crisis (3b).
 - **Family fixes.** The automatic stock-turn finish waits for actions already queued,
   so a title's system action in the stock round is not overtaken by a second finish.
   Prepared operating positions fix the rate for titles with loans.
 - **UI.** Loans are shown and taken from the step strip, and the Loans step has its
   own panel. 1817's corporate actions sit above the stock actions as immediate
   buttons; the title UI (slice 10) will refine both.
+
+### Implementation notes for 3b
+
+- **The crisis is family state.** `cashCrisis` names the player, the amount and the
+  machine state to return to; `RaisingCash` accepts `SellSharesToPay` and
+  `GoBankrupt`. A sale is refused when one share fewer would still cover the debt.
+  Proceeds pay the debt at once and any rest stays with the player.
+- **Bankruptcy.** The title's `CashCrisisRules.bankrupt` makes 1817's largest ordinary
+  sale of each company, pools the remaining shares and liquidates the companies the
+  player still presides, leaving them without a president and out of the round's
+  remaining order. The family then takes the player's cash, forgives the debt, adds
+  them to `bankruptPlayerIds` and removes them from the turn order, which every stock
+  round, auction and presidency already follows. A company left without a president
+  has its turn ended for it. 1817's certificate limit uses the players left, but never
+  fewer than three players' limit, as the reference keeps the last defined limit.
+- **History.** The table now lists system events that change no company's cash:
+  exports (slice 2's row never showed), interest, and title-described actions such as
+  liquidation.
+- **Playground.** 1817's bankruptcy position is its own: Boston & Albany at its loan
+  limit with nothing to pay interest, and a president without cash.
 
 ### Limits after slice 3
 

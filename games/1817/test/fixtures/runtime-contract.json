@@ -27,6 +27,7 @@
     "FloatCompany": "19008d56b87559213dfbf7511d5f729dcab000ebb0fba322d665989e10dba60f",
     "FormCompany": "ea920ced95d72745f93d29acc902cbde0c08bbe89e21546af60b479264169e71",
     "FundTrain": "5c7f49d1dd2ddceaa51ef5898e96eadd7d79642915f997edc5fdd7fb5b0bccb0",
+    "GoBankrupt": "11765265c7b862013d25c4ea20d34a1a2bacd160fed19071226cf4b2b25f6344",
     "IssueTreasuryShares": "3bbce033d8ebe42dac7bc33733bf426d5713ddb6c2ce9543190d51d3aaf41d9f",
     "LayPrivateTile": "c8d97811dbc839c2d8fdf5e51ddac49143a685df1c80e2d5573dcd1c286bf298",
     "LayTile": "3f0147c9c4ed30ee48cfe700899573e878d44011c2c89363ce05b2682226ee16",
@@ -48,6 +49,7 @@
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellFundingShares": "263e4bc7909651fd7c30a6d9a979cf467c678a207cb93222d5f41f50f0a6951f",
     "SellShares": "34e4448309811eec820fc4f20d58bac48d162be3498c081075b444c5416e9bd0",
+    "SellSharesToPay": "0ad6262541ce40e396bfc4b05951b865b6d89c14d182dc3bfea1b6425b072187",
     "SetStockInstruction": "1e85332f638a3f37ec83d300621cb5176e63ea1267c1986a153d038e812b2b59",
     "StartCompany": "c1a6eaf3045b859e1aed635e53951741171a313fa9802f26f43a3fba99ed19dd",
     "StartOperatingRound": "772070120da4c3e2b84c78887f94ded3bc5dd36e842ebfded6259071e0a2b696",
@@ -111,6 +113,15 @@
           "shortfall"
         ],
         "type": "object"
+      },
+      "bankruptPlayerIds": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "minItems": 1,
+        "type": "array",
+        "uniqueItems": true
       },
       "cash": {
         "items": {
@@ -193,6 +204,29 @@
           "type": "object"
         },
         "type": "array"
+      },
+      "cashCrisis": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "continuation": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "playerId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "continuation",
+          "playerId"
+        ],
+        "type": "object"
       },
       "certificatePools": {
         "items": {
@@ -1423,6 +1457,10 @@
           },
           {
             "const": "RepayingLoans",
+            "type": "string"
+          },
+          {
+            "const": "RaisingCash",
             "type": "string"
           }
         ]
@@ -4475,6 +4513,7 @@
     "LayingTrack",
     "OperatingSet",
     "PlacingStation",
+    "RaisingCash",
     "RepayingLoans",
     "RunningTrains",
     "RustingTrains",

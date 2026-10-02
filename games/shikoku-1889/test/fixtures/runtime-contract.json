@@ -105,6 +105,15 @@
         ],
         "type": "object"
       },
+      "bankruptPlayerIds": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "minItems": 1,
+        "type": "array",
+        "uniqueItems": true
+      },
       "cash": {
         "items": {
           "additionalProperties": false,
@@ -186,6 +195,29 @@
           "type": "object"
         },
         "type": "array"
+      },
+      "cashCrisis": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "continuation": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "playerId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "continuation",
+          "playerId"
+        ],
+        "type": "object"
       },
       "certificatePools": {
         "items": {

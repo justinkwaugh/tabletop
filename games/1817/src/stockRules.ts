@@ -254,8 +254,10 @@ export const EighteenSeventeenStockRules: StockRules = {
             movement: 0
         })
     },
+    // Bankruptcies lower the limit to that of the players left, never below three players'.
     certificateLimit(state) {
-        const limit = EighteenSeventeenCertificateLimits[state.players.length]
+        const players = state.players.length - (state.bankruptPlayerIds?.length ?? 0)
+        const limit = EighteenSeventeenCertificateLimits[Math.max(3, players)]
         assertExists(limit, 'Unsupported 1817 player count')
         return limit
     },

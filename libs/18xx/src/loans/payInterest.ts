@@ -5,10 +5,12 @@ import {
     GameAction,
     HydratableAction,
     assert,
+    assertExists,
     type HydratedGameState
 } from '@tabletop/common'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
-import { finiteCashOwnedBy } from '../finance/finance.js'
+import { controllingOwner, finiteCashOwnedBy } from '../finance/finance.js'
+import type { CashCrisisState } from '../funding/cashCrisis.js'
 import { StockMarketMove } from '../stock/stockMarket.js'
 import {
     InterestDefault,
@@ -59,7 +61,7 @@ export class HydratedPayInterest
         super(data instanceof HydratedPayInterest ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & LoanState): void {
+    apply(state: HydratedGameState & LoanState & CashCrisisState): void {
         assert(
             this.source === ActionSource.System && !state.loanStep,
             'Interest is paid once, by the system'
@@ -86,7 +88,17 @@ export class HydratedPayInterest
                 settleCashPayments(state, [payment])
                 payments.push(payment)
             }
-        } else interestDefault = this.#rules.interestDefault(state, this.companyId, interest)
+        } else {
+            const president = controllingOwner(state, this.companyId)
+            assertExists(president, 'A borrowing company has a president')
+            interestDefault = this.#rules.interestDefault(state, this.companyId, interest)
+            if (interestDefault.unpaid)
+                state.cashCrisis = {
+                    playerId: president.playerId,
+                    amount: interestDefault.unpaid,
+                    continuation: 'RepayingLoans'
+                }
+        }
         state.loanStep = { companyId: this.companyId }
         this.metadata = {
             interest,

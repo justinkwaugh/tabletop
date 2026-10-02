@@ -7,9 +7,12 @@ import {
 import { assertExists } from '@tabletop/common'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
 export const EighteenSeventeenEndingRules: EndingRules = {
-    // The first 8-train, bought or exported, makes the next set the last: 3 rounds after an 8
-    // in a set's second round, 2 otherwise.
+    // The game ends at once when one player is left solvent. Otherwise the first 8-train,
+    // bought or exported, makes the next set the last: 3 rounds after an 8 in a set's second
+    // round, 2 otherwise.
     trigger(state) {
+        const solvent = state.players.length - (state.bankruptPlayerIds?.length ?? 0)
+        if (solvent <= 1) return { reason: 'Bankruptcy' }
         const eightLeftDepot = state.trainInventory.trains.some(
             (train) => train.definitionId === '8' && train.status !== 'depot'
         )

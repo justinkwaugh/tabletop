@@ -62,6 +62,7 @@ import { validatePhaseChange } from '../phases/phaseChange.js'
 import { validateEarningsDistribution } from '../earnings/earningsDistribution.js'
 import { validateTrainPurchaseStep } from '../trains/train.js'
 import { LoanFields, validateLoanStep, type LoanStep } from '../loans/loans.js'
+import { CashCrisisFields, validateCashCrisis, type CashCrisis } from '../funding/cashCrisis.js'
 
 const FamilyMachineState = Type.Union([
     Type.Literal('StockRound'),
@@ -84,7 +85,8 @@ const FamilyMachineState = Type.Union([
     Type.Literal('RustingTrains'),
     Type.Literal('RunningTrains'),
     Type.Literal('DistributingEarnings'),
-    Type.Literal('RepayingLoans')
+    Type.Literal('RepayingLoans'),
+    Type.Literal('RaisingCash')
 ])
 const FamilyFields = Type.Object({
     // Serialized marker retained so games created before the runtime left the examples folder keep loading.
@@ -111,7 +113,8 @@ const FamilyFields = Type.Object({
     ...RouteFields,
     ...StockTurnPurchaseFields,
     ...CompanyAuctionFields,
-    ...LoanFields
+    ...LoanFields,
+    ...CashCrisisFields
 })
 export const EighteenXXState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof FamilyFields.properties
@@ -174,6 +177,8 @@ export class HydratedEighteenXXState
     declare companyAuction?: CompanyAuction
     declare interestRate?: number
     declare loanStep?: LoanStep
+    declare cashCrisis?: CashCrisis
+    declare bankruptPlayerIds?: string[]
     declare privateTrackLay?: PrivateTrackLay
     declare privateStation?: PrivateStation
     declare trackConsent?: TrackConsent
@@ -236,6 +241,7 @@ export class HydratedEighteenXXState
         validateEarningsDistribution(this)
         validateTrainPurchaseStep(this)
         validateLoanStep(this)
+        validateCashCrisis(this)
         validateStations(
             this,
             this.companies.map((company) => company.id)

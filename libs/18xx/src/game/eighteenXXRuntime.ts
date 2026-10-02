@@ -54,6 +54,8 @@ import { companyActions } from '../company/companyActions.js'
 import { loanActions } from '../loans/loanActions.js'
 import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
 import { RepayingLoansHandler } from '../loans/repayingLoansHandler.js'
+import { RaisingCashHandler } from '../funding/raisingCashHandler.js'
+import { cashCrisisActions } from '../funding/cashCrisisActions.js'
 import {
     BetweenCompaniesState,
     OperatingStepStates,
@@ -282,6 +284,13 @@ export function createEighteenXXRuntime(
                       )
                   )
               }
+            : {}),
+        ...(options.cashCrisisRules
+            ? {
+                  RaisingCash: endsGame(
+                      decides('RaisingCash', new RaisingCashHandler(options.cashCrisisRules))
+                  )
+              }
             : {})
     }
     for (const machineState of Object.keys(options.titleStateHandlers ?? {}))
@@ -307,6 +316,7 @@ export function createEighteenXXRuntime(
         ...phaseActions(options),
         ...operatingActions(operatingRules, options.trainRules, options.endingRules, loanRules),
         ...loanActions(loanRules, rules),
+        ...cashCrisisActions(options.cashCrisisRules),
         ...stockActions(rules),
         ...companyActions(companyRules, rules),
         ...stationActions(options.stationRules),
