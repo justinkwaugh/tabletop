@@ -1,5 +1,6 @@
 import { historyCash } from '../../../../libs/18xx-ui/src/lib/table/historyCash.js'
 import { expect, it } from 'vitest'
+import { isStartOperatingRound } from '@tabletop/18xx'
 import { historyOperatingOrder } from '../../../../libs/18xx-ui/src/lib/table/historyOperatingOrder.js'
 import { historyGroups } from '../../../../libs/18xx-ui/src/lib/table/historyGroups.js'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
@@ -43,11 +44,17 @@ it('replays the finished game and restores every history step in both directions
     const rounds = historyRounds(actions, state)
     const operatingRounds = rounds.filter((round) => round.label.startsWith('OR '))
     expect(operatingRounds.every((round) => round.operatingOrder?.after.length)).toBe(true)
+    // A round's start is listed only for private income paid to companies.
     expect(
         operatingRounds
             .flatMap((round) => round.entries)
-            .some((entry) => entry.kind === 'action' && entry.action.type === 'StartOperatingRound')
-    ).toBe(false)
+            .every(
+                (entry) =>
+                    entry.kind !== 'action' ||
+                    !isStartOperatingRound(entry.action) ||
+                    entry.action.metadata?.payments.some((payment) => payment.to.kind === 'company')
+            )
+    ).toBe(true)
     const thirdStockRound = new Set(
         rounds.find((round) => round.label === 'SR 3')?.entries.map((entry) => entry.id)
     )

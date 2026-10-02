@@ -1407,8 +1407,8 @@ Revenue bonuses that depend on the train, like Modern Trains, are title rules.
 - **1817's rules** use them: mine lays (terms, rotation, marker, no upgrade), bridges
   (water discount in `terrainCost`, markers, one per city), the Mountain Engineers'
   income, the Steel Mill's X00 lay and closure (X00 is otherwise restricted), mail,
-  and the Train Station's station at formation. The Train Station closes as it is
-  contributed, as its station is all it gives and the stock round would close it.
+  and the Train Station's station, granted once the company's size's stations are bought.
+  The Train Station closes then, or at the latest as the stock round ends.
 - **Modern Trains** is a configurator option stored as title state, read by 1817's
   route bonuses.
 - **The table** draws markers, offers marker placement and mine lays with the
@@ -1434,9 +1434,14 @@ Revenue bonuses that depend on the train, like Modern Trains, are title rules.
   the lay and recorded on it: the Mountain Engineers' $20 for a first lay on a mountain,
   and the Steel Mill's closure when another tile reaches F13 while no player holds it.
 - **Mail** uses `OperatingRules.privateIncome`, beside the operating round start that
-  pays it, rather than `PrivateRules`.
+  pays it, rather than `PrivateRules`; other privates keep their printed revenue.
 - **The Train Station's** station is granted once the company's owed stations are
-  bought, at formation or later, and the private closes then.
+  bought, at formation or later, and the private closes then; `CloseTrainStation` closes
+  it as the stock round ends if it is still open, as when its company is liquidated for
+  unpaid stations.
+- **History.** A lay records what it paid and the privates it closed, its tile rules'
+  and its private power's alike; a round's start appears when privates paid companies,
+  such as mail.
 - **Playground.** The company powers position gives Boston & Albany the Union Bridge,
   Major Coal Mine, Mountain Engineers and Major Mail, and Pittsburgh & Lake Erie the
   Steel Mill.

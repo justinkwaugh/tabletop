@@ -50,7 +50,6 @@ export function createEighteenSeventeenCompanyExample(
     })
     givePrivate(state, 'MAIL', casey)
     givePrivate(state, 'MINC', alex)
-    // Both companies hold powers their presidents can use in their operating turns.
     if (position === 'company-powers') {
         for (const privateId of ['UBC', 'MAJC', 'MTE', 'MAJM'])
             givePrivate(state, privateId, { kind: 'company', companyId: 'BA' })

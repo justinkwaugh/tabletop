@@ -1,11 +1,11 @@
+import { assertExists } from '@tabletop/common'
 import {
     EighteenXXTransferTiming,
     RailwayMapState,
-    closePrivate,
     controllingOwner,
     locationMarkers,
     placeLocationMarker,
-    privateOwner,
+    privateOwningCompany,
     rotateTileFace,
     type CompanyDecisionState,
     type PrivatePowerRules,
@@ -17,41 +17,75 @@ import { EighteenSeventeenTileSet } from './tiles.js'
 
 export const MineMarker = 'mine'
 export const BridgeMarker = 'bridge'
-
-const MineLays: Readonly<Record<string, number>> = { MINC: 1, CM: 2, MAJC: 3 }
-// The mountain hexes without a city.
-const MineLocations = [
-    'B25',
-    'C20',
-    'C24',
-    'E18',
-    'F15',
-    'G12',
-    'G14',
-    'H11',
-    'H13',
-    'H15',
-    'I8',
-    'I10'
-]
-const MineTiles = ['18xx:7', '18xx:8', '18xx:9']
 export const SteelMillId = 'PSM'
 export const SteelMillLocation = 'F13'
 export const SteelMillTile = '1817:X00'
-const MountainCost = 15
+
+type LayPower = {
+    uses: number
+    locationIds: readonly string[]
+    definitionIds: readonly string[]
+    marker?: string
+} & Pick<PrivateTrackTerms, 'connected' | 'terrainDiscount' | 'relabels'>
+
+// The coal mines' hexes are the mountains without a city, except E16; their tiles cost no
+// mountain.
+const Mine = {
+    locationIds: [
+        'B25',
+        'C20',
+        'C24',
+        'E18',
+        'F15',
+        'G12',
+        'G14',
+        'H11',
+        'H13',
+        'H15',
+        'I8',
+        'I10'
+    ],
+    definitionIds: ['18xx:7', '18xx:8', '18xx:9'],
+    marker: MineMarker,
+    connected: true,
+    terrainDiscount: 15
+}
+const LayPowers: Readonly<Record<string, LayPower>> = {
+    MINC: { ...Mine, uses: 1 },
+    CM: { ...Mine, uses: 2 },
+    MAJC: { ...Mine, uses: 3 },
+    [SteelMillId]: {
+        uses: 1,
+        locationIds: [SteelMillLocation],
+        definitionIds: [SteelMillTile],
+        connected: false,
+        relabels: true
+    }
+}
 const Bridges: Readonly<Record<string, number>> = { OBC: 1, UBC: 2 }
 const BridgeLocations = ['H3', 'G6', 'H9']
 
-/** The company owning the private, when its president is the player. */
-function ownerCompanyFor(
+function presidedCompany(
     state: CompanyDecisionState,
     privateId: string,
     playerId: string
 ): string | undefined {
-    const owner = privateOwner(state, privateId)
-    return owner?.kind === 'company' &&
-        controllingOwner(state, owner.companyId)?.playerId === playerId
-        ? owner.companyId
+    const companyId = privateOwningCompany(state, privateId)
+    return companyId && controllingOwner(state, companyId)?.playerId === playerId
+        ? companyId
+        : undefined
+}
+
+function layingCompany(
+    state: CompanyDecisionState,
+    privateId: string,
+    playerId: string
+): string | undefined {
+    const companyId = presidedCompany(state, privateId, playerId)
+    return companyId &&
+        state.machineState === 'LayingTrack' &&
+        state.trackStep?.companyId === companyId
+        ? companyId
         : undefined
 }
 
@@ -64,7 +98,7 @@ function facesStop(state: CompanyDecisionState, request: TrackRequest): string |
     const definition = EighteenSeventeenTileSet.definitions.find(
         (tile) => tile.id === request.definitionId
     )
-    if (!definition) return 'Unknown tile.'
+    assertExists(definition, 'A mine is one of its private’s tiles')
     const mapState = new RailwayMapState(
         EighteenSeventeenMap,
         EighteenSeventeenTileSet,
@@ -87,69 +121,45 @@ export function markersOf(state: CompanyDecisionState, kind: string): string[] {
     return locationMarkers(state, { kind }).map((marker) => marker.locationId)
 }
 
-function steelMillTerms(
-    state: CompanyDecisionState,
-    playerId: string
-): PrivateTrackTerms | undefined {
-    const companyId = ownerCompanyFor(state, SteelMillId, playerId)
-    if (
-        !companyId ||
-        state.machineState !== 'LayingTrack' ||
-        state.trackStep?.companyId !== companyId
-    )
-        return undefined
-    return {
-        companyId,
-        locationIds: [SteelMillLocation],
-        definitionIds: [SteelMillTile],
-        payer: { kind: 'company', companyId },
-        connected: false,
-        countsAsOrdinaryLay: true,
-        relabels: true
-    }
-}
-
 export const EighteenSeventeenPrivatePowerRules: PrivatePowerRules = {
     trackTerms(state, privateId, playerId) {
-        if (privateId === SteelMillId) return steelMillTerms(state, playerId)
-        const uses = MineLays[privateId]
-        const companyId = ownerCompanyFor(state, privateId, playerId)
-        if (
-            !uses ||
-            !companyId ||
-            state.machineState !== 'LayingTrack' ||
-            state.trackStep?.companyId !== companyId ||
-            usesLeft(state, privateId, uses) <= 0
-        )
-            return undefined
+        const power = LayPowers[privateId]
+        const companyId = layingCompany(state, privateId, playerId)
+        if (!power || !companyId) return undefined
+        if (power.marker && usesLeft(state, privateId, power.uses) <= 0) return undefined
         return {
             companyId,
-            locationIds: MineLocations,
-            definitionIds: MineTiles,
+            locationIds: power.locationIds,
+            definitionIds: power.definitionIds,
             payer: { kind: 'company', companyId },
-            connected: true,
+            connected: power.connected,
             countsAsOrdinaryLay: true,
-            reusable: true,
-            terrainDiscount: MountainCost,
-            restriction: (request) => facesStop(state, request)
+            ...(power.marker
+                ? {
+                      reusable: true,
+                      restriction: (request: TrackRequest) => facesStop(state, request)
+                  }
+                : {}),
+            ...(power.terrainDiscount ? { terrainDiscount: power.terrainDiscount } : {}),
+            ...(power.relabels ? { relabels: true } : {})
         }
     },
+    // A private closes once its lays are used up; a mine lay also marks its hex.
     afterTrackLay(state, privateId, details) {
-        if (privateId === SteelMillId) {
-            closePrivate(state, privateId)
-            return
-        }
-        placeLocationMarker(state, {
-            locationId: details.locationId,
-            kind: MineMarker,
-            privateCompanyId: privateId
-        })
-        const uses = MineLays[privateId]
-        if (uses && usesLeft(state, privateId, uses) <= 0) closePrivate(state, privateId)
+        const power = LayPowers[privateId]
+        assertExists(power, 'Only a private with a lay power lays track')
+        if (power.marker)
+            placeLocationMarker(state, {
+                locationId: details.locationId,
+                kind: power.marker,
+                privateCompanyId: privateId
+            })
+        const usedUp = !power.marker || usesLeft(state, privateId, power.uses) <= 0
+        return { payments: [], closedPrivateIds: usedUp ? [privateId] : [] }
     },
     markerTerms(state, privateId, playerId) {
         const uses = Bridges[privateId]
-        const companyId = ownerCompanyFor(state, privateId, playerId)
+        const companyId = presidedCompany(state, privateId, playerId)
         if (
             !uses ||
             !companyId ||
@@ -159,7 +169,6 @@ export const EighteenSeventeenPrivatePowerRules: PrivatePowerRules = {
             return undefined
         const bridged = markersOf(state, BridgeMarker)
         return {
-            companyId,
             kind: BridgeMarker,
             locationIds: BridgeLocations.filter((locationId) => !bridged.includes(locationId))
         }

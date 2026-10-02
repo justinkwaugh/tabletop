@@ -1,7 +1,6 @@
 import * as Type from 'typebox'
 
 const Id = Type.String({ minLength: 1 })
-/** A mark a private's power leaves on a location, such as a mine or a bridge. */
 export const LocationMarker = Type.Object(
     { locationId: Id, kind: Id, privateCompanyId: Id },
     { additionalProperties: false }

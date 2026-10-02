@@ -15,7 +15,7 @@ import {
     EighteenSeventeenRouteRules,
     EighteenSeventeenTrackRules,
     EighteenSeventeenTrainDepot,
-    grantTrainStation
+    buyOwedStations
 } from './index.js'
 import { passUntil } from '../test/passTurns.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
@@ -219,6 +219,20 @@ describe('mail', () => {
         expect(finiteCashOwnedBy(play.state, company('BA'))).toBe(cash + 15)
     })
 
+    it('pays nothing to a company without a train', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) => {
+            givePrivate(state, 'MAIL', 'BA')
+            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+                train.status === 'owned' &&
+                train.owner.kind === 'company' &&
+                train.owner.companyId === 'BA'
+                    ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
+                    : train
+            )
+        })
+        expect(EighteenSeventeenOperatingRules.privateIncome?.(play.state, 'MAIL')).toBe(0)
+    })
+
     it('pays nothing to a player', () => {
         const play = playExample(EighteenSeventeenScenarios, 'construction', 3)
         expect(EighteenSeventeenOperatingRules.privateIncome?.(play.state, 'MAIL')).toBe(0)
@@ -229,13 +243,21 @@ describe('the Train Station', () => {
     it('gives its company one station beyond its size’s once those are bought', () => {
         const play = playExample(EighteenSeventeenScenarios, 'trading', 3, (state) => {
             givePrivate(state, 'TS', 'PLE')
-            grantTrainStation(state, 'PLE')
+            buyOwedStations(state, 'PLE')
         })
         expect(
             play.state.stations.filter(
                 (station) => station.companyId === 'PLE' && station.status !== 'removed'
             )
         ).toHaveLength(2)
+        expect(getCompany(play.state, 'TS').closed).toBe(true)
+    })
+
+    it('closes as the stock round ends even when its station is still to come', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'trading', 3, (state) =>
+            givePrivate(state, 'TS', 'BA')
+        )
+        passUntil(play, (state) => state.machineState !== 'StockRound')
         expect(getCompany(play.state, 'TS').closed).toBe(true)
     })
 })

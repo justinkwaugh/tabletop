@@ -348,12 +348,12 @@ export class CompanyDecisionsModule {
             ),
             'This private cannot mark that location now'
         )
-        await this.session.applyAction(
-            this.session.createPlayerAction(PlacePrivateMarker, {
-                privateCompanyId: option.privateCompanyId,
-                locationId: option.locationId
-            })
-        )
+        const action = this.session.createPlayerAction(PlacePrivateMarker, {
+            privateCompanyId: option.privateCompanyId,
+            locationId: option.locationId
+        })
+        action.playerId = option.playerId
+        await this.session.applyAction(action)
     }
     async declinePrivateTile() {
         const lay = this.session.state.privateTrackLay

@@ -2,6 +2,7 @@ import {
     getCompany,
     locationMarkers,
     privateOwner,
+    privateOwningCompany,
     sameStopCounts,
     type ConstructionState,
     type Owner,
@@ -20,21 +21,12 @@ const BridgePrivateIds = ['OBC', 'UBC']
 const MountainEngineersId = 'MTE'
 const MountainIncome = 20
 
-function companyOwns(state: ConstructionState, privateId: string, companyId: string): boolean {
-    const owner = privateOwner(state, privateId)
-    return (
-        owner?.kind === 'company' &&
-        owner.companyId === companyId &&
-        !getCompany(state, privateId).closed
-    )
-}
-
 // The Mountain Engineers' company earns from the bank for each mountain it first builds on.
 function mountainIncome(state: ConstructionState, details: TrackLayDetails, payer: Owner) {
     if (
         details.previous ||
         payer.kind !== 'company' ||
-        !companyOwns(state, MountainEngineersId, payer.companyId)
+        privateOwningCompany(state, MountainEngineersId) !== payer.companyId
     )
         return []
     const kinds = EighteenSeventeenMap.location(details.locationId).terrain?.kinds ?? []
@@ -87,8 +79,8 @@ export const EighteenSeventeenTrackRules: TrackRules = {
     // A bridge private's company lays on rivers, but not lakes, $10 cheaper.
     terrainCost(state, request, cost) {
         const kinds = EighteenSeventeenMap.location(request.locationId).terrain?.kinds ?? []
-        const ownsBridge = BridgePrivateIds.some((privateId) =>
-            companyOwns(state, privateId, request.companyId)
+        const ownsBridge = BridgePrivateIds.some(
+            (privateId) => privateOwningCompany(state, privateId) === request.companyId
         )
         return ownsBridge && kinds.length === 1 && kinds[0] === 'water'
             ? Math.max(0, cost - BridgeDiscount)

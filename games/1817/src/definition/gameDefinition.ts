@@ -125,10 +125,14 @@ import {
 } from '../corporateActions.js'
 import {
     BuyOwedStations,
+    CloseTrainStation,
     HydratedBuyOwedStations,
+    HydratedCloseTrainStation,
     buysOwedStations,
+    closesTrainStation,
     liquidatesUnpaidStations,
-    isBuyOwedStations
+    isBuyOwedStations,
+    isCloseTrainStation
 } from '../owedStations.js'
 import {
     HydratedLiquidateCompany,
@@ -161,7 +165,8 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
     decisionHandlers: {
         StockRound: (family) =>
             buysOwedStations(new ShortSellingHandler(new CorporateActionsHandler(family))),
-        StartingOperatingSet: (family) => buysOwedStations(liquidatesUnpaidStations(family)),
+        StartingOperatingSet: (family) =>
+            buysOwedStations(liquidatesUnpaidStations(closesTrainStation(family))),
         OperatingSet: (family) =>
             liquidatesTrainlessCompanies(
                 startsMergerRounds(startsAcquisitionRounds(buysOutMarketShorts(family)))
@@ -264,6 +269,11 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
             FinishAcquisitionLoans,
             isFinishAcquisitionLoans,
             (action) => new HydratedFinishAcquisitionLoans(action)
+        ),
+        defineAction(
+            CloseTrainStation,
+            isCloseTrainStation,
+            (action) => new HydratedCloseTrainStation(action)
         ),
         defineAction(ShortShare, isShortShare, (action) => new HydratedShortShare(action)),
         defineAction(

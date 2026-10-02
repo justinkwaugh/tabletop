@@ -151,6 +151,25 @@ function remapFaceEdges(face: TileFace, edges: Readonly<Record<number, number>>)
     }
 }
 
+export function locationMarkerName(
+    view: Pick<MapViewDefinition, 'locationMarkerNames'>,
+    kind: string
+): string {
+    const name = view.locationMarkerNames?.[kind]
+    assertExists(name, `The map view names ${kind} markers`)
+    return name
+}
+
+/** How the private powers panel names placing a marker. */
+export function privateMarkerLabel(
+    view: Pick<MapViewDefinition, 'locationMarkerNames' | 'map'>,
+    kind: string,
+    locationId: string
+): string {
+    const location = view.map.location(locationId)
+    return `${locationMarkerName(view, kind).toLowerCase()} on ${location.name ?? location.id}`
+}
+
 export function createMapDrawing(
     map: RailwayMap,
     supply?: {
@@ -174,8 +193,7 @@ export function createMapDrawing(
         (supply?.markers ?? [])
             .filter((marker) => marker.locationId === locationId)
             .map((marker) => {
-                const name = locationMarkerNames[marker.kind]
-                assertExists(name, `The map view names ${marker.kind} markers`)
+                const name = locationMarkerName({ locationMarkerNames }, marker.kind)
                 return { id: marker.kind, label: name, description: name }
             })
     const locations = map.definition.locations.map((printed): MapDrawnLocation => {

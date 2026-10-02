@@ -4,7 +4,8 @@ import { isLiquidated } from './liquidation.js'
 import { eighteenSeventeenOptions } from './state.js'
 import {
     certificatesInPool,
-    privateOwner,
+    getCompany,
+    privateOwningCompany,
     sharesOwned,
     trainsOwnedBy,
     signedShares,
@@ -69,9 +70,9 @@ export const EighteenSeventeenOperatingRules: OperatingRules = {
         return next === '2' && remaining !== 'unlimited' ? Array(remaining).fill(next) : [next]
     },
     privateIncome(state, privateId) {
-        const owner = privateOwner(state, privateId)
-        return owner?.kind === 'company' && trainsOwnedBy(state, owner).length
-            ? (MailIncome[privateId] ?? 0)
-            : 0
+        const mail = MailIncome[privateId]
+        if (mail === undefined) return getCompany(state, privateId).privateRevenue ?? 0
+        const companyId = privateOwningCompany(state, privateId)
+        return companyId && trainsOwnedBy(state, { kind: 'company', companyId }).length ? mail : 0
     }
 }

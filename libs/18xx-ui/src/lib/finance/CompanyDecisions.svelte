@@ -1,8 +1,8 @@
 <script lang="ts">
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    import { assertExists } from '@tabletop/common'
     import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import { privateMarkerLabel } from '../maps/mapDrawing.js'
     import PrivateBuying from '../privates/PrivateBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
@@ -28,15 +28,6 @@
         )
     )
     const gameState = $derived(session.gameState)
-    function markerName(kind: string) {
-        const name = session.mapView.locationMarkerNames?.[kind]
-        assertExists(name, `The map view names ${kind} markers`)
-        return name.toLowerCase()
-    }
-    function locationName(locationId: string) {
-        const location = session.mapView.map.location(locationId)
-        return location.name ?? location.id
-    }
     const selection = $derived(session.decisions.selection)
     const showPowers = $derived(
         !session.privateActions.purchaseSource &&
@@ -174,7 +165,9 @@
                             <button
                                 disabled={!session.decisions.canResolve}
                                 onclick={() => session.decisions.placePrivateMarker(option)}
-                                >Place {markerName(option.kind)} on {locationName(
+                                >Place {privateMarkerLabel(
+                                    session.mapView,
+                                    option.kind,
                                     option.locationId
                                 )} ({getCompany(gameState, option.privateCompanyId).name})</button
                             >

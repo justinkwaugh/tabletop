@@ -3,6 +3,7 @@ import {
     StationPlacement,
     addCompanyStations,
     closePrivate,
+    privateOwningCompany,
     finiteCashOwnedBy,
     companyMarketSpace,
     getCompany,
@@ -78,28 +79,22 @@ export function buyOwedStations(
     const owed = stationsOwed(state, companyId)
     const company = { kind: 'company' as const, companyId }
     const amount = owed * StationPrice
-    if (!owed || finiteCashOwnedBy(state, company) < amount) return undefined
-    const payment = { from: company, to: { kind: 'bank' as const }, amount }
-    settleCashPayments(state, [payment])
-    addCompanyStations(state, companyId, owed)
+    if (owed && finiteCashOwnedBy(state, company) < amount) return undefined
+    const payment = owed ? { from: company, to: { kind: 'bank' as const }, amount } : undefined
+    if (payment) {
+        settleCashPayments(state, [payment])
+        addCompanyStations(state, companyId, owed)
+    }
     grantTrainStation(state, companyId)
     return payment
 }
 
-const TrainStationId = 'TS'
+export const TrainStationId = 'TS'
 
-/**
- * The Train Station gives its company a free station beyond those its size needs, once those
- * are bought; its only power used, it closes.
- */
-export function grantTrainStation(state: StockState & StationState, companyId: string): void {
-    const owner = privateOwner(state, TrainStationId)
-    if (
-        owner?.kind !== 'company' ||
-        owner.companyId !== companyId ||
-        getCompany(state, TrainStationId).closed ||
-        stationsOwed(state, companyId)
-    )
+// The Train Station's free station comes beyond those the company's size needs, so it waits
+// until those are bought; its only power used, the private closes.
+function grantTrainStation(state: StockState & StationState, companyId: string): void {
+    if (privateOwningCompany(state, TrainStationId) !== companyId || stationsOwed(state, companyId))
         return
     addCompanyStations(state, companyId, 1)
     closePrivate(state, TrainStationId)
@@ -185,7 +180,6 @@ function form(state: CompanyAuctionState, formation: CompanyFormation): void {
         poolId: treasuryPoolId(formation.companyId)
     })
     buyOwedStations(state, formation.companyId)
-    grantTrainStation(state, formation.companyId)
 }
 
 export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {

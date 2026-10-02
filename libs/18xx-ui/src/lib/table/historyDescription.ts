@@ -529,7 +529,20 @@ export function historyDescription(
         }
     }
     if (isStartOperatingSet(action)) return { text: 'Started operating set', routine: true }
-    if (isStartOperatingRound(action)) return { text: 'Operating order', important: true }
+    if (isStartOperatingRound(action)) {
+        assertExists(action.metadata, 'A recorded operating round has its payments')
+        const companyIncome = action.metadata.payments.filter(
+            (payment) => payment.to.kind === 'company'
+        )
+        return companyIncome.length
+            ? {
+                  text: 'Private income',
+                  detail: companyIncome
+                      .map((payment) => `${ownerName(payment.to)} ${money(payment.amount)}`)
+                      .join(' · ')
+              }
+            : { text: 'Operating order', important: true }
+    }
     if (isEndGame(action)) return { text: 'Game ended', important: true }
     if (isOfferPurchase(action) || isRespondToPurchaseOffer(action)) {
         assertExists(action.metadata, 'Recorded purchase offer requires its terms')

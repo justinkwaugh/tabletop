@@ -10,7 +10,7 @@ import {
 } from '@tabletop/common'
 import { placeLocationMarker } from '../map/locationMarkers.js'
 import type { CompanyDecisionState } from './companyDecision.js'
-import type { PrivatePowerRules } from './privatePowers.js'
+import type { PrivateMarkerTerms, PrivatePowerRules } from './privatePowers.js'
 
 export const PlacePrivateMarker = Type.Object(
     {
@@ -45,19 +45,20 @@ export class HydratedPlacePrivateMarker
         super(data instanceof HydratedPlacePrivateMarker ? data.dehydrate() : data, Validator)
         this.#powers = powers
     }
-    isValid(state: State): boolean {
-        return (
-            this.source === ActionSource.User &&
+    private terms(state: State): PrivateMarkerTerms | undefined {
+        const terms = this.#powers.markerTerms?.(state, this.privateCompanyId, this.playerId)
+        return this.source === ActionSource.User &&
             state.activePlayerIds.includes(this.playerId) &&
-            !!this.#powers
-                .markerTerms?.(state, this.privateCompanyId, this.playerId)
-                ?.locationIds.includes(this.locationId)
-        )
+            terms?.locationIds.includes(this.locationId)
+            ? terms
+            : undefined
+    }
+    isValid(state: State): boolean {
+        return !!this.terms(state)
     }
     apply(state: HydratedGameState & State): void {
-        assert(this.isValid(state), 'This private cannot mark that location now')
-        const terms = this.#powers.markerTerms?.(state, this.privateCompanyId, this.playerId)
-        assert(terms, 'A private marks a location by its terms')
+        const terms = this.terms(state)
+        assert(terms, 'This private cannot mark that location now')
         placeLocationMarker(state, {
             locationId: this.locationId,
             kind: terms.kind,

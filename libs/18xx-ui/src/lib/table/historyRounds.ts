@@ -109,8 +109,9 @@ export function historyRounds(
             assertExists(order, 'Operating round history requires its recorded company order')
             section.operatingOrder = order
         }
+        // A round's start is history only when privates paid companies, such as mail.
         const entry =
-            startsOperatingRound ||
+            (startsOperatingRound && !changedCompanyCashOf(cash.get(action.id))) ||
             isSetStockInstruction(action) ||
             isStopStockInstruction(action) ||
             isSetPrivatePowerRequest(action) ||

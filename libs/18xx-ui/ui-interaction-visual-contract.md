@@ -719,7 +719,8 @@ bridges) appears under Use privates as one immediately committed button per loca
 markers, by the names the title's map view gives them, in the live and historical maps.
 A title's reusable private lays (1817's coal mines) stay offered until its terms end
 them. History notes what a lay paid its company or which privates it closed (1817's
-Mountain Engineers and Steel Mill).
+Mountain Engineers, Steel Mill and used-up coal mines). An operating round's start
+appears in history as Private income when privates paid companies (1817's mail).
 
 A pending par after an opening award (a title's `parAfterAward`, such as 1830's B&O)
 replaces the auction panel with "[player] sets [company]'s par." Only the entitled

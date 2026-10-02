@@ -11,9 +11,12 @@ import {
 import {
     TrackRequest,
     TrackLayDetails,
+    type TrackLayEffects,
     type TrackRules
 } from '../construction/trackConstruction.js'
 import { applyTrackLay } from '../construction/layTile.js'
+import { closePrivate } from './privateCompany.js'
+import { settleCashPayments } from '../finance/cashPayments.js'
 import { evaluatePrivateTrack, type PrivatePowerRules } from './privatePowers.js'
 import { pendingCompanyDecision, type CompanyDecisionState } from './companyDecision.js'
 import { endPrivatePowerRequest } from './privatePowerRequest.js'
@@ -59,7 +62,11 @@ function applyPrivateLay(
         terms.countsAsOrdinaryLay === true
     )
     if (!terms.reusable) state.usedPrivatePowerIds.push(lay.privateCompanyId)
-    powers.afterTrackLay?.(state, lay.privateCompanyId, details)
+    const powerEffects = powers.afterTrackLay?.(state, lay.privateCompanyId, details)
+    if (powerEffects) {
+        settleCashPayments(state, powerEffects.payments)
+        for (const privateId of powerEffects.closedPrivateIds) closePrivate(state, privateId)
+    }
     delete state.privateTrackLay
     const station = {
         privateCompanyId: lay.privateCompanyId,
@@ -74,7 +81,19 @@ function applyPrivateLay(
         state.privateStation = station
     if (powers.betweenTurnsPrivateIds?.includes(lay.privateCompanyId))
         endPrivatePowerRequest(state, lay.playerId)
-    return applied
+    return powerEffects ? withEffects(applied, powerEffects) : applied
+}
+
+// A lay records what its tile rules and its private power each paid and closed.
+function withEffects(details: TrackLayDetails, effects: TrackLayEffects): TrackLayDetails {
+    const payments = [...(details.effects?.payments ?? []), ...effects.payments]
+    const closedPrivateIds = [
+        ...(details.effects?.closedPrivateIds ?? []),
+        ...effects.closedPrivateIds
+    ]
+    return payments.length || closedPrivateIds.length
+        ? { ...details, effects: { payments, closedPrivateIds } }
+        : details
 }
 
 function costMatches(

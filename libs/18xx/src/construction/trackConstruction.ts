@@ -47,7 +47,6 @@ export const TrackRequest = Type.Object(
     { additionalProperties: false }
 )
 export type TrackRequest = Type.Static<typeof TrackRequest>
-/** What a lay pays and which privates it closes, by the title's rules. */
 export const TrackLayEffects = Type.Object(
     {
         payments: Type.Array(CashPayment),
@@ -99,7 +98,6 @@ export interface TrackRules {
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
     afterLay?(state: ConstructionState, details: TrackLayDetails, payer: Owner): TrackLayEffects
-    /** A tile that may bring its own labels to a hex, such as a private's special city. */
     relabels?(locationId: string, definitionId: string): boolean
 }
 const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]

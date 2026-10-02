@@ -2,6 +2,7 @@ import type { Owner } from '../finance/finance.js'
 import {
     TrackConstruction,
     type TrackLayDetails,
+    type TrackLayEffects,
     type TrackRules,
     type TrackRequest,
     type TrackEvaluation
@@ -13,13 +14,11 @@ export interface PrivateTrackTerms {
     definitionIds: readonly string[]
     payer: Owner
     connected: boolean
-    /** The lay is one of the company's own, within its allowance for the turn. */
     countsAsOrdinaryLay?: true
-    /** The lay leaves the power available; the title's terms decide when it is used up. */
+    // Several lays: the title's terms, not the family, decide when the power is used up.
     reusable?: true
     terrainDiscount?: number
     restriction?(request: TrackRequest): string | undefined
-    /** Its tiles may bring their own labels to the hex. */
     relabels?: true
 }
 export interface PrivatePowerRules {
@@ -39,12 +38,11 @@ export interface PrivatePowerRules {
      * unconnected, as its station for the turn.
      */
     stationPrivateIds?: readonly string[]
-    /** The title's consequences of a private's tile lay, such as marking the hex. */
     afterTrackLay?(
         state: CompanyDecisionState,
         privateCompanyId: string,
         details: TrackLayDetails
-    ): void
+    ): TrackLayEffects
     markerTerms?(
         state: CompanyDecisionState,
         privateCompanyId: string,
@@ -52,9 +50,7 @@ export interface PrivatePowerRules {
     ): PrivateMarkerTerms | undefined
 }
 
-/** A private's power to mark one of these locations for its company. */
 export interface PrivateMarkerTerms {
-    companyId: string
     kind: string
     locationIds: readonly string[]
 }

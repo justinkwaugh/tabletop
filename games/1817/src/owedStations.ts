@@ -10,12 +10,14 @@ import {
 } from '@tabletop/common'
 import {
     CashPayment,
+    closePrivate,
     finiteCashOwnedBy,
+    privateOwningCompany,
     type EighteenXXStateHandler,
     type StationState,
     type StockState
 } from '@tabletop/18xx'
-import { StationPrice, buyOwedStations, stationsOwed } from './stockRules.js'
+import { StationPrice, TrainStationId, buyOwedStations, stationsOwed } from './stockRules.js'
 import { LiquidateCompany, isLiquidated } from './liquidation.js'
 import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
@@ -98,4 +100,49 @@ export function liquidatesUnpaidStations(handler: EighteenXXStateHandler): Eight
             return companyId ? { companyId, reason: 'unpaid-stations' } : undefined
         }
     )
+}
+
+const CloseFields = Type.Object({
+    type: Type.Literal('CloseTrainStation'),
+    companyId: Type.String()
+})
+export const CloseTrainStation: Type.TObject<
+    Omit<typeof GameAction.properties, 'type'> & typeof CloseFields.properties
+> = Type.Object(
+    { ...GameAction.properties, ...CloseFields.properties },
+    { additionalProperties: false }
+)
+export type CloseTrainStation = Type.Static<typeof CloseTrainStation>
+const CloseValidator = Compile(CloseTrainStation)
+export function isCloseTrainStation(action: GameAction): action is CloseTrainStation {
+    return (
+        action instanceof HydratedCloseTrainStation ||
+        (action.type === 'CloseTrainStation' && CloseValidator.Check(action))
+    )
+}
+export class HydratedCloseTrainStation
+    extends HydratableAction<typeof CloseTrainStation>
+    implements CloseTrainStation
+{
+    declare type: 'CloseTrainStation'
+    declare companyId: string
+    constructor(data: CloseTrainStation) {
+        super(data instanceof HydratedCloseTrainStation ? data.dehydrate() : data, CloseValidator)
+    }
+    apply(state: HydratedGameState & StockState): void {
+        assert(
+            this.source === ActionSource.System &&
+                privateOwningCompany(state, TrainStationId) === this.companyId,
+            'The Train Station closes with its company’s stock round'
+        )
+        closePrivate(state, TrainStationId)
+    }
+}
+
+/** A company's Train Station closes as the stock round ends, whether or not it gave a station. */
+export function closesTrainStation(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+    return new SystemActionFirstHandler(handler, CloseTrainStation, (state) => {
+        const companyId = privateOwningCompany(state, TrainStationId)
+        return companyId ? { companyId } : undefined
+    })
 }
