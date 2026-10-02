@@ -1,21 +1,36 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import Pawn from '$lib/components/Pawn.svelte'
+    import QueueVisitor from '$lib/components/QueueVisitor.svelte'
+    import { QueueCountLabel, queueLayout } from '$lib/utils/boardGeometry.js'
 
     const gameSession = getGameSession()
-    const Spacing = 22
 
     let queue = $derived(gameSession.gameState.queue)
-    let width = $derived(Math.max(queue.length, 1) * Spacing + 16)
+    let layout = $derived(queueLayout(queue.length))
 </script>
 
-<div class="flex items-center gap-2 text-sm text-[#e8d7b5]">
-    <span class="font-semibold">Front</span>
-    <svg {width} height="34" viewBox="0 0 {width} 34" role="img" aria-label="Visitor queue">
-        {#each queue as color, index (index)}
-            <Pawn {color} x={8 + Spacing / 2 + index * Spacing} y={17} />
-        {/each}
-    </svg>
-    <span class="font-semibold">Back</span>
-    <span class="ml-2">{queue.length} waiting</span>
-</div>
+<g role="img" aria-label="Visitor queue">
+    {#each queue as color, index (index)}
+        <QueueVisitor {color} x={layout.visitors[index].x} y={layout.visitors[index].y} size={30} />
+    {/each}
+    {#if queue.length > 0}
+        <text class="queue-label" x={layout.front.x} y={layout.front.y}>Front</text>
+        <text class="queue-label" x={layout.back.x} y={layout.back.y}>Back</text>
+    {/if}
+    <text
+        class="queue-label"
+        x={QueueCountLabel.x}
+        y={QueueCountLabel.y}
+        transform="rotate(90 {QueueCountLabel.x} {QueueCountLabel.y})">{queue.length} waiting</text
+    >
+</g>
+
+<style>
+    .queue-label {
+        fill: #e8d7b5;
+        font-size: 15px;
+        font-weight: 600;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+</style>

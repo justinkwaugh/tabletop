@@ -9,9 +9,15 @@ export const VisitorCounts: Record<MarketColor, number> = {
     [MarketColor.Yellow]: 16
 }
 
+export const TotalVisitors = Object.values(VisitorCounts).reduce((total, count) => total + count, 0)
+
 export const VisitorsPerEntrance = 3
 export const MaxSameColorRunInQueue = 3
 const MaxSetupAttempts = 1000
+
+export function startingQueueLength(entranceCount: number): number {
+    return TotalVisitors - entranceCount * VisitorsPerEntrance
+}
 
 export type VisitorSetup = {
     entranceGroups: MarketColor[][]

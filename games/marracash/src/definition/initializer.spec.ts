@@ -6,6 +6,7 @@ import {
     hasDistinctColors,
     longestSameColorRun,
     MaxSameColorRunInQueue,
+    startingQueueLength,
     VisitorCounts
 } from '../components/visitors.js'
 import { MarracashGameStateValidator, type MarracashProjectedState } from '../model/gameState.js'
@@ -52,7 +53,8 @@ describe.each([3, 4])('MarraCash setup with %i players', (count) => {
         expect(entranceGroups.map((group) => group.length)).toEqual([3, 3, 3])
         expect(entranceGroups.every(hasDistinctColors)).toBe(true)
         expect(otherFountains.every((fountain) => fountain.visitors.length === 0)).toBe(true)
-        expect(state.queue).toHaveLength(55)
+        expect(startingQueueLength(EntranceFountainIds.length)).toBe(55)
+        expect(state.queue).toHaveLength(startingQueueLength(EntranceFountainIds.length))
         expect(longestSameColorRun(state.queue)).toBeLessThanOrEqual(MaxSameColorRunInQueue)
 
         const allVisitors = [...entranceGroups.flat(), ...state.queue]

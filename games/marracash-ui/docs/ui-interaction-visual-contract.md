@@ -39,7 +39,7 @@ During bidding, while waiting for others, and in History View, the session repor
 
 ## Render ownership
 
-- `Board` owns the layer order: shops, then fountains, then the route preview, then the exit arrows. The arrows stay on top so they remain clickable over the preview, which ignores pointer events.
+- `Board` owns the layer order: the visitor queue in the margin outside the walls, then shops, then fountains, then the route preview, then the exit arrows. The arrows stay on top so they remain clickable over the preview, which ignores pointer events.
 
 ## Verification scenarios
 

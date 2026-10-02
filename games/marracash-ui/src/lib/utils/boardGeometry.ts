@@ -1,5 +1,12 @@
 import type { OffsetCoordinates, Point } from '@tabletop/common'
-import { BoardColumns, BoardRows, getShop, type ShopId } from '@tabletop/marracash'
+import {
+    BoardColumns,
+    BoardRows,
+    EntranceFountainIds,
+    getShop,
+    startingQueueLength,
+    type ShopId
+} from '@tabletop/marracash'
 
 export const CellSize = 80
 export const WallThickness = 28
@@ -88,4 +95,63 @@ export function gateRect(coords: OffsetCoordinates): Rect {
                 height: GateWidth
             }
     }
+}
+
+export const QueueMargin = 48
+export const TableWidth = BoardWidth + 2 * QueueMargin
+export const TableHeight = BoardHeight + 2 * QueueMargin
+
+const QueueLane = QueueMargin / 2
+const QueueReach = 0.75
+const QueueEndX = QueueMargin + QueueReach * BoardWidth
+
+const QueuePath: Point[] = [
+    { x: QueueEndX, y: QueueLane },
+    { x: QueueLane, y: QueueLane },
+    { x: QueueLane, y: TableHeight - QueueLane },
+    { x: QueueEndX, y: TableHeight - QueueLane }
+]
+
+const QueuePathLength = QueuePath.slice(1).reduce(
+    (length, _, index) => length + segmentLength(index + 1),
+    0
+)
+
+const QueueSpacing = QueuePathLength / (startingQueueLength(EntranceFountainIds.length) - 1)
+
+export type QueueLayout = { visitors: Point[]; front: Point; back: Point }
+
+export function queueLayout(count: number): QueueLayout {
+    const start = (QueuePathLength - (count - 1) * QueueSpacing) / 2
+    const end = start + (count - 1) * QueueSpacing
+    return {
+        visitors: Array.from({ length: count }, (_, index) =>
+            pointAlongQueue(start + index * QueueSpacing)
+        ),
+        front: pointAlongQueue(start - 1.5 * QueueSpacing),
+        back: pointAlongQueue(end + 1.5 * QueueSpacing)
+    }
+}
+
+export const QueueCountLabel: Point = { x: TableWidth - QueueLane, y: TableHeight / 2 }
+
+function pointAlongQueue(offset: number): Point {
+    let remaining = offset
+    let segment = 1
+    while (segment < QueuePath.length - 1 && remaining > segmentLength(segment)) {
+        remaining -= segmentLength(segment)
+        segment++
+    }
+    const from = QueuePath[segment - 1]
+    const to = QueuePath[segment]
+    const t = remaining / segmentLength(segment)
+    return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }
+}
+
+function segmentLength(segment: number): number {
+    return distance(QueuePath[segment - 1], QueuePath[segment])
+}
+
+function distance(from: Point, to: Point): number {
+    return Math.hypot(to.x - from.x, to.y - from.y)
 }

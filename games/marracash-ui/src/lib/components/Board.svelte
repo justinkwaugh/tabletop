@@ -5,6 +5,7 @@
     import FountainSpot from '$lib/components/FountainSpot.svelte'
     import DirectionArrows from '$lib/components/DirectionArrows.svelte'
     import RoutePreview from '$lib/components/RoutePreview.svelte'
+    import VisitorQueue from '$lib/components/VisitorQueue.svelte'
     import type { FountainId, Route } from '@tabletop/marracash'
     import {
         BoardHeight,
@@ -12,6 +13,9 @@
         CellSize,
         cellCenter,
         gateRect,
+        QueueMargin,
+        TableHeight,
+        TableWidth,
         WallThickness
     } from '$lib/utils/boardGeometry.js'
 
@@ -41,79 +45,76 @@
     )
 </script>
 
-<svg
-    width={BoardWidth}
-    height={BoardHeight}
-    viewBox="0 0 {BoardWidth} {BoardHeight}"
-    role="img"
-    aria-label="MarraCash market"
->
-    <rect width={BoardWidth} height={BoardHeight} rx="14" fill="#8a6a46"></rect>
-    <rect
-        x={WallThickness}
-        y={WallThickness}
-        width={BoardColumns * CellSize}
-        height={BoardRows * CellSize}
-        fill="#e8d7b5"
-    ></rect>
-    {#each { length: BoardRows + 1 } as _, row (row)}
-        <line
-            x1={WallThickness}
-            x2={WallThickness + BoardColumns * CellSize}
-            y1={WallThickness + row * CellSize}
-            y2={WallThickness + row * CellSize}
-            stroke="#d6c29b"
-        ></line>
-    {/each}
-    {#each { length: BoardColumns + 1 } as _, col (col)}
-        <line
-            y1={WallThickness}
-            y2={WallThickness + BoardRows * CellSize}
-            x1={WallThickness + col * CellSize}
-            x2={WallThickness + col * CellSize}
-            stroke="#d6c29b"
-        ></line>
-    {/each}
-
-    {#each gates as gate (`${gate.x},${gate.y}`)}
+<svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
+    <VisitorQueue />
+    <g role="img" aria-label="MarraCash market" transform="translate({QueueMargin} {QueueMargin})">
+        <rect width={BoardWidth} height={BoardHeight} rx="14" fill="#8a6a46"></rect>
         <rect
-            x={gate.x}
-            y={gate.y}
-            width={gate.width}
-            height={gate.height}
+            x={WallThickness}
+            y={WallThickness}
+            width={BoardColumns * CellSize}
+            height={BoardRows * CellSize}
             fill="#e8d7b5"
-            stroke="#c99a2e"
-            stroke-width="3"
         ></rect>
-    {/each}
+        {#each { length: BoardRows + 1 } as _, row (row)}
+            <line
+                x1={WallThickness}
+                x2={WallThickness + BoardColumns * CellSize}
+                y1={WallThickness + row * CellSize}
+                y2={WallThickness + row * CellSize}
+                stroke="#d6c29b"
+            ></line>
+        {/each}
+        {#each { length: BoardColumns + 1 } as _, col (col)}
+            <line
+                y1={WallThickness}
+                y2={WallThickness + BoardRows * CellSize}
+                x1={WallThickness + col * CellSize}
+                x2={WallThickness + col * CellSize}
+                stroke="#d6c29b"
+            ></line>
+        {/each}
 
-    {#each Palms as palm (`${palm.row},${palm.col}`)}
-        {@const center = cellCenter(palm)}
-        <circle cx={center.x} cy={center.y} r="30" fill="#3f8a4b"></circle>
-        <circle cx={center.x} cy={center.y} r="12" fill="#6fb25f"></circle>
-    {/each}
+        {#each gates as gate (`${gate.x},${gate.y}`)}
+            <rect
+                x={gate.x}
+                y={gate.y}
+                width={gate.width}
+                height={gate.height}
+                fill="#e8d7b5"
+                stroke="#c99a2e"
+                stroke-width="3"
+            ></rect>
+        {/each}
 
-    {#each gameSession.gameState.shops as shop (shop.shopId)}
-        <ShopTile {shop} selectable={gameSession.auctionableShopIds.includes(shop.shopId)} />
-    {/each}
+        {#each Palms as palm (`${palm.row},${palm.col}`)}
+            {@const center = cellCenter(palm)}
+            <circle cx={center.x} cy={center.y} r="30" fill="#3f8a4b"></circle>
+            <circle cx={center.x} cy={center.y} r="12" fill="#6fb25f"></circle>
+        {/each}
 
-    {#each gameSession.gameState.fountains as fountain (fountain.fountainId)}
-        <FountainSpot
-            {fountain}
-            selectable={gameSession.movableFountainIds.includes(fountain.fountainId) ||
-                gameSession.fillableEntranceIds.includes(fountain.fountainId)}
-            selected={gameSession.selectedFountainId === fountain.fountainId}
-            onselect={() => chooseFountain(fountain.fountainId)}
+        {#each gameSession.gameState.shops as shop (shop.shopId)}
+            <ShopTile {shop} selectable={gameSession.auctionableShopIds.includes(shop.shopId)} />
+        {/each}
+
+        {#each gameSession.gameState.fountains as fountain (fountain.fountainId)}
+            <FountainSpot
+                {fountain}
+                selectable={gameSession.movableFountainIds.includes(fountain.fountainId) ||
+                    gameSession.fillableEntranceIds.includes(fountain.fountainId)}
+                selected={gameSession.selectedFountainId === fountain.fountainId}
+                onselect={() => chooseFountain(fountain.fountainId)}
+            />
+        {/each}
+
+        {#if previewRoute}
+            <RoutePreview route={previewRoute} />
+        {/if}
+
+        <DirectionArrows
+            routes={gameSession.selectedRoutes}
+            onpreview={(route) => (hoveredRoute = route)}
+            onchoose={(direction) => gameSession.moveVisitors(direction)}
         />
-    {/each}
-
-    {#if previewRoute}
-        <RoutePreview route={previewRoute} />
-    {/if}
-
-    <DirectionArrows
-        routes={gameSession.selectedRoutes}
-        onpreview={(route) => (hoveredRoute = route)}
-        onchoose={(direction) => gameSession.moveVisitors(direction)}
-    />
+    </g>
 </svg>
