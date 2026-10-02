@@ -44,7 +44,7 @@
         <span class="flex items-center gap-1 rounded bg-white/85 px-1 text-black">
             {#each Object.values(MarketColor) as color (color)}
                 <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-                    <MarketMark {color} x={6} y={6} size={10} />
+                    <MarketMark {color} x={6} y={6} size={10} filled />
                 </svg>
                 <span class="mr-1 font-semibold" aria-label="{color} customers"
                     >{customers[color]}</span
