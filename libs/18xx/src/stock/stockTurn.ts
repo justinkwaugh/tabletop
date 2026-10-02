@@ -7,6 +7,7 @@ export const StockTurn = Type.Object(
         bought: Type.Boolean(),
         soldBeforeBuying: Type.Boolean(),
         companiesSold: Type.Array(Type.String()),
+        shorted: Type.Optional(Type.Literal(true)),
         corporateAction: Type.Optional(
             Type.Object(
                 { companyId: Type.String(), boughtBack: Type.Optional(Type.Literal(true)) },

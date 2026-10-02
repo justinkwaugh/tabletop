@@ -3,13 +3,13 @@
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const money = $derived(session.presentation.money)
-    const crisis = $derived(session.cashCrisis.crisis)
+    const debt = $derived(session.cashCrisis.debt)
     const companyName = (id: string) => getCompany(session.gameState, id).name
 </script>
 
-{#if crisis && session.gameState.machineState === 'RaisingCash'}
+{#if debt && session.gameState.machineState === 'RaisingCash'}
     <section aria-label="Cash crisis">
-        <h2>{session.getPlayerName(crisis.playerId)} owes the bank {money(crisis.amount)}</h2>
+        <h2>{session.getPlayerName(debt.playerId)} owes the bank {money(debt.amount)}</h2>
         {#if session.cashCrisis.confirming}
             <p>
                 Going bankrupt gives up every share and the cash in hand, and liquidates the

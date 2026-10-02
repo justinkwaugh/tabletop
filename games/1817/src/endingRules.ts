@@ -30,9 +30,9 @@ export const EighteenSeventeenEndingRules: EndingRules = {
         let value = 0
         if (!company.closed) {
             value =
-                certificate.kind === 'share'
-                    ? marketShareValue(state, certificate)
-                    : EighteenSeventeenPrivateCatalog.faceValue(company.id)
+                certificate.kind === 'private'
+                    ? EighteenSeventeenPrivateCatalog.faceValue(company.id)
+                    : marketShareValue(state, certificate)
         }
         return [certificateWealthItem(state, certificate, value)]
     }

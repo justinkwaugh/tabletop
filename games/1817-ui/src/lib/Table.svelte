@@ -9,8 +9,15 @@
         type HistoryDescription
     } from '@tabletop/18xx-ui'
     import type { GameAction } from '@tabletop/common'
-    import { isBuyBackShares, isBuyOwedStations, isLiquidateCompany } from '@tabletop/1817'
+    import {
+        isBuyBackShares,
+        isBuyOwedStations,
+        isCloseMarketShorts,
+        isLiquidateCompany,
+        isShortShare
+    } from '@tabletop/1817'
     import CorporateActions from './CorporateActions.svelte'
+    import ShortSelling from './ShortSelling.svelte'
     import { requireEighteenSeventeenSession } from './session.svelte.js'
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
@@ -45,6 +52,19 @@
                 text: `Bought back ${action.certificateIds.length} ${companyName(action.companyId)} ${action.certificateIds.length === 1 ? 'share' : 'shares'}`,
                 value: action.metadata ? money(action.metadata.payment.amount) : undefined
             }
+        if (isShortShare(action))
+            return {
+                text: `Shorted ${companyName(action.companyId)}`,
+                value: money(action.expectedPrice)
+            }
+        if (isCloseMarketShorts(action) && action.metadata)
+            return {
+                text: `Market closed ${action.metadata.closed} ${companyName(action.companyId)} ${action.metadata.closed === 1 ? 'short' : 'shorts'}`,
+                omitActor: true,
+                detail: action.metadata.payments.length
+                    ? `The bank bought ${action.metadata.payments.length} from the treasury`
+                    : undefined
+            }
         return undefined
     }
 </script>
@@ -58,7 +78,9 @@
                 <SelectionAuctionLots {session} />
             {/if}
         {:else}
-            {#if session.gameState.machineState === 'StockRound'}<CorporateActions {session} />{/if}
+            {#if session.gameState.machineState === 'StockRound'}<CorporateActions
+                    {session}
+                /><ShortSelling {session} />{/if}
             <OperatingActions
                 {privateOperationDescription}
                 onFocusRoute={focusRoute}

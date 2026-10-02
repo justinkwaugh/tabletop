@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { openShorts, retireCertificates } from './shorts.js'
 import { furtherShareAllowed } from './turnPurchases.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
@@ -30,7 +31,9 @@ export const SharePurchaseDetails = Type.Object(
         seller: Owner,
         price: Type.Integer({ minimum: 1 }),
         payments: Type.Array(CashPayment),
-        presidency: Type.Optional(PresidencyChange)
+        presidency: Type.Optional(PresidencyChange),
+        /** The buyer's short that the bought share closes. */
+        coveredShortId: Type.Optional(Type.String())
     },
     { additionalProperties: false }
 )
@@ -88,12 +91,15 @@ export function evaluateShareAcquisition(
     if (typeof terms === 'string') return { reason: terms }
     const company = getCompany(state, certificate.companyId)
     assertExists(company.shareCount, 'Priced shares require a share count')
+    // A share that closes the buyer's short leaves their holdings and certificates unchanged.
+    const coveredShort = openShorts(state, company.id, buyer)[0]
     if (
+        !coveredShort &&
         sharesOwned(state, company.id, buyer) + certificate.shares >
-        purchaseOwnershipCeiling(state, company.id, buyer, rules)
+            purchaseOwnershipCeiling(state, company.id, buyer, rules)
     )
         return { reason: 'The purchase exceeds the ownership limit.' }
-    if (!certificateLimitAllows(state, buyer, certificate, rules))
+    if (!coveredShort && !certificateLimitAllows(state, buyer, certificate, rules))
         return { reason: 'The purchase exceeds the certificate limit.' }
     assert(
         Number.isSafeInteger(terms.price) && terms.price > 0,
@@ -133,7 +139,8 @@ export function evaluateShareAcquisition(
             seller: certificate.owner,
             price: terms.price,
             payments,
-            ...(presidency.change ? { presidency: presidency.change } : {})
+            ...(presidency.change ? { presidency: presidency.change } : {}),
+            ...(coveredShort ? { coveredShortId: coveredShort.id } : {})
         }
     }
 }
@@ -149,6 +156,8 @@ export function applySharePurchase(state: StockState, details: SharePurchaseDeta
     if (details.buyer.kind === 'company')
         state.stockRound.companyPurchases.push(details.buyer.companyId)
     if (details.presidency) applyPresidencyChange(state, details.presidency)
+    if (details.coveredShortId)
+        retireCertificates(state, [details.certificateId, details.coveredShortId])
     markTurnPurchase(state)
 }
 

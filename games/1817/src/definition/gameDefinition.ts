@@ -26,6 +26,16 @@ import { EighteenSeventeenStateDefinition } from '../state.js'
 import { EighteenSeventeenLoanRules } from '../loanRules.js'
 import { EighteenSeventeenCashCrisisRules } from '../bankruptcy.js'
 import {
+    CloseMarketShorts,
+    HydratedCloseMarketShorts,
+    HydratedShortShare,
+    ShortSellingHandler,
+    ShortShare,
+    closesMarketShorts,
+    isCloseMarketShorts,
+    isShortShare
+} from '../shorts.js'
+import {
     BuyBackShares,
     CorporateActionsHandler,
     HydratedBuyBackShares,
@@ -67,11 +77,20 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
     loanRules: EighteenSeventeenLoanRules,
     cashCrisisRules: EighteenSeventeenCashCrisisRules,
     decisionHandlers: {
-        StockRound: (family) => buysOwedStations(new CorporateActionsHandler(family)),
+        StockRound: (family) =>
+            closesMarketShorts(
+                buysOwedStations(new ShortSellingHandler(new CorporateActionsHandler(family)))
+            ),
         StartingOperatingSet: (family) => buysOwedStations(liquidatesUnpaidStations(family)),
         OperatingSet: liquidatesTrainlessCompanies
     },
     titleActions: [
+        defineAction(ShortShare, isShortShare, (action) => new HydratedShortShare(action)),
+        defineAction(
+            CloseMarketShorts,
+            isCloseMarketShorts,
+            (action) => new HydratedCloseMarketShorts(action)
+        ),
         defineAction(BuyBackShares, isBuyBackShares, (action) => new HydratedBuyBackShares(action)),
         defineAction(
             BuyOwedStations,

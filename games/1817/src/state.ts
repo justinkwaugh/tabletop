@@ -13,12 +13,16 @@ import {
 const EighteenSeventeenState = extendEighteenXXState({
     // The bank's remaining subsidy toward privates sold below face value in the opening auction;
     // positions prepared after the opening have none.
-    seedMoney: Type.Optional(Type.Integer({ minimum: 0 }))
+    seedMoney: Type.Optional(Type.Integer({ minimum: 0 })),
+    shortSqueeze: Type.Optional(Type.Literal(true)),
+    fiveShorts: Type.Optional(Type.Literal(true))
 })
 const Validator = Compile(EighteenSeventeenState)
 
 export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
     declare seedMoney?: number
+    declare shortSqueeze?: true
+    declare fiveShorts?: true
     constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
         super(data, map, tileSet, depot, Validator)
     }

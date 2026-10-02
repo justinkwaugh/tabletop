@@ -618,6 +618,19 @@ marked Bankrupt, and the ownership spreadsheet's turn-order sort places them las
 History also shows system events that change no company's cash when they matter:
 exports, interest, and any system action the title describes.
 
+### Short positions
+
+Holdings are net: a short counts as a negative share. Player cards show a negative share
+count and percentage, company ownership tables list the short holder with a negative
+count, and a portfolio entry for a short reads "Short n shares". Net worth subtracts each
+short at the share price. History notes a purchase that closed a short and lists what
+short holders owe on a payout; 1817 adds rows for opening a short and for the market
+closing its shorts. 1817's stock round lists the companies the player may short, each as
+an immediately committed button with its price.
+
+Compact company cards narrow their summary columns so a fourth value, such as loans,
+fits without clipping.
+
 ## Private exchanges and lifecycle
 
 Private-company cards show ownership, income, closure, and eligible exchanges.

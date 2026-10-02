@@ -1,10 +1,8 @@
 import { OperatingRoundIdentity } from '../operating/operatingRoundSnapshot.js'
-import type { OperatingState } from '../operating/operatingSet.js'
 import type { MapStateData } from '../map/mapState.js'
 import { PrivateEffect, type PrivateRules } from '../privates/privateRules.js'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
 import type { StockRules } from '../stock/stockRules.js'
-import type { StockState } from '../stock/stockState.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -15,8 +13,9 @@ import {
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { settleCashPayments } from '../finance/cashPayments.js'
-import { getCompany } from '../finance/finance.js'
+import { settleCashPayments, type CashPayment } from '../finance/cashPayments.js'
+import { controllingOwner, getCompany } from '../finance/finance.js'
+import { chargePlayers, type CashCrisisState, type Debt } from '../funding/cashCrisis.js'
 import { placeStockMarker } from '../stock/stockMarket.js'
 import {
     EarningsChoice,
@@ -65,24 +64,21 @@ export class HydratedDistributeEarnings
     readonly #rules: EarningsRules
     readonly #privateRules: PrivateRules
     readonly #stockRules: StockRules
+    readonly #nextState: string
     constructor(
         data: DistributeEarnings,
         rules: EarningsRules,
         privateRules: PrivateRules,
-        stockRules: StockRules
+        stockRules: StockRules,
+        nextState: string
     ) {
         super(data instanceof HydratedDistributeEarnings ? data.dehydrate() : data, Validator)
         this.#rules = rules
         this.#privateRules = privateRules
         this.#stockRules = stockRules
+        this.#nextState = nextState
     }
-    apply(
-        state: HydratedGameState &
-            DistributionState &
-            StockState &
-            MapStateData &
-            Pick<OperatingState, 'operatingSet'>
-    ): void {
+    apply(state: HydratedGameState & DistributionState & CashCrisisState & MapStateData): void {
         const distribution = new EarningsDistribution(state, this.#rules)
         assert(
             (this.source === ActionSource.User ||
@@ -95,6 +91,12 @@ export class HydratedDistributeEarnings
         const result = distribution.evaluate(this.companyId, this.choice)
         assert(result.details, result.reason ?? 'Invalid distribution')
         settleCashPayments(state, result.details.payments)
+        if (result.details.charges)
+            chargePlayers(
+                state,
+                this.chargesFromPresident(state, result.details.charges),
+                this.#nextState
+            )
         if (result.details.marketMove)
             placeStockMarker(
                 state.stockMarket,
@@ -118,5 +120,18 @@ export class HydratedDistributeEarnings
                   }
                 : {})
         }
+    }
+    // Short holders are charged in turn order from the company's president.
+    private chargesFromPresident(state: CashCrisisState, charges: readonly CashPayment[]): Debt[] {
+        const president = controllingOwner(state, this.companyId)
+        const order = state.turnManager.turnOrder
+        const start = president ? order.indexOf(president.playerId) : 0
+        const rotated = [...order.slice(start), ...order.slice(0, start)]
+        return charges
+            .map((charge) => {
+                assert(charge.from.kind === 'player', 'Only players hold shorts')
+                return { playerId: charge.from.playerId, amount: charge.amount }
+            })
+            .sort((a, b) => rotated.indexOf(a.playerId) - rotated.indexOf(b.playerId))
     }
 }

@@ -75,7 +75,8 @@ export class HydratedCompleteStockRound
         const marketMoves = stockMarketOrder(state.stockMarket).flatMap((companyId) => {
             const from = companyMarketSpace(state.stockMarket, companyId)
             const soldOut = this.#rules.soldOut(state, companyId)
-            const raised = soldOut ? moveMarketSpace(state.stockMarket, from.id, 'up', 1) : from
+            const raises = soldOut ? (this.#rules.squeezed?.(state, companyId) ? 2 : 1) : 0
+            const raised = moveMarketSpace(state.stockMarket, from.id, 'up', raises)
             const drop = this.#rules.poolDrop?.(state, companyId) ?? 0
             const to = moveMarketSpace(state.stockMarket, raised.id, 'down', drop)
             return soldOut || to.id !== from.id

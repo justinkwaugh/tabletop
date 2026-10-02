@@ -110,3 +110,18 @@ test('1817 presidents act for a company in place of their stock turn', async ({ 
         'bought back 1 Boston and Albany Railroad share'
     )
 })
+
+test('1817 players short a company in their stock turn', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('trading')
+    for (let pass = 0; pass < 2; pass++)
+        await page.getByRole('button', { name: 'Pass', exact: true }).first().click()
+    const shorting = page.getByRole('region', { name: 'Short selling' })
+    await shorting.getByRole('button', { name: 'Short Boston and Albany Railroad ($120)' }).click()
+    await expect(page.getByRole('region', { name: 'Short selling' })).toHaveCount(0)
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
+        'shorted Boston and Albany Railroad'
+    )
+})

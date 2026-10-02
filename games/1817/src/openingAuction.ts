@@ -1,3 +1,4 @@
+import { EighteenSeventeenGameConfig } from './definition/gameConfig.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     awardPrivate,
@@ -62,8 +63,10 @@ export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
 
 export function createEighteenSeventeenOpening({
     players,
-    startingPositions
+    startingPositions,
+    config
 }: OpeningSetup): Opening {
+    const options = EighteenSeventeenGameConfig.options(config)
     assert(
         players.length >= 3 && players.length <= 12,
         '1817 supports three through twelve players'
@@ -77,7 +80,11 @@ export function createEighteenSeventeenOpening({
     }
     return {
         position,
-        titleState: { seedMoney: EighteenSeventeenSeedMoney },
+        titleState: {
+            seedMoney: EighteenSeventeenSeedMoney,
+            ...(options.shortSqueeze ? { shortSqueeze: true } : {}),
+            ...(options.fiveShorts ? { fiveShorts: true } : {})
+        },
         begin: beginSelectionAuction(EighteenSeventeenAuctionRules, startingPositions)
     }
 }

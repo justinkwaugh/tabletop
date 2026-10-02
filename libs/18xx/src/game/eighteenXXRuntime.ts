@@ -320,7 +320,12 @@ export function createEighteenXXRuntime(
         ...companyActions(companyRules, rules),
         ...stationActions(options.stationRules),
         ...routeActions(options.routeRules),
-        ...earningsActions(options.earningsRules, options.privateRules, rules),
+        ...earningsActions(
+            options.earningsRules,
+            options.privateRules,
+            rules,
+            after('DistributingEarnings')
+        ),
         ...trainActions(options.trainRules, options.phaseRules, !loanRules),
         ...(options.titleActions ?? [])
     ])

@@ -13,7 +13,14 @@ import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { controllingOwner, finiteCashOwnedBy } from '../finance/finance.js'
 import { endOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
-import { BankruptcyRecord, type CashCrisisRules, type CashCrisisState } from './cashCrisis.js'
+import { nextOperatingCompany } from '../operating/operatingSet.js'
+import {
+    BankruptcyRecord,
+    currentDebt,
+    settleCurrentDebt,
+    type CashCrisisRules,
+    type CashCrisisState
+} from './cashCrisis.js'
 
 export const GoBankrupt = Type.Object(
     {
@@ -25,7 +32,7 @@ export const GoBankrupt = Type.Object(
                     record: BankruptcyRecord,
                     forgiven: Type.Integer({ minimum: 1 }),
                     surrendered: Type.Optional(CashPayment),
-                    continuation: Type.String()
+                    continuation: Type.Optional(Type.String())
                 },
                 { additionalProperties: false }
             )
@@ -53,9 +60,10 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
     }
     apply(state: HydratedGameState & CashCrisisState & OperatingTurnState): void {
         const crisis = state.cashCrisis
+        const debt = currentDebt(state)
         assertExists(crisis, 'Bankruptcy settles a cash crisis')
         assert(
-            this.source === ActionSource.User && crisis.playerId === this.playerId,
+            this.source === ActionSource.User && debt?.playerId === this.playerId,
             'Only the player in debt may go bankrupt'
         )
         const record = this.#rules.bankrupt(state, this.playerId)
@@ -65,7 +73,6 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
             ? { from: player, to: { kind: 'bank' as const }, amount: cash }
             : undefined
         if (surrendered) settleCashPayments(state, [surrendered])
-        delete state.cashCrisis
         state.bankruptPlayerIds = [...(state.bankruptPlayerIds ?? []), this.playerId]
         state.turnManager.turnOrder = state.turnManager.turnOrder.filter(
             (id) => id !== this.playerId
@@ -74,18 +81,24 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
             (id) => id !== this.playerId
         )
         // A company left without a president cannot finish its own turn.
-        let continuation = crisis.continuation
-        const companyId = state.loanStep?.companyId
+        const companyId =
+            crisis.continuation !== BetweenCompaniesState &&
+            state.operatingSet &&
+            !state.operatingSet.completed
+                ? nextOperatingCompany(state)
+                : undefined
         if (companyId && !controllingOwner(state, companyId)) {
             endOperatingTurn(state, companyId)
             delete state.trainPurchaseStep
-            continuation = BetweenCompaniesState
+            crisis.continuation = BetweenCompaniesState
         }
+        const forgiven = debt.amount
+        const continuation = settleCurrentDebt(state)
         this.metadata = {
             record,
-            forgiven: crisis.amount,
+            forgiven,
             ...(surrendered ? { surrendered } : {}),
-            continuation
+            ...(continuation ? { continuation } : {})
         }
     }
 }

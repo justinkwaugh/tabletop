@@ -5,6 +5,8 @@ export interface StockRoundRules {
     passing: 'consecutive' | 'pass-order'
     nextPlayerOrder(state: StockState): string[]
     soldOut(state: StockState, companyId: string): boolean
+    /** Whether a sold-out company moves up a second time. */
+    squeezed?(state: StockState, companyId: string): boolean
     /** Down moves at the end of the round for a company's shares in the market pool. */
     poolDrop?(state: StockState, companyId: string): number
 }

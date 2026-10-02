@@ -430,6 +430,9 @@
         text-align: center;
         padding: 7px 10px;
     }
+    .vertical .financial-summary .prices div {
+        padding-inline: 4px;
+    }
     .financial-summary .prices .market-value {
         background: #1b3d4580;
     }

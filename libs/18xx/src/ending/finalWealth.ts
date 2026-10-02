@@ -43,9 +43,9 @@ export function certificateValue(
 }
 export function marketShareValue(state: StockState, certificate: Portfolio[number]): number {
     const company = getCompany(state, certificate.companyId)
-    return certificate.kind === 'share' && company.started && !company.closed
-        ? certificate.shares * companyMarketSpace(state.stockMarket, company.id).price
-        : 0
+    if (certificate.kind === 'private' || !company.started || company.closed) return 0
+    const value = certificate.shares * companyMarketSpace(state.stockMarket, company.id).price
+    return certificate.kind === 'short' ? -value : value
 }
 export function portfolioWealth(
     state: StockState,
@@ -102,9 +102,9 @@ export function certificateWealthItem(
     return {
         assetId: certificate.id,
         label:
-            certificate.kind === 'share'
-                ? `${name} · ${certificate.shares} share${certificate.shares === 1 ? '' : 's'}`
-                : name,
+            certificate.kind === 'private'
+                ? name
+                : `${name} · ${certificate.kind === 'short' ? 'short ' : ''}${certificate.shares} share${certificate.shares === 1 ? '' : 's'}`,
         value
     }
 }

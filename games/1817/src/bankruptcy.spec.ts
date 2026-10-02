@@ -55,8 +55,7 @@ describe('a cash crisis', () => {
         expect(isLiquidated(play.state.stockMarket, 'PLE')).toBe(true)
         expect(play.state.machineState).toBe('RaisingCash')
         expect(play.state.cashCrisis).toEqual({
-            playerId: 'alex',
-            amount: 20,
+            debts: [{ playerId: 'alex', amount: 20 }],
             continuation: 'RepayingLoans'
         })
         expect(play.valid('alex')).toEqual(['SellSharesToPay', 'GoBankrupt'])

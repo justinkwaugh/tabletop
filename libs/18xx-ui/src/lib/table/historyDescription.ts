@@ -197,6 +197,10 @@ export function historyDescription(
                         ? `${money(details.retained)} retained`
                         : '',
                     details.bonusPerShare ? `${money(details.bonusPerShare)}/share bonus` : '',
+                    ...(details.charges ?? []).map(
+                        (charge) =>
+                            `${ownerName(charge.from)} owes ${money(charge.amount)} on shorts`
+                    ),
                     details.marketMove &&
                     details.marketMove.fromMarketSpaceId !== details.marketMove.toMarketSpaceId
                         ? `Market ${marketPrice(details.marketMove.fromMarketSpaceId)} → ${marketPrice(details.marketMove.toMarketSpaceId)}`
@@ -294,7 +298,8 @@ export function historyDescription(
                     action.buyer.kind === 'company'
                         ? `For ${companyName(action.buyer.companyId)}`
                         : '',
-                    action.metadata.presidency ? presidency(action.metadata.presidency) : ''
+                    action.metadata.presidency ? presidency(action.metadata.presidency) : '',
+                    action.metadata.coveredShortId ? 'Closed a short' : ''
                 ]
                     .filter(Boolean)
                     .join(' · ') || undefined

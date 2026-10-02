@@ -77,17 +77,26 @@ const ShareFields = {
     number: Type.Optional(Type.Integer({ minimum: 1 }))
 }
 const PrivateFields = { ...CertificateFields, kind: Type.Literal('private') }
+// A short owes its holder's shares of the company back: it nets against their shares.
+const ShortFields = {
+    ...CertificateFields,
+    kind: Type.Literal('short'),
+    shares: Type.Integer({ minimum: 1 })
+}
 const OwnedFields = { retired: Type.Literal(false), owner: Owner, poolId: Type.Optional(Id) }
 const RetiredFields = { retired: Type.Literal(true) }
 export const Certificate = Type.Union([
     Type.Object({ ...ShareFields, ...OwnedFields }, { additionalProperties: false }),
     Type.Object({ ...PrivateFields, ...OwnedFields }, { additionalProperties: false }),
     Type.Object({ ...ShareFields, ...RetiredFields }, { additionalProperties: false }),
-    Type.Object({ ...PrivateFields, ...RetiredFields }, { additionalProperties: false })
+    Type.Object({ ...PrivateFields, ...RetiredFields }, { additionalProperties: false }),
+    Type.Object({ ...ShortFields, ...OwnedFields }, { additionalProperties: false }),
+    Type.Object({ ...ShortFields, ...RetiredFields }, { additionalProperties: false })
 ])
 export type Certificate = Type.Static<typeof Certificate>
 export type Portfolio = Extract<Certificate, { retired: false }>[]
 export type OpenShare = Extract<Portfolio[number], { kind: 'share' }>
+export type OpenShort = Extract<Portfolio[number], { kind: 'short' }>
 export type Treasury = { cash: Cash['amount'] | undefined; portfolio: Portfolio }
 
 export const FinanceFields = {
@@ -241,9 +250,13 @@ export function sharesOwned(
     return certificatesOwnedBy(state, owner).reduce(
         (sum, certificate) =>
             sum +
-            (certificate.kind === 'share' && certificate.companyId === companyId
-                ? certificate.shares
-                : 0),
+            (certificate.companyId !== companyId
+                ? 0
+                : certificate.kind === 'share'
+                  ? certificate.shares
+                  : certificate.kind === 'short'
+                    ? -certificate.shares
+                    : 0),
         0
     )
 }

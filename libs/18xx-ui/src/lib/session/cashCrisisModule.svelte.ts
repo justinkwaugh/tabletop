@@ -3,6 +3,7 @@ import {
     GoBankrupt,
     SellSharesToPay,
     crisisSales,
+    currentDebt,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type ShareSale
@@ -20,11 +21,12 @@ export class CashCrisisModule {
     readonly bankruptcy = singleChoice<true>()
     constructor(private readonly session: CashCrisisSession) {}
 
-    crisis = $derived.by(() => this.session.state.cashCrisis)
+    /** The debt being settled now; others may wait behind it. */
+    debt = $derived.by(() => currentDebt(this.session.state))
     sales = $derived.by(() => {
         const rules = this.session.rules.cashCrisisRules
-        const crisis = this.crisis
-        return rules && crisis ? crisisSales(this.session.state, rules, crisis.playerId) : []
+        const debt = this.debt
+        return rules && debt ? crisisSales(this.session.state, rules, debt.playerId) : []
     })
     canAct = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('GoBankrupt')
@@ -51,7 +53,7 @@ export class CashCrisisModule {
         this.bankruptcy.choose('choice', true)
     }
     async confirmBankruptcy() {
-        assertExists(this.crisis, 'Bankruptcy settles a cash crisis')
+        assertExists(this.debt, 'Bankruptcy settles a cash crisis')
         assert(this.canAct && this.confirming, 'Choose bankruptcy before confirming it')
         this.bankruptcy.clear()
         await this.session.applyAction(this.session.createPlayerAction(GoBankrupt, {}))

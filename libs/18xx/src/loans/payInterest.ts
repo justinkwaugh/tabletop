@@ -94,8 +94,7 @@ export class HydratedPayInterest
             interestDefault = this.#rules.interestDefault(state, this.companyId, interest)
             if (interestDefault.unpaid)
                 state.cashCrisis = {
-                    playerId: president.playerId,
-                    amount: interestDefault.unpaid,
+                    debts: [{ playerId: president.playerId, amount: interestDefault.unpaid }],
                     continuation: 'RepayingLoans'
                 }
         }

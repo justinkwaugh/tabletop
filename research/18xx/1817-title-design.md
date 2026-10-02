@@ -1008,6 +1008,22 @@ dividends, valuation and settlement; no other family lends shares.
 - **Options.** 1817 gains a configurator with Short Squeeze and 5 Shorts, stored as
   title state at setup, as 1830 stores its option.
 
+### Implementation notes for slice 4
+
+- **The pair.** `openShort` issues the market share and the short certificate together;
+  `cancelShorts` retires an owner's shorts against their ordinary shares, which closes
+  the market's shorts after a bankruptcy. A purchase that closes a short retires both
+  certificates and records `coveredShortId`.
+- **Charges.** `EarningsDetails.charges` lists what short holders owe on a payout. The
+  family settles what each can pay and queues the rest as debts, so `cashCrisis` now
+  holds a list of debts, served in turn order from the company's president, with one
+  continuation (the step after the payout, or the Loans step after interest).
+- **The market's shorts** close against market shares as soon as both exist in the
+  stock round, and against treasury shares the bank buys for the market there, outside
+  the closing zones; bankruptcy closes them against market shares at once.
+- **Options** are stored as `shortSqueeze` and `fiveShorts` title state. Prepared
+  playground positions, built by the scenario configurator, have neither.
+
 ### Limits after slice 4
 
 - Shorts in conversions, mergers and settlements come with slices 5 and 6.

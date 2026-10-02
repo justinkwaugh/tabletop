@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
-import { assert } from '@tabletop/common'
-import { sharesOwned, type Owner } from '../finance/finance.js'
+import { assert, assertExists } from '@tabletop/common'
+import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
+import { finiteCashOwnedBy, sharesOwned, type Owner } from '../finance/finance.js'
 import { StockMarketMove } from '../stock/stockMarket.js'
 import { evaluateShareDisposal, type ShareSale, type ShareSaleResult } from '../stock/shareSale.js'
 import type { ShareSaleTerms, StockRules } from '../stock/stockRules.js'
@@ -9,9 +10,14 @@ import type { OperatingState } from '../operating/operatingSet.js'
 import type { LoanState } from '../loans/loans.js'
 
 const Id = Type.String({ minLength: 1 })
-/** A player who owes the bank more than they have, and where play resumes once it is settled. */
+export const Debt = Type.Object(
+    { playerId: Id, amount: Type.Integer({ minimum: 1 }) },
+    { additionalProperties: false }
+)
+export type Debt = Type.Static<typeof Debt>
+/** Players who owe the bank more than they have, settled in order, and where play resumes. */
 export const CashCrisis = Type.Object(
-    { playerId: Id, amount: Type.Integer({ minimum: 1 }), continuation: Id },
+    { debts: Type.Array(Debt, { minItems: 1 }), continuation: Id },
     { additionalProperties: false }
 )
 export type CashCrisis = Type.Static<typeof CashCrisis>
@@ -60,20 +66,58 @@ export function playersWithBankruptLast(state: StockState): string[] {
     return [...state.turnManager.turnOrder, ...(state.bankruptPlayerIds ?? [])]
 }
 
+/** The debt being settled now. */
+export function currentDebt(state: Pick<CashCrisisState, 'cashCrisis'>): Debt | undefined {
+    return state.cashCrisis?.debts[0]
+}
+
+/**
+ * Charges each player what they owe the bank: they pay what they have, and any shortfall
+ * becomes a cash crisis, after which play resumes at `continuation`.
+ */
+export function chargePlayers(
+    state: CashCrisisState,
+    charges: readonly Debt[],
+    continuation: string
+): CashPayment[] {
+    assert(!state.cashCrisis, 'Another cash crisis is unresolved')
+    const payments: CashPayment[] = []
+    const debts: Debt[] = []
+    for (const { playerId, amount } of charges) {
+        const player = { kind: 'player' as const, playerId }
+        const paid = Math.min(amount, finiteCashOwnedBy(state, player))
+        if (paid) payments.push({ from: player, to: { kind: 'bank' }, amount: paid })
+        if (amount > paid) debts.push({ playerId, amount: amount - paid })
+    }
+    settleCashPayments(state, payments)
+    if (debts.length) state.cashCrisis = { debts, continuation }
+    return payments
+}
+
+/** Removes the settled current debt, returning where play resumes once none remains. */
+export function settleCurrentDebt(state: CashCrisisState): string | undefined {
+    const crisis = state.cashCrisis
+    assertExists(crisis, 'A debt is settled during a cash crisis')
+    crisis.debts.shift()
+    if (crisis.debts.length) return undefined
+    delete state.cashCrisis
+    return crisis.continuation
+}
+
 export function evaluateCrisisSale(
     state: CashCrisisState,
     rules: CashCrisisRules,
     playerId: string,
     sale: ShareSale
 ): ShareSaleResult {
-    const crisis = state.cashCrisis
-    if (crisis?.playerId !== playerId) return { reason: 'This player has no debt to raise.' }
+    const debt = currentDebt(state)
+    if (debt?.playerId !== playerId) return { reason: 'This player has no debt to raise.' }
     const seller = { kind: 'player' as const, playerId }
     const result = evaluateShareDisposal(state, seller, [sale], rules)
     if (!result.details) return result
     const [settlement] = result.details.sales
     if (settlement.presidency) return { reason: 'This sale would pass on a presidency.' }
-    if ((sale.shares - 1) * settlement.price >= crisis.amount)
+    if ((sale.shares - 1) * settlement.price >= debt.amount)
         return { reason: 'Sell only as many shares as the debt needs.' }
     return result
 }
@@ -106,7 +150,7 @@ export function validateCashCrisis(state: {
         'A cash crisis belongs to its own state'
     )
     for (const playerId of [
-        ...(state.cashCrisis ? [state.cashCrisis.playerId] : []),
+        ...(state.cashCrisis?.debts.map((debt) => debt.playerId) ?? []),
         ...(state.bankruptPlayerIds ?? [])
     ])
         assert(

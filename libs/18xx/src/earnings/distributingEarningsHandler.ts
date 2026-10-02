@@ -15,7 +15,8 @@ import {
     type EarningsRules,
     type DistributionState
 } from './earningsDistribution.js'
-type State = HydratedGameState & DistributionState
+import type { CashCrisisState } from '../funding/cashCrisis.js'
+type State = HydratedGameState & DistributionState & Pick<CashCrisisState, 'cashCrisis'>
 export class DistributingEarningsHandler implements MachineStateHandler<
     HydratedDistributeEarnings,
     State
@@ -66,7 +67,7 @@ export class DistributingEarningsHandler implements MachineStateHandler<
                 choice
             })
     }
-    onAction(): string {
-        return this.nextState
+    onAction(_action: HydratedDistributeEarnings, context: MachineContext<State>): string {
+        return context.gameState.cashCrisis ? 'RaisingCash' : this.nextState
     }
 }

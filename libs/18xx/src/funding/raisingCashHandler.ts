@@ -6,7 +6,12 @@ import {
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { crisisSales, type CashCrisisRules, type CashCrisisState } from './cashCrisis.js'
+import {
+    crisisSales,
+    currentDebt,
+    type CashCrisisRules,
+    type CashCrisisState
+} from './cashCrisis.js'
 import { HydratedSellSharesToPay, isSellSharesToPay } from './sellSharesToPay.js'
 import { isGoBankrupt } from './goBankrupt.js'
 
@@ -17,8 +22,10 @@ export class RaisingCashHandler implements MachineStateHandler<HydratedAction, S
     constructor(private readonly rules: CashCrisisRules) {}
 
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
-        const crisis = context.gameState.cashCrisis
-        if (action.source !== ActionSource.User || crisis?.playerId !== action.playerId)
+        if (
+            action.source !== ActionSource.User ||
+            currentDebt(context.gameState)?.playerId !== action.playerId
+        )
             return false
         if (isSellSharesToPay(action))
             return action instanceof HydratedSellSharesToPay && action.isValidFor(context.gameState)
@@ -27,7 +34,7 @@ export class RaisingCashHandler implements MachineStateHandler<HydratedAction, S
 
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
-        if (state.cashCrisis?.playerId !== playerId) return []
+        if (currentDebt(state)?.playerId !== playerId) return []
         return [
             ...(crisisSales(state, this.rules, playerId).length ? ['SellSharesToPay'] : []),
             'GoBankrupt'
@@ -35,9 +42,9 @@ export class RaisingCashHandler implements MachineStateHandler<HydratedAction, S
     }
 
     enter(context: MachineContext<State>): void {
-        const crisis = context.gameState.cashCrisis
-        assertExists(crisis, 'Raising cash requires a debt')
-        context.gameState.activePlayerIds = [crisis.playerId]
+        const debt = currentDebt(context.gameState)
+        assertExists(debt, 'Raising cash requires a debt')
+        context.gameState.activePlayerIds = [debt.playerId]
     }
 
     onAction(action: HydratedAction, context: MachineContext<State>): string {

@@ -2,8 +2,9 @@ import { EighteenSeventeenPhases, EighteenSeventeenTrainDepot } from './trains.j
 import { corporationShareCount } from './corporations.js'
 import { isLiquidated } from './liquidation.js'
 import {
-    allSharesHeld,
     certificatesInPool,
+    sharesOwned,
+    type StockState,
     floatedCompaniesInMarketOrder,
     playerOrderAfterLastTurn,
     type StockRoundRules,
@@ -13,20 +14,42 @@ import {
 export const EighteenSeventeenStockRoundRules: StockRoundRules = {
     passing: 'consecutive',
     nextPlayerOrder: playerOrderAfterLastTurn,
-    // A company of more than two shares whose players hold every share moves up.
+    // A company of more than two shares whose players hold every share net moves up; with
+    // Short Squeeze, once more when they hold over 100%.
     soldOut: (state, companyId) =>
         corporationShareCount(state, companyId) > 2 &&
-        allSharesHeld(state, companyId, (certificate) => certificate.owner.kind === 'player'),
-    // Each share left in the market pool moves the company down one space.
+        playerHoldings(state, companyId) >= corporationShareCount(state, companyId),
+    squeezed: (state, companyId) =>
+        'shortSqueeze' in state &&
+        playerHoldings(state, companyId) > corporationShareCount(state, companyId),
+    // Each share left in the market pool, less the market's shorts, moves the company down.
     poolDrop: (state, companyId) =>
-        certificatesInPool(state, MarketPoolId).reduce(
-            (sum, certificate) =>
-                sum +
-                (certificate.kind === 'share' && certificate.companyId === companyId
-                    ? certificate.shares
-                    : 0),
-            0
+        Math.max(
+            0,
+            certificatesInPool(state, MarketPoolId).reduce(
+                (sum, certificate) =>
+                    certificate.companyId !== companyId
+                        ? sum
+                        : certificate.kind === 'share'
+                          ? sum + certificate.shares
+                          : certificate.kind === 'short'
+                            ? sum - certificate.shares
+                            : sum,
+                0
+            )
         )
+}
+
+function playerHoldings(state: StockState, companyId: string): number {
+    return state.players.reduce(
+        (sum, player) =>
+            sum +
+            Math.max(
+                0,
+                sharesOwned(state, companyId, { kind: 'player', playerId: player.playerId })
+            ),
+        0
+    )
 }
 export const MarketPoolId = 'market'
 export const treasuryPoolId = (companyId: string) => `treasury:${companyId}`

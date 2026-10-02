@@ -12,7 +12,13 @@ import {
 import { settleCashPayments } from '../finance/cashPayments.js'
 import { finiteCashOwnedBy } from '../finance/finance.js'
 import { ShareSale, ShareSaleDetails, applyShareSale } from '../stock/shareSale.js'
-import { evaluateCrisisSale, type CashCrisisRules, type CashCrisisState } from './cashCrisis.js'
+import {
+    currentDebt,
+    evaluateCrisisSale,
+    settleCurrentDebt,
+    type CashCrisisRules,
+    type CashCrisisState
+} from './cashCrisis.js'
 
 export const SellSharesToPay = Type.Object(
     {
@@ -63,8 +69,8 @@ export class HydratedSellSharesToPay
         )
     }
     apply(state: HydratedGameState & CashCrisisState): void {
-        const crisis = state.cashCrisis
-        assertExists(crisis, 'Shares are sold to settle a debt')
+        const debt = currentDebt(state)
+        assertExists(debt, 'Shares are sold to settle a debt')
         const { details, reason } = evaluateCrisisSale(state, this.#rules, this.playerId, this.sale)
         assert(
             this.source === ActionSource.User && details?.proceeds === this.expectedProceeds,
@@ -72,14 +78,10 @@ export class HydratedSellSharesToPay
         )
         applyShareSale(state, details)
         const player = { kind: 'player' as const, playerId: this.playerId }
-        const paid = Math.min(crisis.amount, finiteCashOwnedBy(state, player))
+        const paid = Math.min(debt.amount, finiteCashOwnedBy(state, player))
         settleCashPayments(state, [{ from: player, to: { kind: 'bank' }, amount: paid }])
-        crisis.amount -= paid
-        if (crisis.amount) {
-            this.metadata = { details, paid }
-            return
-        }
-        delete state.cashCrisis
-        this.metadata = { details, paid, continuation: crisis.continuation }
+        debt.amount -= paid
+        const continuation = debt.amount ? undefined : settleCurrentDebt(state)
+        this.metadata = { details, paid, ...(continuation ? { continuation } : {}) }
     }
 }

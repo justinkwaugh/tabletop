@@ -16,7 +16,7 @@ export function companyOwnership(
     for (const certificate of state.certificates) {
         if (
             certificate.retired ||
-            certificate.kind !== 'share' ||
+            certificate.kind === 'private' ||
             certificate.companyId !== companyId
         )
             continue
@@ -32,6 +32,10 @@ export function companyOwnership(
                 certificateNumbers: []
             }
             rows.push(row)
+        }
+        if (certificate.kind === 'short') {
+            row.shares -= certificate.shares
+            continue
         }
         row.shares += certificate.shares
         if (certificate.number !== undefined) row.certificateNumbers.push(certificate.number)
