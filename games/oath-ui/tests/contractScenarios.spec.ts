@@ -648,6 +648,20 @@ test('scenario 5: a Campaign target is a row with its picture, a tap adds it and
     await expect(site).toHaveAttribute('aria-pressed', 'false')
 })
 
+test('scenario 2: an Exile chooses a start site from the rows, and a tap on another moves the choice', async ({ page }) => {
+    await openTable(page, 'setup')
+    await call(page, 'seatMakesSetupChoice')
+    const sites = page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]')
+    await expect(sites.first()).toBeVisible()
+    expect(await sites.count()).toBeGreaterThan(1)
+    await sites.nth(0).click()
+    await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'true')
+    await expect(sites.nth(0)).toContainText('start here')
+    await sites.nth(1).click()
+    await expect(sites.nth(1)).toHaveAttribute('aria-pressed', 'true')
+    await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'false')
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()

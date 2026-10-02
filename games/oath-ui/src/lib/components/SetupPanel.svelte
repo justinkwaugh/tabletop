@@ -1,6 +1,8 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
-    import { ActionType, discardRegionFor } from '@tabletop/oath'
+    import { ActionType, CardKind, Region, discardRegionFor } from '@tabletop/oath'
+    import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
+    import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
@@ -21,6 +23,22 @@
     let tapped = $derived(gameSession.setup.tapped)
     let ordering = $derived(gameSession.setup.ordering)
     let canGoBack = $derived(gameSession.selection.hasManualSelection())
+
+    // R-1.23.1 — the start sites by region in the board's order; one legal site is taken for the player.
+    const REGIONS = [Region.Cradle, Region.Provinces, Region.Hinterland]
+    let siteGroups = $derived(
+        legalSites.length < 2
+            ? []
+            : REGIONS.map((region) => ({
+                  region,
+                  sites: legalSites.filter((site) => gameState.regionOf(site) === region)
+              })).filter((group) => group.sites.length > 0)
+    )
+
+    function siteImage(slotId: string): string {
+        const cardId = gameState.siteCardAt(slotId)
+        return (cardId ? cardImage(cardId) : undefined) ?? cardBack(CardKind.Site)
+    }
 </script>
 
 <div>
@@ -101,6 +119,27 @@
                 />
             </div>
         {/if}
+        {#if !ordering && siteGroups.length > 0}
+            <div class="mb-2 flex flex-col gap-1.5" role="list" aria-label="Start sites">
+                {#each siteGroups as group (group.region)}
+                    <h4
+                        class="mt-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading"
+                    >
+                        {regionName(group.region)}
+                    </h4>
+                    {#each group.sites as slotId (slotId)}
+                        <MenuToggleRow
+                            image={siteImage(slotId)}
+                            name={siteName(gameState, slotId)}
+                            tag="start here"
+                            on={siteId === slotId}
+                            disabled={busy}
+                            onclick={() => gameSession.setup.chooseSite(slotId)}
+                        />
+                    {/each}
+                {/each}
+            </div>
+        {/if}
         <div class="flex items-start justify-between gap-2">
             {#if siteId && adviserCardId}
                 <p class="text-sm">
@@ -123,14 +162,10 @@
                 <p class="text-sm">
                     Keeping <span class="font-semibold">{cardName(adviserCardId)}</span>.
                     <span class="font-semibold">Tap the site where your pawn starts.</span>
-                    <span class="text-oath-text-muted"
-                        >Any faceup site — they are lit on the map.</span
-                    >
                 </p>
             {:else}
                 <p class="text-sm">
                     <span class="font-semibold">Tap the site where your pawn starts</span>
-                    <span class="text-oath-text-muted">(lit on the map)</span>
                     <span class="font-semibold">and the card to keep</span> as a facedown adviser.
                 </p>
             {/if}
