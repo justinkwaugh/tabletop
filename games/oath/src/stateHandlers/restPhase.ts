@@ -56,9 +56,11 @@ export class RestPhaseStateHandler implements MachineStateHandler<
 
     /** R-4.3.5 — with no Rest power left to use, nothing waits on the player. */
     private restWithoutAChoice(context: MachineContext<HydratedOathGameState>, playerId: string) {
+        // The engine re-enters after every action. A System Action still pending (a title transfer,
+        // R-2.11-H1) can change which Rest powers are usable, and a Rest queued here must not be
+        // queued twice, so the Rest is decided on the entry that finds nothing pending.
+        if (context.getPendingActions().length > 0) return
         if (HydratedUseRestPower.usableRestPowers(context.gameState, playerId).length > 0) return
-        // The engine re-enters after every action, a System Action queued here included.
-        if (context.getPendingActions().some(isCompleteRest)) return
         context.addSystemAction(CompleteRest, { playerId })
     }
 

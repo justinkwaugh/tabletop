@@ -72,7 +72,7 @@ function walkSetup(createdBeforeRevisions = false) {
 function walkTwoTurns(createdBeforeRevisions = false) {
     const walk = walkSetup(createdBeforeRevisions)
     const { record } = walk
-    // R-4.3.5 — the Rest waits on a player only before the turn-flow revision, holding no Rest power here.
+    // R-4.3.5 — no seat holds a Rest power here: from the turn-flow revision the Rest resolves by itself, and before it the player sends it.
     const endTurn = (playerId: string | undefined) => {
         record(buildAction(EndActPhase, { playerId }))
         if (createdBeforeRevisions) record(buildAction(CompleteRest, { playerId }))

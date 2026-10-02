@@ -108,12 +108,8 @@ describe('R-4.3 — the Rest is a System Action when nothing waits on the player
         expect(result.processedActions.filter(isCompleteRest)).toHaveLength(1)
         expect(result.updatedState.activePlayerIds).toEqual(['p2'])
         expect(result.updatedState.turnManager.series.at(-1)).toMatchObject({ playerId: 'p2' })
-        const wake = result.processedActions.find(isResolveWake)
-        if (result.updatedState.machineState === MachineState.ActPhase) {
-            expect(wake?.source).toBe(ActionSource.System)
-        } else {
-            expect(result.updatedState.machineState).toBe(MachineState.WakePhase)
-        }
+        expect(result.processedActions.find(isResolveWake)?.source).toBe(ActionSource.System)
+        expect(result.updatedState.machineState).toBe(MachineState.ActPhase)
     })
 
     it('waits on a player holding Insomnia, and using it ends the turn by itself (R-4.3.5)', () => {
@@ -311,6 +307,25 @@ describe('the automatic Rest and the other System Actions of the same cascade', 
         expect(result.updatedState.oathkeeperPlayerId).toBe('p2')
         expect(result.processedActions.find(isResolveWake)?.metadata?.flippedToUsurper).toBe(true)
         expect(result.updatedState.oathkeeperIsUsurper).toBe(true)
+    })
+
+    it('decides the Rest once the title has moved: Naysayers, usable only under the new holder, keeps the turn open (R-4.3.5)', () => {
+        const state = table({
+            resting: 'p2',
+            p2: { advisers: [{ cardId: NAYSAYERS, faceUp: true }] },
+            state: { warbandsBySite: { c2: { p2: 1 } } }
+        })
+        const result = endActPhase(state)
+
+        expect(result.processedActions.map((action) => action.type)).toEqual([
+            ActionType.EndActPhase,
+            ActionType.TransferOathkeeper
+        ])
+        expect(result.updatedState.oathkeeperPlayerId).toBe('p2')
+        expect(result.updatedState.machineState).toBe(MachineState.RestPhase)
+        expect(result.updatedState.activePlayerIds).toEqual(['p2'])
+        const hydrated = new HydratedOathGameState(result.updatedState)
+        expect(HydratedUseRestPower.usableRestPowers(hydrated, 'p2').map((power) => power.cardId)).toEqual([NAYSAYERS])
     })
 })
 
