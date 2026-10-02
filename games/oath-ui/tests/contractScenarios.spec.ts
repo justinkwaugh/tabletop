@@ -620,6 +620,20 @@ test('scenario 6: the facedown advisers to play are cards in the panel, a tap sh
     await expect(grid(page).getByRole('button', { name: /Elders/ })).toBeVisible()
 })
 
+test('scenario 18: each warband move is a row of counts, and a count sends', async ({ page }) => {
+    await openTable(page, 'moves')
+    await grid(page).getByRole('button', { name: 'Move warbands', exact: true }).click()
+    const rows = page.getByRole('list', { name: 'Warband moves' }).getByRole('listitem')
+    await expect(rows).toHaveCount(2)
+    const onto = rows.filter({ hasText: 'From your board to your site' })
+    await expect(onto.getByRole('button')).toHaveCount(4)
+    await expect(rows.filter({ hasText: 'From your site to your board' }).getByRole('button')).toHaveCount(2)
+    await expect(dimmedSites(page)).toHaveCount(0)
+    await onto.getByRole('button', { name: /move 2$/ }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).boardOf.me).toEqual({ me: 2 })
+    await expect(page.getByRole('list', { name: 'Warband moves' })).toHaveCount(0)
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()

@@ -185,7 +185,7 @@ export function actionPrompt(action: ActionType, state: PromptState): string {
         case ActionType.UseActionPower:
             return 'Choose a power to use.'
         case ActionType.MoveWarbands:
-            return state.moveChosen ? 'How many?' : 'Tap where the warbands go.'
+            return state.moveChosen ? 'How many?' : 'Choose a move and how many.'
         case ActionType.ExileCitizen:
             return 'Choose a Citizen to exile.'
         default:

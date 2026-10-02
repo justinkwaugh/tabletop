@@ -70,6 +70,7 @@ export type TableName =
     | 'trade'
     | 'peek'
     | 'advisers'
+    | 'moves'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -496,6 +497,38 @@ function defeatedTable(defence: 'exile' | 'imperial'): PlayedTable {
     ])
 }
 
+/** R-6.5: the seat rules its site with three warbands there and four on its board. */
+function movesTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                warbandsOnBoard: { me: 4 }
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            warbandsBySite: { [home]: { me: 3 } }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 /** R-6.1: the seat's Act Phase with two facedown advisers to play. */
 function advisersTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
@@ -583,7 +616,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
     trade: tradeTable,
     peek: peekTable,
-    advisers: advisersTable
+    advisers: advisersTable,
+    moves: movesTable
 }
 
 let session: OathGameSession | undefined

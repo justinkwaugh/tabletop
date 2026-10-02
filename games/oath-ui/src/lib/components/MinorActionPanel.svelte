@@ -1,13 +1,21 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
     import { range } from '@tabletop/common'
-    import { ActionType, WarbandMoveKind, type WarbandMove } from '@tabletop/oath'
+    import {
+        ActionType,
+        WarbandMoveKind,
+        type WarbandMove,
+        type WarbandMoveOption
+    } from '@tabletop/oath'
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
     import PeekMenu from '$lib/components/PeekMenu.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import CountPicker from '$lib/components/CountPicker.svelte'
     import MenuChoice from '$lib/components/MenuChoice.svelte'
+    import MenuRow from '$lib/components/MenuRow.svelte'
+    import { warbandImage } from '$lib/images/pieceImages.js'
     import { cardChoices, toggleSingle } from '$lib/model/cardChoice.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, humanizeReason, siteName } from '$lib/model/names.js'
@@ -24,13 +32,6 @@
     let chosenAdviser = $derived(advisers.find((a) => a.cardId === gameSession.adviserCardId))
     let chosenMove = $derived(gameSession.warbandMoves.chosen)
     let moves = $derived(gameSession.warbandMoves.options)
-    let imperialMoves = $derived(
-        moves.filter(
-            (o) =>
-                o.move.kind === WarbandMoveKind.GiveToImperial ||
-                o.move.kind === WarbandMoveKind.TakeFromImperial
-        )
-    )
     let citizens = $derived(gameSession.exileTargets)
 
     const MOVE_LABELS: Record<WarbandMoveKind, string> = {
@@ -42,6 +43,12 @@
 
     function otherPlayerOf(move: WarbandMove): string | undefined {
         return 'otherPlayerId' in move ? move.otherPlayerId : undefined
+    }
+
+    function moveName(option: WarbandMoveOption): string {
+        const other = otherPlayerOf(option.move)
+        const to = other ? ` — ${gameSession.getPlayerName(other)}` : ''
+        return `${MOVE_LABELS[option.move.kind]}${to}`
     }
 </script>
 
@@ -192,39 +199,27 @@
                     </button>
                 {/each}
             </div>
+        {:else if moves.length === 0}
+            <p class="text-xs text-oath-text-muted">No warbands you may move.</p>
         {:else}
-            <p class="text-xs text-oath-text-muted">
-                {moves.length === 0
-                    ? 'No warbands you may move.'
-                    : `Tap ${gameSession.warbandMoves.boardToSite ? 'your site on the map to move warbands onto it' : ''}${gameSession.warbandMoves.boardToSite && gameSession.warbandMoves.siteToBoard ? ', or ' : ''}${gameSession.warbandMoves.siteToBoard ? 'the Board counter on your card to bring them back' : ''}.`}
-            </p>
-            {#each gameSession.warbandMoves.byOwner as option (option.move.kind + option.owner)}
-                <button
-                    class="rounded border border-oath-frame bg-oath-surface-raised hover:border-oath-accent px-2 py-1 text-xs text-left"
-                    disabled={busy}
-                    onclick={() => gameSession.warbandMoves.choose(option)}
-                >
-                    {MOVE_LABELS[option.move.kind]}
-                    <span class="text-oath-text-muted"
-                        >({gameSession.warbandOwnerName(option.owner)}, up to {option.max})</span
+            <div class="flex flex-col gap-1.5" role="list" aria-label="Warband moves">
+                {#each moves as option (JSON.stringify(option.move) + option.owner)}
+                    {@const name = moveName(option)}
+                    <MenuRow
+                        image={warbandImage(gameSession.warbandColor(option.owner))}
+                        imageAlt={gameSession.warbandOwnerName(option.owner)}
+                        {name}
                     >
-                </button>
-            {/each}
-            {#each imperialMoves as option (JSON.stringify(option.move) + option.owner)}
-                {@const otherPlayerId = otherPlayerOf(option.move)}
-                <button
-                    class="rounded border border-oath-frame bg-oath-surface-raised hover:border-oath-accent px-2 py-1 text-xs text-left"
-                    disabled={busy}
-                    onclick={() => gameSession.warbandMoves.choose(option)}
-                >
-                    {MOVE_LABELS[option.move.kind]} — {otherPlayerId
-                        ? gameSession.getPlayerName(otherPlayerId)
-                        : ''}
-                    <span class="text-oath-text-muted"
-                        >({gameSession.warbandOwnerName(option.owner)}, up to {option.max})</span
-                    >
-                </button>
-            {/each}
+                        <CountPicker
+                            values={range(1, option.max)}
+                            picked={undefined}
+                            label={(count) => `${name}: move ${count}`}
+                            onpick={(count) => gameSession.warbandMoves.sendNow(option, count)}
+                            disabled={busy}
+                        />
+                    </MenuRow>
+                {/each}
+            </div>
         {/if}
     {:else if action === ActionType.ExileCitizen}
         {#each citizens as citizenPlayerId (citizenPlayerId)}

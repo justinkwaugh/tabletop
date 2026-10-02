@@ -53,6 +53,14 @@ export class WarbandMoveDraft {
         if (option.max === 1) await this.send(1)
     }
 
+    /** A menu row's count is the whole choice, so it sends the move it names. */
+    async sendNow(option: WarbandMoveOption, count: number): Promise<void> {
+        if (!this.options.some((offered) => this.same(offered, option))) return
+        if (count < 1 || count > option.max) return
+        this.session.selection.set('warbandMove', option)
+        await this.session.moveWarbands(option, count)
+    }
+
     async send(count: number): Promise<void> {
         const option = this.chosen
         assertExists(option, 'A count is asked only once the move is chosen')
