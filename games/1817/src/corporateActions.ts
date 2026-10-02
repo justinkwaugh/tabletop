@@ -27,7 +27,6 @@ import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
 
-/** The market shares a company may buy back into its treasury. */
 export function buyBackCertificateIds(state: EighteenXXState, companyId: string): string[] {
     if (inClosingZone(state.stockMarket, companyId)) return []
     return state.certificates
@@ -42,7 +41,6 @@ export function buyBackCertificateIds(state: EighteenXXState, companyId: string)
         .map((certificate) => certificate.id)
 }
 
-/** Whether the player may still act for this company in their stock turn. */
 function corporateTurnOpen(state: EighteenXXState, playerId: string, companyId: string): boolean {
     const turn = state.stockRound.turn
     return (
@@ -105,29 +103,47 @@ function buyBackPrice(
     return companyMarketSpace(state.stockMarket, companyId).price * shares
 }
 
-/** The companies the player may act for now, with the corporate actions open to each. */
-export function corporateActionTypes(state: EighteenXXState, playerId: string): string[] {
-    const companies = state.companies.filter(
-        (company) =>
-            company.kind !== 'private' &&
-            company.started &&
-            controllingOwner(state, company.id)?.playerId === playerId
-    )
-    return [
-        ...(companies.some((company) => canTakeCorporateLoan(state, playerId, company.id))
-            ? ['TakeLoan']
-            : []),
-        ...(companies.some(
-            (company) =>
-                !buyBackReason(
-                    state,
-                    playerId,
-                    company.id,
-                    buyBackCertificateIds(state, company.id).slice(0, 1)
-                )
+export type CorporateActionOption = {
+    companyId: string
+    canBorrow: boolean
+    /** The next market share the company could buy back, and what it would pay. */
+    buyBack?: { certificateId: string; price: number }
+}
+
+/** The companies the player may act for now and what each may do. */
+export function corporateActionOptions(
+    state: EighteenXXState,
+    playerId: string
+): CorporateActionOption[] {
+    return state.companies.flatMap((company) => {
+        if (
+            company.kind === 'private' ||
+            !company.started ||
+            controllingOwner(state, company.id)?.playerId !== playerId
         )
-            ? ['BuyBackShares']
-            : [])
+            return []
+        const certificateId = buyBackCertificateIds(state, company.id)[0]
+        const option: CorporateActionOption = {
+            companyId: company.id,
+            canBorrow: canTakeCorporateLoan(state, playerId, company.id),
+            ...(certificateId && !buyBackReason(state, playerId, company.id, [certificateId])
+                ? {
+                      buyBack: {
+                          certificateId,
+                          price: buyBackPrice(state, company.id, [certificateId])
+                      }
+                  }
+                : {})
+        }
+        return option.canBorrow || option.buyBack ? [option] : []
+    })
+}
+
+export function corporateActionTypes(state: EighteenXXState, playerId: string): string[] {
+    const options = corporateActionOptions(state, playerId)
+    return [
+        ...(options.some((option) => option.canBorrow) ? ['TakeLoan'] : []),
+        ...(options.some((option) => option.buyBack) ? ['BuyBackShares'] : [])
     ]
 }
 
@@ -136,7 +152,7 @@ export const BuyBackShares = Type.Object(
         ...PlayerAction.properties,
         type: Type.Literal('BuyBackShares'),
         companyId: Type.String(),
-        certificateIds: Type.Array(Type.String(), { minItems: 1, uniqueItems: true }),
+        certificateIds: Type.Array(Type.String(), { minItems: 1 }),
         metadata: Type.Optional(
             Type.Object({ payment: CashPayment }, { additionalProperties: false })
         )

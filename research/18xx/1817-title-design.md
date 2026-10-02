@@ -841,25 +841,24 @@ crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
 
 - **Liquidation is a 1817 action.** `LiquidateCompany` names the company and the
   reason, and moves its price to the liquidation space. The market space is the
-  liquidated state: 1817's operating order, sales, buy-backs and train sales already
-  read the zone. It is issued by the system:
+  liquidated state: 1817's sales already refuse the zone, and its operating order,
+  buy-backs and train sales read it too. It is issued by the system:
     - at the end of the turn of a company without a train;
     - at the end of the stock round for a company still owing stations;
-    - by interest default, which `LoanRules.default` hands to the title.
-- **Stations owed are 1817 state.** `stationsOwed` lists companies with their unpaid
-  stations. Formation no longer refuses a company that cannot pay for its stations;
-  the system `BuyOwedStations` buys them when its treasury can.
+    - by interest default, which `LoanRules.interestDefault` hands to the title.
+- **Stations owed.** Formation no longer refuses a company that cannot pay for its
+  stations; the system `BuyOwedStations` buys them when its treasury can.
 - **The corporate action wraps 1817's stock round**, as TOP's company split does. The
   player's turn accepts `TakeLoan` for one company they preside, then the 1817 action
   `BuyBackShares`, after which only finishing the turn remains.
 - **Cash crisis (3b).** The interest default leaves the president owing the bank. A
   family `cashCrisis` (player and amount) and machine state `RaisingCash` accept
-  share sales within the title's crisis terms, then bankruptcy when sales cannot
-  cover it. The train-funding flow of 1830 and 1889 stays separate: its obligation is
+  share sales within the title's crisis terms, or bankruptcy at any time, as in the
+  reference. The train-funding flow of 1830 and 1889 stays separate: its obligation is
   a purchase with contributors, not a debt.
 - **Bankruptcy (3b).** `bankruptPlayerIds` records players who have left. Stock
-  rounds and final scoring skip them, and the title recalculates the certificate
-  limit. `EndingRules.trigger` ends 1817 when one player remains; 1830 and 1889 keep
+  rounds skip them and the title recalculates the certificate limit; final scoring
+  still ranks them, as the reference does. `EndingRules.trigger` ends 1817 when one player remains; 1830 and 1889 keep
   ending at the first bankruptcy.
 
 ### Implementation notes for 3a
@@ -887,12 +886,16 @@ crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
 
 - **The crisis is family state.** `cashCrisis` names the player, the amount and the
   machine state to return to; `RaisingCash` accepts `SellSharesToPay` and
-  `GoBankrupt`. A sale is refused when one share fewer would still cover the debt.
-  Proceeds pay the debt at once and any rest stays with the player.
-- **Bankruptcy.** The title's `CashCrisisRules.bankrupt` makes 1817's largest ordinary
-  sale of each company, pools the remaining shares and liquidates the companies the
-  player still presides, leaving them without a president and out of the round's
-  remaining order. The family then takes the player's cash, forgives the debt, adds
+  `GoBankrupt`. A sale is refused when one share fewer would still cover the debt or
+  when it would pass on a presidency. Proceeds pay the debt at once and any rest
+  stays with the player. In an operating round, where every crisis arises in this
+  slice, a company that has not yet operated may be sold; the acquisition round
+  (slice 6) will need the ordinary timing.
+- **Bankruptcy.** The title's `CashCrisisRules.bankrupt` puts every share the player
+  holds in the market and liquidates the companies they preside, leaving them without
+  a president and out of the round's remaining order. The reference first sells what
+  the crisis rules allow, but those sales can neither pass a presidency nor exceed the
+  debt, and the bank takes their proceeds, so the outcome is the same. The family then takes the player's cash, forgives the debt, adds
   them to `bankruptPlayerIds` and removes them from the turn order, which every stock
   round, auction and presidency already follows. A company left without a president
   has its turn ended for it. 1817's certificate limit uses the players left, but never

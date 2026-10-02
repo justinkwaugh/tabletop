@@ -1,18 +1,11 @@
 <script lang="ts">
-    import { cashOwnedBy, isPayInterest } from '@tabletop/18xx'
+    import { cashOwnedBy } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const money = $derived(session.presentation.money)
     const companyId = $derived(session.gameState.loanStep?.companyId)
     const rules = $derived(session.loans.rules)
-    const interest = $derived.by(() => {
-        const actions = session.actions.slice(0, session.gameState.actionCount)
-        const turnStart = actions.findLastIndex((action) => action.type === 'StartOperatingTurn')
-        return actions
-            .slice(turnStart + 1)
-            .find((action) => isPayInterest(action) && action.companyId === companyId)
-    })
-    const paid = $derived(interest && isPayInterest(interest) ? interest.metadata : undefined)
+    const paid = $derived(session.loans.interestPaid)
 </script>
 
 {#if companyId && rules && session.gameState.machineState === 'RepayingLoans'}

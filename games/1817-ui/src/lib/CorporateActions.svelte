@@ -1,81 +1,32 @@
 <script lang="ts">
-    import {
-        BuyBackShares,
-        buyBackCertificateIds,
-        buyBackReason,
-        canTakeCorporateLoan
-    } from '@tabletop/1817'
-    import { cashOwnedBy, companyMarketSpace, controllingOwner } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '@tabletop/18xx-ui'
-    let { session }: { session: EighteenXXSession } = $props()
+    import { cashOwnedBy, getCompany } from '@tabletop/18xx'
+    import type { EighteenSeventeenSession } from './session.svelte.js'
+    let { session }: { session: EighteenSeventeenSession } = $props()
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
-    const playerId = $derived(gameState.activePlayerIds[0])
-    const companies = $derived(
-        playerId &&
-            (session.validActionTypes.includes('TakeLoan') ||
-                session.validActionTypes.includes('BuyBackShares'))
-            ? gameState.companies
-                  .filter(
-                      (company) =>
-                          company.kind !== 'private' &&
-                          company.started &&
-                          controllingOwner(gameState, company.id)?.playerId === playerId
-                  )
-                  .map((company) => {
-                      const nextShare = buyBackCertificateIds(gameState, company.id)[0]
-                      return {
-                          company,
-                          canBorrow:
-                              session.validActionTypes.includes('TakeLoan') &&
-                              canTakeCorporateLoan(gameState, playerId, company.id),
-                          nextShare:
-                              nextShare &&
-                              !buyBackReason(gameState, playerId, company.id, [nextShare])
-                                  ? nextShare
-                                  : undefined
-                      }
-                  })
-                  .filter(({ canBorrow, nextShare }) => canBorrow || nextShare)
-            : []
-    )
     const busy = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory)
-
-    async function buyBack(companyId: string, certificateId: string) {
-        await session.applyAction(
-            session.createPlayerAction(BuyBackShares, {
-                companyId,
-                certificateIds: [certificateId]
-            })
-        )
-    }
 </script>
 
-{#if companies.length}
+{#if session.corporateActions.length}
     <section aria-label="Corporate actions">
         <h2>
             {gameState.stockRound.turn.corporateAction ? 'Acting for' : 'Or act for a company'}
         </h2>
-        {#each companies as { company, canBorrow, nextShare } (company.id)}
+        {#each session.corporateActions as { companyId, canBorrow, buyBack } (companyId)}
             <div class="company">
-                <strong>{company.name}</strong>
+                <strong>{getCompany(gameState, companyId).name}</strong>
                 <span
                     >Treasury {money(
-                        Number(cashOwnedBy(gameState, { kind: 'company', companyId: company.id }))
-                    )} · Loans {session.loans.loans(company.id)}/{session.loans.capacity(
-                        company.id
+                        Number(cashOwnedBy(gameState, { kind: 'company', companyId }))
+                    )} · Loans {session.loans.loans(companyId)}/{session.loans.capacity(
+                        companyId
                     )}</span
                 >
-                {#if canBorrow}<button
-                        disabled={busy}
-                        onclick={() => session.loans.take(company.id)}>Take a loan</button
+                {#if canBorrow}<button disabled={busy} onclick={() => session.loans.take(companyId)}
+                        >Take a loan</button
                     >{/if}
-                {#if nextShare}<button
-                        disabled={busy}
-                        onclick={() => buyBack(company.id, nextShare)}
-                        >Buy back a share ({money(
-                            companyMarketSpace(gameState.stockMarket, company.id).price
-                        )})</button
+                {#if buyBack}<button disabled={busy} onclick={() => session.buyBackShare(companyId)}
+                        >Buy back a share ({money(buyBack.price)})</button
                     >{/if}
             </div>
         {/each}

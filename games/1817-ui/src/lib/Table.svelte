@@ -6,18 +6,18 @@
         OperatingActions,
         SelectionAuctionBidding,
         SelectionAuctionLots,
-        requireEighteenXXSession,
         type HistoryDescription
     } from '@tabletop/18xx-ui'
     import type { GameAction } from '@tabletop/common'
     import { isBuyBackShares, isBuyOwedStations, isLiquidateCompany } from '@tabletop/1817'
     import CorporateActions from './CorporateActions.svelte'
+    import { requireEighteenSeventeenSession } from './session.svelte.js'
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
     let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
         $props()
-    const session = $derived(requireEighteenXXSession(gameSession))
+    const session = $derived(requireEighteenSeventeenSession(gameSession))
     const privateOperationDescription = () => undefined
     const reasons = {
         'no-train': 'it has no train',

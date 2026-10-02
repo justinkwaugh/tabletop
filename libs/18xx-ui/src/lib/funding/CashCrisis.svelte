@@ -1,10 +1,10 @@
 <script lang="ts">
+    import { getCompany } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const money = $derived(session.presentation.money)
     const crisis = $derived(session.cashCrisis.crisis)
-    const companyName = (id: string) =>
-        session.gameState.companies.find((company) => company.id === id)?.name ?? id
+    const companyName = (id: string) => getCompany(session.gameState, id).name
 </script>
 
 {#if crisis && session.gameState.machineState === 'RaisingCash'}

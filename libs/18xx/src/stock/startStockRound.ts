@@ -1,5 +1,6 @@
 import { createStockRound } from './stockRound.js'
 import * as Type from 'typebox'
+import type { LoanState } from '../loans/loans.js'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
@@ -40,7 +41,7 @@ export class HydratedStartStockRound
     constructor(data: StartStockRound) {
         super(data instanceof HydratedStartStockRound ? data.dehydrate() : data, Validator)
     }
-    apply(state: HydratedGameState & OperatingState & { interestRate?: number }): void {
+    apply(state: HydratedGameState & OperatingState & Pick<LoanState, 'interestRate'>): void {
         assert(
             this.source === ActionSource.System && canStartStockRound(state),
             'The operating set is not complete'

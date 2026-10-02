@@ -10,11 +10,13 @@ import {
     playersAfterPresident,
     privateOwner,
     settleCashPayments,
+    solventPlayerCount,
     stockCertificateCount,
     type CashPayment,
     type CompanyAuctionRules,
     type CompanyAuctionState,
     type CompanyFormation,
+    type ShareSaleTerms,
     type StationState,
     type StockRules,
     type StockState
@@ -218,6 +220,25 @@ export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
     form
 }
 
+/** A sale into the market, at no price drop, outside the acquisition and liquidation zones. */
+export function marketSale(
+    state: StockState,
+    companyId: string,
+    shares: number
+): ShareSaleTerms | string {
+    const company = getCompany(state, companyId)
+    if (!company.shareCount || !company.president || company.closed)
+        return 'This company has no saleable shares.'
+    if (inClosingZone(state.stockMarket, companyId))
+        return 'Shares in the acquisition or liquidation zone cannot be sold.'
+    return marketSaleTerms(state, companyId, {
+        destinationPoolId: MarketPoolId,
+        marketLimit: 1000,
+        maximumShares: shares,
+        movement: 0
+    })
+}
+
 export const EighteenSeventeenStockRules: StockRules = {
     round: EighteenSeventeenStockRoundRules,
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
@@ -241,23 +262,13 @@ export const EighteenSeventeenStockRules: StockRules = {
         }
     },
     saleTerms(state, companyId, shares) {
-        const company = getCompany(state, companyId)
-        if (!company.shareCount || !company.president || company.closed)
-            return 'This company has no saleable shares.'
-        if (!company.operated) return 'Shares cannot be sold until the company has operated.'
-        if (inClosingZone(state.stockMarket, companyId))
-            return 'Shares in the acquisition or liquidation zone cannot be sold.'
-        return marketSaleTerms(state, companyId, {
-            destinationPoolId: MarketPoolId,
-            marketLimit: 1000,
-            maximumShares: shares,
-            movement: 0
-        })
+        if (!getCompany(state, companyId).operated)
+            return 'Shares cannot be sold until the company has operated.'
+        return marketSale(state, companyId, shares)
     },
     // Bankruptcies lower the limit to that of the players left, never below three players'.
     certificateLimit(state) {
-        const players = state.players.length - (state.bankruptPlayerIds?.length ?? 0)
-        const limit = EighteenSeventeenCertificateLimits[Math.max(3, players)]
+        const limit = EighteenSeventeenCertificateLimits[Math.max(3, solventPlayerCount(state))]
         assertExists(limit, 'Unsupported 1817 player count')
         return limit
     },

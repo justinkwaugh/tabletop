@@ -18,12 +18,13 @@ import type { StationPlacementState } from '../stations/stationPlacement.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { trainsOwnedBy } from '../trains/train.js'
 import { nextOperatingCompany, type OperatingState } from './operatingSet.js'
-import type { LoanStep } from '../loans/loans.js'
+import type { LoanState } from '../loans/loans.js'
 
 export type OperatingTurnState = OperatingState &
     DistributionState &
     ConstructionState &
-    StationPlacementState & { loanStep?: LoanStep }
+    StationPlacementState &
+    Pick<LoanState, 'loanStep'>
 export function finishOperatingTurnReason(
     state: OperatingTurnState,
     rules: TrainRules,

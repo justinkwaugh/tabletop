@@ -1,39 +1,17 @@
 import { assertExists } from '@tabletop/common'
-import {
-    applyShareSale,
-    evaluateShareDisposal,
-    sharesOwned,
-    type CashCrisisRules,
-    type ShareSaleSettlement,
-    type StockMarketMove
-} from '@tabletop/18xx'
+import { type CashCrisisRules, type StockMarketMove } from '@tabletop/18xx'
 import { isLiquidated, liquidate } from './liquidation.js'
 import { MarketPoolId } from './roundRules.js'
-import { EighteenSeventeenStockRules } from './stockRules.js'
+import { EighteenSeventeenStockRules, marketSale } from './stockRules.js'
 
 export const EighteenSeventeenCashCrisisRules: CashCrisisRules = {
-    saleTerms: (state, companyId, shares, seller) =>
-        EighteenSeventeenStockRules.saleTerms(state, companyId, shares, seller),
-    // The player sells the largest ordinary sale of each company, then puts the rest in the
-    // market; every company they still preside is liquidated without a president.
+    // A cash crisis arises in an operating round, when even a company that has not yet
+    // operated may be sold.
+    saleTerms: (state, companyId, shares) => marketSale(state, companyId, shares),
+    presidencyCandidates: EighteenSeventeenStockRules.presidencyCandidates,
+    // Every share goes to the market without changing a presidency, so each company the player
+    // presides is liquidated without a president.
     bankrupt(state, playerId) {
-        const seller = { kind: 'player' as const, playerId }
-        const sales: ShareSaleSettlement[] = []
-        for (const company of state.companies) {
-            if (company.kind === 'private' || !company.started) continue
-            for (let shares = sharesOwned(state, company.id, seller); shares > 0; shares--) {
-                const { details } = evaluateShareDisposal(
-                    state,
-                    seller,
-                    [{ companyId: company.id, shares }],
-                    EighteenSeventeenStockRules
-                )
-                if (!details) continue
-                applyShareSale(state, details)
-                sales.push(...details.sales)
-                break
-            }
-        }
         const market = state.certificatePools.find((pool) => pool.id === MarketPoolId)
         assertExists(market, 'The market pool takes a bankrupt player’s shares')
         for (const certificate of state.certificates)
@@ -65,6 +43,6 @@ export const EighteenSeventeenCashCrisisRules: CashCrisisRules = {
                     companyId === state.loanStep?.companyId ||
                     !isLiquidated(state.stockMarket, companyId)
             )
-        return { sales, liquidatedCompanyIds, marketMoves }
+        return { liquidatedCompanyIds, marketMoves }
     }
 }

@@ -219,6 +219,39 @@ describe('the stock-round corporate action', () => {
         expect(getCompany(play.state, 'BA').loans).toBe(2)
     })
 
+    it('buys back two shares together, after which the player cannot buy shares', () => {
+        const play = blairsTurn((state) => {
+            for (const certificate of state.certificates)
+                if (certificate.id === 'BA:share:1' || certificate.id === 'BA:share:3') {
+                    certificate.owner = { kind: 'bank' }
+                    certificate.poolId = 'market'
+                }
+            setCash(state, 'BA', 1000)
+        })
+        const price = play.state.stockMarket.spaces.find(
+            (space) => space.id === companyMarketSpace(play.state.stockMarket, 'BA').id
+        )?.price
+        assertExists(price, 'BA has a price')
+        play.act('BuyBackShares', {
+            companyId: 'BA',
+            certificateIds: ['BA:share:1', 'BA:share:2']
+        })
+        expect(treasury(play.state, 'BA')).toBe(1000 - 2 * price)
+        expect(play.state.activePlayerIds).toEqual(['blair'])
+        expect(play.valid('blair')).toEqual([
+            'BuyBackShares',
+            'FinishStockTurn',
+            'SetStockInstruction'
+        ])
+        expect(() =>
+            play.act('BuyShares', {
+                buyer: { kind: 'player', playerId: 'blair' },
+                certificateId: 'BA:share:3',
+                expectedPrice: price
+            })
+        ).toThrow()
+    })
+
     it('is not open after the player has bought shares', () => {
         const play = blairsTurn()
         play.act('BuyShares', {

@@ -57,6 +57,11 @@ export class RepayingLoansHandler implements MachineStateHandler<HydratedAction,
         ]
     }
 
+    private onlyFinishing(state: State, playerId: string): boolean {
+        const decisions = this.decisions(state, playerId)
+        return decisions.length === 1 && decisions[0] === 'FinishOperatingTurn'
+    }
+
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
         const companyId = this.companyId(state)
@@ -69,10 +74,12 @@ export class RepayingLoansHandler implements MachineStateHandler<HydratedAction,
         if (!isTakeLoan(action) && !isRepayLoan(action) && !isFinishOperatingTurn(action))
             return false
         if (action.companyId !== companyId) return false
-        const decisions = this.decisions(state, action.playerId)
         if (isFinishOperatingTurn(action) && action.source === ActionSource.System)
-            return decisions.length === 1 && decisions[0] === 'FinishOperatingTurn'
-        return action.source === ActionSource.User && decisions.includes(action.type)
+            return this.onlyFinishing(state, action.playerId)
+        return (
+            action.source === ActionSource.User &&
+            this.decisions(state, action.playerId).includes(action.type)
+        )
     }
 
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
@@ -89,11 +96,11 @@ export class RepayingLoansHandler implements MachineStateHandler<HydratedAction,
             }
             state.loanStep = { companyId }
         }
-        const playerId = controllingOwner(state, companyId)?.playerId
-        if (!playerId) return
+        const president = controllingOwner(state, companyId)
+        assertExists(president, 'The operating company has a president')
+        const { playerId } = president
         state.activePlayerIds = [playerId]
-        const decisions = this.decisions(state, playerId)
-        if (decisions.length === 1 && decisions[0] === 'FinishOperatingTurn')
+        if (this.onlyFinishing(state, playerId))
             context.addSystemAction(FinishOperatingTurn, { playerId, companyId })
     }
 

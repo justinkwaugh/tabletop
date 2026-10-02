@@ -3,7 +3,7 @@ import {
     RepayLoan,
     TakeLoan,
     companyLoans,
-    interestOwed,
+    isPayInterest,
     nextOperatingCompany,
     type EighteenXXState,
     type EighteenXXTitleRules
@@ -31,6 +31,16 @@ export class LoanModule {
     canTake = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('TakeLoan')
     )
+    /** The interest the operating company has paid this turn, once it has. */
+    interestPaid = $derived.by(() => {
+        const companyId = this.operatingCompanyId
+        const actions = this.session.recordedActions
+        const turnStart = actions.findLastIndex((action) => action.type === 'StartOperatingTurn')
+        const payment = actions
+            .slice(turnStart + 1)
+            .find((action) => isPayInterest(action) && action.companyId === companyId)
+        return payment && isPayInterest(payment) ? payment.metadata : undefined
+    })
     canRepay = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('RepayLoan')
     )
@@ -41,13 +51,6 @@ export class LoanModule {
     capacity(companyId: string): number {
         assertExists(this.rules, 'This title has no loans')
         return this.rules.capacity(this.session.state, companyId)
-    }
-    /** What the company owes at the fixed rate, while one is fixed. */
-    interest(companyId: string): number | undefined {
-        const rules = this.rules
-        return rules && this.session.state.interestRate !== undefined
-            ? interestOwed(this.session.state, rules, companyId)
-            : undefined
     }
 
     async take(companyId: string) {

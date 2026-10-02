@@ -6,9 +6,7 @@ import {
     HydratableAction,
     assert,
     assertExists,
-    type HydratedAction,
-    type HydratedGameState,
-    type MachineContext
+    type HydratedGameState
 } from '@tabletop/common'
 import {
     StockMarketMove,
@@ -17,13 +15,13 @@ import {
     placeStockMarker,
     trainsOwnedBy,
     type EighteenXXStateHandler,
-    type HydratedEighteenXXState,
     type OperatingState,
     type StockMarket,
     type StockState,
     type TrainState
 } from '@tabletop/18xx'
 import { isLiquidationSpace } from './stockMarket.js'
+import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
 export function isLiquidated(market: StockMarket, companyId: string): boolean {
     return isLiquidationSpace(companyMarketSpace(market, companyId))
@@ -99,33 +97,15 @@ function trainlessCompany(state: OperatingState & TrainState): string | undefine
 }
 
 /** Liquidates a company that ends its turn without a train before play moves on. */
-export class TrainlessLiquidationHandler implements EighteenXXStateHandler {
-    constructor(private readonly handler: EighteenXXStateHandler) {}
-    isValidAction(
-        action: HydratedAction,
-        context: MachineContext<HydratedEighteenXXState>
-    ): boolean {
-        if (isLiquidateCompany(action))
-            return (
-                action.reason === 'no-train' &&
-                action.companyId === trainlessCompany(context.gameState)
-            )
-        return this.handler.isValidAction(action, context)
-    }
-    validActionsForPlayer(
-        playerId: string,
-        context: MachineContext<HydratedEighteenXXState>
-    ): string[] {
-        return this.handler.validActionsForPlayer(playerId, context)
-    }
-    enter(context: MachineContext<HydratedEighteenXXState>): void {
-        const companyId = trainlessCompany(context.gameState)
-        if (companyId) context.addSystemAction(LiquidateCompany, { companyId, reason: 'no-train' })
-        else this.handler.enter(context)
-    }
-    onAction(action: HydratedAction, context: MachineContext<HydratedEighteenXXState>): string {
-        return isLiquidateCompany(action)
-            ? context.gameState.machineState
-            : this.handler.onAction(action, context)
-    }
+export function liquidatesTrainlessCompanies(
+    handler: EighteenXXStateHandler
+): EighteenXXStateHandler {
+    return new SystemActionFirstHandler(
+        handler,
+        LiquidateCompany,
+        (state): Partial<LiquidateCompany> | undefined => {
+            const companyId = trainlessCompany(state)
+            return companyId ? { companyId, reason: 'no-train' } : undefined
+        }
+    )
 }

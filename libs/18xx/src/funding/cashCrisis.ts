@@ -2,13 +2,8 @@ import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { sharesOwned, type Owner } from '../finance/finance.js'
 import { StockMarketMove } from '../stock/stockMarket.js'
-import {
-    ShareSaleSettlement,
-    evaluateShareDisposal,
-    type ShareSale,
-    type ShareSaleResult
-} from '../stock/shareSale.js'
-import type { ShareSaleTerms } from '../stock/stockRules.js'
+import { evaluateShareDisposal, type ShareSale, type ShareSaleResult } from '../stock/shareSale.js'
+import type { ShareSaleTerms, StockRules } from '../stock/stockRules.js'
 import type { StockState } from '../stock/stockState.js'
 import type { OperatingState } from '../operating/operatingSet.js'
 import type { LoanState } from '../loans/loans.js'
@@ -30,7 +25,6 @@ export type CashCrisisState = OperatingState &
 
 export const BankruptcyRecord = Type.Object(
     {
-        sales: Type.Array(ShareSaleSettlement),
         liquidatedCompanyIds: Type.Array(Id),
         marketMoves: Type.Array(StockMarketMove)
     },
@@ -38,8 +32,8 @@ export const BankruptcyRecord = Type.Object(
 )
 export type BankruptcyRecord = Type.Static<typeof BankruptcyRecord>
 
-export interface CashCrisisRules {
-    /** The terms of a share sale made to raise cash; a presidency never changes hands. */
+/** A sale to raise cash is refused if it would pass a presidency to another player. */
+export interface CashCrisisRules extends Pick<StockRules, 'presidencyCandidates'> {
     saleTerms(
         state: StockState,
         companyId: string,
@@ -53,8 +47,17 @@ export interface CashCrisisRules {
     bankrupt(state: CashCrisisState, playerId: string): BankruptcyRecord
 }
 
-export function isBankrupt(state: CashCrisisState, playerId: string): boolean {
+export function isBankrupt(state: StockState, playerId: string): boolean {
     return !!state.bankruptPlayerIds?.includes(playerId)
+}
+
+export function solventPlayerCount(state: StockState): number {
+    return state.players.length - (state.bankruptPlayerIds?.length ?? 0)
+}
+
+/** Players in turn order, followed by those who have gone bankrupt and left it. */
+export function playersWithBankruptLast(state: StockState): string[] {
+    return [...state.turnManager.turnOrder, ...(state.bankruptPlayerIds ?? [])]
 }
 
 export function evaluateCrisisSale(
@@ -66,11 +69,11 @@ export function evaluateCrisisSale(
     const crisis = state.cashCrisis
     if (crisis?.playerId !== playerId) return { reason: 'This player has no debt to raise.' }
     const seller = { kind: 'player' as const, playerId }
-    const result = evaluateShareDisposal(state, seller, [sale], {
-        saleTerms: rules.saleTerms,
-        presidencyCandidates: () => []
-    })
-    if (result.details && (sale.shares - 1) * result.details.sales[0].price >= crisis.amount)
+    const result = evaluateShareDisposal(state, seller, [sale], rules)
+    if (!result.details) return result
+    const [settlement] = result.details.sales
+    if (settlement.presidency) return { reason: 'This sale would pass on a presidency.' }
+    if ((sale.shares - 1) * settlement.price >= crisis.amount)
         return { reason: 'Sell only as many shares as the debt needs.' }
     return result
 }

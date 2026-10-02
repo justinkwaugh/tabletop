@@ -2,6 +2,7 @@ import {
     certificateWealthItem,
     getCompany,
     marketShareValue,
+    solventPlayerCount,
     type EndingRules
 } from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
@@ -11,8 +12,7 @@ export const EighteenSeventeenEndingRules: EndingRules = {
     // bought or exported, makes the next set the last: 3 rounds after an 8 in a set's second
     // round, 2 otherwise.
     trigger(state) {
-        const solvent = state.players.length - (state.bankruptPlayerIds?.length ?? 0)
-        if (solvent <= 1) return { reason: 'Bankruptcy' }
+        if (solventPlayerCount(state) <= 1) return { reason: 'Bankruptcy' }
         const eightLeftDepot = state.trainInventory.trains.some(
             (train) => train.definitionId === '8' && train.status !== 'depot'
         )

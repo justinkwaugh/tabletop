@@ -92,3 +92,21 @@ test('1817 presidents in a cash crisis can go bankrupt after confirming', async 
     await page.getByRole('tab', { name: 'Players', exact: true }).click()
     await expect(page.getByText('Bankrupt', { exact: true })).toBeVisible()
 })
+
+test('1817 presidents act for a company in place of their stock turn', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('trading')
+    await page.getByRole('button', { name: 'Pass', exact: true }).first().click()
+    const corporate = page.getByRole('region', { name: 'Corporate actions' })
+    await expect(corporate).toContainText('Boston and Albany Railroad')
+    await corporate.getByRole('button', { name: 'Take a loan' }).click()
+    await expect(corporate).toContainText('Acting for')
+    await expect(corporate).toContainText('Loans 1/5')
+    await corporate.getByRole('button', { name: 'Buy back a share ($110)' }).click()
+    await expect(page.getByRole('region', { name: 'Corporate actions' })).toHaveCount(0)
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
+        'bought back 1 Boston and Albany Railroad share'
+    )
+})

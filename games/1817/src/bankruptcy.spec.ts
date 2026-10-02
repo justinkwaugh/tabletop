@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { cashOwnedBy, companyMarketSpace, getCompany, type EighteenXXState } from '@tabletop/18xx'
+import {
+    cashOwnedBy,
+    companyMarketSpace,
+    crisisSales,
+    evaluateCrisisSale,
+    getCompany,
+    type EighteenXXState
+} from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
-import { EighteenSeventeenStockRules, isLiquidated } from './index.js'
+import {
+    EighteenSeventeenCashCrisisRules,
+    EighteenSeventeenStockRules,
+    isLiquidated
+} from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 
 function setCash(state: EighteenXXState, owner: 'company' | 'player', id: string, amount: number) {
@@ -32,6 +43,8 @@ function pleDefaults(prepare: (state: EighteenXXState) => void = () => {}) {
     play.act('FinishTrack', { companyId: 'PLE' })
     return play
 }
+
+const alex = { kind: 'player' as const, playerId: 'alex' }
 
 const cash = (play: ExamplePlay, playerId: string) =>
     cashOwnedBy(play.state, { kind: 'player', playerId })
@@ -69,6 +82,38 @@ describe('a cash crisis', () => {
     })
 })
 
+describe('crisis sales', () => {
+    it('may sell a company that has not yet operated', () => {
+        const state = structuredClone(pleDefaults().state)
+        getCompany(state, 'BA').operated = false
+        expect(EighteenSeventeenStockRules.saleTerms(state, 'BA', 1, alex)).toBeTypeOf('string')
+        expect(EighteenSeventeenCashCrisisRules.saleTerms(state, 'BA', 1, alex)).toEqual(
+            expect.objectContaining({ price: companyMarketSpace(state.stockMarket, 'BA').price })
+        )
+    })
+
+    it('never passes on a presidency', () => {
+        // Alex, in debt, presides BA with two shares; blair holds two others.
+        const state = structuredClone(pleDefaults().state)
+        for (const certificate of state.certificates)
+            if (!certificate.retired && certificate.companyId === 'BA') {
+                if (certificate.kind === 'share' && certificate.president) certificate.owner = alex
+                else if (certificate.id === 'BA:share:1' || certificate.id === 'BA:share:2') {
+                    certificate.owner = { kind: 'player', playerId: 'blair' }
+                    delete certificate.poolId
+                }
+            }
+        getCompany(state, 'BA').president = alex
+        expect(
+            evaluateCrisisSale(state, EighteenSeventeenCashCrisisRules, 'alex', {
+                companyId: 'BA',
+                shares: 2
+            }).reason
+        ).toBe('This sale would pass on a presidency.')
+        expect(crisisSales(state, EighteenSeventeenCashCrisisRules, 'alex')).toEqual([])
+    })
+})
+
 describe('bankruptcy', () => {
     it('takes the player’s shares and cash, liquidates their companies and removes them', () => {
         const play = pleDefaults()
@@ -76,6 +121,13 @@ describe('bankruptcy', () => {
         expect(play.state.bankruptPlayerIds).toEqual(['alex'])
         expect(play.state.turnManager.turnOrder).not.toContain('alex')
         expect(getCompany(play.state, 'PLE').president).toBeUndefined()
+        expect(getCompany(play.state, 'BA').president).toEqual({
+            kind: 'player',
+            playerId: 'blair'
+        })
+        expect(
+            play.state.certificates.find((certificate) => certificate.id === 'BA:share:1')
+        ).toMatchObject({ owner: { kind: 'bank' }, poolId: 'market' })
         expect(cash(play, 'alex')).toBe(0)
         expect(
             play.state.certificates.some(

@@ -34,14 +34,14 @@ import {
 import {
     BuyOwedStations,
     HydratedBuyOwedStations,
-    OwedStationsHandler,
-    UnpaidStationsHandler,
+    buysOwedStations,
+    liquidatesUnpaidStations,
     isBuyOwedStations
 } from '../owedStations.js'
 import {
     HydratedLiquidateCompany,
     LiquidateCompany,
-    TrainlessLiquidationHandler,
+    liquidatesTrainlessCompanies,
     isLiquidateCompany
 } from '../liquidation.js'
 
@@ -67,10 +67,9 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
     loanRules: EighteenSeventeenLoanRules,
     cashCrisisRules: EighteenSeventeenCashCrisisRules,
     decisionHandlers: {
-        StockRound: (family) => new OwedStationsHandler(new CorporateActionsHandler(family)),
-        StartingOperatingSet: (family) =>
-            new OwedStationsHandler(new UnpaidStationsHandler(family)),
-        OperatingSet: (family) => new TrainlessLiquidationHandler(family)
+        StockRound: (family) => buysOwedStations(new CorporateActionsHandler(family)),
+        StartingOperatingSet: (family) => buysOwedStations(liquidatesUnpaidStations(family)),
+        OperatingSet: liquidatesTrainlessCompanies
     },
     titleActions: [
         defineAction(BuyBackShares, isBuyBackShares, (action) => new HydratedBuyBackShares(action)),

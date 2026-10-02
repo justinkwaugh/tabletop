@@ -272,8 +272,7 @@ export function createEighteenXXRuntime(
                         after('BuyingTrains')
                     )
                 )
-            ),
-            !loanRules
+            )
         ),
         ...(loanRules
             ? {

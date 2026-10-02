@@ -6,20 +6,18 @@ import {
     HydratableAction,
     assert,
     assertExists,
-    type HydratedAction,
-    type HydratedGameState,
-    type MachineContext
+    type HydratedGameState
 } from '@tabletop/common'
 import {
     CashPayment,
     finiteCashOwnedBy,
     type EighteenXXStateHandler,
-    type HydratedEighteenXXState,
     type StationState,
     type StockState
 } from '@tabletop/18xx'
 import { StationPrice, buyOwedStations, stationsOwed } from './stockRules.js'
-import { LiquidateCompany, isLiquidateCompany, isLiquidated } from './liquidation.js'
+import { LiquidateCompany, isLiquidated } from './liquidation.js'
+import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
 const Fields = Type.Object({
     type: Type.Literal('BuyOwedStations'),
@@ -43,7 +41,6 @@ export function isBuyOwedStations(action: GameAction): action is BuyOwedStations
     )
 }
 
-/** The first company that owes stations and can now pay for them. */
 export function companyAbleToBuyStations(state: StockState & StationState): string | undefined {
     return state.companies.find((company) => {
         const owed = stationsOwed(state, company.id)
@@ -80,69 +77,25 @@ export class HydratedBuyOwedStations
 }
 
 /** Buys owed stations as soon as a company's treasury can pay for them. */
-export class OwedStationsHandler implements EighteenXXStateHandler {
-    constructor(private readonly handler: EighteenXXStateHandler) {}
-    isValidAction(
-        action: HydratedAction,
-        context: MachineContext<HydratedEighteenXXState>
-    ): boolean {
-        return isBuyOwedStations(action)
-            ? companyAbleToBuyStations(context.gameState) === action.companyId
-            : this.handler.isValidAction(action, context)
-    }
-    validActionsForPlayer(
-        playerId: string,
-        context: MachineContext<HydratedEighteenXXState>
-    ): string[] {
-        return this.handler.validActionsForPlayer(playerId, context)
-    }
-    enter(context: MachineContext<HydratedEighteenXXState>): void {
-        const companyId = companyAbleToBuyStations(context.gameState)
-        if (companyId) context.addSystemAction(BuyOwedStations, { companyId })
-        else this.handler.enter(context)
-    }
-    onAction(action: HydratedAction, context: MachineContext<HydratedEighteenXXState>): string {
-        return isBuyOwedStations(action)
-            ? context.gameState.machineState
-            : this.handler.onAction(action, context)
-    }
+export function buysOwedStations(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+    return new SystemActionFirstHandler(handler, BuyOwedStations, (state) => {
+        const companyId = companyAbleToBuyStations(state)
+        return companyId ? { companyId } : undefined
+    })
 }
 
 /** A company that still owes stations when the stock round ends is liquidated. */
-export class UnpaidStationsHandler implements EighteenXXStateHandler {
-    constructor(private readonly handler: EighteenXXStateHandler) {}
-    private debtor(state: StockState & StationState): string | undefined {
-        return state.companies.find(
-            (company) =>
-                stationsOwed(state, company.id) > 0 && !isLiquidated(state.stockMarket, company.id)
-        )?.id
-    }
-    isValidAction(
-        action: HydratedAction,
-        context: MachineContext<HydratedEighteenXXState>
-    ): boolean {
-        if (isLiquidateCompany(action))
-            return (
-                action.reason === 'unpaid-stations' &&
-                action.companyId === this.debtor(context.gameState)
-            )
-        return this.handler.isValidAction(action, context)
-    }
-    validActionsForPlayer(
-        playerId: string,
-        context: MachineContext<HydratedEighteenXXState>
-    ): string[] {
-        return this.handler.validActionsForPlayer(playerId, context)
-    }
-    enter(context: MachineContext<HydratedEighteenXXState>): void {
-        const companyId = this.debtor(context.gameState)
-        if (companyId)
-            context.addSystemAction(LiquidateCompany, { companyId, reason: 'unpaid-stations' })
-        else this.handler.enter(context)
-    }
-    onAction(action: HydratedAction, context: MachineContext<HydratedEighteenXXState>): string {
-        return isLiquidateCompany(action)
-            ? context.gameState.machineState
-            : this.handler.onAction(action, context)
-    }
+export function liquidatesUnpaidStations(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+    return new SystemActionFirstHandler(
+        handler,
+        LiquidateCompany,
+        (state): Partial<LiquidateCompany> | undefined => {
+            const companyId = state.companies.find(
+                (company) =>
+                    stationsOwed(state, company.id) > 0 &&
+                    !isLiquidated(state.stockMarket, company.id)
+            )?.id
+            return companyId ? { companyId, reason: 'unpaid-stations' } : undefined
+        }
+    )
 }
