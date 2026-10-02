@@ -8,7 +8,7 @@
     } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import AntiqueCard from '$lib/components/AntiqueCard.svelte'
-    import MarketMark from '$lib/components/MarketMark.svelte'
+    import MarketSwatch from '$lib/components/MarketSwatch.svelte'
     import { antiqueProgress } from '$lib/utils/antiqueProgress.js'
 
     let { player, playerState }: { player: Player; playerState: HydratedMarracashPlayerState } =
@@ -20,14 +20,13 @@
     let shopCount = $derived(gameSession.gameState.ownedShopCount(player.id))
     let revealRank = $derived(gameSession.gameState.antiqueRevealOrder.indexOf(player.id))
     let hand = $derived(antiqueProgress(playerState.antiques, customers))
-    let textColor = $derived(gameSession.colors.getPlayerTextColor(player.id))
     let money = $derived(gameSession.visibleMoney(player.id))
 </script>
 
 <div
-    class="rounded-lg {gameSession.colors.getPlayerBgColor(
-        player.id
-    )} {textColor} px-3 py-1 text-left"
+    class="rounded-lg px-3 py-1 text-left"
+    style:background-color={gameSession.colors.getPlayerBgColorValue(player.id)}
+    style:color={gameSession.colors.getPlayerTextColorValue(player.id)}
     class:pulse-border={isTurn}
     class:border-2={isTurn}
 >
@@ -44,7 +43,7 @@
         <span class="flex items-center gap-1 rounded bg-white/85 px-1 text-black">
             {#each Object.values(MarketColor) as color (color)}
                 <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-                    <MarketMark {color} x={6} y={6} size={10} filled />
+                    <MarketSwatch {color} x={6} y={6} size={10} />
                 </svg>
                 <span class="mr-1 font-semibold" aria-label="{color} customers"
                     >{customers[color]}</span

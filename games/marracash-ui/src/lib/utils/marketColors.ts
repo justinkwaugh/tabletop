@@ -1,59 +1,44 @@
 import { MarketColor } from '@tabletop/marracash'
+import { ColorblindColor } from '@tabletop/frontend-components'
 
-export enum MarketSymbol {
-    Triangle = 'triangle',
-    Circle = 'circle',
-    Square = 'square',
-    Diamond = 'diamond',
-    Star = 'star'
+export type MarketPalette = { fill: string; stroke: string; tint: string; wash: number }
+
+const StandardMarketPalettes: Record<MarketColor, MarketPalette> = {
+    [MarketColor.Red]: { fill: '#d9534a', stroke: '#8f2620', tint: '#f2b8b3', wash: 0.55 },
+    [MarketColor.Blue]: { fill: '#4f7fd6', stroke: '#24468c', tint: '#b9cdf2', wash: 0.55 },
+    [MarketColor.Green]: { fill: '#4fae62', stroke: '#256b33', tint: '#bfe3c6', wash: 0.55 },
+    [MarketColor.Purple]: { fill: '#9a5cc6', stroke: '#5a2c80', tint: '#dcc4ee', wash: 0.55 },
+    [MarketColor.Yellow]: { fill: '#e8b830', stroke: '#8a6a0c', tint: '#f6e2a3', wash: 0.55 }
 }
 
-export type MarketPalette = { fill: string; stroke: string; tint: string; symbol: MarketSymbol }
-
-export const MarketPalettes: Record<MarketColor, MarketPalette> = {
-    [MarketColor.Red]: {
-        fill: '#d9534a',
-        stroke: '#8f2620',
-        tint: '#f2b8b3',
-        symbol: MarketSymbol.Triangle
-    },
+const ColorblindMarketPalettes: Record<MarketColor, MarketPalette> = {
+    [MarketColor.Red]: { fill: '#d64f00', stroke: '#702900', tint: '#f5ab80', wash: 0.72 },
     [MarketColor.Blue]: {
-        fill: '#4f7fd6',
-        stroke: '#24468c',
-        tint: '#b9cdf2',
-        symbol: MarketSymbol.Circle
+        fill: ColorblindColor.Blue,
+        stroke: '#003f63',
+        tint: '#a8d1ea',
+        wash: 0.55
     },
     [MarketColor.Green]: {
-        fill: '#4fae62',
-        stroke: '#256b33',
-        tint: '#bfe3c6',
-        symbol: MarketSymbol.Square
+        fill: ColorblindColor.BluishGreen,
+        stroke: '#005740',
+        tint: '#a6dcc9',
+        wash: 0.55
     },
     [MarketColor.Purple]: {
-        fill: '#9a5cc6',
-        stroke: '#5a2c80',
-        tint: '#dcc4ee',
-        symbol: MarketSymbol.Diamond
+        fill: ColorblindColor.ReddishPurple,
+        stroke: '#7d3a60',
+        tint: '#ecc9dc',
+        wash: 0.55
     },
     [MarketColor.Yellow]: {
-        fill: '#e8b830',
-        stroke: '#8a6a0c',
-        tint: '#f6e2a3',
-        symbol: MarketSymbol.Star
+        fill: ColorblindColor.Yellow,
+        stroke: '#857c10',
+        tint: '#f8f2b0',
+        wash: 0.55
     }
 }
 
-export function symbolPath(symbol: MarketSymbol): string {
-    switch (symbol) {
-        case MarketSymbol.Triangle:
-            return 'M 0 -1 L 0.95 0.75 L -0.95 0.75 Z'
-        case MarketSymbol.Circle:
-            return 'M 0.85 0 A 0.85 0.85 0 1 1 -0.85 0 A 0.85 0.85 0 1 1 0.85 0 Z'
-        case MarketSymbol.Square:
-            return 'M -0.75 -0.75 H 0.75 V 0.75 H -0.75 Z'
-        case MarketSymbol.Diamond:
-            return 'M 0 -1 L 0.85 0 L 0 1 L -0.85 0 Z'
-        case MarketSymbol.Star:
-            return 'M 0 -1 L 0.24 -0.31 L 0.95 -0.31 L 0.38 0.12 L 0.59 0.81 L 0 0.4 L -0.59 0.81 L -0.38 0.12 L -0.95 -0.31 L -0.24 -0.31 Z'
-    }
+export function marketPalettes(colorBlind: boolean): Record<MarketColor, MarketPalette> {
+    return colorBlind ? ColorblindMarketPalettes : StandardMarketPalettes
 }

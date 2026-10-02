@@ -3,15 +3,13 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ownerDiscOutline } from '$lib/utils/playerColors.js'
     import { ShopHaloFilterId, shopRect } from '$lib/utils/boardGeometry.js'
-    import { MarketPalettes } from '$lib/utils/marketColors.js'
-    import MarketMark from '$lib/components/MarketMark.svelte'
 
     let { shop, selectable }: { shop: ShopState; selectable: boolean } = $props()
     const gameSession = getGameSession()
 
     let rect = $derived(shopRect(shop.shopId, 6))
     let shopColor = $derived(getShop(shop.shopId).color)
-    let palette = $derived(MarketPalettes[shopColor])
+    let palette = $derived(gameSession.marketPalettes[shopColor])
     let centerX = $derived(rect.x + rect.width / 2)
     let centerY = $derived(rect.y + rect.height / 2)
 
@@ -58,9 +56,8 @@
         height={rect.height - 12}
         rx="7"
         fill={palette.fill}
-        opacity="0.55"
+        opacity={palette.wash}
     ></rect>
-    <MarketMark color={shopColor} x={rect.x + 20} y={rect.y + 20} size={20} />
     {#if ownerDisc}
         <circle
             cx={centerX}

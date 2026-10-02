@@ -2,8 +2,7 @@
     import type { MarketColor } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let { color, x, y, size }: { color: MarketColor; x: number; y: number; size: number } =
-        $props()
+    let { color, x, y, size }: { color: MarketColor; x: number; y: number; size: number } = $props()
     const gameSession = getGameSession()
 
     let palette = $derived(gameSession.marketPalettes[color])

@@ -1,10 +1,11 @@
 <script lang="ts">
     import type { MarketColor } from '@tabletop/marracash'
-    import { MarketPalettes } from '$lib/utils/marketColors.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { color }: { color: MarketColor } = $props()
+    const gameSession = getGameSession()
 
-    let palette = $derived(MarketPalettes[color])
+    let palette = $derived(gameSession.marketPalettes[color])
 </script>
 
 <path

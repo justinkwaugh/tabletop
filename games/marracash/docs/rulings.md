@@ -60,8 +60,8 @@ The **Concealed Cash** game option, off by default. When it's on, each player's 
 ### Presentation
 
 - **Player colours:** every site colour except the five visitor colours: orange, pink, brown, gray, black and white. Owner markers get a contrasting outline, because orange sits near the yellow and red stalls and pink near purple and red.
-- **Colour-blind support:** each market colour also has a shape, drawn on pawns and shop tiles: red triangle, blue circle, green square, purple diamond, yellow star.
-- **Artwork:** drawn independently, with generic pawns for visitors and player-coloured discs for shop signs.
+- **Colour-blind support:** with the site's colour-blind palette preference on, the five market colours switch to the Okabe–Ito vermilion, blue, bluish green, reddish purple and yellow, and player colours use that palette's remaining entries. Colour alone tells markets and players apart, so pawns, shops and cards carry no shape symbols.
+- **Artwork:** drawn independently, with generic pawns for visitors, and player-coloured discs for shop signs.
 
 ## Forum rulings
 

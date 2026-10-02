@@ -23,6 +23,7 @@ import {
     type MarracashSelection,
     type MarracashSelectionValues
 } from './stagedSelection.js'
+import { marketPalettes } from '$lib/utils/marketColors.js'
 
 export class MarracashGameSession extends GameSession<
     MarracashProjectedState,
@@ -35,6 +36,8 @@ export class MarracashGameSession extends GameSession<
             !this.isViewingHistory &&
             (this.hasManualSelection || Boolean(this.undoableAction))
     )
+
+    readonly marketPalettes = $derived(marketPalettes(this.colors.colorBlind))
 
     private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)
 

@@ -1,6 +1,5 @@
 <script lang="ts">
     import type { MarketColor } from '@tabletop/marracash'
-    import MarketMark from '$lib/components/MarketMark.svelte'
     import PawnFigure from '$lib/components/PawnFigure.svelte'
 
     let {
@@ -15,5 +14,4 @@
 
 <g transform="translate({x} {y}) scale({scale})">
     <PawnFigure {color} />
-    <MarketMark {color} x={0} y={4} size={7} />
 </g>
