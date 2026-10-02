@@ -1,0 +1,111 @@
+import { assertExists } from '@tabletop/common'
+import * as Type from 'typebox'
+import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
+import {
+    finiteCashOwnedBy,
+    getCompany,
+    sameOwner,
+    type FinancialState
+} from '../finance/finance.js'
+import {
+    addCompanyStations,
+    replaceStation,
+    type Station,
+    type StationState
+} from '../map/station.js'
+import type { TrainState } from '../trains/train.js'
+
+export const AssetTransfer = Type.Object(
+    {
+        payment: Type.Optional(CashPayment),
+        trainIds: Type.Array(Type.String()),
+        privateIds: Type.Array(Type.String()),
+        loans: Type.Integer({ minimum: 0 })
+    },
+    { additionalProperties: false }
+)
+export type AssetTransfer = Type.Static<typeof AssetTransfer>
+
+/** Moves one company's cash, trains, privates and loans to another. */
+export function transferCompanyAssets(
+    state: FinancialState & TrainState,
+    fromId: string,
+    toId: string
+): AssetTransfer {
+    const from = { kind: 'company' as const, companyId: fromId }
+    const to = { kind: 'company' as const, companyId: toId }
+    const cash = finiteCashOwnedBy(state, from)
+    const payment = cash ? { from, to, amount: cash } : undefined
+    if (payment) settleCashPayments(state, [payment])
+    const trainIds: string[] = []
+    for (const train of state.trainInventory.trains)
+        if (train.status === 'owned' && sameOwner(train.owner, from)) {
+            train.owner = { ...to }
+            trainIds.push(train.id)
+        }
+    const privateIds: string[] = []
+    for (const certificate of state.certificates)
+        if (
+            !certificate.retired &&
+            certificate.kind === 'private' &&
+            sameOwner(certificate.owner, from)
+        ) {
+            certificate.owner = { ...to }
+            privateIds.push(certificate.companyId)
+        }
+    const source = getCompany(state, fromId)
+    const loans = source.loans ?? 0
+    if (loans) {
+        const target = getCompany(state, toId)
+        target.loans = (target.loans ?? 0) + loans
+        delete source.loans
+    }
+    return { ...(payment ? { payment } : {}), trainIds, privateIds, loans }
+}
+
+export const StationTransfer = Type.Object(
+    { movedIds: Type.Array(Type.String()), droppedIds: Type.Array(Type.String()) },
+    { additionalProperties: false }
+)
+export type StationTransfer = Type.Static<typeof StationTransfer>
+
+/**
+ * Moves one company's placed stations onto new station pieces of another. Where both have a
+ * station in the same city, the absorbed one is dropped; unplaced stations are removed.
+ */
+export function moveCompanyStations(
+    state: StationState,
+    fromId: string,
+    toId: string
+): StationTransfer {
+    const placed = (companyId: string) =>
+        state.stations.filter(
+            (station): station is Extract<Station, { status: 'placed' }> =>
+                station.companyId === companyId && station.status === 'placed'
+        )
+    const movedIds: string[] = []
+    const droppedIds: string[] = []
+    for (const station of placed(fromId)) {
+        const shared = placed(toId).some(
+            (own) =>
+                own.position.locationId === station.position.locationId &&
+                own.position.nodeId === station.position.nodeId
+        )
+        if (shared) {
+            droppedIds.push(station.id)
+            continue
+        }
+        addCompanyStations(state, toId, 1)
+        const added = state.stations.at(-1)
+        assertExists(added, 'The survivor gains a station for each one moved')
+        replaceStation(state, station.id, added.id)
+        movedIds.push(added.id)
+    }
+    state.stations = state.stations.map(
+        (station): Station =>
+            station.companyId === fromId && station.status !== 'removed'
+                ? { id: station.id, companyId: fromId, status: 'removed' }
+                : station
+    )
+    return { movedIds, droppedIds }
+}

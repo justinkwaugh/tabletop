@@ -1134,6 +1134,26 @@ presidency.
   groups it as "MR 2.1", from the round's start action; 1817's table shows the round's
   panels in place of the operating panels.
 
+### Implementation notes for slice 5
+
+- **Entry.** `MergerRoundStartHandler` wraps the operating set and queues
+  `StartMergerRound` once a round's companies and exports are done and no merger round
+  has run for it; `EndMergerRound` returns to the operating set, which starts the next
+  OR or ends the set.
+- **Automatic steps.** A company with no conversion or merger passes by itself, a
+  player who cannot buy a treasury share passes, and a company that cannot borrow
+  finishes, so a round where nobody can act passes straight on.
+- **Trading.** `evaluateShareTransfer` and `applyShareTransfer` are the family's share
+  purchase without the stock round's turn rules, which treasury purchases after a
+  conversion reuse. The president keeps buying until they choose to stop or cannot buy;
+  holding and certificate limits apply as in the stock round.
+- **Mergers.** A 5+5 merger gives the survivor a share for each of the target's shares
+  and shorts (`addShort` adds a short without its market share), recomputes the
+  presidency, then cancels each holder's shorts against their shares. Unplaced station
+  pieces over 8 are removed first; placed ones over 8 await the president.
+- **Table.** `TitlePresentation.titleRound` names the round for the header and history;
+  1817's `MergerRound` panel takes the operating panels' place while it runs.
+
 ### Limits after slice 5
 
 - The acquisition round, its offers, auctions and liquidations come with slice 6.

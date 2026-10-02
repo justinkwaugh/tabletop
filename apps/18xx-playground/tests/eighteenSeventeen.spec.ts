@@ -125,3 +125,40 @@ test('1817 players short a company in their stock turn', async ({ page }) => {
         'shorted Boston and Albany Railroad'
     )
 })
+
+test('1817 companies convert in the merger round after an operating round', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('construction')
+    const merger = page.getByRole('region', { name: 'Merger round' })
+    for (let turn = 0; turn < 2; turn++) {
+        await page
+            .getByRole('navigation', { name: 'Operating steps' })
+            .getByRole('button', { name: 'Station' })
+            .click()
+        await page
+            .getByRole('region', { name: 'Train purchases' })
+            .getByRole('button', { name: 'finish', exact: true })
+            .click()
+        await page
+            .getByRole('region', { name: 'Loans' })
+            .getByRole('button', { name: 'Finish turn' })
+            .click()
+    }
+    await expect(page.getByLabel('Game phase')).toContainText(/Merger round.* 1\.1/)
+    await expect(merger).toContainText('Boston and Albany Railroad')
+    await merger.getByRole('button', { name: 'Pass', exact: true }).click()
+    await merger.getByRole('button', { name: 'Convert to 5 shares' }).click()
+    await expect(merger).toContainText('3 treasury shares at $60')
+    await merger.getByRole('button', { name: 'Buy a share ($60)' }).click()
+    await merger.getByRole('button', { name: 'Buy a share ($60)' }).click()
+    await merger.getByRole('button', { name: 'Pass', exact: true }).click()
+    await merger.getByRole('button', { name: 'Take a loan' }).click()
+    await merger.getByRole('button', { name: 'Buy station' }).click()
+    await expect(page.getByRole('region', { name: 'Merger round' })).toHaveCount(0)
+
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    const history = page.getByRole('list', { name: 'Action history' })
+    await expect(history.getByRole('listitem', { name: 'MR 1.1' })).toContainText('to 5 shares')
+    await expect(history).toContainText('bought 1 station')
+})

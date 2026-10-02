@@ -4,6 +4,7 @@ import {
     placeStockMarker,
     companyMarketSpace,
     moveMarketSpace,
+    removeStockMarker,
     stockMarketOrder,
     validateStockMarket
 } from './stockMarket.js'
@@ -25,6 +26,10 @@ it('distinguishes equal prices and preserves marker order at a movement boundary
     ])
     expect(moveMarketSpace(market, '0:0', 'down', 8).id).toBe('2:0')
     validateStockMarket(market, ['left', 'right', 'under', 'high'])
+    removeStockMarker(market, 'high')
+    removeStockMarker(market, 'right')
+    expect(stockMarketOrder(market)).toEqual(['under', 'left'])
+    expect(market.stacks.map((stack) => stack.spaceId)).toEqual(['0:0', '1:1'])
 })
 it('follows explicit connections independently of display coordinates', () => {
     const market = createRectangularStockMarket(

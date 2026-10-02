@@ -23,10 +23,12 @@ import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import { historyOperatingOrder, type HistoryOperatingOrder } from './historyOperatingOrder.js'
 import { historyCash, changedCompanyCash, type HistoryCash } from './historyCash.js'
 import { auctionHistory, type ActionHistoryEntry } from './auctionHistory.js'
+import type { TitleRound } from '../session/titlePresentation.js'
 
 export type HistoryRound = {
     id: string
     label: string
+    title: string
     phases: string[]
     startActionIndex?: number
     endActionIndex?: number
@@ -46,7 +48,8 @@ export function historyRounds(
         state
     ),
     cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state),
-    titleEvent: (action: GameAction) => boolean = () => false
+    titleEvent: (action: GameAction) => boolean = () => false,
+    titleRound?: TitleRound
 ): HistoryRound[] {
     const awards: readonly AuctionAward[] = state.offerAuction?.awards ?? []
     const entries = new Map(auctionHistory(actions, awards).map((entry) => [entry.id, entry]))
@@ -60,18 +63,26 @@ export function historyRounds(
         (state.openingAuction && !state.openingAuction.completed) ||
         (state.selectionAuction && !state.selectionAuction.completed)
     )
+    // Walking back from the end, the title's round is open between its end and its start.
+    let titleRoundOpen = !!titleRound?.inProgress(state)
     const rounds: HistoryRound[] = []
     for (const action of actions.toReversed()) {
-        const label = auction
-            ? 'Auction'
-            : operating && !isCompleteStockRound(action)
-              ? `OR ${set}.${round}`
-              : `SR ${stock}`
+        if (titleRound?.ends(action)) titleRoundOpen = true
+        const [abbreviation, name, number] = auction
+            ? ['Auction', 'Auction', '']
+            : titleRound && titleRoundOpen
+              ? [titleRound.abbreviation, titleRound.name, `${set}.${round}`]
+              : operating && !isCompleteStockRound(action)
+                ? ['OR', 'Operating round', `${set}.${round}`]
+                : ['SR', 'Stock round', `${stock}`]
+        const label = number ? `${abbreviation} ${number}` : abbreviation
+        if (titleRound?.starts(action)) titleRoundOpen = false
         let section = rounds.at(-1)
         if (section?.id !== label) {
             section = {
                 id: label,
                 label,
+                title: number ? `${name} ${number}` : name,
                 phases: [phase],
                 endActionIndex: action.index,
                 entries: []

@@ -137,6 +137,8 @@ describe('bankruptcy', () => {
                     certificate.kind === 'share'
             )
         ).toBe(false)
+        expect(play.state.machineState).toBe('MergerRound')
+        play.act('PassMerger', { companyId: 'BA' })
         expect(play.state.operatingSet?.roundNumber).toBe(2)
         expect(play.state.operatingSet?.companyOrder).toEqual(['BA'])
         expect(play.state.gameEnding).toBeUndefined()

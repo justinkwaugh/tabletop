@@ -9,6 +9,7 @@ import {
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenTrainDepot } from './index.js'
+import { mergerRoundSubject } from './mergerRound.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 
 function operatingCompanyId(state: EighteenXXState): string | undefined {
@@ -16,7 +17,8 @@ function operatingCompanyId(state: EighteenXXState): string | undefined {
         state.trackStep?.companyId ??
         state.trainPurchaseStep?.companyId ??
         state.loanStep?.companyId ??
-        state.phaseChange?.discardCompanyIds[0]
+        state.phaseChange?.discardCompanyIds[0] ??
+        mergerRoundSubject(state)
     )
 }
 
@@ -40,6 +42,7 @@ function passUntil(play: ExamplePlay, until: (state: EighteenXXState) => boolean
                 )?.id
             })
         else if (actions.includes('FinishStockTurn')) play.act('FinishStockTurn')
+        else if (actions.includes('PassMerger')) play.act('PassMerger', { companyId })
         else throw new Error(`No passing action in ${play.state.machineState}`)
     }
     expect(until(play.state)).toBe(true)

@@ -182,11 +182,7 @@
                             style:--phase-ink={contrastingTextColor(phaseColors[round.phases[0]])}
                         >
                             <span class="round-title">
-                                <span
-                                    >{round.label
-                                        .replace(/^OR /, 'Operating round ')
-                                        .replace(/^SR /, 'Stock round ')}</span
-                                >
+                                <span>{round.title}</span>
                                 {#if round.endActionIndex !== undefined}<HistoryHeaderJump
                                         onReturn={round.id === currentHeaderId
                                             ? onReturn

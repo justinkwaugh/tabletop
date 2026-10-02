@@ -21,6 +21,7 @@ import {
     marketPool,
     shortReason
 } from './index.js'
+import { mergerRoundSubject } from './mergerRound.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 
 const casey = { kind: 'player' as const, playerId: 'casey' }
@@ -203,15 +204,21 @@ describe('the market’s shorts', () => {
         const treasury = Number(cashOwnedBy(play.state, { kind: 'company', companyId: 'BA' }))
         for (let step = 0; step < 20 && play.state.machineState !== 'StockRound'; step++) {
             const actions = play.valid(play.state.activePlayerIds[0])
-            const finish = ['FinishTrack', 'FinishTrains', 'FinishOperatingTurn'].find((type) =>
-                actions.includes(type)
-            )
+            const finish = [
+                'FinishTrack',
+                'FinishTrains',
+                'FinishOperatingTurn',
+                'PassMerger',
+                'PassConvertedShares',
+                'FinishConversionLoans'
+            ].find((type) => actions.includes(type))
             assertExists(finish, `No way to finish in ${play.state.machineState}`)
             play.act(finish, {
                 companyId:
                     play.state.trackStep?.companyId ??
                     play.state.loanStep?.companyId ??
-                    play.state.trainPurchaseStep?.companyId
+                    play.state.trainPurchaseStep?.companyId ??
+                    mergerRoundSubject(play.state)
             })
         }
         expect(play.state.machineState).toBe('StockRound')

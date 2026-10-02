@@ -631,6 +631,23 @@ an immediately committed button with its price.
 Compact company cards narrow their summary columns so a fourth value, such as loans,
 fits without clipping.
 
+### Title rounds
+
+A title may name a round of its own that follows an operating round (1817's merger
+round). The turn header then reads its name and the operating round's number, such as
+"Merger round 2.1", shortening to its abbreviation like OR/SR; history groups its
+actions as a round of their own, such as "MR 2.1", from its start to its end action.
+
+1817's merger round replaces the operating panels with one panel for the company being
+dealt with: its size, price and treasury, then the current decision as immediately
+committed buttons. The president converts, merges with a named company at the merged
+price, or passes; players in turn buy a treasury share at the conversion price or pass;
+the president takes loans, then finishes, buying the stations owed or, when the
+treasury cannot pay, liquidating; a merged company over a limit removes a named
+station or discards a train. Other players see whom the round is waiting for. History
+records conversions and mergers as important rows, purchases with their price, the
+stations bought or the liquidation, and the removals and discards.
+
 ## Private exchanges and lifecycle
 
 Private-company cards show ownership, income, closure, and eligible exchanges.
@@ -1180,7 +1197,7 @@ its phase-chart entry, following the title's train-phase palette rather than its
 available tile colors.
 
 The turn header uses its own available width to shorten Operating round/Stock
-round to OR/SR only when the full heading and turn controls exceed the available width. The table opts out of DefaultTableLayout's top inset;
+round (or a title round) to OR/SR (or its abbreviation) only when the full heading and turn controls exceed the available width. The table opts out of DefaultTableLayout's top inset;
 its history controls and turn header share a 44px border-box height and aligned
 bottom borders. The action panel no longer adds a second top border. Other
 DefaultTableLayout consumers retain the default 8px top inset.

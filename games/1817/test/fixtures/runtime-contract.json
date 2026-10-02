@@ -5,6 +5,7 @@
     "BidForCompany": "cbdac1504eb19b11350f9ffe4630961ed4d9756ce23ea8610e1d47ff27d7d779",
     "BidForLot": "8ab4c24d5d3df608d5ccef32d6ed194338b5153cec0957bf1cfaebdcfc59a819",
     "BuyBackShares": "8bc3e8889554550fb768d70bdda039943d7de41882ad04e6ceb4c4f00eb439db",
+    "BuyConvertedShare": "181c403d298e970a710a1d2ced34ad732f4e79ceaab6e0da27a5188e653779c4",
     "BuyOwedStations": "c873d00fd4b8c831d5f51106b095a76a7094f6d376d511c90c57f5718fac085b",
     "BuyPrivateTrain": "696b3122d45f99995e1d55d288ae6e0028d2a22240bccabde6de5184f2f8dd51",
     "BuyShares": "4895ee63a251abf1bf45accdab50cfb49c0b57c2b59d31bfbb596cb029ffe85b",
@@ -13,13 +14,17 @@
     "CompleteStockRound": "7f7e57359cd8d0691ee16a31e9801a1eb157cc7e320d298447358e6951372882",
     "ContinueOperatingRound": "9739c28a94fcb60ac7e05435f2d25ccba70f5534d4a28a43ac2107ec3f896637",
     "ContributeTrainFunds": "85fd1b57cdfc74e0e0f0957a5e663792f1cb12ab188988ba50b44dd5dc613931",
+    "ConvertCompany": "ad45e70435112b0c1af4b780f540c62b384ce4407d19706f863c69fccd5ed478",
     "DeclareBankruptcy": "5ca00ef2afae7da19d8382234c57cd00091c69f2ad589e3567a9fa05be5509ed",
     "DeclinePrivateTile": "c4982db809f4f024354b9e0731dd49c5dcdf66c07687110e8325a3de35e0c8c4",
+    "DiscardMergedTrain": "94d75ae607069e6b79d2ee679764c2de444d0f9552c4dad4f10c3e7f35ee1b69",
     "DiscardTrain": "8d2c18c38e3ffb08d8e767feedeb10f8cdaa07040957663c99cd38d350c50748",
     "DistributeEarnings": "730b0d2c5db385382646eeb2d6fd54588254ea0e245e4b2fabaaf882755366a6",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
+    "EndMergerRound": "083610f8001cf930908d3d9f76c6ac3e93834732d00a64728d6812927558f09b",
     "ExchangePrivate": "04f1cc7dcb50539f7b72478c94a84f3996458316fc713deec6d5ecb20931dac0",
     "ExportTrains": "a74484665da190c0d031ec797b964d548437ca92e3f2bed4019508b347a41dbb",
+    "FinishConversionLoans": "3f76e10e6d8670b996b4dc66f84ffaad222d01ecfbfe8e897f32402ca8c809f6",
     "FinishOperatingTurn": "5e9be2c15f5d19459fbfb1bd77c2c5d5d1a17860434e9ab50c813192dfae400b",
     "FinishStations": "844f37a3e8db6526dc8a4ae6cdbf8396fb3d353a05b4a154957a5dc62d2aa9b6",
     "FinishStockTurn": "79fc138318816a4f6d12247426c0b62f68decdbb963f468023074a96a65c1d3c",
@@ -33,13 +38,17 @@
     "LayPrivateTile": "c8d97811dbc839c2d8fdf5e51ddac49143a685df1c80e2d5573dcd1c286bf298",
     "LayTile": "3f0147c9c4ed30ee48cfe700899573e878d44011c2c89363ce05b2682226ee16",
     "LiquidateCompany": "62319e8597d96c810a27cc70db0d00fca760500bde8cdcfcfc09dca32045dfc3",
+    "MergeCompanies": "074ea78c0d4499fbf543cd24df0a52840707418fecd7e043716cffa8b7f0467a",
     "NominateLot": "ced79bf0b77f7263a8c0f7add24c6a7a5fef4cd2be2ffc8e85d9260e9b97cbb2",
     "OfferPurchase": "51b45483436aeef619c452fa43f86c4d58cc47d99f7aaaaf64359fd7312c23ed",
     "PassCompanyAuction": "4a168b2924b9765af76f47dc46210be9dee7a257007e2d71b81214eb156708a7",
+    "PassConvertedShares": "db09690cb190823aefe060d72024527a42acdea1543e385fcfc45b25354b8864",
+    "PassMerger": "b32f75a58c4ebc5c302572e8c1553611b5745765dbbef1acb6534dd5aa191c5e",
     "PassSelectionAuction": "6b26f6883b9cc0a2516bf3002db10d42d6e2a33dcda3ad6c2ddcd0c38fd07710",
     "PayInterest": "cbe892bd212145fb64e49971c3d1f7e612f5cec912d4069a17bf416f404527ed",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
+    "RemoveStation": "64b1406d6a8e9a88e481f18d7bf558368087c7726714e016d04236d67f02d09f",
     "RepayLoan": "2fab0a1010e7faa0ffa89e0d5e4e0ee85b68f87a72b1a5a44130182e215065a1",
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
     "ResolveSelectionAuction": "65f0765d984b7d4a0a4efcc5ab447d94ff1895a6f437923636e2fb44d5a4fd19",
@@ -54,6 +63,7 @@
     "SetStockInstruction": "1e85332f638a3f37ec83d300621cb5176e63ea1267c1986a153d038e812b2b59",
     "ShortShare": "3b228b1a2306183b1a679eafb7bd8ffb02e7792438abcea8db414c7e9634449d",
     "StartCompany": "56c4f5fb4a738012039ce09ef71678c76dd5860f6953ea88af0b9bbe0e61fef7",
+    "StartMergerRound": "6ac2ea9acde1449a22f4add9d41b850ab2baac0af212bd6d3a275b1ef6e629be",
     "StartOperatingRound": "772070120da4c3e2b84c78887f94ded3bc5dd36e842ebfded6259071e0a2b696",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
@@ -1751,6 +1761,26 @@
           {
             "const": "RaisingCash",
             "type": "string"
+          },
+          {
+            "const": "MergerRound",
+            "type": "string"
+          },
+          {
+            "const": "TradingConvertedShares",
+            "type": "string"
+          },
+          {
+            "const": "BorrowingAfterConversion",
+            "type": "string"
+          },
+          {
+            "const": "ReducingStations",
+            "type": "string"
+          },
+          {
+            "const": "DiscardingMergedTrains",
+            "type": "string"
           }
         ]
       },
@@ -1763,6 +1793,79 @@
             "kind": "omit"
           }
         }
+      },
+      "mergerRound": {
+        "additionalProperties": false,
+        "properties": {
+          "companyIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "conversion": {
+            "additionalProperties": false,
+            "properties": {
+              "companyId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "merged": {
+                "const": true,
+                "type": "boolean"
+              },
+              "price": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "stationsOwed": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "traderIds": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "companyId",
+              "price",
+              "stationsOwed",
+              "traderIds"
+            ],
+            "type": "object"
+          },
+          "convertedIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "round": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "set": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companyIds",
+          "completed",
+          "convertedIds",
+          "round",
+          "set"
+        ],
+        "type": "object"
       },
       "offerAuction": {
         "additionalProperties": false,
@@ -4802,21 +4905,26 @@
   "handledMachineStates": [
     "AdvancingPhase",
     "Bankrupt",
+    "BorrowingAfterConversion",
     "BuyingTrains",
+    "DiscardingMergedTrains",
     "DiscardingTrains",
     "DistributingEarnings",
     "FundingTrain",
     "GameOver",
     "LayingTrack",
+    "MergerRound",
     "OperatingSet",
     "PlacingStation",
     "RaisingCash",
+    "ReducingStations",
     "RepayingLoans",
     "RunningTrains",
     "RustingTrains",
     "SelectionAuction",
     "StartingOperatingSet",
     "StationsComplete",
-    "StockRound"
+    "StockRound",
+    "TradingConvertedShares"
   ]
 }

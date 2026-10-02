@@ -202,8 +202,8 @@
                             ? row.text.charAt(0).toLowerCase() + row.text.slice(1)
                             : row.text}{#if row.phase}<span class="phase-colors"
                                 >{row.phase.label}</span
-                            >{/if}{#if row.value}
-                            for <span class="stock-value">{row.value}</span>{/if}</span
+                            >{/if}{#if row.value}{' '}for
+                            <span class="stock-value">{row.value}</span>{/if}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
                     <ShareCardStrip cards={shareCards(row.action)} sign={shareSign(row.action)} />

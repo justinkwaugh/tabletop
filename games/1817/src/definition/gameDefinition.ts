@@ -26,6 +26,43 @@ import { EighteenSeventeenStateDefinition } from '../state.js'
 import { EighteenSeventeenLoanRules } from '../loanRules.js'
 import { EighteenSeventeenCashCrisisRules } from '../bankruptcy.js'
 import {
+    BorrowingAfterConversionHandler,
+    BuyConvertedShare,
+    ConvertCompany,
+    DiscardMergedTrain,
+    EndMergerRound,
+    FinishConversionLoans,
+    HydratedBuyConvertedShare,
+    HydratedConvertCompany,
+    HydratedDiscardMergedTrain,
+    HydratedEndMergerRound,
+    HydratedFinishConversionLoans,
+    HydratedMergeCompanies,
+    HydratedPassConvertedShares,
+    HydratedPassMerger,
+    HydratedRemoveStation,
+    HydratedStartMergerRound,
+    MergeCompanies,
+    MergerExcessHandler,
+    MergerRoundHandler,
+    MergerRoundStartHandler,
+    PassConvertedShares,
+    PassMerger,
+    RemoveStation,
+    StartMergerRound,
+    TradingConvertedSharesHandler,
+    isBuyConvertedShare,
+    isConvertCompany,
+    isDiscardMergedTrain,
+    isEndMergerRound,
+    isFinishConversionLoans,
+    isMergeCompanies,
+    isPassConvertedShares,
+    isPassMerger,
+    isRemoveStation,
+    isStartMergerRound
+} from '../mergerRound.js'
+import {
     CloseMarketShorts,
     HydratedCloseMarketShorts,
     HydratedShortShare,
@@ -80,9 +117,59 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
         StockRound: (family) =>
             buysOwedStations(new ShortSellingHandler(new CorporateActionsHandler(family))),
         StartingOperatingSet: (family) => buysOwedStations(liquidatesUnpaidStations(family)),
-        OperatingSet: (family) => liquidatesTrainlessCompanies(buysOutMarketShorts(family))
+        OperatingSet: (family) =>
+            liquidatesTrainlessCompanies(new MergerRoundStartHandler(buysOutMarketShorts(family)))
+    },
+    titleStateHandlers: {
+        MergerRound: new MergerRoundHandler(),
+        TradingConvertedShares: new TradingConvertedSharesHandler(),
+        BorrowingAfterConversion: new BorrowingAfterConversionHandler(),
+        ReducingStations: new MergerExcessHandler(),
+        DiscardingMergedTrains: new MergerExcessHandler()
     },
     titleActions: [
+        defineAction(
+            StartMergerRound,
+            isStartMergerRound,
+            (action) => new HydratedStartMergerRound(action)
+        ),
+        defineAction(
+            EndMergerRound,
+            isEndMergerRound,
+            (action) => new HydratedEndMergerRound(action)
+        ),
+        defineAction(
+            ConvertCompany,
+            isConvertCompany,
+            (action) => new HydratedConvertCompany(action)
+        ),
+        defineAction(
+            MergeCompanies,
+            isMergeCompanies,
+            (action) => new HydratedMergeCompanies(action)
+        ),
+        defineAction(PassMerger, isPassMerger, (action) => new HydratedPassMerger(action)),
+        defineAction(
+            BuyConvertedShare,
+            isBuyConvertedShare,
+            (action) => new HydratedBuyConvertedShare(action)
+        ),
+        defineAction(
+            PassConvertedShares,
+            isPassConvertedShares,
+            (action) => new HydratedPassConvertedShares(action)
+        ),
+        defineAction(
+            FinishConversionLoans,
+            isFinishConversionLoans,
+            (action) => new HydratedFinishConversionLoans(action)
+        ),
+        defineAction(RemoveStation, isRemoveStation, (action) => new HydratedRemoveStation(action)),
+        defineAction(
+            DiscardMergedTrain,
+            isDiscardMergedTrain,
+            (action) => new HydratedDiscardMergedTrain(action)
+        ),
         defineAction(ShortShare, isShortShare, (action) => new HydratedShortShare(action)),
         defineAction(
             CloseMarketShorts,

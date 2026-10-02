@@ -1,4 +1,5 @@
-import type { CertificatePool } from '@tabletop/18xx'
+import type { GameAction } from '@tabletop/common'
+import type { CertificatePool, EighteenXXState } from '@tabletop/18xx'
 import type { PhaseChartData } from '../phases/phaseChart.js'
 import type { MoneyFormat } from '../presentation/money.js'
 import type {
@@ -12,6 +13,15 @@ import type { TileSymbolName } from '../tiles/tileSymbols.js'
 export type PrivateTokenPresentation = { companyId: string } | { tileSymbol: TileSymbolName }
 
 export type TitleStopReason = Extract<StockInstructionStopReason, { code: 'title' }>
+
+/** A round of the title's own that follows an operating round and is numbered after it. */
+export type TitleRound = {
+    name: string
+    abbreviation: string
+    inProgress: (state: EighteenXXState) => boolean
+    starts: (action: GameAction) => boolean
+    ends: (action: GameAction) => boolean
+}
 
 export type TitlePresentation = {
     money: MoneyFormat
@@ -34,6 +44,7 @@ export type TitlePresentation = {
     privatePurchaseHeading?: string
     privateTilePrompts?: Readonly<Record<string, string>>
     privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
+    titleRound?: TitleRound
     /**
      * Published card artwork for the published presentation, keyed by private company id or
      * certificate id (for shares auctioned like privates). Shown in place of the generated card.

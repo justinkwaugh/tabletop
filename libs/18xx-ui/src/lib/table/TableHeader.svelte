@@ -49,6 +49,7 @@
         return { destroy: () => observer.disconnect() }
     }
     const gameState = $derived(tableHeaderState(session))
+    const titleRound = $derived(session.presentation.titleRound)
     const auction = $derived(
         Boolean(
             (gameState.openingAuction && !gameState.openingAuction.completed) ||
@@ -97,6 +98,12 @@
                 <span class="auction-label max-sm:hidden">Opening auction</span><span
                     class="auction-label sm:hidden">Auction</span
                 >
+            {:else if titleRound?.inProgress(gameState)}
+                <span class="round-full" aria-hidden={compact}>{titleRound.name}</span><span
+                    class="round-short"
+                    aria-hidden={!compact}>{titleRound.abbreviation}</span
+                >
+                {gameState.operatingSet?.number}.{gameState.operatingSet?.roundNumber}
             {:else if !gameState.stockRound.completed}
                 <span class="round-full" aria-hidden={compact}>Stock round</span><span
                     class="round-short"

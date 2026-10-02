@@ -13,6 +13,7 @@ import {
     EighteenSeventeenTransferRules,
     isLiquidated
 } from './index.js'
+import { mergerRoundSubject } from './mergerRound.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 
 const treasury = (state: EighteenXXState, companyId: string) =>
@@ -48,10 +49,16 @@ function finishRound(play: ExamplePlay) {
         const companyId =
             play.state.trackStep?.companyId ??
             play.state.loanStep?.companyId ??
-            play.state.trainPurchaseStep?.companyId
-        const finish = ['FinishTrack', 'FinishTrains', 'FinishOperatingTurn'].find((type) =>
-            actions.includes(type)
-        )
+            play.state.trainPurchaseStep?.companyId ??
+            mergerRoundSubject(play.state)
+        const finish = [
+            'FinishTrack',
+            'FinishTrains',
+            'FinishOperatingTurn',
+            'PassMerger',
+            'PassConvertedShares',
+            'FinishConversionLoans'
+        ].find((type) => actions.includes(type))
         assertExists(finish, `No way to finish in ${play.state.machineState}`)
         play.act(finish, { companyId })
     }

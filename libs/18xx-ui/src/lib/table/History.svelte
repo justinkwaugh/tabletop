@@ -58,7 +58,8 @@
             orderChanges,
             cash,
             (action) =>
-                action.source === ActionSource.System && !!describeAction?.(action, companyName)
+                action.source === ActionSource.System && !!describeAction?.(action, companyName),
+            session.presentation.titleRound
         )
     )
     const currentHeaderId = $derived(session.isViewingHistory ? rounds[0]?.id : undefined)

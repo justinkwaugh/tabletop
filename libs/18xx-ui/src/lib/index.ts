@@ -46,7 +46,11 @@ export { default as GameEnding } from './ending/GameEnding.svelte'
 export { default as GameTable } from './table/GameTable.svelte'
 export type { CompanyNameVariants, NumberedShareNames } from './table/companyPresentation.js'
 export type { HistoryDescription } from './table/historyDescription.js'
-export type { PrivateTokenPresentation, TitlePresentation } from './session/titlePresentation.js'
+export type {
+    PrivateTokenPresentation,
+    TitlePresentation,
+    TitleRound
+} from './session/titlePresentation.js'
 export type { TileSymbolName } from './tiles/tileSymbols.js'
 export { moneyFormat, type MoneyFormat } from './presentation/money.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'

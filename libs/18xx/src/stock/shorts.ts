@@ -64,18 +64,29 @@ export function openShort(
         owner: { ...market.owner },
         poolId: market.id
     })
+    return { shareId, shortId: addShort(state, companyId, holder) }
+}
+
+/** Gives the holder a short of the company without issuing its market share. */
+export function addShort(
+    state: Pick<FinancialState, 'certificates'>,
+    companyId: string,
+    holder: Owner,
+    poolId?: string
+): string {
     const prefix = `${companyId}:short:`
-    const shortId = `${prefix}${nextCertificateNumber(state, prefix)}`
+    const id = `${prefix}${nextCertificateNumber(state, prefix)}`
     state.certificates.push({
-        id: shortId,
+        id,
         companyId,
         kind: 'short',
         shares: 1,
         certificateLimitCount: 0,
         retired: false,
-        owner: { ...holder }
+        owner: { ...holder },
+        ...(poolId ? { poolId } : {})
     })
-    return { shareId, shortId }
+    return id
 }
 
 /** Retires each of the owner's shorts of the company against one of its ordinary shares. */

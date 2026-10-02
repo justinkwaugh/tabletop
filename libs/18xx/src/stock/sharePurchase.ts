@@ -77,16 +77,29 @@ export function evaluateShareAcquisition(
     if (!rules.buyers(state, playerId).some((allowed) => sameOwner(allowed, buyer)))
         return { reason: 'This player cannot buy for that owner.' }
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
-    if (!certificate || certificate.retired || certificate.kind !== 'share')
-        return { reason: 'This is not an available share certificate.' }
-    if (sameOwner(certificate.owner, buyer))
-        return { reason: 'The buyer already owns this certificate.' }
     if (
+        certificate &&
         state.stockRound.sales.some(
             (sale) => sameOwner(sale.owner, buyer) && sale.companyId === certificate.companyId
         )
     )
         return { reason: 'The buyer sold shares in this company this stock round.' }
+    return evaluateShareTransfer(state, request, rules, terms)
+}
+
+/** A share's purchase outside the stock round's turn rules, such as after a conversion. */
+export function evaluateShareTransfer(
+    state: StockState,
+    request: PurchaseRequest,
+    rules: StockRules,
+    terms: SharePurchaseTerms | string
+): SharePurchaseResult {
+    const { buyer, certificateId } = request
+    const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
+    if (!certificate || certificate.retired || certificate.kind !== 'share')
+        return { reason: 'This is not an available share certificate.' }
+    if (sameOwner(certificate.owner, buyer))
+        return { reason: 'The buyer already owns this certificate.' }
     if (typeof terms === 'string') return { reason: terms }
     const company = getCompany(state, certificate.companyId)
     assertExists(company.shareCount, 'Priced shares require a share count')
@@ -145,6 +158,13 @@ export function evaluateShareAcquisition(
 }
 
 export function applySharePurchase(state: StockState, details: SharePurchaseDetails): void {
+    applyShareTransfer(state, details)
+    if (details.buyer.kind === 'company')
+        state.stockRound.companyPurchases.push(details.buyer.companyId)
+    markTurnPurchase(state)
+}
+
+export function applyShareTransfer(state: StockState, details: SharePurchaseDetails): void {
     const certificate = state.certificates.find(
         (certificate) => certificate.id === details.certificateId
     )
@@ -152,12 +172,9 @@ export function applySharePurchase(state: StockState, details: SharePurchaseDeta
     settleCashPayments(state, details.payments)
     certificate.owner = details.buyer
     delete certificate.poolId
-    if (details.buyer.kind === 'company')
-        state.stockRound.companyPurchases.push(details.buyer.companyId)
     if (details.presidency) applyPresidencyChange(state, details.presidency)
     if (details.coveredShortId)
         retireCertificates(state, [details.certificateId, details.coveredShortId])
-    markTurnPurchase(state)
 }
 
 export function markTurnPurchase(state: StockState): void {

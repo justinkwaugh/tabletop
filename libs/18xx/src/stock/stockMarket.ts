@@ -107,6 +107,15 @@ export function placeStockMarker(market: StockMarket, companyId: string, spaceId
     target.companyIds.push(companyId)
     market.stacks = market.stacks.filter((stack) => stack.companyIds.length > 0)
 }
+
+export function removeStockMarker(market: StockMarket, companyId: string): void {
+    market.stacks = market.stacks
+        .map((stack) => ({
+            ...stack,
+            companyIds: stack.companyIds.filter((id) => id !== companyId)
+        }))
+        .filter((stack) => stack.companyIds.length > 0)
+}
 export function stockMarketOrder(market: StockMarket): string[] {
     return [...market.stacks]
         .sort((a, b) => {

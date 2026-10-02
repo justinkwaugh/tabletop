@@ -9,6 +9,7 @@
         rounds = Array.from({ length: 20 }, (_, index) => ({
             id: String(20 - index),
             label: `SR ${20 - index}`,
+            title: `Stock round ${20 - index}`,
             phases: ['2'],
             entries: []
         }))
