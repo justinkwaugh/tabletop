@@ -19,7 +19,7 @@ import { SantiagoPlayerState } from '../model/playerState.js'
 import { SantiagoBoard, SquareType, EmptySquare, Intersection } from '../model/board.js'
 import { MachineState } from './states.js'
 import { SantiagoColors } from './colors.js'
-import { buildTileBag } from '../util/tileBag.js'
+import { buildTileBag, tilesPerRound } from '../util/tileBag.js'
 import { validSpringPlacements } from '../util/placement.js'
 
 export class SantiagoGameInitializer
@@ -37,9 +37,9 @@ export class SantiagoGameInitializer
         const config = game.config
 
         // Randomized: pick the spring now (excluding corners) and start play directly in
-        // Bidding, as before. Manual: start in SpringPlacement instead — the first player
+        // TileReveal. Manual: start in SpringPlacement instead — the first player
         // (seatOrder[0], computed below) places it there, and this placeholder value is
-        // overwritten before Bidding ever begins.
+        // overwritten before the first round begins.
         const randomizeSpring = config.randomizeSpring !== false
         const spring: Intersection = randomizeSpring
             ? pickRandom(validSpringPlacements(), prng.random)
@@ -50,11 +50,8 @@ export class SantiagoGameInitializer
         assertExists(tilePrngState, 'Tile initialization requires a random generator')
         const tilePrng = (state.systemVersion ?? 1) >= 3 ? new Prng(tilePrngState) : prng
         shuffle(tileBag, tilePrng.random)
-        // Discard tiles so the bag divides evenly: 4 tiles are drawn per round for
-        // 3–4 players; 5 for 5 players. Formula: max(4, numPlayers).
-        const tilesPerRound = Math.max(4, game.players.length)
-        const discard = tileBag.length % tilesPerRound
-        tileBag.splice(0, discard)
+        // Discard tiles so the bag divides evenly into rounds.
+        tileBag.splice(0, tileBag.length % tilesPerRound(game.players.length))
 
         const colors = structuredClone(SantiagoColors)
         shuffle(colors, prng.random)
@@ -85,7 +82,7 @@ export class SantiagoGameInitializer
         const santiagoState: SantiagoGameState = Object.assign(state, {
             players,
             turnManager,
-            machineState: randomizeSpring ? MachineState.Bidding : MachineState.SpringPlacement,
+            machineState: randomizeSpring ? MachineState.TileReveal : MachineState.SpringPlacement,
             board: this.buildBoard(spring, usePalmTrees, prng.random),
             tileBag,
             ...((state.systemVersion ?? 1) >= 3

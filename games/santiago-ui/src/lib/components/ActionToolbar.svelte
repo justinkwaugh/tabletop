@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { MachineState } from '@tabletop/santiago'
+    import { MachineState, tilesPerRound } from '@tabletop/santiago'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import CoinIcon from './CoinIcon.svelte'
@@ -13,12 +13,13 @@
     const canUndo = $derived(!!session.undoableAction)
 
     const activePlayerId = $derived(state.activePlayerIds[0])
-    // 45 tiles total, one drawn per player per round
-    const totalRounds = $derived(Math.floor(45 / Math.max(4, state.players.length)))
+    // 45 tiles total
+    const totalRounds = $derived(Math.floor(45 / tilesPerRound(state.players.length)))
 
     function phaseName(ms: MachineState): string {
         switch (ms) {
             case MachineState.SpringPlacement: return 'Spring placement'
+            case MachineState.TileReveal:
             case MachineState.Bidding:         return 'Bidding phase'
             case MachineState.PlantingPhase:   return 'Planting phase'
             case MachineState.CanalBuilding:   return 'Canal building phase'
@@ -32,6 +33,7 @@
     // phases. Spring placement has no icon; it's a one-time setup step, not a "phase."
     function phaseIcon(ms: MachineState) {
         switch (ms) {
+            case MachineState.TileReveal:
             case MachineState.Bidding:         return CoinIcon
             case MachineState.PlantingPhase:   return SproutIcon
             case MachineState.CanalBuilding:
