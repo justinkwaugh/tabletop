@@ -14,7 +14,7 @@ importers:
   .:
     dependencies:
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@turbo/gen':
@@ -217,7 +217,7 @@ importers:
         specifier: ^9.11.0
         version: 9.15.1
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
       resend:
         specifier: ^6.8.0
@@ -284,7 +284,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
       svelte-sonner:
         specifier: ^0.3.27
@@ -630,7 +630,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@playwright/test':
@@ -800,7 +800,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@playwright/test':
@@ -967,7 +967,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@playwright/test':
@@ -1146,7 +1146,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
       runed:
         specifier: ^0.37.1
@@ -1328,7 +1328,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@playwright/test':
@@ -1498,7 +1498,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@playwright/test':
@@ -1665,7 +1665,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@playwright/test':
@@ -1832,7 +1832,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@playwright/test':
@@ -2364,7 +2364,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@playwright/test':
@@ -2650,7 +2650,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
     devDependencies:
       '@playwright/test':
@@ -3195,7 +3195,7 @@ importers:
         specifier: ^0.4.1
         version: 0.4.1
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
       redis:
         specifier: ^5.10.0
@@ -3252,6 +3252,9 @@ importers:
       fnv-plus:
         specifier: ^1.3.1
         version: 1.3.1
+      nanoid:
+        specifier: 5.1.6
+        version: 5.1.6
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -3351,7 +3354,7 @@ importers:
         specifier: ^2.5.10
         version: 2.6.4
       nanoid:
-        specifier: ^5.1.6
+        specifier: 5.1.6
         version: 5.1.6
       runed:
         specifier: ^0.37.1

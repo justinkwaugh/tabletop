@@ -38,7 +38,7 @@
         "discord-interactions": "^4.0.0",
         "discord.js": "^14.15.3",
         "glob-to-regexp": "^0.4.1",
-        "nanoid": "^5.1.6",
+        "nanoid": "5.1.6",
         "redis": "^5.10.0",
         "resend": "^4.0.2",
         "typescript-retry-decorator": "2.5.4",
