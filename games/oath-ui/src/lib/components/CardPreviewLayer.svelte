@@ -5,6 +5,7 @@
     import CardWarbands from '$lib/components/CardWarbands.svelte'
     import { cardAspect } from '$lib/images/cardShape.js'
     import { cardPreview } from '$lib/model/cardPreview.svelte.js'
+    import { previewSourceWidth, previewWidth } from '$lib/model/previewSize.js'
     import { cardName, plural } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { banditWarbandImage, pawnImage, warbandImage } from '$lib/images/pieceImages.js'
@@ -87,11 +88,15 @@
         return () => observer.disconnect()
     }
 
-    // Capped: past a point more pixels hide the board.
+    // Item 12 — a wide card to its source art, an upright one to 460 px, inside the area.
     let width = $derived.by(() => {
         if (!preview) return 0
         const aspect = preview.aspect ?? cardAspect(preview)
-        return Math.round(Math.min(areaWidth * 0.46, areaHeight * 0.82 * aspect, 460))
+        return previewWidth(
+            { width: areaWidth, height: areaHeight },
+            aspect,
+            previewSourceWidth(preview)
+        )
     })
 
     // The boxes under the card can outgrow what the card leaves; the whole stack shrinks to fit.

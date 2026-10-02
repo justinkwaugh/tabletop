@@ -120,6 +120,15 @@ test('scenario 44: a hover opens nothing; a click on a card on the table enlarge
     await expect(preview(page)).toHaveCount(0)
 })
 
+/** Item 12: a wide card runs to its source art. */
+test('a banner enlarges to its 920 px source on a desktop', async ({ page }) => {
+    await openTable(page, 'trade')
+    await (await uncovered(page, '.banner')).click()
+    const shown = preview(page).locator('img').first()
+    await expect(shown).toBeVisible()
+    expect(Math.round((await shown.boundingBox())?.width ?? 0)).toBe(920)
+})
+
 /** Scenario 24 with a mouse: a remote Action lands while a card is enlarged. */
 test('scenario 24: an enlarged card closes when its card leaves the table, and the new offers show with no ring left over', async ({
     page
