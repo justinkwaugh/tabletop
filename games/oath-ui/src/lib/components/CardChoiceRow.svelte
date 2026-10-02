@@ -1,11 +1,12 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
     import CardImage from '$lib/components/CardImage.svelte'
+    import Magnifier from '$lib/components/Magnifier.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import type { CardChoice } from '$lib/model/cardChoice.js'
 
     // Every card-valued choice is a row of cards: tap to pick, tap a picked card to untap it,
-    // and hover or hold to enlarge.
+    // and the corner magnifier to enlarge.
     let {
         choices,
         picked,
@@ -26,7 +27,7 @@
 <div class="flex flex-wrap gap-2">
     {#each choices as choice (choice.key)}
         {@const on = picked.includes(choice.key)}
-        <div class="flex flex-col items-center gap-0.5">
+        <div class="relative flex flex-col items-center gap-0.5">
             <button
                 type="button"
                 class="rounded-[5px] {on
@@ -42,9 +43,12 @@
                     back={choice.back}
                     width={widthAtHeight(height, choice)}
                     label={choice.label}
-                    inspect
                 />
             </button>
+            <Magnifier
+                preview={{ cardId: choice.cardId, back: choice.back, label: choice.label }}
+                label={choice.label}
+            />
             {#if choice.caption}
                 <span
                     class="max-w-[7rem] text-center text-[10px] leading-tight text-oath-text-muted"

@@ -10,7 +10,6 @@ import {
     CampaignDefend,
     CampaignResolveVictory,
     CampaignSacrifice,
-    CampaignTargetKind,
     CompleteRest,
     ConsentRequestKind,
     EndActPhase,
@@ -27,6 +26,7 @@ import {
     HydratedTravel,
     MachineState,
     MoveWarbands,
+    WarbandMoveKind,
     Muster,
     OfferCitizenship,
     Peek,
@@ -819,7 +819,10 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.selection.action === ActionType.Campaign) return this.campaign.targetableSites
         if (this.selection.action === ActionType.MoveWarbands) {
             const siteId = this.gameState.getPlayerState(playerId).siteId
-            return this.warbandMoves.boardToSite && siteId ? [siteId] : []
+            const ontoSite = this.warbandMoves.options.some(
+                (option) => option.move.kind === WarbandMoveKind.BoardToSite
+            )
+            return ontoSite && siteId ? [siteId] : []
         }
         if (this.selection.action !== ActionType.Travel) return []
         if (this.selection.value('site') !== undefined) return []
@@ -879,11 +882,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
             return HydratedMuster.legalCards(this.gameState, playerId, this.modifiers.declared)
         }
         return []
-    }
-
-    /** The card a tap in the strip marked in the Trade menu. */
-    get tradeCard(): string | undefined {
-        return this.selection.action === ActionType.Trade ? this.selection.value('card') : undefined
     }
 
     // R-5.3.2, R-7.4 — every trade at the site, priced with the declared modifiers.
@@ -1034,25 +1032,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (type === ActionType.Campaign) this.campaign.begin()
     }
 
-    async chooseSite(siteId: string): Promise<void> {
-        if (this.setup.boardPick) {
-            this.setup.chooseSite(siteId)
-            return
-        }
-        if (this.selection.action === ActionType.MoveWarbands) {
-            const option = this.warbandMoves.boardToSite
-            if (option && siteId === this.myPlayerState?.siteId)
-                await this.warbandMoves.choose(option)
-            return
-        }
-        if (this.selection.action === ActionType.Campaign) {
-            this.campaign.toggleTarget({ kind: CampaignTargetKind.Site, siteId })
-            return
-        }
-        this.selection.set('site', siteId)
-        if (this.selection.action === ActionType.Travel) await this.travel(siteId)
-    }
-
     async chooseCard(cardId: string): Promise<void> {
         this.selection.set('card', cardId)
         if (this.selection.action === ActionType.Muster) {
@@ -1128,13 +1107,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return travelWays(this.gameState, playerId, siteId, this.modifiers.declared)
     }
 
-    /** R-7.1.4, R-11.12, R-X.1 — the ways to pay for the staged destination, when more than one. */
-    get travelChoices(): TravelWay[] {
-        if (this.selection.action !== ActionType.Travel) return []
-        const siteId = this.selection.value('site')
-        return siteId === undefined ? [] : this.travelWaysTo(siteId)
-    }
-
     /** R-11.7 — who chooses where this seat's Travel goes, when an enemy rules its Shrouded Wood. */
     get shroudedWoodChooser(): string | undefined {
         const playerId = this.liveTurnSeatId
@@ -1163,12 +1135,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return travelRows(this.gameState, playerId, this.modifiers.declared)
     }
 
-    async chooseTravelWay(way: TravelTerms): Promise<void> {
-        const siteId = this.selection.value('site')
-        if (siteId === undefined) return
-        await this.travelTo(siteId, way)
-    }
-
     async travelTo(siteId: string, way: TravelTerms): Promise<void> {
         if (this.selection.action !== ActionType.Travel) return
         const legal = this.travelWaysTo(siteId).some(
@@ -1180,16 +1146,6 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (!legal) return
         this.selection.set('site', siteId)
         await this.travelBy(siteId, way)
-    }
-
-    // One legal way is taken at once; several wait for the player's pick.
-    private async travel(siteId: string): Promise<void> {
-        const ways = this.travelWaysTo(siteId)
-        if (ways.length === 1) {
-            await this.travelBy(siteId, ways[0])
-            return
-        }
-        this.selection.set('site', siteId)
     }
 
     private async travelBy(siteId: string, { tolls, flipSecret }: TravelTerms): Promise<void> {

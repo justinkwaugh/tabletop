@@ -7,6 +7,7 @@
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
+    import Magnifier from '$lib/components/Magnifier.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { discardPositionLabel } from '$lib/model/discardOrder.js'
     import { cardName, regionName, siteName } from '$lib/model/names.js'
@@ -76,25 +77,30 @@
         {#if ordering}
             <div class="flex flex-wrap gap-2 mb-2">
                 {#each others as cardId (cardId)}
-                    <button
-                        class="flex flex-col items-center gap-0.5 rounded border p-1 {tapped.includes(
-                            cardId
-                        )
-                            ? 'border-oath-accent bg-oath-accent-soft'
-                            : 'border-oath-divider hover:border-oath-accent'}"
-                        disabled={busy}
-                        onclick={() => gameSession.setup.tapDiscard(cardId)}
-                    >
-                        <CardImage
-                            {cardId}
-                            width={widthAtHeight(100, { cardId })}
-                            label={cardName(cardId)}
-                            inspect
-                        />
-                        <span class="text-[10px] text-oath-heading h-3"
-                            >{discardPositionLabel(cardId, tapped, others)}</span
+                    <div class="relative">
+                        <button
+                            class="flex flex-col items-center gap-0.5 rounded border p-1 {tapped.includes(
+                                cardId
+                            )
+                                ? 'border-oath-accent bg-oath-accent-soft'
+                                : 'border-oath-divider hover:border-oath-accent'}"
+                            disabled={busy}
+                            onclick={() => gameSession.setup.tapDiscard(cardId)}
                         >
-                    </button>
+                            <CardImage
+                                {cardId}
+                                width={widthAtHeight(100, { cardId })}
+                                label={cardName(cardId)}
+                            />
+                            <span class="text-[10px] text-oath-heading h-3"
+                                >{discardPositionLabel(cardId, tapped, others)}</span
+                            >
+                        </button>
+                        <Magnifier
+                            preview={{ cardId, label: cardName(cardId) }}
+                            label={cardName(cardId)}
+                        />
+                    </div>
                 {/each}
             </div>
         {:else}

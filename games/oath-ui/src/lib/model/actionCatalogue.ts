@@ -160,7 +160,7 @@ export const MINOR_TARGETED_ACTIONS: ReadonlySet<ActionType> = new Set([
     ActionType.ExileCitizen
 ])
 
-export type PromptState = { cardChosen: boolean; adviserChosen: boolean; moveChosen: boolean }
+export type PromptState = { cardChosen: boolean; adviserChosen: boolean }
 
 export function actionPrompt(action: ActionType, state: PromptState): string {
     switch (action) {
@@ -185,7 +185,7 @@ export function actionPrompt(action: ActionType, state: PromptState): string {
         case ActionType.UseActionPower:
             return 'Choose a power to use.'
         case ActionType.MoveWarbands:
-            return state.moveChosen ? 'How many?' : 'Choose a move and how many.'
+            return 'Choose a move and how many.'
         case ActionType.ExileCitizen:
             return 'Choose a Citizen to exile.'
         default:

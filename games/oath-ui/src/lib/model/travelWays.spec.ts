@@ -34,20 +34,20 @@ function travelling(me: { supply: number }, denizensBySite: Record<string, strin
 describe('Travel offers the choices a Travel carries (R-7.1.4, R-11.12, R-X.1)', () => {
     it("Way Station's favor is offered beside Supply, and the one picked is sent", async () => {
         const { session, sent } = travelling({ supply: 3 }, { c1: [], c2: [WAY_STATION] })
-        await session.chooseSite('c2')
-        expect(sent).not.toHaveBeenCalled()
-        const ways = session.travelChoices
+        const ways = session.travelRows.find((row) => row.slotId === 'c2')?.ways ?? []
         expect(ways.map((w) => w.discountTolls)).toEqual([[], [WAY_STATION]])
 
-        await session.chooseTravelWay(ways[1])
+        await session.travelTo('c2', ways[1])
         const action = sent.mock.calls[0][0]
         assert(isTravel(action), 'a Travel is sent')
         expect(action.tolls).toEqual([WAY_STATION])
     })
 
-    it('a destination with one legal way is sent on the tap', async () => {
+    it('a destination with one legal way is one button, and the button sends', async () => {
         const { session, sent } = travelling({ supply: 3 }, { c1: [], c2: [] })
-        await session.chooseSite('c2')
+        const ways = session.travelRows.find((row) => row.slotId === 'c2')?.ways ?? []
+        expect(ways).toHaveLength(1)
+        await session.travelTo('c2', ways[0])
         expect(sent).toHaveBeenCalledOnce()
     })
 
@@ -111,12 +111,10 @@ describe('R-11.12 — the Buried Giant offers a flipped secret beside the Supply
         const session = openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.chooseAction(ActionType.Travel)
-        await session.chooseSite('c2')
-        expect(sent).not.toHaveBeenCalled()
-        const ways = session.travelChoices
+        const ways = session.travelRows.find((row) => row.slotId === 'c2')?.ways ?? []
         expect(ways.map((w) => w.flipSecret)).toEqual([false, true])
 
-        await session.chooseTravelWay(ways[1])
+        await session.travelTo('c2', ways[1])
         const action = sent.mock.calls[0][0]
         assert(isTravel(action), 'a Travel is sent')
         expect(action.siteId).toBe('c2')

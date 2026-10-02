@@ -29,12 +29,11 @@
                 {@const value = gameState.banners[banner].value}
                 {@const amount = gameSession.bannerBid(banner)}
                 {@const src = bannerImage(banner, gameState.isOnMobSide(banner))}
-                <button
-                    type="button"
+                <div
                     class="banner"
+                    role="presentation"
                     class:banner--pickable={amount !== undefined}
                     class:banner--pointed={menuPointer.is({ kind: 'banner', banner })}
-                    disabled={amount === undefined}
                     title={amount !== undefined
                         ? `Recover ${label} — pay ${amount} or more`
                         : `${label}, unclaimed — ${value} on it`}
@@ -47,11 +46,7 @@
                                 kind: bannerTokenKind(banner),
                                 count: value
                             }
-                        },
-                        pickable: amount !== undefined
-                    }}
-                    onclick={() => {
-                        if (amount !== undefined) gameSession.pickBanner(banner)
+                        }
                     }}
                 >
                     <img {src} alt={label} />
@@ -59,7 +54,7 @@
                         <TokenBadge kind={bannerTokenKind(banner)} count={value} size={64} />
                     </span>
                     {#if amount !== undefined}<span class="banner__bid">pay {amount}+</span>{/if}
-                </button>
+                </div>
             {/each}
         </div>
     </section>
@@ -93,7 +88,7 @@
         background: transparent;
         line-height: 0;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
-        cursor: default;
+        cursor: zoom-in;
     }
     .banner img {
         display: block;
@@ -108,7 +103,6 @@
         outline-offset: 2px;
         box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.55);
     }
-    .banner--pickable:hover,
     .banner--pickable.banner--pointed {
         outline-color: var(--oath-heading);
     }

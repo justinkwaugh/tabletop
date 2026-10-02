@@ -12,7 +12,6 @@
     // R-5.3.2 — a row per card at the site, a button per trade the engine accepts.
     let gameSession = getGameSession()
     let rows = $derived(gameSession.tradeRows)
-    let marked = $derived(gameSession.tradeCard)
     let busy = $derived(gameSession.busy)
 
     function spoken(row: TradeRow, choice: TradeChoice): string {
@@ -29,7 +28,6 @@
             image={suitImage(row.suit)}
             imageAlt={suitName(row.suit)}
             name={cardName(row.cardId)}
-            marked={marked === row.cardId}
             points={{ kind: 'card', cardId: row.cardId }}
         >
             {#each row.choices as choice (choice.option)}

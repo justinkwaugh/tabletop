@@ -125,20 +125,15 @@
     {@const back = gameState.discardTopBackIn(region)}
     {@const row = discardRow(region)}
     {@const pickable = row !== undefined}
-    <button
-        type="button"
+    <div
         class="discard"
         class:empty={count === 0}
         class:pickable
         class:pointed={menuPointer.is({ kind: 'pile', region })}
-        disabled={!pickable}
         title={pickable
             ? `Search this discard pile — ${row.cost} Supply`
             : `${count} cards in the ${region} discard pile`}
         style="left:{box.x}px; top:{box.y}px; width:{box.width}px; height:{box.height}px;"
-        onclick={() => {
-            if (row) void gameSession.searchFrom(row)
-        }}
     >
         {#if count > 0 && back}
             {@const pile = laidCardIn(box, WORLD_ASPECT, DISCARD_CARD_INSET)}
@@ -152,7 +147,7 @@
         {/if}
         <span class="discard__count">{count}</span>
         {#if row}<span class="pick-cost pick-cost--discard">{row.cost} supply</span>{/if}
-    </button>
+    </div>
 {/each}
 
 <!-- R-2.7 — the Relic Deck; R-9.4 makes its count private. -->
@@ -176,24 +171,15 @@
         />
     {/if}
 {/snippet}
-{#if worldDeckPickable}
-    <button
-        type="button"
-        class="deck deck--laid pickable"
-        class:pointed={menuPointer.is({ kind: 'deck' })}
-        title="Search the world deck — {worldDeckRow?.cost} Supply"
-        style="left:{worldDeckCenter.x}px; top:{worldDeckCenter.y}px;"
-        onclick={() => {
-            if (worldDeckRow) void gameSession.searchFrom(worldDeckRow)
-        }}
-    >
-        {@render worldDeckFace()}
-    </button>
-{:else}
-    <div class="deck deck--laid" style="left:{worldDeckCenter.x}px; top:{worldDeckCenter.y}px;">
-        {@render worldDeckFace()}
-    </div>
-{/if}
+<div
+    class="deck deck--laid"
+    class:pickable={worldDeckPickable}
+    class:pointed={menuPointer.is({ kind: 'deck' })}
+    title={worldDeckRow ? `Search the world deck — ${worldDeckRow.cost} Supply` : 'The world deck'}
+    style="left:{worldDeckCenter.x}px; top:{worldDeckCenter.y}px;"
+>
+    {@render worldDeckFace()}
+</div>
 
 <style>
     .bank {
@@ -250,28 +236,13 @@
 
     /* The same amber ring the sites wear when pickable, with the price on a chip. */
     .pickable {
-        cursor: pointer;
         outline: 4px solid #fbbf24;
         outline-offset: 2px;
         border-radius: 8px;
         box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.55);
     }
-    .pickable:hover,
-    .pickable:focus-visible,
     .pickable.pointed {
         outline-color: #fde68a;
-    }
-    button.discard,
-    button.deck {
-        background: transparent;
-        border: 0;
-        padding: 0;
-        font: inherit;
-        color: inherit;
-        text-align: inherit;
-    }
-    button.discard:disabled {
-        cursor: default;
     }
     .pick-cost {
         position: absolute;

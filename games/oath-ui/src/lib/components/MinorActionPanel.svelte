@@ -30,7 +30,6 @@
         action === ActionType.PlayFacedownAdviser ? gameSession.facedownAdviserOptions : []
     )
     let chosenAdviser = $derived(advisers.find((a) => a.cardId === gameSession.adviserCardId))
-    let chosenMove = $derived(gameSession.warbandMoves.chosen)
     let moves = $derived(gameSession.warbandMoves.options)
     let citizens = $derived(gameSession.exileTargets)
 
@@ -179,27 +178,7 @@
     {:else if action === ActionType.LetPeek}
         <LetPeekPicker />
     {:else if action === ActionType.MoveWarbands}
-        {#if chosenMove}
-            {@const otherPlayerId = otherPlayerOf(chosenMove.move)}
-            <div class="text-xs text-oath-text-muted mb-1">
-                {MOVE_LABELS[chosenMove.move.kind]}
-                {#if otherPlayerId}
-                    — {gameSession.getPlayerName(otherPlayerId)}
-                {/if}
-                <span class="text-oath-text-muted">— how many?</span>
-            </div>
-            <div class="flex gap-1 flex-wrap">
-                {#each range(1, chosenMove.max) as count (count)}
-                    <button
-                        class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover px-2.5 py-1 text-sm font-semibold"
-                        disabled={busy}
-                        onclick={() => gameSession.warbandMoves.send(count)}
-                    >
-                        {count}
-                    </button>
-                {/each}
-            </div>
-        {:else if moves.length === 0}
+        {#if moves.length === 0}
             <p class="text-xs text-oath-text-muted">No warbands you may move.</p>
         {:else}
             <div class="flex flex-col gap-1.5" role="list" aria-label="Warband moves">

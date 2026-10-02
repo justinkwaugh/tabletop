@@ -89,9 +89,8 @@
                     y={placed.y}
                     width={placed.width}
                     zIndex={placed.zIndex}
-                    pickable={space.pickable}
+                    offered={space.pickable}
                     pointed={menuPointer.is({ kind: 'relic', slotId: relicSlotId })}
-                    onpick={() => gameSession.chooseRelicSlot(relicSlotId)}
                 />
             {/if}
         {:else if space.cardId === undefined}
@@ -106,10 +105,8 @@
                 y={placed.y}
                 width={placed.width}
                 zIndex={placed.zIndex}
-                pickable={space.pickable}
-                picked={gameSession.tradeCard === denizenCardId}
+                offered={space.pickable}
                 pointed={menuPointer.is({ kind: 'card', cardId: denizenCardId })}
-                onpick={() => gameSession.chooseCard(denizenCardId)}
             />
             {#if tokens.favor > 0 || tokens.secrets > 0}
                 <!-- R-7.1.2 — favor and secrets on the card, which R-7.1.2.a's occupancy reads. -->

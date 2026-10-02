@@ -53,6 +53,18 @@
         return { cardId, hasWarbands, rulerIds }
     })
 
+    // Rule 7 — Escape closes the topmost layer only, so it is caught before the open seat or full screen see it.
+    const closesOnEscape: Attachment<HTMLElement> = () => {
+        const escape = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return
+            event.preventDefault()
+            event.stopPropagation()
+            cardPreview.dismiss()
+        }
+        window.addEventListener('keydown', escape, { capture: true })
+        return () => window.removeEventListener('keydown', escape, { capture: true })
+    }
+
     const measureArea: Attachment<HTMLElement> = (node) => {
         const read = () => {
             areaWidth = node.clientWidth
@@ -87,23 +99,24 @@
 </script>
 
 {#if preview}
-    <!-- Inert under a mouse, so picking never depends on how long the pointer
-         was still; on touch the sticky preview takes and swallows the closing tap. -->
+    <!-- Rule 4 — over a backdrop that takes the next press, so the press that closes it does nothing else. -->
     <div
         class="card-preview"
-        class:card-preview--sticky={cardPreview.sticky}
-        aria-hidden={!cardPreview.sticky}
         role="button"
-        tabindex={cardPreview.sticky ? 0 : -1}
+        tabindex="0"
+        aria-label="Close the enlarged card"
+        {@attach closesOnEscape}
         onpointerdown={(event) => {
-            if (!cardPreview.sticky) return
+            event.preventDefault()
+            event.stopPropagation()
+        }}
+        onclick={(event) => {
             event.preventDefault()
             event.stopPropagation()
             cardPreview.dismiss()
         }}
         onkeydown={(event) => {
-            if (cardPreview.sticky && (event.key === 'Escape' || event.key === 'Enter'))
-                cardPreview.dismiss()
+            if (event.key === 'Enter' || event.key === ' ') cardPreview.dismiss()
         }}
     >
         <div class="card-preview__area" {@attach measureArea}>
@@ -219,7 +232,8 @@
         z-index: 60;
         padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
             env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-        pointer-events: none;
+        background: rgba(0, 0, 0, 0.35);
+        cursor: pointer;
     }
 
     .card-preview__area {
@@ -230,11 +244,6 @@
         justify-content: center;
     }
 
-    .card-preview--sticky {
-        pointer-events: auto;
-        background: rgba(0, 0, 0, 0.35);
-        cursor: pointer;
-    }
     .figure {
         height: 26px;
         width: auto;

@@ -24,19 +24,6 @@ async function openTable(page: Page, name: TableFixture.TableName) {
     return call(page, 'open', name)
 }
 
-async function pressAndHold(page: Page, x: number, y: number) {
-    const cdp = await page.context().newCDPSession(page)
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
-    await page.waitForTimeout(600)
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
-}
-
-async function holdCard(page: Page, card: ReturnType<Page['locator']>) {
-    const box = await card.boundingBox()
-    if (!box) throw Error('The card is on screen')
-    await pressAndHold(page, box.x + box.width / 2, box.y + box.height / 2)
-}
-
 /** The first card of `selector` whose centre is not under another layer, such as the side column. */
 async function uncovered(page: Page, selector: string) {
     const index = await page.evaluate((selector) => {
@@ -52,31 +39,49 @@ async function uncovered(page: Page, selector: string) {
 
 const preview = (page: Page) => page.locator('.card-preview')
 const panelCards = (page: Page) =>
-    page.locator('.panel').getByRole('button').filter({ hasNotText: /Back|Undo/ })
+    page.locator('.panel button:not(.magnifier)').filter({ hasNotText: /Back|Undo/ })
+const magnifiers = (page: Page) => page.locator('.panel button.magnifier')
 
-/** docs/ui-interaction-visual-contract.md, scenario 7 (touch half). */
+/** docs/ui-interaction-visual-contract.md, rules 1 and 4 and scenarios 7, 24 and 44, on touch. */
 test.describe('on touch', () => {
     test.use({ hasTouch: true, viewport: { width: 1024, height: 768 } })
 
-    test('scenario 7: a hold on a pickable card keeps its preview open and picks nothing; the next tap closes it', async ({
+    test('scenario 7: a panel card’s magnifier enlarges it and the next tap closes it; a tap on the card picks it', async ({
         page
     }) => {
         await openTable(page, 'setup')
         await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
-        await holdCard(page, panelCards(page).first())
+        await magnifiers(page).first().tap()
         await expect(preview(page)).toBeVisible()
-        await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+        await expect(page.locator('[aria-pressed="true"]')).toHaveCount(0)
 
         await page.touchscreen.tap(20, 20)
         await expect(preview(page)).toHaveCount(0)
-        await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
+        await panelCards(page).first().tap()
+        await expect(page.getByText('Tap the card that is discarded first', { exact: false })).toBeVisible()
+        await expect(preview(page)).toHaveCount(0)
     })
 
-    test('scenario 24: a preview held open closes when its card leaves the table, and the new offers show with no ring left over', async ({
+    test('scenario 44: a tap on an offered site enlarges it and travels nowhere; the next tap closes it', async ({
+        page
+    }) => {
+        await openTable(page, 'actPhase')
+        await tile(page, 'Travel').click()
+        await (await uncovered(page, '.board-card.offered')).tap()
+        await expect(preview(page)).toBeVisible()
+        expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+
+        await page.touchscreen.tap(20, 20)
+        await expect(preview(page)).toHaveCount(0)
+        expect((await call(page, 'tableFacts')).siteOf.me).toBe('slot.cradle.0')
+        await expect(page.getByRole('list', { name: 'Destinations in the Cradle' })).toBeVisible()
+    })
+
+    test('scenario 24: an enlarged card closes when its card leaves the table, and the new offers show with no ring left over', async ({
         page
     }) => {
         await openTable(page, 'setup')
-        await holdCard(page, panelCards(page).first())
+        await magnifiers(page).first().tap()
         await expect(preview(page)).toBeVisible()
 
         await call(page, 'seatMakesSetupChoice')
@@ -85,13 +90,13 @@ test.describe('on touch', () => {
         await expect(page.locator('[aria-pressed="true"]')).toHaveCount(0)
     })
 
-    test('scenario 24: a preview held open over a card still on the table stays, while the picks under it end', async ({
+    test('scenario 24: an enlarged card over a card still on the table stays, while the picks under it end', async ({
         page
     }) => {
         await openTable(page, 'searching')
         await panelCards(page).first().tap()
         await expect(page.getByText('How do you play it?', { exact: false })).toBeVisible()
-        await (await uncovered(page, '.board-card:not(.pickable)')).tap()
+        await (await uncovered(page, '.board-card:not(.offered)')).tap()
         await expect(preview(page)).toBeVisible()
 
         await call(page, 'anotherSeatLetsPeek')
@@ -100,12 +105,27 @@ test.describe('on touch', () => {
     })
 })
 
-/** Scenario 24 on desktop: a remote Action lands while the mouse rests on a card. */
-test('scenario 24: a hovered preview closes when its card leaves the table, and the new offers show with no ring left over', async ({
+/** Rule 4 with a mouse: a hover opens nothing, a click enlarges, Escape closes. */
+test('scenario 44: a hover opens nothing; a click on a card on the table enlarges it; Escape closes it', async ({
+    page
+}) => {
+    await openTable(page, 'trade')
+    const card = await uncovered(page, '.board-card')
+    await card.hover()
+    await page.waitForTimeout(600)
+    await expect(preview(page)).toHaveCount(0)
+    await card.click()
+    await expect(preview(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+})
+
+/** Scenario 24 with a mouse: a remote Action lands while a card is enlarged. */
+test('scenario 24: an enlarged card closes when its card leaves the table, and the new offers show with no ring left over', async ({
     page
 }) => {
     await openTable(page, 'setup')
-    await panelCards(page).first().hover()
+    await magnifiers(page).first().click()
     const shown = preview(page).locator('img').first()
     await expect(shown).toBeVisible()
     const name = await shown.getAttribute('alt')
@@ -164,7 +184,7 @@ const grid = (page: Page) => page.locator('.panel')
 const tile = (page: Page, label: string) =>
     grid(page).locator('.majors button').filter({ hasText: label })
 const reasonLine = (page: Page) => grid(page).locator('.strip')
-const boardOffers = (page: Page) => page.locator('.board-card.pickable')
+const boardOffers = (page: Page) => page.locator('.board-card.offered')
 const dimmedSites = (page: Page) => page.locator('.site.dimmed')
 const answer = (page: Page, name: string) => grid(page).getByRole('button', { name, exact: true })
 
@@ -383,9 +403,9 @@ test.describe('scenario 32: waiting on a send', () => {
         page
     }) => {
         await openTable(page, 'actPhase')
-        const destination = boardOffers(page).and(
-            page.getByRole('button', { name: 'c2', exact: true })
-        )
+        const destination = page
+            .getByRole('list', { name: 'Destinations in the Cradle' })
+            .getByRole('button', { name: /^Travel to .+: spend 1 Supply$/ })
 
         await tile(page, 'Travel').click()
         await expect(destination).toHaveCount(1)
@@ -510,7 +530,7 @@ test('scenario 40: panel text shows favor as its token, the word only as the tok
     await expect(prompt).not.toContainText('favor')
 })
 
-test('scenario 39: Trade lists every trade at the site, a strip tap marks a row, a button sends', async ({ page }) => {
+test('scenario 39: Trade lists every trade at the site, a strip tap only enlarges, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Trade').click()
     const rows = page.getByRole('list', { name: 'Trades at your site' }).getByRole('listitem')
@@ -529,10 +549,11 @@ test('scenario 39: Trade lists every trade at the site, a strip tap marks a row,
     if (!name || !firstButton) throw Error('The row is on screen')
     expect(firstButton.x - name.x).toBeLessThan(260)
 
-    await page.getByRole('button', { name: 'Assassin', exact: true }).click()
-    await expect(rows.nth(1)).toHaveClass(/ring-2/)
-    await expect(rows.nth(0)).not.toHaveClass(/ring-2/)
+    await (await uncovered(page, '.board-card.offered')).click()
+    await expect(preview(page)).toBeVisible()
     expect(await call(page, 'cardTokens', 'denizen.discord.assassin')).toEqual({ favor: 0, secrets: 0 })
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Trade with Book Binders: pay 1 secret, get 3 favor from the Hearth bank' }).click()
     await expect.poll(() => call(page, 'cardTokens', 'denizen.hearth.book-binders')).toEqual({ favor: 0, secrets: 1 })
@@ -607,14 +628,14 @@ test('scenario 50: Peek lists only the relics not yet seen, Look sends', async (
 test('scenario 6: the facedown advisers to play are cards in the panel, a tap shows the placements', async ({ page }) => {
     await openTable(page, 'advisers')
     await grid(page).getByRole('button', { name: 'Play or discard an adviser', exact: true }).click()
-    await expect(grid(page).getByRole('button', { name: /Curfew/ })).toBeVisible()
-    await expect(grid(page).getByRole('button', { name: /Elders/ })).toBeVisible()
-    await grid(page).getByRole('button', { name: /Curfew/ }).first().click()
+    await expect(grid(page).getByRole('button', { name: 'Curfew', exact: true })).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: 'Elders', exact: true })).toBeVisible()
+    await grid(page).getByRole('button', { name: 'Curfew', exact: true }).click()
     const discard = grid(page).getByRole('button', { name: /^Discard it: Curfew$/ })
     await expect(discard).toBeVisible()
     await grid(page).getByRole('button', { name: 'Back', exact: true }).click()
     await expect(discard).toHaveCount(0)
-    await expect(grid(page).getByRole('button', { name: /Elders/ })).toBeVisible()
+    await expect(grid(page).getByRole('button', { name: 'Elders', exact: true })).toBeVisible()
 })
 
 test('scenario 18: each warband move is a row of counts, and a count sends', async ({ page }) => {
@@ -663,7 +684,7 @@ test('scenario 43: a menu row lights what it names on the table while pointed at
     await openTable(page, 'actPhase')
     await tile(page, 'Travel').click()
     const row = page.getByRole('list', { name: 'Destinations in the Cradle' }).getByRole('listitem').first()
-    const pointed = page.locator('.board-card.pickable.pointed')
+    const pointed = page.locator('.board-card.offered.pointed')
     await expect(pointed).toHaveCount(0)
     await row.hover()
     await expect(pointed).toHaveCount(1)

@@ -1,6 +1,11 @@
 <script lang="ts">
     import { range, type Player } from '@tabletop/common'
-    import { OathProjectedPlayerState, PlayerStatus, oathTypeName } from '@tabletop/oath'
+    import {
+        OathProjectedPlayerState,
+        PlayerStatus,
+        WarbandMoveKind,
+        oathTypeName
+    } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import CardWarbands from '$lib/components/CardWarbands.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
@@ -58,8 +63,13 @@
 
     let hasHoldings = $derived(playerState.relicIds.length > 0 || facts.banners.length > 0)
 
-    // R-6.5 — the site -> board move a tap on the Board counter makes.
-    let toBoard = $derived(isMe ? gameSession.warbandMoves.siteToBoard : undefined)
+    // R-6.5 — Move warbands offers its site -> board move in the panel; the counter wears the ring.
+    let toBoard = $derived(
+        isMe &&
+            gameSession.warbandMoves.options.some(
+                (option) => option.move.kind === WarbandMoveKind.SiteToBoard
+            )
+    )
 </script>
 
 <article
@@ -106,22 +116,14 @@
         </div>
         <div
             class="stat stat--board"
-            class:stat--pickable={!!toBoard}
+            class:stat--pickable={toBoard}
             title={toBoard
-                ? `Move warbands from ${playerState.siteId ? siteName(gameState, playerState.siteId) : 'your site'} to your board — up to ${toBoard.max}`
+                ? `Warbands may move from ${playerState.siteId ? siteName(gameState, playerState.siteId) : 'your site'} to your board`
                 : `${facts.warbands.onBoard} warbands on the board`}
         >
-            {#if toBoard}
-                <button
-                    type="button"
-                    class="hit"
-                    aria-label="Move warbands from your site to your board"
-                    onclick={() => void gameSession.warbandMoves.choose(toBoard)}
-                ></button>
-            {/if}
             <img src={warbandFigure} alt="" />
             <dd>{facts.warbands.onBoard}</dd>
-            <dt>{toBoard ? 'to board' : 'Board'}</dt>
+            <dt>Board</dt>
         </div>
         <div class="stat" title="{facts.warbands.inBank} warbands in the bank">
             <img src={warbandFigure} alt="" />
@@ -170,8 +172,7 @@
                             src={goalCardImage(gameState.oathType)}
                             alt={goalTitle(goal)}
                             use:inspectImage={{
-                                preview: goalCardPreview(gameState.oathType, goalTitle(goal)),
-                                pickable: false
+                                preview: goalCardPreview(gameState.oathType, goalTitle(goal))
                             }}
                         />
                     {/if}
@@ -203,15 +204,8 @@
                     class:thumb--pickable={playable}
                 >
                     {#if playable && cardId}
-                        <!-- R-6.1 — a tap plays this adviser. -->
-                        <button
-                            type="button"
-                            class="pick"
-                            title="Play or discard {cardName(cardId)}"
-                            onclick={() => gameSession.chooseAdviser(cardId)}
-                        >
-                            <CardImage {cardId} width={50} label={cardName(cardId)} />
-                        </button>
+                        <!-- R-6.1 — offered in the panel; here it wears the ring and enlarges. -->
+                        <CardImage {cardId} width={50} label={cardName(cardId)} inspect />
                     {:else if cardId}
                         <CardImage
                             {cardId}
@@ -277,7 +271,7 @@
             {#each facts.banners as banner (banner)}
                 {@const value = gameState.banners[banner].value}
                 {@const bid = gameSession.bannerBid(banner)}
-                <!-- R-5.4.2 — a Recover lights the banner where it is, and a tap takes it. -->
+                <!-- R-5.4.2 — a Recover lights the banner where it is; the panel takes it. -->
                 <figure
                     class="thumb thumb--banner"
                     class:thumb--pickable={bid !== undefined}
@@ -290,26 +284,16 @@
                                 kind: bannerTokenKind(banner),
                                 count: value
                             }
-                        },
-                        pickable: bid !== undefined
+                        }
                     }}
+                    title={bid !== undefined
+                        ? `Recover the ${bannerName(banner)} — pay ${bid} or more`
+                        : `Holds the ${bannerName(banner)} — ${value} on it`}
                 >
-                    <button
-                        type="button"
-                        class="pick"
-                        disabled={bid === undefined}
-                        title={bid !== undefined
-                            ? `Recover the ${bannerName(banner)} — pay ${bid} or more`
-                            : `Holds the ${bannerName(banner)} — ${value} on it`}
-                        onclick={() => {
-                            if (bid !== undefined) gameSession.pickBanner(banner)
-                        }}
-                    >
-                        <img
-                            src={bannerImage(banner, gameState.isOnMobSide(banner))}
-                            alt={`the ${bannerName(banner)}`}
-                        />
-                    </button>
+                    <img
+                        src={bannerImage(banner, gameState.isOnMobSide(banner))}
+                        alt={`the ${bannerName(banner)}`}
+                    />
                     <span class="thumb__value">
                         <TokenBadge kind={bannerTokenKind(banner)} count={value} size={24} />
                     </span>
@@ -432,15 +416,7 @@
     .stat--board {
         position: relative;
     }
-    .hit {
-        position: absolute;
-        inset: 0;
-        border: 0;
-        background: transparent;
-        cursor: pointer;
-    }
     .stat--pickable {
-        cursor: pointer;
         outline: 3px solid #fbbf24;
         outline-offset: 1px;
         box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.6);
@@ -637,25 +613,11 @@
         line-height: 0;
     }
 
-    .pick {
-        display: block;
-        padding: 0;
-        border: 0;
-        background: transparent;
-        line-height: 0;
-        cursor: pointer;
-    }
-    .pick:disabled {
-        cursor: default;
-    }
     .thumb--pickable {
         outline: 3px solid #fbbf24;
         outline-offset: 2px;
         border-radius: 4px;
         box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.6);
-    }
-    .thumb--pickable:hover {
-        outline-color: #fde68a;
     }
     .pick-caption {
         margin-top: 3px;

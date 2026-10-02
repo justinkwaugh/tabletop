@@ -8,7 +8,6 @@
         imageAlt,
         name,
         shape = 'symbol',
-        marked = false,
         points = undefined,
         children
     }: {
@@ -17,7 +16,6 @@
         name: string
         /** A suit symbol, a landscape card such as a site, or an upright card such as a back. */
         shape?: 'symbol' | 'wide' | 'card'
-        marked?: boolean
         /** What the row names on the table, lit while the row is pointed at. */
         points?: MenuPointerTarget
         children: Snippet
@@ -34,8 +32,6 @@
     role="listitem"
     {@attach pointsAt(points)}
     class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-md bg-oath-surface-raised px-2 py-1.5"
-    class:ring-2={marked}
-    class:ring-oath-accent={marked}
 >
     <img class="shrink-0 {SHAPES[shape]}" src={image} alt={imageAlt} />
     <span
