@@ -10,7 +10,6 @@ export const GameEnding = Type.Object(
     {
         reason: Type.String(),
         finalOperatingSet: Type.Optional(Type.Integer({ minimum: 1 })),
-        /** The final set's number of operating rounds, when the trigger fixes it. */
         finalOperatingRounds: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }

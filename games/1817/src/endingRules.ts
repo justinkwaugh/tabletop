@@ -4,16 +4,18 @@ import {
     marketShareValue,
     type EndingRules
 } from '@tabletop/18xx'
+import { assertExists } from '@tabletop/common'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
 export const EighteenSeventeenEndingRules: EndingRules = {
     // The first 8-train, bought or exported, makes the next set the last: 3 rounds after an 8
     // in a set's second round, 2 otherwise.
     trigger(state) {
-        const firstEight = state.trainInventory.trains.some(
+        const eightLeftDepot = state.trainInventory.trains.some(
             (train) => train.definitionId === '8' && train.status !== 'depot'
         )
+        if (!eightLeftDepot) return undefined
         const set = state.operatingSet
-        if (!firstEight || !set) return undefined
+        assertExists(set, 'An 8-train leaves the depot during an operating set')
         return {
             reason: 'First 8-train',
             finalOperatingSet: set.number + 1,

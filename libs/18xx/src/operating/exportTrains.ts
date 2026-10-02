@@ -16,7 +16,6 @@ import { BetweenCompaniesState } from './operatingSteps.js'
 
 type State = OperatingState & TrainState & PhaseState
 
-/** The kinds of the trains still to export at the end of the current operating round. */
 export function trainsAwaitingExport(state: State, rules: OperatingRules): string[] {
     const set = state.operatingSet
     if (

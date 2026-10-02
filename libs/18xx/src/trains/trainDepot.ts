@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Clone } from 'typebox/value'
 import { assert, assertExists, deepFreeze } from '@tabletop/common'
-import { TrainDefinition, type Train, type TrainInventory } from './train.js'
+import { TrainDefinition, unownedTrain, type Train, type TrainInventory } from './train.js'
 import type { Owner } from '../finance/finance.js'
 const SupplyEntry = Type.Object(
     {
@@ -99,11 +99,10 @@ export class TrainDepot {
         assert(train?.id === trainId, 'This depot train is no longer available')
         this.store(inventory, { ...train, status: 'owned', owner: { ...owner } })
     }
-    /** Removes the next depot train of this kind from play and returns it. */
     export(inventory: TrainInventory, definitionId: string): Train {
         const train = this.nextTrain(inventory, definitionId)
         assert(train?.status === 'depot', 'No depot train of this kind remains')
-        const exported: Train = { id: train.id, definitionId, status: 'removed' }
+        const exported = unownedTrain(train, 'removed')
         this.store(inventory, exported)
         return exported
     }

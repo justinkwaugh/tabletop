@@ -29,7 +29,6 @@ export const PhaseEvent = Type.Object(
     { additionalProperties: false }
 )
 export type PhaseEvent = Type.Static<typeof PhaseEvent>
-/** Where play resumes after a phase change: the operating company's step, or between rounds. */
 export const OperatingContinuation = Type.Object(
     { machineState: Id, companyId: Type.Optional(Id) },
     { additionalProperties: false }
@@ -56,7 +55,6 @@ export interface PhaseRules {
     discardOrder(state: PhaseChangeState, companyId: string | undefined): string[]
     discardDestination: 'market' | 'removed'
 }
-/** The operating company first, then the open companies in market order and any listed after. */
 export function marketDiscardOrder(
     state: PhaseChangeState,
     companyId: string | undefined,

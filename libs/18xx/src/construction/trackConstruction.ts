@@ -64,13 +64,6 @@ export type TrackLayDetails = Type.Static<typeof TrackLayDetails>
 export type TrackEvaluation =
     | { details: TrackLayDetails; reason?: never }
     | { reason: string; details?: never }
-function tileExitCount(face: TileFace): number {
-    return new Set(
-        face.paths.flatMap((path) =>
-            path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
-        )
-    ).size
-}
 export interface TrackRules {
     map: RailwayMap
     tileSet: TileSet
@@ -173,15 +166,13 @@ export class TrackConstruction {
     private hasMoreExitsElsewhere(request: TrackRequest): boolean {
         const previous = this.mapState.tile(request.locationId)
         if (!this.rules.mostExits?.(previous.face)) return false
-        const definition = this.rules.tileSet.definitions.find(
-            (tile) => tile.id === request.definitionId
-        )
+        const definition = this.tileDefinition(request.definitionId)
         assertExists(definition, 'An evaluated lay names a known tile')
         const before = rotateTileFace(previous.face, previous.rotation)
         return this.rules.tileSet.definitions.some(
             (other) =>
                 other.face.color === definition.face.color &&
-                tileExitCount(other.face) > tileExitCount(definition.face) &&
+                this.exitCount(other.face) > this.exitCount(definition.face) &&
                 Rotations.some((rotation) =>
                     tileUpgradeMappings(before, rotateTileFace(other.face, rotation)).some(
                         (nodeMapping) =>
@@ -195,6 +186,16 @@ export class TrackConstruction {
                 )
         )
     }
+    private exitCount(face: TileFace): number {
+        return new Set(
+            face.paths.flatMap((path) =>
+                path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
+            )
+        ).size
+    }
+    private tileDefinition(definitionId: string): TileDefinition | undefined {
+        return this.rules.tileSet.definitions.find((tile) => tile.id === definitionId)
+    }
     private evaluatePlacement(request: TrackRequest): TrackEvaluation {
         const { locationId, companyId, definitionId, rotation, nodeMapping } = request
         if (
@@ -206,7 +207,7 @@ export class TrackConstruction {
         const location = this.rules.map.definition.locations.find(
             (location) => location.id === locationId
         )
-        const definition = this.rules.tileSet.definitions.find((tile) => tile.id === definitionId)
+        const definition = this.tileDefinition(definitionId)
         if (!location || !definition) return { reason: 'Unknown map location or tile' }
         if (!this.basicTileAllowed(locationId, definition))
             return { reason: 'The tile’s color, labels, or stops cannot replace this hex' }

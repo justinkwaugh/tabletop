@@ -13,7 +13,6 @@ export const OperatingSet = Type.Object(
         companyOrder: Type.Array(Type.String(), { uniqueItems: true }),
         completedCompanyIds: Type.Array(Type.String(), { uniqueItems: true }),
         privateIncomePaid: Type.Boolean(),
-        /** The last round whose exports have been made. */
         exportedRound: Type.Optional(Type.Integer({ minimum: 1 })),
         completed: Type.Boolean()
     },

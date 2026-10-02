@@ -8,7 +8,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { OperatingSet, type OperatingRules, type OperatingState } from './operatingSet.js'
-import type { GameEnding } from '../ending/gameEnding.js'
+import type { EndingState } from '../ending/gameEnding.js'
 
 const StartFields = Type.Object({
     type: Type.Literal('StartOperatingSet'),
@@ -39,7 +39,7 @@ export class HydratedStartOperatingSet
         super(data instanceof HydratedStartOperatingSet ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & OperatingState & { gameEnding?: GameEnding }): void {
+    apply(state: HydratedGameState & OperatingState & Pick<EndingState, 'gameEnding'>): void {
         assert(
             this.source === ActionSource.System,
             'Starting an operating set requires a system action'

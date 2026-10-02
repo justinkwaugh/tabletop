@@ -1,14 +1,23 @@
+import { createRequire } from 'node:module'
+import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
+import { Autorouter } from '@tabletop/18xx-autorouter'
 import {
+    RouteEvaluation,
     TrackConstruction,
     applyStationPlacement,
     companyMarketSpace,
     placeStockMarker,
+    type TileRotation,
+    type TrainRoute,
+    type TrainRunningState,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import {
     EighteenSeventeenEarningsRules,
+    EighteenSeventeenRouteRules,
     EighteenSeventeenTileSet,
     EighteenSeventeenTrackRules
 } from './index.js'
@@ -70,28 +79,101 @@ describe('track construction', () => {
         ).toEqual(new Set(['1817:X30']))
     })
     it('upgrades a city only to a tile of the new colour with the most exits', () => {
-        const brownChoices = (rules: typeof EighteenSeventeenTrackRules) => {
+        const brownChoices = (
+            locationId: string,
+            definitionId: string,
+            rotation: TileRotation,
+            rules = EighteenSeventeenTrackRules
+        ) => {
             const { state } = construction((state) => {
                 state.phaseId = '5'
                 state.tileInventory = EighteenSeventeenTileSet.createInventory([
-                    { locationId: 'G6', definitionId: '18xx:619', rotation: 0 }
+                    { locationId, definitionId, rotation }
                 ])
                 applyStationPlacement(state, {
                     companyId: 'BA',
                     stationId: 'BA:station:1',
-                    position: { locationId: 'G6', nodeId: 'city', slot: 0 },
+                    position: { locationId, nodeId: 'city', slot: 0 },
                     cost: 0
                 })
             })
             return new Set(
                 new TrackConstruction(state, rules)
-                    .choices('G6')
+                    .choices(locationId)
                     .map((choice) => choice.definitionId)
             )
         }
         const { mostExits: _, ...anyExits } = EighteenSeventeenTrackRules
-        expect(brownChoices(EighteenSeventeenTrackRules)).toEqual(new Set(['18xx:63']))
-        expect(brownChoices(anyExits)).toEqual(new Set(['18xx:63', '18xx:611']))
+        expect(brownChoices('G6', '18xx:619', 0)).toEqual(new Set(['18xx:63']))
+        expect(brownChoices('G6', '18xx:619', 0, anyExits)).toEqual(
+            new Set(['18xx:63', '18xx:611'])
+        )
+        // A #63 would run off the map here.
+        expect(brownChoices('C14', '18xx:619', 0)).toEqual(new Set(['18xx:611']))
+        expect(brownChoices('B5', '18xx:15', 4)).toEqual(new Set(['18xx:448']))
+    })
+})
+
+describe('routes', () => {
+    // New York's two cities joined by a loop through E20 and D21.
+    function newYorkLoop() {
+        const { state } = exampleGame(EighteenSeventeenScenarios, 'construction', 3)
+        state.phaseId = '3'
+        state.tileInventory = EighteenSeventeenTileSet.createInventory([
+            { locationId: 'E22', definitionId: '18xx:54', rotation: 0 },
+            { locationId: 'E20', definitionId: '18xx:7', rotation: 3 },
+            { locationId: 'D21', definitionId: '18xx:7', rotation: 5 }
+        ])
+        applyStationPlacement(state, {
+            companyId: 'BA',
+            stationId: 'BA:station:1',
+            position: { locationId: 'E22', nodeId: 'city-0', slot: 0 },
+            cost: 0
+        })
+        const running: TrainRunningState = { ...state, routeStep: { companyId: 'BA' } }
+        const train = running.trainInventory.trains.find(
+            (train) =>
+                train.status === 'owned' &&
+                train.owner.kind === 'company' &&
+                train.owner.companyId === 'BA'
+        )
+        assertExists(train, 'BA owns a train')
+        const route: TrainRoute = {
+            trainId: train.id,
+            start: { locationId: 'E22', nodeId: 'city-0' },
+            paths: [
+                { locationId: 'E22', pathId: 'city-0-edge-1' },
+                { locationId: 'E20', pathId: 'path-0' },
+                { locationId: 'D21', pathId: 'path-0' },
+                { locationId: 'E22', pathId: 'city-1-edge-2' }
+            ]
+        }
+        return { state: running, route }
+    }
+
+    it('rejects a route through both New York cities', () => {
+        const { state, route } = newYorkLoop()
+        const { oneStopPerHex: _, ...anyStops } = EighteenSeventeenRouteRules
+        expect(new RouteEvaluation(state, anyStops).evaluate('BA', [route]).result).toBeDefined()
+        expect(
+            new RouteEvaluation(state, EighteenSeventeenRouteRules).evaluate('BA', [route]).reason
+        ).toBe('A route may stop only once in each hex.')
+    })
+
+    it('never routes through both New York cities', async () => {
+        const { state, route } = newYorkLoop()
+        const { oneStopPerHex: _, ...anyStops } = EighteenSeventeenRouteRules
+        const bothCities = new RouteEvaluation(state, anyStops).evaluate('BA', [route]).result
+        assertExists(bothCities, 'Without the rule the loop is a valid route')
+        const bytes = await readFile(
+            createRequire(import.meta.url).resolve('@tabletop/18xx-autorouter/solver.wasm')
+        )
+        const router = await Autorouter.create(new Uint8Array(bytes).buffer)
+        expect(router.solve(state, anyStops, 'BA').result.revenue).toBe(bothCities.revenue)
+        // The loop is BA's only route with two stops, so with the rule it has none.
+        expect(router.solve(state, EighteenSeventeenRouteRules, 'BA').result).toEqual(
+            expect.objectContaining({ revenue: 0, routes: [] })
+        )
     })
 })
 

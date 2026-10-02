@@ -569,9 +569,9 @@ resumes the original company automatically without starting another player turn.
 
 A phase change started by exporting trains after an operating round has no
 interrupted company: PhaseChanges says the operating round ends instead of naming a
-company to resume, compulsory discards begin with the company highest on the stock
-market, and history shows the export as an important "Exported" row with the
-exported train kinds and, for several trains, their count.
+company to resume, compulsory discards follow the title's discard order, and history
+shows the export as an important "Exported" row with the exported train kinds and,
+for several trains, their count.
 
 Diesel exchanges reuse the manual train-purchase selection and confirmation, including
 its exchangeTrainId. Preview shows the trade-in, price, and resulting phase.

@@ -634,7 +634,12 @@ exits, and the ending after the first 8-train.
 - **Exports.** After every OR the reference [game] exports the next depot train. If
   that train is a 2, every remaining 2 is exported together. An export starts a phase
   exactly as a purchase does, so it can rust and obsolete trains and lower the train
-  limit.
+  limit. Obsolete trains still count toward the limit
+  (`OBSOLETE_TRAINS_COUNT_FOR_LIMIT = true`).
+- **Discards.** Companies over the limit discard one at a time in corporation-list
+  order (`crowded_corps`), whether a purchase or an export lowered the limit; the
+  buyer is not put first. After an export the reference resolves them in the
+  following merger round.
 - **One stop per hex.** The reference rejects a route whose stops' hexes repeat
   (`route.hexes`, the hexes of its revenue centers). A route can therefore stop at
   only one of New York's two cities.
@@ -674,7 +679,9 @@ exits, and the ending after the first 8-train.
 - **A phase change can happen between rounds.** The phase change's continuation no
   longer needs an operating company. Trains over the new limit are discarded in the
   title's `discardOrder`, which now accepts no starting company, and play returns to
-  the operating set.
+  the operating set. Until merger rounds exist (slices 5 and 6) they are resolved
+  straight after the export. 1817 discards in corporation order, replacing slice 1's
+  market order with the operating company first.
 - **One stop per hex is a route rule.** `RouteRules.oneStopPerHex` rejects a route
   with two revenue centers in one hex. The autorouter encodes each such hex as an
   exclusive stop group, as it already does for named stop groups.
@@ -688,21 +695,29 @@ exits, and the ending after the first 8-train.
   place of the title's round count, so the ending rules see train state.
 
 All new fields are optional, and TOP, 1889 and 1830 set none of the new rules.
+Their runtime contracts still change: the schemas of `ScheduleGameEnd`,
+`StartOperatingSet` and `StartOperatingRound` gain the optional fields, and a phase
+change's `continuation.companyId` becomes optional. Stored games stay valid, and their
+UI artifacts need republishing only to adopt the new family code.
 
 ### Implementation notes for slice 2
 
 - `ExportTrains` records the exported trains and any phase they started. History
   shows it as an "Exported" row; a phase change it starts names no company to
-  resume and discards in stock-market order.
-- `discardOrder(state, companyId)` takes an optional company; titles share
-  `marketDiscardOrder`, which puts that company first and then follows the market.
+  resume.
+- `discardOrder(state, companyId)` takes an optional company. 1830, 1889 and TOP
+  share `marketDiscardOrder`, which puts that company first and then follows the
+  market.
 - Most exits compares each colour's tiles that could legally replace the current
-  tile, so a #63 that does not fit leaves #611 available.
+  tile, so where a #63 would run off the map (C14) #611 is offered, and where
+  neither fits (B5) #448.
 
 ### Limits after slice 2
 
 - The ending checks run after the final set's last OR; with no merger rounds yet
-  (slices 5 and 6) there is nothing after it.
+  (slices 5 and 6) there is nothing after it. The game therefore ends before that
+  OR's export, which the reference still makes; as the next train is always an 8,
+  nothing visible differs.
 - The game still cannot end by bankruptcy (slice 3).
 
 ### Acceptance examples
@@ -712,7 +727,9 @@ All new fields are optional, and TOP, 1889 and 1830 set none of the new rules.
   the 2+s and makes companies over the new limit discard.
 - A route through both New York cities is rejected, and the autorouter never offers
   one.
-- On a brown city upgrade where #63 fits, #611 and #448 are not offered.
+- On a brown city upgrade where #63 fits, #611 and #448 are not offered; where it
+  would run off the map, #611 is.
+- Companies over a lowered limit discard in corporation order, not market order.
 - An 8-train bought in the first OR of set 5 makes set 6 final with 2 ORs; one
   exported after the second OR makes it final with 3. The game ends after that set.
 
