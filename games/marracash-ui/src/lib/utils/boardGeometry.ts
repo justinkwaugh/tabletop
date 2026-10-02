@@ -7,6 +7,7 @@ import {
     startingQueueLength,
     type ShopId
 } from '@tabletop/marracash'
+import { PawnHeight, PawnUnitSize, PawnWidth } from '$lib/utils/pawnShape.js'
 
 export const CellSize = 80
 export const WallThickness = 28
@@ -114,44 +115,77 @@ const QueuePath: Point[] = [
     { x: QueueEndX, y: TableHeight - QueueLane }
 ]
 
-const QueuePathLength = QueuePath.slice(1).reduce(
-    (length, _, index) => length + segmentLength(index + 1),
-    0
-)
+export const QueuePawnSize = 30
 
-const QueueSpacing = QueuePathLength / (startingQueueLength(EntranceFountainIds.length) - 1)
+const QueuePawnScale = QueuePawnSize / PawnUnitSize
+const SpacingSearchSteps = 50
+
+function segmentLength(segment: number): number {
+    return distance(QueuePath[segment - 1], QueuePath[segment])
+}
+
+function pawnExtentAlong(segment: number): number {
+    const vertical = QueuePath[segment - 1].x === QueuePath[segment].x
+    return (vertical ? PawnHeight : PawnWidth) * QueuePawnScale
+}
+
+const QueueSegments = QueuePath.slice(1).map((_, index) => ({
+    length: segmentLength(index + 1),
+    extent: pawnExtentAlong(index + 1)
+}))
+
+function slotsAlongQueue(gap: number): number {
+    return QueueSegments.reduce(
+        (slots, segment) => slots + segment.length / (segment.extent + gap),
+        0
+    )
+}
+
+function evenQueueGap(): number {
+    const intervals = startingQueueLength(EntranceFountainIds.length) - 1
+    let low = -Math.min(...QueueSegments.map((segment) => segment.extent))
+    let high = Math.max(...QueueSegments.map((segment) => segment.length))
+    for (let step = 0; step < SpacingSearchSteps; step++) {
+        const gap = (low + high) / 2
+        if (slotsAlongQueue(gap) > intervals) low = gap
+        else high = gap
+    }
+    return (low + high) / 2
+}
+
+const QueueGap = evenQueueGap()
+const QueueSlotCount = slotsAlongQueue(QueueGap)
 
 export type QueueLayout = { visitors: Point[]; front: Point; back: Point }
 
 export function queueLayout(count: number): QueueLayout {
-    const start = (QueuePathLength - (count - 1) * QueueSpacing) / 2
-    const end = start + (count - 1) * QueueSpacing
+    const start = (QueueSlotCount - (count - 1)) / 2
+    const end = start + count - 1
     return {
-        visitors: Array.from({ length: count }, (_, index) =>
-            pointAlongQueue(start + index * QueueSpacing)
-        ),
-        front: pointAlongQueue(start - 1.5 * QueueSpacing),
-        back: pointAlongQueue(end + 1.5 * QueueSpacing)
+        visitors: Array.from({ length: count }, (_, index) => pointAtQueueSlot(start + index)),
+        front: pointAtQueueSlot(start - 1.5),
+        back: pointAtQueueSlot(end + 1.5)
     }
 }
 
 export const QueueCountLabel: Point = { x: TableWidth - QueueLane, y: TableHeight / 2 }
 
-function pointAlongQueue(offset: number): Point {
-    let remaining = offset
+function pointAtQueueSlot(slot: number): Point {
+    let remaining = slot
     let segment = 1
-    while (segment < QueuePath.length - 1 && remaining > segmentLength(segment)) {
-        remaining -= segmentLength(segment)
+    while (segment < QueuePath.length - 1 && remaining > slotsIn(segment)) {
+        remaining -= slotsIn(segment)
         segment++
     }
     const from = QueuePath[segment - 1]
     const to = QueuePath[segment]
-    const t = remaining / segmentLength(segment)
+    const t = remaining / slotsIn(segment)
     return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }
 }
 
-function segmentLength(segment: number): number {
-    return distance(QueuePath[segment - 1], QueuePath[segment])
+function slotsIn(segment: number): number {
+    const { length, extent } = QueueSegments[segment - 1]
+    return length / (extent + QueueGap)
 }
 
 function distance(from: Point, to: Point): number {

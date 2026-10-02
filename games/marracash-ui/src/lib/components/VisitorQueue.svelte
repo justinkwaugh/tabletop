@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Pawn from '$lib/components/Pawn.svelte'
-    import { QueueCountLabel, queueLayout } from '$lib/utils/boardGeometry.js'
+    import { QueueCountLabel, queueLayout, QueuePawnSize } from '$lib/utils/boardGeometry.js'
 
     const gameSession = getGameSession()
 
@@ -11,7 +11,12 @@
 
 <g role="img" aria-label="Visitor queue">
     {#each queue as color, index (index)}
-        <Pawn {color} x={layout.visitors[index].x} y={layout.visitors[index].y} size={30} />
+        <Pawn
+            {color}
+            x={layout.visitors[index].x}
+            y={layout.visitors[index].y}
+            size={QueuePawnSize}
+        />
     {/each}
     {#if queue.length > 0}
         <text class="queue-label" x={layout.front.x} y={layout.front.y}>Front</text>

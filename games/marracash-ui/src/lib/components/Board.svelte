@@ -4,6 +4,7 @@
     import ShopTile from '$lib/components/ShopTile.svelte'
     import AwningDefs from '$lib/components/AwningDefs.svelte'
     import CobbleDefs from '$lib/components/CobbleDefs.svelte'
+    import PawnDefs from '$lib/components/PawnDefs.svelte'
     import FountainSpot from '$lib/components/FountainSpot.svelte'
     import DirectionArrows from '$lib/components/DirectionArrows.svelte'
     import RoutePreview from '$lib/components/RoutePreview.svelte'
@@ -71,6 +72,7 @@
         </filter>
         <AwningDefs />
         <CobbleDefs />
+        <PawnDefs />
     </defs>
     <VisitorQueue />
     <g role="img" aria-label="MarraCash market" transform="translate({QueueMargin} {QueueMargin})">
