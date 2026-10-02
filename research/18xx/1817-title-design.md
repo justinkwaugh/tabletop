@@ -1179,6 +1179,132 @@ presidency.
   one token there and the other piece unplaced.
 - With no company able to act, the round passes straight to the next OR or stock round.
 
+## Slice 6 design: the acquisition round
+
+Slice 6 adds the round that follows every merger round: companies in the liquidation
+and acquisition zones are auctioned, presidents may put their other companies up for
+sale, and a company that buys another takes its assets while its holders are paid
+off and its charter starts afresh.
+
+### Evidence
+
+- **Round order** ([game], [acquisition-round], [acquire]). Every OR is followed by
+  its MR and then its AR; the next OR or the stock round follows. The game's final
+  set ends after its last AR. The AR's companies are those floated when it starts,
+  lowest price first (the reverse of operating order). A company that entered the
+  acquisition or liquidation zone after its OR ended, during the MR or the AR, is
+  skipped this round.
+- **Kinds of sale.** A company in the liquidation zone is sold off; one in the
+  acquisition zone is auctioned; any other is offered only if its president chooses,
+  and only if some player could pay the opening bid.
+- **Bidding** ([acquire], [passable-auction]). Players bid, in $10 steps; the winner
+  then names which of their companies buys. The opening bid is $10 in the zones and,
+  for an offer, the company's shares times its price rounded up to $10. The first
+  bidder sits left of the target's president; a pass is final; players who cannot
+  reach the minimum drop out. A player's limit is their best buyer's: its cash, the
+  loans it can still take (counting those it would inherit), the target's cash and,
+  for an offer, the bank's payment for the target's treasury shares, less the
+  target's loans. A buyer is floated, outside both zones and not the target. The
+  target's own president may bid only the minimum.
+- **No bids.** An offered company or one in the acquisition zone stays as it is. A
+  company in the liquidation zone is liquidated by the bank: its stations leave the
+  map and its trains leave play.
+- **Acquisition** ([acquire], [token-merger]). For an offer, the bank first pays the
+  target its treasury shares at their price. The buyer takes the target's cash,
+  privates, loans, trains and stations (as in a merger, trimming to 8 stations), and
+  may exceed its train limit until it discards. It pays the bid to the bank, taking
+  loans first if it must, each moving its price left; it may then borrow more or
+  repay the inherited loans, which move nothing; loans over its limit are repaid
+  from its cash; each inherited loan it keeps then moves its price left. A buyer
+  pushed into the acquisition zone leaves the round's list.
+- **Settlement** ([acquire]). Every player receives the bid divided by the target's
+  share count, rounded down, for each net share: a short holder pays it. In the
+  liquidation zone the target's cash and loans stay with it: its cash and the bid
+  first repay its loans, the president personally pays any shortfall, and holders
+  receive only what is left. Any player left owing is in a cash crisis, from the
+  target's president. The target's charter then resets as after a merger, and its
+  shares and shorts leave play.
+- **Bankruptcy** ([bankrupt], [cash-crisis]). A player bankrupted in the AR
+  liquidates their companies as in the OR; a company liquidated so is skipped.
+  Debts of a company without a president are forgiven.
+
+### Survey
+
+About 26 of the 131 researched titles let one company take over another, but in few
+ways that match: an auction among companies' presidents (1817 and its variants,
+18USA, 18FR, 18Hiawatha, 1877 Venezuela, all on the same code), an auction among
+companies' treasuries (18CO, 1840), a fixed price per share paid to
+holders (18NY, 18CZ, 18ESP, 1822 minors), share exchanges (1862, 1841, 18EU, 1807,
+18Ardennes, 1877 Stockholm) and nationalisations (1867, 1861, 18SJ, 1856). Payment
+per share to holders recurs in 1817, 1867, 18SJ, 18Ireland, 18CO, 18CZ and 18NY;
+moving one company's assets into another recurs in nearly all; about eight titles
+(1817, 1849, 1858, 1866, 1867, 18Neb, 18Norway, 18EU) reset a charter so it can be
+started again. Debt left by a closing company is the title's affair: 1817's president
+pays it, 1848's company borrows from its president, 18NY writes it off.
+
+### Decisions
+
+- **The AR is a 1817 round of its own**, like the MR: title machine states entered
+  after the MR, recorded in the title field `acquisitionRound` (the round's remaining
+  companies, the sale in progress with its bidding, and the acquisition being
+  settled):
+    - `AcquisitionRound`: the next company is auctioned, or its president offers it
+      or declines;
+    - `AcquisitionBidding`: players bid or pass;
+    - `ChoosingAcquirer`: the winner names the buying company (by itself when only
+      one can pay);
+    - `AcquisitionLoans`: the buyer borrows or repays inherited loans, then
+      finishes;
+    - the MR's `ReducingStations` and `DiscardingMergedTrains` serve the buyer's
+      excess, and the family's `RaisingCash` serves debts, resuming the round.
+- **Actions.** `OfferCompany`, `DeclineOffer`, `BidForCompany`, `PassOnCompany`,
+  `AcquireCompany` and `FinishAcquisitionLoans` are 1817 actions; `TakeLoan` and
+  `RepayLoan` serve the loans. The system actions `StartAcquisitionRound`,
+  `EndAcquisitionRound`, `SkipCompanySale` (a company skipped or with no buyer) and
+  `LiquidateByBank` bracket and resolve sales. The MR records the companies already
+  in the zones when it starts, which decides the skips.
+- **Family primitives**, which the survey shows recur:
+    - `shareholderPayout(state, companyId, perShare)`: the bank's payment to every
+      player for their net shares, with the charges owed by short holders;
+    - `resetCompany`: the charter reset moves from 1817 to the family (marker
+      removed, flags and loans cleared, shares and shorts retired, the president's
+      certificate back in the bank, the home station available again), with the
+      title giving the charter's starting size;
+    - `PassableBidding` opens without a bid, from a given first bidder, and ends
+      with no winner when everyone passes;
+    - `TitlePresentation.titleRounds` lists a title's rounds, so the table names
+      both the MR and the AR ("Acquisition round 2.1", "AR 2.1").
+- **Debts** use the family's `chargePlayers`: the president's shortfall and short
+  holders' charges become a cash crisis that resumes the AR.
+- **The game ending** moves to after the final set's last AR.
+- **Two commits.** 6a: the round, offers, auctions, acquisitions and holders'
+  payments. 6b: liquidation-zone sales and the bank's liquidation, debts, cash
+  crises and bankruptcy in the AR, and the game ending after the AR.
+
+### Limits after slice 6
+
+- The Golden Parachute private's $100 comes with private powers (slice 7).
+- A company left without a president by bankruptcy has its bidding start from the
+  first player in turn order; the reference starts left of the bankrupt player.
+- Presidents cannot pass on all future offers at once; each offer is asked.
+
+### Acceptance examples
+
+- After an MR, the AR auctions a company in the acquisition zone: blair bids $10,
+  alex passes, and blair's company takes its cash, loans, trains and stations, pays
+  $10 to the bank, and each holder receives $10 / shares per net share.
+- A president offers a 5-share company at $70; bidding opens at $350; the buyer is
+  paid for the treasury shares and the target's holders receive the bid per share.
+- A buyer without the cash takes loans, each moving its price left, and each
+  inherited loan it keeps moves it left once more.
+- A short holder of an acquired company pays the per-share amount and, without the
+  cash, faces a cash crisis.
+- A company in the liquidation zone with $40 and 3 loans sells for $100: its
+  president pays $160 and holders receive nothing; with no bid, the bank liquidates
+  it, its stations leave the map and its president pays $260.
+- An offered or acquisition-zone company with no bids keeps operating.
+- The final set ends after its last AR.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/entities.rb
@@ -1196,3 +1322,6 @@ presidency.
 [post-conversion]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/post_conversion.rb
 [post-conversion-loans]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/post_conversion_loans.rb
 [acquire]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/acquire.rb
+[acquisition-round]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round/acquisition.rb
+[passable-auction]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/passable_auction.rb
+[token-merger]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/token_merger.rb
