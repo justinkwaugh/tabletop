@@ -14,6 +14,8 @@ import { effectiveSiteCapacity } from '../util/capacity.js'
 import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { answerQuestion } from '../testing/steps.js'
 import { actionPowerUse, bank, card, player, site } from '../testing/choices.js'
+import { OathVisibility } from '../definition/runtime.js'
+import { spectator } from '../testing/projection.js'
 
 const JINX = 'denizen.arcane.jinx'
 
@@ -193,6 +195,39 @@ describe('Beast', () => {
         const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('away')])
         a.apply(empty)
         expect(a.metadata?.summary).toMatch(/held no warbands/)
+    })
+})
+
+describe('a power that acts on one seat records it, for the History to name', () => {
+    it('Wolves records the board it hit, whoever holds it, and whether or not a warband died', () => {
+        const other = actionPowerUse('ruler', 'denizen.beast.wolves', [player('other')])
+        other.apply(board(['denizen.beast.wolves']))
+        expect(other.metadata?.targetPlayerId).toBe('other')
+
+        const self = actionPowerUse('ruler', 'denizen.beast.wolves', [player('ruler')])
+        self.apply(board(['denizen.beast.wolves']))
+        expect(self.metadata?.targetPlayerId).toBe('ruler')
+
+        const empty = actionPowerUse('ruler', 'denizen.beast.wolves', [player('away')])
+        empty.apply(board(['denizen.beast.wolves'], { away: { warbandsOnBoard: {} } }))
+        expect(empty.metadata?.targetPlayerId).toBe('away')
+        expect(OathVisibility.actions.project(empty.dehydrate(), spectator)).toHaveProperty('metadata.targetPlayerId', 'away')
+    })
+
+    it('Sleight of Hand and Charming Friend record the player they took from', () => {
+        const sleight = actionPowerUse('ruler', 'denizen.discord.sleight-of-hand', [player('other')])
+        sleight.apply(board(['denizen.discord.sleight-of-hand']))
+        expect(sleight.metadata?.targetPlayerId).toBe('other')
+
+        const friend = actionPowerUse('ruler', 'denizen.hearth.charming-friend', [player('other')])
+        friend.apply(board(['denizen.hearth.charming-friend']))
+        expect(friend.metadata?.targetPlayerId).toBe('other')
+    })
+
+    it('a power acting on no seat records none', () => {
+        const a = actionPowerUse('ruler', 'denizen.hearth.storyteller')
+        a.apply(board(['denizen.hearth.storyteller']))
+        expect(a.metadata?.targetPlayerId).toBeUndefined()
     })
 })
 

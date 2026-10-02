@@ -132,7 +132,8 @@ registerEffect(WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action),
         other.secrets -= take
         me.secrets += take
         return {
-            summary: `Witch's Bargain: with ${them.playerId}, gave ${give} secrets for ${2 * give} favor and ${2 * take} favor for ${take} secrets`
+            summary: `Witch's Bargain: with ${them.playerId}, gave ${give} secrets for ${2 * give} favor and ${2 * take} favor for ${take} secrets`,
+            targetPlayerId: them.playerId
         }
     }
 })

@@ -89,7 +89,10 @@ registerEffect(
         resolve: (ctx) => {
             const [target] = chosen(ctx, PowerChoiceKind.Player)
             const taken = takeFavorFromPlayer(ctx.state, ctx.playerId, target.playerId, 1)
-            return { summary: `took ${taken} favor from ${target.playerId}` }
+            return {
+                summary: `took ${taken} favor from ${target.playerId}`,
+                targetPlayerId: target.playerId
+            }
         }
     }
 )
@@ -188,7 +191,8 @@ registerEffect('denizen.beast.wolves', powerIndexOf('denizen.beast.wolves', Powe
         return {
             summary: killed
                 ? `killed a warband on ${target.playerId}'s board`
-                : `${target.playerId}'s board held no warbands`
+                : `${target.playerId}'s board held no warbands`,
+            targetPlayerId: target.playerId
         }
     }
 })
@@ -208,7 +212,10 @@ registerEffect(
         resolve: (ctx) => {
             const [target] = chosen(ctx, PowerChoiceKind.Player)
             const taken = takeSecretsFromPlayer(ctx.state, ctx.playerId, target.playerId, 1, 1)
-            return { summary: `took ${taken} secret from ${target.playerId}` }
+            return {
+                summary: `took ${taken} secret from ${target.playerId}`,
+                targetPlayerId: target.playerId
+            }
         }
     }
 )
@@ -269,6 +276,7 @@ registerEffect(
             const [card] = chosen(ctx, PowerChoiceKind.Card)
             return {
                 summary: `discarded ${target.playerId}'s adviser ${card.cardId}`,
+                targetPlayerId: target.playerId,
                 pileDeposits: discardAdviser(
                     ctx.state,
                     ctx.playerId,
@@ -363,6 +371,7 @@ registerEffect(
             moveAdviserToSite(ctx.state, owner.playerId, card.cardId, site.siteId)
             return {
                 summary: `${discarded.length ? `discarded ${discarded[0]} first; ` : ''}moved ${card.cardId} from ${owner.playerId}'s advisers to ${site.siteId}`,
+                targetPlayerId: owner.playerId,
                 pileDeposits
             }
         }

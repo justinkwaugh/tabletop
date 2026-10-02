@@ -177,7 +177,12 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
         const other = ctx.state.getPlayerState(them.playerId)
         // "If able" — its Q&A: the Travel rules bind (Narrow Pass, The Hidden Place, Vow of Union); unable, nothing happens.
         const unable = reasonCannotTravelByPower(ctx.state, them.playerId, here)
-        if (unable) return { summary: `Whistle: ${them.playerId} cannot travel here (${unable})` }
+        if (unable) {
+            return {
+                summary: `Whistle: ${them.playerId} cannot travel here (${unable})`,
+                targetPlayerId: them.playerId
+            }
+        }
         const { notes } = travelByPower(ctx.state, them.playerId, here)
         // Vow of Silence — "cannot give anyone secrets": the pull still happens.
         const silenced = reasonPersistentForbidsGivingSecrets(ctx.state, ctx.playerId)
@@ -185,7 +190,8 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
         ctx.state.addTokensOn(WHISTLE, { secrets: -given })
         other.secrets += given
         return {
-            summary: `Whistle: ${them.playerId} travelled to ${here} and was given ${given} secret${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`
+            summary: `Whistle: ${them.playerId} travelled to ${here} and was given ${given} secret${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`,
+            targetPlayerId: them.playerId
         }
     }
 })

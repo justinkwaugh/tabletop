@@ -166,10 +166,14 @@ registerEffect(
             const [target] = chosen(ctx, PowerChoiceKind.Player)
             const { killed } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
             if (!killed)
-                return { summary: `${target.playerId}'s board held no warband; nothing gained` }
+                return {
+                    summary: `${target.playerId}'s board held no warband; nothing gained`,
+                    targetPlayerId: target.playerId
+                }
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
             return {
-                summary: `killed a warband on ${target.playerId}'s board and gained ${gained}`
+                summary: `killed a warband on ${target.playerId}'s board and gained ${gained}`,
+                targetPlayerId: target.playerId
             }
         }
     }
@@ -228,7 +232,8 @@ registerEffect(ENCHANTRESS, powerIndexOf(ENCHANTRESS, PowerTiming.Action), {
             )
             owner.replaceAdviser(target.cardId, { cardId: ENCHANTRESS, faceUp: true })
             return {
-                summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${site}`
+                summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${site}`,
+                targetPlayerId: owner.playerId
             }
         }
         const holder = ctx.state.adviserHolderOf(ENCHANTRESS)
@@ -236,7 +241,8 @@ registerEffect(ENCHANTRESS, powerIndexOf(ENCHANTRESS, PowerTiming.Action), {
         holder.replaceAdviser(ENCHANTRESS, { cardId: target.cardId, faceUp: true })
         owner.replaceAdviser(target.cardId, { cardId: ENCHANTRESS, faceUp: true })
         return {
-            summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${holder.playerId}'s`
+            summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${holder.playerId}'s`,
+            targetPlayerId: owner.playerId
         }
     }
 })
@@ -336,6 +342,7 @@ registerEffect(
             const [card] = chosen(ctx, PowerChoiceKind.Card)
             return {
                 summary: `Armed Mob: discarded ${target.playerId}'s adviser ${card.cardId}`,
+                targetPlayerId: target.playerId,
                 pileDeposits: discardAdviser(
                     ctx.state,
                     ctx.playerId,
