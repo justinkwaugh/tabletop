@@ -1,4 +1,4 @@
-import type { FountainId, QueueEnd } from '@tabletop/marracash'
+import type { FountainId, QueueEnd, ShopId } from '@tabletop/marracash'
 import {
     clearStagedSelectionAtOrAfter,
     hasManualStagedSelection,
@@ -9,6 +9,7 @@ import {
 
 export type MarracashSelectionValues = {
     fountain: FountainId
+    shop: ShopId
     queueEnd: QueueEnd
     visitorCount: number
 }
@@ -17,6 +18,7 @@ export type MarracashSelection = StagedSelectionState<MarracashSelectionValues>
 
 const STAGE_ORDER = [
     'fountain',
+    'shop',
     'queueEnd',
     'visitorCount'
 ] as const satisfies readonly (keyof MarracashSelectionValues)[]

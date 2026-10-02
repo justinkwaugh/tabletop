@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
     actionPanel,
+    auctionFirstShop,
     auctionableShops,
     createGame,
     exitArrows,
@@ -25,11 +26,28 @@ test('round 1 offers only auctions and collects a sealed bid from everyone', asy
     await expect(actionPanel(page)).toHaveText(/click an unowned shop to auction it/)
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
 
-    await auctionableShops(page).first().click()
+    await auctionFirstShop(page)
     await expect(actionPanel(page)).toContainText('Sealed bid')
     await expect(auctionableShops(page)).toHaveCount(0)
     await finishBidding(page)
     await expect(actionPanel(page)).toContainText('Your turn')
+})
+
+test('a chosen shop waits for confirmation and Back cancels it before anyone bids', async ({
+    page
+}) => {
+    await createGame(page)
+    await auctionableShops(page).first().click()
+    await expect(actionPanel(page)).toContainText('Every player will be asked for a sealed bid')
+    await expect(auctionableShops(page)).toHaveCount(0)
+    await expect(page.locator('path[filter*="candidate-halo"]')).toHaveCount(1)
+
+    await page.getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(actionPanel(page)).toHaveText(/click an unowned shop to auction it/)
+    await expect(auctionableShops(page)).toHaveCount(25)
+
+    await auctionFirstShop(page)
+    await expect(actionPanel(page)).toContainText('Sealed bid')
 })
 
 test('choosing a fountain shows its exits, previews a route and Back restores the turn', async ({
@@ -89,7 +107,7 @@ test('the history keeps other players’ bids sealed until the auction resolves'
     page
 }) => {
     await createGame(page)
-    await auctionableShops(page).first().click()
+    await auctionFirstShop(page)
     await finishBidding(page)
     await page.getByText('History', { exact: true }).click()
     await expect(page.getByText('placed a sealed bid')).toHaveCount(3)

@@ -17,7 +17,10 @@ async function takeStep(page: Page, step: number) {
     const place = page.getByRole('button', { name: 'Place bid' })
     const front = page.getByRole('button', { name: 'Front of queue' })
     const pass = page.getByRole('button', { name: 'Pass' })
-    if (await place.count()) {
+    const confirmAuction = page.getByRole('button', { name: 'Start auction' })
+    if (await confirmAuction.count()) {
+        await confirmAuction.click()
+    } else if (await place.count()) {
         await place.click()
     } else if (await pass.count()) {
         await pass.click()

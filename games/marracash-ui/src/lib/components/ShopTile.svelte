@@ -13,7 +13,11 @@
         awningStripesId
     } from '$lib/utils/awning.js'
 
-    let { shop, selectable }: { shop: ShopState; selectable: boolean } = $props()
+    let {
+        shop,
+        selectable,
+        spotlit = false
+    }: { shop: ShopState; selectable: boolean; spotlit?: boolean } = $props()
     const gameSession = getGameSession()
 
     let rect = $derived(shopRect(shop.shopId, 6))
@@ -46,7 +50,7 @@
 
 {#snippet body()}
     <g transform="translate({rect.x} {rect.y})">
-        {#if selectable}
+        {#if selectable || spotlit}
             <path
                 d={outline}
                 fill="none"
@@ -129,8 +133,8 @@
         tabindex="0"
         aria-label={`Auction shop ${shop.shopId}`}
         class="cursor-pointer"
-        onclick={() => gameSession.startAuction(shop.shopId)}
-        onkeydown={(event) => event.key === 'Enter' && gameSession.startAuction(shop.shopId)}
+        onclick={() => gameSession.chooseShopToAuction(shop.shopId)}
+        onkeydown={(event) => event.key === 'Enter' && gameSession.chooseShopToAuction(shop.shopId)}
     >
         {@render body()}
     </g>

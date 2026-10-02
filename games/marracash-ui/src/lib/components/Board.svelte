@@ -28,10 +28,11 @@
 
     const gameSession = getGameSession()
 
+    let spotlightShopId = $derived(
+        gameSession.gameState.auctionShopId ?? gameSession.selectedShopId
+    )
     let spotlightShop = $derived(
-        gameSession.gameState.shops.find(
-            (shop) => shop.shopId === gameSession.gameState.auctionShopId
-        )
+        gameSession.gameState.shops.find((shop) => shop.shopId === spotlightShopId)
     )
     let unspotlitShops = $derived(
         gameSession.gameState.shops.filter((shop) => shop !== spotlightShop)
@@ -136,7 +137,7 @@
                 fill="#000000"
                 opacity="0.5"
             ></rect>
-            <ShopTile shop={spotlightShop} selectable={false} />
+            <ShopTile shop={spotlightShop} selectable={false} spotlit />
         {/if}
     </g>
 </svg>

@@ -56,8 +56,12 @@ export class MarracashGameSession extends GameSession<
         this.canMove ? this.selection.fountain?.value : undefined
     )
 
+    readonly selectedShopId: ShopId | undefined = $derived(
+        this.canAuction ? this.selection.shop?.value : undefined
+    )
+
     readonly movableFountainIds: FountainId[] = $derived(
-        this.canMove
+        this.canMove && this.selectedShopId === undefined
             ? this.gameState.fountains
                   .filter((fountain) => fountain.visitors.length > 0)
                   .map((fountain) => fountain.fountainId)
@@ -65,7 +69,9 @@ export class MarracashGameSession extends GameSession<
     )
 
     readonly auctionableShopIds: ShopId[] = $derived(
-        this.canAuction && this.selectedFountainId === undefined
+        this.canAuction &&
+            this.selectedFountainId === undefined &&
+            this.selectedShopId === undefined
             ? this.gameState.shops
                   .filter((shop) => shop.ownerId === undefined)
                   .map((shop) => shop.shopId)
@@ -160,7 +166,13 @@ export class MarracashGameSession extends GameSession<
         this.setSelection('visitorCount', count)
     }
 
-    async startAuction(shopId: ShopId) {
+    chooseShopToAuction(shopId: ShopId) {
+        this.setSelection('shop', shopId)
+    }
+
+    async startAuction() {
+        const shopId = this.selectedShopId
+        assertExists(shopId, 'Starting an auction requires a chosen shop')
         await this.applyAction(this.createPlayerAction(StartAuction, { shopId }))
     }
 

@@ -31,6 +31,15 @@ describe('MarraCash staged selection', () => {
         expect(hasManualMarracashSelection(selection)).toBe(false)
     })
 
+    it('drops a chosen shop when a fountain is chosen instead', () => {
+        let selection: MarracashSelection = {}
+        selection = setMarracashSelection(selection, 'shop', 'R1')
+        selection = setMarracashSelection(selection, 'fountain', 1)
+
+        expect(selection.fountain?.value).toBe(1)
+        expect(selection.shop).toBeUndefined()
+    })
+
     it('has no manual choice to undo before the player picks anything', () => {
         expect(hasManualMarracashSelection({})).toBe(false)
         expect(popMarracashSelection({})).toEqual({})

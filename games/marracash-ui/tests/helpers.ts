@@ -49,9 +49,14 @@ export async function finishBidding(page: Page) {
     }
 }
 
+export async function auctionFirstShop(page: Page) {
+    await auctionableShops(page).first().click()
+    await page.getByRole('button', { name: 'Start auction' }).click()
+}
+
 export async function playOpeningRound(page: Page, players = 4) {
     for (let seat = 0; seat < players; seat++) {
-        await auctionableShops(page).first().click()
+        await auctionFirstShop(page)
         await finishBidding(page)
     }
     await expect(actionPanel(page)).toContainText('click a fountain')
