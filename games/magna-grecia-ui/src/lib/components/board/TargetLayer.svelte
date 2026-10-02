@@ -71,7 +71,7 @@
     </g>
 {/each}
 
-{#each gameSession.cityTargets as { coords, startsClaim, startsFounding } (spaceKey(coords))}
+{#each gameSession.cityTargets as { coords, founds, startsClaim, startsFounding } (spaceKey(coords))}
     {@const center = hexCenter(coords)}
     {@const claim = gameSession.cityUnfinished}
     <g
@@ -92,7 +92,7 @@
         onkeydown={(event) => activate(event, () => gameSession.placeCity(coords))}
     >
         {#if hoveredCity && sameCoordinates(hoveredCity, coords)}
-            <CityTileArt color={myColor} ghost />
+            <CityTileArt color={myColor} founding={founds} ghost />
         {/if}
         <polygon points={targetShape} class="target-hex"></polygon>
         {#if !hoveredCity || !sameCoordinates(hoveredCity, coords)}

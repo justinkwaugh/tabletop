@@ -42,11 +42,6 @@
                         <stop offset="0.7" stop-color="#fff8e0" stop-opacity="0"></stop>
                         <stop offset="1" stop-color="#6b4a1c" stop-opacity="0.16"></stop>
                     </radialGradient>
-                    <linearGradient id="mg-marble" x1="0" y1="0" x2="0.4" y2="1">
-                        <stop offset="0" stop-color="#fdfbf6"></stop>
-                        <stop offset="0.6" stop-color="#ece6da"></stop>
-                        <stop offset="1" stop-color="#d6cfc0"></stop>
-                    </linearGradient>
                     <filter id="mg-tile-shadow" x="-10%" y="-10%" width="125%" height="130%">
                         <feDropShadow
                             dx="1.5"

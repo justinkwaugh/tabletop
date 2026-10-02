@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import {
         ScalingWrapper,
         DefaultTableLayout,
@@ -33,7 +34,32 @@
     } = $props()
     assert(gameSession instanceof MagnaGreciaGameSession, 'Magna Grecia needs its own game session')
     setGameSession(gameSession)
+
+    // The shared wrapper exposes full screen only as its dialog becoming modal.
+    let expanded = $state(false)
+    const watchExpansion: Attachment<HTMLElement> = (node) => {
+        const dialog = node.closest('dialog')
+        if (!dialog) return
+        const read = () => {
+            expanded = dialog.matches(':modal')
+        }
+        const observer = new MutationObserver(read)
+        observer.observe(dialog, { attributes: true, attributeFilter: ['role'] })
+        read()
+        return () => observer.disconnect()
+    }
 </script>
+
+{#snippet turnControls()}
+    <Header />
+    <ActionCard>
+        {#if gameSession.gameState.result}
+            <GameEndPanel />
+        {:else}
+            <ActionPanel />
+        {/if}
+    </ActionCard>
+{/snippet}
 
 <CustomFont
     fontFamily="Libre Baskerville"
@@ -86,21 +112,31 @@
         {/snippet}
         {#snippet gameContent()}
             <div class="shrink-0">
-                <Header />
-                <ActionCard>
-                    {#if gameSession.gameState.result}
-                        <GameEndPanel />
-                    {:else}
-                        <ActionPanel />
-                    {/if}
-                </ActionCard>
+                {@render turnControls()}
                 <UpcomingStrip />
             </div>
             <div class="grow-0 overflow-hidden pt-3" style="flex:1; min-height: 40dvh;">
-                <ScalingWrapper justify="center" controls="bottom-left">
+                <ScalingWrapper justify="center" controls="bottom-left" expandable>
                     <Board />
+                    {#snippet toolbar()}
+                        <!-- Full screen is a modal dialog, so the turn controls must come inside it. -->
+                        <div {@attach watchExpansion}>
+                            {#if expanded}
+                                <div class="fullscreen-controls">
+                                    {@render turnControls()}
+                                </div>
+                            {/if}
+                        </div>
+                    {/snippet}
                 </ScalingWrapper>
             </div>
         {/snippet}
     </DefaultTableLayout>
 </div>
+
+<style>
+    .fullscreen-controls {
+        padding-bottom: 8px;
+        background: #f3ecdc;
+    }
+</style>

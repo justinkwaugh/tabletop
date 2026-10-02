@@ -1,5 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import EnhancedText from './EnhancedText.svelte'
     import CityIcon from './icons/CityIcon.svelte'
     import RoadIcon from './icons/RoadIcon.svelte'
 
@@ -13,6 +14,10 @@
     let cities = $state(0)
 
     const total = $derived(roads + cities)
+    const confirmLabel = $derived(
+        `Move ${total} of ${allowance} to supply` +
+            (total > basic ? ` (enhanced +${total - basic})` : '')
+    )
     const rows = $derived([
         {
             key: 'roads',
@@ -61,7 +66,7 @@
         disabled={total === 0}
         onclick={() => gameSession.resupply(roads, cities)}
     >
-        Move {total} of {allowance} to supply{total > basic ? ' (★ enhanced)' : ''}
+        <EnhancedText text={confirmLabel} />
     </button>
 </div>
 
@@ -109,7 +114,11 @@
         color: #8c6a45;
     }
 
+    /* Wide enough for its longest label, so the label growing never shifts the − and + buttons. */
     .confirm {
+        min-width: 19.5em;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
         border-radius: 999px;
         padding: 3px 12px;
         background: #6b3f1d;
