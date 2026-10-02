@@ -2,11 +2,13 @@ import path from 'node:path'
 import {
     AblyService,
     AblyTransport,
+    BugReportService,
     CatalogService,
     ChatService,
     CloudTasksTaskService,
     createLocalManifest,
     DefaultNotificationService,
+    DiscordBotApi,
     DiscordService,
     DiscordTransport,
     EmailService,
@@ -63,6 +65,7 @@ declare module 'fastify' {
         libraryService: LibraryService
         catalogService: CatalogService
         tournamentService: TournamentService
+        bugReportService: BugReportService | undefined
     }
 }
 
@@ -72,6 +75,7 @@ const SITE_MANIFEST_PATH =
     process.env['SITE_MANIFEST_PATH'] ?? path.join(STATIC_ROOT, 'config', 'site-manifest.json')
 
 const useAbly = !!process.env['ABLY_API_KEY']
+const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
 
 export default fp(async (fastify: FastifyInstance) => {
     const secretsService = new EnvSecretsService()
@@ -130,12 +134,11 @@ export default fp(async (fastify: FastifyInstance) => {
 
     const catalogService = new CatalogService(path.join(STATIC_ROOT, 'games'))
 
-    const discordTransport = process.env['DISCORD_BOT_TOKEN']
-        ? await DiscordTransport.createDiscordTransport(
-              secretsService,
-              libraryService,
-              catalogService
-          )
+    const discordBotApi = process.env['DISCORD_BOT_TOKEN']
+        ? new DiscordBotApi(await secretsService.getSecret('DISCORD_BOT_TOKEN'))
+        : undefined
+    const discordTransport = discordBotApi
+        ? new DiscordTransport(libraryService, catalogService, discordBotApi)
         : undefined
     if (discordTransport) {
         notificationService.addTransport(discordTransport)
@@ -190,4 +193,13 @@ export default fp(async (fastify: FastifyInstance) => {
     fastify.decorate('discordService', discordService)
     fastify.decorate('chatService', chatService)
     fastify.decorate('cacheService', redisCacheService)
+    fastify.decorate(
+        'bugReportService',
+        discordBotApi && BUG_REPORT_CHANNEL_ID
+            ? new BugReportService(gameService, userService, discordBotApi, {
+                  forumChannelId: BUG_REPORT_CHANNEL_ID,
+                  frontendHost: process.env['FRONTEND_HOST'] ?? ''
+              })
+            : undefined
+    )
 })
