@@ -201,7 +201,7 @@ export class HydratedCampaignSacrifice
         if (required === 0 || required >= forceTotal(force) || force.length < 2) return undefined
         if (
             isAtLeastOathRevision(state, OathRevision.TurnFlow) &&
-            !defeatChoiceMatters(campaign, force)
+            !defeatChoiceMatters(force)
         ) {
             return undefined
         }

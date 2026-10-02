@@ -336,9 +336,8 @@ describe('the Chancellor chooses for an Imperial defence (R-5.5.6.a)', () => {
 })
 
 describe('R-5.5.6.a — the defending side is asked only when its losses can differ (turn-flow revision)', () => {
-    // Read where a defeated warband stood, and so can make the choice matter: Hospital, whose
-    // set-aside goes to the player the warband came from (killRedirects). Obsidian Cage takes every
-    // survivor wherever it stood, and Sticky Fire kills the whole force, so neither does.
+    // No card reads which site a defeated warband stood at: Hospital sets aside by owner, Obsidian
+    // Cage takes every survivor, and Sticky Fire kills the whole force.
     const ACROSS_TWO_SITES: WarbandGroup[] = [
         { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 2 },
         { at: { kind: 'site', siteId: 'c2' }, owner: DEFENDER, count: 2 }
@@ -379,10 +378,14 @@ describe('R-5.5.6.a — the defending side is asked only when its losses can dif
         expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: DEFENDER })
     })
 
-    it('still asks when Hospital would set a kill aside', () => {
+    it('does not ask for Hospital alone: it sets the same warbands aside wherever they stood', () => {
         const state = won(ACROSS_TWO_SITES, { killRedirects: [{ playerId: DEFENDER, siteId: 'c2' }] })
-        sacrifice().apply(state)
-        expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: DEFENDER })
+        const action = sacrifice()
+        action.apply(state)
+        expect(state.campaign?.pendingDefeatKills).toBeUndefined()
+        expect(action.metadata?.defeatKilled).toBe(2)
+        expect(state.campaign?.heldForHospital).toEqual([{ playerId: DEFENDER, siteId: 'c2', owner: DEFENDER, count: 2 }])
+        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(2)
     })
 
     it('still asks in a game created before the revision, as its stored Campaigns were recorded (R-X.4)', () => {
@@ -394,8 +397,8 @@ describe('R-5.5.6.a — the defending side is asked only when its losses can dif
     })
 
     it('reads the force alone', () => {
-        expect(defeatChoiceMatters({ killRedirects: [] }, ACROSS_TWO_SITES)).toBe(false)
-        expect(defeatChoiceMatters({ killRedirects: [] }, ALL_DEFENDERS)).toBe(true)
+        expect(defeatChoiceMatters(ACROSS_TWO_SITES)).toBe(false)
+        expect(defeatChoiceMatters(ALL_DEFENDERS)).toBe(true)
     })
 })
 
