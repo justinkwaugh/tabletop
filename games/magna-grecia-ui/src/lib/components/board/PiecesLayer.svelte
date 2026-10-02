@@ -25,7 +25,7 @@
                 key: spaceKey(coords),
                 center: hexCenter(coords),
                 playerId: city.playerId,
-                variant: index
+                founding: index === 0
             }))
         )
     )
@@ -47,9 +47,9 @@
 </g>
 
 <g class="cities" filter="url(#mg-tile-shadow)">
-    {#each cityTiles as { key, center, playerId, variant } (key)}
+    {#each cityTiles as { key, center, playerId, founding } (key)}
         <g transform="translate({center.x} {center.y})">
-            <CityTileArt color={playerColor(playerId)} {variant} />
+            <CityTileArt color={playerColor(playerId)} {founding} />
         </g>
     {/each}
 </g>

@@ -57,7 +57,12 @@ const NO_ALLOWANCE: Allowance = { basic: 0, bonus: 0 }
 export type RoadTarget = { coords: AxialCoordinates; options: RoadEnds[] }
 export type MarketTarget = { place: Place; amount: number }
 export type SellTarget = { coords: AxialCoordinates; amount: number }
-export type CityTarget = { coords: AxialCoordinates; startsClaim: boolean; startsFounding: boolean }
+export type CityTarget = {
+    coords: AxialCoordinates
+    founds: boolean
+    startsClaim: boolean
+    startsFounding: boolean
+}
 
 export class MagnaGreciaGameSession extends GameSession<
     MagnaGreciaProjectedState,
@@ -159,7 +164,8 @@ export class MagnaGreciaGameSession extends GameSession<
             }
             const startsClaim = plan.kind !== CityPlacementKind.CompleteClaim && !!plan.claimVillage
             const startsFounding = plan.kind === CityPlacementKind.Found && !!plan.awaitsVillage
-            return [{ coords: space.coords, startsClaim, startsFounding }]
+            const founds = plan.kind === CityPlacementKind.Found
+            return [{ coords: space.coords, founds, startsClaim, startsFounding }]
         })
     })
 

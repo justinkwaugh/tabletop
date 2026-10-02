@@ -66,7 +66,7 @@
         </li>
         <li>
             <svg viewBox={HEX_VIEW} aria-hidden="true">
-                <CityTileArt {color} />
+                <CityTileArt {color} founding />
             </svg>
             <span>City</span>
         </li>

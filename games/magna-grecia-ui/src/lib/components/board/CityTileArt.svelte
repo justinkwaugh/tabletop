@@ -1,86 +1,84 @@
 <script lang="ts">
     import { localHexPoints } from '$lib/utils/boardGeometry.js'
-    import { darken, lighten } from '$lib/utils/colorMix.js'
+    import { mixColor } from '$lib/utils/colorMix.js'
 
     let {
         color,
-        variant = 0,
+        founding = false,
         ghost = false
-    }: { color: string; variant?: number; ghost?: boolean } = $props()
+    }: { color: string; founding?: boolean; ghost?: boolean } = $props()
 
-    const tileShape = localHexPoints(1.5)
-    const ground = $derived(lighten(color, 0.08))
-    const edge = $derived(darken(color, 0.5))
-    const roof = $derived(darken(color, 0.4))
+    type House = { x: number; y: number; rotation: number; length: number }
 
-    const HOUSE_LAYOUTS = [
-        [
-            { x: -21, y: -4, r: 0 },
-            { x: 20, y: -6, r: 0 },
-            { x: -14, y: 17, r: 0 },
-            { x: 15, y: 16, r: 0 },
-            { x: 0, y: 26, r: 0 }
-        ],
-        [
-            { x: -22, y: 6, r: 0 },
-            { x: 21, y: 4, r: 0 },
-            { x: -10, y: 21, r: 0 },
-            { x: 12, y: 22, r: 0 },
-            { x: 0, y: -27, r: 0 }
-        ]
+    const OUTLINE = '#1d1a17'
+    const WHITE = '#fbf9f4'
+    const WIDE = 12
+    const NARROW = 9
+    const groundShape = localHexPoints(1.5)
+    const bandShape = localHexPoints(4.4)
+
+    // Houses on a ring face the centre: their roof strip is on the outer side.
+    function ring(count: number, radius: number, isWide: (index: number) => boolean): House[] {
+        return Array.from({ length: count }, (_, index) => {
+            const angle = -90 + (index * 360) / count
+            const radians = (angle * Math.PI) / 180
+            return {
+                x: radius * Math.cos(radians),
+                y: radius * Math.sin(radians),
+                rotation: angle + 90,
+                length: isWide(index) ? WIDE : NARROW
+            }
+        })
+    }
+
+    const FOUNDING_HOUSES = ring(8, 27, (index) => index % 2 === 0)
+    const EXTENSION_HOUSES: House[] = [
+        ...ring(7, 26, (index) => index % 3 === 0),
+        { x: -6, y: -2, rotation: 20, length: WIDE },
+        { x: 7, y: 5, rotation: -35, length: WIDE }
     ]
-    const houses = $derived(HOUSE_LAYOUTS[variant % HOUSE_LAYOUTS.length])
+
+    const band = $derived(mixColor(color, '#000000', 0.22))
+    const roof = $derived(mixColor(color, '#000000', 0.38))
+    const houses = $derived(founding ? FOUNDING_HOUSES : EXTENSION_HOUSES)
 </script>
 
 <g opacity={ghost ? 0.7 : 1}>
-    <polygon points={tileShape} fill={ground} stroke={edge} stroke-width="3"></polygon>
-    {#each houses as house, index (index)}
-        <g transform="translate({house.x} {house.y})">
-            <rect
-                x="-6"
-                y="-4"
-                width="12"
-                height="9"
-                rx="1"
-                fill={color}
-                stroke={edge}
-                stroke-width="0.7"
-            ></rect>
-            <rect
-                x="-6.8"
-                y="-6.6"
-                width="13.6"
-                height="4.4"
-                rx="1"
-                fill={roof}
-                stroke="rgba(0,0,0,0.45)"
-                stroke-width="0.6"
-            ></rect>
-        </g>
-    {/each}
-    <g transform="translate(0 -3)">
-        <rect x="-13" y="6" width="26" height="4" fill="#fbf8f1" stroke="#6d6457" stroke-width="0.7"
-        ></rect>
-        <rect
-            x="-11"
-            y="-8"
-            width="22"
-            height="14"
-            fill="#fbf8f1"
-            stroke="#6d6457"
-            stroke-width="0.7"
-        ></rect>
-        <g stroke="#b3aa99" stroke-width="1.3">
-            <line x1="-7" y1="-7" x2="-7" y2="5"></line>
-            <line x1="-2.3" y1="-7" x2="-2.3" y2="5"></line>
-            <line x1="2.3" y1="-7" x2="2.3" y2="5"></line>
-            <line x1="7" y1="-7" x2="7" y2="5"></line>
-        </g>
-        <path
-            d="M -14 -8 L 0 -17 L 14 -8 Z"
-            fill={color}
-            stroke="rgba(0,0,0,0.45)"
-            stroke-width="0.7"
-        ></path>
+    <polygon points={groundShape} fill={color} stroke={OUTLINE} stroke-width="1.2"></polygon>
+    <polygon points={bandShape} fill="none" stroke={band} stroke-width="4.4"></polygon>
+    <polygon points={bandShape} fill="none" stroke={WHITE} stroke-width="1.2"></polygon>
+    <g stroke={OUTLINE} stroke-width="0.7" stroke-linejoin="round">
+        {#each houses as house, index (index)}
+            <g transform="translate({house.x} {house.y}) rotate({house.rotation})">
+                <rect
+                    x={-house.length / 2}
+                    y="-6"
+                    width={house.length}
+                    height="4"
+                    rx="0.8"
+                    fill={roof}
+                ></rect>
+                <rect
+                    x={-house.length / 2}
+                    y="-2"
+                    width={house.length}
+                    height="8"
+                    rx="0.8"
+                    fill={WHITE}
+                ></rect>
+            </g>
+        {/each}
+        {#if founding}
+            <g transform="translate(0 2) scale(1.15)">
+                <rect x="-13" y="6" width="26" height="4" fill={roof}></rect>
+                <rect x="-11" y="-8" width="22" height="14" fill={WHITE}></rect>
+                <path
+                    d="M -7 -6 V 4 M -3.5 -6 V 4 M 0 -6 V 4 M 3.5 -6 V 4 M 7 -6 V 4"
+                    stroke="#8f8779"
+                ></path>
+                <rect x="-12" y="-11" width="24" height="3" fill={roof}></rect>
+                <path d="M -13 -11 L 0 -18 L 13 -11 Z" fill={roof}></path>
+            </g>
+        {/if}
     </g>
 </g>
