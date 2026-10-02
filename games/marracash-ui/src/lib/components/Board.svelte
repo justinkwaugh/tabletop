@@ -23,6 +23,15 @@
 
     const gameSession = getGameSession()
 
+    let spotlightShop = $derived(
+        gameSession.gameState.shops.find(
+            (shop) => shop.shopId === gameSession.gameState.auctionShopId
+        )
+    )
+    let unspotlitShops = $derived(
+        gameSession.gameState.shops.filter((shop) => shop !== spotlightShop)
+    )
+
     let hoveredRoute: Route | undefined = $state()
     let previewRoute = $derived(
         !gameSession.updatingVisibleState &&
@@ -103,7 +112,7 @@
             <PalmTree center={cellCenter(palm)} />
         {/each}
 
-        {#each gameSession.gameState.shops as shop (shop.shopId)}
+        {#each unspotlitShops as shop (shop.shopId)}
             <ShopTile {shop} selectable={gameSession.auctionableShopIds.includes(shop.shopId)} />
         {/each}
 
@@ -126,5 +135,17 @@
             onpreview={(route) => (hoveredRoute = route)}
             onchoose={(direction) => gameSession.moveVisitors(direction)}
         />
+
+        {#if spotlightShop}
+            <rect
+                x={-QueueMargin}
+                y={-QueueMargin}
+                width={TableWidth}
+                height={TableHeight}
+                fill="#000000"
+                opacity="0.5"
+            ></rect>
+            <ShopTile shop={spotlightShop} selectable={false} />
+        {/if}
     </g>
 </svg>

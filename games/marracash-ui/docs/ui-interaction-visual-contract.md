@@ -11,6 +11,7 @@ Covers the board highlights and previews used while a player takes their turn. S
 | Choose a direction        | A fountain is selected                                         | That fountain gets a solid dark ring; an arrow appears on each exit; other movable fountains keep their dashed rings and switch the selection when clicked | Shop colours, pawns    |
 | Preview a route           | Pointer over, or focus on, an exit arrow                       | A dashed path from the fountain along the route, and a white ring on the destination                                                                       | Everything else        |
 | Choose an entrance        | `RefillingEntrances`, queue end and visitor count chosen       | Each empty entrance gets a dashed white ring and is clickable                                                                                              | Shops, other fountains |
+| Spotlight the auction     | `auctionShopId` is set in the game state                       | Everything else on the table, queue included, is dimmed under a half-black overlay; the auctioned shop stays at full colour above it                       | The auctioned shop     |
 
 ## Coexistence and precedence
 
@@ -21,7 +22,7 @@ Covers the board highlights and previews used while a player takes their turn. S
 | Preview a route    | Choose a direction         | The preview only exists while its route starts at the selected fountain.                                                                 |
 | Choose an entrance | Any move or auction intent | Can't overlap: refilling and choosing an action are different machine states.                                                            |
 
-During bidding, while waiting for others, and in History View, the session reports no available actions, so no intent shows.
+During bidding, while waiting for others, and in History View, the session reports no available actions, so no intent shows. The auction spotlight comes from game state, not available actions, so it shows to every player during bidding, including in History View.
 
 ## Shared visual state
 
@@ -39,7 +40,7 @@ During bidding, while waiting for others, and in History View, the session repor
 
 ## Render ownership
 
-- `Board` owns the layer order: the visitor queue in the margin outside the walls, then shops, then fountains, then the route preview, then the exit arrows. The arrows stay on top so they remain clickable over the preview, which ignores pointer events.
+- `Board` owns the layer order: the visitor queue in the margin outside the walls, then shops, then fountains, then the route preview, then the exit arrows, then the auction spotlight's overlay and the auctioned shop. The arrows stay on top of the preview so they remain clickable, because the preview ignores pointer events. The spotlight sits above everything but has nothing clickable under it, because no board action is available during bidding.
 
 ## Verification scenarios
 
@@ -54,4 +55,4 @@ All checked manually in the dev harness, using scripted browser runs.
     - After two moves that empty entrances 1 and 8, choose the front of the queue and 3 visitors; both empty entrances are highlighted.
     - Clicking entrance 1 places the visitors and clears the selection.
     - The second refill starts from a fresh selection.
-3. **Auction:** clicking an unowned shop starts bidding, and every board highlight disappears.
+3. **Auction:** clicking an unowned shop starts bidding, every board highlight disappears, and the rest of the table dims around that shop until the auction resolves.

@@ -19,7 +19,7 @@
 
 <div class="flex flex-col items-center gap-2">
     <p class="font-semibold">
-        Sealed bid for the {shop?.color} shop {shopId}. You have {myMoney} Dirham.
+        Sealed bid for the highlighted {shop?.color} shop. You have {myMoney} Dirham.
     </p>
     <div class="flex items-center gap-2">
         <button
