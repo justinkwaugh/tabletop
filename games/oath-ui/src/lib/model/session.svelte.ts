@@ -124,6 +124,8 @@ import { searchRows, type SearchRow } from './searchRows.js'
 import { tradeRows, type TradeRow } from './tradeRows.js'
 import { travelRows, type TravelRow } from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
+import { actionCards, type ActionCard } from './actionCards.js'
+import { powerUseKey } from './powerUse.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
 import { WarbandMoveDraft } from './warbandMoveDraft.js'
 import { emptyPicks, powerChoicesFrom, type PowerChoicePicks } from './powerChoices.js'
@@ -1030,6 +1032,18 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (this.selection.action !== type) this.clearActionDrafts()
         this.selection.set('action', type)
         if (type === ActionType.Campaign) this.campaign.begin()
+    }
+
+    /** R-7.4 — the cards behind "Use a power" that change an action's menu, or make it possible. */
+    get actionCards(): ActionCard[] {
+        const playerId = this.liveTurnSeatId
+        return playerId ? actionCards(this.gameState, playerId) : []
+    }
+
+    /** Opens the card's action with the card in use; nothing is sent. */
+    openActionWithCard(card: ActionCard): void {
+        this.chooseAction(card.action)
+        this.modifiers.open(powerUseKey(card))
     }
 
     async chooseCard(cardId: string): Promise<void> {

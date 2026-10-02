@@ -83,10 +83,11 @@ export const MINOR_ACTIONS: readonly ActionEntry[] = [
     },
     {
         type: ActionType.UseActionPower,
-        label: 'Use an Action power',
+        label: 'Use a power',
         cost: 'free',
-        rule: 'R-6.2',
-        summary: 'Use the "Action:" power of a card you have access to, paying its cost.'
+        rule: 'R-6.2, R-7.4',
+        summary:
+            'Use the "Action:" power of a card you have access to, or a card that changes an action, paying its cost.'
     },
     {
         type: ActionType.Peek,

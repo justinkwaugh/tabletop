@@ -74,6 +74,9 @@ export type TableName =
     | 'moves'
     | 'campaign'
     | 'observatory'
+    | 'cardOpensSearch'
+    | 'cardChangesSearch'
+    | 'cardsOpenTravel'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -667,6 +670,72 @@ function observatoryTable(): PlayedTable {
     return tableOf(state)
 }
 
+/** R-7.4: the seat stands at Mushrooms with a secret to pay; a Search costs 2 Supply. */
+function mushroomsTable(supply: number): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, supply, secrets: 3 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: ['denizen.beast.mushrooms'] },
+            discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/** R-7.4: no Supply to Travel with, and two advisers that each waive it. */
+function travelCardsTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 0,
+                favor: 2,
+                advisers: [
+                    { cardId: 'denizen.nomad.tents', faceUp: true },
+                    { cardId: 'denizen.nomad.special-envoy', faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
 const TABLES: Record<TableName, () => PlayedTable> = {
     setup: setupTable,
     searching: searchingTable,
@@ -689,7 +758,10 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     advisers: advisersTable,
     moves: movesTable,
     campaign: campaignTable,
-    observatory: observatoryTable
+    observatory: observatoryTable,
+    cardOpensSearch: () => mushroomsTable(1),
+    cardChangesSearch: () => mushroomsTable(2),
+    cardsOpenTravel: travelCardsTable
 }
 
 let session: OathGameSession | undefined
@@ -854,6 +926,7 @@ export function tableFacts(): {
     staged: string | undefined
     favorOf: Record<string, number>
     favorBank: Record<Suit, number>
+    secretsOn: Record<string, number>
 } {
     const table = current()
     const state = table.gameState
@@ -868,7 +941,10 @@ export function tableFacts(): {
         campaignUnderway: state.campaign !== undefined,
         staged: table.selection.action,
         favorOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.favor])),
-        favorBank: state.favorBank
+        favorBank: state.favorBank,
+        secretsOn: Object.fromEntries(
+            Object.entries(state.cardTokens).map(([cardId, tokens]) => [cardId, tokens.secrets])
+        )
     }
 }
 

@@ -14,6 +14,8 @@ export type SearchRow = {
     region?: Region
     cost: number
     draw: number
+    /** Mushrooms draws from the bottom of the pile. */
+    fromBottom: boolean
     favorTo: (string | undefined)[]
     variant?: number
 }
@@ -41,6 +43,9 @@ export function searchRows(
                 ...(region ? { region } : {}),
                 cost: plan.cost,
                 draw: HydratedSearch.drawCount(state, playerId, modifiers, source),
+                fromBottom:
+                    source === SearchSource.Discard &&
+                    HydratedSearch.drawsFromBottom(state, playerId, modifiers),
                 favorTo,
                 ...(variant === undefined ? {} : { variant })
             }
