@@ -14,7 +14,7 @@ async function pick(page: Page, locator: Locator, step: number) {
 // Takes one step of whatever the action panel offers, rotating choices so play varies
 async function takeStep(page: Page, step: number) {
     const panel = actionPanel(page)
-    const place = page.getByRole('button', { name: 'Place sealed bid' })
+    const place = page.getByRole('button', { name: 'Place bid' })
     const front = page.getByRole('button', { name: 'Front of queue' })
     const pass = page.getByRole('button', { name: 'Pass' })
     if (await place.count()) {

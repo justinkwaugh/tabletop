@@ -36,9 +36,9 @@
             onclick={() => change(DirhamIncrement)}>+</button
         >
         <button
-            class="ml-2 rounded-md bg-[#8a6a46] px-4 py-1 font-semibold text-white"
+            class="ml-2 w-28 rounded-md bg-[#8a6a46] py-1 text-center font-semibold whitespace-nowrap text-white"
             onclick={() => gameSession.placeBid(clampedAmount)}
-            >{clampedAmount === 0 ? 'Pass' : 'Place sealed bid'}</button
+            >{clampedAmount === 0 ? 'Pass' : 'Place bid'}</button
         >
     </div>
     <p class="text-sm">

@@ -41,7 +41,7 @@ export function exitArrows(page: Page): Locator {
 
 export async function finishBidding(page: Page) {
     while (await actionPanel(page).getByText('Sealed bid').count()) {
-        const place = page.getByRole('button', { name: 'Place sealed bid' })
+        const place = page.getByRole('button', { name: 'Place bid' })
         const before = await actionPanel(page).innerText()
         if (await place.count()) await place.click()
         else await page.getByRole('button', { name: 'Pass' }).click()
