@@ -296,11 +296,8 @@ describe('Santiago visibility', () => {
         assert(segment, 'Extra irrigation requires a placeable segment')
         const before = structuredClone(s.state)
 
-        const rollover = s.act({
-            ...nextAction(s.state, game.id),
-            type: ActionType.BuildCanal,
-            segment
-        }).processedActions
+        const buildCanal = { ...nextAction(s.state, game.id), type: ActionType.BuildCanal, segment }
+        const rollover = s.act(buildCanal).processedActions
         expect(rollover.map((action) => action.type)).toEqual([
             ActionType.BuildCanal,
             ActionType.EndRoundEvent
