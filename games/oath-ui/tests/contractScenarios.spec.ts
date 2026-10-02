@@ -129,6 +129,16 @@ test('a banner enlarges to its 920 px source on a desktop', async ({ page }) => 
     expect(Math.round((await shown.boundingBox())?.width ?? 0)).toBe(920)
 })
 
+/** Item 28: an enlarged site says what it does, its printed symbols drawn. */
+test('an enlarged site shows its sentence under it, with the suit and favor as symbols', async ({ page }) => {
+    await openTable(page, 'setup')
+    await (await uncovered(page, '.site .board-card')).click()
+    const sentence = preview(page).locator('.site-sentence')
+    await expect(sentence).toContainText('card to this site, and you have not discarded a')
+    await expect(sentence.getByRole('img', { name: 'Hearth' })).toHaveCount(2)
+    await expect(sentence.getByRole('img', { name: 'favor' })).toHaveCount(1)
+})
+
 /** Scenario 24 with a mouse: a remote Action lands while a card is enlarged. */
 test('scenario 24: an enlarged card closes when its card leaves the table, and the new offers show with no ring left over', async ({
     page

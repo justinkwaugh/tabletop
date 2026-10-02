@@ -1,8 +1,9 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
-    import { siteHolding } from '@tabletop/oath'
+    import { siteHolding, siteReference } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import CardWarbands from '$lib/components/CardWarbands.svelte'
+    import SiteSentence from '$lib/components/SiteSentence.svelte'
     import { cardAspect } from '$lib/images/cardShape.js'
     import { cardPreview } from '$lib/model/cardPreview.svelte.js'
     import { previewSourceWidth, previewWidth } from '$lib/model/previewSize.js'
@@ -41,6 +42,10 @@
         const relics = gameState.relicSlotsAt(slotId).length
         return { ...onSite, pawns, tokens, denizens, relics }
     })
+
+    let sentence = $derived(
+        preview?.cardId && preview.back === undefined ? siteReference(preview.cardId) : undefined
+    )
 
     function namesOf(playerIds: string[]): string {
         return playerIds.map((id) => gameSession.getPlayerName(id)).join(', ')
@@ -212,6 +217,11 @@
                                     >ruled by {namesOf(cardFacts.rulerIds)}</span
                                 >
                             {/if}
+                        </div>
+                    {/if}
+                    {#if sentence}
+                        <div class="card-preview__pieces" style="width:{width}px;">
+                            <SiteSentence {sentence} />
                         </div>
                     {/if}
                     {#if preview.slotId && onZoomSite}
