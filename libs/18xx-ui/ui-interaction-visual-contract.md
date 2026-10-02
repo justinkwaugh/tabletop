@@ -507,7 +507,9 @@ segments, and saved uncommitted routes. Session methods gate edits and construct
 RunTrains. Save route stages a completed route; Confirm routes submits the full
 set. The same authoritative evaluator produces per-center payments, per-train
 revenue, distance and set-level track-conflict feedback. Invalid sets cannot be
-confirmed. No optimizer or automatic route selection runs in the editor.
+confirmed. No optimizer or automatic route selection runs in the editor. A route's
+title bonuses (a hex it passes through, a stop it makes) follow its payments in the
+breakdown as "[location] bonus", and its revenue includes them.
 
 Back removes one path, then the start, then train selection. Undo clears all manual
 route selections before committed Undo. Selection overlays/controls are hidden in history
@@ -710,6 +712,13 @@ station, or Decline". A click anywhere on a one-city tile, or on an offered city
 multi-city tile, submits PlacePrivateStation directly; Decline submits
 DeclinePrivateStation. There is no confirmation stage. A placed station shows the
 station step as Placed and the step completes automatically.
+
+A private power that marks a location (a title's `markerTerms`, such as 1817's
+bridges) appears under Use privates as one immediately committed button per location,
+"Place [marker] on [location] ([private])". Placed markers join the map's printed
+markers, by the names the title's map view gives them, in the live and historical maps.
+A title's reusable private lays (1817's coal mines) stay offered until its terms end
+them.
 
 A pending par after an opening award (a title's `parAfterAward`, such as 1830's B&O)
 replaces the auction panel with "[player] sets [company]'s par." Only the entitled

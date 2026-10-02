@@ -272,3 +272,17 @@ it('stops once in each hex when the title allows one stop per hex', () => {
     expect(result.exhaustive).toBe(true)
     expect(result.result.revenue).toBe(30)
 })
+it('finds routes earning the title’s hex and stop bonuses', () => {
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), track('yellow', [[3, 0]]), city('yellow', [3], 30, 1)],
+        [{ measure: 'revenue-centers', maximum: 2 }],
+        {},
+        {
+            hexBonus: (_state, locationId) => (locationId === '1' ? 10 : 0),
+            stopBonus: (_state, _train, _companyId, center) => (center.locationId === '2' ? 5 : 0)
+        }
+    )
+    const result = router.solve(state, rules, 'A')
+    expect(result.result.revenue).toBe(65)
+    expect(result.result.routes[0].bonuses).toHaveLength(2)
+})

@@ -1,9 +1,18 @@
-import { sameStopCounts, type TileFace, type TrackRules } from '@tabletop/18xx'
+import {
+    locationMarkers,
+    privateOwner,
+    sameStopCounts,
+    type TileFace,
+    type TrackRules
+} from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
+import { MineMarker } from './privatePowerRules.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenPhases } from './trains.js'
 
 const SecondLayCost = 20
+const BridgeDiscount = 10
+const BridgePrivateIds = ['OBC', 'UBC']
 const isUpgrade = (color: string) => color !== 'yellow'
 const cityCount = (face: TileFace) => face.nodes.filter((node) => node.kind === 'city').length
 
@@ -36,8 +45,20 @@ export const EighteenSeventeenTrackRules: TrackRules = {
     mostExits: (before) => before.nodes.some((node) => node.kind === 'city'),
     useful: ({ home, newTrack, increasedCityRevenue }) => home || newTrack || increasedCityRevenue,
     homeLocations: () => [],
-    terrainCost: (_state, _request, cost) => cost,
+    // A bridge private's company lays on rivers, but not lakes, $10 cheaper.
+    terrainCost(state, request, cost) {
+        const kinds = EighteenSeventeenMap.location(request.locationId).terrain?.kinds ?? []
+        const ownsBridge = BridgePrivateIds.some((privateId) => {
+            const owner = privateOwner(state, privateId)
+            return owner?.kind === 'company' && owner.companyId === request.companyId
+        })
+        return ownsBridge && kinds.length === 1 && kinds[0] === 'water'
+            ? Math.max(0, cost - BridgeDiscount)
+            : cost
+    },
     restriction(state, request) {
+        if (locationMarkers(state, { locationId: request.locationId, kind: MineMarker }).length)
+            return 'Nobody may upgrade a mine.'
         if (state.trackStep?.lays.some((lay) => lay.locationId === request.locationId))
             return 'The second lay must be on a different hex'
         return undefined

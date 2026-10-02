@@ -39,6 +39,7 @@ const OperatingPositions: readonly ScenarioPosition[] = [
     'private-events',
     'transfers',
     'powers',
+    'company-powers',
     'funding',
     'funding-chain',
     'bankruptcy'

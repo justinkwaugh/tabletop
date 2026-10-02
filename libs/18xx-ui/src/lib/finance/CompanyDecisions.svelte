@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import { assertExists } from '@tabletop/common'
     import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateBuying from '../privates/PrivateBuying.svelte'
@@ -27,6 +28,15 @@
         )
     )
     const gameState = $derived(session.gameState)
+    function markerName(kind: string) {
+        const name = session.mapView.locationMarkerNames?.[kind]
+        assertExists(name, `The map view names ${kind} markers`)
+        return name.toLowerCase()
+    }
+    function locationName(locationId: string) {
+        const location = session.mapView.map.location(locationId)
+        return location.name ?? location.id
+    }
     const selection = $derived(session.decisions.selection)
     const showPowers = $derived(
         !session.privateActions.purchaseSource &&
@@ -156,6 +166,19 @@
                                 >
                             {/each}
                         {/if}
+                    </div>
+                {/if}
+                {#if session.privateActions.selection === 'powers' && session.decisions.privateMarkerOptions.length}
+                    <div class="private-track" aria-label="Private markers">
+                        {#each session.decisions.privateMarkerOptions as option (`${option.privateCompanyId}:${option.locationId}`)}
+                            <button
+                                disabled={!session.decisions.canResolve}
+                                onclick={() => session.decisions.placePrivateMarker(option)}
+                                >Place {markerName(option.kind)} on {locationName(
+                                    option.locationId
+                                )} ({getCompany(gameState, option.privateCompanyId).name})</button
+                            >
+                        {/each}
                     </div>
                 {/if}
                 {#if showPowers && session.decisions.privateTrainOptions.length}

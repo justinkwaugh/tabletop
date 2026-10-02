@@ -24,11 +24,18 @@ export const RoutePayment = Type.Object(
     { additionalProperties: false }
 )
 export type RoutePayment = Type.Static<typeof RoutePayment>
+/** Revenue a route earns beyond its stops' values, at a location. */
+export const RouteBonus = Type.Object(
+    { locationId: Id, amount: Type.Integer({ minimum: 1 }) },
+    { additionalProperties: false }
+)
+export type RouteBonus = Type.Static<typeof RouteBonus>
 export const RouteResult = Type.Object(
     {
         ...TrainRoute.properties,
         visits: Type.Array(RevenueCenter),
         payments: Type.Array(RoutePayment),
+        bonuses: Type.Optional(Type.Array(RouteBonus, { minItems: 1 })),
         distance: Type.Integer({ minimum: 0 }),
         revenue: Type.Integer({ minimum: 0 })
     },

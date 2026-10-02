@@ -1,3 +1,4 @@
+import type { LocationMarkerState } from './locationMarkers.js'
 import { assert, assertExists } from '@tabletop/common'
 import type { RailwayMap } from './map.js'
 import type { StationState } from './station.js'
@@ -6,7 +7,7 @@ import type { TileEdge, TileFace, TileRotation } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace, tilePathsAtEndpoint } from '../tiles/topology.js'
 
 export const MapFields = { tileInventory: TileInventory }
-export type MapStateData = StationState & { tileInventory: TileInventory }
+export type MapStateData = StationState & LocationMarkerState & { tileInventory: TileInventory }
 export type MapTile = {
     face: TileFace
     rotation: TileRotation

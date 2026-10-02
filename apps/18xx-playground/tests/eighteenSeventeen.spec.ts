@@ -203,3 +203,19 @@ test('1817 companies are sold in the acquisition round after the merger round', 
     )
     await expect(history).toContainText('holders received $60 a share')
 })
+
+test('1817 companies use their private powers in their operating turn', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('company-powers')
+    await page.getByRole('button', { name: 'Use privates' }).click()
+    const markers = page.getByLabel('Private markers')
+    await markers.getByRole('button', { name: /Place bridge on Cincinnati/ }).click()
+    await expect(page.locator('[data-map-location="G6"] [data-map-markers]').first()).toContainText(
+        'Bridge'
+    )
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
+        'marked G6 with Union Bridge'
+    )
+})

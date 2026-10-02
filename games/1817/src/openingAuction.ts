@@ -83,7 +83,8 @@ export function createEighteenSeventeenOpening({
         titleState: {
             seedMoney: EighteenSeventeenSeedMoney,
             ...(options.shortSqueeze ? { shortSqueeze: true } : {}),
-            ...(options.fiveShorts ? { fiveShorts: true } : {})
+            ...(options.fiveShorts ? { fiveShorts: true } : {}),
+            ...(options.modernTrains ? { modernTrains: true } : {})
         },
         begin: beginSelectionAuction(EighteenSeventeenAuctionRules, startingPositions)
     }

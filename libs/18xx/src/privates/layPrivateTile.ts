@@ -52,7 +52,8 @@ function applyPrivateLay(
     ).details!
     const terms = powers.trackTerms(state, lay.privateCompanyId, lay.playerId)!
     applyTrackLay(state, track, details, terms.payer, terms.countsAsOrdinaryLay === true)
-    state.usedPrivatePowerIds.push(lay.privateCompanyId)
+    if (!terms.reusable) state.usedPrivatePowerIds.push(lay.privateCompanyId)
+    powers.afterTrackLay?.(state, lay.privateCompanyId, details)
     delete state.privateTrackLay
     const station = {
         privateCompanyId: lay.privateCompanyId,

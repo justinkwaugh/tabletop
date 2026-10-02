@@ -27,6 +27,7 @@ import {
 import { hasLegalPrivateTrackUse } from './privatePowerRequest.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
 import { HydratedDeclinePrivateStation, HydratedPlacePrivateStation } from './privateStation.js'
+import { HydratedPlacePrivateMarker } from './placePrivateMarker.js'
 import {
     pendingCompanyDecision,
     pendingDecisionPlayerId,
@@ -45,7 +46,8 @@ export function isCompanyDecisionAction(
     | HydratedDeclinePrivateTile
     | HydratedPlacePrivateStation
     | HydratedDeclinePrivateStation
-    | HydratedBuyPrivateTrain {
+    | HydratedBuyPrivateTrain
+    | HydratedPlacePrivateMarker {
     return (
         action instanceof HydratedOfferPurchase ||
         action instanceof HydratedRespondToPurchaseOffer ||
@@ -56,7 +58,8 @@ export function isCompanyDecisionAction(
         action instanceof HydratedDeclinePrivateTile ||
         action instanceof HydratedPlacePrivateStation ||
         action instanceof HydratedDeclinePrivateStation ||
-        action instanceof HydratedBuyPrivateTrain
+        action instanceof HydratedBuyPrivateTrain ||
+        action instanceof HydratedPlacePrivateMarker
     )
 }
 export class CompanyDecisionsHandler<
@@ -134,6 +137,8 @@ export class CompanyDecisionsHandler<
                 this.powers.trackTerms(state, company.id, playerId)
             )
                 actions.push('LayPrivateTile')
+            if (this.powers.markerTerms?.(state, company.id, playerId)?.locationIds.length)
+                actions.push('PlacePrivateMarker')
             const buyer = this.powers.earlyTrainCompany(state, company.id, playerId)
             if (
                 buyer &&

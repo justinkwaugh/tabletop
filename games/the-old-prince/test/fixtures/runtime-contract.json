@@ -32,7 +32,7 @@
     "ResolveAuction": "3a915b699a1c8c9fc03eaaa0073aa986f15ec921bc50d6d8e01aafa01c206f24",
     "RespondToPurchaseOffer": "810d8da94e40ac69f609dd9b95bd4d57aa9202bad25f5f1d7258f88acf574680",
     "RespondToTrackConsent": "e057b211db97297ef99d8d9cba1beaff6976e79c7146a293caecc07e9219e3d4",
-    "RunTrains": "13b25a8d251fdf38ec0c35ca6b6def32f85ec4287ed9a980f4290179518f64cb",
+    "RunTrains": "400af6a98bc8ebac73a1b5b917b8210edd476f6517ed68e0684049e9f517b4fc",
     "RustTrains": "aaaa9fa915db39480aaec4985f0866177bbf1567750725a2b4cba6da35b82bc6",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellFundingShares": "263e4bc7909651fd7c30a6d9a979cf467c678a207cb93222d5f41f50f0a6951f",
@@ -1659,6 +1659,32 @@
         ],
         "type": "object"
       },
+      "locationMarkers": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "locationId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "privateCompanyId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "locationId",
+            "privateCompanyId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
       "machineState": {
         "anyOf": [
           {
@@ -2851,6 +2877,28 @@
                 "items": {
                   "additionalProperties": false,
                   "properties": {
+                    "bonuses": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "amount": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "locationId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "amount",
+                          "locationId"
+                        ],
+                        "type": "object"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
                     "distance": {
                       "minimum": 0,
                       "type": "integer"

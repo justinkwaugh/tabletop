@@ -108,6 +108,7 @@ const EighteenSeventeenState = extendEighteenXXState(
         seedMoney: Type.Optional(Type.Integer({ minimum: 0 })),
         shortSqueeze: Type.Optional(Type.Literal(true)),
         fiveShorts: Type.Optional(Type.Literal(true)),
+        modernTrains: Type.Optional(Type.Literal(true)),
         mergerRound: Type.Optional(MergerRound),
         acquisitionRound: Type.Optional(AcquisitionRound)
     },
@@ -157,14 +158,20 @@ export function activeAcquisitionRound(state: object): AcquisitionRound | undefi
 export function eighteenSeventeenOptions(state: object): {
     shortSqueeze: boolean
     fiveShorts: boolean
+    modernTrains: boolean
 } {
-    return { shortSqueeze: 'shortSqueeze' in state, fiveShorts: 'fiveShorts' in state }
+    return {
+        shortSqueeze: 'shortSqueeze' in state,
+        fiveShorts: 'fiveShorts' in state,
+        modernTrains: 'modernTrains' in state
+    }
 }
 
 export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
     declare seedMoney?: number
     declare shortSqueeze?: true
     declare fiveShorts?: true
+    declare modernTrains?: true
     declare mergerRound?: MergerRound
     declare acquisitionRound?: AcquisitionRound
     constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {

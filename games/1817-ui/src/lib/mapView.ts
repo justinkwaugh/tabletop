@@ -11,6 +11,7 @@ export const EighteenSeventeenMapView: MapViewDefinition = {
     },
     map: EighteenSeventeenMap,
     tileSet: EighteenSeventeenTileSet,
+    locationMarkerNames: { mine: 'Mine', bridge: 'Bridge' },
     layouts: {
         E22: {
             nodePositions: { 'city-0': towardTileEdge(0, 18), 'city-1': towardTileEdge(3, 18) }

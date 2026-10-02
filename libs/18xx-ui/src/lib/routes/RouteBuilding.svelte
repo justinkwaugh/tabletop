@@ -1,7 +1,16 @@
 <script lang="ts">
+    import type { RouteResult } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
     const money = $derived(session.presentation.money)
+    function breakdown(route: RouteResult): string {
+        return [
+            ...route.payments.map((payment) => `${payment.locationId}: ${money(payment.amount)}`),
+            ...(route.bonuses ?? []).map(
+                (bonus) => `${bonus.locationId} bonus: ${money(bonus.amount)}`
+            )
+        ].join(' + ')
+    }
     const editor = $derived(session.routes.editor)
     const step = $derived(session.gameState.routeStep)
     const visible = $derived(session.routes.editorVisible)
@@ -89,9 +98,7 @@
                             )}
                         </p>
                         <p>
-                            {preview.result.payments
-                                .map((payment) => `${payment.locationId}: ${money(payment.amount)}`)
-                                .join(' + ')}
+                            {breakdown(preview.result)}
                         </p>{/if}
                     <button disabled={!session.routes.canRun} onclick={() => session.routes.back()}
                         >Back</button
@@ -115,11 +122,7 @@
                             )!.definitionId
                         ).name}: {money(route.revenue)}</strong
                     >
-                    <span
-                        >{route.payments
-                            .map((payment) => `${payment.locationId}: ${money(payment.amount)}`)
-                            .join(' + ')}</span
-                    >
+                    <span>{breakdown(route)}</span>
                     {#if !step.result}<button
                             disabled={!session.routes.canRun || Boolean(editor.trainId)}
                             onclick={() => session.routes.edit(route.trainId)}>Edit route</button

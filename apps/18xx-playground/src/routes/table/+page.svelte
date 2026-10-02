@@ -22,6 +22,7 @@
         { id: 'funding-chain', label: 'Union Bank train funding', titleSpecific: true },
         { id: 'bankruptcy', label: 'Bankruptcy' },
         { id: 'powers', label: 'Buy privates' },
+        { id: 'company-powers', label: 'Company private powers', titleSpecific: true },
         { id: 'transfers', label: 'Negotiated purchases' },
         { id: 'ending', label: 'Final operating turn' },
         { id: 'finished', label: 'Finished game', titleSpecific: true }

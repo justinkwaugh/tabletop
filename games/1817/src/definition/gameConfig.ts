@@ -25,10 +25,19 @@ const fiveShortsOption: BooleanConfigOption = {
     default: false
 }
 
+const modernTrainsOption: BooleanConfigOption = {
+    id: 'modernTrains',
+    type: ConfigOptionType.Boolean,
+    name: 'Modern Trains',
+    description: '7- and 8-trains earn $10 and $20 more at each city with their company’s station.',
+    default: false
+}
+
 const Schema = Type.Object(
     {
         shortSqueeze: Type.Optional(Type.Boolean({ default: shortSqueezeOption.default })),
-        fiveShorts: Type.Optional(Type.Boolean({ default: fiveShortsOption.default }))
+        fiveShorts: Type.Optional(Type.Boolean({ default: fiveShortsOption.default })),
+        modernTrains: Type.Optional(Type.Boolean({ default: modernTrainsOption.default }))
     },
     { additionalProperties: false }
 )
@@ -37,11 +46,12 @@ export const EighteenSeventeenGameConfig = {
     schema: Schema,
     options: (config: GameConfig | undefined) => ({
         shortSqueeze: config?.shortSqueeze === true,
-        fiveShorts: config?.fiveShorts === true
+        fiveShorts: config?.fiveShorts === true,
+        modernTrains: config?.modernTrains === true
     })
 }
 
 export class EighteenSeventeenConfigurator extends BaseConfigurator implements GameConfigurator {
     schema = Schema
-    options: GameConfigOptions = [shortSqueezeOption, fiveShortsOption]
+    options: GameConfigOptions = [shortSqueezeOption, fiveShortsOption, modernTrainsOption]
 }

@@ -6,6 +6,7 @@ import {
     LayPrivateTile,
     LayPrivateTileOutOfTurn,
     OfferPurchase,
+    PlacePrivateMarker,
     RespondToPurchaseOffer,
     RespondToTrackConsent,
     cashOwnedBy,
@@ -30,6 +31,12 @@ export type PrivateTileOption = {
     details: TrackLayDetails
 }
 export type PrivateTrainOption = { privateCompanyId: string; details: TrainPurchaseDetails }
+export type PrivateMarkerOption = {
+    privateCompanyId: string
+    playerId: string
+    kind: string
+    locationId: string
+}
 export type CompanyDecision =
     | { kind: 'purchase'; request: PurchaseOfferRequest }
     | ({ kind: 'tile' } & PrivateTileOption)
@@ -124,6 +131,24 @@ export class CompanyDecisionsModule {
                             .choices(locationId)
                             .map((details) => ({ privateCompanyId: company.id, playerId, details }))
                     )
+                })
+        )
+    })
+    privateMarkerOptions = $derived.by((): PrivateMarkerOption[] => {
+        const { state, rules } = this.session
+        if (pendingCompanyDecision(state)) return []
+        return this.players.flatMap((playerId) =>
+            state.companies
+                .filter((company) => company.kind === 'private' && !company.closed)
+                .flatMap((company) => {
+                    const terms = rules.privatePowerRules.markerTerms?.(state, company.id, playerId)
+                    if (!terms) return []
+                    return terms.locationIds.map((locationId) => ({
+                        privateCompanyId: company.id,
+                        playerId,
+                        kind: terms.kind,
+                        locationId
+                    }))
                 })
         )
     })
@@ -312,6 +337,22 @@ export class CompanyDecisionsModule {
         )
         await this.session.applyAction(
             this.session.createPlayerAction(ContinueOperatingRound, { companyId: window.companyId })
+        )
+    }
+    async placePrivateMarker(option: PrivateMarkerOption) {
+        assert(
+            this.privateMarkerOptions.some(
+                (listed) =>
+                    listed.privateCompanyId === option.privateCompanyId &&
+                    listed.locationId === option.locationId
+            ),
+            'This private cannot mark that location now'
+        )
+        await this.session.applyAction(
+            this.session.createPlayerAction(PlacePrivateMarker, {
+                privateCompanyId: option.privateCompanyId,
+                locationId: option.locationId
+            })
         )
     }
     async declinePrivateTile() {

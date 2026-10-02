@@ -119,7 +119,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         mapLayouts: EighteenSeventeenMapView.layouts,
         mapExample: { locationId: 'F13', definitionId: '18xx:57', rotation: 0, label: 'PLE' },
         tileSets: { '1817': EighteenSeventeenTileSet },
-        positions: []
+        positions: ['company-powers']
     }
 ]
 

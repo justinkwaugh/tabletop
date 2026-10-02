@@ -25,6 +25,7 @@ import type { TrainDepot } from '../trains/trainDepot.js'
 import { StationStep } from '../stations/stationPlacement.js'
 import { TrackStep } from '../construction/trackConstruction.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
+import { LocationMarkerFields, type LocationMarker } from '../map/locationMarkers.js'
 import type { RailwayMap } from '../map/map.js'
 import type { PhaseTable } from '../phases/phaseTable.js'
 import type { TileSet, TileInventory } from '../tiles/inventory.js'
@@ -106,6 +107,7 @@ const FamilyFields = Type.Object({
     ...OfferPileFields,
     ...CompanyFields,
     ...MapFields,
+    ...LocationMarkerFields,
     ...TrainFields,
     ...PhaseFields,
     ...EarningsFields,
@@ -190,6 +192,7 @@ export class HydratedEighteenXXState
     declare trainInventory: TrainInventory
     declare trainPurchaseStep?: TrainPurchaseStep
     declare tileInventory: TileInventory
+    declare locationMarkers?: LocationMarker[]
     declare phaseId: string
     declare tranches: CompanyState['tranches']
     declare ownershipLimitExemptions: CompanyState['ownershipLimitExemptions']

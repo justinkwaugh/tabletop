@@ -157,10 +157,15 @@ export class EncodedRoutes {
                 counts_crossings: countsCrossings,
                 visit_costs: visitCosts,
                 requires_city: rules.requiresCity(definition),
-                revenues: nodes.map((node) => {
+                revenues: nodes.map((node, index) => {
                     if (node.kind === 'junction')
                         throw new Error('A junction is not a revenue center')
-                    return routeRevenue(node.revenue, stages)
+                    const center = this.centers[index]
+                    assertExists(center, 'Revenue center requires a location')
+                    return (
+                        routeRevenue(node.revenue, stages) +
+                        (rules.stopBonus?.(state, definition, companyId, center) ?? 0)
+                    )
                 }),
                 first_bonus: nodes.map(() => 0)
             }
@@ -172,7 +177,7 @@ export class EncodedRoutes {
             trains,
             resource_count: resources.size,
             group_count: groupIds.size,
-            hex_bonuses: locations.map(() => 0),
+            hex_bonuses: locations.map((location) => rules.hexBonus?.(state, location.id) ?? 0),
             budget_ms: timeLimitMs
         }
     }

@@ -18,6 +18,7 @@ export const ScenarioPosition = Type.Union([
     Type.Literal('private-events'),
     Type.Literal('transfers'),
     Type.Literal('powers'),
+    Type.Literal('company-powers'),
     Type.Literal('funding'),
     Type.Literal('funding-chain'),
     Type.Literal('bankruptcy')

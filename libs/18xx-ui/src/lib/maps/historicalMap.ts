@@ -16,7 +16,12 @@ export function isMapHistoryAction(action: GameAction) {
 
 type MapSnapshot = Pick<
     EighteenXXState,
-    'tileInventory' | 'stations' | 'stationReservations' | 'operatingSet' | 'companies'
+    | 'tileInventory'
+    | 'stations'
+    | 'stationReservations'
+    | 'operatingSet'
+    | 'companies'
+    | 'locationMarkers'
 >
 
 export function historicalMapSnapshot(
@@ -31,7 +36,8 @@ export function historicalMapSnapshot(
         stations: state.stations,
         stationReservations: state.stationReservations,
         operatingSet: state.operatingSet,
-        companies: state.companies
+        companies: state.companies,
+        locationMarkers: state.locationMarkers
     })
     const roots = new Set(Object.keys(snapshot).map((key) => `/${key}`))
     for (let i = actions.length - 1; i > index; i--) {
@@ -93,7 +99,8 @@ export class HistoricalMaps {
                 view.map,
                 {
                     tileSet: view.tileSet,
-                    inventory: snapshot.tileInventory
+                    inventory: snapshot.tileInventory,
+                    markers: snapshot.locationMarkers
                 },
                 view
             ),

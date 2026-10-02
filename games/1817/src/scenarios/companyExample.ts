@@ -8,6 +8,7 @@ import {
     presidentCertificate,
     type CompanyState,
     type MapStateData,
+    type Owner,
     type President,
     type TrainState
 } from '@tabletop/18xx'
@@ -49,6 +50,10 @@ export function createEighteenSeventeenCompanyExample(
     })
     givePrivate(state, 'MAIL', casey)
     givePrivate(state, 'MINC', alex)
+    // Boston & Albany holds powers its president can use in its operating turn.
+    if (position === 'company-powers')
+        for (const privateId of ['UBC', 'MAJC'])
+            givePrivate(state, privateId, { kind: 'company', companyId: 'BA' })
     // Boston & Albany is at its loan limit with nothing to pay interest, and its president has
     // no cash: it defaults when its trains are done.
     if (position === 'bankruptcy') {
@@ -104,7 +109,7 @@ function startCompany(
     })
 }
 
-function givePrivate(state: CompanyState, privateId: string, owner: President): void {
+function givePrivate(state: CompanyState, privateId: string, owner: Owner): void {
     const certificate = state.certificates.find((item) => item.companyId === privateId)
     assert(certificate && !certificate.retired, 'An example private is open')
     certificate.owner = owner

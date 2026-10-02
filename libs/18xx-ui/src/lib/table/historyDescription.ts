@@ -2,6 +2,7 @@ import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
     isLayTile,
     isPrivateTileLay,
+    isPlacePrivateMarker,
     isRequestTrackConsent,
     isRespondToTrackConsent,
     isPlaceStation,
@@ -146,6 +147,8 @@ export function historyDescription(
             text: `Laid track at ${action.locationId} with ${companyName(action.privateCompanyId)}`,
             value: action.expectedCost ? money(action.expectedCost) : undefined
         }
+    if (isPlacePrivateMarker(action))
+        return { text: `Marked ${action.locationId} with ${companyName(action.privateCompanyId)}` }
     if (isChooseHomeStation(action)) return { text: `Home station at ${action.locationId}` }
     if (isPlacePrivateStation(action))
         return {

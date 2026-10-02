@@ -9,7 +9,10 @@ import type { TrackModule } from './trackModule.svelte.js'
 import type { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 
 type MapState = Parameters<typeof stationMapTokens>[0] &
-    Pick<EighteenXXState, 'companies' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'>
+    Pick<
+        EighteenXXState,
+        'companies' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep' | 'locationMarkers'
+    >
 export type MapSession = ModuleSession<MapState, unknown>
 export type MapStyle = 'classic' | 'muted'
 
@@ -251,7 +254,11 @@ export class MapModule {
     }
     private draw(inventory: MapState['tileInventory']) {
         const view = this.view()
-        return createMapDrawing(view.map, { tileSet: view.tileSet, inventory }, view)
+        return createMapDrawing(
+            view.map,
+            { tileSet: view.tileSet, inventory, markers: this.session.state.locationMarkers },
+            view
+        )
     }
 }
 
