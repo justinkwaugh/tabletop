@@ -1,20 +1,18 @@
 <script lang="ts">
-    import { companyMarketSpace, getCompany } from '@tabletop/18xx'
+    import { getCompany } from '@tabletop/18xx'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session }: { session: EighteenSeventeenSession } = $props()
     const money = $derived(session.presentation.money)
     const busy = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory)
 </script>
 
-{#if session.shortableCompanies.length}
+{#if session.shorts.length}
     <section aria-label="Short selling">
         <h2>Or short a company</h2>
         <div class="choices">
-            {#each session.shortableCompanies as companyId (companyId)}
+            {#each session.shorts as { companyId, price } (companyId)}
                 <button disabled={busy} onclick={() => session.shortShare(companyId)}
-                    >Short {getCompany(session.gameState, companyId).name} ({money(
-                        companyMarketSpace(session.gameState.stockMarket, companyId).price
-                    )})</button
+                    >Short {getCompany(session.gameState, companyId).name} ({money(price)})</button
                 >
             {/each}
         </div>

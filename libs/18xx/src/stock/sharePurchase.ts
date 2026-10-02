@@ -32,7 +32,6 @@ export const SharePurchaseDetails = Type.Object(
         price: Type.Integer({ minimum: 1 }),
         payments: Type.Array(CashPayment),
         presidency: Type.Optional(PresidencyChange),
-        /** The buyer's short that the bought share closes. */
         coveredShortId: Type.Optional(Type.String())
     },
     { additionalProperties: false }

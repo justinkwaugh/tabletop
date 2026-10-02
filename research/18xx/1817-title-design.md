@@ -964,10 +964,11 @@ market's own shorts, and the 5 Shorts and Short Squeeze options.
   applies too. Market shares, long or short, pay and receive nothing.
 - **Valuation.** A short counts as minus the current price. Shorts do not count toward
   the certificate limit; ownership is net.
-- **The market's shorts.** A bankrupt player's shorts go to the market. The market
-  cancels each against one of its own shares of the company, and at the start of each
-  stock round buys treasury shares with the bank's money to cancel the rest, except in
-  the acquisition and liquidation zones.
+- **The market's shorts.** A bankrupt player's shorts go to the market. After a
+  bankruptcy and after every sale the market cancels them against its own shares of the
+  company; as each stock round begins the bank buys treasury shares for the market to
+  cancel the rest, except in the acquisition and liquidation zones. A share added by a
+  new short does not close them until the next sale.
 - **Sold out.** A company of more than 2 shares moves up when players' positive net
   holdings reach 100%. With Short Squeeze it moves up again when they exceed 100%.
 
@@ -1000,9 +1001,10 @@ dividends, valuation and settlement; no other family lends shares.
   crisis. `cashCrisis` becomes a queue of debts with one continuation, served from the
   operating company's president in turn order, as payouts can leave several players
   owing at once.
-- **The market's shorts are 1817 system actions.** A bankrupt player's shorts join the
-  market. `CloseMarketShorts` cancels them against market shares, and in the stock
-  round against treasury shares bought with the bank's money.
+- **The market's shorts.** A bankrupt player's shorts join the market. The family's
+  `StockRules.afterSale` lets 1817 cancel them against market shares after every sale,
+  and bankruptcy does the same. The 1817 system action `CloseMarketShorts` buys
+  treasury shares with the bank's money for the rest just before a stock round starts.
 - **Sold out gains a squeeze.** `StockRoundRules.squeezed` (optional) gives a sold-out
   company its second move; 1817 counts positive net player holdings for both.
 - **Options.** 1817 gains a configurator with Short Squeeze and 5 Shorts, stored as
@@ -1015,12 +1017,16 @@ dividends, valuation and settlement; no other family lends shares.
   the market's shorts after a bankruptcy. A purchase that closes a short retires both
   certificates and records `coveredShortId`.
 - **Charges.** `EarningsDetails.charges` lists what short holders owe on a payout. The
-  family settles what each can pay and queues the rest as debts, so `cashCrisis` now
+  family settles what each can pay, recording it as `chargesPaid`, and queues the rest
+  as debts, so `cashCrisis` now
   holds a list of debts, served in turn order from the company's president, with one
   continuation (the step after the payout, or the Loans step after interest).
-- **The market's shorts** close against market shares as soon as both exist in the
-  stock round, and against treasury shares the bank buys for the market there, outside
-  the closing zones; bankruptcy closes them against market shares at once.
+- **The market's shorts** close against market shares after each sale and each
+  bankruptcy, and against treasury shares the bank buys for the market when an
+  operating set ends and a stock round is about to start, outside the closing zones.
+- **Helpers.** `signedShares` gives a certificate's signed share count wherever shorts
+  net, `ordinaryShares` the company's single shares a short can close against, and
+  `issueShareCertificates` now returns the ids it issues.
 - **Options** are stored as `shortSqueeze` and `fiveShorts` title state. Prepared
   playground positions, built by the scenario configurator, have neither.
 

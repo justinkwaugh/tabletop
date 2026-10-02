@@ -1,9 +1,11 @@
 import { EighteenSeventeenPhases, EighteenSeventeenTrainDepot } from './trains.js'
 import { corporationShareCount } from './corporations.js'
 import { isLiquidated } from './liquidation.js'
+import { eighteenSeventeenOptions } from './state.js'
 import {
     certificatesInPool,
     sharesOwned,
+    signedShares,
     type StockState,
     floatedCompaniesInMarketOrder,
     playerOrderAfterLastTurn,
@@ -20,7 +22,7 @@ export const EighteenSeventeenStockRoundRules: StockRoundRules = {
         corporationShareCount(state, companyId) > 2 &&
         playerHoldings(state, companyId) >= corporationShareCount(state, companyId),
     squeezed: (state, companyId) =>
-        'shortSqueeze' in state &&
+        eighteenSeventeenOptions(state).shortSqueeze &&
         playerHoldings(state, companyId) > corporationShareCount(state, companyId),
     // Each share left in the market pool, less the market's shorts, moves the company down.
     poolDrop: (state, companyId) =>
@@ -28,13 +30,7 @@ export const EighteenSeventeenStockRoundRules: StockRoundRules = {
             0,
             certificatesInPool(state, MarketPoolId).reduce(
                 (sum, certificate) =>
-                    certificate.companyId !== companyId
-                        ? sum
-                        : certificate.kind === 'share'
-                          ? sum + certificate.shares
-                          : certificate.kind === 'short'
-                            ? sum - certificate.shares
-                            : sum,
+                    sum + (certificate.companyId === companyId ? signedShares(certificate) : 0),
                 0
             )
         )

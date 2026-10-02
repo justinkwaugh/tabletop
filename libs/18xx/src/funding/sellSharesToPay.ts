@@ -77,6 +77,7 @@ export class HydratedSellSharesToPay
             reason ?? 'The sale’s proceeds have changed'
         )
         applyShareSale(state, details)
+        this.#rules.afterSale?.(state)
         const player = { kind: 'player' as const, playerId: this.playerId }
         const paid = Math.min(debt.amount, finiteCashOwnedBy(state, player))
         settleCashPayments(state, [{ from: player, to: { kind: 'bank' }, amount: paid }])

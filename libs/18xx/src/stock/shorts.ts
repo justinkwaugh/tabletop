@@ -1,6 +1,7 @@
 import { assert } from '@tabletop/common'
 import {
     issueShareCertificates,
+    nextCertificateNumber,
     sameOwner,
     type CertificatePool,
     type FinancialState,
@@ -24,7 +25,22 @@ export function openShorts(
     )
 }
 
-/** Retires certificates that leave play, such as a short and the share that closes it. */
+/** The company's single shares other than the president's, which a short can close against. */
+export function ordinaryShares(
+    state: Pick<FinancialState, 'certificates'>,
+    companyId: string
+): OpenShare[] {
+    return state.certificates.flatMap((certificate) =>
+        !certificate.retired &&
+        certificate.kind === 'share' &&
+        !certificate.president &&
+        certificate.shares === 1 &&
+        certificate.companyId === companyId
+            ? [certificate]
+            : []
+    )
+}
+
 export function retireCertificates(state: FinancialState, ids: readonly string[]): void {
     state.certificates = state.certificates.map((certificate) => {
         if (!ids.includes(certificate.id)) return certificate
@@ -44,16 +60,12 @@ export function openShort(
     holder: Owner,
     market: CertificatePool
 ): { shareId: string; shortId: string } {
-    const before = new Set(state.certificates.map((certificate) => certificate.id))
-    issueShareCertificates(state, companyId, 1, { owner: { ...market.owner }, poolId: market.id })
-    const share = state.certificates.find((certificate) => !before.has(certificate.id))
-    assert(share, 'Opening a short issues a share')
-    const numbers = state.certificates.flatMap((certificate) =>
-        certificate.id.startsWith(`${companyId}:short:`)
-            ? [Number(certificate.id.slice(`${companyId}:short:`.length))]
-            : []
-    )
-    const shortId = `${companyId}:short:${Math.max(0, ...numbers) + 1}`
+    const [shareId] = issueShareCertificates(state, companyId, 1, {
+        owner: { ...market.owner },
+        poolId: market.id
+    })
+    const prefix = `${companyId}:short:`
+    const shortId = `${prefix}${nextCertificateNumber(state, prefix)}`
     state.certificates.push({
         id: shortId,
         companyId,
@@ -63,21 +75,13 @@ export function openShort(
         retired: false,
         owner: { ...holder }
     })
-    return { shareId: share.id, shortId }
+    return { shareId, shortId }
 }
 
 /** Retires each of the owner's shorts of the company against one of its ordinary shares. */
 export function cancelShorts(state: FinancialState, companyId: string, owner: Owner): number {
     const shorts = openShorts(state, companyId, owner)
-    const shares = state.certificates.filter(
-        (certificate): certificate is OpenShare =>
-            !certificate.retired &&
-            certificate.kind === 'share' &&
-            !certificate.president &&
-            certificate.shares === 1 &&
-            certificate.companyId === companyId &&
-            sameOwner(certificate.owner, owner)
-    )
+    const shares = ordinaryShares(state, companyId).filter((share) => sameOwner(share.owner, owner))
     const pairs = Math.min(shorts.length, shares.length)
     retireCertificates(state, [
         ...shorts.slice(0, pairs).map((short) => short.id),

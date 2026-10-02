@@ -19,6 +19,14 @@ const EighteenSeventeenState = extendEighteenXXState({
 })
 const Validator = Compile(EighteenSeventeenState)
 
+/** The optional rules chosen when the game was set up. */
+export function eighteenSeventeenOptions(state: object): {
+    shortSqueeze: boolean
+    fiveShorts: boolean
+} {
+    return { shortSqueeze: 'shortSqueeze' in state, fiveShorts: 'fiveShorts' in state }
+}
+
 export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
     declare seedMoney?: number
     declare shortSqueeze?: true

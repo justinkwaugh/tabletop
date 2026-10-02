@@ -6,6 +6,7 @@ import {
     controllingOwner,
     getCompany,
     sameOwner,
+    signedShares,
     type Certificate,
     type FinancialState
 } from '../finance/finance.js'
@@ -28,7 +29,6 @@ export const EarningsDetails = Type.Object(
         bonusPerShare: Type.Integer({ minimum: 0 }),
         bankAdjustment: Type.Integer(),
         payments: Type.Array(CashPayment),
-        /** What short holders owe the bank, before what they can pay is known. */
         charges: Type.Optional(Type.Array(CashPayment)),
         marketMove: Type.Optional(StockMarketMove)
     },
@@ -76,7 +76,7 @@ export function dividendEntitlements(
             continue
         const owner = recipient(certificate)
         if (!owner) continue
-        const shares = certificate.kind === 'short' ? -certificate.shares : certificate.shares
+        const shares = signedShares(certificate)
         const previous = result.find((entry) => sameOwner(entry.owner, owner))
         if (previous) previous.shares += shares
         else result.push({ owner: { ...owner }, shares })

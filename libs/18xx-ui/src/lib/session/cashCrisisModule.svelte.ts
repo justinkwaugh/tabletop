@@ -21,7 +21,6 @@ export class CashCrisisModule {
     readonly bankruptcy = singleChoice<true>()
     constructor(private readonly session: CashCrisisSession) {}
 
-    /** The debt being settled now; others may wait behind it. */
     debt = $derived.by(() => currentDebt(this.session.state))
     sales = $derived.by(() => {
         const rules = this.session.rules.cashCrisisRules

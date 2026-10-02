@@ -4,6 +4,7 @@ import {
     cashOwnedBy,
     certificatesOwnedBy,
     getCompany,
+    signedShares,
     type Owner,
     type Portfolio
 } from '../finance/finance.js'
@@ -43,9 +44,9 @@ export function certificateValue(
 }
 export function marketShareValue(state: StockState, certificate: Portfolio[number]): number {
     const company = getCompany(state, certificate.companyId)
-    if (certificate.kind === 'private' || !company.started || company.closed) return 0
-    const value = certificate.shares * companyMarketSpace(state.stockMarket, company.id).price
-    return certificate.kind === 'short' ? -value : value
+    return company.started && !company.closed
+        ? signedShares(certificate) * companyMarketSpace(state.stockMarket, company.id).price
+        : 0
 }
 export function portfolioWealth(
     state: StockState,

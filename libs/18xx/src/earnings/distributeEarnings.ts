@@ -10,10 +10,11 @@ import {
     PlayerAction,
     HydratableAction,
     assert,
+    assertExists,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { settleCashPayments, type CashPayment } from '../finance/cashPayments.js'
+import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { controllingOwner, getCompany } from '../finance/finance.js'
 import { chargePlayers, type CashCrisisState, type Debt } from '../funding/cashCrisis.js'
 import { placeStockMarker } from '../stock/stockMarket.js'
@@ -35,6 +36,7 @@ export const DistributeEarnings = Type.Object(
                 {
                     ...EarningsDetails.properties,
                     privateEffects: Type.Array(PrivateEffect),
+                    chargesPaid: Type.Optional(Type.Array(CashPayment)),
                     round: Type.Optional(OperatingRoundIdentity),
                     companyName: Type.String()
                 },
@@ -91,12 +93,13 @@ export class HydratedDistributeEarnings
         const result = distribution.evaluate(this.companyId, this.choice)
         assert(result.details, result.reason ?? 'Invalid distribution')
         settleCashPayments(state, result.details.payments)
-        if (result.details.charges)
-            chargePlayers(
-                state,
-                this.chargesFromPresident(state, result.details.charges),
-                this.#nextState
-            )
+        const chargesPaid = result.details.charges
+            ? chargePlayers(
+                  state,
+                  this.chargesFromPresident(state, result.details.charges),
+                  this.#nextState
+              )
+            : []
         if (result.details.marketMove)
             placeStockMarker(
                 state.stockMarket,
@@ -109,6 +112,7 @@ export class HydratedDistributeEarnings
         applyPrivateEffects(state, privateEffects, this.#stockRules)
         this.metadata = {
             ...result.details,
+            ...(chargesPaid.length ? { chargesPaid } : {}),
             privateEffects,
             companyName: getCompany(state, this.companyId).name,
             ...(state.operatingSet
@@ -124,8 +128,9 @@ export class HydratedDistributeEarnings
     // Short holders are charged in turn order from the company's president.
     private chargesFromPresident(state: CashCrisisState, charges: readonly CashPayment[]): Debt[] {
         const president = controllingOwner(state, this.companyId)
+        assertExists(president, 'A paying company has a president')
         const order = state.turnManager.turnOrder
-        const start = president ? order.indexOf(president.playerId) : 0
+        const start = order.indexOf(president.playerId)
         const rotated = [...order.slice(start), ...order.slice(0, start)]
         return charges
             .map((charge) => {

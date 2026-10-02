@@ -1,9 +1,5 @@
 import { assert } from '@tabletop/common'
-import {
-    companyMarketSpace,
-    type EighteenXXState,
-    type HydratedEighteenXXState
-} from '@tabletop/18xx'
+import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import type { GameSession } from '@tabletop/frontend-components'
 import {
@@ -11,7 +7,7 @@ import {
     EighteenSeventeenTitleRules,
     ShortShare,
     corporateActionOptions,
-    shortableCompanyIds
+    shortOptions
 } from '@tabletop/1817'
 import { EighteenSeventeenMapView } from './mapView.js'
 import { EighteenSeventeenPresentation } from './presentation.js'
@@ -31,19 +27,17 @@ export class EighteenSeventeenSession extends BaseSession {
             ? corporateActionOptions(this.gameState, playerId)
             : []
     })
-    shortableCompanies = $derived.by(() => {
+    shorts = $derived.by(() => {
         const playerId = this.gameState.activePlayerIds[0]
         return playerId && this.validActionTypes.includes('ShortShare')
-            ? shortableCompanyIds(this.gameState, playerId)
+            ? shortOptions(this.gameState, playerId)
             : []
     })
     async shortShare(companyId: string) {
-        assert(this.shortableCompanies.includes(companyId), 'This company cannot be shorted now')
+        const option = this.shorts.find((option) => option.companyId === companyId)
+        assert(option, 'This company cannot be shorted now')
         await this.applyAction(
-            this.createPlayerAction(ShortShare, {
-                companyId,
-                expectedPrice: companyMarketSpace(this.gameState.stockMarket, companyId).price
-            })
+            this.createPlayerAction(ShortShare, { companyId, expectedPrice: option.price })
         )
     }
     async buyBackShare(companyId: string) {

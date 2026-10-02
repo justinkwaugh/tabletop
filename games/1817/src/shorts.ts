@@ -13,8 +13,10 @@ import {
 } from '@tabletop/common'
 import {
     CashPayment,
+    canStartStockRound,
     cancelShorts,
     companyMarketSpace,
+    ordinaryShares,
     getCompany,
     openShort,
     openShorts,
@@ -23,17 +25,19 @@ import {
     sharesOwned,
     type EighteenXXState,
     type EighteenXXStateHandler,
+    type FinancialState,
     type HydratedEighteenXXState,
     type OpenShare
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
 import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
+import { eighteenSeventeenOptions } from './state.js'
 
 const NoShortsPhase = '8'
 const FiveShorts = 5
 
-export function marketPool(state: EighteenXXState) {
+export function marketPool(state: Pick<FinancialState, 'certificatePools'>) {
     const market = state.certificatePools.find((pool) => pool.id === MarketPoolId)
     assertExists(market, '1817 has a market pool')
     return market
@@ -62,12 +66,18 @@ export function shortReason(
     if (sharesOwned(state, companyId, { kind: 'player', playerId }) > 0)
         return 'A player holding shares of a company cannot short it.'
     const shorts = openShorts(state, companyId).length
-    if (shorts >= company.shareCount || ('fiveShorts' in state && shorts >= FiveShorts))
+    if (
+        shorts >= company.shareCount ||
+        (eighteenSeventeenOptions(state).fiveShorts && shorts >= FiveShorts)
+    )
         return 'This company has as many shorts as it may.'
     return undefined
 }
 
-export function shortableCompanyIds(state: EighteenXXState, playerId: string): string[] {
+export function shortOptions(
+    state: EighteenXXState,
+    playerId: string
+): { companyId: string; price: number }[] {
     return state.companies
         .filter(
             (company) =>
@@ -75,7 +85,10 @@ export function shortableCompanyIds(state: EighteenXXState, playerId: string): s
                 company.started &&
                 !shortReason(state, playerId, company.id)
         )
-        .map((company) => company.id)
+        .map((company) => ({
+            companyId: company.id,
+            price: companyMarketSpace(state.stockMarket, company.id).price
+        }))
 }
 
 export const ShortShare = Type.Object(
@@ -133,7 +146,6 @@ export class HydratedShortShare extends HydratableAction<typeof ShortShare> impl
     }
 }
 
-/** Lets a player short a company in their stock turn. */
 export class ShortSellingHandler implements EighteenXXStateHandler {
     constructor(private readonly handler: EighteenXXStateHandler) {}
     isValidAction(
@@ -150,7 +162,7 @@ export class ShortSellingHandler implements EighteenXXStateHandler {
     ): string[] {
         const actions = this.handler.validActionsForPlayer(playerId, context)
         return actions.includes('FinishStockTurn') &&
-            shortableCompanyIds(context.gameState, playerId).length
+            shortOptions(context.gameState, playerId).length
             ? [...actions, 'ShortShare']
             : actions
     }
@@ -162,30 +174,31 @@ export class ShortSellingHandler implements EighteenXXStateHandler {
     }
 }
 
-/**
- * The company whose market shorts can close: against market shares, and in the stock round
- * against treasury shares the bank buys for the market, outside the closing zones.
- */
-function marketShortToClose(state: EighteenXXState): string | undefined {
+/** After any sale, the market closes its shorts against its own shares. */
+export function closeMarketShortsAgainstPool(state: FinancialState): void {
     const market = marketPool(state)
-    return state.companies.find((company) => {
-        if (
-            !openShorts(state, company.id, market.owner).some((short) => short.poolId === market.id)
-        )
-            return false
-        const shares = state.certificates.some(
-            (certificate) =>
-                !certificate.retired &&
-                certificate.kind === 'share' &&
-                !certificate.president &&
-                certificate.companyId === company.id &&
-                (certificate.poolId === market.id ||
-                    (certificate.poolId === treasuryPoolId(company.id) &&
-                        state.machineState === 'StockRound' &&
-                        !inClosingZone(state.stockMarket, company.id)))
-        )
-        return shares
-    })?.id
+    for (const company of state.companies) cancelShorts(state, company.id, market.owner)
+}
+
+/**
+ * The company whose market shorts the bank closes as a stock round begins, by buying its
+ * treasury shares for the market, outside the closing zones.
+ */
+function marketShortToBuyOut(state: EighteenXXState): string | undefined {
+    if (!canStartStockRound(state)) return undefined
+    const market = marketPool(state)
+    return state.companies.find(
+        (company) =>
+            openShorts(state, company.id, market.owner).length > 0 &&
+            !inClosingZone(state.stockMarket, company.id) &&
+            treasuryShares(state, company.id).length > 0
+    )?.id
+}
+
+function treasuryShares(state: EighteenXXState, companyId: string): OpenShare[] {
+    return ordinaryShares(state, companyId).filter(
+        (share) => share.poolId === treasuryPoolId(companyId)
+    )
 }
 
 const CloseFields = Type.Object({
@@ -225,42 +238,33 @@ export class HydratedCloseMarketShorts
     }
     apply(state: HydratedGameState & EighteenXXState): void {
         assert(
-            this.source === ActionSource.System && marketShortToClose(state) === this.companyId,
-            'The system closes the market’s shorts when it can'
+            this.source === ActionSource.System && marketShortToBuyOut(state) === this.companyId,
+            'The bank closes the market’s shorts as a stock round begins'
         )
         const market = marketPool(state)
-        let closed = cancelShorts(state, this.companyId, market.owner)
-        const payments: CashPayment[] = []
-        const treasury = state.certificates.filter(
-            (certificate): certificate is OpenShare =>
-                !certificate.retired &&
-                certificate.kind === 'share' &&
-                certificate.companyId === this.companyId &&
-                certificate.poolId === treasuryPoolId(this.companyId)
-        )
-        const remaining = openShorts(state, this.companyId, market.owner).length
-        if (remaining && state.machineState === 'StockRound') {
-            const price = companyMarketSpace(state.stockMarket, this.companyId).price
-            for (const certificate of treasury.slice(0, remaining)) {
-                payments.push({
-                    from: { kind: 'bank' },
-                    to: { kind: 'company', companyId: this.companyId },
-                    amount: price
-                })
-                certificate.owner = { ...market.owner }
-                certificate.poolId = market.id
-            }
-            settleCashPayments(state, payments)
-            closed += cancelShorts(state, this.companyId, market.owner)
+        const shorts = openShorts(state, this.companyId, market.owner).length
+        const price = companyMarketSpace(state.stockMarket, this.companyId).price
+        const bought = treasuryShares(state, this.companyId).slice(0, shorts)
+        const payments = bought.map(() => ({
+            from: { kind: 'bank' as const },
+            to: { kind: 'company' as const, companyId: this.companyId },
+            amount: price
+        }))
+        settleCashPayments(state, payments)
+        for (const share of bought) {
+            share.owner = { ...market.owner }
+            share.poolId = market.id
         }
-        this.metadata = { closed, payments }
+        this.metadata = {
+            closed: cancelShorts(state, this.companyId, market.owner),
+            payments
+        }
     }
 }
 
-/** Closes the market's shorts before anything else happens in the stock round. */
-export function closesMarketShorts(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+export function buysOutMarketShorts(handler: EighteenXXStateHandler): EighteenXXStateHandler {
     return new SystemActionFirstHandler(handler, CloseMarketShorts, (state) => {
-        const companyId = marketShortToClose(state)
+        const companyId = marketShortToBuyOut(state)
         return companyId ? { companyId } : undefined
     })
 }

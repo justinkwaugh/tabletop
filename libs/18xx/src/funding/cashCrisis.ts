@@ -39,7 +39,7 @@ export const BankruptcyRecord = Type.Object(
 export type BankruptcyRecord = Type.Static<typeof BankruptcyRecord>
 
 /** A sale to raise cash is refused if it would pass a presidency to another player. */
-export interface CashCrisisRules extends Pick<StockRules, 'presidencyCandidates'> {
+export interface CashCrisisRules extends Pick<StockRules, 'presidencyCandidates' | 'afterSale'> {
     saleTerms(
         state: StockState,
         companyId: string,
@@ -66,7 +66,6 @@ export function playersWithBankruptLast(state: StockState): string[] {
     return [...state.turnManager.turnOrder, ...(state.bankruptPlayerIds ?? [])]
 }
 
-/** The debt being settled now. */
 export function currentDebt(state: Pick<CashCrisisState, 'cashCrisis'>): Debt | undefined {
     return state.cashCrisis?.debts[0]
 }

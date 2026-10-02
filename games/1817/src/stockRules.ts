@@ -27,6 +27,7 @@ import { EighteenSeventeenStationRules } from './stationRules.js'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
 import { EighteenSeventeenCompanySizes } from './trains.js'
 import { inClosingZone } from './marketZones.js'
+import { closeMarketShortsAgainstPool } from './shorts.js'
 
 export const EighteenSeventeenCertificateLimits: Readonly<Record<number, number>> = {
     3: 21,
@@ -279,6 +280,7 @@ export const EighteenSeventeenStockRules: StockRules = {
     },
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
+    afterSale: closeMarketShortsAgainstPool,
     turnOrder: 'sell-buy',
     repeatSales: 'separate',
     companyAuction: EighteenSeventeenCompanyAuction

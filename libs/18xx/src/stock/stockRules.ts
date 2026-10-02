@@ -47,6 +47,8 @@ export interface StockRules {
     certificateWeight(state: StockState, certificate: Portfolio[number]): number
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
+    /** What follows any sale into the market, such as the market closing its own shorts. */
+    afterSale?(state: StockState): void
     /** When a turn's sales may come relative to its purchase. */
     turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
     /**

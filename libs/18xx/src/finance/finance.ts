@@ -249,16 +249,18 @@ export function sharesOwned(
 ): number {
     return certificatesOwnedBy(state, owner).reduce(
         (sum, certificate) =>
-            sum +
-            (certificate.companyId !== companyId
-                ? 0
-                : certificate.kind === 'share'
-                  ? certificate.shares
-                  : certificate.kind === 'short'
-                    ? -certificate.shares
-                    : 0),
+            sum + (certificate.companyId === companyId ? signedShares(certificate) : 0),
         0
     )
+}
+
+/** A certificate's shares, negative for a short and none for a private. */
+export function signedShares(certificate: Portfolio[number]): number {
+    return certificate.kind === 'share'
+        ? certificate.shares
+        : certificate.kind === 'short'
+          ? -certificate.shares
+          : 0
 }
 
 export function privateOwner(
@@ -327,14 +329,23 @@ export function issueShareCertificates(
     companyId: string,
     count: number,
     allocation: CertificateAllocation
-): void {
-    const prefix = ordinaryShareIdPrefix(companyId)
+): string[] {
+    const first = nextCertificateNumber(state, ordinaryShareIdPrefix(companyId))
+    return Array.from({ length: count }, (_, index) => {
+        const certificate = ordinaryShareCertificate(companyId, first + index, allocation)
+        state.certificates.push(certificate)
+        return certificate.id
+    })
+}
+
+export function nextCertificateNumber(
+    state: Pick<FinancialState, 'certificates'>,
+    prefix: string
+): number {
     const numbers = state.certificates.flatMap((certificate) =>
         certificate.id.startsWith(prefix) ? [Number(certificate.id.slice(prefix.length))] : []
     )
-    const first = Math.max(0, ...numbers) + 1
-    for (let index = 0; index < count; index++)
-        state.certificates.push(ordinaryShareCertificate(companyId, first + index, allocation))
+    return Math.max(0, ...numbers) + 1
 }
 
 function ordinaryShareIdPrefix(companyId: string): string {

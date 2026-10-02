@@ -4,14 +4,23 @@ import {
     cashOwnedBy,
     companyMarketSpace,
     getCompany,
+    issueShareCertificates,
+    moveMarketSpace,
     openShort,
     openShorts,
+    retireCertificates,
     sharesOwned,
+    stockCertificateCount,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenEndingRules } from './endingRules.js'
-import { EighteenSeventeenStockRoundRules, marketPool, shortReason } from './index.js'
+import {
+    EighteenSeventeenStockRoundRules,
+    EighteenSeventeenStockRules,
+    marketPool,
+    shortReason
+} from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 
 const casey = { kind: 'player' as const, playerId: 'casey' }
@@ -83,10 +92,16 @@ describe('opening a short', () => {
 })
 
 describe('closing a short', () => {
-    it('retires the bought share with the short', () => {
+    it('retires the bought share with the short, even at the certificate limit', () => {
         const play = caseysTurn((state) => {
             openShort(state, 'BA', casey, marketPool(state))
+            const [heavy] = issueShareCertificates(state, 'PLE', 1, { owner: casey })
+            for (const certificate of state.certificates)
+                if (certificate.id === heavy) certificate.certificateLimitCount = 21
         })
+        expect(stockCertificateCount(play.state, casey, EighteenSeventeenStockRules)).toBe(
+            EighteenSeventeenStockRules.certificateLimit(play.state, casey)
+        )
         play.act('BuyShares', {
             buyer: casey,
             certificateId: 'BA:share:2',
@@ -99,59 +114,107 @@ describe('closing a short', () => {
 })
 
 describe('dividends on shorts', () => {
-    // BA has run for $60 and is about to pay; casey is short one share.
-    function payout(caseyCash: number) {
+    // BA has run for $60 and is about to pay; each named player is short one share.
+    function payout(choice: 'pay' | 'half-pay', shorts: Record<string, number>) {
         const play = playExample(EighteenSeventeenScenarios, 'routes', 3, (state) => {
-            openShort(state, 'BA', casey, marketPool(state))
-            setPlayerCash(state, 'casey', caseyCash)
+            for (const certificate of state.certificates)
+                if (certificate.id === 'BA:share:1') {
+                    certificate.owner = { kind: 'bank' }
+                    certificate.poolId = 'market'
+                }
+            for (const [playerId, amount] of Object.entries(shorts)) {
+                openShort(state, 'BA', { kind: 'player', playerId }, marketPool(state))
+                setPlayerCash(state, playerId, amount)
+            }
             state.routeStep = {
                 companyId: 'BA',
                 result: { companyId: 'BA', routes: [], revenue: 60 }
             }
             state.machineState = 'DistributingEarnings'
         })
-        play.act('DistributeEarnings', { companyId: 'BA', choice: 'pay' })
+        play.act('DistributeEarnings', { companyId: 'BA', choice })
         return play
     }
 
     it('charges each short holder the dividend per share', () => {
-        const play = payout(100)
+        const play = payout('pay', { casey: 100 })
         expect(cash(play.state, 'casey')).toBe(88)
         expect(play.state.machineState).toBe('BuyingTrains')
     })
 
-    it('leaves a short holder who cannot pay in a cash crisis', () => {
-        const play = payout(5)
+    it('charges half the dividend on a half pay', () => {
+        const play = payout('half-pay', { casey: 100 })
+        expect(cash(play.state, 'casey')).toBe(94)
+    })
+
+    it('queues the debts of short holders who cannot pay, from the president in turn order', () => {
+        // Blair presides BA; turn order runs alex, blair, casey.
+        const play = payout('pay', { alex: 0, casey: 5 })
         expect(cash(play.state, 'casey')).toBe(0)
         expect(play.state.machineState).toBe('RaisingCash')
         expect(play.state.cashCrisis).toEqual({
-            debts: [{ playerId: 'casey', amount: 7 }],
+            debts: [
+                { playerId: 'casey', amount: 7 },
+                { playerId: 'alex', amount: 12 }
+            ],
             continuation: 'BuyingTrains'
         })
         play.act('GoBankrupt', {}, 'casey')
-        expect(openShorts(play.state, 'BA')).toEqual([])
-        expect(play.state.machineState).toBe('BuyingTrains')
+        expect(play.state.activePlayerIds).toEqual(['alex'])
+        play.act('GoBankrupt', {}, 'alex')
+        expect(play.state.machineState).toBe('GameOver')
     })
 })
 
 describe('the market’s shorts', () => {
-    it('are closed at the next stock round with treasury shares the bank buys', () => {
-        // The market holds a short of BA and none of its shares; BA's treasury holds one.
-        const play = playExample(EighteenSeventeenScenarios, 'trading', 3, (state) => {
-            const market = marketPool(state)
-            const { shareId, shortId } = openShort(state, 'BA', market.owner, market)
-            for (const certificate of state.certificates) {
-                if (certificate.retired) continue
-                if (certificate.id === shortId) certificate.poolId = market.id
-                if (certificate.id === shareId || certificate.id === 'BA:share:2') {
-                    certificate.owner = { kind: 'player', playerId: 'alex' }
-                    delete certificate.poolId
-                }
+    // The market is short one BA share and holds none of its shares.
+    function marketShort(state: EighteenXXState) {
+        const market = marketPool(state)
+        const { shareId, shortId } = openShort(state, 'BA', market.owner, market)
+        retireCertificates(state, [shareId])
+        for (const certificate of state.certificates) {
+            if (certificate.retired) continue
+            if (certificate.id === shortId) certificate.poolId = market.id
+            if (certificate.id === 'BA:share:2') {
+                certificate.owner = { kind: 'player', playerId: 'alex' }
+                delete certificate.poolId
             }
+        }
+    }
+
+    it('close against a share sold into the market', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'trading', 3, marketShort)
+        play.act('SellShares', {
+            seller: { kind: 'player', playerId: 'alex' },
+            sales: [{ companyId: 'BA', shares: 1 }],
+            expectedProceeds: price(play.state)
         })
+        expect(openShorts(play.state, 'BA')).toEqual([])
+    })
+
+    it('stay open when a new short adds a market share', () => {
+        const play = caseysTurn(marketShort)
+        play.act('ShortShare', { companyId: 'BA', expectedPrice: price(play.state) })
+        expect(openShorts(play.state, 'BA', marketPool(play.state).owner)).toHaveLength(1)
+    })
+
+    it('are bought out of the treasury by the bank as the next stock round begins', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'construction', 3, marketShort)
         const treasury = Number(cashOwnedBy(play.state, { kind: 'company', companyId: 'BA' }))
-        expect(openShorts(play.state, 'BA')).toHaveLength(1)
-        play.act('FinishStockTurn')
+        for (let step = 0; step < 20 && play.state.machineState !== 'StockRound'; step++) {
+            const actions = play.valid(play.state.activePlayerIds[0])
+            const finish = ['FinishTrack', 'FinishTrains', 'FinishOperatingTurn'].find((type) =>
+                actions.includes(type)
+            )
+            assertExists(finish, `No way to finish in ${play.state.machineState}`)
+            play.act(finish, {
+                companyId:
+                    play.state.trackStep?.companyId ??
+                    play.state.loanStep?.companyId ??
+                    play.state.trainPurchaseStep?.companyId
+            })
+        }
+        expect(play.state.machineState).toBe('StockRound')
         expect(openShorts(play.state, 'BA')).toEqual([])
         expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'BA' })).toBe(
             treasury + price(play.state)
@@ -159,28 +222,47 @@ describe('the market’s shorts', () => {
     })
 })
 
-describe('sold out and valuation', () => {
-    it('moves a company held over 100% twice with Short Squeeze', () => {
+describe('the end of the stock round', () => {
+    function finishRound(play: ReturnType<typeof caseysTurn>) {
+        while (play.state.machineState === 'StockRound') play.act('FinishStockTurn')
+    }
+
+    it('drops a shorted company once more for the extra market share', () => {
+        const play = caseysTurn()
+        const before = companyMarketSpace(play.state.stockMarket, 'BA')
+        play.act('ShortShare', { companyId: 'BA', expectedPrice: price(play.state) })
+        finishRound(play)
+        expect(companyMarketSpace(play.state.stockMarket, 'BA').id).toBe(
+            moveMarketSpace(play.state.stockMarket, before.id, 'down', 2).id
+        )
+    })
+
+    it('moves a company held over 100% up twice with Short Squeeze', () => {
         const play = playExample(EighteenSeventeenScenarios, 'trading', 3, (state) => {
-            openShort(state, 'BA', casey, marketPool(state))
+            Object.assign(state, { shortSqueeze: true })
+            // Blair and alex end up with three shares each, 120% between them.
+            const { shareId } = openShort(state, 'BA', casey, marketPool(state))
             for (const certificate of state.certificates)
                 if (
                     !certificate.retired &&
-                    certificate.kind === 'share' &&
-                    certificate.companyId === 'BA' &&
-                    certificate.owner.kind !== 'player'
+                    [shareId, 'BA:share:2', 'BA:share:3'].includes(certificate.id)
                 ) {
-                    certificate.owner = { kind: 'player', playerId: 'alex' }
+                    certificate.owner = {
+                        kind: 'player',
+                        playerId: certificate.id === 'BA:share:2' ? 'blair' : 'alex'
+                    }
                     delete certificate.poolId
                 }
         })
-        expect(EighteenSeventeenStockRoundRules.soldOut(play.state, 'BA')).toBe(true)
-        expect(EighteenSeventeenStockRoundRules.squeezed?.(play.state, 'BA')).toBe(false)
-        expect(
-            EighteenSeventeenStockRoundRules.squeezed?.({ ...play.state, shortSqueeze: true }, 'BA')
-        ).toBe(true)
+        const before = companyMarketSpace(play.state.stockMarket, 'BA')
+        finishRound(play)
+        expect(companyMarketSpace(play.state.stockMarket, 'BA').id).toBe(
+            moveMarketSpace(play.state.stockMarket, before.id, 'up', 2).id
+        )
     })
+})
 
+describe('valuation', () => {
     it('values a short at minus the share price', () => {
         const play = caseysTurn((state) => {
             openShort(state, 'BA', casey, marketPool(state))

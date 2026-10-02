@@ -31,7 +31,7 @@ import {
     HydratedShortShare,
     ShortSellingHandler,
     ShortShare,
-    closesMarketShorts,
+    buysOutMarketShorts,
     isCloseMarketShorts,
     isShortShare
 } from '../shorts.js'
@@ -78,11 +78,9 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
     cashCrisisRules: EighteenSeventeenCashCrisisRules,
     decisionHandlers: {
         StockRound: (family) =>
-            closesMarketShorts(
-                buysOwedStations(new ShortSellingHandler(new CorporateActionsHandler(family)))
-            ),
+            buysOwedStations(new ShortSellingHandler(new CorporateActionsHandler(family))),
         StartingOperatingSet: (family) => buysOwedStations(liquidatesUnpaidStations(family)),
-        OperatingSet: liquidatesTrainlessCompanies
+        OperatingSet: (family) => liquidatesTrainlessCompanies(buysOutMarketShorts(family))
     },
     titleActions: [
         defineAction(ShortShare, isShortShare, (action) => new HydratedShortShare(action)),
