@@ -1,4 +1,6 @@
 import {
+    ActionType,
+    HydratedSearch,
     PowerChoiceKind,
     legalChoices,
     usableModifiers,
@@ -14,7 +16,7 @@ import {
     withOptionPick,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { samePowerUse } from './powerUse.js'
+import { powerUseKey, samePowerUse } from './powerUse.js'
 import type { OathGameSession } from './session.svelte.js'
 
 export type RegionVariant = {
@@ -58,10 +60,21 @@ export class ModifierDeclarations {
         return this.declared.some((m) => samePowerUse(m, use))
     }
 
+    /** R-5.1.1 — one Search draws from one pile, so declaring a modifier that names it puts down another that does. */
     declare(use: PowerUseKey, on: boolean): void {
-        if (!this.options.some((p) => samePowerUse(p, use))) return
+        const options = this.options
+        const power = options.find((p) => samePowerUse(p, use))
+        if (!power) return
         const rest = this.session.selection.modifiers.filter((m) => !samePowerUse(m.use, use))
-        this.session.selection.set('modifiers', on ? [...rest, { use }] : rest)
+        if (!on) {
+            this.session.selection.set('modifiers', rest)
+            return
+        }
+        const namesPile = (p: CardPower) => this.drawPileChoice(p) !== undefined
+        const kept = namesPile(power)
+            ? rest.filter((m) => !options.some((p) => samePowerUse(p, m.use) && namesPile(p)))
+            : rest
+        this.session.selection.set('modifiers', [...kept, { use }])
     }
 
     picksOf(use: PowerUseKey): PowerChoicePicks {
@@ -71,7 +84,33 @@ export class ModifierDeclarations {
         )
     }
 
-    /** R-7.4 — each region a declared modifier lets the player name, as Errand Boy and Observatory do. */
+    /**
+     * R-7.4 — the region choice of a modifier that names the pile a Search draws from, as Errand Boy
+     * and Observatory do: the engine draws from the region picked. Bracken's region is where the
+     * discards go, so it is not one.
+     */
+    private drawPileChoice(power: CardPower): { legal: LegalChoice[]; index: number } | undefined {
+        const playerId = this.session.liveSeatId
+        if (!playerId || this.session.selection.action !== ActionType.Search) return undefined
+        const state = this.session.gameState
+        const legal = legalChoices(state, playerId, power)
+        const index = legal.findIndex((choice) =>
+            choice.options.some((option) => option.kind === PowerChoiceKind.Region)
+        )
+        const choice = legal[index]
+        if (!choice) return undefined
+        const home = HydratedSearch.drawRegion(state, playerId, [])
+        const use = powerUseKey(power)
+        const drawsFromThePick = choice.options.some((option, pick) => {
+            if (option.kind !== PowerChoiceKind.Region || option.region === home) return false
+            const picks = withOptionPick(emptyPicks(), choice, index, pick)
+            const named = { ...use, choices: powerChoicesFrom(legal, picks) }
+            return HydratedSearch.drawRegion(state, playerId, [named]) === option.region
+        })
+        return drawsFromThePick ? { legal, index } : undefined
+    }
+
+    /** R-7.4 — each pile the declared modifier lets the Search draw from. */
     get regionVariants(): RegionVariant[] {
         const playerId = this.session.liveSeatId
         const action = this.session.selection.action
@@ -82,10 +121,9 @@ export class ModifierDeclarations {
         for (const entry of this.session.selection.modifiers) {
             const power = usable.find((p) => samePowerUse(p, entry.use))
             if (!power) continue
-            const legal = legalChoices(state, playerId, power)
-            const index = legal.findIndex((choice) =>
-                choice.options.some((option) => option.kind === PowerChoiceKind.Region)
-            )
+            const pile = this.drawPileChoice(power)
+            if (!pile) continue
+            const { legal, index } = pile
             const choice = legal[index]
             if (!choice) continue
             return choice.options.flatMap((option, pick) => {
