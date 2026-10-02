@@ -3,6 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ShopTile from '$lib/components/ShopTile.svelte'
     import AwningDefs from '$lib/components/AwningDefs.svelte'
+    import CobbleDefs from '$lib/components/CobbleDefs.svelte'
     import FountainSpot from '$lib/components/FountainSpot.svelte'
     import DirectionArrows from '$lib/components/DirectionArrows.svelte'
     import RoutePreview from '$lib/components/RoutePreview.svelte'
@@ -21,6 +22,7 @@
         TableWidth,
         WallThickness
     } from '$lib/utils/boardGeometry.js'
+    import { CobblePatternId } from '$lib/utils/cobbles.js'
 
     const gameSession = getGameSession()
 
@@ -68,6 +70,7 @@
             </feMerge>
         </filter>
         <AwningDefs />
+        <CobbleDefs />
     </defs>
     <VisitorQueue />
     <g role="img" aria-label="MarraCash market" transform="translate({QueueMargin} {QueueMargin})">
@@ -77,26 +80,8 @@
             y={WallThickness}
             width={BoardColumns * CellSize}
             height={BoardRows * CellSize}
-            fill="#e8d7b5"
+            fill="url(#{CobblePatternId})"
         ></rect>
-        {#each { length: BoardRows + 1 } as _, row (row)}
-            <line
-                x1={WallThickness}
-                x2={WallThickness + BoardColumns * CellSize}
-                y1={WallThickness + row * CellSize}
-                y2={WallThickness + row * CellSize}
-                stroke="#d6c29b"
-            ></line>
-        {/each}
-        {#each { length: BoardColumns + 1 } as _, col (col)}
-            <line
-                y1={WallThickness}
-                y2={WallThickness + BoardRows * CellSize}
-                x1={WallThickness + col * CellSize}
-                x2={WallThickness + col * CellSize}
-                stroke="#d6c29b"
-            ></line>
-        {/each}
 
         {#each gates as gate (`${gate.x},${gate.y}`)}
             <rect
@@ -104,7 +89,7 @@
                 y={gate.y}
                 width={gate.width}
                 height={gate.height}
-                fill="#e8d7b5"
+                fill="url(#{CobblePatternId})"
                 stroke="#c99a2e"
                 stroke-width="3"
             ></rect>
