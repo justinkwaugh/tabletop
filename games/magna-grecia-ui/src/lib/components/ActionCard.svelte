@@ -18,7 +18,9 @@
     >
         <div
             class="content"
-            style:max-width={slotWidth > 0 ? `${slotWidth - CARD_MARGIN * 2 - 2}px` : undefined}
+            style:--content-max-width={slotWidth > 0
+                ? `${slotWidth - CARD_MARGIN * 2 - 2}px`
+                : undefined}
             bind:offsetWidth={contentWidth}
             bind:offsetHeight={contentHeight}
         >
@@ -48,8 +50,15 @@
     .content {
         flex-shrink: 0;
         width: max-content;
+        max-width: var(--content-max-width, none);
         height: max-content;
         padding: 4px 12px 8px;
+    }
+
+    @media (max-width: 639px) {
+        .content {
+            width: var(--content-max-width, max-content);
+        }
     }
 
     @media (prefers-reduced-motion: no-preference) {

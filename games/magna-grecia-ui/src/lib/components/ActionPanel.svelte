@@ -108,6 +108,15 @@
         }
         return tookMarketAction || marketToolChosen ? 'Skipped' : 'None available'
     })
+    const mobileStep = $derived.by(() => {
+        if (gameSession.onlyEndTurnLeft) {
+            return 'finish'
+        }
+        if (gameSession.tileActionsOpen && !gameSession.tilesSkipped && !marketToolChosen) {
+            return 'tiles'
+        }
+        return 'market'
+    })
     const tilePhaseClosed = $derived(!gameSession.tileActionsOpen || marketToolChosen)
 
     // What ending the turn now would do, on every turn, not only once End turn is all that is left.
@@ -162,10 +171,10 @@
             case BuildTool.Market:
                 return 'Build a market in a village or rival city'
             case BuildTool.Sell:
-                return 'Sell an active market for its value'
+                return 'Sell an active market'
             default:
                 if (gameSession.onlyEndTurnLeft) {
-                    return 'Your turn is complete: end your turn'
+                    return 'Your turn is complete'
                 }
                 return tileTools.length > 0
                     ? 'Choose an action'
@@ -231,9 +240,9 @@
             <div class="hint" class:warning={hintIsWarning}>{hint}</div>
         {/if}
         {#if !gameSession.cityUnfinished}
-            <div class="phases">
-                <div class="phase" class:closed={tilePhaseClosed}>
-                    <div class="phase-label">1 · Two actions, or one ★ enhanced</div>
+            <div class="phases" data-step={mobileStep}>
+                <div class="phase tiles" class:closed={tilePhaseClosed}>
+                    <div class="phase-label">Two actions, or one ★ enhanced</div>
                     <div class="phase-buttons">
                         {#each shownTileButtons as { kind, label, split, active, choose } (kind)}
                             <button type="button" class="tool" class:active onclick={choose}>
@@ -251,10 +260,14 @@
                             <span class="phase-status">{tileStatus}</span>
                         {/if}
                     </div>
+                    <button type="button" class="skip" onclick={() => gameSession.skipTiles()}>
+                        Skip
+                        {@render chevron()}
+                    </button>
                 </div>
                 {@render chevron()}
-                <div class="phase" class:closed={!gameSession.marketActionsOpen}>
-                    <div class="phase-label">2 · Market</div>
+                <div class="phase market" class:closed={!gameSession.marketActionsOpen}>
+                    <div class="phase-label">Market</div>
                     <div class="phase-buttons">
                         {#each marketTools as tool (tool)}
                             <button
@@ -279,8 +292,8 @@
                     </div>
                 </div>
                 {@render chevron()}
-                <div class="phase">
-                    <div class="phase-label">3 · Finish</div>
+                <div class="phase finish">
+                    <div class="phase-label">Finish</div>
                     <div class="phase-buttons">
                         {#if gameSession.canEndTurn}
                             <button
@@ -463,14 +476,53 @@
         vertical-align: baseline;
     }
 
-    .short-label {
+    .short-label,
+    .skip {
         display: none;
+    }
+
+    .skip {
+        align-items: center;
+        gap: 2px;
+        margin-top: 2px;
+        padding: 1px 4px 1px 10px;
+        border-radius: 999px;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        color: rgba(74, 44, 18, 0.75);
+    }
+
+    .skip:hover {
+        background: rgba(107, 63, 29, 0.08);
+    }
+
+    .skip :global(.chevron) {
+        width: 9px;
+        height: 14px;
+        margin: 0;
+        align-self: center;
     }
 
     @media (max-width: 639px) {
         .short-label {
             display: inline;
         }
+
+        .phases > .chevron,
+        .market .phase-label,
+        .finish .phase-label,
+        [data-step='tiles'] .market,
+        [data-step='tiles'] .finish,
+        [data-step='market'] .tiles,
+        [data-step='finish'] .tiles,
+        [data-step='finish'] .market {
+            display: none;
+        }
+
+        [data-step='tiles'] .skip {
+            display: inline-flex;
+        }
+
 
         .message-detail,
         .hint:not(.warning) {

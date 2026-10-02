@@ -11,10 +11,12 @@ import {
     closeResupply,
     draftRoadShape,
     draftRoadSpace,
+    draftTilesSkipped,
     draftTool,
     emptyDraft,
     hasManualDraft,
     rotateRoad,
+    skipTiles,
     toggleResupply
 } from './turnDraft.js'
 
@@ -133,5 +135,32 @@ describe('turn draft', () => {
         draft = closeResupply(draft)
         expect(draft.resupplyOpen).toBe(false)
         expect(draftTool(draft)?.tool).toBe(BuildTool.City)
+    })
+
+    it('skips the tile actions as a manual stage that Undo restores', () => {
+        const draft = skipTiles(emptyDraft())
+        expect(draftTilesSkipped(draft)).toBe(true)
+        expect(hasManualDraft(draft)).toBe(true)
+        expect(backDraft(draft)).toEqual(emptyDraft())
+    })
+
+    it('keeps the skip under a market tool and backs the tool out first', () => {
+        let draft = chooseTool(skipTiles(emptyDraft()), BuildTool.Market, '0:1')
+        expect(draftTilesSkipped(draft)).toBe(true)
+        draft = backDraft(draft)
+        expect(draftTool(draft)).toBeUndefined()
+        expect(draftTilesSkipped(draft)).toBe(true)
+        expect(draftTilesSkipped(backDraft(draft))).toBe(false)
+    })
+
+    it('clears the skip when a tile tool is chosen', () => {
+        const draft = chooseTool(skipTiles(emptyDraft()), BuildTool.City, '0:1')
+        expect(draftTilesSkipped(draft)).toBe(false)
+        expect(draftTool(draft)?.tool).toBe(BuildTool.City)
+    })
+
+    it('does not carry a skip into the next published state', () => {
+        const draft = chooseTool(skipTiles(emptyDraft()), BuildTool.Market, '0:1')
+        expect(draftTilesSkipped(carryTool(draft, '0:1'))).toBe(false)
     })
 })

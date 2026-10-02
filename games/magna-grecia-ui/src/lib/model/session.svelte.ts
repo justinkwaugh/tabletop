@@ -38,10 +38,12 @@ import {
     closeResupply,
     draftRoadShape,
     draftRoadSpace,
+    draftTilesSkipped,
     draftTool,
     emptyDraft,
     hasManualDraft,
     rotateRoad,
+    skipTiles,
     toggleResupply,
     type TurnDraft
 } from './turnDraft.js'
@@ -64,6 +66,8 @@ export class MagnaGreciaGameSession extends GameSession<
     roadSpace: AxialCoordinates | undefined = $derived(draftRoadSpace(this.draft))
 
     resupplyOpen = $derived(this.draft.resupplyOpen)
+
+    tilesSkipped = $derived(draftTilesSkipped(this.draft))
 
     myPlayerId = $derived(this.myPlayer?.id)
 
@@ -282,6 +286,10 @@ export class MagnaGreciaGameSession extends GameSession<
 
     cancelRoad() {
         this.draft = clearRoadLay(this.draft)
+    }
+
+    skipTiles() {
+        this.draft = skipTiles(this.draft)
     }
 
     toggleResupply() {

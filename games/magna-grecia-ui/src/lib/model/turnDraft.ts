@@ -9,7 +9,7 @@ import {
     type StagedSelectionState
 } from '@tabletop/frontend-components'
 import type { RoadShape } from '@tabletop/magna-grecia'
-import type { BuildTool } from './buildTool.js'
+import { BuildTool } from './buildTool.js'
 
 export type ToolChoice = {
     tool: BuildTool
@@ -17,6 +17,7 @@ export type ToolChoice = {
 }
 
 export type TurnDraftValues = {
+    tilesSkipped: true
     tool: ToolChoice
     space: AxialCoordinates
     shape: RoadShape
@@ -24,7 +25,12 @@ export type TurnDraftValues = {
 
 export type TurnDraftSelection = StagedSelectionState<TurnDraftValues>
 
-const STAGE_ORDER = ['tool', 'space', 'shape'] as const satisfies readonly (keyof TurnDraftValues)[]
+const STAGE_ORDER = [
+    'tilesSkipped',
+    'tool',
+    'space',
+    'shape'
+] as const satisfies readonly (keyof TurnDraftValues)[]
 type MissingStages = Exclude<keyof TurnDraftValues, (typeof STAGE_ORDER)[number]>
 const stageCoverage: MissingStages extends never ? true : never = true
 void stageCoverage
@@ -43,6 +49,29 @@ export function draftTool(draft: TurnDraft): ToolChoice | undefined {
     return getStagedSelectionValue<TurnDraftValues, 'tool'>(draft.selection, 'tool')
 }
 
+export function draftTilesSkipped(draft: TurnDraft): boolean {
+    return (
+        getStagedSelectionValue<TurnDraftValues, 'tilesSkipped'>(
+            draft.selection,
+            'tilesSkipped'
+        ) === true
+    )
+}
+
+export function skipTiles(draft: TurnDraft): TurnDraft {
+    return {
+        selection: setStagedSelectionValue(
+            draft.selection,
+            STAGE_ORDER,
+            'tilesSkipped',
+            true,
+            'manual'
+        ),
+        rotation: 0,
+        resupplyOpen: false
+    }
+}
+
 export function draftRoadSpace(draft: TurnDraft): AxialCoordinates | undefined {
     return getStagedSelectionValue<TurnDraftValues, 'space'>(draft.selection, 'space')
 }
@@ -52,14 +81,12 @@ export function draftRoadShape(draft: TurnDraft): RoadShape | undefined {
 }
 
 export function chooseTool(draft: TurnDraft, tool: BuildTool, turnKey: string): TurnDraft {
+    const isTileTool = tool === BuildTool.Road || tool === BuildTool.City
+    const base = isTileTool
+        ? clearStagedSelectionAtOrAfter(draft.selection, STAGE_ORDER, 'tilesSkipped')
+        : draft.selection
     return {
-        selection: setStagedSelectionValue(
-            draft.selection,
-            STAGE_ORDER,
-            'tool',
-            { tool, turnKey },
-            'manual'
-        ),
+        selection: setStagedSelectionValue(base, STAGE_ORDER, 'tool', { tool, turnKey }, 'manual'),
         rotation: 0,
         resupplyOpen: false
     }

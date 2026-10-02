@@ -223,6 +223,31 @@ test('a chosen mode hides the tile actions it rules out until Undo', async ({ pa
     await expect(resupply).toBeVisible()
 })
 
+test('on a phone the turn steps from tile actions to the market and back with Undo', async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await createGame(page)
+    const cities = page.getByRole('button', { name: /^Cities/ })
+    const skip = page.getByRole('button', { name: /^Skip/ })
+    const buy = page.getByRole('button', { name: 'Build market', exact: true })
+    const endTurn = page.getByRole('button', { name: 'End turn', exact: true })
+
+    await expect(cities).toBeVisible()
+    await expect(skip).toBeVisible()
+    await expect(buy).toBeHidden()
+    await expect(endTurn).toBeHidden()
+
+    await skip.click()
+    await expect(cities).toBeHidden()
+    await expect(buy).toBeVisible()
+    await expect(endTurn).toBeVisible()
+
+    await page.getByRole('button', { name: 'UNDO', exact: true }).click()
+    await expect(cities).toBeVisible()
+    await expect(buy).toBeHidden()
+})
+
 test('another road space moves the widget and another tool closes it', async ({ page }) => {
     await openRoadPicker(page)
     const targets = await roadTargets(page).count()
