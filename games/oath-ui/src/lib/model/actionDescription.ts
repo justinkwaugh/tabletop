@@ -96,6 +96,12 @@ function describeLetPeek(action: LetPeek, nameOf: NameOf, viewerId: string | und
     return `let ${shownTo} peek at the relic on ${reliquaryLabel(action.subject.slotId)}${seen ? ` (${cardName(seen)})` : ''}`
 }
 
+/** The seat a row is about: the actor, or for the title's move the seat that took or lost it. */
+export function rowActorOf(action: GameAction): string | undefined {
+    if (isTransferOathkeeper(action)) return action.toPlayerId ?? action.fromPlayerId
+    return action.playerId
+}
+
 /** R-10.13 — whose warbands a row counts: those a move names, the seat a power acted on, else the actor's own. */
 export function rowWarbandOwner(
     action: GameAction,

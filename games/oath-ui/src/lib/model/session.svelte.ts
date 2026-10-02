@@ -100,6 +100,14 @@ import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
 import { siteName } from './names.js'
 import { rowWarbandOwner, type HistoryNames } from './actionDescription.js'
+import {
+    endingRule,
+    gameEndEvent,
+    historyRows,
+    type HistoryRow,
+    type MajorEvent,
+    type MajorEventContext
+} from './majorEvents.js'
 import { peekedRelicAt, unseenPeekSlots } from './relicKnowledge.js'
 import {
     adviserDiscardFirstOptions,
@@ -1024,6 +1032,33 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /** R-10.13 — warbands show their owner's seat colour; the Empire's show the Chancellor's. */
     warbandColor(owner: WarbandOwner): Color {
         return this.colors.getPlayerColor(this.gameState.warbandBankHolderOf(owner))
+    }
+
+    get historyRows(): HistoryRow[] {
+        return historyRows(this.actions, this.majorEventContext)
+    }
+
+    /** R-3 — the finished game's top row: its winner, its ending, its title or Vision. */
+    get gameEndRow(): (MajorEvent & { sentence: string }) | undefined {
+        const state = this.gameState
+        const [winnerId] = state.winningPlayerIds
+        const rule = endingRule(this.actions)
+        if (winnerId === undefined || rule === undefined) return undefined
+        return gameEndEvent(
+            winnerId,
+            rule,
+            state.round,
+            state.getPlayerState(winnerId).revealedVisionId,
+            this.majorEventContext
+        )
+    }
+
+    private get majorEventContext(): Omit<MajorEventContext, 'campaign'> {
+        return {
+            viewerId: this.myPlayer?.id,
+            nameOf: (playerId) => this.getPlayerName(playerId),
+            oathType: this.gameState.oathType
+        }
     }
 
     /** R-10.13 — a History row's warbands in their owner's colour, the Empire's in the Chancellor's. */

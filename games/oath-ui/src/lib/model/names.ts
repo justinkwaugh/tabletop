@@ -1,6 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import {
     Banner,
+    Goal,
     CampaignTargetKind,
     cardDefinition,
     type CampaignTarget,
@@ -60,6 +61,18 @@ const OATH_NAMES: Record<OathType, string> = {
     [OathType.ThePeople]: 'the People',
     [OathType.Protection]: 'Protection',
     [OathType.Devotion]: 'Devotion'
+}
+
+const GOAL_TEXT: Record<Goal, string> = {
+    [Goal.MostSites]: 'rule the most sites',
+    [Goal.PeoplesFavor]: "hold the Banner of the People's Favor",
+    [Goal.MostRelicsAndBanners]: 'hold the most relics and banners',
+    [Goal.DarkestSecret]: 'hold the Banner of the Darkest Secret'
+}
+
+/** R-2.11, R-3.2.a — an Oath's or a Vision's goal, as a player meets it. */
+export function goalText(goal: Goal): string {
+    return GOAL_TEXT[goal]
 }
 
 /** R-2.10 — the Oath as the goal tile prints it, "the Oath of …". */

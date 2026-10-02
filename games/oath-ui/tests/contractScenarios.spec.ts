@@ -1367,3 +1367,25 @@ test('scenario 57: with the Search open, the card is found with the powers and i
     await expect(free).not.toContainText('Mushrooms')
     await expect(deck).toHaveCount(0)
 })
+
+test('scenario 58: a Vision drawn and the title changing hands are framed History rows; the drawer sees the Vision, another seat its back', async ({ page }) => {
+    await openTable(page, 'majorEvents')
+    await page.getByRole('tab', { name: 'History' }).click()
+
+    const drawn = page.locator('[data-major-event="visionDrawn"]')
+    await expect(drawn).toBeVisible()
+    await expect(drawn).toContainText('Vision drawn')
+    await expect(drawn).toContainText('the draw stopped on a Vision')
+    await expect(drawn.getByRole('img', { name: 'Conquest' })).toBeVisible()
+
+    const title = page.locator('[data-major-event="oathkeeper"]')
+    await expect(title).toBeVisible()
+    await expect(title).toContainText('took the Oathkeeper title from')
+    await expect(title.getByRole('img', { name: 'the Oathkeeper title' })).toBeVisible()
+    await expect(page.locator('.history').getByText('The game was started')).toBeVisible()
+
+    const other = await call(page, 'viewOffTheClock')
+    expect(other).toBe('ann')
+    await expect(drawn.getByRole('img', { name: 'a Vision, facedown' })).toBeVisible()
+    await expect(drawn.getByRole('img', { name: 'Conquest' })).toHaveCount(0)
+})
