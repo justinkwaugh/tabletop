@@ -51,12 +51,11 @@ export interface CompanyAuctionRules {
     payable(state: CompanyAuctionState, playerId: string, amount: number): boolean
     homes(state: CompanyAuctionState, companyId: string): StationPosition[]
     startSpace(state: CompanyAuctionState, price: number): string
+    /** The share counts a company may be formed with now. */
+    shareCounts(state: CompanyAuctionState): readonly number[]
+    /** The privates a winner may contribute toward the bid. */
+    contributions(state: CompanyAuctionState, playerId: string): readonly string[]
     formationReason(state: CompanyAuctionState, formation: CompanyFormation): string | undefined
-    /** The winner's only formation, applied without a decision. */
-    automaticFormation?(
-        state: CompanyAuctionState,
-        formation: Omit<CompanyFormation, keyof CompanyFormationChoice>
-    ): CompanyFormationChoice | undefined
     /** Settles the bid and the title's formation terms once the company has its president. */
     form(state: CompanyAuctionState, formation: CompanyFormation): void
 }
@@ -129,6 +128,17 @@ export class CompanyAuctionModel {
             price: winner.amount,
             home: this.auction.home
         }
+    }
+
+    /** The winner's only formation, applied without a decision: one size and nothing to contribute. */
+    automaticFormation(): CompanyFormationChoice | undefined {
+        const pending = this.pendingFormation()
+        if (!pending) return undefined
+        const shareCounts = this.terms.shareCounts(this.state)
+        return shareCounts.length === 1 &&
+            !this.terms.contributions(this.state, pending.playerId).length
+            ? { shareCount: shareCounts[0], privateIds: [] }
+            : undefined
     }
 
     formationReason(playerId: string, companyId: string, choice: CompanyFormationChoice) {

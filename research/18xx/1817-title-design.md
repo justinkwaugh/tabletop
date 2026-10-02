@@ -473,7 +473,7 @@ that leaves the treasury unable to buy its stations is refused.
 | Market pool      | Unlimited; sales go to the market at the current price, with no movement                                                                               |
 | Holding limits   | 100% for a 2-share company, 60% otherwise                                                                                                              |
 | Over a limit     | The player may only sell (family behaviour)                                                                                                            |
-| End of round     | Each company moves down one space per share in the market pool. Then a company with more than two shares, whose players hold all of them, moves up one |
+| End of round     | A company with more than two shares, whose players hold all of them, moves up one. Then each company moves down one space per share in the market pool |
 | Next round       | Priority goes to the player after the last to act                                                                                                      |
 
 **Survey of the end-of-round market drop.** The reference's `POOL_SHARE_DROP` is set
@@ -487,7 +487,7 @@ in 10 titles:
 Every other title drops nothing at the end of the round.
 
 **Decision.** `StockRoundRules` gains an optional `poolDrop(state, companyId)`. It
-returns the number of down moves at round end, applied before the sold-out check.
+returns the number of down moves at round end, applied after the sold-out move.
 TOP, 1889 and 1830 do not set it.
 
 The Short Squeeze option's second move belongs to slice 4.
@@ -501,7 +501,8 @@ Slice 1 configures the existing family hooks, so that companies can operate:
     - two lays a turn, of which at most one is an upgrade;
     - the second lay costs $20 and may not be on the hex of the first;
     - terrain from the map;
-    - permissive usefulness, like 1830.
+    - semi-restrictive usefulness, like 1889: a lay must add track or raise a city's
+      revenue.
 - **Stations:** one placement per turn, at no cost.
 - **Dividends:** pay, half or withhold.
     - Half pay retains half the revenue, rounded down to a multiple of the share
@@ -517,6 +518,42 @@ The turn's earlier lays are already in `trackStep.lays`, each with its hex and t
 colour, as TOP's two-lay allowance uses them. In 1817 every upgrade is green or
 later and every new lay is yellow, so `allowance` tells upgrades apart by colour.
 `restriction` refuses a second lay on the first lay's hex. No hook changes.
+
+### Implementation notes for slice 1
+
+Decisions made while implementing, beyond the design above:
+
+- **The company auction has no machine state of its own.** It is the optional family
+  field `companyAuction`, held by the stock round. While it stands, the stock round
+  accepts only `BidForCompany`, `PassCompanyAuction` and `FormCompany`, and makes the
+  current bidder or the winner the active player. Every stock-round wrapper keeps
+  working, and the opener's turn ends as soon as the company is formed.
+- **The selection auction is one machine state,** `SelectionAuction`, with the
+  optional family field `selectionAuction` and the actions `NominateLot`, `BidForLot`,
+  `PassSelectionAuction` and the system `ResolveSelectionAuction`. As in the
+  reference, players who have passed are skipped until a lot is sold. The player who
+  would nominate next has priority in the first stock round. The `nominationLots`
+  hook waits for Volatility (slice 9).
+- **The formation choices come from the rules.** `CompanyAuctionRules` names the
+  share counts allowed now (`shareCounts`) and the privates the winner may contribute
+  (`contributions`). The family applies the formation without a decision when there
+  is one size and nothing to contribute.
+- **Seed money is optional state.** Prepared positions after the opening have none.
+- **Standing stock instructions wait** while another player decides during the turn,
+  such as bidding for a company.
+- **A 2-share company is paid as one dividend unit.** Its single certificate takes
+  the whole distribution, so half pay is exact, as in the reference.
+- **New York's gray tile joins its two cities.** 1817's `preservesStops` accepts the
+  NY-labelled upgrade from two cities to one.
+- **Lakes are their own terrain kind,** apart from rivers, which the bridge privates
+  will discount in slice 7. The map draws them with their own symbol.
+- **Board.** The one-row market runs below the map, at TOP's market scale, and the
+  depot sits in the map's empty lower-right corner. A playground test keeps both clear
+  of every hex.
+- **Shared presentation.** A token's label takes a contrasting colour, and four-letter
+  labels shrink to fit.
+- **Playground.** The example host validates saved games with the title's canonical
+  schema rather than the family's, so title fields such as seed money load.
 
 ### Intentional limits after slice 1
 
@@ -534,8 +571,11 @@ later and every new lay is yellow, so `allowance` tells upgrades apart by colour
   operating (slices 5 and 6).
 - **Privates have no powers** (slice 7). Players keep any private they do not
   contribute.
-- **No title UI.** The shared table shows the company auction through prototype
-  panels; the board layout and title prompts come in slice 10.
+- **No title UI.** The shared table shows both auctions through its generic panels;
+  title prompts and presentation come in slice 10.
+- **Playground positions.** The shared positions that 1817 cannot yet reach, such as
+  bankruptcy, private purchases and negotiated purchases, open on the generic
+  1817 company fixture.
 
 ### Acceptance examples
 

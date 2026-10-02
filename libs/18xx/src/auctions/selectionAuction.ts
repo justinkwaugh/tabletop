@@ -52,6 +52,9 @@ export class SelectionAuctionModel {
         assertExists(this.state.selectionAuction, 'The selection auction is missing')
         return this.state.selectionAuction
     }
+    get lots(): readonly AuctionLot[] {
+        return this.rules.lots(this.state)
+    }
     get playerId(): string | undefined {
         const bidding = this.auction.bidding
         return bidding

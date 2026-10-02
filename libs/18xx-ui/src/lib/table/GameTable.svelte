@@ -351,7 +351,9 @@
     const offeredCityLocationIds = $derived(
         session.stations.homeLocationIds.length
             ? session.stations.homeLocationIds
-            : session.stations.privateStationLocationIds
+            : session.companyAuction.homeLocationIds.length
+              ? session.companyAuction.homeLocationIds
+              : session.stations.privateStationLocationIds
     )
     const choosingCity = $derived(offeredCityLocationIds.length > 0)
     const maskPlacementLocations = $derived(

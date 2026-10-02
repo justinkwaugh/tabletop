@@ -87,6 +87,8 @@ export class StockModule implements LocalSelection {
             choice.prices.some((price) => price.result.details)
         )
         if (start) choices.push({ menu: 'start', buyer: start.request.buyer })
+        if (this.trading && this.session.validActionTypes.includes('AuctionCompany'))
+            choices.push({ menu: 'auction' })
         if (this.exchangeAvailable()) choices.push({ menu: 'exchange' })
         if (this.privateChoices.length) choices.push({ menu: 'privates' })
         return choices
@@ -117,7 +119,13 @@ export class StockModule implements LocalSelection {
             (company) => !company.started && !company.closed && company.shareCount
         )
     }
-    canStartCompanies = $derived.by(() => this.trading && this.unstartedCompanies().length > 0)
+    private auctionsCompanies = $derived.by(() => !!this.session.rules.stockRules.companyAuction)
+    canStartCompanies = $derived.by(
+        () => this.trading && !this.auctionsCompanies && this.unstartedCompanies().length > 0
+    )
+    canAuctionCompanies = $derived.by(
+        () => this.trading && this.auctionsCompanies && this.unstartedCompanies().length > 0
+    )
 
     startChoices = $derived.by(() => {
         const { state, rules, playerId } = this.session

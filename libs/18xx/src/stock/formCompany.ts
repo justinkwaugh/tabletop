@@ -59,11 +59,9 @@ export class HydratedFormCompany
         const model = new CompanyAuctionModel(state, this.#rules)
         if (model.formationReason(this.playerId, this.companyId, this)) return false
         if (this.source === ActionSource.User) return true
-        const pending = model.pendingFormation()
         return (
             this.source === ActionSource.System &&
-            !!pending &&
-            Value.Equal(model.terms.automaticFormation?.(state, pending), {
+            Value.Equal(model.automaticFormation(), {
                 shareCount: this.shareCount,
                 privateIds: this.privateIds
             })

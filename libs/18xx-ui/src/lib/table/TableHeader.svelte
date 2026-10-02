@@ -52,7 +52,8 @@
     const auction = $derived(
         Boolean(
             (gameState.openingAuction && !gameState.openingAuction.completed) ||
-            (gameState.offerAuction && !gameState.offerAuction.completed)
+            (gameState.offerAuction && !gameState.offerAuction.completed) ||
+            (gameState.selectionAuction && !gameState.selectionAuction.completed)
         )
     )
     const companyId = $derived(

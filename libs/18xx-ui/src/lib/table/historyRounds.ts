@@ -8,6 +8,7 @@ import {
     isFloatCompany,
     isEndGame,
     isResolveAuction,
+    isResolveSelectionAuction,
     isStartOperatingRound,
     isSetStockInstruction,
     isStopStockInstruction,
@@ -31,6 +32,12 @@ export type HistoryRound = {
     entries: ActionHistoryEntry[]
 }
 
+const AuctionCompletionPaths = [
+    '/offerAuction/completed',
+    '/openingAuction/completed',
+    '/selectionAuction/completed'
+]
+
 function changedCompanyCashOf(cash: HistoryCash | undefined): boolean {
     return cash !== undefined && changedCompanyCash(cash)
 }
@@ -53,7 +60,8 @@ export function historyRounds(
     let round = state.operatingSet?.roundNumber ?? 1
     let auction = !!(
         (state.offerAuction && !state.offerAuction.completed) ||
-        (state.openingAuction && !state.openingAuction.completed)
+        (state.openingAuction && !state.openingAuction.completed) ||
+        (state.selectionAuction && !state.selectionAuction.completed)
     )
     const rounds: HistoryRound[] = []
     for (const action of actions.toReversed()) {
@@ -102,7 +110,8 @@ export function historyRounds(
                           (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
                       )) ||
                   isEndGame(action) ||
-                  (isResolveAuction(action) && !state.offerAuction)
+                  (isResolveAuction(action) && !state.offerAuction) ||
+                  isResolveSelectionAuction(action)
                       ? { kind: 'action' as const, id: action.id, action }
                       : undefined))
         if (entry) section.entries.push(entry)
@@ -122,11 +131,7 @@ export function historyRounds(
                 round = patch.value.roundNumber
             } else if (patch.path === '/operatingSet/number') set = patch.value
             else if (patch.path === '/operatingSet/roundNumber') round = patch.value
-            else if (
-                patch.path === '/offerAuction/completed' ||
-                patch.path === '/openingAuction/completed'
-            )
-                auction = !patch.value
+            else if (AuctionCompletionPaths.includes(patch.path)) auction = !patch.value
         }
     }
     return rounds.filter(

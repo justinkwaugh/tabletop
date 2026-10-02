@@ -124,6 +124,12 @@ determine company priority.
 The process that establishes a company under the title's rules, including its
 initial ownership and any required starting price or rights.
 
+**Company Auction**:
+A Company Formation by bidding during a Stock Turn: the opener names an unstarted
+company, its home and an opening bid, players raise or withdraw in seat order, and the
+last bidder forms the company under the title's settlement terms.
+_Avoid_: par auction
+
 **Capitalization**:
 The rules and payments through which a company receives its capital.
 
@@ -204,6 +210,15 @@ availability rules.
 **Route**:
 The connected sequence of track traversed by a train during a run, including its
 visits to revenue centers.
+
+**Selection Auction**:
+An opening in which players in turn nominate any remaining lot with an opening bid or
+pass; bidding on the nominated lot runs in seat order until one bidder remains, and
+once every player has passed in succession the unsold lots close.
+
+**Seed Money**:
+A bank subsidy that lowers a lot's opening bid below its face value and pays the
+difference when the lot sells, until the subsidy is spent.
 
 **Operating Result**:
 The itemized revenue earned by a company's submitted train runs in an operating turn.

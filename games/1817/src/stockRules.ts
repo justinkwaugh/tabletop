@@ -70,8 +70,8 @@ function privateValueSubsets(privateIds: readonly string[]): number[] {
 }
 
 function formationReason(state: CompanyAuctionState, formation: CompanyFormation) {
-    const sizes = EighteenSeventeenCompanySizes[state.phaseId] ?? []
-    if (!sizes.includes(formation.shareCount)) return 'This size is not available in this phase.'
+    if (!EighteenSeventeenCompanyAuction.shareCounts(state).includes(formation.shareCount))
+        return 'This size is not available in this phase.'
     const owned = playerPrivateIds(state, formation.playerId)
     if (!formation.privateIds.every((id) => owned.includes(id)))
         return 'Only the winner’s own privates can be contributed.'
@@ -157,12 +157,9 @@ export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
             .reduce((best, space) => (space.price > best.price ? space : best))
         return space.id
     },
+    shareCounts: (state) => EighteenSeventeenCompanySizes[state.phaseId] ?? [],
+    contributions: playerPrivateIds,
     formationReason,
-    automaticFormation(state, pending) {
-        const sizes = EighteenSeventeenCompanySizes[state.phaseId] ?? []
-        if (sizes.length !== 1 || playerPrivateIds(state, pending.playerId).length) return undefined
-        return { shareCount: sizes[0], privateIds: [] }
-    },
     form
 }
 

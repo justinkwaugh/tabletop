@@ -40,6 +40,14 @@ import {
     isBuyAuctionLot,
     isPassAuction,
     isResolveAuction,
+    isNominateLot,
+    isBidForLot,
+    isPassSelectionAuction,
+    isResolveSelectionAuction,
+    isAuctionCompany,
+    isBidForCompany,
+    isPassCompanyAuction,
+    isFormCompany,
     stockMarketSpace,
     type Owner,
     type PresidencyChange,
@@ -328,6 +336,59 @@ export function historyDescription(
             routine: !awards.length
         }
     }
+    if (isNominateLot(action))
+        return { text: `Auctioned ${companyName(action.lotId)}`, value: money(action.amount) }
+    if (isBidForLot(action))
+        return { text: `Bid on ${companyName(action.lotId)}`, value: money(action.amount) }
+    if (isPassSelectionAuction(action) || isPassCompanyAuction(action)) return { text: 'Passed' }
+    if (isResolveSelectionAuction(action)) {
+        const awards = (action.undoPatch ?? []).flatMap((patch) => {
+            const match = /^\/selectionAuction\/awards\/(\d+)$/.exec(patch.path)
+            const award =
+                match && patch.op === 'remove'
+                    ? state.selectionAuction?.awards[Number(match[1])]
+                    : undefined
+            return award ? [award] : []
+        })
+        const closed = awards.length ? [] : (state.selectionAuction?.closedLotIds ?? [])
+        return {
+            text: awards.length
+                ? 'Auction awarded'
+                : closed.length
+                  ? 'Unsold privates closed'
+                  : 'Auction ended',
+            detail:
+                [
+                    ...awards.map(
+                        (award) =>
+                            `${playerName(award.playerId)} won ${companyName(award.lotId)} for ${money(award.price)}`
+                    ),
+                    ...closed.map((id) => `${companyName(id)} closed`)
+                ].join(' · ') || undefined,
+            important: true
+        }
+    }
+    if (isAuctionCompany(action))
+        return {
+            text: `Auctioned ${companyName(action.companyId)} at ${action.home.locationId}`,
+            value: money(action.amount),
+            important: true
+        }
+    if (isBidForCompany(action))
+        return { text: `Bid on ${companyName(action.companyId)}`, value: money(action.amount) }
+    if (isFormCompany(action))
+        return {
+            text: `Formed ${companyName(action.companyId)} with ${action.shareCount} shares`,
+            value: action.metadata ? money(action.metadata.price) : undefined,
+            detail:
+                [
+                    action.metadata ? `Starts at ${money(action.metadata.parPrice)}` : '',
+                    ...action.privateIds.map((id) => `${companyName(id)} contributed`)
+                ]
+                    .filter(Boolean)
+                    .join(' · ') || undefined,
+            important: true
+        }
     if (isFloatCompany(action)) {
         assertExists(action.metadata, 'Recorded flotation requires its capital payments')
         const capital = action.metadata.payments
@@ -367,7 +428,11 @@ export function historyDescription(
             (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
         )
         return {
-            text: 'Sold out',
+            text: moves.every(
+                (move) => marketPrice(move.toMarketSpaceId) >= marketPrice(move.fromMarketSpaceId)
+            )
+                ? 'Sold out'
+                : 'Share prices adjusted',
             detail: moves
                 .map(
                     (move) =>

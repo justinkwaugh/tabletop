@@ -65,6 +65,7 @@
         OfferBidding: 'Auction bidding',
         WaterfallAuction: 'Private auction',
         AuctionBidding: 'Auction bidding',
+        SelectionAuction: 'Private auction',
         LayingTrack: 'Track construction',
         PlacingStation: 'Station placement',
         RunningTrains: 'Train operations',

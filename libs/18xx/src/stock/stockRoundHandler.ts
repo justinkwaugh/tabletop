@@ -226,7 +226,7 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
         const playerId = model.playerId
         if (playerId) state.activePlayerIds = [playerId]
         const pending = model.pendingFormation()
-        const choice = pending && model.terms.automaticFormation?.(state, pending)
+        const choice = model.automaticFormation()
         if (pending && choice)
             context.addSystemAction(FormCompany, {
                 playerId: pending.playerId,
