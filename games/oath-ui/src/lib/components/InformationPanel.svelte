@@ -47,7 +47,14 @@
         void gameSession.undo()
     }
 
-    let phase = $derived(PHASE_NAMES[gameState.machineState])
+    // R-3.3 — between rounds the clock is the Chancellor's roll, not a turn.
+    let endOfRound = $derived(gameState.machineState === MachineState.EndOfRound)
+    let turnWord = $derived(endOfRound ? 'roll' : 'turn')
+    let phase = $derived(
+        endOfRound
+            ? `${PHASE_NAMES[gameState.machineState]} ${gameState.round}`
+            : PHASE_NAMES[gameState.machineState]
+    )
     let activePlayerId = $derived(gameState.activePlayerIds[0])
     let heldTurn = $derived(heldTurnOf(gameState))
 
@@ -72,9 +79,9 @@
             <span class="text-base font-semibold">
                 <!-- `PlayerName` prints "You" for the viewer. -->
                 {#if activePlayerId === gameSession.myPlayer?.id}
-                    Your turn
+                    Your {turnWord}
                 {:else}
-                    <PlayerName playerId={activePlayerId} />'s turn
+                    <PlayerName playerId={activePlayerId} />'s {turnWord}
                 {/if}
             </span>
         {/if}

@@ -5,6 +5,7 @@ import {
     CampaignSacrifice,
     CampaignTargetKind,
     Campaign,
+    EndActPhase,
     IMPERIAL_WARBANDS,
     LetPeek,
     LetPeekSubjectKind,
@@ -68,6 +69,7 @@ export type TableName =
     | 'visionBacks'
     | 'restBanks'
     | 'restTurnFlow'
+    | 'endOfRound'
     | 'goalsRail'
     | 'goalsRailThePeople'
     | 'goalsRailProtection'
@@ -236,6 +238,41 @@ function restTurnFlowTable(): PlayedTable {
     state.activePlayerIds = ['me']
     state.vault = testVaultWithRelics({})
     return tableOf(state)
+}
+
+/** R-3.3, R-3.3-H1: the last seat of round six ends its Act Phase while the Chancellor holds the title. */
+function endOfRoundTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            }),
+            testPlayer({ playerId: 'dev', color: Color.Yellow, siteId: 'c2' })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'ann',
+            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } },
+            round: 6,
+            oathRevision: OathRevision.TurnFlow
+        }
+    )
+    state.turnManager.turnOrder = ['ann', 'dev']
+    openTurn(state, 'dev')
+    state.activePlayerIds = ['dev']
+    state.vault = testVaultWithRelics({})
+    return played(tableOf(state), [
+        createAction(EndActPhase, {
+            gameId: state.gameId,
+            source: ActionSource.User,
+            playerId: 'dev'
+        })
+    ])
 }
 
 /** R-3: every live goal at once: a tied Oath held by the Chancellor, a revealed Vision, a Citizen. */
@@ -831,6 +868,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
     restTurnFlow: restTurnFlowTable,
+    endOfRound: endOfRoundTable,
     goalsRail: () => goalsRailTable(),
     goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),
     goalsRailProtection: () => goalsRailTable(OathType.Protection),

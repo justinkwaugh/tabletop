@@ -130,11 +130,13 @@ function endDieEvent(
     const threshold = round === undefined ? undefined : endDieThreshold(round)
     const passes = threshold === 6 ? 'a 6' : `a ${threshold} or higher`
     const where = round === undefined ? '' : ` in round ${round}`
-    const consequence = wonBy
-        ? 'The game ends'
-        : threshold === undefined || round === undefined
-          ? undefined
-          : `${passes} ends the game${where} · play goes on to round ${round + 1}`
+    const follows = wonBy ? 'the game ends' : `play goes on to round ${(round ?? 0) + 1}`
+    const consequence =
+        threshold === undefined || round === undefined
+            ? wonBy
+                ? 'The game ends'
+                : undefined
+            : `${passes} ends the game${where} · ${follows}`
     return {
         kind: MajorEventKind.EndDie,
         heading: 'End die',
@@ -325,12 +327,14 @@ export function gameEndEvent(
         VISION_ENDINGS.has(rule) && revealedVisionId
             ? { kind: 'card', cardId: revealedVisionId }
             : { kind: 'title', usurper: USURPER_ENDINGS.has(rule) }
+    const [how, why] = ENDINGS[rule].split(' — ')
     return {
         kind: MajorEventKind.GameEnd,
         heading: 'Game end',
         aside: `round ${round}`,
         tone: 'heading',
         pictures: [picture],
-        sentence: `${capitalized(seat(winnerId, context))} won ${ENDINGS[rule]}`
+        sentence: `${capitalized(seat(winnerId, context))} won ${how}`,
+        consequence: why ? capitalized(why) : undefined
     }
 }

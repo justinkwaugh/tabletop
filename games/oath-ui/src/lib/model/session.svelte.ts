@@ -39,6 +39,8 @@ import {
     ResolveCitizenshipOffer,
     ResolveOathkeeper,
     ResolveWake,
+    RollEndDie,
+    HydratedRollEndDie,
     Search,
     SearchPlay,
     shroudedWoodChooser,
@@ -291,6 +293,16 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
 
     async completeRest(): Promise<void> {
         await this.commit(this.createPlayerAction(CompleteRest, { type: ActionType.CompleteRest }))
+    }
+
+    /** R-3.3 — the Chancellor's roll between rounds; it draws on the protected stream, so it is final. */
+    async rollEndDie(): Promise<void> {
+        const playerId = this.myPlayer?.id
+        assert(
+            playerId !== undefined && HydratedRollEndDie.canDoRollEndDie(this.gameState, playerId),
+            'Only the Chancellor rolls the end die, between rounds'
+        )
+        await this.commit(this.createPlayerAction(RollEndDie, { type: ActionType.RollEndDie }))
     }
 
     async useRestPower(cardId: string, powerIndex: number, choices: PowerChoice[]): Promise<void> {

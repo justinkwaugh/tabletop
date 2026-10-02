@@ -96,6 +96,8 @@ describe('the other major events', () => {
     it('the end die, by the Chancellor’s roll or inside a Rest recorded before', () => {
         const roll = action({ type: ActionType.RollEndDie, playerId: 'p1', metadata: { roll: 3, round: 6, threshold: 5 } })
         expect(majorEventOf(roll, context())).toMatchObject({ kind: MajorEventKind.EndDie, tone: 'danger', aside: 'end of round 6', pictures: [{ kind: 'die', value: 3 }], consequence: 'a 5 or higher ends the game in round 6 · play goes on to round 7' })
+        const ending = action({ type: ActionType.RollEndDie, playerId: 'p1', metadata: { roll: 5, round: 6, threshold: 5, wonBy: 'R-3.3' } })
+        expect(majorEventOf(ending, context())?.consequence).toBe('a 5 or higher ends the game in round 6 · the game ends')
         const fifth = action({ type: ActionType.RollEndDie, playerId: 'p1', metadata: { roll: 2, round: 5, threshold: 6 } })
         expect(majorEventOf(fifth, context())?.consequence).toBe('a 6 ends the game in round 5 · play goes on to round 6')
         const legacy = action({ type: ActionType.CompleteRest, playerId: 'p2', metadata: { endedRound: true, endDieRoll: 4, round: 8 } })
@@ -120,7 +122,8 @@ describe('the History’s rows and its game-end row', () => {
         expect(endingRule(ending)).toBe('R-3.3')
         const usurper = gameEndEvent('p3', 'R-3.1', 7, undefined, context('p1'))
         expect(usurper).toMatchObject({ heading: 'Game end', aside: 'round 7', pictures: [{ kind: 'title', usurper: true }] })
-        expect(usurper.sentence).toMatch(/^Cass won as Usurper/)
+        expect(usurper.sentence).toBe('Cass won as Usurper')
+        expect(usurper.consequence).toBe('An Exile holding the Oathkeeper title on its Usurper side')
         expect(gameEndEvent('p3', 'R-3.2', 7, VISION, context('p3')).sentence).toMatch(/^You won as Visionary/)
         expect(gameEndEvent('p3', 'R-3.2', 7, VISION, context()).pictures).toEqual([{ kind: 'card', cardId: VISION }])
     })
