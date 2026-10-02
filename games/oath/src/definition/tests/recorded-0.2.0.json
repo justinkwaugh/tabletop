@@ -1,0 +1,2390 @@
+{
+  "logic": "0.2.0",
+  "players": ["p1", "p2"],
+  "config": {"setupVariant": "randomized"},
+  "segments": [
+    {
+      "name": "setup, then the Chancellor searches, travels and peeks",
+      "initial": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 27},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 315
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 2,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 3},
+            "warbandsInPersonalBank": {"imperial": 19},
+            "relicIds": ["relic.grand-scepter"],
+            "advisers": [],
+            "adviserIds": [],
+            "adviserLimit": 3,
+            "handIds": ["denizen.arcane.blood-pact", "denizen.discord.bandit-chief", "denizen.order.outriders"],
+            "handCount": 3,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "relicIds": [],
+            "advisers": [],
+            "adviserIds": [],
+            "adviserLimit": 3,
+            "handIds": ["denizen.nomad.ancient-pact", "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"],
+            "handCount": 3,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "Setup",
+        "turnManager": {
+          "series": [],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 0, "p2": 0}
+        },
+        "vault": {
+          "worldDeck": ["denizen.beast.forest-council", "vision.conquest", "denizen.nomad.great-herd", "denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "vision.conspiracy", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.animal-host"],
+            "hinterland": ["denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.1": "site.drowned-city",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron"
+          },
+          "relicDeck": ["relic.obsidian-cage", "relic.cup-of-plenty", "relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 1,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant"
+        },
+        "denizensBySite": {},
+        "cardTokens": {},
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"imperial": 2}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 14,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 0,
+        "worldDeckDrawn": 0,
+        "worldDeckVisions": 5,
+        "discardPileCounts": {"cradle": 1, "provinces": 1, "hinterland": 1},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p1",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen"
+      },
+      "actions": [
+        {
+          "id": "a-0",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "setupChoice",
+          "playerId": "p1",
+          "siteId": "slot.cradle.0",
+          "adviserCardId": "denizen.arcane.blood-pact",
+          "discardOrder": ["denizen.discord.bandit-chief", "denizen.order.outriders"],
+          "index": 0
+        },
+        {
+          "id": "a-1",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "setupChoice",
+          "playerId": "p2",
+          "siteId": "slot.provinces.0",
+          "adviserCardId": "denizen.nomad.ancient-pact",
+          "discardOrder": ["denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"],
+          "index": 1
+        },
+        {
+          "id": "a-3",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "search",
+          "playerId": "p1",
+          "drawFrom": "worldDeck",
+          "revealsInfo": true,
+          "index": 3
+        },
+        {
+          "id": "a-4",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "searchResolve",
+          "playerId": "p1",
+          "keptCardId": "denizen.beast.forest-council",
+          "discardOrder": ["vision.conquest"],
+          "play": "discard",
+          "index": 4
+        },
+        {
+          "id": "a-5",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "travel",
+          "playerId": "p1",
+          "siteId": "slot.provinces.1",
+          "index": 5
+        },
+        {
+          "id": "a-6",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "peek",
+          "playerId": "p1",
+          "target": {"kind": "siteRelic", "slotId": "slot.provinces.1.relic.0"},
+          "index": 6
+        }
+      ],
+      "processed": ["setupChoice/user", "setupChoice/user", "resolveWake/system", "search/user", "searchResolve/user", "travel/user", "peek/user"],
+      "expected": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 62},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 315
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p1"],
+        "winningPlayerIds": [],
+        "actionCount": 7,
+        "actionChecksum": -359305293,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 3,
+            "supplySpentThisTurn": 4,
+            "supplyAtTurnStart": 7,
+            "favor": 2,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 3},
+            "warbandsInPersonalBank": {"imperial": 19},
+            "siteId": "slot.provinces.1",
+            "relicIds": ["relic.grand-scepter"],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.arcane.blood-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3", "slot.provinces.1.relic.0"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask",
+              "slot.provinces.1.relic.0": "relic.obsidian-cage"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [null, "denizen.discord.bandit-chief", "denizen.order.outriders", "vision.conquest", "denizen.beast.forest-council"],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "siteId": "slot.provinces.0",
+            "relicIds": [],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.nomad.ancient-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": [null, "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"]
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "ActPhase",
+        "turnManager": {
+          "series": [
+            {"type": "turn", "playerId": "p1", "start": 2}
+          ],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 0, "p2": 0}
+        },
+        "vault": {
+          "worldDeck": ["denizen.nomad.great-herd", "denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "vision.conspiracy", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.forest-council", "vision.conquest", "denizen.order.outriders", "denizen.discord.bandit-chief", "denizen.beast.animal-host"],
+            "hinterland": ["denizen.arcane.plague-engines", "denizen.arcane.billowing-fog", "denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron",
+            "slot.provinces.1.relic.0": "relic.obsidian-cage",
+            "slot.provinces.1.relic.1": "relic.cup-of-plenty"
+          },
+          "relicDeck": ["relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 1,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant",
+          "slot.provinces.1": "site.drowned-city"
+        },
+        "denizensBySite": {},
+        "cardTokens": {
+          "site.drowned-city": {"favor": 0, "secrets": 3}
+        },
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ],
+          "slot.provinces.1": [
+            {"slotId": "slot.provinces.1.relic.0"},
+            {"slotId": "slot.provinces.1.relic.1"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"imperial": 2}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 14,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 1,
+        "worldDeckDrawn": 2,
+        "worldDeckVisions": 4,
+        "discardPileCounts": {"cradle": 1, "provinces": 5, "hinterland": 3},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p1",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen"
+      }
+    },
+    {
+      "name": "the Chancellor recovers a relic, campaigns against the bandits and rests; the Exile’s turn",
+      "initial": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 62},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 315
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p1"],
+        "winningPlayerIds": [],
+        "actionCount": 7,
+        "actionChecksum": -359305293,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 3,
+            "supplySpentThisTurn": 4,
+            "supplyAtTurnStart": 7,
+            "favor": 2,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 3},
+            "warbandsInPersonalBank": {"imperial": 19},
+            "siteId": "slot.provinces.1",
+            "relicIds": ["relic.grand-scepter"],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.arcane.blood-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3", "slot.provinces.1.relic.0"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask",
+              "slot.provinces.1.relic.0": "relic.obsidian-cage"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [null, "denizen.discord.bandit-chief", "denizen.order.outriders", "vision.conquest", "denizen.beast.forest-council"],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "siteId": "slot.provinces.0",
+            "relicIds": [],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.nomad.ancient-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": [null, "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"]
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "ActPhase",
+        "turnManager": {
+          "series": [
+            {"type": "turn", "playerId": "p1", "start": 2}
+          ],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 0, "p2": 0}
+        },
+        "vault": {
+          "worldDeck": ["denizen.nomad.great-herd", "denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "vision.conspiracy", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.forest-council", "vision.conquest", "denizen.order.outriders", "denizen.discord.bandit-chief", "denizen.beast.animal-host"],
+            "hinterland": ["denizen.arcane.plague-engines", "denizen.arcane.billowing-fog", "denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron",
+            "slot.provinces.1.relic.0": "relic.obsidian-cage",
+            "slot.provinces.1.relic.1": "relic.cup-of-plenty"
+          },
+          "relicDeck": ["relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 1,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant",
+          "slot.provinces.1": "site.drowned-city"
+        },
+        "denizensBySite": {},
+        "cardTokens": {
+          "site.drowned-city": {"favor": 0, "secrets": 3}
+        },
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ],
+          "slot.provinces.1": [
+            {"slotId": "slot.provinces.1.relic.0"},
+            {"slotId": "slot.provinces.1.relic.1"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"imperial": 2}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 14,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 1,
+        "worldDeckDrawn": 2,
+        "worldDeckVisions": 4,
+        "discardPileCounts": {"cradle": 1, "provinces": 5, "hinterland": 3},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p1",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen"
+      },
+      "actions": [
+        {
+          "id": "a-7",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "recover",
+          "playerId": "p1",
+          "target": {"kind": "relic", "slotId": "slot.provinces.1.relic.1"},
+          "index": 7
+        },
+        {
+          "id": "a-8",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "campaign",
+          "playerId": "p1",
+          "defender": {"kind": "bandits"},
+          "targets": [
+            {"kind": "site", "siteId": "slot.provinces.1"}
+          ],
+          "attackDice": 3,
+          "index": 8
+        },
+        {
+          "id": "a-9",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "campaignSacrifice",
+          "playerId": "p1",
+          "sacrifice": 0,
+          "defeatKills": [],
+          "index": 9
+        },
+        {
+          "id": "a-10",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "campaignResolveVictory",
+          "playerId": "p1",
+          "placements": [
+            {"siteId": "slot.provinces.1", "owner": "imperial", "count": 1}
+          ],
+          "burnFavor": false,
+          "index": 10
+        },
+        {
+          "id": "a-11",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "endActPhase",
+          "playerId": "p1",
+          "index": 11
+        },
+        {
+          "id": "a-12",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "completeRest",
+          "playerId": "p1",
+          "index": 12
+        },
+        {
+          "id": "a-14",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "endActPhase",
+          "playerId": "p2",
+          "index": 14
+        },
+        {
+          "id": "a-15",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "completeRest",
+          "playerId": "p2",
+          "index": 15
+        }
+      ],
+      "processed": ["recover/user", "campaign/user", "campaignSacrifice/user", "campaignResolveVictory/user", "endActPhase/user", "completeRest/user", "resolveWake/system", "endActPhase/user", "completeRest/user"],
+      "expected": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 97},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 319
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p1"],
+        "winningPlayerIds": [],
+        "actionCount": 16,
+        "actionChecksum": -2006947999,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 6,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 6,
+            "favor": 0,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 1},
+            "warbandsInPersonalBank": {"imperial": 20},
+            "siteId": "slot.provinces.1",
+            "relicIds": ["relic.grand-scepter", "relic.cup-of-plenty"],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.arcane.blood-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3", "slot.provinces.1.relic.0"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask",
+              "slot.provinces.1.relic.0": "relic.obsidian-cage"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [null, "denizen.discord.bandit-chief", "denizen.order.outriders", "vision.conquest", "denizen.beast.forest-council"],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "siteId": "slot.provinces.0",
+            "relicIds": [],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.nomad.ancient-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": [null, "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"]
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "WakePhase",
+        "turnManager": {
+          "series": [
+            {"type": "turn", "playerId": "p1", "start": 2, "end": 13},
+            {"type": "turn", "playerId": "p2", "start": 13, "end": 16},
+            {"type": "turn", "playerId": "p1", "start": 16}
+          ],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 1, "p2": 1}
+        },
+        "vault": {
+          "worldDeck": ["denizen.nomad.great-herd", "denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "vision.conspiracy", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.forest-council", "vision.conquest", "denizen.order.outriders", "denizen.discord.bandit-chief", "denizen.beast.animal-host"],
+            "hinterland": ["denizen.arcane.plague-engines", "denizen.arcane.billowing-fog", "denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron",
+            "slot.provinces.1.relic.0": "relic.obsidian-cage"
+          },
+          "relicDeck": ["relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 2,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant",
+          "slot.provinces.1": "site.drowned-city"
+        },
+        "denizensBySite": {},
+        "cardTokens": {
+          "site.drowned-city": {"favor": 0, "secrets": 3}
+        },
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ],
+          "slot.provinces.1": [
+            {"slotId": "slot.provinces.1.relic.0"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"imperial": 2},
+          "slot.provinces.1": {"imperial": 1}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 16,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 1,
+        "worldDeckDrawn": 2,
+        "worldDeckVisions": 4,
+        "discardPileCounts": {"cradle": 1, "provinces": 5, "hinterland": 3},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p1",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen",
+        "restResolvedForTurnStart": 13
+      }
+    },
+    {
+      "name": "round six closes with the Chancellor holding the title: the Rest rolls the end die",
+      "initial": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 97},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 319
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p2"],
+        "winningPlayerIds": [],
+        "actionCount": 14,
+        "actionChecksum": -1048601305,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 6,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 6,
+            "favor": 0,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 1},
+            "warbandsInPersonalBank": {"imperial": 20},
+            "siteId": "slot.provinces.1",
+            "relicIds": ["relic.grand-scepter", "relic.cup-of-plenty"],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.arcane.blood-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3", "slot.provinces.1.relic.0"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask",
+              "slot.provinces.1.relic.0": "relic.obsidian-cage"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [null, "denizen.discord.bandit-chief", "denizen.order.outriders", "vision.conquest", "denizen.beast.forest-council"],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "siteId": "slot.provinces.0",
+            "relicIds": [],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.nomad.ancient-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": [null, "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"]
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "ActPhase",
+        "turnManager": {
+          "series": [
+            {"type": "turn", "playerId": "p1", "start": 2, "end": 13},
+            {"type": "turn", "playerId": "p2", "start": 13}
+          ],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 1, "p2": 0}
+        },
+        "vault": {
+          "worldDeck": ["denizen.nomad.great-herd", "denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "vision.conspiracy", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.forest-council", "vision.conquest", "denizen.order.outriders", "denizen.discord.bandit-chief", "denizen.beast.animal-host"],
+            "hinterland": ["denizen.arcane.plague-engines", "denizen.arcane.billowing-fog", "denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron",
+            "slot.provinces.1.relic.0": "relic.obsidian-cage"
+          },
+          "relicDeck": ["relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 6,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant",
+          "slot.provinces.1": "site.drowned-city"
+        },
+        "denizensBySite": {},
+        "cardTokens": {
+          "site.drowned-city": {"favor": 0, "secrets": 3}
+        },
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ],
+          "slot.provinces.1": [
+            {"slotId": "slot.provinces.1.relic.0"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"imperial": 2},
+          "slot.provinces.1": {"imperial": 1}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 16,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 1,
+        "worldDeckDrawn": 2,
+        "worldDeckVisions": 4,
+        "discardPileCounts": {"cradle": 1, "provinces": 5, "hinterland": 3},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p1",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen",
+        "restResolvedForTurnStart": 2
+      },
+      "actions": [
+        {
+          "id": "a-14",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "endActPhase",
+          "playerId": "p2",
+          "index": 14
+        },
+        {
+          "id": "a-15",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "completeRest",
+          "playerId": "p2",
+          "index": 15
+        }
+      ],
+      "processed": ["endActPhase/user", "completeRest/user"],
+      "expected": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 97},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 320
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p1"],
+        "winningPlayerIds": [],
+        "actionCount": 16,
+        "actionChecksum": -2006947999,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 6,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 6,
+            "favor": 0,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 1},
+            "warbandsInPersonalBank": {"imperial": 20},
+            "siteId": "slot.provinces.1",
+            "relicIds": ["relic.grand-scepter", "relic.cup-of-plenty"],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.arcane.blood-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3", "slot.provinces.1.relic.0"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask",
+              "slot.provinces.1.relic.0": "relic.obsidian-cage"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [null, "denizen.discord.bandit-chief", "denizen.order.outriders", "vision.conquest", "denizen.beast.forest-council"],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "siteId": "slot.provinces.0",
+            "relicIds": [],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.nomad.ancient-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": [null, "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"]
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "WakePhase",
+        "turnManager": {
+          "series": [
+            {"type": "turn", "playerId": "p1", "start": 2, "end": 13},
+            {"type": "turn", "playerId": "p2", "start": 13, "end": 16},
+            {"type": "turn", "playerId": "p1", "start": 16}
+          ],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 1, "p2": 1}
+        },
+        "vault": {
+          "worldDeck": ["denizen.nomad.great-herd", "denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "vision.conspiracy", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.forest-council", "vision.conquest", "denizen.order.outriders", "denizen.discord.bandit-chief", "denizen.beast.animal-host"],
+            "hinterland": ["denizen.arcane.plague-engines", "denizen.arcane.billowing-fog", "denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron",
+            "slot.provinces.1.relic.0": "relic.obsidian-cage"
+          },
+          "relicDeck": ["relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 7,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant",
+          "slot.provinces.1": "site.drowned-city"
+        },
+        "denizensBySite": {},
+        "cardTokens": {
+          "site.drowned-city": {"favor": 0, "secrets": 3}
+        },
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ],
+          "slot.provinces.1": [
+            {"slotId": "slot.provinces.1.relic.0"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"imperial": 2},
+          "slot.provinces.1": {"imperial": 1}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 16,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 1,
+        "worldDeckDrawn": 2,
+        "worldDeckVisions": 4,
+        "discardPileCounts": {"cradle": 1, "provinces": 5, "hinterland": 3},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p1",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen",
+        "restResolvedForTurnStart": 13
+      }
+    },
+    {
+      "name": "the Exile rules every faceup site, so the Oathkeeper title moves with the next action",
+      "initial": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 97},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 319
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p2"],
+        "winningPlayerIds": [],
+        "actionCount": 14,
+        "actionChecksum": -1048601305,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 6,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 6,
+            "favor": 0,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 1},
+            "warbandsInPersonalBank": {"imperial": 20},
+            "siteId": "slot.provinces.1",
+            "relicIds": ["relic.grand-scepter", "relic.cup-of-plenty"],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.arcane.blood-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3", "slot.provinces.1.relic.0"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask",
+              "slot.provinces.1.relic.0": "relic.obsidian-cage"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [null, "denizen.discord.bandit-chief", "denizen.order.outriders", "vision.conquest", "denizen.beast.forest-council"],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "siteId": "slot.provinces.0",
+            "relicIds": [],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.nomad.ancient-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": [null, "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"]
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "ActPhase",
+        "turnManager": {
+          "series": [
+            {"type": "turn", "playerId": "p1", "start": 2, "end": 13},
+            {"type": "turn", "playerId": "p2", "start": 13}
+          ],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 1, "p2": 0}
+        },
+        "vault": {
+          "worldDeck": ["denizen.nomad.great-herd", "denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "vision.conspiracy", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.forest-council", "vision.conquest", "denizen.order.outriders", "denizen.discord.bandit-chief", "denizen.beast.animal-host"],
+            "hinterland": ["denizen.arcane.plague-engines", "denizen.arcane.billowing-fog", "denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron",
+            "slot.provinces.1.relic.0": "relic.obsidian-cage"
+          },
+          "relicDeck": ["relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 1,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant",
+          "slot.provinces.1": "site.drowned-city"
+        },
+        "denizensBySite": {},
+        "cardTokens": {
+          "site.drowned-city": {"favor": 0, "secrets": 3}
+        },
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ],
+          "slot.provinces.1": [
+            {"slotId": "slot.provinces.1.relic.0"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"p2": 1},
+          "slot.provinces.0": {"p2": 1},
+          "slot.provinces.1": {"p2": 1},
+          "slot.hinterland.0": {"p2": 1}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 16,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 1,
+        "worldDeckDrawn": 2,
+        "worldDeckVisions": 4,
+        "discardPileCounts": {"cradle": 1, "provinces": 5, "hinterland": 3},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p1",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen",
+        "restResolvedForTurnStart": 2
+      },
+      "actions": [
+        {
+          "id": "a-14",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "endActPhase",
+          "playerId": "p2",
+          "index": 14
+        },
+        {
+          "id": "a-15",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "completeRest",
+          "playerId": "p2",
+          "index": 15
+        }
+      ],
+      "processed": ["endActPhase/user", "completeRest/user"],
+      "expected": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 97},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 319
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p1"],
+        "winningPlayerIds": [],
+        "actionCount": 16,
+        "actionChecksum": -2006947999,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 6,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 6,
+            "favor": 0,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 1},
+            "warbandsInPersonalBank": {"imperial": 20},
+            "siteId": "slot.provinces.1",
+            "relicIds": ["relic.grand-scepter", "relic.cup-of-plenty"],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.arcane.blood-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3", "slot.provinces.1.relic.0"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask",
+              "slot.provinces.1.relic.0": "relic.obsidian-cage"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [null, "denizen.discord.bandit-chief", "denizen.order.outriders", "vision.conquest", "denizen.beast.forest-council"],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "siteId": "slot.provinces.0",
+            "relicIds": [],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.nomad.ancient-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": [null, "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"]
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "WakePhase",
+        "turnManager": {
+          "series": [
+            {"type": "turn", "playerId": "p1", "start": 2, "end": 13},
+            {"type": "turn", "playerId": "p2", "start": 13, "end": 16},
+            {"type": "turn", "playerId": "p1", "start": 16}
+          ],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 1, "p2": 1}
+        },
+        "vault": {
+          "worldDeck": ["denizen.nomad.great-herd", "denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "vision.conspiracy", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.forest-council", "vision.conquest", "denizen.order.outriders", "denizen.discord.bandit-chief", "denizen.beast.animal-host"],
+            "hinterland": ["denizen.arcane.plague-engines", "denizen.arcane.billowing-fog", "denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron",
+            "slot.provinces.1.relic.0": "relic.obsidian-cage"
+          },
+          "relicDeck": ["relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 2,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant",
+          "slot.provinces.1": "site.drowned-city"
+        },
+        "denizensBySite": {},
+        "cardTokens": {
+          "site.drowned-city": {"favor": 0, "secrets": 3}
+        },
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ],
+          "slot.provinces.1": [
+            {"slotId": "slot.provinces.1.relic.0"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"p2": 1},
+          "slot.provinces.0": {"p2": 1},
+          "slot.provinces.1": {"p2": 1},
+          "slot.hinterland.0": {"p2": 1}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 16,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 1,
+        "worldDeckDrawn": 2,
+        "worldDeckVisions": 4,
+        "discardPileCounts": {"cradle": 1, "provinces": 5, "hinterland": 3},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p2",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen",
+        "restResolvedForTurnStart": 13
+      }
+    },
+    {
+      "name": "the Exile’s world-deck Search stops on a Vision",
+      "initial": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 97},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 319
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p2"],
+        "winningPlayerIds": [],
+        "actionCount": 14,
+        "actionChecksum": -1048601305,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 6,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 6,
+            "favor": 0,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 1},
+            "warbandsInPersonalBank": {"imperial": 20},
+            "siteId": "slot.provinces.1",
+            "relicIds": ["relic.grand-scepter", "relic.cup-of-plenty"],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.arcane.blood-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3", "slot.provinces.1.relic.0"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask",
+              "slot.provinces.1.relic.0": "relic.obsidian-cage"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [null, "denizen.discord.bandit-chief", "denizen.order.outriders", "vision.conquest", "denizen.beast.forest-council"],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 7,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "siteId": "slot.provinces.0",
+            "relicIds": [],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.nomad.ancient-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": [null, "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines"]
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "ActPhase",
+        "turnManager": {
+          "series": [
+            {"type": "turn", "playerId": "p1", "start": 2, "end": 13},
+            {"type": "turn", "playerId": "p2", "start": 13}
+          ],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 1, "p2": 0}
+        },
+        "vault": {
+          "worldDeck": ["denizen.nomad.great-herd", "vision.conspiracy", "denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.forest-council", "vision.conquest", "denizen.order.outriders", "denizen.discord.bandit-chief", "denizen.beast.animal-host"],
+            "hinterland": ["denizen.arcane.plague-engines", "denizen.arcane.billowing-fog", "denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron",
+            "slot.provinces.1.relic.0": "relic.obsidian-cage"
+          },
+          "relicDeck": ["relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 1,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant",
+          "slot.provinces.1": "site.drowned-city"
+        },
+        "denizensBySite": {},
+        "cardTokens": {
+          "site.drowned-city": {"favor": 0, "secrets": 3}
+        },
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ],
+          "slot.provinces.1": [
+            {"slotId": "slot.provinces.1.relic.0"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"imperial": 2},
+          "slot.provinces.1": {"imperial": 1}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 16,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 1,
+        "worldDeckDrawn": 2,
+        "worldDeckVisions": 4,
+        "discardPileCounts": {"cradle": 1, "provinces": 5, "hinterland": 3},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p1",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen",
+        "restResolvedForTurnStart": 2
+      },
+      "actions": [
+        {
+          "id": "a-14",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "search",
+          "playerId": "p2",
+          "drawFrom": "worldDeck",
+          "revealsInfo": true,
+          "index": 14
+        },
+        {
+          "id": "a-15",
+          "gameId": "game-1",
+          "source": "user",
+          "type": "searchResolve",
+          "playerId": "p2",
+          "keptCardId": "denizen.nomad.great-herd",
+          "discardOrder": ["vision.conspiracy"],
+          "play": "discard",
+          "index": 15
+        }
+      ],
+      "processed": ["search/user", "searchResolve/user"],
+      "expected": {
+        "systemVersion": 3,
+        "id": "_xUjITbw5CznuPFE29r0M",
+        "gameId": "game-1",
+        "seed": 522568532,
+        "prng": {"seed": 522568532, "invocations": 97},
+        "protectedPrng": {
+          "algorithm": "chacha20-v1",
+          "seed": "2f7d9e2601b16b7038e4f41356ff3e4cfd02f20a814002d8acb353c41293db24",
+          "invocations": 319
+        },
+        "masterSeed": "0000000000000000000000000000002a",
+        "activePlayerIds": ["p2"],
+        "winningPlayerIds": [],
+        "actionCount": 16,
+        "actionChecksum": -2006947999,
+        "players": [
+          {
+            "playerId": "p1",
+            "color": "purple",
+            "status": "chancellor",
+            "supply": 6,
+            "supplySpentThisTurn": 0,
+            "supplyAtTurnStart": 6,
+            "favor": 0,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"imperial": 1},
+            "warbandsInPersonalBank": {"imperial": 20},
+            "siteId": "slot.provinces.1",
+            "relicIds": ["relic.grand-scepter", "relic.cup-of-plenty"],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.arcane.blood-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": ["reliquary.0", "reliquary.1", "reliquary.2", "reliquary.3", "slot.provinces.1.relic.0"],
+            "peekedRelics": {
+              "reliquary.0": "relic.bandit-crown",
+              "reliquary.1": "relic.oracular-pig",
+              "reliquary.2": "relic.brass-horse",
+              "reliquary.3": "relic.horned-mask",
+              "slot.provinces.1.relic.0": "relic.obsidian-cage"
+            },
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [null, "denizen.discord.bandit-chief", "denizen.order.outriders", "vision.conquest", "denizen.beast.forest-council"],
+              "hinterland": []
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          },
+          {
+            "playerId": "p2",
+            "color": "blue",
+            "status": "exile",
+            "supply": 4,
+            "supplySpentThisTurn": 3,
+            "supplyAtTurnStart": 7,
+            "favor": 1,
+            "secrets": 1,
+            "secretsFacedown": 0,
+            "warbandsOnBoard": {"p2": 3},
+            "warbandsInPersonalBank": {"p2": 11},
+            "siteId": "slot.provinces.0",
+            "relicIds": [],
+            "advisers": [
+              {"faceUp": false}
+            ],
+            "adviserIds": ["denizen.nomad.ancient-pact"],
+            "adviserLimit": 3,
+            "handIds": [],
+            "handCount": 0,
+            "handVisions": 0,
+            "peekedRelicSlotIds": [],
+            "peekedRelics": {},
+            "peekedSiteSlotIds": [],
+            "peekedSites": {},
+            "knownWorldDeckTop": [],
+            "knownDiscardPiles": {
+              "cradle": [],
+              "provinces": [],
+              "hinterland": [null, "denizen.arcane.billowing-fog", "denizen.arcane.plague-engines", "vision.conspiracy", "denizen.nomad.great-herd"]
+            },
+            "knownRelicDeckBottom": [],
+            "knownWorldDeckBottom": [],
+            "knownHands": {},
+            "handSeen": [],
+            "homelandUsedThisTurn": [],
+            "restPowersUsedThisTurn": []
+          }
+        ],
+        "machineState": "ActPhase",
+        "turnManager": {
+          "series": [
+            {"type": "turn", "playerId": "p1", "start": 2, "end": 13},
+            {"type": "turn", "playerId": "p2", "start": 13}
+          ],
+          "turnOrder": ["p1", "p2"],
+          "turnCounts": {"p1": 1, "p2": 0}
+        },
+        "vault": {
+          "worldDeck": ["denizen.nomad.mounted-patrol", "denizen.hearth.homesteaders", "denizen.order.encirclement", "denizen.beast.bracken", "denizen.beast.vow-of-beastkin", "denizen.order.tyrant", "denizen.nomad.vow-of-kinship", "denizen.hearth.ballot-box", "denizen.arcane.witchs-bargain", "denizen.order.martial-culture", "denizen.nomad.sacred-ground", "vision.faith", "denizen.order.relic-hunter", "vision.sanctuary", "denizen.hearth.saddle-makers", "vision.rebellion", "denizen.discord.vow-of-renewal", "denizen.discord.mercenaries", "denizen.nomad.ancient-binding", "denizen.discord.sleight-of-hand", "denizen.beast.giant-python", "denizen.beast.birdsong", "denizen.nomad.pilgrimage", "denizen.order.garrison", "denizen.hearth.relic-breaker", "denizen.beast.long-lost-heir", "denizen.nomad.elders", "denizen.arcane.revelation", "denizen.discord.royal-ambitions", "denizen.beast.errand-boy", "denizen.discord.salt-the-earth", "denizen.order.toll-roads", "denizen.nomad.special-envoy", "denizen.arcane.gleaming-armor", "denizen.discord.a-small-favor", "denizen.order.knights-errant", "denizen.discord.false-prophet", "denizen.order.wrestlers", "denizen.discord.cracked-sage", "denizen.hearth.the-great-levy", "denizen.arcane.fire-talkers", "denizen.hearth.crop-rotation", "denizen.hearth.extra-provisions", "denizen.beast.pied-piper", "denizen.arcane.taming-charm", "denizen.arcane.map-library"],
+          "discardPiles": {
+            "cradle": ["denizen.hearth.traveling-doctor"],
+            "provinces": ["denizen.beast.forest-council", "vision.conquest", "denizen.order.outriders", "denizen.discord.bandit-chief", "denizen.beast.animal-host"],
+            "hinterland": ["denizen.nomad.great-herd", "vision.conspiracy", "denizen.arcane.plague-engines", "denizen.arcane.billowing-fog", "denizen.hearth.storyteller"]
+          },
+          "siteFacedown": {
+            "slot.cradle.1": "site.steppe",
+            "slot.provinces.2": "site.deep-woods",
+            "slot.hinterland.1": "site.river",
+            "slot.hinterland.2": "site.the-hidden-place"
+          },
+          "relicFacedown": {
+            "reliquary.0": "relic.bandit-crown",
+            "reliquary.1": "relic.oracular-pig",
+            "reliquary.2": "relic.brass-horse",
+            "reliquary.3": "relic.horned-mask",
+            "slot.provinces.0.relic.0": "relic.whistle",
+            "slot.hinterland.0.relic.0": "relic.cursed-cauldron",
+            "slot.provinces.1.relic.0": "relic.obsidian-cage"
+          },
+          "relicDeck": ["relic.sticky-fire", "relic.skeleton-key", "relic.dowsing-sticks", "relic.ivory-eye", "relic.grand-mask", "relic.circlet-of-command", "relic.ring-of-devotion", "relic.map", "relic.book-of-records", "relic.truthful-harp", "relic.cracked-horn", "relic.dragonskin-drum"],
+          "siteDeck": ["site.plains", "site.fertile-valley", "site.narrow-pass", "site.mountain", "site.great-slums", "site.ancient-city", "site.wastes", "site.barren-coast", "site.standing-stones", "site.salt-flats", "site.mine", "site.shrouded-wood", "site.rocky-coast", "site.marshes", "site.charming-valley"],
+          "dispossessed": []
+        },
+        "round": 1,
+        "map": {
+          "cradle": ["slot.cradle.0", "slot.cradle.1"],
+          "provinces": ["slot.provinces.0", "slot.provinces.1", "slot.provinces.2"],
+          "hinterland": ["slot.hinterland.0", "slot.hinterland.1", "slot.hinterland.2"]
+        },
+        "siteCards": {
+          "slot.cradle.0": "site.lush-coast",
+          "slot.provinces.0": "site.the-tribunal",
+          "slot.hinterland.0": "site.buried-giant",
+          "slot.provinces.1": "site.drowned-city"
+        },
+        "denizensBySite": {},
+        "cardTokens": {
+          "site.drowned-city": {"favor": 0, "secrets": 3}
+        },
+        "relicsBySite": {
+          "slot.provinces.0": [
+            {"slotId": "slot.provinces.0.relic.0"}
+          ],
+          "slot.hinterland.0": [
+            {"slotId": "slot.hinterland.0.relic.0"}
+          ],
+          "slot.provinces.1": [
+            {"slotId": "slot.provinces.1.relic.0"}
+          ]
+        },
+        "warbandsBySite": {
+          "slot.cradle.0": {"imperial": 2},
+          "slot.provinces.1": {"imperial": 1}
+        },
+        "warbandsOnCards": {},
+        "reliquary": [
+          {"slotId": "reliquary.0"},
+          {"slotId": "reliquary.1"},
+          {"slotId": "reliquary.2"},
+          {"slotId": "reliquary.3"}
+        ],
+        "favorBank": {"discord": 3, "hearth": 3, "nomad": 3, "order": 3, "beast": 3, "arcane": 3},
+        "favorSupply": 16,
+        "banners": {
+          "peoplesFavor": {"value": 1, "mobSide": false},
+          "darkestSecret": {"value": 1}
+        },
+        "worldDeckExhausted": false,
+        "visionsDrawn": 2,
+        "worldDeckDrawn": 4,
+        "worldDeckVisions": 3,
+        "discardPileCounts": {"cradle": 1, "provinces": 5, "hinterland": 5},
+        "discardTopBackType": {"cradle": "denizen", "provinces": "denizen", "hinterland": "denizen"},
+        "seenDiscardPiles": {
+          "cradle": [
+            {"back": "denizen"}
+          ],
+          "provinces": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ],
+          "hinterland": [
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "denizen"},
+            {"back": "vision"},
+            {"back": "denizen"}
+          ]
+        },
+        "seenWorldDeckBottom": [],
+        "seenRelicDeckBottom": [],
+        "seenRelics": {},
+        "dispossessedCount": 0,
+        "boxIds": [],
+        "siteCapacityOverrides": {},
+        "oathType": "supremacy",
+        "setupVariant": "randomized",
+        "chancellorPlayerId": "p1",
+        "oathkeeperPlayerId": "p1",
+        "oathkeeperIsUsurper": false,
+        "topCardBackType": "denizen",
+        "restResolvedForTurnStart": 2
+      }
+    }
+  ]
+}
