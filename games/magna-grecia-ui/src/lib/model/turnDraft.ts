@@ -22,6 +22,7 @@ export type TurnDraftValues = {
     resupply: true
     space: AxialCoordinates
     shape: RoadShape
+    endTurn: true
 }
 
 export type TurnDraftSelection = StagedSelectionState<TurnDraftValues>
@@ -31,7 +32,8 @@ const STAGE_ORDER = [
     'tool',
     'resupply',
     'space',
-    'shape'
+    'shape',
+    'endTurn'
 ] as const satisfies readonly (keyof TurnDraftValues)[]
 type MissingStages = Exclude<keyof TurnDraftValues, (typeof STAGE_ORDER)[number]>
 const stageCoverage: MissingStages extends never ? true : never = true
@@ -156,6 +158,26 @@ export function closeResupply(draft: TurnDraft): TurnDraft {
     return {
         ...draft,
         selection: clearStagedSelectionAtOrAfter(draft.selection, STAGE_ORDER, 'resupply')
+    }
+}
+
+export function draftConfirmingEndTurn(draft: TurnDraft): boolean {
+    return getStagedSelectionValue<TurnDraftValues, 'endTurn'>(draft.selection, 'endTurn') === true
+}
+
+// Asking to confirm End turn closes any picker or road being laid but keeps the chosen tool.
+export function askToConfirmEndTurn(draft: TurnDraft): TurnDraft {
+    const base = clearStagedSelectionAtOrAfter(draft.selection, STAGE_ORDER, 'resupply')
+    return {
+        selection: setStagedSelectionValue(base, STAGE_ORDER, 'endTurn', true, 'manual'),
+        rotation: 0
+    }
+}
+
+export function dropEndTurnConfirm(draft: TurnDraft): TurnDraft {
+    return {
+        ...draft,
+        selection: clearStagedSelectionAtOrAfter(draft.selection, STAGE_ORDER, 'endTurn')
     }
 }
 

@@ -2,17 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { RoadShape, offsetToAxial } from '@tabletop/magna-grecia'
 import { BuildTool } from './buildTool.js'
 import {
+    askToConfirmEndTurn,
     carryTool,
     chooseRoadShape,
     chooseRoadSpace,
     chooseTool,
     clearRoadLay,
     closeResupply,
+    draftConfirmingEndTurn,
     draftResupplyOpen,
     draftRoadShape,
     draftRoadSpace,
     draftTilesSkipped,
     draftTool,
+    dropEndTurnConfirm,
     emptyDraft,
     hasManualDraft,
     rotateRoad,
@@ -169,6 +172,30 @@ describe('turn draft', () => {
         const draft = chooseTool(skipTiles(emptyDraft()), BuildTool.City, '0:1')
         expect(draftTilesSkipped(draft)).toBe(false)
         expect(draftTool(draft)?.tool).toBe(BuildTool.City)
+    })
+
+    it('asks to confirm End turn as a manual stage that Undo cancels', () => {
+        const tool = chooseTool(emptyDraft(), BuildTool.City, '0:1')
+        const draft = askToConfirmEndTurn(tool)
+        expect(draftConfirmingEndTurn(draft)).toBe(true)
+        expect(draftTool(draft)?.tool).toBe(BuildTool.City)
+        expect(undoDraft(draft)).toEqual(tool)
+        expect(dropEndTurnConfirm(draft)).toEqual(tool)
+    })
+
+    it('closes the picker and the road being laid when End turn asks to confirm', () => {
+        const laying = chooseRoadSpace(chooseTool(emptyDraft(), BuildTool.Road, '0:1'), first)
+        expect(draftRoadSpace(askToConfirmEndTurn(laying))).toBeUndefined()
+        const resupplying = toggleResupply(emptyDraft())
+        expect(draftResupplyOpen(askToConfirmEndTurn(resupplying))).toBe(false)
+    })
+
+    it('drops the End turn confirm when an earlier choice is made', () => {
+        const draft = askToConfirmEndTurn(emptyDraft())
+        expect(draftConfirmingEndTurn(chooseTool(draft, BuildTool.City, '0:1'))).toBe(false)
+        expect(draftConfirmingEndTurn(skipTiles(draft))).toBe(false)
+        expect(draftConfirmingEndTurn(toggleResupply(draft))).toBe(false)
+        expect(draftConfirmingEndTurn(carryTool(draft, '0:1'))).toBe(false)
     })
 
     it('does not carry a skip into the next published state', () => {

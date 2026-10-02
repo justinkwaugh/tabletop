@@ -120,23 +120,22 @@
     })
     const tilePhaseClosed = $derived(!gameSession.tileActionsOpen || marketToolChosen)
 
-    // What ending the turn now would do, on every turn, not only once End turn is all that is left.
-    const endTurnWarning = $derived.by(() => {
-        switch (gameSession.endTurnOutcome) {
-            case EndTurnOutcome.RevealsCard:
-                return 'Ending your turn starts the next round and reveals a new action card. It cannot be undone.'
-            case EndTurnOutcome.NextRound:
-                return 'Ending your turn starts the final round.'
-            case EndTurnOutcome.EndsGame:
-                return 'Ending your turn ends the game. It cannot be undone.'
-            default:
-                return undefined
-        }
-    })
-    const endTurnIsFinal = $derived(
-        gameSession.endTurnOutcome === EndTurnOutcome.RevealsCard ||
-            gameSession.endTurnOutcome === EndTurnOutcome.EndsGame
+    // A reversible round change is only noted; the irreversible ones ask to confirm instead.
+    const endTurnNote = $derived(
+        gameSession.endTurnOutcome === EndTurnOutcome.NextRound
+            ? 'Ending your turn starts the final round.'
+            : undefined
     )
+    const END_TURN_TIPS: Partial<Record<EndTurnOutcome, string>> = {
+        [EndTurnOutcome.RevealsCard]: 'Starts the next round and reveals a new action card',
+        [EndTurnOutcome.NextRound]: 'Starts the final round',
+        [EndTurnOutcome.EndsGame]: 'Ends the game'
+    }
+    const CONFIRM_QUESTIONS: Partial<Record<EndTurnOutcome, string>> = {
+        [EndTurnOutcome.RevealsCard]: 'End turn and start the next round?',
+        [EndTurnOutcome.EndsGame]: 'End turn and end the game?'
+    }
+    const CANNOT_UNDO = 'This cannot be undone.'
 
     const CITY_PROMPT = 'Found or expand a city'
     const ROAD_PROMPT = 'Place a road tile'
@@ -147,6 +146,10 @@
     }
 
     const message = $derived.by(() => {
+        const question = CONFIRM_QUESTIONS[gameSession.endTurnOutcome]
+        if (gameSession.confirmingEndTurn && question) {
+            return question
+        }
         if (gameSession.pendingClaim) {
             return 'Finish the expansion: place a city tile on the village'
         }
@@ -199,17 +202,19 @@
                 return undefined
         }
     })
-    // A chosen tool keeps the hint line; the End turn button then carries the warning.
     const hint = $derived.by(() => {
+        if (gameSession.confirmingEndTurn) {
+            return CANNOT_UNDO
+        }
         if (gameSession.cityUnfinished) {
             return undefined
         }
         if (!gameSession.onlyEndTurnLeft && (gameSession.resupplyOpen || gameSession.activeTool)) {
             return toolHint
         }
-        return endTurnWarning
+        return endTurnNote
     })
-    const hintIsWarning = $derived(endTurnIsFinal && hint !== undefined && hint === endTurnWarning)
+    const hintIsWarning = $derived(hint === CANNOT_UNDO)
 </script>
 
 {#snippet chevron()}
@@ -299,14 +304,28 @@
                 <div class="phase finish">
                     <div class="phase-label">Finish</div>
                     <div class="phase-buttons">
-                        {#if gameSession.canEndTurn}
+                        {#if gameSession.confirmingEndTurn}
+                            <button
+                                type="button"
+                                class="tool end confirm"
+                                onclick={() => gameSession.endTurn()}
+                            >
+                                Yes, end turn
+                            </button>
+                            <button
+                                type="button"
+                                class="tool"
+                                onclick={() => gameSession.cancelEndTurn()}
+                            >
+                                Cancel
+                            </button>
+                        {:else if gameSession.canEndTurn}
                             <button
                                 type="button"
                                 class="tool end"
                                 class:ready={gameSession.onlyEndTurnLeft}
-                                class:caution={endTurnIsFinal && !gameSession.onlyEndTurnLeft}
-                                title={endTurnWarning}
-                                onclick={() => gameSession.endTurn()}
+                                title={END_TURN_TIPS[gameSession.endTurnOutcome]}
+                                onclick={() => gameSession.requestEndTurn()}
                             >
                                 End turn
                             </button>
@@ -426,10 +445,15 @@
         border-style: dashed;
     }
 
-    .tool.end.caution {
-        border: 2px solid #b0361a;
-        color: #8a2d12;
+    .tool.end.confirm {
+        border: 2px solid #8a2d12;
+        background: #b0361a;
+        color: #fff7ec;
         font-weight: 600;
+    }
+
+    .tool.end.confirm:hover {
+        background: #c2421f;
     }
 
     .tool.end.ready {

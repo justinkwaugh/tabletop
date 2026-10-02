@@ -29,13 +29,16 @@ import {
 import { legalRoadShapeChoices, roadPlacement, type RoadShapeChoice } from './roadLay.js'
 import { BuildTool } from './buildTool.js'
 import {
+    askToConfirmEndTurn,
     carryTool,
     chooseRoadShape,
     chooseRoadSpace,
     chooseTool,
     clearRoadLay,
     closeResupply,
+    draftConfirmingEndTurn,
     draftResupplyOpen,
+    dropEndTurnConfirm,
     draftRoadShape,
     draftRoadSpace,
     draftTilesSkipped,
@@ -249,6 +252,16 @@ export class MagnaGreciaGameSession extends GameSession<
 
     endTurnOutcome: EndTurnOutcome = $derived(this.gameState.endTurnOutcome())
 
+    // Revealing a card or ending the game cannot be undone, so End turn asks first.
+    endTurnIsFinal = $derived(
+        this.endTurnOutcome === EndTurnOutcome.RevealsCard ||
+            this.endTurnOutcome === EndTurnOutcome.EndsGame
+    )
+
+    confirmingEndTurn = $derived(
+        this.canEndTurn && this.endTurnIsFinal && draftConfirmingEndTurn(this.draft)
+    )
+
     upcomingCard = $derived(this.gameState.result ? undefined : this.gameState.upcomingCard())
 
     chooseTool(tool: BuildTool) {
@@ -370,6 +383,21 @@ export class MagnaGreciaGameSession extends GameSession<
             return
         }
         await this.applyAction(this.createPlayerAction(SellMarket, { coords }))
+    }
+
+    async requestEndTurn() {
+        if (!this.canEndTurn) {
+            return
+        }
+        if (this.endTurnIsFinal) {
+            this.draft = askToConfirmEndTurn(this.draft)
+            return
+        }
+        await this.endTurn()
+    }
+
+    cancelEndTurn() {
+        this.draft = dropEndTurnConfirm(this.draft)
     }
 
     async endTurn() {
