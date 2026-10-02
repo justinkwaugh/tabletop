@@ -281,6 +281,29 @@ export type Route = {
     shopsPassed: readonly ShopId[]
 }
 
+export type ShopVisit = { shopId: ShopId; customers: number }
+
+// Each owned shop along the route takes every walking visitor of its color;
+// whoever is left arrives at the destination.
+export function shopVisits(
+    route: Route,
+    visitors: readonly MarketColor[],
+    isOwned: (shopId: ShopId) => boolean
+): { visits: ShopVisit[]; arrivals: MarketColor[] } {
+    let walking = [...visitors]
+    const visits: ShopVisit[] = []
+    for (const shopId of route.shopsPassed) {
+        const color = getShop(shopId).color
+        const customers = walking.filter((visitor) => visitor === color).length
+        if (!isOwned(shopId) || customers === 0) {
+            continue
+        }
+        walking = walking.filter((visitor) => visitor !== color)
+        visits.push({ shopId, customers })
+    }
+    return { visits, arrivals: walking }
+}
+
 const cellGrid: BoardCell[][] = buildCellGrid()
 const routesByFountain: ReadonlyMap<FountainId, readonly Route[]> = deriveAllRoutes()
 

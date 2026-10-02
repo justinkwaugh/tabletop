@@ -2,7 +2,7 @@
     import { getShop, type ShopState } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ownerDiscOutline } from '$lib/utils/playerColors.js'
-    import { CandidateHaloFilterId, shopRect } from '$lib/utils/boardGeometry.js'
+    import { CandidateHaloFilterId, shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
     import {
         AwningClothFilterId,
         AwningCreaseBlurId,
@@ -20,7 +20,7 @@
     }: { shop: ShopState; selectable: boolean; spotlit?: boolean } = $props()
     const gameSession = getGameSession()
 
-    let rect = $derived(shopRect(shop.shopId, 6))
+    let rect = $derived(shopRect(shop.shopId, ShopTileInset))
     let shopColor = $derived(getShop(shop.shopId).color)
     let palette = $derived(gameSession.marketPalettes[shopColor])
     let vertical = $derived(rect.height > rect.width)

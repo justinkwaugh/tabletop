@@ -20,6 +20,7 @@
         gateRect,
         QueueMargin,
         CandidateHaloFilterId,
+        LineHaloFilterId,
         TableHeight,
         TableWidth,
         WallThickness
@@ -72,6 +73,21 @@
                 <feMergeNode in="SourceGraphic"></feMergeNode>
             </feMerge>
         </filter>
+        <filter
+            id={LineHaloFilterId}
+            filterUnits="userSpaceOnUse"
+            x="0"
+            y="0"
+            width={BoardWidth}
+            height={BoardHeight}
+        >
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
+            <feMerge>
+                <feMergeNode in="glow"></feMergeNode>
+                <feMergeNode in="glow"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+        </filter>
         <AwningDefs />
         <CobbleDefs />
         <PawnDefs />
@@ -114,12 +130,16 @@
                 selectable={gameSession.movableFountainIds.includes(fountain.fountainId) ||
                     gameSession.fillableEntranceIds.includes(fountain.fountainId)}
                 selected={gameSession.selectedFountainId === fountain.fountainId}
+                destination={previewRoute?.to === fountain.fountainId}
                 onselect={() => chooseFountain(fountain.fountainId)}
             />
         {/each}
 
         {#if previewRoute}
-            <RoutePreview route={previewRoute} />
+            <!-- Remount per route so its dashes start in step with the destination's pulse. -->
+            {#key previewRoute}
+                <RoutePreview route={previewRoute} />
+            {/key}
         {/if}
 
         <DirectionArrows

@@ -5,6 +5,7 @@
     import { PawnHeight, PawnUnitSize, PawnWidth } from '$lib/utils/pawnShape.js'
     import { cellCenter, clusterPositions } from '$lib/utils/boardGeometry.js'
     import { CandidateHaloFilterId } from '$lib/utils/boardGeometry.js'
+    import { PulsePeakSeconds, PulseSeconds } from '$lib/utils/routePreview.js'
     import {
         eightPointedStar,
         EntranceRadii,
@@ -33,11 +34,13 @@
         fountain,
         selectable,
         selected,
+        destination = false,
         onselect
     }: {
         fountain: FountainState
         selectable: boolean
         selected: boolean
+        destination?: boolean
         onselect: () => void
     } = $props()
 
@@ -89,6 +92,19 @@
 </script>
 
 {#snippet body()}
+    {#if destination}
+        <path
+            class="destination-pulse"
+            style:--pulse-seconds="{PulseSeconds}s"
+            style:--pulse-delay="{PulsePeakSeconds - PulseSeconds / 2}s"
+            d={outline(center, definition.entrance ? radii.trim : radii.rim)}
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="12"
+            stroke-linejoin="round"
+            filter="url(#{CandidateHaloFilterId})"
+        ></path>
+    {/if}
     {#if selectable}
         <path
             d={outline(center, definition.entrance ? radii.trim : radii.rim)}
@@ -203,3 +219,26 @@
 {:else}
     <g>{@render body()}</g>
 {/if}
+
+<style>
+    .destination-pulse {
+        animation: destination-pulse var(--pulse-seconds) ease-in-out var(--pulse-delay) infinite;
+    }
+
+    /* Peaks halfway through, so the delay lines the peak up with a dash's arrival. */
+    @keyframes destination-pulse {
+        0%,
+        100% {
+            opacity: 0.35;
+        }
+        50% {
+            opacity: 1;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .destination-pulse {
+            animation: none;
+        }
+    }
+</style>

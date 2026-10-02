@@ -31,6 +31,7 @@ import {
     FountainIds,
     getShop,
     routeFrom,
+    shopVisits,
     ShopIds,
     type FountainId,
     type ShopId
@@ -252,26 +253,25 @@ export class HydratedMarracashGameState extends HydratableGameState<
         const origin = this.getFountainState(fountainId)
         assert(origin.visitors.length > 0, `Fountain ${fountainId} has no visitors to move`)
 
-        let walking = origin.visitors
+        const { visits, arrivals } = shopVisits(
+            route,
+            origin.visitors,
+            (shopId) => this.getShopState(shopId).ownerId !== undefined
+        )
         origin.visitors = []
         const entries: ShopEntry[] = []
-        for (const shopId of route.shopsPassed) {
+        for (const { shopId, customers } of visits) {
             const ownerId = this.getShopState(shopId).ownerId
-            const color = getShop(shopId).color
-            const customers = walking.filter((visitor) => visitor === color).length
-            if (ownerId === undefined || customers === 0) {
-                continue
-            }
-            walking = walking.filter((visitor) => visitor !== color)
+            assertExists(ownerId, `Shop ${shopId} has no owner`)
             const income = this.addCustomers(shopId, customers)
             const cut = ownerId === moverId ? 0 : moverCut(income, customers)
             this.transferMoney(ownerId, moverId, cut)
             entries.push({ shopId, ownerId, customers, income, moverCut: cut })
         }
 
-        this.getFountainState(route.to).visitors.push(...walking)
+        this.getFountainState(route.to).visitors.push(...arrivals)
         this.turnActions.push(TurnAction.Move)
-        return { destinationId: route.to, entries, arrivals: walking }
+        return { destinationId: route.to, entries, arrivals }
     }
 
     completeAntiqueSet(collectorId: string): AntiqueSetResult {
