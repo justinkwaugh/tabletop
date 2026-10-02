@@ -15,6 +15,9 @@
     import { warbandsOnCardOf } from '$lib/model/cardWarbands.js'
 
     // Mounted outside the table layout: a transformed ancestor would be the containing block of this fixed layer.
+    // Rule 5 — an enlarged site offers to focus the board on its row.
+    let { onZoomSite }: { onZoomSite?: (slotId: string) => void } = $props()
+
     let areaWidth = $state(0)
     let areaHeight = $state(0)
     let stackHeight = $state(0)
@@ -223,6 +226,21 @@
                                 >
                             {/if}
                         </div>
+                    {/if}
+                    {#if preview.slotId && onZoomSite}
+                        {@const slotId = preview.slotId}
+                        <button
+                            type="button"
+                            class="rounded-md bg-oath-primary px-3.5 py-1.5 text-[15px] font-bold
+                                   text-oath-primary-text hover:bg-oath-primary-hover"
+                            onclick={(event) => {
+                                event.stopPropagation()
+                                onZoomSite(slotId)
+                                cardPreview.dismiss()
+                            }}
+                        >
+                            Zoom the board here
+                        </button>
                     {/if}
                 </div>
             {/if}

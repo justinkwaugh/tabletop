@@ -712,6 +712,39 @@ test('scenario 51: an empty bank shows a plain 0 and no favor token', async ({ p
     await expect(page.locator('.bank .token')).toHaveCount(6)
 })
 
+test('scenario 45: the focus views fill the board; Full restores; a zoom by hand clears the choice; an enlarged site zooms the board to its row', async ({ page }) => {
+    await openTable(page, 'setup')
+    const chooser = page.getByRole('group', { name: 'Focus the board' })
+    const site = page.locator('.site .board-card').first()
+    const siteWidth = async () => (await site.boundingBox())?.width ?? 0
+    await expect.poll(siteWidth).toBeGreaterThan(0)
+    await page.waitForTimeout(500)
+    const full = await siteWidth()
+
+    await chooser.getByRole('button', { name: 'Cradle' }).click()
+    await expect(chooser.getByRole('button', { name: 'Cradle' })).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(siteWidth).toBeGreaterThan(full * 1.5)
+
+    await chooser.getByRole('button', { name: 'Full' }).click()
+    await expect(chooser.getByRole('button', { name: 'Full' })).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(siteWidth).toBeLessThan(full * 1.1)
+
+    await chooser.getByRole('button', { name: 'Banks' }).click()
+    await expect(chooser.getByRole('button', { name: 'Banks' })).toHaveAttribute('aria-pressed', 'true')
+    const board = await page.locator('.scaling-surface').first().boundingBox()
+    if (!board) throw Error('The board is on screen')
+    await page.mouse.move(board.x + board.width / 2, board.y + board.height / 2)
+    await page.mouse.wheel(0, 200)
+    await expect(chooser.locator('[aria-pressed="true"]')).toHaveCount(0)
+
+    await chooser.getByRole('button', { name: 'Full' }).click()
+    await expect.poll(siteWidth).toBeLessThan(full * 1.1)
+    await (await uncovered(page, '.site .board-card')).click()
+    await page.getByRole('button', { name: 'Zoom the board here' }).click()
+    await expect(preview(page)).toHaveCount(0)
+    await expect.poll(siteWidth).toBeGreaterThan(full * 1.5)
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()

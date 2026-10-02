@@ -19,7 +19,10 @@
     import SeatDetailLayer from '$lib/components/SeatDetailLayer.svelte'
     import GoalsLayer from '$lib/components/GoalsLayer.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
+    import FocusChooser from '$lib/components/FocusChooser.svelte'
     import { MachineState } from '@tabletop/oath'
+    import type { BoundingBox } from '@tabletop/common'
+    import { focusRect, siteFocusRect, type FocusView } from '$lib/definitions/boardFocusAreas.js'
 
     import type { HydratedOathGameState, OathProjectedState } from '@tabletop/oath'
     import { setGameSession, toOathSession } from '$lib/model/sessionContext.svelte.js'
@@ -28,6 +31,46 @@
         $props()
     let oath = $derived(toOathSession(gameSession))
     setGameSession(untrack(() => toOathSession(gameSession)))
+
+    // Rule 5 — a focus view or a site's row; choosing the focused one again restores the view before it.
+    let wrapper = $state<ScalingWrapper>()
+    let boardFocus = $state<{
+        key: string
+        view: FocusView | undefined
+        restore: ReturnType<ScalingWrapper['captureView']>
+    }>()
+
+    // Room above the zoom buttons and the chooser, so the focused area is never under them.
+    const FOCUS_PADDING = { x: 12, y: 44 }
+    const FOCUS_MAX_SCALE = 2
+
+    function focusBoard(key: string, view: FocusView | undefined, rect: BoundingBox | undefined) {
+        if (!wrapper) return
+        if (boardFocus?.key === key) {
+            const { restore } = boardFocus
+            boardFocus = undefined
+            restore({ animate: true })
+            return
+        }
+        boardFocus = { key, view, restore: boardFocus?.restore ?? wrapper.captureView() }
+        if (rect) {
+            wrapper.focusRect(rect, {
+                animate: true,
+                maxScale: FOCUS_MAX_SCALE,
+                padding: FOCUS_PADDING
+            })
+        } else {
+            wrapper.fitToContent({ animate: true })
+        }
+    }
+
+    function focusView(view: FocusView) {
+        focusBoard(view, view, view === 'full' ? undefined : focusRect(view))
+    }
+
+    function focusSite(slotId: string) {
+        focusBoard(`site:${slotId}`, undefined, siteFocusRect(slotId))
+    }
 </script>
 
 <div class="oath-table">
@@ -85,8 +128,18 @@
                 {/if}
             </FitBox>
             <div class="grow-0 overflow-hidden min-h-0" style="flex:1;">
-                <ScalingWrapper justify="center" controls="bottom-left" coverBelowScale={0.3}>
+                <ScalingWrapper
+                    bind:this={wrapper}
+                    justify="center"
+                    controls="bottom-left"
+                    coverBelowScale={0.3}
+                    maxScale={FOCUS_MAX_SCALE}
+                    onManualViewChange={() => (boardFocus = undefined)}
+                >
                     <Board />
+                    {#snippet overlay()}
+                        <FocusChooser selected={boardFocus?.view} onselect={focusView} />
+                    {/snippet}
                 </ScalingWrapper>
             </div>
         {/snippet}
@@ -96,7 +149,7 @@
          fixed layers and scale or clip them with it. -->
     <SeatDetailLayer />
     <GoalsLayer />
-    <CardPreviewLayer />
+    <CardPreviewLayer onZoomSite={focusSite} />
 </div>
 
 <style>
