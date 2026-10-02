@@ -1163,7 +1163,7 @@ presidency.
 - Non-presidents cannot sell after a conversion (the reference allows it; the recorded
   games never do).
 - The game ends after the final set's last OR, before its MR, as before.
-- The Station Subsidy private's discount comes with slice 7.
+- The Station Subsidy private's discount comes with slice 9 (volatility).
 
 ### Acceptance examples
 
@@ -1312,7 +1312,7 @@ pays it, 1848's company borrows from its president, 18NY writes it off.
 
 ### Limits after slice 6
 
-- The Golden Parachute private's $100 comes with private powers (slice 7).
+- The Golden Parachute private's $100 comes with slice 9 (volatility).
 - A company left without a president by bankruptcy has its bidding start from the
   first player in turn order; the reference starts left of the bankrupt player.
 - Presidents cannot pass on all future offers at once; each offer is asked.
@@ -1333,6 +1333,111 @@ pays it, 1848's company borrows from its president, 18NY writes it off.
   it, its stations leave the map and its president pays $260.
 - An offered or acquisition-zone company with no bids keeps operating.
 - The final set ends after its last AR.
+
+## Slice 7 design: private powers
+
+Slice 7 gives the eleven base privates their powers, all of which work only while a
+company owns the private: mines and bridges that add to every company's routes, the
+Mountain Engineers' building income, the Pittsburgh Steel Mill's X00, mail income and
+the Train Station's extra station. It also adds the Modern Trains option.
+
+### Evidence
+
+- **Owners** ([entities], [game]). Every power belongs to a company; a private a player
+  holds does nothing. Companies gain privates only by contribution at formation, a
+  merger or an acquisition (slices 1, 5 and 6).
+- **Coal mines** (Minor $30, Coal $60, Major $90). Each lays a yellow tile 7, 8 or 9 on
+  one of twelve mountain hexes (B25, C20, C24, E18, F15, G12, G14, H11, H13, H15, I8,
+  I10), as one of the company's lays, connected to its network and free of the $15
+  terrain cost: one, two or three lays, after which the private closes. The tile must
+  face a neighbouring city, town or offboard. The hex then holds a mine: nobody may
+  upgrade it, and every company's route earns $10 for each mine hex it passes through.
+- **Bridges** (Ohio $40, Union $80). Water lays cost the owner $10 less (rivers only, not
+  lakes). In any of its operating turns, the owner may place one bridge (Ohio) or two
+  (Union) on Louisville (H3), Cincinnati (G6) or Charleston (H9), one bridge per city
+  for the game; the private stays open for its discount. Every company's route earns
+  $10 for each bridge city it stops at.
+- **Mountain Engineers** ($40). Each tile its owner lays on a mountain hex pays the
+  company $20 from the bank, once per mountain, including mine lays.
+- **Pittsburgh Steel Mill** ($40). Its owner lays the X00 tile (yellow city, $30, label
+  B) on F13 as one of its lays, without a connection; the private then closes. It also
+  closes if a company lays another tile on F13 while no player holds it.
+- **Mail** (Minor $60 / $10, Mail Contract $90 / $15, Major $120 / $20). At the start
+  of each OR the owning company receives the amount if it has a train. This is company
+  income, not route revenue.
+- **Train Station** ($80). The company it is contributed to gains one free extra station
+  beyond those its size needs; the private closes at the end of that stock round.
+- **Modern Trains** (option). A 7-train earns $10, and an 8-train $20, more at each
+  city it stops at that holds its company's station.
+- **Merges and acquisitions** move privates with the other assets; mines and bridges
+  stay on the map whatever happens to their companies.
+
+### Survey
+
+Route bonuses tied to a hex appear in about 37 researched titles: as a marker only its
+company profits from (1846, 18LA, 1856, 1849, about 14 titles), as a marker every
+company profits from (the 1817 family, 18USA, 18Hiawatha, 1877, 18FR), or as a fixed
+hex bonus held by a company (1867, 1861, 1880, 18GB and others). Terrain discounts
+appear in 31 titles and building income like the Mountain Engineers' in 9. Special tile
+lays appear in 66 titles, 25 with tiles of their own, and private lays usable several
+times are common (free or discounted, in place of a lay, connected or not). Mail
+contracts take five forms (flat per OR, per stop of the longest route, endpoint values
+as a subsidy, phase steps, other). Extra stations from privates appear in 7 titles.
+Revenue bonuses that depend on the train, like Modern Trains, are title rules.
+
+### Decisions
+
+- **Route bonuses are family.** `RouteRules.bonuses(state, train, companyId)` names
+  amounts per hex passed through and per stop; route evaluation adds them to the
+  route's revenue and records them, and the autorouter receives them as its hex
+  bonuses and per-train stop revenues, which it already supports. They are route
+  revenue, paid out or withheld with the rest.
+- **Location markers are family state:** `locationMarkers` records a kind (mine,
+  bridge), a location and the private that placed it. The map draws them; title rules
+  read them for bonuses and restrictions.
+- **Private powers grow in the family:**
+    - private track lays may have several uses, counted per private, and a lay can carry
+      an after-effect (placing a marker, closing the private when used up);
+    - `PlacePrivateMarker` places a marker from the title's terms (private, company,
+      locations, kind) during the owning company's operating turn;
+    - `TrackRules.afterLay` returns what a lay pays or closes, for the Mountain
+      Engineers and the Steel Mill;
+    - `PrivateRules.income(state, privateId)` lets a private's income depend on its
+      owner, for mail.
+- **1817's rules** use them: mine lays (terms, rotation, marker, no upgrade), bridges
+  (water discount in `terrainCost`, markers, one per city), the Mountain Engineers'
+  income, the Steel Mill's X00 lay and closure (X00 is otherwise restricted), mail,
+  and the Train Station's station at formation. The Train Station closes as it is
+  contributed, as its station is all it gives and the stock round would close it.
+- **Modern Trains** is a configurator option stored as title state, read by 1817's
+  route bonuses.
+- **The table** draws markers, offers marker placement and mine lays with the
+  operating panels' private controls, shows a route's bonuses, and records lay income,
+  markers and mail in history.
+- **Two commits.** 7a: route bonuses, markers, mines, bridges and Modern Trains. 7b: the
+  Mountain Engineers, the Steel Mill, mail and the Train Station.
+
+### Limits after slice 7
+
+- Golden Parachute and Station Subsidy, named for slice 7 in slices 5 and 6, are
+  volatility privates and come with slice 9, as do ranches and the other X00 cities.
+- The mine tile's direction is checked against neighbouring cities, towns and
+  offboards, without the reference's look-ahead to upgrades.
+
+### Acceptance examples
+
+- A company with the Coal Mine lays tile 8 on G12 for free as a lay; the hex holds a
+  mine, can no longer be upgraded, and any company's train through it earns $10 more.
+- A company with the Union Bridge places bridges on Cincinnati and Louisville; a route
+  stopping at both earns $20 more; nobody can place another there.
+- A water lay costs a bridge owner $0 instead of $10.
+- The Mountain Engineers' company lays on a mountain and receives $20.
+- The Steel Mill's company lays X00 on F13 unconnected; the private closes.
+- A company owning the Mail Contract and a train receives $15 at the OR's start; without
+  a train it receives nothing.
+- A company formed with the Train Station has one more station than its size needs.
+- With Modern Trains, an 8-train stopping at three cities with its company's stations
+  earns $60 more; the autorouter finds the same revenue.
 
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
