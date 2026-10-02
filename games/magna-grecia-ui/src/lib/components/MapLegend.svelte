@@ -5,6 +5,7 @@
     import { localHexPoints } from '$lib/utils/boardGeometry.js'
     import CityTileArt from './board/CityTileArt.svelte'
     import MarketPiece from './board/MarketPiece.svelte'
+    import OracleArt from './board/OracleArt.svelte'
     import RoadTileArt from './board/RoadTileArt.svelte'
     import Village from './board/Village.svelte'
 
@@ -68,6 +69,12 @@
                 <CityTileArt {color} />
             </svg>
             <span>City</span>
+        </li>
+        <li>
+            <svg viewBox={HEX_VIEW} aria-hidden="true">
+                <OracleArt />
+            </svg>
+            <span>Oracle</span>
         </li>
     </ul>
     <div class="markets">
