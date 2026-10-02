@@ -61,6 +61,7 @@
                     imageAlt=""
                     name={nameOf(row)}
                     shape="wide"
+                    points={{ kind: 'site', slotId: row.slotId }}
                 >
                     {#each row.ways as way, index (index)}
                         <MenuChoice

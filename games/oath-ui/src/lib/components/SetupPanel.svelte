@@ -133,6 +133,7 @@
                             name={siteName(gameState, slotId)}
                             tag="start here"
                             on={siteId === slotId}
+                            points={{ kind: 'site', slotId }}
                             disabled={busy}
                             onclick={() => gameSession.setup.chooseSite(slotId)}
                         />

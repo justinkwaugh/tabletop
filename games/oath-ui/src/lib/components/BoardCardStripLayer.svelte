@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { menuPointer } from '$lib/model/menuPointer.svelte.js'
     import { range, type BoundingBox } from '@tabletop/common'
     import { CardKind, effectiveSiteCapacity, siteRevealPrompt } from '@tabletop/oath'
     import BoardCard from '$lib/components/BoardCard.svelte'
@@ -89,6 +90,7 @@
                     width={placed.width}
                     zIndex={placed.zIndex}
                     pickable={space.pickable}
+                    pointed={menuPointer.is({ kind: 'relic', slotId: relicSlotId })}
                     onpick={() => gameSession.chooseRelicSlot(relicSlotId)}
                 />
             {/if}
@@ -106,6 +108,7 @@
                 zIndex={placed.zIndex}
                 pickable={space.pickable}
                 picked={gameSession.tradeCard === denizenCardId}
+                pointed={menuPointer.is({ kind: 'card', cardId: denizenCardId })}
                 onpick={() => gameSession.chooseCard(denizenCardId)}
             />
             {#if tokens.favor > 0 || tokens.secrets > 0}

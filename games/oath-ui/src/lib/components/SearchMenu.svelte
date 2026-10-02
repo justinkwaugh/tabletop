@@ -40,7 +40,13 @@
 
 <div class="flex flex-col gap-1.5" role="list" aria-label="Sources to search">
     {#each rows as row, index (index)}
-        <MenuRow image={backOf(row)} imageAlt="" name={nameOf(row)} shape="card">
+        <MenuRow
+            image={backOf(row)}
+            imageAlt=""
+            name={nameOf(row)}
+            shape="card"
+            points={row.region ? { kind: 'pile', region: row.region } : { kind: 'deck' }}
+        >
             <MenuChoice
                 label={spoken(row)}
                 disabled={busy}

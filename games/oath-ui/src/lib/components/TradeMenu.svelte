@@ -30,6 +30,7 @@
             imageAlt={suitName(row.suit)}
             name={cardName(row.cardId)}
             marked={marked === row.cardId}
+            points={{ kind: 'card', cardId: row.cardId }}
         >
             {#each row.choices as choice (choice.option)}
                 {@const forFavor = choice.option === TradeOption.ForFavor}

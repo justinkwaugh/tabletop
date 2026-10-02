@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { menuPointer } from '$lib/model/menuPointer.svelte.js'
     import { assertExists } from '@tabletop/common'
     import {
         CardKind,
@@ -129,6 +130,7 @@
         class="discard"
         class:empty={count === 0}
         class:pickable
+        class:pointed={menuPointer.is({ kind: 'pile', region })}
         disabled={!pickable}
         title={pickable
             ? `Search this discard pile — ${row.cost} Supply`
@@ -178,6 +180,7 @@
     <button
         type="button"
         class="deck deck--laid pickable"
+        class:pointed={menuPointer.is({ kind: 'deck' })}
         title="Search the world deck — {worldDeckRow?.cost} Supply"
         style="left:{worldDeckCenter.x}px; top:{worldDeckCenter.y}px;"
         onclick={() => {
@@ -254,7 +257,8 @@
         box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.55);
     }
     .pickable:hover,
-    .pickable:focus-visible {
+    .pickable:focus-visible,
+    .pickable.pointed {
         outline-color: #fde68a;
     }
     button.discard,

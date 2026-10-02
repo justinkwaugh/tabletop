@@ -8,6 +8,7 @@
         powerKey
     } from '@tabletop/oath'
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
+    import type { MenuPointerTarget } from '$lib/model/menuPointer.svelte.js'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import { pawnImage } from '$lib/images/pieceImages.js'
     import { bannerImage } from '$lib/images/tileImages.js'
@@ -65,6 +66,19 @@
                     : cardBack(CardKind.Relic)
             case CampaignTargetKind.SiteRelic:
                 return cardBack(CardKind.Relic)
+        }
+    }
+
+    function targetPoints(target: CampaignTarget): MenuPointerTarget | undefined {
+        switch (target.kind) {
+            case CampaignTargetKind.Site:
+                return { kind: 'site', slotId: target.siteId }
+            case CampaignTargetKind.Banner:
+                return { kind: 'banner', banner: target.banner }
+            case CampaignTargetKind.SiteRelic:
+                return { kind: 'relic', slotId: target.slotId }
+            default:
+                return undefined
         }
     }
 
@@ -157,6 +171,7 @@
                               ? 'piece'
                               : 'card'}
                         on={draft.hasTarget(target)}
+                        points={targetPoints(target)}
                         disabled={busy}
                         onclick={() => draft.toggleTarget(target)}
                     />

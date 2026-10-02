@@ -27,6 +27,7 @@
             image={suitImage(row.suit)}
             imageAlt={suitName(row.suit)}
             name={cardName(row.cardId)}
+            points={{ kind: 'card', cardId: row.cardId }}
         >
             <MenuChoice
                 label={spoken(row)}

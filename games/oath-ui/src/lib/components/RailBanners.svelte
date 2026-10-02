@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { menuPointer } from '$lib/model/menuPointer.svelte.js'
     import { bannerName, bannerTokenKind } from '$lib/model/names.js'
     import { Banner, bannerHolder } from '@tabletop/oath'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
@@ -32,6 +33,7 @@
                     type="button"
                     class="banner"
                     class:banner--pickable={amount !== undefined}
+                    class:banner--pointed={menuPointer.is({ kind: 'banner', banner })}
                     disabled={amount === undefined}
                     title={amount !== undefined
                         ? `Recover ${label} — pay ${amount} or more`
@@ -106,7 +108,8 @@
         outline-offset: 2px;
         box-shadow: 0 0 18px 4px rgba(251, 191, 36, 0.55);
     }
-    .banner--pickable:hover {
+    .banner--pickable:hover,
+    .banner--pickable.banner--pointed {
         outline-color: var(--oath-heading);
     }
     .banner__value {

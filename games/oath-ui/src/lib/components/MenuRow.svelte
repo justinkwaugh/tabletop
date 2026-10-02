@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
+    import { pointsAt, type MenuPointerTarget } from '$lib/model/menuPointer.svelte.js'
 
     // One choice row of an action menu: read left to right, its buttons after the name.
     let {
@@ -8,6 +9,7 @@
         name,
         shape = 'symbol',
         marked = false,
+        points = undefined,
         children
     }: {
         image: string
@@ -16,6 +18,8 @@
         /** A suit symbol, a landscape card such as a site, or an upright card such as a back. */
         shape?: 'symbol' | 'wide' | 'card'
         marked?: boolean
+        /** What the row names on the table, lit while the row is pointed at. */
+        points?: MenuPointerTarget
         children: Snippet
     } = $props()
 
@@ -28,6 +32,7 @@
 
 <div
     role="listitem"
+    {@attach pointsAt(points)}
     class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-md bg-oath-surface-raised px-2 py-1.5"
     class:ring-2={marked}
     class:ring-oath-accent={marked}

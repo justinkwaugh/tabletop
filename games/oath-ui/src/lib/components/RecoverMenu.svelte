@@ -54,6 +54,7 @@
                 imageAlt=""
                 name={relicName(row.slotId)}
                 shape="card"
+                points={{ kind: 'relic', slotId: row.slotId }}
             >
                 <MenuChoice
                     label="Recover {relicName(row.slotId)}: {costWords(row.cost)}"
@@ -98,6 +99,7 @@
                 imageAlt=""
                 name={bannerName(bid.banner)}
                 shape="wide"
+                points={{ kind: 'banner', banner: bid.banner }}
             >
                 <MenuChoice
                     label="Recover the {bannerName(bid.banner)}: pay {least} {bannerTokenKind(

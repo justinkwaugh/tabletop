@@ -662,6 +662,22 @@ test('scenario 2: an Exile chooses a start site from the rows, and a tap on anot
     await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'false')
 })
 
+test('scenario 43: a menu row lights what it names on the table while pointed at', async ({ page }) => {
+    await openTable(page, 'actPhase')
+    await tile(page, 'Travel').click()
+    const row = page.getByRole('list', { name: 'Destinations in the Cradle' }).getByRole('listitem').first()
+    const pointed = page.locator('.board-card.pickable.pointed')
+    await expect(pointed).toHaveCount(0)
+    await row.hover()
+    await expect(pointed).toHaveCount(1)
+    await restMouse(page)
+    await expect(pointed).toHaveCount(0)
+    await row.getByRole('button').first().focus()
+    await expect(pointed).toHaveCount(1)
+    await row.getByRole('button').first().blur()
+    await expect(pointed).toHaveCount(0)
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()

@@ -26,6 +26,7 @@
                 imageAlt=""
                 name={nameOf(slotId)}
                 shape="card"
+                points={{ kind: 'relic', slotId }}
             >
                 <MenuChoice
                     label="Peek at {nameOf(slotId).toLowerCase()}"

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { menuPointer } from '$lib/model/menuPointer.svelte.js'
     import { CardKind } from '@tabletop/oath'
     import BoardCard from '$lib/components/BoardCard.svelte'
     import TokenPair from '$lib/components/TokenPair.svelte'
@@ -78,6 +79,7 @@
             y={0}
             width={rect.width}
             pickable={offer !== undefined}
+            pointed={menuPointer.is({ kind: 'site', slotId })}
             onpick={() => gameSession.chooseSite(slotId)}
             previewSlotId={slotId}
             title={text.title}

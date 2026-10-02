@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { pointsAt, type MenuPointerTarget } from '$lib/model/menuPointer.svelte.js'
+
     // A menu row that is itself the choice: a tap selects it, a second tap deselects it.
     let {
         image,
@@ -8,6 +10,7 @@
         shape = 'wide',
         on,
         disabled,
+        points = undefined,
         onclick
     }: {
         image: string
@@ -18,6 +21,7 @@
         shape?: 'wide' | 'card' | 'piece'
         on: boolean
         disabled: boolean
+        points?: MenuPointerTarget
         onclick: () => void
     } = $props()
 
@@ -30,6 +34,7 @@
 
 <button
     type="button"
+    {@attach pointsAt(points)}
     class="flex w-full items-center gap-2.5 rounded-md border px-2 py-1.5 text-left disabled:opacity-40
            {on
         ? 'border-oath-accent bg-oath-accent-soft ring-1 ring-oath-accent'
