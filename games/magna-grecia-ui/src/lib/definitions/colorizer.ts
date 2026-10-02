@@ -2,7 +2,7 @@ import { Color } from '@tabletop/common'
 import { DefaultColorizer } from '@tabletop/frontend-components'
 import { MagnaGreciaPalette } from './palette.js'
 
-const LIGHT_PLAYER_COLORS = new Set([Color.Yellow, Color.Gray, Color.Blue])
+const LIGHT_PLAYER_COLORS = new Set([Color.Yellow, Color.Gray])
 
 export class MagnaGreciaColorizer extends DefaultColorizer {
     override getUiColor(color?: Color): string {
@@ -18,7 +18,7 @@ export class MagnaGreciaColorizer extends DefaultColorizer {
             case Color.Gray:
                 return 'bg-[#aaafb3]'
             case Color.Blue:
-                return 'bg-[#69a6c3]'
+                return 'bg-[#2b5cc8]'
             default:
                 return super.getBgColor(color)
         }
@@ -33,7 +33,7 @@ export class MagnaGreciaColorizer extends DefaultColorizer {
             case Color.Gray:
                 return 'border-[#aaafb3]'
             case Color.Blue:
-                return 'border-[#69a6c3]'
+                return 'border-[#2b5cc8]'
             default:
                 return super.getBorderColor(color)
         }
