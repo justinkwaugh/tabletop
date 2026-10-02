@@ -3,19 +3,15 @@
     import { actionAllowances } from '$lib/utils/actionAllowances.js'
     import AllowanceIcon from './icons/AllowanceIcon.svelte'
 
-    let {
-        card,
-        label,
-        compact = false
-    }: { card: ActionCard; label: string; compact?: boolean } = $props()
+    let { card, label, size }: { card: ActionCard; label: string; size: number } = $props()
 
     const allowances = $derived(actionAllowances(card))
 </script>
 
-<ul class="allowances" class:compact aria-label={label}>
+<ul class="allowances" style:--size="{size}px" aria-label={label}>
     {#each allowances as allowance (allowance.kind)}
         <li title="{allowance.label}: {allowance.basic}, or {allowance.enhanced} enhanced">
-            <AllowanceIcon kind={allowance.kind} size={compact ? 30 : 40} />
+            <AllowanceIcon kind={allowance.kind} {size} />
             <span class="basic"
                 >{allowance.basic}<sup class="bonus">+{allowance.enhanced - allowance.basic}</sup
                 ></span
@@ -28,43 +24,28 @@
     .allowances {
         display: flex;
         align-items: center;
-        gap: 22px;
+        gap: calc(var(--size) * 0.55);
         margin: 0;
         padding: 0;
         list-style: none;
+        font-family: 'Libre Baskerville', Georgia, serif;
     }
 
     .allowances li {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: calc(var(--size) * 0.15);
     }
 
     .basic {
-        font-size: 40px;
+        font-size: var(--size);
         font-weight: 700;
         line-height: 1;
     }
 
     .bonus {
         margin-left: 2px;
-        font-size: 20px;
+        font-size: calc(var(--size) / 2);
         vertical-align: 0.7em;
-    }
-
-    .compact {
-        gap: 18px;
-    }
-
-    .compact li {
-        gap: 5px;
-    }
-
-    .compact .basic {
-        font-size: 30px;
-    }
-
-    .compact .bonus {
-        font-size: 15px;
     }
 </style>

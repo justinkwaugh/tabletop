@@ -3,6 +3,7 @@
     import { BuildTool } from '$lib/model/session.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { ActionAllowanceKind } from '$lib/utils/actionAllowances.js'
+    import AllowanceList from './AllowanceList.svelte'
     import AllowanceIcon from './icons/AllowanceIcon.svelte'
     import MarketIcon from './icons/MarketIcon.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
@@ -183,8 +184,15 @@
         <LastActionDescription
             fallbackText={gameSession.isViewingHistory ? 'Viewing history' : 'Waiting for turn'}
         />
+        <div class="round-actions">
+            <AllowanceList
+                card={gameSession.gameState.currentCard()}
+                label="This round's actions"
+                size={26}
+            />
+        </div>
     {:else}
-        <div class="text-center text-[17px] tracking-[0.02em]">{message}</div>
+        <div class="message">{message}</div>
         {#if hint}
             <div class="hint" class:warning={hintIsWarning}>{hint}</div>
         {/if}
@@ -257,6 +265,17 @@
 </div>
 
 <style>
+    .message {
+        text-align: center;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 17px;
+        letter-spacing: 0.02em;
+    }
+
+    .round-actions {
+        padding: 4px 0 2px;
+    }
+
     .phases {
         display: flex;
         flex-wrap: wrap;
@@ -380,6 +399,8 @@
     }
 
     .allowance {
+        display: inline-flex;
+        align-items: flex-start;
         font-family: 'Libre Baskerville', Georgia, serif;
         font-weight: 700;
         line-height: 1;
@@ -390,8 +411,9 @@
     }
 
     .bonus {
-        margin-left: 1px;
+        margin: 2px 0 0 1px;
         font-size: 11px;
-        vertical-align: 0.45em;
+        line-height: 1;
+        vertical-align: baseline;
     }
 </style>

@@ -13,9 +13,9 @@
 <FolderTab side="right" label="Upcoming round">
     <div class="upcoming">
         <span class="next-label">Next</span>
-        <AllowanceList {card} label="Next round's actions" compact />
+        <AllowanceList {card} label="Next round's actions" size={32} />
         <div class="section">
-            <SeatSquares playerIds={gameSession.gameState.turnOrderForCard(card)} compact />
+            <SeatSquares playerIds={gameSession.gameState.turnOrderForCard(card)} />
         </div>
     </div>
 </FolderTab>
@@ -24,12 +24,12 @@
     .upcoming {
         display: flex;
         align-items: center;
-        gap: 24px;
+        gap: 28px;
         opacity: 0.6;
     }
 
     .next-label {
-        font-size: 24px;
+        font-size: 30px;
         letter-spacing: 0.06em;
         text-transform: uppercase;
     }
@@ -37,8 +37,8 @@
     .section {
         display: flex;
         align-items: center;
-        height: 38px;
-        padding-left: 24px;
+        height: 44px;
+        padding-left: 28px;
         border-left: 2px solid #c9b394;
     }
 </style>
