@@ -221,6 +221,9 @@ describe('discard piles', () => {
         expect(s.topCardBackType).toBe(CardKind.Denizen)
         expect(s.worldDeckExhausted).toBe(false)
         expect(a.metadata?.opensSearch).toBe(true)
+        // R-2.7.1 — the draw itself is public, as a Search's stop on a Vision is.
+        expect(a.metadata?.visionDrawn).toBe(true)
+        expect(OathVisibility.actions.project(a.dehydrate(), spectator)).toHaveProperty('metadata.visionDrawn', true)
         expect(new ActPhaseStateHandler().onAction(a, machineContext(s))).toBe(MachineState.Searching)
         expect(s.getPlayerState('ruler').secrets).toBe(2)
         // R-9.4 — the Vision drawn reaches its drawer alone, in state and in the record.

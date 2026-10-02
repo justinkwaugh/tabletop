@@ -24,5 +24,7 @@ export const PowerOutcome = Type.Object({
         })
     ),
     mergePiles: Type.Optional(Type.Object({ from: Type.Enum(Region), to: Type.Enum(Region) })),
+    /** R-2.7.1 — the Visions Drawn track is public; the drawn card stays the drawer's (R-9.4). */
+    visionDrawn: Type.Optional(Type.Boolean()),
     pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 }))
 })

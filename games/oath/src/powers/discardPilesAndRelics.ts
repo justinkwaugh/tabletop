@@ -200,7 +200,8 @@ registerEffect('denizen.nomad.oracle', powerIndexOf('denizen.nomad.oracle', Powe
         ctx.state.visionsDrawn = visionsDrawnAfter(ctx.state.visionsDrawn, 1)
         return {
             summary: 'Oracle: drew the next Vision; keep it or discard it as if you had searched',
-            opensSearch: true
+            opensSearch: true,
+            visionDrawn: true
         }
     }
 })

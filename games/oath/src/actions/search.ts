@@ -66,6 +66,8 @@ export const SearchMetadata = Type.Object({
     supplySpent: Type.Number(),
     cardsDrawn: Type.Number(),
     visionsDrawn: Type.Number(),
+    /** R-5.1.2, R-2.7.1 — the stop and the track are public; the card is the drawer's (R-9.4). */
+    stoppedOnVision: Type.Optional(Type.Boolean()),
     /** Truthful Harp */
     revealedDraw: Type.Optional(Type.Array(Type.String())),
     /** R-7.4 */
@@ -185,6 +187,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             supplySpent: cost,
             cardsDrawn: drawn.length,
             visionsDrawn: state.visionsDrawn,
+            stoppedOnVision: draw.stoppedOnVision || undefined,
             modifiers: active.length > 0 ? modifierSummary(active) : undefined,
             tollsPaid: tollNotes.length > 0 ? tollNotes : undefined
         }
