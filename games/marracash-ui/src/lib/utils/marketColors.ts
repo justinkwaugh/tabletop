@@ -1,42 +1,81 @@
 import { MarketColor } from '@tabletop/marracash'
 import { ColorblindColor } from '@tabletop/frontend-components'
+import { mixColors, shiftLightness } from '$lib/utils/colorLightness.js'
 
-export type MarketPalette = { fill: string; stroke: string; tint: string; wash: number }
+export type AwningColors = {
+    base: string
+    outline: string
+    band: string
+    pinstripe: string
+    highlight: string
+    glow: string
+    rim: string
+}
+
+export type MarketPalette = { fill: string; stroke: string; tint: string; awning: AwningColors }
+
+type MarketInks = { fill: string; stroke: string; tint: string }
+
+const White = '#ffffff'
+type AwningStyle = { band: number; highlight: number; shade: number }
+
+const StandardAwning: AwningStyle = { band: 0.45, highlight: 0.6, shade: -0.1 }
+const DeepRedAwning: AwningStyle = { ...StandardAwning, band: 0.2, highlight: 0.35 }
+const ColorblindVermilionAwning: AwningStyle = { ...DeepRedAwning, shade: -0.05 }
+
+function marketPalette(inks: MarketInks, style: AwningStyle = StandardAwning): MarketPalette {
+    const base = shiftLightness(inks.fill, style.shade)
+    const outline = shiftLightness(inks.stroke, style.shade)
+    return {
+        ...inks,
+        awning: {
+            base,
+            outline,
+            band: mixColors(base, White, style.band),
+            pinstripe: mixColors(base, outline, 0.6),
+            highlight: mixColors(base, White, style.highlight),
+            glow: mixColors(base, White, 0.35),
+            rim: mixColors(base, outline, 0.55)
+        }
+    }
+}
 
 const StandardMarketPalettes: Record<MarketColor, MarketPalette> = {
-    [MarketColor.Red]: { fill: '#d9534a', stroke: '#8f2620', tint: '#f2b8b3', wash: 0.55 },
-    [MarketColor.Blue]: { fill: '#4f7fd6', stroke: '#24468c', tint: '#b9cdf2', wash: 0.55 },
-    [MarketColor.Green]: { fill: '#4fae62', stroke: '#256b33', tint: '#bfe3c6', wash: 0.55 },
-    [MarketColor.Purple]: { fill: '#9a5cc6', stroke: '#5a2c80', tint: '#dcc4ee', wash: 0.55 },
-    [MarketColor.Yellow]: { fill: '#e8b830', stroke: '#8a6a0c', tint: '#f6e2a3', wash: 0.55 }
+    [MarketColor.Red]: marketPalette(
+        { fill: '#d9534a', stroke: '#8f2620', tint: '#f2b8b3' },
+        DeepRedAwning
+    ),
+    [MarketColor.Blue]: marketPalette({ fill: '#4f7fd6', stroke: '#24468c', tint: '#b9cdf2' }),
+    [MarketColor.Green]: marketPalette({ fill: '#4fae62', stroke: '#256b33', tint: '#bfe3c6' }),
+    [MarketColor.Purple]: marketPalette({ fill: '#9a5cc6', stroke: '#5a2c80', tint: '#dcc4ee' }),
+    [MarketColor.Yellow]: marketPalette({ fill: '#e8b830', stroke: '#8a6a0c', tint: '#f6e2a3' })
 }
 
 const ColorblindMarketPalettes: Record<MarketColor, MarketPalette> = {
-    [MarketColor.Red]: { fill: '#d64f00', stroke: '#702900', tint: '#f5ab80', wash: 0.72 },
-    [MarketColor.Blue]: {
+    [MarketColor.Red]: marketPalette(
+        { fill: '#d64f00', stroke: '#702900', tint: '#f5ab80' },
+        ColorblindVermilionAwning
+    ),
+    [MarketColor.Blue]: marketPalette({
         fill: ColorblindColor.Blue,
         stroke: '#003f63',
-        tint: '#a8d1ea',
-        wash: 0.55
-    },
-    [MarketColor.Green]: {
+        tint: '#a8d1ea'
+    }),
+    [MarketColor.Green]: marketPalette({
         fill: ColorblindColor.BluishGreen,
         stroke: '#005740',
-        tint: '#a6dcc9',
-        wash: 0.55
-    },
-    [MarketColor.Purple]: {
+        tint: '#a6dcc9'
+    }),
+    [MarketColor.Purple]: marketPalette({
         fill: ColorblindColor.ReddishPurple,
         stroke: '#7d3a60',
-        tint: '#ecc9dc',
-        wash: 0.55
-    },
-    [MarketColor.Yellow]: {
+        tint: '#ecc9dc'
+    }),
+    [MarketColor.Yellow]: marketPalette({
         fill: ColorblindColor.Yellow,
         stroke: '#857c10',
-        tint: '#f8f2b0',
-        wash: 0.55
-    }
+        tint: '#f8f2b0'
+    })
 }
 
 export function marketPalettes(colorBlind: boolean): Record<MarketColor, MarketPalette> {

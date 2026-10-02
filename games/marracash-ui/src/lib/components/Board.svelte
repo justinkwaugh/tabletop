@@ -2,6 +2,7 @@
     import { BoardColumns, BoardRows, Fountains, Palms } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ShopTile from '$lib/components/ShopTile.svelte'
+    import AwningDefs from '$lib/components/AwningDefs.svelte'
     import FountainSpot from '$lib/components/FountainSpot.svelte'
     import DirectionArrows from '$lib/components/DirectionArrows.svelte'
     import RoutePreview from '$lib/components/RoutePreview.svelte'
@@ -66,6 +67,7 @@
                 <feMergeNode in="SourceGraphic"></feMergeNode>
             </feMerge>
         </filter>
+        <AwningDefs />
     </defs>
     <VisitorQueue />
     <g role="img" aria-label="MarraCash market" transform="translate({QueueMargin} {QueueMargin})">

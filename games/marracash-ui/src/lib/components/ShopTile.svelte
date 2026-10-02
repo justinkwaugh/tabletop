@@ -3,6 +3,15 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ownerDiscOutline } from '$lib/utils/playerColors.js'
     import { ShopHaloFilterId, shopRect } from '$lib/utils/boardGeometry.js'
+    import {
+        AwningClothFilterId,
+        AwningCreaseBlurId,
+        AwningShadeOffset,
+        awningCreases,
+        awningGradientId,
+        awningOutline,
+        awningStripesId
+    } from '$lib/utils/awning.js'
 
     let { shop, selectable }: { shop: ShopState; selectable: boolean } = $props()
     const gameSession = getGameSession()
@@ -10,6 +19,16 @@
     let rect = $derived(shopRect(shop.shopId, 6))
     let shopColor = $derived(getShop(shop.shopId).color)
     let palette = $derived(gameSession.marketPalettes[shopColor])
+    let vertical = $derived(rect.height > rect.width)
+    let outline = $derived(awningOutline(rect.width, rect.height))
+    let creases = $derived(awningCreases(rect.width, rect.height))
+    let poles = $derived([
+        { x: 0, y: 0 },
+        { x: rect.width, y: 0 },
+        { x: rect.width, y: rect.height },
+        { x: 0, y: rect.height }
+    ])
+    let clipId = $derived(`marracash-awning-${shop.shopId}`)
     let centerX = $derived(rect.x + rect.width / 2)
     let centerY = $derived(rect.y + rect.height / 2)
 
@@ -26,38 +45,56 @@
 </script>
 
 {#snippet body()}
-    {#if selectable}
-        <rect
-            x={rect.x - 4}
-            y={rect.y - 4}
-            width={rect.width + 8}
-            height={rect.height + 8}
-            rx="13"
-            fill="none"
-            stroke="#ffffff"
-            stroke-width="4"
-            filter="url(#{ShopHaloFilterId})"
-        ></rect>
-    {/if}
-    <rect
-        x={rect.x}
-        y={rect.y}
-        width={rect.width}
-        height={rect.height}
-        rx="10"
-        fill={palette.tint}
-        stroke={palette.stroke}
-        stroke-width="3"
-    ></rect>
-    <rect
-        x={rect.x + 6}
-        y={rect.y + 6}
-        width={rect.width - 12}
-        height={rect.height - 12}
-        rx="7"
-        fill={palette.fill}
-        opacity={palette.wash}
-    ></rect>
+    <g transform="translate({rect.x} {rect.y})">
+        {#if selectable}
+            <path
+                d={outline}
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="8"
+                stroke-linejoin="round"
+                filter="url(#{ShopHaloFilterId})"
+            ></path>
+        {/if}
+        <clipPath id={clipId}>
+            <path d={outline}></path>
+        </clipPath>
+        <path
+            d={outline}
+            fill="url(#{awningStripesId(shopColor, vertical)})"
+            stroke={palette.awning.outline}
+            stroke-width="1.8"
+            stroke-linejoin="round"
+            filter="url(#{AwningClothFilterId})"
+        ></path>
+        <path d={outline} fill="url(#{awningGradientId(shopColor)})" opacity="0.3"></path>
+        <g clip-path="url(#{clipId})" filter="url(#{AwningCreaseBlurId})" fill="none">
+            <g transform="translate({AwningShadeOffset} {AwningShadeOffset})">
+                {#each creases as crease, index (index)}
+                    <path
+                        d={crease.path}
+                        stroke={palette.awning.outline}
+                        stroke-opacity={0.35 * crease.strength}
+                        stroke-width={crease.width}
+                        stroke-linecap="round"
+                    ></path>
+                {/each}
+            </g>
+            {#each creases as crease, index (index)}
+                <path
+                    d={crease.path}
+                    stroke="#ffffff"
+                    stroke-opacity={0.55 * crease.strength}
+                    stroke-width={crease.width}
+                    stroke-linecap="round"
+                ></path>
+            {/each}
+        </g>
+        {#each poles as pole, index (index)}
+            <circle cx={pole.x} cy={pole.y} r="3.2" fill="#7a4f2a" stroke="#4a2f17" stroke-width="1"
+            ></circle>
+        {/each}
+    </g>
     {#if ownerDisc}
         <circle
             cx={centerX}
