@@ -1,5 +1,7 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
+    import CountPicker from '$lib/components/CountPicker.svelte'
+    import { range } from '@tabletop/common'
     import { siteName, transferText } from '$lib/model/names.js'
     import { ConsentRequestKind, forceTotal, type WarbandGroup } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -116,21 +118,19 @@
                     {imperialAvailable}, and the rest stay your own.
                 </div>
                 {#each groups as group, index (JSON.stringify(group.at) + group.owner)}
-                    <label class="block mb-1">
-                        {picked[index] ?? 0} of {group.count}
-                        {gameSession.warbandOwnerName(group.owner)}
-                        {whereText(group)}
-                        <input
+                    <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span class="w-56 max-sm:w-full"
+                            >{gameSession.warbandOwnerName(group.owner)} {whereText(group)}</span
+                        >
+                        <CountPicker
+                            values={range(0, group.count + 1)}
+                            picked={picked[index] ?? 0}
+                            label={(n) =>
+                                `${n} of the ${gameSession.warbandOwnerName(group.owner)} warbands ${whereText(group)}`}
+                            onpick={(n) => consent.setPicked(index, n)}
                             disabled={busy}
-                            type="range"
-                            min="0"
-                            max={group.count}
-                            value={picked[index] ?? 0}
-                            oninput={(event) =>
-                                consent.setPicked(index, Number(event.currentTarget.value))}
-                            class="w-full"
                         />
-                    </label>
+                    </div>
                 {/each}
                 <div
                     class={pickedTotal === imperialAvailable

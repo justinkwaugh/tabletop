@@ -177,13 +177,11 @@ async function tapDimmed(tile: ReturnType<Page['locator']>) {
     await tile.click({ force: true })
 }
 
-async function setSlider(slider: ReturnType<Page['locator']>, value: number) {
-    await slider.evaluate((input, next) => {
-        if (!(input instanceof HTMLInputElement)) throw Error('A slider is a range input')
-        input.value = String(next)
-        input.dispatchEvent(new Event('input', { bubbles: true }))
-    }, value)
+/** A count is a row of number buttons per group, each named "N of the … warbands …". */
+async function pickCount(page: Page, group: number, value: number) {
+    await grid(page).getByRole('button', { name: new RegExp(`^${value} of the `) }).nth(group).click()
 }
+const countRows = (page: Page) => grid(page).getByRole('button', { name: /^0 of the / })
 
 /** Scenario 29: the one line under the Act Phase grid. */
 test('scenario 29: a hover writes the cost and summary, a dimmed tile the reason; a hover replaces the reason and a new state clears it', async ({
@@ -330,7 +328,7 @@ test.describe('scenario 30: answering another player’s request', () => {
 
 /** Scenario 31: the defending side's losses after a won battle (R-5.5.6.a). */
 test.describe('scenario 31: choosing the defending side’s losses', () => {
-    test('one slider per group and a count; Kill is dimmed with the reason until the count is right; Undo clears every count', async ({
+    test('one row of number buttons per group and a count; Kill is dimmed with the reason until the count is right; Undo clears every count', async ({
         page
     }) => {
         await openTable(page, 'exileDefeated')
@@ -339,17 +337,16 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
         expect(facts.machineState).toBe('CampaignDefeat')
         expect((await call(page, 'defeatPicks')).required).toBe(2)
 
-        const sliders = grid(page).locator('input[type="range"]')
         const kill = answer(page, 'Kill these warbands')
-        await expect(sliders).toHaveCount(2)
+        await expect(countRows(page)).toHaveCount(2)
         await expect(grid(page)).toContainText('Chosen 0 of 2')
         await expect(kill).toBeDisabled()
         await expect(grid(page)).toContainText('must kill exactly 2 of the defeated force, not 0')
 
-        await setSlider(sliders.nth(0), 1)
+        await pickCount(page, 0, 1)
         await expect(grid(page)).toContainText('Chosen 1 of 2')
         await expect(kill).toBeDisabled()
-        await setSlider(sliders.nth(1), 1)
+        await pickCount(page, 1, 1)
         await expect(grid(page)).toContainText('Chosen 2 of 2')
         await expect(kill).toBeEnabled()
         await expect(grid(page)).not.toContainText('must kill exactly')
@@ -359,8 +356,8 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
         await expect(kill).toBeDisabled()
         expect((await call(page, 'defeatPicks')).picked).toEqual([0, 0])
 
-        await setSlider(sliders.nth(0), 1)
-        await setSlider(sliders.nth(1), 1)
+        await pickCount(page, 0, 1)
+        await pickCount(page, 1, 1)
         await kill.click()
         await expect
             .poll(async () => (await call(page, 'tableFacts')).machineState)
@@ -375,7 +372,7 @@ test.describe('scenario 31: choosing the defending side’s losses', () => {
     }) => {
         await openTable(page, 'imperialDefeated')
         expect((await call(page, 'tableFacts')).seatId).toBe('chan')
-        await expect(grid(page).locator('input[type="range"]')).toHaveCount(2)
+        await expect(countRows(page)).toHaveCount(2)
         await expect(answer(page, 'Kill these warbands')).toBeDisabled()
     })
 })

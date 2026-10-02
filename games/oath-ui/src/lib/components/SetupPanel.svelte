@@ -2,6 +2,8 @@
     import TokenText from '$lib/components/TokenText.svelte'
     import { ActionType, CardKind, Region, discardRegionFor } from '@tabletop/oath'
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
+    import CountPicker from '$lib/components/CountPicker.svelte'
+    import { range } from '@tabletop/common'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
@@ -54,26 +56,17 @@
                 {gameSession.setup.siteFavorPlaced} of {gameState.favorSupply} placed.
             </div>
             {#each split as { siteCardId, favor }, index (siteCardId)}
-                <div class="mb-1 flex items-center gap-2">
-                    <span class="grow">{cardName(siteCardId)} (prints {pending[index].wanted})</span
+                <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <span class="w-56 max-sm:w-full"
+                        >{cardName(siteCardId)} (prints {pending[index].wanted})</span
                     >
-                    <button
-                        type="button"
-                        class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
-                        disabled={busy || favor <= 0}
-                        onclick={() => gameSession.setup.setSiteFavor(siteCardId, favor - 1)}
-                    >
-                        −
-                    </button>
-                    <span class="w-6 text-center font-semibold">{favor}</span>
-                    <button
-                        type="button"
-                        class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
-                        disabled={busy || favor >= pending[index].wanted}
-                        onclick={() => gameSession.setup.setSiteFavor(siteCardId, favor + 1)}
-                    >
-                        +
-                    </button>
+                    <CountPicker
+                        values={range(0, pending[index].wanted + 1)}
+                        picked={favor}
+                        label={(n) => `place ${n} favor on ${cardName(siteCardId)}`}
+                        onpick={(n) => gameSession.setup.setSiteFavor(siteCardId, n)}
+                        disabled={busy}
+                    />
                 </div>
             {/each}
         </div>

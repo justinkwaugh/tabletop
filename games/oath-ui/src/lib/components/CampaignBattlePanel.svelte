@@ -1,8 +1,9 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
-    import { assertExists } from '@tabletop/common'
+    import { assertExists, range } from '@tabletop/common'
     import { CardKind, MachineState, forceTotal, type WarbandGroup } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import CountPicker from '$lib/components/CountPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { cardName, plural, siteName, relicSiteName } from '$lib/model/names.js'
     import { spoilsSummary } from '$lib/model/spoils.js'
@@ -70,21 +71,19 @@
             </p>
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 {#each defeat.groups as group, index (JSON.stringify(group.at) + group.owner)}
-                    <label class="block mb-1">
-                        {defeat.picked[index] ?? 0} of {group.count}
-                        {gameSession.warbandOwnerName(group.owner)}
-                        {whereText(group)}
-                        <input
-                            type="range"
-                            min="0"
-                            max={group.count}
-                            value={defeat.picked[index] ?? 0}
+                    <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span class="w-56 max-sm:w-full"
+                            >{gameSession.warbandOwnerName(group.owner)} {whereText(group)}</span
+                        >
+                        <CountPicker
+                            values={range(0, group.count + 1)}
+                            picked={defeat.picked[index] ?? 0}
+                            label={(n) =>
+                                `${n} of the ${gameSession.warbandOwnerName(group.owner)} warbands ${whereText(group)}`}
+                            onpick={(n) => defeat.setPicked(index, n)}
                             disabled={busy}
-                            oninput={(event) =>
-                                defeat.setPicked(index, Number(event.currentTarget.value))}
-                            class="w-full"
                         />
-                    </label>
+                    </div>
                 {/each}
                 <div
                     class={defeat.pickedTotal === defeat.required
@@ -129,21 +128,19 @@
             <div class="mb-2 border-t border-oath-divider pt-1.5 text-xs">
                 <div class="mb-1">To win, sacrifice {needed} of these:</div>
                 {#each losses.force as group, index (JSON.stringify(group.at) + group.owner)}
-                    <label class="block mb-1">
-                        {losses.sacrificed[index] ?? 0} of {group.count}
-                        {gameSession.warbandOwnerName(group.owner)}
-                        {whereText(group)}
-                        <input
-                            type="range"
-                            min="0"
-                            max={group.count}
-                            value={losses.sacrificed[index] ?? 0}
+                    <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span class="w-56 max-sm:w-full"
+                            >{gameSession.warbandOwnerName(group.owner)} {whereText(group)}</span
+                        >
+                        <CountPicker
+                            values={range(0, group.count + 1)}
+                            picked={losses.sacrificed[index] ?? 0}
+                            label={(n) =>
+                                `${n} of the ${gameSession.warbandOwnerName(group.owner)} warbands ${whereText(group)}`}
+                            onpick={(n) => losses.setSacrificed(index, n)}
                             disabled={busy}
-                            oninput={(event) =>
-                                losses.setSacrificed(index, Number(event.currentTarget.value))}
-                            class="w-full"
                         />
-                    </label>
+                    </div>
                 {/each}
             </div>
         {/if}
@@ -153,21 +150,19 @@
                     If you sacrifice nothing and lose, {losses.defeatRequired} of these die:
                 </div>
                 {#each losses.force as group, index (JSON.stringify(group.at) + group.owner)}
-                    <label class="block mb-1">
-                        {losses.defeated[index] ?? 0} of {group.count}
-                        {gameSession.warbandOwnerName(group.owner)}
-                        {whereText(group)}
-                        <input
-                            type="range"
-                            min="0"
-                            max={group.count}
-                            value={losses.defeated[index] ?? 0}
+                    <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span class="w-56 max-sm:w-full"
+                            >{gameSession.warbandOwnerName(group.owner)} {whereText(group)}</span
+                        >
+                        <CountPicker
+                            values={range(0, group.count + 1)}
+                            picked={losses.defeated[index] ?? 0}
+                            label={(n) =>
+                                `${n} of the ${gameSession.warbandOwnerName(group.owner)} warbands ${whereText(group)}`}
+                            onpick={(n) => losses.setDefeated(index, n)}
                             disabled={busy}
-                            oninput={(event) =>
-                                losses.setDefeated(index, Number(event.currentTarget.value))}
-                            class="w-full"
                         />
-                    </label>
+                    </div>
                 {/each}
             </div>
         {/if}

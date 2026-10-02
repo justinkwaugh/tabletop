@@ -8,6 +8,8 @@
         type WarbandOwner
     } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
+    import CountPicker from '$lib/components/CountPicker.svelte'
+    import { range } from '@tabletop/common'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
@@ -40,6 +42,12 @@
 
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
+
+    // An open count (Witch's Bargain) stops at what the player holds; the engine judges the pair.
+    let countCeiling = $derived.by(() => {
+        const me = gameSession.myPlayerState
+        return me ? Math.max(me.favor, me.secrets) : 0
+    })
 
     function relicSlotLabel(slotId: string): string {
         if (/^reliquary\./.test(slotId)) return reliquaryLabel(slotId)
@@ -150,17 +158,16 @@
     {@const option = legal.options[pick]}
     <div class="mb-1 text-xs">
         {#if legal.spec.kind === PowerChoiceKind.Count}
-            <label class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span class="text-oath-text-muted">{legal.spec.what ?? 'how many'}:</span>
-                <input
+                <CountPicker
+                    values={range(0, countCeiling + 1)}
+                    picked={picks.count[i] ?? 0}
+                    label={(n) => `${legal.spec.what ?? 'how many'}: ${n}`}
+                    onpick={(n) => setCount(legal, i, n)}
                     disabled={busy}
-                    type="number"
-                    min="0"
-                    value={picks.count[i] ?? 0}
-                    class="w-16 rounded bg-oath-surface-raised px-1 py-0.5 text-xs"
-                    oninput={(event) => setCount(legal, i, Number(event.currentTarget.value))}
                 />
-            </label>
+            </div>
         {:else if legal.spec.kind === PowerChoiceKind.FavorBank}
             {@const banks = favorBankSuits(legal.options)}
             <div class="text-oath-text-muted mb-1">{legal.spec.what ?? 'a favor bank'}:</div>
@@ -197,16 +204,12 @@
                     </label>
                     {#if ticked && choice.kind === PowerChoiceKind.Warbands}
                         {@const max = choice.group.count}
-                        <input
+                        <CountPicker
+                            values={range(1, max)}
+                            picked={picks.severalCount[severalCountKey(i, j)] ?? max}
+                            label={(n) => `how many: ${n}`}
+                            onpick={(n) => setSeveralCount(legal, i, j, n)}
                             disabled={busy}
-                            type="number"
-                            min="1"
-                            {max}
-                            aria-label="how many"
-                            value={picks.severalCount[severalCountKey(i, j)] ?? max}
-                            class="w-14 rounded bg-oath-surface-raised px-1 py-0.5 text-xs"
-                            oninput={(event) =>
-                                setSeveralCount(legal, i, j, Number(event.currentTarget.value))}
                         />
                     {/if}
                 </div>
@@ -264,18 +267,16 @@
             {/if}
             {#if option?.kind === PowerChoiceKind.Warbands}
                 {@const max = option.group.count}
-                <label class="flex items-center gap-2 mt-1">
+                <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span class="text-oath-text-muted">how many:</span>
-                    <input
+                    <CountPicker
+                        values={range(1, max)}
+                        picked={picks.count[i] ?? max}
+                        label={(n) => `how many: ${n}`}
+                        onpick={(n) => setCount(legal, i, n)}
                         disabled={busy}
-                        type="number"
-                        min="1"
-                        {max}
-                        value={picks.count[i] ?? max}
-                        class="w-16 rounded bg-oath-surface-raised px-1 py-0.5 text-xs"
-                        oninput={(event) => setCount(legal, i, Number(event.currentTarget.value))}
                     />
-                </label>
+                </div>
             {/if}
         {/if}
         {#if legal.options.length === 0 && legal.spec.min > 0}
