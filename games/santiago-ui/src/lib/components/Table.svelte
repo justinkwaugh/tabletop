@@ -9,7 +9,8 @@
         GameSession
     } from '@tabletop/frontend-components'
     import { MachineState } from '@tabletop/santiago'
-    import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import { setGameSession, getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import type { SantiagoGameSession } from '$lib/stores/SantiagoGameSession.svelte.js'
     import type { SantiagoProjectedState, HydratedSantiagoGameState } from '@tabletop/santiago'
     import Board from './Board.svelte'
@@ -33,9 +34,12 @@
     // svelte-ignore state_referenced_locally
     setGameSession(gameSession as SantiagoGameSession)
 
+    const deal = getGameSession().tileDeal
+
     const session = $derived(gameSession as SantiagoGameSession)
     const state = $derived(session.gameState)
     const isEndOfGame = $derived(state.machineState === MachineState.EndOfGame)
+    const isTileReveal = $derived(state.machineState === MachineState.TileReveal)
     const isBidding = $derived(state.machineState === MachineState.Bidding)
     const isPlanting = $derived(state.machineState === MachineState.PlantingPhase)
     const myId = $derived(session.myPlayer?.id)
@@ -47,7 +51,7 @@
         (state.revealedTiles?.length ?? 0) > 0
     )
     const revealedTiles = $derived(
-        (isBidding || isPlanting) ? state.revealedTiles ?? [] : []
+        deal.dealingTiles ?? ((isBidding || isPlanting) ? state.revealedTiles : [])
     )
 
     const displayTiles = $derived(
@@ -93,10 +97,20 @@
 }
 </style>
 
+{#snippet drawPile()}
+    <img src={desertUrl} alt="tiles remaining"
+         class="w-full h-full object-cover"
+         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+    <span class="absolute inset-0 flex items-center justify-center text-white font-black text-[36px]"
+          style="text-shadow: 0 1px 3px rgba(0,0,0,0.9)">
+        {state.getRemainingTileCount()}
+    </span>
+{/snippet}
+
 <CustomFont fontFamily="Bitter" url={BitterFont} format="woff2" />
 <CustomFont fontFamily="Lora" url={LoraFont} format="woff2" />
 
-<div class="santiago-root earth-texture bg-[#1c1410]">
+<div class="santiago-root earth-texture bg-[#1c1410]" {@attach attachAnimator(deal)}>
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
@@ -161,67 +175,96 @@
                              the box ScalingWrapper actually measures and doesn't clip. -->
                         <div class="pl-8 pr-8 pt-4">
                             <div class="flex items-start gap-4">
-                                {#if displayTiles.length > 0}
-                                    <!-- Revealed tiles (auction, selection, or neutral placement,
-                                         whichever phase we're in) — a vertical strip to the
-                                         board's left, top-aligned with it, for the whole round.
-                                         No label: position and the toolbar's own phase hint
-                                         already make it obvious what these are. mt-5 nudges the
-                                         whole strip down slightly — the selected tile's scale-up
-                                         (tile-selected, transform:scale(1.1)) needs clearance
-                                         above it when it's the top tile, otherwise it clips
-                                         against ScalingWrapper's measured content box. Board is
-                                         taller than this column, so this borrows from its
-                                         already-reserved height rather than growing the row
-                                         (which would re-break the board's top-edge alignment
-                                         with the player panel). -->
-                                    <div class="flex flex-col gap-2 shrink-0 mt-5">
+                                {#if displayTiles.length > 0 || isTileReveal}
+                                    <!-- This round's tiles with the draw pile below them — a
+                                         vertical strip to the board's left, top-aligned with it,
+                                         for the whole round. Before the reveal the pile stands
+                                         alone at the top. mt-5 gives the top element's hover
+                                         scale-up clearance against ScalingWrapper's measured
+                                         content box; Board is taller than this column, so it
+                                         borrows from already-reserved height. -->
+                                    <div class="flex flex-col gap-2 shrink-0 mt-5" style="perspective: 900px">
                                         {#each displayTiles as { tile, isSelected }, i (i)}
-                                            {#if isSelected}
-                                                <div class="rounded-md overflow-hidden tile-selected shrink-0"
-                                                     style="width:{CELL_W}px; height:{CELL_H}px">
+                                            <div
+                                                class="shrink-0"
+                                                style="transform-style: preserve-3d"
+                                                {@attach (el) => {
+                                                    deal.setTileNode(i, el)
+                                                    return () => deal.setTileNode(i, undefined)
+                                                }}
+                                            >
+                                                {#if deal.dealingTiles}
+                                                    <!-- Two faces for the deal: the pile's back design
+                                                         and the tile's face, which the animator turns
+                                                         over once the pile has come to rest on it. -->
+                                                    <div class="relative" style="width:{CELL_W}px; height:{CELL_H}px; transform-style: preserve-3d">
+                                                        <img src={desertUrl} alt=""
+                                                             class="absolute inset-0 w-full h-full rounded-md object-cover"
+                                                             style="backface-visibility: hidden" />
+                                                        <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                             alt={tile.crop}
+                                                             class="absolute inset-0 w-full h-full rounded-md object-cover"
+                                                             style="backface-visibility: hidden; transform: rotateY(180deg); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                    </div>
+                                                {:else if isSelected}
+                                                    <div class="rounded-md overflow-hidden tile-selected shrink-0"
+                                                         style="width:{CELL_W}px; height:{CELL_H}px">
+                                                        <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                             alt={tile.crop}
+                                                             class="w-full h-full object-cover" />
+                                                    </div>
+                                                {:else if isMyPlantTurn}
+                                                    <button
+                                                        onclick={() => session.selectTile(i)}
+                                                        class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                        style="width:{CELL_W}px; height:{CELL_H}px"
+                                                    >
+                                                        <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                             alt={tile.crop}
+                                                             class="w-full h-full object-cover"
+                                                             style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                    </button>
+                                                {:else if isNeutralPlacementMode}
+                                                    <button
+                                                        onclick={() => session.selectTile(i)}
+                                                        class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                        style="width:{CELL_W}px; height:{CELL_H}px"
+                                                    >
+                                                        <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
+                                                             alt={tile.crop}
+                                                             class="w-full h-full object-cover"
+                                                             style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
+                                                    </button>
+                                                {:else}
                                                     <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
                                                          alt={tile.crop}
-                                                         class="w-full h-full object-cover" />
-                                                </div>
-                                            {:else if isMyPlantTurn}
-                                                <button
-                                                    onclick={() => session.selectTile(i)}
-                                                    class="rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                                    style="width:{CELL_W}px; height:{CELL_H}px"
-                                                >
-                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                         alt={tile.crop}
-                                                         class="w-full h-full object-cover"
-                                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                                                </button>
-                                            {:else if isNeutralPlacementMode}
-                                                <button
-                                                    onclick={() => session.selectTile(i)}
-                                                    class="relative rounded-md overflow-hidden ring-2 ring-purple-400/70 shrink-0 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                                    style="width:{CELL_W}px; height:{CELL_H}px"
-                                                >
-                                                    <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                         alt={tile.crop}
-                                                         class="w-full h-full object-cover"
-                                                         style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5)) grayscale(30%)" />
-                                                </button>
-                                            {:else}
-                                                <img src={fieldImageUrl(tile.crop, tile.farmerCapacity)}
-                                                     alt={tile.crop}
-                                                     class="rounded-md object-cover"
-                                                     style="width:{CELL_W}px; height:{CELL_H}px; filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                                            {/if}
+                                                         class="rounded-md object-cover"
+                                                         style="width:{CELL_W}px; height:{CELL_H}px; filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
+                                                {/if}
+                                            </div>
                                         {/each}
                                         {#if state.getRemainingTileCount() > 0}
-                                            <div class="relative rounded-md overflow-hidden" style="width:{CELL_W}px; height:{CELL_H}px">
-                                                <img src={desertUrl} alt="tiles remaining"
-                                                     class="w-full h-full object-cover"
-                                                     style="filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.5))" />
-                                                <span class="absolute inset-0 flex items-center justify-center text-white font-black text-[36px]"
-                                                      style="text-shadow: 0 1px 3px rgba(0,0,0,0.9)">
-                                                    {state.getRemainingTileCount()}
-                                                </span>
+                                            <div
+                                                class="relative z-10 shrink-0"
+                                                {@attach (el) => {
+                                                    deal.setDrawPile(el)
+                                                    return () => deal.setDrawPile(undefined)
+                                                }}
+                                            >
+                                                {#if session.canRevealTiles}
+                                                    <button
+                                                        onclick={() => session.revealTiles()}
+                                                        aria-label="Reveal this round's fields"
+                                                        class="relative rounded-md overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                                        style="width:{CELL_W}px; height:{CELL_H}px"
+                                                    >
+                                                        {@render drawPile()}
+                                                    </button>
+                                                {:else}
+                                                    <div class="relative rounded-md overflow-hidden" style="width:{CELL_W}px; height:{CELL_H}px">
+                                                        {@render drawPile()}
+                                                    </div>
+                                                {/if}
                                             </div>
                                         {/if}
                                     </div>

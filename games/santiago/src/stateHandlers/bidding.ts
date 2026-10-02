@@ -4,7 +4,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 
-// Bidding phase rules:
+// Bidding phase rules (round setup and the bidding order live in TileRevealStateHandler):
 //  - Players bid sequentially, starting with the player left of the previous overseer
 //  - Non-zero bids must be unique (later bidders can see earlier bids)
 //  - Lowest bidder becomes canal overseer; ties at zero broken by clockwise turn order
@@ -46,60 +46,7 @@ export class BiddingStateHandler
 
     enter(context: MachineContext<HydratedSantiagoGameState>) {
         const state = context.gameState
-
-        // Self-transition: we're mid-round (at least one bid placed, more still to come).
-        // enter() is called again because onAction() returned MachineState.Bidding.
-        // Just update the active player — do NOT re-run round setup.
-        const isSelfTransition =
-            state.currentBidderIndex > 0 &&
-            state.currentBidderIndex < state.biddingOrder.length
-        if (isSelfTransition) {
-            state.activePlayerIds = [state.biddingOrder[state.currentBidderIndex]]
-            return
-        }
-
-        // Fresh round entry — run full round setup.
-        const prevOverseer = state.canalOverseerId
-
-        state.round++
-        state.planterIndex = 0
-        state.previousOverseerId = prevOverseer
-        state.canalOverseerId = undefined
-        state.extraIrrigationPassed = []
-        state.extraIrrigationOrder = []
-        state.extraIrrigationIndex = 0
-        state.plantersOrder = []
-        state.overseerBidZero = false
-        state.canalProposals = []
-        state.canalProposalOrder = []
-        state.canalProposalIndex = -1
-
-        for (const player of state.players) {
-            player.clearBid()
-        }
-
-        // Pre-draw tiles for the auction: 4 for 3–4 players, 5 for 5 players.
-        // With 3 players the extra tile is discarded after planting.
-        const tilesPerRound = Math.max(4, state.players.length)
-        state.revealedTiles = []
-        for (let i = 0; i < tilesPerRound; i++) {
-            const tile = state.drawTile()
-            if (tile) state.revealedTiles.push(tile)
-        }
-
-        // Bidding order: clockwise starting from player left of previous overseer.
-        const turnOrder = state.turnManager.turnOrder
-        const prevIndex = prevOverseer
-            ? turnOrder.indexOf(prevOverseer)
-            : turnOrder.length - 1
-        const startIndex = (prevIndex + 1) % turnOrder.length
-        state.biddingOrder = [
-            ...turnOrder.slice(startIndex),
-            ...turnOrder.slice(0, startIndex)
-        ]
-
-        state.currentBidderIndex = 0
-        state.activePlayerIds = [state.biddingOrder[0]]
+        state.activePlayerIds = [state.biddingOrder[state.currentBidderIndex]]
     }
 
     onAction(
