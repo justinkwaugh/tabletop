@@ -935,6 +935,98 @@ crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
   goes bankrupt, their companies are liquidated, and with one player left the game
   ends.
 
+## Slice 4 design: short selling
+
+Slice 4 lets players short 1817's 5- and 10-share companies: opening a short in the
+stock round, closing it by buying a share, paying dividends on it, its valuation, the
+market's own shorts, and the 5 Shorts and Short Squeeze options.
+
+### Evidence
+
+- **A short is a pair** ([game]). Shorting issues one new share of the company to the
+  market and gives the player a matching negative share; the bank pays the player the
+  current price. The company's treasury is untouched, and the share count grows by
+  one for as long as the short stands.
+- **Opening** ([stock-step]). In the stock round, before any purchase that turn, a
+  player who holds none of a company (or is already short) may short it if it has more
+  than 2 shares, has floated and operated, is outside the acquisition and liquidation
+  zones, and the game is not in phase 8. Shorts on a company stay below its share
+  count; with 5 Shorts, below 5. One short a turn; a shorted company cannot be bought
+  by that player again that stock round. Shorting moves no price, but the new market
+  share lowers the price at the round's end like any other.
+- **Closing.** A player who is short and buys one of the company's shares, from the
+  market or the treasury at the current price, cancels it against one short. The
+  ownership and certificate limits do not stop such a purchase. Nothing else closes a
+  player's short: it stands until the game ends, a merger (slice 5) or the company's
+  settlement (slice 6).
+- **Dividends.** A payout pays every holding by its net shares, so a short holder pays
+  the bank the dividend per share, even into debt, which is a cash crisis. Half pay
+  applies too. Market shares, long or short, pay and receive nothing.
+- **Valuation.** A short counts as minus the current price. Shorts do not count toward
+  the certificate limit; ownership is net.
+- **The market's shorts.** A bankrupt player's shorts go to the market. The market
+  cancels each against one of its own shares of the company, and at the start of each
+  stock round buys treasury shares with the bank's money to cancel the rest, except in
+  the acquisition and liquidation zones.
+- **Sold out.** A company of more than 2 shares moves up when players' positive net
+  holdings reach 100%. With Short Squeeze it moves up again when they exceed 100%.
+
+### Survey
+
+Shorts exist only in the 1817 family: 1817, 1817NA and 1817WO, 18USA and 18FR (all
+1817's rule), and 1877 and 18Hiawatha, which drop the operated and phase-8 checks.
+18DE forbids them. 18FR raises a player's certificate limit for each short held at the
+end of a stock round. Every title represents a short as the same pair, and nets it in
+dividends, valuation and settlement; no other family lends shares.
+
+### Decisions
+
+- **A short is a certificate of its own kind.** The family `Certificate` gains a
+  `short` kind: a company, a share count (1) and an owner, worth zero toward the
+  certificate limit. Code that handles shares by kind leaves it alone (presidency,
+  sales, purchases, sold-out checks), and the places that must net it do so
+  explicitly: `sharesOwned`, dividend entitlements and valuation. Negative share counts
+  on ordinary certificates were rejected, because every existing sum, sale and
+  presidency rule would silently take them in.
+- **Opening is a 1817 action.** `ShortShare` names the company and price, issues the
+  market share and the short, pays the player and records the short on the turn
+  (`StockTurn.shorted`) and as a sale of that company this round, which already stops
+  buying it back. It is open only before a purchase that turn.
+- **Closing is a purchase.** The family's share purchase, made by a holder of a short,
+  retires the bought share with one short, waiving the ownership and certificate
+  limits.
+- **Dividends may be owed.** A negative entitlement becomes a payment from its holder
+  to the bank. A holder who cannot pay it all pays what they have and is in a cash
+  crisis. `cashCrisis` becomes a queue of debts with one continuation, served from the
+  operating company's president in turn order, as payouts can leave several players
+  owing at once.
+- **The market's shorts are 1817 system actions.** A bankrupt player's shorts join the
+  market. `CloseMarketShorts` cancels them against market shares, and in the stock
+  round against treasury shares bought with the bank's money.
+- **Sold out gains a squeeze.** `StockRoundRules.squeezed` (optional) gives a sold-out
+  company its second move; 1817 counts positive net player holdings for both.
+- **Options.** 1817 gains a configurator with Short Squeeze and 5 Shorts, stored as
+  title state at setup, as 1830 stores its option.
+
+### Limits after slice 4
+
+- Shorts in conversions, mergers and settlements come with slices 5 and 6.
+- 18FR's certificate limit and the 1877 eligibility are not modelled.
+
+### Acceptance examples
+
+- Shorting a 5-share company at $70 pays the player $70, adds a market share, and at
+  the round's end the company drops one space; the player cannot buy it that round.
+- With five shorts on a 5-share company a sixth is refused, and with 5 Shorts so is a
+  sixth on a 10-share company.
+- A payout of $12 a share charges each short holder $12; one with $5 pays it and owes
+  $7 in a cash crisis.
+- Buying a share while short closes it, even at the certificate limit.
+- A bankrupt player's short cancels against a market share; one left over is bought
+  out of the treasury at the next stock round.
+- With Short Squeeze, a company whose players hold 110% net moves up twice.
+- At the game's end a short is valued at minus the share price.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/entities.rb
