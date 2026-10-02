@@ -46,19 +46,19 @@
  },
  "initialState": {
   "systemVersion": 3,
-  "id": "n3wzgQNT0xTo3nkawnhd2",
+  "id": "KPxAjTaGqZMD5YBPlLlEe",
   "gameId": "1817-16852",
-  "seed": 2441897774,
+  "seed": 531045581,
   "prng": {
-   "seed": 2441897774,
+   "seed": 531045581,
    "invocations": 1
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
-   "seed": "aa2808a542dcaeaffd9ea3bd003128dd5e1e8389d0258700ae425e35323c0f76",
+   "seed": "8e02e9b2c9a977d38280e92f39e6b0df3676813719e0a83342c15fd7fbdf0c0c",
    "invocations": 0
   },
-  "masterSeed": "6f599198e6fe213acdfbfdb9fb8cc080",
+  "masterSeed": "77e7372ef2277213acf09eac29dbf365",
   "activePlayerIds": [
    "642"
   ],
@@ -3566,14 +3566,6 @@
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
-   "type": "FinishTrack",
-   "companyId": "PW"
-  },
-  {
-   "id": "recorded:167",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "642",
    "type": "BuyTrain",
    "companyId": "PW",
    "trainId": "1817/2/17",
@@ -3581,7 +3573,7 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:168",
+   "id": "recorded:167",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -3598,7 +3590,7 @@
    "price": 10
   },
   {
-   "id": "recorded:169",
+   "id": "recorded:168",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -3606,7 +3598,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:170",
+   "id": "recorded:169",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -3614,7 +3606,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:171",
+   "id": "recorded:170",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -3622,7 +3614,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:172",
+   "id": "recorded:171",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -3630,7 +3622,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:173",
+   "id": "recorded:172",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -3638,7 +3630,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:174",
+   "id": "recorded:173",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -3646,7 +3638,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:175",
+   "id": "recorded:174",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -3654,7 +3646,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:176",
+   "id": "recorded:175",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -3662,7 +3654,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:177",
+   "id": "recorded:176",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -3670,7 +3662,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:178",
+   "id": "recorded:177",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -3678,7 +3670,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:179",
+   "id": "recorded:178",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -3686,7 +3678,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:180",
+   "id": "recorded:179",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -3694,7 +3686,7 @@
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:181",
+   "id": "recorded:180",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -3702,7 +3694,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:182",
+   "id": "recorded:181",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -3710,7 +3702,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:183",
+   "id": "recorded:182",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -3718,7 +3710,7 @@
    "companyId": "UR"
   },
   {
-   "id": "recorded:184",
+   "id": "recorded:183",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -3726,7 +3718,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:185",
+   "id": "recorded:184",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -3734,7 +3726,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:186",
+   "id": "recorded:185",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -3742,7 +3734,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:187",
+   "id": "recorded:186",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -3756,7 +3748,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:188",
+   "id": "recorded:187",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -3769,7 +3761,7 @@
    "expectedCost": 20
   },
   {
-   "id": "recorded:189",
+   "id": "recorded:188",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -3778,7 +3770,7 @@
    "locationId": "H9"
   },
   {
-   "id": "recorded:190",
+   "id": "recorded:189",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -3786,7 +3778,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:191",
+   "id": "recorded:190",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -3842,7 +3834,7 @@
    ]
   },
   {
-   "id": "recorded:192",
+   "id": "recorded:191",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -3851,7 +3843,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:193",
+   "id": "recorded:192",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -3859,7 +3851,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:194",
+   "id": "recorded:193",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -3872,7 +3864,7 @@
    "expectedCost": 20
   },
   {
-   "id": "recorded:195",
+   "id": "recorded:194",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -3924,7 +3916,7 @@
    ]
   },
   {
-   "id": "recorded:196",
+   "id": "recorded:195",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -3933,7 +3925,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:197",
+   "id": "recorded:196",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -3941,7 +3933,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:198",
+   "id": "recorded:197",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -3956,7 +3948,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:199",
+   "id": "recorded:198",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -3964,7 +3956,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:200",
+   "id": "recorded:199",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -4016,7 +4008,7 @@
    ]
   },
   {
-   "id": "recorded:201",
+   "id": "recorded:200",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -4025,7 +4017,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:202",
+   "id": "recorded:201",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -4033,7 +4025,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:203",
+   "id": "recorded:202",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4046,7 +4038,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:204",
+   "id": "recorded:203",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4054,7 +4046,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:205",
+   "id": "recorded:204",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4110,7 +4102,7 @@
    ]
   },
   {
-   "id": "recorded:206",
+   "id": "recorded:205",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4119,7 +4111,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:207",
+   "id": "recorded:206",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4127,7 +4119,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:208",
+   "id": "recorded:207",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4135,7 +4127,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:209",
+   "id": "recorded:208",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4166,7 +4158,7 @@
    ]
   },
   {
-   "id": "recorded:210",
+   "id": "recorded:209",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4175,7 +4167,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:211",
+   "id": "recorded:210",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4183,7 +4175,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:212",
+   "id": "recorded:211",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4191,7 +4183,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:213",
+   "id": "recorded:212",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4204,7 +4196,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:214",
+   "id": "recorded:213",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4212,7 +4204,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:215",
+   "id": "recorded:214",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4239,7 +4231,7 @@
    ]
   },
   {
-   "id": "recorded:216",
+   "id": "recorded:215",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4248,7 +4240,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:217",
+   "id": "recorded:216",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4256,7 +4248,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:218",
+   "id": "recorded:217",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4264,7 +4256,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:219",
+   "id": "recorded:218",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4279,7 +4271,7 @@
    "expectedCost": 15
   },
   {
-   "id": "recorded:220",
+   "id": "recorded:219",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4287,7 +4279,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:221",
+   "id": "recorded:220",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4300,7 +4292,7 @@
    "expectedCost": 30
   },
   {
-   "id": "recorded:222",
+   "id": "recorded:221",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4360,7 +4352,7 @@
    ]
   },
   {
-   "id": "recorded:223",
+   "id": "recorded:222",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4369,7 +4361,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:224",
+   "id": "recorded:223",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4377,7 +4369,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:225",
+   "id": "recorded:224",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4392,7 +4384,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:226",
+   "id": "recorded:225",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4400,7 +4392,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:227",
+   "id": "recorded:226",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4431,7 +4423,7 @@
    ]
   },
   {
-   "id": "recorded:228",
+   "id": "recorded:227",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4440,7 +4432,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:229",
+   "id": "recorded:228",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4448,7 +4440,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:230",
+   "id": "recorded:229",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4461,7 +4453,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:231",
+   "id": "recorded:230",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4474,7 +4466,7 @@
    "expectedCost": 20
   },
   {
-   "id": "recorded:232",
+   "id": "recorded:231",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4554,7 +4546,7 @@
    ]
   },
   {
-   "id": "recorded:233",
+   "id": "recorded:232",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4563,7 +4555,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:234",
+   "id": "recorded:233",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4571,7 +4563,7 @@
    "companyId": "UR"
   },
   {
-   "id": "recorded:235",
+   "id": "recorded:234",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4586,7 +4578,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:236",
+   "id": "recorded:235",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4594,7 +4586,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:237",
+   "id": "recorded:236",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4602,7 +4594,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:238",
+   "id": "recorded:237",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4682,7 +4674,7 @@
    ]
   },
   {
-   "id": "recorded:239",
+   "id": "recorded:238",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4691,7 +4683,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:240",
+   "id": "recorded:239",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4699,7 +4691,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:241",
+   "id": "recorded:240",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4707,7 +4699,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:242",
+   "id": "recorded:241",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4715,7 +4707,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:243",
+   "id": "recorded:242",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4723,7 +4715,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:244",
+   "id": "recorded:243",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -4731,7 +4723,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:245",
+   "id": "recorded:244",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -4739,7 +4731,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:246",
+   "id": "recorded:245",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4747,7 +4739,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:247",
+   "id": "recorded:246",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4755,7 +4747,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:248",
+   "id": "recorded:247",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4764,7 +4756,7 @@
    "targetId": "UR"
   },
   {
-   "id": "recorded:249",
+   "id": "recorded:248",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4773,10 +4765,18 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:250",
+   "id": "recorded:249",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
+   "type": "PassConvertedShares",
+   "companyId": "WC"
+  },
+  {
+   "id": "recorded:250",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "512",
    "type": "PassConvertedShares",
    "companyId": "WC"
   },
@@ -4784,7 +4784,7 @@
    "id": "recorded:251",
    "gameId": "1817-16852",
    "source": "user",
-   "playerId": "512",
+   "playerId": "642",
    "type": "PassConvertedShares",
    "companyId": "WC"
   },
@@ -4792,20 +4792,12 @@
    "id": "recorded:252",
    "gameId": "1817-16852",
    "source": "user",
-   "playerId": "642",
-   "type": "PassConvertedShares",
-   "companyId": "WC"
-  },
-  {
-   "id": "recorded:253",
-   "gameId": "1817-16852",
-   "source": "user",
    "playerId": "3739",
    "companyId": "WC",
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:254",
+   "id": "recorded:253",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4813,7 +4805,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:255",
+   "id": "recorded:254",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4821,7 +4813,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:256",
+   "id": "recorded:255",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4829,7 +4821,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:257",
+   "id": "recorded:256",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4837,7 +4829,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:258",
+   "id": "recorded:257",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4845,7 +4837,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:259",
+   "id": "recorded:258",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4853,7 +4845,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:260",
+   "id": "recorded:259",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4861,7 +4853,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:261",
+   "id": "recorded:260",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4869,7 +4861,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:262",
+   "id": "recorded:261",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -4877,7 +4869,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:263",
+   "id": "recorded:262",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4885,7 +4877,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:264",
+   "id": "recorded:263",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -4898,7 +4890,7 @@
    }
   },
   {
-   "id": "recorded:265",
+   "id": "recorded:264",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -4906,7 +4898,7 @@
    "companyId": "R"
   },
   {
-   "id": "recorded:266",
+   "id": "recorded:265",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4914,7 +4906,7 @@
    "companyId": "R"
   },
   {
-   "id": "recorded:267",
+   "id": "recorded:266",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -4927,7 +4919,7 @@
    }
   },
   {
-   "id": "recorded:268",
+   "id": "recorded:267",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4935,14 +4927,14 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:269",
+   "id": "recorded:268",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:270",
+   "id": "recorded:269",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -4955,21 +4947,21 @@
    }
   },
   {
-   "id": "recorded:271",
+   "id": "recorded:270",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:272",
+   "id": "recorded:271",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:273",
+   "id": "recorded:272",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -4980,6 +4972,14 @@
    },
    "certificateId": "BESS:share:1",
    "expectedPrice": 50
+  },
+  {
+   "id": "recorded:273",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "642",
+   "type": "TakeLoan",
+   "companyId": "BESS"
   },
   {
    "id": "recorded:274",
@@ -5001,29 +5001,28 @@
    "id": "recorded:276",
    "gameId": "1817-16852",
    "source": "user",
-   "playerId": "642",
-   "type": "TakeLoan",
-   "companyId": "BESS"
-  },
-  {
-   "id": "recorded:277",
-   "gameId": "1817-16852",
-   "source": "user",
    "playerId": "3739",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:278",
+   "id": "recorded:277",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:279",
+   "id": "recorded:278",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
+   "type": "FinishStockTurn"
+  },
+  {
+   "id": "recorded:279",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "642",
    "type": "FinishStockTurn"
   },
   {
@@ -5031,18 +5030,11 @@
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
-   "type": "FinishStockTurn"
-  },
-  {
-   "id": "recorded:281",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "642",
    "type": "FinishTrack",
    "companyId": "H"
   },
   {
-   "id": "recorded:282",
+   "id": "recorded:281",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5053,7 +5045,7 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:283",
+   "id": "recorded:282",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5064,7 +5056,7 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:284",
+   "id": "recorded:283",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5072,7 +5064,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:285",
+   "id": "recorded:284",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5080,7 +5072,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:286",
+   "id": "recorded:285",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5088,7 +5080,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:287",
+   "id": "recorded:286",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5185,7 +5177,7 @@
    ]
   },
   {
-   "id": "recorded:288",
+   "id": "recorded:287",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5194,7 +5186,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:289",
+   "id": "recorded:288",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5205,7 +5197,7 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:290",
+   "id": "recorded:289",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5213,7 +5205,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:291",
+   "id": "recorded:290",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5221,7 +5213,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:292",
+   "id": "recorded:291",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5229,7 +5221,7 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:293",
+   "id": "recorded:292",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5237,7 +5229,7 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:294",
+   "id": "recorded:293",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5248,7 +5240,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:295",
+   "id": "recorded:294",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5256,7 +5248,7 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:296",
+   "id": "recorded:295",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5264,7 +5256,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:297",
+   "id": "recorded:296",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5279,7 +5271,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:298",
+   "id": "recorded:297",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5287,7 +5279,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:299",
+   "id": "recorded:298",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5343,7 +5335,7 @@
    ]
   },
   {
-   "id": "recorded:300",
+   "id": "recorded:299",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5352,7 +5344,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:301",
+   "id": "recorded:300",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5360,7 +5352,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:302",
+   "id": "recorded:301",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5375,7 +5367,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:303",
+   "id": "recorded:302",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5383,7 +5375,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:304",
+   "id": "recorded:303",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5435,7 +5427,7 @@
    ]
   },
   {
-   "id": "recorded:305",
+   "id": "recorded:304",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5444,7 +5436,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:306",
+   "id": "recorded:305",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5452,7 +5444,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:307",
+   "id": "recorded:306",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5467,7 +5459,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:308",
+   "id": "recorded:307",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5475,7 +5467,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:309",
+   "id": "recorded:308",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5527,7 +5519,7 @@
    ]
   },
   {
-   "id": "recorded:310",
+   "id": "recorded:309",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5536,7 +5528,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:311",
+   "id": "recorded:310",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -5544,7 +5536,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:312",
+   "id": "recorded:311",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5557,7 +5549,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:313",
+   "id": "recorded:312",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5572,6 +5564,14 @@
    "expectedCost": 20
   },
   {
+   "id": "recorded:313",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "3739",
+   "type": "TakeLoan",
+   "companyId": "R"
+  },
+  {
    "id": "recorded:314",
    "gameId": "1817-16852",
    "source": "user",
@@ -5584,14 +5584,6 @@
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
-   "type": "TakeLoan",
-   "companyId": "R"
-  },
-  {
-   "id": "recorded:316",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "3739",
    "type": "BuyTrain",
    "companyId": "R",
    "trainId": "1817/3/46",
@@ -5599,7 +5591,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:317",
+   "id": "recorded:316",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5616,7 +5608,7 @@
    "price": 10
   },
   {
-   "id": "recorded:318",
+   "id": "recorded:317",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5624,7 +5616,7 @@
    "companyId": "R"
   },
   {
-   "id": "recorded:319",
+   "id": "recorded:318",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5639,7 +5631,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:320",
+   "id": "recorded:319",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5647,7 +5639,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:321",
+   "id": "recorded:320",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5662,7 +5654,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:322",
+   "id": "recorded:321",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5722,7 +5714,7 @@
    ]
   },
   {
-   "id": "recorded:323",
+   "id": "recorded:322",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5731,7 +5723,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:324",
+   "id": "recorded:323",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -5739,7 +5731,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:325",
+   "id": "recorded:324",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5752,7 +5744,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:326",
+   "id": "recorded:325",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5760,7 +5752,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:327",
+   "id": "recorded:326",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5791,7 +5783,7 @@
    ]
   },
   {
-   "id": "recorded:328",
+   "id": "recorded:327",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5800,7 +5792,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:329",
+   "id": "recorded:328",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5808,7 +5800,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:330",
+   "id": "recorded:329",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -5816,7 +5808,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:331",
+   "id": "recorded:330",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5831,7 +5823,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:332",
+   "id": "recorded:331",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5839,7 +5831,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:333",
+   "id": "recorded:332",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5899,7 +5891,7 @@
    ]
   },
   {
-   "id": "recorded:334",
+   "id": "recorded:333",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5908,7 +5900,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:335",
+   "id": "recorded:334",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5925,7 +5917,7 @@
    "price": 1
   },
   {
-   "id": "recorded:336",
+   "id": "recorded:335",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5933,7 +5925,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:337",
+   "id": "recorded:336",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5948,7 +5940,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:338",
+   "id": "recorded:337",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5956,7 +5948,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:339",
+   "id": "recorded:338",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5987,7 +5979,7 @@
    ]
   },
   {
-   "id": "recorded:340",
+   "id": "recorded:339",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -5996,7 +5988,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:341",
+   "id": "recorded:340",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6013,7 +6005,7 @@
    "price": 25
   },
   {
-   "id": "recorded:342",
+   "id": "recorded:341",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6021,7 +6013,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:343",
+   "id": "recorded:342",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6034,7 +6026,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:344",
+   "id": "recorded:343",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6042,7 +6034,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:345",
+   "id": "recorded:344",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6057,7 +6049,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:346",
+   "id": "recorded:345",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6117,7 +6109,7 @@
    ]
   },
   {
-   "id": "recorded:347",
+   "id": "recorded:346",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6126,7 +6118,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:348",
+   "id": "recorded:347",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6137,7 +6129,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:349",
+   "id": "recorded:348",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6145,7 +6137,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:350",
+   "id": "recorded:349",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6153,7 +6145,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:351",
+   "id": "recorded:350",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6161,7 +6153,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:352",
+   "id": "recorded:351",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6169,7 +6161,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:353",
+   "id": "recorded:352",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6177,7 +6169,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:354",
+   "id": "recorded:353",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6186,7 +6178,7 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:355",
+   "id": "recorded:354",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6194,10 +6186,18 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:356",
+   "id": "recorded:355",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
+   "type": "PassConvertedShares",
+   "companyId": "H"
+  },
+  {
+   "id": "recorded:356",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "512",
    "type": "PassConvertedShares",
    "companyId": "H"
   },
@@ -6205,20 +6205,12 @@
    "id": "recorded:357",
    "gameId": "1817-16852",
    "source": "user",
-   "playerId": "512",
-   "type": "PassConvertedShares",
-   "companyId": "H"
-  },
-  {
-   "id": "recorded:358",
-   "gameId": "1817-16852",
-   "source": "user",
    "playerId": "642",
    "companyId": "H",
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:359",
+   "id": "recorded:358",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6226,7 +6218,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:360",
+   "id": "recorded:359",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -6234,7 +6226,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:361",
+   "id": "recorded:360",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -6243,7 +6235,7 @@
    "expectedPrice": 80
   },
   {
-   "id": "recorded:362",
+   "id": "recorded:361",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6251,7 +6243,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:363",
+   "id": "recorded:362",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6259,7 +6251,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:364",
+   "id": "recorded:363",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -6267,7 +6259,7 @@
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:365",
+   "id": "recorded:364",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6275,10 +6267,19 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:366",
+   "id": "recorded:365",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
+   "type": "BuyConvertedShare",
+   "companyId": "SR",
+   "expectedPrice": 70
+  },
+  {
+   "id": "recorded:366",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "512",
    "type": "BuyConvertedShare",
    "companyId": "SR",
    "expectedPrice": 70
@@ -6287,21 +6288,12 @@
    "id": "recorded:367",
    "gameId": "1817-16852",
    "source": "user",
-   "playerId": "512",
-   "type": "BuyConvertedShare",
-   "companyId": "SR",
-   "expectedPrice": 70
-  },
-  {
-   "id": "recorded:368",
-   "gameId": "1817-16852",
-   "source": "user",
    "playerId": "642",
    "type": "PassConvertedShares",
    "companyId": "SR"
   },
   {
-   "id": "recorded:369",
+   "id": "recorded:368",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6309,7 +6301,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:370",
+   "id": "recorded:369",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6317,7 +6309,7 @@
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:371",
+   "id": "recorded:370",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6325,10 +6317,19 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:372",
+   "id": "recorded:371",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
+   "type": "BuyConvertedShare",
+   "companyId": "PSNR",
+   "expectedPrice": 70
+  },
+  {
+   "id": "recorded:372",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "512",
    "type": "BuyConvertedShare",
    "companyId": "PSNR",
    "expectedPrice": 70
@@ -6337,21 +6338,12 @@
    "id": "recorded:373",
    "gameId": "1817-16852",
    "source": "user",
-   "playerId": "512",
-   "type": "BuyConvertedShare",
-   "companyId": "PSNR",
-   "expectedPrice": 70
-  },
-  {
-   "id": "recorded:374",
-   "gameId": "1817-16852",
-   "source": "user",
    "playerId": "642",
    "type": "PassConvertedShares",
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:375",
+   "id": "recorded:374",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6359,7 +6351,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:376",
+   "id": "recorded:375",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6367,7 +6359,7 @@
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:377",
+   "id": "recorded:376",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -6375,7 +6367,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:378",
+   "id": "recorded:377",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6384,7 +6376,7 @@
    "targetId": "R"
   },
   {
-   "id": "recorded:379",
+   "id": "recorded:378",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6393,7 +6385,7 @@
    "expectedPrice": 110
   },
   {
-   "id": "recorded:380",
+   "id": "recorded:379",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6401,7 +6393,7 @@
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:381",
+   "id": "recorded:380",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6409,7 +6401,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:382",
+   "id": "recorded:381",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6417,7 +6409,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:383",
+   "id": "recorded:382",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6425,10 +6417,19 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:384",
+   "id": "recorded:383",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
+   "type": "BuyConvertedShare",
+   "companyId": "PLE",
+   "expectedPrice": 45
+  },
+  {
+   "id": "recorded:384",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "3739",
    "type": "BuyConvertedShare",
    "companyId": "PLE",
    "expectedPrice": 45
@@ -6437,21 +6438,12 @@
    "id": "recorded:385",
    "gameId": "1817-16852",
    "source": "user",
-   "playerId": "3739",
-   "type": "BuyConvertedShare",
-   "companyId": "PLE",
-   "expectedPrice": 45
-  },
-  {
-   "id": "recorded:386",
-   "gameId": "1817-16852",
-   "source": "user",
    "playerId": "642",
    "companyId": "PLE",
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:387",
+   "id": "recorded:386",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6459,7 +6451,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:388",
+   "id": "recorded:387",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6467,7 +6459,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:389",
+   "id": "recorded:388",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6475,7 +6467,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:390",
+   "id": "recorded:389",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -6483,7 +6475,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:391",
+   "id": "recorded:390",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6491,7 +6483,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:392",
+   "id": "recorded:391",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6499,7 +6491,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:393",
+   "id": "recorded:392",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -6507,7 +6499,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:394",
+   "id": "recorded:393",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6515,7 +6507,7 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:395",
+   "id": "recorded:394",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6523,7 +6515,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:396",
+   "id": "recorded:395",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6531,7 +6523,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:397",
+   "id": "recorded:396",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6539,7 +6531,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:398",
+   "id": "recorded:397",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6554,7 +6546,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:399",
+   "id": "recorded:398",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6562,7 +6554,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:400",
+   "id": "recorded:399",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6659,7 +6651,7 @@
    ]
   },
   {
-   "id": "recorded:401",
+   "id": "recorded:400",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6668,7 +6660,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:402",
+   "id": "recorded:401",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6676,7 +6668,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:403",
+   "id": "recorded:402",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6684,7 +6676,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:404",
+   "id": "recorded:403",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6692,7 +6684,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:405",
+   "id": "recorded:404",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6708,7 +6700,7 @@
    "expectedCost": 20
   },
   {
-   "id": "recorded:406",
+   "id": "recorded:405",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6716,7 +6708,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:407",
+   "id": "recorded:406",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6805,7 +6797,7 @@
    ]
   },
   {
-   "id": "recorded:408",
+   "id": "recorded:407",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6814,7 +6806,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:409",
+   "id": "recorded:408",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6822,7 +6814,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:410",
+   "id": "recorded:409",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6833,7 +6825,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:411",
+   "id": "recorded:410",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6841,7 +6833,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:412",
+   "id": "recorded:411",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -6849,7 +6841,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:413",
+   "id": "recorded:412",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6862,7 +6854,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:414",
+   "id": "recorded:413",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6870,7 +6862,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:415",
+   "id": "recorded:414",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6885,6 +6877,14 @@
    "expectedCost": 0
   },
   {
+   "id": "recorded:415",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "642",
+   "type": "TakeLoan",
+   "companyId": "H"
+  },
+  {
    "id": "recorded:416",
    "gameId": "1817-16852",
    "source": "user",
@@ -6897,14 +6897,6 @@
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
-   "type": "TakeLoan",
-   "companyId": "H"
-  },
-  {
-   "id": "recorded:418",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "642",
    "type": "BuyTrain",
    "companyId": "H",
    "trainId": "1817/3/50",
@@ -6912,7 +6904,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:419",
+   "id": "recorded:418",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6920,7 +6912,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:420",
+   "id": "recorded:419",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -6928,7 +6920,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:421",
+   "id": "recorded:420",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6941,7 +6933,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:422",
+   "id": "recorded:421",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6949,7 +6941,7 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:423",
+   "id": "recorded:422",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -6992,7 +6984,7 @@
    ]
   },
   {
-   "id": "recorded:424",
+   "id": "recorded:423",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7001,7 +6993,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:425",
+   "id": "recorded:424",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7009,7 +7001,7 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:426",
+   "id": "recorded:425",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7017,7 +7009,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:427",
+   "id": "recorded:426",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7031,7 +7023,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:428",
+   "id": "recorded:427",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7039,7 +7031,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:429",
+   "id": "recorded:428",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7054,7 +7046,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:430",
+   "id": "recorded:429",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7114,7 +7106,7 @@
    ]
   },
   {
-   "id": "recorded:431",
+   "id": "recorded:430",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7123,7 +7115,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:432",
+   "id": "recorded:431",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7134,7 +7126,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:433",
+   "id": "recorded:432",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7142,7 +7134,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:434",
+   "id": "recorded:433",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7150,7 +7142,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:435",
+   "id": "recorded:434",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7158,7 +7150,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:436",
+   "id": "recorded:435",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7171,7 +7163,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:437",
+   "id": "recorded:436",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7179,7 +7171,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:438",
+   "id": "recorded:437",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7231,7 +7223,7 @@
    ]
   },
   {
-   "id": "recorded:439",
+   "id": "recorded:438",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7240,7 +7232,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:440",
+   "id": "recorded:439",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7248,7 +7240,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:441",
+   "id": "recorded:440",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7259,7 +7251,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:442",
+   "id": "recorded:441",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7267,7 +7259,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:443",
+   "id": "recorded:442",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7275,7 +7267,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:444",
+   "id": "recorded:443",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7288,7 +7280,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:445",
+   "id": "recorded:444",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7301,15 +7293,7 @@
    "expectedCost": 20
   },
   {
-   "id": "recorded:446",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "5522",
-   "type": "FinishTrack",
-   "companyId": "PSNR"
-  },
-  {
-   "id": "recorded:447",
+   "id": "recorded:445",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7324,7 +7308,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:448",
+   "id": "recorded:446",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7380,7 +7364,7 @@
    ]
   },
   {
-   "id": "recorded:449",
+   "id": "recorded:447",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7389,7 +7373,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:450",
+   "id": "recorded:448",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7397,7 +7381,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:451",
+   "id": "recorded:449",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7408,7 +7392,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:452",
+   "id": "recorded:450",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7416,7 +7400,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:453",
+   "id": "recorded:451",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -7424,7 +7408,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:454",
+   "id": "recorded:452",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7437,7 +7421,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:455",
+   "id": "recorded:453",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7445,7 +7429,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:456",
+   "id": "recorded:454",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7505,7 +7489,7 @@
    ]
   },
   {
-   "id": "recorded:457",
+   "id": "recorded:455",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7514,7 +7498,7 @@
    "choice": "withhold"
   },
   {
-   "id": "recorded:458",
+   "id": "recorded:456",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7531,7 +7515,7 @@
    "price": 205
   },
   {
-   "id": "recorded:459",
+   "id": "recorded:457",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -7539,7 +7523,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:460",
+   "id": "recorded:458",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7552,7 +7536,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:461",
+   "id": "recorded:459",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7565,7 +7549,7 @@
    "expectedCost": 35
   },
   {
-   "id": "recorded:462",
+   "id": "recorded:460",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7662,7 +7646,7 @@
    ]
   },
   {
-   "id": "recorded:463",
+   "id": "recorded:461",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7671,7 +7655,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:464",
+   "id": "recorded:462",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7679,7 +7663,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:465",
+   "id": "recorded:463",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7687,7 +7671,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:466",
+   "id": "recorded:464",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7695,7 +7679,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:467",
+   "id": "recorded:465",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7708,7 +7692,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:468",
+   "id": "recorded:466",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7716,7 +7700,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:469",
+   "id": "recorded:467",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7841,7 +7825,7 @@
    ]
   },
   {
-   "id": "recorded:470",
+   "id": "recorded:468",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7850,7 +7834,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:471",
+   "id": "recorded:469",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7858,7 +7842,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:472",
+   "id": "recorded:470",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7866,7 +7850,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:473",
+   "id": "recorded:471",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7874,7 +7858,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:474",
+   "id": "recorded:472",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7887,7 +7871,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:475",
+   "id": "recorded:473",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7895,7 +7879,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:476",
+   "id": "recorded:474",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7910,7 +7894,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:477",
+   "id": "recorded:475",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7974,7 +7958,7 @@
    ]
   },
   {
-   "id": "recorded:478",
+   "id": "recorded:476",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7983,7 +7967,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:479",
+   "id": "recorded:477",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7991,7 +7975,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:480",
+   "id": "recorded:478",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -7999,7 +7983,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:481",
+   "id": "recorded:479",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8007,7 +7991,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:482",
+   "id": "recorded:480",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8015,7 +7999,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:483",
+   "id": "recorded:481",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8023,7 +8007,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:484",
+   "id": "recorded:482",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8031,7 +8015,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:485",
+   "id": "recorded:483",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8039,7 +8023,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:486",
+   "id": "recorded:484",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8047,7 +8031,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:487",
+   "id": "recorded:485",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8055,7 +8039,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:488",
+   "id": "recorded:486",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8063,7 +8047,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:489",
+   "id": "recorded:487",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8071,7 +8055,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:490",
+   "id": "recorded:488",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8080,7 +8064,7 @@
    "expectedPrice": 70
   },
   {
-   "id": "recorded:491",
+   "id": "recorded:489",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8089,7 +8073,7 @@
    "expectedPrice": 70
   },
   {
-   "id": "recorded:492",
+   "id": "recorded:490",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8097,7 +8081,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:493",
+   "id": "recorded:491",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8105,7 +8089,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:494",
+   "id": "recorded:492",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8113,7 +8097,7 @@
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:495",
+   "id": "recorded:493",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8121,7 +8105,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:496",
+   "id": "recorded:494",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8129,7 +8113,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:497",
+   "id": "recorded:495",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8137,7 +8121,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:498",
+   "id": "recorded:496",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8145,7 +8129,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:499",
+   "id": "recorded:497",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8153,7 +8137,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:500",
+   "id": "recorded:498",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8161,7 +8145,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:501",
+   "id": "recorded:499",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8169,7 +8153,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:502",
+   "id": "recorded:500",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8177,7 +8161,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:503",
+   "id": "recorded:501",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8185,7 +8169,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:504",
+   "id": "recorded:502",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8193,7 +8177,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:505",
+   "id": "recorded:503",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8201,7 +8185,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:506",
+   "id": "recorded:504",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8210,7 +8194,7 @@
    "amount": 350
   },
   {
-   "id": "recorded:507",
+   "id": "recorded:505",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8219,7 +8203,7 @@
    "amount": 360
   },
   {
-   "id": "recorded:508",
+   "id": "recorded:506",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8227,7 +8211,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:509",
+   "id": "recorded:507",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8235,7 +8219,7 @@
    "type": "FinishAcquisitionLoans"
   },
   {
-   "id": "recorded:510",
+   "id": "recorded:508",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8243,7 +8227,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:511",
+   "id": "recorded:509",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8251,7 +8235,7 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:512",
+   "id": "recorded:510",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8269,7 +8253,7 @@
    "expectedProceeds": 135
   },
   {
-   "id": "recorded:513",
+   "id": "recorded:511",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8282,7 +8266,7 @@
    }
   },
   {
-   "id": "recorded:514",
+   "id": "recorded:512",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8290,7 +8274,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:515",
+   "id": "recorded:513",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8300,7 +8284,7 @@
    "privateIds": []
   },
   {
-   "id": "recorded:516",
+   "id": "recorded:514",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8313,7 +8297,7 @@
    }
   },
   {
-   "id": "recorded:517",
+   "id": "recorded:515",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8321,7 +8305,7 @@
    "companyId": "J"
   },
   {
-   "id": "recorded:518",
+   "id": "recorded:516",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8331,7 +8315,7 @@
    "privateIds": []
   },
   {
-   "id": "recorded:519",
+   "id": "recorded:517",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8349,7 +8333,7 @@
    "expectedProceeds": 70
   },
   {
-   "id": "recorded:520",
+   "id": "recorded:518",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8367,7 +8351,7 @@
    "expectedProceeds": 65
   },
   {
-   "id": "recorded:521",
+   "id": "recorded:519",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8376,7 +8360,7 @@
    "expectedPrice": 135
   },
   {
-   "id": "recorded:522",
+   "id": "recorded:520",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8389,7 +8373,7 @@
    }
   },
   {
-   "id": "recorded:523",
+   "id": "recorded:521",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8399,7 +8383,7 @@
    "privateIds": []
   },
   {
-   "id": "recorded:524",
+   "id": "recorded:522",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8408,7 +8392,7 @@
    "expectedPrice": 135
   },
   {
-   "id": "recorded:525",
+   "id": "recorded:523",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8421,7 +8405,7 @@
    }
   },
   {
-   "id": "recorded:526",
+   "id": "recorded:524",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8429,6 +8413,22 @@
    "companyId": "UR",
    "shareCount": 2,
    "privateIds": []
+  },
+  {
+   "id": "recorded:525",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "3739",
+   "type": "TakeLoan",
+   "companyId": "WC"
+  },
+  {
+   "id": "recorded:526",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "3739",
+   "type": "TakeLoan",
+   "companyId": "WC"
   },
   {
    "id": "recorded:527",
@@ -8443,22 +8443,6 @@
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
-   "type": "TakeLoan",
-   "companyId": "WC"
-  },
-  {
-   "id": "recorded:529",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "3739",
-   "type": "TakeLoan",
-   "companyId": "WC"
-  },
-  {
-   "id": "recorded:530",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "3739",
    "type": "BuyBackShares",
    "companyId": "WC",
    "certificateIds": [
@@ -8468,14 +8452,14 @@
    ]
   },
   {
-   "id": "recorded:531",
+   "id": "recorded:529",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:532",
+   "id": "recorded:530",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8484,14 +8468,14 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:533",
+   "id": "recorded:531",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:534",
+   "id": "recorded:532",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8500,7 +8484,7 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:535",
+   "id": "recorded:533",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8513,7 +8497,7 @@
    }
   },
   {
-   "id": "recorded:536",
+   "id": "recorded:534",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8523,7 +8507,7 @@
    "privateIds": []
   },
   {
-   "id": "recorded:537",
+   "id": "recorded:535",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8536,7 +8520,7 @@
    "expectedPrice": 80
   },
   {
-   "id": "recorded:538",
+   "id": "recorded:536",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8545,14 +8529,14 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:539",
+   "id": "recorded:537",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:540",
+   "id": "recorded:538",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8570,7 +8554,7 @@
    "expectedProceeds": 70
   },
   {
-   "id": "recorded:541",
+   "id": "recorded:539",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8579,14 +8563,14 @@
    "expectedPrice": 120
   },
   {
-   "id": "recorded:542",
+   "id": "recorded:540",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:543",
+   "id": "recorded:541",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8597,14 +8581,14 @@
    ]
   },
   {
-   "id": "recorded:544",
+   "id": "recorded:542",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:545",
+   "id": "recorded:543",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8613,14 +8597,14 @@
    "expectedPrice": 60
   },
   {
-   "id": "recorded:546",
+   "id": "recorded:544",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:547",
+   "id": "recorded:545",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8629,21 +8613,21 @@
    "expectedPrice": 120
   },
   {
-   "id": "recorded:548",
+   "id": "recorded:546",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:549",
+   "id": "recorded:547",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:550",
+   "id": "recorded:548",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8661,7 +8645,7 @@
    "expectedProceeds": 60
   },
   {
-   "id": "recorded:551",
+   "id": "recorded:549",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -8674,7 +8658,7 @@
    "expectedPrice": 65
   },
   {
-   "id": "recorded:552",
+   "id": "recorded:550",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8683,14 +8667,14 @@
    "expectedPrice": 60
   },
   {
-   "id": "recorded:553",
+   "id": "recorded:551",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:554",
+   "id": "recorded:552",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8699,7 +8683,7 @@
    "expectedPrice": 120
   },
   {
-   "id": "recorded:555",
+   "id": "recorded:553",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8712,7 +8696,7 @@
    }
   },
   {
-   "id": "recorded:556",
+   "id": "recorded:554",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8722,7 +8706,7 @@
    "privateIds": []
   },
   {
-   "id": "recorded:557",
+   "id": "recorded:555",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8731,7 +8715,7 @@
    "expectedPrice": 120
   },
   {
-   "id": "recorded:558",
+   "id": "recorded:556",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8744,14 +8728,14 @@
    "expectedPrice": 65
   },
   {
-   "id": "recorded:559",
+   "id": "recorded:557",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:560",
+   "id": "recorded:558",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8760,14 +8744,14 @@
    "expectedPrice": 60
   },
   {
-   "id": "recorded:561",
+   "id": "recorded:559",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:562",
+   "id": "recorded:560",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8776,7 +8760,7 @@
    "expectedPrice": 120
   },
   {
-   "id": "recorded:563",
+   "id": "recorded:561",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8789,23 +8773,23 @@
    "expectedPrice": 55
   },
   {
+   "id": "recorded:562",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "642",
+   "type": "TakeLoan",
+   "companyId": "PLE"
+  },
+  {
+   "id": "recorded:563",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "642",
+   "type": "TakeLoan",
+   "companyId": "PLE"
+  },
+  {
    "id": "recorded:564",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "642",
-   "type": "TakeLoan",
-   "companyId": "PLE"
-  },
-  {
-   "id": "recorded:565",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "642",
-   "type": "TakeLoan",
-   "companyId": "PLE"
-  },
-  {
-   "id": "recorded:566",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8819,14 +8803,14 @@
    ]
   },
   {
-   "id": "recorded:567",
+   "id": "recorded:565",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:568",
+   "id": "recorded:566",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8835,14 +8819,14 @@
    "expectedPrice": 50
   },
   {
-   "id": "recorded:569",
+   "id": "recorded:567",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:570",
+   "id": "recorded:568",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8850,14 +8834,14 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:571",
+   "id": "recorded:569",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:572",
+   "id": "recorded:570",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8865,7 +8849,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:573",
+   "id": "recorded:571",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8876,14 +8860,14 @@
    ]
   },
   {
-   "id": "recorded:574",
+   "id": "recorded:572",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:575",
+   "id": "recorded:573",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8892,7 +8876,7 @@
    "expectedPrice": 45
   },
   {
-   "id": "recorded:576",
+   "id": "recorded:574",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8905,7 +8889,7 @@
    }
   },
   {
-   "id": "recorded:577",
+   "id": "recorded:575",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -8915,14 +8899,14 @@
    "privateIds": []
   },
   {
-   "id": "recorded:578",
+   "id": "recorded:576",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:579",
+   "id": "recorded:577",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -8933,21 +8917,21 @@
    ]
   },
   {
-   "id": "recorded:580",
+   "id": "recorded:578",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:581",
+   "id": "recorded:579",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:582",
+   "id": "recorded:580",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -8960,35 +8944,35 @@
    "expectedPrice": 45
   },
   {
-   "id": "recorded:583",
+   "id": "recorded:581",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:584",
+   "id": "recorded:582",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:585",
+   "id": "recorded:583",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:586",
+   "id": "recorded:584",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
    "type": "FinishStockTurn"
   },
   {
-   "id": "recorded:587",
+   "id": "recorded:585",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9001,7 +8985,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:588",
+   "id": "recorded:586",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9009,7 +8993,7 @@
    "companyId": "BELT"
   },
   {
-   "id": "recorded:589",
+   "id": "recorded:587",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9026,7 +9010,7 @@
    "price": 150
   },
   {
-   "id": "recorded:590",
+   "id": "recorded:588",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9037,7 +9021,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:591",
+   "id": "recorded:589",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9045,7 +9029,7 @@
    "companyId": "BELT"
   },
   {
-   "id": "recorded:592",
+   "id": "recorded:590",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9053,7 +9037,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:593",
+   "id": "recorded:591",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9068,7 +9052,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:594",
+   "id": "recorded:592",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9076,7 +9060,7 @@
    "companyId": "UR"
   },
   {
-   "id": "recorded:595",
+   "id": "recorded:593",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9093,7 +9077,7 @@
    "price": 400
   },
   {
-   "id": "recorded:596",
+   "id": "recorded:594",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9101,7 +9085,7 @@
    "companyId": "UR"
   },
   {
-   "id": "recorded:597",
+   "id": "recorded:595",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9109,7 +9093,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:598",
+   "id": "recorded:596",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9124,7 +9108,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:599",
+   "id": "recorded:597",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9132,7 +9116,7 @@
    "companyId": "GT"
   },
   {
-   "id": "recorded:600",
+   "id": "recorded:598",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9143,7 +9127,7 @@
    "expectedPrice": 250
   },
   {
-   "id": "recorded:601",
+   "id": "recorded:599",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9160,7 +9144,7 @@
    "price": 150
   },
   {
-   "id": "recorded:602",
+   "id": "recorded:600",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9168,7 +9152,7 @@
    "companyId": "GT"
   },
   {
-   "id": "recorded:603",
+   "id": "recorded:601",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9176,7 +9160,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:604",
+   "id": "recorded:602",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9191,7 +9175,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:605",
+   "id": "recorded:603",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9199,7 +9183,7 @@
    "companyId": "R"
   },
   {
-   "id": "recorded:606",
+   "id": "recorded:604",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9207,7 +9191,7 @@
    "companyId": "R"
   },
   {
-   "id": "recorded:607",
+   "id": "recorded:605",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9218,7 +9202,7 @@
    "expectedPrice": 400
   },
   {
-   "id": "recorded:608",
+   "id": "recorded:606",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9226,7 +9210,7 @@
    "companyId": "R"
   },
   {
-   "id": "recorded:609",
+   "id": "recorded:607",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9234,7 +9218,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:610",
+   "id": "recorded:608",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9247,7 +9231,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:611",
+   "id": "recorded:609",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9255,23 +9239,23 @@
    "companyId": "WT"
   },
   {
+   "id": "recorded:610",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "642",
+   "type": "TakeLoan",
+   "companyId": "WT"
+  },
+  {
+   "id": "recorded:611",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "642",
+   "type": "TakeLoan",
+   "companyId": "WT"
+  },
+  {
    "id": "recorded:612",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "642",
-   "type": "TakeLoan",
-   "companyId": "WT"
-  },
-  {
-   "id": "recorded:613",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "642",
-   "type": "TakeLoan",
-   "companyId": "WT"
-  },
-  {
-   "id": "recorded:614",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9282,7 +9266,7 @@
    "expectedPrice": 400
   },
   {
-   "id": "recorded:615",
+   "id": "recorded:613",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9290,7 +9274,7 @@
    "companyId": "WT"
   },
   {
-   "id": "recorded:616",
+   "id": "recorded:614",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9305,7 +9289,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:617",
+   "id": "recorded:615",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9313,7 +9297,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:618",
+   "id": "recorded:616",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9330,7 +9314,7 @@
    "price": 250
   },
   {
-   "id": "recorded:619",
+   "id": "recorded:617",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9338,7 +9322,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:620",
+   "id": "recorded:618",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9346,7 +9330,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:621",
+   "id": "recorded:619",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9359,7 +9343,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:622",
+   "id": "recorded:620",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9367,7 +9351,7 @@
    "companyId": "J"
   },
   {
-   "id": "recorded:623",
+   "id": "recorded:621",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9384,7 +9368,7 @@
    "price": 200
   },
   {
-   "id": "recorded:624",
+   "id": "recorded:622",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9392,7 +9376,7 @@
    "companyId": "J"
   },
   {
-   "id": "recorded:625",
+   "id": "recorded:623",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9400,7 +9384,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:626",
+   "id": "recorded:624",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9413,7 +9397,7 @@
    "expectedCost": 15
   },
   {
-   "id": "recorded:627",
+   "id": "recorded:625",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9421,7 +9405,7 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:628",
+   "id": "recorded:626",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9464,7 +9448,7 @@
    ]
   },
   {
-   "id": "recorded:629",
+   "id": "recorded:627",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9473,7 +9457,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:630",
+   "id": "recorded:628",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9481,7 +9465,7 @@
    "companyId": "BA"
   },
   {
-   "id": "recorded:631",
+   "id": "recorded:629",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9489,7 +9473,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:632",
+   "id": "recorded:630",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9502,7 +9486,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:633",
+   "id": "recorded:631",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9510,7 +9494,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:634",
+   "id": "recorded:632",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9557,7 +9541,7 @@
    ]
   },
   {
-   "id": "recorded:635",
+   "id": "recorded:633",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9566,7 +9550,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:636",
+   "id": "recorded:634",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9577,7 +9561,7 @@
    "expectedPrice": 400
   },
   {
-   "id": "recorded:637",
+   "id": "recorded:635",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9585,7 +9569,7 @@
    "companyId": "AS"
   },
   {
-   "id": "recorded:638",
+   "id": "recorded:636",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -9593,7 +9577,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:639",
+   "id": "recorded:637",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9608,7 +9592,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:640",
+   "id": "recorded:638",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9616,7 +9600,7 @@
    "companyId": "AA"
   },
   {
-   "id": "recorded:641",
+   "id": "recorded:639",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9663,7 +9647,7 @@
    ]
   },
   {
-   "id": "recorded:642",
+   "id": "recorded:640",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9672,7 +9656,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:643",
+   "id": "recorded:641",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9680,23 +9664,23 @@
    "companyId": "AA"
   },
   {
+   "id": "recorded:642",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "3739",
+   "type": "RepayLoan",
+   "companyId": "AA"
+  },
+  {
+   "id": "recorded:643",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "3739",
+   "type": "RepayLoan",
+   "companyId": "AA"
+  },
+  {
    "id": "recorded:644",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "3739",
-   "type": "RepayLoan",
-   "companyId": "AA"
-  },
-  {
-   "id": "recorded:645",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "3739",
-   "type": "RepayLoan",
-   "companyId": "AA"
-  },
-  {
-   "id": "recorded:646",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9704,7 +9688,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:647",
+   "id": "recorded:645",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9717,7 +9701,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:648",
+   "id": "recorded:646",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9725,7 +9709,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:649",
+   "id": "recorded:647",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9764,7 +9748,7 @@
    ]
   },
   {
-   "id": "recorded:650",
+   "id": "recorded:648",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9773,7 +9757,7 @@
    "choice": "withhold"
   },
   {
-   "id": "recorded:651",
+   "id": "recorded:649",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -9781,7 +9765,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:652",
+   "id": "recorded:650",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9794,7 +9778,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:653",
+   "id": "recorded:651",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9802,7 +9786,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:654",
+   "id": "recorded:652",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9897,7 +9881,7 @@
    ]
   },
   {
-   "id": "recorded:655",
+   "id": "recorded:653",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9906,7 +9890,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:656",
+   "id": "recorded:654",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9914,7 +9898,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:657",
+   "id": "recorded:655",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9922,7 +9906,7 @@
    "companyId": "BESS"
   },
   {
-   "id": "recorded:658",
+   "id": "recorded:656",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -9930,7 +9914,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:659",
+   "id": "recorded:657",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9943,7 +9927,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:660",
+   "id": "recorded:658",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -9951,7 +9935,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:661",
+   "id": "recorded:659",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10010,7 +9994,7 @@
    ]
   },
   {
-   "id": "recorded:662",
+   "id": "recorded:660",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10019,7 +10003,7 @@
    "choice": "withhold"
   },
   {
-   "id": "recorded:663",
+   "id": "recorded:661",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10027,7 +10011,7 @@
    "companyId": "SR"
   },
   {
-   "id": "recorded:664",
+   "id": "recorded:662",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10035,7 +10019,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:665",
+   "id": "recorded:663",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10048,7 +10032,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:666",
+   "id": "recorded:664",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10056,7 +10040,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:667",
+   "id": "recorded:665",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10119,7 +10103,7 @@
    ]
   },
   {
-   "id": "recorded:668",
+   "id": "recorded:666",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10128,7 +10112,7 @@
    "choice": "half-pay"
   },
   {
-   "id": "recorded:669",
+   "id": "recorded:667",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10136,7 +10120,7 @@
    "companyId": "PSNR"
   },
   {
-   "id": "recorded:670",
+   "id": "recorded:668",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10144,7 +10128,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:671",
+   "id": "recorded:669",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10157,7 +10141,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:672",
+   "id": "recorded:670",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10165,7 +10149,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:673",
+   "id": "recorded:671",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10173,7 +10157,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:674",
+   "id": "recorded:672",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10301,7 +10285,7 @@
    ]
   },
   {
-   "id": "recorded:675",
+   "id": "recorded:673",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10310,7 +10294,7 @@
    "choice": "withhold"
   },
   {
-   "id": "recorded:676",
+   "id": "recorded:674",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10318,7 +10302,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:677",
+   "id": "recorded:675",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10326,7 +10310,7 @@
    "companyId": "PW"
   },
   {
-   "id": "recorded:678",
+   "id": "recorded:676",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10334,7 +10318,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:679",
+   "id": "recorded:677",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10347,7 +10331,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:680",
+   "id": "recorded:678",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10355,7 +10339,7 @@
    "companyId": "NYOW"
   },
   {
-   "id": "recorded:681",
+   "id": "recorded:679",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10372,7 +10356,7 @@
    "price": 1
   },
   {
-   "id": "recorded:682",
+   "id": "recorded:680",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10389,7 +10373,7 @@
    "price": 1
   },
   {
-   "id": "recorded:683",
+   "id": "recorded:681",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10397,23 +10381,23 @@
    "companyId": "NYOW"
   },
   {
+   "id": "recorded:682",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "512",
+   "type": "RepayLoan",
+   "companyId": "NYOW"
+  },
+  {
+   "id": "recorded:683",
+   "gameId": "1817-16852",
+   "source": "user",
+   "playerId": "512",
+   "type": "RepayLoan",
+   "companyId": "NYOW"
+  },
+  {
    "id": "recorded:684",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "512",
-   "type": "RepayLoan",
-   "companyId": "NYOW"
-  },
-  {
-   "id": "recorded:685",
-   "gameId": "1817-16852",
-   "source": "user",
-   "playerId": "512",
-   "type": "RepayLoan",
-   "companyId": "NYOW"
-  },
-  {
-   "id": "recorded:686",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10421,7 +10405,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:687",
+   "id": "recorded:685",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10434,7 +10418,7 @@
    "expectedCost": 0
   },
   {
-   "id": "recorded:688",
+   "id": "recorded:686",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10442,7 +10426,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:689",
+   "id": "recorded:687",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10485,7 +10469,7 @@
    ]
   },
   {
-   "id": "recorded:690",
+   "id": "recorded:688",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10494,7 +10478,7 @@
    "choice": "pay"
   },
   {
-   "id": "recorded:691",
+   "id": "recorded:689",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10505,7 +10489,7 @@
    "expectedPrice": 400
   },
   {
-   "id": "recorded:692",
+   "id": "recorded:690",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10513,7 +10497,7 @@
    "companyId": "PLE"
   },
   {
-   "id": "recorded:693",
+   "id": "recorded:691",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10521,7 +10505,7 @@
    "type": "FinishOperatingTurn"
   },
   {
-   "id": "recorded:694",
+   "id": "recorded:692",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10529,7 +10513,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:695",
+   "id": "recorded:693",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10537,7 +10521,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:696",
+   "id": "recorded:694",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10545,7 +10529,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:697",
+   "id": "recorded:695",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10554,7 +10538,7 @@
    "targetId": "J"
   },
   {
-   "id": "recorded:698",
+   "id": "recorded:696",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10562,7 +10546,7 @@
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:699",
+   "id": "recorded:697",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -10570,7 +10554,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:700",
+   "id": "recorded:698",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10578,7 +10562,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:701",
+   "id": "recorded:699",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10586,7 +10570,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:702",
+   "id": "recorded:700",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -10594,7 +10578,7 @@
    "companyId": "H"
   },
   {
-   "id": "recorded:703",
+   "id": "recorded:701",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -10602,7 +10586,7 @@
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:704",
+   "id": "recorded:702",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -10610,7 +10594,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:705",
+   "id": "recorded:703",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10618,7 +10602,7 @@
    "companyId": "WT"
   },
   {
-   "id": "recorded:706",
+   "id": "recorded:704",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10627,7 +10611,7 @@
    "expectedPrice": 100
   },
   {
-   "id": "recorded:707",
+   "id": "recorded:705",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -10635,7 +10619,7 @@
    "companyId": "WT"
   },
   {
-   "id": "recorded:708",
+   "id": "recorded:706",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10643,7 +10627,7 @@
    "companyId": "WT"
   },
   {
-   "id": "recorded:709",
+   "id": "recorded:707",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10651,7 +10635,7 @@
    "type": "FinishConversionLoans"
   },
   {
-   "id": "recorded:710",
+   "id": "recorded:708",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10659,7 +10643,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:711",
+   "id": "recorded:709",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10667,7 +10651,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:712",
+   "id": "recorded:710",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10675,7 +10659,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:713",
+   "id": "recorded:711",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10683,7 +10667,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:714",
+   "id": "recorded:712",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10691,7 +10675,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:715",
+   "id": "recorded:713",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10699,7 +10683,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:716",
+   "id": "recorded:714",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10707,7 +10691,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:717",
+   "id": "recorded:715",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10715,7 +10699,7 @@
    "type": "PassMerger"
   },
   {
-   "id": "recorded:718",
+   "id": "recorded:716",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "5522",
@@ -10723,7 +10707,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:719",
+   "id": "recorded:717",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "512",
@@ -10731,7 +10715,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:720",
+   "id": "recorded:718",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10740,7 +10724,7 @@
    "amount": 10
   },
   {
-   "id": "recorded:721",
+   "id": "recorded:719",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -10749,7 +10733,7 @@
    "amount": 20
   },
   {
-   "id": "recorded:722",
+   "id": "recorded:720",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10758,7 +10742,7 @@
    "amount": 30
   },
   {
-   "id": "recorded:723",
+   "id": "recorded:721",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -10767,7 +10751,7 @@
    "amount": 40
   },
   {
-   "id": "recorded:724",
+   "id": "recorded:722",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10776,7 +10760,7 @@
    "amount": 50
   },
   {
-   "id": "recorded:725",
+   "id": "recorded:723",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -10785,7 +10769,7 @@
    "amount": 60
   },
   {
-   "id": "recorded:726",
+   "id": "recorded:724",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10794,7 +10778,7 @@
    "amount": 100
   },
   {
-   "id": "recorded:727",
+   "id": "recorded:725",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "3739",
@@ -10802,7 +10786,7 @@
    "companyId": "WC"
   },
   {
-   "id": "recorded:728",
+   "id": "recorded:726",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",
@@ -10811,7 +10795,7 @@
    "buyerId": "PW"
   },
   {
-   "id": "recorded:729",
+   "id": "recorded:727",
    "gameId": "1817-16852",
    "source": "user",
    "playerId": "642",

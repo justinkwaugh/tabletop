@@ -232,6 +232,7 @@ export function createEighteenXXRuntime(
             )
         ),
         LayingTrack: new AutomaticTrackCompletionHandler(
+            options.trackRules,
             operatingStep(
                 decides(
                     'LayingTrack',

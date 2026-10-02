@@ -114,7 +114,7 @@ export function repayAcquiredLoan(state: EighteenXXState, buyerId: string): Loan
 }
 
 /** Each inherited loan the buyer still holds moves its price left. */
-export function unpaidLoanMoves(
+export function moveBuyerForUnpaidLoans(
     state: EighteenXXState,
     acquisition: Acquisition
 ): StockMarketMove[] {

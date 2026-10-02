@@ -52,6 +52,14 @@ export type HistoryTitle = {
     rounds?: readonly TitleRound[]
 }
 
+/** The game's end shares the round of the action before it, which may close a title's round. */
+function roundClosingAction(reversed: readonly GameAction[], position: number): GameAction {
+    const action = reversed[position]
+    const closing = isEndGame(action) ? reversed[position + 1] : action
+    assertExists(closing, 'The game ends after another action')
+    return closing
+}
+
 export function historyRounds(
     actions: readonly GameAction[],
     state: EighteenXXState,
@@ -80,10 +88,8 @@ export function historyRounds(
     const rounds: HistoryRound[] = []
     const reversed = actions.toReversed()
     for (const [position, action] of reversed.entries()) {
-        // The game's end belongs to the title round that ends just before it.
-        const ended = isEndGame(action) ? reversed[position + 1] : action
-        assertExists(ended, 'The game ends after another action')
-        openRound = titleRounds.find((round) => round.ends(ended)) ?? openRound
+        const closing = roundClosingAction(reversed, position)
+        openRound = titleRounds.find((round) => round.ends(closing)) ?? openRound
         const heading = auction
             ? AuctionHeading
             : openRound

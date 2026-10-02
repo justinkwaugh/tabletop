@@ -762,7 +762,7 @@ crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
   company is liquidated: its cash goes to the president, who owes the interest.
 - **Stock-round corporate action** ([stock-step]). Instead of acting for themselves, a
   player may act for one company they preside: take loans, then buy back shares from
-  the market once, at the current price with its treasury cash. Buy-backs do not move the
+  the market at the current price with its treasury cash. Buy-backs do not move the
   price and are refused in the acquisition and liquidation zones. The corporate
   action is the player's action for the turn.
 - **Stations owed at formation.** A 5-share company needs 2 stations and a 10-share
@@ -850,8 +850,7 @@ crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
   stations; the system `BuyOwedStations` buys them when its treasury can.
 - **The corporate action wraps 1817's stock round**, as TOP's company split does. The
   player's turn accepts `TakeLoan` for one company they preside, then the 1817 action
-  `BuyBackShares`, which ends the turn (corrected in slice 8; it first left the turn
-  open).
+  `BuyBackShares`, after which only finishing the turn remains.
 - **Cash crisis (3b).** The interest default leaves the president owing the bank. A
   family `cashCrisis` (player and amount) and machine state `RaisingCash` accept
   share sales within the title's crisis terms, or bankruptcy at any time, as in the
@@ -930,8 +929,8 @@ crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
 - A 10-share company formed for $100 owes 3 stations ($150). A treasury share bought
   by a player gives it the cash, and it buys them at once. One that never can is
   liquidated when the stock round ends.
-- A player buys back two market shares for their company with its treasury cash, which
-  ends their turn.
+- A player buys back two market shares for their company with its treasury cash and
+  cannot then buy shares themselves.
 - (3b) A president who cannot pay sells only enough shares; one who cannot raise it
   goes bankrupt, their companies are liquidated, and with one player left the game
   ends.
@@ -1514,7 +1513,8 @@ playground's replay specs.
     - `assign` (corporation) → `OfferCompany`; `assign` (hex) → `PlacePrivateMarker`;
     - `merge` → `MergeCompanies` (company) or `AcquireCompany` (player);
     - `convert`, `short`, `take_loan`, `payoff_loan`, company `buy_shares`, company
-      `lay_tile`, `discard_train`, `end_game` → their counterparts;
+      `lay_tile`, `discard_train` → their counterparts, and `end_game` ends the
+      conversion;
     - `pass` → whichever pass, finish or decline the replayed state offers.
   It skips recorded passes our engine already made for the player.
 - **Verification.** 15528 must reach game over with the recorded final values; the
@@ -1540,14 +1540,11 @@ Differences found by replay, fixed in the rules:
   on, and they count among them. Ours repaid them only as the sale settled, so it
   offered the buyer repayments that upstream had already made. `acquireCompany` now
   repays them and records them; the settlement only moves the price for the loans left.
-- **A company buys back shares once a corporate action** ([stock-step]): its one
-  purchase may take several market shares, and it ends the president's turn. Ours let
-  it buy back again and waited for the turn's finish. The corporate actions panel now
-  offers one button per number of shares the company can afford, each priced.
-- **The track step stays open while the company can still borrow** ([tracker]): a
-  company that cannot afford another lay may take a loan for it. Ours finished the
-  step by itself after a lay it could no longer pay for. The family's automatic track
-  completion now counts borrowing as something left to do.
+- **The track step stays open while a lay is left and the company can still borrow**
+  ([tracker]): a company that cannot afford its second lay may take a loan for it. Ours
+  finished the step by itself after a first lay it could no longer pay for. The
+  family's automatic track completion now keeps the step open while a lay remains and a
+  loan is possible; after the last lay it still finishes by itself.
 
 Found by the finished game, outside the rules: the game's end, which follows the last
 acquisition round, was listed as an operating round of its own, so the history held
@@ -1564,7 +1561,9 @@ Bridged in the converter, since only the procedure differs:
   repayments; ours borrows and repays in one step.
 - A shorted share reaches the market without a name in the action, so a later purchase
   cannot tell whether upstream bought from the treasury or the market; the reference
-  engine's dump says which.
+  engine's dump says which. Guessing wrong once left a company richer than upstream's,
+  so it could buy back again where upstream's president's turn had ended for want of
+  cash; with the dump the buy-backs match.
 - 16852 stops in a player's cash crisis, and upstream counts the $294 they still owe
   against them; the replay spec does too.
 

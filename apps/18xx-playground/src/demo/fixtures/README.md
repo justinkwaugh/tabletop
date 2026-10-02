@@ -70,7 +70,7 @@ second operating round's merger and acquisition rounds. Upstream's undone action
 end whichever step ours is in, and are omitted where ours had already moved on by itself;
 inter-company train purchases are offers accepted by the seller.
 
-Replay produces 1,688 player actions and 859 automatic actions. Final wealth is 6,257 for
+Replay produces 1,665 player actions and 882 automatic actions. Final wealth is 6,257 for
 Player 1, 7,066 for Player 2, 10,127 for Player 3, and 11,490 for Player 4, as recorded.
 
 # Recorded 1817 games ended by hand

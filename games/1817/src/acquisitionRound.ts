@@ -40,7 +40,7 @@ import {
     holdAside,
     liquidateByBank,
     repayAcquiredLoan,
-    unpaidLoanMoves,
+    moveBuyerForUnpaidLoans,
     settleHolders
 } from './acquisitionSettlement.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
@@ -856,7 +856,7 @@ export class HydratedFinishAcquisitionLoans
         assert(this.isValidFor(state), 'Only the buyer’s president finishes its loans')
         const acquisition = requireAcquisition(state)
         const round = requireRound(state)
-        const marketMoves = unpaidLoanMoves(state, acquisition)
+        const marketMoves = moveBuyerForUnpaidLoans(state, acquisition)
         delete round.acquisition
         const settlement = settleHolders(
             state,

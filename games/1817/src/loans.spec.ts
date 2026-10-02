@@ -107,6 +107,16 @@ describe('loans in the operating turn', () => {
         expect(play.valid('blair')).not.toContain('LayTile')
         play.act('TakeLoan', { companyId: 'BA' })
         expect(play.valid('blair')).toContain('LayTile')
+        // The second lay is the last, so the step ends though BA could still borrow.
+        play.act('LayTile', {
+            companyId: 'BA',
+            locationId: 'B25',
+            definitionId: '18xx:7',
+            rotation: 4,
+            nodeMapping: {},
+            expectedCost: 35
+        })
+        expect(play.state.machineState).not.toBe('LayingTrack')
     })
 
     it('pays interest after trains, borrowing automatically while the treasury is short', () => {
@@ -224,7 +234,7 @@ describe('the stock-round corporate action', () => {
         expect(getCompany(play.state, 'BA').loans).toBe(2)
     })
 
-    it('buys back two shares together, which ends the turn', () => {
+    it('buys back two shares together, after which the player cannot buy shares', () => {
         const play = blairsTurn((state) => {
             for (const certificate of state.certificates)
                 if (certificate.id === 'BA:share:1' || certificate.id === 'BA:share:3') {
@@ -242,7 +252,19 @@ describe('the stock-round corporate action', () => {
             certificateIds: ['BA:share:1', 'BA:share:2']
         })
         expect(treasury(play.state, 'BA')).toBe(1000 - 2 * price)
-        expect(play.state.activePlayerIds).toEqual(['casey'])
+        expect(play.state.activePlayerIds).toEqual(['blair'])
+        expect(play.valid('blair')).toEqual([
+            'BuyBackShares',
+            'FinishStockTurn',
+            'SetStockInstruction'
+        ])
+        expect(() =>
+            play.act('BuyShares', {
+                buyer: { kind: 'player', playerId: 'blair' },
+                certificateId: 'BA:share:3',
+                expectedPrice: price
+            })
+        ).toThrow()
     })
 
     it('is not open after the player has bought shares', () => {

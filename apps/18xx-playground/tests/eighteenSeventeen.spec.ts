@@ -103,7 +103,7 @@ test('1817 presidents act for a company in place of their stock turn', async ({ 
     await corporate.getByRole('button', { name: 'Take a loan' }).click()
     await expect(corporate).toContainText('Acting for')
     await expect(corporate).toContainText('Loans 1/5')
-    await corporate.getByRole('button', { name: 'Buy back 1 share ($110)' }).click()
+    await corporate.getByRole('button', { name: 'Buy back a share ($110)' }).click()
     await expect(page.getByRole('region', { name: 'Corporate actions' })).toHaveCount(0)
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     await expect(page.getByRole('list', { name: 'Action history' })).toContainText(

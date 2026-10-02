@@ -286,18 +286,18 @@ export class EighteenSeventeenSession extends BaseSession {
             this.createPlayerAction(ShortShare, { companyId, expectedPrice: option.price })
         )
     }
-    async buyBackShares(companyId: string, count: number) {
-        const buyBack = this.corporateActions
-            .find((option) => option.companyId === companyId)
-            ?.buyBacks.find((option) => option.certificateIds.length === count)
+    async buyBackShare(companyId: string) {
+        const buyBack = this.corporateActions.find(
+            (option) => option.companyId === companyId
+        )?.buyBack
         assert(
             buyBack && this.validActionTypes.includes('BuyBackShares'),
-            'The company cannot buy back these shares now'
+            'The company cannot buy back a share now'
         )
         await this.applyAction(
             this.createPlayerAction(BuyBackShares, {
                 companyId,
-                certificateIds: buyBack.certificateIds
+                certificateIds: [buyBack.certificateId]
             })
         )
     }

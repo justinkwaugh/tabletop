@@ -1,6 +1,5 @@
 <script lang="ts">
     import { cashOwnedBy, getCompany } from '@tabletop/18xx'
-    import { plural } from './plural.js'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session }: { session: EighteenSeventeenSession } = $props()
     const money = $derived(session.presentation.money)
@@ -13,7 +12,7 @@
         <h2>
             {gameState.stockRound.turn.corporateAction ? 'Acting for' : 'Or act for a company'}
         </h2>
-        {#each session.corporateActions as { companyId, canBorrow, buyBacks } (companyId)}
+        {#each session.corporateActions as { companyId, canBorrow, buyBack } (companyId)}
             <div class="company">
                 <strong>{getCompany(gameState, companyId).name}</strong>
                 <span
@@ -26,11 +25,9 @@
                 {#if canBorrow}<button disabled={busy} onclick={() => session.loans.take(companyId)}
                         >Take a loan</button
                     >{/if}
-                {#each buyBacks as { certificateIds, price } (certificateIds.length)}<button
-                        disabled={busy}
-                        onclick={() => session.buyBackShares(companyId, certificateIds.length)}
-                        >Buy back {plural(certificateIds.length, 'share')} ({money(price)})</button
-                    >{/each}
+                {#if buyBack}<button disabled={busy} onclick={() => session.buyBackShare(companyId)}
+                        >Buy back a share ({money(buyBack.price)})</button
+                    >{/if}
             </div>
         {/each}
     </section>

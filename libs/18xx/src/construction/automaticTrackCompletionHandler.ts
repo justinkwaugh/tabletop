@@ -7,12 +7,15 @@ import {
 } from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
 import { FinishTrack, isFinishTrack } from './finishTrack.js'
-import type { ConstructionState } from './trackConstruction.js'
+import type { ConstructionState, TrackRules } from './trackConstruction.js'
 
 export class AutomaticTrackCompletionHandler<
     State extends HydratedGameState & ConstructionState
 > implements MachineStateHandler<HydratedAction, State> {
-    constructor(private readonly handler: MachineStateHandler<HydratedAction, State>) {}
+    constructor(
+        private readonly rules: Pick<TrackRules, 'availableColors' | 'allowance'>,
+        private readonly handler: MachineStateHandler<HydratedAction, State>
+    ) {}
 
     private canFinish(context: MachineContext<State>, playerId: string): boolean {
         const state = context.gameState
@@ -26,15 +29,19 @@ export class AutomaticTrackCompletionHandler<
             return false
         const actions = this.handler.validActionsForPlayer(playerId, context)
         if (!actions.includes('FinishTrack')) return false
-        // A company that can still borrow may borrow for a lay it cannot yet afford.
+        // While the company has a lay left, it may borrow to pay for one it cannot yet afford.
+        if (actions.includes('TakeLoan') && this.hasLayLeft(state)) return false
         return !state.activePlayerIds.some((id) =>
             (id === playerId ? actions : this.handler.validActionsForPlayer(id, context)).some(
-                (action) =>
-                    ['LayTile', 'LayPrivateTile', 'RequestTrackConsent', 'TakeLoan'].includes(
-                        action
-                    )
+                (action) => ['LayTile', 'LayPrivateTile', 'RequestTrackConsent'].includes(action)
             )
         )
+    }
+
+    private hasLayLeft(state: State): boolean {
+        return this.rules
+            .availableColors(state)
+            .some((color) => !('reason' in this.rules.allowance(state, color)))
     }
 
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {

@@ -603,8 +603,7 @@ row that is routine unless it needed loans or defaulted.
 
 A title's own stock-round corporate actions (1817's loans and buy-backs) appear
 above the stock actions while the player may still act for a company they preside,
-each as an immediately committed button. A company buys back its market shares once,
-so each number of shares it can afford is its own button, priced.
+each as an immediately committed button.
 
 ### Cash crisis and bankruptcy
 
@@ -1342,7 +1341,7 @@ A trainless company entering RunningTrains receives a canonical empty RunTrains 
 
 When a selected track hex has exactly one legal tile definition, its tile and initial legal rotation are auto-selected. The picker scales that tile directly into the hex with no arc detour; rotation and acceptance remain available. The map preview is suppressed during this local entrance using the existing in-flight flag. Undo skips these automatic stages, and reduced-motion displays the selection immediately.
 
-After a track lay, construction automatically finishes if the composed action handlers offer no further ordinary, private, or consent-based track placement, nor a loan that could pay for one. The system completion is part of the lay’s action cascade. The map prompt reads “Choose a space or” with a Skip button; skipped/finished construction advances through the canonical FinishTrack action.
+After a track lay, construction automatically finishes if the composed action handlers offer no further ordinary, private, or consent-based track placement, nor, while the company has a lay left, a loan that could pay for one. The system completion is part of the lay’s action cascade. The map prompt reads “Choose a space or” with a Skip button; skipped/finished construction advances through the canonical FinishTrack action.
 
 The currently operating company always displays its detailed chip. Station placement presents “Choose a city to place a station or” followed by Skip.
 
