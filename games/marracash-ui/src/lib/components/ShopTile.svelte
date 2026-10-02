@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getShop, type ShopState } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { shopRect } from '$lib/utils/boardGeometry.js'
+    import { ShopHaloFilterId, shopRect } from '$lib/utils/boardGeometry.js'
     import { MarketPalettes } from '$lib/utils/marketColors.js'
     import MarketMark from '$lib/components/MarketMark.svelte'
 
@@ -26,7 +26,7 @@
             fill="none"
             stroke="#ffffff"
             stroke-width="4"
-            stroke-dasharray="8 5"
+            filter="url(#{ShopHaloFilterId})"
         ></rect>
     {/if}
     <rect

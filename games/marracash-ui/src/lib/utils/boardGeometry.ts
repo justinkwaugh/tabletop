@@ -13,6 +13,8 @@ export const WallThickness = 28
 export const BoardWidth = BoardColumns * CellSize + 2 * WallThickness
 export const BoardHeight = BoardRows * CellSize + 2 * WallThickness
 
+export const ShopHaloFilterId = 'marracash-shop-halo'
+
 export type Rect = Point & { width: number; height: number }
 
 export enum WallSide {

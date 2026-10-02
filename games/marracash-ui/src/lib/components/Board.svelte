@@ -15,6 +15,7 @@
         cellCenter,
         gateRect,
         QueueMargin,
+        ShopHaloFilterId,
         TableHeight,
         TableWidth,
         WallThickness
@@ -47,6 +48,16 @@
 </script>
 
 <svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
+    <defs>
+        <filter id={ShopHaloFilterId} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
+            <feMerge>
+                <feMergeNode in="glow"></feMergeNode>
+                <feMergeNode in="glow"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+        </filter>
+    </defs>
     <VisitorQueue />
     <g role="img" aria-label="MarraCash market" transform="translate({QueueMargin} {QueueMargin})">
         <rect width={BoardWidth} height={BoardHeight} rx="14" fill="#8a6a46"></rect>
