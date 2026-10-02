@@ -1007,7 +1007,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     async searchFrom(row: SearchRow): Promise<void> {
         if (row.variant !== undefined) {
             const variant = this.modifiers.regionVariants[row.variant]
-            if (!variant) return
+            assertExists(variant, 'A Search row names a pile its modifier offers')
             this.modifiers.setPicks(variant.use, variant.picks)
         }
         await this.chooseSearchSource(row.source)

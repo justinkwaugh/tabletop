@@ -188,6 +188,7 @@
                         image={warbandImage(gameSession.warbandColor(option.owner))}
                         imageAlt={gameSession.warbandOwnerName(option.owner)}
                         {name}
+                        points={gameSession.warbandMoves.points(option)}
                     >
                         <CountPicker
                             values={range(1, option.max)}
