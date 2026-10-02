@@ -3,6 +3,7 @@ import {
     isLayTile,
     isPrivateTileLay,
     isPlacePrivateMarker,
+    type TrackLayEffects,
     isRequestTrackConsent,
     isRespondToTrackConsent,
     isPlaceStation,
@@ -84,6 +85,13 @@ export function historyDescription(
     companyChanges?: HistoryCompanyChanges,
     money: MoneyFormat = moneyFormat('$')
 ): HistoryDescription {
+    const layEffects = (effects: TrackLayEffects | undefined) =>
+        effects
+            ? [
+                  ...effects.payments.map((payment) => `Received ${money(payment.amount)}`),
+                  ...effects.closedPrivateIds.map((privateId) => `${companyName(privateId)} closed`)
+              ].join(' · ')
+            : undefined
     const ownerName = (owner: Owner) =>
         owner.kind === 'bank'
             ? state.bank.name
@@ -140,12 +148,14 @@ export function historyDescription(
     if (isLayTile(action))
         return {
             text: `Laid track at ${action.locationId}`,
-            value: action.expectedCost ? money(action.expectedCost) : undefined
+            value: action.expectedCost ? money(action.expectedCost) : undefined,
+            detail: layEffects(action.metadata?.effects)
         }
     if (isPrivateTileLay(action))
         return {
             text: `Laid track at ${action.locationId} with ${companyName(action.privateCompanyId)}`,
-            value: action.expectedCost ? money(action.expectedCost) : undefined
+            value: action.expectedCost ? money(action.expectedCost) : undefined,
+            detail: layEffects(action.metadata?.effects)
         }
     if (isPlacePrivateMarker(action))
         return { text: `Marked ${action.locationId} with ${companyName(action.privateCompanyId)}` }

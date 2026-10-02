@@ -4,6 +4,7 @@ import type { CompanyState } from '../company/companyState.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import type { RailwayMap } from '../map/map.js'
 import { Station, StationReservation } from '../map/station.js'
+import { CashPayment } from '../finance/cashPayments.js'
 import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
 import { TileRotation, type TileDefinition, type TileFace } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
@@ -46,6 +47,15 @@ export const TrackRequest = Type.Object(
     { additionalProperties: false }
 )
 export type TrackRequest = Type.Static<typeof TrackRequest>
+/** What a lay pays and which privates it closes, by the title's rules. */
+export const TrackLayEffects = Type.Object(
+    {
+        payments: Type.Array(CashPayment),
+        closedPrivateIds: Type.Array(Type.String())
+    },
+    { additionalProperties: false }
+)
+export type TrackLayEffects = Type.Static<typeof TrackLayEffects>
 export const TrackLayDetails = Type.Object(
     {
         ...TrackRequest.properties,
@@ -56,7 +66,8 @@ export const TrackLayDetails = Type.Object(
         terrainCost: Type.Integer({ minimum: 0 }),
         allowanceCost: Type.Integer({ minimum: 0 }),
         stations: Type.Array(Station),
-        stationReservations: Type.Array(StationReservation)
+        stationReservations: Type.Array(StationReservation),
+        effects: Type.Optional(TrackLayEffects)
     },
     { additionalProperties: false }
 )
@@ -87,6 +98,9 @@ export interface TrackRules {
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
+    afterLay?(state: ConstructionState, details: TrackLayDetails, payer: Owner): TrackLayEffects
+    /** A tile that may bring its own labels to a hex, such as a private's special city. */
+    relabels?(locationId: string, definitionId: string): boolean
 }
 const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
 
@@ -365,6 +379,7 @@ export class TrackConstruction {
                     this.rules.colorOrder.indexOf(after.color)
             )
             .at(-1)
+        if (this.rules.relabels?.(locationId, definition.id)) return true
         const labels = future ? [future.label] : before.labels
         return (
             labels.length === after.labels.length &&

@@ -2,6 +2,7 @@ import { assertExists } from '@tabletop/common'
 import {
     StationPlacement,
     addCompanyStations,
+    closePrivate,
     finiteCashOwnedBy,
     companyMarketSpace,
     getCompany,
@@ -81,7 +82,27 @@ export function buyOwedStations(
     const payment = { from: company, to: { kind: 'bank' as const }, amount }
     settleCashPayments(state, [payment])
     addCompanyStations(state, companyId, owed)
+    grantTrainStation(state, companyId)
     return payment
+}
+
+const TrainStationId = 'TS'
+
+/**
+ * The Train Station gives its company a free station beyond those its size needs, once those
+ * are bought; its only power used, it closes.
+ */
+export function grantTrainStation(state: StockState & StationState, companyId: string): void {
+    const owner = privateOwner(state, TrainStationId)
+    if (
+        owner?.kind !== 'company' ||
+        owner.companyId !== companyId ||
+        getCompany(state, TrainStationId).closed ||
+        stationsOwed(state, companyId)
+    )
+        return
+    addCompanyStations(state, companyId, 1)
+    closePrivate(state, TrainStationId)
 }
 
 function companyShareCounts(state: CompanyAuctionState): readonly number[] {
@@ -164,6 +185,7 @@ function form(state: CompanyAuctionState, formation: CompanyFormation): void {
         poolId: treasuryPoolId(formation.companyId)
     })
     buyOwedStations(state, formation.companyId)
+    grantTrainStation(state, formation.companyId)
 }
 
 export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {

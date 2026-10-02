@@ -718,7 +718,8 @@ bridges) appears under Use privates as one immediately committed button per loca
 "Place [marker] on [location] ([private])". Placed markers join the map's printed
 markers, by the names the title's map view gives them, in the live and historical maps.
 A title's reusable private lays (1817's coal mines) stay offered until its terms end
-them.
+them. History notes what a lay paid its company or which privates it closed (1817's
+Mountain Engineers and Steel Mill).
 
 A pending par after an opening award (a title's `parAfterAward`, such as 1830's B&O)
 replaces the auction panel with "[player] sets [company]'s par." Only the entitled

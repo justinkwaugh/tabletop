@@ -25,6 +25,8 @@ export interface OperatingRules {
     companyOrder(state: OperatingState): string[]
     /** The kinds of the depot trains exported, in order, when the current operating round ends. */
     trainsToExport?(state: OperatingState & TrainState): string[]
+    /** What a private pays its owner as an operating round starts, when its state decides it. */
+    privateIncome?(state: OperatingState & TrainState, privateId: string): number
 }
 
 export function reorderPendingOperatingCompanies(

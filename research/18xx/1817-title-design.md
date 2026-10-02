@@ -1417,6 +1417,30 @@ Revenue bonuses that depend on the train, like Modern Trains, are title rules.
 - **Two commits.** 7a: route bonuses, markers, mines, bridges and Modern Trains. 7b: the
   Mountain Engineers, the Steel Mill, mail and the Train Station.
 
+### Implementation notes for slice 7
+
+- **Route bonuses** are `RouteRules.hexBonus` (once per route for each hex its track
+  touches) and `RouteRules.stopBonus` (per stop, per train); a route records them as
+  `bonuses` and its revenue includes them. The autorouter takes them as its hex bonuses
+  and adds stop bonuses to each train's stop revenues.
+- **Markers** are `locationMarkers` in the map state: a kind, a location and the private
+  that placed it. Mines and bridges count their uses by their own markers.
+- **Private lays** gain `reusable` (the power stays offered; the title closes the private
+  when used up), `terrainDiscount`, a `restriction` of their own and `relabels` (X00
+  brings its B label to Pittsburgh); a lay counting as one of the company's uses its
+  allowance, so a mine as a second lay costs the $20. `afterTrackLay` places the mine
+  and closes used-up privates.
+- **`TrackRules.afterLay`** returns a lay's payments and closed privates, settled with
+  the lay and recorded on it: the Mountain Engineers' $20 for a first lay on a mountain,
+  and the Steel Mill's closure when another tile reaches F13 while no player holds it.
+- **Mail** uses `OperatingRules.privateIncome`, beside the operating round start that
+  pays it, rather than `PrivateRules`.
+- **The Train Station's** station is granted once the company's owed stations are
+  bought, at formation or later, and the private closes then.
+- **Playground.** The company powers position gives Boston & Albany the Union Bridge,
+  Major Coal Mine, Mountain Engineers and Major Mail, and Pittsburgh & Lake Erie the
+  Steel Mill.
+
 ### Limits after slice 7
 
 - Golden Parachute and Station Subsidy, named for slice 7 in slices 5 and 6, are

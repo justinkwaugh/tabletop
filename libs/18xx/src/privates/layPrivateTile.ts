@@ -51,7 +51,13 @@ function applyPrivateLay(
         track
     ).details!
     const terms = powers.trackTerms(state, lay.privateCompanyId, lay.playerId)!
-    applyTrackLay(state, track, details, terms.payer, terms.countsAsOrdinaryLay === true)
+    const applied = applyTrackLay(
+        state,
+        track,
+        details,
+        terms.payer,
+        terms.countsAsOrdinaryLay === true
+    )
     if (!terms.reusable) state.usedPrivatePowerIds.push(lay.privateCompanyId)
     powers.afterTrackLay?.(state, lay.privateCompanyId, details)
     delete state.privateTrackLay
@@ -68,7 +74,7 @@ function applyPrivateLay(
         state.privateStation = station
     if (powers.betweenTurnsPrivateIds?.includes(lay.privateCompanyId))
         endPrivatePowerRequest(state, lay.playerId)
-    return details
+    return applied
 }
 
 function costMatches(

@@ -4,7 +4,9 @@ import { isLiquidated } from './liquidation.js'
 import { eighteenSeventeenOptions } from './state.js'
 import {
     certificatesInPool,
+    privateOwner,
     sharesOwned,
+    trainsOwnedBy,
     signedShares,
     type StockState,
     floatedCompaniesInMarketOrder,
@@ -50,6 +52,9 @@ function playerHoldings(state: StockState, companyId: string): number {
 export const MarketPoolId = 'market'
 export const treasuryPoolId = (companyId: string) => `treasury:${companyId}`
 
+// A mail private pays its company as each operating round starts, if the company has a train.
+const MailIncome: Readonly<Record<string, number>> = { MINM: 10, MAIL: 15, MAJM: 20 }
+
 export const EighteenSeventeenOperatingRules: OperatingRules = {
     roundCount: (state) => EighteenSeventeenPhases.phase(state.phaseId).operatingRounds,
     companyOrder: (state) =>
@@ -62,5 +67,11 @@ export const EighteenSeventeenOperatingRules: OperatingRules = {
         if (!next) return []
         const remaining = EighteenSeventeenTrainDepot.remaining(state.trainInventory, next)
         return next === '2' && remaining !== 'unlimited' ? Array(remaining).fill(next) : [next]
+    },
+    privateIncome(state, privateId) {
+        const owner = privateOwner(state, privateId)
+        return owner?.kind === 'company' && trainsOwnedBy(state, owner).length
+            ? (MailIncome[privateId] ?? 0)
+            : 0
     }
 }

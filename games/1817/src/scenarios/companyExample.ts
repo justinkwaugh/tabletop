@@ -50,10 +50,12 @@ export function createEighteenSeventeenCompanyExample(
     })
     givePrivate(state, 'MAIL', casey)
     givePrivate(state, 'MINC', alex)
-    // Boston & Albany holds powers its president can use in its operating turn.
-    if (position === 'company-powers')
-        for (const privateId of ['UBC', 'MAJC'])
+    // Both companies hold powers their presidents can use in their operating turns.
+    if (position === 'company-powers') {
+        for (const privateId of ['UBC', 'MAJC', 'MTE', 'MAJM'])
             givePrivate(state, privateId, { kind: 'company', companyId: 'BA' })
+        givePrivate(state, 'PSM', { kind: 'company', companyId: 'PLE' })
+    }
     // Boston & Albany is at its loan limit with nothing to pay interest, and its president has
     // no cash: it defaults when its trains are done.
     if (position === 'bankruptcy') {

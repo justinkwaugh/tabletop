@@ -9,6 +9,7 @@ import {
     rotateTileFace,
     type CompanyDecisionState,
     type PrivatePowerRules,
+    type PrivateTrackTerms,
     type TrackRequest
 } from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
@@ -34,6 +35,9 @@ const MineLocations = [
     'I10'
 ]
 const MineTiles = ['18xx:7', '18xx:8', '18xx:9']
+export const SteelMillId = 'PSM'
+export const SteelMillLocation = 'F13'
+export const SteelMillTile = '1817:X00'
 const MountainCost = 15
 const Bridges: Readonly<Record<string, number>> = { OBC: 1, UBC: 2 }
 const BridgeLocations = ['H3', 'G6', 'H9']
@@ -83,8 +87,31 @@ export function markersOf(state: CompanyDecisionState, kind: string): string[] {
     return locationMarkers(state, { kind }).map((marker) => marker.locationId)
 }
 
+function steelMillTerms(
+    state: CompanyDecisionState,
+    playerId: string
+): PrivateTrackTerms | undefined {
+    const companyId = ownerCompanyFor(state, SteelMillId, playerId)
+    if (
+        !companyId ||
+        state.machineState !== 'LayingTrack' ||
+        state.trackStep?.companyId !== companyId
+    )
+        return undefined
+    return {
+        companyId,
+        locationIds: [SteelMillLocation],
+        definitionIds: [SteelMillTile],
+        payer: { kind: 'company', companyId },
+        connected: false,
+        countsAsOrdinaryLay: true,
+        relabels: true
+    }
+}
+
 export const EighteenSeventeenPrivatePowerRules: PrivatePowerRules = {
     trackTerms(state, privateId, playerId) {
+        if (privateId === SteelMillId) return steelMillTerms(state, playerId)
         const uses = MineLays[privateId]
         const companyId = ownerCompanyFor(state, privateId, playerId)
         if (
@@ -108,6 +135,10 @@ export const EighteenSeventeenPrivatePowerRules: PrivatePowerRules = {
         }
     },
     afterTrackLay(state, privateId, details) {
+        if (privateId === SteelMillId) {
+            closePrivate(state, privateId)
+            return
+        }
         placeLocationMarker(state, {
             locationId: details.locationId,
             kind: MineMarker,

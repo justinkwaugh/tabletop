@@ -131,7 +131,8 @@ export class ScenarioInitializer extends EighteenXXInitializer {
             state.routeStep = { companyId }
             state.machineState = 'RunningTrains'
         }
-        if (position === 'operations') settleCashPayments(state, privateIncomePayments(state))
+        if (position === 'operations')
+            settleCashPayments(state, privateIncomePayments(state, this.titleRules.operatingRules))
         state.activePlayerIds = [owner.playerId]
         state.turnManager.series = [{ type: 'turn', playerId: owner.playerId, start: 0 }]
     }

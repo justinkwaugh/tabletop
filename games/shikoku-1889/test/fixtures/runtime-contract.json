@@ -23,9 +23,9 @@
     "FloatCompany": "19008d56b87559213dfbf7511d5f729dcab000ebb0fba322d665989e10dba60f",
     "FundTrain": "5c7f49d1dd2ddceaa51ef5898e96eadd7d79642915f997edc5fdd7fb5b0bccb0",
     "IssueTreasuryShares": "3bbce033d8ebe42dac7bc33733bf426d5713ddb6c2ce9543190d51d3aaf41d9f",
-    "LayPrivateTile": "c8d97811dbc839c2d8fdf5e51ddac49143a685df1c80e2d5573dcd1c286bf298",
-    "LayPrivateTileOutOfTurn": "36048a1ec0ce97465063e728db991361857ee8c3e07b5f812390c62b73fa23f3",
-    "LayTile": "3f0147c9c4ed30ee48cfe700899573e878d44011c2c89363ce05b2682226ee16",
+    "LayPrivateTile": "99868ba6bff81b26acad6efe4d8fc6e83c7f01689a6b5ca2dca2f6dd372c6660",
+    "LayPrivateTileOutOfTurn": "a30715f9d9be9f83a6816f56e6c2d27134c00b6e553d5c6085b7079aa356f6e2",
+    "LayTile": "249fc9b4fcffcbb7a93a12b1cdef9ef8b42628162e7801ea1e7b41d89d9c3378",
     "OfferPurchase": "51b45483436aeef619c452fa43f86c4d58cc47d99f7aaaaf64359fd7312c23ed",
     "PassAuction": "0787d832446a6a789d06e769e79b3f3ef5b630bebc1247a975940bb6979e64a1",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
@@ -35,7 +35,7 @@
     "ReserveBid": "765c6c89338935d58ea9f04b174a317b1aa1f94865477e20c971dd2dbe35800e",
     "ResolveAuction": "3a915b699a1c8c9fc03eaaa0073aa986f15ec921bc50d6d8e01aafa01c206f24",
     "RespondToPurchaseOffer": "810d8da94e40ac69f609dd9b95bd4d57aa9202bad25f5f1d7258f88acf574680",
-    "RespondToTrackConsent": "e057b211db97297ef99d8d9cba1beaff6976e79c7146a293caecc07e9219e3d4",
+    "RespondToTrackConsent": "8cb4a062bcdd2427018382d8816a93233034ba05a8ed38e5ef0deec33c065eca",
     "RunTrains": "400af6a98bc8ebac73a1b5b917b8210edd476f6517ed68e0684049e9f517b4fc",
     "RustTrains": "aaaa9fa915db39480aaec4985f0866177bbf1567750725a2b4cba6da35b82bc6",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
@@ -3958,6 +3958,154 @@
               },
               "definitionId": {
                 "type": "string"
+              },
+              "effects": {
+                "additionalProperties": false,
+                "properties": {
+                  "closedPrivateIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "payments": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "amount": {
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "from": {
+                          "anyOf": [
+                            {
+                              "anyOf": [
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "kind": {
+                                      "const": "player",
+                                      "type": "string"
+                                    },
+                                    "playerId": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "playerId"
+                                  ],
+                                  "type": "object"
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "companyId": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    },
+                                    "kind": {
+                                      "const": "company",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "companyId",
+                                    "kind"
+                                  ],
+                                  "type": "object"
+                                }
+                              ]
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "bank",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        "to": {
+                          "anyOf": [
+                            {
+                              "anyOf": [
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "kind": {
+                                      "const": "player",
+                                      "type": "string"
+                                    },
+                                    "playerId": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "playerId"
+                                  ],
+                                  "type": "object"
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "companyId": {
+                                      "minLength": 1,
+                                      "type": "string"
+                                    },
+                                    "kind": {
+                                      "const": "company",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "companyId",
+                                    "kind"
+                                  ],
+                                  "type": "object"
+                                }
+                              ]
+                            },
+                            {
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "bank",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "amount",
+                        "from",
+                        "to"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "closedPrivateIds",
+                  "payments"
+                ],
+                "type": "object"
               },
               "locationId": {
                 "type": "string"

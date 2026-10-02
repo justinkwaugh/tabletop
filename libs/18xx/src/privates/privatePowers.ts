@@ -19,6 +19,8 @@ export interface PrivateTrackTerms {
     reusable?: true
     terrainDiscount?: number
     restriction?(request: TrackRequest): string | undefined
+    /** Its tiles may bring their own labels to the hex. */
+    relabels?: true
 }
 export interface PrivatePowerRules {
     trackTerms(
@@ -77,6 +79,10 @@ export function privateTrackConstruction(
                     ? terms.restriction?.(request)
                     : 'This private cannot place that tile here.',
             useful: terms.connected ? rules.useful : () => true,
+            relabels: (locationId, definitionId) =>
+                !!terms.relabels &&
+                terms.locationIds.includes(locationId) &&
+                terms.definitionIds.includes(definitionId),
             terrainCost: (constructionState, request, cost) =>
                 Math.max(
                     0,

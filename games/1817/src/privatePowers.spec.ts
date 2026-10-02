@@ -4,14 +4,20 @@ import {
     finiteCashOwnedBy,
     getCompany,
     locationMarkers,
+    privateTrackConstruction,
+    type CompanyDecisionState,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
 import {
+    EighteenSeventeenOperatingRules,
+    EighteenSeventeenPrivatePowerRules,
     EighteenSeventeenRouteRules,
     EighteenSeventeenTrackRules,
-    EighteenSeventeenTrainDepot
+    EighteenSeventeenTrainDepot,
+    grantTrainStation
 } from './index.js'
+import { passUntil } from '../test/passTurns.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 
 const company = (companyId: string) => ({ kind: 'company' as const, companyId })
@@ -24,10 +30,10 @@ function givePrivate(state: EighteenXXState, privateId: string, companyId: strin
 }
 
 // Boston & Albany lays its first tile on B27, which brings its track beside the mountain B25.
-function mineReady(privateId: string) {
-    const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) =>
-        givePrivate(state, privateId, 'BA')
-    )
+function mineReady(...privateIds: string[]) {
+    const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) => {
+        for (const privateId of privateIds) givePrivate(state, privateId, 'BA')
+    })
     play.act('LayTile', {
         companyId: 'BA',
         locationId: 'B27',
@@ -139,5 +145,97 @@ describe('Modern Trains', () => {
         )
         expect(EighteenSeventeenRouteRules.stopBonus?.(modern.state, eight, 'BA', station)).toBe(20)
         expect(EighteenSeventeenRouteRules.stopBonus?.(modern.state, eight, 'PLE', station)).toBe(0)
+    })
+})
+
+describe('the Mountain Engineers', () => {
+    it('pay their company $20 for each mountain it builds on', () => {
+        const play = mineReady('MAJC', 'MTE')
+        const cash = finiteCashOwnedBy(play.state, company('BA'))
+        play.act('LayPrivateTile', mineLay('MAJC'))
+        // The second lay's $20 is made good by the mountain's $20.
+        expect(finiteCashOwnedBy(play.state, company('BA'))).toBe(cash)
+    })
+})
+
+describe('the Pittsburgh Steel Mill', () => {
+    function steelMill() {
+        const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) =>
+            givePrivate(state, 'PSM', 'BA')
+        )
+        const state: CompanyDecisionState = play.state
+        const terms = EighteenSeventeenPrivatePowerRules.trackTerms(state, 'PSM', 'blair')
+        assertExists(terms, 'The Steel Mill can lay')
+        const [details] = privateTrackConstruction(
+            state,
+            terms,
+            EighteenSeventeenTrackRules
+        ).choices('F13')
+        assertExists(details, 'X00 fits Pittsburgh')
+        return { play, details }
+    }
+
+    it('lays X00 on Pittsburgh without a connection, then closes', () => {
+        const { play, details } = steelMill()
+        play.act('LayPrivateTile', {
+            privateCompanyId: 'PSM',
+            companyId: 'BA',
+            locationId: 'F13',
+            definitionId: details.definitionId,
+            rotation: details.rotation,
+            nodeMapping: details.nodeMapping,
+            expectedCost: details.cost
+        })
+        expect(getCompany(play.state, 'PSM').closed).toBe(true)
+        expect(play.state.tileInventory.placements['F13']).toBeDefined()
+    })
+
+    it('closes when another tile reaches Pittsburgh while no player holds it', () => {
+        const { play, details } = steelMill()
+        const other = { ...details, definitionId: '18xx:57' }
+        expect(
+            EighteenSeventeenTrackRules.afterLay?.(play.state, other, company('BA'))
+                .closedPrivateIds
+        ).toEqual(['PSM'])
+        expect(
+            EighteenSeventeenTrackRules.restriction(play.state, {
+                companyId: 'BA',
+                locationId: 'F13',
+                definitionId: '1817:X00',
+                rotation: 0,
+                nodeMapping: {}
+            })
+        ).toBe('Only the Pittsburgh Steel Mill lays X00.')
+    })
+})
+
+describe('mail', () => {
+    it('pays a company with a train as each operating round starts', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) =>
+            givePrivate(state, 'MAIL', 'BA')
+        )
+        const cash = finiteCashOwnedBy(play.state, company('BA'))
+        passUntil(play, (state) => state.operatingSet?.roundNumber === 2)
+        expect(finiteCashOwnedBy(play.state, company('BA'))).toBe(cash + 15)
+    })
+
+    it('pays nothing to a player', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'construction', 3)
+        expect(EighteenSeventeenOperatingRules.privateIncome?.(play.state, 'MAIL')).toBe(0)
+    })
+})
+
+describe('the Train Station', () => {
+    it('gives its company one station beyond its size’s once those are bought', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'trading', 3, (state) => {
+            givePrivate(state, 'TS', 'PLE')
+            grantTrainStation(state, 'PLE')
+        })
+        expect(
+            play.state.stations.filter(
+                (station) => station.companyId === 'PLE' && station.status !== 'removed'
+            )
+        ).toHaveLength(2)
+        expect(getCompany(play.state, 'TS').closed).toBe(true)
     })
 })
