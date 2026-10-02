@@ -1049,6 +1049,113 @@ dividends, valuation and settlement; no other family lends shares.
 - With Short Squeeze, a company whose players hold 110% net moves up twice.
 - At the game's end a short is valued at minus the share price.
 
+## Slice 5 design: the merger and conversion round
+
+Slice 5 adds the round that follows every operating round: in turn, companies may
+convert to a larger size or merge with another of their size, players may buy the new
+shares, and the company may borrow and buy the stations its size needs.
+
+### Evidence
+
+- **Round order** ([game], [merger-round]). Every OR, including a set's last, is
+  followed by a merger and conversion round (MR) and then an acquisition round (AR);
+  then comes the next OR or the stock round. The MR runs after the OR's export. Its
+  companies are the floated ones outside the acquisition and liquidation zones, in
+  operating order, fixed when it starts. No interest is charged; the OR's rate stands.
+- **Conversion** ([conversion]). A 2-share company becomes 5 shares, a 5-share company
+  10. Every existing certificate keeps its shares, so the president's 2 become 40%,
+  then 20%; shorts carry over. New shares, 3 or 5, go to the treasury. The price and
+  loans are unchanged. The company then needs one more station (to 5 shares, while it
+  has fewer than 8) or up to two (to 10, towards 8), at $50 each, bought after trading
+  and loans; a company that cannot pay is liquidated.
+- **Merger.** A company may absorb another of its size (2 or 5, never 10) that is
+  floated, outside the closing zones and not converted this round. For 5+5, some
+  player must hold at least 40% net of both together; for 2+2 under different
+  presidents, the survivor's president must afford the new price. The new price is the
+  sum (2+2) or the floored average (5+5), at the highest market space not above it.
+  - The survivor takes the target's cash, privates, loans and trains, and its stations,
+    except one where both share a city; over 8 stations, its president removes the
+    excess.
+  - 2+2: the survivor converts to 5. Under different presidents, the survivor's
+    president pays the new price into its treasury and the target's president receives
+    a treasury share.
+  - 5+5: the survivor converts to 10, and each share (or short) of the target becomes
+    one of the survivor's for the same holder. The largest net holder presides; a tie
+    keeps the survivor's president, or else goes to the next tied player in seat order.
+    Each holder's shorts then cancel against their shares.
+  - The target returns to its charter, unstarted, and may be started again. A merger
+    buys no stations. Trains over the limit are discarded.
+- **After a conversion or merger** ([post-conversion], [post-conversion-loans]).
+  Starting with the president, players in seat order may buy the company's treasury
+  shares at its price, one each, though the president may keep buying; buying closes a
+  short and is then free of the holding and certificate limits. Then the company may
+  take loans, each moving its price left.
+- **Acquisition round** ([acquire]). Each president may offer their company for
+  sale, companies in the acquisition zone are auctioned, and those in liquidation are
+  sold off. It is slice 6.
+
+### Survey
+
+Conversions appear in 30 of the researched titles and mergers in 41; 45 have neither.
+The 1817 family and the 1867 family both convert and merge in a round after ORs; 18NE,
+1822PNW and 18Ireland add merger rounds too. Elsewhere conversion is a stock or OR
+action (1866, 18GB) or a phase event (18VA, 1858), and mergers form prescribed
+nationals (1835, 1856). Who decides (a president, an owner, a vote), the price, the
+exchange ratio and the absorbed company's fate all vary, so the decisions stay 1817's.
+What recurs is the procedure underneath: issuing a size's new shares, moving one
+company's assets and stations to another, removing a market marker and recomputing the
+presidency.
+
+### Decisions
+
+- **The MR is a 1817 round of its own.** Title machine states, entered from the
+  operating set once a round's companies and exports are done and recorded in the
+  title field `mergerRound` (the round's remaining companies, and the company being
+  converted or merged with its traders and stations owed):
+    - `MergerRound`: the current company's president converts, merges or passes;
+    - `TradingConvertedShares`: players in turn buy a treasury share or pass;
+    - `BorrowingAfterConversion`: the company takes loans or finishes, then buys its
+      stations or is liquidated;
+    - `ReducingStations` and `DiscardingMergedTrains`: the survivor's president
+      removes stations over 8 and trains over the limit.
+- **Actions.** `ConvertCompany`, `MergeCompanies`, `PassMerger`, `BuyConvertedShare`,
+  `PassConvertedShares`, `FinishConversionLoans`, `RemoveStation` and
+  `DiscardMergedTrain` are 1817 actions; the family's `TakeLoan` serves borrowing.
+  The system actions `StartMergerRound` and `EndMergerRound` bracket the round.
+- **Family primitives.** The family gains what other merging titles reuse:
+  `transferCompanyAssets` (cash, trains, privates, loans), `moveCompanyStations`
+  (onto the survivor's own station pieces, dropping a shared city's second token) and
+  `removeStockMarker`. Conversion needs nothing new: certificates keep their shares and
+  `issueShareCertificates` adds the treasury shares.
+- **Resetting a charter is 1817's.** The target's president's certificate returns to
+  the bank, its other shares and shorts retire, its home station is available again,
+  and its size, flags and market marker are cleared.
+- **The table labels the round.** The header reads "Merger round 2.1" and history
+  groups it as "MR 2.1", from the round's start action; 1817's table shows the round's
+  panels in place of the operating panels.
+
+### Limits after slice 5
+
+- The acquisition round, its offers, auctions and liquidations come with slice 6.
+- Non-presidents cannot sell after a conversion (the reference allows it; the recorded
+  games never do).
+- The game ends after the final set's last OR, before its MR, as before.
+- The Station Subsidy private's discount comes with slice 7.
+
+### Acceptance examples
+
+- After an OR, a 2-share company converts: its president holds 40%, three shares are
+  in its treasury, players buy two, it takes a loan and buys one station for $50.
+- A 5-share company converts to 10 and cannot pay for its two stations: it is
+  liquidated.
+- Two 5-share companies at $90 and $70 merge at $80: holdings become 10-share holdings,
+  the largest holder presides, and the target can be started again.
+- Two 2-share companies under different presidents merge at the sum of their prices,
+  the survivor's president pays it in and the target's receives a share.
+- A merger over the train limit makes the survivor discard; one sharing a city keeps
+  one token there.
+- With no company able to act, the round passes straight to the next OR or stock round.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/entities.rb
@@ -1061,3 +1168,8 @@ dividends, valuation and settlement; no other family lends shares.
 [operating-round]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round/operating.rb
 [cash-crisis]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/cash_crisis.rb
 [bankrupt]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/bankrupt.rb
+[merger-round]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round/merger.rb
+[conversion]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/conversion.rb
+[post-conversion]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/post_conversion.rb
+[post-conversion-loans]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/post_conversion_loans.rb
+[acquire]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/acquire.rb
