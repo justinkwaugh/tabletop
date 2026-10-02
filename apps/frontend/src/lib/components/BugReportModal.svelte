@@ -55,8 +55,8 @@
         />
         <Helper class="flex justify-between gap-4">
             <span>
-                The game, your seat, the action you're viewing, and your browser details are
-                included automatically.
+                The game, the action you're viewing, and your browser details are included
+                automatically.
             </span>
             <span class="shrink-0">{description.length}/{BUG_REPORT_DESCRIPTION_MAX_LENGTH}</span>
         </Helper>

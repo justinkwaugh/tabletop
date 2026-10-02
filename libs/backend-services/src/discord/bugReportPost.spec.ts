@@ -50,8 +50,8 @@ const context: BugReportPostContext = {
     frontendHost: 'https://example.com',
     titleName: 'Santiago',
     reporter: { username: 'alice', discordUserId: 'discord-1' },
-    seat: alice,
     liveActionCount: 142,
+    appliedTagIds: ['tag-open'],
     reportedAt: new Date('2026-10-02T18:30:00.000Z')
 }
 
@@ -60,10 +60,11 @@ function fieldValue(post: ReturnType<typeof bugReportPost>, name: string): strin
 }
 
 describe('bugReportPost', () => {
-    it('opens a forum thread named for the title and the first line of the description', () => {
+    it('opens a tagged forum thread named for the title and the first line of the description', () => {
         const post = bugReportPost(game, report, context)
 
         expect(post.name).toBe('Santiago: The canal would not place')
+        expect(post.applied_tags).toEqual(['tag-open'])
         expect(post.message.allowed_mentions).toEqual({ parse: [] })
         expect(post.message.components).toEqual([
             {
@@ -90,7 +91,6 @@ describe('bugReportPost', () => {
         expect(embed?.timestamp).toBe('2026-10-02T18:30:00.000Z')
         expect(embed?.fields).toEqual([
             { name: 'Reporter', value: 'alice (<@discord-1>)', inline: true },
-            { name: 'Seat', value: 'Alice', inline: true },
             { name: 'Game', value: 'Santiago', inline: true },
             { name: 'Status', value: GameStatus.Started, inline: true },
             { name: 'Actions', value: '142', inline: true },

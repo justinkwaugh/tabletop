@@ -46,6 +46,16 @@ const report: BugReportRequest = {
     client: { userAgent: 'test', viewport: '800x600 @1x', installedApp: false }
 }
 
+function forumWithTags(names: string[]): Response {
+    return new Response(
+        JSON.stringify({
+            id: 'forum-1',
+            available_tags: names.map((name, index) => ({ id: `tag-${index}`, name }))
+        }),
+        { status: 200 }
+    )
+}
+
 describe('BugReportService', () => {
     let gameService: GameService
     let discordBotApi: DiscordBotApi
@@ -57,6 +67,9 @@ describe('BugReportService', () => {
         vi.spyOn(gameService, 'getTitle').mockReturnValue(undefined)
         discordBotApi = new DiscordBotApi('token')
         vi.spyOn(discordBotApi, 'post').mockResolvedValue(new Response('{}', { status: 201 }))
+        vi.spyOn(discordBotApi, 'get').mockImplementation(async () =>
+            forumWithTags(['Fixed', ' open '])
+        )
         service = new BugReportService(
             gameService,
             Object.create(UserService.prototype),
@@ -71,7 +84,40 @@ describe('BugReportService', () => {
         expect(gameService.getGame).toHaveBeenCalledWith({ gameId: 'game-1', withState: true })
         expect(discordBotApi.post).toHaveBeenCalledWith(
             '/channels/forum-1/threads',
-            expect.objectContaining({ name: 'santiago: The canal would not place' })
+            expect.objectContaining({
+                name: 'santiago: The canal would not place',
+                applied_tags: ['tag-1']
+            })
+        )
+    })
+
+    it('looks up the Open tag once', async () => {
+        await service.reportBug({ user: reporter, report })
+        await service.reportBug({ user: reporter, report })
+
+        expect(discordBotApi.get).toHaveBeenCalledTimes(1)
+        expect(discordBotApi.get).toHaveBeenCalledWith('/channels/forum-1')
+    })
+
+    it('posts untagged when the forum has no Open tag', async () => {
+        vi.mocked(discordBotApi.get).mockImplementation(async () => forumWithTags(['Fixed']))
+
+        await service.reportBug({ user: reporter, report })
+
+        expect(discordBotApi.post).toHaveBeenCalledWith(
+            '/channels/forum-1/threads',
+            expect.objectContaining({ applied_tags: [] })
+        )
+    })
+
+    it('posts untagged when the forum tags cannot be read', async () => {
+        vi.mocked(discordBotApi.get).mockResolvedValue(new Response('', { status: 403 }))
+
+        await service.reportBug({ user: reporter, report })
+
+        expect(discordBotApi.post).toHaveBeenCalledWith(
+            '/channels/forum-1/threads',
+            expect.objectContaining({ applied_tags: [] })
         )
     })
 

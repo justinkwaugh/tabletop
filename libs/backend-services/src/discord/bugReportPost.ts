@@ -1,4 +1,4 @@
-import type { BugReportRequest, BugReportView, Game, Player } from '@tabletop/common'
+import type { BugReportRequest, BugReportView, Game } from '@tabletop/common'
 import {
     ButtonStyle,
     ComponentType,
@@ -16,8 +16,8 @@ export type BugReportPostContext = {
     frontendHost: string
     titleName: string
     reporter: BugReporter
-    seat: Player
     liveActionCount: number | undefined
+    appliedTagIds: string[]
     reportedAt: Date
 }
 
@@ -41,6 +41,7 @@ export function bugReportPost(
 
     return {
         name: truncate(`${context.titleName}: ${firstLine(report.description)}`, Limit.ThreadName),
+        applied_tags: context.appliedTagIds,
         message: {
             embeds: [
                 {
@@ -79,7 +80,6 @@ function reportFields(
     const { liveActionCount } = context
     return [
         { name: 'Reporter', value: reporterLabel(context.reporter), inline: true },
-        { name: 'Seat', value: context.seat.name, inline: true },
         { name: 'Game', value: context.titleName, inline: true },
         { name: 'Status', value: game.status, inline: true },
         { name: 'Actions', value: liveActionCount?.toString() ?? NOT_STARTED, inline: true },
