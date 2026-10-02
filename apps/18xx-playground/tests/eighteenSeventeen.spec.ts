@@ -35,3 +35,35 @@ test('1817 opens with a selection auction and starts companies by auction', asyn
         'formed Alton & Southern Railway with 2 shares'
     )
 })
+
+test('1817 companies borrow during their turn and settle interest in a Loans step', async ({
+    page
+}) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('construction')
+    const steps = page.getByRole('navigation', { name: 'Operating steps' })
+    await expect(steps.getByRole('button', { name: 'Loans' })).toBeVisible()
+    const loans = steps.getByLabel('Loans', { exact: true })
+    await expect(loans).toContainText('Loans 0/5 · 5%')
+    await loans.getByRole('button', { name: 'Take loan ($100)' }).click()
+    await expect(loans).toContainText('Loans 1/5')
+
+    await steps.getByRole('button', { name: 'Station' }).click()
+    const trains = page.getByRole('region', { name: 'Train purchases' })
+    await expect(trains).toBeVisible()
+    await trains.getByRole('button', { name: 'finish', exact: true }).click()
+
+    const repayment = page.getByRole('region', { name: 'Loans' })
+    await expect(repayment).toContainText('Paid $5 interest at 5%')
+    await expect(repayment.getByRole('button', { name: 'Repay a loan ($100)' })).toBeEnabled()
+    await repayment.getByRole('button', { name: 'Repay a loan ($100)' }).click()
+    await expect(repayment).toContainText('Loans 0/5')
+    await repayment.getByRole('button', { name: 'Finish turn' }).click()
+    await expect(page.getByRole('region', { name: 'Loans' })).toHaveCount(0)
+
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    const history = page.getByRole('list', { name: 'Action history' })
+    await expect(history).toContainText('Borrowed for')
+    await expect(history).toContainText('Repaid a loan for')
+})

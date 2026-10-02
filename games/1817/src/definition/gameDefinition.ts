@@ -1,6 +1,7 @@
 import { type GameDefinition } from '@tabletop/common'
 import {
     createEighteenXXRuntime,
+    defineAction,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type HydratedEighteenXXState
@@ -22,6 +23,26 @@ import { EighteenSeventeenCompanyRules } from '../companyRules.js'
 import { EighteenSeventeenStockRules } from '../stockRules.js'
 import { EighteenSeventeenInfo } from './info.js'
 import { EighteenSeventeenStateDefinition } from '../state.js'
+import { EighteenSeventeenLoanRules } from '../loanRules.js'
+import {
+    BuyBackShares,
+    CorporateActionsHandler,
+    HydratedBuyBackShares,
+    isBuyBackShares
+} from '../corporateActions.js'
+import {
+    BuyOwedStations,
+    HydratedBuyOwedStations,
+    OwedStationsHandler,
+    UnpaidStationsHandler,
+    isBuyOwedStations
+} from '../owedStations.js'
+import {
+    HydratedLiquidateCompany,
+    LiquidateCompany,
+    TrainlessLiquidationHandler,
+    isLiquidateCompany
+} from '../liquidation.js'
 
 export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
     state: EighteenSeventeenStateDefinition,
@@ -41,7 +62,27 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
     privateRules: EighteenSeventeenPrivateRules,
     phases: EighteenSeventeenPhases,
     phaseRules: EighteenSeventeenPhaseRules,
-    trainRules: EighteenSeventeenTrainRules
+    trainRules: EighteenSeventeenTrainRules,
+    loanRules: EighteenSeventeenLoanRules,
+    decisionHandlers: {
+        StockRound: (family) => new OwedStationsHandler(new CorporateActionsHandler(family)),
+        StartingOperatingSet: (family) =>
+            new OwedStationsHandler(new UnpaidStationsHandler(family)),
+        OperatingSet: (family) => new TrainlessLiquidationHandler(family)
+    },
+    titleActions: [
+        defineAction(BuyBackShares, isBuyBackShares, (action) => new HydratedBuyBackShares(action)),
+        defineAction(
+            BuyOwedStations,
+            isBuyOwedStations,
+            (action) => new HydratedBuyOwedStations(action)
+        ),
+        defineAction(
+            LiquidateCompany,
+            isLiquidateCompany,
+            (action) => new HydratedLiquidateCompany(action)
+        )
+    ]
 }
 
 export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {

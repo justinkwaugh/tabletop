@@ -11,6 +11,7 @@ import {
 } from '@tabletop/common'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { privateOwner, type FinancialState } from '../finance/finance.js'
+import type { LoanRules, LoanState } from '../loans/loans.js'
 import {
     OperatingSet,
     nextOperatingCompany,
@@ -59,12 +60,19 @@ export class HydratedStartOperatingRound
     declare metadata?: StartOperatingRound['metadata']
     readonly #rules: OperatingRules
     readonly #valuationRules: ValuationRules
-    constructor(data: StartOperatingRound, rules: OperatingRules, valuationRules: ValuationRules) {
+    readonly #loanRules: LoanRules | undefined
+    constructor(
+        data: StartOperatingRound,
+        rules: OperatingRules,
+        valuationRules: ValuationRules,
+        loanRules?: LoanRules
+    ) {
         super(data instanceof HydratedStartOperatingRound ? data.dehydrate() : data, Validator)
         this.#rules = rules
         this.#valuationRules = valuationRules
+        this.#loanRules = loanRules
     }
-    apply(state: HydratedGameState & OperatingState): void {
+    apply(state: HydratedGameState & OperatingState & LoanState): void {
         assert(
             this.source === ActionSource.System && canStartOperatingRound(state),
             'The next operating round is not ready'
@@ -76,6 +84,7 @@ export class HydratedStartOperatingRound
         set.companyOrder = this.#rules.companyOrder(state)
         set.completedCompanyIds = []
         set.privateIncomePaid = true
+        if (this.#loanRules) state.interestRate = this.#loanRules.rate(state)
         this.metadata = {
             operatingSet: structuredClone(set),
             payments,

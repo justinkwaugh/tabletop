@@ -55,6 +55,10 @@ it('plays from the opening through a company auction into a first operating roun
         expectedPrice: 100
     })
     expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'AS' })).toBe(0)
+    play.act('FinishTrains', { companyId: 'AS' })
+    expect(play.state.machineState).toBe('RepayingLoans')
+    expect(play.valid(play.state.activePlayerIds[0])).toEqual(['TakeLoan', 'FinishOperatingTurn'])
+    play.act('FinishOperatingTurn', { companyId: 'AS' })
     expect(play.state.operatingSet?.roundNumber).toBe(2)
     expect(play.state.trackStep?.companyId).toBe('AS')
 })

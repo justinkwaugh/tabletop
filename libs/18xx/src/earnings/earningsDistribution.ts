@@ -177,7 +177,8 @@ const AfterEarningsStates = [
     'Bankrupt',
     'GameOver',
     'AdvancingPhase',
-    'DiscardingTrains'
+    'DiscardingTrains',
+    'RepayingLoans'
 ]
 export function validateEarningsDistribution(
     state: EarningsState & {

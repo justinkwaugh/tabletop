@@ -1,8 +1,9 @@
 <script lang="ts">
     import { historicalOperatingStepIndex, operatingStepIndex } from './operatingStep.js'
     import OperatingPrivateActions from './OperatingPrivateActions.svelte'
+    import OperatingLoanActions from '../loans/OperatingLoanActions.svelte'
     import { ActionSource } from '@tabletop/common'
-    import { isFinishTrack, isFinishStations, isRunTrains } from '@tabletop/18xx'
+    import { isFinishTrack, isFinishStations, isPayInterest, isRunTrains } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
@@ -17,7 +18,14 @@
             ? historicalOperatingStepIndex(context.actions.at(-1), gameState.machineState)
             : operatingStepIndex(gameState.machineState)
     )
-    const steps = ['Track', 'Station', 'Run', 'Payout', 'Trains']
+    const steps = $derived([
+        'Track',
+        'Station',
+        'Run',
+        'Payout',
+        'Trains',
+        ...(session.loans.rules ? ['Loans'] : [])
+    ])
     const statuses = $derived.by(() => {
         const actions = readOnly
             ? context.actions
@@ -30,6 +38,7 @@
         const track = current.findLast(isFinishTrack)
         const station = current.findLast(isFinishStations)
         const run = current.findLast(isRunTrains)
+        const interest = current.findLast(isPayInterest)
         const distribution = gameState.earningsDistribution
         const purchased = gameState.trainPurchaseStep?.purchasedTrainIds.length ?? 0
         return [
@@ -63,7 +72,12 @@
                       ? 'Half-paid'
                       : 'Withheld'
                 : undefined,
-            purchased ? `${purchased} bought` : undefined
+            purchased ? `${purchased} bought` : undefined,
+            interest?.metadata
+                ? interest.metadata.default
+                    ? 'Defaulted'
+                    : `Paid ${money(interest.metadata.interest)}`
+                : undefined
         ]
     })
 </script>
@@ -74,7 +88,7 @@
         style:--start-color={currentStep === 0
             ? 'var(--rail-solid, #695543)'
             : 'var(--rail-surface-selected, #ded0c2)'}
-        style:--end-color={currentStep === 4
+        style:--end-color={currentStep === steps.length - 1
             ? 'var(--rail-solid, #695543)'
             : 'var(--rail-surface-raised, #e8ded4)'}
     >
@@ -98,6 +112,7 @@
             {/each}
         </div>
         {#if !readOnly}<div class="privates">
+                <OperatingLoanActions {session} />
                 <OperatingPrivateActions {session} purchaseLabel={privatePurchaseLabel} />
             </div>{/if}
     </nav>

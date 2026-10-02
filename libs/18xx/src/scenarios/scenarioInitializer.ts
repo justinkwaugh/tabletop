@@ -110,6 +110,7 @@ export class ScenarioInitializer extends EighteenXXInitializer {
             privateIncomePaid: true,
             completed: false
         }
+        if (this.titleRules.loanRules) state.interestRate = this.titleRules.loanRules.rate(state)
         state.trackStep = { companyId, lays: [], completed: false }
         state.machineState = 'LayingTrack'
         for (const home of new StationPlacement(state, stationRules).homePlacements())

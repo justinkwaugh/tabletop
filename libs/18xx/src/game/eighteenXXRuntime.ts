@@ -51,6 +51,9 @@ import { trainActions } from '../trains/trainActions.js'
 import { routeActions } from '../routes/routeActions.js'
 import { earningsActions } from '../earnings/earningsActions.js'
 import { companyActions } from '../company/companyActions.js'
+import { loanActions } from '../loans/loanActions.js'
+import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
+import { RepayingLoansHandler } from '../loans/repayingLoansHandler.js'
 import {
     BetweenCompaniesState,
     OperatingStepStates,
@@ -116,9 +119,17 @@ export function createEighteenXXRuntime(
             : handler
     const awaitsPar = (handler: Handler): Handler =>
         companyRules.parAfterAward ? new PendingParHandler(handler) : handler
-    const after = stateAfterOperatingStep
+    const { loanRules } = options
+    const operatingSteps = loanRules
+        ? [...OperatingStepStates, 'RepayingLoans']
+        : OperatingStepStates
+    const after = (step: string) => stateAfterOperatingStep(step, operatingSteps)
+    const allowsLoans = (handler: Handler): Handler =>
+        loanRules ? new LoanTakingHandler(handler, loanRules) : handler
     const operatingStep = (handler: Handler): Handler =>
-        endsGame(allowsPrivatePowerRequests(allowsCompanyDecisions(allowsExchange(handler))))
+        endsGame(
+            allowsPrivatePowerRequests(allowsCompanyDecisions(allowsExchange(allowsLoans(handler))))
+        )
     const familyStateHandlers: Record<string, Handler> = {
         ...(options.offerAuctionRules
             ? {
@@ -259,8 +270,19 @@ export function createEighteenXXRuntime(
                         after('BuyingTrains')
                     )
                 )
-            )
-        )
+            ),
+            !loanRules
+        ),
+        ...(loanRules
+            ? {
+                  RepayingLoans: endsGame(
+                      decides(
+                          'RepayingLoans',
+                          new RepayingLoansHandler(loanRules, options.trainRules)
+                      )
+                  )
+              }
+            : {})
     }
     for (const machineState of Object.keys(options.titleStateHandlers ?? {}))
         assert(
@@ -283,13 +305,14 @@ export function createEighteenXXRuntime(
         ...trackActions(options.trackRules),
         ...transferActions(options.transferRules, options.trainRules, rules),
         ...phaseActions(options),
-        ...operatingActions(operatingRules, options.trainRules, options.endingRules),
+        ...operatingActions(operatingRules, options.trainRules, options.endingRules, loanRules),
+        ...loanActions(loanRules, rules),
         ...stockActions(rules),
         ...companyActions(companyRules, rules),
         ...stationActions(options.stationRules),
         ...routeActions(options.routeRules),
         ...earningsActions(options.earningsRules, options.privateRules, rules),
-        ...trainActions(options.trainRules, options.phaseRules),
+        ...trainActions(options.trainRules, options.phaseRules, !loanRules),
         ...(options.titleActions ?? [])
     ])
     return {

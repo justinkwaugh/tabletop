@@ -35,7 +35,8 @@ export const Company = Type.Object(
         operated: Type.Optional(Type.Boolean()),
         floated: Type.Optional(Type.Boolean()),
         president: Type.Optional(President),
-        privateRevenue: Type.Optional(Type.Integer({ minimum: 0 }))
+        privateRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
+        loans: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )

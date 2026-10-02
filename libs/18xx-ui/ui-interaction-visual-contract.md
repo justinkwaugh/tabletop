@@ -583,6 +583,26 @@ Fixture version 18 adds Phase changes and Diesel arrival examples. These exercis
 phase/rusting decisions; phase-triggered private powers and game-ending effects
 are integrated in their planned later slices.
 
+### Corporate loans
+
+For a title with loans, the operating step strip gains a sixth step, Loans, whose
+status shows the interest paid or a default. Beside the strip's private actions the
+operating company's loans, its limit and the fixed rate are shown, with a Take loan
+button while its president may borrow before interest; borrowing commits at once,
+with no staged selection, and Undo reverses it like any committed action. The train
+step's finish then ends only the train step.
+
+The Loans step's panel names the company, its loans and treasury, and the interest
+paid (with any loans borrowed to pay it) or that it defaulted. Repay a loan, Take a
+loan and Finish turn commit at once; while both are offered the panel notes that
+borrowing ends repayments. Company details show loans against the limit. History
+records borrowing and repayments with their price moves, and interest as a company
+row that is routine unless it needed loans or defaulted.
+
+A title's own stock-round corporate actions (1817's loans and buy-backs) appear
+above the stock actions while the player may still act for a company they preside,
+each as an immediately committed button.
+
 ## Private exchanges and lifecycle
 
 Private-company cards show ownership, income, closure, and eligible exchanges.

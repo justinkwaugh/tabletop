@@ -17,11 +17,12 @@ import type { StationPlacementState } from '../stations/stationPlacement.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { trainsOwnedBy } from '../trains/train.js'
 import { nextOperatingCompany, type OperatingState } from './operatingSet.js'
+import type { LoanStep } from '../loans/loans.js'
 
 export type OperatingTurnState = OperatingState &
     DistributionState &
     ConstructionState &
-    StationPlacementState
+    StationPlacementState & { loanStep?: LoanStep }
 export function finishOperatingTurnReason(
     state: OperatingTurnState,
     rules: TrainRules,
@@ -88,6 +89,7 @@ export class HydratedFinishOperatingTurn
         delete state.stationStep
         delete state.routeStep
         delete state.earningsDistribution
+        delete state.loanStep
         this.metadata = operatingRoundSnapshot(state, this.#valuationRules)
         delete state.trainPurchaseStep
     }

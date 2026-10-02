@@ -15,6 +15,7 @@ import {
     type CompanyAuctionRules,
     type CompanyAuctionState,
     type CompanyFormation,
+    type StationState,
     type StockRules,
     type StockState
 } from '@tabletop/18xx'
@@ -55,8 +56,29 @@ function privateValue(privateIds: readonly string[]): number {
     return privateIds.reduce((sum, id) => sum + EighteenSeventeenPrivateCatalog.faceValue(id), 0)
 }
 
-function stationCost(shareCount: number): number {
-    return (StationsBySize[shareCount] - 1) * StationPrice
+/** The stations a company that has not yet operated still needs to buy for its size. */
+export function stationsOwed(state: StockState & StationState, companyId: string): number {
+    const company = getCompany(state, companyId)
+    if (!company.started || company.operated || !company.shareCount) return 0
+    const held = state.stations.filter(
+        (station) => station.companyId === companyId && station.status !== 'removed'
+    ).length
+    return Math.max(0, StationsBySize[company.shareCount] - held)
+}
+
+/** Buys every station the company owes when its treasury can pay for all of them. */
+export function buyOwedStations(
+    state: StockState & StationState,
+    companyId: string
+): CashPayment | undefined {
+    const owed = stationsOwed(state, companyId)
+    const company = { kind: 'company' as const, companyId }
+    const amount = owed * StationPrice
+    if (!owed || finiteCashOwnedBy(state, company) < amount) return undefined
+    const payment = { from: company, to: { kind: 'bank' as const }, amount }
+    settleCashPayments(state, [payment])
+    addCompanyStations(state, companyId, owed)
+    return payment
 }
 
 function companyShareCounts(state: CompanyAuctionState): readonly number[] {
@@ -65,16 +87,14 @@ function companyShareCounts(state: CompanyAuctionState): readonly number[] {
     return shareCounts
 }
 
-// A winning bid is paid in the winner's cash and privates at face value; what the company pays
-// for the privates must leave it the price of its stations.
+// A winning bid is paid in the winner's cash and privates at face value, up to the whole bid.
 function contributionRange(
     state: CompanyAuctionState,
     playerId: string,
-    price: number,
-    shareCount: number
+    price: number
 ): { minimum: number; maximum: number } {
     const cash = finiteCashOwnedBy(state, { kind: 'player', playerId })
-    return { minimum: price - cash, maximum: price - stationCost(shareCount) }
+    return { minimum: price - cash, maximum: price }
 }
 
 function subsetSums(privateIds: readonly string[]): number[] {
@@ -95,12 +115,10 @@ function someContributionFits(
     privateIds: readonly string[],
     included: number
 ): boolean {
-    return companyShareCounts(state).some((shareCount) => {
-        const range = contributionRange(state, playerId, price, shareCount)
-        return subsetSums(privateIds).some(
-            (sum) => sum + included >= range.minimum && sum + included <= range.maximum
-        )
-    })
+    const range = contributionRange(state, playerId, price)
+    return subsetSums(privateIds).some(
+        (sum) => sum + included >= range.minimum && sum + included <= range.maximum
+    )
 }
 
 function formationReason(state: CompanyAuctionState, formation: CompanyFormation) {
@@ -110,14 +128,9 @@ function formationReason(state: CompanyAuctionState, formation: CompanyFormation
     if (!formation.privateIds.every((id) => owned.includes(id)))
         return 'Only the winner’s own privates can be contributed.'
     const contributed = privateValue(formation.privateIds)
-    const range = contributionRange(
-        state,
-        formation.playerId,
-        formation.price,
-        formation.shareCount
-    )
+    const range = contributionRange(state, formation.playerId, formation.price)
     if (contributed < range.minimum) return 'Contribute enough privates to pay the winning bid.'
-    if (contributed > range.maximum) return 'The company could not pay for its stations.'
+    if (contributed > range.maximum) return 'The privates are worth more than the winning bid.'
     return undefined
 }
 
@@ -127,8 +140,7 @@ function form(state: CompanyAuctionState, formation: CompanyFormation): void {
     const contributed = privateValue(formation.privateIds)
     const payments: CashPayment[] = [
         { from: player, to: company, amount: formation.price },
-        { from: company, to: player, amount: contributed },
-        { from: company, to: { kind: 'bank' }, amount: stationCost(formation.shareCount) }
+        { from: company, to: player, amount: contributed }
     ]
     settleCashPayments(
         state,
@@ -148,7 +160,7 @@ function form(state: CompanyAuctionState, formation: CompanyFormation): void {
         owner: company,
         poolId: treasuryPoolId(formation.companyId)
     })
-    addCompanyStations(state, formation.companyId, StationsBySize[formation.shareCount] - 1)
+    buyOwedStations(state, formation.companyId)
 }
 
 export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {

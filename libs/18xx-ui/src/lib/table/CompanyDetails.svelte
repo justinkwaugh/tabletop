@@ -301,6 +301,11 @@
                 <span>Par</span><strong>{company.parPrice}</strong>
             </div>{/if}
         {@render marketValue()}
+        {#if session.loans.rules && company.kind !== 'private' && company.started}<div>
+                <span>Loans</span><strong
+                    >{session.loans.loans(company.id)}/{session.loans.capacity(company.id)}</strong
+                >
+            </div>{/if}
         {#if !vertical}
             <div>
                 <span>Last run</span>

@@ -8,7 +8,8 @@ const indices: Readonly<Record<string, number>> = {
     RustingTrains: 2,
     DistributingEarnings: 3,
     BuyingTrains: 4,
-    FundingTrain: 4
+    FundingTrain: 4,
+    RepayingLoans: 5
 }
 
 export function operatingStepIndex(machineState: string): number | undefined {
@@ -28,7 +29,10 @@ const actionIndices: Readonly<Record<string, number>> = {
     BuyPrivateTrain: 4,
     FundTrain: 4,
     ContributeTrainFunds: 4,
-    SellFundingShares: 4
+    SellFundingShares: 4,
+    FinishTrains: 4,
+    PayInterest: 5,
+    RepayLoan: 5
 }
 
 export function historicalOperatingStepIndex(

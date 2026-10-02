@@ -1,5 +1,6 @@
 import { EighteenSeventeenPhases, EighteenSeventeenTrainDepot } from './trains.js'
 import { corporationShareCount } from './corporations.js'
+import { isLiquidated } from './liquidation.js'
 import {
     allSharesHeld,
     certificatesInPool,
@@ -32,7 +33,10 @@ export const treasuryPoolId = (companyId: string) => `treasury:${companyId}`
 
 export const EighteenSeventeenOperatingRules: OperatingRules = {
     roundCount: (state) => EighteenSeventeenPhases.phase(state.phaseId).operatingRounds,
-    companyOrder: floatedCompaniesInMarketOrder,
+    companyOrder: (state) =>
+        floatedCompaniesInMarketOrder(state).filter(
+            (companyId) => !isLiquidated(state.stockMarket, companyId)
+        ),
     // After each round the next depot train is exported; while that is a 2, every 2 goes.
     trainsToExport(state) {
         const next = EighteenSeventeenTrainDepot.nextDefinitionId(state.trainInventory)

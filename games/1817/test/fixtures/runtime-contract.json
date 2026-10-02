@@ -4,6 +4,8 @@
     "AuctionCompany": "d6e1ab4c05282303f508d784d0cef760c50854d2dea3a8115365735998efe5f3",
     "BidForCompany": "cbdac1504eb19b11350f9ffe4630961ed4d9756ce23ea8610e1d47ff27d7d779",
     "BidForLot": "8ab4c24d5d3df608d5ccef32d6ed194338b5153cec0957bf1cfaebdcfc59a819",
+    "BuyBackShares": "e9db4c6b6452a9b83da7261a2a9e430d66fec25b062c0f79751eeb419430c791",
+    "BuyOwedStations": "c873d00fd4b8c831d5f51106b095a76a7094f6d376d511c90c57f5718fac085b",
     "BuyPrivateTrain": "696b3122d45f99995e1d55d288ae6e0028d2a22240bccabde6de5184f2f8dd51",
     "BuyShares": "bbd497f746488f390f4fc3cc0e9bda155b4e59e2d1d8776b758b85cd80279205",
     "BuyTrain": "bcb7e409b1f80088d84dae125904f217c9dccff020d23c48b8a35286db866035",
@@ -21,18 +23,22 @@
     "FinishStations": "844f37a3e8db6526dc8a4ae6cdbf8396fb3d353a05b4a154957a5dc62d2aa9b6",
     "FinishStockTurn": "79fc138318816a4f6d12247426c0b62f68decdbb963f468023074a96a65c1d3c",
     "FinishTrack": "cd10af7fe118f100f381b5a3d178c285c0206a87e0e44e6672dcb2002d9171af",
+    "FinishTrains": "7c4a513b2c13b79715a871e56557b6b3dfa4c5fb45b98c87b6ffb95a788ded02",
     "FloatCompany": "19008d56b87559213dfbf7511d5f729dcab000ebb0fba322d665989e10dba60f",
     "FormCompany": "ea920ced95d72745f93d29acc902cbde0c08bbe89e21546af60b479264169e71",
     "FundTrain": "5c7f49d1dd2ddceaa51ef5898e96eadd7d79642915f997edc5fdd7fb5b0bccb0",
     "IssueTreasuryShares": "3bbce033d8ebe42dac7bc33733bf426d5713ddb6c2ce9543190d51d3aaf41d9f",
     "LayPrivateTile": "c8d97811dbc839c2d8fdf5e51ddac49143a685df1c80e2d5573dcd1c286bf298",
     "LayTile": "3f0147c9c4ed30ee48cfe700899573e878d44011c2c89363ce05b2682226ee16",
+    "LiquidateCompany": "62319e8597d96c810a27cc70db0d00fca760500bde8cdcfcfc09dca32045dfc3",
     "NominateLot": "ced79bf0b77f7263a8c0f7add24c6a7a5fef4cd2be2ffc8e85d9260e9b97cbb2",
     "OfferPurchase": "51b45483436aeef619c452fa43f86c4d58cc47d99f7aaaaf64359fd7312c23ed",
     "PassCompanyAuction": "4a168b2924b9765af76f47dc46210be9dee7a257007e2d71b81214eb156708a7",
     "PassSelectionAuction": "6b26f6883b9cc0a2516bf3002db10d42d6e2a33dcda3ad6c2ddcd0c38fd07710",
+    "PayInterest": "cbe892bd212145fb64e49971c3d1f7e612f5cec912d4069a17bf416f404527ed",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlaceStation": "bc38bf5f132e9f3751452b6e44d805351b941f05fd647a8653e857e08d835804",
+    "RepayLoan": "2fab0a1010e7faa0ffa89e0d5e4e0ee85b68f87a72b1a5a44130182e215065a1",
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
     "ResolveSelectionAuction": "65f0765d984b7d4a0a4efcc5ab447d94ff1895a6f437923636e2fb44d5a4fd19",
     "RespondToPurchaseOffer": "810d8da94e40ac69f609dd9b95bd4d57aa9202bad25f5f1d7258f88acf574680",
@@ -48,7 +54,8 @@
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
-    "StopStockInstruction": "87c259506cc5823cfddb21a08db1bdc0aad3115a34b83eb8cd7eb850262c0c8b"
+    "StopStockInstruction": "87c259506cc5823cfddb21a08db1bdc0aad3115a34b83eb8cd7eb850262c0c8b",
+    "TakeLoan": "c25a41fddeedee8c85421bbd83d1f9746c6d72b6e6e3f782deb6baaad1827614"
   },
   "canonicalState": {
     "additionalProperties": false,
@@ -575,6 +582,10 @@
             "kind": {
               "minLength": 1,
               "type": "string"
+            },
+            "loans": {
+              "minimum": 1,
+              "type": "integer"
             },
             "name": {
               "minLength": 1,
@@ -1324,6 +1335,26 @@
       "id": {
         "type": "string"
       },
+      "interestRate": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "loanStep": {
+        "additionalProperties": false,
+        "properties": {
+          "borrowedAfterInterest": {
+            "const": true,
+            "type": "boolean"
+          },
+          "companyId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyId"
+        ],
+        "type": "object"
+      },
       "machineState": {
         "anyOf": [
           {
@@ -1388,6 +1419,10 @@
           },
           {
             "const": "BuyingTrains",
+            "type": "string"
+          },
+          {
+            "const": "RepayingLoans",
             "type": "string"
           }
         ]
@@ -3297,6 +3332,22 @@
                 },
                 "type": "array"
               },
+              "corporateAction": {
+                "additionalProperties": false,
+                "properties": {
+                  "boughtBack": {
+                    "const": true,
+                    "type": "boolean"
+                  },
+                  "companyId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "companyId"
+                ],
+                "type": "object"
+              },
               "saleBlocks": {
                 "items": {
                   "additionalProperties": false,
@@ -4424,6 +4475,7 @@
     "LayingTrack",
     "OperatingSet",
     "PlacingStation",
+    "RepayingLoans",
     "RunningTrains",
     "RustingTrains",
     "SelectionAuction",

@@ -12,6 +12,7 @@
     import CompanyDecisions from '../finance/CompanyDecisions.svelte'
     import CompanyAuctionBidding from '../stock/CompanyAuctionBidding.svelte'
     import CompanyFormation from '../stock/CompanyFormation.svelte'
+    import LoanRepayment from '../loans/LoanRepayment.svelte'
     let {
         session,
         createRouteWorker,
@@ -63,6 +64,10 @@
                 {trainColors}
             />
         {:else if gameState.machineState === 'DistributingEarnings'}<EarningsDistribution
+                {session}
+                showUndo={false}
+            />
+        {:else if gameState.machineState === 'RepayingLoans'}<LoanRepayment
                 {session}
                 showUndo={false}
             />

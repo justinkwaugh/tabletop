@@ -18,6 +18,7 @@ import { type OperatingRules } from '../operating/operatingSet.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { ActionDefinition } from '../actions/actionDefinition.js'
+import type { LoanRules } from '../loans/loans.js'
 import type { Opening, OpeningSetup } from './opening.js'
 import type {
     EighteenXXMachineState,
@@ -52,4 +53,5 @@ export interface EighteenXXTitleRules {
     privatePowerRules: PrivatePowerRules
     outOfTurnPrivatePowers?: boolean
     trackRules: TrackRules
+    loanRules?: LoanRules
 }

@@ -572,6 +572,10 @@
               "minLength": 1,
               "type": "string"
             },
+            "loans": {
+              "minimum": 1,
+              "type": "integer"
+            },
             "name": {
               "minLength": 1,
               "type": "string"
@@ -1319,6 +1323,26 @@
       },
       "id": {
         "type": "string"
+      },
+      "interestRate": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "loanStep": {
+        "additionalProperties": false,
+        "properties": {
+          "borrowedAfterInterest": {
+            "const": true,
+            "type": "boolean"
+          },
+          "companyId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyId"
+        ],
+        "type": "object"
       },
       "machineState": {
         "anyOf": [
@@ -3292,6 +3316,22 @@
                   "type": "string"
                 },
                 "type": "array"
+              },
+              "corporateAction": {
+                "additionalProperties": false,
+                "properties": {
+                  "boughtBack": {
+                    "const": true,
+                    "type": "boolean"
+                  },
+                  "companyId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "companyId"
+                ],
+                "type": "object"
               },
               "saleBlocks": {
                 "items": {

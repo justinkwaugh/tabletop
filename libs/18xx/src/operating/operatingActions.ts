@@ -2,6 +2,7 @@ import { defineAction, type ActionDefinition } from '../actions/actionDefinition
 import type { EndingRules } from '../ending/gameEnding.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import type { OperatingRules } from './operatingSet.js'
+import type { LoanRules } from '../loans/loans.js'
 import {
     StartOperatingSet,
     HydratedStartOperatingSet,
@@ -27,7 +28,8 @@ import {
 export function operatingActions(
     operating: OperatingRules,
     trains: TrainRules,
-    ending: EndingRules
+    ending: EndingRules,
+    loans?: LoanRules
 ): ActionDefinition[] {
     return [
         defineAction(
@@ -38,7 +40,7 @@ export function operatingActions(
         defineAction(
             StartOperatingRound,
             isStartOperatingRound,
-            (action) => new HydratedStartOperatingRound(action, operating, ending)
+            (action) => new HydratedStartOperatingRound(action, operating, ending, loans)
         ),
         defineAction(
             StartOperatingTurn,

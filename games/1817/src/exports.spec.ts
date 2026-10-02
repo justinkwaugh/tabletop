@@ -15,6 +15,7 @@ function operatingCompanyId(state: EighteenXXState): string | undefined {
     return (
         state.trackStep?.companyId ??
         state.trainPurchaseStep?.companyId ??
+        state.loanStep?.companyId ??
         state.phaseChange?.discardCompanyIds[0]
     )
 }
@@ -25,6 +26,7 @@ function passUntil(play: ExamplePlay, until: (state: EighteenXXState) => boolean
         const actions = play.valid(play.state.activePlayerIds[0])
         const companyId = operatingCompanyId(play.state)
         if (actions.includes('FinishTrack')) play.act('FinishTrack', { companyId })
+        else if (actions.includes('FinishTrains')) play.act('FinishTrains', { companyId })
         else if (actions.includes('FinishOperatingTurn'))
             play.act('FinishOperatingTurn', { companyId })
         else if (actions.includes('DiscardTrain'))

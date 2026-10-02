@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-    CompanyAuctionModel,
     cashOwnedBy,
     companyMarketSpace,
     evaluateSharePurchase,
@@ -10,7 +9,11 @@ import {
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
-import { EighteenSeventeenCompanyAuction, EighteenSeventeenStockRules } from './index.js'
+import {
+    EighteenSeventeenCompanyAuction,
+    EighteenSeventeenStockRules,
+    stationsOwed
+} from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 
 const lansing = { locationId: 'B5', nodeId: 'city' }
@@ -137,27 +140,49 @@ describe('company auctions', () => {
         ).toThrow()
     })
 
-    it('refuses a winning bid that could not pay for the company’s stations', () => {
-        const play = trading((state) => {
-            state.phaseId = '6'
-        })
-        const opening = (amount: number) =>
-            new CompanyAuctionModel(play.state, EighteenSeventeenStockRules).openingReason({
-                playerId: 'alex',
-                companyId: 'AS',
-                amount,
-                home: lansing
+    describe('stations owed at formation', () => {
+        function formedShort() {
+            const play = trading((state) => {
+                state.phaseId = '6'
             })
-        expect(opening(145)).toBe('The player cannot make this opening bid.')
-        expect(opening(150)).toBeUndefined()
-        expect(
-            new CompanyAuctionModel(play.state, EighteenSeventeenStockRules).lowestBid('alex')
-        ).toBe(150)
-        play.act('AuctionCompany', { companyId: 'AS', amount: 150, home: lansing })
-        play.act('PassCompanyAuction', { companyId: 'AS' })
-        play.act('PassCompanyAuction', { companyId: 'AS' })
-        expect(getCompany(play.state, 'AS').shareCount).toBe(10)
-        expect(play.treasury('AS')).toBe(0)
+            play.act('AuctionCompany', { companyId: 'AS', amount: 100, home: lansing })
+            play.act('PassCompanyAuction', { companyId: 'AS' })
+            play.act('PassCompanyAuction', { companyId: 'AS' })
+            play.act('FormCompany', { companyId: 'AS', shareCount: 10, privateIds: [] })
+            return play
+        }
+        const stations = (play: ReturnType<typeof trading>) =>
+            play.state.stations.filter((station) => station.companyId === 'AS').length
+
+        it('forms a company that cannot pay for its stations, which then owes them', () => {
+            const play = formedShort()
+            expect(getCompany(play.state, 'AS').shareCount).toBe(10)
+            expect(play.treasury('AS')).toBe(100)
+            expect(stations(play)).toBe(1)
+            expect(stationsOwed(play.state, 'AS')).toBe(3)
+        })
+
+        it('buys its stations as soon as a treasury sale pays for them', () => {
+            const play = formedShort()
+            expect(play.state.activePlayerIds).toEqual(['blair'])
+            play.act('BuyShares', {
+                buyer: { kind: 'player', playerId: 'blair' },
+                certificateId: 'AS:share:3',
+                expectedPrice: 50
+            })
+            expect(stations(play)).toBe(4)
+            expect(play.treasury('AS')).toBe(0)
+            expect(stationsOwed(play.state, 'AS')).toBe(0)
+        })
+
+        it('liquidates a company still owing stations when the stock round ends', () => {
+            const play = formedShort()
+            while (play.state.machineState === 'StockRound') play.act('FinishStockTurn')
+            expect(companyMarketSpace(play.state.stockMarket, 'AS').id).toBe(
+                play.state.stockMarket.spaces.find((space) => space.column === 0)?.id
+            )
+            expect(play.state.operatingSet?.companyOrder).not.toContain('AS')
+        })
     })
 
     it('forms without a decision when none of the winner’s privates fits the bid', () => {

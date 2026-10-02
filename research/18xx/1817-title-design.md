@@ -862,6 +862,27 @@ crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
   limit. `EndingRules.trigger` ends 1817 when one player remains; 1830 and 1889 keep
   ending at the first bankruptcy.
 
+### Implementation notes for 3a
+
+- **Stations owed are derived, not stored.** A company that has not operated owes its
+  size's stations less those it holds, as the reference counts them. Formation accepts
+  privates up to the whole bid and buys the stations only when it can pay for all of
+  them. The stock round issues `BuyOwedStations` as soon as a company can pay, and the
+  operating set's start buys any still affordable before liquidating the rest.
+- **The missing-train liquidation runs between companies,** before the round's
+  exports, which can rust the last company's trains after its turn has ended.
+- **The train step waits while the company may borrow.** The reference waits only
+  when borrowing could buy a train; here the president finishes the step whenever a
+  loan is still possible.
+- **Until 3b, a defaulting president pays what they have.** `PayInterest` records the
+  unpaid rest, which 3b turns into a cash crisis.
+- **Family fixes.** The automatic stock-turn finish waits for actions already queued,
+  so a title's system action in the stock round is not overtaken by a second finish.
+  Prepared operating positions fix the rate for titles with loans.
+- **UI.** Loans are shown and taken from the step strip, and the Loans step has its
+  own panel. 1817's corporate actions sit above the stock actions as immediate
+  buttons; the title UI (slice 10) will refine both.
+
 ### Limits after slice 3
 
 - Loans taken after conversion or during acquisitions, and loans moving with a

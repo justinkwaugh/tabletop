@@ -49,6 +49,10 @@ import {
     isPassCompanyAuction,
     isFormCompany,
     isExportTrains,
+    isFinishTrains,
+    isPayInterest,
+    isRepayLoan,
+    isTakeLoan,
     stockMarketSpace,
     type Owner,
     type PresidencyChange,
@@ -209,6 +213,44 @@ export function historyDescription(
             detail: closures.join(' · ') || undefined,
             important: true
         }
+    if (isTakeLoan(action) || isRepayLoan(action)) {
+        assertExists(action.metadata, 'Recorded loan requires its payment')
+        const move = action.metadata.marketMove
+        return {
+            text: `${isTakeLoan(action) ? 'Borrowed for' : 'Repaid a loan for'} ${companyName(action.companyId)}`,
+            value: money(action.metadata.payment.amount),
+            detail: move
+                ? `Market ${marketPrice(move.fromMarketSpaceId)} → ${marketPrice(move.toMarketSpaceId)}`
+                : undefined
+        }
+    }
+    if (isPayInterest(action)) {
+        assertExists(action.metadata, 'Recorded interest requires its payments')
+        const { interest, loansTaken, default: unpaid } = action.metadata
+        return {
+            text: unpaid
+                ? `${companyName(action.companyId)} could not pay interest and was liquidated`
+                : `${companyName(action.companyId)} paid interest`,
+            omitActor: true,
+            value: money(interest),
+            detail:
+                [
+                    loansTaken
+                        ? `Borrowed ${loansTaken} ${loansTaken === 1 ? 'loan' : 'loans'} to pay`
+                        : '',
+                    unpaid
+                        ? unpaid.unpaid
+                            ? `President paid ${money(interest - unpaid.unpaid)}, ${money(unpaid.unpaid)} unpaid`
+                            : 'The president paid it'
+                        : ''
+                ]
+                    .filter(Boolean)
+                    .join(' · ') || undefined,
+            important: !!unpaid,
+            routine: !unpaid && !loansTaken
+        }
+    }
+    if (isFinishTrains(action)) return { text: 'Finished trains', routine: true }
     if (isExportTrains(action)) {
         assertExists(action.metadata, 'Recorded export requires its trains')
         const definitionIds = action.metadata.trains.map((train) => train.definitionId)

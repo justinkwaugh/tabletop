@@ -18,6 +18,7 @@ import { StockModule } from './stockModule.svelte.js'
 import { StockInstructionModule } from './stockInstructionModule.svelte.js'
 import { MapModule } from './mapModule.svelte.js'
 import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
+import { LoanModule } from './loanModule.svelte.js'
 import { LocalSelections } from './localSelections.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
@@ -212,6 +213,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     readonly instructions = new StockInstructionModule(this.moduleSession)
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
+    readonly loans = new LoanModule(this.moduleSession)
     /**
      * Whether this player is viewing the title's published artwork (board image and token art)
      * instead of the generic presentation. A display choice only: it never changes Game State.
