@@ -40,7 +40,7 @@
         "@tabletop/common": "workspace:*",
         "@tabletop/frontend-components": "workspace:*",
         "javascript-time-ago": "^2.5.10",
-        "nanoid": "^5.1.6"
+        "nanoid": "5.1.6"
     },
     "devDependencies": {
         "@playwright/test": "^1.42.1",
