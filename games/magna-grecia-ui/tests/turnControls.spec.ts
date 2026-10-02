@@ -198,7 +198,7 @@ test('marks the enhanced extra apart from the basic allowance', async ({ page })
     const split = await page.evaluate(() => window.magnaGreciaSession.cityAllowance)
     expect(split.bonus).toBe(1)
     await expect(cities.locator('.count')).toHaveText(String(split.basic))
-    await expect(cities.locator('.bonus')).toHaveText('+1 ★')
+    await expect(cities.locator('.bonus')).toHaveText('+1')
     await cities.click()
     await expect(
         page.getByText(`or ${split.basic + 1} as your only action (★ enhanced)`, { exact: false })

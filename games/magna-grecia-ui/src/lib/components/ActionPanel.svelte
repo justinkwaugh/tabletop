@@ -2,6 +2,9 @@
     import { EndTurnOutcome, type Allowance } from '@tabletop/magna-grecia'
     import { BuildTool } from '$lib/model/session.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import type { ActionAllowanceKind } from '$lib/utils/actionAllowances.js'
+    import AllowanceIcon from './icons/AllowanceIcon.svelte'
+    import MarketIcon from './icons/MarketIcon.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
     import ResupplyPicker from './ResupplyPicker.svelte'
 
@@ -35,7 +38,7 @@
     const BONUS_TIP = 'Enhanced: only as your one action this turn'
 
     type TileButton = {
-        key: string
+        kind: ActionAllowanceKind
         label: string
         split: Allowance
         active: boolean
@@ -44,7 +47,7 @@
 
     const tileButtons: TileButton[] = $derived([
         ...tileTools.map((tool) => ({
-            key: tool,
+            kind: tool === BuildTool.Road ? ('roads' as const) : ('cities' as const),
             label: TOOL_LABELS[tool],
             split: tool === BuildTool.Road ? gameSession.roadAllowance : gameSession.cityAllowance,
             active: gameSession.activeTool === tool,
@@ -53,7 +56,7 @@
         ...(gameSession.resupplyAllowance > 0
             ? [
                   {
-                      key: 'resupply',
+                      kind: 'resupply' as const,
                       label: 'Resupply',
                       split: gameSession.resupplySplit,
                       active: gameSession.resupplyOpen,
@@ -190,15 +193,16 @@
                 <div class="phase" class:closed={!gameSession.tileActionsOpen}>
                     <div class="phase-label">1 · Two actions, or one ★ enhanced</div>
                     <div class="phase-buttons">
-                        {#each tileButtons as { key, label, split, active, choose } (key)}
+                        {#each tileButtons as { kind, label, split, active, choose } (kind)}
                             <button type="button" class="tool" class:active onclick={choose}>
+                                <AllowanceIcon {kind} size={24} />
                                 {label}
-                                {#if split.basic > 0}
+                                <span class="allowance">
                                     <span class="count">{split.basic}</span>
-                                {/if}
-                                {#if split.bonus > 0}
-                                    <span class="bonus" title={BONUS_TIP}>+{split.bonus} ★</span>
-                                {/if}
+                                    {#if split.bonus > 0}
+                                        <sup class="bonus" title={BONUS_TIP}>+{split.bonus}</sup>
+                                    {/if}
+                                </span>
                             </button>
                         {/each}
                         {#if !gameSession.tileActionsOpen}
@@ -217,6 +221,7 @@
                                 class:active={gameSession.activeTool === tool}
                                 onclick={() => gameSession.chooseTool(tool)}
                             >
+                                <MarketIcon size={24} />
                                 {TOOL_LABELS[tool]}
                             </button>
                         {/each}
@@ -370,26 +375,23 @@
         }
     }
 
+    .tool > :global(svg) {
+        margin-left: -6px;
+    }
+
+    .allowance {
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-weight: 700;
+        line-height: 1;
+    }
+
     .count {
-        min-width: 20px;
-        border-radius: 999px;
-        padding: 0 5px;
-        font-size: 13px;
-        text-align: center;
-        background: rgba(107, 63, 29, 0.15);
+        font-size: 19px;
     }
 
     .bonus {
-        border-radius: 999px;
-        padding: 0 6px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #5a3a06;
-        background: #f1cf74;
-        box-shadow: inset 0 0 0 1px rgba(138, 90, 18, 0.55);
-    }
-
-    .tool.active .count {
-        background: rgba(251, 243, 220, 0.25);
+        margin-left: 1px;
+        font-size: 11px;
+        vertical-align: 0.45em;
     }
 </style>
