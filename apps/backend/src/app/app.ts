@@ -224,7 +224,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             pathName.endsWith('.webmanifest.gz')
 
         const setFrontendCacheHeaders = (
-            res: { setHeader: (name: string, value: string) => void },
+            reply: FastifyReply,
             pathName: string,
             maxAgeSeconds: number
         ) => {
@@ -233,13 +233,27 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
                 isServiceWorkerAsset(pathName) ||
                 isWebManifestAsset(pathName)
             ) {
-                res.setHeader('Cache-Control', 'no-store, max-age=0')
-                res.setHeader('Pragma', 'no-cache')
-                res.setHeader('Expires', '0')
+                setNoCacheHeaders(reply)
                 return
             }
 
-            res.setHeader('Cache-Control', `public, max-age=${maxAgeSeconds}, immutable`)
+            reply.header('Cache-Control', `public, max-age=${maxAgeSeconds}, immutable`)
+        }
+
+        const setPrecompressedHeaders = (reply: FastifyReply, pathName: string) => {
+            if (pathName.endsWith('.br')) {
+                reply.header('Content-Encoding', 'br')
+                if (pathName.endsWith('.js.br')) {
+                    reply.header('Content-Type', 'text/javascript')
+                }
+            }
+
+            if (pathName.endsWith('.gz')) {
+                reply.header('Content-Encoding', 'gzip')
+                if (pathName.endsWith('.js.gz')) {
+                    reply.header('Content-Type', 'text/javascript')
+                }
+            }
         }
 
         if (service === 'local') {
@@ -249,22 +263,10 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
                 root: path.join(__dirname, 'static'),
                 preCompressed: true,
                 cacheControl: false,
-                setHeaders: (res, pathName) => {
-                    setFrontendCacheHeaders(res, pathName, 60 * 60 * 24)
+                setHeaders: (reply, pathName) => {
+                    setFrontendCacheHeaders(reply, pathName, 60 * 60 * 24)
 
-                    if (pathName.endsWith('.br')) {
-                        res.setHeader('Content-Encoding', 'br')
-                        if (pathName.endsWith('.js.br')) {
-                            res.setHeader('Content-Type', 'text/javascript')
-                        }
-                    }
-
-                    if (pathName.endsWith('.gz')) {
-                        res.setHeader('Content-Encoding', 'gzip')
-                        if (pathName.endsWith('.js.gz')) {
-                            res.setHeader('Content-Type', 'text/javascript')
-                        }
-                    }
+                    setPrecompressedHeaders(reply, pathName)
                 }
             })
             frontendStaticReady = true
@@ -281,26 +283,12 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             cacheControl: gameAssetsAreImmutable,
             immutable: gameAssetsAreImmutable,
             maxAge: gameAssetsAreImmutable ? '365d' : 0,
-            setHeaders: (res, pathName) => {
+            setHeaders: (reply, pathName) => {
                 if (!gameAssetsAreImmutable) {
-                    res.setHeader('Cache-Control', 'no-store, max-age=0')
-                    res.setHeader('Pragma', 'no-cache')
-                    res.setHeader('Expires', '0')
+                    setNoCacheHeaders(reply)
                 }
 
-                if (pathName.endsWith('.br')) {
-                    res.setHeader('Content-Encoding', 'br')
-                    if (pathName.endsWith('.js.br')) {
-                        res.setHeader('Content-Type', 'text/javascript')
-                    }
-                }
-
-                if (pathName.endsWith('.gz')) {
-                    res.setHeader('Content-Encoding', 'gzip')
-                    if (pathName.endsWith('.js.gz')) {
-                        res.setHeader('Content-Type', 'text/javascript')
-                    }
-                }
+                setPrecompressedHeaders(reply, pathName)
             }
         })
 
@@ -314,22 +302,10 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
                     root: path.join(STATIC_ROOT, 'frontend', servedFrontendVersion),
                     preCompressed: true,
                     cacheControl: false,
-                    setHeaders: (res, pathName) => {
-                        setFrontendCacheHeaders(res, pathName, 60 * 60 * 24 * 365)
+                    setHeaders: (reply, pathName) => {
+                        setFrontendCacheHeaders(reply, pathName, 60 * 60 * 24 * 365)
 
-                        if (pathName.endsWith('.br')) {
-                            res.setHeader('Content-Encoding', 'br')
-                            if (pathName.endsWith('.js.br')) {
-                                res.setHeader('Content-Type', 'text/javascript')
-                            }
-                        }
-
-                        if (pathName.endsWith('.gz')) {
-                            res.setHeader('Content-Encoding', 'gzip')
-                            if (pathName.endsWith('.js.gz')) {
-                                res.setHeader('Content-Type', 'text/javascript')
-                            }
-                        }
+                        setPrecompressedHeaders(reply, pathName)
                     }
                 })
                 frontendStaticReady = true
