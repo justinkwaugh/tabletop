@@ -38,6 +38,7 @@ export const Station = Type.Union([
     Type.Object({ ...Identity, status: Type.Literal('removed') }, { additionalProperties: false })
 ])
 export type Station = Type.Static<typeof Station>
+export type PlacedStation = Extract<Station, { status: 'placed' }>
 export const StationFields = {
     stations: Type.Array(Station),
     stationReservations: Type.Array(StationReservation)

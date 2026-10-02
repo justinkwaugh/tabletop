@@ -1,6 +1,7 @@
 <script lang="ts">
     import { assert } from '@tabletop/common'
     import { tableHeaderState } from './tableHeaderState.js'
+    import { currentRoundHeading } from './roundHeading.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -98,24 +99,13 @@
                 <span class="auction-label max-sm:hidden">Opening auction</span><span
                     class="auction-label sm:hidden">Auction</span
                 >
-            {:else if titleRound?.inProgress(gameState)}
-                <span class="round-full" aria-hidden={compact}>{titleRound.name}</span><span
-                    class="round-short"
-                    aria-hidden={!compact}>{titleRound.abbreviation}</span
-                >
-                {gameState.operatingSet?.number}.{gameState.operatingSet?.roundNumber}
-            {:else if !gameState.stockRound.completed}
-                <span class="round-full" aria-hidden={compact}>Stock round</span><span
-                    class="round-short"
-                    aria-hidden={!compact}>SR</span
-                >
-                {gameState.stockRound.number}
             {:else}
-                <span class="round-full" aria-hidden={compact}>Operating round</span><span
+                {@const heading = currentRoundHeading(gameState, titleRound)}
+                <span class="round-full" aria-hidden={compact}>{heading.name}</span><span
                     class="round-short"
-                    aria-hidden={!compact}>OR</span
+                    aria-hidden={!compact}>{heading.abbreviation}</span
                 >
-                {gameState.operatingSet?.number}.{gameState.operatingSet?.roundNumber}
+                {heading.number}
             {/if}
         </strong>
         {#if company && gameState.stockRound.completed && !gameState.result}<span

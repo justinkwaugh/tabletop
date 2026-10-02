@@ -3,6 +3,7 @@ import type { MapStateData } from '../map/mapState.js'
 import { PrivateEffect, type PrivateRules } from '../privates/privateRules.js'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
 import type { StockRules } from '../stock/stockRules.js'
+import { turnOrderFrom } from '../stock/presidency.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -129,9 +130,7 @@ export class HydratedDistributeEarnings
     private chargesFromPresident(state: CashCrisisState, charges: readonly CashPayment[]): Debt[] {
         const president = controllingOwner(state, this.companyId)
         assertExists(president, 'A paying company has a president')
-        const order = state.turnManager.turnOrder
-        const start = order.indexOf(president.playerId)
-        const rotated = [...order.slice(start), ...order.slice(0, start)]
+        const rotated = turnOrderFrom(state.turnManager.turnOrder, president.playerId)
         return charges
             .map((charge) => {
                 assert(charge.from.kind === 'player', 'Only players hold shorts')

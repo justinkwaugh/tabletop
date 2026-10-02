@@ -52,15 +52,11 @@
     const companyChanges = $derived(historyCompanyChanges(context.actions, gameState))
     // A system action the title describes is one of its own events.
     const rounds = $derived(
-        historyRounds(
-            context.actions,
-            gameState,
-            orderChanges,
-            cash,
-            (action) =>
+        historyRounds(context.actions, gameState, orderChanges, cash, {
+            isEvent: (action) =>
                 action.source === ActionSource.System && !!describeAction?.(action, companyName),
-            session.presentation.titleRound
-        )
+            round: session.presentation.titleRound
+        })
     )
     const currentHeaderId = $derived(session.isViewingHistory ? rounds[0]?.id : undefined)
     function returnToCurrent() {

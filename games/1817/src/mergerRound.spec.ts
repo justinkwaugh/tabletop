@@ -14,9 +14,10 @@ import {
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import { isLiquidated, stationsOverLimit, treasuryPoolId, trimStations } from './index.js'
-import { mergerRoundSubject } from './mergerRound.js'
+import { mergerRoundCompanyId } from './mergerRound.js'
 import { mergerRoundOf } from './state.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
+import { passUntil } from '../test/passTurns.js'
 
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
 const price = (state: EighteenXXState, companyId: string) =>
@@ -53,40 +54,23 @@ function giveTrains(state: EighteenXXState, companyId: string, count: number) {
 
 // BA (blair, 5 shares) and PLE (alex, 2 shares) finish their first operating turns without
 // running, which leaves BA at $110 and PLE at $60.
-function operateUntil(play: ExamplePlay, done: () => boolean) {
-    for (let step = 0; step < 12 && !done(); step++) {
-        const actions = play.valid(play.state.activePlayerIds[0])
-        const finish = ['FinishTrack', 'FinishTrains', 'FinishOperatingTurn'].find((type) =>
-            actions.includes(type)
-        )
-        assertExists(finish, `No way to finish in ${play.state.machineState}`)
-        play.act(finish, {
-            companyId:
-                play.state.trackStep?.companyId ??
-                play.state.loanStep?.companyId ??
-                play.state.trainPurchaseStep?.companyId
-        })
-    }
-}
-
 function mergerRound(prepare: (state: EighteenXXState) => void = () => {}) {
     const play = playExample(EighteenSeventeenScenarios, 'construction', 3, prepare)
-    operateUntil(play, () => play.state.machineState === 'MergerRound')
-    expect(play.state.machineState).toBe('MergerRound')
+    passUntil(play, (state) => state.machineState === 'MergerRound')
     return play
 }
 
 function passOn(play: ExamplePlay) {
-    play.act('PassMerger', { companyId: mergerRoundSubject(play.state) })
+    play.act('PassMerger', { companyId: mergerRoundCompanyId(play.state) })
 }
 
 describe('the merger round', () => {
     it('follows an operating round and offers each company in operating order', () => {
         const play = mergerRound()
-        expect(mergerRoundSubject(play.state)).toBe('BA')
+        expect(mergerRoundCompanyId(play.state)).toBe('BA')
         expect(play.valid('blair')).toEqual(['ConvertCompany', 'PassMerger'])
         passOn(play)
-        expect(mergerRoundSubject(play.state)).toBe('PLE')
+        expect(mergerRoundCompanyId(play.state)).toBe('PLE')
         passOn(play)
         expect(play.state.operatingSet?.roundNumber).toBe(2)
         expect(play.state.machineState).toBe('LayingTrack')
@@ -99,7 +83,7 @@ describe('the merger round', () => {
             getCompany(state, 'PLE').shareCount = 10
             issueShareCertificates(state, 'PLE', 8, { owner: player('blair') })
         })
-        operateUntil(play, () => play.state.operatingSet?.roundNumber === 2)
+        passUntil(play, (state) => state.operatingSet?.roundNumber === 2)
         expect(mergerRoundOf(play.state)?.completed).toBe(true)
         expect(play.state.machineState).toBe('LayingTrack')
     })
@@ -143,7 +127,7 @@ describe('conversion', () => {
         expect(play.state.machineState).toBe('BorrowingAfterConversion')
         play.act('FinishConversionLoans', { companyId: 'BA' })
         expect(isLiquidated(play.state.stockMarket, 'BA')).toBe(true)
-        expect(mergerRoundSubject(play.state)).toBe('PLE')
+        expect(mergerRoundCompanyId(play.state)).toBe('PLE')
     })
 })
 
@@ -166,6 +150,30 @@ describe('mergers', () => {
             'available'
         )
         expect(play.state.machineState).toBe('TradingConvertedShares')
+    })
+
+    it('lets two 5-share companies merge once a player holds 40% of both together', () => {
+        const play = mergerRound((state) => {
+            getCompany(state, 'PLE').shareCount = 5
+            issueShareCertificates(state, 'PLE', 3, {
+                owner: { kind: 'company', companyId: 'PLE' },
+                poolId: treasuryPoolId('PLE')
+            })
+        })
+        expect(sharesOwned(play.state, 'PLE', player('alex'))).toBe(2)
+        expect(sharesOwned(play.state, 'BA', player('alex'))).toBe(1)
+        play.act('MergeCompanies', { companyId: 'BA', targetId: 'PLE' })
+        expect(getCompany(play.state, 'BA').president).toEqual(player('alex'))
+        expect(sharesOwned(play.state, 'BA', player('alex'))).toBe(3)
+    })
+
+    it('gives the survivor the target’s unplaced stations too', () => {
+        const play = mergerRound((state) => {
+            pleWithFiveShares(state)
+            addCompanyStations(state, 'PLE', 1)
+        })
+        play.act('MergeCompanies', { companyId: 'BA', targetId: 'PLE' })
+        expect(stations(play.state, 'BA')).toBe(4)
     })
 
     it('merges two 2-share companies at the sum of their prices, paid by the president', () => {

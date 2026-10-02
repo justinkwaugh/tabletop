@@ -26,12 +26,16 @@ import {
     type CashPayment,
     type EighteenXXState,
     type Owner,
+    type PlacedStation,
     type Station,
-    type StationTransfer
+    type StationTransfer,
+    type StockMarketSpace,
+    type Train
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
 import { isLiquidated } from './liquidation.js'
 import { MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { StationPrice } from './stockRules.js'
 import { EighteenSeventeenTrainRules } from './trains.js'
 
 export const StationLimit = 8
@@ -45,8 +49,20 @@ export function mergerRoundCompanyIds(state: EighteenXXState): string[] {
     })
 }
 
+function shareCountOf(state: EighteenXXState, companyId: string): number {
+    const shareCount = getCompany(state, companyId).shareCount
+    assertExists(shareCount, 'A company in the merger round has shares')
+    return shareCount
+}
+
 export function canConvert(state: EighteenXXState, companyId: string): boolean {
-    return SizeAfter[getCompany(state, companyId).shareCount ?? 0] !== undefined
+    return SizeAfter[shareCountOf(state, companyId)] !== undefined
+}
+
+export function sizeAfterConversion(state: EighteenXXState, companyId: string): number {
+    const size = SizeAfter[shareCountOf(state, companyId)]
+    assertExists(size, 'Only a 2- or 5-share company converts')
+    return size
 }
 
 function heldStations(state: EighteenXXState, companyId: string): number {
@@ -67,24 +83,29 @@ export function stationsForConversion(state: EighteenXXState, companyId: string)
 
 /** Grows the company to its next size, adding the new shares to its treasury. */
 export function convertCompany(state: EighteenXXState, companyId: string): string[] {
-    const company = getCompany(state, companyId)
-    const before = company.shareCount ?? 0
-    const after = SizeAfter[before]
-    assertExists(after, 'Only a 2- or 5-share company converts')
-    company.shareCount = after
+    const before = shareCountOf(state, companyId)
+    const after = sizeAfterConversion(state, companyId)
+    getCompany(state, companyId).shareCount = after
     return issueShareCertificates(state, companyId, after - before, {
         owner: { kind: 'company', companyId },
         poolId: treasuryPoolId(companyId)
     })
 }
 
-/** The players' largest combined net holding of two companies. */
-function largestCombinedHolding(state: EighteenXXState, a: string, b: string): number {
+function largestCombinedPercent(
+    state: EighteenXXState,
+    companyId: string,
+    targetId: string
+): number {
+    const percentPerShare = 100 / shareCountOf(state, companyId)
     return Math.max(
         0,
         ...state.players.map(({ playerId }) => {
             const player = { kind: 'player' as const, playerId }
-            return sharesOwned(state, a, player) + sharesOwned(state, b, player)
+            return (
+                (sharesOwned(state, companyId, player) + sharesOwned(state, targetId, player)) *
+                percentPerShare
+            )
         })
     )
 }
@@ -97,11 +118,11 @@ export function mergerPrice(state: EighteenXXState, companyId: string, targetId:
     return mergerSpace(state, value).price
 }
 
-function mergerSpace(state: EighteenXXState, value: number) {
+function mergerSpace(state: EighteenXXState, value: number): StockMarketSpace {
     const space = state.stockMarket.spaces
         .filter((space) => space.price > 0 && space.price <= value)
         .reduce<
-            (typeof state.stockMarket.spaces)[number] | undefined
+            StockMarketSpace | undefined
         >((best, space) => (!best || space.price > best.price ? space : best), undefined)
     assertExists(space, 'A merged company has a market space')
     return space
@@ -122,8 +143,9 @@ export function mergeReason(
         return 'Companies in the acquisition or liquidation zone cannot merge.'
     if (target.shareCount !== company.shareCount || !canConvert(state, companyId))
         return 'Only two 2-share or two 5-share companies can merge.'
-    if (company.shareCount === 5 && largestCombinedHolding(state, companyId, targetId) < 4)
-        return 'Some player must hold 40% of the merged company.'
+    // Enough for the merged company's president's certificate.
+    if (company.shareCount === 5 && largestCombinedPercent(state, companyId, targetId) < 40)
+        return 'Some player must hold 40% of the two companies together.'
     const president = controllingOwner(state, companyId)
     const targetPresident = controllingOwner(state, targetId)
     assertExists(president, 'A merging company has a president')
@@ -289,6 +311,35 @@ export function trimStations(state: EighteenXXState, companyId: string): void {
 
 export function stationsOverLimit(state: EighteenXXState, companyId: string): number {
     return Math.max(0, heldStations(state, companyId) - StationLimit)
+}
+
+export type StationPurchase = { stations: number; cost: number; affordable: boolean }
+
+export function stationPurchase(
+    state: EighteenXXState,
+    companyId: string,
+    stations: number
+): StationPurchase {
+    const cost = stations * StationPrice
+    return {
+        stations,
+        cost,
+        affordable: finiteCashOwnedBy(state, { kind: 'company', companyId }) >= cost
+    }
+}
+
+export function removableStations(state: EighteenXXState, companyId: string): PlacedStation[] {
+    if (!stationsOverLimit(state, companyId)) return []
+    return state.stations.filter(
+        (station): station is PlacedStation =>
+            station.companyId === companyId && station.status === 'placed'
+    )
+}
+
+export function discardableTrains(state: EighteenXXState, companyId: string): Train[] {
+    return trainsOverLimit(state, companyId)
+        ? trainsOwnedBy(state, { kind: 'company', companyId })
+        : []
 }
 
 export function treasuryShareIds(state: EighteenXXState, companyId: string): string[] {

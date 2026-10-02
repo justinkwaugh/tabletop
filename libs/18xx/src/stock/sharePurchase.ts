@@ -69,25 +69,24 @@ export function evaluateShareAcquisition(
     rules: StockRules,
     terms: SharePurchaseTerms | string
 ): SharePurchaseResult {
-    const { playerId, buyer, certificateId } = request
+    const { playerId, buyer } = request
     if (exceedsStockLimits(state, { kind: 'player', playerId }, rules))
         return { reason: 'Sell down to the stock limits before buying.' }
     if (!state.activePlayerIds.includes(playerId))
         return { reason: 'It is not this player’s turn.' }
     if (!rules.buyers(state, playerId).some((allowed) => sameOwner(allowed, buyer)))
         return { reason: 'This player cannot buy for that owner.' }
-    const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
+    const transfer = evaluateShareTransfer(state, request, rules, terms)
+    const companyId = transfer.details?.companyId
     if (
-        certificate &&
         state.stockRound.sales.some(
-            (sale) => sameOwner(sale.owner, buyer) && sale.companyId === certificate.companyId
+            (sale) => sameOwner(sale.owner, buyer) && sale.companyId === companyId
         )
     )
         return { reason: 'The buyer sold shares in this company this stock round.' }
-    return evaluateShareTransfer(state, request, rules, terms)
+    return transfer
 }
 
-/** A share's purchase outside the stock round's turn rules, such as after a conversion. */
 export function evaluateShareTransfer(
     state: StockState,
     request: PurchaseRequest,

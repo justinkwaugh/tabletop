@@ -10,6 +10,7 @@ import {
 import {
     addCompanyStations,
     replaceStation,
+    type PlacedStation,
     type Station,
     type StationState
 } from '../map/station.js'
@@ -64,42 +65,34 @@ export function transferCompanyAssets(
 }
 
 export const StationTransfer = Type.Object(
-    { movedIds: Type.Array(Type.String()), droppedIds: Type.Array(Type.String()) },
+    { placedIds: Type.Array(Type.String()), unplacedIds: Type.Array(Type.String()) },
     { additionalProperties: false }
 )
 export type StationTransfer = Type.Static<typeof StationTransfer>
 
 /**
- * Moves one company's placed stations onto new station pieces of another. Where both have a
- * station in the same city, the absorbed one is dropped; unplaced stations are removed.
+ * Gives the survivor a station piece for each of the absorbed company's. Placed stations keep
+ * their places, except that where both have a station in the same city, the second piece
+ * returns to the survivor's charter unplaced.
  */
 export function moveCompanyStations(
     state: StationState,
     fromId: string,
     toId: string
 ): StationTransfer {
-    const placed = (companyId: string) =>
-        state.stations.filter(
-            (station): station is Extract<Station, { status: 'placed' }> =>
-                station.companyId === companyId && station.status === 'placed'
-        )
-    const movedIds: string[] = []
-    const droppedIds: string[] = []
-    for (const station of placed(fromId)) {
-        const shared = placed(toId).some(
-            (own) =>
-                own.position.locationId === station.position.locationId &&
-                own.position.nodeId === station.position.nodeId
-        )
-        if (shared) {
-            droppedIds.push(station.id)
-            continue
-        }
+    const placedIds: string[] = []
+    const unplacedIds: string[] = []
+    const absorbed = state.stations.filter(
+        (station) => station.companyId === fromId && station.status !== 'removed'
+    )
+    for (const station of absorbed) {
         addCompanyStations(state, toId, 1)
         const added = state.stations.at(-1)
-        assertExists(added, 'The survivor gains a station for each one moved')
-        replaceStation(state, station.id, added.id)
-        movedIds.push(added.id)
+        assertExists(added, 'The survivor gains a station for each one absorbed')
+        if (station.status === 'placed' && !sharesCity(state, toId, station)) {
+            replaceStation(state, station.id, added.id)
+            placedIds.push(added.id)
+        } else unplacedIds.push(added.id)
     }
     state.stations = state.stations.map(
         (station): Station =>
@@ -107,5 +100,15 @@ export function moveCompanyStations(
                 ? { id: station.id, companyId: fromId, status: 'removed' }
                 : station
     )
-    return { movedIds, droppedIds }
+    return { placedIds, unplacedIds }
+}
+
+function sharesCity(state: StationState, companyId: string, station: PlacedStation): boolean {
+    return state.stations.some(
+        (own) =>
+            own.companyId === companyId &&
+            own.status === 'placed' &&
+            own.position.locationId === station.position.locationId &&
+            own.position.nodeId === station.position.nodeId
+    )
 }

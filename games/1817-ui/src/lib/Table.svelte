@@ -26,6 +26,7 @@
     } from '@tabletop/1817'
     import CorporateActions from './CorporateActions.svelte'
     import MergerRound from './MergerRound.svelte'
+    import { plural } from './plural.js'
     import ShortSelling from './ShortSelling.svelte'
     import { requireEighteenSeventeenSession } from './session.svelte.js'
     function createRouteWorker() {
@@ -39,7 +40,6 @@
         'no-train': 'it has no train',
         'unpaid-stations': 'it did not pay for its stations'
     }
-    const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`
     function historyDescription(
         action: GameAction,
         companyName: (id: string) => string
@@ -105,7 +105,7 @@
             return { text: `Discarded a ${companyName(action.companyId)} train` }
         if (isCloseMarketShorts(action) && action.metadata)
             return {
-                text: `Market closed ${action.metadata.closed} ${companyName(action.companyId)} ${action.metadata.closed === 1 ? 'short' : 'shorts'}`,
+                text: `Market closed ${plural(action.metadata.closed, `${companyName(action.companyId)} short`)}`,
                 omitActor: true,
                 detail: action.metadata.payments.length
                     ? `The bank bought ${action.metadata.payments.length} from the treasury`
@@ -127,7 +127,7 @@
             {#if session.gameState.machineState === 'StockRound'}<CorporateActions
                     {session}
                 /><ShortSelling {session} />{/if}
-            {#if session.mergerRound}
+            {#if session.mergerCompanyId}
                 <MergerRound {session} />
             {:else}
                 <OperatingActions

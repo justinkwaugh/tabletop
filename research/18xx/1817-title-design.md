@@ -1070,12 +1070,13 @@ shares, and the company may borrow and buy the stations its size needs.
   and loans; a company that cannot pay is liquidated.
 - **Merger.** A company may absorb another of its size (2 or 5, never 10) that is
   floated, outside the closing zones and not converted this round. For 5+5, some
-  player must hold at least 40% net of both together; for 2+2 under different
+  player must hold at least 40% net of both together, counting each share as 20%; for 2+2 under different
   presidents, the survivor's president must afford the new price. The new price is the
   sum (2+2) or the floored average (5+5), at the highest market space not above it.
   - The survivor takes the target's cash, privates, loans and trains, and its stations,
-    except one where both share a city; over 8 stations, its president removes the
-    excess.
+    placed or not; where both share a city, one token leaves the map and returns to the
+    survivor's charter. Over 8 stations, unplaced ones go first and its president
+    removes placed ones.
   - 2+2: the survivor converts to 5. Under different presidents, the survivor's
     president pays the new price into its treasury and the target's president receives
     a treasury share.
@@ -1124,7 +1125,8 @@ presidency.
   The system actions `StartMergerRound` and `EndMergerRound` bracket the round.
 - **Family primitives.** The family gains what other merging titles reuse:
   `transferCompanyAssets` (cash, trains, privates, loans), `moveCompanyStations`
-  (onto the survivor's own station pieces, dropping a shared city's second token) and
+  (onto new station pieces of the survivor, placed or not; where both share a city,
+  the second piece returns to the survivor's charter) and
   `removeStockMarker`. Conversion needs nothing new: certificates keep their shares and
   `issueShareCertificates` adds the treasury shares.
 - **Resetting a charter is 1817's.** The target's president's certificate returns to
@@ -1149,8 +1151,9 @@ presidency.
   holding and certificate limits apply as in the stock round.
 - **Mergers.** A 5+5 merger gives the survivor a share for each of the target's shares
   and shorts (`addShort` adds a short without its market share), recomputes the
-  presidency, then cancels each holder's shorts against their shares. Unplaced station
-  pieces over 8 are removed first; placed ones over 8 await the president.
+  presidency, then cancels each holder's shorts against their shares. The target's
+  unplaced stations move too. Unplaced station pieces over 8 are removed first; placed
+  ones over 8 await the president.
 - **Table.** `TitlePresentation.titleRound` names the round for the header and history;
   1817's `MergerRound` panel takes the operating panels' place while it runs.
 
@@ -1173,7 +1176,7 @@ presidency.
 - Two 2-share companies under different presidents merge at the sum of their prices,
   the survivor's president pays it in and the target's receives a share.
 - A merger over the train limit makes the survivor discard; one sharing a city keeps
-  one token there.
+  one token there and the other piece unplaced.
 - With no company able to act, the round passes straight to the next OR or stock round.
 
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb

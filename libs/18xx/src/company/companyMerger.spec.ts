@@ -55,7 +55,7 @@ it('moves cash, trains, privates and loans to the survivor', () => {
     expect(state.companies.map((entry) => entry.loans)).toEqual([3, undefined, undefined])
 })
 
-it('moves placed stations onto new pieces, dropping a second token in a shared city', () => {
+it('moves stations onto new pieces, returning a shared city’s second one to the charter', () => {
     const state: StationState = {
         stations: [
             {
@@ -80,19 +80,21 @@ it('moves placed stations onto new pieces, dropping a second token in a shared c
         ]
     }
     expect(moveCompanyStations(state, 'B', 'A')).toEqual({
-        movedIds: ['A:station:1'],
-        droppedIds: ['B:home']
+        placedIds: ['A:station:2'],
+        unplacedIds: ['A:station:1', 'A:station:3']
     })
     expect(state.stations).toEqual([
         state.stations[0],
         { id: 'B:home', companyId: 'B', status: 'removed' },
         { id: 'B:station:1', companyId: 'B', status: 'removed' },
         { id: 'B:station:2', companyId: 'B', status: 'removed' },
+        { id: 'A:station:1', companyId: 'A', status: 'available' },
         {
-            id: 'A:station:1',
+            id: 'A:station:2',
             companyId: 'A',
             status: 'placed',
             position: { locationId: '2', nodeId: 'city', slot: 0 }
-        }
+        },
+        { id: 'A:station:3', companyId: 'A', status: 'available' }
     ])
 })

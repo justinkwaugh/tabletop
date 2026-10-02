@@ -21,8 +21,8 @@ import {
     marketPool,
     shortReason
 } from './index.js'
-import { mergerRoundSubject } from './mergerRound.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
+import { passUntil } from '../test/passTurns.js'
 
 const casey = { kind: 'player' as const, playerId: 'casey' }
 const price = (state: EighteenXXState) => companyMarketSpace(state.stockMarket, 'BA').price
@@ -202,25 +202,7 @@ describe('the market’s shorts', () => {
     it('are bought out of the treasury by the bank as the next stock round begins', () => {
         const play = playExample(EighteenSeventeenScenarios, 'construction', 3, marketShort)
         const treasury = Number(cashOwnedBy(play.state, { kind: 'company', companyId: 'BA' }))
-        for (let step = 0; step < 20 && play.state.machineState !== 'StockRound'; step++) {
-            const actions = play.valid(play.state.activePlayerIds[0])
-            const finish = [
-                'FinishTrack',
-                'FinishTrains',
-                'FinishOperatingTurn',
-                'PassMerger',
-                'PassConvertedShares',
-                'FinishConversionLoans'
-            ].find((type) => actions.includes(type))
-            assertExists(finish, `No way to finish in ${play.state.machineState}`)
-            play.act(finish, {
-                companyId:
-                    play.state.trackStep?.companyId ??
-                    play.state.loanStep?.companyId ??
-                    play.state.trainPurchaseStep?.companyId ??
-                    mergerRoundSubject(play.state)
-            })
-        }
+        passUntil(play, (state) => state.machineState === 'StockRound')
         expect(play.state.machineState).toBe('StockRound')
         expect(openShorts(play.state, 'BA')).toEqual([])
         expect(cashOwnedBy(play.state, { kind: 'company', companyId: 'BA' })).toBe(

@@ -23,12 +23,10 @@ import {
     companyMarketSpace,
     controllingOwner,
     evaluateShareTransfer,
-    finiteCashOwnedBy,
-    getCompany,
     isTakeLoan,
     nextOperatingCompany,
     settleCashPayments,
-    trainsOwnedBy,
+    turnOrderFrom,
     unownedTrain,
     type EighteenXXState,
     type EighteenXXStateHandler,
@@ -40,18 +38,28 @@ import { EighteenSeventeenLoanRules } from './loanRules.js'
 import {
     canConvert,
     convertCompany,
+    discardableTrains,
     mergeCompanies,
     mergeReason,
     mergeTargetIds,
     mergerRoundCompanyIds,
+    removableStations,
+    sizeAfterConversion,
+    stationPurchase,
     stationsForConversion,
     stationsOverLimit,
     trainsOverLimit,
     treasuryShareIds,
     trimStations
 } from './mergerRules.js'
-import { activeMergerRound, mergerRoundOf, setMergerRound, type MergerRound } from './state.js'
-import { EighteenSeventeenStockRules, StationPrice } from './stockRules.js'
+import {
+    activeMergerRound,
+    mergerRoundOf,
+    setMergerRound,
+    type Conversion,
+    type MergerRound
+} from './state.js'
+import { EighteenSeventeenStockRules } from './stockRules.js'
 
 type State = HydratedGameState & EighteenXXState
 type Context = MachineContext<HydratedEighteenXXState>
@@ -62,30 +70,32 @@ function requireRound(state: object): MergerRound {
     return round
 }
 
+function requireConversion(state: object): Conversion {
+    const conversion = requireRound(state).conversion
+    assertExists(conversion, 'A company has converted or merged')
+    return conversion
+}
+
 function presidentOf(state: EighteenXXState, companyId: string): string {
     const president = controllingOwner(state, companyId)
     assertExists(president, 'A company in the merger round has a president')
     return president.playerId
 }
 
-/** The company whose president decides now, until the round's companies are done. */
-export function mergerRoundCompanyId(state: object): string | undefined {
+function decidingCompanyId(state: object): string | undefined {
     return requireRound(state).companyIds[0]
 }
 
-/** The company the merger round is dealing with, while one is in progress. */
-export function mergerRoundSubject(state: object): string | undefined {
+export function mergerRoundCompanyId(state: object): string | undefined {
     const round = activeMergerRound(state)
     return round?.conversion?.companyId ?? round?.companyIds[0]
 }
 
-function seatOrderFrom(state: EighteenXXState, playerId: string): string[] {
-    const order = state.turnManager.turnOrder
-    const start = order.indexOf(playerId)
-    return [...order.slice(start), ...order.slice(0, start)]
+function convertingCompanyFor(state: EighteenXXState, playerId: string): string | undefined {
+    const companyId = requireRound(state).conversion?.companyId
+    return companyId && presidentOf(state, companyId) === playerId ? companyId : undefined
 }
 
-/** The round's next state while a conversion is underway, or the round itself once done. */
 function stateAfterConversion(state: EighteenXXState): string {
     const conversion = requireRound(state).conversion
     if (!conversion) return 'MergerRound'
@@ -96,26 +106,18 @@ function stateAfterConversion(state: EighteenXXState): string {
     return 'BorrowingAfterConversion'
 }
 
-function startsConversion(
-    state: EighteenXXState,
-    companyId: string,
-    price: number,
-    stationsOwed: number,
-    merged: boolean
-): void {
+function beginConversion(state: EighteenXXState, conversion: Omit<Conversion, 'traderIds'>): void {
     const round = requireRound(state)
-    round.companyIds = round.companyIds.filter((id) => id !== companyId)
-    round.convertedIds.push(companyId)
+    round.companyIds = round.companyIds.filter((id) => id !== conversion.companyId)
+    round.convertedIds.push(conversion.companyId)
     round.conversion = {
-        companyId,
-        ...(merged ? { merged: true } : {}),
-        price,
-        traderIds: seatOrderFrom(state, presidentOf(state, companyId)),
-        stationsOwed
+        ...conversion,
+        traderIds: turnOrderFrom(
+            state.turnManager.turnOrder,
+            presidentOf(state, conversion.companyId)
+        )
     }
 }
-
-// ---- Round start and end ----
 
 export function mergerRoundDue(state: EighteenXXState): boolean {
     const set = state.operatingSet
@@ -233,8 +235,6 @@ export class MergerRoundStartHandler implements EighteenXXStateHandler {
     }
 }
 
-// ---- The company's decision ----
-
 const CompanyFields = { ...PlayerAction.properties, companyId: Type.String() }
 
 export const ConvertCompany = Type.Object(
@@ -265,7 +265,7 @@ export function isConvertCompany(action: GameAction): action is ConvertCompany {
 
 function decidesFor(state: EighteenXXState, playerId: string, companyId: string): boolean {
     return (
-        mergerRoundCompanyId(state) === companyId &&
+        decidingCompanyId(state) === companyId &&
         !requireRound(state).conversion &&
         presidentOf(state, companyId) === playerId
     )
@@ -290,20 +290,15 @@ export class HydratedConvertCompany
             this.source === ActionSource.User && this.isValidFor(state),
             'Only the deciding company’s president may convert it'
         )
+        const shareCount = sizeAfterConversion(state, this.companyId)
         const shareIds = convertCompany(state, this.companyId)
         const stationsOwed = stationsForConversion(state, this.companyId)
-        startsConversion(
-            state,
-            this.companyId,
-            companyMarketSpace(state.stockMarket, this.companyId).price,
-            stationsOwed,
-            false
-        )
-        this.metadata = {
-            shareIds,
-            shareCount: getCompany(state, this.companyId).shareCount ?? 0,
+        beginConversion(state, {
+            companyId: this.companyId,
+            price: companyMarketSpace(state.stockMarket, this.companyId).price,
             stationsOwed
-        }
+        })
+        this.metadata = { shareIds, shareCount, stationsOwed }
     }
 }
 
@@ -361,7 +356,12 @@ export class HydratedMergeCompanies
         const round = requireRound(state)
         round.companyIds = round.companyIds.filter((id) => id !== this.targetId)
         trimStations(state, this.companyId)
-        startsConversion(state, this.companyId, record.price, 0, true)
+        beginConversion(state, {
+            companyId: this.companyId,
+            merged: true,
+            price: record.price,
+            stationsOwed: 0
+        })
         this.metadata = record
     }
 }
@@ -415,7 +415,7 @@ export class MergerRoundHandler implements EighteenXXStateHandler {
         if (isEndMergerRound(action))
             return (
                 action.source === ActionSource.System &&
-                !mergerRoundCompanyId(state) &&
+                !decidingCompanyId(state) &&
                 !requireRound(state).conversion
             )
         if (
@@ -428,14 +428,14 @@ export class MergerRoundHandler implements EighteenXXStateHandler {
     }
     validActionsForPlayer(playerId: string, context: Context): string[] {
         const state = context.gameState
-        const companyId = mergerRoundCompanyId(state)
+        const companyId = decidingCompanyId(state)
         return companyId && decidesFor(state, playerId, companyId)
             ? [...mergerOptions(state, companyId), 'PassMerger']
             : []
     }
     enter(context: Context): void {
         const state = context.gameState
-        const companyId = mergerRoundCompanyId(state)
+        const companyId = decidingCompanyId(state)
         if (!companyId) {
             context.addSystemAction(EndMergerRound, {})
             return
@@ -450,8 +450,6 @@ export class MergerRoundHandler implements EighteenXXStateHandler {
         return stateAfterConversion(context.gameState)
     }
 }
-
-// ---- Trading the new shares ----
 
 export const BuyConvertedShare = Type.Object(
     {
@@ -471,7 +469,7 @@ export function isBuyConvertedShare(action: GameAction): action is BuyConvertedS
     )
 }
 
-function trader(state: EighteenXXState): string | undefined {
+function currentTrader(state: EighteenXXState): string | undefined {
     return requireRound(state).conversion?.traderIds[0]
 }
 
@@ -481,7 +479,7 @@ export function convertedSharePurchase(
     playerId: string
 ): SharePurchaseResult {
     const conversion = requireRound(state).conversion
-    if (!conversion || trader(state) !== playerId)
+    if (!conversion || currentTrader(state) !== playerId)
         return { reason: 'It is not this player’s turn to buy.' }
     const certificateId = treasuryShareIds(state, conversion.companyId)[0]
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
@@ -521,9 +519,8 @@ export class HydratedBuyConvertedShare
             reason ?? 'The share’s price has changed'
         )
         applyShareTransfer(state, details)
-        const conversion = requireRound(state).conversion
-        assertExists(conversion, 'Shares are bought after a conversion')
-        if (presidentOf(state, this.companyId) !== this.playerId) conversion.traderIds.shift()
+        if (presidentOf(state, this.companyId) !== this.playerId)
+            requireConversion(state).traderIds.shift()
         this.metadata = details
     }
 }
@@ -556,14 +553,14 @@ export class HydratedPassConvertedShares
     isValidFor(state: EighteenXXState): boolean {
         return (
             requireRound(state).conversion?.companyId === this.companyId &&
-            trader(state) === this.playerId &&
+            currentTrader(state) === this.playerId &&
             (this.source === ActionSource.User ||
                 !convertedSharePurchase(state, this.playerId).details)
         )
     }
     apply(state: State): void {
         assert(this.isValidFor(state), 'Only the player whose turn it is may pass')
-        requireRound(state).conversion?.traderIds.shift()
+        requireConversion(state).traderIds.shift()
     }
 }
 
@@ -577,7 +574,7 @@ export class TradingConvertedSharesHandler implements EighteenXXStateHandler {
     }
     validActionsForPlayer(playerId: string, context: Context): string[] {
         const state = context.gameState
-        if (trader(state) !== playerId) return []
+        if (currentTrader(state) !== playerId) return []
         return [
             ...(convertedSharePurchase(state, playerId).details ? ['BuyConvertedShare'] : []),
             'PassConvertedShares'
@@ -585,9 +582,8 @@ export class TradingConvertedSharesHandler implements EighteenXXStateHandler {
     }
     enter(context: Context): void {
         const state = context.gameState
-        const conversion = requireRound(state).conversion
-        const playerId = trader(state)
-        assertExists(conversion, 'Shares are traded after a conversion')
+        const conversion = requireConversion(state)
+        const playerId = currentTrader(state)
         assertExists(playerId, 'A player is trading')
         state.activePlayerIds = [playerId]
         if (!convertedSharePurchase(state, playerId).details)
@@ -600,8 +596,6 @@ export class TradingConvertedSharesHandler implements EighteenXXStateHandler {
         return stateAfterConversion(context.gameState)
     }
 }
-
-// ---- Loans and stations ----
 
 export const FinishConversionLoans = Type.Object(
     {
@@ -653,31 +647,34 @@ export class HydratedFinishConversionLoans
     }
     isValidFor(state: EighteenXXState): boolean {
         return (
-            requireRound(state).conversion?.companyId === this.companyId &&
-            presidentOf(state, this.companyId) === this.playerId &&
+            convertingCompanyFor(state, this.playerId) === this.companyId &&
             (this.source === ActionSource.User || !canBorrow(state, this.playerId))
         )
     }
     apply(state: State): void {
         assert(this.isValidFor(state), 'Only the converted company’s president may finish')
-        const round = requireRound(state)
-        const conversion = round.conversion
-        assertExists(conversion, 'Loans follow a conversion')
-        const company = { kind: 'company' as const, companyId: this.companyId }
-        const cost = conversion.stationsOwed * StationPrice
-        delete round.conversion
-        if (!cost) {
+        const purchase = stationPurchase(
+            state,
+            this.companyId,
+            requireConversion(state).stationsOwed
+        )
+        delete requireRound(state).conversion
+        if (!purchase.stations) {
             this.metadata = { stations: 0 }
             return
         }
-        if (finiteCashOwnedBy(state, company) < cost) {
+        if (!purchase.affordable) {
             this.metadata = { stations: 0, liquidation: liquidate(state, this.companyId) }
             return
         }
-        const payment = { from: company, to: { kind: 'bank' as const }, amount: cost }
+        const payment = {
+            from: { kind: 'company' as const, companyId: this.companyId },
+            to: { kind: 'bank' as const },
+            amount: purchase.cost
+        }
         settleCashPayments(state, [payment])
-        addCompanyStations(state, this.companyId, conversion.stationsOwed)
-        this.metadata = { stations: conversion.stationsOwed, payment }
+        addCompanyStations(state, this.companyId, purchase.stations)
+        this.metadata = { stations: purchase.stations, payment }
     }
 }
 
@@ -695,14 +692,12 @@ export class BorrowingAfterConversionHandler implements EighteenXXStateHandler {
     }
     validActionsForPlayer(playerId: string, context: Context): string[] {
         const state = context.gameState
-        const conversion = requireRound(state).conversion
-        if (!conversion || presidentOf(state, conversion.companyId) !== playerId) return []
+        if (!convertingCompanyFor(state, playerId)) return []
         return [...(canBorrow(state, playerId) ? ['TakeLoan'] : []), 'FinishConversionLoans']
     }
     enter(context: Context): void {
         const state = context.gameState
-        const conversion = requireRound(state).conversion
-        assertExists(conversion, 'Loans follow a conversion')
+        const conversion = requireConversion(state)
         const playerId = presidentOf(state, conversion.companyId)
         state.activePlayerIds = [playerId]
         if (!canBorrow(state, playerId))
@@ -715,8 +710,6 @@ export class BorrowingAfterConversionHandler implements EighteenXXStateHandler {
         return isTakeLoan(action) ? 'BorrowingAfterConversion' : 'MergerRound'
     }
 }
-
-// ---- A merger's stations and trains ----
 
 export const RemoveStation = Type.Object(
     { ...CompanyFields, type: Type.Literal('RemoveStation'), stationId: Type.String() },
@@ -743,14 +736,9 @@ export class HydratedRemoveStation
     }
     isValidFor(state: EighteenXXState): boolean {
         return (
-            requireRound(state).conversion?.companyId === this.companyId &&
-            presidentOf(state, this.companyId) === this.playerId &&
-            stationsOverLimit(state, this.companyId) > 0 &&
-            state.stations.some(
-                (station) =>
-                    station.id === this.stationId &&
-                    station.companyId === this.companyId &&
-                    station.status === 'placed'
+            convertingCompanyFor(state, this.playerId) === this.companyId &&
+            removableStations(state, this.companyId).some(
+                (station) => station.id === this.stationId
             )
         )
     }
@@ -795,12 +783,8 @@ export class HydratedDiscardMergedTrain
     }
     isValidFor(state: EighteenXXState): boolean {
         return (
-            requireRound(state).conversion?.companyId === this.companyId &&
-            presidentOf(state, this.companyId) === this.playerId &&
-            trainsOverLimit(state, this.companyId) > 0 &&
-            trainsOwnedBy(state, { kind: 'company', companyId: this.companyId }).some(
-                (train) => train.id === this.trainId
-            )
+            convertingCompanyFor(state, this.playerId) === this.companyId &&
+            discardableTrains(state, this.companyId).some((train) => train.id === this.trainId)
         )
     }
     apply(state: State): void {
@@ -823,19 +807,17 @@ export class MergerExcessHandler implements EighteenXXStateHandler {
             : false
     }
     validActionsForPlayer(playerId: string, context: Context): string[] {
-        const state = context.gameState
-        const conversion = requireRound(state).conversion
-        if (!conversion || presidentOf(state, conversion.companyId) !== playerId) return []
-        return stationsOverLimit(state, conversion.companyId)
+        const companyId = convertingCompanyFor(context.gameState, playerId)
+        if (!companyId) return []
+        return removableStations(context.gameState, companyId).length
             ? ['RemoveStation']
-            : trainsOverLimit(state, conversion.companyId)
+            : discardableTrains(context.gameState, companyId).length
               ? ['DiscardMergedTrain']
               : []
     }
     enter(context: Context): void {
-        const conversion = requireRound(context.gameState).conversion
-        assertExists(conversion, 'Excess follows a merger')
-        context.gameState.activePlayerIds = [presidentOf(context.gameState, conversion.companyId)]
+        const { companyId } = requireConversion(context.gameState)
+        context.gameState.activePlayerIds = [presidentOf(context.gameState, companyId)]
     }
     onAction(_action: HydratedAction, context: Context): string {
         return stateAfterConversion(context.gameState)

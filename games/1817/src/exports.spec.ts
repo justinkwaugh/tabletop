@@ -7,46 +7,10 @@ import {
     type EighteenXXState,
     type Train
 } from '@tabletop/18xx'
-import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
+import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenTrainDepot } from './index.js'
-import { mergerRoundSubject } from './mergerRound.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
-
-function operatingCompanyId(state: EighteenXXState): string | undefined {
-    return (
-        state.trackStep?.companyId ??
-        state.trainPurchaseStep?.companyId ??
-        state.loanStep?.companyId ??
-        state.phaseChange?.discardCompanyIds[0] ??
-        mergerRoundSubject(state)
-    )
-}
-
-// Lays no track, runs nothing and buys nothing, so rounds end without purchases.
-function passUntil(play: ExamplePlay, until: (state: EighteenXXState) => boolean) {
-    for (let step = 0; step < 100 && !until(play.state); step++) {
-        const actions = play.valid(play.state.activePlayerIds[0])
-        const companyId = operatingCompanyId(play.state)
-        if (actions.includes('FinishTrack')) play.act('FinishTrack', { companyId })
-        else if (actions.includes('FinishTrains')) play.act('FinishTrains', { companyId })
-        else if (actions.includes('FinishOperatingTurn'))
-            play.act('FinishOperatingTurn', { companyId })
-        else if (actions.includes('DiscardTrain'))
-            play.act('DiscardTrain', {
-                companyId,
-                trainId: play.state.trainInventory.trains.find(
-                    (train) =>
-                        train.status === 'owned' &&
-                        train.owner.kind === 'company' &&
-                        train.owner.companyId === companyId
-                )?.id
-            })
-        else if (actions.includes('FinishStockTurn')) play.act('FinishStockTurn')
-        else if (actions.includes('PassMerger')) play.act('PassMerger', { companyId })
-        else throw new Error(`No passing action in ${play.state.machineState}`)
-    }
-    expect(until(play.state)).toBe(true)
-}
+import { passUntil } from '../test/passTurns.js'
 
 const roundOf = (number: number, roundNumber: number) => (state: EighteenXXState) =>
     state.operatingSet?.number === number && state.operatingSet.roundNumber === roundNumber

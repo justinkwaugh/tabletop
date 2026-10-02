@@ -1,31 +1,25 @@
 <script lang="ts">
-    import { cashOwnedBy, companyMarketSpace, getCompany, trainsOwnedBy } from '@tabletop/18xx'
+    import { cashOwnedBy, companyMarketSpace, getCompany } from '@tabletop/18xx'
     import { CompanyToken, TrainBadge } from '@tabletop/18xx-ui'
-    import {
-        EighteenSeventeenMap,
-        StationPrice,
-        stationsOverLimit,
-        treasuryShareIds
-    } from '@tabletop/1817'
+    import { EighteenSeventeenMap } from '@tabletop/1817'
+    import { plural } from './plural.js'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session }: { session: EighteenSeventeenSession } = $props()
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
     const valid = $derived(session.validActionTypes)
     const busy = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory)
-    const round = $derived(session.mergerRound)
-    const company = $derived(round && getCompany(gameState, round.companyId))
-    const treasury = $derived(
-        round ? Number(cashOwnedBy(gameState, { kind: 'company', companyId: round.companyId })) : 0
-    )
-    const stationsOwed = $derived(round?.conversion?.stationsOwed ?? 0)
-    const stationCost = $derived(stationsOwed * StationPrice)
+    const decision = $derived(session.mergerDecision)
+    const trading = $derived(session.convertedShareTrading)
+    const stations = $derived(session.conversionStations)
+    const excess = $derived(session.mergerExcess)
     const waitingFor = $derived(
         gameState.activePlayerIds.map((id) => session.getPlayerName(id)).join(', ')
     )
 </script>
 
-{#if round && company}
+{#if session.mergerCompanyId}
+    {@const company = getCompany(gameState, session.mergerCompanyId)}
     <section aria-label="Merger round">
         <header>
             <CompanyToken appearance={session.mapView.stations[company.id]} size={24} />
@@ -33,18 +27,33 @@
             <span
                 >{company.shareCount} shares · {money(
                     companyMarketSpace(gameState.stockMarket, company.id).price
-                )} · Treasury {money(treasury)}</span
+                )} · Treasury {money(
+                    Number(cashOwnedBy(gameState, { kind: 'company', companyId: company.id }))
+                )}</span
             >
         </header>
-        {#if gameState.machineState === 'MergerRound'}
-            {#if valid.includes('PassMerger')}
-                <div class="choices">
-                    {#if valid.includes('ConvertCompany')}<button
+        {#if trading}
+            <p>{plural(trading.remaining, 'treasury share')} at {money(trading.price)}</p>
+        {/if}
+        {#if stations}
+            <p>
+                Loans {session.loans.loans(company.id)}/{session.loans.capacity(company.id)}
+                {#if stations.stations}· Needs {plural(stations.stations, 'more station')} ({money(
+                        stations.cost
+                    )}){/if}
+            </p>
+        {/if}
+        {#if excess?.stations.length}<p>Over the station limit</p>
+        {:else if excess?.trains.length}<p>Over the train limit</p>{/if}
+        {#if valid.length && excess}
+            <div class="choices">
+                {#if decision}
+                    {#if decision.convertsTo}<button
                             disabled={busy}
                             onclick={() => session.convertCompany()}
-                            >Convert to {company.shareCount === 2 ? 5 : 10} shares</button
+                            >Convert to {decision.convertsTo} shares</button
                         >{/if}
-                    {#each round.targets as target (target.companyId)}
+                    {#each decision.targets as target (target.companyId)}
                         <button
                             disabled={busy}
                             onclick={() => session.mergeCompanies(target.companyId)}
@@ -54,75 +63,40 @@
                         >
                     {/each}
                     <button disabled={busy} onclick={() => session.passMerger()}>Pass</button>
-                </div>
-            {:else}
-                <p>Waiting for {waitingFor} to convert, merge or pass.</p>
-            {/if}
-        {:else if gameState.machineState === 'TradingConvertedShares'}
-            <p>
-                {treasuryShareIds(gameState, company.id).length} treasury shares at {money(
-                    round.conversion?.price ?? 0
-                )}
-            </p>
-            {#if valid.includes('PassConvertedShares')}
-                <div class="choices">
-                    {#if round.purchase}<button
+                {/if}
+                {#if trading && valid.includes('PassConvertedShares')}
+                    {#if trading.purchase}<button
                             disabled={busy}
                             onclick={() => session.buyConvertedShare()}
-                            >Buy a share ({money(round.purchase.price)})</button
+                            >Buy a share ({money(trading.purchase.price)})</button
                         >{/if}
                     <button disabled={busy} onclick={() => session.passConvertedShares()}
                         >Pass</button
                     >
-                </div>
-            {:else}
-                <p>Waiting for {waitingFor} to buy or pass.</p>
-            {/if}
-        {:else if gameState.machineState === 'BorrowingAfterConversion'}
-            <p>
-                Loans {session.loans.loans(company.id)}/{session.loans.capacity(company.id)}
-                {#if stationsOwed}· Needs {stationsOwed} more {stationsOwed === 1
-                        ? 'station'
-                        : 'stations'} ({money(stationCost)}){/if}
-            </p>
-            {#if valid.includes('FinishConversionLoans')}
-                <div class="choices">
+                {/if}
+                {#if stations && valid.includes('FinishConversionLoans')}
                     {#if valid.includes('TakeLoan')}<button
                             disabled={busy}
                             onclick={() => session.loans.take(company.id)}>Take a loan</button
                         >{/if}
                     <button disabled={busy} onclick={() => session.finishConversionLoans()}
-                        >{!stationsOwed
+                        >{!stations.stations
                             ? 'Finish'
-                            : treasury < stationCost
-                              ? 'Finish and liquidate'
-                              : `Buy ${stationsOwed === 1 ? 'station' : 'stations'}`}</button
+                            : stations.affordable
+                              ? `Buy ${plural(stations.stations, 'station')}`
+                              : 'Finish and liquidate'}</button
                     >
-                </div>
-            {:else}
-                <p>Waiting for {waitingFor} to borrow or finish.</p>
-            {/if}
-        {:else if gameState.machineState === 'ReducingStations'}
-            <p>{stationsOverLimit(gameState, company.id)} stations over the limit</p>
-            {#if valid.includes('RemoveStation')}
-                <div class="choices">
-                    {#each gameState.stations as station (station.id)}
-                        {#if station.companyId === company.id && station.status === 'placed'}<button
-                                disabled={busy}
-                                onclick={() => session.removeStation(station.id)}
-                                >Remove {EighteenSeventeenMap.location(station.position.locationId)
-                                    .name ?? station.position.locationId}</button
-                            >{/if}
+                {/if}
+                {#if valid.includes('RemoveStation')}
+                    {#each excess.stations as station (station.id)}
+                        <button disabled={busy} onclick={() => session.removeStation(station.id)}
+                            >Remove {EighteenSeventeenMap.location(station.position.locationId)
+                                .name ?? station.position.locationId}</button
+                        >
                     {/each}
-                </div>
-            {:else}
-                <p>Waiting for {waitingFor} to remove stations.</p>
-            {/if}
-        {:else if gameState.machineState === 'DiscardingMergedTrains'}
-            <p>Over the train limit</p>
-            {#if valid.includes('DiscardMergedTrain')}
-                <div class="choices">
-                    {#each trainsOwnedBy( gameState, { kind: 'company', companyId: company.id } ) as train (train.id)}
+                {/if}
+                {#if valid.includes('DiscardMergedTrain')}
+                    {#each excess.trains as train (train.id)}
                         <button disabled={busy} onclick={() => session.discardMergedTrain(train.id)}
                             >Discard <TrainBadge
                                 name={session.trainDepot.trainDefinition(train.definitionId).name}
@@ -130,10 +104,10 @@
                             /></button
                         >
                     {/each}
-                </div>
-            {:else}
-                <p>Waiting for {waitingFor} to discard trains.</p>
-            {/if}
+                {/if}
+            </div>
+        {:else}
+            <p>Waiting for {waitingFor}.</p>
         {/if}
     </section>
 {/if}

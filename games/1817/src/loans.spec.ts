@@ -13,8 +13,8 @@ import {
     EighteenSeventeenTransferRules,
     isLiquidated
 } from './index.js'
-import { mergerRoundSubject } from './mergerRound.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
+import { passUntil } from '../test/passTurns.js'
 
 const treasury = (state: EighteenXXState, companyId: string) =>
     cashOwnedBy(state, { kind: 'company', companyId })
@@ -41,27 +41,9 @@ function operating(prepare: (state: EighteenXXState) => void = () => {}) {
     })
 }
 
-// Finishes every remaining turn of the round without building, buying or borrowing.
 function finishRound(play: ExamplePlay) {
     const round = play.state.operatingSet?.roundNumber
-    for (let step = 0; step < 20 && play.state.operatingSet?.roundNumber === round; step++) {
-        const actions = play.valid(play.state.activePlayerIds[0])
-        const companyId =
-            play.state.trackStep?.companyId ??
-            play.state.loanStep?.companyId ??
-            play.state.trainPurchaseStep?.companyId ??
-            mergerRoundSubject(play.state)
-        const finish = [
-            'FinishTrack',
-            'FinishTrains',
-            'FinishOperatingTurn',
-            'PassMerger',
-            'PassConvertedShares',
-            'FinishConversionLoans'
-        ].find((type) => actions.includes(type))
-        assertExists(finish, `No way to finish in ${play.state.machineState}`)
-        play.act(finish, { companyId })
-    }
+    passUntil(play, (state) => state.operatingSet?.roundNumber !== round)
 }
 
 function toLoanStep(play: ExamplePlay) {

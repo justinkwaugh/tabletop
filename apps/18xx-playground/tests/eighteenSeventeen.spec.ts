@@ -154,7 +154,7 @@ test('1817 companies convert in the merger round after an operating round', asyn
     await merger.getByRole('button', { name: 'Buy a share ($60)' }).click()
     await merger.getByRole('button', { name: 'Pass', exact: true }).click()
     await merger.getByRole('button', { name: 'Take a loan' }).click()
-    await merger.getByRole('button', { name: 'Buy station' }).click()
+    await merger.getByRole('button', { name: 'Buy 1 station' }).click()
     await expect(page.getByRole('region', { name: 'Merger round' })).toHaveCount(0)
 
     await page.getByRole('tab', { name: 'History', exact: true }).click()

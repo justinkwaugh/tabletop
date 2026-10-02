@@ -24,6 +24,13 @@ import { historyOperatingOrder, type HistoryOperatingOrder } from './historyOper
 import { historyCash, changedCompanyCash, type HistoryCash } from './historyCash.js'
 import { auctionHistory, type ActionHistoryEntry } from './auctionHistory.js'
 import type { TitleRound } from '../session/titlePresentation.js'
+import {
+    AuctionHeading,
+    operatingRoundHeading,
+    roundLabel,
+    roundTitle,
+    stockRoundHeading
+} from './roundHeading.js'
 
 export type HistoryRound = {
     id: string
@@ -40,6 +47,11 @@ function changedCompanyCashOf(cash: HistoryCash | undefined): boolean {
     return cash !== undefined && changedCompanyCash(cash)
 }
 
+export type HistoryTitle = {
+    isEvent?: (action: GameAction) => boolean
+    round?: TitleRound
+}
+
 export function historyRounds(
     actions: readonly GameAction[],
     state: EighteenXXState,
@@ -48,9 +60,9 @@ export function historyRounds(
         state
     ),
     cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state),
-    titleEvent: (action: GameAction) => boolean = () => false,
-    titleRound?: TitleRound
+    title: HistoryTitle = {}
 ): HistoryRound[] {
+    const titleRound = title.round
     const awards: readonly AuctionAward[] = state.offerAuction?.awards ?? []
     const entries = new Map(auctionHistory(actions, awards).map((entry) => [entry.id, entry]))
     let phase = state.phaseId
@@ -68,21 +80,21 @@ export function historyRounds(
     const rounds: HistoryRound[] = []
     for (const action of actions.toReversed()) {
         if (titleRound?.ends(action)) titleRoundOpen = true
-        const [abbreviation, name, number] = auction
-            ? ['Auction', 'Auction', '']
+        const heading = auction
+            ? AuctionHeading
             : titleRound && titleRoundOpen
-              ? [titleRound.abbreviation, titleRound.name, `${set}.${round}`]
+              ? operatingRoundHeading(set, round, titleRound)
               : operating && !isCompleteStockRound(action)
-                ? ['OR', 'Operating round', `${set}.${round}`]
-                : ['SR', 'Stock round', `${stock}`]
-        const label = number ? `${abbreviation} ${number}` : abbreviation
+                ? operatingRoundHeading(set, round)
+                : stockRoundHeading(stock)
+        const label = roundLabel(heading)
         if (titleRound?.starts(action)) titleRoundOpen = false
         let section = rounds.at(-1)
         if (section?.id !== label) {
             section = {
                 id: label,
                 label,
-                title: number ? `${name} ${number}` : name,
+                title: roundTitle(heading),
                 phases: [phase],
                 endActionIndex: action.index,
                 entries: []
@@ -120,7 +132,7 @@ export function historyRounds(
                   isEndGame(action) ||
                   isExportTrains(action) ||
                   isPayInterest(action) ||
-                  titleEvent(action) ||
+                  !!title.isEvent?.(action) ||
                   (isResolveAuction(action) && !state.offerAuction) ||
                   isResolveSelectionAuction(action)
                       ? { kind: 'action' as const, id: action.id, action }

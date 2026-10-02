@@ -17,10 +17,15 @@ import {
     activeMergerRound,
     convertedSharePurchase,
     corporateActionOptions,
+    discardableTrains,
     mergeTargetIds,
     mergerPrice,
-    mergerRoundSubject,
-    shortOptions
+    mergerRoundCompanyId,
+    removableStations,
+    shortOptions,
+    sizeAfterConversion,
+    stationPurchase,
+    treasuryShareIds
 } from '@tabletop/1817'
 import { EighteenSeventeenMapView } from './mapView.js'
 import { EighteenSeventeenPresentation } from './presentation.js'
@@ -46,47 +51,80 @@ export class EighteenSeventeenSession extends BaseSession {
             ? shortOptions(this.gameState, playerId)
             : []
     })
-    /** The company the merger round deals with, and what the local player may do with it. */
-    mergerRound = $derived.by(() => {
+    mergerCompanyId = $derived(mergerRoundCompanyId(this.gameState))
+    mergerDecision = $derived.by(() => {
+        const companyId = this.mergerCompanyId
         const state = this.gameState
+        if (!companyId || !this.validActionTypes.includes('PassMerger')) return undefined
         const round = activeMergerRound(state)
-        const companyId = mergerRoundSubject(state)
-        if (!round || !companyId) return undefined
-        const playerId = state.activePlayerIds[0]
-        const purchase =
-            playerId && this.validActionTypes.includes('BuyConvertedShare')
-                ? convertedSharePurchase(state, playerId).details
-                : undefined
-        const targets = this.validActionTypes.includes('MergeCompanies')
-            ? mergeTargetIds(state, companyId, round.convertedIds).map((targetId) => ({
-                  companyId: targetId,
-                  price: mergerPrice(state, companyId, targetId)
-              }))
-            : []
-        return { companyId, conversion: round.conversion, purchase, targets }
+        assert(round, 'A merger round is in progress')
+        return {
+            convertsTo: this.validActionTypes.includes('ConvertCompany')
+                ? sizeAfterConversion(state, companyId)
+                : undefined,
+            targets: this.validActionTypes.includes('MergeCompanies')
+                ? mergeTargetIds(state, companyId, round.convertedIds).map((targetId) => ({
+                      companyId: targetId,
+                      price: mergerPrice(state, companyId, targetId)
+                  }))
+                : []
+        }
     })
-    private mergerCompanyId(): string {
-        const companyId = this.mergerRound?.companyId
+    convertedShareTrading = $derived.by(() => {
+        const state = this.gameState
+        const conversion = activeMergerRound(state)?.conversion
+        if (state.machineState !== 'TradingConvertedShares' || !conversion) return undefined
+        const playerId = state.activePlayerIds[0]
+        return {
+            price: conversion.price,
+            remaining: treasuryShareIds(state, conversion.companyId).length,
+            purchase:
+                playerId && this.validActionTypes.includes('BuyConvertedShare')
+                    ? convertedSharePurchase(state, playerId).details
+                    : undefined
+        }
+    })
+    conversionStations = $derived.by(() => {
+        const state = this.gameState
+        const conversion = activeMergerRound(state)?.conversion
+        return state.machineState === 'BorrowingAfterConversion' && conversion
+            ? stationPurchase(state, conversion.companyId, conversion.stationsOwed)
+            : undefined
+    })
+    mergerExcess = $derived.by(() => {
+        const companyId = this.mergerCompanyId
+        const state = this.gameState
+        if (!companyId) return undefined
+        return {
+            stations: removableStations(state, companyId),
+            trains: discardableTrains(state, companyId)
+        }
+    })
+    private requireMergerCompanyId(): string {
+        const companyId = this.mergerCompanyId
         assert(companyId, 'A merger round is in progress')
         return companyId
     }
     async convertCompany() {
         await this.applyAction(
-            this.createPlayerAction(ConvertCompany, { companyId: this.mergerCompanyId() })
+            this.createPlayerAction(ConvertCompany, { companyId: this.requireMergerCompanyId() })
         )
     }
     async mergeCompanies(targetId: string) {
         await this.applyAction(
-            this.createPlayerAction(MergeCompanies, { companyId: this.mergerCompanyId(), targetId })
+            this.createPlayerAction(MergeCompanies, {
+                companyId: this.requireMergerCompanyId(),
+                targetId
+            })
         )
     }
     async passMerger() {
         await this.applyAction(
-            this.createPlayerAction(PassMerger, { companyId: this.mergerCompanyId() })
+            this.createPlayerAction(PassMerger, { companyId: this.requireMergerCompanyId() })
         )
     }
     async buyConvertedShare() {
-        const purchase = this.mergerRound?.purchase
+        const purchase = this.convertedShareTrading?.purchase
         assert(purchase, 'The player cannot buy a converted share now')
         await this.applyAction(
             this.createPlayerAction(BuyConvertedShare, {
@@ -97,18 +135,22 @@ export class EighteenSeventeenSession extends BaseSession {
     }
     async passConvertedShares() {
         await this.applyAction(
-            this.createPlayerAction(PassConvertedShares, { companyId: this.mergerCompanyId() })
+            this.createPlayerAction(PassConvertedShares, {
+                companyId: this.requireMergerCompanyId()
+            })
         )
     }
     async finishConversionLoans() {
         await this.applyAction(
-            this.createPlayerAction(FinishConversionLoans, { companyId: this.mergerCompanyId() })
+            this.createPlayerAction(FinishConversionLoans, {
+                companyId: this.requireMergerCompanyId()
+            })
         )
     }
     async removeStation(stationId: string) {
         await this.applyAction(
             this.createPlayerAction(RemoveStation, {
-                companyId: this.mergerCompanyId(),
+                companyId: this.requireMergerCompanyId(),
                 stationId
             })
         )
@@ -116,7 +158,7 @@ export class EighteenSeventeenSession extends BaseSession {
     async discardMergedTrain(trainId: string) {
         await this.applyAction(
             this.createPlayerAction(DiscardMergedTrain, {
-                companyId: this.mergerCompanyId(),
+                companyId: this.requireMergerCompanyId(),
                 trainId
             })
         )
