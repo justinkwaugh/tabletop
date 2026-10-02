@@ -273,7 +273,9 @@
                 </div>
             </div>
             {#if gameSession.resupplyOpen}
-                <ResupplyPicker />
+                <div class="appear">
+                    <ResupplyPicker />
+                </div>
             {/if}
         {/if}
     {/if}
@@ -434,5 +436,22 @@
         font-size: 11px;
         line-height: 1;
         vertical-align: baseline;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .tool,
+        .phase-status,
+        .hint,
+        .round-actions,
+        .appear {
+            animation: appear 200ms ease-out both;
+        }
+    }
+
+    @keyframes appear {
+        from {
+            opacity: 0;
+            transform: translateY(3px);
+        }
     }
 </style>

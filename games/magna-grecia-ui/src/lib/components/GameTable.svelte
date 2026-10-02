@@ -17,6 +17,7 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import Header from '$lib/components/Header.svelte'
+    import ActionCard from '$lib/components/ActionCard.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import { MagnaGreciaGameSession } from '$lib/model/session.svelte'
@@ -85,13 +86,13 @@
         {#snippet gameContent()}
             <div class="shrink-0">
                 <Header />
-                <div class="action-card">
+                <ActionCard>
                     {#if gameSession.gameState.result}
                         <GameEndPanel />
                     {:else}
                         <ActionPanel />
                     {/if}
-                </div>
+                </ActionCard>
             </div>
             <div class="grow-0 overflow-hidden pt-3" style="flex:1;">
                 <ScalingWrapper justify="center" controls="bottom-left">
@@ -101,16 +102,3 @@
         {/snippet}
     </DefaultTableLayout>
 </div>
-
-<style>
-    .action-card {
-        width: fit-content;
-        max-width: calc(100% - 16px);
-        margin: 8px auto 0;
-        padding: 4px 12px 8px;
-        border: 1px solid #e2d3b5;
-        border-radius: 14px;
-        background: #fbf7ee;
-        box-shadow: 0 6px 16px rgba(74, 44, 18, 0.14);
-    }
-</style>
