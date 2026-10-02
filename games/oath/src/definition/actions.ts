@@ -47,6 +47,8 @@ export enum ActionType {
     ForgoFreeAction = 'forgoFreeAction',
     /** R-4.3 */
     CompleteRest = 'completeRest',
+    /** R-3.3 */
+    RollEndDie = 'rollEndDie',
     /** R-2.11.b — the outgoing holder chooses who takes the Oathkeeper title. */
     ResolveOathkeeper = 'resolveOathkeeper',
     /** R-2.11-H1 — the title changing hands, recorded as its own System Action. */

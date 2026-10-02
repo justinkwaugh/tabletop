@@ -5,9 +5,11 @@ house rulings below, where the Law is silent or ambiguous. `R-X` names a rule of
 A ruling marked *provisional* is a question put to the publisher's community; it stands until answered.
 
 - **R-2.11-H1:** the Oathkeeper title is re-evaluated after every action, so it can change hands mid-Campaign. Each change is recorded as its own System Action (`TransferOathkeeper`) in games created at the turn-flow revision or later.
+- **R-3.3-H1:** the end die is the Chancellor's roll. In games created at the turn-flow revision or later, a round that ends in rounds five to seven with the Chancellor or a Citizen holding the title waits in `EndOfRound` on the Chancellor's `RollEndDie`; until it is rolled, the last seat's turn can be undone.
 - **R-3.2-H1:** a tie is not a win: a Vision's "the most" means strictly more than every other player.
 - **R-4.1.1-H1:** the People's Favor never drops below one favor during the Wake.
 - **R-4.1.4-H1:** an Opportunity site offers only what its own card prints.
+- **R-4.3-H1:** in games created at the turn-flow revision or later, the Rest Phase waits on its player only while they hold a Rest power they can use (one with a choice the engine accepts, a bank power needing a bank with favor); otherwise the Rest resolves as a System Action after End the Act Phase.
 - **R-4.3.4-H1:** a Supply gain stops at the track's last space; the excess is lost.
 - **R-5.5.3-H1:** defending bandits use the cost-free battle plans at every site they rule, not only at the targeted ones.
 - **R-5.5.5-H1:** the attacker chooses which of their own warbands die, from their board or a site in their force: the skulls' kills in an order declared with the Campaign, the sacrifice and the defeated half picked after the roll.

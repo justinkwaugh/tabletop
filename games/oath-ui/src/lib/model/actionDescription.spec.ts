@@ -49,6 +49,7 @@ const MINIMAL: Record<string, Record<string, unknown>> = {
     [ActionType.EndActPhase]: {},
     [ActionType.ForgoFreeAction]: { metadata: { forgone: ActionType.Travel } },
     [ActionType.CompleteRest]: {},
+    [ActionType.RollEndDie]: { metadata: { roll: 4, round: 6, threshold: 5 } },
     [ActionType.ResolveOathkeeper]: { chosenPlayerId: 'p2' },
     [ActionType.TransferOathkeeper]: { source: 'system', fromPlayerId: 'p2', toPlayerId: 'p1' }
 }
@@ -92,10 +93,10 @@ describe('a history line names a site by its printed name', () => {
 })
 
 describe('the history tab describes every action', () => {
-    it('has a sentence for all 31 action types, and reaches no fallback', () => {
+    it('has a sentence for all 32 action types, and reaches no fallback', () => {
         const types = Object.values(ActionType)
         // Pinned rather than read off the enum, so adding an action type fails here.
-        expect(types).toHaveLength(31)
+        expect(types).toHaveLength(32)
 
         for (const type of types) {
             const fields = MINIMAL[type]
@@ -118,6 +119,10 @@ describe('the history tab describes every action', () => {
             describeAction(action({ type: ActionType.TransferOathkeeper, source: 'system', ...fields }), nameOf)
         expect(transfer({ fromPlayerId: 'p2', toPlayerId: 'p1' })).toBe('took the Oathkeeper title from Bob')
         expect(transfer({ fromPlayerId: 'p1' })).toBe('lost the Oathkeeper title; nobody holds it')
+    })
+
+    it('R-3.3 — gives the end die’s roll', () => {
+        expect(describeAction(action({ type: ActionType.RollEndDie, playerId: 'p1', metadata: { roll: 4, round: 6, threshold: 5 } }), nameOf)).toBe('rolled the end die: 4')
     })
 
     it('names players rather than printing their ids', () => {

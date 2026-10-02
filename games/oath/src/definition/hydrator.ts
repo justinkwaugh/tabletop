@@ -28,6 +28,7 @@ import { HydratedResolveWake, isResolveWake } from '../actions/resolveWake.js'
 import { HydratedEndActPhase, isEndActPhase } from '../actions/endActPhase.js'
 import { HydratedForgoFreeAction, isForgoFreeAction } from '../actions/forgoFreeAction.js'
 import { HydratedCompleteRest, isCompleteRest } from '../actions/completeRest.js'
+import { HydratedRollEndDie, isRollEndDie } from '../actions/rollEndDie.js'
 import { HydratedResolveOathkeeper, isResolveOathkeeper } from '../actions/resolveOathkeeper.js'
 import { HydratedTransferOathkeeper, isTransferOathkeeper } from '../actions/transferOathkeeper.js'
 import {
@@ -103,6 +104,9 @@ export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOa
             }
             case isCompleteRest(data): {
                 return new HydratedCompleteRest(data)
+            }
+            case isRollEndDie(data): {
+                return new HydratedRollEndDie(data)
             }
             case isResolveOathkeeper(data): {
                 return new HydratedResolveOathkeeper(data)

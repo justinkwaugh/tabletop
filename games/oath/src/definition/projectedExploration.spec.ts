@@ -6,6 +6,7 @@ import { buildAction } from '../testing/actions.js'
 import { waitingGame } from '../testing/game.js'
 import { OathRuntime, OathVisibility } from './runtime.js'
 import { MachineState } from './states.js'
+import { ActionType } from './actions.js'
 import { HydratedOathGameState, OathGameStateValidator, type OathGameState } from '../model/gameState.js'
 import type { TablePositions } from '../model/playerState.js'
 import { CardKind, Region, SetupVariant } from '../model/oathEnums.js'
@@ -577,7 +578,9 @@ describe('Exploration from a projection', () => {
         const { game, state, chancellor } = started()
         const branch = explore(game, state, { kind: 'player', playerId: chancellor })
         const result = engine.runNext(buildAction(EndActPhase, { playerId: chancellor }), branch, game)
-        expect(result.updatedState.machineState).not.toBe(MachineState.ActPhase)
+        // R-4.3 — the Rest and the next Wake follow as System Actions, so the turn has passed on.
+        expect(result.processedActions[0].type).toBe(ActionType.EndActPhase)
+        expect(result.updatedState.activePlayerIds).not.toEqual([chancellor])
     })
 })
 

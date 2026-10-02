@@ -19,6 +19,7 @@ import { OathkeeperChoiceStateHandler } from '../stateHandlers/oathkeeperChoice.
 import { ConsentRequestStateHandler } from '../stateHandlers/consentRequest.js'
 import { PowerQuestionStateHandler } from '../stateHandlers/powerQuestion.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import { EndOfRoundStateHandler } from '../stateHandlers/endOfRound.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { applyForcedTitleChanges } from '../util/title.js'
 import { settleQueue } from '../util/questionAnswers.js'
@@ -152,6 +153,7 @@ export const OathStateHandlers = everyStateCarryingFreeActions({
     [MachineState.WakePhase]: withContinuousTitle(new WakePhaseStateHandler()),
     [MachineState.ActPhase]: withContinuousTitle(withPowerQuestions(new ActPhaseStateHandler())),
     [MachineState.RestPhase]: withContinuousTitle(new RestPhaseStateHandler()),
+    [MachineState.EndOfRound]: withContinuousTitle(new EndOfRoundStateHandler()),
     [MachineState.Searching]: withContinuousTitle(withPowerQuestions(new SearchingStateHandler())),
     [MachineState.CampaignPlans]: withContinuousTitle(
         withPowerQuestions(new CampaignPlansStateHandler())

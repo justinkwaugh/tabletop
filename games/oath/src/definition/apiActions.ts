@@ -17,6 +17,7 @@ import { ResolveWake } from '../actions/resolveWake.js'
 import { EndActPhase } from '../actions/endActPhase.js'
 import { ForgoFreeAction } from '../actions/forgoFreeAction.js'
 import { CompleteRest } from '../actions/completeRest.js'
+import { RollEndDie } from '../actions/rollEndDie.js'
 import { ResolveOathkeeper } from '../actions/resolveOathkeeper.js'
 import { TransferOathkeeper } from '../actions/transferOathkeeper.js'
 
@@ -64,6 +65,7 @@ export const OathApiActions = {
     [ActionType.EndActPhase]: EndActPhase,
     [ActionType.ForgoFreeAction]: ForgoFreeAction,
     [ActionType.CompleteRest]: CompleteRest,
+    [ActionType.RollEndDie]: RollEndDie,
     [ActionType.ResolveOathkeeper]: ResolveOathkeeper,
     [ActionType.TransferOathkeeper]: TransferOathkeeper
 }

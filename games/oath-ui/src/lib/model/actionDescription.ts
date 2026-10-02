@@ -28,6 +28,7 @@ import {
     isResolveCitizenshipOffer,
     isResolveOathkeeper,
     isResolveWake,
+    isRollEndDie,
     isSearch,
     isSearchResolve,
     isSelfExile,
@@ -334,6 +335,10 @@ function describeActionCited(
             (roll !== undefined ? `, rolling ${roll} on the end die` : '') +
             (action.metadata?.endedRound ? ' — the round ended' : '')
         )
+    }
+    if (isRollEndDie(action)) {
+        const roll = action.metadata?.roll
+        return roll === undefined ? 'rolled the end die' : `rolled the end die: ${roll}`
     }
     if (isResolveOathkeeper(action)) {
         return `gave the Oathkeeper title to ${nameOf(action.chosenPlayerId)}`

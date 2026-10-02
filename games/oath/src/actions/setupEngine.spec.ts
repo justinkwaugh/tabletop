@@ -9,7 +9,7 @@ import { SearchPlay, SearchResolve } from '../actions/searchResolve.js'
 import { SetupChoice } from '../actions/setupChoice.js'
 import { ResolveWake } from '../actions/resolveWake.js'
 import { EndActPhase } from '../actions/endActPhase.js'
-import { CompleteRest } from '../actions/completeRest.js'
+import { RollEndDie } from '../actions/rollEndDie.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { Region, TOTAL_FAVOR } from '../model/oathEnums.js'
@@ -281,9 +281,13 @@ function playFullGame(seed: number) {
             state = engine.runNext(buildAction(EndActPhase, {
                 playerId
             }), state, game).updatedState
-            state = engine.runNext(buildAction(CompleteRest, {
-                playerId
-            }), state, game).updatedState
+            // R-4.3.5 — the Rest waits on the seat only for a Rest power, none of which is held here.
+            expect(state.machineState).not.toBe(MachineState.RestPhase)
+            // R-3.3 — the round's last Rest leaves the end die to the Chancellor.
+            if (state.machineState === MachineState.EndOfRound) {
+                expect(state.activePlayerIds).toEqual([chancellorId])
+                state = engine.runNext(buildAction(RollEndDie, { playerId: chancellorId }), state, game).updatedState
+            }
         }
     }
 

@@ -13,6 +13,7 @@
         [MachineState.WakePhase]: 'Wake Phase',
         [MachineState.ActPhase]: 'Act Phase',
         [MachineState.RestPhase]: 'Rest Phase',
+        [MachineState.EndOfRound]: 'End of round',
         [MachineState.Searching]: 'Searching — resolve the draw',
         [MachineState.CampaignPlans]: 'Campaign — the defending side uses battle plans',
         [MachineState.CampaignSacrifice]: 'Campaign — choose a sacrifice',
