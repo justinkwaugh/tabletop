@@ -38,12 +38,12 @@
 <style>
     .chooser {
         position: absolute;
-        left: 84px;
+        left: 116px;
         bottom: 0;
         display: flex;
         flex-wrap: wrap;
         gap: 2px;
-        max-width: calc(100% - 92px);
+        max-width: calc(100% - 124px);
         padding: 3px;
         border-radius: 8px;
         border: 2px solid rgb(55 65 81);

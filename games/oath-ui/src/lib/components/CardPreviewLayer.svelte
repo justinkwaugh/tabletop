@@ -57,18 +57,6 @@
         return { cardId, hasWarbands, rulerIds }
     })
 
-    // Rule 7 — Escape closes the topmost layer only, so it is caught before the open seat or full screen see it.
-    const closesOnEscape: Attachment<HTMLElement> = () => {
-        const escape = (event: KeyboardEvent) => {
-            if (event.key !== 'Escape') return
-            event.preventDefault()
-            event.stopPropagation()
-            cardPreview.dismiss()
-        }
-        window.addEventListener('keydown', escape, { capture: true })
-        return () => window.removeEventListener('keydown', escape, { capture: true })
-    }
-
     const measureArea: Attachment<HTMLElement> = (node) => {
         const read = () => {
             areaWidth = node.clientWidth
@@ -113,7 +101,6 @@
         role="button"
         tabindex="0"
         aria-label="Close the enlarged card"
-        {@attach closesOnEscape}
         onpointerdown={(event) => {
             event.preventDefault()
             event.stopPropagation()

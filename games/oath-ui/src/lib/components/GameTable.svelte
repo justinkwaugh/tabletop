@@ -26,6 +26,8 @@
 
     import type { HydratedOathGameState, OathProjectedState } from '@tabletop/oath'
     import { setGameSession, toOathSession } from '$lib/model/sessionContext.svelte.js'
+    import { cardPreview } from '$lib/model/cardPreview.svelte.js'
+    import type { Attachment } from 'svelte/attachments'
 
     let { gameSession }: { gameSession: GameSession<OathProjectedState, HydratedOathGameState> } =
         $props()
@@ -68,12 +70,65 @@
         focusBoard(view, view, view === 'full' ? undefined : focusRect(view))
     }
 
+    let windowHeight = $state(0)
+
+    // Item 1 — the wrapper shows full screen as a modal dialog and marks it by its role; the panel,
+    // the goals and the enlarged card are drawn inside it then, and in the page otherwise.
+    let expanded = $state(false)
+    const watchExpansion: Attachment<HTMLElement> = (node) => {
+        const dialog = node.closest('dialog')
+        if (!dialog) return
+        const read = () => {
+            expanded = dialog.matches(':modal')
+        }
+        const observer = new MutationObserver(read)
+        observer.observe(dialog, { attributes: true, attributeFilter: ['role'] })
+        read()
+        return () => observer.disconnect()
+    }
+
+    // Rule 7 — Escape closes the topmost layer only: the enlarged card, then the open goals or
+    // seat; with neither open it is left to the board's wrapper, which leaves full screen.
+    const closesTopLayer: Attachment = () => {
+        const escape = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return
+            if (cardPreview.open) cardPreview.dismiss()
+            else if (oath.goalsView.open) oath.goalsView.close()
+            else if (oath.seatDetail.openPlayerId) oath.seatDetail.close()
+            else return
+            event.preventDefault()
+            event.stopPropagation()
+        }
+        window.addEventListener('keydown', escape, { capture: true })
+        return () => window.removeEventListener('keydown', escape, { capture: true })
+    }
+
     function focusSite(slotId: string) {
         focusBoard(`site:${slotId}`, undefined, siteFocusRect(slotId))
     }
 </script>
 
-<div class="oath-table">
+<svelte:window bind:innerHeight={windowHeight} />
+
+{#snippet panel()}
+    {#if gameSession.gameState.result}
+        <GameEndPanel />
+    {:else}
+        <div
+            class="info-wrap"
+            class:info-wrap--redundant={oath.isMyTurn &&
+                oath.gameState.machineState === MachineState.ActPhase &&
+                !oath.selection.action}
+        >
+            <InformationPanel />
+        </div>
+        {#if !oath.isViewingHistory}
+            <ActionPanel />
+        {/if}
+    {/if}
+{/snippet}
+
+<div class="oath-table" {@attach closesTopLayer}>
     <DefaultTableLayout>
         {#snippet sideContent()}
             <div class="max-sm:hidden">
@@ -110,23 +165,11 @@
         {#snippet gameContent()}
             <!-- The panel is capped at a fraction of the column so the map keeps
                  its scale; `FitBox` scales a step that outgrows it (no page scroll). -->
-            <FitBox fraction={0.4}>
-                {#if gameSession.gameState.result}
-                    <GameEndPanel />
-                {:else}
-                    <div
-                        class="info-wrap"
-                        class:info-wrap--redundant={oath.isMyTurn &&
-                            oath.gameState.machineState === MachineState.ActPhase &&
-                            !oath.selection.action}
-                    >
-                        <InformationPanel />
-                    </div>
-                    {#if !oath.isViewingHistory}
-                        <ActionPanel />
-                    {/if}
-                {/if}
-            </FitBox>
+            {#if !expanded}
+                <FitBox fraction={0.4}>
+                    {@render panel()}
+                </FitBox>
+            {/if}
             <div class="grow-0 overflow-hidden min-h-0" style="flex:1;">
                 <ScalingWrapper
                     bind:this={wrapper}
@@ -134,11 +177,27 @@
                     controls="bottom-left"
                     coverBelowScale={0.3}
                     maxScale={FOCUS_MAX_SCALE}
+                    expandable
                     onManualViewChange={() => (boardFocus = undefined)}
                 >
                     <Board />
                     {#snippet overlay()}
                         <FocusChooser selected={boardFocus?.view} onselect={focusView} />
+                    {/snippet}
+                    {#snippet toolbar()}
+                        <!-- Item 1 — full screen is a modal dialog, so what must work there is drawn
+                             inside it: the panel docked above the board, the goals and the enlarged card. -->
+                        <div {@attach watchExpansion}>
+                            {#if expanded}
+                                <div class="fullscreen-panel">
+                                    <FitBox fraction={0.4} basis={windowHeight}>
+                                        {@render panel()}
+                                    </FitBox>
+                                </div>
+                                <GoalsLayer />
+                                <CardPreviewLayer onZoomSite={focusSite} />
+                            {/if}
+                        </div>
                     {/snippet}
                 </ScalingWrapper>
             </div>
@@ -148,11 +207,18 @@
          `ScalingWrapper`, a scaled panel) would be the containing block for these
          fixed layers and scale or clip them with it. -->
     <SeatDetailLayer />
-    <GoalsLayer />
-    <CardPreviewLayer onZoomSite={focusSite} />
+    {#if !expanded}
+        <GoalsLayer />
+        <CardPreviewLayer onZoomSite={focusSite} />
+    {/if}
 </div>
 
 <style>
+    /* Opaque, so the page under the full-screen dialog does not show through the docked panel. */
+    .fullscreen-panel {
+        padding: 8px 8px 0;
+        background: rgb(12 10 9);
+    }
     .info-wrap {
         display: contents;
     }
