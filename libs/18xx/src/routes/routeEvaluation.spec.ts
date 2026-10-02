@@ -399,3 +399,43 @@ it('rejects a stop group with a single location', () => {
         'Stop group Gulf needs more than one location'
     )
 })
+it('rejects a second stop in one hex when a title allows only one', () => {
+    const { rules, state } = fixture([
+        {
+            color: 'green',
+            labels: [],
+            nodes: [
+                {
+                    id: 'city',
+                    kind: 'city',
+                    stationSlots: 1,
+                    revenue: { kind: 'fixed', amount: 20 }
+                },
+                {
+                    id: 'other',
+                    kind: 'city',
+                    stationSlots: 1,
+                    revenue: { kind: 'fixed', amount: 30 }
+                }
+            ],
+            paths: [
+                {
+                    id: 'a',
+                    endpoints: [
+                        { kind: 'node', nodeId: 'city' },
+                        { kind: 'node', nodeId: 'other' }
+                    ]
+                }
+            ]
+        }
+    ])
+    const route: TrainRoute = {
+        trainId: state.trainInventory.trains[0].id,
+        start: { locationId: '0', nodeId: 'city' },
+        paths: [{ locationId: '0', pathId: 'a' }]
+    }
+    expect(new RouteEvaluation(state, rules).evaluate('A', [route]).result?.revenue).toBe(50)
+    expect(
+        new RouteEvaluation(state, { ...rules, oneStopPerHex: true }).evaluate('A', [route]).reason
+    ).toBe('A route may stop only once in each hex.')
+})

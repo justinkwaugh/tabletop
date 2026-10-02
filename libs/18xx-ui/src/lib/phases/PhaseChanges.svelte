@@ -19,12 +19,12 @@
                     : 'trains'}
             </h2>
             <p>
-                {session.ownerName(owner)} decides. Then {getCompany(
-                    gameState,
-                    change.continuation.companyId
-                ).name} resumes {change.continuation.machineState === 'BuyingTrains'
-                    ? 'buying trains'
-                    : change.continuation.machineState}.
+                {session.ownerName(owner)} decides. {#if change.continuation.companyId}Then {getCompany(
+                        gameState,
+                        change.continuation.companyId
+                    ).name} resumes {change.continuation.machineState === 'BuyingTrains'
+                        ? 'buying trains'
+                        : change.continuation.machineState}.{:else}Then the operating round ends.{/if}
             </p>
             <div class="choices">
                 {#each session.discard.trains as train (train.id)}<button

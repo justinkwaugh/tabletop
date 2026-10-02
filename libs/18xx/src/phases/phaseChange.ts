@@ -3,7 +3,8 @@ import { PrivateEffect } from '../privates/privateRules.js'
 import type { StockState } from '../stock/stockState.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
-import { controllingOwner } from '../finance/finance.js'
+import { controllingOwner, getCompany } from '../finance/finance.js'
+import { stockMarketOrder } from '../stock/stockMarket.js'
 import {
     trainsOwnedBy,
     unownedTrain,
@@ -28,8 +29,9 @@ export const PhaseEvent = Type.Object(
     { additionalProperties: false }
 )
 export type PhaseEvent = Type.Static<typeof PhaseEvent>
+/** Where play resumes after a phase change: the operating company's step, or between rounds. */
 export const OperatingContinuation = Type.Object(
-    { machineState: Id, companyId: Id },
+    { machineState: Id, companyId: Type.Optional(Id) },
     { additionalProperties: false }
 )
 export type OperatingContinuation = Type.Static<typeof OperatingContinuation>
@@ -50,8 +52,23 @@ export type PhaseState = Type.Static<Type.TObject<typeof PhaseFields>> & { phase
 export type PhaseChangeState = StockState & TrainState & PhaseState & MapStateData
 export interface PhaseRules {
     rustTiming(state: TrainPurchaseState, train: Train): 'immediate' | 'after-operation' | undefined
-    discardOrder(state: PhaseChangeState, companyId: string): string[]
+    /** Companies in discard order, starting from the operating company when there is one. */
+    discardOrder(state: PhaseChangeState, companyId: string | undefined): string[]
     discardDestination: 'market' | 'removed'
+}
+/** The operating company first, then the open companies in market order and any listed after. */
+export function marketDiscardOrder(
+    state: PhaseChangeState,
+    companyId: string | undefined,
+    after: readonly string[] = []
+): string[] {
+    return [
+        ...new Set([
+            ...(companyId ? [companyId] : []),
+            ...stockMarketOrder(state.stockMarket),
+            ...after
+        ])
+    ].filter((id) => !getCompany(state, id).closed)
 }
 export function preparePhaseChange(
     state: PhaseState,
@@ -120,9 +137,11 @@ export function continuePhaseChange(state: PhaseChangeState): string {
     const change = state.phaseChange
     assertExists(change, 'Phase change requires a continuation')
     const companyId = change.discardCompanyIds[0] ?? change.continuation.companyId
-    const owner = controllingOwner(state, companyId)
-    assertExists(owner, 'The deciding company requires a controlling owner')
-    state.activePlayerIds = [owner.playerId]
+    if (companyId) {
+        const owner = controllingOwner(state, companyId)
+        assertExists(owner, 'The deciding company requires a controlling owner')
+        state.activePlayerIds = [owner.playerId]
+    }
     if (change.discardCompanyIds.length) return 'DiscardingTrains'
     const next = change.continuation.machineState
     delete state.phaseChange

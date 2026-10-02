@@ -623,6 +623,99 @@ Decisions made while implementing, beyond the design above:
 - A company lays two yellow tiles in one turn, paying $20 for the second, but cannot
   lay two upgrades.
 
+## Slice 2 design: operating rules
+
+Slice 2 adds the four operating rules slice 1 left out: train exports after each
+operating round, the route limit of one stop per hex, city upgrades with the most
+exits, and the ending after the first 8-train.
+
+### Evidence
+
+- **Exports.** After every OR the reference [game] exports the next depot train. If
+  that train is a 2, every remaining 2 is exported together. An export starts a phase
+  exactly as a purchase does, so it can rust and obsolete trains and lower the train
+  limit.
+- **One stop per hex.** The reference rejects a route whose stops' hexes repeat
+  (`route.hexes`, the hexes of its revenue centers). A route can therefore stop at
+  only one of New York's two cities.
+- **Most exits.** `TILE_UPGRADES_MUST_USE_MAX_EXITS = [:cities]`: on a hex with a
+  city, of the tiles with a legal placement, only those of each colour with the most
+  exits are offered. For 1817 a brown city upgrade must use #63 when it fits, else
+  #611, else #448.
+- **Ending.** The first 8-train, bought or exported, ends the game after one more
+  full set. That set has 3 ORs if the 8 came in the second OR of a set, otherwise 2.
+
+### Survey
+
+- **Exports** (`automatic-export`, 37 profiles). They export at the end of each OR
+  (the 1817 family, 1867, 18GB unless a train was bought that round) or at the end of
+  a set (18Chesapeake, 1824, 18CZ, 1844, 1888), often only while the next train is of
+  certain ranks. 18USA exports several ranks by turn.
+- **Hex re-entry** (`hex-reentry-forbidden`, 29 profiles): the 1817 family, the 1822
+  family, 1812, 1826, 1860, 1861, 1866, 1867, 1873, 1877, 18FL, 18FR, 18Hiawatha and
+  18USA.
+- **Most exits**: `[:cities]` in 1817, 1822, 1858, 1867 and 1880;
+  `[:cities, :track]` and `[:unlabeled_cities]` in one title each.
+- **Ending** (`additional-operating-set`, 31 profiles; `technology-event` triggers,
+  26). 1817 is the only one whose final set length depends on when the trigger
+  came.
+
+### Decisions
+
+- **Exports are an operating rule.** `OperatingRules.trainsToExport` names the kinds
+  of the depot trains to export, in order, when an operating round ends. A title that
+  exports at the end of a set returns none until its last round, so one hook covers
+  both timings and every rank or purchase condition. The family exports them with a
+  system `ExportTrains` after the round's last company and before the next round or
+  stock round, and records the round in the operating set (`exportedRound`,
+  optional). The depot removes each exported train, minting it first when its supply
+  is unlimited, as for the 8s; the latest phase they start begins as after a
+  purchase.
+- **A phase change can happen between rounds.** The phase change's continuation no
+  longer needs an operating company. Trains over the new limit are discarded in the
+  title's `discardOrder`, which now accepts no starting company, and play returns to
+  the operating set.
+- **One stop per hex is a route rule.** `RouteRules.oneStopPerHex` rejects a route
+  with two revenue centers in one hex. The autorouter encodes each such hex as an
+  exclusive stop group, as it already does for named stop groups.
+- **Most exits is a track rule.** `TrackRules.mostExits(before)` names the hexes it
+  applies to; 1817 names hexes with a city. Track construction refuses a tile when
+  another tile of the same colour with more exits has a legal placement there.
+- **The final set's length is part of the ending.** `GameEnding` gains an optional
+  `finalOperatingRounds`. 1817's trigger fires when the first 8-train leaves the
+  depot and names the next set as final, with 3 rounds after a second-round 8 and 2
+  otherwise. The family's operating-set start uses that number for the final set in
+  place of the title's round count, so the ending rules see train state.
+
+All new fields are optional, and TOP, 1889 and 1830 set none of the new rules.
+
+### Implementation notes for slice 2
+
+- `ExportTrains` records the exported trains and any phase they started. History
+  shows it as an "Exported" row; a phase change it starts names no company to
+  resume and discards in stock-market order.
+- `discardOrder(state, companyId)` takes an optional company; titles share
+  `marketDiscardOrder`, which puts that company first and then follows the market.
+- Most exits compares each colour's tiles that could legally replace the current
+  tile, so a #63 that does not fit leaves #611 available.
+
+### Limits after slice 2
+
+- The ending checks run after the final set's last OR; with no merger rounds yet
+  (slices 5 and 6) there is nothing after it.
+- The game still cannot end by bankruptcy (slice 3).
+
+### Acceptance examples
+
+- After the first OR every remaining 2-train is exported. After a later OR the next
+  train is exported; exporting the first 4 starts phase 4, rusts the 2s, obsoletes
+  the 2+s and makes companies over the new limit discard.
+- A route through both New York cities is rejected, and the autorouter never offers
+  one.
+- On a brown city upgrade where #63 fits, #611 and #448 are not offered.
+- An 8-train bought in the first OR of set 5 makes set 6 final with 2 ORs; one
+  exported after the second OR makes it final with 3. The game ends after that set.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/entities.rb

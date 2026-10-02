@@ -48,6 +48,7 @@ import {
     isBidForCompany,
     isPassCompanyAuction,
     isFormCompany,
+    isExportTrains,
     stockMarketSpace,
     type Owner,
     type PresidencyChange,
@@ -208,6 +209,16 @@ export function historyDescription(
             detail: closures.join(' · ') || undefined,
             important: true
         }
+    if (isExportTrains(action)) {
+        assertExists(action.metadata, 'Recorded export requires its trains')
+        const definitionIds = action.metadata.trains.map((train) => train.definitionId)
+        return {
+            text: 'Exported',
+            trainDefinitionIds: [...new Set(definitionIds)],
+            detail: definitionIds.length > 1 ? `${definitionIds.length} trains` : undefined,
+            important: true
+        }
+    }
     if (isBuyShares(action)) {
         assertExists(action.metadata, 'Recorded share purchase requires its company')
         return {

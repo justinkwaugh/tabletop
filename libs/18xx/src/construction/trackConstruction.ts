@@ -14,7 +14,7 @@ import {
     fixedNodeRevenue,
     type TileNodeMapping
 } from './trackUpgrade.js'
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 
 export const TrackStep = Type.Object(
     {
@@ -64,6 +64,13 @@ export type TrackLayDetails = Type.Static<typeof TrackLayDetails>
 export type TrackEvaluation =
     | { details: TrackLayDetails; reason?: never }
     | { reason: string; details?: never }
+function tileExitCount(face: TileFace): number {
+    return new Set(
+        face.paths.flatMap((path) =>
+            path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
+        )
+    ).size
+}
 export interface TrackRules {
     map: RailwayMap
     tileSet: TileSet
@@ -71,6 +78,8 @@ export interface TrackRules {
     availableColors(state: ConstructionState): readonly string[]
     allowance(state: ConstructionState, color: string): { cost: number } | { reason: string }
     preservesStops(before: TileFace, after: TileFace): boolean
+    /** Whether a tile on this hex must be one of the tiles of its colour with the most exits. */
+    mostExits?(before: TileFace): boolean
     restriction(state: ConstructionState, request: TrackRequest): string | undefined
     /**
      * Whether a lay is allowed: on a home hex, touching the company's network (``connected``),
@@ -157,6 +166,36 @@ export class TrackConstruction {
         return choices
     }
     evaluate(request: TrackRequest): TrackEvaluation {
+        const result = this.evaluatePlacement(request)
+        if (!result.details || !this.hasMoreExitsElsewhere(request)) return result
+        return { reason: 'The upgrade must use a tile of its colour with the most exits' }
+    }
+    private hasMoreExitsElsewhere(request: TrackRequest): boolean {
+        const previous = this.mapState.tile(request.locationId)
+        if (!this.rules.mostExits?.(previous.face)) return false
+        const definition = this.rules.tileSet.definitions.find(
+            (tile) => tile.id === request.definitionId
+        )
+        assertExists(definition, 'An evaluated lay names a known tile')
+        const before = rotateTileFace(previous.face, previous.rotation)
+        return this.rules.tileSet.definitions.some(
+            (other) =>
+                other.face.color === definition.face.color &&
+                tileExitCount(other.face) > tileExitCount(definition.face) &&
+                Rotations.some((rotation) =>
+                    tileUpgradeMappings(before, rotateTileFace(other.face, rotation)).some(
+                        (nodeMapping) =>
+                            !!this.evaluatePlacement({
+                                ...request,
+                                definitionId: other.id,
+                                rotation,
+                                nodeMapping
+                            }).details
+                    )
+                )
+        )
+    }
+    private evaluatePlacement(request: TrackRequest): TrackEvaluation {
         const { locationId, companyId, definitionId, rotation, nodeMapping } = request
         if (
             !this.state.trackStep ||

@@ -28,7 +28,10 @@ function marketMove(market: StockMarket, companyId: string, distributed: number)
 export const EighteenSeventeenEarningsRules: EarningsRules = {
     choices: () => ['pay', 'half-pay', 'withhold'],
     shareCount: (state, companyId) =>
-        dividendUnits(corporationShareCount(state, companyId), corporationShareCount(state, companyId)),
+        dividendUnits(
+            corporationShareCount(state, companyId),
+            corporationShareCount(state, companyId)
+        ),
     entitlements(state, companyId) {
         const count = corporationShareCount(state, companyId)
         return dividendEntitlements(state, companyId, (certificate) =>

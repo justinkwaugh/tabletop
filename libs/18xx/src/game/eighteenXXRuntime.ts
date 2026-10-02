@@ -207,6 +207,7 @@ export function createEighteenXXRuntime(
                         choosesHome(
                             new StartOperatingTurnHandler(
                                 options.stationRules,
+                                operatingRules,
                                 OperatingStepStates[0]
                             )
                         )

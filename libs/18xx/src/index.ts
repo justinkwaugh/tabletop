@@ -70,6 +70,7 @@ export * from './construction/layTile.js'
 export * from './construction/finishTrack.js'
 export * from './construction/layingTrackHandler.js'
 export * from './operating/startOperatingTurn.js'
+export * from './operating/exportTrains.js'
 
 export * from './stations/stationPlacement.js'
 export * from './stations/placeStation.js'

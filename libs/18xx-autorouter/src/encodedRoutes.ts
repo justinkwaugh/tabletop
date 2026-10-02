@@ -112,6 +112,11 @@ export class EncodedRoutes {
             const node = nodes[index]
             assertExists(node, 'Revenue center requires a node')
             const group = rules.map.location(center.locationId).stopGroup
+            const hexGroup =
+                rules.oneStopPerHex &&
+                this.centers.filter((other) => other.locationId === center.locationId).length > 1
+                    ? [this.indexFor(groupIds, `hex:${center.locationId}`)]
+                    : []
             return {
                 city: node.kind === 'city',
                 token: state.stations.some(
@@ -126,7 +131,10 @@ export class EncodedRoutes {
                     cityIsBlocked(state, companyId, center.locationId, node),
                 endpoint: true,
                 allowed: true,
-                groups: group === undefined ? [] : [this.indexFor(groupIds, group)]
+                groups: [
+                    ...(group === undefined ? [] : [this.indexFor(groupIds, group)]),
+                    ...hexGroup
+                ]
             }
         })
         const trains = trainsOwnedBy(state, { kind: 'company', companyId }).map((train) => {

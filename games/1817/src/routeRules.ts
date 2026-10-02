@@ -7,5 +7,6 @@ export const EighteenSeventeenRouteRules: RouteRules = {
     tileSet: EighteenSeventeenTileSet,
     depot: EighteenSeventeenTrainDepot,
     revenueStage: (state) => EighteenSeventeenPhases.phase(state.phaseId).tileColors,
-    requiresCity: () => false
+    requiresCity: () => false,
+    oneStopPerHex: true
 }

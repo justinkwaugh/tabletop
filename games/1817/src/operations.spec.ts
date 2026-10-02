@@ -69,6 +69,30 @@ describe('track construction', () => {
             )
         ).toEqual(new Set(['1817:X30']))
     })
+    it('upgrades a city only to a tile of the new colour with the most exits', () => {
+        const brownChoices = (rules: typeof EighteenSeventeenTrackRules) => {
+            const { state } = construction((state) => {
+                state.phaseId = '5'
+                state.tileInventory = EighteenSeventeenTileSet.createInventory([
+                    { locationId: 'G6', definitionId: '18xx:619', rotation: 0 }
+                ])
+                applyStationPlacement(state, {
+                    companyId: 'BA',
+                    stationId: 'BA:station:1',
+                    position: { locationId: 'G6', nodeId: 'city', slot: 0 },
+                    cost: 0
+                })
+            })
+            return new Set(
+                new TrackConstruction(state, rules)
+                    .choices('G6')
+                    .map((choice) => choice.definitionId)
+            )
+        }
+        const { mostExits: _, ...anyExits } = EighteenSeventeenTrackRules
+        expect(brownChoices(EighteenSeventeenTrackRules)).toEqual(new Set(['18xx:63']))
+        expect(brownChoices(anyExits)).toEqual(new Set(['18xx:63', '18xx:611']))
+    })
 })
 
 describe('dividends', () => {

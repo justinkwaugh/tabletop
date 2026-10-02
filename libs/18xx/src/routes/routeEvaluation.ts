@@ -16,6 +16,8 @@ export interface RouteRules {
     depot: TrainDepot
     revenueStage(state: TrainRunningState, train: TrainDefinition): readonly string[]
     requiresCity(train: TrainDefinition): boolean
+    /** A route may visit only one revenue center in each hex. */
+    oneStopPerHex?: true
 }
 export type RouteEvaluationResult =
     | { result: RouteResult; reason?: never }
@@ -78,6 +80,11 @@ export class RouteEvaluation {
         }
         const repeatedGroup = this.repeatedStopGroup(trace)
         if (repeatedGroup) return { reason: `A route may visit ${repeatedGroup} only once.` }
+        if (this.rules.oneStopPerHex) {
+            const locations = trace.visits.map((visit) => visit.locationId)
+            if (new Set(locations).size !== locations.length)
+                return { reason: 'A route may stop only once in each hex.' }
+        }
         const distance = this.distance(definition, trace)
         if (definition.distance.maximum !== 'unlimited' && distance > definition.distance.maximum)
             return { reason: `The route exceeds the ${definition.name} train’s distance limit.` }

@@ -34,14 +34,14 @@
     "RespondToTrackConsent": "e057b211db97297ef99d8d9cba1beaff6976e79c7146a293caecc07e9219e3d4",
     "RunTrains": "13b25a8d251fdf38ec0c35ca6b6def32f85ec4287ed9a980f4290179518f64cb",
     "RustTrains": "aaaa9fa915db39480aaec4985f0866177bbf1567750725a2b4cba6da35b82bc6",
-    "ScheduleGameEnd": "a7cba501929a5aa1caadd48e7e45549ad833b064e46ee746494047f4ca78b3ce",
+    "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellFundingShares": "263e4bc7909651fd7c30a6d9a979cf467c678a207cb93222d5f41f50f0a6951f",
     "SellShares": "34e4448309811eec820fc4f20d58bac48d162be3498c081075b444c5416e9bd0",
     "SetStockInstruction": "1e85332f638a3f37ec83d300621cb5176e63ea1267c1986a153d038e812b2b59",
     "SplitCompany": "f10aa936b899e0985367e2f6ba17a9cd7e4a6ba4caf5e40ade926e2dd7d90dc3",
     "StartCompany": "c1a6eaf3045b859e1aed635e53951741171a313fa9802f26f43a3fba99ed19dd",
-    "StartOperatingRound": "5291724947ce1b79a4c9cd87c0e6739a6c9d5b34be7a8104385a096f258fc8d5",
-    "StartOperatingSet": "2247ba1ded74f50b131c675467136a9b548ea500fb6439f3b90508dff9022557",
+    "StartOperatingRound": "772070120da4c3e2b84c78887f94ded3bc5dd36e842ebfded6259071e0a2b696",
+    "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
     "StopStockInstruction": "87c259506cc5823cfddb21a08db1bdc0aad3115a34b83eb8cd7eb850262c0c8b"
@@ -1297,6 +1297,10 @@
       "gameEnding": {
         "additionalProperties": false,
         "properties": {
+          "finalOperatingRounds": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "finalOperatingSet": {
             "minimum": 1,
             "type": "integer"
@@ -1713,6 +1717,10 @@
             "type": "array",
             "uniqueItems": true
           },
+          "exportedRound": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "number": {
             "minimum": 1,
             "type": "integer"
@@ -1852,7 +1860,6 @@
               }
             },
             "required": [
-              "companyId",
               "machineState"
             ],
             "type": "object"

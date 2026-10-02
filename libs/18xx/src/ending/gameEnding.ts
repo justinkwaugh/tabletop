@@ -4,16 +4,20 @@ import type { OperatingState } from '../operating/operatingSet.js'
 import { canStartStockRound } from '../stock/startStockRound.js'
 import type { Bankruptcy } from '../funding/trainFunding.js'
 import type { ValuationRules } from './finalWealth.js'
+import type { TrainState } from '../trains/train.js'
 
 export const GameEnding = Type.Object(
     {
         reason: Type.String(),
-        finalOperatingSet: Type.Optional(Type.Integer({ minimum: 1 }))
+        finalOperatingSet: Type.Optional(Type.Integer({ minimum: 1 })),
+        /** The final set's number of operating rounds, when the trigger fixes it. */
+        finalOperatingRounds: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
 export type GameEnding = Type.Static<typeof GameEnding>
 export type EndingState = OperatingState &
+    TrainState &
     Pick<GameState, 'machineState'> & {
         bankruptcy?: Bankruptcy
         gameEnding?: GameEnding

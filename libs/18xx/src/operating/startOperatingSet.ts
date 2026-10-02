@@ -8,6 +8,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { OperatingSet, type OperatingRules, type OperatingState } from './operatingSet.js'
+import type { GameEnding } from '../ending/gameEnding.js'
 
 const StartFields = Type.Object({
     type: Type.Literal('StartOperatingSet'),
@@ -38,12 +39,17 @@ export class HydratedStartOperatingSet
         super(data instanceof HydratedStartOperatingSet ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & OperatingState): void {
+    apply(state: HydratedGameState & OperatingState & { gameEnding?: GameEnding }): void {
         assert(
             this.source === ActionSource.System,
             'Starting an operating set requires a system action'
         )
-        const roundCount = this.#rules.roundCount(state)
+        const number = (state.operatingSet?.number ?? 0) + 1
+        const ending = state.gameEnding
+        const roundCount =
+            ending?.finalOperatingSet === number && ending.finalOperatingRounds !== undefined
+                ? ending.finalOperatingRounds
+                : this.#rules.roundCount(state)
         const companyOrder = this.#rules.companyOrder(state)
         assert(Number.isInteger(roundCount) && roundCount > 0, 'Invalid operating round count')
         assert(
@@ -54,7 +60,7 @@ export class HydratedStartOperatingSet
             'Invalid operating company order'
         )
         state.operatingSet = {
-            number: (state.operatingSet?.number ?? 0) + 1,
+            number,
             roundNumber: 1,
             roundCount,
             companyOrder: [...companyOrder],

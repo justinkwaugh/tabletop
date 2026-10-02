@@ -33,6 +33,7 @@ export const EighteenSeventeenTrackRules: TrackRules = {
         return { cost: SecondLayCost }
     },
     preservesStops,
+    mostExits: (before) => before.nodes.some((node) => node.kind === 'city'),
     useful: ({ home, newTrack, increasedCityRevenue }) => home || newTrack || increasedCityRevenue,
     homeLocations: () => [],
     terrainCost: (_state, _request, cost) => cost,

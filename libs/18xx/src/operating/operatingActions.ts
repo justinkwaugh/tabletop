@@ -17,6 +17,7 @@ import {
     HydratedStartOperatingTurn,
     isStartOperatingTurn
 } from './startOperatingTurn.js'
+import { ExportTrains, HydratedExportTrains, isExportTrains } from './exportTrains.js'
 import {
     FinishOperatingTurn,
     HydratedFinishOperatingTurn,
@@ -44,6 +45,15 @@ export function operatingActions(
             isStartOperatingTurn,
             (action) => new HydratedStartOperatingTurn(action)
         ),
+        ...(operating.trainsToExport
+            ? [
+                  defineAction(
+                      ExportTrains,
+                      isExportTrains,
+                      (action) => new HydratedExportTrains(action, operating, trains)
+                  )
+              ]
+            : []),
         defineAction(
             FinishOperatingTurn,
             isFinishOperatingTurn,

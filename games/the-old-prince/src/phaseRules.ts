@@ -1,4 +1,4 @@
-import { getCompany, stockMarketOrder, type PhaseRules } from '@tabletop/18xx'
+import { marketDiscardOrder, type PhaseRules } from '@tabletop/18xx'
 import { TheOldPrincePhases } from './trains.js'
 export const TheOldPrincePhaseRules: PhaseRules = {
     rustTiming(state, train) {
@@ -7,10 +7,6 @@ export const TheOldPrincePhaseRules: PhaseRules = {
             return 'after-operation'
         return timing
     },
-    discardOrder(state, companyId) {
-        return [...new Set([companyId, ...stockMarketOrder(state.stockMarket), 'PEIR'])].filter(
-            (id) => !getCompany(state, id).closed
-        )
-    },
+    discardOrder: (state, companyId) => marketDiscardOrder(state, companyId, ['PEIR']),
     discardDestination: 'removed'
 }
