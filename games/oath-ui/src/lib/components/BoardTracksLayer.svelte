@@ -11,7 +11,7 @@
     } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import { visionsMarkerImage } from '$lib/images/tileImages.js'
-    import TokenBadge from '$lib/components/TokenBadge.svelte'
+    import BankCount from '$lib/components/BankCount.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { SearchRow } from '$lib/model/searchRows.js'
     import { cardAspect } from '$lib/images/cardShape.js'
@@ -75,7 +75,7 @@
         style="left:{center.x - FAVOR_BANK_RADIUS}px; top:{center.y - FAVOR_BANK_RADIUS}px;
                width:{FAVOR_BANK_RADIUS * 2}px; height:{FAVOR_BANK_RADIUS * 2}px;"
     >
-        <TokenBadge kind="favor" count={gameState.favorBank[suit]} size={FAVOR_BANK_RADIUS * 2} />
+        <BankCount count={gameState.favorBank[suit]} size={FAVOR_BANK_RADIUS * 2} />
     </span>
 {/each}
 
@@ -87,7 +87,7 @@
         FAVOR_BANK_RADIUS}px;
            width:{FAVOR_BANK_RADIUS * 2}px; height:{FAVOR_BANK_RADIUS * 2}px;"
 >
-    <TokenBadge kind="favor" count={gameState.favorSupply} size={FAVOR_BANK_RADIUS * 2} />
+    <BankCount count={gameState.favorSupply} size={FAVOR_BANK_RADIUS * 2} />
 </span>
 <span
     class="bank-label"

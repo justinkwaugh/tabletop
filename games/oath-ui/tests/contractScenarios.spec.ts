@@ -675,6 +675,13 @@ test('scenario 43: a menu row lights what it names on the table while pointed at
     await expect(pointed).toHaveCount(0)
 })
 
+test('scenario 51: an empty bank shows a plain 0 and no favor token', async ({ page }) => {
+    await openTable(page, 'trade')
+    await expect(page.locator('.bank .bank-empty')).toHaveCount(1)
+    await expect(page.locator('.bank .bank-empty')).toHaveText('0')
+    await expect(page.locator('.bank .token')).toHaveCount(6)
+})
+
 test('scenario 19: Muster lists every card a favor can go on, a button sends', async ({ page }) => {
     await openTable(page, 'trade')
     await tile(page, 'Muster').click()
