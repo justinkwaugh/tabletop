@@ -13,6 +13,7 @@ A ruling marked *provisional* is a question put to the publisher's community; it
 - **R-4.3.4-H1:** a Supply gain stops at the track's last space; the excess is lost.
 - **R-5.5.3-H1:** defending bandits use the cost-free battle plans at every site they rule, not only at the targeted ones.
 - **R-5.5.5-H1:** the attacker chooses which of their own warbands die, from their board or a site in their force: the skulls' kills in an order declared with the Campaign, the sacrifice and the defeated half picked after the roll.
+- **R-5.5.6-H1:** in games created at the turn-flow revision or later, a defeated defending side is asked to choose its losses only when the choice can change the outcome: the force mixes owners, part of it stands on a board, or Hospital would set a kill aside. Otherwise the engine kills the default and the Campaign moves on, since every survivor goes to its board (R-5.5.6).
 - **R-6.4-H1:** the Grand Scepter's holder knows every Reliquary relic, since they may peek at will: from setup, and at once when the Scepter changes hands; a former holder keeps what they saw.
 - **R-7.1.1-H1:** a relic in a player's bank is in reach the way an adviser is; a relic is held, never ruled.
 - **R-7.1.2.a-H1:** a card's occupancy bar is checked once, before the cost is paid.

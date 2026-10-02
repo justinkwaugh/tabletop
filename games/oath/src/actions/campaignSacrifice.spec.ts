@@ -11,6 +11,8 @@ import { CampaignDefeatKills, HydratedCampaignDefeatKills } from './campaignDefe
 import { HydratedResolveOathkeeper, ResolveOathkeeper } from './resolveOathkeeper.js'
 import { MachineState } from '../definition/states.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { OathRevision } from '../util/revision.js'
+import { defeatChoiceMatters } from '../util/force.js'
 
 const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
@@ -330,6 +332,70 @@ describe('the Chancellor chooses for an Imperial defence (R-5.5.6.a)', () => {
         expect(state.warbandsBySite['c1'][IMPERIAL_WARBANDS]).toBe(0)
         expect(state.getPlayerState(CHANCELLOR).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(6)
         expect(state.getPlayerState(CITIZEN).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(0)
+    })
+})
+
+describe('R-5.5.6.a — the defending side is asked only when its losses can differ (turn-flow revision)', () => {
+    // Read where a defeated warband stood, and so can make the choice matter: Hospital, whose
+    // set-aside goes to the player the warband came from (killRedirects). Obsidian Cage takes every
+    // survivor wherever it stood, and Sticky Fire kills the whole force, so neither does.
+    const ACROSS_TWO_SITES: WarbandGroup[] = [
+        { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 2 },
+        { at: { kind: 'site', siteId: 'c2' }, owner: DEFENDER, count: 2 }
+    ]
+
+    function won(force: WarbandGroup[], campaign: Partial<CampaignState> = {}, createdBeforeRevisions = false) {
+        const state = midBattle({ swords: 9, defense: 1, defendingForce: force, ...campaign })
+        state.oathRevision = createdBeforeRevisions ? undefined : OathRevision.TurnFlow
+        state.warbandsBySite = { c1: { [DEFENDER]: 2 }, c2: { [DEFENDER]: 2 } }
+        state.getPlayerState(DEFENDER).warbandsOnBoard = {}
+        return state
+    }
+
+    it('takes the default kills at once for one owner over several sites', () => {
+        const state = won(ACROSS_TWO_SITES)
+        const action = sacrifice()
+        expectWarbandsConserved(state, () => action.apply(state))
+        expect(state.campaign?.pendingDefeatKills).toBeUndefined()
+        expect(action.metadata?.awaitingLossesOf).toBeUndefined()
+        expect(action.metadata?.defeatKilled).toBe(2)
+        expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(2)
+    })
+
+    it('still asks when the force mixes owners: an Imperial defence with a Citizen’s own warbands', () => {
+        const state = won([
+            { at: { kind: 'site', siteId: 'c1' }, owner: IMPERIAL_WARBANDS, count: 2 },
+            { at: { kind: 'site', siteId: 'c2' }, owner: CITIZEN, count: 2 }
+        ], { defenderPlayerId: CITIZEN, allyPlayerIds: [CHANCELLOR] })
+        state.warbandsBySite = { c1: { [IMPERIAL_WARBANDS]: 2 }, c2: { [CITIZEN]: 2 } }
+        sacrifice().apply(state)
+        expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: CHANCELLOR })
+    })
+
+    it('still asks when part of the force stands on a board', () => {
+        const state = won(ALL_DEFENDERS)
+        state.getPlayerState(DEFENDER).warbandsOnBoard = { [DEFENDER]: 1 }
+        sacrifice().apply(state)
+        expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: DEFENDER })
+    })
+
+    it('still asks when Hospital would set a kill aside', () => {
+        const state = won(ACROSS_TWO_SITES, { killRedirects: [{ playerId: DEFENDER, siteId: 'c2' }] })
+        sacrifice().apply(state)
+        expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: DEFENDER })
+    })
+
+    it('still asks in a game created before the revision, as its stored Campaigns were recorded (R-X.4)', () => {
+        const state = won(ACROSS_TWO_SITES, {}, true)
+        sacrifice().apply(state)
+        expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: DEFENDER })
+        lose(DEFENDER, [{ at: { kind: 'site', siteId: 'c2' }, owner: DEFENDER, count: 2 }]).apply(state)
+        expect(state.campaign?.pendingDefeatKills).toBeUndefined()
+    })
+
+    it('reads the force alone', () => {
+        expect(defeatChoiceMatters({ killRedirects: [] }, ACROSS_TWO_SITES)).toBe(false)
+        expect(defeatChoiceMatters({ killRedirects: [] }, ALL_DEFENDERS)).toBe(true)
     })
 })
 

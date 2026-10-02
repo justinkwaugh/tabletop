@@ -1,6 +1,6 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { WarbandOwner } from '../model/warbandCounts.js'
-import type { WarbandGroup, WarbandLocation } from '../model/campaign.js'
+import type { CampaignState, WarbandGroup, WarbandLocation } from '../model/campaign.js'
 import {
     totalWarbands,
     countOf,
@@ -242,4 +242,14 @@ export function gainWarbandsToBoard(
     player.warbandsInPersonalBank[own] = available - gained
     addWarbandsToBoard(state, playerId, own, gained)
     return gained
+}
+
+/** R-5.5.6 — every survivor goes to its board, so only owners, boards and Hospital's set-aside tell the losses apart. */
+export function defeatChoiceMatters(
+    campaign: Pick<CampaignState, 'killRedirects'>,
+    force: readonly WarbandGroup[]
+): boolean {
+    if (new Set(force.map((group) => group.owner)).size > 1) return true
+    if (force.some((group) => group.at.kind === 'board')) return true
+    return campaign.killRedirects.length > 0
 }

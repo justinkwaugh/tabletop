@@ -25,11 +25,13 @@ import {
     moveForceToBoards,
     selectionExceedsForce,
     boardOwnersOwnFirst,
+    defeatChoiceMatters,
     warbandGroupsAtSites
 } from '../util/force.js'
 import { BRUTAL, hasTrait } from '../util/reliquaryTraits.js'
 import { reasonPersistentForbidsSacrifice } from '../util/persistent.js'
 import { countOf } from '../util/warbands.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 export type CampaignSacrificeMetadata = Type.Static<typeof CampaignSacrificeMetadata>
 export const CampaignSacrificeMetadata = Type.Object({
@@ -197,6 +199,12 @@ export class HydratedCampaignSacrifice
         const force = campaign.defendingForce
         const required = HydratedCampaignSacrifice.requiredKills(state, campaign, force)
         if (required === 0 || required >= forceTotal(force) || force.length < 2) return undefined
+        if (
+            isAtLeastOathRevision(state, OathRevision.TurnFlow) &&
+            !defeatChoiceMatters(campaign, force)
+        ) {
+            return undefined
+        }
         const defenderId = campaign.defenderPlayerId
         assertExists(defenderId, 'A defending force with warbands to choose from has a defender')
         return isImperialPlayer(state, defenderId, scopeOf(partiesOf(campaign)))
