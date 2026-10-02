@@ -8,7 +8,6 @@ export type TextPart =
     | { kind: 'suit'; suit: Suit; bank: boolean }
     | { kind: 'warband'; count: number; imperial: boolean; words: string }
 
-/** The History draws warbands as tokens too; the panels keep the word. */
 export interface TokenOptions {
     warbands?: boolean
 }

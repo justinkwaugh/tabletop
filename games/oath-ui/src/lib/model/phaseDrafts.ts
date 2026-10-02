@@ -296,7 +296,6 @@ export class RestDraft extends OneStepDraft<Record<string, Suit>> {
             : []
     }
 
-    /** One tap uses the power with that bank. */
     async useWithBank(row: RestRow, suit: Suit): Promise<void> {
         if (!this.playerId) return
         await this.session.useRestPower(row.cardId, row.powerIndex, restBankChoice(suit))

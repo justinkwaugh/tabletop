@@ -1,10 +1,7 @@
 import type { OathGameSession } from './session.svelte.js'
 import { unseenVisionDraws, visionsClearedKey, type VisionDraw } from './visionSeen.js'
 
-/**
- * The Vision draws each seat has cleared, per device: browser storage is read once here and
- * mirrored in state, since a storage write is not reactive. A server render has no storage.
- */
+/** Browser storage is read once and mirrored in state, since a storage write is not reactive. */
 export class VisionsSeen {
     private clearedThrough = $state<Record<string, string | undefined>>({})
 
@@ -25,12 +22,21 @@ export class VisionsSeen {
         const last = this.draws.at(-1)
         if (seatId === undefined || last === undefined) return
         this.clearedThrough = { ...this.clearedThrough, [seatId]: last.actionId }
-        if (typeof localStorage === 'undefined') return
-        localStorage.setItem(visionsClearedKey(this.session.game.id, seatId), last.actionId)
+        const storage = this.storage()
+        storage?.setItem(visionsClearedKey(this.session.game.id, seatId), last.actionId)
     }
 
     private stored(playerId: string): string | undefined {
-        if (typeof localStorage === 'undefined') return undefined
-        return localStorage.getItem(visionsClearedKey(this.session.game.id, playerId)) ?? undefined
+        const storage = this.storage()
+        return storage?.getItem(visionsClearedKey(this.session.game.id, playerId)) ?? undefined
+    }
+
+    // A server render has no storage, and a browser blocking site data throws on reaching it.
+    private storage(): Storage | undefined {
+        try {
+            return typeof localStorage === 'undefined' ? undefined : localStorage
+        } catch {
+            return undefined
+        }
     }
 }

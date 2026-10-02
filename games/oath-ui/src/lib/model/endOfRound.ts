@@ -7,10 +7,8 @@ import {
 /** R-3.3, R-3.3.1 — what the end die decides, read from the engine's own rules. */
 export interface EndDieStakes {
     round: number
-    /** The lowest roll that ends the game, as the sentence says it. */
     threshold: string
     winnerId: string
-    /** How the winner wins, from the viewer's side of the table. */
     as: string
 }
 
@@ -31,8 +29,13 @@ export function endDieStakes(
               : 'as the Successor'
     return {
         round: state.round,
-        threshold: threshold === 6 ? '6' : `${threshold} or higher`,
+        threshold: endDieRollWords(threshold),
         winnerId,
         as
     }
+}
+
+/** R-3.3 — round five ends only on a 6; rounds six and seven on that roll or higher. */
+export function endDieRollWords(threshold: number): string {
+    return threshold === 6 ? '6' : `${threshold} or higher`
 }

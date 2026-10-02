@@ -216,7 +216,7 @@ The platform's table layout (`DefaultTableLayout`) owns the bottom safe-area ins
 
 59. A Vision was seen: on that table the drawer is told "You have seen a Vision" over the board with the action panel clear, and the pig button clears it; view as the other seat: it is still told, by name. Reopen the table: the drawer is not told again, the other seat is, and Escape clears it.
 
-60. The end die: end round six as the last seat with the Chancellor holding the title. As the Chancellor: the banner reads "Your roll · End of round 6", the panel the stakes and "Roll the end die". As the last seat: "<Chancellor>'s roll", the waiting line and the same stakes, no roll button, and Undo in the banner. Roll: the History's top row is the end die, and the last seat's Undo is gone.
+60. The end die: end round six as the last seat with the Chancellor holding the title. As the Chancellor: the banner reads "Your roll · End of round 6", the panel the stakes and "Roll the end die". As the last seat: "<Chancellor>'s roll", the waiting line and the same stakes, no roll button, and Undo in the banner. Roll: the History shows the end-die row for round 6, and the last seat's Undo is gone.
 
 ## Exercise record
 
@@ -254,7 +254,7 @@ The platform's table layout (`DefaultTableLayout`) owns the bottom safe-area ins
 32. pass, automated
 33. pass, automated for the refusal and the card-set invariant; the panel-less machine state is unreachable by the invariant stated in the scenario
 34. pass, automated for the seat card and the open seat (`tests/contractScenarios.spec.ts`)
-35. pass, automated (`tests/contractScenarios.spec.ts`)
+35. pass, automated (`tests/contractScenarios.spec.ts`; the banks' board order by `phaseDrafts.spec.ts`)
 36. pass, automated (`tests/contractScenarios.spec.ts`)
 37. pass, automated (`tests/contractScenarios.spec.ts`); the next-win cases and the standings by `nextWin.spec.ts` and `goalBoard.spec.ts`
 38. pass, automated (`tests/contractScenarios.spec.ts`), and checked by eye in the harness on the dark page and at phone width

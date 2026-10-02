@@ -96,7 +96,6 @@ function describeLetPeek(action: LetPeek, nameOf: NameOf, viewerId: string | und
     return `let ${shownTo} peek at the relic on ${reliquaryLabel(action.subject.slotId)}${seen ? ` (${cardName(seen)})` : ''}`
 }
 
-/** The seat a row is about: the actor, or for the title's move the seat that took or lost it. */
 export function rowActorOf(action: GameAction): string | undefined {
     if (isTransferOathkeeper(action)) return action.toPlayerId ?? action.fromPlayerId
     return action.playerId
@@ -415,7 +414,6 @@ function printedCost(cardId: string, powerIndex: number): string {
     return clauses.length > 0 ? `, ${clauses.join(' and ')}` : ''
 }
 
-/** The engine's summary, without the card's name it repeats, with seats and banks named. */
 function powerEffect(
     action: UseActionPower | UseRestPower,
     nameOf: NameOf,
@@ -423,8 +421,7 @@ function powerEffect(
 ): string {
     const summary = action.metadata?.summary
     if (!summary) return ''
-    const prefix = `${cardName(action.cardId)}: `
-    const effect = summary.startsWith(prefix) ? summary.slice(prefix.length) : summary
+    const effect = withoutCardName(summary, action.cardId)
     const seats = [action.metadata?.targetPlayerId, action.playerId].filter(
         (playerId): playerId is string => playerId !== undefined
     )
@@ -433,6 +430,11 @@ function powerEffect(
         effect
     )
     return `: ${namedBanks(named)}`
+}
+
+export function withoutCardName(summary: string, cardId: string): string {
+    const prefix = `${cardName(cardId)}: `
+    return summary.startsWith(prefix) ? summary.slice(prefix.length) : summary
 }
 
 function nameSeat(

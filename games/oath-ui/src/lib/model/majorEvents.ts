@@ -32,6 +32,7 @@ import type { GameAction } from '@tabletop/common'
 import { bannerName, cardName, goalText, oathName } from '$lib/model/names.js'
 import { searchStoppedOnVision, type NameOf } from '$lib/model/actionDescription.js'
 import { ENDINGS, isWinRule } from '$lib/model/endings.js'
+import { endDieRollWords } from '$lib/model/endOfRound.js'
 
 export enum MajorEventKind {
     VisionDrawn = 'visionDrawn',
@@ -58,7 +59,6 @@ export interface MajorEvent {
     kind: MajorEventKind
     heading: string
     aside?: string
-    /** Rose costs or threatens: the end die and a lost Campaign. */
     tone: 'heading' | 'danger'
     pictures: EventPicture[]
     consequence?: string
@@ -68,7 +68,6 @@ export interface MajorEventContext {
     viewerId: string | undefined
     nameOf: NameOf
     oathType: OathType
-    /** The Campaign a spoils or a sacrifice belongs to: the last one declared before it. */
     campaign?: Campaign
 }
 
@@ -128,7 +127,7 @@ function endDieEvent(
     wonBy: string | undefined
 ): MajorEvent {
     const threshold = round === undefined ? undefined : endDieThreshold(round)
-    const passes = threshold === 6 ? 'a 6' : `a ${threshold} or higher`
+    const passes = threshold === undefined ? '' : `a ${endDieRollWords(threshold)}`
     const where = round === undefined ? '' : ` in round ${round}`
     const follows = wonBy ? 'the game ends' : `play goes on to round ${(round ?? 0) + 1}`
     const consequence =
@@ -272,7 +271,6 @@ export function majorEventOf(
     return undefined
 }
 
-/** The Campaign each action belongs to, so its spoils or its loss can name the defender. */
 export function campaignsBefore(actions: readonly GameAction[]): (Campaign | undefined)[] {
     let current: Campaign | undefined
     return actions.map((action) => {
@@ -286,7 +284,6 @@ export interface HistoryRow {
     event?: MajorEvent
 }
 
-/** Every action newest first, each with its major event when it is one. */
 export function historyRows(
     actions: readonly GameAction[],
     context: Omit<MajorEventContext, 'campaign'>
@@ -315,7 +312,6 @@ export function endingRule(actions: readonly GameAction[]): WinRule | undefined 
 const VISION_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.2', 'R-3.4.3'])
 const USURPER_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.1', 'R-3.4.2'])
 
-/** The top row of a finished game: who won, by which ending, with its title or Vision. */
 export function gameEndEvent(
     winnerId: string,
     rule: WinRule,

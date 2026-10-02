@@ -10,7 +10,7 @@ import {
     type Suit
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
-import { cardName } from '$lib/model/names.js'
+import { withoutCardName } from '$lib/model/actionDescription.js'
 
 /** R-4.3.5 — what each Rest power does, as its row says it, and what one use gains. */
 const REST_POWERS: Record<string, { does: string; gain: number; token: 'favor' | 'secret' }> = {
@@ -48,13 +48,10 @@ export interface RestRow {
     powerIndex: number
     does: string
     gain: { count: number; token: 'favor' | 'secret' }
-    /** A bank power: one button per bank it names, in the board's order. */
     banks?: RestBankButton[]
     /** Naysayers — whom the favor comes from. */
     fromPlayerId?: string
-    /** The power's one button, for a power with no choice. */
     enabled: boolean
-    /** What a power used this turn did. */
     used?: string
 }
 
@@ -79,8 +76,7 @@ function usedLine(action: GameAction, cardId: string): string | undefined {
     if (!isUseRestPower(action) || action.cardId !== cardId) return undefined
     const summary = action.metadata?.summary
     if (!summary) return 'used'
-    const prefix = `${cardName(cardId)}: `
-    return `used: ${summary.startsWith(prefix) ? summary.slice(prefix.length) : summary}`
+    return `used: ${withoutCardName(summary, cardId)}`
 }
 
 /** R-4.3.5, R-7.3.4 — the Rest panel's rows: each usable power once, and each one already used, dimmed. */

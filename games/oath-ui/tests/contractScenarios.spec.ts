@@ -1420,6 +1420,9 @@ test('scenario 35: at Rest every bank a power names is a button of one size; a t
     await expect(grid(page)).toContainText('Your Supply has refreshed. Rest powers, once each:')
     const banks = powers.getByRole('button', { name: /bank: take 1 favor/ })
     await expect(banks).toHaveCount(6)
+    await expect(powers.getByRole('listitem')).toHaveCount(2)
+    await expect(powers).toContainText('Vow of Obedience')
+    await expect(powers).toContainText('Insomnia')
     await expect(powers.getByRole('button', { name: /^Discord bank/ })).toBeDisabled()
     const sizes = await powers.locator('.rest-button').evaluateAll((buttons) =>
         buttons.map((button) => `${Math.round(button.getBoundingClientRect().width)}x${Math.round(button.getBoundingClientRect().height)}`)
@@ -1431,7 +1434,12 @@ test('scenario 35: at Rest every bank a power names is a button of one size; a t
     await powers.getByRole('button', { name: /^Arcane bank/ }).click()
     await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before.favorOf.me + 1)
     expect((await call(page, 'tableFacts')).favorBank.arcane).toBe(before.favorBank.arcane - 1)
-    await expect(powers).toContainText('used: took 1')
+    const used = powers.locator('.rest-row--used')
+    await expect(used).toHaveCount(1)
+    await expect(used).toContainText('Vow of Obedience')
+    await expect(used).toContainText('used: took 1')
+    await expect(used.getByRole('button', { name: /bank: take/ })).toHaveCount(0)
+    await expect(powers.getByRole('listitem').filter({ hasText: 'Insomnia' }).getByRole('button', { name: /^1/ })).toBeEnabled()
 })
 
 test('scenario 60: between rounds the Chancellor rolls the end die; the last seat’s Undo stays until the roll; each seat reads the stakes', async ({ page }) => {
