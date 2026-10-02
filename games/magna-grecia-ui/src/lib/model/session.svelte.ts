@@ -29,13 +29,13 @@ import {
 import { legalRoadShapeChoices, roadPlacement, type RoadShapeChoice } from './roadLay.js'
 import { BuildTool } from './buildTool.js'
 import {
-    backDraft,
     carryTool,
     chooseRoadShape,
     chooseRoadSpace,
     chooseTool,
     clearRoadLay,
     closeResupply,
+    draftResupplyOpen,
     draftRoadShape,
     draftRoadSpace,
     draftTilesSkipped,
@@ -45,6 +45,7 @@ import {
     rotateRoad,
     skipTiles,
     toggleResupply,
+    undoDraft,
     type TurnDraft
 } from './turnDraft.js'
 
@@ -65,7 +66,7 @@ export class MagnaGreciaGameSession extends GameSession<
 
     roadSpace: AxialCoordinates | undefined = $derived(draftRoadSpace(this.draft))
 
-    resupplyOpen = $derived(this.draft.resupplyOpen)
+    resupplyOpen = $derived(draftResupplyOpen(this.draft))
 
     tilesSkipped = $derived(draftTilesSkipped(this.draft))
 
@@ -300,8 +301,12 @@ export class MagnaGreciaGameSession extends GameSession<
         return hasManualDraft(this.draft)
     }
 
-    back() {
-        this.draft = backDraft(this.draft)
+    override async undo() {
+        if (this.hasManualSelection()) {
+            this.draft = undoDraft(this.draft)
+            return
+        }
+        await super.undo()
     }
 
     resetAction() {
