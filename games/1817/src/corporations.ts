@@ -1,3 +1,6 @@
+import { assertExists } from '@tabletop/common'
+import { getCompany, type FinancialState } from '@tabletop/18xx'
+
 export const EighteenSeventeenCorporations = [
     { id: 'AS', name: 'Alton & Southern Railway', abbreviation: 'A&S' },
     { id: 'AA', name: 'Arcade and Attica', abbreviation: 'A&A' },
@@ -20,3 +23,12 @@ export const EighteenSeventeenCorporations = [
     { id: 'WT', name: 'Warren & Trumbull Railroad', abbreviation: 'WT' },
     { id: 'WC', name: 'West Chester Railroad', abbreviation: 'WC' }
 ] as const
+
+export function corporationShareCount(
+    state: Pick<FinancialState, 'companies'>,
+    companyId: string
+): number {
+    const count = getCompany(state, companyId).shareCount
+    assertExists(count, 'Every 1817 corporation has a share count')
+    return count
+}

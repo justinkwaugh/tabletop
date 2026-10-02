@@ -342,31 +342,21 @@ export function historyDescription(
         return { text: `Bid on ${companyName(action.lotId)}`, value: money(action.amount) }
     if (isPassSelectionAuction(action) || isPassCompanyAuction(action)) return { text: 'Passed' }
     if (isResolveSelectionAuction(action)) {
-        const awards = (action.undoPatch ?? []).flatMap((patch) => {
-            const match = /^\/selectionAuction\/awards\/(\d+)$/.exec(patch.path)
-            const award =
-                match && patch.op === 'remove'
-                    ? state.selectionAuction?.awards[Number(match[1])]
-                    : undefined
-            return award ? [award] : []
-        })
-        const closed = awards.length ? [] : (state.selectionAuction?.closedLotIds ?? [])
-        return {
-            text: awards.length
-                ? 'Auction awarded'
-                : closed.length
-                  ? 'Unsold privates closed'
-                  : 'Auction ended',
-            detail:
-                [
-                    ...awards.map(
-                        (award) =>
-                            `${playerName(award.playerId)} won ${companyName(award.lotId)} for ${money(award.price)}`
-                    ),
-                    ...closed.map((id) => `${companyName(id)} closed`)
-                ].join(' · ') || undefined,
-            important: true
-        }
+        assertExists(action.metadata, 'Recorded selection auction resolution requires its outcome')
+        const { resolution } = action.metadata
+        if (resolution.kind === 'award')
+            return {
+                text: 'Auction awarded',
+                detail: `${playerName(resolution.award.playerId)} won ${companyName(resolution.award.lotId)} for ${money(resolution.award.price)}`,
+                important: true
+            }
+        if (resolution.kind === 'close-unsold')
+            return {
+                text: 'Unsold privates closed',
+                detail: resolution.lotIds.map((id) => `${companyName(id)} closed`).join(' · '),
+                important: true
+            }
+        return { text: 'Auction ended', routine: true }
     }
     if (isAuctionCompany(action))
         return {

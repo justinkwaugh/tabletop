@@ -9,7 +9,7 @@ import {
     AuctionType,
     type GameState
 } from '@tabletop/common'
-import { cashOwnedBy, type FinancialState } from '../finance/finance.js'
+import { finiteCashOwnedBy, type FinancialState } from '../finance/finance.js'
 import { PendingParFields } from '../company/pendingPar.js'
 
 export const AuctionLot = Type.Object(
@@ -96,8 +96,7 @@ export class ReserveBidAuction {
         ]
     }
     availableCash(playerId: string, lotId?: string): number {
-        const cash = cashOwnedBy(this.state, { kind: 'player', playerId })
-        assert(typeof cash === 'number', 'Auction bidders require finite cash')
+        const cash = finiteCashOwnedBy(this.state, { kind: 'player', playerId })
         return availableBidAmount(cash, this.commitments(), playerId, lotId)
     }
     price(lotId: string): number {

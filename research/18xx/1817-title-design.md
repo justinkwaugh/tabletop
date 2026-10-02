@@ -371,10 +371,10 @@ less than 100F, an evidence gap this slice does not address.
 pile, built on Common's `SimpleAuction` as they are. Each title supplies:
 
 - the lots;
-- the lots a player may nominate (`nominationLots`), which Volatility will restrict;
+- the lots a player may nominate (`nominationLotIds`), which Volatility will restrict;
 - the opening minimum for a lot (`openingBid`);
 - the increment;
-- whether passing is allowed while nominating;
+- whether passing is allowed while nominating (`passingWhileNominating`);
 - what happens to unsold lots when everyone passes;
 - `award`, which pays and transfers.
 
@@ -424,17 +424,21 @@ auction inside a stock turn, appears in 22 titles.
 
 **Decisions:**
 
-- **Company auctions are a family stock-round feature.** The stock round gains a
-  nested auction state, `CompanyAuction`, and the actions `AuctionCompany` (company,
-  opening bid, home city), `BidForCompany` and `PassCompanyAuction`.
-  `StockRules.companyAuction` is optional, and only titles that set it register the
-  state and actions. It supplies:
+- **Company auctions are a family stock-round feature.** The stock round holds a
+  nested auction in the optional family field `companyAuction`, with the actions
+  `AuctionCompany` (company, opening bid, home city), `BidForCompany` and
+  `PassCompanyAuction`. `StockRules.companyAuction` is optional, and only titles that
+  set it register the actions. It supplies:
     - the bid range and increment;
-    - bidding power;
+    - bidding power, and whether a player could form a company at a given price
+      (`formable`);
     - the eligible home cities;
     - the start space for a winning bid.
 
-    TOP, 1889 and 1830 keep `StartCompany` and get no new action, state or field.
+    TOP, 1889 and 1830 keep `StartCompany` and register no new action or machine
+    state. Like `pendingPar` in 1830's slice 4, the new optional family fields
+    (`companyAuction`, `selectionAuction`) appear in every title's state schema but
+    are only written by titles that use them.
 
 - **Settlement is one decision.** The winner answers with `FormCompany`, choosing a
   size and the privates to contribute. It settles atomically:
@@ -445,8 +449,13 @@ auction inside a stock turn, appears in 22 titles.
     5. the extra stations are bought.
 
     The winner's cash may not end below $0. It is applied automatically when the phase
-    allows one size and the winner has no privates. This replaces the reference's
-    temporary negative cash with one validated settlement, with the same outcomes.
+    allows one size and none of the winner's privates could be contributed toward the
+    price, as in the reference. This replaces the reference's temporary negative cash
+    with one validated settlement, with the same outcomes.
+
+- **Every bid can form a company.** A bid is accepted only at an amount the bidder
+  could pay and form a company with in the current phase, so a won auction always has
+  a valid formation.
 
 - **The home is placed at settlement, not when the auction opens.** No other map
   change can happen between the two, because the auction completes within the
@@ -459,7 +468,9 @@ auction inside a stock turn, appears in 22 titles.
 
 **Limit until slice 3:** the reference lets a company short of station money take
 loans before the round ends, or be liquidated. Without loans, a size or contribution
-that leaves the treasury unable to buy its stations is refused.
+that leaves the treasury unable to buy its stations is refused, and so is a bid at
+which no formation could pay for its stations (for example under $150 in phases 6–8,
+where companies have 10 shares).
 
 ### Stock-round share rules
 
@@ -523,21 +534,22 @@ later and every new lay is yellow, so `allowance` tells upgrades apart by colour
 
 Decisions made while implementing, beyond the design above:
 
-- **The company auction has no machine state of its own.** It is the optional family
-  field `companyAuction`, held by the stock round. While it stands, the stock round
-  accepts only `BidForCompany`, `PassCompanyAuction` and `FormCompany`, and makes the
-  current bidder or the winner the active player. Every stock-round wrapper keeps
-  working, and the opener's turn ends as soon as the company is formed.
+- **The company auction lives inside the stock round.** While `companyAuction`
+  stands, the stock round accepts only `BidForCompany`, `PassCompanyAuction` and
+  `FormCompany`, and makes the current bidder or the winner the active player. Every
+  stock-round wrapper keeps working, and the opener's turn ends as soon as the company
+  is formed.
 - **The selection auction is one machine state,** `SelectionAuction`, with the
   optional family field `selectionAuction` and the actions `NominateLot`, `BidForLot`,
   `PassSelectionAuction` and the system `ResolveSelectionAuction`. As in the
   reference, players who have passed are skipped until a lot is sold. The player who
-  would nominate next has priority in the first stock round. The `nominationLots`
-  hook waits for Volatility (slice 9).
+  would nominate next has priority in the first stock round. 1817 nominates from every
+  remaining lot and allows passing; Volatility (slice 9) will change both.
+  `ResolveSelectionAuction` records its outcome in its metadata, which history reads.
 - **The formation choices come from the rules.** `CompanyAuctionRules` names the
   share counts allowed now (`shareCounts`) and the privates the winner may contribute
-  (`contributions`). The family applies the formation without a decision when there
-  is one size and nothing to contribute.
+  toward the price (`contributions`). The family applies the formation without a
+  decision when there is one size and nothing to contribute.
 - **Seed money is optional state.** Prepared positions after the opening have none.
 - **Standing stock instructions wait** while another player decides during the turn,
   such as bidding for a company.
@@ -547,11 +559,16 @@ Decisions made while implementing, beyond the design above:
   NY-labelled upgrade from two cities to one.
 - **Lakes are their own terrain kind,** apart from rivers, which the bridge privates
   will discount in slice 7. The map draws them with their own symbol.
-- **Board.** The one-row market runs below the map, at TOP's market scale, and the
-  depot sits in the map's empty lower-right corner. A playground test keeps both clear
-  of every hex.
-- **Shared presentation.** A token's label takes a contrasting colour, and four-letter
-  labels shrink to fit.
+- **Board.** The [18xx design rule](../../docs/agents/18xx-design.md) requires every
+  title's map view to declare `boardAreas`, so the board layout comes with slice 1
+  rather than the title UI slice. The one-row market runs below the map, at TOP's
+  market scale, and the depot sits in the map's empty lower-right corner. A playground
+  test keeps both clear of every hex.
+- **Shared presentation.** 1817's light company colours made white token labels
+  unreadable, so a token's label takes a contrasting colour and four-letter labels
+  shrink to fit. TOP, 1889 and 1830 draw their tokens with artwork, so only tokens
+  without artwork change. The selection auction needed its own lot table and bidding
+  card in the shared UI to be playable.
 - **Playground.** The example host validates saved games with the title's canonical
   schema rather than the family's, so title fields such as seed money load.
 

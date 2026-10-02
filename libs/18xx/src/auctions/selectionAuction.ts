@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { assert, assertExists, SimpleAuction, type GameState } from '@tabletop/common'
-import { cashOwnedBy, type FinancialState } from '../finance/finance.js'
+import { finiteCashOwnedBy, type FinancialState } from '../finance/finance.js'
 import { AuctionAward, type AuctionLot } from './waterfallAuction.js'
 import { PassableBidding, validBidStep } from './passableBidding.js'
 
@@ -33,15 +33,27 @@ export type SelectionAuctionState = FinancialState &
  */
 export interface SelectionAuctionRules {
     lots(state: FinancialState): readonly AuctionLot[]
+    /** The remaining lots a player may nominate now. */
+    nominationLotIds(state: SelectionAuctionState): readonly string[]
+    /** Whether a player may pass instead of nominating a lot. */
+    passingWhileNominating: boolean
     openingBid(state: SelectionAuctionState, lotId: string): number
     increment: number
     award(state: SelectionAuctionState, award: AuctionAward): void
     closeUnsold(state: SelectionAuctionState, lotIds: readonly string[]): void
 }
-export type SelectionAuctionResolution =
-    | { kind: 'award'; award: AuctionAward }
-    | { kind: 'close-unsold'; lotIds: string[] }
-    | { kind: 'complete' }
+export const SelectionAuctionResolution = Type.Union([
+    Type.Object(
+        { kind: Type.Literal('award'), award: AuctionAward },
+        { additionalProperties: false }
+    ),
+    Type.Object(
+        { kind: Type.Literal('close-unsold'), lotIds: Type.Array(Type.String()) },
+        { additionalProperties: false }
+    ),
+    Type.Object({ kind: Type.Literal('complete') }, { additionalProperties: false })
+])
+export type SelectionAuctionResolution = Type.Static<typeof SelectionAuctionResolution>
 
 export class SelectionAuctionModel {
     constructor(
@@ -62,9 +74,7 @@ export class SelectionAuctionModel {
             : this.auction.nominatorId
     }
     cash(playerId: string): number {
-        const cash = cashOwnedBy(this.state, { kind: 'player', playerId })
-        assert(typeof cash === 'number', 'Auction bidders require finite cash')
-        return cash
+        return finiteCashOwnedBy(this.state, { kind: 'player', playerId })
     }
     minimumBid(lotId: string): number {
         const bidding = this.auction.bidding
@@ -78,7 +88,7 @@ export class SelectionAuctionModel {
             !this.auction.bidding &&
             !this.resolution() &&
             playerId === this.auction.nominatorId &&
-            this.auction.remainingLotIds.includes(lotId) &&
+            this.rules.nominationLotIds(this.state).includes(lotId) &&
             this.affords(playerId, lotId, amount)
         )
     }
@@ -92,7 +102,12 @@ export class SelectionAuctionModel {
         )
     }
     canPass(playerId: string): boolean {
-        return !this.auction.completed && !this.resolution() && playerId === this.playerId
+        return (
+            !this.auction.completed &&
+            !this.resolution() &&
+            playerId === this.playerId &&
+            (!!this.auction.bidding || this.rules.passingWhileNominating)
+        )
     }
     nominate(playerId: string, lotId: string, amount: number, actionId: string): void {
         assert(this.canNominate(playerId, lotId, amount), 'Invalid nomination')
@@ -111,7 +126,7 @@ export class SelectionAuctionModel {
     }
     bid(playerId: string, lotId: string, amount: number): void {
         assert(this.canBid(playerId, lotId, amount), 'Invalid auction bid')
-        const bidding = this.auction.bidding!
+        const bidding = this.requireBidding()
         bidding.auction = new PassableBidding(bidding.auction).bid(playerId, amount)
         this.withdrawUnable()
     }
@@ -123,7 +138,7 @@ export class SelectionAuctionModel {
             return
         }
         this.auction.passedPlayerIds.push(playerId)
-        this.auction.nominatorId = this.nextPlayer(playerId, this.auction.passedPlayerIds)
+        this.auction.nominatorId = this.nextNominator(playerId)
     }
     resolution(): SelectionAuctionResolution | undefined {
         if (this.auction.completed) return undefined
@@ -151,13 +166,13 @@ export class SelectionAuctionModel {
         assertExists(resolution, 'No auction consequence is pending')
         switch (resolution.kind) {
             case 'award': {
-                const bidding = this.auction.bidding!
+                const bidding = this.requireBidding()
                 this.rules.award(this.state, resolution.award)
                 this.auction.awards.push(resolution.award)
                 this.auction.remainingLotIds = this.auction.remainingLotIds.filter(
                     (id) => id !== resolution.award.lotId
                 )
-                this.auction.nominatorId = this.nextPlayer(bidding.nominatorId)
+                this.auction.nominatorId = this.nextNominator(bidding.nominatorId)
                 delete this.auction.bidding
                 if (!this.auction.remainingLotIds.length) this.auction.completed = true
                 break
@@ -180,21 +195,26 @@ export class SelectionAuctionModel {
             amount <= this.cash(playerId)
         )
     }
+    private requireBidding(): NonNullable<SelectionAuction['bidding']> {
+        assertExists(this.auction.bidding, 'No lot is being auctioned')
+        return this.auction.bidding
+    }
     private withdrawUnable(): void {
-        const bidding = this.auction.bidding!
-        const minimum = this.minimumBid(bidding.lotId)
-        bidding.auction = new PassableBidding(bidding.auction).withdrawUnable(
-            (playerId) => this.cash(playerId) >= minimum
+        const bidding = this.requireBidding()
+        bidding.auction = new PassableBidding(bidding.auction).withdrawBelow(
+            this.minimumBid(bidding.lotId),
+            (playerId) => this.cash(playerId)
         )
     }
-    // Players who have passed are skipped until a lot is sold; once all have passed, the turn
-    // returns to the first of them.
-    private nextPlayer(playerId: string, passedPlayerIds: readonly string[] = []): string {
+    // Players who have passed are skipped until a lot is sold, as in the reference.
+    private nextNominator(playerId: string): string {
         const order = this.state.turnManager.turnOrder
         const index = order.indexOf(playerId)
         assert(index >= 0, 'Unknown auction player')
         const following = order.map((_, offset) => order[(index + 1 + offset) % order.length])
-        return following.find((id) => !passedPlayerIds.includes(id)) ?? following[0]
+        return (
+            following.find((id) => !this.auction.passedPlayerIds.includes(id)) ?? following[0]
+        )
     }
 }
 
@@ -207,6 +227,15 @@ export function activeSelectionAuction(
         state.machineState === 'SelectionAuction'
         ? new SelectionAuctionModel(state, rules)
         : undefined
+}
+
+export function requireActiveSelectionAuction(
+    state: SelectionAuctionState & { machineState: string },
+    rules: SelectionAuctionRules
+): SelectionAuctionModel {
+    const model = activeSelectionAuction(state, rules)
+    assertExists(model, 'The selection auction is not active')
+    return model
 }
 
 export function validateSelectionAuction(state: {

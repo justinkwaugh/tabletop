@@ -6,6 +6,7 @@ import {
     PlayerAction,
     HydratableAction,
     assert,
+    assertExists,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
@@ -70,7 +71,8 @@ export class HydratedFormCompany
     apply(state: HydratedGameState & CompanyAuctionState): void {
         assert(this.isValid(state), 'Invalid FormCompany action')
         const model = new CompanyAuctionModel(state, this.#rules)
-        const price = model.pendingFormation()!.price
-        this.metadata = { price, ...model.form(this.playerId, this.companyId, this) }
+        const pending = model.pendingFormation()
+        assertExists(pending, 'A formation follows a won auction')
+        this.metadata = { price: pending.price, ...model.form(this.playerId, this.companyId, this) }
     }
 }

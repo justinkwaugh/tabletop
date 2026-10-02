@@ -51,7 +51,7 @@
                     passLabel="Back"
                     onChange={(value) => auction.setOpeningBid(value)}
                     onBid={() => auction.open()}
-                    onPass={() => auction.opening.back()}
+                    onPass={() => auction.backFromOpeningBid()}
                 />
             {/if}
         </div>

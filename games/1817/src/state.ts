@@ -1,6 +1,5 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { assert } from '@tabletop/common'
 import {
     HydratedEighteenXXState,
     extendEighteenXXState,
@@ -29,16 +28,4 @@ export const EighteenSeventeenStateDefinition: EighteenXXStateDefinition = {
     schema: EighteenSeventeenState,
     hydrate: (data, map, tileSet, depot) =>
         new HydratedEighteenSeventeenState(data, map, tileSet, depot)
-}
-
-export function seedMoney(state: object): number {
-    assert(
-        'seedMoney' in state && typeof state.seedMoney === 'number',
-        '1817 state records its seed money'
-    )
-    return state.seedMoney
-}
-export function setSeedMoney(state: object, amount: number): void {
-    assert('seedMoney' in state, '1817 state records its seed money')
-    state.seedMoney = amount
 }

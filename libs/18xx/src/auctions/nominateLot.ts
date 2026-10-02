@@ -10,6 +10,7 @@ import {
 } from '@tabletop/common'
 import {
     activeSelectionAuction,
+    requireActiveSelectionAuction,
     type SelectionAuctionRules,
     type SelectionAuctionState
 } from './selectionAuction.js'
@@ -55,7 +56,7 @@ export class HydratedNominateLot
     }
     apply(state: HydratedGameState & SelectionAuctionState): void {
         assert(this.isValid(state), 'Invalid NominateLot action')
-        activeSelectionAuction(state, this.#rules)!.nominate(
+        requireActiveSelectionAuction(state, this.#rules).nominate(
             this.playerId,
             this.lotId,
             this.amount,

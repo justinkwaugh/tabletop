@@ -134,7 +134,11 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
             )
         )
             actions.push('StartCompany')
-        if (this.canAuctionCompany(state, playerId)) actions.push('AuctionCompany')
+        if (
+            this.rules.companyAuction &&
+            new CompanyAuctionModel(state, this.rules).canOpen(playerId)
+        )
+            actions.push('AuctionCompany')
         if (
             this.rules
                 .buyers(state, playerId)
@@ -199,25 +203,13 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
     onAction(action: Action, context: MachineContext<State>): string {
         return isCompleteStockRound(action) ? this.nextState : context.gameState.machineState
     }
-    private canAuctionCompany(state: State, playerId: string): boolean {
-        const terms = this.rules.companyAuction
-        if (!terms || state.stockRound.turn.bought) return false
-        if (terms.maximumBid(state, playerId) < terms.openingBid) return false
-        return state.companies.some(
-            (company) =>
-                company.kind !== 'private' &&
-                !company.started &&
-                !company.closed &&
-                terms.homes(state, company.id).length > 0
-        )
-    }
     private auctionActions(state: State, playerId: string): string[] {
         const model = new CompanyAuctionModel(state, this.rules)
         if (model.playerId !== playerId) return []
         if (model.pendingFormation()) return ['FormCompany']
         return [
             'PassCompanyAuction',
-            ...(model.canBid(playerId, model.minimumBid) ? ['BidForCompany'] : [])
+            ...(model.lowestBid(playerId) !== undefined ? ['BidForCompany'] : [])
         ]
     }
     private enterAuction(context: MachineContext<State>): void {

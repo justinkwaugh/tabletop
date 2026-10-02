@@ -1,4 +1,3 @@
-import { assertExists } from '@tabletop/common'
 import {
     companyMarketSpace,
     dividendEntitlements,
@@ -8,18 +7,10 @@ import {
     type StockMarket
 } from '@tabletop/18xx'
 import { MarketPoolId } from './roundRules.js'
+import { corporationShareCount } from './corporations.js'
 import { isAcquisitionSpace } from './stockMarket.js'
 
 const AcquisitionZoneComparisonPrice = 40
-
-function shareCount(
-    state: { companies: readonly { id: string; shareCount?: number }[] },
-    id: string
-) {
-    const count = state.companies.find((company) => company.id === id)?.shareCount
-    assertExists(count, 'Dividends require a share count')
-    return count
-}
 
 // A 2-share company's single certificate takes its whole distribution, so it is paid as one
 // unit; the half pay of a 2-share company is then exact.
@@ -37,9 +28,9 @@ function marketMove(market: StockMarket, companyId: string, distributed: number)
 export const EighteenSeventeenEarningsRules: EarningsRules = {
     choices: () => ['pay', 'half-pay', 'withhold'],
     shareCount: (state, companyId) =>
-        dividendUnits(shareCount(state, companyId), shareCount(state, companyId)),
+        dividendUnits(corporationShareCount(state, companyId), corporationShareCount(state, companyId)),
     entitlements(state, companyId) {
-        const count = shareCount(state, companyId)
+        const count = corporationShareCount(state, companyId)
         return dividendEntitlements(state, companyId, (certificate) =>
             certificate.poolId === MarketPoolId ? undefined : certificate.owner
         ).map((entitlement) => ({
@@ -51,7 +42,7 @@ export const EighteenSeventeenEarningsRules: EarningsRules = {
     retainedRevenue(state, companyId, choice, revenue) {
         if (choice === 'withhold') return revenue
         if (choice === 'pay') return 0
-        const count = shareCount(state, companyId)
+        const count = corporationShareCount(state, companyId)
         return count === 2 ? Math.floor(revenue / 2) : Math.floor(revenue / 2 / count) * count
     },
     roundDividend: (_state, _companyId, amount) => amount,

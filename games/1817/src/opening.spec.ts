@@ -6,8 +6,7 @@ import {
     EighteenSeventeenAuctionRules,
     EighteenSeventeenCertificateLimits,
     EighteenSeventeenStockRules,
-    createEighteenSeventeenOpening,
-    seedMoney
+    createEighteenSeventeenOpening
 } from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 
@@ -61,7 +60,7 @@ describe('the selection auction', () => {
         play.act('NominateLot', { lotId: 'MINC', amount: 0 })
         for (let pass = 0; pass < 3; pass++) play.act('PassSelectionAuction')
         expect(privateOwner(play.state, 'MINC')).toEqual({ kind: 'player', playerId: nominator })
-        expect(seedMoney(play.state)).toBe(170)
+        expect(play.state).toMatchObject({ seedMoney: 170 })
         expect(play.auction().minimumBid('MAJM')).toBe(0)
         expect(play.auction().minimumBid('MAJC')).toBe(0)
         expect(play.state.activePlayerIds[0]).not.toBe(nominator)
@@ -81,7 +80,7 @@ describe('the selection auction', () => {
         play.act('PassSelectionAuction')
         expect(privateOwner(play.state, 'MAJM')).toEqual({ kind: 'player', playerId: second })
         expect(cashOwnedBy(play.state, { kind: 'player', playerId: second })).toBe(305)
-        expect(seedMoney(play.state)).toBe(90)
+        expect(play.state).toMatchObject({ seedMoney: 90 })
         expect(play.state.activePlayerIds).toEqual([second])
     })
 

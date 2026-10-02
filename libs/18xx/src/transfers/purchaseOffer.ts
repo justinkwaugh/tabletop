@@ -3,6 +3,7 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     Owner,
     cashOwnedBy,
+    finiteCashOwnedBy,
     controllingOwner,
     privateOwner,
     sameOwner
@@ -184,12 +185,6 @@ export function settlePurchaseOffer(
     rules.afterPurchase(state, offer)
 }
 
-function finiteCash(state: CompanyDecisionState, owner: Owner): number {
-    const cash = cashOwnedBy(state, owner)
-    assert(typeof cash === 'number', 'Purchase funding requires finite balances')
-    return cash
-}
-
 function canFund(
     state: CompanyDecisionState,
     request: PurchaseOfferRequest,
@@ -202,7 +197,7 @@ function canFund(
     return (
         !!funding &&
         request.price <= funding.maximumPrice &&
-        funding.contributors.reduce((sum, owner) => sum + finiteCash(state, owner), treasury) >=
+        funding.contributors.reduce((sum, owner) => sum + finiteCashOwnedBy(state, owner), treasury) >=
             request.price
     )
 }
@@ -213,12 +208,12 @@ export function fundingContributions(
     rules: TransferRules
 ): CashPayment[] {
     const buyer = { kind: 'company', companyId: offer.companyId } as const
-    let shortfall = offer.price - finiteCash(state, buyer)
+    let shortfall = offer.price - finiteCashOwnedBy(state, buyer)
     if (shortfall <= 0) return []
     const funding = rules.purchaseFunding?.(state, offer.companyId, offer.asset)
     assertExists(funding, 'A purchase beyond the treasury requires funding')
     return funding.contributors.flatMap((owner) => {
-        const amount = Math.min(shortfall, finiteCash(state, owner))
+        const amount = Math.min(shortfall, finiteCashOwnedBy(state, owner))
         shortfall -= amount
         return amount ? [{ from: owner, to: buyer, amount }] : []
     })

@@ -1,22 +1,17 @@
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
     awardPrivate,
     beginSelectionAuction,
     closePrivate,
-    createCompanyStations,
     type InitialPosition,
     type Opening,
     type OpeningSetup,
-    type SelectionAuctionRules
+    type SelectionAuctionRules,
+    type SelectionAuctionState
 } from '@tabletop/18xx'
-import { EighteenSeventeenCorporations } from './corporations.js'
-import { EighteenSeventeenPrivateCatalog, EighteenSeventeenPrivates } from './privates.js'
-import { EighteenSeventeenMap } from './map.js'
-import { EighteenSeventeenTileSet } from './tiles.js'
-import { EighteenSeventeenTrainDepot } from './trains.js'
+import { EighteenSeventeenPrivateCatalog } from './privates.js'
 import { createEighteenSeventeenStockMarket } from './stockMarket.js'
-import { MarketPoolId, treasuryPoolId } from './roundRules.js'
-import { seedMoney, setSeedMoney } from './state.js'
+import { createEighteenSeventeenPosition } from './position.js'
 
 export const EighteenSeventeenStartingCash: Readonly<Record<number, number>> = {
     3: 420,
@@ -34,8 +29,21 @@ export const EighteenSeventeenSeedMoney = 200
 
 // The bank subsidises privates sold below face value from its seed money; once that is spent,
 // bidding opens at face value.
+function seedMoney(state: SelectionAuctionState): number {
+    assert(
+        'seedMoney' in state && typeof state.seedMoney === 'number',
+        'The opening auction has seed money'
+    )
+    return state.seedMoney
+}
+
 export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
     lots: (state) => EighteenSeventeenPrivateCatalog.lots(state),
+    nominationLotIds(state) {
+        assertExists(state.selectionAuction, 'Nominations belong to the selection auction')
+        return state.selectionAuction.remainingLotIds
+    },
+    passingWhileNominating: true,
     openingBid: (state, lotId) =>
         Math.max(0, EighteenSeventeenPrivateCatalog.faceValue(lotId) - seedMoney(state)),
     increment: 5,
@@ -45,7 +53,7 @@ export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
             0,
             EighteenSeventeenPrivateCatalog.faceValue(award.lotId) - award.price
         )
-        setSeedMoney(state, seedMoney(state) - subsidy)
+        Object.assign(state, { seedMoney: seedMoney(state) - subsidy })
     },
     closeUnsold(state, lotIds) {
         for (const id of lotIds) closePrivate(state, id)
@@ -62,74 +70,10 @@ export function createEighteenSeventeenOpening({
     )
     const capital = EighteenSeventeenStartingCash[players.length]
     const position: InitialPosition = {
-        stockMarket: createEighteenSeventeenStockMarket(),
-        bank: { name: 'Bank' },
-        companies: [
-            ...EighteenSeventeenCorporations.map((company) => ({
-                id: company.id,
-                name: company.name,
-                kind: 'major',
-                shareCount: 2,
-                started: false,
-                floated: false,
-                funded: false,
-                operated: false
-            })),
-            ...EighteenSeventeenPrivates.map((company) => ({
-                id: company.id,
-                name: company.name,
-                kind: 'private',
-                privateRevenue: 0
-            }))
-        ],
-        cash: [
-            { owner: { kind: 'bank' }, amount: 'unlimited' },
-            ...players.map((player) => ({
-                owner: { kind: 'player' as const, playerId: player.playerId },
-                amount: capital
-            })),
-            ...EighteenSeventeenCorporations.map((company) => ({
-                owner: { kind: 'company' as const, companyId: company.id },
-                amount: 0
-            }))
-        ],
-        certificatePools: [
-            { id: MarketPoolId, name: 'Market', owner: { kind: 'bank' } },
-            ...EighteenSeventeenCorporations.map((company) => ({
-                id: treasuryPoolId(company.id),
-                name: 'Treasury',
-                owner: { kind: 'company' as const, companyId: company.id }
-            }))
-        ],
-        certificates: [
-            ...EighteenSeventeenCorporations.map((company) => ({
-                id: `${company.id}:president`,
-                companyId: company.id,
-                kind: 'share' as const,
-                shares: 2,
-                president: true,
-                certificateLimitCount: 1,
-                retired: false as const,
-                owner: { kind: 'bank' as const }
-            })),
-            ...EighteenSeventeenPrivates.map((company) => ({
-                id: `${company.id}:charter`,
-                companyId: company.id,
-                kind: 'private' as const,
-                certificateLimitCount: 1,
-                retired: false as const,
-                owner: { kind: 'bank' as const }
-            }))
-        ],
-        tranches: [],
-        ownershipLimitExemptions: [],
-        stations: EighteenSeventeenCorporations.flatMap((company) =>
-            createCompanyStations(company.id, 1)
+        ...createEighteenSeventeenPosition(
+            players.map((player) => ({ playerId: player.playerId, amount: capital }))
         ),
-        stationReservations: EighteenSeventeenMap.stationReservations(),
-        tileInventory: EighteenSeventeenTileSet.createInventory(),
-        trainInventory: EighteenSeventeenTrainDepot.createInventory(),
-        phaseId: '2'
+        stockMarket: createEighteenSeventeenStockMarket()
     }
     return {
         position,

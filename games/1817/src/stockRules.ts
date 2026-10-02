@@ -1,8 +1,8 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import {
     StationPlacement,
     addCompanyStations,
-    cashOwnedBy,
+    finiteCashOwnedBy,
     companyMarketSpace,
     getCompany,
     issueShareCertificates,
@@ -51,38 +51,73 @@ export function playerPrivateIds(state: StockState, playerId: string): string[] 
         .map((company) => company.id)
 }
 
-function playerCash(state: StockState, playerId: string): number {
-    const cash = cashOwnedBy(state, { kind: 'player', playerId })
-    assert(typeof cash === 'number', 'A player holds finite cash')
-    return cash
-}
-
 function privateValue(privateIds: readonly string[]): number {
     return privateIds.reduce((sum, id) => sum + EighteenSeventeenPrivateCatalog.faceValue(id), 0)
 }
 
-// A bid may be paid with any of the bidder's privates at face value, the rest in cash.
-function privateValueSubsets(privateIds: readonly string[]): number[] {
-    return privateIds.reduce<number[]>(
-        (sums, id) => [...sums, ...sums.map((sum) => sum + privateValue([id]))],
-        [0]
-    )
+function stationCost(shareCount: number): number {
+    return (StationsBySize[shareCount] - 1) * StationPrice
+}
+
+function companyShareCounts(state: CompanyAuctionState): readonly number[] {
+    const shareCounts = EighteenSeventeenCompanySizes[state.phaseId]
+    assertExists(shareCounts, 'Every 1817 phase names its company sizes')
+    return shareCounts
+}
+
+// A winning bid is paid in the winner's cash and privates at face value; what the company pays
+// for the privates must leave it the price of its stations.
+function contributionRange(
+    state: CompanyAuctionState,
+    playerId: string,
+    price: number,
+    shareCount: number
+): { minimum: number; maximum: number } {
+    const cash = finiteCashOwnedBy(state, { kind: 'player', playerId })
+    return { minimum: price - cash, maximum: price - stationCost(shareCount) }
+}
+
+function subsetSums(privateIds: readonly string[]): number[] {
+    return [
+        ...new Set(
+            privateIds.reduce<number[]>(
+                (sums, id) => [...sums, ...sums.map((sum) => sum + privateValue([id]))],
+                [0]
+            )
+        )
+    ]
+}
+
+function someContributionFits(
+    state: CompanyAuctionState,
+    playerId: string,
+    price: number,
+    privateIds: readonly string[],
+    included: number
+): boolean {
+    return companyShareCounts(state).some((shareCount) => {
+        const range = contributionRange(state, playerId, price, shareCount)
+        return subsetSums(privateIds).some(
+            (sum) => sum + included >= range.minimum && sum + included <= range.maximum
+        )
+    })
 }
 
 function formationReason(state: CompanyAuctionState, formation: CompanyFormation) {
-    if (!EighteenSeventeenCompanyAuction.shareCounts(state).includes(formation.shareCount))
+    if (!companyShareCounts(state).includes(formation.shareCount))
         return 'This size is not available in this phase.'
     const owned = playerPrivateIds(state, formation.playerId)
     if (!formation.privateIds.every((id) => owned.includes(id)))
         return 'Only the winner’s own privates can be contributed.'
     const contributed = privateValue(formation.privateIds)
-    if (contributed > formation.price)
-        return 'The company cannot pay more for privates than the winning bid.'
-    if (playerCash(state, formation.playerId) + contributed < formation.price)
-        return 'Contribute enough privates to pay the winning bid.'
-    const stations = StationsBySize[formation.shareCount] - 1
-    if (formation.price - contributed < stations * StationPrice)
-        return 'The company could not pay for its stations.'
+    const range = contributionRange(
+        state,
+        formation.playerId,
+        formation.price,
+        formation.shareCount
+    )
+    if (contributed < range.minimum) return 'Contribute enough privates to pay the winning bid.'
+    if (contributed > range.maximum) return 'The company could not pay for its stations.'
     return undefined
 }
 
@@ -90,11 +125,10 @@ function form(state: CompanyAuctionState, formation: CompanyFormation): void {
     const company = { kind: 'company' as const, companyId: formation.companyId }
     const player = { kind: 'player' as const, playerId: formation.playerId }
     const contributed = privateValue(formation.privateIds)
-    const stations = StationsBySize[formation.shareCount] - 1
     const payments: CashPayment[] = [
         { from: player, to: company, amount: formation.price },
         { from: company, to: player, amount: contributed },
-        { from: company, to: { kind: 'bank' }, amount: stations * StationPrice }
+        { from: company, to: { kind: 'bank' }, amount: stationCost(formation.shareCount) }
     ]
     settleCashPayments(
         state,
@@ -114,7 +148,7 @@ function form(state: CompanyAuctionState, formation: CompanyFormation): void {
         owner: company,
         poolId: treasuryPoolId(formation.companyId)
     })
-    addCompanyStations(state, formation.companyId, stations)
+    addCompanyStations(state, formation.companyId, StationsBySize[formation.shareCount] - 1)
 }
 
 export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
@@ -129,15 +163,12 @@ export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
             return 0
         return Math.min(
             MaximumCompanyBid,
-            playerCash(state, playerId) + privateValue(playerPrivateIds(state, playerId))
+            finiteCashOwnedBy(state, { kind: 'player', playerId }) +
+                privateValue(playerPrivateIds(state, playerId))
         )
     },
-    payable(state, playerId, amount) {
-        const cash = playerCash(state, playerId)
-        return privateValueSubsets(playerPrivateIds(state, playerId)).some(
-            (value) => value <= amount && amount <= value + cash
-        )
-    },
+    formable: (state, playerId, amount) =>
+        someContributionFits(state, playerId, amount, playerPrivateIds(state, playerId), 0),
     homes(state, companyId) {
         const placement = new StationPlacement(state, EighteenSeventeenStationRules)
         return EighteenSeventeenMap.definition.locations.flatMap((location) =>
@@ -157,8 +188,20 @@ export const EighteenSeventeenCompanyAuction: CompanyAuctionRules = {
             .reduce((best, space) => (space.price > best.price ? space : best))
         return space.id
     },
-    shareCounts: (state) => EighteenSeventeenCompanySizes[state.phaseId] ?? [],
-    contributions: playerPrivateIds,
+    shareCounts: companyShareCounts,
+    // A private is offered when some contribution that includes it would form the company.
+    contributions(state, playerId, price) {
+        const owned = playerPrivateIds(state, playerId)
+        return owned.filter((id) =>
+            someContributionFits(
+                state,
+                playerId,
+                price,
+                owned.filter((other) => other !== id),
+                privateValue([id])
+            )
+        )
+    },
     formationReason,
     form
 }

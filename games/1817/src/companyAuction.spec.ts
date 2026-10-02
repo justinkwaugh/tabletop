@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    CompanyAuctionModel,
     cashOwnedBy,
     companyMarketSpace,
     evaluateSharePurchase,
@@ -129,11 +130,46 @@ describe('company auctions', () => {
             giveCash(state, 'alex', 50)
             givePrivate(state, 'MAJM', 'alex')
         })
-        expect(EighteenSeventeenCompanyAuction.payable(play.state, 'alex', 160)).toBe(true)
-        expect(EighteenSeventeenCompanyAuction.payable(play.state, 'alex', 110)).toBe(false)
+        expect(EighteenSeventeenCompanyAuction.formable(play.state, 'alex', 160)).toBe(true)
+        expect(EighteenSeventeenCompanyAuction.formable(play.state, 'alex', 110)).toBe(false)
         expect(() =>
             play.act('AuctionCompany', { companyId: 'AS', amount: 110, home: lansing })
         ).toThrow()
+    })
+
+    it('refuses a winning bid that could not pay for the company’s stations', () => {
+        const play = trading((state) => {
+            state.phaseId = '6'
+        })
+        const opening = (amount: number) =>
+            new CompanyAuctionModel(play.state, EighteenSeventeenStockRules).openingReason({
+                playerId: 'alex',
+                companyId: 'AS',
+                amount,
+                home: lansing
+            })
+        expect(opening(145)).toBe('The player cannot make this opening bid.')
+        expect(opening(150)).toBeUndefined()
+        expect(
+            new CompanyAuctionModel(play.state, EighteenSeventeenStockRules).lowestBid('alex')
+        ).toBe(150)
+        play.act('AuctionCompany', { companyId: 'AS', amount: 150, home: lansing })
+        play.act('PassCompanyAuction', { companyId: 'AS' })
+        play.act('PassCompanyAuction', { companyId: 'AS' })
+        expect(getCompany(play.state, 'AS').shareCount).toBe(10)
+        expect(play.treasury('AS')).toBe(0)
+    })
+
+    it('forms without a decision when none of the winner’s privates fits the bid', () => {
+        const play = trading((state) => {
+            for (const cash of state.cash)
+                if (cash.owner.kind === 'player' && cash.owner.playerId !== 'alex') cash.amount = 0
+            givePrivate(state, 'MINC', 'blair')
+            givePrivate(state, 'MAJM', 'alex')
+        })
+        play.act('AuctionCompany', { companyId: 'AS', amount: 100, home: lansing })
+        expect(getCompany(play.state, 'AS').started).toBe(true)
+        expect(privateOwner(play.state, 'MAJM')).toEqual({ kind: 'player', playerId: 'alex' })
     })
 
     it('refuses a home without an open slot', () => {

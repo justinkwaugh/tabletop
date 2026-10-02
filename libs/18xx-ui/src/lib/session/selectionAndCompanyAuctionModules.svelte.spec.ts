@@ -12,6 +12,8 @@ import { testSession } from './moduleTestSession.js'
 
 const selectionRules: SelectionAuctionRules = {
     lots: () => [{ id: 'P', name: 'Private', price: 40 }],
+    nominationLotIds: () => ['P'],
+    passingWhileNominating: true,
     openingBid: () => 10,
     increment: 5,
     award: () => {},
@@ -44,7 +46,7 @@ const auctionTerms: CompanyAuctionRules = {
     openingBid: 100,
     increment: 5,
     maximumBid: () => 200,
-    payable: () => true,
+    formable: () => true,
     homes: () => [home],
     startSpace: () => '0:0',
     shareCounts: () => [2, 5],

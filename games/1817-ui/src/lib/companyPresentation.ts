@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import type { CompanyNameVariants } from '@tabletop/18xx-ui'
 import { EighteenSeventeenCorporations, EighteenSeventeenPrivates } from '@tabletop/1817'
 
@@ -24,8 +25,9 @@ export const EighteenSeventeenCompanyNames: Readonly<Record<string, CompanyNameV
                 initials: company.abbreviation
             }
         ]),
-        ...EighteenSeventeenPrivates.map((company) => [
-            company.id,
-            { short: company.name, initials: PrivateInitials[company.id] ?? company.id }
-        ])
+        ...EighteenSeventeenPrivates.map((company) => {
+            const initials = PrivateInitials[company.id]
+            assertExists(initials, `Private ${company.id} has initials`)
+            return [company.id, { short: company.name, initials }]
+        })
     ])

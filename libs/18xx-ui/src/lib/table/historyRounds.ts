@@ -32,12 +32,6 @@ export type HistoryRound = {
     entries: ActionHistoryEntry[]
 }
 
-const AuctionCompletionPaths = [
-    '/offerAuction/completed',
-    '/openingAuction/completed',
-    '/selectionAuction/completed'
-]
-
 function changedCompanyCashOf(cash: HistoryCash | undefined): boolean {
     return cash !== undefined && changedCompanyCash(cash)
 }
@@ -115,6 +109,7 @@ export function historyRounds(
                       ? { kind: 'action' as const, id: action.id, action }
                       : undefined))
         if (entry) section.entries.push(entry)
+        if (isResolveSelectionAuction(action) && action.metadata?.completed) auction = true
         for (const patch of action.undoPatch ?? []) {
             if (patch.op !== 'add' && patch.op !== 'replace') continue
             if (patch.path === '/phaseId') {
@@ -131,7 +126,11 @@ export function historyRounds(
                 round = patch.value.roundNumber
             } else if (patch.path === '/operatingSet/number') set = patch.value
             else if (patch.path === '/operatingSet/roundNumber') round = patch.value
-            else if (AuctionCompletionPaths.includes(patch.path)) auction = !patch.value
+            else if (
+                patch.path === '/offerAuction/completed' ||
+                patch.path === '/openingAuction/completed'
+            )
+                auction = !patch.value
         }
     }
     return rounds.filter(

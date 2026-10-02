@@ -200,7 +200,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     readonly stock = new StockModule(
         this.moduleSession,
         () => {
-            this.companyAuction.opening.clear()
+            this.companyAuction.clearOpening()
             this.onStockSelectionCancelled()
         },
         () => this.privates.exchangeOffers.length > 0,

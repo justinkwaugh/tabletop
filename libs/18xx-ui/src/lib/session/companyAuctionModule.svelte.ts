@@ -1,9 +1,10 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
     AuctionCompany,
     BidForCompany,
     CompanyAuctionModel,
     FormCompany,
+    canBeAuctioned,
     PassCompanyAuction,
     type CompanyAuctionState,
     type CompanyFormationChoice,
@@ -17,16 +18,18 @@ export type CompanyAuctionSession = ModuleSession<
     CompanyAuctionState,
     Pick<EighteenXXTitleRules, 'stockRules'>
 >
-export type CompanyAuctionOpeningStages = { companyId: string; home: HomePosition; amount: number }
-export const CompanyAuctionOpeningStageOrder = ['companyId', 'home', 'amount'] as const
+export type CompanyAuctionOpeningStages = { companyId: string; home: HomePosition }
+export const CompanyAuctionOpeningStageOrder = ['companyId', 'home'] as const
 
 export class CompanyAuctionModule {
     readonly opening = new StagedSelection<CompanyAuctionOpeningStages>(
         CompanyAuctionOpeningStageOrder,
         'pop-stage'
     )
-    readonly formation = singleChoice<CompanyFormationChoice>()
+    readonly openingBid = singleChoice<number>()
     readonly raise = singleChoice<number>()
+    readonly size = singleChoice<number>()
+    readonly contribution = singleChoice<string[]>()
     constructor(private readonly session: CompanyAuctionSession) {}
 
     model = $derived.by(() =>
@@ -34,7 +37,6 @@ export class CompanyAuctionModule {
             ? new CompanyAuctionModel(this.session.state, this.session.rules.stockRules)
             : undefined
     )
-    /** The auction in progress, if any. */
     auction = $derived.by(() => this.model?.auction)
     /** The player whose bid, pass or formation the auction awaits. */
     playerId = $derived.by(() => this.model?.playerId)
@@ -42,7 +44,7 @@ export class CompanyAuctionModule {
     canOpen = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('AuctionCompany')
     )
-    canBid = $derived.by(
+    canRespond = $derived.by(
         () =>
             this.session.interactive && this.session.validActionTypes.includes('PassCompanyAuction')
     )
@@ -50,11 +52,7 @@ export class CompanyAuctionModule {
         () => this.session.interactive && this.session.validActionTypes.includes('FormCompany')
     )
     companies = $derived.by(() =>
-        this.canOpen
-            ? this.session.state.companies.filter(
-                  (company) => company.kind !== 'private' && !company.started && !company.closed
-              )
-            : []
+        this.canOpen ? this.session.state.companies.filter(canBeAuctioned) : []
     )
     selectedCompanyId = $derived.by(() =>
         this.session.selectionsVisible ? this.opening.value('companyId') : undefined
@@ -62,9 +60,13 @@ export class CompanyAuctionModule {
     selectedHome = $derived.by(() =>
         this.session.selectionsVisible ? this.opening.value('home') : undefined
     )
-    openingAmount = $derived.by(() =>
-        this.session.selectionsVisible ? this.opening.value('amount') : undefined
-    )
+    openingAmount = $derived.by(() => {
+        const model = this.model
+        const playerId = this.session.state.activePlayerIds[0]
+        if (!model || !this.selectedHome || !playerId) return undefined
+        const staged = this.session.selectionsVisible ? this.openingBid.value('choice') : undefined
+        return staged ?? model.lowestBid(playerId)
+    })
     homePositions = $derived.by(() => {
         const model = this.model
         const companyId = this.selectedCompanyId
@@ -78,17 +80,20 @@ export class CompanyAuctionModule {
     shareCounts = $derived.by(() =>
         this.model && this.pending ? this.model.terms.shareCounts(this.session.state) : []
     )
-    contributions = $derived.by(() =>
-        this.model && this.pending
-            ? this.model.terms.contributions(this.session.state, this.pending.playerId)
-            : []
+    contributions = $derived.by(() => this.model?.contributions() ?? [])
+    // A size is chosen by the winner unless the phase allows only one.
+    shareCount = $derived.by(
+        () =>
+            (this.session.selectionsVisible ? this.size.value('choice') : undefined) ??
+            (this.shareCounts.length === 1 ? this.shareCounts[0] : undefined)
     )
-    formationChoice = $derived.by(
-        (): CompanyFormationChoice | undefined =>
-            (this.session.selectionsVisible ? this.formation.value('choice') : undefined) ??
-            (this.shareCounts.length
-                ? { shareCount: this.shareCounts[0], privateIds: [] }
-                : undefined)
+    contributedPrivateIds = $derived.by(
+        () => (this.session.selectionsVisible ? this.contribution.value('choice') : undefined) ?? []
+    )
+    formationChoice = $derived.by((): CompanyFormationChoice | undefined =>
+        this.shareCount === undefined
+            ? undefined
+            : { shareCount: this.shareCount, privateIds: this.contributedPrivateIds }
     )
 
     openingReason(amount: number): string | undefined {
@@ -101,17 +106,20 @@ export class CompanyAuctionModule {
     }
     bidAmount = $derived.by(() => {
         const model = this.model
-        if (!model?.auction) return undefined
+        const playerId = this.playerId
+        if (!model?.auction || !playerId) return undefined
         const staged = this.session.selectionsVisible ? this.raise.value('choice') : undefined
-        return staged !== undefined && staged >= model.minimumBid ? staged : model.minimumBid
+        return staged !== undefined && staged >= model.minimumBid
+            ? staged
+            : (model.lowestBid(playerId) ?? model.minimumBid)
     })
     setBid(amount: number) {
-        assert(this.canBid, 'No company is being auctioned')
+        assert(this.canRespond, 'No company is being auctioned')
         this.raise.choose('choice', amount)
     }
     bidAllowed(amount: number): boolean {
         const playerId = this.playerId
-        return this.canBid && !!playerId && !!this.model?.canBid(playerId, amount)
+        return this.canRespond && !!playerId && !!this.model?.canBid(playerId, amount)
     }
     formationReason(choice: CompanyFormationChoice): string | undefined {
         const model = this.model
@@ -135,25 +143,32 @@ export class CompanyAuctionModule {
             'Choose an offered city'
         )
         this.opening.choose('home', { locationId: home.locationId, nodeId: home.nodeId })
-        this.opening.choose('amount', model.terms.openingBid, 'auto')
+    }
+    clearOpening() {
+        this.opening.clear()
+        this.openingBid.clear()
+    }
+    backFromOpeningBid() {
+        this.openingBid.clear()
+        this.opening.back()
     }
     setOpeningBid(amount: number) {
         assert(this.canOpen && this.selectedHome, 'Choose a home first')
-        this.opening.choose('amount', amount)
+        this.openingBid.choose('choice', amount)
     }
     async open() {
         const companyId = this.selectedCompanyId
         const home = this.selectedHome
         const amount = this.openingAmount
         assert(this.canOpen && companyId && home && amount !== undefined, 'Complete the auction')
-        this.opening.clear()
+        this.clearOpening()
         await this.session.applyAction(
             this.session.createPlayerAction(AuctionCompany, { companyId, home, amount })
         )
     }
     async bid(amount: number) {
         const auction = this.auction
-        assert(this.canBid && auction, 'No company is being auctioned')
+        assert(this.canRespond && auction, 'No company is being auctioned')
         this.raise.clear()
         await this.session.applyAction(
             this.session.createPlayerAction(BidForCompany, {
@@ -164,32 +179,32 @@ export class CompanyAuctionModule {
     }
     async pass() {
         const auction = this.auction
-        assert(this.canBid && auction, 'No company is being auctioned')
+        assert(this.canRespond && auction, 'No company is being auctioned')
         this.raise.clear()
         await this.session.applyAction(
             this.session.createPlayerAction(PassCompanyAuction, { companyId: auction.companyId })
         )
     }
     setShareCount(shareCount: number) {
-        const choice = this.formationChoice
-        assertExists(choice, 'Formation requires a pending company')
-        this.formation.choose('choice', { ...choice, shareCount })
+        assert(this.shareCounts.includes(shareCount), 'Choose an available size')
+        this.size.choose('choice', shareCount)
     }
     toggleContribution(privateId: string) {
-        const choice = this.formationChoice
-        assertExists(choice, 'Formation requires a pending company')
-        this.formation.choose('choice', {
-            ...choice,
-            privateIds: choice.privateIds.includes(privateId)
-                ? choice.privateIds.filter((id) => id !== privateId)
-                : [...choice.privateIds, privateId]
-        })
+        assert(this.contributions.includes(privateId), 'Choose a private that can be contributed')
+        const privateIds = this.contributedPrivateIds
+        this.contribution.choose(
+            'choice',
+            privateIds.includes(privateId)
+                ? privateIds.filter((id) => id !== privateId)
+                : [...privateIds, privateId]
+        )
     }
     async form() {
         const pending = this.pending
         const choice = this.formationChoice
         assert(this.canForm && pending && choice, 'No company is being formed')
-        this.formation.clear()
+        this.size.clear()
+        this.contribution.clear()
         await this.session.applyAction(
             this.session.createPlayerAction(FormCompany, {
                 companyId: pending.companyId,
@@ -198,15 +213,16 @@ export class CompanyAuctionModule {
             })
         )
     }
+    private get selections() {
+        return [this.raise, this.contribution, this.size, this.openingBid, this.opening]
+    }
     hasManual() {
-        return this.opening.hasManual() || this.formation.hasManual() || this.raise.hasManual()
+        return this.selections.some((selection) => selection.hasManual())
     }
     undo() {
-        return this.raise.undo() || this.formation.undo() || this.opening.undo()
+        return this.selections.some((selection) => selection.undo())
     }
     clear() {
-        this.opening.clear()
-        this.formation.clear()
-        this.raise.clear()
+        for (const selection of this.selections) selection.clear()
     }
 }

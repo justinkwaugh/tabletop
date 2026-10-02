@@ -89,7 +89,7 @@ function selectionAuctionActions(rules: SelectionAuctionRules): ActionDefinition
 export function auctionActions(
     offer: OfferPileAuctionRules | undefined,
     waterfall: WaterfallAuctionRules | undefined,
-    selection?: SelectionAuctionRules
+    selection: SelectionAuctionRules | undefined
 ): ActionDefinition[] {
     const shared = offer ?? waterfall
     return [

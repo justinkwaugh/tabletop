@@ -10,6 +10,7 @@ import {
 } from '@tabletop/common'
 import {
     activeSelectionAuction,
+    requireActiveSelectionAuction,
     type SelectionAuctionRules,
     type SelectionAuctionState
 } from './selectionAuction.js'
@@ -48,6 +49,6 @@ export class HydratedPassSelectionAuction
     }
     apply(state: HydratedGameState & SelectionAuctionState): void {
         assert(this.isValid(state), 'Invalid PassSelectionAuction action')
-        activeSelectionAuction(state, this.#rules)!.pass(this.playerId)
+        requireActiveSelectionAuction(state, this.#rules).pass(this.playerId)
     }
 }

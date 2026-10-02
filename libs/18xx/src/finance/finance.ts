@@ -198,6 +198,13 @@ export function cashOwnedBy(
     return state.cash.find((cash) => sameOwner(cash.owner, owner))?.amount
 }
 
+/** The cash of an owner whose balance is finite, as every player's and company's is. */
+export function finiteCashOwnedBy(state: Pick<FinancialState, 'cash'>, owner: Owner): number {
+    const cash = cashOwnedBy(state, owner)
+    assert(typeof cash === 'number', 'This owner requires a finite cash balance')
+    return cash
+}
+
 export function getTreasury(
     state: Pick<FinancialState, 'companies' | 'cash' | 'certificates'>,
     companyId: string

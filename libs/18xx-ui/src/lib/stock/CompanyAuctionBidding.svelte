@@ -70,7 +70,7 @@
                 canBid={module.bidAllowed(amount)}
                 canDecrease={module.bidAllowed(amount - model.terms.increment)}
                 canIncrease={module.bidAllowed(amount + model.terms.increment)}
-                canPass={module.canBid}
+                canPass={module.canRespond}
                 onChange={(value) => module.setBid(value)}
                 onBid={() => module.bid(amount)}
                 onPass={() => module.pass()}

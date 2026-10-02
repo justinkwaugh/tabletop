@@ -12,8 +12,7 @@
         x?: number
         y?: number
     } = $props()
-    // Four-letter labels shrink to stay inside the token.
-    const fontSize = $derived(appearance.label.length > 3 ? 9.5 : 12)
+    const labelFitsTokenFontSize = $derived(appearance.label.length > 3 ? 9.5 : 12)
 </script>
 
 <svg {x} {y} width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
@@ -27,7 +26,7 @@
             text-anchor="middle"
             dominant-baseline="central"
             font-family="ui-sans-serif, system-ui, sans-serif"
-            font-size={fontSize}
+            font-size={labelFitsTokenFontSize}
             fill={contrastingTextColor(appearance.color)}>{appearance.label}</text
         >
     {/if}

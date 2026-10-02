@@ -85,11 +85,12 @@ export class PassableBidding {
         return auction.dehydrate()
     }
 
-    /** Withdraws every player other than the high bidder who cannot reach the minimum bid. */
-    withdrawUnable(canReach: (playerId: string) => boolean): SimpleAuction {
+    /** Withdraws every player other than the high bidder whose maximum bid is below the minimum. */
+    withdrawBelow(minimum: number, maximumBid: (playerId: string) => number): SimpleAuction {
         const auction = new HydratedSimpleAuction(this.bidding)
         for (const playerId of this.remainingPlayerIds)
-            if (playerId !== this.highBidderId && !canReach(playerId)) auction.pass(playerId)
+            if (playerId !== this.highBidderId && maximumBid(playerId) < minimum)
+                auction.pass(playerId)
         return auction.dehydrate()
     }
 }

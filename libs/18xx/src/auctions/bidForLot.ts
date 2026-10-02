@@ -10,6 +10,7 @@ import {
 } from '@tabletop/common'
 import {
     activeSelectionAuction,
+    requireActiveSelectionAuction,
     type SelectionAuctionRules,
     type SelectionAuctionState
 } from './selectionAuction.js'
@@ -52,6 +53,6 @@ export class HydratedBidForLot extends HydratableAction<typeof BidForLot> implem
     }
     apply(state: HydratedGameState & SelectionAuctionState): void {
         assert(this.isValid(state), 'Invalid BidForLot action')
-        activeSelectionAuction(state, this.#rules)!.bid(this.playerId, this.lotId, this.amount)
+        requireActiveSelectionAuction(state, this.#rules).bid(this.playerId, this.lotId, this.amount)
     }
 }

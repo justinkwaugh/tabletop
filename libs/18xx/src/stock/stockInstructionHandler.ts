@@ -33,9 +33,8 @@ export class StockInstructionHandler<
         const state = context.gameState
         const playerId = state.turnManager.currentTurn()?.playerId
         if (!playerId || state.stockRound.completed) return undefined
-        // While another player decides during this turn, such as bidding for a company, the
-        // instruction waits.
-        if (!state.activePlayerIds.includes(playerId)) return undefined
+        const anotherPlayerDecidingInThisTurn = !state.activePlayerIds.includes(playerId)
+        if (anotherPlayerDecidingInThisTurn) return undefined
         const standing = standingStockInstructionFor(state, playerId)
         if (!standing) return undefined
         const available = this.handler.validActionsForPlayer(playerId, context)

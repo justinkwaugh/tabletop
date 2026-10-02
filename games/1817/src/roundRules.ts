@@ -1,8 +1,9 @@
 import { EighteenSeventeenPhases } from './trains.js'
+import { corporationShareCount } from './corporations.js'
 import {
+    allSharesHeld,
     certificatesInPool,
     floatedCompaniesInMarketOrder,
-    getCompany,
     playerOrderAfterLastTurn,
     type StockRoundRules,
     type OperatingRules
@@ -12,23 +13,9 @@ export const EighteenSeventeenStockRoundRules: StockRoundRules = {
     passing: 'consecutive',
     nextPlayerOrder: playerOrderAfterLastTurn,
     // A company of more than two shares whose players hold every share moves up.
-    soldOut(state, companyId) {
-        const company = getCompany(state, companyId)
-        if (!company.started || company.closed || !company.shareCount || company.shareCount <= 2)
-            return false
-        const playerShares = state.certificates.reduce(
-            (sum, certificate) =>
-                sum +
-                (!certificate.retired &&
-                certificate.kind === 'share' &&
-                certificate.companyId === companyId &&
-                certificate.owner.kind === 'player'
-                    ? certificate.shares
-                    : 0),
-            0
-        )
-        return playerShares >= company.shareCount
-    },
+    soldOut: (state, companyId) =>
+        corporationShareCount(state, companyId) > 2 &&
+        allSharesHeld(state, companyId, (certificate) => certificate.owner.kind === 'player'),
     // Each share left in the market pool moves the company down one space.
     poolDrop: (state, companyId) =>
         certificatesInPool(state, MarketPoolId).reduce(
