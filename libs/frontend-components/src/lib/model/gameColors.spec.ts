@@ -1,4 +1,5 @@
 import { DefaultColorizer } from '$lib/definition/gameColorizer.js'
+import type { PlayerColorPalette } from '$lib/definition/gameUiDefinition.js'
 import { Color, PlayerStatus, Role, UserStatus, type GameState, type User } from '@tabletop/common'
 import { writable } from 'svelte/store'
 import { describe, expect, test } from 'vitest'
@@ -18,7 +19,7 @@ const user: User = {
     }
 }
 
-function createColors(hotseat: boolean) {
+function createColors(hotseat: boolean, colorblindPlayerColorPalette?: PlayerColorPalette) {
     const actAsAdmin = writable(false)
     const colors = new GameColors<GameState>(
         {
@@ -28,7 +29,8 @@ function createColors(hotseat: boolean) {
         {
             runtime: {
                 colorizer: new DefaultColorizer(),
-                playerColors: [Color.Red, Color.Blue]
+                playerColors: [Color.Red, Color.Blue],
+                colorblindPlayerColorPalette
             },
             game: {
                 hotseat,
@@ -96,6 +98,20 @@ describe('GameColors preference preview', () => {
 
         expect(colors.colorBlind).toBe(true)
         expect(colors.getBgColorValue(Color.Red)).toBe('#D55E00')
+    })
+
+    test('uses a game override of the colorblind palette', () => {
+        const { colors } = createColors(true, {
+            [Color.Red]: { fill: '#dfa620', text: '#ffffff', contrast: '#ffffff' }
+        })
+
+        colors.setPreferencePreview({
+            preferredColorsEnabled: false,
+            colorBlindPalette: true
+        })
+
+        expect(colors.getBgColorValue(Color.Red)).toBe('#dfa620')
+        expect(colors.getBgColorValue(Color.Blue)).toBe('#0072B2')
     })
 
     test('retains Admin color suppression during a preference preview', () => {
