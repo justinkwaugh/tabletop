@@ -733,6 +733,164 @@ UI artifacts need republishing only to adopt the new family code.
 - An 8-train bought in the first OR of set 5 makes set 6 final with 2 ORs; one
   exported after the second OR makes it final with 3. The game ends after that set.
 
+## Slice 3 design: loans, interest and liquidation
+
+Slice 3 gives 1817 its debt and failure: corporate loans, the interest rate, interest
+with automatic loans, the stock-round corporate action, liquidation, the player's cash
+crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
+
+- **3a, loans and liquidation:** loans and repayments, the rate, interest, the
+  stock-round corporate action, stations owed at formation, and liquidation for a
+  missing train, unpaid stations or unpaid interest.
+- **3b, cash crisis and bankruptcy:** a president who cannot pay a liquidated
+  company's interest sells shares or goes bankrupt; bankrupt players leave the game,
+  which ends when one player remains.
+
+### Evidence
+
+- **Loans** ([game], [loan-step]). A loan is $100. A company may hold as many loans
+  as it has shares (2, 5 or 10). The bank has 70. Taking a loan moves the price one
+  space left, never into the liquidation space; repaying one moves it right.
+- **Rate.** 5% per 5 loans outstanding in the game, rounded up: 0–5 loans 5%, 6–10
+  10%, up to 70%. It is fixed when each operating round starts and floats during the
+  stock round. A company owes the rate × its loans, in dollars.
+- **Operating turn.** A company may take loans at any point of its turn until it has
+  paid interest. Interest is paid after its trains, from its treasury; if the treasury
+  is short it takes loans automatically, each moving the price and adding to what is
+  owed. Then the president may repay loans ($100 each), or take more; a loan taken
+  then ends the repayments. Unable to pay even after borrowing to its limit, the
+  company is liquidated: its cash goes to the president, who owes the interest.
+- **Stock-round corporate action** ([stock-step]). Instead of acting for themselves, a
+  player may act for one company they preside: take loans, then buy back shares from
+  the market at the current price with its treasury cash. Buy-backs do not move the
+  price and are refused in the acquisition and liquidation zones. The corporate
+  action is the player's action for the turn.
+- **Stations owed at formation.** A 5-share company needs 2 stations and a 10-share
+  company 4, at $50 each beyond the first. A company that cannot pay at formation owes
+  them; it buys them as soon as its treasury can, after sales of its shares or its
+  loans. A company still owing at the end of the stock round is liquidated.
+- **Missing train.** A company without a train at the end of its turn is liquidated.
+- **Liquidation.** The price moves to the liquidation space. The company stops
+  operating, its shares cannot be sold or bought back, its trains cannot be bought,
+  and it keeps its loans and president. The acquisition round then sells or closes it
+  (slice 6).
+- **Cash crisis and bankruptcy** ([operating-round], [cash-crisis], [bankrupt]). In
+  this slice only unpaid interest can leave a player owing money (shorts add
+  dividends in slice 4, acquisitions settle debts in slice 6). The player sells
+  shares, only as many as needed, never in the acquisition or liquidation zones nor
+  giving away a presidency, at no price drop. A player may declare bankruptcy instead:
+  their shares go to the market, their companies are liquidated, the bank absorbs
+  the debt, and the certificate limit is recalculated for the remaining players.
+  The game ends at once when one player remains.
+
+### Survey
+
+- **Loans** (`borrowing-parties`): 22 of 131 titles have corporate loans: the 1817
+  family (8), the 1867 family (4), 1856 (3), 18NY (2), 1866, 18Uruguay, 1848 and the
+  1849 bond. 27 titles have player loans only, and 82 none.
+    - **Value:** 100, but 50 in the 1867 family and 18NY, and 500 for the 1849 bond.
+    - **Limit:** the share count in the 1817 family and 1866; player-held shares in
+      1856, 18NY and 18Uruguay; by company type in the 1867 family; 1 in 1849; and a
+      lender other than the bank in 1848 (the Bank of England, 20 loans).
+    - **Interest:** a game-wide variable rate in the 1817 family; a fixed amount per
+      loan elsewhere (10% in 1856, 20% in 1866, none in 1848). It is paid after
+      trains (1817, 1866), after dividends (1867, 18NY), after routes (1856) or at
+      the end of the round (18Uruguay).
+    - **Price:** one step left in 1817, 18NY and 1849, two in 18USA and 1848, none in
+      1856 and 1867. 1867 pays out 45 for a 50 loan.
+    - **Automatic loans:** for interest in the 1817 and 1867 families and 18Uruguay;
+      for track and trains in 1867, 1812 and 18NY.
+    - **Repayment:** optional after interest in 1817 and 1866; automatic in 1867 and
+      18NY; one take or repay a turn in 1856.
+- **Failure:** liquidation in the 1817 family, receivership in 11 titles,
+  nationalization or closure in 16.
+- **Bankruptcy:** ends the game in 45 titles, including 1856; eliminates the player
+  until one remains in 29, including the 1817 family, 18NY, 1846 and 1849.
+  Obligations that can force a player's sale include train purchases (common),
+  interest (1817, 1856, 1849, 1866), forced repayment (1856), shorts and
+  liquidation debts (1817) and merger shortfalls (1844, 18Dixie).
+
+### Decisions
+
+- **A loan count on the company.** `Company.loans` (optional) counts its loans; every
+  surveyed title's loans are interchangeable, and a count travels with the company
+  through a merger. 1848's second lender is a recorded limit.
+- **`LoanRules` is title policy:** the loan value, a company's limit, the loans left
+  in the bank, the rate for the round about to start, and the price move for taking
+  and repaying. Interest owed is the fixed rate × loans × value / 100, which covers
+  1817, 1856, 1866 and the 1867 family. 1817's rate needs the game's loans, so the
+  rate is fixed in the family field `interestRate` when each operating round starts
+  and cleared when a stock round starts.
+- **Actions.** `TakeLoan` and `RepayLoan` name the company and record their payment
+  and price move. The state handlers say when they are allowed, as with every other
+  action. The system `PayInterest` records the interest, the automatic loans and
+  any default.
+- **Loans in the operating turn.** For a title with loans, every operating step
+  accepts `TakeLoan` until interest is paid, and the turn gains a last step,
+  `RepayingLoans`, after `BuyingTrains`:
+    - `BuyingTrains` then ends with the new `FinishTrains` rather than
+      `FinishOperatingTurn`;
+    - on entering `RepayingLoans`, `PayInterest` settles interest, taking loans
+      automatically while the treasury is short;
+    - the president then repays, borrows (which ends repaying) or finishes the turn,
+      and the turn finishes automatically when nothing else is possible.
+
+    The step strip shows Loans as the turn's sixth step for such titles. Other
+    timings (1867, 1856) would choose where interest falls; that is left until a
+    title needs it.
+
+- **Liquidation is a 1817 action.** `LiquidateCompany` names the company and the
+  reason, and moves its price to the liquidation space. The market space is the
+  liquidated state: 1817's operating order, sales, buy-backs and train sales already
+  read the zone. It is issued by the system:
+    - at the end of the turn of a company without a train;
+    - at the end of the stock round for a company still owing stations;
+    - by interest default, which `LoanRules.default` hands to the title.
+- **Stations owed are 1817 state.** `stationsOwed` lists companies with their unpaid
+  stations. Formation no longer refuses a company that cannot pay for its stations;
+  the system `BuyOwedStations` buys them when its treasury can.
+- **The corporate action wraps 1817's stock round**, as TOP's company split does. The
+  player's turn accepts `TakeLoan` for one company they preside, then the 1817 action
+  `BuyBackShares`, after which only finishing the turn remains.
+- **Cash crisis (3b).** The interest default leaves the president owing the bank. A
+  family `cashCrisis` (player and amount) and machine state `RaisingCash` accept
+  share sales within the title's crisis terms, then bankruptcy when sales cannot
+  cover it. The train-funding flow of 1830 and 1889 stays separate: its obligation is
+  a purchase with contributors, not a debt.
+- **Bankruptcy (3b).** `bankruptPlayerIds` records players who have left. Stock
+  rounds and final scoring skip them, and the title recalculates the certificate
+  limit. `EndingRules.trigger` ends 1817 when one player remains; 1830 and 1889 keep
+  ending at the first bankruptcy.
+
+### Limits after slice 3
+
+- Loans taken after conversion or during acquisitions, and loans moving with a
+  merger, come with slices 5 and 6.
+- Liquidated companies stay in the liquidation space until the acquisition round
+  (slice 6).
+- The Loan Shark private's extra interest comes with Volatility (slice 9).
+
+### Acceptance examples
+
+- With 7 loans taken in the game the rate fixed for the next round is 10%; a company
+  holding 3 loans owes $30.
+- Taking a loan in the operating round pays $100 and moves the price one space left;
+  a company with 5 shares cannot take a sixth.
+- A company that cannot pay its interest borrows until it can; one at its limit that
+  still cannot is liquidated and its president pays.
+- After interest the president repays two loans, then takes one and cannot repay
+  again.
+- A company that ends its turn without a train moves to the liquidation space and is
+  skipped in later rounds.
+- A 10-share company formed for $100 owes 3 stations ($150). A treasury share bought
+  by a player gives it the cash, and it buys them at once. One that never can is
+  liquidated when the stock round ends.
+- A player buys back two market shares for their company with its treasury cash and
+  cannot then buy shares themselves.
+- (3b) A president who cannot pay sells only enough shares; one who cannot raise it
+  goes bankrupt, their companies are liquidated, and with one player left the game
+  ends.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/entities.rb
@@ -741,3 +899,7 @@ UI artifacts need republishing only to adopt the new family code.
 [rounds]: https://github.com/tobymao/18xx/tree/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round
 [selection]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/selection_auction.rb
 [stock-step]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/buy_sell_par_shares.rb
+[loan-step]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/loan.rb
+[operating-round]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round/operating.rb
+[cash-crisis]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/cash_crisis.rb
+[bankrupt]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/bankrupt.rb
