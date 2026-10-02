@@ -3,7 +3,7 @@
     import type { FocusView } from '$lib/definitions/boardFocusAreas.js'
     import { regionName } from '$lib/model/names.js'
 
-    // Rule 5 — the board's focus views, beside the zoom buttons; the chosen one is ringed.
+    // Rule 5 — the board's focus views in one line along the map's top edge; the chosen one is ringed.
     let {
         selected,
         onselect
@@ -38,24 +38,27 @@
 <style>
     .chooser {
         position: absolute;
-        left: 116px;
-        bottom: 0;
+        top: 4px;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
-        flex-wrap: wrap;
-        gap: 2px;
-        max-width: calc(100% - 124px);
-        padding: 3px;
-        border-radius: 8px;
-        border: 2px solid rgb(55 65 81);
-        background: rgb(0 0 0 / 0.7);
+        flex-wrap: nowrap;
+        gap: 1px;
+        max-width: calc(100% - 8px);
+        overflow-x: auto;
+        padding: 1px;
+        border-radius: 7px;
+        border: 1px solid rgb(55 65 81);
+        background: rgb(0 0 0 / 0.6);
         pointer-events: auto;
     }
     .chooser__view {
-        padding: 3px 9px;
+        padding: 1px 8px;
         border-radius: 6px;
         border: 1px solid transparent;
         color: rgb(209 213 219);
-        font-size: 13px;
+        font-size: 12px;
+        white-space: nowrap;
         font-weight: 700;
         line-height: 1.3;
     }

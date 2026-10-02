@@ -42,7 +42,7 @@
         restore: ReturnType<ScalingWrapper['captureView']>
     }>()
 
-    // Room above the zoom buttons and the chooser, so the focused area is never under them.
+    // Room below the chooser and above the zoom buttons, so the focused area is never under them.
     const FOCUS_PADDING = { x: 12, y: 44 }
     const FOCUS_MAX_SCALE = 2
 
