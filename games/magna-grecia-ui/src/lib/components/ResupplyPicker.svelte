@@ -61,7 +61,8 @@
         disabled={total === 0}
         onclick={() => gameSession.resupply(roads, cities)}
     >
-        Move {total} of {allowance} to supply{total > basic ? ' (★ enhanced)' : ''}
+        Move {total} of {allowance} to supply
+        {#if total > basic}(<span class="enhanced">enhanced</span>){/if}
     </button>
 </div>
 
@@ -115,5 +116,10 @@
         background: #6b3f1d;
         color: #fbf3dc;
         font-size: 15px;
+    }
+
+    .enhanced {
+        font-weight: 700;
+        color: var(--mg-enhanced-on-dark);
     }
 </style>

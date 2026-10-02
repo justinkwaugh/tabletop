@@ -4,6 +4,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { ActionAllowanceKind } from '$lib/utils/actionAllowances.js'
     import AllowanceList from './AllowanceList.svelte'
+    import EnhancedText from './EnhancedText.svelte'
     import AllowanceIcon from './icons/AllowanceIcon.svelte'
     import MarketIcon from './icons/MarketIcon.svelte'
     import PointsIcon from './icons/PointsIcon.svelte'
@@ -91,17 +92,17 @@
             return undefined
         }
         if (allowance.basic === 0) {
-            return `One more ${singular} makes this your ★ enhanced action, with no other tile action after it`
+            return `One more ${singular} makes this your enhanced action, with no other tile action after it`
         }
         const basicNoun = allowance.basic === 1 ? singular : plural
-        return `Up to ${allowance.basic} ${basicNoun} as one of two actions, or ${allowance.basic + allowance.bonus} as your only action (★ enhanced)`
+        return `Up to ${allowance.basic} ${basicNoun} as one of two actions, or ${allowance.basic + allowance.bonus} as your only action (enhanced)`
     }
 
     const marketStatus = $derived(tookMarketAction ? 'Done' : 'None available')
 
     const tileStatus = $derived.by(() => {
         if (gameSession.enhancedAction) {
-            return `Done: ★ enhanced ${ENHANCED_NOUNS[gameSession.enhancedAction]}`
+            return `Done: enhanced ${ENHANCED_NOUNS[gameSession.enhancedAction]}`
         }
         if (tookTileAction) {
             return 'Done'
@@ -186,7 +187,7 @@
         if (gameSession.resupplyOpen) {
             const split = gameSession.resupplySplit
             return split.bonus > 0
-                ? `Move up to ${split.basic} as one of two actions, or up to ${split.basic + split.bonus} as your only action (★ enhanced)`
+                ? `Move up to ${split.basic} as one of two actions, or up to ${split.basic + split.bonus} as your only action (enhanced)`
                 : undefined
         }
         switch (gameSession.activeTool) {
@@ -238,12 +239,14 @@
             {/if}
         </div>
         {#if hint}
-            <div class="hint" class:warning={hintIsWarning}>{hint}</div>
+            <div class="hint" class:warning={hintIsWarning}><EnhancedText text={hint} /></div>
         {/if}
         {#if !gameSession.cityUnfinished}
             <div class="phases" data-step={mobileStep}>
                 <div class="phase tiles" class:closed={tilePhaseClosed}>
-                    <div class="phase-label">Two actions, or one ★ enhanced</div>
+                    <div class="phase-label">
+                        <EnhancedText text="Two actions, or one enhanced" />
+                    </div>
                     <div class="phase-buttons">
                         {#each shownTileButtons as { kind, label, split, active, choose } (kind)}
                             <button type="button" class="tool" class:active onclick={choose}>
@@ -258,7 +261,7 @@
                             </button>
                         {/each}
                         {#if tilePhaseClosed}
-                            <span class="phase-status">{tileStatus}</span>
+                            <span class="phase-status"><EnhancedText text={tileStatus} /></span>
                         {/if}
                     </div>
                     <button type="button" class="skip" onclick={() => gameSession.skipTiles()}>
@@ -475,6 +478,11 @@
         font-size: 11px;
         line-height: 1;
         vertical-align: baseline;
+        color: var(--mg-enhanced);
+    }
+
+    .tool.active .bonus {
+        color: var(--mg-enhanced-on-dark);
     }
 
     .short-label,

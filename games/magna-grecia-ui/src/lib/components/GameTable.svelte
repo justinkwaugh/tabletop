@@ -75,7 +75,7 @@
     fontStyle="italic"
 />
 
-<div class="bg-[#f3ecdc]">
+<div class="bg-[#f3ecdc]" style:--mg-enhanced="#7d2a8c" style:--mg-enhanced-on-dark="#e8c2f2">
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls
