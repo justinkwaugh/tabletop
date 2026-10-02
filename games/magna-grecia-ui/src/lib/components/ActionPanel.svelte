@@ -1,6 +1,6 @@
 <script lang="ts">
     import { EndTurnOutcome, type Allowance } from '@tabletop/magna-grecia'
-    import { BuildTool } from '$lib/model/session.svelte.js'
+    import { BuildTool } from '$lib/model/buildTool.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { ActionAllowanceKind } from '$lib/utils/actionAllowances.js'
     import AllowanceList from './AllowanceList.svelte'
@@ -67,6 +67,19 @@
             : [])
     ])
 
+    const marketToolChosen = $derived(
+        gameSession.activeTool === BuildTool.Market || gameSession.activeTool === BuildTool.Sell
+    )
+    const shownTileButtons = $derived.by(() => {
+        if (marketToolChosen) {
+            return []
+        }
+        if (gameSession.resupplyOpen) {
+            return tileButtons.filter((button) => button.kind === 'resupply')
+        }
+        return tileButtons
+    })
+
     function allowanceHint(allowance: Allowance, plural: string, singular: string) {
         if (allowance.bonus === 0) {
             return undefined
@@ -87,8 +100,9 @@
         if (tookTileAction) {
             return 'Done'
         }
-        return tookMarketAction ? 'Skipped' : 'None available'
+        return tookMarketAction || marketToolChosen ? 'Skipped' : 'None available'
     })
+    const tilePhaseClosed = $derived(!gameSession.tileActionsOpen || marketToolChosen)
 
     // What ending the turn now would do, on every turn, not only once End turn is all that is left.
     const endTurnWarning = $derived.by(() => {
@@ -157,11 +171,6 @@
                 return allowanceHint(gameSession.roadAllowance, 'roads', 'road')
             case BuildTool.City:
                 return allowanceHint(gameSession.cityAllowance, 'city tiles', 'city tile')
-            case BuildTool.Market:
-            case BuildTool.Sell:
-                return gameSession.tileActionsOpen
-                    ? 'A market action skips the tile actions you have left'
-                    : undefined
             default:
                 return undefined
         }
@@ -178,6 +187,12 @@
     })
     const hintIsWarning = $derived(endTurnIsFinal && hint !== undefined && hint === endTurnWarning)
 </script>
+
+{#snippet chevron()}
+    <svg class="chevron" width="14" height="24" viewBox="0 0 14 24" aria-hidden="true">
+        <path d="M 3 3 L 11 12 L 3 21"></path>
+    </svg>
+{/snippet}
 
 <div class="flex min-h-[50px] flex-col items-center justify-center gap-1 px-4 py-1 text-[#4a2c12]">
     {#if !gameSession.canAct}
@@ -198,10 +213,10 @@
         {/if}
         {#if !gameSession.cityUnfinished}
             <div class="phases">
-                <div class="phase" class:closed={!gameSession.tileActionsOpen}>
+                <div class="phase" class:closed={tilePhaseClosed}>
                     <div class="phase-label">1 · Two actions, or one ★ enhanced</div>
                     <div class="phase-buttons">
-                        {#each tileButtons as { kind, label, split, active, choose } (kind)}
+                        {#each shownTileButtons as { kind, label, split, active, choose } (kind)}
                             <button type="button" class="tool" class:active onclick={choose}>
                                 <AllowanceIcon {kind} size={24} />
                                 {label}
@@ -213,12 +228,12 @@
                                 </span>
                             </button>
                         {/each}
-                        {#if !gameSession.tileActionsOpen}
+                        {#if tilePhaseClosed}
                             <span class="phase-status">{tileStatus}</span>
                         {/if}
                     </div>
                 </div>
-                <span class="arrow" aria-hidden="true">›</span>
+                {@render chevron()}
                 <div class="phase" class:closed={!gameSession.marketActionsOpen}>
                     <div class="phase-label">2 · Market</div>
                     <div class="phase-buttons">
@@ -238,7 +253,7 @@
                         {/if}
                     </div>
                 </div>
-                <span class="arrow" aria-hidden="true">›</span>
+                {@render chevron()}
                 <div class="phase">
                     <div class="phase-label">3 · Finish</div>
                     <div class="phase-buttons">
@@ -307,7 +322,7 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
-        min-height: 30px;
+        min-height: 38px;
     }
 
     .phase-status {
@@ -316,12 +331,15 @@
         color: rgba(74, 44, 18, 0.55);
     }
 
-    .arrow {
+    .chevron {
+        flex-shrink: 0;
         align-self: flex-end;
-        padding-bottom: 4px;
-        font-size: 20px;
-        line-height: 1;
-        color: rgba(107, 63, 29, 0.55);
+        margin: 0 2px 7px;
+        fill: none;
+        stroke: rgba(107, 63, 29, 0.45);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
     }
 
     .hint {
@@ -341,8 +359,9 @@
         align-items: center;
         gap: 6px;
         border-radius: 999px;
+        min-height: 38px;
         border: 1.5px solid rgba(107, 63, 29, 0.55);
-        padding: 3px 12px;
+        padding: 3px 14px;
         font-size: 15px;
         line-height: 1.4;
         color: #4a2c12;

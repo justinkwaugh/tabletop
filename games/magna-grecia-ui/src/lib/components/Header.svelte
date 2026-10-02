@@ -6,6 +6,14 @@
     const gameSession = getGameSession()
 
     const currentTurnPlayerId = $derived(gameSession.gameState.turnManager.currentTurn()?.playerId)
+
+    function undo() {
+        if (gameSession.hasManualSelection()) {
+            gameSession.back()
+        } else {
+            gameSession.undo()
+        }
+    }
 </script>
 
 <div
@@ -36,14 +44,8 @@
     </div>
 
     <div class="header-grid grid text-[18px]">
-        {#if gameSession.hasManualSelection()}
-            <button type="button" onclick={() => gameSession.back()} class="header-button">
-                BACK
-            </button>
-        {:else if gameSession.undoableAction}
-            <button type="button" onclick={() => gameSession.undo()} class="header-button">
-                UNDO
-            </button>
+        {#if gameSession.hasManualSelection() || gameSession.undoableAction}
+            <button type="button" onclick={undo} class="header-button">UNDO</button>
         {/if}
     </div>
 </div>

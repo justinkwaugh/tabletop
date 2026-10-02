@@ -27,26 +27,24 @@ import {
     type SpaceKey
 } from '@tabletop/magna-grecia'
 import { legalRoadShapeChoices, roadPlacement, type RoadShapeChoice } from './roadLay.js'
+import { BuildTool } from './buildTool.js'
 import {
     backDraft,
+    carryTool,
     chooseRoadShape,
     chooseRoadSpace,
+    chooseTool,
     clearRoadLay,
+    closeResupply,
     draftRoadShape,
     draftRoadSpace,
+    draftTool,
     emptyDraft,
     hasManualDraft,
     rotateRoad,
     toggleResupply,
     type TurnDraft
 } from './turnDraft.js'
-
-export enum BuildTool {
-    Road = 'Road',
-    City = 'City',
-    Market = 'Market',
-    Sell = 'Sell'
-}
 
 const NO_ALLOWANCE: Allowance = { basic: 0, bonus: 0 }
 
@@ -59,7 +57,6 @@ export class MagnaGreciaGameSession extends GameSession<
     MagnaGreciaProjectedState,
     HydratedMagnaGreciaGameState
 > {
-    private chosenTool: { tool: BuildTool; turnKey: string } | undefined = $state()
     private draft: TurnDraft = $state(emptyDraft())
     flipPlayerOrder = $state(false)
     private stateChangeAnimated = false
@@ -115,7 +112,7 @@ export class MagnaGreciaGameSession extends GameSession<
         if (this.resupplyOpen) {
             return undefined
         }
-        const chosen = this.chosenTool
+        const chosen = draftTool(this.draft)
         if (
             chosen &&
             chosen.turnKey === this.turnKey &&
@@ -248,8 +245,7 @@ export class MagnaGreciaGameSession extends GameSession<
     endTurnOutcome: EndTurnOutcome = $derived(this.gameState.endTurnOutcome())
 
     chooseTool(tool: BuildTool) {
-        this.draft = emptyDraft()
-        this.chosenTool = { tool, turnKey: this.turnKey }
+        this.draft = chooseTool(this.draft, tool, this.turnKey)
     }
 
     chooseRoadSpace(coords: AxialCoordinates) {
@@ -299,7 +295,7 @@ export class MagnaGreciaGameSession extends GameSession<
     }
 
     resetAction() {
-        this.draft = emptyDraft()
+        this.draft = carryTool(this.draft, this.turnKey)
     }
 
     override beforeNewState(): void {
@@ -343,7 +339,7 @@ export class MagnaGreciaGameSession extends GameSession<
         if (!this.validActionTypes.includes(ActionType.Resupply)) {
             return
         }
-        this.draft = emptyDraft()
+        this.draft = closeResupply(this.draft)
         await this.applyAction(this.createPlayerAction(Resupply, { roads, cities }))
     }
 

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import { spaceKey } from '@tabletop/magna-grecia'
-    import { BuildTool } from '$lib/model/session.svelte.js'
+    import { BuildTool } from '$lib/model/buildTool.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
     import { placeCenter } from '$lib/utils/boardView.js'
