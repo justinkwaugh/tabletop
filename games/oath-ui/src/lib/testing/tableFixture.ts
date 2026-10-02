@@ -36,6 +36,7 @@ import {
     testBanners,
     testPlayer,
     testState,
+    testVaultWithDiscards,
     testVaultWithRelics
 } from '@tabletop/oath/testing'
 import GameTable from '$lib/components/GameTable.svelte'
@@ -650,7 +651,15 @@ function observatoryTable(): PlayedTable {
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: ['denizen.arcane.observatory'] },
-            discardPileCounts: { cradle: 0, provinces: 3, hinterland: 2 }
+            discardPileCounts: { cradle: 0, provinces: 3, hinterland: 2 },
+            vault: testVaultWithDiscards({
+                [Region.Provinces]: [
+                    'denizen.hearth.book-binders',
+                    'denizen.order.council-seat',
+                    'denizen.discord.assassin'
+                ],
+                [Region.Hinterland]: ['denizen.nomad.a-fast-steed', 'denizen.beast.wolves']
+            })
         }
     )
     openTurn(state, 'me')

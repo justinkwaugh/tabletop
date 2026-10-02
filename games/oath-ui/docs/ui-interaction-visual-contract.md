@@ -204,7 +204,7 @@ The platform's table layout (`DefaultTableLayout`) owns the bottom safe-area ins
 ## Exercise record
 
 1. pass
-2. pass, automated (`tests/contractScenarios.spec.ts`): the start site from the rows, a tap on another moving the choice, and Back and Undo each unwinding the card, then the site, with the lit map returning
+2. pass, automated (`tests/contractScenarios.spec.ts`): the start site from the rows with the other sites dimmed, a tap on another moving the choice, a card kept first staying marked and the site picked after taking the ring off the map, and Back and Undo each unwinding the card, then the site, with the lit map returning
 3. pass; re-tested 2026-10-01 after Undo became one amber button labelled Undo: a pick offers Undo with "Steps back through your picks not yet sent", one Undo clears it and the button goes; after the send no Undo is offered and the next seat is on the clock (harness, by hand)
 4. pass; the Travel menu automated (`tests/contractScenarios.spec.ts`)
 5. pass, automated: the rows, Back's order and Cancel in the panel (`tests/contractScenarios.spec.ts`); Relic Hunter's relic, the plans and the defender by `campaignDraft.spec.ts`
@@ -244,14 +244,14 @@ The platform's table layout (`DefaultTableLayout`) owns the bottom safe-area ins
 39. pass, automated (`tests/contractScenarios.spec.ts`: the rows, a strip tap that only enlarges, and a button that sends), and checked by eye in the harness at desktop and phone width
 40. pass, automated (`tests/contractScenarios.spec.ts`), and checked by eye in the harness on the Trade menu, the Muster prompt and the reason line
 41. pass, automated (`tests/contractScenarios.spec.ts`): a tap on an offered site enlarges it and travels nowhere (touch), a tap on a ringed denizen with Muster chosen enlarges it and musters nothing (touch), a click on a rail banner with Recover chosen enlarges it and stages nothing, and a strip tap in Trade only enlarges (scenario 39)
-42. pass, automated: each menu's rows by its spec (`tradeRows`, `musterRows`, `travelRows`, `searchRows`, `recoverRows`, the Peek and Campaign specs) and the sends by `tests/contractScenarios.spec.ts` (scenarios 2, 4, 5, 6, 18, 19, 20, 39, 49, 50)
+42. pass, automated: each menu's rows by its spec (`tradeRows`, `musterRows`, `travelRows`, `searchRows`, `recoverRows`, the Peek and Campaign specs); the rows' sends by `tests/contractScenarios.spec.ts` (scenarios 4, 18, 19, 20, 39, 49, 50) and their stages (scenarios 2, 5, 6)
 43. pass, automated for Travel's rows, by hover and by keyboard focus (`tests/contractScenarios.spec.ts`; the pointer's lifetime by `menuPointer.spec.ts`); the Move-warbands row onto the seat's site by `warbandMoveDraft.spec.ts`
-44. pass, automated (`tests/contractScenarios.spec.ts`): with a mouse a hover opens nothing, a click enlarges and Escape closes, and the closing click over a menu row does nothing else; under touch emulation a tap on an offered site enlarges it and travels nowhere, and a Search card's magnifier enlarges it unpicked before a tap on the card picks it; by keyboard, Tab reaches the panel's magnifiers and never a card on the table, and Enter enlarges
+44. pass, automated (`tests/contractScenarios.spec.ts`): with a mouse a hover on a denizen, a site, a banner and a seat card's adviser opens nothing, a click enlarges and Escape closes, and the closing click over a menu row does nothing else; under touch emulation a tap on an offered site enlarges it and travels nowhere, and a Search card's magnifier enlarges it unpicked before a tap on the card picks it; by keyboard, Tab reaches the panel's magnifiers and never a card on the table, and Enter enlarges
 45. pass, automated (`tests/contractScenarios.spec.ts`, including a focus change with Travel staged that leaves the panel, the rings and the staged action as they were; the rectangles, a full strip of eight spaces and the chip under the last site by `boardFocusAreas.spec.ts`)
 46. pass, automated (`tests/contractScenarios.spec.ts`)
 47. pass, automated (`tests/contractScenarios.spec.ts`): Escape one layer at a time, and a press outside an open seat or the goals, over an offered site, closes it and changes nothing
 48. pass, automated (`tests/contractScenarios.spec.ts`): stepped back after a setup choice, no menu and no ring; a site enlarges; the seat, the goals and the Cradle view open; the live menu returns with Cradle still chosen
-49. pass, automated (`tests/contractScenarios.spec.ts`): the world deck; with Observatory declared, the Provinces and Hinterland piles listed and ringed, the empty Cradle pile and the world deck neither, and the Provinces button searching that pile
+49. pass, automated (`tests/contractScenarios.spec.ts`): the world deck; with Observatory declared, the Provinces and Hinterland piles listed and ringed, the empty Cradle pile and the world deck neither, and the Provinces button searching that pile (its count empties, the Hinterland's stays)
 50. pass, automated (`tests/contractScenarios.spec.ts`)
 51. pass, automated for the board's discs (`tests/contractScenarios.spec.ts`)
 52. pass, automated for a banner (`tests/contractScenarios.spec.ts`; the sizes by `previewSize.spec.ts`)

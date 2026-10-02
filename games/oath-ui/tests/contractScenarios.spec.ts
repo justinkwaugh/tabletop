@@ -138,10 +138,19 @@ test('scenario 44: a hover opens nothing; a click on a card on the table enlarge
     page
 }) => {
     await openTable(page, 'trade')
-    const card = await uncovered(page, '.board-card')
-    await card.hover()
-    await page.waitForTimeout(600)
-    await expect(preview(page)).toHaveCount(0)
+    const denizen = page.locator('.board-card[title="Book Binders"]')
+    const hovered = [
+        denizen,
+        await uncovered(page, '.site .board-card'),
+        await uncovered(page, '.banner'),
+        page.getByRole('img', { name: 'A Round of Ale' }).first()
+    ]
+    for (const target of hovered) {
+        await target.hover()
+        await page.waitForTimeout(400)
+        await expect(preview(page)).toHaveCount(0)
+    }
+    const card = denizen
     await card.click()
     await expect(preview(page)).toBeVisible()
     await page.keyboard.press('Escape')
@@ -798,6 +807,27 @@ test('scenario 2: an Exile chooses a start site from the rows, and a tap on anot
     await expect(sites.nth(0)).toHaveAttribute('aria-pressed', 'false')
 })
 
+test('scenario 2: the other sites dim; a card kept first stays marked, and the site picked after takes the ring off the map', async ({
+    page
+}) => {
+    await openTable(page, 'setup')
+    await call(page, 'seatMakesSetupChoice')
+    await expect(page.getByRole('list', { name: 'Start sites' })).toBeVisible()
+    const lit = await boardOffers(page).count()
+    expect(lit).toBeGreaterThan(1)
+    expect(await dimmedSites(page).count()).toBeGreaterThan(0)
+    expect(lit + (await dimmedSites(page).count())).toBe(await page.locator('.site').count())
+
+    const card = grid(page).locator('button[aria-pressed]').first()
+    await card.click()
+    await expect(card).toHaveAttribute('aria-pressed', 'true')
+    await expect(boardOffers(page)).toHaveCount(lit)
+    await page.getByRole('list', { name: 'Start sites' }).locator('button[aria-pressed]').first().click()
+    await expect(boardOffers(page)).toHaveCount(0)
+    await expect(dimmedSites(page)).toHaveCount(0)
+    await expect(page.getByText(/^Keeping /)).toBeVisible()
+})
+
 test('scenario 2: Back and Undo unwind an Exile’s picks, the card then the site, and the lit map returns', async ({ page }) => {
     await openTable(page, 'setup')
     await call(page, 'seatMakesSetupChoice')
@@ -1055,9 +1085,13 @@ test('scenario 49: with Observatory declared every non-empty pile is listed and 
     await expect(page.locator('.discard.pickable')).toHaveCount(2)
     await expect(page.locator('.discard.empty.pickable')).toHaveCount(0)
     await expect(page.locator('.deck--laid.pickable')).toHaveCount(0)
+    const piles = page.locator('.discard')
+    await expect(piles.nth(1)).toContainText('3')
     await provinces.click()
     await expect(page.getByText('Tap the card to keep', { exact: false })).toBeVisible()
     expect((await call(page, 'tableFacts')).machineState).toBe('Searching')
+    await expect(piles.nth(1)).toHaveClass(/empty/)
+    await expect(piles.nth(2)).toContainText('2')
 })
 
 test('scenario 22: with Travel chosen, an open seat’s cards enlarge on a press and pick nothing; a press outside closes it and the destinations are still offered', async ({
