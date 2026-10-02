@@ -3,6 +3,7 @@ import { QueueEnd } from '@tabletop/marracash'
 import {
     hasManualMarracashSelection,
     popMarracashSelection,
+    setMarracashQueueEnd,
     setMarracashSelection,
     type MarracashSelection
 } from './stagedSelection.js'
@@ -14,6 +15,20 @@ describe('MarraCash staged selection', () => {
         selection = setMarracashSelection(selection, 'visitorCount', 3)
         selection = setMarracashSelection(selection, 'queueEnd', QueueEnd.Back)
 
+        expect(selection.queueEnd?.value).toBe(QueueEnd.Back)
+        expect(selection.visitorCount).toBeUndefined()
+    })
+
+    it('keeps the chosen visitor count when switching queue ends', () => {
+        let selection: MarracashSelection = {}
+        selection = setMarracashQueueEnd(selection, QueueEnd.Front)
+        selection = setMarracashSelection(selection, 'visitorCount', 3)
+        selection = setMarracashQueueEnd(selection, QueueEnd.Back)
+
+        expect(selection.queueEnd?.value).toBe(QueueEnd.Back)
+        expect(selection.visitorCount?.value).toBe(3)
+
+        selection = popMarracashSelection(selection)
         expect(selection.queueEnd?.value).toBe(QueueEnd.Back)
         expect(selection.visitorCount).toBeUndefined()
     })

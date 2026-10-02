@@ -46,6 +46,25 @@ export function setMarracashSelection<TStage extends keyof MarracashSelectionVal
           )
 }
 
+// The valid visitor counts depend only on the queue's length, so a chosen count
+// still applies after switching which end of the queue it comes from.
+export function setMarracashQueueEnd(
+    selection: MarracashSelection,
+    end: QueueEnd
+): MarracashSelection {
+    const next = setMarracashSelection(selection, 'queueEnd', end)
+    const count = selection.visitorCount
+    return count === undefined
+        ? next
+        : setStagedSelectionValue<MarracashSelectionValues, 'visitorCount'>(
+              next,
+              STAGE_ORDER,
+              'visitorCount',
+              count.value,
+              count.source
+          )
+}
+
 export function hasManualMarracashSelection(selection: MarracashSelection): boolean {
     return hasManualStagedSelection<MarracashSelectionValues>(selection, STAGE_ORDER)
 }

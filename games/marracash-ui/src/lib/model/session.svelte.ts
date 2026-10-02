@@ -19,6 +19,7 @@ import {
 import {
     hasManualMarracashSelection,
     popMarracashSelection,
+    setMarracashQueueEnd,
     setMarracashSelection,
     type MarracashSelection,
     type MarracashSelectionValues
@@ -159,7 +160,7 @@ export class MarracashGameSession extends GameSession<
     }
 
     chooseQueueEnd(end: QueueEnd) {
-        this.setSelection('queueEnd', end)
+        this.selection = setMarracashQueueEnd(this.selection, end)
     }
 
     chooseVisitorCount(count: number) {
