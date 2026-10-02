@@ -633,10 +633,11 @@ fits without clipping.
 
 ### Title rounds
 
-A title may name a round of its own that follows an operating round (1817's merger
-round). The turn header then reads its name and the operating round's number, such as
-"Merger round 2.1", shortening to its abbreviation like OR/SR; history groups its
-actions as a round of their own, such as "MR 2.1", from its start to its end action.
+A title may name rounds of its own that follow an operating round (1817's merger and
+acquisition rounds). The turn header then reads the round's name and the operating
+round's number, such as "Merger round 2.1", shortening to its abbreviation like OR/SR;
+history groups its actions as a round of their own, such as "MR 2.1", from its start to
+its end action.
 
 1817's merger round replaces the operating panels with one panel for the company being
 dealt with: its size, price and treasury, then the current decision as immediately
@@ -647,6 +648,17 @@ treasury cannot pay, liquidating; a merged company over a limit removes a named
 station or discards a train. Other players see whom the round is waiting for. History
 records conversions and mergers as important rows, purchases with their price, the
 stations bought or the liquidation, and the removals and discards.
+
+1817's acquisition round shows the company being sold in the same kind of panel. Its
+president offers it for sale from its opening bid or keeps it; while it is auctioned the
+panel names how it came up for sale and the high bid, and the bidder enters an amount
+(starting at the minimum, a manual selection the panel discards when the bidding
+changes) and bids or passes; the winner names the company that pays when more than one
+could; the buyer then takes loans, repays loans it took on, and finishes. A company
+over its limits after a merger or an acquisition gets its own panel to remove stations
+or discard trains. History records offers, bids and passes, auctions of companies in a
+closing zone, acquisitions with their price, the bank's liquidations, unsold
+companies, the holders' payment per share and repayments.
 
 ## Private exchanges and lifecycle
 

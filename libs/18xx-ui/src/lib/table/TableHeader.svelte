@@ -50,7 +50,7 @@
         return { destroy: () => observer.disconnect() }
     }
     const gameState = $derived(tableHeaderState(session))
-    const titleRound = $derived(session.presentation.titleRound)
+    const titleRounds = $derived(session.presentation.titleRounds)
     const auction = $derived(
         Boolean(
             (gameState.openingAuction && !gameState.openingAuction.completed) ||
@@ -100,7 +100,7 @@
                     class="auction-label sm:hidden">Auction</span
                 >
             {:else}
-                {@const heading = currentRoundHeading(gameState, titleRound)}
+                {@const heading = currentRoundHeading(gameState, titleRounds)}
                 <span class="round-full" aria-hidden={compact}>{heading.name}</span><span
                     class="round-short"
                     aria-hidden={!compact}>{heading.abbreviation}</span

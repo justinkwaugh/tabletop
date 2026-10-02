@@ -1281,6 +1281,32 @@ pays it, 1848's company borrows from its president, 18NY writes it off.
   payments. 6b: liquidation-zone sales and the bank's liquidation, debts, cash
   crises and bankruptcy in the AR, and the game ending after the AR.
 
+### Implementation notes for slice 6
+
+- **Actions as built.** `OfferCompany` and `DeclineOffer`; `BidToAcquire` (the family
+  already has `BidForCompany`) and `PassOnCompany`; `AcquireCompany`;
+  `RepayAcquiredLoan`, since the family's `RepayLoan` belongs to the Loans step and
+  moves the price; `FinishAcquisitionLoans`. The system actions are
+  `StartAcquisitionRound`, `EndAcquisitionRound`, `SkipCompanySale` (entered a zone, or
+  nobody could pay an offer), `OpenCompanySale` (a zone company) and
+  `CloseCompanySale` (nobody bid; for a liquidated company the bank's liquidation).
+- **Order of settlement.** The buyer borrows what it lacks before taking on the
+  target's loans, then pays; after the loans step, loans over its limit are repaid
+  without moving its price, each inherited loan still held moves it left, the holders
+  are paid and the charter resets. A liquidated company's cash and loans are set aside
+  when its sale opens.
+- **Limits.** A player's limit counts the loans their company may still take from the
+  bank's remaining supply; the reference also counts the target's loans as returning
+  to the bank, which differs only when the bank is nearly out of loans.
+- **Excess** after a merger or an acquisition shares `ReducingStations` and
+  `DiscardingMergedTrains` and one panel.
+- **The ending.** `EndingRules.roundPending` lets a title hold the final set's ending
+  until its own rounds are done; 1817 waits for the round's acquisition round, so the
+  last operating round also exports first.
+- **Family additions.** `resetCompany`, `shareholderPayout`,
+  `PassableBidding.openWithoutBid`, `moveCompanyMarker` (which loans now use) and
+  `TitlePresentation.titleRounds`. The work landed in one commit.
+
 ### Limits after slice 6
 
 - The Golden Parachute private's $100 comes with private powers (slice 7).

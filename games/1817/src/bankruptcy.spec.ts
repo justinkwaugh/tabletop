@@ -15,6 +15,7 @@ import {
     isLiquidated
 } from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
+import { passUntil } from '../test/passTurns.js'
 
 function setCash(state: EighteenXXState, owner: 'company' | 'player', id: string, amount: number) {
     const cash = state.cash.find((cash) =>
@@ -139,7 +140,7 @@ describe('bankruptcy', () => {
         ).toBe(false)
         expect(play.state.machineState).toBe('MergerRound')
         play.act('PassMerger', { companyId: 'BA' })
-        expect(play.state.operatingSet?.roundNumber).toBe(2)
+        passUntil(play, (state) => state.operatingSet?.roundNumber === 2)
         expect(play.state.operatingSet?.companyOrder).toEqual(['BA'])
         expect(play.state.gameEnding).toBeUndefined()
         expect(

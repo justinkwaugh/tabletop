@@ -29,39 +29,84 @@ import {
     BorrowingAfterConversionHandler,
     BuyConvertedShare,
     ConvertCompany,
-    DiscardMergedTrain,
     EndMergerRound,
     FinishConversionLoans,
     HydratedBuyConvertedShare,
     HydratedConvertCompany,
-    HydratedDiscardMergedTrain,
     HydratedEndMergerRound,
     HydratedFinishConversionLoans,
     HydratedMergeCompanies,
     HydratedPassConvertedShares,
     HydratedPassMerger,
-    HydratedRemoveStation,
     HydratedStartMergerRound,
     MergeCompanies,
-    MergerExcessHandler,
     MergerRoundHandler,
-    MergerRoundStartHandler,
     PassConvertedShares,
     PassMerger,
-    RemoveStation,
     StartMergerRound,
     TradingConvertedSharesHandler,
     isBuyConvertedShare,
     isConvertCompany,
-    isDiscardMergedTrain,
     isEndMergerRound,
     isFinishConversionLoans,
     isMergeCompanies,
     isPassConvertedShares,
     isPassMerger,
-    isRemoveStation,
-    isStartMergerRound
+    isStartMergerRound,
+    startsMergerRounds
 } from '../mergerRound.js'
+import {
+    CompanyExcessHandler,
+    DiscardMergedTrain,
+    HydratedDiscardMergedTrain,
+    HydratedRemoveStation,
+    RemoveStation,
+    isDiscardMergedTrain,
+    isRemoveStation
+} from '../companyExcess.js'
+import {
+    AcquireCompany,
+    AcquisitionBiddingHandler,
+    AcquisitionLoansHandler,
+    AcquisitionRoundHandler,
+    BidToAcquire,
+    ChoosingAcquirerHandler,
+    CloseCompanySale,
+    DeclineOffer,
+    EndAcquisitionRound,
+    FinishAcquisitionLoans,
+    HydratedAcquireCompany,
+    HydratedBidToAcquire,
+    HydratedCloseCompanySale,
+    HydratedDeclineOffer,
+    HydratedEndAcquisitionRound,
+    HydratedFinishAcquisitionLoans,
+    HydratedOfferCompany,
+    HydratedOpenCompanySale,
+    HydratedPassOnCompany,
+    HydratedRepayAcquiredLoan,
+    HydratedSkipCompanySale,
+    HydratedStartAcquisitionRound,
+    OfferCompany,
+    OpenCompanySale,
+    PassOnCompany,
+    RepayAcquiredLoan,
+    SkipCompanySale,
+    StartAcquisitionRound,
+    isAcquireCompany,
+    isBidToAcquire,
+    isCloseCompanySale,
+    isDeclineOffer,
+    isEndAcquisitionRound,
+    isFinishAcquisitionLoans,
+    isOfferCompany,
+    isOpenCompanySale,
+    isPassOnCompany,
+    isRepayAcquiredLoan,
+    isSkipCompanySale,
+    isStartAcquisitionRound,
+    startsAcquisitionRounds
+} from '../acquisitionRound.js'
 import {
     CloseMarketShorts,
     HydratedCloseMarketShorts,
@@ -118,14 +163,20 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
             buysOwedStations(new ShortSellingHandler(new CorporateActionsHandler(family))),
         StartingOperatingSet: (family) => buysOwedStations(liquidatesUnpaidStations(family)),
         OperatingSet: (family) =>
-            liquidatesTrainlessCompanies(new MergerRoundStartHandler(buysOutMarketShorts(family)))
+            liquidatesTrainlessCompanies(
+                startsMergerRounds(startsAcquisitionRounds(buysOutMarketShorts(family)))
+            )
     },
     titleStateHandlers: {
         MergerRound: new MergerRoundHandler(),
         TradingConvertedShares: new TradingConvertedSharesHandler(),
         BorrowingAfterConversion: new BorrowingAfterConversionHandler(),
-        ReducingStations: new MergerExcessHandler(),
-        DiscardingMergedTrains: new MergerExcessHandler()
+        ReducingStations: new CompanyExcessHandler(),
+        DiscardingMergedTrains: new CompanyExcessHandler(),
+        AcquisitionRound: new AcquisitionRoundHandler(),
+        AcquisitionBidding: new AcquisitionBiddingHandler(),
+        ChoosingAcquirer: new ChoosingAcquirerHandler(),
+        AcquisitionLoans: new AcquisitionLoansHandler()
     },
     titleActions: [
         defineAction(
@@ -169,6 +220,50 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules = {
             DiscardMergedTrain,
             isDiscardMergedTrain,
             (action) => new HydratedDiscardMergedTrain(action)
+        ),
+        defineAction(
+            StartAcquisitionRound,
+            isStartAcquisitionRound,
+            (action) => new HydratedStartAcquisitionRound(action)
+        ),
+        defineAction(
+            EndAcquisitionRound,
+            isEndAcquisitionRound,
+            (action) => new HydratedEndAcquisitionRound(action)
+        ),
+        defineAction(
+            SkipCompanySale,
+            isSkipCompanySale,
+            (action) => new HydratedSkipCompanySale(action)
+        ),
+        defineAction(
+            OpenCompanySale,
+            isOpenCompanySale,
+            (action) => new HydratedOpenCompanySale(action)
+        ),
+        defineAction(OfferCompany, isOfferCompany, (action) => new HydratedOfferCompany(action)),
+        defineAction(DeclineOffer, isDeclineOffer, (action) => new HydratedDeclineOffer(action)),
+        defineAction(BidToAcquire, isBidToAcquire, (action) => new HydratedBidToAcquire(action)),
+        defineAction(PassOnCompany, isPassOnCompany, (action) => new HydratedPassOnCompany(action)),
+        defineAction(
+            CloseCompanySale,
+            isCloseCompanySale,
+            (action) => new HydratedCloseCompanySale(action)
+        ),
+        defineAction(
+            AcquireCompany,
+            isAcquireCompany,
+            (action) => new HydratedAcquireCompany(action)
+        ),
+        defineAction(
+            RepayAcquiredLoan,
+            isRepayAcquiredLoan,
+            (action) => new HydratedRepayAcquiredLoan(action)
+        ),
+        defineAction(
+            FinishAcquisitionLoans,
+            isFinishAcquisitionLoans,
+            (action) => new HydratedFinishAcquisitionLoans(action)
         ),
         defineAction(ShortShare, isShortShare, (action) => new HydratedShortShare(action)),
         defineAction(

@@ -8,14 +8,13 @@ import {
     evaluatePresidency,
     finiteCashOwnedBy,
     getCompany,
-    homeStationId,
     issueShareCertificates,
     moveCompanyStations,
     openShorts,
     ordinaryShares,
     placeStockMarker,
+    resetCompany,
     playersAfterPresident,
-    removeStockMarker,
     sameOwner,
     settleCashPayments,
     sharesOwned,
@@ -32,13 +31,15 @@ import {
     type StockMarketSpace,
     type Train
 } from '@tabletop/18xx'
-import { inClosingZone } from './marketZones.js'
+import { corporationShareCount } from './corporations.js'
+import { closingZone, inClosingZone, type ClosingZone } from './marketZones.js'
 import { isLiquidated } from './liquidation.js'
 import { MarketPoolId, treasuryPoolId } from './roundRules.js'
 import { StationPrice } from './stockRules.js'
 import { EighteenSeventeenTrainRules } from './trains.js'
 
 export const StationLimit = 8
+export const CharterShareCount = 2
 const SizeAfter: Readonly<Record<number, number>> = { 2: 5, 5: 10 }
 
 /** The companies that take part in a merger round, in operating order. */
@@ -49,18 +50,25 @@ export function mergerRoundCompanyIds(state: EighteenXXState): string[] {
     })
 }
 
-function shareCountOf(state: EighteenXXState, companyId: string): number {
-    const shareCount = getCompany(state, companyId).shareCount
-    assertExists(shareCount, 'A company in the merger round has shares')
-    return shareCount
+export function presidentOf(state: EighteenXXState, companyId: string): string {
+    const president = controllingOwner(state, companyId)
+    assertExists(president, 'The company has a president')
+    return president.playerId
+}
+
+export function closingZones(state: EighteenXXState): { companyId: string; zone: ClosingZone }[] {
+    return state.companies.flatMap((company) => {
+        const zone = company.floated ? closingZone(state.stockMarket, company.id) : undefined
+        return zone ? [{ companyId: company.id, zone }] : []
+    })
 }
 
 export function canConvert(state: EighteenXXState, companyId: string): boolean {
-    return SizeAfter[shareCountOf(state, companyId)] !== undefined
+    return SizeAfter[corporationShareCount(state, companyId)] !== undefined
 }
 
 export function sizeAfterConversion(state: EighteenXXState, companyId: string): number {
-    const size = SizeAfter[shareCountOf(state, companyId)]
+    const size = SizeAfter[corporationShareCount(state, companyId)]
     assertExists(size, 'Only a 2- or 5-share company converts')
     return size
 }
@@ -83,7 +91,7 @@ export function stationsForConversion(state: EighteenXXState, companyId: string)
 
 /** Grows the company to its next size, adding the new shares to its treasury. */
 export function convertCompany(state: EighteenXXState, companyId: string): string[] {
-    const before = shareCountOf(state, companyId)
+    const before = corporationShareCount(state, companyId)
     const after = sizeAfterConversion(state, companyId)
     getCompany(state, companyId).shareCount = after
     return issueShareCertificates(state, companyId, after - before, {
@@ -97,7 +105,7 @@ function largestCombinedPercent(
     companyId: string,
     targetId: string
 ): number {
-    const percentPerShare = 100 / shareCountOf(state, companyId)
+    const percentPerShare = 100 / corporationShareCount(state, companyId)
     return Math.max(
         0,
         ...state.players.map(({ playerId }) => {
@@ -207,7 +215,7 @@ export function mergeCompanies(
             giveShare(state, newShareIds[0], targetPresident)
         }
     } else migrateHoldings(state, companyId, targetId, newShareIds)
-    resetCharter(state, targetId)
+    resetCompany(state, targetId, { shareCount: CharterShareCount })
     return { price, assets, stations, payments }
 }
 
@@ -258,36 +266,6 @@ function migrateHoldings(
     if (presidency.change) applyPresidencyChange(state, presidency.change)
     const holders = openShorts(state, companyId).map((short) => short.owner)
     for (const owner of holders) cancelShorts(state, companyId, owner)
-}
-
-/** Returns the absorbed company to an unstarted 2-share charter that can be started again. */
-export function resetCharter(state: EighteenXXState, companyId: string): void {
-    const company = getCompany(state, companyId)
-    for (const field of [
-        'started',
-        'floated',
-        'funded',
-        'operated',
-        'parPrice',
-        'president',
-        'loans'
-    ] as const)
-        delete company[field]
-    company.shareCount = 2
-    removeStockMarker(state.stockMarket, companyId)
-    state.certificates = state.certificates.map((certificate) => {
-        if (certificate.retired || certificate.companyId !== companyId) return certificate
-        const { owner: _owner, poolId: _poolId, ...interest } = certificate
-        return interest.kind === 'share' && interest.president
-            ? { ...interest, retired: false, owner: { kind: 'bank' } }
-            : { ...interest, retired: true }
-    })
-    state.stations = state.stations.map(
-        (station): Station =>
-            station.id === homeStationId(companyId)
-                ? { id: station.id, companyId, status: 'available' }
-                : station
-    )
 }
 
 export function trainsOverLimit(state: EighteenXXState, companyId: string): number {

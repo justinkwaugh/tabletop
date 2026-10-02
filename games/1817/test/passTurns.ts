@@ -1,6 +1,7 @@
 import { expect } from 'vitest'
 import { trainsOwnedBy, type EighteenXXState } from '@tabletop/18xx'
 import type { ExamplePlay } from '@tabletop/18xx/scenarios'
+import { acquisitionRoundCompanyId } from '../src/acquisitionRound.js'
 import { mergerRoundCompanyId } from '../src/mergerRound.js'
 
 function actingCompanyId(state: EighteenXXState): string | undefined {
@@ -9,7 +10,8 @@ function actingCompanyId(state: EighteenXXState): string | undefined {
         state.trainPurchaseStep?.companyId ??
         state.loanStep?.companyId ??
         state.phaseChange?.discardCompanyIds[0] ??
-        mergerRoundCompanyId(state)
+        mergerRoundCompanyId(state) ??
+        acquisitionRoundCompanyId(state)
     )
 }
 
@@ -19,10 +21,12 @@ const CompanyPasses = [
     'FinishOperatingTurn',
     'PassMerger',
     'PassConvertedShares',
-    'FinishConversionLoans'
+    'FinishConversionLoans',
+    'DeclineOffer',
+    'PassOnCompany'
 ]
 
-/** Lays no track, runs, buys and borrows nothing and declines every merger round choice. */
+/** Lays no track, runs, buys and borrows nothing and declines every merger and sale. */
 export function passUntil(play: ExamplePlay, until: (state: EighteenXXState) => boolean) {
     for (let step = 0; step < 100 && !until(play.state); step++) {
         const actions = play.valid(play.state.activePlayerIds[0])

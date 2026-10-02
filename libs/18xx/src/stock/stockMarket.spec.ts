@@ -3,6 +3,7 @@ import {
     createRectangularStockMarket,
     placeStockMarker,
     companyMarketSpace,
+    moveCompanyMarker,
     moveMarketSpace,
     removeStockMarker,
     stockMarketOrder,
@@ -43,4 +44,15 @@ it('follows explicit connections independently of display coordinates', () => {
     expect(moveMarketSpace(market, '0:0', 'diagonal', 1).id).toBe('1:1')
     market.spaces[0].moves.down = 'missing'
     expect(() => validateStockMarket(market, [])).toThrow('Unknown stock market space')
+})
+
+it('moves a company’s marker and records the move unless it stays put', () => {
+    const market = createRectangularStockMarket([[40, 50, 60]], () => 'white')
+    placeStockMarker(market, 'A', '0:1')
+    expect(moveCompanyMarker(market, 'A', 'left', 1)).toEqual({
+        companyId: 'A',
+        fromMarketSpaceId: '0:1',
+        toMarketSpaceId: '0:0'
+    })
+    expect(moveCompanyMarker(market, 'A', 'left', 1)).toBeUndefined()
 })

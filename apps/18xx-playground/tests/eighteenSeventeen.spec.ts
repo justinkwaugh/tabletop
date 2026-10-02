@@ -162,3 +162,44 @@ test('1817 companies convert in the merger round after an operating round', asyn
     await expect(history.getByRole('listitem', { name: 'MR 1.1' })).toContainText('to 5 shares')
     await expect(history).toContainText('bought 1 station')
 })
+
+test('1817 companies are sold in the acquisition round after the merger round', async ({
+    page
+}) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('construction')
+    for (let turn = 0; turn < 2; turn++) {
+        await page
+            .getByRole('navigation', { name: 'Operating steps' })
+            .getByRole('button', { name: 'Station' })
+            .click()
+        await page
+            .getByRole('region', { name: 'Train purchases' })
+            .getByRole('button', { name: 'finish', exact: true })
+            .click()
+        await page
+            .getByRole('region', { name: 'Loans' })
+            .getByRole('button', { name: 'Finish turn' })
+            .click()
+    }
+    const merger = page.getByRole('region', { name: 'Merger round' })
+    for (let turn = 0; turn < 2; turn++)
+        await merger.getByRole('button', { name: 'Pass', exact: true }).click()
+
+    const sale = page.getByRole('region', { name: 'Acquisition round' })
+    await expect(page.getByLabel('Game phase')).toContainText(/Acquisition round.* 1\.1/)
+    await expect(sale).toContainText('Pittsburgh and Lake Erie Railroad')
+    await sale.getByRole('button', { name: 'Offer for sale' }).click()
+    await expect(sale).toContainText('No bids yet')
+    await sale.getByRole('button', { name: 'Bid $120' }).click()
+    await sale.getByRole('button', { name: 'Finish' }).click()
+    await expect(page.getByRole('region', { name: 'Acquisition round' })).toHaveCount(0)
+
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    const history = page.getByRole('list', { name: 'Action history' })
+    await expect(history.getByRole('listitem', { name: 'AR 1.1' })).toContainText(
+        'acquired Pittsburgh and Lake Erie Railroad'
+    )
+    await expect(history).toContainText('holders received $60 a share')
+})

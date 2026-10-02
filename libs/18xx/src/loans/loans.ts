@@ -2,12 +2,7 @@ import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { finiteCashOwnedBy, getCompany } from '../finance/finance.js'
-import {
-    StockMarketMove,
-    companyMarketSpace,
-    moveMarketSpace,
-    placeStockMarker
-} from '../stock/stockMarket.js'
+import { StockMarketMove, moveCompanyMarker } from '../stock/stockMarket.js'
 import type { StockState } from '../stock/stockState.js'
 
 export const LoanStep = Type.Object(
@@ -128,15 +123,9 @@ function withMarketMove(
     payment: CashPayment,
     move: LoanMarketMove | undefined
 ): LoanRecord {
-    if (!move) return { payment }
-    const from = companyMarketSpace(state.stockMarket, companyId)
-    const to = moveMarketSpace(state.stockMarket, from.id, move.direction, move.steps)
-    if (to.id === from.id) return { payment }
-    placeStockMarker(state.stockMarket, companyId, to.id)
-    return {
-        payment,
-        marketMove: { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to.id }
-    }
+    const marketMove =
+        move && moveCompanyMarker(state.stockMarket, companyId, move.direction, move.steps)
+    return marketMove ? { payment, marketMove } : { payment }
 }
 
 export function validateLoanStep(state: { machineState: string; loanStep?: LoanStep }): void {

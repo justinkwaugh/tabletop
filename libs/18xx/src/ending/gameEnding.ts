@@ -23,14 +23,17 @@ export type EndingState = OperatingState &
     }
 export interface EndingRules extends ValuationRules {
     trigger(state: EndingState): GameEnding | undefined
+    /** Whether a round of the title's own is still to follow the final operating round. */
+    roundPending?(state: EndingState): boolean
 }
-export function endingDue(state: EndingState): boolean {
+export function endingDue(state: EndingState, rules: EndingRules): boolean {
     if (!state.gameEnding) return false
     if (state.gameEnding.finalOperatingSet === undefined) return true
     return (
         state.machineState === 'OperatingSet' &&
         state.operatingSet?.number === state.gameEnding.finalOperatingSet &&
-        canStartStockRound(state)
+        canStartStockRound(state) &&
+        !rules.roundPending?.(state)
     )
 }
 export function pendingEnding(state: EndingState, rules: EndingRules): GameEnding | undefined {

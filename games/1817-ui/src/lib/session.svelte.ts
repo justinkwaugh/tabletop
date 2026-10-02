@@ -1,9 +1,25 @@
 import { assert } from '@tabletop/common'
-import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
+import { PassableBidding, type EighteenXXState, type HydratedEighteenXXState } from '@tabletop/18xx'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import type { GameSession } from '@tabletop/frontend-components'
 import {
+    AcquireCompany,
+    AcquisitionRoundStates,
+    BidToAcquire,
     BuyBackShares,
+    CompanyExcessStates,
+    DeclineOffer,
+    FinishAcquisitionLoans,
+    OfferCompany,
+    PassOnCompany,
+    RepayAcquiredLoan,
+    acquirerChoice,
+    acquisitionRoundCompanyId,
+    activeAcquisitionRound,
+    excessCompanyId,
+    minimumBid,
+    openingBid,
+    playerLimit,
     BuyConvertedShare,
     ConvertCompany,
     DiscardMergedTrain,
@@ -91,15 +107,108 @@ export class EighteenSeventeenSession extends BaseSession {
             ? stationPurchase(state, conversion.companyId, conversion.stationsOwed)
             : undefined
     })
-    mergerExcess = $derived.by(() => {
-        const companyId = this.mergerCompanyId
+    companyExcess = $derived.by(() => {
         const state = this.gameState
-        if (!companyId) return undefined
+        const companyId = excessCompanyId(state)
+        if (!companyId || !CompanyExcessStates.some((name) => name === state.machineState))
+            return undefined
         return {
+            companyId,
             stations: removableStations(state, companyId),
             trains: discardableTrains(state, companyId)
         }
     })
+    acquisitionCompanyId = $derived(
+        AcquisitionRoundStates.some((name) => name === this.gameState.machineState)
+            ? acquisitionRoundCompanyId(this.gameState)
+            : undefined
+    )
+    acquisitionOffer = $derived.by(() => {
+        const companyId = this.acquisitionCompanyId
+        return companyId && this.validActionTypes.includes('OfferCompany')
+            ? { companyId, openingBid: openingBid(this.gameState, companyId, 'offered') }
+            : undefined
+    })
+    companySale = $derived.by(() => {
+        const state = this.gameState
+        const sale = activeAcquisitionRound(state)?.sale
+        if (!sale || state.machineState !== 'AcquisitionBidding') return undefined
+        const bidding = new PassableBidding(sale.bidding)
+        const playerId = state.activePlayerIds[0]
+        return {
+            kind: sale.kind,
+            highBid: bidding.hasBid
+                ? { playerId: bidding.highBidderId, amount: bidding.highBid }
+                : undefined,
+            minimum: minimumBid(state, sale),
+            maximum:
+                playerId && this.validActionTypes.includes('BidToAcquire')
+                    ? playerLimit(state, playerId, sale)
+                    : undefined
+        }
+    })
+    acquirerChoice = $derived(
+        this.validActionTypes.includes('AcquireCompany')
+            ? acquirerChoice(this.gameState)
+            : undefined
+    )
+    acquisitionLoans = $derived(
+        this.gameState.machineState === 'AcquisitionLoans'
+            ? activeAcquisitionRound(this.gameState)?.acquisition
+            : undefined
+    )
+    private requireAcquisitionCompanyId(): string {
+        const companyId = this.acquisitionCompanyId
+        assert(companyId, 'An acquisition round is in progress')
+        return companyId
+    }
+    async offerCompany() {
+        await this.applyAction(
+            this.createPlayerAction(OfferCompany, { companyId: this.requireAcquisitionCompanyId() })
+        )
+    }
+    async declineOffer() {
+        await this.applyAction(
+            this.createPlayerAction(DeclineOffer, { companyId: this.requireAcquisitionCompanyId() })
+        )
+    }
+    async bidToAcquire(amount: number) {
+        await this.applyAction(
+            this.createPlayerAction(BidToAcquire, {
+                companyId: this.requireAcquisitionCompanyId(),
+                amount
+            })
+        )
+    }
+    async passOnCompany() {
+        await this.applyAction(
+            this.createPlayerAction(PassOnCompany, {
+                companyId: this.requireAcquisitionCompanyId()
+            })
+        )
+    }
+    async acquireCompany(buyerId: string) {
+        await this.applyAction(
+            this.createPlayerAction(AcquireCompany, {
+                companyId: this.requireAcquisitionCompanyId(),
+                buyerId
+            })
+        )
+    }
+    async repayAcquiredLoan() {
+        const acquisition = this.acquisitionLoans
+        assert(acquisition, 'A company has been bought')
+        await this.applyAction(
+            this.createPlayerAction(RepayAcquiredLoan, { companyId: acquisition.buyerId })
+        )
+    }
+    async finishAcquisitionLoans() {
+        const acquisition = this.acquisitionLoans
+        assert(acquisition, 'A company has been bought')
+        await this.applyAction(
+            this.createPlayerAction(FinishAcquisitionLoans, { companyId: acquisition.buyerId })
+        )
+    }
     private requireMergerCompanyId(): string {
         const companyId = this.mergerCompanyId
         assert(companyId, 'A merger round is in progress')
@@ -147,10 +256,15 @@ export class EighteenSeventeenSession extends BaseSession {
             })
         )
     }
+    private requireExcessCompanyId(): string {
+        const companyId = this.companyExcess?.companyId
+        assert(companyId, 'A company is over its limits')
+        return companyId
+    }
     async removeStation(stationId: string) {
         await this.applyAction(
             this.createPlayerAction(RemoveStation, {
-                companyId: this.requireMergerCompanyId(),
+                companyId: this.requireExcessCompanyId(),
                 stationId
             })
         )
@@ -158,7 +272,7 @@ export class EighteenSeventeenSession extends BaseSession {
     async discardMergedTrain(trainId: string) {
         await this.applyAction(
             this.createPlayerAction(DiscardMergedTrain, {
-                companyId: this.requireMergerCompanyId(),
+                companyId: this.requireExcessCompanyId(),
                 trainId
             })
         )

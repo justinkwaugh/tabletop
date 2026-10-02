@@ -6,6 +6,7 @@ import {
     type EndingRules
 } from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
+import { acquisitionRoundPending } from './acquisitionRound.js'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
 export const EighteenSeventeenEndingRules: EndingRules = {
     // The game ends at once when one player is left solvent. Otherwise the first 8-train,
@@ -25,6 +26,8 @@ export const EighteenSeventeenEndingRules: EndingRules = {
             finalOperatingRounds: set.roundNumber === 2 ? 3 : 2
         }
     },
+    // The final set ends after its last operating round's merger and acquisition rounds.
+    roundPending: acquisitionRoundPending,
     certificateItems(state, certificate) {
         const company = getCompany(state, certificate.companyId)
         let value = 0

@@ -1,8 +1,11 @@
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import {
     MarketPoolId,
+    activeAcquisitionRound,
     activeMergerRound,
+    isEndAcquisitionRound,
     isEndMergerRound,
+    isStartAcquisitionRound,
     isStartMergerRound
 } from '@tabletop/1817'
 import { EighteenSeventeenCompanyNames } from './companyPresentation.js'
@@ -17,11 +20,20 @@ export const EighteenSeventeenPresentation: TitlePresentation = {
     marketPoolId: MarketPoolId,
     companyNames: EighteenSeventeenCompanyNames,
     poolName: (pool) => (pool.id.startsWith('treasury:') ? 'Treasury' : pool.name),
-    titleRound: {
-        name: 'Merger round',
-        abbreviation: 'MR',
-        inProgress: (state) => !!activeMergerRound(state),
-        starts: isStartMergerRound,
-        ends: isEndMergerRound
-    }
+    titleRounds: [
+        {
+            name: 'Merger round',
+            abbreviation: 'MR',
+            inProgress: (state) => !!activeMergerRound(state),
+            starts: isStartMergerRound,
+            ends: isEndMergerRound
+        },
+        {
+            name: 'Acquisition round',
+            abbreviation: 'AR',
+            inProgress: (state) => !!activeAcquisitionRound(state),
+            starts: isStartAcquisitionRound,
+            ends: isEndAcquisitionRound
+        }
+    ]
 }

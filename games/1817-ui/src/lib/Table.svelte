@@ -10,6 +10,17 @@
     } from '@tabletop/18xx-ui'
     import { ActionSource, type GameAction } from '@tabletop/common'
     import {
+        EighteenSeventeenLoanRules,
+        isAcquireCompany,
+        isBidToAcquire,
+        isCloseCompanySale,
+        isDeclineOffer,
+        isFinishAcquisitionLoans,
+        isOfferCompany,
+        isOpenCompanySale,
+        isPassOnCompany,
+        isRepayAcquiredLoan,
+        isSkipCompanySale,
         isBuyBackShares,
         isBuyConvertedShare,
         isBuyOwedStations,
@@ -25,6 +36,8 @@
         isShortShare
     } from '@tabletop/1817'
     import CorporateActions from './CorporateActions.svelte'
+    import AcquisitionRound from './AcquisitionRound.svelte'
+    import CompanyExcess from './CompanyExcess.svelte'
     import MergerRound from './MergerRound.svelte'
     import { plural } from './plural.js'
     import ShortSelling from './ShortSelling.svelte'
@@ -103,6 +116,50 @@
             return { text: `Removed a ${companyName(action.companyId)} station` }
         if (isDiscardMergedTrain(action))
             return { text: `Discarded a ${companyName(action.companyId)} train` }
+        if (isOfferCompany(action))
+            return { text: `Offered ${companyName(action.companyId)} for sale` }
+        if (isDeclineOffer(action)) return { text: `Kept ${companyName(action.companyId)}` }
+        if (isOpenCompanySale(action) && action.metadata)
+            return {
+                text: `${companyName(action.companyId)} auctioned from the ${action.metadata.kind} zone`,
+                omitActor: true,
+                important: true
+            }
+        if (isSkipCompanySale(action) && action.reason === 'entered-zone')
+            return {
+                text: `${companyName(action.companyId)} entered a closing zone and sits out`,
+                omitActor: true
+            }
+        if (isBidToAcquire(action))
+            return {
+                text: `Bid for ${companyName(action.companyId)}`,
+                value: money(action.amount)
+            }
+        if (isPassOnCompany(action)) return { text: `Passed on ${companyName(action.companyId)}` }
+        if (isCloseCompanySale(action))
+            return {
+                text: action.metadata
+                    ? `The bank liquidated ${companyName(action.companyId)}`
+                    : `${companyName(action.companyId)} was not sold`,
+                omitActor: true,
+                important: !!action.metadata
+            }
+        if (isAcquireCompany(action) && action.metadata)
+            return {
+                text: `${companyName(action.buyerId)} acquired ${companyName(action.companyId)}`,
+                value: money(action.metadata.price),
+                important: true
+            }
+        if (isRepayAcquiredLoan(action))
+            return {
+                text: `Repaid a loan ${companyName(action.companyId)} took on`,
+                value: money(EighteenSeventeenLoanRules.value)
+            }
+        if (isFinishAcquisitionLoans(action) && action.metadata)
+            return {
+                text: `${companyName(action.metadata.targetId)} holders received ${money(action.metadata.settlement.perShare)} a share`,
+                omitActor: true
+            }
         if (isCloseMarketShorts(action) && action.metadata)
             return {
                 text: `Market closed ${plural(action.metadata.closed, `${companyName(action.companyId)} short`)}`,
@@ -127,8 +184,12 @@
             {#if session.gameState.machineState === 'StockRound'}<CorporateActions
                     {session}
                 /><ShortSelling {session} />{/if}
-            {#if session.mergerCompanyId}
-                <MergerRound {session} />
+            {#if session.companyExcess}
+                <CompanyExcess {session} excess={session.companyExcess} />
+            {:else if session.mergerCompanyId}
+                <MergerRound {session} companyId={session.mergerCompanyId} />
+            {:else if session.acquisitionCompanyId}
+                <AcquisitionRound {session} companyId={session.acquisitionCompanyId} />
             {:else}
                 <OperatingActions
                     {privateOperationDescription}

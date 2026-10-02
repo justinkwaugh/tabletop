@@ -49,7 +49,7 @@ function changedCompanyCashOf(cash: HistoryCash | undefined): boolean {
 
 export type HistoryTitle = {
     isEvent?: (action: GameAction) => boolean
-    round?: TitleRound
+    rounds?: readonly TitleRound[]
 }
 
 export function historyRounds(
@@ -62,7 +62,7 @@ export function historyRounds(
     cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state),
     title: HistoryTitle = {}
 ): HistoryRound[] {
-    const titleRound = title.round
+    const titleRounds = title.rounds ?? []
     const awards: readonly AuctionAward[] = state.offerAuction?.awards ?? []
     const entries = new Map(auctionHistory(actions, awards).map((entry) => [entry.id, entry]))
     let phase = state.phaseId
@@ -75,20 +75,20 @@ export function historyRounds(
         (state.openingAuction && !state.openingAuction.completed) ||
         (state.selectionAuction && !state.selectionAuction.completed)
     )
-    // Walking back from the end, the title's round is open between its end and its start.
-    let titleRoundOpen = !!titleRound?.inProgress(state)
+    // Walking back from the end, a title's round is open between its end and its start.
+    let openRound = titleRounds.find((round) => round.inProgress(state))
     const rounds: HistoryRound[] = []
     for (const action of actions.toReversed()) {
-        if (titleRound?.ends(action)) titleRoundOpen = true
+        openRound = titleRounds.find((round) => round.ends(action)) ?? openRound
         const heading = auction
             ? AuctionHeading
-            : titleRound && titleRoundOpen
-              ? operatingRoundHeading(set, round, titleRound)
+            : openRound
+              ? operatingRoundHeading(set, round, openRound)
               : operating && !isCompleteStockRound(action)
                 ? operatingRoundHeading(set, round)
                 : stockRoundHeading(stock)
         const label = roundLabel(heading)
-        if (titleRound?.starts(action)) titleRoundOpen = false
+        if (openRound?.starts(action)) openRound = undefined
         let section = rounds.at(-1)
         if (section?.id !== label) {
             section = {

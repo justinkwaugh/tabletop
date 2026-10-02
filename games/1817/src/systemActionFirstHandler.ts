@@ -6,7 +6,7 @@ type ActionSchema = Type.TObject<{ type: Type.TLiteral<string> }>
 
 /**
  * Issues a system action, while one is due, before the wrapped state does anything else; the
- * action must carry the fields `due` names.
+ * action must carry the fields `due` names, and play moves to `next` after it when given.
  */
 export class SystemActionFirstHandler<
     Schema extends ActionSchema
@@ -16,7 +16,8 @@ export class SystemActionFirstHandler<
         private readonly schema: Schema,
         private readonly due: (
             state: HydratedEighteenXXState
-        ) => Partial<Type.Static<Schema>> | undefined
+        ) => Partial<Type.Static<Schema>> | undefined,
+        private readonly next?: string
     ) {}
     private owns(action: HydratedAction): boolean {
         return action.type === this.schema.properties.type.const
@@ -46,7 +47,7 @@ export class SystemActionFirstHandler<
     }
     onAction(action: HydratedAction, context: MachineContext<HydratedEighteenXXState>): string {
         return this.owns(action)
-            ? context.gameState.machineState
+            ? (this.next ?? context.gameState.machineState)
             : this.handler.onAction(action, context)
     }
 }

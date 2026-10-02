@@ -33,7 +33,7 @@ export class HydratedEndGame extends HydratableAction<typeof EndGame> implements
         this.#rules = rules
     }
     isValid(state: EndingState): boolean {
-        return this.source === ActionSource.System && endingDue(state)
+        return this.source === ActionSource.System && endingDue(state, this.#rules)
     }
     apply(state: HydratedGameState & EndingState & { finalWealth?: PlayerWealth[] }): void {
         assert(this.isValid(state), 'The game has not reached its ending boundary')

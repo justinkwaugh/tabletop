@@ -72,8 +72,7 @@ describe('the merger round', () => {
         passOn(play)
         expect(mergerRoundCompanyId(play.state)).toBe('PLE')
         passOn(play)
-        expect(play.state.operatingSet?.roundNumber).toBe(2)
-        expect(play.state.machineState).toBe('LayingTrack')
+        expect(play.state.machineState).toBe('AcquisitionRound')
     })
 
     it('passes straight on when no company can act', () => {
@@ -113,7 +112,7 @@ describe('conversion', () => {
         play.act('FinishConversionLoans', { companyId: 'PLE' })
         expect(stations(play.state, 'PLE')).toBe(2)
         expect(treasury(play.state, 'PLE')).toBe(cash + 2 * 60 + 100 - 50)
-        expect(play.state.operatingSet?.roundNumber).toBe(2)
+        expect(play.state.machineState).toBe('AcquisitionRound')
     })
 
     it('liquidates a converted company that cannot pay for its stations', () => {

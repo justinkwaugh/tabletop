@@ -55,7 +55,7 @@
         historyRounds(context.actions, gameState, orderChanges, cash, {
             isEvent: (action) =>
                 action.source === ActionSource.System && !!describeAction?.(action, companyName),
-            round: session.presentation.titleRound
+            rounds: session.presentation.titleRounds
         })
     )
     const currentHeaderId = $derived(session.isViewingHistory ? rounds[0]?.id : undefined)

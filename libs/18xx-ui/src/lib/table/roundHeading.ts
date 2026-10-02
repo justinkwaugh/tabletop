@@ -31,13 +31,16 @@ export function roundTitle(heading: RoundHeading): string {
     return heading.number ? `${heading.name} ${heading.number}` : heading.name
 }
 
-export function currentRoundHeading(state: EighteenXXState, titleRound?: TitleRound): RoundHeading {
+export function currentRoundHeading(
+    state: EighteenXXState,
+    titleRounds: readonly TitleRound[] = []
+): RoundHeading {
     if (!state.stockRound.completed) return stockRoundHeading(state.stockRound.number)
     const set = state.operatingSet
     assertExists(set, 'An operating round belongs to a set')
     return operatingRoundHeading(
         set.number,
         set.roundNumber,
-        titleRound?.inProgress(state) ? titleRound : undefined
+        titleRounds.find((round) => round.inProgress(state))
     )
 }

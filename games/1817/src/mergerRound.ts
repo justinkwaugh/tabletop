@@ -21,14 +21,13 @@ import {
     applyShareTransfer,
     canTakeLoan,
     companyMarketSpace,
-    controllingOwner,
     evaluateShareTransfer,
     isTakeLoan,
     nextOperatingCompany,
     settleCashPayments,
     turnOrderFrom,
-    unownedTrain,
     type EighteenXXState,
+    type OperatingState,
     type EighteenXXStateHandler,
     type HydratedEighteenXXState,
     type SharePurchaseResult
@@ -37,13 +36,13 @@ import { liquidate } from './liquidation.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import {
     canConvert,
+    closingZones,
     convertCompany,
-    discardableTrains,
     mergeCompanies,
     mergeReason,
     mergeTargetIds,
     mergerRoundCompanyIds,
-    removableStations,
+    presidentOf,
     sizeAfterConversion,
     stationPurchase,
     stationsForConversion,
@@ -60,6 +59,7 @@ import {
     type MergerRound
 } from './state.js'
 import { EighteenSeventeenStockRules } from './stockRules.js'
+import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
 type State = HydratedGameState & EighteenXXState
 type Context = MachineContext<HydratedEighteenXXState>
@@ -76,12 +76,6 @@ function requireConversion(state: object): Conversion {
     return conversion
 }
 
-function presidentOf(state: EighteenXXState, companyId: string): string {
-    const president = controllingOwner(state, companyId)
-    assertExists(president, 'A company in the merger round has a president')
-    return president.playerId
-}
-
 function decidingCompanyId(state: object): string | undefined {
     return requireRound(state).companyIds[0]
 }
@@ -96,7 +90,7 @@ function convertingCompanyFor(state: EighteenXXState, playerId: string): string 
     return companyId && presidentOf(state, companyId) === playerId ? companyId : undefined
 }
 
-function stateAfterConversion(state: EighteenXXState): string {
+export function stateAfterConversion(state: EighteenXXState): string {
     const conversion = requireRound(state).conversion
     if (!conversion) return 'MergerRound'
     if (stationsOverLimit(state, conversion.companyId)) return 'ReducingStations'
@@ -119,7 +113,7 @@ function beginConversion(state: EighteenXXState, conversion: Omit<Conversion, 't
     }
 }
 
-export function mergerRoundDue(state: EighteenXXState): boolean {
+export function mergerRoundDue(state: OperatingState): boolean {
     const set = state.operatingSet
     const latest = mergerRoundOf(state)
     return (
@@ -173,6 +167,7 @@ export class HydratedStartMergerRound
             set: set.number,
             round: set.roundNumber,
             companyIds,
+            closingZones: closingZones(state),
             convertedIds: [],
             completed: false
         })
@@ -216,23 +211,13 @@ export class HydratedEndMergerRound
 }
 
 /** Opens the merger round once an operating round's companies and exports are done. */
-export class MergerRoundStartHandler implements EighteenXXStateHandler {
-    constructor(private readonly handler: EighteenXXStateHandler) {}
-    isValidAction(action: HydratedAction, context: Context): boolean {
-        return isStartMergerRound(action)
-            ? action.source === ActionSource.System && mergerRoundDue(context.gameState)
-            : this.handler.isValidAction(action, context)
-    }
-    validActionsForPlayer(playerId: string, context: Context): string[] {
-        return this.handler.validActionsForPlayer(playerId, context)
-    }
-    enter(context: Context): void {
-        if (mergerRoundDue(context.gameState)) context.addSystemAction(StartMergerRound, {})
-        else this.handler.enter(context)
-    }
-    onAction(action: HydratedAction, context: Context): string {
-        return isStartMergerRound(action) ? 'MergerRound' : this.handler.onAction(action, context)
-    }
+export function startsMergerRounds(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+    return new SystemActionFirstHandler(
+        handler,
+        StartMergerRound,
+        (state) => (mergerRoundDue(state) ? {} : undefined),
+        'MergerRound'
+    )
 }
 
 const CompanyFields = { ...PlayerAction.properties, companyId: Type.String() }
@@ -708,118 +693,5 @@ export class BorrowingAfterConversionHandler implements EighteenXXStateHandler {
     }
     onAction(action: HydratedAction, _context: Context): string {
         return isTakeLoan(action) ? 'BorrowingAfterConversion' : 'MergerRound'
-    }
-}
-
-export const RemoveStation = Type.Object(
-    { ...CompanyFields, type: Type.Literal('RemoveStation'), stationId: Type.String() },
-    { additionalProperties: false }
-)
-export type RemoveStation = Type.Static<typeof RemoveStation>
-const RemoveValidator = Compile(RemoveStation)
-export function isRemoveStation(action: GameAction): action is RemoveStation {
-    return (
-        action instanceof HydratedRemoveStation ||
-        (action.type === 'RemoveStation' && RemoveValidator.Check(action))
-    )
-}
-export class HydratedRemoveStation
-    extends HydratableAction<typeof RemoveStation>
-    implements RemoveStation
-{
-    declare type: 'RemoveStation'
-    declare playerId: string
-    declare companyId: string
-    declare stationId: string
-    constructor(data: RemoveStation) {
-        super(data instanceof HydratedRemoveStation ? data.dehydrate() : data, RemoveValidator)
-    }
-    isValidFor(state: EighteenXXState): boolean {
-        return (
-            convertingCompanyFor(state, this.playerId) === this.companyId &&
-            removableStations(state, this.companyId).some(
-                (station) => station.id === this.stationId
-            )
-        )
-    }
-    apply(state: State): void {
-        assert(
-            this.source === ActionSource.User && this.isValidFor(state),
-            'Only the merged company’s president removes its excess stations'
-        )
-        state.stations = state.stations.map((station) =>
-            station.id === this.stationId
-                ? { id: station.id, companyId: station.companyId, status: 'removed' as const }
-                : station
-        )
-    }
-}
-
-export const DiscardMergedTrain = Type.Object(
-    { ...CompanyFields, type: Type.Literal('DiscardMergedTrain'), trainId: Type.String() },
-    { additionalProperties: false }
-)
-export type DiscardMergedTrain = Type.Static<typeof DiscardMergedTrain>
-const DiscardValidator = Compile(DiscardMergedTrain)
-export function isDiscardMergedTrain(action: GameAction): action is DiscardMergedTrain {
-    return (
-        action instanceof HydratedDiscardMergedTrain ||
-        (action.type === 'DiscardMergedTrain' && DiscardValidator.Check(action))
-    )
-}
-export class HydratedDiscardMergedTrain
-    extends HydratableAction<typeof DiscardMergedTrain>
-    implements DiscardMergedTrain
-{
-    declare type: 'DiscardMergedTrain'
-    declare playerId: string
-    declare companyId: string
-    declare trainId: string
-    constructor(data: DiscardMergedTrain) {
-        super(
-            data instanceof HydratedDiscardMergedTrain ? data.dehydrate() : data,
-            DiscardValidator
-        )
-    }
-    isValidFor(state: EighteenXXState): boolean {
-        return (
-            convertingCompanyFor(state, this.playerId) === this.companyId &&
-            discardableTrains(state, this.companyId).some((train) => train.id === this.trainId)
-        )
-    }
-    apply(state: State): void {
-        assert(
-            this.source === ActionSource.User && this.isValidFor(state),
-            'Only the merged company’s president discards its excess trains'
-        )
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.id === this.trainId ? unownedTrain(train, 'market') : train
-        )
-    }
-}
-
-/** The merged company's president removes stations, or discards trains, over the limit. */
-export class MergerExcessHandler implements EighteenXXStateHandler {
-    isValidAction(action: HydratedAction, context: Context): boolean {
-        return action instanceof HydratedRemoveStation ||
-            action instanceof HydratedDiscardMergedTrain
-            ? action.isValidFor(context.gameState)
-            : false
-    }
-    validActionsForPlayer(playerId: string, context: Context): string[] {
-        const companyId = convertingCompanyFor(context.gameState, playerId)
-        if (!companyId) return []
-        return removableStations(context.gameState, companyId).length
-            ? ['RemoveStation']
-            : discardableTrains(context.gameState, companyId).length
-              ? ['DiscardMergedTrain']
-              : []
-    }
-    enter(context: Context): void {
-        const { companyId } = requireConversion(context.gameState)
-        context.gameState.activePlayerIds = [presidentOf(context.gameState, companyId)]
-    }
-    onAction(_action: HydratedAction, context: Context): string {
-        return stateAfterConversion(context.gameState)
     }
 }

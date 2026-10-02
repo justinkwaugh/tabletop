@@ -8,7 +8,7 @@ import {
     type Train
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
-import { EighteenSeventeenTrainDepot } from './index.js'
+import { EighteenSeventeenTrainDepot, acquisitionRoundOf } from './index.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
 
@@ -152,6 +152,8 @@ describe('the first 8-train', () => {
         passUntil(play, roundOf(2, 2))
         expect(play.state.operatingSet?.roundCount).toBe(2)
         passUntil(play, (state) => state.machineState === 'GameOver')
+        // The final operating round's merger and acquisition rounds ran before the end.
+        expect(acquisitionRoundOf(play.state)).toMatchObject({ set: 2, round: 2, completed: true })
     })
 
     it('ends the game after three rounds of the next set when exported in the second round', () => {

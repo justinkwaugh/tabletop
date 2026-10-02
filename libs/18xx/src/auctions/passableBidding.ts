@@ -10,7 +10,8 @@ export type BiddingWinner = { playerId: string; amount: number }
 
 /**
  * Bidding on one lot in which each player, in seat order after the high bidder, raises or
- * passes; a pass withdraws the player, and the last bidder left wins.
+ * passes; a pass withdraws the player, and the last bidder left wins. Bidding opened without
+ * a bid starts with the first player in seat order and goes unsold if everyone passes.
  */
 export class PassableBidding {
     constructor(private readonly bidding: SimpleAuction) {}
@@ -35,6 +36,26 @@ export class PassableBidding {
         }
     }
 
+    static openWithoutBid(id: string, seatOrder: readonly string[]): SimpleAuction {
+        const [auctioneerId] = seatOrder
+        assertExists(auctioneerId, 'Bidding needs a bidder')
+        return {
+            id,
+            type: AuctionType.Simple,
+            auctioneerId,
+            participants: seatOrder.map((playerId) => ({ playerId, passed: false }))
+        }
+    }
+
+    get hasBid(): boolean {
+        return this.bidding.highBid !== undefined
+    }
+
+    /** Whether everyone passed before any bid. */
+    get unsold(): boolean {
+        return !this.hasBid && !this.remainingPlayerIds.length
+    }
+
     get highBid(): number {
         assertExists(this.bidding.highBid, 'Bidding requires an opening bid')
         return this.bidding.highBid
@@ -56,11 +77,14 @@ export class PassableBidding {
 
     get winner(): BiddingWinner | undefined {
         const remaining = this.remainingPlayerIds
-        return remaining.length === 1 ? { playerId: remaining[0], amount: this.highBid } : undefined
+        return this.hasBid && remaining.length === 1
+            ? { playerId: remaining[0], amount: this.highBid }
+            : undefined
     }
 
     get currentBidderId(): string | undefined {
         if (this.winner) return undefined
+        if (!this.hasBid) return this.remainingPlayerIds[0]
         const participants = this.bidding.participants
         const high = participants.findIndex((p) => p.playerId === this.highBidderId)
         for (let offset = 1; offset < participants.length; offset++) {
@@ -88,9 +112,9 @@ export class PassableBidding {
     /** Withdraws every player other than the high bidder whose maximum bid is below the minimum. */
     withdrawBelow(minimum: number, maximumBid: (playerId: string) => number): SimpleAuction {
         const auction = new HydratedSimpleAuction(this.bidding)
+        const highBidderId = this.hasBid ? this.highBidderId : undefined
         for (const playerId of this.remainingPlayerIds)
-            if (playerId !== this.highBidderId && maximumBid(playerId) < minimum)
-                auction.pass(playerId)
+            if (playerId !== highBidderId && maximumBid(playerId) < minimum) auction.pass(playerId)
         return auction.dehydrate()
     }
 }
