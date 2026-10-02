@@ -1389,3 +1389,26 @@ test('scenario 58: a Vision drawn and the title changing hands are framed Histor
     await expect(drawn.getByRole('img', { name: 'a Vision, facedown' })).toBeVisible()
     await expect(drawn.getByRole('img', { name: 'Conquest' })).toHaveCount(0)
 })
+
+test('scenario 59: every seat is told a Vision was seen, the drawer too; each clears it for itself, and it stays cleared on reopening', async ({ page }) => {
+    await openTable(page, 'majorEvents')
+    const seen = page.getByRole('dialog', { name: 'A Vision was seen' })
+    await expect(seen).toBeVisible()
+    await expect(seen).toContainText('have seen a Vision')
+    await expect(seen.getByRole('img', { name: 'a Vision, facedown' })).toBeVisible()
+    await expect(page.locator('.panel')).toBeVisible()
+
+    await seen.getByRole('button', { name: 'The pig foresaw this: clear' }).click()
+    await expect(seen).toHaveCount(0)
+
+    expect(await call(page, 'viewOffTheClock')).toBe('ann')
+    await expect(seen).toBeVisible()
+    await expect(seen).toContainText('has seen a Vision')
+
+    await call(page, 'open', 'majorEvents')
+    await expect(seen).toHaveCount(0)
+    expect(await call(page, 'viewOffTheClock')).toBe('ann')
+    await expect(seen).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(seen).toHaveCount(0)
+})

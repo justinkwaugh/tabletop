@@ -18,6 +18,7 @@
     import CardPreviewLayer from '$lib/components/CardPreviewLayer.svelte'
     import SeatDetailLayer from '$lib/components/SeatDetailLayer.svelte'
     import GoalsLayer from '$lib/components/GoalsLayer.svelte'
+    import VisionSeenOverlay from '$lib/components/VisionSeenOverlay.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
     import FocusChooser from '$lib/components/FocusChooser.svelte'
     import { MachineState } from '@tabletop/oath'
@@ -86,12 +87,13 @@
         return () => observer.disconnect()
     }
 
-    // Rule 7 — Escape closes the topmost layer only: the enlarged card, then the open goals or
-    // seat; with neither open it is left to the board's wrapper, which leaves full screen.
+    // Rule 7 — Escape closes the topmost layer only: a Vision seen, the enlarged card, then the
+    // open goals or seat; with none open it is left to the board's wrapper, which leaves full screen.
     const closesTopLayer: Attachment = () => {
         const escape = (event: KeyboardEvent) => {
             if (event.key !== 'Escape') return
-            if (cardPreview.open) cardPreview.dismiss()
+            if (oath.visionsSeen.draws.length > 0) oath.visionsSeen.clear()
+            else if (cardPreview.open) cardPreview.dismiss()
             else if (oath.goalsView.open) oath.goalsView.close()
             else if (oath.seatDetail.openPlayerId) oath.seatDetail.close()
             else return
@@ -182,6 +184,7 @@
                     <Board />
                     {#snippet overlay()}
                         <FocusChooser selected={boardFocus?.view} onselect={focusView} />
+                        <VisionSeenOverlay />
                     {/snippet}
                     {#snippet toolbar()}
                         <!-- Rule 6 — full screen is a modal dialog; anything outside it is behind it. -->

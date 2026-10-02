@@ -98,6 +98,7 @@ import {
 import type { PanelDraft } from './stagedFlow.svelte.js'
 import { SeatDetail } from './seatDetail.svelte.js'
 import { GoalsView } from './goalsView.svelte.js'
+import { VisionsSeen } from './visionsSeen.svelte.js'
 import { siteName } from './names.js'
 import { rowWarbandOwner, type HistoryNames } from './actionDescription.js'
 import {
@@ -166,6 +167,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     readonly consent = new ConsentDraft(this)
     readonly seatDetail = new SeatDetail(this)
     readonly goalsView = new GoalsView()
+    readonly visionsSeen = new VisionsSeen(this)
 
     readonly campaign = new CampaignDraft(this)
     readonly setup = new SetupDraft(this)
