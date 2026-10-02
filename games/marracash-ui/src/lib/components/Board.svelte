@@ -5,6 +5,7 @@
     import AwningDefs from '$lib/components/AwningDefs.svelte'
     import CobbleDefs from '$lib/components/CobbleDefs.svelte'
     import PawnDefs from '$lib/components/PawnDefs.svelte'
+    import FountainDefs from '$lib/components/FountainDefs.svelte'
     import FountainSpot from '$lib/components/FountainSpot.svelte'
     import DirectionArrows from '$lib/components/DirectionArrows.svelte'
     import RoutePreview from '$lib/components/RoutePreview.svelte'
@@ -18,7 +19,7 @@
         cellCenter,
         gateRect,
         QueueMargin,
-        ShopHaloFilterId,
+        CandidateHaloFilterId,
         TableHeight,
         TableWidth,
         WallThickness
@@ -62,7 +63,7 @@
 
 <svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
     <defs>
-        <filter id={ShopHaloFilterId} x="-20%" y="-20%" width="140%" height="140%">
+        <filter id={CandidateHaloFilterId} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
             <feMerge>
                 <feMergeNode in="glow"></feMergeNode>
@@ -73,6 +74,7 @@
         <AwningDefs />
         <CobbleDefs />
         <PawnDefs />
+        <FountainDefs />
     </defs>
     <VisitorQueue />
     <g role="img" aria-label="MarraCash market" transform="translate({QueueMargin} {QueueMargin})">

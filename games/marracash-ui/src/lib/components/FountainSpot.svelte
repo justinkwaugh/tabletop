@@ -1,9 +1,33 @@
 <script lang="ts">
     import { getFountain, MarketColor, type FountainState } from '@tabletop/marracash'
     import Pawn from '$lib/components/Pawn.svelte'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { PawnHeight, PawnUnitSize, PawnWidth } from '$lib/utils/pawnShape.js'
     import { cellCenter, clusterPositions } from '$lib/utils/boardGeometry.js'
+    import { CandidateHaloFilterId } from '$lib/utils/boardGeometry.js'
+    import {
+        eightPointedStar,
+        EntranceRadii,
+        FountainRadii,
+        FountainRimFilterId,
+        FountainRippleRadii,
+        FountainTrimFilterId,
+        FountainWaterFilterId,
+        FountainWaterShadeId,
+        octagon
+    } from '$lib/utils/fountainShape.js'
 
     const MaxPawnsShown = 9
+    const PawnSpacing = { x: 20, y: 15 }
+    const TallySpacing = { x: 22, y: 24 }
+    const LabelOffset = { x: -38, y: -30 }
+    const EntranceLabelOffset = { x: -44, y: -34 }
+    const TallyPawnOffset = -6
+    const TallyCountOffset = { x: 3, y: 5 }
+    const TallyPawnSize = 15
+    const TallyPawnScale = TallyPawnSize / PawnUnitSize
+    const TallyDigitWidth = 7
+    const TallyPanelMargin = 5
 
     let {
         fountain,
@@ -19,9 +43,14 @@
 
     let definition = $derived(getFountain(fountain.fountainId))
     let center = $derived(cellCenter(definition.coords))
+    let outline = $derived(definition.entrance ? eightPointedStar : octagon)
+    let radii = $derived(definition.entrance ? EntranceRadii : FountainRadii)
+    let labelOffset = $derived(definition.entrance ? EntranceLabelOffset : LabelOffset)
+    const gameSession = getGameSession()
+
     let crowded = $derived(fountain.visitors.length > MaxPawnsShown)
     let pawns = $derived(
-        clusterPositions(fountain.visitors.length, center, 21).map((position, index) => ({
+        clusterPositions(fountain.visitors.length, center, PawnSpacing).map((position, index) => ({
             ...position,
             color: fountain.visitors[index]
         }))
@@ -33,42 +62,124 @@
                 count: fountain.visitors.filter((visitor) => visitor === color).length
             }))
             .filter((entry) => entry.count > 0)
-        return clusterPositions(present.length, center, 29).map((position, index) => ({
+        return clusterPositions(present.length, center, TallySpacing).map((position, index) => ({
             ...position,
             ...present[index]
         }))
     })
+    let tallyPanel = $derived.by(() => {
+        const pawnHalfWidth = (PawnWidth / 2) * TallyPawnScale
+        const pawnHalfHeight = (PawnHeight / 2) * TallyPawnScale
+        const left = Math.min(...tally.map((entry) => entry.x + TallyPawnOffset - pawnHalfWidth))
+        const right = Math.max(
+            ...tally.map(
+                (entry) =>
+                    entry.x + TallyCountOffset.x + String(entry.count).length * TallyDigitWidth
+            )
+        )
+        const top = Math.min(...tally.map((entry) => entry.y - pawnHalfHeight))
+        const bottom = Math.max(...tally.map((entry) => entry.y + pawnHalfHeight))
+        return {
+            x: left - TallyPanelMargin,
+            y: top - TallyPanelMargin,
+            width: right - left + 2 * TallyPanelMargin,
+            height: bottom - top + 2 * TallyPanelMargin
+        }
+    })
 </script>
 
 {#snippet body()}
-    {#if selectable || selected}
+    {#if selectable}
+        <path
+            d={outline(center, definition.entrance ? radii.trim : radii.rim)}
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="8"
+            stroke-linejoin="round"
+            filter="url(#{CandidateHaloFilterId})"
+        ></path>
+    {/if}
+    {#if definition.entrance}
+        <path
+            d={outline(center, radii.trim)}
+            fill="#c99a2e"
+            stroke="#8a6a1c"
+            stroke-width="1"
+            filter="url(#{FountainTrimFilterId})"
+        ></path>
+    {/if}
+    <path
+        d={outline(center, radii.rim)}
+        fill="#e6c3b8"
+        stroke="#a8817a"
+        stroke-width="1.2"
+        filter="url(#{FountainRimFilterId})"
+    ></path>
+    <path
+        d={outline(center, radii.water)}
+        fill="url(#{FountainWaterShadeId})"
+        stroke="#8f6c66"
+        stroke-width="1"
+        filter="url(#{FountainWaterFilterId})"
+    ></path>
+    {#each FountainRippleRadii as radius (radius)}
         <circle
             cx={center.x}
             cy={center.y}
-            r="39"
+            r={radius}
             fill="none"
-            stroke={selected ? '#1f1f1f' : '#ffffff'}
-            stroke-width="4"
-            stroke-dasharray={selected ? undefined : '8 5'}
+            stroke="#ffffff"
+            stroke-opacity="0.16"
+            stroke-width="1.4"
+            stroke-dasharray="11 7"
         ></circle>
+    {/each}
+    <path
+        d={outline(center, radii.water)}
+        fill="none"
+        stroke="#5a3a34"
+        stroke-opacity="0.35"
+        stroke-width="2.5"
+    ></path>
+    {#if selected}
+        <path
+            d={outline(center, radii.ring)}
+            fill="none"
+            stroke="#1f1f1f"
+            stroke-width="4"
+            stroke-linejoin="round"
+        ></path>
     {/if}
-    <circle
-        cx={center.x}
-        cy={center.y}
-        r="34"
-        fill="#9fd3e6"
-        stroke={definition.entrance ? '#c99a2e' : '#5b8fa3'}
-        stroke-width={definition.entrance ? 6 : 3}
-    ></circle>
-    <circle cx={center.x} cy={center.y} r="26" fill="#cfeaf3" opacity="0.7"></circle>
-    <text x={center.x - 30} y={center.y - 22} font-size="12" font-weight="700" fill="#2d5566"
-        >{fountain.fountainId}</text
+    <text
+        x={center.x + labelOffset.x}
+        y={center.y + labelOffset.y}
+        font-size="12"
+        font-weight="700"
+        fill="#2d5566">{fountain.fountainId}</text
     >
     {#if crowded}
+        <rect
+            x={tallyPanel.x}
+            y={tallyPanel.y}
+            width={tallyPanel.width}
+            height={tallyPanel.height}
+            rx="6"
+            fill="#ffffff"
+            fill-opacity="0.7"
+        ></rect>
         {#each tally as entry (entry.color)}
-            <Pawn color={entry.color} x={entry.x - 6} y={entry.y} size={15} />
-            <text x={entry.x + 3} y={entry.y + 5} font-size="12" font-weight="700" fill="#1f3c47"
-                >{entry.count}</text
+            <Pawn
+                color={entry.color}
+                x={entry.x + TallyPawnOffset}
+                y={entry.y}
+                size={TallyPawnSize}
+            />
+            <text
+                x={entry.x + TallyCountOffset.x}
+                y={entry.y + TallyCountOffset.y}
+                font-size="12"
+                font-weight="700"
+                fill={gameSession.marketPalettes[entry.color].stroke}>{entry.count}</text
             >
         {/each}
     {:else}

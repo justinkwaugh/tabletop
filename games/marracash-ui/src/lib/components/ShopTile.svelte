@@ -2,7 +2,7 @@
     import { getShop, type ShopState } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ownerDiscOutline } from '$lib/utils/playerColors.js'
-    import { ShopHaloFilterId, shopRect } from '$lib/utils/boardGeometry.js'
+    import { CandidateHaloFilterId, shopRect } from '$lib/utils/boardGeometry.js'
     import {
         AwningClothFilterId,
         AwningCreaseBlurId,
@@ -53,7 +53,7 @@
                 stroke="#ffffff"
                 stroke-width="8"
                 stroke-linejoin="round"
-                filter="url(#{ShopHaloFilterId})"
+                filter="url(#{CandidateHaloFilterId})"
             ></path>
         {/if}
         <clipPath id={clipId}>

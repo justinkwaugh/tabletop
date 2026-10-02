@@ -14,7 +14,7 @@ export const WallThickness = 28
 export const BoardWidth = BoardColumns * CellSize + 2 * WallThickness
 export const BoardHeight = BoardRows * CellSize + 2 * WallThickness
 
-export const ShopHaloFilterId = 'marracash-shop-halo'
+export const CandidateHaloFilterId = 'marracash-candidate-halo'
 
 export type Rect = Point & { width: number; height: number }
 
@@ -60,7 +60,7 @@ export function wallSideOf(coords: OffsetCoordinates): WallSide {
     return WallSide.Right
 }
 
-export function clusterPositions(count: number, center: Point, spacing: number): Point[] {
+export function clusterPositions(count: number, center: Point, spacing: Point): Point[] {
     const columns = Math.ceil(Math.sqrt(count))
     const rows = Math.ceil(count / columns)
     return Array.from({ length: count }, (_, index) => {
@@ -68,8 +68,8 @@ export function clusterPositions(count: number, center: Point, spacing: number):
         const inRow = row === rows - 1 ? count - row * columns : columns
         const col = index % columns
         return {
-            x: center.x + (col - (inRow - 1) / 2) * spacing,
-            y: center.y + (row - (rows - 1) / 2) * spacing
+            x: center.x + (col - (inRow - 1) / 2) * spacing.x,
+            y: center.y + (row - (rows - 1) / 2) * spacing.y
         }
     })
 }
