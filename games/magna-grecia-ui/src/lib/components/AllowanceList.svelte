@@ -63,7 +63,6 @@
         font-size: calc(var(--size) / 2);
         line-height: 1;
         vertical-align: baseline;
-        color: var(--mg-enhanced);
     }
 
     .parens .basic {

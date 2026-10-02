@@ -92,10 +92,10 @@
             return undefined
         }
         if (allowance.basic === 0) {
-            return `One more ${singular} makes this your enhanced action, with no other tile action after it`
+            return `One more ${singular} makes this your enhanced +${allowance.bonus} action, with no other tile action after it`
         }
         const basicNoun = allowance.basic === 1 ? singular : plural
-        return `Up to ${allowance.basic} ${basicNoun} as one of two actions, or ${allowance.basic + allowance.bonus} as your only action (enhanced)`
+        return `Up to ${allowance.basic} ${basicNoun} as one of two actions, or ${allowance.basic + allowance.bonus} as your only action (enhanced +${allowance.bonus})`
     }
 
     const marketStatus = $derived(tookMarketAction ? 'Done' : 'None available')
@@ -190,7 +190,7 @@
         if (gameSession.resupplyOpen) {
             const split = gameSession.resupplySplit
             return split.bonus > 0
-                ? `Move up to ${split.basic} as one of two actions, or up to ${split.basic + split.bonus} as your only action (enhanced)`
+                ? `Move up to ${split.basic} as one of two actions, or up to ${split.basic + split.bonus} as your only action (enhanced +${split.bonus})`
                 : undefined
         }
         switch (gameSession.activeTool) {
@@ -250,7 +250,7 @@
             <div class="phases" data-step={mobileStep}>
                 <div class="phase tiles" class:closed={tilePhaseClosed}>
                     <div class="phase-label">
-                        <EnhancedText text="Two actions, or one enhanced" />
+                        <EnhancedText text="Two actions, or one enhanced +n" />
                     </div>
                     <div class="phase-buttons">
                         {#each shownTileButtons as { kind, label, split, active, choose } (kind)}
@@ -502,11 +502,6 @@
         font-size: 11px;
         line-height: 1;
         vertical-align: baseline;
-        color: var(--mg-enhanced);
-    }
-
-    .tool.active .bonus {
-        color: var(--mg-enhanced-on-dark);
     }
 
     .short-label,

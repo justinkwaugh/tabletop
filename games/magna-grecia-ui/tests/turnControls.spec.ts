@@ -321,10 +321,13 @@ test('marks the enhanced extra apart from the basic allowance', async ({ page })
     expect(split.bonus).toBe(1)
     await expect(cities.locator('.count')).toHaveText(String(split.basic))
     await expect(cities.locator('.bonus')).toHaveText('+1')
+    await expect(page.getByText('Two actions, or one enhanced+n', { exact: true })).toBeVisible()
     await cities.click()
-    await expect(
-        page.getByText(`or ${split.basic + 1} as your only action (enhanced)`, { exact: false })
-    ).toBeVisible()
+    const hint = page.getByText(`or ${split.basic + 1} as your only action (enhanced+1)`, {
+        exact: false
+    })
+    await expect(hint).toBeVisible()
+    await expect(hint.locator('sup')).toHaveText('+1')
 })
 
 test('a market action keeps the turn open and highlights End turn', async ({ page }) => {
