@@ -1150,7 +1150,7 @@ test('card backs: another seat’s facedown Vision and the Vision in its hand sh
     expect(await backsOf('A Vision in hand')).toEqual(['vision', 'vision'])
 })
 
-test('scenario 35: a favor bank is chosen by its suit symbol, ringed when picked, and the pick is what is sent', async ({ page }) => {
+test('scenario 35, in a game created before the turn-flow revision: a favor bank is chosen by its suit symbol, ringed when picked, and the pick is what is sent', async ({ page }) => {
     await openTable(page, 'restBanks')
     const banks = grid(page).getByRole('button', { name: /bank, \d+ favor$/ })
     await expect(banks.first()).toBeVisible()
@@ -1411,4 +1411,25 @@ test('scenario 59: every seat is told a Vision was seen, the drawer too; each cl
     await expect(seen).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(seen).toHaveCount(0)
+})
+
+test('scenario 35: at Rest every bank a power names is a button of one size; a tap on one uses the power; an empty bank is not tappable', async ({ page }) => {
+    await openTable(page, 'restTurnFlow')
+    const powers = page.getByRole('list', { name: 'Rest powers' })
+    await expect(powers).toBeVisible()
+    await expect(grid(page)).toContainText('Your Supply has refreshed. Rest powers, once each:')
+    const banks = powers.getByRole('button', { name: /bank: take 1 favor/ })
+    await expect(banks).toHaveCount(6)
+    await expect(powers.getByRole('button', { name: /^Discord bank/ })).toBeDisabled()
+    const sizes = await powers.locator('.rest-button').evaluateAll((buttons) =>
+        buttons.map((button) => `${Math.round(button.getBoundingClientRect().width)}x${Math.round(button.getBoundingClientRect().height)}`)
+    )
+    expect(new Set(sizes)).toEqual(new Set(['80x48']))
+    await expect(grid(page).getByRole('button', { name: 'End your turn' })).toBeVisible()
+
+    const before = await call(page, 'tableFacts')
+    await powers.getByRole('button', { name: /^Arcane bank/ }).click()
+    await expect.poll(async () => (await call(page, 'tableFacts')).favorOf.me).toBe(before.favorOf.me + 1)
+    expect((await call(page, 'tableFacts')).favorBank.arcane).toBe(before.favorBank.arcane - 1)
+    await expect(powers).toContainText('used: took 1')
 })

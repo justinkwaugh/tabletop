@@ -67,6 +67,7 @@ export type TableName =
     | 'imperialDefeated'
     | 'visionBacks'
     | 'restBanks'
+    | 'restTurnFlow'
     | 'goalsRail'
     | 'goalsRailThePeople'
     | 'goalsRailProtection'
@@ -197,6 +198,39 @@ function restBanksTable(): PlayedTable {
             })
         ],
         { machineState: MachineState.RestPhase, chancellorPlayerId: 'ann' }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/** R-4.3.5, R-4.3-H1: the turn-flow Rest with Vow of Obedience and Insomnia, the Discord bank empty. */
+function restTurnFlowTable(): PlayedTable {
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                advisers: [
+                    { cardId: 'denizen.order.vow-of-obedience', faceUp: true },
+                    { cardId: 'denizen.discord.insomnia', faceUp: true }
+                ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c1'
+            })
+        ],
+        {
+            machineState: MachineState.RestPhase,
+            chancellorPlayerId: 'ann',
+            oathRevision: OathRevision.TurnFlow,
+            favorBank: { arcane: 3, beast: 2, discord: 0, hearth: 4, nomad: 1, order: 3 }
+        }
     )
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
@@ -796,6 +830,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     imperialDefeated: () => defeatedTable('imperial'),
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
+    restTurnFlow: restTurnFlowTable,
     goalsRail: () => goalsRailTable(),
     goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),
     goalsRailProtection: () => goalsRailTable(OathType.Protection),
