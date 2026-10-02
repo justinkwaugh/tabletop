@@ -27,6 +27,7 @@
         emptyPicks,
         favorBankSuits,
         NO_OPTION,
+        openCountCeiling,
         optionIndexOf,
         severalCountKey,
         withCount,
@@ -43,11 +44,7 @@
     let gameSession = getGameSession()
     let busy = $derived(gameSession.busy)
 
-    // An open count (Witch's Bargain) stops at what the player holds; the engine judges the pair.
-    let countCeiling = $derived.by(() => {
-        const me = gameSession.myPlayerState
-        return me ? Math.max(me.favor, me.secrets) : 0
-    })
+    let countCeiling = $derived(openCountCeiling(gameSession.gameState, gameSession.myPlayer?.id))
 
     function relicSlotLabel(slotId: string): string {
         if (/^reliquary\./.test(slotId)) return reliquaryLabel(slotId)

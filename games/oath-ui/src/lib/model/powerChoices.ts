@@ -1,6 +1,8 @@
 import {
     PowerChoiceKind,
+    usableFavor,
     type ExchangeTerms,
+    type HydratedOathGameState,
     type LegalChoice,
     type PowerChoice,
     type Suit
@@ -19,6 +21,18 @@ export function emptyPicks(): PowerChoicePicks {
 }
 
 export const NO_OPTION = -1
+
+/**
+ * R-7.1.2 — an open count (Witch's Bargain) stops at what the player can give: their secrets, or
+ * the favor they can use, which Vow of Kinship keeps in a bank. The engine judges the pair.
+ */
+export function openCountCeiling(
+    state: HydratedOathGameState,
+    playerId: string | undefined
+): number {
+    if (playerId === undefined) return 0
+    return Math.max(usableFavor(state, playerId), state.getPlayerState(playerId).secrets)
+}
 
 /** The favor banks among a choice's options, in option order. */
 export function favorBankSuits(options: readonly PowerChoice[]): Suit[] {
