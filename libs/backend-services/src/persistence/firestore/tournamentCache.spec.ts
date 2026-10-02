@@ -6,6 +6,7 @@ import { Role, UserStatus, type Tournament, type User } from '@tabletop/common'
 import { cacheFixture } from '../../cache/tests/cacheFixture.js'
 import { generateTournamentSchedule } from '../../competitions/tournamentScheduler.js'
 import { FirestoreTournamentStore } from './tournamentStore.js'
+import { isolatedFirestore } from './tests/isolatedFirestore.js'
 
 const readDocument = DocumentReference.prototype.get
 const readQuery = Query.prototype.get
@@ -59,7 +60,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
         }
         beforeEach(async () => {
             prefix = `demo-tournament-cache-${randomUUID()}`
-            db = new Firestore({ projectId: prefix })
+            db = isolatedFirestore()
             clients = Array.from({ length: 2 }, () =>
                 createClient({
                     socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
