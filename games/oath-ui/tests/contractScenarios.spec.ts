@@ -755,9 +755,8 @@ test('scenario 45: the focus views fill the board; Full restores; a zoom by hand
     await expect.poll(siteWidth).toBeGreaterThan(full * 1.5)
 })
 
-/** Item 13c: on a phone the focus views are one line on the map's top edge, clear of the rail. */
-test('on a phone the focus views sit in one line along the top of the map', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 })
+/** Item 13c: the focus views are one line on the map's top edge on a desktop, and a phone has none. */
+test('the focus views sit in one line along the top of the map on a desktop, and a phone has none', async ({ page }) => {
     await openTable(page, 'setup')
     const chooser = page.getByRole('group', { name: 'Focus the board' })
     const full = chooser.getByRole('button', { name: 'Full' })
@@ -769,6 +768,13 @@ test('on a phone the focus views sit in one line along the top of the map', asyn
     expect(bar.y - board.y).toBeLessThan(12)
     expect(bar.y + bar.height).toBeLessThan(board.y + board.height / 4)
     expect(Math.abs(((await full.boundingBox())?.y ?? 0) - ((await banks.boundingBox())?.y ?? -100))).toBeLessThan(2)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(chooser).toBeHidden()
+    // At phone width the board sits below the panel; a card is only reachable once it is on screen.
+    await page.locator('.scaling-surface').first().scrollIntoViewIfNeeded()
+    await expect(async () => (await uncovered(page, '.site .board-card')).click()).toPass()
+    await expect(page.getByRole('button', { name: 'Zoom the board here' })).toBeVisible()
 })
 
 test('scenario 46: in full screen the panel is docked above the board, a Travel goes from it, and a card enlarges inside', async ({ page }) => {

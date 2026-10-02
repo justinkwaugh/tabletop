@@ -3,7 +3,7 @@
     import type { FocusView } from '$lib/definitions/boardFocusAreas.js'
     import { regionName } from '$lib/model/names.js'
 
-    // Rule 5 — the board's focus views in one line along the map's top edge; the chosen one is ringed.
+    // Rule 5 — the board's focus views in one line along the map's top edge, on a desktop only; the chosen one is ringed.
     let {
         selected,
         onselect
@@ -51,6 +51,11 @@
         border: 1px solid rgb(55 65 81);
         background: rgb(0 0 0 / 0.6);
         pointer-events: auto;
+    }
+    @media (max-width: 639px) {
+        .chooser {
+            display: none;
+        }
     }
     .chooser__view {
         padding: 1px 8px;
