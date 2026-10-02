@@ -169,7 +169,7 @@ export function actionPrompt(action: ActionType, state: PromptState): string {
         case ActionType.Muster:
             return 'Choose a card at your site to place favor on.'
         case ActionType.Trade:
-            return 'Choose a trade, or tap a card at your site to find its row.'
+            return 'Choose a trade.'
         case ActionType.Recover:
             return 'Choose a relic or a banner.'
         case ActionType.Search:

@@ -421,9 +421,6 @@
         outline-offset: 1px;
         box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.6);
     }
-    .stat--pickable:hover {
-        outline-color: #fde68a;
-    }
     .stat dd {
         margin: 0;
         font-size: 18px;
