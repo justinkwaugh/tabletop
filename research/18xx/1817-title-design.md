@@ -52,8 +52,8 @@ rule may differ, follow the engine and record the difference.
     | `20758`                  | 5       | none       | Ended manually in the second stock round                                                            |
     | `1817_game_end_bankrupt` | 5       | Volatility | Bankruptcy                                                                                          |
 
-    Manually ended games have no final result. They are verified by replaying every
-    action and comparing the final cash and holdings, not by reaching game over.
+    Manually ended games still record each player's value. They are verified by
+    replaying every action and comparing those values, not by reaching game over.
 
 ## Trait comparison
 
@@ -1468,6 +1468,72 @@ Revenue bonuses that depend on the train, like Modern Trains, are title rules.
 - With Modern Trains, an 8-train stopping at three cities with its company's stations
   earns $60 more; the autorouter finds the same revenue.
 
+## Slice 8 design: verification by replay
+
+Slice 8 replays the four recorded base games through 1817 as built, fixes what the
+replays show to be wrong, and makes 15528 the playground's finished 1817 game.
+
+### Evidence
+
+- **The recordings** ([fixtures]). 15528 (4 players, 1679 actions, ends after the
+  final set), 16281 (810, ended by hand in a merger round), 16852 (890, ended by hand
+  in an acquisition round) and 20758 (5 players, 370, ended by hand in the second stock
+  round). None uses an option; all record each player's final value. 15528, 16281 and
+  16852 have their undos already removed; 20758 marks undone actions and its undos
+  with `skip`. None has programmed or automatic actions.
+- **No randomness.** Base 1817 draws nothing from the seed; player order is the
+  recording's.
+- **Reference vocabulary.** Generic verbs carry meaning by step: `bid` for a private,
+  a company start or an acquisition; `pass` for every step; `assign` for a private
+  contribution, an offer or a bridge; `merge` for a merger or naming an acquirer;
+  `choose` for a company size; `buy_shares` for a purchase, a post-conversion buy or
+  a buy-back. Routes record only each train's hex chains.
+
+### Survey
+
+The 1830 and 1889 conversions are the precedent: a research converter, kept with the
+research outside the repo, maps each recorded action to ours by trying candidates in
+order against the replayed state, and the repo keeps only the converted games and the
+playground's replay specs.
+
+### Decisions
+
+- **A research converter** (`fixture-conversion/convert1817.spec.ts`) follows the 1830
+  one: it drops `skip` actions and messages, starts from a seed whose first player is
+  the recording's, maps recorded ids (upstream player ids, `BA`-style company ids,
+  `18xx:<n>` and `1817:X00` tiles, tile-relative cities through each lay's node
+  mapping), rebuilds routes from hex chains, and maps each action by trying our
+  candidates in order:
+    - `bid` → selection-auction bids and nominations, `AuctionCompany` (with the home
+      the following `place_token` names) or `BidForCompany`, `BidToAcquire`;
+    - `choose` and `assign` (company) → collected into `FormCompany`, sent at the
+      formation's `pass`;
+    - `assign` (corporation) → `OfferCompany`; `assign` (hex) → `PlacePrivateMarker`;
+    - `merge` → `MergeCompanies` (company) or `AcquireCompany` (player);
+    - `convert`, `short`, `take_loan`, `payoff_loan`, company `buy_shares`, company
+      `lay_tile`, `discard_train`, `end_game` → their counterparts;
+    - `pass` → whichever pass, finish or decline the replayed state offers.
+  It skips recorded passes our engine already made for the player.
+- **Verification.** 15528 must reach game over with the recorded final values; the
+  three games ended by hand replay every action and their players' wealth, valued as at
+  the game's end, must equal the recorded values.
+- **Differences** are fixed in the rules when ours is wrong and bridged in the
+  converter when only the procedure differs, each listed in this note.
+- **The repo** gains the converted games as playground fixtures (`1817-finished.json`
+  for 15528 and one per hand-ended game), the playground's replay specs, a browser test
+  of the finished game, and 1817's finished-game entry.
+
+### Limits after slice 8
+
+- The bankruptcy recording uses the Volatility option and comes with slice 9.
+
+### Acceptance examples
+
+- The playground's finished 1817 game is 15528: it loads at game over with the recorded
+  winner and steps back and forward through its history.
+- 16281, 16852 and 20758 replay to their last action with every player's recorded
+  value.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/entities.rb
@@ -1488,3 +1554,4 @@ Revenue bonuses that depend on the train, like Modern Trains, are title rules.
 [acquisition-round]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round/acquisition.rb
 [passable-auction]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/passable_auction.rb
 [token-merger]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/token_merger.rb
+[fixtures]: https://github.com/tobymao/18xx/tree/715567bdc7e5cc68a68a286b21dc8edd1a125e50/public/fixtures/1817
