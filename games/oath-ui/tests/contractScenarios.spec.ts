@@ -1461,6 +1461,7 @@ test('scenario 60: between rounds the Chancellor rolls the end die; the last sea
 
     await openTable(page, 'endOfRound')
     await grid(page).getByRole('button', { name: 'Roll the end die' }).click()
+    await expect(page.getByTitle('the end die, rolled at the close of each round from round 5')).toContainText(/last [1-6]/)
     await page.getByRole('tab', { name: 'History' }).click()
     await expect(page.locator('[data-major-event="endDie"]')).toContainText('rolled the end die:')
     await expect(page.locator('[data-major-event="endDie"]')).toContainText('end of round 6')
