@@ -6,6 +6,7 @@
     import DirectionArrows from '$lib/components/DirectionArrows.svelte'
     import RoutePreview from '$lib/components/RoutePreview.svelte'
     import VisitorQueue from '$lib/components/VisitorQueue.svelte'
+    import PalmTree from '$lib/components/PalmTree.svelte'
     import type { FountainId, Route } from '@tabletop/marracash'
     import {
         BoardHeight,
@@ -88,9 +89,7 @@
         {/each}
 
         {#each Palms as palm (`${palm.row},${palm.col}`)}
-            {@const center = cellCenter(palm)}
-            <circle cx={center.x} cy={center.y} r="30" fill="#3f8a4b"></circle>
-            <circle cx={center.x} cy={center.y} r="12" fill="#6fb25f"></circle>
+            <PalmTree center={cellCenter(palm)} />
         {/each}
 
         {#each gameSession.gameState.shops as shop (shop.shopId)}
