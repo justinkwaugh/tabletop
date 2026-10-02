@@ -294,19 +294,47 @@ export function createOrdinaryShareCertificates(
             retired: false,
             ...('owner' in president ? president : { owner: president })
         },
-        ...ordinary.map(
-            (allocation, index): Certificate => ({
-                id: `${companyId}:share:${index + 1}`,
-                companyId,
-                kind: 'share',
-                shares: 1,
-                president: false,
-                certificateLimitCount: 1,
-                retired: false,
-                ...allocation
-            })
+        ...ordinary.map((allocation, index) =>
+            ordinaryShareCertificate(companyId, index + 1, allocation)
         )
     ]
+}
+
+/** Issues one-share certificates numbered after every certificate the company has had. */
+export function issueShareCertificates(
+    state: Pick<FinancialState, 'certificates'>,
+    companyId: string,
+    count: number,
+    allocation: CertificateAllocation
+): void {
+    const prefix = ordinaryShareIdPrefix(companyId)
+    const numbers = state.certificates.flatMap((certificate) =>
+        certificate.id.startsWith(prefix) ? [Number(certificate.id.slice(prefix.length))] : []
+    )
+    const first = Math.max(0, ...numbers) + 1
+    for (let index = 0; index < count; index++)
+        state.certificates.push(ordinaryShareCertificate(companyId, first + index, allocation))
+}
+
+function ordinaryShareIdPrefix(companyId: string): string {
+    return `${companyId}:share:`
+}
+
+function ordinaryShareCertificate(
+    companyId: string,
+    number: number,
+    allocation: CertificateAllocation
+): Certificate {
+    return {
+        id: `${ordinaryShareIdPrefix(companyId)}${number}`,
+        companyId,
+        kind: 'share',
+        shares: 1,
+        president: false,
+        certificateLimitCount: 1,
+        retired: false,
+        ...allocation
+    }
 }
 
 export function copyFinances(state: FinancialState): FinancialState {

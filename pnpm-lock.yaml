@@ -459,6 +459,49 @@ importers:
         specifier: ^4.0.17
         version: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)
 
+  games/1817:
+    dependencies:
+      '@tabletop/18xx':
+        specifier: workspace:*
+        version: link:../../libs/18xx
+      '@tabletop/common':
+        specifier: workspace:*
+        version: link:../../libs/common
+    devDependencies:
+      '@tabletop/18xx-autorouter':
+        specifier: workspace:*
+        version: link:../../libs/18xx-autorouter
+      '@tabletop/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/config-eslint
+      '@tabletop/rollup-config':
+        specifier: workspace:*
+        version: link:../../config/config-rollup
+      '@tabletop/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/config-vitest
+      '@typescript/native-preview':
+        specifier: 7.0.0-dev.20260203.1
+        version: 7.0.0-dev.20260203.1
+      rimraf:
+        specifier: ^6.1.0
+        version: 6.1.2
+      rollup:
+        specifier: 4.55.2
+        version: 4.55.2
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
+      typebox:
+        specifier: ^1.0.79
+        version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.12
+        version: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)
+
   games/1830:
     dependencies:
       '@tabletop/18xx':

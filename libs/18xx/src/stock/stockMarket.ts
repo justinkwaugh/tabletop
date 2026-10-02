@@ -11,7 +11,7 @@ import {
 export const StockMarketSpace = Type.Object(
     {
         id: Type.String(),
-        price: Type.Integer({ minimum: 1 }),
+        price: Type.Integer({ minimum: 0 }),
         row: Type.Integer({ minimum: 0 }),
         column: Type.Integer({ minimum: 0 }),
         color: Type.String(),

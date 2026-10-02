@@ -652,6 +652,97 @@
         },
         "type": "array"
       },
+      "companyAuction": {
+        "additionalProperties": false,
+        "properties": {
+          "auction": {
+            "properties": {
+              "auctioneerId": {
+                "type": "string"
+              },
+              "highBid": {
+                "type": "number"
+              },
+              "id": {
+                "type": "string"
+              },
+              "participants": {
+                "items": {
+                  "properties": {
+                    "bid": {
+                      "type": "number"
+                    },
+                    "passed": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "playerId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "passed",
+                    "playerId"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "type": {
+                "const": "simple",
+                "type": "string"
+              },
+              "winnerId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "participants",
+              "type"
+            ],
+            "type": "object"
+          },
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "home": {
+            "additionalProperties": false,
+            "properties": {
+              "locationId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "nodeId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "slot": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "locationId",
+              "nodeId",
+              "slot"
+            ],
+            "type": "object"
+          },
+          "openerId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "auction",
+          "companyId",
+          "home",
+          "openerId"
+        ],
+        "type": "object"
+      },
       "earningsDistribution": {
         "additionalProperties": false,
         "properties": {
@@ -2548,6 +2639,134 @@
       "seed": {
         "type": "number"
       },
+      "selectionAuction": {
+        "additionalProperties": false,
+        "properties": {
+          "awards": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "lotId": {
+                  "type": "string"
+                },
+                "playerId": {
+                  "type": "string"
+                },
+                "price": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "lotId",
+                "playerId",
+                "price"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "bidding": {
+            "additionalProperties": false,
+            "properties": {
+              "auction": {
+                "properties": {
+                  "auctioneerId": {
+                    "type": "string"
+                  },
+                  "highBid": {
+                    "type": "number"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "participants": {
+                    "items": {
+                      "properties": {
+                        "bid": {
+                          "type": "number"
+                        },
+                        "passed": {
+                          "default": false,
+                          "type": "boolean"
+                        },
+                        "playerId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "passed",
+                        "playerId"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "type": {
+                    "const": "simple",
+                    "type": "string"
+                  },
+                  "winnerId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "participants",
+                  "type"
+                ],
+                "type": "object"
+              },
+              "lotId": {
+                "type": "string"
+              },
+              "nominatorId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "auction",
+              "lotId",
+              "nominatorId"
+            ],
+            "type": "object"
+          },
+          "closedLotIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "nominatorId": {
+            "type": "string"
+          },
+          "passedPlayerIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "remainingLotIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "awards",
+          "closedLotIds",
+          "completed",
+          "nominatorId",
+          "passedPlayerIds",
+          "remainingLotIds"
+        ],
+        "type": "object"
+      },
       "stationReservations": {
         "items": {
           "additionalProperties": false,
@@ -2724,7 +2943,7 @@
                   "type": "object"
                 },
                 "price": {
-                  "minimum": 1,
+                  "minimum": 0,
                   "type": "integer"
                 },
                 "row": {

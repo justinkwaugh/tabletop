@@ -103,10 +103,25 @@ export function createOffboardTileFace(edges: readonly TileEdge[], revenue: Tile
     }
 }
 
+export function createJunctionTileFace(color: string, edges: readonly TileEdge[]): TileFace {
+    return {
+        color,
+        nodes: [{ id: 'junction', kind: 'junction' }],
+        paths: edges.map((edge) => ({
+            id: `edge-${edge}`,
+            endpoints: [
+                { kind: 'edge', edge },
+                { kind: 'node', nodeId: 'junction' }
+            ]
+        })),
+        labels: []
+    }
+}
+
 export function createTownTileFace(
     color: string,
     connections: readonly (readonly TileEdge[])[],
-    revenue: number
+    revenue: number | TileRevenue
 ): TileFace {
     const townIds = connections.map((_, index) =>
         connections.length === 1 ? 'town' : `town-${index}`
@@ -116,7 +131,7 @@ export function createTownTileFace(
         nodes: townIds.map((id) => ({
             id,
             kind: 'town',
-            revenue: { kind: 'fixed', amount: revenue }
+            revenue: typeof revenue === 'number' ? { kind: 'fixed', amount: revenue } : revenue
         })),
         paths: connections.flatMap((edges, index) =>
             edges.map((edge) => ({

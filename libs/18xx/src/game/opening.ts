@@ -2,6 +2,7 @@ import type { GameConfig, PlayerState, Prng, StartingPositionAssignment } from '
 import { assert } from '@tabletop/common'
 import type { OfferPileAuction } from '../auctions/offerPileAuction.js'
 import type { WaterfallAuctionRules } from '../auctions/waterfallAuction.js'
+import type { SelectionAuctionRules } from '../auctions/selectionAuction.js'
 import type { CompanyState } from '../company/companyState.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { StockMarket } from '../stock/stockMarket.js'
@@ -60,6 +61,29 @@ export function beginWaterfallAuction(
             completed: false
         }
         beginWith(state, 'WaterfallAuction', firstPlayerId)
+    }
+}
+
+export function beginSelectionAuction(
+    rules: SelectionAuctionRules,
+    startingPositions?: StartingPositionAssignment
+): Opening['begin'] {
+    return (state) => {
+        const firstPlayerId = drawFirstPlayer(
+            state.turnManager.turnOrder,
+            state.getPublicPrng(),
+            startingPositions
+        )
+        state.turnManager.newFirstPlayer(firstPlayerId)
+        state.selectionAuction = {
+            remainingLotIds: rules.lots(state).map((lot) => lot.id),
+            nominatorId: firstPlayerId,
+            passedPlayerIds: [],
+            awards: [],
+            closedLotIds: [],
+            completed: false
+        }
+        beginWith(state, 'SelectionAuction', firstPlayerId)
     }
 }
 

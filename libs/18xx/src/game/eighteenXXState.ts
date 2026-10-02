@@ -2,6 +2,11 @@ import { GameEnding } from '../ending/gameEnding.js'
 import { EndingFields, type PlayerWealth } from '../ending/finalWealth.js'
 import { OfferPileFields, type OfferPileAuction } from '../auctions/offerPileAuction.js'
 import { AuctionFields, type WaterfallAuction } from '../auctions/waterfallAuction.js'
+import {
+    SelectionAuctionFields,
+    validateSelectionAuction,
+    type SelectionAuction
+} from '../auctions/selectionAuction.js'
 import { validatePendingPar, type PendingPar } from '../company/pendingPar.js'
 import { FundingFields, type TrainFunding, type Bankruptcy } from '../funding/trainFunding.js'
 import {
@@ -37,6 +42,11 @@ import {
 } from '@tabletop/common'
 import { StockMarket, validateStockMarket } from '../stock/stockMarket.js'
 import { StockRound } from '../stock/stockRound.js'
+import {
+    CompanyAuctionFields,
+    validateCompanyAuction,
+    type CompanyAuction
+} from '../stock/companyAuction.js'
 import { FinanceFields, validateFinances, type FinancialState } from '../finance/finance.js'
 import { validateStockRound } from '../stock/stockRound.js'
 import { validateOperatingSet } from '../operating/operatingSet.js'
@@ -58,6 +68,7 @@ const FamilyMachineState = Type.Union([
     Type.Literal('OfferBidding'),
     Type.Literal('WaterfallAuction'),
     Type.Literal('AuctionBidding'),
+    Type.Literal('SelectionAuction'),
     Type.Literal('StartingOperatingSet'),
     Type.Literal('OperatingSet'),
     Type.Literal('LayingTrack'),
@@ -87,6 +98,7 @@ const FamilyFields = Type.Object({
     gameEnding: Type.Optional(GameEnding),
     ...FundingFields,
     ...AuctionFields,
+    ...SelectionAuctionFields,
     ...OfferPileFields,
     ...CompanyFields,
     ...MapFields,
@@ -95,7 +107,8 @@ const FamilyFields = Type.Object({
     ...EarningsFields,
     ...CompanyDecisionFields,
     ...RouteFields,
-    ...StockTurnPurchaseFields
+    ...StockTurnPurchaseFields,
+    ...CompanyAuctionFields
 })
 export const EighteenXXState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof FamilyFields.properties
@@ -145,6 +158,7 @@ export class HydratedEighteenXXState
 {
     declare offerAuction?: OfferPileAuction
     declare openingAuction?: WaterfallAuction
+    declare selectionAuction?: SelectionAuction
     declare pendingPar?: PendingPar
     declare trainFunding?: TrainFunding
     declare bankruptcy?: Bankruptcy
@@ -154,6 +168,7 @@ export class HydratedEighteenXXState
     declare privatePowerRequests?: string[]
     declare purchaseOffer?: PendingPurchaseOffer
     declare stockTurnPurchases?: StockTurnPurchase[]
+    declare companyAuction?: CompanyAuction
     declare privateTrackLay?: PrivateTrackLay
     declare privateStation?: PrivateStation
     declare trackConsent?: TrackConsent
@@ -199,6 +214,8 @@ export class HydratedEighteenXXState
         validateTrackStep(this)
         validateStationStep(this)
         validateWaterfallAuction(this)
+        validateSelectionAuction(this)
+        validateCompanyAuction(this)
         validatePendingPar(this)
         validateTrainFunding(this)
         validateFinalResults(this)

@@ -16,6 +16,7 @@ import type { SharePurchaseTerms, ShareCertificate } from './sharePurchase.js'
 import type { StockInstructionRules } from './stockInstruction.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
 import type { PrivateSaleRules } from './privateSale.js'
+import type { CompanyAuctionRules } from './companyAuction.js'
 
 export type ShareSaleTerms = {
     payer: Owner
@@ -57,6 +58,8 @@ export interface StockRules {
     multipleBuys?: MultipleBuyRules
     /** Private sales between players, offered and answered like a company's purchase offer. */
     privateSales?: PrivateSaleRules
+    /** Companies are started by auction during a stock turn rather than at a chosen par. */
+    companyAuction?: CompanyAuctionRules
 }
 export function stockCertificateCount(state: StockState, owner: Owner, rules: StockRules): number {
     return certificatesOwnedBy(state, owner).reduce(

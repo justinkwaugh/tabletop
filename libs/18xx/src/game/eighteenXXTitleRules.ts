@@ -2,6 +2,7 @@ import { type EndingRules } from '../ending/gameEnding.js'
 import type { MachineStateHandler, HydratedAction } from '@tabletop/common'
 import { type OfferPileAuctionRules } from '../auctions/offerPileAuction.js'
 import { type WaterfallAuctionRules } from '../auctions/waterfallAuction.js'
+import { type SelectionAuctionRules } from '../auctions/selectionAuction.js'
 import { type TrainFundingRules } from '../funding/trainFunding.js'
 import { type TransferRules } from '../transfers/purchaseOffer.js'
 import { type PrivatePowerRules } from '../privates/privatePowers.js'
@@ -34,6 +35,7 @@ export interface EighteenXXTitleRules {
     titleActions?: readonly ActionDefinition[]
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules
+    selectionAuctionRules?: SelectionAuctionRules
     trainFundingRules: TrainFundingRules
     createOpening: (setup: OpeningSetup) => Opening
     stockRules: StockRules

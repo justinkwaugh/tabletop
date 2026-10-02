@@ -6,6 +6,7 @@ import { GameEndingHandler } from '../ending/gameEndingHandler.js'
 import { FinalWealthScoring } from '../ending/finalScores.js'
 import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
+import { SelectionAuctionHandler } from '../auctions/selectionAuctionHandler.js'
 import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
 import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
 import { PendingParHandler } from '../company/pendingPar.js'
@@ -149,6 +150,16 @@ export function createEighteenXXRuntime(
                   )
               }
             : {}),
+        ...(options.selectionAuctionRules
+            ? {
+                  SelectionAuction: endsGame(
+                      decides(
+                          'SelectionAuction',
+                          new SelectionAuctionHandler(options.selectionAuctionRules)
+                      )
+                  )
+              }
+            : {}),
         FundingTrain: endsGame(
             decides(
                 'FundingTrain',
@@ -261,7 +272,11 @@ export function createEighteenXXRuntime(
     }
     const actions = new ActionRegistry([
         ...endingActions(options.endingRules),
-        ...auctionActions(options.offerAuctionRules, options.auctionRules),
+        ...auctionActions(
+            options.offerAuctionRules,
+            options.auctionRules,
+            options.selectionAuctionRules
+        ),
         ...fundingActions(options.trainFundingRules, rules, options.trainRules),
         ...privateActions(options),
         ...trackActions(options.trackRules),
