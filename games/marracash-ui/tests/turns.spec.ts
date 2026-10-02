@@ -5,6 +5,7 @@ import {
     createGame,
     exitArrows,
     finishBidding,
+    incomingVisitors,
     playOpeningRound
 } from './helpers'
 
@@ -61,8 +62,14 @@ test('emptied entrances are refilled from a chosen end of the queue', async ({ p
 
     await expect(actionPanel(page)).toContainText('Bring new visitors')
     await page.getByRole('button', { name: 'Front of queue' }).click()
+    await expect(incomingVisitors(page)).toHaveCount(0)
+    await page.getByRole('button', { name: '3', exact: true }).click()
+    await expect(incomingVisitors(page)).toHaveCount(3)
+    await page.getByRole('button', { name: '4', exact: true }).click()
+    await expect(incomingVisitors(page)).toHaveCount(4)
     await page.getByRole('button', { name: '3', exact: true }).click()
     await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await expect(incomingVisitors(page)).toHaveCount(0)
     await expect(page.getByText('52 waiting')).toBeVisible()
 
     await page.getByRole('button', { name: 'Back of queue' }).click()

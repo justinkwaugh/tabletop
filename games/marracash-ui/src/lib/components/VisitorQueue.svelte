@@ -16,6 +16,7 @@
             x={layout.visitors[index].x}
             y={layout.visitors[index].y}
             size={QueuePawnSize}
+            highlighted={gameSession.incomingQueueIndices.has(index)}
         />
     {/each}
     {#if queue.length > 0}

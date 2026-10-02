@@ -14,13 +14,28 @@
         PawnNeckY,
         PawnOutline
     } from '$lib/utils/pawnShape.js'
+    import { CandidateHaloFilterId } from '$lib/utils/boardGeometry.js'
 
-    let { color }: { color: MarketColor } = $props()
+    const HaloWidth = 3
+    const HaloOpacity = 0.55
+
+    let { color, highlighted }: { color: MarketColor; highlighted: boolean } = $props()
     const gameSession = getGameSession()
 
     let palette = $derived(gameSession.marketPalettes[color])
 </script>
 
+{#if highlighted}
+    <path
+        d={PawnOutline}
+        fill="none"
+        stroke="#ffffff"
+        stroke-width={HaloWidth}
+        stroke-opacity={HaloOpacity}
+        stroke-linejoin="round"
+        filter="url(#{CandidateHaloFilterId})"
+    ></path>
+{/if}
 <ellipse cx="2" cy={PawnBaseY + 0.6} rx="9" ry="3" fill="url(#{PawnGroundShadowId})"></ellipse>
 <path d={PawnOutline} fill={palette.fill}></path>
 <g clip-path="url(#{PawnClipId})">

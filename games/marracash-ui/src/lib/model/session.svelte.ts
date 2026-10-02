@@ -12,7 +12,7 @@ import {
     type FountainId,
     type HydratedMarracashGameState,
     type MarracashProjectedState,
-    type QueueEnd,
+    QueueEnd,
     type Route,
     type ShopId
 } from '@tabletop/marracash'
@@ -93,6 +93,14 @@ export class MarracashGameSession extends GameSession<
         if (!this.canRefill || this.chosenQueueEnd === undefined) return undefined
         if (this.visitorCountOptions.length === 1) return this.visitorCountOptions[0]
         return this.selection.visitorCount?.value
+    })
+
+    readonly incomingQueueIndices: ReadonlySet<number> = $derived.by(() => {
+        const end = this.chosenQueueEnd
+        const count = this.chosenVisitorCount
+        if (end === undefined || count === undefined) return new Set()
+        const first = end === QueueEnd.Front ? 0 : this.gameState.queue.length - count
+        return new Set(Array.from({ length: count }, (_, offset) => first + offset))
     })
 
     readonly fillableEntranceIds: FountainId[] = $derived(

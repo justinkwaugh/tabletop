@@ -56,3 +56,7 @@ export async function playOpeningRound(page: Page, players = 4) {
     }
     await expect(actionPanel(page)).toContainText('click a fountain')
 }
+
+export function incomingVisitors(page: Page): Locator {
+    return page.locator('g[aria-label="Visitor queue"] path[filter*="candidate-halo"]')
+}

@@ -63,7 +63,7 @@
 
 <svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
     <defs>
-        <filter id={CandidateHaloFilterId} x="-20%" y="-20%" width="140%" height="140%">
+        <filter id={CandidateHaloFilterId} x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow"></feGaussianBlur>
             <feMerge>
                 <feMergeNode in="glow"></feMergeNode>

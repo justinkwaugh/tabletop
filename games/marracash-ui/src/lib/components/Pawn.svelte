@@ -7,12 +7,19 @@
         color,
         x,
         y,
-        size = PawnUnitSize
-    }: { color: MarketColor; x: number; y: number; size?: number } = $props()
+        size = PawnUnitSize,
+        highlighted = false
+    }: {
+        color: MarketColor
+        x: number
+        y: number
+        size?: number
+        highlighted?: boolean
+    } = $props()
 
     let scale = $derived(size / PawnUnitSize)
 </script>
 
 <g transform="translate({x} {y}) scale({scale})">
-    <PawnFigure {color} />
+    <PawnFigure {color} {highlighted} />
 </g>
