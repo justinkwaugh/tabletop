@@ -3,12 +3,17 @@
     import { actionAllowances } from '$lib/utils/actionAllowances.js'
     import AllowanceIcon from './icons/AllowanceIcon.svelte'
 
-    let { card, label, size }: { card: ActionCard; label: string; size: number } = $props()
+    let {
+        card,
+        label,
+        size,
+        bonusInParens = false
+    }: { card: ActionCard; label: string; size: number; bonusInParens?: boolean } = $props()
 
     const allowances = $derived(actionAllowances(card))
 </script>
 
-<ul class="allowances" style:--size="{size}px" aria-label={label}>
+<ul class="allowances" class:parens={bonusInParens} style:--size="{size}px" aria-label={label}>
     {#each allowances as allowance (allowance.kind)}
         <li title="{allowance.label}: {allowance.basic}, or {allowance.enhanced} enhanced">
             <AllowanceIcon kind={allowance.kind} {size} />
@@ -47,5 +52,25 @@
         margin-left: 2px;
         font-size: calc(var(--size) / 2);
         vertical-align: 0.7em;
+    }
+
+    .parens .basic {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .parens .bonus {
+        top: 0;
+        margin-left: 2px;
+        font-size: calc(var(--size) * 0.65);
+        vertical-align: baseline;
+    }
+
+    .parens .bonus::before {
+        content: '(';
+    }
+
+    .parens .bonus::after {
+        content: ')';
     }
 </style>

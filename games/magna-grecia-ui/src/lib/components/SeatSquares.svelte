@@ -1,7 +1,11 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let { playerIds, currentPlayerId }: { playerIds: string[]; currentPlayerId?: string } = $props()
+    let {
+        playerIds,
+        currentPlayerId,
+        size = 34
+    }: { playerIds: string[]; currentPlayerId?: string; size?: number } = $props()
 
     const gameSession = getGameSession()
 
@@ -19,7 +23,7 @@
     )
 </script>
 
-<ol class="seats" aria-label="Player order">
+<ol class="seats" style:--size="{size}px" aria-label="Player order">
     {#each seats as seat (seat.playerId)}
         <li
             class:current={seat.playerId === currentPlayerId}
@@ -36,7 +40,7 @@
     .seats {
         display: flex;
         align-items: center;
-        gap: 9px;
+        gap: calc(var(--size) * 0.26);
         margin: 0;
         padding: 0;
         list-style: none;
@@ -45,14 +49,14 @@
     .seats li {
         display: grid;
         place-items: center;
-        width: 34px;
-        height: 34px;
-        border-radius: 6px;
+        width: var(--size);
+        height: var(--size);
+        border-radius: calc(var(--size) * 0.18);
         background: var(--seat);
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
         color: var(--seat-text);
         font-family: system-ui, sans-serif;
-        font-size: 20px;
+        font-size: calc(var(--size) * 0.59);
         font-weight: 700;
     }
 

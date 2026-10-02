@@ -19,6 +19,7 @@
     import Header from '$lib/components/Header.svelte'
     import ActionCard from '$lib/components/ActionCard.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import UpcomingStrip from '$lib/components/UpcomingStrip.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import { MagnaGreciaGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
@@ -93,8 +94,9 @@
                         <ActionPanel />
                     {/if}
                 </ActionCard>
+                <UpcomingStrip />
             </div>
-            <div class="grow-0 overflow-hidden pt-3" style="flex:1;">
+            <div class="grow-0 overflow-hidden pt-3" style="flex:1; min-height: 40dvh;">
                 <ScalingWrapper justify="center" controls="bottom-left">
                     <Board />
                 </ScalingWrapper>

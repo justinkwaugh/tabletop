@@ -6,6 +6,7 @@
     import AllowanceList from './AllowanceList.svelte'
     import AllowanceIcon from './icons/AllowanceIcon.svelte'
     import MarketIcon from './icons/MarketIcon.svelte'
+    import PointsIcon from './icons/PointsIcon.svelte'
     import LastActionDescription from './LastActionDescription.svelte'
     import ResupplyPicker from './ResupplyPicker.svelte'
 
@@ -16,6 +17,11 @@
         [BuildTool.City]: 'Cities',
         [BuildTool.Market]: 'Build market',
         [BuildTool.Sell]: 'Sell market'
+    }
+
+    const MARKET_SHORT_LABELS: Partial<Record<BuildTool, string>> = {
+        [BuildTool.Market]: 'Buy',
+        [BuildTool.Sell]: 'Sell'
     }
 
     const ENHANCED_NOUNS = { roads: 'roads', cities: 'cities' } as const
@@ -122,6 +128,14 @@
             gameSession.endTurnOutcome === EndTurnOutcome.EndsGame
     )
 
+    const CITY_PROMPT = 'Found or expand a city'
+    const ROAD_PROMPT = 'Place a road tile'
+    const PROMPT_DETAILS: Record<string, string> = {
+        [ROAD_PROMPT]: 'beside a city or continuing your road',
+        [CITY_PROMPT]:
+            '(1 point per tile). Dotted spaces commit you to building on to a village this turn'
+    }
+
     const message = $derived.by(() => {
         if (gameSession.pendingClaim) {
             return 'Finish the expansion: place a city tile on the village'
@@ -142,9 +156,9 @@
         }
         switch (gameSession.activeTool) {
             case BuildTool.Road:
-                return 'Place a road tile beside a city or continuing your road'
+                return ROAD_PROMPT
             case BuildTool.City:
-                return 'Found or expand a city (1 point per tile). Dotted spaces commit you to building on to a village this turn'
+                return CITY_PROMPT
             case BuildTool.Market:
                 return 'Build a market in a village or rival city'
             case BuildTool.Sell:
@@ -207,7 +221,12 @@
             />
         </div>
     {:else}
-        <div class="message">{message}</div>
+        <div class="message">
+            {message}
+            {#if PROMPT_DETAILS[message]}
+                <span class="message-detail">{PROMPT_DETAILS[message]}</span>
+            {/if}
+        </div>
         {#if hint}
             <div class="hint" class:warning={hintIsWarning}>{hint}</div>
         {/if}
@@ -219,7 +238,7 @@
                         {#each shownTileButtons as { kind, label, split, active, choose } (kind)}
                             <button type="button" class="tool" class:active onclick={choose}>
                                 <AllowanceIcon {kind} size={24} />
-                                {label}
+                                <span class="label">{label}</span>
                                 <span class="allowance">
                                     <span class="count">{split.basic}</span>
                                     {#if split.bonus > 0}
@@ -245,7 +264,13 @@
                                 onclick={() => gameSession.chooseTool(tool)}
                             >
                                 <MarketIcon size={24} />
-                                {TOOL_LABELS[tool]}
+                                {#if tool === BuildTool.Sell}
+                                    <PointsIcon size={18} />
+                                {/if}
+                                <span class="label">{TOOL_LABELS[tool]}</span>
+                                <span class="short-label" aria-hidden="true"
+                                    >{MARKET_SHORT_LABELS[tool]}</span
+                                >
                             </button>
                         {/each}
                         {#if !gameSession.marketActionsOpen}
@@ -415,7 +440,7 @@
         }
     }
 
-    .tool > :global(svg) {
+    .tool > :global(svg:first-child) {
         margin-left: -6px;
     }
 
@@ -436,6 +461,57 @@
         font-size: 11px;
         line-height: 1;
         vertical-align: baseline;
+    }
+
+    .short-label {
+        display: none;
+    }
+
+    @media (max-width: 639px) {
+        .short-label {
+            display: inline;
+        }
+
+        .message-detail,
+        .hint:not(.warning) {
+            display: none;
+        }
+
+        .phase-buttons {
+            gap: 4px;
+        }
+
+        .tool {
+            gap: 4px;
+            padding: 3px 10px;
+        }
+
+        .label {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
+        .allowance {
+            align-items: center;
+        }
+
+        .bonus {
+            top: 0;
+            margin: 0 0 0 2px;
+            font-size: 13px;
+        }
+
+        .bonus::before {
+            content: '(';
+        }
+
+        .bonus::after {
+            content: ')';
+        }
     }
 
     @media (prefers-reduced-motion: no-preference) {

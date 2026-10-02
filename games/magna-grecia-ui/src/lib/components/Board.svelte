@@ -10,16 +10,16 @@
     import TerrainLayer from './board/TerrainLayer.svelte'
 
     const gameSession = getGameSession()
-    const upcoming = $derived(
-        gameSession.gameState.result ? undefined : gameSession.gameState.upcomingCard()
-    )
+    const upcoming = $derived(gameSession.upcomingCard)
 </script>
 
 <div class="board-folder">
     <div class="tabs">
         <RoundTab />
         {#if upcoming}
-            <UpcomingTab card={upcoming} />
+            <div class="upcoming-tab-slot">
+                <UpcomingTab card={upcoming} />
+            </div>
         {/if}
     </div>
     <div class="board-shell" class:upcoming-tab={upcoming}>
@@ -98,8 +98,16 @@
             var(--sheet-color);
     }
 
-    .board-shell.upcoming-tab {
-        border-top-right-radius: 0;
+    @media (min-width: 640px) {
+        .board-shell.upcoming-tab {
+            border-top-right-radius: 0;
+        }
+    }
+
+    @media (max-width: 639px) {
+        .upcoming-tab-slot {
+            display: none;
+        }
     }
 
     .map {

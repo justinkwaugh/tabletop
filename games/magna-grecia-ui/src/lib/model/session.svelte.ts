@@ -244,6 +244,8 @@ export class MagnaGreciaGameSession extends GameSession<
 
     endTurnOutcome: EndTurnOutcome = $derived(this.gameState.endTurnOutcome())
 
+    upcomingCard = $derived(this.gameState.result ? undefined : this.gameState.upcomingCard())
+
     chooseTool(tool: BuildTool) {
         this.draft = chooseTool(this.draft, tool, this.turnKey)
     }
