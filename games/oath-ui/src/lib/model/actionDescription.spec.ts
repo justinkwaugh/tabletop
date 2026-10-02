@@ -85,10 +85,10 @@ describe('a history line names a site by its printed name', () => {
     it('a site id inside a power summary is named too', () => {
         const names = { player: nameOf.player, site: (slotId: string) => (slotId === 'slot.cradle.0' ? 'Plains' : slotId) }
         const line = describeAction(
-            action({ type: ActionType.UseRestPower, playerId: 'p1', cardId: 'x', powerIndex: 0, choices: [], metadata: { summary: 'moved to slot.cradle.0' } }),
+            action({ type: ActionType.UseRestPower, playerId: 'p1', cardId: 'denizen.discord.insomnia', powerIndex: 0, choices: [], metadata: { summary: 'moved to slot.cradle.0' } }),
             names
         )
-        expect(line).toBe('rested: moved to Plains')
+        expect(line).toBe('rested with Insomnia: moved to Plains')
     })
 })
 
@@ -123,6 +123,50 @@ describe('the history tab describes every action', () => {
 
     it('R-3.3 — gives the end die’s roll', () => {
         expect(describeAction(action({ type: ActionType.RollEndDie, playerId: 'p1', metadata: { roll: 4, round: 6, threshold: 5 } }), nameOf)).toBe('rolled the end die: 4')
+    })
+
+    it('R-5.1.2 — says a Search stopped on a Vision, from the public flag or the drawer’s own draw', () => {
+        const search = (metadata: Record<string, unknown>) =>
+            describeAction(action({ type: ActionType.Search, playerId: 'p1', drawFrom: SearchSource.WorldDeck, metadata: { supplySpent: 3, cardsDrawn: 2, visionsDrawn: 3, ...metadata } }), nameOf, 'p2')
+        expect(search({ stoppedOnVision: true })).toBe('searched the world deck, spending 3 Supply; the draw stopped on a Vision')
+        expect(search({ draw: { drawnCardIds: [], stoppedOnVision: true, worldDeckExhausted: false } })).toBe('searched the world deck, spending 3 Supply; the draw stopped on a Vision')
+        expect(search({})).toBe('searched the world deck, spending 3 Supply')
+    })
+
+    it('names the banners the spoils seized', () => {
+        const spoils = (metadata: Record<string, unknown>) =>
+            describeAction(action({ type: ActionType.CampaignResolveVictory, playerId: 'p1', metadata: { warbandsPlaced: 0, seizeBurned: 0, favorBurned: 0, relicsTaken: [], bannersSeized: [], ...metadata } }), nameOf)
+        expect(spoils({ relicsTaken: ['relic.book-of-records'], bannersSeized: ['darkestSecret'] })).toBe('took the spoils, taking Book of Records and seizing the Darkest Secret')
+        expect(spoils({ bannersSeized: ['darkestSecret'] })).toBe('took the spoils, seizing the Darkest Secret')
+    })
+
+    describe('a power row names its card, its printed cost, and what it did to whom', () => {
+        const wolves = (actor: string, target: string, summary: string, viewer?: string) =>
+            describeAction(action({ type: ActionType.UseActionPower, playerId: actor, cardId: 'denizen.beast.wolves', powerIndex: 0, metadata: { summary, targetPlayerId: target } }), nameOf, viewer)
+
+        it('names another seat’s board, or “your” board for that seat', () => {
+            expect(wolves('p1', 'p2', "killed a warband on p2's board")).toBe("used Wolves, placing a secret on it: killed a warband on Bob's board")
+            expect(wolves('p1', 'p2', "killed a warband on p2's board", 'p2')).toBe('used Wolves, placing a secret on it: killed a warband on your board')
+        })
+
+        it('says “their own” for the actor’s board, “your own” to the actor', () => {
+            expect(wolves('p1', 'p1', "killed a warband on p1's board", 'p2')).toBe('used Wolves, placing a secret on it: killed a warband on their own board')
+            expect(wolves('p1', 'p1', "killed a warband on p1's board", 'p1')).toBe('used Wolves, placing a secret on it: killed a warband on your own board')
+        })
+
+        it('says plainly when nothing happened', () => {
+            expect(wolves('p1', 'p2', "p2's board held no warbands")).toBe("used Wolves, placing a secret on it: Bob's board held no warbands")
+        })
+
+        it('names the seat a power took from', () => {
+            const sleight = describeAction(action({ type: ActionType.UseActionPower, playerId: 'p1', cardId: 'denizen.discord.sleight-of-hand', powerIndex: 0, metadata: { summary: 'took 1 secret from p2', targetPlayerId: 'p2' } }), nameOf)
+            expect(sleight).toBe('used Sleight of Hand, placing a favor on it: took 1 secret from Bob')
+        })
+
+        it('names a Rest power’s card once and its bank by its printed name', () => {
+            const rest = describeAction(action({ type: ActionType.UseRestPower, playerId: 'p1', cardId: 'denizen.order.vow-of-obedience', powerIndex: 1, metadata: { summary: 'Vow of Obedience: took 1 favor from the order bank' } }), nameOf)
+            expect(rest).toBe('rested with Vow of Obedience: took 1 favor from the Order bank')
+        })
     })
 
     it('names players rather than printing their ids', () => {

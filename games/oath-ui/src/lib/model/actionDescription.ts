@@ -38,10 +38,15 @@ import {
     isTravel,
     isUseActionPower,
     isUseRestPower,
+    cardPower,
     type AnswerConsentMetadata,
     type CampaignBattleMetadata,
     type CampaignTarget,
+    Suit,
     type LetPeek,
+    type Search,
+    type UseActionPower,
+    type UseRestPower,
     type WarbandMove
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
@@ -53,6 +58,7 @@ import {
     reliquaryLabel,
     nameIds,
     stripRules,
+    suitName,
     warbandsOf
 } from '$lib/model/names.js'
 import {
@@ -188,7 +194,8 @@ function describeActionCited(
         const shown = action.metadata?.revealedDraw
         return (
             `searched ${from}${supply(action.metadata?.supplySpent)}` +
-            (shown ? `, showing ${shown.map(cardName).join(', ')} (Truthful Harp)` : '')
+            (shown ? `, showing ${shown.map(cardName).join(', ')} (Truthful Harp)` : '') +
+            (searchStoppedOnVision(action) ? '; the draw stopped on a Vision' : '')
         )
     }
     if (isSearchResolve(action)) {
@@ -216,8 +223,7 @@ function describeActionCited(
         return `chose the attacking battle plans — ${describeBattle(action.metadata?.battle)}`
     }
     if (isUseRestPower(action)) {
-        const summary = action.metadata?.summary
-        return summary ? `rested: ${summary}` : `used ${cardName(action.cardId)}'s Rest power`
+        return `rested with ${cardName(action.cardId)}${powerEffect(action, nameOf, viewerId)}`
     }
     if (isCampaignDefend(action)) {
         const meta = action.metadata
@@ -243,9 +249,14 @@ function describeActionCited(
     if (isCampaignResolveVictory(action)) {
         const meta = action.metadata
         const taken = meta?.relicsTaken ?? []
+        const seized = (meta?.bannersSeized ?? []).map((banner) => `the ${bannerName(banner)}`)
+        const gains = [
+            ...(taken.length > 0 ? [`taking ${taken.join(', ')}`] : []),
+            ...(seized.length > 0 ? [`seizing ${seized.join(' and ')}`] : [])
+        ]
         return (
             'took the spoils' +
-            (taken.length > 0 ? `, taking ${taken.join(', ')}` : '') +
+            (gains.length > 0 ? `, ${gains.join(' and ')}` : '') +
             ((meta?.favorBurned ?? 0) > 0 ? `, burning ${meta?.favorBurned} favor` : '')
         )
     }
@@ -254,7 +265,11 @@ function describeActionCited(
         return describeAdviserPlay(action.play, shownCard(action.metadata?.playedCardId))
     }
     if (isUseActionPower(action)) {
-        return `used ${cardName(action.cardId)}'s Action power`
+        return (
+            `used ${cardName(action.cardId)}` +
+            printedCost(action.cardId, action.powerIndex) +
+            powerEffect(action, nameOf, viewerId)
+        )
     }
     if (isPeek(action)) {
         return 'peeked at a relic at their site'
@@ -350,6 +365,83 @@ function describeActionCited(
             : `took the Oathkeeper title from ${nameOf(action.fromPlayerId)}`
     }
     return UNDESCRIBED
+}
+
+/** R-5.1.2 — public from the record's own flag; a Search recorded before it shows its stop to the drawer alone. */
+export function searchStoppedOnVision(action: Search): boolean {
+    return (
+        action.metadata?.stoppedOnVision === true || action.metadata?.draw?.stoppedOnVision === true
+    )
+}
+
+/** R-7.1.2 — the cost printed on the card, as the History says it was paid. */
+function printedCost(cardId: string, powerIndex: number): string {
+    const cost = cardPower(cardId, powerIndex)?.cost
+    if (!cost) return ''
+    const counted = (count: number, noun: string) =>
+        count === 1 ? `a ${noun}` : `${count} ${noun}${noun === 'secret' ? 's' : ''}`
+    const placed = [
+        ...(cost.placeFavor > 0 ? [counted(cost.placeFavor, 'favor')] : []),
+        ...(cost.placeSecret > 0 ? [counted(cost.placeSecret, 'secret')] : [])
+    ]
+    const burned = [
+        ...(cost.burnFavor > 0 ? [counted(cost.burnFavor, 'favor')] : []),
+        ...(cost.burnSecret > 0 ? [counted(cost.burnSecret, 'secret')] : [])
+    ]
+    const clauses = [
+        ...(placed.length > 0 ? [`placing ${placed.join(' and ')} on it`] : []),
+        ...(burned.length > 0 ? [`burning ${burned.join(' and ')}`] : [])
+    ]
+    return clauses.length > 0 ? `, ${clauses.join(' and ')}` : ''
+}
+
+/** The engine's summary, without the card's name it repeats, with seats and banks named. */
+function powerEffect(
+    action: UseActionPower | UseRestPower,
+    nameOf: NameOf,
+    viewerId: string | undefined
+): string {
+    const summary = action.metadata?.summary
+    if (!summary) return ''
+    const prefix = `${cardName(action.cardId)}: `
+    const effect = summary.startsWith(prefix) ? summary.slice(prefix.length) : summary
+    const seats = [action.metadata?.targetPlayerId, action.playerId].filter(
+        (playerId): playerId is string => playerId !== undefined
+    )
+    const named = seats.reduce(
+        (text, playerId) => nameSeat(text, playerId, action.playerId, viewerId, nameOf),
+        effect
+    )
+    return `: ${namedBanks(named)}`
+}
+
+function nameSeat(
+    text: string,
+    playerId: string,
+    actorId: string,
+    viewerId: string | undefined,
+    nameOf: NameOf
+): string {
+    const id = playerId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const possessive = new RegExp(`(?<![\\w-])${id}['’]s(?![\\w-])`, 'g')
+    const bare = new RegExp(`(?<![\\w-])${id}(?![\\w-])`, 'g')
+    const own = playerId === actorId
+    const isViewer = playerId === viewerId
+    const whose = own
+        ? isViewer
+            ? 'your own'
+            : 'their own'
+        : isViewer
+          ? 'your'
+          : `${nameOf(playerId)}'s`
+    return text.replace(possessive, whose).replace(bare, isViewer ? 'you' : nameOf(playerId))
+}
+
+function namedBanks(text: string): string {
+    return Object.values(Suit).reduce(
+        (named, suit) => named.replaceAll(`the ${suit} bank`, `the ${suitName(suit)} bank`),
+        text
+    )
 }
 
 function describeAdviserPlay(play: SearchPlay, card: string): string {
