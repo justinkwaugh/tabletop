@@ -296,6 +296,24 @@ test('the keyboard jump button jumps to history without starting a replay', asyn
     await expect(page.getByText('Replaying', { exact: true })).toHaveCount(0)
 })
 
+test('the map goes full screen with the turn controls docked above it', async ({ page }) => {
+    await createGame(page)
+    await page.getByRole('button', { name: 'Enter full screen' }).click()
+    const fullScreen = page.getByRole('dialog', { name: 'Full screen view' })
+    await expect(fullScreen).toBeVisible()
+    await expect(fullScreen.getByLabel('Magna Grecia board')).toBeVisible()
+
+    await fullScreen.getByRole('button', { name: /^Cities/ }).click()
+    await expect.poll(() => page.evaluate(() => window.magnaGreciaSession.activeTool)).toBe('City')
+    await expect(
+        fullScreen.getByRole('button', { name: 'Place a city tile here', exact: true }).first()
+    ).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(fullScreen).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Enter full screen' })).toBeVisible()
+})
+
 test('marks the enhanced extra apart from the basic allowance', async ({ page }) => {
     await createGame(page)
     const cities = page.getByRole('button', { name: /^Cities/ })
