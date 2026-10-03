@@ -4,6 +4,7 @@ import {
     cashOwnedBy,
     certificatesOwnedBy,
     getCompany,
+    signedShares,
     type Owner,
     type Portfolio
 } from '../finance/finance.js'
@@ -43,8 +44,8 @@ export function certificateValue(
 }
 export function marketShareValue(state: StockState, certificate: Portfolio[number]): number {
     const company = getCompany(state, certificate.companyId)
-    return certificate.kind === 'share' && company.started && !company.closed
-        ? certificate.shares * companyMarketSpace(state.stockMarket, company.id).price
+    return company.started && !company.closed
+        ? signedShares(certificate) * companyMarketSpace(state.stockMarket, company.id).price
         : 0
 }
 export function portfolioWealth(
@@ -102,9 +103,9 @@ export function certificateWealthItem(
     return {
         assetId: certificate.id,
         label:
-            certificate.kind === 'share'
-                ? `${name} · ${certificate.shares} share${certificate.shares === 1 ? '' : 's'}`
-                : name,
+            certificate.kind === 'private'
+                ? name
+                : `${name} · ${certificate.kind === 'short' ? 'short ' : ''}${certificate.shares} share${certificate.shares === 1 ? '' : 's'}`,
         value
     }
 }

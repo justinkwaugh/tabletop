@@ -3,7 +3,9 @@ import {
     createRectangularStockMarket,
     placeStockMarker,
     companyMarketSpace,
+    moveCompanyMarker,
     moveMarketSpace,
+    removeStockMarker,
     stockMarketOrder,
     validateStockMarket
 } from './stockMarket.js'
@@ -25,6 +27,10 @@ it('distinguishes equal prices and preserves marker order at a movement boundary
     ])
     expect(moveMarketSpace(market, '0:0', 'down', 8).id).toBe('2:0')
     validateStockMarket(market, ['left', 'right', 'under', 'high'])
+    removeStockMarker(market, 'high')
+    removeStockMarker(market, 'right')
+    expect(stockMarketOrder(market)).toEqual(['under', 'left'])
+    expect(market.stacks.map((stack) => stack.spaceId)).toEqual(['0:0', '1:1'])
 })
 it('follows explicit connections independently of display coordinates', () => {
     const market = createRectangularStockMarket(
@@ -38,4 +44,15 @@ it('follows explicit connections independently of display coordinates', () => {
     expect(moveMarketSpace(market, '0:0', 'diagonal', 1).id).toBe('1:1')
     market.spaces[0].moves.down = 'missing'
     expect(() => validateStockMarket(market, [])).toThrow('Unknown stock market space')
+})
+
+it('moves a company’s marker and records the move unless it stays put', () => {
+    const market = createRectangularStockMarket([[40, 50, 60]], () => 'white')
+    placeStockMarker(market, 'A', '0:1')
+    expect(moveCompanyMarker(market, 'A', 'left', 1)).toEqual({
+        companyId: 'A',
+        fromMarketSpaceId: '0:1',
+        toMarketSpaceId: '0:0'
+    })
+    expect(moveCompanyMarker(market, 'A', 'left', 1)).toBeUndefined()
 })

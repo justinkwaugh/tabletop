@@ -50,6 +50,8 @@
     function interest(certificate: Certificate): string {
         if (certificate.kind === 'private') return 'Private'
         const shareCount = getCompany(gameState, certificate.companyId).shareCount
+        if (certificate.kind === 'short')
+            return `Short ${certificate.shares} ${certificate.shares === 1 ? 'share' : 'shares'}`
         const percentage =
             shareCount === undefined ? '' : `${(certificate.shares / shareCount) * 100}% · `
         const number = certificate.number === undefined ? '' : ` · No. ${certificate.number}`

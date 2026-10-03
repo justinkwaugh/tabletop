@@ -3,7 +3,8 @@
     import { assertExists } from '@tabletop/common'
     import { ActionType } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { humanizeReason } from '$lib/model/names.js'
+    import { cardName, humanizeReason } from '$lib/model/names.js'
+    import { cardsThatCan } from '$lib/model/actionCards.js'
     import {
         MAJOR_ACTIONS,
         MINOR_ACTIONS,
@@ -32,8 +33,12 @@
         return gameSession.campaignSupplyCost === 0 ? 'no Supply' : entry.cost
     }
 
+    // R-7.4 — the cards that change an action are found with the powers.
+    let cards = $derived(gameSession.actionCards)
+
     // R-6.3 — a relic already seen shows its face, so Peek is offered only for one not seen.
     function available(entry: ActionEntry): boolean {
+        if (entry.type === ActionType.UseActionPower && cards.length > 0) return true
         if (!valid.has(entry.type)) return false
         if (entry.type === ActionType.Peek) {
             return unseenPeekSlots(gameState, seat.playerId).length > 0
@@ -58,6 +63,15 @@
             : undefined
     )
     let tappedReason = $derived(tapped && !available(tapped) ? blockedBecause(tapped) : undefined)
+    let tappedCards = $derived(
+        tapped && !available(tapped) ? cardsThatCan(cards, tapped.type, cardName) : undefined
+    )
+
+    function refusal(entry: ActionEntry): string | undefined {
+        const why = humanizeReason(blockedBecause(entry))
+        const can = cardsThatCan(cards, entry.type, cardName)
+        return why && can ? `${why}. ${can}` : why
+    }
 
     let hoveredEntry = $state.raw<ActionEntry | undefined>(undefined)
 
@@ -91,7 +105,7 @@
             attrs: {
                 disabled: busy,
                 'aria-disabled': !ok,
-                title: humanizeReason(ok ? undefined : blockedBecause(entry)) ?? describe,
+                title: ok ? describe : (refusal(entry) ?? describe),
                 onpointerenter: () => hover(entry, true),
                 onpointerleave: () => hover(entry, false),
                 onfocus: () => hover(entry, true),
@@ -182,8 +196,12 @@
 <!-- One fixed line: what the hovered action does, or why the tapped one is refused. -->
 <div class="strip mt-1.5 min-h-[1.5rem] text-[11px] leading-snug">
     {#if tappedReason}
-        <span class="text-oath-danger"><TokenText text={humanizeReason(tappedReason) ?? ''} /></span
+        <span class="text-oath-danger"
+            ><TokenText text={humanizeReason(tappedReason) ?? ''} />{tappedCards ? '.' : ''}</span
         >
+        {#if tappedCards}
+            <span class="text-oath-text">{tappedCards}</span>
+        {/if}
     {:else if hoveredEntry}
         <span class="font-semibold text-oath-text">{hoveredEntry.label}</span>
         <span class="text-oath-text-muted">{hoveredEntry.cost}</span>

@@ -9,7 +9,8 @@ export async function finishedGame(ownerId: string, name: string, typeId: string
     return replayFinishedGame(title, (await title.finishedGame()).default, ownerId, name)
 }
 
-export async function replayFinishedGame(
+/** Replays a recorded game's actions, which need not finish it. */
+export async function replayRecordedGame(
     title: PlaygroundTitle,
     fixture: FinishedGameFixture,
     ownerId: string,
@@ -35,6 +36,17 @@ export async function replayFinishedGame(
         actions.push(...result.processedActions)
         if (index % 100 === 99) await new Promise((resolve) => setTimeout(resolve, 0))
     }
+    return { game, state, actions, initialState, engine }
+}
+
+export async function replayFinishedGame(
+    title: PlaygroundTitle,
+    fixture: FinishedGameFixture,
+    ownerId: string,
+    name: string
+) {
+    const replay = await replayRecordedGame(title, fixture, ownerId, name)
+    const { game, state } = replay
     assert(state.machineState === 'GameOver', 'Finished game replay did not finish')
     for (const [playerId, total] of Object.entries(fixture.finalWealth))
         assert(
@@ -47,5 +59,5 @@ export async function replayFinishedGame(
     game.activePlayerIds = state.activePlayerIds
     game.winningPlayerIds = state.winningPlayerIds
     game.result = state.result
-    return { game, state, actions, initialState, engine }
+    return replay
 }

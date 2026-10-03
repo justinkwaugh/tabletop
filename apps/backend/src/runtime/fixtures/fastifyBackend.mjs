@@ -18,8 +18,8 @@ await server.register(Static, {
     prefix: '/assets/',
     preCompressed: true,
     cacheControl: false,
-    setHeaders(response) {
-        response.setHeader('Cache-Control', 'public,max-age=300')
+    setHeaders(reply) {
+        reply.header('Cache-Control', 'public,max-age=300')
     }
 })
 process.on('exit', () => record('exited'))

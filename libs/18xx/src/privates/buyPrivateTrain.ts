@@ -15,6 +15,7 @@ import {
     type TrainRules
 } from '../trains/trainPurchase.js'
 import { applyTrainPurchase } from '../trains/buyTrain.js'
+import { DeparturePayments, departurePaymentsField } from '../trains/trainDepartures.js'
 import { closePrivate } from './privateCompany.js'
 import { pendingCompanyDecision, type CompanyDecisionState } from './companyDecision.js'
 import type { PrivatePowerRules } from './privatePowers.js'
@@ -38,7 +39,12 @@ export const BuyPrivateTrain = Type.Object(
         type: Type.Literal('BuyPrivateTrain'),
         privateCompanyId: Type.String(),
         expectedPrice: Type.Integer({ minimum: 0 }),
-        metadata: Type.Optional(TrainPurchaseDetails)
+        metadata: Type.Optional(
+            Type.Object(
+                { ...TrainPurchaseDetails.properties, departurePayments: DeparturePayments },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -56,7 +62,7 @@ export class HydratedBuyPrivateTrain
     declare definitionId: string
     declare exchangeTrainId?: string
     declare expectedPrice: number
-    declare metadata?: TrainPurchaseDetails
+    declare metadata?: BuyPrivateTrain['metadata']
     readonly #powers: PrivatePowerRules
     readonly #trains: TrainRules
     constructor(data: BuyPrivateTrain, powers: PrivatePowerRules, trains: TrainRules) {
@@ -84,8 +90,8 @@ export class HydratedBuyPrivateTrain
             this
         ).details!
         closePrivate(state, this.privateCompanyId)
-        applyTrainPurchase(state, details, this.#trains)
-        this.metadata = details
+        const payments = applyTrainPurchase(state, details, this.#trains)
+        this.metadata = { ...details, ...departurePaymentsField(payments) }
     }
 }
 

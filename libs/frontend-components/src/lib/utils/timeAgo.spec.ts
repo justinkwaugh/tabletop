@@ -17,7 +17,7 @@ describe('time-ago locale initialization', () => {
 
         const now = Date.UTC(2026, 8, 8)
         for (const timeAgo of formatters) {
-            expect(timeAgo.format(now - 60_000, { now })).toBe('1 minute ago')
+            expect(timeAgo.format(now - 60_000, undefined, { now })).toBe('1 minute ago')
         }
     })
 
@@ -29,7 +29,7 @@ describe('time-ago locale initialization', () => {
 
         const now = Date.UTC(2026, 8, 8)
         for (const timeAgo of [beforeLegacy, afterLegacy]) {
-            expect(timeAgo.format(now - 60_000, { now })).toBe('1 minute ago')
+            expect(timeAgo.format(now - 60_000, undefined, { now })).toBe('1 minute ago')
         }
         expect(consoleError).not.toHaveBeenCalled()
     })

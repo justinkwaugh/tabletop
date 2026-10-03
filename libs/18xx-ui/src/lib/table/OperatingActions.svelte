@@ -10,6 +10,10 @@
     import StockRoundActions from './StockRoundActions.svelte'
     import TrainBuying from '../trains/TrainBuying.svelte'
     import CompanyDecisions from '../finance/CompanyDecisions.svelte'
+    import CompanyAuctionBidding from '../stock/CompanyAuctionBidding.svelte'
+    import CompanyFormation from '../stock/CompanyFormation.svelte'
+    import LoanRepayment from '../loans/LoanRepayment.svelte'
+    import CashCrisis from '../funding/CashCrisis.svelte'
     let {
         session,
         createRouteWorker,
@@ -37,7 +41,11 @@
         />
     {/if}
     {#if !session.privateActions.selection && !session.privateActions.trackPowerSelection && gameState.purchaseOffer?.asset.kind !== 'private'}
-        {#if gameState.machineState === 'StockRound'}
+        {#if gameState.machineState === 'StockRound' && session.companyAuction.pending}
+            <CompanyFormation {session} />
+        {:else if gameState.machineState === 'StockRound' && session.companyAuction.auction}
+            <CompanyAuctionBidding {session} />
+        {:else if gameState.machineState === 'StockRound'}
             <StockRoundActions {session} {poolName} />
         {:else if session.stations.homeChoice}<HomeStationChoice {session} />
         {:else if session.stations.privateStation}<PrivateStationChoice {session} />
@@ -57,6 +65,11 @@
                 {trainColors}
             />
         {:else if gameState.machineState === 'DistributingEarnings'}<EarningsDistribution
+                {session}
+                showUndo={false}
+            />
+        {:else if gameState.machineState === 'RaisingCash'}<CashCrisis {session} showUndo={false} />
+        {:else if gameState.machineState === 'RepayingLoans'}<LoanRepayment
                 {session}
                 showUndo={false}
             />

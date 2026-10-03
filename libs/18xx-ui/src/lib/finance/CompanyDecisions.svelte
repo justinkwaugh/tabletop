@@ -2,6 +2,7 @@
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import { privateMarkerLabel } from '../maps/mapDrawing.js'
     import PrivateBuying from '../privates/PrivateBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
@@ -156,6 +157,21 @@
                                 >
                             {/each}
                         {/if}
+                    </div>
+                {/if}
+                {#if session.privateActions.selection === 'powers' && session.decisions.privateMarkerOptions.length}
+                    <div class="private-track" aria-label="Private markers">
+                        {#each session.decisions.privateMarkerOptions as option (`${option.privateCompanyId}:${option.locationId}`)}
+                            <button
+                                disabled={!session.decisions.canResolve}
+                                onclick={() => session.decisions.placePrivateMarker(option)}
+                                >Place {privateMarkerLabel(
+                                    session.mapView,
+                                    option.kind,
+                                    option.locationId
+                                )} ({getCompany(gameState, option.privateCompanyId).name})</button
+                            >
+                        {/each}
                     </div>
                 {/if}
                 {#if showPowers && session.decisions.privateTrainOptions.length}

@@ -19,6 +19,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import StandingInstruction from '../stock/StandingInstruction.svelte'
     import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
+    import CompanyAuctionOpening from '../stock/CompanyAuctionOpening.svelte'
     let {
         session,
         poolName
@@ -116,7 +117,7 @@
                             : 'Available Shares'
                         : menu === 'sell'
                           ? 'Available Sales'
-                          : menu === 'start'
+                          : menu === 'start' || menu === 'auction'
                             ? 'Available Companies'
                             : menu === 'privates'
                               ? 'Players’ Privates'
@@ -311,6 +312,8 @@
                             </div>
                         {/if}
                     </div>
+                {:else if menu === 'auction'}
+                    <CompanyAuctionOpening {session} />
                 {:else if menu === 'sell'}
                     <div class="start-selection">
                         <div class="choices">

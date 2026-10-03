@@ -46,7 +46,7 @@
         "camera-controls": "github:justinkwaugh/camera-controls",
         "gsap": "^3.14.2",
         "javascript-time-ago": "^2.5.10",
-        "nanoid": "^5.1.6",
+        "nanoid": "5.1.6",
         "runed": "^0.37.1",
         "svelte-tweakpane-ui": "^1.5.13",
         "three": "0.182.0"

@@ -1,5 +1,6 @@
 import { createStockRound } from './stockRound.js'
 import * as Type from 'typebox'
+import type { LoanState } from '../loans/loans.js'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
@@ -40,12 +41,13 @@ export class HydratedStartStockRound
     constructor(data: StartStockRound) {
         super(data instanceof HydratedStartStockRound ? data.dehydrate() : data, Validator)
     }
-    apply(state: HydratedGameState & OperatingState): void {
+    apply(state: HydratedGameState & OperatingState & Pick<LoanState, 'interestRate'>): void {
         assert(
             this.source === ActionSource.System && canStartStockRound(state),
             'The operating set is not complete'
         )
         state.operatingSet!.completed = true
+        delete state.interestRate
         state.stockRound = createStockRound(state.stockRound.number + 1)
         const playerId = state.turnManager.turnOrder[0]
         assert(playerId, 'Stock round requires a priority player')

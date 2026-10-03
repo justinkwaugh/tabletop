@@ -1,6 +1,7 @@
 import { assert } from '@tabletop/common'
 import {
     FinishOperatingTurn,
+    FinishTrains,
     finishOperatingTurnReason,
     type EighteenXXState,
     type EighteenXXTitleRules
@@ -50,11 +51,13 @@ export class OperatingTurnModule {
               )
             : undefined
     })
+    /** Finishing ends the turn, or only the train step when a loan step follows it. */
+    finishesTrains = $derived.by(() => this.session.validActionTypes.includes('FinishTrains'))
     canFinish = $derived.by(
         () =>
             this.session.interactive &&
             !this.steps.trainSelected() &&
-            this.session.validActionTypes.includes('FinishOperatingTurn')
+            (this.finishesTrains || this.session.validActionTypes.includes('FinishOperatingTurn'))
     )
 
     canSkipTo(target: number): boolean {
@@ -103,7 +106,9 @@ export class OperatingTurnModule {
         const companyId = this.session.state.trainPurchaseStep?.companyId
         assert(this.canFinish && companyId, 'The operating turn cannot finish yet')
         await this.session.applyAction(
-            this.session.createPlayerAction(FinishOperatingTurn, { companyId })
+            this.finishesTrains
+                ? this.session.createPlayerAction(FinishTrains, { companyId })
+                : this.session.createPlayerAction(FinishOperatingTurn, { companyId })
         )
     }
 

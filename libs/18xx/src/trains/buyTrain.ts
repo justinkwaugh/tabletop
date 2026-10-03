@@ -9,7 +9,7 @@ import {
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { settleCashPayments } from '../finance/cashPayments.js'
+import { settleCashPayments, type CashPayment } from '../finance/cashPayments.js'
 import {
     TrainPurchase,
     TrainPurchaseRequest,
@@ -19,13 +19,23 @@ import {
 import { unownedTrain, type TrainPurchaseState } from './train.js'
 import { getCompany } from '../finance/finance.js'
 import { closePrivate } from '../privates/privateCompany.js'
+import {
+    DeparturePayments,
+    departurePaymentsField,
+    settleTrainDepartures
+} from './trainDepartures.js'
 export const BuyTrain = Type.Object(
     {
         ...PlayerAction.properties,
         ...TrainPurchaseRequest.properties,
         type: Type.Literal('BuyTrain'),
         expectedPrice: Type.Integer({ minimum: 0 }),
-        metadata: Type.Optional(TrainPurchaseDetails)
+        metadata: Type.Optional(
+            Type.Object(
+                { ...TrainPurchaseDetails.properties, departurePayments: DeparturePayments },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -45,7 +55,7 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
     declare definitionId: string
     declare exchangeTrainId?: string
     declare expectedPrice: number
-    declare metadata?: TrainPurchaseDetails
+    declare metadata?: BuyTrain['metadata']
     readonly #rules: TrainRules
     constructor(data: BuyTrain, rules: TrainRules) {
         super(data instanceof HydratedBuyTrain ? data.dehydrate() : data, Validator)
@@ -62,8 +72,8 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
         const result = purchase.evaluate(this)
         assert(result.details, result.reason ?? 'Invalid train purchase')
         assert(result.details.price === this.expectedPrice, 'Train price has changed')
-        applyTrainPurchase(state, result.details, this.#rules)
-        this.metadata = result.details
+        const payments = applyTrainPurchase(state, result.details, this.#rules)
+        this.metadata = { ...result.details, ...departurePaymentsField(payments) }
     }
 }
 
@@ -71,7 +81,7 @@ export function applyTrainPurchase(
     state: TrainPurchaseState & PhaseState & { machineState: string },
     details: TrainPurchaseDetails,
     rules: TrainRules
-): void {
+): CashPayment[] {
     settleCashPayments(state, [
         {
             from: { kind: 'company', companyId: details.companyId },
@@ -84,6 +94,9 @@ export function applyTrainPurchase(
             train.id === details.exchangeTrainId ? unownedTrain(train, 'market') : train
         )
     const toPhaseId = rules.phaseAfterPurchase(state, details.definitionId)
+    const payments = settleTrainDepartures(state, rules, [
+        { trainId: details.trainId, definitionId: details.definitionId, cause: 'purchase' }
+    ])
     rules.depot.purchase(state.trainInventory, details.trainId, details.definitionId, {
         kind: 'company',
         companyId: details.companyId
@@ -95,6 +108,7 @@ export function applyTrainPurchase(
         machineState: state.machineState,
         companyId: details.companyId
     })
+    return payments
 }
 
 export function closePrivatesOnTrainPurchase(

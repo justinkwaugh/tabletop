@@ -4,6 +4,7 @@ import type { CompanyState } from '../company/companyState.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import type { RailwayMap } from '../map/map.js'
 import { Station, StationReservation } from '../map/station.js'
+import { CashPayment } from '../finance/cashPayments.js'
 import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
 import { TileRotation, type TileDefinition, type TileFace } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
@@ -14,7 +15,7 @@ import {
     fixedNodeRevenue,
     type TileNodeMapping
 } from './trackUpgrade.js'
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 
 export const TrackStep = Type.Object(
     {
@@ -46,6 +47,14 @@ export const TrackRequest = Type.Object(
     { additionalProperties: false }
 )
 export type TrackRequest = Type.Static<typeof TrackRequest>
+export const TrackLayEffects = Type.Object(
+    {
+        payments: Type.Array(CashPayment),
+        closedPrivateIds: Type.Array(Type.String())
+    },
+    { additionalProperties: false }
+)
+export type TrackLayEffects = Type.Static<typeof TrackLayEffects>
 export const TrackLayDetails = Type.Object(
     {
         ...TrackRequest.properties,
@@ -56,7 +65,8 @@ export const TrackLayDetails = Type.Object(
         terrainCost: Type.Integer({ minimum: 0 }),
         allowanceCost: Type.Integer({ minimum: 0 }),
         stations: Type.Array(Station),
-        stationReservations: Type.Array(StationReservation)
+        stationReservations: Type.Array(StationReservation),
+        effects: Type.Optional(TrackLayEffects)
     },
     { additionalProperties: false }
 )
@@ -71,6 +81,8 @@ export interface TrackRules {
     availableColors(state: ConstructionState): readonly string[]
     allowance(state: ConstructionState, color: string): { cost: number } | { reason: string }
     preservesStops(before: TileFace, after: TileFace): boolean
+    /** Whether a tile on this hex must be one of the tiles of its colour with the most exits. */
+    mostExits?(before: TileFace): boolean
     restriction(state: ConstructionState, request: TrackRequest): string | undefined
     /**
      * Whether a lay is allowed: on a home hex, touching the company's network (``connected``),
@@ -85,6 +97,8 @@ export interface TrackRules {
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
+    afterLay?(state: ConstructionState, details: TrackLayDetails, payer: Owner): TrackLayEffects
+    relabels?(locationId: string, definitionId: string): boolean
 }
 const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
 
@@ -157,6 +171,44 @@ export class TrackConstruction {
         return choices
     }
     evaluate(request: TrackRequest): TrackEvaluation {
+        const result = this.evaluatePlacement(request)
+        if (!result.details || !this.hasMoreExitsElsewhere(request)) return result
+        return { reason: 'The upgrade must use a tile of its colour with the most exits' }
+    }
+    private hasMoreExitsElsewhere(request: TrackRequest): boolean {
+        const previous = this.mapState.tile(request.locationId)
+        if (!this.rules.mostExits?.(previous.face)) return false
+        const definition = this.tileDefinition(request.definitionId)
+        assertExists(definition, 'An evaluated lay names a known tile')
+        const before = rotateTileFace(previous.face, previous.rotation)
+        return this.rules.tileSet.definitions.some(
+            (other) =>
+                other.face.color === definition.face.color &&
+                this.exitCount(other.face) > this.exitCount(definition.face) &&
+                Rotations.some((rotation) =>
+                    tileUpgradeMappings(before, rotateTileFace(other.face, rotation)).some(
+                        (nodeMapping) =>
+                            !!this.evaluatePlacement({
+                                ...request,
+                                definitionId: other.id,
+                                rotation,
+                                nodeMapping
+                            }).details
+                    )
+                )
+        )
+    }
+    private exitCount(face: TileFace): number {
+        return new Set(
+            face.paths.flatMap((path) =>
+                path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
+            )
+        ).size
+    }
+    private tileDefinition(definitionId: string): TileDefinition | undefined {
+        return this.rules.tileSet.definitions.find((tile) => tile.id === definitionId)
+    }
+    private evaluatePlacement(request: TrackRequest): TrackEvaluation {
         const { locationId, companyId, definitionId, rotation, nodeMapping } = request
         if (
             !this.state.trackStep ||
@@ -167,7 +219,7 @@ export class TrackConstruction {
         const location = this.rules.map.definition.locations.find(
             (location) => location.id === locationId
         )
-        const definition = this.rules.tileSet.definitions.find((tile) => tile.id === definitionId)
+        const definition = this.tileDefinition(definitionId)
         if (!location || !definition) return { reason: 'Unknown map location or tile' }
         if (!this.basicTileAllowed(locationId, definition))
             return { reason: 'The tile’s color, labels, or stops cannot replace this hex' }
@@ -325,6 +377,7 @@ export class TrackConstruction {
                     this.rules.colorOrder.indexOf(after.color)
             )
             .at(-1)
+        if (this.rules.relabels?.(locationId, definition.id)) return true
         const labels = future ? [future.label] : before.labels
         return (
             labels.length === after.labels.length &&

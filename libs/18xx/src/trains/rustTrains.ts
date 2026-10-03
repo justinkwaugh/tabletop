@@ -12,6 +12,12 @@ import {
 } from '@tabletop/common'
 import { trainsOwnedBy, unownedTrain, type TrainState } from './train.js'
 import type { TrainRunningState } from '../routes/route.js'
+import {
+    DeparturePayments,
+    departurePaymentsField,
+    settleTrainDepartures
+} from './trainDepartures.js'
+import type { TrainRules } from './trainPurchase.js'
 export function trainsRustingAfterOperation(state: TrainState, companyId: string) {
     return trainsOwnedBy(state, { kind: 'company', companyId }).filter(
         (train) => train.status === 'owned' && train.rustsAfterOperation
@@ -21,7 +27,10 @@ const Fields = Type.Object({
     type: Type.Literal('RustTrains'),
     companyId: Type.String(),
     metadata: Type.Optional(
-        Type.Object({ trainIds: Type.Array(Type.String()) }, { additionalProperties: false })
+        Type.Object(
+            { trainIds: Type.Array(Type.String()), departurePayments: DeparturePayments },
+            { additionalProperties: false }
+        )
     )
 })
 export const RustTrains: Type.TObject<
@@ -39,8 +48,10 @@ export class HydratedRustTrains extends HydratableAction<typeof RustTrains> impl
     declare type: 'RustTrains'
     declare companyId: string
     declare metadata?: RustTrains['metadata']
-    constructor(data: RustTrains) {
+    readonly #rules: TrainRules
+    constructor(data: RustTrains, rules: TrainRules) {
         super(data instanceof HydratedRustTrains ? data.dehydrate() : data, Validator)
+        this.#rules = rules
     }
     apply(state: HydratedGameState & TrainRunningState): void {
         assert(
@@ -48,12 +59,23 @@ export class HydratedRustTrains extends HydratableAction<typeof RustTrains> impl
                 state.routeStep?.result?.companyId === this.companyId,
             'Rusting requires the completed operating result'
         )
-        const ids = trainsRustingAfterOperation(state, this.companyId).map((train) => train.id)
+        const rusting = trainsRustingAfterOperation(state, this.companyId)
+        const ids = rusting.map((train) => train.id)
         assert(ids.length, 'No trains rust after this operation')
+        const payments = settleTrainDepartures(
+            state,
+            this.#rules,
+            rusting.map((train) => ({
+                trainId: train.id,
+                definitionId: train.definitionId,
+                cause: 'rust',
+                owner: { kind: 'company', companyId: this.companyId }
+            }))
+        )
         state.trainInventory.trains = state.trainInventory.trains.map((train) =>
             ids.includes(train.id) ? unownedTrain(train, 'removed') : train
         )
-        this.metadata = { trainIds: ids }
+        this.metadata = { trainIds: ids, ...departurePaymentsField(payments) }
     }
 }
 type State = HydratedGameState & TrainRunningState

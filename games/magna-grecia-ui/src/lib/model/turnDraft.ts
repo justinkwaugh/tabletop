@@ -19,8 +19,10 @@ export type ToolChoice = {
 export type TurnDraftValues = {
     tilesSkipped: true
     tool: ToolChoice
+    resupply: true
     space: AxialCoordinates
     shape: RoadShape
+    endTurn: true
 }
 
 export type TurnDraftSelection = StagedSelectionState<TurnDraftValues>
@@ -28,8 +30,10 @@ export type TurnDraftSelection = StagedSelectionState<TurnDraftValues>
 const STAGE_ORDER = [
     'tilesSkipped',
     'tool',
+    'resupply',
     'space',
-    'shape'
+    'shape',
+    'endTurn'
 ] as const satisfies readonly (keyof TurnDraftValues)[]
 type MissingStages = Exclude<keyof TurnDraftValues, (typeof STAGE_ORDER)[number]>
 const stageCoverage: MissingStages extends never ? true : never = true
@@ -38,11 +42,16 @@ void stageCoverage
 export type TurnDraft = {
     selection: TurnDraftSelection
     rotation: number
-    resupplyOpen: boolean
 }
 
 export function emptyDraft(): TurnDraft {
-    return { selection: {}, rotation: 0, resupplyOpen: false }
+    return { selection: {}, rotation: 0 }
+}
+
+export function draftResupplyOpen(draft: TurnDraft): boolean {
+    return (
+        getStagedSelectionValue<TurnDraftValues, 'resupply'>(draft.selection, 'resupply') === true
+    )
 }
 
 export function draftTool(draft: TurnDraft): ToolChoice | undefined {
@@ -67,8 +76,7 @@ export function skipTiles(draft: TurnDraft): TurnDraft {
             true,
             'manual'
         ),
-        rotation: 0,
-        resupplyOpen: false
+        rotation: 0
     }
 }
 
@@ -87,8 +95,7 @@ export function chooseTool(draft: TurnDraft, tool: BuildTool, turnKey: string): 
         : draft.selection
     return {
         selection: setStagedSelectionValue(base, STAGE_ORDER, 'tool', { tool, turnKey }, 'manual'),
-        rotation: 0,
-        resupplyOpen: false
+        rotation: 0
     }
 }
 
@@ -106,10 +113,10 @@ export function carryTool(draft: TurnDraft, turnKey: string): TurnDraft {
 }
 
 export function chooseRoadSpace(draft: TurnDraft, space: AxialCoordinates): TurnDraft {
+    const base = clearStagedSelectionAtOrAfter(draft.selection, STAGE_ORDER, 'resupply')
     return {
-        selection: setStagedSelectionValue(draft.selection, STAGE_ORDER, 'space', space, 'manual'),
-        rotation: 0,
-        resupplyOpen: false
+        selection: setStagedSelectionValue(base, STAGE_ORDER, 'space', space, 'manual'),
+        rotation: 0
     }
 }
 
@@ -132,24 +139,54 @@ export function rotateRoad(draft: TurnDraft, placements: number): TurnDraft {
 }
 
 export function toggleResupply(draft: TurnDraft): TurnDraft {
-    if (draft.resupplyOpen) {
+    if (draftResupplyOpen(draft)) {
         return closeResupply(draft)
     }
-    return { ...clearRoadLay(draft), resupplyOpen: true }
+    return {
+        selection: setStagedSelectionValue(
+            draft.selection,
+            STAGE_ORDER,
+            'resupply',
+            true,
+            'manual'
+        ),
+        rotation: 0
+    }
 }
 
 export function closeResupply(draft: TurnDraft): TurnDraft {
-    return { ...draft, resupplyOpen: false }
+    return {
+        ...draft,
+        selection: clearStagedSelectionAtOrAfter(draft.selection, STAGE_ORDER, 'resupply')
+    }
+}
+
+export function draftConfirmingEndTurn(draft: TurnDraft): boolean {
+    return getStagedSelectionValue<TurnDraftValues, 'endTurn'>(draft.selection, 'endTurn') === true
+}
+
+// Asking to confirm End turn closes any picker or road being laid but keeps the chosen tool.
+export function askToConfirmEndTurn(draft: TurnDraft): TurnDraft {
+    const base = clearStagedSelectionAtOrAfter(draft.selection, STAGE_ORDER, 'resupply')
+    return {
+        selection: setStagedSelectionValue(base, STAGE_ORDER, 'endTurn', true, 'manual'),
+        rotation: 0
+    }
+}
+
+export function dropEndTurnConfirm(draft: TurnDraft): TurnDraft {
+    return {
+        ...draft,
+        selection: clearStagedSelectionAtOrAfter(draft.selection, STAGE_ORDER, 'endTurn')
+    }
 }
 
 export function hasManualDraft(draft: TurnDraft): boolean {
-    return draft.resupplyOpen || hasManualStagedSelection(draft.selection, STAGE_ORDER)
+    return hasManualStagedSelection(draft.selection, STAGE_ORDER)
 }
 
-export function backDraft(draft: TurnDraft): TurnDraft {
-    if (draft.resupplyOpen) {
-        return closeResupply(draft)
-    }
+// Undo unwinds the newest manual stage; automatic stages are left for the action undo.
+export function undoDraft(draft: TurnDraft): TurnDraft {
     const { nextState, poppedStage } = popHighestManualStagedSelection(draft.selection, STAGE_ORDER)
     return poppedStage ? { ...draft, selection: nextState, rotation: 0 } : draft
 }

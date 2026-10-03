@@ -2,6 +2,19 @@ import { defineAction, type ActionDefinition } from '../actions/actionDefinition
 import type { OpeningAuctionRules } from './auctionProcedure.js'
 import type { OfferPileAuctionRules } from './offerPileAuction.js'
 import type { WaterfallAuctionRules } from './waterfallAuction.js'
+import type { SelectionAuctionRules } from './selectionAuction.js'
+import { NominateLot, HydratedNominateLot, isNominateLot } from './nominateLot.js'
+import { BidForLot, HydratedBidForLot, isBidForLot } from './bidForLot.js'
+import {
+    PassSelectionAuction,
+    HydratedPassSelectionAuction,
+    isPassSelectionAuction
+} from './passSelectionAuction.js'
+import {
+    ResolveSelectionAuction,
+    HydratedResolveSelectionAuction,
+    isResolveSelectionAuction
+} from './resolveSelectionAuction.js'
 import { OfferAuctionLot, HydratedOfferAuctionLot, isOfferAuctionLot } from './offerAuctionLot.js'
 import { BidOnAuctionLot, HydratedBidOnAuctionLot, isBidOnAuctionLot } from './bidOnAuctionLot.js'
 import { ReserveBid, HydratedReserveBid, isReserveBid } from './reserveBid.js'
@@ -53,14 +66,36 @@ function waterfallAuctionActions(rules: WaterfallAuctionRules): ActionDefinition
         )
     ]
 }
+function selectionAuctionActions(rules: SelectionAuctionRules): ActionDefinition[] {
+    return [
+        defineAction(
+            NominateLot,
+            isNominateLot,
+            (action) => new HydratedNominateLot(action, rules)
+        ),
+        defineAction(BidForLot, isBidForLot, (action) => new HydratedBidForLot(action, rules)),
+        defineAction(
+            PassSelectionAuction,
+            isPassSelectionAuction,
+            (action) => new HydratedPassSelectionAuction(action, rules)
+        ),
+        defineAction(
+            ResolveSelectionAuction,
+            isResolveSelectionAuction,
+            (action) => new HydratedResolveSelectionAuction(action, rules)
+        )
+    ]
+}
 export function auctionActions(
     offer: OfferPileAuctionRules | undefined,
-    waterfall: WaterfallAuctionRules | undefined
+    waterfall: WaterfallAuctionRules | undefined,
+    selection: SelectionAuctionRules | undefined
 ): ActionDefinition[] {
     const shared = offer ?? waterfall
     return [
         ...(offer ? offerAuctionActions(offer) : []),
         ...(waterfall ? waterfallAuctionActions(waterfall) : []),
-        ...(shared ? sharedAuctionActions(shared) : [])
+        ...(shared ? sharedAuctionActions(shared) : []),
+        ...(selection ? selectionAuctionActions(selection) : [])
     ]
 }

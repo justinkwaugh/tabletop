@@ -325,7 +325,9 @@ During an open stock round a compact one-line bar pinned to the bottom of the
 stock action body is visible to every seated player whose valid actions include
 SetStockInstruction, regardless
 of whose turn it is. In local hotseat play outside the developer harness the bar is hidden unless the
-client is viewing as a non-active player, where it declares for that player. The prototype
+client is viewing as a non-active player, where it declares for that player. Off-turn the table shows the
+read-only position panel instead of the stock action body, so the bar sits at the bottom of the
+current action region beneath that panel; it renders exactly once in either position. The prototype
 trading panel embeds the same bar. Its left edge is an Autopass / Autobuy sliding toggle in
 the same style as the Buy / Sell strip. Selecting Autopass shows an inline
 Enable button. Selecting Autobuy extends the same line, wrapping only when the pane is narrow,
@@ -507,7 +509,9 @@ segments, and saved uncommitted routes. Session methods gate edits and construct
 RunTrains. Save route stages a completed route; Confirm routes submits the full
 set. The same authoritative evaluator produces per-center payments, per-train
 revenue, distance and set-level track-conflict feedback. Invalid sets cannot be
-confirmed. No optimizer or automatic route selection runs in the editor.
+confirmed. No optimizer or automatic route selection runs in the editor. A route's
+title bonuses (a hex it passes through, a stop it makes) follow its payments in the
+breakdown as "[location] bonus", and its revenue includes them.
 
 Back removes one path, then the start, then train selection. Undo clears all manual
 route selections before committed Undo. Selection overlays/controls are hidden in history
@@ -567,6 +571,12 @@ clears it. Reload restores the pending company and continuation without restorin
 a selection. No automatic selection consumes an Undo. Confirming the final discard
 resumes the original company automatically without starting another player turn.
 
+A phase change started by exporting trains after an operating round has no
+interrupted company: PhaseChanges says the operating round ends instead of naming a
+company to resume, compulsory discards follow the title's discard order, and history
+shows the export as an important "Exported" row with the exported train kinds and,
+for several trains, their count.
+
 Diesel exchanges reuse the manual train-purchase selection and confirmation, including
 its exchangeTrainId. Preview shows the trade-in, price, and resulting phase.
 Market trains appear separately from depot supply. TOP's retained 4+ trains are
@@ -576,6 +586,108 @@ is an automatic consequence of completing the next RunTrains action.
 Fixture version 18 adds Phase changes and Diesel arrival examples. These exercise
 phase/rusting decisions; phase-triggered private powers and game-ending effects
 are integrated in their planned later slices.
+
+### Corporate loans
+
+For a title with loans, the operating step strip gains a sixth step, Loans, whose
+status shows the interest paid or a default. Beside the strip's private actions the
+operating company's loans, its limit and the fixed rate are shown, with a Take loan
+button while its president may borrow before interest; borrowing commits at once,
+with no staged selection, and Undo reverses it like any committed action. The train
+step's finish then ends only the train step.
+
+The Loans step's panel names the company, its loans and treasury, and the interest
+paid (with any loans borrowed to pay it) or that it defaulted. Repay a loan, Take a
+loan and Finish turn commit at once; while both are offered the panel notes that
+borrowing ends repayments. Company details show loans against the limit. The game
+information shows the interest rate of the current or next operating round, the rate the
+next round would fix ("5% next 10%"), and the loans the bank has left ("Loans 54 left"). History
+records borrowing and repayments with their price moves, and interest as a company
+row that is routine unless it needed loans or defaulted.
+
+A title's own stock-round corporate actions (1817's loans and buy-backs) are a stock
+action of their own ("Act for a company") beside Buy and Sell while the player may still act
+for a company they preside. It opens a card for each such company, in the share cards'
+style: its token and price, its treasury and loans, and Take a loan and Buy back a share
+(with its price and the shares the market holds) as immediately committed buttons. Once the player has acted for a company, only its card
+remains open, headed "Acting for" the company. Back clears the choice of panel.
+
+### Cash crisis and bankruptcy
+
+A player who owes the bank more than they have gets a Cash crisis panel in the
+operating step that caused it (the Loans step for unpaid interest), naming the debt.
+It lists each sale that would raise cash without selling more than needed, with its
+proceeds, as immediately committed buttons, or says none is possible. Go bankrupt
+stages a confirmation that explains the consequences; Back or Undo withdraws it, and
+history, reload and state replacement discard it. History records sales to pay the
+bank and the bankruptcy with the companies it liquidated and the debt forgiven.
+
+Bankrupt players leave the turn order. The players panel lists them after the others,
+marked Bankrupt, and the ownership spreadsheet's turn-order sort places them last.
+History also shows system events that change no company's cash when they matter:
+exports, interest, and any system action the title describes. An action whose train
+departures made the bank pay someone names each recipient and amount in its detail, and
+the private it paid for when there was one ("Inventor paid PLE $30"). A title's own description receives the shared one, so it can add
+to it rather than replace it.
+
+### Short positions
+
+Holdings are net: a short counts as a negative share. Player cards show a negative share
+count and percentage, company ownership tables list the short holder with a negative
+count, and a portfolio entry for a short reads "Short n shares". The ownership spreadsheet
+shows a short as a signed italic count in the negative colour, read as "short", and a pool's
+shorts, such as the market's, count against its shares. Net worth subtracts each
+short at the share price. History notes a purchase that closed a short and lists what
+short holders owe on a payout; 1817 adds rows for opening a short and for the market
+closing its shorts. 1817's stock round adds a Short stock action; it opens a card for each
+company the player may short, with its price, size and open shorts, and Short as an
+immediately committed button.
+
+Compact company cards narrow their summary columns so a fourth value, such as loans,
+fits without clipping.
+
+### Title rounds
+
+A title may name rounds of its own that follow an operating round (1817's merger and
+acquisition rounds). The turn header then reads the round's name and the operating
+round's number, such as "Merger round 2.1", shortening to its abbreviation like OR/SR;
+history groups its actions as a round of their own, such as "MR 2.1", from its start to
+its end action.
+
+1817's merger and acquisition rounds replace the operating panels with a panel headed
+by the round's name and a card for the company being dealt with, in the share cards'
+style: its name and price; its size, treasury, loans, trains, privates, stations and any
+closing zone; and the current
+decision as immediately committed buttons in the card's foot. Other players see whom the
+round is waiting for.
+
+In the merger round the president converts, the button naming the new size, the treasury
+shares it adds and the stations it would owe with their cost, or passes; each company it
+may merge with is a card of its own below ("Or merge with") with its treasury, loans and
+assets, whose Merge button names the merged size and price, the treasury shares the merged
+company would hold and its stations. While players trade the converted company's treasury shares, the
+panel names the shares left and their price, who chooses now and who follows; that player
+buys a share or passes. The president then takes loans and finishes, buying the stations
+owed (the panel says when the treasury cannot pay, and the button reads Finish and
+liquidate). A merged company over a limit removes a named station or discards a train.
+History records conversions and mergers as important rows, purchases with their price, the
+stations bought or the liquidation, and the removals and discards; players' passes are
+routine.
+
+In the acquisition round the panel also lists the companies still to offer as tokens. The
+president offers the company for sale (the button giving its opening bid) or keeps it.
+While it is auctioned the panel names how it came up for sale and the high bid; the bidder
+stages an amount with the shared bid control, starting at the minimum and limited to what
+their companies could pay, with the companies that could pay it named, and bids or passes.
+The staged amount resets when the bidding changes. The winner chooses the paying company
+from a card for each that could. The buyer's card then heads the panel, noting what it paid
+and the loans it took on and repaid, and it takes loans, repays loans it took on, and
+finishes. A company over its limits after a merger or an acquisition gets its own panel to
+remove stations or discard trains. History records offers, bids and passes, auctions of
+companies in a closing zone, acquisitions with their price and any Golden Parachute paid,
+the bank's liquidations with what departing trains and the Golden Parachute paid, unsold companies,
+the holders' payment per share and repayments. A formation with the Loan Shark notes the
+$60 it brought.
 
 ## Private exchanges and lifecycle
 
@@ -627,6 +739,17 @@ station, or Decline". A click anywhere on a one-city tile, or on an offered city
 multi-city tile, submits PlacePrivateStation directly; Decline submits
 DeclinePrivateStation. There is no confirmation stage. A placed station shows the
 station step as Placed and the step completes automatically.
+
+A private power that marks a location (a title's `markerTerms`, such as 1817's
+bridges) appears under Use privates as one immediately committed button per location,
+"Place [marker] on [location] ([private])". Placed markers join the map's printed
+markers, by the names the title's map view gives them, in the live and historical maps.
+A title's reusable private lays (1817's coal mines and ranches) stay offered until its
+terms end them. A lay can also clear markers (1817's city tiles clear the ranches beside
+them), which leave the live and historical maps with it. History notes what a lay paid
+its company or which privates it closed (1817's Mountain Engineers, city-tile privates
+and used-up coal mines and ranches). An operating round's start
+appears in history as Private income when privates paid companies (1817's mail).
 
 A pending par after an opening award (a title's `parAfterAward`, such as 1830's B&O)
 replaces the auction panel with "[player] sets [company]'s par." Only the entitled
@@ -906,6 +1029,14 @@ StockMarketScene renders title-owned company tokens in canonical market stacks. 
 
 Each mounted scene subscribes through MarketAnimationSource. Its caller supplies a market projection; the adapter registers one GameSession listener and forwards the original action and AnimationContext. The scene does not depend on a finance-example state class. Market tokens retain company-keyed DOM elements across cell changes. The shared AnimationContext owns committed movement, stack repositioning, and marker entry/exit; target stack z-order is applied before motion. Transient render entries cover the union of from/to markers for one replayed action, then settle to that action's destination. New markers fade in at their destination and departing markers fade out. Action moves take 300ms; actionless Undo/history take 180ms, reduced motion takes zero. Hidden scenes skip animation; silent restoration uses canonical props. Teardown removes the listener, kills its registered element tweens, and clears refs. No game/session host bridge shape changes are introduced.
 
+### Market zones
+
+A title may name the meaning of its market colours (1817's liquidation, acquisition, par
+and safe par). Each such cell's accessible name adds the zone's name and its hover text
+gives the name and explanation. The Market tab lists the zones below the market as a legend
+with a colour swatch, name and explanation, wrapping to the pane's width; the Board view's
+market inset has no legend.
+
 ### Tile manifest
 
 Tiles follows Spreadsheet in the table tabs. Colored filter pills select one color or All; remaining tile faces render in an unframed grid with their available count, omitting exhausted faces. The filter is local browsing state and persists across tab switches and visible game-state updates. Counts follow the displayed canonical inventory in live play, history, Undo and restoration; an uncommitted tile preview does not consume stock. The manifest includes future-phase tiles and does not imply that a displayed tile is currently legal to lay. Layout and orientation come from the title's map presentation. It creates no actions and does not affect map selection.
@@ -919,7 +1050,9 @@ centered over the visible sheet even when its contents scroll horizontally.
 
 Spreadsheet shows open share companies against players in seat order, rotated so the viewer's own seat comes first; spectators see the unrotated seat order. Companies appear in start order, followed by title-included companies, so TOP lists PEIR last; PEIR has no market value and so also sorts last by Value. Neither order follows priority deal or market movement. Direct share counts appear at each intersection and subdued zeros. For title-numbered shares, each player cell follows the count with the player's certificate numbers in ascending order in muted parentheses, such as `2 (2,5)`; a president badge sits between them. The count stays centered in its cell, and the column widens to fit the numbers. Counts follow the displayed state through actions, history and Undo. It does not aggregate a controlled company's shares into a player's holdings. During the acting player's stock turn, a Market or Treasury share cell with a legal player purchase opens a small confirmation showing the certificate's share count, company token, and exact price. A legal Union Bank purchase adds a centered "As Bank" button below Yes and No, with any contribution owed by its player owner; Yes buys for the player. A holding cell with a legal sale opens a confirmation asking to sell the company token's share or shares, using the singular when only one share can be sold. If only one share can be sold, the popover shows its proceeds and Yes/No; otherwise it lists each legal amount with its proceeds and a No button. Confirming commits one purchase or sale through the Stock Module. No, Escape, and clicking outside dismiss without an action. Ineligible cells and History View remain read-only. The pending choice is local to the popover and does not consume Back or Undo.
 
-Title-selected corporate owners follow their controlling player in the ownership matrix. In Player view, each corporate row is indented, with a down-and-right connector from the controlling player's color dot. Company view preserves that owner order as columns, with a continuous horizontal connector across the player and corporate column boundary and vertically aligned header labels. Control comes from the shared controlling-owner calculation, including corporate control chains; uncontrolled corporate owners remain after the players, without a connector. Titles without corporate portfolios, including 1889, retain their player order. TOP's Union Bank remains a separate owner with its own shares and financial values; this grouping never aggregates its holdings into the player. The order and connector follow the displayed state through control changes, history and Undo. TOP explicitly marks Union Bank's net worth as included in its controlling player's total: both orientations use lighter text, an asterisk, and a matching footnote. This treatment is title-selected rather than assumed for all corporate holdings. Treasury shows each row company's own shares; Market counts shares in the title-supplied market pool only.
+Title-selected corporate owners follow their controlling player in the ownership matrix. In Player view, each corporate row is indented, with a down-and-right connector from the controlling player's color dot. Company view preserves that owner order as columns, with a continuous horizontal connector across the player and corporate column boundary and vertically aligned header labels. Control comes from the shared controlling-owner calculation, including corporate control chains; uncontrolled corporate owners remain after the players, without a connector. Titles without corporate portfolios, including 1889, retain their player order. TOP's Union Bank remains a separate owner with its own shares and financial values; this grouping never aggregates its holdings into the player. The order and connector follow the displayed state through control changes, history and Undo. TOP explicitly marks Union Bank's net worth as included in its controlling player's total: both orientations use lighter text, an asterisk, and a matching footnote. This treatment is title-selected rather than assumed for all corporate holdings. Treasury shows each row company's own shares; Market counts shares in the title-supplied market pool only, less any shorts that pool holds.
+
+A title may add company statistics after Last run (1817's Size and Loans), as rows in Player view and columns in Company view. They sort like the shared statistics, unstarted companies showing a dash and sorting last. Company details show a title's company facts after loans (1817's size, interest owed, stations still owed and closing zone).
 
 The label column is only as wide as its content; when the sheet fills its pane, the spare width goes to the data columns. The spreadsheet uses compact row spacing and container-responsive company names: full above 800px, title-supplied short names through 800px, initials through 560px. Accessible row headers retain full company names at every width; resizing changes no ownership or selection.
 
@@ -1126,7 +1259,7 @@ its phase-chart entry, following the title's train-phase palette rather than its
 available tile colors.
 
 The turn header uses its own available width to shorten Operating round/Stock
-round to OR/SR only when the full heading and turn controls exceed the available width. The table opts out of DefaultTableLayout's top inset;
+round (or a title round) to OR/SR (or its abbreviation) only when the full heading and turn controls exceed the available width. The table opts out of DefaultTableLayout's top inset;
 its history controls and turn header share a 44px border-box height and aligned
 bottom borders. The action panel no longer adds a second top border. Other
 DefaultTableLayout consumers retain the default 8px top inset.
@@ -1233,13 +1366,21 @@ Station placement masks map hexes without legal placements. Clicking anywhere on
 
 A pending home choice (a title's homeChoice hook, before the company's operating turn) uses the same placement mask and focus with the offered hexes as the legal set. The action panel only prompts "[company]: choose a highlighted city on the map for its home station." A city or slot click on an offered city submits ChooseHomeStation directly, as does any click on a hex with only one offered city; other clicks do nothing. The home choice takes precedence over station placement and inspection while pending. There is no confirmation stage; a committed choice is undone through action history.
 
+Company auctions (a title's `stockRules.companyAuction`, such as 1817) replace Start with an Auction stock menu. It lists the auctionable companies as tokens; choosing one is a manual stage that offers home cities with the same placement mask and focus as a pending home choice. A click on an offered city, or anywhere on a hex with one offered city, records the home as a second manual stage; the home choice takes precedence over private stations, station placement and inspection, but follows a pending homeChoice. The opening-bid control then appears. Its amount is derived as the lowest bid the player can make and form a company with, and becomes a manual selection only when the player changes it; there is no auto-sourced stage. Back from the bid control clears the bid and the home. Undo unwinds the bid, the home and the company in that order before game history. Changing stock menu clears all three. Bid submits AuctionCompany directly.
+
+While a company auction stands, the stock action panel shows only the auction: the company, its home, opener, high bidder, high bid with its starting price, and the current bidder's limit. The bid amount is derived in the same way and becomes manual when changed; Bid and Pass submit directly. The winner then sees the formation panel: one button per allowed size and one per private that could be contributed toward the price. A size is pre-chosen only when the phase allows exactly one; otherwise none is pressed and Form stays disabled with "Choose a size". The formation is applied without the panel when there is one size and nothing to contribute. Size and contribution choices are manual and unwind before game history.
+
+A selection-auction opening shows the remaining lots with value, opening bid and, below each name, the start of its power (the private's card shows it in full). A title that deals its lots into tiers (1817's Volatility pyramid) shows them as a pyramid, first tier on top: each lot a compact button with its name and value, each sold or removed lot a dashed empty slot, and the tier that may be nominated from highlighted. Only that tier's lots can be chosen, and only they show the start of their power, which keeps the pyramid within the panel; every lot gives its power on hover, and choosing one shows it in full beside the bid control. Auction stages a nomination with the bid control at the lot's opening bid; Bid submits NominateLot and Back clears the staged lot. Pass appears only while the title lets a player pass instead of nominating. An award's history entry names the lots it removed. While a lot is being auctioned the bidding card shows the nominator, high bidder and high bid; Bid submits BidForLot at the staged or minimum amount and Pass submits PassSelectionAuction.
+
+Station tokens without artwork draw their label in the colour that contrasts with the token's fill, and labels of four or more characters use a smaller size to stay inside the token.
+
 Reaching the title’s ordinary station-placement limit produces a canonical system FinishStations action in the placement cascade. The UI advances without an extra click. Titles permitting additional placements retain the placement step. Undo reverses the placement and its automatic completion together.
 
 A trainless company entering RunningTrains receives a canonical empty RunTrains system action. With zero revenue and no trains, withholding is automatic when permitted by the title. The distribution still applies market movement and operation effects, then advances to BuyingTrains without either player prompt. Existing recorded runs with revenue retain their dividend decision even if their trains rusted afterward.
 
 When a selected track hex has exactly one legal tile definition, its tile and initial legal rotation are auto-selected. The picker scales that tile directly into the hex with no arc detour; rotation and acceptance remain available. The map preview is suppressed during this local entrance using the existing in-flight flag. Undo skips these automatic stages, and reduced-motion displays the selection immediately.
 
-After a track lay, construction automatically finishes if the composed action handlers offer no further ordinary, private, or consent-based track placement. The system completion is part of the lay’s action cascade. The map prompt reads “Choose a space or” with a Skip button; skipped/finished construction advances through the canonical FinishTrack action.
+After a track lay, construction automatically finishes if the composed action handlers offer no further ordinary, private, or consent-based track placement, nor, while the company has a lay left, a loan that could pay for one. The system completion is part of the lay’s action cascade. The map prompt reads “Choose a space or” with a Skip button; skipped/finished construction advances through the canonical FinishTrack action.
 
 The currently operating company always displays its detailed chip. Station placement presents “Choose a city to place a station or” followed by Skip.
 
@@ -1452,6 +1593,9 @@ available depot type uses the title's train badge and canonical remaining count
 (infinity for unlimited supply); sold-out types are omitted. Clicking anywhere on
 the strip, Depot included, opens the full phase chart, whose train roster shows live
 remaining counts. All available types are highlighted; exhausted rows are muted.
+After the depot come the loan figures of a title with loans and any facts the title supplies
+(1817's seed money during the opening, and when the game ends once that is set), in the same
+label and value style; the strip wraps on narrow screens.
 Title-specific company roles share the compact information row; TOP labels them
 Main and Short. Additional title information such as tranches follows below.
 
@@ -1495,7 +1639,7 @@ History descriptions and company-name lookups use the same visible history conte
 
 ### Read-only position panel
 
-History, spectators, and non-active players see PositionPanel in place of the action snippets and stock menu. OR chevrons remain visible as disabled progress indicators, with private-action buttons omitted. Live spectators and non-active players also keep the stock action strip during a stock round: it lists the title's stock menus (Buy, Sell, Start while unstarted companies remain, and Exchange when a private carries exchange terms) as disabled pills with no selection, no Pass/End turn, and no title-specific extras; history hides the strip. In those live positions the panel opens with a large turn heading naming the turn manager's current player, with that player's color, followed by "'s turn". Additional active players from private timing windows are not listed; the heading always identifies the player whose stock or operating turn it is, and is omitted while no turn is open. Status headings omit player names; event details retain actor names where relevant. Historical chevrons identify the selected event’s step; live spectators see the current decision step. The panel presents event-specific information, including purchased train badges, prices, payouts and recorded route revenue, without a generic cash/inventory row. Run tables reuse TrainRunTable, including the income headings, train badges and total; recorded payouts reuse EarningsCard as a noninteractive result with recipients and market movement. Run tables appear for the run event, not subsequent payouts; the round and operating-company labels remain in the shared header. It does not mount action choosers or the automatic route calculator. Track results render the recorded tile and rotation; upgrades show the previous tile → replacement, with “for $N” for a positive cost and no coordinate label. Results reuse GameEnding with the supplied position state.
+History, spectators, and non-active players see PositionPanel in place of the action snippets and stock menu. OR chevrons remain visible as disabled progress indicators, with private-action buttons omitted. Live spectators and non-active players also keep the stock action strip during a stock round: it lists the title's stock menus (Buy, Sell, Start while unstarted companies remain, and Exchange when a private carries exchange terms) as disabled pills with no selection, no Pass/End turn, and no title-specific extras; history hides the strip. In those live positions the panel opens with a large turn heading naming the turn manager's current player, with that player's color, followed by "'s turn". Additional active players from private timing windows are not listed; the heading always identifies the player whose stock or operating turn it is, and is omitted while no turn is open. Status headings omit player names; event details retain actor names where relevant. Historical chevrons identify the selected event’s step; live spectators see the current decision step. The panel presents event-specific information, including purchased train badges, prices, payouts and recorded route revenue, without a generic cash/inventory row. Run tables reuse TrainRunTable, including the income headings, train badges and total; recorded payouts reuse EarningsCard as a noninteractive result with recipients and market movement. Run tables appear for the run event, not subsequent payouts; the round and operating-company labels remain in the shared header. It does not mount action choosers or the automatic route calculator. The one interactive exception is the standing-instruction bar, which live seated players keep beneath the panel during an open stock round (see Standing instructions); history hides it. Track results render the recorded tile and rotation; upgrades show the previous tile → replacement, with “for $N” for a positive cost and no coordinate label. Results reuse GameEnding with the supplied position state.
 
 Every game-data lookup in PositionPanel comes from the session's published game state and the actions up to its action count, so the panel follows the animation framework like the rest of the table and updates once state-change animations complete, in live and history positions alike. Title-provided names, train definitions, token appearances and auction rules remain presentation inputs. Auction lot lookup takes that same state explicitly. Returning to an actionable current position restores the normal controls. The mechanism is shared across title-specific auction, stock and operating procedures; state labels belong to the existing finance-example flow, not a universal 18xx turn sequence. No bridge or host API shape changes are introduced.
 

@@ -45,7 +45,20 @@ export { default as GameEnding } from './ending/GameEnding.svelte'
 
 export { default as GameTable } from './table/GameTable.svelte'
 export type { CompanyNameVariants, NumberedShareNames } from './table/companyPresentation.js'
-export type { PrivateTokenPresentation, TitlePresentation } from './session/titlePresentation.js'
+export type {
+    HistoryDescription,
+    HistoryNames,
+    TitleActionDescription
+} from './table/historyDescription.js'
+export { departurePaymentsDetail, joinDetails, ownerName } from './table/historyDescription.js'
+export type {
+    CompanyColumn,
+    MarketZone,
+    PrivateTokenPresentation,
+    TitleFact,
+    TitlePresentation,
+    TitleRound
+} from './session/titlePresentation.js'
 export type { TileSymbolName } from './tiles/tileSymbols.js'
 export { moneyFormat, type MoneyFormat } from './presentation/money.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'
@@ -64,6 +77,10 @@ export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'
 export { default as AuctionBidControl } from './auctions/AuctionBidControl.svelte'
 export { default as OfferAuctionBidding } from './auctions/OfferAuctionBidding.svelte'
 export { default as WaterfallAuctionLots } from './auctions/WaterfallAuctionLots.svelte'
+export { default as SelectionAuctionLots } from './auctions/SelectionAuctionLots.svelte'
+export { default as SelectionAuctionBidding } from './auctions/SelectionAuctionBidding.svelte'
+export { default as CompanyAuctionBidding } from './stock/CompanyAuctionBidding.svelte'
+export { default as CompanyFormation } from './stock/CompanyFormation.svelte'
 export { default as CompanyPar } from './stock/CompanyPar.svelte'
 export { default as WaterfallAuctionBidding } from './auctions/WaterfallAuctionBidding.svelte'
 

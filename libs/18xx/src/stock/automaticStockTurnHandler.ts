@@ -33,6 +33,7 @@ export class AutomaticStockTurnHandler<
 
     enter(context: MachineContext<State>): void {
         this.handler.enter(context)
+        if (context.getPendingActions().length > 0) return
         const playerId = context.gameState.turnManager.currentTurn()?.playerId
         if (playerId && this.canFinish(context, playerId))
             context.addSystemAction(FinishStockTurn, { playerId })

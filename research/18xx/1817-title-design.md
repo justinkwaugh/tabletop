@@ -1,0 +1,1972 @@
+# 1817: title plan and slice 1 design
+
+1817 is the fourth executable 18xx title, after TOP, Shikoku 1889 and 1830. This
+note records the title's delivery plan and the design review for its first slice,
+following the standing [18xx design rule](../../docs/agents/18xx-design.md).
+Later slices add their own sections before implementation.
+
+1830 shared 61 of the 70 compared traits with 1889 and needed few new mechanisms.
+1817 shares 19 with 1830 and 25 with 1889. Most of its rules are mechanisms the
+family libraries do not have yet: companies started by auction, 2-, 5- and 10-share
+structures, corporate loans with a variable interest rate, short selling, merger and
+acquisition rounds, and liquidation. The plan therefore introduces one family
+mechanism per slice. Each is surveyed across the researched titles before its
+interface is settled.
+
+## Authority and scope
+
+**Project decision (2026-10-01):** the research site's 1817 implementation defines
+the rules, as it did for 1830. Its metadata names the 1817 Rules v1.0 (5 March 2015)
+and the Volatility expansion rules. Neither is in the workspace, so the
+[game configuration][game], [entities][entities], [map][map] and the title's
+[steps][steps] and [rounds][rounds] are the primary evidence. Citations pin
+`715567bdc7e5cc68a68a286b21dc8edd1a125e50`. Where the reference engine and a printed
+rule may differ, follow the engine and record the difference.
+
+- **Hosting:** 18xx playground only, like 1889 and 1830. Not added to `games.json`.
+- **Artwork:** none. Boardless map, generic share and private presentation.
+- **Players:** 3 to 12, as the reference. The reference warns that more than 7 is
+  untested. Prepared playground positions use 3 or 4 players.
+- **Optional rules:** all four of the reference's [options][meta] (project decision,
+  2026-10-01):
+    - Short Squeeze;
+    - 5 Shorts;
+    - Modern Trains;
+    - the Volatility expansion.
+
+    Each option is added to the configurator in the slice that implements it, so the
+    configurator never offers an option that has no effect.
+
+- **Variants:** 1817NA, 1817WO and 18DE are out of scope. They subclass 1817 with
+  their own maps, roster and parameters. They are recorded here because they challenge
+  which 1817 rules are title-owned (see [Family variants](#family-variants)).
+- **Verification target:** the five recorded games in
+  `/workspace/research/18xx-2026-09-08/source/public/fixtures/1817`. The 1830
+  converter in `fixture-conversion/` is the precedent.
+
+    | Game                     | Players | Options    | Ending                                                                                              |
+    | ------------------------ | ------- | ---------- | --------------------------------------------------------------------------------------------------- |
+    | `15528`                  | 4       | none       | Normal end after the 8-train; uses every mechanism (30 shorts, 12 conversions, 7 mergers, 98 loans) |
+    | `16281`                  | 4       | none       | Ended manually in a merger round                                                                    |
+    | `16852`                  | 4       | none       | Ended manually in an acquisition round                                                              |
+    | `20758`                  | 5       | none       | Ended manually in the second stock round                                                            |
+    | `1817_game_end_bankrupt` | 5       | Volatility | Bankruptcy                                                                                          |
+
+    Manually ended games still record each player's value. They are verified by
+    replaying every action and comparing those values, not by reaching game over.
+
+## Trait comparison
+
+From the [title traits](/workspace/research/18xx-2026-09-08/data/title-traits.json),
+`g_1817` against `g_1830`: 19 traits share their values and 51 differ. Against
+`g_1889`, 25 share and 45 differ. The differences group as follows.
+
+| Area      | 1817                                                                                                                        | 1830                                              |
+| --------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Equity    | 2-, 5- and 10-share companies with conversion; short positions                                                              | President's certificate plus equal shares         |
+| Capital   | Incremental, treasury receives share sales; floats on the president's certificate                                           | Full capitalization at 60%                        |
+| Market    | One-dimensional, $0 acquisition and liquidation spaces; no price drop on sales; drops for shares in the market pool         | Two-dimensional; sales move the price down        |
+| Formation | Company auction in the stock round; the bid goes to the treasury; the president chooses the home                            | Par from the start spaces; fixed homes            |
+| Debt      | Corporate loans; one interest rate for the whole game, from the loans outstanding                                           | None                                              |
+| Failure   | Liquidation; player cash crisis and elimination                                                                             | Emergency train funding; bankruptcy ends the game |
+| Rounds    | A merger round and an acquisition round after every operating round                                                         | Stock and operating rounds                        |
+| Opening   | A selection auction (players nominate privates), with seed money                                                            | Waterfall auction                                 |
+| Track     | Two lays, at most one upgrade, the second costs $20; unlimited tiles                                                        | One lay or upgrade                                |
+| Trains    | No obligation to own a train; a company without one is liquidated; trains exported after each OR; 2+ trains become obsolete | Compulsory train; rusting only                    |
+| Ending    | First 8-train, then one more full set; bankruptcy                                                                           | Bank broken; bankruptcy                           |
+
+Two corrections from the survey:
+
+- **The train limit depends on the phase only.** It is the same for every company
+  size: 4/4/4/3/3/2/2/2 ([game]). Size-dependent limits exist in 50 other titles, but
+  not in 1817.
+- **The 18DE trait profile is wrong about shorts.** It lists short positions, but
+  18DE's stock step forbids shorting. The variation catalog records this correctly.
+
+## Family variants
+
+Seven titles subclass 1817's game: 1817DE (18DE), 1817NA, 1817WO, 18USA, 1877
+Venezuela, 18FR and 18Hiawatha. Their differences show which 1817 numbers and rules
+are title data rather than family invariants:
+
+- **Seed money:** 200 in 1817; 150 in NA and DE; 100 in WO; 160 in 18Hiawatha; none
+  in 18USA.
+- **Interest:** 5 loans per rate step in 1817; 4 in NA; 3 in WO, with a 65% maximum.
+  18USA uses 6 loans per step with 5+ players and moves the price 2 spaces per loan.
+- **Shorts:** forbidden in 18DE. 1877 and 18Hiawatha loosen eligibility. 18FR raises
+  a player's certificate limit for each short.
+- **Sizes:** 18FR has only 2 and 5. 1877 and 18Hiawatha start at 5 and grow to 10.
+- **Homes:** chosen when the auction starts in 1817; placed in the operating round in
+  18DE. WO restricts Nieuw Zeeland and adds a second token there.
+
+None of these variants is planned. They are the first counterexamples checked against
+each 1817 interface.
+
+## Delivery slices
+
+1. **Title data, opening and company starts** (this note). The package with its
+   complete data: map, tiles, market, roster, base privates (data only), trains and
+   phases. The selection auction with seed money. Company auctions in the stock round,
+   with size, home, private contribution and station purchase. 1817's stock-round
+   share rules. Operating rounds configured from the existing family hooks.
+2. **Operating rules:**
+    - train exports after each OR, which can start a phase;
+    - routes that may not visit a hex twice;
+    - city upgrades that must keep the most exits;
+    - the 8-train ending with its 2- or 3-OR final set.
+3. **Loans, interest and liquidation:**
+    - loans and repayments in the OR;
+    - the stock-round corporate action (a loan or buying back shares);
+    - the interest rate, fixed at the start of each OR;
+    - interest at the end of a company's turn, with automatic loans;
+    - liquidation for a missing train, unpaid interest or stations left unpaid at
+      formation;
+    - the player's cash crisis and bankruptcy, and the bankruptcy ending.
+4. **Short selling:** signed positions, dividends owed on shorts, closing shorts,
+   their valuation, and the market's own shorts. Adds the 5 Shorts and Short Squeeze
+   options.
+5. **Merger and conversion round:**
+    - the merger and acquisition round scaffolding after every OR;
+    - conversion from 2 to 5 shares and from 5 to 10;
+    - 2+2 and 5+5 mergers;
+    - post-conversion trading and loans;
+    - the station top-up and token reduction.
+6. **Acquisition round:**
+    - offers;
+    - acquisition-zone and liquidation-zone auctions;
+    - settlement, including the debt of a liquidated company;
+    - resetting a company so that it can be started again.
+7. **Private powers:** the eleven base privates:
+    - mine lays and their route bonus;
+    - bridges and their route bonus;
+    - Mountain Engineers;
+    - the Pittsburgh Steel Mill's X00 lay;
+    - mail contracts;
+    - the Train Station's extra token.
+
+    Route bonuses reach route evaluation and the autorouter. Adds Modern Trains.
+
+8. **Verification:** replay the four recorded base games, with the converter and
+   playground specs. 15528 becomes the playground's finished 1817 game.
+9. **Volatility:**
+    - the thirteen extra privates;
+    - the pyramid auction;
+    - the random choice among the city-tile privates;
+    - replaying the bankruptcy game.
+10. **Title UI:** prompts and panels the shared table lacks after slices 3–9,
+    including signed holdings, loans and the interest rate, and the merger and
+    acquisition rounds.
+
+Slices 3 to 6 each introduce a family mechanism that other titles share; their
+design notes carry the full survey. The ordering keeps the playground playable
+after every slice. Until slice 3, a company without a train simply earns nothing;
+until slices 5 and 6, a company in the acquisition zone keeps operating.
+
+## Slice 1 design
+
+### Package and identity
+
+Logic is in `games/1817` (`@tabletop/1817`) and UI in `games/1817-ui`
+(`@tabletop/1817-ui`). The title ID is `1817` and exports are prefixed
+`EighteenSeventeen`. The package follows 1830's anatomy: one module per data set or
+rule area, composed into `EighteenXXTitleRules` in `definition/gameDefinition.ts`.
+1817's rule modules compose family helpers and are not shared with 1830 or 1889.
+
+### Bank, players and limits
+
+- **Bank:** unlimited (`amount: 'unlimited'`); the bank never breaks.
+- **Starting cash** for 3 to 12 players: 420, 315, 252, 210, 180, 158, 140, 126, 115
+  and 105.
+- **Certificate limits** for 3 to 12 players: 21, 16, 13, 11, 9, 8, 7, 6, 6 and 5.
+  The president's certificate counts as one certificate in every size. Privates do
+  not count. Recalculating the limit after a bankruptcy comes in slice 3.
+
+### Share structure
+
+**Evidence.** Every 1817 company is printed with one president's certificate. Its
+size decides what that certificate is worth ([game] `size_corporation`):
+
+- a 2-share company has only the president's certificate (100%);
+- a 5-share company adds three 20% shares, so the president holds 40%;
+- a 10-share company adds eight 10% shares, so the president holds 20%.
+
+Conversion rewrites the existing shares (5 to 10 turns each 20% into 10%), and so
+does a merger. Shorts rewrite with them.
+
+**Survey.** The `two-five-ten-share-conversion` value appears only in the 1817 family
+(8 titles). Conversion to more shares of the same company appears in about a dozen
+more titles: 1873 (2 to 5 to 10); 1858, 1866, 18Ardennes, 18FL, 18GB and 18VA (5 to
+10); 1854. Minor-to-major conversion (1807, 1812, 1861, 1867, 1841 and others) is a
+different mechanism, because a different company results. In every 1817 size and
+conversion, the president's certificate is two shares and every other certificate
+one; only the total number of shares grows. Slice 5 checks the other conversion
+titles against this before conversion becomes a family procedure.
+
+**Decision.** Count shares, not percentages, as the family already does. The
+president's certificate is always 2 shares and every other certificate 1 share.
+The company's `shareCount` is 2, 5 or 10. A company is set up with only its
+president's certificate and `shareCount: 2`. Sizing it at formation issues three or
+eight 1-share certificates into its treasury and sets `shareCount`. A later
+conversion (slice 5) only issues more certificates and raises `shareCount`; no
+existing certificate changes. Shorts (slice 4) are then one share each in every
+size.
+
+- **Certificate numbers are never reused** within a game. A newly issued
+  certificate takes the next number after the highest the company has ever had,
+  including retired certificates. This covers the extra certificates that shorts,
+  mergers and restarted companies create later.
+- **Percentage checks stay title rules.** `ownershipLimit` is 100% for a 2-share
+  company and 60% otherwise. `certificateWeight` is 1 for each share certificate.
+
+No family schema change is needed: `shareCount` and the certificate list are already
+state, and certificates can be added at runtime.
+
+### Market
+
+**Evidence.** The [market][game] is one row of 32 spaces:
+
+- a liquidation space at $0;
+- three acquisition spaces at $0;
+- then $40, $45, $50 and so on up to $600.
+
+Par-marked spaces and "safe" spaces (55, 70, 120) are information only. A company's
+starting price is the highest space at or below half its winning bid, so any space
+from $50 to $200 can be a starting price.
+
+**Survey.** 42 title profiles have a one-dimensional market, among them:
+
+- the 1817 family;
+- the 1822 family;
+- 1846;
+- the 1858 family;
+- 18CZ;
+- 18Ardennes;
+- 18USA;
+- Rolling Stock.
+
+The $0 liquidation and acquisition zones belong to the 1817 family. The family
+market is already a move graph, so a row needs no new structure: left and right are
+the down and up moves.
+
+**Decision.** The title builds its spaces directly. In the 1D market, up is right
+and down is left. The colours stand for zones that the title interprets:
+liquidation, acquisition, par, safe and ordinary.
+
+- **A family schema widening:** a market space's price may be 0, where today it must
+  be at least 1. Share sales and purchases still require a positive price; 1817
+  forbids both in the $0 zones. This widens a field that existing states hold. It is
+  a superset, so every TOP, 1889 and 1830 state stays valid. The runtime-contract
+  snapshots are regenerated, as in 1830's slice 3.
+- **No ordinary move enters the liquidation space.** Down moves from the first
+  acquisition space have nowhere to go. Only liquidation (slice 3) places a company
+  there.
+
+### Roster, privates, trains and phases
+
+**Companies.** The 20 companies are identical except for names: A&S, A&A, Belt, Bess,
+B&A, DL&W, J, GT, H, ME, NYOW, NYSW, PSNR, PLE, PW, R, SR, UR, WT and WC. None has a
+home. Each starts with one free station; extra stations are bought at formation
+(below).
+
+**Privates.** The eleven base privates are data in a `PrivateCatalog`:
+
+| Private               | Value |
+| --------------------- | ----- |
+| Minor Coal Mine       | $30   |
+| Ohio Bridge           | $40   |
+| Mountain Engineers    | $40   |
+| Pittsburgh Steel Mill | $40   |
+| Coal Mine             | $60   |
+| Minor Mail            | $60   |
+| Train Station         | $80   |
+| Union Bridge          | $80   |
+| Mail Contract         | $90   |
+| Major Coal Mine       | $90   |
+| Major Mail            | $120  |
+
+All pay $0 to players. None can be bought by a company from a player. A private
+reaches a company only when contributed at formation, or through a merger or
+acquisition. Powers come in slice 7.
+
+**Trains:**
+
+| Train | Count     | Price  | Effect                                                     |
+| ----- | --------- | ------ | ---------------------------------------------------------- |
+| 2     | 40        | $100   | Rusts on the 4                                             |
+| 2+    | 4         | $100   | Obsolete on the 4, using the family's run-once-more status |
+| 3     | 12        | $250   | Rusts on the 6                                             |
+| 4     | 8         | $400   | Rusts on the 8                                             |
+| 5     | 5         | $600   |                                                            |
+| 6     | 4         | $750   |                                                            |
+| 7     | 3         | $900   |                                                            |
+| 8     | unlimited | $1,100 |                                                            |
+
+**Phases** start with each train: 2, 2+, 3, 4, 5, 6, 7 and 8. Each phase allows tile
+colours and company sizes:
+
+| Phase         | 2      | 2+     | 3       | 4       | 5       | 6       | 7      | 8      |
+| ------------- | ------ | ------ | ------- | ------- | ------- | ------- | ------ | ------ |
+| Tile colours  | Yellow | Yellow | + green | + green | + brown | + brown | + gray | + gray |
+| Train limit   | 4      | 4      | 4       | 3       | 3       | 2       | 2      | 2      |
+| Company sizes | 2      | 2      | 2 or 5  | 5       | 5 or 10 | 10      | 10     | 10     |
+
+There are two ORs in every set. Obsolete trains count toward the limit. Phase 8 also
+forbids new shorts (slice 4).
+
+The allowed company sizes are title phase data that the formation rule reads. The
+family phase table is not extended.
+
+### Map and tiles
+
+**Map.** The map is the reference's 92-hex pointy layout, counted from its
+[map definition][map]:
+
+- **Offboards** with staged revenue: Montréal, Maritime Provinces, Chicago,
+  St. Louis, Atlanta and Raleigh-Durham.
+- **Printed gray locations:** Toronto, Cleveland and the F1 junction.
+- **Printed yellow cities:** Detroit, Boston and Baltimore, labelled B; New York, a
+  two-city NY hex.
+- **Terrain costs:** mountains $15, water $10, lakes $20.
+- **One impassable border**, between C10 and D11.
+
+The mine hexes are listed with the mine privates in slice 7, not marked on the map.
+
+**Tiles.** Every tile is unlimited except X00, which has one copy. 1817 uses the
+reference's base definitions of 54, 62 and 63, which are already in the catalog from 1830. Ten tile numbers are not yet in `StandardTileCatalog`: junctions 80, 82, 83,
+544, 545 and 546; cities 619 and 592; and B cities 593 and 597.
+
+**Decision.** Add the ten tiles as `18xx:<number>` shared definitions matching the
+research's base catalog, following 1830's precedent. X00 (a yellow B city worth $30
+with three exits) and X30 (a gray single NY city worth $100 with four slots) are
+title tiles in an 1817 `TileCatalog`, as TOP does with its own tiles. Each new face
+is checked so that its drawn paths match the logical topology in both orientations.
+
+### Opening: the selection auction with seed money
+
+**Evidence.** In the reference's [selection auction][selection] all privates are
+available at once.
+
+- **Nominating.** On their turn, a player either opens an auction on any remaining
+  private with a bid, or passes. If every player passes in a row, the unsold privates
+  close.
+- **Opening bid.** The minimum is the private's value less the remaining seed money,
+  and never below $0.
+- **Bidding.** Bids rise by multiples of $5, up to the player's cash. Bidding runs
+  from the player after the high bidder. A pass withdraws from that auction, and the
+  last bidder left wins.
+- **Payment.** The winner pays the bid. The seed money falls by the private's value
+  less the price paid.
+- **After each auction**, nomination resumes with the player after the one who
+  opened it.
+
+**Survey.** `selection-auction` appears in 13 titles: the 1817 family, 1837, 1840,
+1841, 1862, 18Ardennes, 18Dixie, 18Hiawatha, 18USA and System18. `single-auction`
+bid commitment appears in 37. Seed money is not a trait; the `SEED_MONEY` parameter
+exists only in the 1817 family and 18Hiawatha, and 18USA sets it to nothing. The
+Volatility pyramid (slice 9) limits which lots can be nominated and forbids passing
+while nominating. 18Ardennes switches from auction to purchase once every player has
+less than 100F, an evidence gap this slice does not address.
+
+**Decision.** The family gains a nomination auction beside the waterfall and offer
+pile, built on Common's `SimpleAuction` as they are. Each title supplies:
+
+- the lots;
+- the lots a player may nominate (`nominationLotIds`), which Volatility will restrict;
+- the opening minimum for a lot (`openingBid`);
+- the increment;
+- whether passing is allowed while nominating (`passingWhileNominating`);
+- what happens to unsold lots when everyone passes;
+- `award`, which pays and transfers.
+
+1817's seed money is title state, read by `openingBid` and reduced by `award`. The
+family auction has no notion of seed money.
+
+The order after an auction is family behaviour: nomination resumes after the player
+who opened it. Volatility's "resume after the winner" becomes an option when slice 9
+needs it.
+
+### Company starts in the stock round
+
+**Evidence.** In the reference's [stock step][stock-step], on their turn and before
+buying, a player may open an auction for any unstarted company.
+
+- **Opening.** The player names the company, a bid from $100 to $400, and its home:
+  any city with an open slot.
+- **Bidding power.** The player's cash plus the face value of their privates. It is
+  $0 for a player at the certificate limit.
+- **Bidding.** Every player bids in turn order, in $5 steps; players who cannot reach
+  the minimum drop out. A pass withdraws from that auction, and the last bidder wins.
+- **The win** sets the company's price to the highest market space at or below half
+  the bid.
+- **Settlement:**
+    - the winner takes the president's certificate and pays the whole bid into the
+      company's treasury;
+    - the winner then chooses a size the phase allows;
+    - the winner may contribute privates, which the company buys at face value. This
+      is how a bid above the winner's cash is paid.
+- **Stations.** The company then buys the stations its size needs (1, 2 or 4) at $50
+  each from its treasury.
+- **Turn.** Opening an auction is the opener's purchase for the turn, and the turn
+  ends when the auction is settled.
+
+**Survey.** `corporation-auction` appears in 17 titles, in two groups:
+
+- **The bid becomes the treasury and the starting price derives from it:** the 1817
+  family; 1867 and its descendants 1807, 1812 and 1861; 18NY; 18Ireland. 18NY and
+  18Ireland cap the starting price.
+- **The bid goes to the bank, followed by an ordinary par and subscription:** the 1862
+  charter auction, 1877 Stockholm Tramways, System18 Parliament.
+
+`eligible-location-choice` homes appear in 35 titles. The timing differs: chosen when
+the company starts (1817), in the operating round (18DE), or at first operation
+(1830's Erie, already supported by `StationRules.homeChoice`). `nested-auction`, an
+auction inside a stock turn, appears in 22 titles.
+
+**Decisions:**
+
+- **Company auctions are a family stock-round feature.** The stock round holds a
+  nested auction in the optional family field `companyAuction`, with the actions
+  `AuctionCompany` (company, opening bid, home city), `BidForCompany` and
+  `PassCompanyAuction`. `StockRules.companyAuction` is optional, and only titles that
+  set it register the actions. It supplies:
+    - the bid range and increment;
+    - bidding power, and whether a player could form a company at a given price
+      (`formable`);
+    - the eligible home cities;
+    - the start space for a winning bid.
+
+    TOP, 1889 and 1830 keep `StartCompany` and register no new action or machine
+    state. Like `pendingPar` in 1830's slice 4, the new optional family fields
+    (`companyAuction`, `selectionAuction`) appear in every title's state schema but
+    are only written by titles that use them.
+
+- **Settlement is one decision.** The winner answers with `FormCompany`, choosing a
+  size and the privates to contribute. It settles atomically:
+    1. the winner pays the bid;
+    2. the company pays the contributed privates' face value;
+    3. the size's certificates are issued;
+    4. the home station is placed;
+    5. the extra stations are bought.
+
+    The winner's cash may not end below $0. It is applied automatically when the phase
+    allows one size and none of the winner's privates could be contributed toward the
+    price, as in the reference. This replaces the reference's temporary negative cash
+    with one validated settlement, with the same outcomes.
+
+- **Every bid can form a company.** A bid is accepted only at an amount the bidder
+  could pay and form a company with in the current phase, so a won auction always has
+  a valid formation.
+
+- **The home is placed at settlement, not when the auction opens.** No other map
+  change can happen between the two, because the auction completes within the
+  opener's turn, so the result is the same as the reference's.
+- **Stations are added when bought.** A company starts with one station. Formation
+  and conversion add stations as they are bought, up to the reference's limit of 8.
+- **Flotation and capital.** The company floats when the auction is settled; there
+  are no flotation payments. Later treasury shares are sold at the current price
+  into the treasury, through the family's treasury pool and purchase terms.
+
+**Limit until slice 3:** the reference lets a company short of station money take
+loans before the round ends, or be liquidated. Without loans, a size or contribution
+that leaves the treasury unable to buy its stations is refused, and so is a bid at
+which no formation could pay for its stations (for example under $150 in phases 6–8,
+where companies have 10 shares).
+
+### Stock-round share rules
+
+| Rule             | 1817                                                                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Turn order       | `sell-buy`: any sales come before the turn's single purchase, short or auction                                                                         |
+| Repeat sales     | `separate`; selling never moves the price, so the policy only matters for presidency changes                                                           |
+| Sell eligibility | Only once the company has operated                                                                                                                     |
+| Rebuying         | A company sold this round cannot be bought again this round (family behaviour)                                                                         |
+| Purchases        | One share per turn, from the treasury or the market, at the current price                                                                              |
+| Market pool      | Unlimited; sales go to the market at the current price, with no movement                                                                               |
+| Holding limits   | 100% for a 2-share company, 60% otherwise                                                                                                              |
+| Over a limit     | The player may only sell (family behaviour)                                                                                                            |
+| End of round     | A company with more than two shares, whose players hold all of them, moves up one. Then each company moves down one space per share in the market pool |
+| Next round       | Priority goes to the player after the last to act                                                                                                      |
+
+**Survey of the end-of-round market drop.** The reference's `POOL_SHARE_DROP` is set
+in 10 titles:
+
+- one space per pool share: only 1817;
+- one space if any shares are in the pool: 1841, 1846, 1849, 1862 USA-Canada,
+  18Ardennes, 21Moon;
+- one space left per block: 1844, 1854, 18Norway.
+
+Every other title drops nothing at the end of the round.
+
+**Decision.** `StockRoundRules` gains an optional `poolDrop(state, companyId)`. It
+returns the number of down moves at round end, applied after the sold-out move.
+TOP, 1889 and 1830 do not set it.
+
+The Short Squeeze option's second move belongs to slice 4.
+
+### Operating rounds in slice 1
+
+Slice 1 configures the existing family hooks, so that companies can operate:
+
+- **Order:** companies operate by market order.
+- **Track allowance:**
+    - two lays a turn, of which at most one is an upgrade;
+    - the second lay costs $20 and may not be on the hex of the first;
+    - terrain from the map;
+    - semi-restrictive usefulness, like 1889: a lay must add track or raise a city's
+      revenue.
+- **Stations:** one placement per turn, at no cost.
+- **Dividends:** pay, half or withhold.
+    - Half pay retains half the revenue, rounded down to a multiple of the share
+      count.
+    - Price moves come from the amount distributed: nothing moves it down one;
+      at least the share price moves it up one; at least twice the price, up two.
+    - In the acquisition zone, the comparison uses $40.
+- **Trains:** no obligation to own one. A company may buy from the depot or from
+  another company through the family's purchase offer.
+- **Ending:** none yet. The 8-train ending comes with exports in slice 2.
+
+The turn's earlier lays are already in `trackStep.lays`, each with its hex and tile
+colour, as TOP's two-lay allowance uses them. In 1817 every upgrade is green or
+later and every new lay is yellow, so `allowance` tells upgrades apart by colour.
+`restriction` refuses a second lay on the first lay's hex. No hook changes.
+
+### Implementation notes for slice 1
+
+Decisions made while implementing, beyond the design above:
+
+- **The company auction lives inside the stock round.** While `companyAuction`
+  stands, the stock round accepts only `BidForCompany`, `PassCompanyAuction` and
+  `FormCompany`, and makes the current bidder or the winner the active player. Every
+  stock-round wrapper keeps working, and the opener's turn ends as soon as the company
+  is formed.
+- **The selection auction is one machine state,** `SelectionAuction`, with the
+  optional family field `selectionAuction` and the actions `NominateLot`, `BidForLot`,
+  `PassSelectionAuction` and the system `ResolveSelectionAuction`. As in the
+  reference, players who have passed are skipped until a lot is sold. The player who
+  would nominate next has priority in the first stock round. 1817 nominates from every
+  remaining lot and allows passing; Volatility (slice 9) will change both.
+  `ResolveSelectionAuction` records its outcome in its metadata, which history reads.
+- **The formation choices come from the rules.** `CompanyAuctionRules` names the
+  share counts allowed now (`shareCounts`) and the privates the winner may contribute
+  toward the price (`contributions`). The family applies the formation without a
+  decision when there is one size and nothing to contribute.
+- **Seed money is optional state.** Prepared positions after the opening have none.
+- **Standing stock instructions wait** while another player decides during the turn,
+  such as bidding for a company.
+- **A 2-share company is paid as one dividend unit.** Its single certificate takes
+  the whole distribution, so half pay is exact, as in the reference.
+- **New York's gray tile joins its two cities.** 1817's `preservesStops` accepts the
+  NY-labelled upgrade from two cities to one.
+- **Lakes are their own terrain kind,** apart from rivers, which the bridge privates
+  will discount in slice 7. The map draws them with their own symbol.
+- **Board.** The [18xx design rule](../../docs/agents/18xx-design.md) requires every
+  title's map view to declare `boardAreas`, so the board layout comes with slice 1
+  rather than the title UI slice. The one-row market runs below the map, at TOP's
+  market scale, and the depot sits in the map's empty lower-right corner. A playground
+  test keeps both clear of every hex.
+- **Shared presentation.** 1817's light company colours made white token labels
+  unreadable, so a token's label takes a contrasting colour and four-letter labels
+  shrink to fit. TOP, 1889 and 1830 draw their tokens with artwork, so only tokens
+  without artwork change. The selection auction needed its own lot table and bidding
+  card in the shared UI to be playable.
+- **Playground.** The example host validates saved games with the title's canonical
+  schema rather than the family's, so title fields such as seed money load.
+
+### Intentional limits after slice 1
+
+- **No train exports.** Phases advance only on purchases (slice 2).
+- **Route and upgrade rules.** A route may visit a hex twice, and city upgrades need
+  not keep the most exits (slice 2).
+- **No ending.** The game does not end on the 8-train (slice 2) or on bankruptcy
+  (slice 3).
+- **No debt or failure.** There are no loans, interest, liquidation or player cash
+  crisis. A company without a train earns nothing but keeps operating (slice 3).
+- **Station money.** A formation that cannot pay for its stations is refused
+  rather than allowed to borrow (slice 3).
+- **No shorts** (slice 4).
+- **No merger or acquisition rounds.** A company in the acquisition zone keeps
+  operating (slices 5 and 6).
+- **Privates have no powers** (slice 7). Players keep any private they do not
+  contribute.
+- **No title UI.** The shared table shows both auctions through its generic panels;
+  title prompts and presentation come in slice 10.
+- **Playground positions.** The shared positions that 1817 cannot yet reach, such as
+  bankruptcy, private purchases and negotiated purchases, open on the generic
+  1817 company fixture.
+
+### Acceptance examples
+
+- Opening positions for 3 to 12 players match the reference's starting cash and
+  certificate limits, with an unlimited bank.
+- The tile library lists 1817's 26 tiles, and the ten new catalog faces and the two
+  title tiles render correctly in both orientations.
+- The boardless map draws all 92 hexes in pointy orientation, with the offboards,
+  the printed B and NY cities, terrain costs and the C10–D11 border.
+- In the opening, a $30 private can be bought for $0 while $200 of seed money
+  remains, and the seed money falls by $30. When every player passes in a row, the
+  unsold privates close.
+- A player auctions a company for $100 at Pittsburgh and wins:
+    - the company starts at $50 with $100 in its treasury;
+    - it has one 100% certificate and a station at Pittsburgh.
+- In phase 3, a $250 winner chooses 5 shares:
+    - the price is $120;
+    - three 1-share certificates go to the treasury;
+    - one extra station costs $50, leaving the treasury $200.
+- A $300 bid paid with $200 cash and a $90 and a $40 private (bidding power $330):
+    - the company holds both privates;
+    - the company pays the winner $130;
+    - the winner ends with $30.
+- Selling a share leaves the price unchanged. At round end, the company moves down
+  one space per share in the market pool.
+- A company withholding its revenue moves down one space; one paying at least twice
+  its price moves up two.
+- A company lays two yellow tiles in one turn, paying $20 for the second, but cannot
+  lay two upgrades.
+
+## Slice 2 design: operating rules
+
+Slice 2 adds the four operating rules slice 1 left out: train exports after each
+operating round, the route limit of one stop per hex, city upgrades with the most
+exits, and the ending after the first 8-train.
+
+### Evidence
+
+- **Exports.** After every OR the reference [game] exports the next depot train. If
+  that train is a 2, every remaining 2 is exported together. An export starts a phase
+  exactly as a purchase does, so it can rust and obsolete trains and lower the train
+  limit. Obsolete trains still count toward the limit
+  (`OBSOLETE_TRAINS_COUNT_FOR_LIMIT = true`).
+- **Discards.** Companies over the limit discard one at a time in corporation-list
+  order (`crowded_corps`), whether a purchase or an export lowered the limit; the
+  buyer is not put first. After an export the reference resolves them in the
+  following merger round.
+- **One stop per hex.** The reference rejects a route whose stops' hexes repeat
+  (`route.hexes`, the hexes of its revenue centers). A route can therefore stop at
+  only one of New York's two cities.
+- **Most exits.** `TILE_UPGRADES_MUST_USE_MAX_EXITS = [:cities]`: on a hex with a
+  city, of the tiles with a legal placement, only those of each colour with the most
+  exits are offered. For 1817 a brown city upgrade must use #63 when it fits, else
+  #611, else #448.
+- **Ending.** The first 8-train, bought or exported, ends the game after one more
+  full set. That set has 3 ORs if the 8 came in the second OR of a set, otherwise 2.
+
+### Survey
+
+- **Exports** (`automatic-export`, 37 profiles). They export at the end of each OR
+  (the 1817 family, 1867, 18GB unless a train was bought that round) or at the end of
+  a set (18Chesapeake, 1824, 18CZ, 1844, 1888), often only while the next train is of
+  certain ranks. 18USA exports several ranks by turn.
+- **Hex re-entry** (`hex-reentry-forbidden`, 29 profiles): the 1817 family, the 1822
+  family, 1812, 1826, 1860, 1861, 1866, 1867, 1873, 1877, 18FL, 18FR, 18Hiawatha and
+  18USA.
+- **Most exits**: `[:cities]` in 1817, 1822, 1858, 1867 and 1880;
+  `[:cities, :track]` and `[:unlabeled_cities]` in one title each.
+- **Ending** (`additional-operating-set`, 31 profiles; `technology-event` triggers,
+  26). 1817 is the only one whose final set length depends on when the trigger
+  came.
+
+### Decisions
+
+- **Exports are an operating rule.** `OperatingRules.trainsToExport` names the kinds
+  of the depot trains to export, in order, when an operating round ends. A title that
+  exports at the end of a set returns none until its last round, so one hook covers
+  both timings and every rank or purchase condition. The family exports them with a
+  system `ExportTrains` after the round's last company and before the next round or
+  stock round, and records the round in the operating set (`exportedRound`,
+  optional). The depot removes each exported train, minting it first when its supply
+  is unlimited, as for the 8s; the latest phase they start begins as after a
+  purchase.
+- **A phase change can happen between rounds.** The phase change's continuation no
+  longer needs an operating company. Trains over the new limit are discarded in the
+  title's `discardOrder`, which now accepts no starting company, and play returns to
+  the operating set. Until merger rounds exist (slices 5 and 6) they are resolved
+  straight after the export. 1817 discards in corporation order, replacing slice 1's
+  market order with the operating company first.
+- **One stop per hex is a route rule.** `RouteRules.oneStopPerHex` rejects a route
+  with two revenue centers in one hex. The autorouter encodes each such hex as an
+  exclusive stop group, as it already does for named stop groups.
+- **Most exits is a track rule.** `TrackRules.mostExits(before)` names the hexes it
+  applies to; 1817 names hexes with a city. Track construction refuses a tile when
+  another tile of the same colour with more exits has a legal placement there.
+- **The final set's length is part of the ending.** `GameEnding` gains an optional
+  `finalOperatingRounds`. 1817's trigger fires when the first 8-train leaves the
+  depot and names the next set as final, with 3 rounds after a second-round 8 and 2
+  otherwise. The family's operating-set start uses that number for the final set in
+  place of the title's round count, so the ending rules see train state.
+
+All new fields are optional, and TOP, 1889 and 1830 set none of the new rules.
+Their runtime contracts still change: the schemas of `ScheduleGameEnd`,
+`StartOperatingSet` and `StartOperatingRound` gain the optional fields, and a phase
+change's `continuation.companyId` becomes optional. Stored games stay valid, and their
+UI artifacts need republishing only to adopt the new family code.
+
+### Implementation notes for slice 2
+
+- `ExportTrains` records the exported trains and any phase they started. History
+  shows it as an "Exported" row; a phase change it starts names no company to
+  resume.
+- `discardOrder(state, companyId)` takes an optional company. 1830, 1889 and TOP
+  share `marketDiscardOrder`, which puts that company first and then follows the
+  market.
+- Most exits compares each colour's tiles that could legally replace the current
+  tile, so where a #63 would run off the map (C14) #611 is offered, and where
+  neither fits (B5) #448.
+
+### Limits after slice 2
+
+- The ending checks run after the final set's last OR; with no merger rounds yet
+  (slices 5 and 6) there is nothing after it. The game therefore ends before that
+  OR's export, which the reference still makes; as the next train is always an 8,
+  nothing visible differs.
+- The game still cannot end by bankruptcy (slice 3).
+
+### Acceptance examples
+
+- After the first OR every remaining 2-train is exported. After a later OR the next
+  train is exported; exporting the first 4 starts phase 4, rusts the 2s, obsoletes
+  the 2+s and makes companies over the new limit discard.
+- A route through both New York cities is rejected, and the autorouter never offers
+  one.
+- On a brown city upgrade where #63 fits, #611 and #448 are not offered; where it
+  would run off the map, #611 is.
+- Companies over a lowered limit discard in corporation order, not market order.
+- An 8-train bought in the first OR of set 5 makes set 6 final with 2 ORs; one
+  exported after the second OR makes it final with 3. The game ends after that set.
+
+## Slice 3 design: loans, interest and liquidation
+
+Slice 3 gives 1817 its debt and failure: corporate loans, the interest rate, interest
+with automatic loans, the stock-round corporate action, liquidation, the player's cash
+crisis, bankruptcy and the bankruptcy ending. It is delivered in two parts:
+
+- **3a, loans and liquidation:** loans and repayments, the rate, interest, the
+  stock-round corporate action, stations owed at formation, and liquidation for a
+  missing train, unpaid stations or unpaid interest.
+- **3b, cash crisis and bankruptcy:** a president who cannot pay a liquidated
+  company's interest sells shares or goes bankrupt; bankrupt players leave the game,
+  which ends when one player remains.
+
+### Evidence
+
+- **Loans** ([game], [loan-step]). A loan is $100. A company may hold as many loans
+  as it has shares (2, 5 or 10). The bank has 70. Taking a loan moves the price one
+  space left, never into the liquidation space; repaying one moves it right.
+- **Rate.** 5% per 5 loans outstanding in the game, rounded up: 0–5 loans 5%, 6–10
+  10%, up to 70%. It is fixed when each operating round starts and floats during the
+  stock round. A company owes the rate × its loans, in dollars.
+- **Operating turn.** A company may take loans at any point of its turn until it has
+  paid interest. Interest is paid after its trains, from its treasury; if the treasury
+  is short it takes loans automatically, each moving the price and adding to what is
+  owed. Then the president may repay loans ($100 each), or take more; a loan taken
+  then ends the repayments. Unable to pay even after borrowing to its limit, the
+  company is liquidated: its cash goes to the president, who owes the interest.
+- **Stock-round corporate action** ([stock-step]). Instead of acting for themselves, a
+  player may act for one company they preside: take loans, then buy back shares from
+  the market at the current price with its treasury cash. Buy-backs do not move the
+  price and are refused in the acquisition and liquidation zones. The corporate
+  action is the player's action for the turn.
+- **Stations owed at formation.** A 5-share company needs 2 stations and a 10-share
+  company 4, at $50 each beyond the first. A company that cannot pay at formation owes
+  them; it buys them as soon as its treasury can, after sales of its shares or its
+  loans. A company still owing at the end of the stock round is liquidated.
+- **Missing train.** A company without a train at the end of its turn is liquidated.
+- **Liquidation.** The price moves to the liquidation space. The company stops
+  operating, its shares cannot be sold or bought back, its trains cannot be bought,
+  and it keeps its loans and president. The acquisition round then sells or closes it
+  (slice 6).
+- **Cash crisis and bankruptcy** ([operating-round], [cash-crisis], [bankrupt]). In
+  this slice only unpaid interest can leave a player owing money (shorts add
+  dividends in slice 4, acquisitions settle debts in slice 6). The player sells
+  shares, only as many as needed, never in the acquisition or liquidation zones nor
+  giving away a presidency, at no price drop. A player may declare bankruptcy instead:
+  their shares go to the market, their companies are liquidated, the bank absorbs
+  the debt, and the certificate limit is recalculated for the remaining players.
+  The game ends at once when one player remains.
+
+### Survey
+
+- **Loans** (`borrowing-parties`): 22 of 131 titles have corporate loans: the 1817
+  family (8), the 1867 family (4), 1856 (3), 18NY (2), 1866, 18Uruguay, 1848 and the
+  1849 bond. 27 titles have player loans only, and 82 none.
+    - **Value:** 100, but 50 in the 1867 family and 18NY, and 500 for the 1849 bond.
+    - **Limit:** the share count in the 1817 family and 1866; player-held shares in
+      1856, 18NY and 18Uruguay; by company type in the 1867 family; 1 in 1849; and a
+      lender other than the bank in 1848 (the Bank of England, 20 loans).
+    - **Interest:** a game-wide variable rate in the 1817 family; a fixed amount per
+      loan elsewhere (10% in 1856, 20% in 1866, none in 1848). It is paid after
+      trains (1817, 1866), after dividends (1867, 18NY), after routes (1856) or at
+      the end of the round (18Uruguay).
+    - **Price:** one step left in 1817, 18NY and 1849, two in 18USA and 1848, none in
+      1856 and 1867. 1867 pays out 45 for a 50 loan.
+    - **Automatic loans:** for interest in the 1817 and 1867 families and 18Uruguay;
+      for track and trains in 1867, 1812 and 18NY.
+    - **Repayment:** optional after interest in 1817 and 1866; automatic in 1867 and
+      18NY; one take or repay a turn in 1856.
+- **Failure:** liquidation in the 1817 family, receivership in 11 titles,
+  nationalization or closure in 16.
+- **Bankruptcy:** ends the game in 45 titles, including 1856; eliminates the player
+  until one remains in 29, including the 1817 family, 18NY, 1846 and 1849.
+  Obligations that can force a player's sale include train purchases (common),
+  interest (1817, 1856, 1849, 1866), forced repayment (1856), shorts and
+  liquidation debts (1817) and merger shortfalls (1844, 18Dixie).
+
+### Decisions
+
+- **A loan count on the company.** `Company.loans` (optional) counts its loans; every
+  surveyed title's loans are interchangeable, and a count travels with the company
+  through a merger. 1848's second lender is a recorded limit.
+- **`LoanRules` is title policy:** the loan value, a company's limit, the loans left
+  in the bank, the rate for the round about to start, and the price move for taking
+  and repaying. Interest owed is the fixed rate × loans × value / 100, which covers
+  1817, 1856, 1866 and the 1867 family. 1817's rate needs the game's loans, so the
+  rate is fixed in the family field `interestRate` when each operating round starts
+  and cleared when a stock round starts.
+- **Actions.** `TakeLoan` and `RepayLoan` name the company and record their payment
+  and price move. The state handlers say when they are allowed, as with every other
+  action. The system `PayInterest` records the interest, the automatic loans and
+  any default.
+- **Loans in the operating turn.** For a title with loans, every operating step
+  accepts `TakeLoan` until interest is paid, and the turn gains a last step,
+  `RepayingLoans`, after `BuyingTrains`:
+    - `BuyingTrains` then ends with the new `FinishTrains` rather than
+      `FinishOperatingTurn`;
+    - on entering `RepayingLoans`, `PayInterest` settles interest, taking loans
+      automatically while the treasury is short;
+    - the president then repays, borrows (which ends repaying) or finishes the turn,
+      and the turn finishes automatically when nothing else is possible.
+
+    The step strip shows Loans as the turn's sixth step for such titles. Other
+    timings (1867, 1856) would choose where interest falls; that is left until a
+    title needs it.
+
+- **Liquidation is a 1817 action.** `LiquidateCompany` names the company and the
+  reason, and moves its price to the liquidation space. The market space is the
+  liquidated state: 1817's sales already refuse the zone, and its operating order,
+  buy-backs and train sales read it too. It is issued by the system:
+    - at the end of the turn of a company without a train;
+    - at the end of the stock round for a company still owing stations;
+    - by interest default, which `LoanRules.interestDefault` hands to the title.
+- **Stations owed.** Formation no longer refuses a company that cannot pay for its
+  stations; the system `BuyOwedStations` buys them when its treasury can.
+- **The corporate action wraps 1817's stock round**, as TOP's company split does. The
+  player's turn accepts `TakeLoan` for one company they preside, then the 1817 action
+  `BuyBackShares`, after which only finishing the turn remains.
+- **Cash crisis (3b).** The interest default leaves the president owing the bank. A
+  family `cashCrisis` (player and amount) and machine state `RaisingCash` accept
+  share sales within the title's crisis terms, or bankruptcy at any time, as in the
+  reference. The train-funding flow of 1830 and 1889 stays separate: its obligation is
+  a purchase with contributors, not a debt.
+- **Bankruptcy (3b).** `bankruptPlayerIds` records players who have left. Stock
+  rounds skip them and the title recalculates the certificate limit; final scoring
+  still ranks them, as the reference does. `EndingRules.trigger` ends 1817 when one player remains; 1830 and 1889 keep
+  ending at the first bankruptcy.
+
+### Implementation notes for 3a
+
+- **Stations owed are derived, not stored.** A company that has not operated owes its
+  size's stations less those it holds, as the reference counts them. Formation accepts
+  privates up to the whole bid and buys the stations only when it can pay for all of
+  them. The stock round issues `BuyOwedStations` as soon as a company can pay, and the
+  operating set's start buys any still affordable before liquidating the rest.
+- **The missing-train liquidation runs between companies,** before the round's
+  exports, which can rust the last company's trains after its turn has ended.
+- **The train step waits while the company may borrow.** The reference waits only
+  when borrowing could buy a train; here the president finishes the step whenever a
+  loan is still possible.
+- **A defaulting president pays what they have,** and `PayInterest` records the
+  unpaid rest as their cash crisis (3b).
+- **Family fixes.** The automatic stock-turn finish waits for actions already queued,
+  so a title's system action in the stock round is not overtaken by a second finish.
+  Prepared operating positions fix the rate for titles with loans.
+- **UI.** Loans are shown and taken from the step strip, and the Loans step has its
+  own panel. 1817's corporate actions sit above the stock actions as immediate
+  buttons; the title UI (slice 10) will refine both.
+
+### Implementation notes for 3b
+
+- **The crisis is family state.** `cashCrisis` names the player, the amount and the
+  machine state to return to; `RaisingCash` accepts `SellSharesToPay` and
+  `GoBankrupt`. A sale is refused when one share fewer would still cover the debt or
+  when it would pass on a presidency. Proceeds pay the debt at once and any rest
+  stays with the player. In an operating round, where every crisis arises in this
+  slice, a company that has not yet operated may be sold; the acquisition round
+  (slice 6) will need the ordinary timing.
+- **Bankruptcy.** The title's `CashCrisisRules.bankrupt` puts every share the player
+  holds in the market and liquidates the companies they preside, leaving them without
+  a president and out of the round's remaining order. The reference first sells what
+  the crisis rules allow, but those sales can neither pass a presidency nor exceed the
+  debt, and the bank takes their proceeds, so the outcome is the same. The family then takes the player's cash, forgives the debt, adds
+  them to `bankruptPlayerIds` and removes them from the turn order, which every stock
+  round, auction and presidency already follows. A company left without a president
+  has its turn ended for it. 1817's certificate limit uses the players left, but never
+  fewer than three players' limit, as the reference keeps the last defined limit.
+- **History.** The table now lists system events that change no company's cash:
+  exports (slice 2's row never showed), interest, and title-described actions such as
+  liquidation.
+- **Playground.** 1817's bankruptcy position is its own: Boston & Albany at its loan
+  limit with nothing to pay interest, and a president without cash.
+
+### Limits after slice 3
+
+- Loans taken after conversion or during acquisitions, and loans moving with a
+  merger, come with slices 5 and 6.
+- Liquidated companies stay in the liquidation space until the acquisition round
+  (slice 6).
+- The Loan Shark private's extra interest comes with Volatility (slice 9).
+
+### Acceptance examples
+
+- With 7 loans taken in the game the rate fixed for the next round is 10%; a company
+  holding 3 loans owes $30.
+- Taking a loan in the operating round pays $100 and moves the price one space left;
+  a company with 5 shares cannot take a sixth.
+- A company that cannot pay its interest borrows until it can; one at its limit that
+  still cannot is liquidated and its president pays.
+- After interest the president repays two loans, then takes one and cannot repay
+  again.
+- A company that ends its turn without a train moves to the liquidation space and is
+  skipped in later rounds.
+- A 10-share company formed for $100 owes 3 stations ($150). A treasury share bought
+  by a player gives it the cash, and it buys them at once. One that never can is
+  liquidated when the stock round ends.
+- A player buys back two market shares for their company with its treasury cash and
+  cannot then buy shares themselves.
+- (3b) A president who cannot pay sells only enough shares; one who cannot raise it
+  goes bankrupt, their companies are liquidated, and with one player left the game
+  ends.
+
+## Slice 4 design: short selling
+
+Slice 4 lets players short 1817's 5- and 10-share companies: opening a short in the
+stock round, closing it by buying a share, paying dividends on it, its valuation, the
+market's own shorts, and the 5 Shorts and Short Squeeze options.
+
+### Evidence
+
+- **A short is a pair** ([game]). Shorting issues one new share of the company to the
+  market and gives the player a matching negative share; the bank pays the player the
+  current price. The company's treasury is untouched, and the share count grows by
+  one for as long as the short stands.
+- **Opening** ([stock-step]). In the stock round, before any purchase that turn, a
+  player who holds none of a company (or is already short) may short it if it has more
+  than 2 shares, has floated and operated, is outside the acquisition and liquidation
+  zones, and the game is not in phase 8. Shorts on a company stay below its share
+  count; with 5 Shorts, below 5. One short a turn; a shorted company cannot be bought
+  by that player again that stock round. Shorting moves no price, but the new market
+  share lowers the price at the round's end like any other.
+- **Closing.** A player who is short and buys one of the company's shares, from the
+  market or the treasury at the current price, cancels it against one short. The
+  ownership and certificate limits do not stop such a purchase. Nothing else closes a
+  player's short: it stands until the game ends, a merger (slice 5) or the company's
+  settlement (slice 6).
+- **Dividends.** A payout pays every holding by its net shares, so a short holder pays
+  the bank the dividend per share, even into debt, which is a cash crisis. Half pay
+  applies too. Market shares, long or short, pay and receive nothing.
+- **Valuation.** A short counts as minus the current price. Shorts do not count toward
+  the certificate limit; ownership is net.
+- **The market's shorts.** A bankrupt player's shorts go to the market. After a
+  bankruptcy and after every sale the market cancels them against its own shares of the
+  company; as each stock round begins the bank buys treasury shares for the market to
+  cancel the rest, except in the acquisition and liquidation zones. A share added by a
+  new short does not close them until the next sale.
+- **Sold out.** A company of more than 2 shares moves up when players' positive net
+  holdings reach 100%. With Short Squeeze it moves up again when they exceed 100%.
+
+### Survey
+
+Shorts exist only in the 1817 family: 1817, 1817NA and 1817WO, 18USA and 18FR (all
+1817's rule), and 1877 and 18Hiawatha, which drop the operated and phase-8 checks.
+18DE forbids them. 18FR raises a player's certificate limit for each short held at the
+end of a stock round. Every title represents a short as the same pair, and nets it in
+dividends, valuation and settlement; no other family lends shares.
+
+### Decisions
+
+- **A short is a certificate of its own kind.** The family `Certificate` gains a
+  `short` kind: a company, a share count (1) and an owner, worth zero toward the
+  certificate limit. Code that handles shares by kind leaves it alone (presidency,
+  sales, purchases, sold-out checks), and the places that must net it do so
+  explicitly: `sharesOwned`, dividend entitlements and valuation. Negative share counts
+  on ordinary certificates were rejected, because every existing sum, sale and
+  presidency rule would silently take them in.
+- **Opening is a 1817 action.** `ShortShare` names the company and price, issues the
+  market share and the short, pays the player and records the short on the turn
+  (`StockTurn.shorted`) and as a sale of that company this round, which already stops
+  buying it back. It is open only before a purchase that turn.
+- **Closing is a purchase.** The family's share purchase, made by a holder of a short,
+  retires the bought share with one short, waiving the ownership and certificate
+  limits.
+- **Dividends may be owed.** A negative entitlement becomes a payment from its holder
+  to the bank. A holder who cannot pay it all pays what they have and is in a cash
+  crisis. `cashCrisis` becomes a queue of debts with one continuation, served from the
+  operating company's president in turn order, as payouts can leave several players
+  owing at once.
+- **The market's shorts.** A bankrupt player's shorts join the market. The family's
+  `StockRules.afterSale` lets 1817 cancel them against market shares after every sale,
+  and bankruptcy does the same. The 1817 system action `CloseMarketShorts` buys
+  treasury shares with the bank's money for the rest just before a stock round starts.
+- **Sold out gains a squeeze.** `StockRoundRules.squeezed` (optional) gives a sold-out
+  company its second move; 1817 counts positive net player holdings for both.
+- **Options.** 1817 gains a configurator with Short Squeeze and 5 Shorts, stored as
+  title state at setup, as 1830 stores its option.
+
+### Implementation notes for slice 4
+
+- **The pair.** `openShort` issues the market share and the short certificate together;
+  `cancelShorts` retires an owner's shorts against their ordinary shares, which closes
+  the market's shorts after a bankruptcy. A purchase that closes a short retires both
+  certificates and records `coveredShortId`.
+- **Charges.** `EarningsDetails.charges` lists what short holders owe on a payout. The
+  family settles what each can pay, recording it as `chargesPaid`, and queues the rest
+  as debts, so `cashCrisis` now
+  holds a list of debts, served in turn order from the company's president, with one
+  continuation (the step after the payout, or the Loans step after interest).
+- **The market's shorts** close against market shares after each sale and each
+  bankruptcy, and against treasury shares the bank buys for the market when an
+  operating set ends and a stock round is about to start, outside the closing zones.
+- **Helpers.** `signedShares` gives a certificate's signed share count wherever shorts
+  net, `ordinaryShares` the company's single shares a short can close against, and
+  `issueShareCertificates` now returns the ids it issues.
+- **Options** are stored as `shortSqueeze` and `fiveShorts` title state. Prepared
+  playground positions, built by the scenario configurator, have neither.
+
+### Limits after slice 4
+
+- Shorts in conversions, mergers and settlements come with slices 5 and 6.
+- 18FR's certificate limit and the 1877 eligibility are not modelled.
+
+### Acceptance examples
+
+- Shorting a 5-share company at $70 pays the player $70, adds a market share, and at
+  the round's end the company drops one space; the player cannot buy it that round.
+- With five shorts on a 5-share company a sixth is refused, and with 5 Shorts so is a
+  sixth on a 10-share company.
+- A payout of $12 a share charges each short holder $12; one with $5 pays it and owes
+  $7 in a cash crisis.
+- Buying a share while short closes it, even at the certificate limit.
+- A bankrupt player's short cancels against a market share; one left over is bought
+  out of the treasury at the next stock round.
+- With Short Squeeze, a company whose players hold 110% net moves up twice.
+- At the game's end a short is valued at minus the share price.
+
+## Slice 5 design: the merger and conversion round
+
+Slice 5 adds the round that follows every operating round: in turn, companies may
+convert to a larger size or merge with another of their size, players may buy the new
+shares, and the company may borrow and buy the stations its size needs.
+
+### Evidence
+
+- **Round order** ([game], [merger-round]). Every OR, including a set's last, is
+  followed by a merger and conversion round (MR) and then an acquisition round (AR);
+  then comes the next OR or the stock round. The MR runs after the OR's export. Its
+  companies are the floated ones outside the acquisition and liquidation zones, in
+  operating order, fixed when it starts. No interest is charged; the OR's rate stands.
+- **Conversion** ([conversion]). A 2-share company becomes 5 shares, a 5-share company
+  10. Every existing certificate keeps its shares, so the president's 2 become 40%,
+  then 20%; shorts carry over. New shares, 3 or 5, go to the treasury. The price and
+  loans are unchanged. The company then needs one more station (to 5 shares, while it
+  has fewer than 8) or up to two (to 10, towards 8), at $50 each, bought after trading
+  and loans; a company that cannot pay is liquidated.
+- **Merger.** A company may absorb another of its size (2 or 5, never 10) that is
+  floated, outside the closing zones and not converted this round. For 5+5, some
+  player must hold at least 40% net of both together, counting each share as 20%; for 2+2 under different
+  presidents, the survivor's president must afford the new price. The new price is the
+  sum (2+2) or the floored average (5+5), at the highest market space not above it.
+  - The survivor takes the target's cash, privates, loans and trains, and its stations,
+    placed or not; where both share a city, one token leaves the map and returns to the
+    survivor's charter. Over 8 stations, unplaced ones go first and its president
+    removes placed ones.
+  - 2+2: the survivor converts to 5. Under different presidents, the survivor's
+    president pays the new price into its treasury and the target's president receives
+    a treasury share.
+  - 5+5: the survivor converts to 10, and each share (or short) of the target becomes
+    one of the survivor's for the same holder. The largest net holder presides; a tie
+    keeps the survivor's president, or else goes to the next tied player in seat order.
+    Each holder's shorts then cancel against their shares.
+  - The target returns to its charter, unstarted, and may be started again. A merger
+    buys no stations. Trains over the limit are discarded.
+- **After a conversion or merger** ([post-conversion], [post-conversion-loans]).
+  Starting with the president, players in seat order may buy the company's treasury
+  shares at its price, one each, though the president may keep buying; buying closes a
+  short and is then free of the holding and certificate limits. Then the company may
+  take loans, each moving its price left.
+- **Acquisition round** ([acquire]). Each president may offer their company for
+  sale, companies in the acquisition zone are auctioned, and those in liquidation are
+  sold off. It is slice 6.
+
+### Survey
+
+Conversions appear in 30 of the researched titles and mergers in 41; 45 have neither.
+The 1817 family and the 1867 family both convert and merge in a round after ORs; 18NE,
+1822PNW and 18Ireland add merger rounds too. Elsewhere conversion is a stock or OR
+action (1866, 18GB) or a phase event (18VA, 1858), and mergers form prescribed
+nationals (1835, 1856). Who decides (a president, an owner, a vote), the price, the
+exchange ratio and the absorbed company's fate all vary, so the decisions stay 1817's.
+What recurs is the procedure underneath: issuing a size's new shares, moving one
+company's assets and stations to another, removing a market marker and recomputing the
+presidency.
+
+### Decisions
+
+- **The MR is a 1817 round of its own.** Title machine states, entered from the
+  operating set once a round's companies and exports are done and recorded in the
+  title field `mergerRound` (the round's remaining companies, and the company being
+  converted or merged with its traders and stations owed):
+    - `MergerRound`: the current company's president converts, merges or passes;
+    - `TradingConvertedShares`: players in turn buy a treasury share or pass;
+    - `BorrowingAfterConversion`: the company takes loans or finishes, then buys its
+      stations or is liquidated;
+    - `ReducingStations` and `DiscardingMergedTrains`: the survivor's president
+      removes stations over 8 and trains over the limit.
+- **Actions.** `ConvertCompany`, `MergeCompanies`, `PassMerger`, `BuyConvertedShare`,
+  `PassConvertedShares`, `FinishConversionLoans`, `RemoveStation` and
+  `DiscardMergedTrain` are 1817 actions; the family's `TakeLoan` serves borrowing.
+  The system actions `StartMergerRound` and `EndMergerRound` bracket the round.
+- **Family primitives.** The family gains what other merging titles reuse:
+  `transferCompanyAssets` (cash, trains, privates, loans), `moveCompanyStations`
+  (onto new station pieces of the survivor, placed or not; where both share a city,
+  the second piece returns to the survivor's charter) and
+  `removeStockMarker`. Conversion needs nothing new: certificates keep their shares and
+  `issueShareCertificates` adds the treasury shares.
+- **Resetting a charter is 1817's.** The target's president's certificate returns to
+  the bank, its other shares and shorts retire, its home station is available again,
+  and its size, flags and market marker are cleared.
+- **The table labels the round.** The header reads "Merger round 2.1" and history
+  groups it as "MR 2.1", from the round's start action; 1817's table shows the round's
+  panels in place of the operating panels.
+
+### Implementation notes for slice 5
+
+- **Entry.** `MergerRoundStartHandler` wraps the operating set and queues
+  `StartMergerRound` once a round's companies and exports are done and no merger round
+  has run for it; `EndMergerRound` returns to the operating set, which starts the next
+  OR or ends the set.
+- **Automatic steps.** A company with no conversion or merger passes by itself, a
+  player who cannot buy a treasury share passes, and a company that cannot borrow
+  finishes, so a round where nobody can act passes straight on.
+- **Trading.** `evaluateShareTransfer` and `applyShareTransfer` are the family's share
+  purchase without the stock round's turn rules, which treasury purchases after a
+  conversion reuse. The president keeps buying until they choose to stop or cannot buy;
+  holding and certificate limits apply as in the stock round.
+- **Mergers.** A 5+5 merger gives the survivor a share for each of the target's shares
+  and shorts (`addShort` adds a short without its market share), recomputes the
+  presidency, then cancels each holder's shorts against their shares. The target's
+  unplaced stations move too. Unplaced station pieces over 8 are removed first; placed
+  ones over 8 await the president.
+- **Table.** `TitlePresentation.titleRound` names the round for the header and history;
+  1817's `MergerRound` panel takes the operating panels' place while it runs.
+
+### Limits after slice 5
+
+- The acquisition round, its offers, auctions and liquidations come with slice 6.
+- Non-presidents cannot sell after a conversion (the reference allows it; the recorded
+  games never do).
+- The game ends after the final set's last OR, before its MR, as before.
+- The Station Subsidy private's discount comes with slice 9 (volatility).
+
+### Acceptance examples
+
+- After an OR, a 2-share company converts: its president holds 40%, three shares are
+  in its treasury, players buy two, it takes a loan and buys one station for $50.
+- A 5-share company converts to 10 and cannot pay for its two stations: it is
+  liquidated.
+- Two 5-share companies at $90 and $70 merge at $80: holdings become 10-share holdings,
+  the largest holder presides, and the target can be started again.
+- Two 2-share companies under different presidents merge at the sum of their prices,
+  the survivor's president pays it in and the target's receives a share.
+- A merger over the train limit makes the survivor discard; one sharing a city keeps
+  one token there and the other piece unplaced.
+- With no company able to act, the round passes straight to the next OR or stock round.
+
+## Slice 6 design: the acquisition round
+
+Slice 6 adds the round that follows every merger round: companies in the liquidation
+and acquisition zones are auctioned, presidents may put their other companies up for
+sale, and a company that buys another takes its assets while its holders are paid
+off and its charter starts afresh.
+
+### Evidence
+
+- **Round order** ([game], [acquisition-round], [acquire]). Every OR is followed by
+  its MR and then its AR; the next OR or the stock round follows. The game's final
+  set ends after its last AR. The AR's companies are those floated when it starts,
+  lowest price first (the reverse of operating order). A company that entered the
+  acquisition or liquidation zone after its OR ended, during the MR or the AR, is
+  skipped this round.
+- **Kinds of sale.** A company in the liquidation zone is sold off; one in the
+  acquisition zone is auctioned; any other is offered only if its president chooses,
+  and only if some player could pay the opening bid.
+- **Bidding** ([acquire], [passable-auction]). Players bid, in $10 steps; the winner
+  then names which of their companies buys. The opening bid is $10 in the zones and,
+  for an offer, the company's shares times its price rounded up to $10. The first
+  bidder sits left of the target's president; a pass is final; players who cannot
+  reach the minimum drop out. A player's limit is their best buyer's: its cash, the
+  loans it can still take (counting those it would inherit), the target's cash and,
+  for an offer, the bank's payment for the target's treasury shares, less the
+  target's loans. A buyer is floated, outside both zones and not the target. The
+  target's own president may bid only the minimum.
+- **No bids.** An offered company or one in the acquisition zone stays as it is. A
+  company in the liquidation zone is liquidated by the bank: its stations leave the
+  map and its trains leave play.
+- **Acquisition** ([acquire], [token-merger]). For an offer, the bank first pays the
+  target its treasury shares at their price. The buyer takes the target's cash,
+  privates, loans, trains and stations (as in a merger, trimming to 8 stations), and
+  may exceed its train limit until it discards. It pays the bid to the bank, taking
+  loans first if it must, each moving its price left; it may then borrow more or
+  repay the inherited loans, which move nothing; loans over its limit are repaid
+  from its cash at once, before it chooses; each inherited loan it keeps then moves its
+  price left. A buyer
+  pushed into the acquisition zone leaves the round's list.
+- **Settlement** ([acquire]). Every player receives the bid divided by the target's
+  share count, rounded down, for each net share: a short holder pays it. In the
+  liquidation zone the target's cash and loans stay with it: its cash and the bid
+  first repay its loans, the president personally pays any shortfall, and holders
+  receive only what is left. Any player left owing is in a cash crisis, from the
+  target's president. The target's charter then resets as after a merger, and its
+  shares and shorts leave play.
+- **Bankruptcy** ([bankrupt], [cash-crisis]). A player bankrupted in the AR
+  liquidates their companies as in the OR; a company liquidated so is skipped.
+  Debts of a company without a president are forgiven.
+
+### Survey
+
+About 26 of the 131 researched titles let one company take over another, but in few
+ways that match: an auction among companies' presidents (1817 and its variants,
+18USA, 18FR, 18Hiawatha, 1877 Venezuela, all on the same code), an auction among
+companies' treasuries (18CO, 1840), a fixed price per share paid to
+holders (18NY, 18CZ, 18ESP, 1822 minors), share exchanges (1862, 1841, 18EU, 1807,
+18Ardennes, 1877 Stockholm) and nationalisations (1867, 1861, 18SJ, 1856). Payment
+per share to holders recurs in 1817, 1867, 18SJ, 18Ireland, 18CO, 18CZ and 18NY;
+moving one company's assets into another recurs in nearly all; about eight titles
+(1817, 1849, 1858, 1866, 1867, 18Neb, 18Norway, 18EU) reset a charter so it can be
+started again. Debt left by a closing company is the title's affair: 1817's president
+pays it, 1848's company borrows from its president, 18NY writes it off.
+
+### Decisions
+
+- **The AR is a 1817 round of its own**, like the MR: title machine states entered
+  after the MR, recorded in the title field `acquisitionRound` (the round's remaining
+  companies, the sale in progress with its bidding, and the acquisition being
+  settled):
+    - `AcquisitionRound`: the next company is auctioned, or its president offers it
+      or declines;
+    - `AcquisitionBidding`: players bid or pass;
+    - `ChoosingAcquirer`: the winner names the buying company (by itself when only
+      one can pay);
+    - `AcquisitionLoans`: the buyer borrows or repays inherited loans, then
+      finishes;
+    - the MR's `ReducingStations` and `DiscardingMergedTrains` serve the buyer's
+      excess, and the family's `RaisingCash` serves debts, resuming the round.
+- **Actions.** `OfferCompany`, `DeclineOffer`, `BidForCompany`, `PassOnCompany`,
+  `AcquireCompany` and `FinishAcquisitionLoans` are 1817 actions; `TakeLoan` and
+  `RepayLoan` serve the loans. The system actions `StartAcquisitionRound`,
+  `EndAcquisitionRound`, `SkipCompanySale` (a company skipped or with no buyer) and
+  `LiquidateByBank` bracket and resolve sales. The MR records the companies already
+  in the zones when it starts, which decides the skips.
+- **Family primitives**, which the survey shows recur:
+    - `shareholderPayout(state, companyId, perShare)`: the bank's payment to every
+      player for their net shares, with the charges owed by short holders;
+    - `resetCompany`: the charter reset moves from 1817 to the family (marker
+      removed, flags and loans cleared, shares and shorts retired, the president's
+      certificate back in the bank, the home station available again), with the
+      title giving the charter's starting size;
+    - `PassableBidding` opens without a bid, from a given first bidder, and ends
+      with no winner when everyone passes;
+    - `TitlePresentation.titleRounds` lists a title's rounds, so the table names
+      both the MR and the AR ("Acquisition round 2.1", "AR 2.1").
+- **Debts** use the family's `chargePlayers`: the president's shortfall and short
+  holders' charges become a cash crisis that resumes the AR.
+- **The game ending** moves to after the final set's last AR.
+- **Two commits.** 6a: the round, offers, auctions, acquisitions and holders'
+  payments. 6b: liquidation-zone sales and the bank's liquidation, debts, cash
+  crises and bankruptcy in the AR, and the game ending after the AR.
+
+### Implementation notes for slice 6
+
+- **Actions as built.** `OfferCompany` and `DeclineOffer`; `BidToAcquire` (the family
+  already has `BidForCompany`) and `PassOnCompany`; `AcquireCompany`;
+  `RepayAcquiredLoan`, since the family's `RepayLoan` action belongs to the Loans step;
+  it uses the family's `repayLoan` without the price move; `FinishAcquisitionLoans`. The system actions are
+  `StartAcquisitionRound`, `EndAcquisitionRound`, `SkipCompanySale` (entered a zone, or
+  nobody could pay an offer), `OpenCompanySale` (a zone company) and
+  `CloseCompanySale` (nobody bid; for a liquidated company the bank's liquidation).
+- **Order of settlement.** The buyer borrows what it lacks before taking on the
+  target's loans, then pays and repays loans over its limit without moving its price
+  (corrected in slice 8; it first did so after the loans step); after the loans step,
+  each inherited loan still held moves it left, the holders
+  are paid and the charter resets. A liquidated company's cash goes to the bank when
+  its sale opens, while its loans stay with it, out of the bank's supply, until the
+  sale settles them; `transferCompanyAssets` therefore takes whether loans move.
+  The target's own president's bid ceiling is the minimum, which the panel's bid input
+  also uses.
+- **Limits.** A player's limit counts the loans their company may still take from the
+  bank's remaining supply; the reference also counts the target's loans as returning
+  to the bank, which differs only when the bank is nearly out of loans.
+- **Excess** after a merger or an acquisition shares `ReducingStations` and
+  `DiscardingMergedTrains` and one panel.
+- **The ending.** `EndingRules.roundPending` lets a title hold the final set's ending
+  until its own rounds are done; 1817 waits for the round's acquisition round, so the
+  last operating round also exports first.
+- **Family additions.** `resetCompany`, `shareholderPayout`,
+  `PassableBidding.openWithoutBid`, `moveCompanyMarker` (which loans now use) and
+  `TitlePresentation.titleRounds`. The work landed in one commit.
+
+### Limits after slice 6
+
+- The Golden Parachute private's $100 comes with slice 9 (volatility).
+- A company left without a president by bankruptcy has its bidding start from the
+  first player in turn order; the reference starts left of the bankrupt player.
+- Presidents cannot pass on all future offers at once; each offer is asked.
+
+### Acceptance examples
+
+- After an MR, the AR auctions a company in the acquisition zone: blair bids $10,
+  alex passes, and blair's company takes its cash, loans, trains and stations, pays
+  $10 to the bank, and each holder receives $10 / shares per net share.
+- A president offers a 5-share company at $70; bidding opens at $350; the buyer is
+  paid for the treasury shares and the target's holders receive the bid per share.
+- A buyer without the cash takes loans, each moving its price left, and each
+  inherited loan it keeps moves it left once more.
+- A short holder of an acquired company pays the per-share amount and, without the
+  cash, faces a cash crisis.
+- A company in the liquidation zone with $40 and 3 loans sells for $100: its
+  president pays $160 and holders receive nothing; with no bid, the bank liquidates
+  it, its stations leave the map and its president pays $260.
+- An offered or acquisition-zone company with no bids keeps operating.
+- The final set ends after its last AR.
+
+## Slice 7 design: private powers
+
+Slice 7 gives the eleven base privates their powers, all of which work only while a
+company owns the private: mines and bridges that add to every company's routes, the
+Mountain Engineers' building income, the Pittsburgh Steel Mill's X00, mail income and
+the Train Station's extra station. It also adds the Modern Trains option.
+
+### Evidence
+
+- **Owners** ([entities], [game]). Every power belongs to a company; a private a player
+  holds does nothing. Companies gain privates only by contribution at formation, a
+  merger or an acquisition (slices 1, 5 and 6).
+- **Coal mines** (Minor $30, Coal $60, Major $90). Each lays a yellow tile 7, 8 or 9 on
+  one of twelve mountain hexes (B25, C20, C24, E18, F15, G12, G14, H11, H13, H15, I8,
+  I10), as one of the company's lays, connected to its network and free of the $15
+  terrain cost: one, two or three lays, after which the private closes. The tile must
+  face a neighbouring city, town or offboard. The hex then holds a mine: nobody may
+  upgrade it, and every company's route earns $10 for each mine hex it passes through.
+- **Bridges** (Ohio $40, Union $80). Water lays cost the owner $10 less (rivers only, not
+  lakes). In any of its operating turns, the owner may place one bridge (Ohio) or two
+  (Union) on Louisville (H3), Cincinnati (G6) or Charleston (H9), one bridge per city
+  for the game; the private stays open for its discount. Every company's route earns
+  $10 for each bridge city it stops at.
+- **Mountain Engineers** ($40). Each tile its owner lays on a mountain hex pays the
+  company $20 from the bank, once per mountain, including mine lays.
+- **Pittsburgh Steel Mill** ($40). Its owner lays the X00 tile (yellow city, $30, label
+  B) on F13 as one of its lays, without a connection; the private then closes. It also
+  closes if a company lays another tile on F13 while no player holds it.
+- **Mail** (Minor $60 / $10, Mail Contract $90 / $15, Major $120 / $20). At the start
+  of each OR the owning company receives the amount if it has a train. This is company
+  income, not route revenue.
+- **Train Station** ($80). The company it is contributed to gains one free extra station
+  beyond those its size needs; the private closes at the end of that stock round.
+- **Modern Trains** (option). A 7-train earns $10, and an 8-train $20, more at each
+  city it stops at that holds its company's station.
+- **Merges and acquisitions** move privates with the other assets; mines and bridges
+  stay on the map whatever happens to their companies.
+
+### Survey
+
+Route bonuses tied to a hex appear in about 37 researched titles: as a marker only its
+company profits from (1846, 18LA, 1856, 1849, about 14 titles), as a marker every
+company profits from (the 1817 family, 18USA, 18Hiawatha, 1877, 18FR), or as a fixed
+hex bonus held by a company (1867, 1861, 1880, 18GB and others). Terrain discounts
+appear in 31 titles and building income like the Mountain Engineers' in 9. Special tile
+lays appear in 66 titles, 25 with tiles of their own, and private lays usable several
+times are common (free or discounted, in place of a lay, connected or not). Mail
+contracts take five forms (flat per OR, per stop of the longest route, endpoint values
+as a subsidy, phase steps, other). Extra stations from privates appear in 7 titles.
+Revenue bonuses that depend on the train, like Modern Trains, are title rules.
+
+### Decisions
+
+- **Route bonuses are family.** `RouteRules.bonuses(state, train, companyId)` names
+  amounts per hex passed through and per stop; route evaluation adds them to the
+  route's revenue and records them, and the autorouter receives them as its hex
+  bonuses and per-train stop revenues, which it already supports. They are route
+  revenue, paid out or withheld with the rest.
+- **Location markers are family state:** `locationMarkers` records a kind (mine,
+  bridge), a location and the private that placed it. The map draws them; title rules
+  read them for bonuses and restrictions.
+- **Private powers grow in the family:**
+    - private track lays may have several uses, counted per private, and a lay can carry
+      an after-effect (placing a marker, closing the private when used up);
+    - `PlacePrivateMarker` places a marker from the title's terms (private, company,
+      locations, kind) during the owning company's operating turn;
+    - `TrackRules.afterLay` returns what a lay pays or closes, for the Mountain
+      Engineers and the Steel Mill;
+    - `PrivateRules.income(state, privateId)` lets a private's income depend on its
+      owner, for mail.
+- **1817's rules** use them: mine lays (terms, rotation, marker, no upgrade), bridges
+  (water discount in `terrainCost`, markers, one per city), the Mountain Engineers'
+  income, the Steel Mill's X00 lay and closure (X00 is otherwise restricted), mail,
+  and the Train Station's station, granted once the company's size's stations are bought.
+  The Train Station closes then, or at the latest as the stock round ends.
+- **Modern Trains** is a configurator option stored as title state, read by 1817's
+  route bonuses.
+- **The table** draws markers, offers marker placement and mine lays with the
+  operating panels' private controls, shows a route's bonuses, and records lay income,
+  markers and mail in history.
+- **Two commits.** 7a: route bonuses, markers, mines, bridges and Modern Trains. 7b: the
+  Mountain Engineers, the Steel Mill, mail and the Train Station.
+
+### Implementation notes for slice 7
+
+- **Route bonuses** are `RouteRules.hexBonus` (once per route for each hex its track
+  touches) and `RouteRules.stopBonus` (per stop, per train); a route records them as
+  `bonuses` and its revenue includes them. The autorouter takes them as its hex bonuses
+  and adds stop bonuses to each train's stop revenues.
+- **Markers** are `locationMarkers` in the map state: a kind, a location and the private
+  that placed it. Mines and bridges count their uses by their own markers.
+- **Private lays** gain `reusable` (the power stays offered; the title closes the private
+  when used up), `terrainDiscount`, a `restriction` of their own and `relabels` (X00
+  brings its B label to Pittsburgh); a lay counting as one of the company's uses its
+  allowance, so a mine as a second lay costs the $20. `afterTrackLay` places the mine
+  and closes used-up privates.
+- **`TrackRules.afterLay`** returns a lay's payments and closed privates, settled with
+  the lay and recorded on it: the Mountain Engineers' $20 for a first lay on a mountain,
+  and the Steel Mill's closure when another tile reaches F13 while no player holds it.
+- **Mail** uses `OperatingRules.privateIncome`, beside the operating round start that
+  pays it, rather than `PrivateRules`; other privates keep their printed revenue.
+- **The Train Station's** station is granted once the company's owed stations are
+  bought, at formation or later, and the private closes then; `CloseTrainStation` closes
+  it as the stock round ends if it is still open, as when its company is liquidated for
+  unpaid stations.
+- **History.** A lay records what it paid and the privates it closed, its tile rules'
+  and its private power's alike; a round's start appears when privates paid companies,
+  such as mail.
+- **Playground.** The company powers position gives Boston & Albany the Union Bridge,
+  Major Coal Mine, Mountain Engineers and Major Mail, and Pittsburgh & Lake Erie the
+  Steel Mill.
+
+### Limits after slice 7
+
+- Golden Parachute and Station Subsidy, named for slice 7 in slices 5 and 6, are
+  volatility privates and come with slice 9, as do ranches and the other X00 cities.
+- The mine tile's direction is checked against neighbouring cities, towns and
+  offboards, without the reference's look-ahead to upgrades.
+
+### Acceptance examples
+
+- A company with the Coal Mine lays tile 8 on G12 for free as a lay; the hex holds a
+  mine, can no longer be upgraded, and any company's train through it earns $10 more.
+- A company with the Union Bridge places bridges on Cincinnati and Louisville; a route
+  stopping at both earns $20 more; nobody can place another there.
+- A water lay costs a bridge owner $0 instead of $10.
+- The Mountain Engineers' company lays on a mountain and receives $20.
+- The Steel Mill's company lays X00 on F13 unconnected; the private closes.
+- A company owning the Mail Contract and a train receives $15 at the OR's start; without
+  a train it receives nothing.
+- A company formed with the Train Station has one more station than its size needs.
+- With Modern Trains, an 8-train stopping at three cities with its company's stations
+  earns $60 more; the autorouter finds the same revenue.
+
+## Slice 8 design: verification by replay
+
+Slice 8 replays the four recorded base games through 1817 as built, fixes what the
+replays show to be wrong, and makes 15528 the playground's finished 1817 game.
+
+### Evidence
+
+- **The recordings** ([fixtures]). 15528 (4 players, 1679 actions, ends after the
+  final set), 16281 (810, ended by hand in a merger round), 16852 (890, ended by hand
+  in an acquisition round) and 20758 (5 players, 370, ended by hand in the second stock
+  round). None uses an option; all record each player's final value. 15528, 16281 and
+  16852 have their undos already removed; 20758 marks undone actions and its undos
+  with `skip`. None has programmed or automatic actions.
+- **No randomness.** Base 1817 draws nothing from the seed; player order is the
+  recording's.
+- **Reference vocabulary.** Generic verbs carry meaning by step: `bid` for a private,
+  a company start or an acquisition; `pass` for every step; `assign` for a private
+  contribution, an offer or a bridge; `merge` for a merger or naming an acquirer;
+  `choose` for a company size; `buy_shares` for a purchase, a post-conversion buy or
+  a buy-back. Routes record only each train's hex chains.
+
+### Survey
+
+The 1830 and 1889 conversions are the precedent: a research converter, kept with the
+research outside the repo, maps each recorded action to ours by trying candidates in
+order against the replayed state, and the repo keeps only the converted games and the
+playground's replay specs.
+
+### Decisions
+
+- **A research converter** (`fixture-conversion/convert1817.spec.ts`) follows the 1830
+  one: it drops `skip` actions and messages, starts from a seed whose first player is
+  the recording's, maps recorded ids (upstream player ids, `BA`-style company ids,
+  `18xx:<n>` and `1817:X00` tiles, tile-relative cities through each lay's node
+  mapping), rebuilds routes from hex chains, and maps each action by trying our
+  candidates in order:
+    - `bid` → selection-auction bids and nominations, `AuctionCompany` (with the home
+      the following `place_token` names) or `BidForCompany`, `BidToAcquire`;
+    - `choose` and `assign` (company) → collected into `FormCompany`, sent at the
+      formation's `pass`;
+    - `assign` (corporation) → `OfferCompany`; `assign` (hex) → `PlacePrivateMarker`;
+    - `merge` → `MergeCompanies` (company) or `AcquireCompany` (player);
+    - `convert`, `short`, `take_loan`, `payoff_loan`, company `buy_shares`, company
+      `lay_tile`, `discard_train` → their counterparts, and `end_game` ends the
+      conversion;
+    - `pass` → whichever pass, finish or decline the replayed state offers.
+  It skips recorded passes our engine already made for the player.
+- **Verification.** 15528 must reach game over with the recorded final values; the
+  three games ended by hand replay every action and their players' wealth, valued as at
+  the game's end, must equal the recorded values.
+- **Differences** are fixed in the rules when ours is wrong and bridged in the
+  converter when only the procedure differs, each listed in this note.
+- **The repo** gains the converted games as playground fixtures (`1817-finished.json`
+  for 15528 and one per hand-ended game), the playground's replay specs, a browser test
+  of the finished game, and 1817's finished-game entry.
+
+### Implementation notes for slice 8
+
+All four recordings replay: 15528 to game over and 16281, 16852 and 20758 to their last
+action, each with every player's recorded value. The reference engine itself was run on
+each recording to find where the replays drifted: comparing every company's and
+player's cash and loans after each action names the first value that stays different.
+
+Differences found by replay, fixed in the rules:
+
+- **An acquisition's loans over the buyer's limit are repaid at once** ([acquire]):
+  right after the purchase, before the buyer chooses to repay any of the others it took
+  on, and they count among them. Ours repaid them only as the sale settled, so it
+  offered the buyer repayments that upstream had already made. `acquireCompany` now
+  repays them and records them; the settlement only moves the price for the loans left.
+- **The track step stays open while a lay is left and the company can still borrow**
+  ([tracker]): a company that cannot afford its second lay may take a loan for it. Ours
+  finished the step by itself after a first lay it could no longer pay for. The
+  family's automatic track completion now keeps the step open while a lay remains and a
+  loan is possible; after the last lay it still finishes by itself.
+
+Found by the finished game, outside the rules: the game's end, which follows the last
+acquisition round, was listed as an operating round of its own, so the history held
+`OR 7.2` twice and failed to render. The history now places the game's end in the title
+round it follows.
+
+Bridged in the converter, since only the procedure differs:
+
+- Upstream records a pass for steps ours skips by itself (an empty station or train
+  step, a turn with nothing left, players after the converted company's treasury is
+  empty), and moves on without one where ours waits (a turn whose company has nothing
+  left after its trains). The converter ends or skips ours to match.
+- After an acquisition upstream records passing on further loans before the
+  repayments; ours borrows and repays in one step.
+- A shorted share reaches the market without a name in the action, so a later purchase
+  cannot tell whether upstream bought from the treasury or the market; the reference
+  engine's dump says which. Guessing wrong once left a company richer than upstream's,
+  so it could buy back again where upstream's president's turn had ended for want of
+  cash; with the dump the buy-backs match.
+- 16852 stops in a player's cash crisis, and upstream counts the $294 they still owe
+  against them; the replay spec does too.
+
+### Limits after slice 8
+
+- The bankruptcy recording uses the Volatility option and comes with slice 9.
+
+### Acceptance examples
+
+- The playground's finished 1817 game is 15528: it loads at game over with the recorded
+  winner and steps back and forward through its history.
+- 16281, 16852 and 20758 replay to their last action with every player's recorded
+  value.
+
+## Slice 9 design: the Volatility expansion
+
+Slice 9 adds the Volatility option: thirteen more privates, a seeded choice of one of
+four city-tile privates, the pyramid auction that replaces the opening auction, and the
+replay of the recorded bankruptcy game, which uses the option.
+
+### Evidence
+
+- **The option** ([meta], [game]). Volatility adds thirteen privates (P12 to P24,
+  [entities]) to the eleven base ones. At setup one of the four city-tile privates
+  (the Steel Mill, P16 Buffalo Rail Center, P17 Toledo Industry, P24 Indianapolis
+  Market) is drawn at random and the other three leave the game, so even the Steel
+  Mill may be absent. 21 privates remain.
+- **The pyramid auction** ([selection]). The 21 are shuffled into rows of 1 to 6, the
+  kept city-tile private alone at the top. Only the bottom remaining row may be
+  nominated. When a lot is sold, a neighbour in its row left without a live neighbour
+  is removed from the game; a row with nothing left exposes the row above, so the
+  city-tile private is always sold last and nothing is left unsold. There is no seed
+  money limit: bids open at $0 in steps of $5, and the bank makes up the face value
+  however low the price. A player who is not in an auction must nominate (no passing);
+  a player in an auction may pass. The player after the last winner nominates next,
+  and the player after the last winner has priority in the first stock round.
+- **Loan Shark** (P12, $60). The company it is contributed to at formation receives
+  $60 from the bank (not when it moves by merger or acquisition), and pays $10 more
+  interest each operating round for the rest of the game, loans or not; failing to pay
+  liquidates it like unpaid interest. It closes only when the bank liquidates its
+  company.
+- **Ponzi Scheme** (P13, $100). It does nothing: it closes when its company forms, so
+  it is $100 of bid credit.
+- **Inventor** (P14, $70). The first time each train type 2 to 8 leaves the depot or a
+  company (bought, exported, rusted, sold between companies, or discarded, including a
+  bank liquidation's trains) while a company owns the Inventor, the bank pays that company
+  $10 times the type (2+ pays nothing). Each amount is paid once.
+- **Scrapper** (P15, $40). When its company's trains rust, the bank pays $30 for a 2 or
+  2+, $75 for a 3 and $150 for a 4, including 2+ trains removed after they run.
+- **City-tile privates** (P16 C14, P17 D7, P24 F3; the Steel Mill F13; $40 each). Each
+  lays the X00 tile on its city as the Steel Mill does: one of its company's lays, no
+  connection needed, paying the lay's cost and Toledo's $20 lake. Its lay removes the
+  ranches on neighbouring hexes. It closes when used, or when a company lays another
+  tile on its city while no player holds it.
+- **Express Track** (P18, $30). Its company's first lay costs $10 and its second $0.
+  **Efficient Track** (P19, $40). The second lay costs $10. Together, both lays are free.
+  The costs apply to every lay that counts as one of the company's, private lays
+  included.
+- **Golden Parachute** (P20, $100). When its company is acquired by a company with a
+  different president, or liquidated by the bank, the bank pays the president $100
+  ([acquire]). Mergers do not pay it.
+- **Station Subsidy** (P21, $70). The stations its company must buy when it converts
+  cost $50 less; it pays nothing when none are owed.
+- **Ranches** (P22 Country Ranch $30, one lay; P23 Rural Ranch $60, two). Each lays a
+  yellow 7, 8 or 9 on one of 30 listed hexes as one of its company's lays, connected,
+  paying terrain, facing a neighbouring city, town or offboard, and not next to a city
+  tile (label B). The hex then holds a ranch: nobody may upgrade it, and every route
+  earns $10 for each ranch hex it passes through.
+- **The bankruptcy recording** ([fixtures]) `1817_game_end_bankrupt`: five players,
+  seed 1917565315, 1476 actions of which 135 are undos or redos (no `skip` marks), 1192
+  after upstream's undo filtering. P24 is the city-tile private. Two players go
+  bankrupt in acquisition round 3.1 after winning liquidated companies whose debts fall
+  on them, and two in operating round 4.1 from dividends owed on their shorts; the game
+  ends when one solvent player is left, with $1,646. It uses the Loan Shark, Express
+  Track, Inventor, Scrapper, Station Subsidy, P24 and the Country Ranch, and programmed
+  passes (`program_share_pass`, `program_merger_pass`) whose passes ride in
+  `auto_actions`.
+
+### Survey
+
+Tiered availability in an opening allocation also appears in 1828 (waterfall rows of
+equal-value companies, eligibility depending on bids elsewhere in the row) and 1835
+(a tiered draft); neither removes isolated neighbours, so the pyramid is 1817's own,
+shared by its variants. A random choice at setup appears in 1889's beginner game, 1858's
+quick-start packets and 1871's offer piles; this repo already draws the first player and
+TOP's piles from the game's seeded generator. Payments when trains are retired appear in
+18MS (scheduled salvage) and 18Dixie (spare parts). Lay costs set by a company's privates
+fit this repo's `TrackRules.allowance`, which is already per company. Extra interest from
+a private, payouts on a company's acquisition, and markers that block upgrades (slice 7)
+are rules of the 1817 family.
+
+### Decisions
+
+- **The option** is a configurator checkbox stored as `volatility` title state, like
+  Modern Trains. The roster gains P12 to P24 as data; the city-tile privates share one
+  table of city and power, and the Steel Mill's existing rules read it, so whichever is
+  kept behaves the same. The opening draws the kept one from the game's seeded
+  generator and leaves the other three out of the game.
+- **The pyramid is title state; the family auction gains hooks.** 1817 keeps the rows
+  (lot ids, with removed and sold slots marked) and computes the nominable row. The
+  family selection auction gains:
+    - `passingWhileNominating(state)` in place of the fixed flag;
+    - `tiers(state)`, the lots in the tiers the table shows;
+    - `lotsRemovedBy(state, award)`, the lots an award removes from the game, recorded
+      in the resolution so history can name them;
+    - `nominationFollowsWinner(state)`, whether the player after the winner rather than
+      after the nominator nominates next.
+  Under Volatility 1817 leaves seed money out, opens bids at $0 and pays the
+  difference from the bank at formation as before. The table shows the pyramid's rows,
+  and a nomination works without a pass.
+- **Private powers:**
+    - Loan Shark: 1817's formation pays the $60; a new optional
+      `LoanRules.extraInterest(state, companyId)` adds the $10 to the interest owed, so
+      a company without loans also pays, borrows or defaults.
+    - Ponzi Scheme: closes at formation.
+    - Inventor and Scrapper: a new optional `TrainRules.afterTrainsDepart(state,
+      departures)` returns payments for trains bought, sold between companies, exported,
+      rusted or discarded; each action records them; 1817 pays the Inventor's unclaimed
+      types, recorded in title state, and the Scrapper's rust values.
+    - Express and Efficient Track: in 1817's `allowance`.
+    - Golden Parachute: in 1817's acquisition settlement and bank liquidation, recorded
+      in their metadata.
+    - Station Subsidy: in 1817's conversion station cost.
+    - Ranches: lay powers with a `ranch` marker, like mines; their uses are counted
+      apart from markers, since a city-tile lay can remove a ranch. Route bonus and
+      no-upgrade as mines; a family `removeLocationMarkers` helper for the city-tile
+      lay.
+- **The bankruptcy replay** extends the converter with upstream's undo filtering,
+  programmed passes from `auto_actions`, `bankrupt` and the new privates' actions. Our
+  generator cannot reproduce upstream's, so the converted game's opening state carries
+  the recording's pyramid and kept private. The game becomes a fixture replayed to its
+  bankruptcy ending with the recorded values, like 1830's.
+- **Three commits.** 9a: the option, roster, city-tile draw and pyramid auction with
+  its table. 9b: the privates' powers. 9c: the bankruptcy replay and its fixes.
+
+### Implementation notes for 9a
+
+- **Roster.** The catalog holds all 24 privates; `BasePrivateIds`, `VolatilityPrivateIds`
+  and `CityTilePrivates` (each city-tile private's city) name the sets, and
+  `createEighteenSeventeenPosition` takes the game's private ids. Volatility's cards are
+  shown by their printed numbers (P12 to P24).
+- **Opening.** With `volatility`, the opening draws the kept city-tile private with the
+  setup's seeded generator, shuffles the other 20 with it, and stores `volatility` and
+  `pyramid` (tiers of lot ids, `null` for a sold or removed slot) as title state, with no
+  `seedMoney`.
+- **Family auction.** `passingWhileNominating` is now a function of state, and
+  `SelectionAuctionRules` gains optional `tiers`, `lotsRemovedBy` and
+  `nominationFollowsWinner`. An award's resolution records `removedLotIds`, which close
+  with the unsold lots' closing, and history names them.
+- **Table.** The lot table lists tiers when the title has them, and Pass shows only where
+  passing is allowed; the auction module no longer needs a pass to nominate.
+- **Playground.** A title-specific `optional-opening` position ("Opening with options")
+  opens with the optional rules the title's scenarios name; 1817's is Volatility.
+
+### Implementation notes for 9b
+
+- **Family hooks.** `LoanRules.extraInterest` adds to `interestOwed`, and the loans step
+  charges interest whenever any is owed, loans or not. `TrainRules.afterTrainsDepart`
+  receives each train leaving the depot or an owner (bought, sold between companies,
+  exported or rusted, with its previous owner) and returns what the bank pays;
+  `settleTrainDepartures` calls it from every such place, and the action records what was
+  paid as `departurePayments` (a phase change in its event). Discards count: the family's
+  train-limit discard, and 1817's merged-train discard and bank liquidation.
+  `removeLocationMarkers` clears markers.
+- **Lay powers.** The city-tile privates share one entry per city, and the Steel Mill's
+  closure and X00 restriction now apply to whichever is in the game. Lays are counted in
+  `privateLays` title state rather than by markers, since a ranch can be removed. Ranches
+  restrict like mines and refuse a hex beside a B-labelled tile. 1817 has not been released, so
+  no stored game counted its mines by markers.
+- **Payments.** The Loan Shark's $60 and the Ponzi Scheme's closure happen in 1817's
+  formation; Inventor payouts are recorded in `inventorPaid`; the Golden Parachute is
+  recorded in the acquisition and bank liquidation metadata. A conversion whose stations
+  the subsidy pays in full records no payment.
+- **Absent privates.** `companyHolding` answers "which company holds this private" as
+  nobody when the game does not have the private, since Volatility's may be absent.
+
+### Implementation notes for 9c
+
+The bankruptcy recording replays to its ending with the recorded values, as do the four base
+games again. The converter now filters undone actions as the reference does and expands its
+programmed passes, and its opening takes the recording's city-tile private and pyramid from the
+reference engine's dump.
+
+Differences found by replay, fixed in the rules:
+
+- **A bankrupt president's companies are liquidated in operating order** ([bankrupt]),
+  which orders their arrival in the liquidation space and so the acquisition round's
+  order. Ours went through the roster.
+- **A liquidated company's sale starts left of the president bankruptcy took from it**
+  ([acquire]), who is recorded as its former president in title state. Ours started from
+  the first player in turn order. Upstream records the owner each time it liquidates a
+  company, and bankruptcy liquidates every company the player presides, so the bankrupt
+  player is the one it starts from too.
+
+Bridged in the converter: upstream moves a liquidated company's loans out of it as its sale
+opens, ours as it settles; both end alike.
+
+### Limits after slice 9
+
+- The table's lasting presentation of the pyramid, Volatility privates and their
+  effects comes with slice 10; until then the Loan Shark's $60 and the Inventor's and
+  Scrapper's payments show only as cash changes in history.
+
+### Acceptance examples
+
+- With Volatility, a 4-player game opens with 21 privates in rows of 1 to 6, one
+  city-tile private at the top; a player nominates only in the bottom row and cannot
+  pass outside an auction; after a sale an isolated neighbour leaves the game; the
+  player after the winner nominates next.
+- A company formed with the Loan Shark receives $60 and pays $10 interest each
+  operating round without loans.
+- Express Track makes a company's lays $10 and $0; with Efficient Track both are free.
+- The Inventor's company receives $30 when the first 3-train is bought; the Scrapper's
+  $75 when its 3-train rusts.
+- A Golden Parachute pays its president $100 when another president's company acquires
+  its company.
+- A ranch lay marks its hex, routes through it earn $10, and nobody upgrades it.
+- `1817_game_end_bankrupt` replays to its bankruptcy ending with the recorded values.
+
+## Slice 10 design: the title UI
+
+Slice 10 turns 1817's prototype panels into lasting presentation, and shows the state
+slices 3 to 9 added but nothing displays: the interest rate and loan supply, company sizes
+and loans in the spreadsheet, shorts, the market's closing zones, and what Volatility's
+privates pay.
+
+### Evidence
+
+- **What is missing today** (the playground's 1817 positions):
+    - the interest rate shows only in the operating Loans step; the loan supply, the next
+      round's rate and the seed money show nowhere;
+    - the spreadsheet has no size or loans, and the market's shorts are not counted; a
+      player's short shows as a bare `-1`;
+    - the market colours its acquisition and liquidation zones without saying so;
+    - the opening's lot table has no private descriptions, and Volatility's tiers list top
+      first, so the open tier is the last;
+    - the stock round's corporate actions and shorts are lone centred buttons; the merger
+      round offers "Convert to 10 shares" without saying what that costs; an acquisition
+      bid is a bare number with no target summary, ceiling or buying company; the buyer's
+      loans panel describes the target, not the buyer;
+    - history does not name what trains' departures paid, the Golden Parachute or the
+      Loan Shark's $60, and lists every player's routine pass in the merger round.
+- **What the reference shows** ([bank-view], [corporation-view], [spreadsheet-view]): a
+  bank panel with the current and next interest rate, loans taken of the supply and the
+  loans until the rate changes, and seed money in the opening; per company its loans
+  against its limit, interest due (marked when it could not be paid), buying power and
+  shorts; spreadsheet columns for loans, shorts, buying power, interest and size; net
+  holdings with shorts negative; market zones labelled and explained; the acquisition
+  round's queue of companies still to offer; the pyramid as rows with empty slots.
+- **The shared table** ([contract]) has title hooks for actions, game and board
+  information, history and auction lots, but none for spreadsheet columns, company facts
+  or market zones; its game-information strip (phase, train limit, depot) is where
+  game-wide facts belong on every layout, phones included.
+
+### Survey
+
+Loans with interest appear in 22 researched titles (slice 3's survey), and shorts across
+the 1817 family, 18USA, 18FR, 1877 and 18Hiawatha (slice 4's); both are family mechanisms,
+so their presentation is too. Market spaces with a meaning beyond their price are common:
+the reference names twelve kinds (par, end game, close, multiple buy, unlimited holdings,
+no certificate limit, liquidation, acquisition, repar, ignore one sale, safe par, maximum
+price), and 47 of its game files define the text explaining them; TOP, 1889 and 1830 colour
+some. Payments as trains depart are family metadata since slice 9. Merger, conversion and
+acquisition rounds remain 1817's own.
+
+### Decisions
+
+- **Family presentation** (`@tabletop/18xx-ui`):
+    - The game-information strip shows, for a title with loans, the interest rate, the
+      rate the next round would fix, and the loans left of the supply; a title adds its own
+      facts through an optional `TitlePresentation.gameFacts(state)` (1817: seed money in
+      the opening, and the final set once the 8-train has come).
+    - The spreadsheet gains optional title columns, `TitlePresentation.companyColumns`,
+      in both orientations (1817: Size and Loans). A short holding is a distinct cell, signed
+      and labelled "short"; the market column counts the market's shorts.
+    - Company details show size when a title's companies vary in size, and a title's
+      `companyFacts(state, companyId)` (1817: interest due, stations owed, its zone).
+    - The market labels zones a title names in `marketZones` (colour, name, explanation),
+      in each cell's description and a legend beside the market.
+    - History describes `departurePayments` on every action that records them, naming
+      who was paid and why; a title's description receives the shared one, so it can add
+      to it rather than replace it.
+- **1817's panels** keep the shared visual language (cards, staged choices, Back):
+    - The stock round's corporate actions and shorts become stock actions in the action
+      strip ("Act for a company", "Short"), each opening a card list like Buy and Sell.
+    - The merger round shows the company's decision as a card: its size, price, treasury,
+      loans and stations, and what converting or each merger brings (size, new treasury
+      shares, stations owed and their cost). Treasury trading names who is buying and who
+      is still to choose; conversion loans show what the stations need.
+    - The acquisition round shows the queue still to offer, and the target as a card (cash,
+      trains, privates, stations, loans, zone). A bid is staged with the shared bid control,
+      showing the bidder's ceiling and which of their companies could pay it; the buyer's
+      loans panel describes the buyer.
+    - The opening shows each private's power, the seed money left, and Volatility's tiers
+      as a pyramid with the open tier marked and sold or removed lots as empty slots.
+- **History**: the Golden Parachute and the Loan Shark's $60 join their actions'
+  descriptions; routine merger-round passes are marked routine.
+- **Playground**: a "Short positions" position (1817) shows shorts held by players and the
+  market.
+- **Commits.** 10a: game facts, spreadsheet columns and shorts, company facts and market
+  zones, with history of departures. 10b: the stock-round and opening panels. 10c: the
+  merger and acquisition round panels and their history.
+
+### Implementation notes for 10a
+
+- **Game information.** The loan module gives the next round's rate and the loans left;
+  the strip shows them beside the current rate ("Interest 15% next 20%", "Loans 54 left") for any title with loans, then a title's
+  `gameFacts`. 1817's are the seed money left while the opening lasts and, once the 8-train
+  has set the end, "Game ends after AR 7.2".
+- **Spreadsheet.** `TitlePresentation.companyColumns` adds sortable statistics after Last
+  run in both views (1817: Size and Loans). A short is a signed italic cell read as
+  "short", and pool counts net the pool's shorts, so the market's show.
+- **Company details** show a title's `companyFacts` after loans. Size is one of 1817's facts
+  rather than a shared heuristic over varying sizes, with interest owed, stations still
+  owed and the closing zone.
+- **Market zones.** `marketZones` names colours; cells' accessible names and hover text
+  carry them, and the Market tab lists them in a legend.
+- **History.** The shared description names who each departure paid and, as a departure
+  payment records the private it pays for, which private ("Inventor paid PLE $30"). A
+  title's description (`TitleActionDescription`) receives the shared one (a thunk) as a
+  third argument; `departurePaymentsDetail`, `ownerName` and `joinDetails` let 1817 add the
+  same to its own actions.
+- **Playground.** "Short positions" gives Casey a short of Boston & Albany and the market a
+  short of its own.
+
+### Implementation notes for 10b
+
+- **Stock panels.** 1817's session keeps the chosen panel ("Act for a company" or "Short")
+  as a local selection that Back clears, offers each as an extra stock action while it has
+  something to show, and keeps the corporate panel open while the player acts for a
+  company. Both panels are cards in the share cards' style (`CompanyActionCard`). Buy back
+  a share names its price and how many shares the market holds.
+- **Opening.** The family's `tiers` hook now returns empty slots as `null`; the shared lot
+  table draws tiers as a pyramid with the nominable tier highlighted. That tier's lots
+  show the start of their power below their name; the others give it on hover, so six
+  tiers fit the panel (the full text shows with the chosen lot, and in the private's
+  card). The seed money left is a game fact (10a).
+
+### Implementation notes for 10c
+
+- **Round panels.** The merger and acquisition rounds share a `RoundPanel`: a heading and
+  a card for the company in question (size, treasury, loans, trains, privates, stations
+  and closing zone), carrying
+  its actions. While a buyer settles its loans the card is the buyer's, under a line
+  naming the price and the loans it took on and repaid.
+- **Merger round.** `conversionPreview` (1817 rules) gives the size, new treasury shares
+  and stations owed, with their cost after the Station Subsidy, so the Convert button can
+  say what converting brings. `mergerPreview` does the same for each merger partner, whose
+  card's Merge button names the merged size and price, the treasury shares the merged
+  company would hold and its stations; a merger owes no stations.
+  Trading converted shares names the shares left, their price and who chooses next.
+- **Acquisition round.** The bid control names the companies that would pay and the most
+  any of them could pay; the winner chooses its buyer from cards showing their treasuries
+  and loans; the companies still to be offered are listed as tokens.
+- **History.** 1817's history text lives in `history.ts`, apart from the table, so it can
+  be tested. Passes in the merger round are routine; a company sold or liquidated by the
+  bank names a Golden Parachute payment, and a company formed with the Loan Shark names
+  its $60.
+
+### Limits after slice 10
+
+- Programmed actions (automatic passes in the merger and stock rounds) stay out of scope,
+  as for the other titles.
+
+### Acceptance examples
+
+- The game information shows "Interest 15%", the next round's rate and "Loans 54 left";
+  in the opening it shows the seed money left.
+- The spreadsheet shows each company's size and loans against its limit; a player's short
+  reads as a short; the market column counts its shorts.
+- Hovering a red market cell names the liquidation zone and what it means; a legend lists
+  the zones.
+- In the stock round, a president chooses "Act for a company" and sees each company they
+  preside with its loans and the shares it could buy back.
+- In the merger round, a 5-share company's card says converting makes it 10 shares, with
+  5 new treasury shares and the stations it would owe.
+- An acquisition bid shows the target's assets and the most the bidder's companies could
+  pay; the winner's loans panel shows the buyer.
+- History names an Inventor payout and a Golden Parachute.
+
+[game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
+[meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
+[entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/entities.rb
+[map]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/map.rb
+[steps]: https://github.com/tobymao/18xx/tree/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step
+[rounds]: https://github.com/tobymao/18xx/tree/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round
+[selection]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/selection_auction.rb
+[stock-step]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/buy_sell_par_shares.rb
+[loan-step]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/loan.rb
+[operating-round]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round/operating.rb
+[cash-crisis]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/cash_crisis.rb
+[bankrupt]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/bankrupt.rb
+[merger-round]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round/merger.rb
+[conversion]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/conversion.rb
+[post-conversion]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/post_conversion.rb
+[post-conversion-loans]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/post_conversion_loans.rb
+[acquire]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/step/acquire.rb
+[acquisition-round]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/round/acquisition.rb
+[passable-auction]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/passable_auction.rb
+[token-merger]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/token_merger.rb
+[fixtures]: https://github.com/tobymao/18xx/tree/715567bdc7e5cc68a68a286b21dc8edd1a125e50/public/fixtures/1817
+[tracker]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/tracker.rb
+[bank-view]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/assets/app/view/game/bank.rb
+[corporation-view]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/assets/app/view/game/corporation.rb
+[spreadsheet-view]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/assets/app/view/game/spreadsheet.rb
+[contract]: ../../libs/18xx-ui/ui-interaction-visual-contract.md

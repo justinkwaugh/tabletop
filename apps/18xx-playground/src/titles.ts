@@ -17,6 +17,13 @@ import { UiDefinition as Shikoku1889Ui } from '@tabletop/shikoku-1889-ui'
 import { EighteenThirtyMap, EighteenThirtyTileSet, EighteenThirtyTitleRules } from '@tabletop/1830'
 import { EighteenThirtyScenarios } from '@tabletop/1830/scenarios'
 import { UiDefinition as EighteenThirtyUi, EighteenThirtyMapView } from '@tabletop/1830-ui'
+import {
+    EighteenSeventeenMap,
+    EighteenSeventeenTileSet,
+    EighteenSeventeenTitleRules
+} from '@tabletop/1817'
+import { EighteenSeventeenScenarios } from '@tabletop/1817/scenarios'
+import { UiDefinition as EighteenSeventeenUi, EighteenSeventeenMapView } from '@tabletop/1817-ui'
 import type {
     EighteenXXState,
     EighteenXXTitleRules,
@@ -101,6 +108,19 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         tileSets: { '1830': EighteenThirtyTileSet },
         positions: ['diesel'],
         finishedGame: () => import('./demo/fixtures/1830-finished.json')
+    },
+    {
+        key: '1817',
+        name: '1817',
+        rules: EighteenSeventeenTitleRules,
+        scenarios: EighteenSeventeenScenarios,
+        ui: EighteenSeventeenUi,
+        map: EighteenSeventeenMap,
+        mapLayouts: EighteenSeventeenMapView.layouts,
+        mapExample: { locationId: 'F13', definitionId: '18xx:57', rotation: 0, label: 'PLE' },
+        tileSets: { '1817': EighteenSeventeenTileSet },
+        positions: ['optional-opening', 'company-powers', 'shorts'],
+        finishedGame: () => import('./demo/fixtures/1817-finished.json')
     }
 ]
 

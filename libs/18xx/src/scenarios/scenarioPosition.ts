@@ -5,6 +5,7 @@ export const ScenarioPosition = Type.Union([
     Type.Literal('ending'),
     Type.Literal('split'),
     Type.Literal('opening'),
+    Type.Literal('optional-opening'),
     Type.Literal('starting'),
     Type.Literal('flotation'),
     Type.Literal('construction'),
@@ -18,6 +19,8 @@ export const ScenarioPosition = Type.Union([
     Type.Literal('private-events'),
     Type.Literal('transfers'),
     Type.Literal('powers'),
+    Type.Literal('company-powers'),
+    Type.Literal('shorts'),
     Type.Literal('funding'),
     Type.Literal('funding-chain'),
     Type.Literal('bankruptcy')

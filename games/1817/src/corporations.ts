@@ -1,0 +1,34 @@
+import { assertExists } from '@tabletop/common'
+import { getCompany, type FinancialState } from '@tabletop/18xx'
+
+export const EighteenSeventeenCorporations = [
+    { id: 'AS', name: 'Alton & Southern Railway', abbreviation: 'A&S' },
+    { id: 'AA', name: 'Arcade and Attica', abbreviation: 'A&A' },
+    { id: 'BELT', name: 'Belt Railway of Chicago', abbreviation: 'Belt' },
+    { id: 'BESS', name: 'Bessemer and Lake Erie Railroad', abbreviation: 'Bess' },
+    { id: 'BA', name: 'Boston and Albany Railroad', abbreviation: 'B&A' },
+    { id: 'DLW', name: 'Delaware, Lackawanna and Western Railroad', abbreviation: 'DL&W' },
+    { id: 'J', name: 'Elgin, Joliet and Eastern Railway', abbreviation: 'J' },
+    { id: 'GT', name: 'Grand Trunk Western Railroad', abbreviation: 'GT' },
+    { id: 'H', name: 'Housatonic Railroad', abbreviation: 'H' },
+    { id: 'ME', name: 'Morristown and Erie Railway', abbreviation: 'ME' },
+    { id: 'NYOW', name: 'New York, Ontario and Western Railway', abbreviation: 'NYOW' },
+    { id: 'NYSW', name: 'New York, Susquehanna and Western Railway', abbreviation: 'NYSW' },
+    { id: 'PSNR', name: 'Pittsburgh, Shawmut and Northern Railroad', abbreviation: 'PSNR' },
+    { id: 'PLE', name: 'Pittsburgh and Lake Erie Railroad', abbreviation: 'PLE' },
+    { id: 'PW', name: 'Providence and Worcester Railroad', abbreviation: 'PW' },
+    { id: 'R', name: 'Rutland Railroad', abbreviation: 'R' },
+    { id: 'SR', name: 'Strasburg Railroad', abbreviation: 'SR' },
+    { id: 'UR', name: 'Union Railroad', abbreviation: 'UR' },
+    { id: 'WT', name: 'Warren & Trumbull Railroad', abbreviation: 'WT' },
+    { id: 'WC', name: 'West Chester Railroad', abbreviation: 'WC' }
+] as const
+
+export function corporationShareCount(
+    state: Pick<FinancialState, 'companies'>,
+    companyId: string
+): number {
+    const count = getCompany(state, companyId).shareCount
+    assertExists(count, 'Every 1817 corporation has a share count')
+    return count
+}

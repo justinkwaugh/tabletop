@@ -15,7 +15,11 @@
         isRespondToTrackConsent
     } from '@tabletop/18xx'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    import { historyDescription, type HistoryDescription } from './historyDescription.js'
+    import {
+        historyDescription,
+        type HistoryDescription,
+        type TitleActionDescription
+    } from './historyDescription.js'
     import { isHistoryBookkeeping, purchaseWithFlotation } from './historyNavigation.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import TrainRunTable from '../routes/TrainRunTable.svelte'
@@ -36,10 +40,7 @@
     }: {
         session: EighteenXXSession
         trainColors: Readonly<Record<string, string>>
-        describeAction?: (
-            action: GameAction,
-            companyName: (id: string) => string
-        ) => HistoryDescription | undefined
+        describeAction?: TitleActionDescription
     } = $props()
     const money = $derived(session.presentation.money)
     // While the session swaps in a new visible state, its action list already reflects the new
@@ -65,6 +66,7 @@
         OfferBidding: 'Auction bidding',
         WaterfallAuction: 'Private auction',
         AuctionBidding: 'Auction bidding',
+        SelectionAuction: 'Private auction',
         LayingTrack: 'Track construction',
         PlacingStation: 'Station placement',
         RunningTrains: 'Train operations',
@@ -106,8 +108,7 @@
                 : { text: `bid ${money(action.amount)} for ${lot.name}` }
         }
         if (isPassAuction(action)) return { text: 'passed' }
-        return (
-            describeAction?.(action, companyName) ??
+        const shared = () =>
             historyDescription(
                 action,
                 gameState,
@@ -116,7 +117,7 @@
                 undefined,
                 session.presentation.money
             )
-        )
+        return describeAction?.(action, companyName, shared) ?? shared()
     }
     const latest = $derived.by(() => {
         const paired = purchaseWithFlotation(actions)

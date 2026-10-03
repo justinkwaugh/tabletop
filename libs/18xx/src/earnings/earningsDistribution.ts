@@ -6,6 +6,7 @@ import {
     controllingOwner,
     getCompany,
     sameOwner,
+    signedShares,
     type Certificate,
     type FinancialState
 } from '../finance/finance.js'
@@ -28,6 +29,7 @@ export const EarningsDetails = Type.Object(
         bonusPerShare: Type.Integer({ minimum: 0 }),
         bankAdjustment: Type.Integer(),
         payments: Type.Array(CashPayment),
+        charges: Type.Optional(Type.Array(CashPayment)),
         marketMove: Type.Optional(StockMarketMove)
     },
     { additionalProperties: false }
@@ -61,24 +63,25 @@ export function dividendEntitlements(
     state: FinancialState,
     companyId: string,
     recipient: (
-        certificate: Extract<Certificate, { retired: false; kind: 'share' }>
+        certificate: Extract<Certificate, { retired: false; kind: 'share' | 'short' }>
     ) => Owner | undefined
 ): DividendEntitlement[] {
     const result: DividendEntitlement[] = []
     for (const certificate of state.certificates) {
         if (
             certificate.retired ||
-            certificate.kind !== 'share' ||
+            certificate.kind === 'private' ||
             certificate.companyId !== companyId
         )
             continue
         const owner = recipient(certificate)
         if (!owner) continue
+        const shares = signedShares(certificate)
         const previous = result.find((entry) => sameOwner(entry.owner, owner))
-        if (previous) previous.shares += certificate.shares
-        else result.push({ owner: { ...owner }, shares: certificate.shares })
+        if (previous) previous.shares += shares
+        else result.push({ owner: { ...owner }, shares })
     }
-    return result
+    return result.filter((entry) => entry.shares)
 }
 export class EarningsDistribution {
     constructor(
@@ -136,9 +139,18 @@ export class EarningsDistribution {
             'Dividends must be whole currency units'
         )
         const payments: CashPayment[] = []
+        const charges: CashPayment[] = []
         this.addPayment(payments, { kind: 'company', companyId }, retained)
-        for (const entitlement of this.rules.entitlements(this.state, companyId))
-            this.addPayment(payments, entitlement.owner, entitlement.shares * dividendPerShare)
+        for (const entitlement of this.rules.entitlements(this.state, companyId)) {
+            const amount = entitlement.shares * dividendPerShare
+            if (amount >= 0) this.addPayment(payments, entitlement.owner, amount)
+            else
+                charges.push({
+                    from: { ...entitlement.owner },
+                    to: { kind: 'bank' },
+                    amount: -amount
+                })
+        }
         const total = payments.reduce((sum, payment) => sum + payment.amount, 0),
             bank = cashOwnedBy(this.state, { kind: 'bank' })
         if (
@@ -159,6 +171,7 @@ export class EarningsDistribution {
                 bonusPerShare: effect.bonusPerShare,
                 bankAdjustment: total - revenue,
                 payments,
+                ...(charges.length ? { charges } : {}),
                 ...(effect.move ? { marketMove: effect.move } : {})
             }
         }
@@ -177,7 +190,9 @@ const AfterEarningsStates = [
     'Bankrupt',
     'GameOver',
     'AdvancingPhase',
-    'DiscardingTrains'
+    'DiscardingTrains',
+    'RepayingLoans',
+    'RaisingCash'
 ]
 export function validateEarningsDistribution(
     state: EarningsState & {

@@ -38,6 +38,7 @@ export const Station = Type.Union([
     Type.Object({ ...Identity, status: Type.Literal('removed') }, { additionalProperties: false })
 ])
 export type Station = Type.Static<typeof Station>
+export type PlacedStation = Extract<Station, { status: 'placed' }>
 export const StationFields = {
     stations: Type.Array(Station),
     stationReservations: Type.Array(StationReservation)
@@ -99,9 +100,19 @@ export function homeStationId(companyId: string): string {
 }
 
 export function createCompanyStations(companyId: string, count: number): Station[] {
-    return Array.from({ length: count }, (_, index) => ({
+    return Array.from({ length: count }, (_, index) => companyStation(companyId, index))
+}
+
+export function addCompanyStations(state: StationState, companyId: string, count: number): void {
+    const existing = state.stations.filter((station) => station.companyId === companyId).length
+    for (let index = 0; index < count; index++)
+        state.stations.push(companyStation(companyId, existing + index))
+}
+
+function companyStation(companyId: string, index: number): Station {
+    return {
         id: index ? `${companyId}:station:${index}` : homeStationId(companyId),
         companyId,
-        status: 'available' as const
-    }))
+        status: 'available'
+    }
 }

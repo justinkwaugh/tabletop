@@ -10,6 +10,7 @@ import {
 } from '@tabletop/common'
 import type { Owner } from '../finance/finance.js'
 import { settleCashPayments } from '../finance/cashPayments.js'
+import { closePrivate } from '../privates/privateCompany.js'
 import {
     TrackRequest,
     TrackLayDetails,
@@ -66,14 +67,13 @@ export class HydratedLayTile extends HydratableAction<typeof LayTile> implements
             !details.consentPlayerId || details.consentPlayerId === this.playerId,
             'Track requires the private owner’s consent'
         )
-        applyTrackLay(
+        this.metadata = applyTrackLay(
             state,
             this.#rules,
             details,
             { kind: 'company', companyId: this.companyId },
             true
         )
-        this.metadata = details
     }
 }
 
@@ -83,7 +83,7 @@ export function applyTrackLay(
     details: TrackLayDetails,
     payer: Owner,
     countsAsOrdinaryLay: boolean
-): void {
+): TrackLayDetails {
     const inventory = new TrackConstruction(state, rules, payer).inventoryAfter(details)
     if (details.cost)
         settleCashPayments(state, [{ from: payer, to: { kind: 'bank' }, amount: details.cost }])
@@ -96,4 +96,11 @@ export function applyTrackLay(
             .face.color
         state.trackStep.lays.push({ locationId: details.locationId, color, cost: details.cost })
     }
+    const effects = rules.afterLay?.(state, details, payer)
+    if (!effects) return details
+    settleCashPayments(state, effects.payments)
+    for (const privateId of effects.closedPrivateIds) closePrivate(state, privateId)
+    return effects.payments.length || effects.closedPrivateIds.length
+        ? { ...details, effects }
+        : details
 }

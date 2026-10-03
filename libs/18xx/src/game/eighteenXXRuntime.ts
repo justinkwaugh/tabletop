@@ -6,6 +6,7 @@ import { GameEndingHandler } from '../ending/gameEndingHandler.js'
 import { FinalWealthScoring } from '../ending/finalScores.js'
 import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
+import { SelectionAuctionHandler } from '../auctions/selectionAuctionHandler.js'
 import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
 import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
 import { PendingParHandler } from '../company/pendingPar.js'
@@ -50,6 +51,11 @@ import { trainActions } from '../trains/trainActions.js'
 import { routeActions } from '../routes/routeActions.js'
 import { earningsActions } from '../earnings/earningsActions.js'
 import { companyActions } from '../company/companyActions.js'
+import { loanActions } from '../loans/loanActions.js'
+import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
+import { RepayingLoansHandler } from '../loans/repayingLoansHandler.js'
+import { RaisingCashHandler } from '../funding/raisingCashHandler.js'
+import { cashCrisisActions } from '../funding/cashCrisisActions.js'
 import {
     BetweenCompaniesState,
     OperatingStepStates,
@@ -115,9 +121,17 @@ export function createEighteenXXRuntime(
             : handler
     const awaitsPar = (handler: Handler): Handler =>
         companyRules.parAfterAward ? new PendingParHandler(handler) : handler
-    const after = stateAfterOperatingStep
+    const { loanRules } = options
+    const operatingSteps = loanRules
+        ? [...OperatingStepStates, 'RepayingLoans']
+        : OperatingStepStates
+    const after = (step: string) => stateAfterOperatingStep(step, operatingSteps)
+    const allowsLoans = (handler: Handler): Handler =>
+        loanRules ? new LoanTakingHandler(handler, loanRules) : handler
     const operatingStep = (handler: Handler): Handler =>
-        endsGame(allowsPrivatePowerRequests(allowsCompanyDecisions(allowsExchange(handler))))
+        endsGame(
+            allowsPrivatePowerRequests(allowsCompanyDecisions(allowsExchange(allowsLoans(handler))))
+        )
     const familyStateHandlers: Record<string, Handler> = {
         ...(options.offerAuctionRules
             ? {
@@ -145,6 +159,16 @@ export function createEighteenXXRuntime(
                               'AuctionBidding',
                               new WaterfallAuctionHandler(options.auctionRules)
                           )
+                      )
+                  )
+              }
+            : {}),
+        ...(options.selectionAuctionRules
+            ? {
+                  SelectionAuction: endsGame(
+                      decides(
+                          'SelectionAuction',
+                          new SelectionAuctionHandler(options.selectionAuctionRules)
                       )
                   )
               }
@@ -196,6 +220,7 @@ export function createEighteenXXRuntime(
                         choosesHome(
                             new StartOperatingTurnHandler(
                                 options.stationRules,
+                                operatingRules,
                                 OperatingStepStates[0]
                             )
                         )
@@ -207,6 +232,7 @@ export function createEighteenXXRuntime(
             )
         ),
         LayingTrack: new AutomaticTrackCompletionHandler(
+            options.trackRules,
             operatingStep(
                 decides(
                     'LayingTrack',
@@ -248,7 +274,24 @@ export function createEighteenXXRuntime(
                     )
                 )
             )
-        )
+        ),
+        ...(loanRules
+            ? {
+                  RepayingLoans: endsGame(
+                      decides(
+                          'RepayingLoans',
+                          new RepayingLoansHandler(loanRules, options.trainRules)
+                      )
+                  )
+              }
+            : {}),
+        ...(options.cashCrisisRules
+            ? {
+                  RaisingCash: endsGame(
+                      decides('RaisingCash', new RaisingCashHandler(options.cashCrisisRules))
+                  )
+              }
+            : {})
     }
     for (const machineState of Object.keys(options.titleStateHandlers ?? {}))
         assert(
@@ -261,19 +304,30 @@ export function createEighteenXXRuntime(
     }
     const actions = new ActionRegistry([
         ...endingActions(options.endingRules),
-        ...auctionActions(options.offerAuctionRules, options.auctionRules),
+        ...auctionActions(
+            options.offerAuctionRules,
+            options.auctionRules,
+            options.selectionAuctionRules
+        ),
         ...fundingActions(options.trainFundingRules, rules, options.trainRules),
         ...privateActions(options),
         ...trackActions(options.trackRules),
         ...transferActions(options.transferRules, options.trainRules, rules),
         ...phaseActions(options),
-        ...operatingActions(operatingRules, options.trainRules, options.endingRules),
+        ...operatingActions(operatingRules, options.trainRules, options.endingRules, loanRules),
+        ...loanActions(loanRules, rules),
+        ...cashCrisisActions(options.cashCrisisRules),
         ...stockActions(rules),
         ...companyActions(companyRules, rules),
         ...stationActions(options.stationRules),
         ...routeActions(options.routeRules),
-        ...earningsActions(options.earningsRules, options.privateRules, rules),
-        ...trainActions(options.trainRules, options.phaseRules),
+        ...earningsActions(
+            options.earningsRules,
+            options.privateRules,
+            rules,
+            after('DistributingEarnings')
+        ),
+        ...trainActions(options.trainRules, options.phaseRules, !loanRules),
         ...(options.titleActions ?? [])
     ])
     return {

@@ -5,6 +5,7 @@ import {
     getCompany,
     portfolioWealth,
     sameOwner,
+    sharesOwned,
     type Owner,
     type StockState,
     type ValuationRules
@@ -17,15 +18,12 @@ export function ownerPortfolio(state: StockState, owner: Owner, rules: Valuation
     const certificates = certificatesOwnedBy(state, owner)
     const companyIds = [
         ...new Set(
-            certificates.filter((item) => item.kind === 'share').map((item) => item.companyId)
+            certificates.filter((item) => item.kind !== 'private').map((item) => item.companyId)
         )
     ]
     const ownership = companyIds.map((id) => {
         const company = getCompany(state, id)
-        const shares = certificates.reduce(
-            (sum, item) => sum + (item.kind === 'share' && item.companyId === id ? item.shares : 0),
-            0
-        )
+        const shares = sharesOwned(state, id, owner)
         const total =
             company.shareCount ??
             state.certificates.reduce(
@@ -56,10 +54,7 @@ export function ownerPortfolio(state: StockState, owner: Owner, rules: Valuation
         .filter((item) => !item.company.closed)
     return {
         cash,
-        shares: certificates.reduce(
-            (total, item) => total + (item.kind === 'share' ? item.shares : 0),
-            0
-        ),
+        shares: companyIds.reduce((total, id) => total + sharesOwned(state, id, owner), 0),
         ownership: ownership.sort((a, b) => b.percentage - a.percentage),
         privates,
         netWorth: portfolioWealth(state, owner, rules).reduce((sum, item) => sum + item.value, 0)

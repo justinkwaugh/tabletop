@@ -11,6 +11,8 @@ import {
 } from '@tabletop/common'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { privateOwner, type FinancialState } from '../finance/finance.js'
+import type { TrainState } from '../trains/train.js'
+import type { LoanRules, LoanState } from '../loans/loans.js'
 import {
     OperatingSet,
     nextOperatingCompany,
@@ -59,23 +61,31 @@ export class HydratedStartOperatingRound
     declare metadata?: StartOperatingRound['metadata']
     readonly #rules: OperatingRules
     readonly #valuationRules: ValuationRules
-    constructor(data: StartOperatingRound, rules: OperatingRules, valuationRules: ValuationRules) {
+    readonly #loanRules: LoanRules | undefined
+    constructor(
+        data: StartOperatingRound,
+        rules: OperatingRules,
+        valuationRules: ValuationRules,
+        loanRules?: LoanRules
+    ) {
         super(data instanceof HydratedStartOperatingRound ? data.dehydrate() : data, Validator)
         this.#rules = rules
         this.#valuationRules = valuationRules
+        this.#loanRules = loanRules
     }
-    apply(state: HydratedGameState & OperatingState): void {
+    apply(state: HydratedGameState & OperatingState & LoanState & TrainState): void {
         assert(
             this.source === ActionSource.System && canStartOperatingRound(state),
             'The next operating round is not ready'
         )
         const set = state.operatingSet!
-        const payments = privateIncomePayments(state)
+        const payments = privateIncomePayments(state, this.#rules)
         settleCashPayments(state, payments)
         if (set.privateIncomePaid) set.roundNumber++
         set.companyOrder = this.#rules.companyOrder(state)
         set.completedCompanyIds = []
         set.privateIncomePaid = true
+        if (this.#loanRules) state.interestRate = this.#loanRules.rate(state)
         this.metadata = {
             operatingSet: structuredClone(set),
             payments,
@@ -84,18 +94,18 @@ export class HydratedStartOperatingRound
     }
 }
 
-export function privateIncomePayments(state: FinancialState): CashPayment[] {
+export function privateIncomePayments<State extends FinancialState>(
+    state: State,
+    rules: { privateIncome?(state: State, privateId: string): number } = {}
+): CashPayment[] {
     return state.companies.flatMap((company) => {
-        if (company.closed || company.kind !== 'private' || !company.privateRevenue) return []
+        if (company.closed || company.kind !== 'private') return []
+        const amount = rules.privateIncome
+            ? rules.privateIncome(state, company.id)
+            : (company.privateRevenue ?? 0)
         const owner = privateOwner(state, company.id)
-        return owner && owner.kind !== 'bank'
-            ? [
-                  {
-                      from: { kind: 'bank' } as const,
-                      to: { ...owner },
-                      amount: company.privateRevenue
-                  }
-              ]
+        return amount && owner && owner.kind !== 'bank'
+            ? [{ from: { kind: 'bank' } as const, to: { ...owner }, amount }]
             : []
     })
 }

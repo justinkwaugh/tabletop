@@ -295,7 +295,7 @@
                             {@const labelWidth = String(terrain.cost).length * 6.5}
                             <g
                                 data-map-terrain
-                                transform={`translate(${-(iconWidth + labelWidth) / 2} ${(entry.face.nodes.length || entry.face.paths.length ? 19 : 0) + (terrain.kinds.includes('water') && entry.face.nodes.some((node) => node.kind === 'city' || node.kind === 'town') ? 3 : 0)})`}
+                                transform={`translate(${-(iconWidth + labelWidth) / 2} ${(entry.face.nodes.length || entry.face.paths.length ? 19 : 0) + (terrain.kinds.some((kind) => kind === 'water' || kind === 'lake') && entry.face.nodes.some((node) => node.kind === 'city' || node.kind === 'town') ? 3 : 0)})`}
                             >
                                 {#each terrain.kinds as kind, index (kind)}
                                     <g transform={`translate(${index * 19} 0)`} stroke="none">
@@ -311,6 +311,9 @@
                                                 stroke-width="1.8"
                                                 stroke-linecap="round"
                                             ></path>
+                                        {:else if kind === 'lake'}
+                                            <ellipse cx="9" cy="0" rx="8" ry="4.5" fill="#287fab"
+                                            ></ellipse>
                                         {:else}
                                             <text x="8" y="4" font-size="11" font-weight="700"
                                                 >{kind}</text

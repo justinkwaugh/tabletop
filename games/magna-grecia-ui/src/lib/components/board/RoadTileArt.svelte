@@ -25,10 +25,11 @@
         d={path}
         fill="none"
         stroke="#4d3016"
-        stroke-width="16"
+        stroke-width="18"
         stroke-linecap="butt"
-        opacity="0.3"
+        opacity="0.25"
     ></path>
+    <path d={path} fill="none" stroke="#2a1a0a" stroke-width="14.6" stroke-linecap="butt"></path>
     <path d={path} fill="none" stroke={color} stroke-width="12" stroke-linecap="butt"></path>
     <path
         d={path}

@@ -16,6 +16,7 @@ import type { SharePurchaseTerms, ShareCertificate } from './sharePurchase.js'
 import type { StockInstructionRules } from './stockInstruction.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
 import type { PrivateSaleRules } from './privateSale.js'
+import type { CompanyAuctionRules } from './companyAuction.js'
 
 export type ShareSaleTerms = {
     payer: Owner
@@ -46,6 +47,8 @@ export interface StockRules {
     certificateWeight(state: StockState, certificate: Portfolio[number]): number
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
+    /** What follows any sale into the market, such as the market closing its own shorts. */
+    afterSale?(state: StockState): void
     /** When a turn's sales may come relative to its purchase. */
     turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
     /**
@@ -57,6 +60,8 @@ export interface StockRules {
     multipleBuys?: MultipleBuyRules
     /** Private sales between players, offered and answered like a company's purchase offer. */
     privateSales?: PrivateSaleRules
+    /** Companies are started by auction during a stock turn rather than at a chosen par. */
+    companyAuction?: CompanyAuctionRules
 }
 export function stockCertificateCount(state: StockState, owner: Owner, rules: StockRules): number {
     return certificatesOwnedBy(state, owner).reduce(

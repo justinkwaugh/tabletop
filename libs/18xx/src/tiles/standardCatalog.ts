@@ -1,5 +1,6 @@
 import { TileCatalog } from './catalog.js'
 import {
+    createJunctionTileFace as junctionFace,
     createCityTileFace as cityFace,
     createSeparateCitiesTileFace as citiesFace,
     createTownTileFace as townFace,
@@ -336,12 +337,10 @@ export const StandardTileCatalog = new TileCatalog([
             [2, 3]
         ])
     ),
-    standardTile('81', {
-        color: 'green',
-        nodes: [{ id: 'junction', kind: 'junction' }],
-        paths: pathsToNode([0, 2, 4], 'junction'),
-        labels: []
-    }),
+    standardTile('80', junctionFace('green', [0, 1, 2])),
+    standardTile('81', junctionFace('green', [0, 2, 4])),
+    standardTile('82', junctionFace('green', [0, 1, 3])),
+    standardTile('83', junctionFace('green', [0, 5, 3])),
     standardTile('143', townFace('green', [[0, 1, 2]], 10)),
     standardTile('144', townFace('green', [[0, 2, 4]], 10)),
     standardTile('205', cityFace('green', [0, 1, 3], 30, 1)),
@@ -354,7 +353,14 @@ export const StandardTileCatalog = new TileCatalog([
     standardTile('465', cityFace('brown', [0, 1, 2, 3], 60, 3, ['K'])),
     standardTile('466', cityFace('brown', [0, 1, 2], 60, 2, ['T'])),
     standardTile('492', cityFace('brown', [0, 1, 2, 3, 4, 5], 80, 3, ['H'])),
+    standardTile('544', junctionFace('brown', [0, 1, 3, 4])),
+    standardTile('545', junctionFace('brown', [0, 1, 2, 3])),
+    standardTile('546', junctionFace('brown', [0, 2, 3, 4])),
+    standardTile('592', cityFace('green', [0, 2, 4], 50, 2, ['B'])),
+    standardTile('593', cityFace('brown', [0, 2, 3, 4], 60, 3, ['B'])),
+    standardTile('597', cityFace('gray', [0, 1, 2, 3, 4], 80, 3, ['B'])),
     standardTile('611', cityFace('brown', [0, 1, 2, 3, 4], 40, 2)),
+    standardTile('619', cityFace('green', [0, 2, 3, 4], 30, 2)),
     standardTile(
         '624',
         trackFace('green', [

@@ -85,6 +85,7 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
             }
         }
         applyShareSale(state, result.details)
+        this.#rules.afterSale?.(state)
         for (const sale of result.details.sales) {
             state.stockRound.sales.push({ owner: this.seller, companyId: sale.companyId })
             if (!state.stockRound.turn.companiesSold.includes(sale.companyId))

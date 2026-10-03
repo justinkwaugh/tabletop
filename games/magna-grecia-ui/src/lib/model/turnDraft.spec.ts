@@ -2,22 +2,26 @@ import { describe, expect, it } from 'vitest'
 import { RoadShape, offsetToAxial } from '@tabletop/magna-grecia'
 import { BuildTool } from './buildTool.js'
 import {
-    backDraft,
+    askToConfirmEndTurn,
     carryTool,
     chooseRoadShape,
     chooseRoadSpace,
     chooseTool,
     clearRoadLay,
     closeResupply,
+    draftConfirmingEndTurn,
+    draftResupplyOpen,
     draftRoadShape,
     draftRoadSpace,
     draftTilesSkipped,
     draftTool,
+    dropEndTurnConfirm,
     emptyDraft,
     hasManualDraft,
     rotateRoad,
     skipTiles,
-    toggleResupply
+    toggleResupply,
+    undoDraft
 } from './turnDraft.js'
 
 const first = offsetToAxial({ row: 3, col: 3 })
@@ -43,17 +47,17 @@ describe('turn draft', () => {
         expect(draft.rotation).toBe(0)
     })
 
-    it('backs out the highest manual stage first', () => {
+    it('Undo pops the highest manual stage first', () => {
         let draft = chooseRoadShape(chooseRoadSpace(emptyDraft(), first), RoadShape.Curve)
-        draft = backDraft(draft)
+        draft = undoDraft(draft)
         expect(draftRoadShape(draft)).toBeUndefined()
         expect(draftRoadSpace(draft)).toEqual(first)
         expect(hasManualDraft(draft)).toBe(true)
 
-        draft = backDraft(draft)
+        draft = undoDraft(draft)
         expect(draftRoadSpace(draft)).toBeUndefined()
         expect(hasManualDraft(draft)).toBe(false)
-        expect(backDraft(draft)).toEqual(draft)
+        expect(undoDraft(draft)).toEqual(draft)
     })
 
     it('does not count an automatic shape as a manual selection', () => {
@@ -61,7 +65,7 @@ describe('turn draft', () => {
         expect(rotateRoad(emptyDraft(), 1)).toEqual(emptyDraft())
         const spaceOnly = chooseRoadSpace(emptyDraft(), first)
         expect(draftRoadShape(spaceOnly)).toBeUndefined()
-        expect(backDraft(spaceOnly)).toEqual(emptyDraft())
+        expect(undoDraft(spaceOnly)).toEqual(emptyDraft())
     })
 
     it('refuses a shape before a space is chosen', () => {
@@ -70,16 +74,27 @@ describe('turn draft', () => {
 
     it('keeps the resupply picker and road laying mutually exclusive', () => {
         let draft = toggleResupply(chooseRoadSpace(emptyDraft(), first))
-        expect(draft.resupplyOpen).toBe(true)
+        expect(draftResupplyOpen(draft)).toBe(true)
         expect(draftRoadSpace(draft)).toBeUndefined()
         expect(hasManualDraft(draft)).toBe(true)
 
         draft = chooseRoadSpace(draft, second)
-        expect(draft.resupplyOpen).toBe(false)
+        expect(draftResupplyOpen(draft)).toBe(false)
+        expect(draftRoadSpace(draft)).toEqual(second)
 
         draft = toggleResupply(draft)
-        expect(backDraft(draft)).toEqual({ ...draft, resupplyOpen: false })
-        expect(toggleResupply(draft).resupplyOpen).toBe(false)
+        expect(draftResupplyOpen(undoDraft(draft))).toBe(false)
+        expect(draftResupplyOpen(toggleResupply(draft))).toBe(false)
+    })
+
+    it('opens the resupply picker as a manual stage that Undo closes', () => {
+        const tool = chooseTool(emptyDraft(), BuildTool.City, '0:1')
+        const carried = carryTool(tool, '0:1')
+        const draft = toggleResupply(carried)
+        expect(hasManualDraft(draft)).toBe(true)
+        expect(undoDraft(draft)).toEqual(carried)
+        expect(hasManualDraft(undoDraft(draft))).toBe(false)
+        expect(carryTool(toggleResupply(tool), '0:1')).toEqual(carried)
     })
 
     it('cancelling the widget clears only the road stages', () => {
@@ -87,20 +102,20 @@ describe('turn draft', () => {
         expect(clearRoadLay(draft)).toEqual(emptyDraft())
     })
 
-    it('counts a chosen tool as a manual selection that Back clears', () => {
+    it('counts a chosen tool as a manual selection that Undo clears', () => {
         const draft = chooseTool(emptyDraft(), BuildTool.City, '0:1')
         expect(draftTool(draft)).toEqual({ tool: BuildTool.City, turnKey: '0:1' })
         expect(hasManualDraft(draft)).toBe(true)
-        expect(backDraft(draft)).toEqual(emptyDraft())
+        expect(undoDraft(draft)).toEqual(emptyDraft())
     })
 
-    it('backs out the road stages before the tool', () => {
+    it('Undo clears the road stages before the tool', () => {
         let draft = chooseRoadSpace(chooseTool(emptyDraft(), BuildTool.Road, '0:1'), first)
-        draft = backDraft(draft)
+        draft = undoDraft(draft)
         expect(draftRoadSpace(draft)).toBeUndefined()
         expect(draftTool(draft)?.tool).toBe(BuildTool.Road)
 
-        draft = backDraft(draft)
+        draft = undoDraft(draft)
         expect(draftTool(draft)).toBeUndefined()
     })
 
@@ -121,7 +136,7 @@ describe('turn draft', () => {
         expect(draftTool(carried)?.tool).toBe(BuildTool.Road)
         expect(draftRoadSpace(carried)).toBeUndefined()
         expect(hasManualDraft(carried)).toBe(false)
-        expect(backDraft(carried)).toEqual(carried)
+        expect(undoDraft(carried)).toEqual(carried)
 
         expect(carryTool(laying, '0:2')).toEqual(emptyDraft())
         expect(carryTool(carryTool(laying, '0:1'), '0:2')).toEqual(emptyDraft())
@@ -129,11 +144,11 @@ describe('turn draft', () => {
 
     it('keeps the tool while the resupply picker is open', () => {
         let draft = toggleResupply(chooseTool(emptyDraft(), BuildTool.City, '0:1'))
-        expect(draft.resupplyOpen).toBe(true)
+        expect(draftResupplyOpen(draft)).toBe(true)
         expect(draftTool(draft)?.tool).toBe(BuildTool.City)
 
         draft = closeResupply(draft)
-        expect(draft.resupplyOpen).toBe(false)
+        expect(draftResupplyOpen(draft)).toBe(false)
         expect(draftTool(draft)?.tool).toBe(BuildTool.City)
     })
 
@@ -141,22 +156,46 @@ describe('turn draft', () => {
         const draft = skipTiles(emptyDraft())
         expect(draftTilesSkipped(draft)).toBe(true)
         expect(hasManualDraft(draft)).toBe(true)
-        expect(backDraft(draft)).toEqual(emptyDraft())
+        expect(undoDraft(draft)).toEqual(emptyDraft())
     })
 
-    it('keeps the skip under a market tool and backs the tool out first', () => {
+    it('keeps the skip under a market tool and Undo clears the tool first', () => {
         let draft = chooseTool(skipTiles(emptyDraft()), BuildTool.Market, '0:1')
         expect(draftTilesSkipped(draft)).toBe(true)
-        draft = backDraft(draft)
+        draft = undoDraft(draft)
         expect(draftTool(draft)).toBeUndefined()
         expect(draftTilesSkipped(draft)).toBe(true)
-        expect(draftTilesSkipped(backDraft(draft))).toBe(false)
+        expect(draftTilesSkipped(undoDraft(draft))).toBe(false)
     })
 
     it('clears the skip when a tile tool is chosen', () => {
         const draft = chooseTool(skipTiles(emptyDraft()), BuildTool.City, '0:1')
         expect(draftTilesSkipped(draft)).toBe(false)
         expect(draftTool(draft)?.tool).toBe(BuildTool.City)
+    })
+
+    it('asks to confirm End turn as a manual stage that Undo cancels', () => {
+        const tool = chooseTool(emptyDraft(), BuildTool.City, '0:1')
+        const draft = askToConfirmEndTurn(tool)
+        expect(draftConfirmingEndTurn(draft)).toBe(true)
+        expect(draftTool(draft)?.tool).toBe(BuildTool.City)
+        expect(undoDraft(draft)).toEqual(tool)
+        expect(dropEndTurnConfirm(draft)).toEqual(tool)
+    })
+
+    it('closes the picker and the road being laid when End turn asks to confirm', () => {
+        const laying = chooseRoadSpace(chooseTool(emptyDraft(), BuildTool.Road, '0:1'), first)
+        expect(draftRoadSpace(askToConfirmEndTurn(laying))).toBeUndefined()
+        const resupplying = toggleResupply(emptyDraft())
+        expect(draftResupplyOpen(askToConfirmEndTurn(resupplying))).toBe(false)
+    })
+
+    it('drops the End turn confirm when an earlier choice is made', () => {
+        const draft = askToConfirmEndTurn(emptyDraft())
+        expect(draftConfirmingEndTurn(chooseTool(draft, BuildTool.City, '0:1'))).toBe(false)
+        expect(draftConfirmingEndTurn(skipTiles(draft))).toBe(false)
+        expect(draftConfirmingEndTurn(toggleResupply(draft))).toBe(false)
+        expect(draftConfirmingEndTurn(carryTool(draft, '0:1'))).toBe(false)
     })
 
     it('does not carry a skip into the next published state', () => {

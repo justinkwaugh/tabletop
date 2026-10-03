@@ -11,32 +11,40 @@ import {
     isFinishOperatingTurn,
     type OperatingTurnState
 } from '../operating/finishOperatingTurn.js'
+import { FinishTrains, isFinishTrains } from './finishTrains.js'
+
+const FinishTypes = ['FinishOperatingTurn', 'FinishTrains'] as const
+type FinishType = (typeof FinishTypes)[number]
 
 export class AutomaticTrainCompletionHandler<
     State extends HydratedGameState & OperatingTurnState
 > implements MachineStateHandler<HydratedAction, State> {
     constructor(private readonly handler: MachineStateHandler<HydratedAction, State>) {}
 
-    private canFinish(context: MachineContext<State>, playerId: string): boolean {
+    private onlyFinish(context: MachineContext<State>, playerId: string): FinishType | undefined {
         const state = context.gameState
         const companyId = state.trainPurchaseStep?.companyId
-        if (!companyId || controllingOwner(state, companyId)?.playerId !== playerId) return false
-        const actions = this.handler.validActionsForPlayer(playerId, context)
-        return (
-            actions.includes('FinishOperatingTurn') &&
-            !state.activePlayerIds.some((id) =>
-                this.handler
-                    .validActionsForPlayer(id, context)
-                    .some((action) => action !== 'FinishOperatingTurn')
-            )
+        if (!companyId || controllingOwner(state, companyId)?.playerId !== playerId)
+            return undefined
+        const finish = FinishTypes.find((type) =>
+            this.handler.validActionsForPlayer(playerId, context).includes(type)
         )
+        return finish &&
+            !state.activePlayerIds.some((id) =>
+                this.handler.validActionsForPlayer(id, context).some((action) => action !== finish)
+            )
+            ? finish
+            : undefined
     }
 
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
-        if (isFinishOperatingTurn(action) && action.source === ActionSource.System)
+        if (
+            (isFinishOperatingTurn(action) || isFinishTrains(action)) &&
+            action.source === ActionSource.System
+        )
             return (
                 action.companyId === context.gameState.trainPurchaseStep?.companyId &&
-                this.canFinish(context, action.playerId)
+                this.onlyFinish(context, action.playerId) === action.type
             )
         return this.handler.isValidAction(action, context)
     }
@@ -49,8 +57,12 @@ export class AutomaticTrainCompletionHandler<
         this.handler.enter(context)
         const companyId = context.gameState.trainPurchaseStep?.companyId
         const playerId = companyId && controllingOwner(context.gameState, companyId)?.playerId
-        if (companyId && playerId && this.canFinish(context, playerId))
-            context.addSystemAction(FinishOperatingTurn, { playerId, companyId })
+        const finish = companyId && playerId ? this.onlyFinish(context, playerId) : undefined
+        if (finish)
+            context.addSystemAction(
+                finish === 'FinishTrains' ? FinishTrains : FinishOperatingTurn,
+                { playerId, companyId }
+            )
     }
 
     onAction(action: HydratedAction, context: MachineContext<State>): string {

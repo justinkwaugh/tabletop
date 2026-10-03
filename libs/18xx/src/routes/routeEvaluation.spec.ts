@@ -399,3 +399,58 @@ it('rejects a stop group with a single location', () => {
         'Stop group Gulf needs more than one location'
     )
 })
+it('rejects a second stop in one hex when a title allows only one', () => {
+    const { rules, state } = fixture([
+        {
+            color: 'green',
+            labels: [],
+            nodes: [
+                {
+                    id: 'city',
+                    kind: 'city',
+                    stationSlots: 1,
+                    revenue: { kind: 'fixed', amount: 20 }
+                },
+                {
+                    id: 'other',
+                    kind: 'city',
+                    stationSlots: 1,
+                    revenue: { kind: 'fixed', amount: 30 }
+                }
+            ],
+            paths: [
+                {
+                    id: 'a',
+                    endpoints: [
+                        { kind: 'node', nodeId: 'city' },
+                        { kind: 'node', nodeId: 'other' }
+                    ]
+                }
+            ]
+        }
+    ])
+    const route: TrainRoute = {
+        trainId: state.trainInventory.trains[0].id,
+        start: { locationId: '0', nodeId: 'city' },
+        paths: [{ locationId: '0', pathId: 'a' }]
+    }
+    expect(new RouteEvaluation(state, rules).evaluate('A', [route]).result?.revenue).toBe(50)
+    expect(
+        new RouteEvaluation(state, { ...rules, oneStopPerHex: true }).evaluate('A', [route]).reason
+    ).toBe('A route may stop only once in each hex.')
+})
+it('adds bonuses for the hexes a route passes through and the stops it makes', () => {
+    const { running, route, rules } = fixture([
+        city('yellow', [0], 20, 1),
+        track('yellow', [[3, 0]]),
+        city('yellow', [3], 30, 1)
+    ])
+    rules.hexBonus = (_state, locationId) => (locationId === '1' ? 10 : 0)
+    rules.stopBonus = (_state, _train, _companyId, center) => (center.locationId === '2' ? 5 : 0)
+    const result = running.evaluate('A', [route]).result!
+    expect(result.revenue).toBe(65)
+    expect(result.routes[0].bonuses).toEqual([
+        { locationId: '2', amount: 5 },
+        { locationId: '1', amount: 10 }
+    ])
+})

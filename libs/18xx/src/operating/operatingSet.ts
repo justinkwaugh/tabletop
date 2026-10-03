@@ -3,6 +3,7 @@ import { assert } from '@tabletop/common'
 import { getCompany } from '../finance/finance.js'
 import { stockMarketOrder } from '../stock/stockMarket.js'
 import type { StockState } from '../stock/stockState.js'
+import type { TrainState } from '../trains/train.js'
 
 export const OperatingSet = Type.Object(
     {
@@ -12,6 +13,7 @@ export const OperatingSet = Type.Object(
         companyOrder: Type.Array(Type.String(), { uniqueItems: true }),
         completedCompanyIds: Type.Array(Type.String(), { uniqueItems: true }),
         privateIncomePaid: Type.Boolean(),
+        exportedRound: Type.Optional(Type.Integer({ minimum: 1 })),
         completed: Type.Boolean()
     },
     { additionalProperties: false }
@@ -21,6 +23,10 @@ export type OperatingState = StockState & { operatingSet?: OperatingSet }
 export interface OperatingRules {
     roundCount(state: OperatingState): number
     companyOrder(state: OperatingState): string[]
+    /** The kinds of the depot trains exported, in order, when the current operating round ends. */
+    trainsToExport?(state: OperatingState & TrainState): string[]
+    /** What a private pays its owner as an operating round starts, when its state decides it. */
+    privateIncome?(state: OperatingState & TrainState, privateId: string): number
 }
 
 export function reorderPendingOperatingCompanies(

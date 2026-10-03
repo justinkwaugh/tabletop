@@ -13,11 +13,7 @@
         type GameState,
         type HydratedGameState
     } from '@tabletop/common'
-    import {
-        EighteenXXStateValidator,
-        type EighteenXXState,
-        type HydratedEighteenXXState
-    } from '@tabletop/18xx'
+    import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
     import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
     import {
         createHarnessAppContext,
@@ -155,7 +151,10 @@
             const { game, actions } = loaded
             assertExists(game, 'Local example is missing')
             assertExists(game.state, 'Local example has no gameState')
-            if (!EighteenXXStateValidator.Check(game.state))
+            const validator = runtime.canonicalStateValidator
+            assertExists(validator, 'An 18xx runtime validates its canonical state')
+            const canonical = (state: GameState): state is EighteenXXState => validator.Check(state)
+            if (!canonical(game.state))
                 throw new Error('Local example has an invalid finance gameState')
             if (migrateCompanyNames(loaded)) {
                 await app.gameService.saveGameLocally({ game, state: game.state, actions })

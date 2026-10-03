@@ -19,6 +19,7 @@ import {
     marketValue,
     spaceKey,
     type Allowance,
+    type CityPlacementPlan,
     type HydratedMagnaGreciaGameState,
     type MagnaGreciaProjectedState,
     type Place,
@@ -29,13 +30,16 @@ import {
 import { legalRoadShapeChoices, roadPlacement, type RoadShapeChoice } from './roadLay.js'
 import { BuildTool } from './buildTool.js'
 import {
-    backDraft,
+    askToConfirmEndTurn,
     carryTool,
     chooseRoadShape,
     chooseRoadSpace,
     chooseTool,
     clearRoadLay,
     closeResupply,
+    draftConfirmingEndTurn,
+    draftResupplyOpen,
+    dropEndTurnConfirm,
     draftRoadShape,
     draftRoadSpace,
     draftTilesSkipped,
@@ -45,6 +49,7 @@ import {
     rotateRoad,
     skipTiles,
     toggleResupply,
+    undoDraft,
     type TurnDraft
 } from './turnDraft.js'
 
@@ -53,7 +58,12 @@ const NO_ALLOWANCE: Allowance = { basic: 0, bonus: 0 }
 export type RoadTarget = { coords: AxialCoordinates; options: RoadEnds[] }
 export type MarketTarget = { place: Place; amount: number }
 export type SellTarget = { coords: AxialCoordinates; amount: number }
-export type CityTarget = { coords: AxialCoordinates; startsClaim: boolean; startsFounding: boolean }
+export type CityTarget = {
+    coords: AxialCoordinates
+    joinsCityId?: string
+    startsClaim: boolean
+    startsFounding: boolean
+}
 
 export class MagnaGreciaGameSession extends GameSession<
     MagnaGreciaProjectedState,
@@ -65,7 +75,7 @@ export class MagnaGreciaGameSession extends GameSession<
 
     roadSpace: AxialCoordinates | undefined = $derived(draftRoadSpace(this.draft))
 
-    resupplyOpen = $derived(this.draft.resupplyOpen)
+    resupplyOpen = $derived(draftResupplyOpen(this.draft))
 
     tilesSkipped = $derived(draftTilesSkipped(this.draft))
 
@@ -86,6 +96,17 @@ export class MagnaGreciaGameSession extends GameSession<
     pendingFounding = $derived(this.pendingCity?.kind === PendingCityKind.Founding)
 
     cityUnfinished = $derived(this.pendingCity !== undefined)
+
+    private joinedCityId(plan: CityPlacementPlan): string | undefined {
+        switch (plan.kind) {
+            case CityPlacementKind.Expand:
+                return plan.cityIds[0]
+            case CityPlacementKind.CompleteClaim:
+                return plan.cityId
+            case CityPlacementKind.Found:
+                return undefined
+        }
+    }
 
     private canTarget(actionType: ActionType): string | undefined {
         const playerId = this.myPlayerId
@@ -155,7 +176,14 @@ export class MagnaGreciaGameSession extends GameSession<
             }
             const startsClaim = plan.kind !== CityPlacementKind.CompleteClaim && !!plan.claimVillage
             const startsFounding = plan.kind === CityPlacementKind.Found && !!plan.awaitsVillage
-            return [{ coords: space.coords, startsClaim, startsFounding }]
+            return [
+                {
+                    coords: space.coords,
+                    joinsCityId: this.joinedCityId(plan),
+                    startsClaim,
+                    startsFounding
+                }
+            ]
         })
     })
 
@@ -248,6 +276,16 @@ export class MagnaGreciaGameSession extends GameSession<
 
     endTurnOutcome: EndTurnOutcome = $derived(this.gameState.endTurnOutcome())
 
+    // Revealing a card or ending the game cannot be undone, so End turn asks first.
+    endTurnIsFinal = $derived(
+        this.endTurnOutcome === EndTurnOutcome.RevealsCard ||
+            this.endTurnOutcome === EndTurnOutcome.EndsGame
+    )
+
+    confirmingEndTurn = $derived(
+        this.canEndTurn && this.endTurnIsFinal && draftConfirmingEndTurn(this.draft)
+    )
+
     upcomingCard = $derived(this.gameState.result ? undefined : this.gameState.upcomingCard())
 
     chooseTool(tool: BuildTool) {
@@ -300,8 +338,12 @@ export class MagnaGreciaGameSession extends GameSession<
         return hasManualDraft(this.draft)
     }
 
-    back() {
-        this.draft = backDraft(this.draft)
+    override async undo() {
+        if (this.hasManualSelection()) {
+            this.draft = undoDraft(this.draft)
+            return
+        }
+        await super.undo()
     }
 
     resetAction() {
@@ -365,6 +407,21 @@ export class MagnaGreciaGameSession extends GameSession<
             return
         }
         await this.applyAction(this.createPlayerAction(SellMarket, { coords }))
+    }
+
+    async requestEndTurn() {
+        if (!this.canEndTurn) {
+            return
+        }
+        if (this.endTurnIsFinal) {
+            this.draft = askToConfirmEndTurn(this.draft)
+            return
+        }
+        await this.endTurn()
+    }
+
+    cancelEndTurn() {
+        this.draft = dropEndTurnConfirm(this.draft)
     }
 
     async endTurn() {

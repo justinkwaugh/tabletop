@@ -301,6 +301,15 @@
                 <span>Par</span><strong>{company.parPrice}</strong>
             </div>{/if}
         {@render marketValue()}
+        {#if session.loans.rules && company.kind !== 'private' && company.started}<div>
+                <span>Loans</span><strong
+                    >{session.loans.loans(company.id)}/{session.loans.capacity(company.id)}</strong
+                >
+            </div>{/if}
+        {#each session.presentation.companyFacts?.(session.gameState, company.id) ?? [] as fact (fact.label)}<div
+            >
+                <span>{fact.label}</span><strong>{fact.value}</strong>
+            </div>{/each}
         {#if !vertical}
             <div>
                 <span>Last run</span>
@@ -424,6 +433,9 @@
         flex: 1;
         text-align: center;
         padding: 7px 10px;
+    }
+    .vertical .financial-summary .prices div {
+        padding-inline: 4px;
     }
     .financial-summary .prices .market-value {
         background: #1b3d4580;

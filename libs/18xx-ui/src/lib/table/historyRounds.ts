@@ -8,11 +8,14 @@ import {
     isFloatCompany,
     isEndGame,
     isResolveAuction,
+    isResolveSelectionAuction,
     isStartOperatingRound,
     isSetStockInstruction,
     isStopStockInstruction,
     isSetPrivatePowerRequest,
     isDropPrivatePowerRequest,
+    isExportTrains,
+    isPayInterest,
     type EighteenXXState,
     type AuctionAward
 } from '@tabletop/18xx'
@@ -20,10 +23,19 @@ import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import { historyOperatingOrder, type HistoryOperatingOrder } from './historyOperatingOrder.js'
 import { historyCash, changedCompanyCash, type HistoryCash } from './historyCash.js'
 import { auctionHistory, type ActionHistoryEntry } from './auctionHistory.js'
+import type { TitleRound } from '../session/titlePresentation.js'
+import {
+    AuctionHeading,
+    operatingRoundHeading,
+    roundLabel,
+    roundTitle,
+    stockRoundHeading
+} from './roundHeading.js'
 
 export type HistoryRound = {
     id: string
     label: string
+    title: string
     phases: string[]
     startActionIndex?: number
     endActionIndex?: number
@@ -35,6 +47,19 @@ function changedCompanyCashOf(cash: HistoryCash | undefined): boolean {
     return cash !== undefined && changedCompanyCash(cash)
 }
 
+export type HistoryTitle = {
+    isEvent?: (action: GameAction) => boolean
+    rounds?: readonly TitleRound[]
+}
+
+/** The game's end shares the round of the action before it, which may close a title's round. */
+function roundClosingAction(reversed: readonly GameAction[], position: number): GameAction {
+    const action = reversed[position]
+    const closing = isEndGame(action) ? reversed[position + 1] : action
+    assertExists(closing, 'The game ends after another action')
+    return closing
+}
+
 export function historyRounds(
     actions: readonly GameAction[],
     state: EighteenXXState,
@@ -42,8 +67,10 @@ export function historyRounds(
         actions,
         state
     ),
-    cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state)
+    cash: ReadonlyMap<string, HistoryCash> = historyCash(actions, state),
+    title: HistoryTitle = {}
 ): HistoryRound[] {
+    const titleRounds = title.rounds ?? []
     const awards: readonly AuctionAward[] = state.offerAuction?.awards ?? []
     const entries = new Map(auctionHistory(actions, awards).map((entry) => [entry.id, entry]))
     let phase = state.phaseId
@@ -53,20 +80,31 @@ export function historyRounds(
     let round = state.operatingSet?.roundNumber ?? 1
     let auction = !!(
         (state.offerAuction && !state.offerAuction.completed) ||
-        (state.openingAuction && !state.openingAuction.completed)
+        (state.openingAuction && !state.openingAuction.completed) ||
+        (state.selectionAuction && !state.selectionAuction.completed)
     )
+    // Walking back from the end, a title's round is open between its end and its start.
+    let openRound = titleRounds.find((round) => round.inProgress(state))
     const rounds: HistoryRound[] = []
-    for (const action of actions.toReversed()) {
-        const label = auction
-            ? 'Auction'
-            : operating && !isCompleteStockRound(action)
-              ? `OR ${set}.${round}`
-              : `SR ${stock}`
+    const reversed = actions.toReversed()
+    for (const [position, action] of reversed.entries()) {
+        const closing = roundClosingAction(reversed, position)
+        openRound = titleRounds.find((round) => round.ends(closing)) ?? openRound
+        const heading = auction
+            ? AuctionHeading
+            : openRound
+              ? operatingRoundHeading(set, round, openRound)
+              : operating && !isCompleteStockRound(action)
+                ? operatingRoundHeading(set, round)
+                : stockRoundHeading(stock)
+        const label = roundLabel(heading)
+        if (openRound?.starts(action)) openRound = undefined
         let section = rounds.at(-1)
         if (section?.id !== label) {
             section = {
                 id: label,
                 label,
+                title: roundTitle(heading),
                 phases: [phase],
                 endActionIndex: action.index,
                 entries: []
@@ -81,8 +119,9 @@ export function historyRounds(
             assertExists(order, 'Operating round history requires its recorded company order')
             section.operatingOrder = order
         }
+        // A round's start is history only when privates paid companies, such as mail.
         const entry =
-            startsOperatingRound ||
+            (startsOperatingRound && !changedCompanyCashOf(cash.get(action.id))) ||
             isSetStockInstruction(action) ||
             isStopStockInstruction(action) ||
             isSetPrivatePowerRequest(action) ||
@@ -102,10 +141,15 @@ export function historyRounds(
                           (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
                       )) ||
                   isEndGame(action) ||
-                  (isResolveAuction(action) && !state.offerAuction)
+                  isExportTrains(action) ||
+                  isPayInterest(action) ||
+                  !!title.isEvent?.(action) ||
+                  (isResolveAuction(action) && !state.offerAuction) ||
+                  isResolveSelectionAuction(action)
                       ? { kind: 'action' as const, id: action.id, action }
                       : undefined))
         if (entry) section.entries.push(entry)
+        if (isResolveSelectionAuction(action) && action.metadata?.completed) auction = true
         for (const patch of action.undoPatch ?? []) {
             if (patch.op !== 'add' && patch.op !== 'replace') continue
             if (patch.path === '/phaseId') {

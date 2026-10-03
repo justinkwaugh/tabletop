@@ -46,6 +46,11 @@ import {
     isDeclinePrivateStation,
     isPlacePrivateStation
 } from './privateStation.js'
+import {
+    HydratedPlacePrivateMarker,
+    PlacePrivateMarker,
+    isPlacePrivateMarker
+} from './placePrivateMarker.js'
 
 export function privateActions(rules: {
     privateRules: PrivateRules
@@ -94,6 +99,15 @@ export function privateActions(rules: {
               )
           ]
         : []
+    const markerActions = rules.privatePowerRules.markerTerms
+        ? [
+              defineAction(
+                  PlacePrivateMarker,
+                  isPlacePrivateMarker,
+                  (action) => new HydratedPlacePrivateMarker(action, rules.privatePowerRules)
+              )
+          ]
+        : []
     const stationActions = rules.privatePowerRules.stationPrivateIds?.length
         ? [
               defineAction(
@@ -137,6 +151,7 @@ export function privateActions(rules: {
         ),
         ...outOfTurnActions,
         ...requestActions,
-        ...stationActions
+        ...stationActions,
+        ...markerActions
     ]
 }

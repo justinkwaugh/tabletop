@@ -11,13 +11,14 @@ import {
 export function earningsActions(
     earnings: EarningsRules,
     privates: PrivateRules,
-    stock: StockRules
+    stock: StockRules,
+    nextState: string
 ): ActionDefinition[] {
     return [
         defineAction(
             DistributeEarnings,
             isDistributeEarnings,
-            (action) => new HydratedDistributeEarnings(action, earnings, privates, stock)
+            (action) => new HydratedDistributeEarnings(action, earnings, privates, stock, nextState)
         )
     ]
 }

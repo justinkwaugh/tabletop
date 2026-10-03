@@ -1,6 +1,7 @@
 <script lang="ts">
     import { assert } from '@tabletop/common'
     import { tableHeaderState } from './tableHeaderState.js'
+    import { currentRoundHeading } from './roundHeading.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -49,10 +50,12 @@
         return { destroy: () => observer.disconnect() }
     }
     const gameState = $derived(tableHeaderState(session))
+    const titleRounds = $derived(session.presentation.titleRounds)
     const auction = $derived(
         Boolean(
             (gameState.openingAuction && !gameState.openingAuction.completed) ||
-            (gameState.offerAuction && !gameState.offerAuction.completed)
+            (gameState.offerAuction && !gameState.offerAuction.completed) ||
+            (gameState.selectionAuction && !gameState.selectionAuction.completed)
         )
     )
     const companyId = $derived(
@@ -96,18 +99,13 @@
                 <span class="auction-label max-sm:hidden">Opening auction</span><span
                     class="auction-label sm:hidden">Auction</span
                 >
-            {:else if !gameState.stockRound.completed}
-                <span class="round-full" aria-hidden={compact}>Stock round</span><span
-                    class="round-short"
-                    aria-hidden={!compact}>SR</span
-                >
-                {gameState.stockRound.number}
             {:else}
-                <span class="round-full" aria-hidden={compact}>Operating round</span><span
+                {@const heading = currentRoundHeading(gameState, titleRounds)}
+                <span class="round-full" aria-hidden={compact}>{heading.name}</span><span
                     class="round-short"
-                    aria-hidden={!compact}>OR</span
+                    aria-hidden={!compact}>{heading.abbreviation}</span
                 >
-                {gameState.operatingSet?.number}.{gameState.operatingSet?.roundNumber}
+                {heading.number}
             {/if}
         </strong>
         {#if company && gameState.stockRound.completed && !gameState.result}<span

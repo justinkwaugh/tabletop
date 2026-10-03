@@ -1,0 +1,72 @@
+import { expect, it } from 'vitest'
+import { createRectangularStockMarket, placeStockMarker } from '../stock/stockMarket.js'
+import type { FinancialState } from '../finance/finance.js'
+import type { StationState } from '../map/station.js'
+import { resetCompany } from './companyReset.js'
+
+it('returns a company to an unstarted charter with its president’s certificate in the bank', () => {
+    const stockMarket = createRectangularStockMarket([[50, 60]], () => 'white')
+    placeStockMarker(stockMarket, 'A', '0:1')
+    const state: FinancialState & StationState & { stockMarket: typeof stockMarket } = {
+        bank: { name: 'Bank' },
+        companies: [
+            {
+                id: 'A',
+                name: 'A',
+                kind: 'major',
+                shareCount: 5,
+                started: true,
+                floated: true,
+                parPrice: 60,
+                loans: 2,
+                president: { kind: 'player', playerId: 'one' }
+            }
+        ],
+        cash: [],
+        certificatePools: [],
+        certificates: [
+            {
+                id: 'A:president',
+                companyId: 'A',
+                kind: 'share',
+                president: true,
+                shares: 2,
+                certificateLimitCount: 1,
+                retired: false,
+                owner: { kind: 'player', playerId: 'one' }
+            },
+            {
+                id: 'A:short:1',
+                companyId: 'A',
+                kind: 'short',
+                shares: 1,
+                certificateLimitCount: 0,
+                retired: false,
+                owner: { kind: 'player', playerId: 'two' }
+            }
+        ],
+        stations: [
+            {
+                id: 'A:home',
+                companyId: 'A',
+                status: 'placed',
+                position: { locationId: '1', nodeId: 'city', slot: 0 }
+            },
+            { id: 'A:station:1', companyId: 'A', status: 'available' }
+        ],
+        stockMarket
+    }
+    resetCompany(state, 'A', 2)
+    expect(state.companies[0]).toEqual({ id: 'A', name: 'A', kind: 'major', shareCount: 2 })
+    expect(state.stockMarket.stacks).toEqual([])
+    expect(
+        state.certificates.map((certificate) => [certificate.retired, certificate.owner])
+    ).toEqual([
+        [false, { kind: 'bank' }],
+        [true, undefined]
+    ])
+    expect(state.stations).toEqual([
+        { id: 'A:home', companyId: 'A', status: 'available' },
+        { id: 'A:station:1', companyId: 'A', status: 'removed' }
+    ])
+})

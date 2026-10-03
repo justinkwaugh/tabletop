@@ -1,6 +1,8 @@
 import type { Owner } from '../finance/finance.js'
 import {
     TrackConstruction,
+    type TrackLayDetails,
+    type TrackLayEffects,
     type TrackRules,
     type TrackRequest,
     type TrackEvaluation
@@ -13,6 +15,11 @@ export interface PrivateTrackTerms {
     payer: Owner
     connected: boolean
     countsAsOrdinaryLay?: true
+    // Several lays: the title's terms, not the family, decide when the power is used up.
+    reusable?: true
+    terrainDiscount?: number
+    restriction?(request: TrackRequest): string | undefined
+    relabels?: true
 }
 export interface PrivatePowerRules {
     trackTerms(
@@ -31,23 +38,52 @@ export interface PrivatePowerRules {
      * unconnected, as its station for the turn.
      */
     stationPrivateIds?: readonly string[]
+    afterTrackLay?(
+        state: CompanyDecisionState,
+        privateCompanyId: string,
+        details: TrackLayDetails
+    ): TrackLayEffects
+    markerTerms?(
+        state: CompanyDecisionState,
+        privateCompanyId: string,
+        playerId: string
+    ): PrivateMarkerTerms | undefined
+}
+
+export interface PrivateMarkerTerms {
+    kind: string
+    locationIds: readonly string[]
 }
 export function privateTrackConstruction(
     state: CompanyDecisionState,
     terms: PrivateTrackTerms,
     rules: TrackRules
 ): TrackConstruction {
+    const trackStep =
+        terms.countsAsOrdinaryLay && state.trackStep?.companyId === terms.companyId
+            ? state.trackStep
+            : { companyId: terms.companyId, lays: [], completed: false }
+    const discount = terms.terrainDiscount ?? 0
     return new TrackConstruction(
-        { ...state, trackStep: { companyId: terms.companyId, lays: [], completed: false } },
+        { ...state, trackStep },
         {
             ...rules,
-            allowance: () => ({ cost: 0 }),
+            allowance: terms.countsAsOrdinaryLay ? rules.allowance : () => ({ cost: 0 }),
             restriction: (_state, request) =>
                 terms.locationIds.includes(request.locationId) &&
                 terms.definitionIds.includes(request.definitionId)
-                    ? undefined
+                    ? terms.restriction?.(request)
                     : 'This private cannot place that tile here.',
-            useful: terms.connected ? rules.useful : () => true
+            useful: terms.connected ? rules.useful : () => true,
+            relabels: (locationId, definitionId) =>
+                !!terms.relabels &&
+                terms.locationIds.includes(locationId) &&
+                terms.definitionIds.includes(definitionId),
+            terrainCost: (constructionState, request, cost) =>
+                Math.max(
+                    0,
+                    (rules.terrainCost?.(constructionState, request, cost) ?? cost) - discount
+                )
         },
         terms.payer
     )

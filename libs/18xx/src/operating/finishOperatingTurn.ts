@@ -7,6 +7,7 @@ import {
     PlayerAction,
     HydratableAction,
     assert,
+    assertExists,
     type HydratedGameState,
     type GameAction
 } from '@tabletop/common'
@@ -17,11 +18,13 @@ import type { StationPlacementState } from '../stations/stationPlacement.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { trainsOwnedBy } from '../trains/train.js'
 import { nextOperatingCompany, type OperatingState } from './operatingSet.js'
+import type { LoanState } from '../loans/loans.js'
 
 export type OperatingTurnState = OperatingState &
     DistributionState &
     ConstructionState &
-    StationPlacementState
+    StationPlacementState &
+    Pick<LoanState, 'loanStep'>
 export function finishOperatingTurnReason(
     state: OperatingTurnState,
     rules: TrainRules,
@@ -82,13 +85,23 @@ export class HydratedFinishOperatingTurn
         )
         const reason = finishOperatingTurnReason(state, this.#rules, this.companyId)
         assert(!reason, reason ?? 'Cannot finish operating turn')
-        state.operatingSet!.completedCompanyIds.push(this.companyId)
-        state.turnManager.endTurn(state.actionCount)
-        delete state.trackStep
-        delete state.stationStep
-        delete state.routeStep
-        delete state.earningsDistribution
+        endOperatingTurn(state, this.companyId)
         this.metadata = operatingRoundSnapshot(state, this.#valuationRules)
         delete state.trainPurchaseStep
     }
+}
+
+/** Completes the company's turn and clears its steps, leaving its train purchases to the caller. */
+export function endOperatingTurn(
+    state: HydratedGameState & OperatingTurnState,
+    companyId: string
+): void {
+    assertExists(state.operatingSet, 'A turn belongs to an operating set')
+    state.operatingSet.completedCompanyIds.push(companyId)
+    state.turnManager.endTurn(state.actionCount)
+    delete state.trackStep
+    delete state.stationStep
+    delete state.routeStep
+    delete state.earningsDistribution
+    delete state.loanStep
 }

@@ -11,7 +11,7 @@ import {
 export const StockMarketSpace = Type.Object(
     {
         id: Type.String(),
-        price: Type.Integer({ minimum: 1 }),
+        price: Type.Integer({ minimum: 0 }),
         row: Type.Integer({ minimum: 0 }),
         column: Type.Integer({ minimum: 0 }),
         color: Type.String(),
@@ -106,6 +106,28 @@ export function placeStockMarker(market: StockMarket, companyId: string, spaceId
     }
     target.companyIds.push(companyId)
     market.stacks = market.stacks.filter((stack) => stack.companyIds.length > 0)
+}
+
+export function moveCompanyMarker(
+    market: StockMarket,
+    companyId: string,
+    direction: string,
+    steps: number
+): StockMarketMove | undefined {
+    const from = companyMarketSpace(market, companyId)
+    const to = moveMarketSpace(market, from.id, direction, steps)
+    if (to.id === from.id) return undefined
+    placeStockMarker(market, companyId, to.id)
+    return { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to.id }
+}
+
+export function removeStockMarker(market: StockMarket, companyId: string): void {
+    market.stacks = market.stacks
+        .map((stack) => ({
+            ...stack,
+            companyIds: stack.companyIds.filter((id) => id !== companyId)
+        }))
+        .filter((stack) => stack.companyIds.length > 0)
 }
 export function stockMarketOrder(market: StockMarket): string[] {
     return [...market.stacks]

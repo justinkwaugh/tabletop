@@ -9,13 +9,31 @@ import type { TileSet } from '../tiles/inventory.js'
 import type { TrainDefinition } from '../trains/train.js'
 import type { TrainDepot } from '../trains/trainDepot.js'
 import { RouteNetwork, type RouteTrace, type RouteVisit } from './routeNetwork.js'
-import type { OperatingResult, RouteResult, TrainRunningState, TrainRoute } from './route.js'
+import type {
+    OperatingResult,
+    RevenueCenter,
+    RouteBonus,
+    RouteResult,
+    TrainRunningState,
+    TrainRoute
+} from './route.js'
 export interface RouteRules {
     map: RailwayMap
     tileSet: TileSet
     depot: TrainDepot
     revenueStage(state: TrainRunningState, train: TrainDefinition): readonly string[]
     requiresCity(train: TrainDefinition): boolean
+    /** A route may visit only one revenue center in each hex. */
+    oneStopPerHex?: true
+    /** What a route earns for each hex it passes through or stops in, once per route. */
+    hexBonus?(state: TrainRunningState, locationId: string): number
+    /** What the train earns beyond the stop's value for stopping at a revenue center. */
+    stopBonus?(
+        state: TrainRunningState,
+        train: TrainDefinition,
+        companyId: string,
+        center: RevenueCenter
+    ): number
 }
 export type RouteEvaluationResult =
     | { result: RouteResult; reason?: never }
@@ -78,6 +96,11 @@ export class RouteEvaluation {
         }
         const repeatedGroup = this.repeatedStopGroup(trace)
         if (repeatedGroup) return { reason: `A route may visit ${repeatedGroup} only once.` }
+        if (this.rules.oneStopPerHex) {
+            const locations = trace.visits.map((visit) => visit.locationId)
+            if (new Set(locations).size !== locations.length)
+                return { reason: 'A route may stop only once in each hex.' }
+        }
         const distance = this.distance(definition, trace)
         if (definition.distance.maximum !== 'unlimited' && distance > definition.distance.maximum)
             return { reason: `The route exceeds the ${definition.name} train’s distance limit.` }
@@ -118,13 +141,15 @@ export class RouteEvaluation {
             nodeId: visit.nodeId,
             amount: this.revenue(visit, definition)
         }))
+        const bonuses = this.bonuses(companyId, definition, route, trace)
         return {
             result: {
                 ...route,
                 visits: trace.visits.map(({ locationId, nodeId }) => ({ locationId, nodeId })),
                 payments,
+                ...(bonuses.length ? { bonuses } : {}),
                 distance,
-                revenue: payments.reduce((sum, payment) => sum + payment.amount, 0)
+                revenue: [...payments, ...bonuses].reduce((sum, item) => sum + item.amount, 0)
             }
         }
     }
@@ -154,6 +179,31 @@ export class RouteEvaluation {
                 revenue: results.reduce((sum, route) => sum + route.revenue, 0)
             }
         }
+    }
+    private bonuses(
+        companyId: string,
+        train: TrainDefinition,
+        route: TrainRoute,
+        trace: RouteTrace
+    ): RouteBonus[] {
+        const hexes = new Set([
+            ...route.paths.map((path) => path.locationId),
+            ...trace.visits.map((visit) => visit.locationId)
+        ])
+        return [
+            ...trace.visits.map((visit) => ({
+                locationId: visit.locationId,
+                amount:
+                    this.rules.stopBonus?.(this.state, train, companyId, {
+                        locationId: visit.locationId,
+                        nodeId: visit.nodeId
+                    }) ?? 0
+            })),
+            ...[...hexes].map((locationId) => ({
+                locationId,
+                amount: this.rules.hexBonus?.(this.state, locationId) ?? 0
+            }))
+        ].filter((bonus) => bonus.amount > 0)
     }
     private repeatedStopGroup(trace: RouteTrace): string | undefined {
         const groups = trace.visits.flatMap(

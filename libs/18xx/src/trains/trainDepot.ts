@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Clone } from 'typebox/value'
 import { assert, assertExists, deepFreeze } from '@tabletop/common'
-import { TrainDefinition, type Train, type TrainInventory } from './train.js'
+import { TrainDefinition, unownedTrain, type Train, type TrainInventory } from './train.js'
 import type { Owner } from '../finance/finance.js'
 const SupplyEntry = Type.Object(
     {
@@ -97,12 +97,21 @@ export class TrainDepot {
                     train.status === 'market'
             ) ?? this.nextTrain(inventory, definitionId)
         assert(train?.id === trainId, 'This depot train is no longer available')
-        const owned: Train = { ...train, status: 'owned', owner: { ...owner } }
-        const index = inventory.trains.findIndex((entry) => entry.id === trainId)
+        this.store(inventory, { ...train, status: 'owned', owner: { ...owner } })
+    }
+    export(inventory: TrainInventory, definitionId: string): Train {
+        const train = this.nextTrain(inventory, definitionId)
+        assert(train?.status === 'depot', 'No depot train of this kind remains')
+        const exported = unownedTrain(train, 'removed')
+        this.store(inventory, exported)
+        return exported
+    }
+    private store(inventory: TrainInventory, train: Train): void {
+        const index = inventory.trains.findIndex((entry) => entry.id === train.id)
         if (index < 0) {
-            inventory.trains.push(owned)
+            inventory.trains.push(train)
             inventory.nextTrainNumber++
-        } else inventory.trains[index] = owned
+        } else inventory.trains[index] = train
     }
     validateInventory(
         inventory: TrainInventory,

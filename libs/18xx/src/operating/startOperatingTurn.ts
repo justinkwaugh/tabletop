@@ -33,9 +33,23 @@ import {
 import { controllingOwner } from '../finance/finance.js'
 import type { OperatingState } from './operatingSet.js'
 import { BetweenCompaniesState } from './operatingSteps.js'
+import {
+    ExportTrains,
+    isExportTrains,
+    trainsAwaitingExport,
+    type HydratedExportTrains
+} from './exportTrains.js'
+import type { OperatingRules } from './operatingSet.js'
+import type { TrainState } from '../trains/train.js'
+import type { PhaseState } from '../phases/phaseChange.js'
 import type { ConstructionState } from '../construction/trackConstruction.js'
 
-type State = HydratedGameState & OperatingState & ConstructionState & StationPlacementState
+type State = HydratedGameState &
+    OperatingState &
+    ConstructionState &
+    StationPlacementState &
+    TrainState &
+    PhaseState
 const StartFields = Type.Object({
     type: Type.Literal('StartOperatingTurn'),
     companyId: Type.String()
@@ -81,14 +95,18 @@ export class StartOperatingTurnHandler implements MachineStateHandler<
     | HydratedStartOperatingTurn
     | HydratedPlaceHomeStations
     | HydratedStartOperatingRound
-    | HydratedStartStockRound,
+    | HydratedStartStockRound
+    | HydratedExportTrains,
     State
 > {
     constructor(
         private readonly stationRules: StationRules,
+        private readonly operatingRules: OperatingRules,
         private readonly firstStep: string
     ) {}
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
+        const exporting = trainsAwaitingExport(context.gameState, this.operatingRules).length > 0
+        if (exporting) return action.source === ActionSource.System && isExportTrains(action)
         return (
             action.source === ActionSource.System &&
             ((isStartOperatingRound(action) && canStartOperatingRound(context.gameState)) ||
@@ -106,6 +124,10 @@ export class StartOperatingTurnHandler implements MachineStateHandler<
         return []
     }
     enter(context: MachineContext<State>): void {
+        if (trainsAwaitingExport(context.gameState, this.operatingRules).length) {
+            context.addSystemAction(ExportTrains, {})
+            return
+        }
         if (canStartOperatingRound(context.gameState)) {
             context.addSystemAction(StartOperatingRound, {
                 playerId: context.gameState.activePlayerIds[0]
@@ -133,7 +155,11 @@ export class StartOperatingTurnHandler implements MachineStateHandler<
             | HydratedPlaceHomeStations
             | HydratedStartOperatingRound
             | HydratedStartStockRound
+            | HydratedExportTrains,
+        context: MachineContext<State>
     ): string {
+        if (isExportTrains(action))
+            return context.gameState.phaseChange ? 'AdvancingPhase' : BetweenCompaniesState
         return isStartStockRound(action)
             ? 'StockRound'
             : isStartOperatingTurn(action)

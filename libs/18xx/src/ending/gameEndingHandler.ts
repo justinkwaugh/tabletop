@@ -19,19 +19,20 @@ export class GameEndingHandler<
             return action.isValid(context.gameState)
         return (
             !pendingEnding(context.gameState, this.rules) &&
-            !endingDue(context.gameState) &&
+            !endingDue(context.gameState, this.rules) &&
             this.handler.isValidAction(action, context)
         )
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
-        return pendingEnding(context.gameState, this.rules) || endingDue(context.gameState)
+        return pendingEnding(context.gameState, this.rules) ||
+            endingDue(context.gameState, this.rules)
             ? []
             : this.handler.validActionsForPlayer(playerId, context)
     }
     enter(context: MachineContext<State>): void {
         if (pendingEnding(context.gameState, this.rules))
             context.addSystemAction(ScheduleGameEnd, {})
-        else if (endingDue(context.gameState)) context.addSystemAction(EndGame, {})
+        else if (endingDue(context.gameState, this.rules)) context.addSystemAction(EndGame, {})
         else this.handler.enter(context)
     }
     onAction(action: HydratedAction, context: MachineContext<State>): string {

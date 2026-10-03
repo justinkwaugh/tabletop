@@ -4,7 +4,7 @@ export type StoredGame = {
     typeId: string
     name: string
     hotseat: boolean
-    players: { userId?: string }[]
+    players: { id: string; name: string; userId?: string }[]
     config?: { examplePosition?: string }
     [field: string]: unknown
 }
@@ -66,5 +66,20 @@ export function putLocalRecords<Store extends keyof LocalStores>(
                 }
             }),
         { store, records }
+    )
+}
+
+export async function hostLocalGames(page: Page, seatedPlayerId?: string): Promise<void> {
+    const games = await readLocalRecords(page, 'games')
+    await putLocalRecords(
+        page,
+        'games',
+        games.map((game) => ({
+            ...game,
+            hotseat: false,
+            players: game.players.map((player) =>
+                player.id === seatedPlayerId ? player : { ...player, userId: 'another-user' }
+            )
+        }))
     )
 }

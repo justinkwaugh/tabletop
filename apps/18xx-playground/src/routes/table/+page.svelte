@@ -9,6 +9,7 @@
     // In menu order; title-specific positions appear only for titles that offer them.
     const Positions: readonly { id: Position; label: string; titleSpecific?: true }[] = [
         { id: 'opening', label: 'Opening auction' },
+        { id: 'optional-opening', label: 'Opening with options', titleSpecific: true },
         { id: 'trading', label: 'Stock round' },
         { id: 'starting', label: 'Company starts' },
         { id: 'flotation', label: 'Company flotation' },
@@ -22,6 +23,8 @@
         { id: 'funding-chain', label: 'Union Bank train funding', titleSpecific: true },
         { id: 'bankruptcy', label: 'Bankruptcy' },
         { id: 'powers', label: 'Buy privates' },
+        { id: 'company-powers', label: 'Company private powers', titleSpecific: true },
+        { id: 'shorts', label: 'Short positions', titleSpecific: true },
         { id: 'transfers', label: 'Negotiated purchases' },
         { id: 'ending', label: 'Final operating turn' },
         { id: 'finished', label: 'Finished game', titleSpecific: true }

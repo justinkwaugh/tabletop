@@ -8,6 +8,7 @@ export type StockState = StockCompanyState &
     Pick<GameState, 'players' | 'activePlayerIds' | 'turnManager'> & {
         stockRound: StockRound
         stockMarket: StockMarket
+        bankruptPlayerIds?: string[]
     }
 
 export function copyStockState(state: StockState): StockState {

@@ -11,11 +11,18 @@ import {
     type PlaceId
 } from '@tabletop/magna-grecia'
 import { directionAngle, hexCenter } from './boardGeometry.js'
+import { cityLayout, type CityLayout } from './cityLayout.js'
 
 export type OracleView = {
     key: string
     center: Point
     attention?: { playerId: string; angle: number }
+}
+
+export type CityView = {
+    key: string
+    playerId: string
+    layout: CityLayout
 }
 
 export type MarketView = {
@@ -45,6 +52,23 @@ export function placeAnchor(place: Place): AxialCoordinates {
 
 export function placeCenter(place: Place): Point {
     return hexCenter(placeAnchor(place))
+}
+
+export function cityViews(board: HydratedBoard): CityView[] {
+    return board.cities.map((city) => ({
+        key: city.id,
+        playerId: city.playerId,
+        layout: cityLayout(city.spaces, city.spaces[0])
+    }))
+}
+
+export function ghostCityLayout(
+    board: HydratedBoard,
+    coords: AxialCoordinates,
+    joinsCityId?: string
+): CityLayout {
+    const founding = joinsCityId ? board.city(joinsCityId).spaces[0] : coords
+    return cityLayout([coords], founding)
 }
 
 export function oracleViews(board: HydratedBoard, network: Network): OracleView[] {
@@ -100,6 +124,6 @@ export function connectionBadges(board: HydratedBoard, network: Network): Connec
         .filter(({ count }) => count > 0)
         .map(({ place, count }) => {
             const center = placeCenter(place)
-            return { key: place.id, point: { x: center.x + 26, y: center.y - 29 }, count }
+            return { key: place.id, point: { x: center.x + 29, y: center.y - 32 }, count }
         })
 }

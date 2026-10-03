@@ -26,7 +26,8 @@ beforeAll(async () => {
 function position(
     faces: TileFace[],
     distances: TrainDistance[],
-    stopGroups: Readonly<Record<number, string>> = {}
+    stopGroups: Readonly<Record<number, string>> = {},
+    routeRules: Partial<RouteRules> = {}
 ) {
     const tileSet = new TileSet({ id: 'empty', entries: [] }, [])
     const depot = new TrainDepot({
@@ -55,7 +56,8 @@ function position(
         tileSet,
         depot,
         requiresCity: (train) => train.distance.measure === 'cities-and-offboards',
-        revenueStage: (state) => [state.phaseId]
+        revenueStage: (state) => [state.phaseId],
+        ...routeRules
     }
     const state: TrainRunningState = {
         bank: { name: 'Bank' },
@@ -226,4 +228,61 @@ it('visits one location of a stop group per route', () => {
     const result = router.solve(grouped.state, grouped.rules, 'A')
     expect(result.exhaustive).toBe(true)
     expect(result.result.revenue).toBe(30)
+})
+
+it('stops once in each hex when the title allows one stop per hex', () => {
+    const fixed = (amount: number) => ({ kind: 'fixed' as const, amount })
+    const twoTowns: TileFace = {
+        color: 'yellow',
+        nodes: [
+            { id: 'town-0', kind: 'town', revenue: fixed(10) },
+            { id: 'town-1', kind: 'town', revenue: fixed(10) }
+        ],
+        paths: [
+            {
+                id: 'in',
+                endpoints: [
+                    { kind: 'edge', edge: 3 },
+                    { kind: 'node', nodeId: 'town-0' }
+                ]
+            },
+            {
+                id: 'between',
+                endpoints: [
+                    { kind: 'node', nodeId: 'town-0' },
+                    { kind: 'node', nodeId: 'town-1' }
+                ]
+            },
+            {
+                id: 'out',
+                endpoints: [
+                    { kind: 'node', nodeId: 'town-1' },
+                    { kind: 'edge', edge: 0 }
+                ]
+            }
+        ],
+        labels: []
+    }
+    const faces = [city('yellow', [0], 20, 1), twoTowns, town('yellow', [[3]], 40)]
+    const distances: TrainDistance[] = [{ measure: 'revenue-centers', maximum: 4 }]
+    const free = position(faces, distances)
+    expect(router.solve(free.state, free.rules, 'A').result.revenue).toBe(80)
+    const limited = position(faces, distances, {}, { oneStopPerHex: true })
+    const result = router.solve(limited.state, limited.rules, 'A')
+    expect(result.exhaustive).toBe(true)
+    expect(result.result.revenue).toBe(30)
+})
+it('finds routes earning the title’s hex and stop bonuses', () => {
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), track('yellow', [[3, 0]]), city('yellow', [3], 30, 1)],
+        [{ measure: 'revenue-centers', maximum: 2 }],
+        {},
+        {
+            hexBonus: (_state, locationId) => (locationId === '1' ? 10 : 0),
+            stopBonus: (_state, _train, _companyId, center) => (center.locationId === '2' ? 5 : 0)
+        }
+    )
+    const result = router.solve(state, rules, 'A')
+    expect(result.result.revenue).toBe(65)
+    expect(result.result.routes[0].bonuses).toHaveLength(2)
 })

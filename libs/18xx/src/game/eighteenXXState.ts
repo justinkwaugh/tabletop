@@ -2,6 +2,11 @@ import { GameEnding } from '../ending/gameEnding.js'
 import { EndingFields, type PlayerWealth } from '../ending/finalWealth.js'
 import { OfferPileFields, type OfferPileAuction } from '../auctions/offerPileAuction.js'
 import { AuctionFields, type WaterfallAuction } from '../auctions/waterfallAuction.js'
+import {
+    SelectionAuctionFields,
+    validateSelectionAuction,
+    type SelectionAuction
+} from '../auctions/selectionAuction.js'
 import { validatePendingPar, type PendingPar } from '../company/pendingPar.js'
 import { FundingFields, type TrainFunding, type Bankruptcy } from '../funding/trainFunding.js'
 import {
@@ -20,6 +25,7 @@ import type { TrainDepot } from '../trains/trainDepot.js'
 import { StationStep } from '../stations/stationPlacement.js'
 import { TrackStep } from '../construction/trackConstruction.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
+import { LocationMarkerFields, type LocationMarker } from '../map/locationMarkers.js'
 import type { RailwayMap } from '../map/map.js'
 import type { PhaseTable } from '../phases/phaseTable.js'
 import type { TileSet, TileInventory } from '../tiles/inventory.js'
@@ -37,6 +43,11 @@ import {
 } from '@tabletop/common'
 import { StockMarket, validateStockMarket } from '../stock/stockMarket.js'
 import { StockRound } from '../stock/stockRound.js'
+import {
+    CompanyAuctionFields,
+    validateCompanyAuction,
+    type CompanyAuction
+} from '../stock/companyAuction.js'
 import { FinanceFields, validateFinances, type FinancialState } from '../finance/finance.js'
 import { validateStockRound } from '../stock/stockRound.js'
 import { validateOperatingSet } from '../operating/operatingSet.js'
@@ -51,6 +62,8 @@ import { validateRouteStep } from '../routes/route.js'
 import { validatePhaseChange } from '../phases/phaseChange.js'
 import { validateEarningsDistribution } from '../earnings/earningsDistribution.js'
 import { validateTrainPurchaseStep } from '../trains/train.js'
+import { LoanFields, validateLoanStep, type LoanStep } from '../loans/loans.js'
+import { CashCrisisFields, validateCashCrisis, type CashCrisis } from '../funding/cashCrisis.js'
 
 const FamilyMachineState = Type.Union([
     Type.Literal('StockRound'),
@@ -58,6 +71,7 @@ const FamilyMachineState = Type.Union([
     Type.Literal('OfferBidding'),
     Type.Literal('WaterfallAuction'),
     Type.Literal('AuctionBidding'),
+    Type.Literal('SelectionAuction'),
     Type.Literal('StartingOperatingSet'),
     Type.Literal('OperatingSet'),
     Type.Literal('LayingTrack'),
@@ -71,7 +85,9 @@ const FamilyMachineState = Type.Union([
     Type.Literal('DiscardingTrains'),
     Type.Literal('RustingTrains'),
     Type.Literal('RunningTrains'),
-    Type.Literal('DistributingEarnings')
+    Type.Literal('DistributingEarnings'),
+    Type.Literal('RepayingLoans'),
+    Type.Literal('RaisingCash')
 ])
 const FamilyFields = Type.Object({
     // Serialized marker retained so games created before the runtime left the examples folder keep loading.
@@ -87,15 +103,20 @@ const FamilyFields = Type.Object({
     gameEnding: Type.Optional(GameEnding),
     ...FundingFields,
     ...AuctionFields,
+    ...SelectionAuctionFields,
     ...OfferPileFields,
     ...CompanyFields,
     ...MapFields,
+    ...LocationMarkerFields,
     ...TrainFields,
     ...PhaseFields,
     ...EarningsFields,
     ...CompanyDecisionFields,
     ...RouteFields,
-    ...StockTurnPurchaseFields
+    ...StockTurnPurchaseFields,
+    ...CompanyAuctionFields,
+    ...LoanFields,
+    ...CashCrisisFields
 })
 export const EighteenXXState: Type.TObject<
     Omit<typeof GameState.properties, 'machineState'> & typeof FamilyFields.properties
@@ -145,6 +166,7 @@ export class HydratedEighteenXXState
 {
     declare offerAuction?: OfferPileAuction
     declare openingAuction?: WaterfallAuction
+    declare selectionAuction?: SelectionAuction
     declare pendingPar?: PendingPar
     declare trainFunding?: TrainFunding
     declare bankruptcy?: Bankruptcy
@@ -154,6 +176,11 @@ export class HydratedEighteenXXState
     declare privatePowerRequests?: string[]
     declare purchaseOffer?: PendingPurchaseOffer
     declare stockTurnPurchases?: StockTurnPurchase[]
+    declare companyAuction?: CompanyAuction
+    declare interestRate?: number
+    declare loanStep?: LoanStep
+    declare cashCrisis?: CashCrisis
+    declare bankruptPlayerIds?: string[]
     declare privateTrackLay?: PrivateTrackLay
     declare privateStation?: PrivateStation
     declare trackConsent?: TrackConsent
@@ -165,6 +192,7 @@ export class HydratedEighteenXXState
     declare trainInventory: TrainInventory
     declare trainPurchaseStep?: TrainPurchaseStep
     declare tileInventory: TileInventory
+    declare locationMarkers?: LocationMarker[]
     declare phaseId: string
     declare tranches: CompanyState['tranches']
     declare ownershipLimitExemptions: CompanyState['ownershipLimitExemptions']
@@ -199,6 +227,8 @@ export class HydratedEighteenXXState
         validateTrackStep(this)
         validateStationStep(this)
         validateWaterfallAuction(this)
+        validateSelectionAuction(this)
+        validateCompanyAuction(this)
         validatePendingPar(this)
         validateTrainFunding(this)
         validateFinalResults(this)
@@ -213,6 +243,8 @@ export class HydratedEighteenXXState
         validatePhaseChange(this)
         validateEarningsDistribution(this)
         validateTrainPurchaseStep(this)
+        validateLoanStep(this)
+        validateCashCrisis(this)
         validateStations(
             this,
             this.companies.map((company) => company.id)

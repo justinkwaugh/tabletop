@@ -14,6 +14,14 @@ import {
 } from './privateSale.js'
 import { SellShares, HydratedSellShares, isSellShares } from './sellShares.js'
 import { FinishStockTurn, HydratedFinishStockTurn, isFinishStockTurn } from './finishStockTurn.js'
+import { AuctionCompany, HydratedAuctionCompany, isAuctionCompany } from './auctionCompany.js'
+import { BidForCompany, HydratedBidForCompany, isBidForCompany } from './bidForCompany.js'
+import {
+    PassCompanyAuction,
+    HydratedPassCompanyAuction,
+    isPassCompanyAuction
+} from './passCompanyAuction.js'
+import { FormCompany, HydratedFormCompany, isFormCompany } from './formCompany.js'
 import {
     SetStockInstruction,
     HydratedSetStockInstruction,
@@ -54,6 +62,30 @@ export function stockActions(rules: StockRules): ActionDefinition[] {
             isStopStockInstruction,
             (action) => new HydratedStopStockInstruction(action, rules)
         ),
+        ...(rules.companyAuction
+            ? [
+                  defineAction(
+                      AuctionCompany,
+                      isAuctionCompany,
+                      (action) => new HydratedAuctionCompany(action, rules)
+                  ),
+                  defineAction(
+                      BidForCompany,
+                      isBidForCompany,
+                      (action) => new HydratedBidForCompany(action, rules)
+                  ),
+                  defineAction(
+                      PassCompanyAuction,
+                      isPassCompanyAuction,
+                      (action) => new HydratedPassCompanyAuction(action, rules)
+                  ),
+                  defineAction(
+                      FormCompany,
+                      isFormCompany,
+                      (action) => new HydratedFormCompany(action, rules)
+                  )
+              ]
+            : []),
         ...(rules.privateSales
             ? [
                   defineAction(

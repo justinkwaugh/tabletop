@@ -27,6 +27,7 @@
         'buy',
         'sell',
         ...(session.stock.canStartCompanies ? ['start' as const] : []),
+        ...(session.stock.canAuctionCompanies ? ['auction' as const] : []),
         ...(session.privates.hasExchanges ? ['exchange' as const] : []),
         ...(session.stock.sellsPrivates ? ['privates' as const] : [])
     ])

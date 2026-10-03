@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { assertExists, type GameAction } from '@tabletop/common'
+    import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
     import { controllingOwner } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
     import { historyCash } from './historyCash.js'
@@ -7,7 +7,7 @@
     import { historyRounds } from './historyRounds.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import { historyGroups } from './historyGroups.js'
-    import { historyDescription, type HistoryDescription } from './historyDescription.js'
+    import { historyDescription, type TitleActionDescription } from './historyDescription.js'
     import HistoryGroup from './HistoryGroup.svelte'
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import RoundHistory from './RoundHistory.svelte'
@@ -32,10 +32,7 @@
         tileColors?: Readonly<Record<string, string>>
         tileColorNames?: Readonly<Record<string, string>>
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
-        describeAction?: (
-            action: GameAction,
-            companyName: (id: string) => string
-        ) => HistoryDescription | undefined
+        describeAction?: TitleActionDescription
     } = $props()
     const money = $derived(session.presentation.money)
     const jumpDisabled = $derived(
@@ -50,7 +47,15 @@
     const orderChanges = $derived(historyOperatingOrder(context.actions, gameState))
     const cash = $derived(historyCash(context.actions, gameState))
     const companyChanges = $derived(historyCompanyChanges(context.actions, gameState))
-    const rounds = $derived(historyRounds(context.actions, gameState, orderChanges, cash))
+    // A system action the title describes is one of its own events.
+    const rounds = $derived(
+        historyRounds(context.actions, gameState, orderChanges, cash, {
+            isEvent: (action) =>
+                action.source === ActionSource.System &&
+                !!describeAction?.(action, companyName, () => describeShared(action)),
+            rounds: session.presentation.titleRounds
+        })
+    )
     const currentHeaderId = $derived(session.isViewingHistory ? rounds[0]?.id : undefined)
     function returnToCurrent() {
         if (!jumpDisabled) void session.history.goToEnd()
@@ -61,17 +66,19 @@
     function companyName(id: string) {
         return companyNames?.[id]?.history ?? fullCompanyName(id)
     }
+    function describeShared(action: GameAction) {
+        return historyDescription(
+            action,
+            gameState,
+            companyName,
+            (id) => session.getPlayerName(id),
+            companyChanges.get(action.id),
+            session.presentation.money
+        )
+    }
     function describe(action: GameAction) {
-        const description =
-            describeAction?.(action, companyName) ??
-            historyDescription(
-                action,
-                gameState,
-                companyName,
-                (id) => session.getPlayerName(id),
-                companyChanges.get(action.id),
-                session.presentation.money
-            )
+        const shared = () => describeShared(action)
+        const description = describeAction?.(action, companyName, shared) ?? shared()
         return orderChanges.has(action.id) ? { ...description, important: true } : description
     }
 

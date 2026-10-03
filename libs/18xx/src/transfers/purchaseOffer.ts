@@ -3,6 +3,7 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     Owner,
     cashOwnedBy,
+    finiteCashOwnedBy,
     controllingOwner,
     privateOwner,
     sameOwner
@@ -12,6 +13,7 @@ import { trainCanBeTraded, trainsOwnedBy } from '../trains/train.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { closePrivatesOnTrainPurchase } from '../trains/buyTrain.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
+import { settleTrainDepartures } from '../trains/trainDepartures.js'
 
 const Id = Type.String({ minLength: 1 })
 export const PurchaseAsset = Type.Union([
@@ -151,7 +153,7 @@ export function settlePurchaseOffer(
     offer: PurchaseOffer,
     rules: TransferRules,
     trains: TrainRules
-): void {
+): CashPayment[] {
     const evaluation = evaluatePurchaseOffer(state, offer, rules, trains)
     assert(
         evaluation.buyerPlayerId === offer.buyerPlayerId &&
@@ -164,9 +166,20 @@ export function settlePurchaseOffer(
         { from: owner, to: offer.seller, amount: offer.price }
     ])
     const asset = offer.asset
+    const payments: CashPayment[] = []
     if (asset.kind === 'train') {
         const train = state.trainInventory.trains.find((item) => item.id === asset.trainId)
         assert(train?.status === 'owned', 'The train must still be owned')
+        payments.push(
+            ...settleTrainDepartures(state, trains, [
+                {
+                    trainId: train.id,
+                    definitionId: train.definitionId,
+                    cause: 'purchase',
+                    owner: { ...train.owner }
+                }
+            ])
+        )
         train.owner = owner
         closePrivatesOnTrainPurchase(state, trains, offer.companyId)
     } else {
@@ -182,12 +195,7 @@ export function settlePurchaseOffer(
         delete certificate.poolId
     }
     rules.afterPurchase(state, offer)
-}
-
-function finiteCash(state: CompanyDecisionState, owner: Owner): number {
-    const cash = cashOwnedBy(state, owner)
-    assert(typeof cash === 'number', 'Purchase funding requires finite balances')
-    return cash
+    return payments
 }
 
 function canFund(
@@ -202,8 +210,10 @@ function canFund(
     return (
         !!funding &&
         request.price <= funding.maximumPrice &&
-        funding.contributors.reduce((sum, owner) => sum + finiteCash(state, owner), treasury) >=
-            request.price
+        funding.contributors.reduce(
+            (sum, owner) => sum + finiteCashOwnedBy(state, owner),
+            treasury
+        ) >= request.price
     )
 }
 
@@ -213,12 +223,12 @@ export function fundingContributions(
     rules: TransferRules
 ): CashPayment[] {
     const buyer = { kind: 'company', companyId: offer.companyId } as const
-    let shortfall = offer.price - finiteCash(state, buyer)
+    let shortfall = offer.price - finiteCashOwnedBy(state, buyer)
     if (shortfall <= 0) return []
     const funding = rules.purchaseFunding?.(state, offer.companyId, offer.asset)
     assertExists(funding, 'A purchase beyond the treasury requires funding')
     return funding.contributors.flatMap((owner) => {
-        const amount = Math.min(shortfall, finiteCash(state, owner))
+        const amount = Math.min(shortfall, finiteCashOwnedBy(state, owner))
         shortfall -= amount
         return amount ? [{ from: owner, to: buyer, amount }] : []
     })

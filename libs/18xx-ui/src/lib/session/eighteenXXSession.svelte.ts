@@ -6,6 +6,8 @@ import { TableNotices } from './tableNotices.svelte.js'
 import { PrivatesModule } from './privatesModule.svelte.js'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
+import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
+import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
@@ -16,6 +18,8 @@ import { StockModule } from './stockModule.svelte.js'
 import { StockInstructionModule } from './stockInstructionModule.svelte.js'
 import { MapModule } from './mapModule.svelte.js'
 import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
+import { LoanModule } from './loanModule.svelte.js'
+import { CashCrisisModule } from './cashCrisisModule.svelte.js'
 import { LocalSelections } from './localSelections.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
@@ -132,6 +136,8 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         }))(this)
     readonly offers = new OfferAuctionModule(this.moduleSession)
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
+    readonly selectionAuction = new SelectionAuctionModule(this.moduleSession)
+    readonly companyAuction = new CompanyAuctionModule(this.moduleSession)
     readonly privates = new PrivatesModule(this.moduleSession)
     readonly notices = new TableNotices(
         () => this.isViewingHistory || this.localHotseat,
@@ -184,7 +190,8 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         () => this.mapView,
         this.track,
         this.stations,
-        this.routes
+        this.routes,
+        this.companyAuction
     )
     readonly operating = new OperatingTurnModule(this.moduleSession, {
         finishTrack: () => this.track.finish(),
@@ -194,7 +201,10 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     })
     readonly stock = new StockModule(
         this.moduleSession,
-        () => this.onStockSelectionCancelled(),
+        () => {
+            this.companyAuction.clearOpening()
+            this.onStockSelectionCancelled()
+        },
         () => this.privates.exchangeOffers.length > 0,
         () => this.additionalStockMenuCount
     )
@@ -204,6 +214,8 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     readonly instructions = new StockInstructionModule(this.moduleSession)
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
+    readonly loans = new LoanModule(this.moduleSession)
+    readonly cashCrisis = new CashCrisisModule(this.moduleSession)
     /**
      * Whether this player is viewing the title's published artwork (board image and token art)
      * instead of the generic presentation. A display choice only: it never changes Game State.
@@ -325,7 +337,10 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
     }
     auctionLotsFor(state: EighteenXXState) {
         return (
-            this.rules.offerAuctionRules?.lots(state) ?? this.rules.auctionRules?.lots(state) ?? []
+            this.rules.offerAuctionRules?.lots(state) ??
+            this.rules.auctionRules?.lots(state) ??
+            this.rules.selectionAuctionRules?.lots(state) ??
+            []
         )
     }
     protected override getActivePlayers() {
@@ -472,6 +487,8 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         localSelections.register(this.trainBuying.sourceStages)
         localSelections.register(this.offers.choice)
         localSelections.register(this.waterfall.choice)
+        localSelections.register(this.selectionAuction.choice)
+        localSelections.register(this.companyAuction)
         localSelections.register(this.decisions.choice)
         localSelections.register(this.privateActions)
         localSelections.register(this.privates.exchangeChoice)
@@ -482,6 +499,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         localSelections.register(this.stations.stages)
         localSelections.register(this.track.stages)
         localSelections.register(this.stock)
+        localSelections.register(this.cashCrisis.bankruptcy)
     }
 }
 export function createEighteenXXSessionClass(

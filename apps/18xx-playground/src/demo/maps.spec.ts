@@ -5,6 +5,8 @@ import { MapExamples } from './maps.js'
 import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
 import { createEighteenThirtyStockMarket } from '@tabletop/1830'
 import { EighteenThirtyMapView } from '@tabletop/1830-ui'
+import { createEighteenSeventeenStockMarket } from '@tabletop/1817'
+import { EighteenSeventeenMapView } from '@tabletop/1817-ui'
 import {
     MarketCellHeight,
     MarketCellWidth,
@@ -116,11 +118,18 @@ describe('complete title maps', () => {
     })
 })
 
-describe('1830 board', () => {
+describe.each([
+    { name: '1830', view: EighteenThirtyMapView, createMarket: createEighteenThirtyStockMarket },
+    {
+        name: '1817',
+        view: EighteenSeventeenMapView,
+        createMarket: createEighteenSeventeenStockMarket
+    }
+])('$name board', ({ view, createMarket }) => {
     it('keeps every drawn market cell and the depot clear of every hex', () => {
-        const areas = EighteenThirtyMapView.boardAreas
+        const areas = view.boardAreas
         expect(areas?.market && areas.depot).toBeTruthy()
-        const hexes = EighteenThirtyMapView.map.definition.locations.map(
+        const hexes = view.map.definition.locations.map(
             (location) =>
                 calculateHexGeometry(
                     { orientation: HexOrientation.Pointy, dimensions: { radius: 50 } },
@@ -135,7 +144,7 @@ describe('1830 board', () => {
                     y + height < hex.y - 62 ||
                     y > hex.y + 62
             )
-        const market = createEighteenThirtyStockMarket()
+        const market = createMarket()
         const cells = market.spaces.map((space) => space.id.split(':').map(Number))
         const columns = Math.max(...cells.map(([, column]) => column)) + 1
         const rows = Math.max(...cells.map(([row]) => row)) + 1

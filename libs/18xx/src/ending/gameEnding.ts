@@ -4,30 +4,36 @@ import type { OperatingState } from '../operating/operatingSet.js'
 import { canStartStockRound } from '../stock/startStockRound.js'
 import type { Bankruptcy } from '../funding/trainFunding.js'
 import type { ValuationRules } from './finalWealth.js'
+import type { TrainState } from '../trains/train.js'
 
 export const GameEnding = Type.Object(
     {
         reason: Type.String(),
-        finalOperatingSet: Type.Optional(Type.Integer({ minimum: 1 }))
+        finalOperatingSet: Type.Optional(Type.Integer({ minimum: 1 })),
+        finalOperatingRounds: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
 export type GameEnding = Type.Static<typeof GameEnding>
 export type EndingState = OperatingState &
+    TrainState &
     Pick<GameState, 'machineState'> & {
         bankruptcy?: Bankruptcy
         gameEnding?: GameEnding
     }
 export interface EndingRules extends ValuationRules {
     trigger(state: EndingState): GameEnding | undefined
+    /** Whether a round of the title's own is still to follow the final operating round. */
+    roundPending?(state: EndingState): boolean
 }
-export function endingDue(state: EndingState): boolean {
+export function endingDue(state: EndingState, rules: EndingRules): boolean {
     if (!state.gameEnding) return false
     if (state.gameEnding.finalOperatingSet === undefined) return true
     return (
         state.machineState === 'OperatingSet' &&
         state.operatingSet?.number === state.gameEnding.finalOperatingSet &&
-        canStartStockRound(state)
+        canStartStockRound(state) &&
+        !rules.roundPending?.(state)
     )
 }
 export function pendingEnding(state: EndingState, rules: EndingRules): GameEnding | undefined {

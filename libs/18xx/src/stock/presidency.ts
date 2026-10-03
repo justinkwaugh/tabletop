@@ -102,6 +102,12 @@ export function applyPresidencyChange(state: FinancialState, change: PresidencyC
     }
     getCompany(state, change.companyId).president = change.next
 }
+export function turnOrderFrom(turnOrder: readonly string[], playerId: string): string[] {
+    const start = turnOrder.indexOf(playerId)
+    assert(start >= 0, 'The player is in the turn order')
+    return [...turnOrder.slice(start), ...turnOrder.slice(0, start)]
+}
+
 export function playersAfterPresident(
     state: FinancialState,
     companyId: string,

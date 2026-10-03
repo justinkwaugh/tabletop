@@ -19,6 +19,11 @@ import {
     type PhaseChangeState,
     type PhaseRules
 } from '../phases/phaseChange.js'
+import {
+    DeparturePayments,
+    departurePaymentsField,
+    settleTrainDepartures
+} from './trainDepartures.js'
 export function discardableTrains(
     state: PhaseChangeState,
     companyId: string,
@@ -40,7 +45,8 @@ export const DiscardTrain = Type.Object(
             Type.Object(
                 {
                     destination: Type.Union([Type.Literal('market'), Type.Literal('removed')]),
-                    nextState: Type.String()
+                    nextState: Type.String(),
+                    departurePayments: DeparturePayments
                 },
                 { additionalProperties: false }
             )
@@ -83,6 +89,14 @@ export class HydratedDiscardTrain
             (train) => train.id === this.trainId
         )
         assert(train, 'This train is not available for compulsory discard')
+        const payments = settleTrainDepartures(state, this.#rules, [
+            {
+                trainId: train.id,
+                definitionId: train.definitionId,
+                cause: 'discard',
+                owner: { kind: 'company', companyId: this.companyId }
+            }
+        ])
         state.trainInventory.trains = state.trainInventory.trains.map((entry) =>
             entry.id !== train.id ? entry : unownedTrain(entry, this.#phases.discardDestination)
         )
@@ -93,7 +107,8 @@ export class HydratedDiscardTrain
             state.phaseChange!.discardCompanyIds.shift()
         this.metadata = {
             destination: this.#phases.discardDestination,
-            nextState: continuePhaseChange(state)
+            nextState: continuePhaseChange(state),
+            ...departurePaymentsField(payments)
         }
     }
 }

@@ -4,6 +4,7 @@ import { assert } from '@tabletop/common'
 import { cashOwnedBy, controllingOwner, getCompany } from '../finance/finance.js'
 import { trainsOwnedBy, trainCanBeTraded, type Train, type TrainPurchaseState } from './train.js'
 import type { TrainDepot } from './trainDepot.js'
+import type { DeparturePayment, TrainDeparture } from './trainDepartures.js'
 export interface TrainRules {
     depot: TrainDepot
     exchangePrice(
@@ -19,6 +20,11 @@ export interface TrainRules {
     purchaseLimit(state: TrainPurchaseState, companyId: string): number | 'unlimited'
     /** The open privates that close when the company acquires a train by any purchase. */
     privatesClosedByPurchase?(state: TrainPurchaseState, companyId: string): readonly string[]
+    /** Records the title's consequences of trains departing, returning what the bank pays. */
+    afterTrainsDepart?(
+        state: TrainPurchaseState,
+        departures: readonly TrainDeparture[]
+    ): DeparturePayment[]
 }
 export const TrainPurchaseRequest = Type.Object(
     {

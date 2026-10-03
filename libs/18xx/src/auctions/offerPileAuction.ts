@@ -6,7 +6,7 @@ import {
     assert,
     assertExists
 } from '@tabletop/common'
-import { cashOwnedBy, type FinancialState } from '../finance/finance.js'
+import { finiteCashOwnedBy, type FinancialState } from '../finance/finance.js'
 import type { StockState } from '../stock/stockState.js'
 import { AuctionAward, type AuctionLot } from './waterfallAuction.js'
 export const OfferPileAuction = Type.Object(
@@ -88,9 +88,7 @@ export class OfferAuction {
         return this.nextPlayer(this.auction.auctioneerId, 3)
     }
     cash(playerId: string) {
-        const cash = cashOwnedBy(this.state, { kind: 'player', playerId })
-        assert(typeof cash === 'number', 'Bidders require finite cash')
-        return cash
+        return finiteCashOwnedBy(this.state, { kind: 'player', playerId })
     }
     price(lotId: string) {
         const lot = this.lots.find((lot) => lot.id === lotId)

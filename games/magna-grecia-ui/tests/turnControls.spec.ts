@@ -296,6 +296,24 @@ test('the keyboard jump button jumps to history without starting a replay', asyn
     await expect(page.getByText('Replaying', { exact: true })).toHaveCount(0)
 })
 
+test('the map goes full screen with the turn controls docked above it', async ({ page }) => {
+    await createGame(page)
+    await page.getByRole('button', { name: 'Enter full screen' }).click()
+    const fullScreen = page.getByRole('dialog', { name: 'Full screen view' })
+    await expect(fullScreen).toBeVisible()
+    await expect(fullScreen.getByLabel('Magna Grecia board')).toBeVisible()
+
+    await fullScreen.getByRole('button', { name: /^Cities/ }).click()
+    await expect.poll(() => page.evaluate(() => window.magnaGreciaSession.activeTool)).toBe('City')
+    await expect(
+        fullScreen.getByRole('button', { name: 'Place a city tile here', exact: true }).first()
+    ).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(fullScreen).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Enter full screen' })).toBeVisible()
+})
+
 test('marks the enhanced extra apart from the basic allowance', async ({ page }) => {
     await createGame(page)
     const cities = page.getByRole('button', { name: /^Cities/ })
@@ -303,10 +321,24 @@ test('marks the enhanced extra apart from the basic allowance', async ({ page })
     expect(split.bonus).toBe(1)
     await expect(cities.locator('.count')).toHaveText(String(split.basic))
     await expect(cities.locator('.bonus')).toHaveText('+1')
+    await expect(page.getByText('Two actions, or one enhanced+n', { exact: true })).toBeVisible()
     await cities.click()
-    await expect(
-        page.getByText(`or ${split.basic + 1} as your only action (★ enhanced)`, { exact: false })
-    ).toBeVisible()
+    await expect(page.locator('.hint')).toHaveCount(0)
+})
+
+test('the resupply button names the amount and marks an enhanced one with +', async ({ page }) => {
+    await createGame(page)
+    await page.getByRole('button', { name: /^Resupply/ }).click()
+    const split = await page.evaluate(() => window.magnaGreciaSession.resupplySplit)
+    const confirm = page.locator('.picker .confirm')
+    await expect(confirm).toHaveText('Resupply 0')
+    const more = page.getByRole('button', { name: 'More' }).first()
+    for (let step = 1; step <= split.basic; step++) await more.click()
+    await expect(confirm).toHaveText(`Resupply ${split.basic}`)
+    await expect(confirm.locator('sup')).toHaveCount(0)
+    await more.click()
+    await expect(confirm).toHaveText(`Resupply ${split.basic + 1}+`)
+    await expect(confirm.locator('sup')).toHaveText('+')
 })
 
 test('a market action keeps the turn open and highlights End turn', async ({ page }) => {
@@ -333,29 +365,48 @@ test('a market action keeps the turn open and highlights End turn', async ({ pag
     await expect.poll(turnOf).not.toBe(first)
 })
 
-test('warns the last player of a round before an early End turn', async ({ page }) => {
+test('the last player of a round confirms End turn, and Cancel or Undo backs out', async ({
+    page
+}) => {
     await createGame(page)
     const endTurn = page.getByRole('button', { name: 'End turn', exact: true })
-    const cities = page.getByRole('button', { name: /^Cities/ })
-    const warning =
-        'Ending your turn starts the next round and reveals a new action card. It cannot be undone.'
+    const yes = page.getByRole('button', { name: 'Yes, end turn', exact: true })
+    const cancel = page.getByRole('button', { name: 'Cancel', exact: true })
+    const question = page.getByText('End turn and start the next round?', { exact: true })
+    const cannotUndo = page.getByText('This cannot be undone.', { exact: true })
     const turnIndex = () => page.evaluate(() => window.magnaGreciaSession.gameState.turnIndex)
+    const round = () => page.evaluate(() => window.magnaGreciaSession.gameState.round)
     const players = await page.evaluate(
         () => window.magnaGreciaSession.gameState.turnManager.turnOrder.length
     )
     for (let turn = 0; turn < players - 1; turn++) {
-        await expect(page.getByText(warning)).toHaveCount(0)
-        await expect(endTurn).not.toHaveClass(/caution/)
         await endTurn.click()
+        await expect(yes).toHaveCount(0)
         await expect.poll(turnIndex).toBe(turn + 1)
     }
+    const lastTurn = await turnIndex()
+    const firstRound = await round()
+    await expect(cannotUndo).toHaveCount(0)
+    await expect(page.getByText(/It cannot be undone/)).toHaveCount(0)
 
-    await expect(cities).toBeVisible()
-    await expect(page.getByText(warning)).toBeVisible()
-    await expect(endTurn).toHaveClass(/caution/)
-    await expect(endTurn).toHaveAttribute('title', warning)
+    await endTurn.click()
+    await expect(question).toBeVisible()
+    await expect(cannotUndo).toBeVisible()
+    await expect(endTurn).toHaveCount(0)
+    await cancel.click()
+    await expect(question).toHaveCount(0)
+    await expect(endTurn).toBeVisible()
+    expect(await turnIndex()).toBe(lastTurn)
 
-    await cities.click()
-    await expect(page.getByText(warning)).toHaveCount(0)
-    await expect(endTurn).toHaveClass(/caution/)
+    await endTurn.click()
+    await page.getByRole('button', { name: 'UNDO', exact: true }).click()
+    await expect(question).toHaveCount(0)
+    expect(await turnIndex()).toBe(lastTurn)
+
+    await page.getByRole('button', { name: /^Cities/ }).click()
+    await endTurn.click()
+    await expect(question).toBeVisible()
+    await yes.click()
+    await expect.poll(round).toBe(firstRound + 1)
+    await expect(question).toHaveCount(0)
 })

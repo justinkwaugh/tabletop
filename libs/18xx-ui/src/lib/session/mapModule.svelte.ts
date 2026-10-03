@@ -6,9 +6,13 @@ import type { ModuleSession } from './moduleSession.js'
 import type { RoutesModule, RoutesSession } from './routesModule.svelte.js'
 import type { StationsModule, StationsState } from './stationsModule.svelte.js'
 import type { TrackModule } from './trackModule.svelte.js'
+import type { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 
 type MapState = Parameters<typeof stationMapTokens>[0] &
-    Pick<EighteenXXState, 'companies' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'>
+    Pick<
+        EighteenXXState,
+        'companies' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep' | 'locationMarkers'
+    >
 export type MapSession = ModuleSession<MapState, unknown>
 export type MapStyle = 'classic' | 'muted'
 
@@ -42,6 +46,7 @@ type Stations = Pick<
     | 'privateStationLocationIds'
     | 'placePrivateStation'
 >
+type CompanyAuction = Pick<CompanyAuctionModule, 'homeLocationIds' | 'homePositions' | 'chooseHome'>
 type Routes = Pick<
     RoutesModule<RoutesSession['state']>,
     'canRun' | 'editor' | 'appendPath' | 'selectStart'
@@ -57,7 +62,8 @@ export class MapModule {
         private readonly view: () => MapViewDefinition,
         private readonly track: Track,
         private readonly stations: Stations,
-        private readonly routes: Routes
+        private readonly routes: Routes,
+        private readonly companyAuction: CompanyAuction
     ) {}
 
     scene = $derived.by(() => this.draw(this.session.state.tileInventory))
@@ -207,6 +213,8 @@ export class MapModule {
             this.routes.selectStart({ locationId: selection.locationId, nodeId: selection.nodeId })
         else if (this.stations.homeLocationIds.includes(selection.locationId))
             this.chooseHome(selection)
+        else if (this.companyAuction.homeLocationIds.includes(selection.locationId))
+            this.chooseAuctionHome(selection)
         else if (this.stations.privateStationLocationIds.includes(selection.locationId))
             this.placePrivateStation(selection)
         else if (this.stations.canPlace && this.stations.locationIds.includes(selection.locationId))
@@ -217,6 +225,10 @@ export class MapModule {
     private chooseHome(selection: MapSelection) {
         const position = offeredCity(this.stations.homeChoice?.positions ?? [], selection)
         if (position) void this.stations.chooseHome(position)
+    }
+    private chooseAuctionHome(selection: MapSelection) {
+        const position = offeredCity(this.companyAuction.homePositions, selection)
+        if (position) this.companyAuction.chooseHome(position)
     }
     private placePrivateStation(selection: MapSelection) {
         const position = offeredCity(this.stations.privateStationPositions, selection)
@@ -242,7 +254,11 @@ export class MapModule {
     }
     private draw(inventory: MapState['tileInventory']) {
         const view = this.view()
-        return createMapDrawing(view.map, { tileSet: view.tileSet, inventory }, view)
+        return createMapDrawing(
+            view.map,
+            { tileSet: view.tileSet, inventory, markers: this.session.state.locationMarkers },
+            view
+        )
     }
 }
 

@@ -1,4 +1,10 @@
-import { controllingOwner, sameOwner, type FinancialState, type Owner } from '@tabletop/18xx'
+import {
+    controllingOwner,
+    sameOwner,
+    signedShares,
+    type FinancialState,
+    type Owner
+} from '@tabletop/18xx'
 
 export type CompanyOwnership = {
     owner: Owner
@@ -16,7 +22,7 @@ export function companyOwnership(
     for (const certificate of state.certificates) {
         if (
             certificate.retired ||
-            certificate.kind !== 'share' ||
+            certificate.kind === 'private' ||
             certificate.companyId !== companyId
         )
             continue
@@ -33,8 +39,9 @@ export function companyOwnership(
             }
             rows.push(row)
         }
-        row.shares += certificate.shares
-        if (certificate.number !== undefined) row.certificateNumbers.push(certificate.number)
+        row.shares += signedShares(certificate)
+        if (certificate.kind === 'share' && certificate.number !== undefined)
+            row.certificateNumbers.push(certificate.number)
     }
     for (const owner of retainedOwners) {
         if (!rows.some((row) => sameOwner(row.owner, owner))) {

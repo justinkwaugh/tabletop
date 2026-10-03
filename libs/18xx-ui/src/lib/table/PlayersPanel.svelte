@@ -3,7 +3,14 @@
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
     import { companyFocusLocations } from '../maps/companyFocusLocations.js'
-    import { controllingOwner, getCompany, type Owner, type ValuationRules } from '@tabletop/18xx'
+    import {
+        controllingOwner,
+        getCompany,
+        isBankrupt,
+        playersWithBankruptLast,
+        type Owner,
+        type ValuationRules
+    } from '@tabletop/18xx'
     import { auctionLotDetail, auctionLotDetails } from '../auctions/auctionLotDetails.js'
     import { assertExists } from '@tabletop/common'
     import { numberedSharesOwned } from './numberedShares.js'
@@ -47,10 +54,11 @@
     const stockRoundActive = $derived(session.gameState.machineState === 'StockRound')
     const passOrderPositions = $derived(session.passing === 'pass-order')
     const players = $derived([
-        ...session.gameState.turnManager.turnOrder.map((playerId) => ({
+        ...playersWithBankruptLast(session.gameState).map((playerId) => ({
             id: `player:${playerId}`,
             owner: { kind: 'player', playerId } as const,
             controller: undefined,
+            bankrupt: isBankrupt(session.gameState, playerId),
             description: undefined,
             playerId,
             name: session.getPlayerName(playerId),
@@ -68,6 +76,7 @@
                     ?.description,
                 name: getCompany(session.gameState, companyId).name,
                 controller: controller ? session.getPlayerName(controller.playerId) : undefined,
+                bankrupt: false,
                 liquidity: undefined,
                 certs: undefined,
                 ...ownerPortfolio(session.gameState, { kind: 'company', companyId }, valuationRules)
@@ -173,7 +182,8 @@
                             description={player.description}
                         />{:else}<span>{player.name}</span>{/if}
                 </h3>
-                {#if player.controller}<span class="controller"
+                {#if player.bankrupt}<span class="controller">Bankrupt</span>
+                {:else if player.controller}<span class="controller"
                         >Controlled by {player.controller}</span
                     >{/if}
                 <div class="header-controls">

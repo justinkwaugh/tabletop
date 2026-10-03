@@ -10,6 +10,7 @@ import type { PhaseState } from '../phases/phaseChange.js'
 import {
     isFinishOperatingTurn,
     finishOperatingTurnReason,
+    type FinishOperatingTurn,
     type HydratedFinishOperatingTurn,
     type OperatingTurnState
 } from '../operating/finishOperatingTurn.js'
@@ -22,10 +23,12 @@ import {
     type MachineStateHandler
 } from '@tabletop/common'
 import { isBuyTrain, type HydratedBuyTrain } from './buyTrain.js'
+import { isFinishTrains, type FinishTrains, type HydratedFinishTrains } from './finishTrains.js'
+import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 import { TrainPurchase, type TrainRules } from './trainPurchase.js'
 type State = HydratedGameState & OperatingTurnState & PhaseState & FundingState
 export class BuyingTrainsHandler implements MachineStateHandler<
-    HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFundTrain,
+    HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFinishTrains | HydratedFundTrain,
     State
 > {
     constructor(
@@ -34,6 +37,16 @@ export class BuyingTrainsHandler implements MachineStateHandler<
         private readonly stocks: StockRules,
         private readonly nextState: string
     ) {}
+    private get finishType(): 'FinishOperatingTurn' | 'FinishTrains' {
+        return this.nextState === BetweenCompaniesState ? 'FinishOperatingTurn' : 'FinishTrains'
+    }
+    private isFinish(
+        action: HydratedAction
+    ): action is HydratedAction & (FinishOperatingTurn | FinishTrains) {
+        return this.finishType === 'FinishTrains'
+            ? isFinishTrains(action)
+            : isFinishOperatingTurn(action)
+    }
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
         const state = context.gameState
         if (action instanceof HydratedFundTrain) return action.isValid(state)
@@ -41,16 +54,15 @@ export class BuyingTrainsHandler implements MachineStateHandler<
             action.source !== ActionSource.User ||
             !action.playerId ||
             !state.activePlayerIds.includes(action.playerId) ||
-            (!isBuyTrain(action) && !isFinishOperatingTurn(action))
+            (!isBuyTrain(action) && !this.isFinish(action))
         )
             return false
         const purchase = new TrainPurchase(state, this.rules)
-        return (
-            purchase.canAct(action.playerId, action.companyId) &&
-            (isFinishOperatingTurn(action)
-                ? !finishOperatingTurnReason(state, this.rules, action.companyId)
-                : purchase.evaluate(action).details?.price === action.expectedPrice)
-        )
+        return isBuyTrain(action)
+            ? purchase.canAct(action.playerId, action.companyId) &&
+                  purchase.evaluate(action).details?.price === action.expectedPrice
+            : purchase.canAct(action.playerId, action.companyId) &&
+                  !finishOperatingTurnReason(state, this.rules, action.companyId)
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
@@ -76,9 +88,7 @@ export class BuyingTrainsHandler implements MachineStateHandler<
             purchase.exchanges().length
                 ? ['BuyTrain']
                 : []),
-            ...(!finishOperatingTurnReason(state, this.rules, companyId)
-                ? ['FinishOperatingTurn']
-                : [])
+            ...(!finishOperatingTurnReason(state, this.rules, companyId) ? [this.finishType] : [])
         ]
     }
 
@@ -91,11 +101,15 @@ export class BuyingTrainsHandler implements MachineStateHandler<
         }
     }
     onAction(
-        action: HydratedBuyTrain | HydratedFinishOperatingTurn | HydratedFundTrain,
+        action:
+            | HydratedBuyTrain
+            | HydratedFinishOperatingTurn
+            | HydratedFinishTrains
+            | HydratedFundTrain,
         context: MachineContext<State>
     ): string {
         if (action instanceof HydratedFundTrain) return 'FundingTrain'
-        return isFinishOperatingTurn(action)
+        return this.isFinish(action)
             ? this.nextState
             : context.gameState.phaseChange
               ? 'AdvancingPhase'

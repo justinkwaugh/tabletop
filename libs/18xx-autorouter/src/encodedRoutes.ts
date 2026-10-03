@@ -112,6 +112,11 @@ export class EncodedRoutes {
             const node = nodes[index]
             assertExists(node, 'Revenue center requires a node')
             const group = rules.map.location(center.locationId).stopGroup
+            const hexGroup =
+                rules.oneStopPerHex &&
+                this.centers.filter((other) => other.locationId === center.locationId).length > 1
+                    ? [this.indexFor(groupIds, `hex:${center.locationId}`)]
+                    : []
             return {
                 city: node.kind === 'city',
                 token: state.stations.some(
@@ -126,7 +131,10 @@ export class EncodedRoutes {
                     cityIsBlocked(state, companyId, center.locationId, node),
                 endpoint: true,
                 allowed: true,
-                groups: group === undefined ? [] : [this.indexFor(groupIds, group)]
+                groups: [
+                    ...(group === undefined ? [] : [this.indexFor(groupIds, group)]),
+                    ...hexGroup
+                ]
             }
         })
         const trains = trainsOwnedBy(state, { kind: 'company', companyId }).map((train) => {
@@ -149,10 +157,15 @@ export class EncodedRoutes {
                 counts_crossings: countsCrossings,
                 visit_costs: visitCosts,
                 requires_city: rules.requiresCity(definition),
-                revenues: nodes.map((node) => {
+                revenues: nodes.map((node, index) => {
                     if (node.kind === 'junction')
                         throw new Error('A junction is not a revenue center')
-                    return routeRevenue(node.revenue, stages)
+                    const center = this.centers[index]
+                    assertExists(center, 'Revenue center requires a location')
+                    return (
+                        routeRevenue(node.revenue, stages) +
+                        (rules.stopBonus?.(state, definition, companyId, center) ?? 0)
+                    )
                 }),
                 first_bonus: nodes.map(() => 0)
             }
@@ -164,7 +177,7 @@ export class EncodedRoutes {
             trains,
             resource_count: resources.size,
             group_count: groupIds.size,
-            hex_bonuses: locations.map(() => 0),
+            hex_bonuses: locations.map((location) => rules.hexBonus?.(state, location.id) ?? 0),
             budget_ms: timeLimitMs
         }
     }

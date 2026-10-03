@@ -21,6 +21,8 @@ export type MapViewDefinition = {
     publishedStations?: Readonly<Record<string, StationAppearance>>
     revenueStageColors?: Readonly<Record<string, string>>
     markerArt?: Readonly<Record<string, MapMarkerArt>>
+    /** Names for the kinds of marker private powers place during play, such as mines. */
+    locationMarkerNames?: Readonly<Record<string, string>>
     layouts?: Readonly<Record<string, TileLayout>>
     /**
      * Layout overrides that only apply in the published presentation, keyed like ``layouts``.

@@ -72,13 +72,17 @@ export class HydratedCompleteStockRound
                 nextPlayerOrder.every((id) => state.turnManager.turnOrder.includes(id)),
             'Invalid next player order'
         )
-        const marketMoves = stockMarketOrder(state.stockMarket)
-            .filter((id) => this.#rules.soldOut(state, id))
-            .map((companyId) => {
-                const from = companyMarketSpace(state.stockMarket, companyId)
-                const to = moveMarketSpace(state.stockMarket, from.id, 'up', 1)
-                return { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to.id }
-            })
+        const marketMoves = stockMarketOrder(state.stockMarket).flatMap((companyId) => {
+            const from = companyMarketSpace(state.stockMarket, companyId)
+            const soldOut = this.#rules.soldOut(state, companyId)
+            const raises = soldOut ? (this.#rules.squeezed?.(state, companyId) ? 2 : 1) : 0
+            const raised = moveMarketSpace(state.stockMarket, from.id, 'up', raises)
+            const drop = this.#rules.poolDrop?.(state, companyId) ?? 0
+            const to = moveMarketSpace(state.stockMarket, raised.id, 'down', drop)
+            return soldOut || to.id !== from.id
+                ? [{ companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to.id }]
+                : []
+        })
         for (const move of marketMoves)
             placeStockMarker(state.stockMarket, move.companyId, move.toMarketSpaceId)
         state.turnManager.turnOrder = [...nextPlayerOrder]

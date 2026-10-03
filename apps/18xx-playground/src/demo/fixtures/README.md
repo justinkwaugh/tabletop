@@ -58,3 +58,33 @@ Player 1, 13,048 for Player 2, and 12,109 for Player 3, as recorded.
 that end in bankruptcy (26855 with brown shares from the IPO), in the same form. They are test
 fixtures only: `finishedGame.spec.ts` replays each to game over and checks the recorded final
 wealth.
+
+# Finished 1817 game
+
+`1817-finished.json` is 18xx.games game 15528, taken from the upstream fixtures in the research
+package (`source/public/fixtures/1817/15528.json`), in the same form. Select **Finished game** in
+the 1817 table's Position menu.
+
+Four players. The first 8-train makes operating set 7 the last, so the game ends after its
+second operating round's merger and acquisition rounds. Upstream's undone actions are omitted; its passes
+end whichever step ours is in, and are omitted where ours had already moved on by itself;
+inter-company train purchases are offers accepted by the seller.
+
+Replay produces 1,665 player actions and 882 automatic actions. Final wealth is 6,257 for
+Player 1, 7,066 for Player 2, 10,127 for Player 3, and 11,490 for Player 4, as recorded.
+
+# Recorded 1817 games ended by hand
+
+`1817-recorded-16281.json`, `1817-recorded-16852.json` and `1817-recorded-20758.json` are
+recorded games that their players ended by hand, in the same form. They are test fixtures only:
+`finishedGame.spec.ts` replays each to its last action and checks each player's value against
+the recorded result. 16852 stops in a player's cash crisis, and what they still owe counts
+against them.
+
+# Recorded 1817 Volatility bankruptcy
+
+`1817-bankruptcy.json` is the upstream recording `1817_game_end_bankrupt`: five players with the
+Volatility option, ending when four have gone bankrupt and one solvent player is left. Its
+opening takes the recording's city-tile private (Indianapolis Market) and pyramid, which our
+generator does not deal. It is a test fixture only: `finishedGame.spec.ts` replays it to its
+bankruptcy ending and checks the recorded final wealth.

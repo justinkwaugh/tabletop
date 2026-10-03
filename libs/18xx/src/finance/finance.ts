@@ -35,7 +35,8 @@ export const Company = Type.Object(
         operated: Type.Optional(Type.Boolean()),
         floated: Type.Optional(Type.Boolean()),
         president: Type.Optional(President),
-        privateRevenue: Type.Optional(Type.Integer({ minimum: 0 }))
+        privateRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
+        loans: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
@@ -76,17 +77,26 @@ const ShareFields = {
     number: Type.Optional(Type.Integer({ minimum: 1 }))
 }
 const PrivateFields = { ...CertificateFields, kind: Type.Literal('private') }
+// A short owes its holder's shares of the company back: it nets against their shares.
+const ShortFields = {
+    ...CertificateFields,
+    kind: Type.Literal('short'),
+    shares: Type.Integer({ minimum: 1 })
+}
 const OwnedFields = { retired: Type.Literal(false), owner: Owner, poolId: Type.Optional(Id) }
 const RetiredFields = { retired: Type.Literal(true) }
 export const Certificate = Type.Union([
     Type.Object({ ...ShareFields, ...OwnedFields }, { additionalProperties: false }),
     Type.Object({ ...PrivateFields, ...OwnedFields }, { additionalProperties: false }),
     Type.Object({ ...ShareFields, ...RetiredFields }, { additionalProperties: false }),
-    Type.Object({ ...PrivateFields, ...RetiredFields }, { additionalProperties: false })
+    Type.Object({ ...PrivateFields, ...RetiredFields }, { additionalProperties: false }),
+    Type.Object({ ...ShortFields, ...OwnedFields }, { additionalProperties: false }),
+    Type.Object({ ...ShortFields, ...RetiredFields }, { additionalProperties: false })
 ])
 export type Certificate = Type.Static<typeof Certificate>
 export type Portfolio = Extract<Certificate, { retired: false }>[]
 export type OpenShare = Extract<Portfolio[number], { kind: 'share' }>
+export type OpenShort = Extract<Portfolio[number], { kind: 'short' }>
 export type Treasury = { cash: Cash['amount'] | undefined; portfolio: Portfolio }
 
 export const FinanceFields = {
@@ -198,6 +208,13 @@ export function cashOwnedBy(
     return state.cash.find((cash) => sameOwner(cash.owner, owner))?.amount
 }
 
+/** The cash of an owner whose balance is finite, as every player's and company's is. */
+export function finiteCashOwnedBy(state: Pick<FinancialState, 'cash'>, owner: Owner): number {
+    const cash = cashOwnedBy(state, owner)
+    assert(typeof cash === 'number', 'This owner requires a finite cash balance')
+    return cash
+}
+
 export function getTreasury(
     state: Pick<FinancialState, 'companies' | 'cash' | 'certificates'>,
     companyId: string
@@ -232,12 +249,18 @@ export function sharesOwned(
 ): number {
     return certificatesOwnedBy(state, owner).reduce(
         (sum, certificate) =>
-            sum +
-            (certificate.kind === 'share' && certificate.companyId === companyId
-                ? certificate.shares
-                : 0),
+            sum + (certificate.companyId === companyId ? signedShares(certificate) : 0),
         0
     )
+}
+
+/** A certificate's shares, negative for a short and none for a private. */
+export function signedShares(certificate: Portfolio[number]): number {
+    return certificate.kind === 'share'
+        ? certificate.shares
+        : certificate.kind === 'short'
+          ? -certificate.shares
+          : 0
 }
 
 export function privateOwner(
@@ -294,19 +317,56 @@ export function createOrdinaryShareCertificates(
             retired: false,
             ...('owner' in president ? president : { owner: president })
         },
-        ...ordinary.map(
-            (allocation, index): Certificate => ({
-                id: `${companyId}:share:${index + 1}`,
-                companyId,
-                kind: 'share',
-                shares: 1,
-                president: false,
-                certificateLimitCount: 1,
-                retired: false,
-                ...allocation
-            })
+        ...ordinary.map((allocation, index) =>
+            ordinaryShareCertificate(companyId, index + 1, allocation)
         )
     ]
+}
+
+/** Issues one-share certificates numbered after every certificate the company has had. */
+export function issueShareCertificates(
+    state: Pick<FinancialState, 'certificates'>,
+    companyId: string,
+    count: number,
+    allocation: CertificateAllocation
+): string[] {
+    const first = nextCertificateNumber(state, ordinaryShareIdPrefix(companyId))
+    return Array.from({ length: count }, (_, index) => {
+        const certificate = ordinaryShareCertificate(companyId, first + index, allocation)
+        state.certificates.push(certificate)
+        return certificate.id
+    })
+}
+
+export function nextCertificateNumber(
+    state: Pick<FinancialState, 'certificates'>,
+    prefix: string
+): number {
+    const numbers = state.certificates.flatMap((certificate) =>
+        certificate.id.startsWith(prefix) ? [Number(certificate.id.slice(prefix.length))] : []
+    )
+    return Math.max(0, ...numbers) + 1
+}
+
+function ordinaryShareIdPrefix(companyId: string): string {
+    return `${companyId}:share:`
+}
+
+function ordinaryShareCertificate(
+    companyId: string,
+    number: number,
+    allocation: CertificateAllocation
+): Certificate {
+    return {
+        id: `${ordinaryShareIdPrefix(companyId)}${number}`,
+        companyId,
+        kind: 'share',
+        shares: 1,
+        president: false,
+        certificateLimitCount: 1,
+        retired: false,
+        ...allocation
+    }
 }
 
 export function copyFinances(state: FinancialState): FinancialState {

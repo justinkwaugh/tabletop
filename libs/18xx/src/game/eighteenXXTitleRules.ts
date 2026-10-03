@@ -2,6 +2,7 @@ import { type EndingRules } from '../ending/gameEnding.js'
 import type { MachineStateHandler, HydratedAction } from '@tabletop/common'
 import { type OfferPileAuctionRules } from '../auctions/offerPileAuction.js'
 import { type WaterfallAuctionRules } from '../auctions/waterfallAuction.js'
+import { type SelectionAuctionRules } from '../auctions/selectionAuction.js'
 import { type TrainFundingRules } from '../funding/trainFunding.js'
 import { type TransferRules } from '../transfers/purchaseOffer.js'
 import { type PrivatePowerRules } from '../privates/privatePowers.js'
@@ -17,6 +18,8 @@ import { type OperatingRules } from '../operating/operatingSet.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { ActionDefinition } from '../actions/actionDefinition.js'
+import type { LoanRules } from '../loans/loans.js'
+import type { CashCrisisRules } from '../funding/cashCrisis.js'
 import type { Opening, OpeningSetup } from './opening.js'
 import type {
     EighteenXXMachineState,
@@ -34,6 +37,7 @@ export interface EighteenXXTitleRules {
     titleActions?: readonly ActionDefinition[]
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules
+    selectionAuctionRules?: SelectionAuctionRules
     trainFundingRules: TrainFundingRules
     createOpening: (setup: OpeningSetup) => Opening
     stockRules: StockRules
@@ -50,4 +54,6 @@ export interface EighteenXXTitleRules {
     privatePowerRules: PrivatePowerRules
     outOfTurnPrivatePowers?: boolean
     trackRules: TrackRules
+    loanRules?: LoanRules
+    cashCrisisRules?: CashCrisisRules
 }

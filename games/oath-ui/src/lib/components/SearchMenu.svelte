@@ -34,7 +34,8 @@
 
     function spoken(row: SearchRow): string {
         const tolls = row.favorTo.map((to) => `, give 1 favor to ${payee(to)}`).join('')
-        return `Search ${sourceOf(row)}: spend ${row.cost} Supply${tolls}, draw ${row.draw}`
+        const bottom = row.fromBottom ? ' from the bottom' : ''
+        return `Search ${sourceOf(row)}: spend ${row.cost} Supply${tolls}, draw ${row.draw}${bottom}`
     }
 </script>
 
@@ -59,7 +60,9 @@
                         <MenuCount count={row.favorTo.length} image={favorTokenImage()} />
                     {/if}
                 </span>
-                <span class="text-xs font-normal text-oath-text-muted">draw {row.draw}</span>
+                <span class="text-xs font-normal text-oath-text-muted"
+                    >draw {row.draw}{row.fromBottom ? ', from the bottom' : ''}</span
+                >
             </MenuChoice>
         </MenuRow>
     {/each}
