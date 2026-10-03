@@ -1398,12 +1398,21 @@ test('scenario 59: every seat is told a Vision was seen, the drawer too; each cl
     await expect(seen.getByRole('img', { name: 'a Vision, facedown' })).toBeVisible()
     await expect(page.locator('.panel')).toBeVisible()
 
+    await magnifiers(page).first().click()
+    await expect(preview(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(preview(page)).toHaveCount(0)
+    await expect(seen).toBeVisible()
+
     await seen.getByRole('button', { name: 'The pig foresaw this: clear' }).click()
     await expect(seen).toHaveCount(0)
 
     expect(await call(page, 'viewOffTheClock')).toBe('ann')
     await expect(seen).toBeVisible()
-    await expect(seen).toContainText('has seen a Vision')
+    await expect(seen).toContainText('me has seen a Vision')
+    await page.getByRole('tab', { name: 'Chat' }).click()
+    await page.locator('textarea').dispatchEvent('keydown', { key: 'Escape' })
+    await expect(seen).toBeVisible()
 
     await call(page, 'open', 'majorEvents')
     await expect(seen).toHaveCount(0)
