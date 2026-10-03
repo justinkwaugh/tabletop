@@ -17,7 +17,7 @@ import {
 } from './presidency.js'
 import { companyMarketSpace, moveMarketSpace, placeStockMarker } from './stockMarket.js'
 import { copyStockState, type StockState } from './stockState.js'
-import type { StockRules } from './stockRules.js'
+import { type StockRules, exceedsStockLimits } from './stockRules.js'
 
 export const ShareSale = Type.Object(
     { companyId: Type.String(), shares: Type.Integer({ minimum: 1 }) },
@@ -52,6 +52,38 @@ export type ShareSaleDetails = Type.Static<typeof ShareSaleDetails>
 export type ShareSaleResult =
     | { details: ShareSaleDetails; reason?: never }
     | { details?: never; reason: string }
+
+export function hasLegalShareSale(
+    state: StockState,
+    playerId: string,
+    seller: Owner,
+    rules: StockRules
+): boolean {
+    return state.companies.some((company) => {
+        for (let shares = 1; shares <= sharesOwned(state, company.id, seller); shares++) {
+            if (
+                evaluateShareSale(
+                    state,
+                    {
+                        playerId,
+                        seller,
+                        sales: [{ companyId: company.id, shares }]
+                    },
+                    rules
+                ).details
+            )
+                return true
+        }
+        return false
+    })
+}
+
+export function mustSellShares(state: StockState, playerId: string, rules: StockRules): boolean {
+    const owner: Owner = { kind: 'player', playerId }
+    return (
+        exceedsStockLimits(state, owner, rules) && hasLegalShareSale(state, playerId, owner, rules)
+    )
+}
 
 export function evaluateShareSale(
     state: StockState,

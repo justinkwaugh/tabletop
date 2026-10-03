@@ -50,8 +50,8 @@ separate encoding, solving, final validation and the Rust search stages.
 - Shikoku 1889: all-stop capacity, unlimited diesels, and diesel-only gray offboard
   values. A 6-train still uses ordinary offboard values during the diesel phase.
 - Both: station inclusion, continuous track, no edge reversal or track/border
-  reuse within or between routes, no repeated revenue center, blocked cities at
-  endpoints only, and terminal offboards. Station reservations do not block runs.
+  reuse within or between routes, no repeated revenue center or repeated junction
+  between consecutive stops, blocked cities at endpoints only, and terminal offboards. Station reservations do not block runs.
 
 These mechanisms come from `RouteRules`, `TrainDefinition`, `RouteNetwork` and
 station state. The encoder does not maintain a second title configuration.
@@ -60,7 +60,7 @@ core's exclusive stop groups, so a route visits one of them. The core's additive
 traversal/first-stop bonuses have no consumer in the current repository models and
 are not invented as title policies here.
 
-The internal wire format is version 2. It is private to this package; callers use
+The internal wire format is version 3. It is private to this package; callers use
 the shared game models. Other distance, gauge, payment-selection or fleet-coupled
 rules need explicit encoding support before another title can use this solver.
 See the [design review](../../research/18xx/autorouter-design.md).

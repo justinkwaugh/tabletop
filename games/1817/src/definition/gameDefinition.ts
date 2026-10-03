@@ -51,7 +51,10 @@ import {
     isPassConvertedShares,
     isPassMerger,
     isStartMergerRound,
-    startsMergerRounds
+    startsMergerRounds,
+    HydratedSellConvertedShares,
+    SellConvertedShares,
+    isSellConvertedShares
 } from '../mergerRound.js'
 import {
     CompanyExcessHandler,
@@ -206,6 +209,11 @@ export const EighteenSeventeenTitleRules: EighteenXXTitleRules<
             (action) => new HydratedMergeCompanies(action)
         ),
         defineAction(PassMerger, isPassMerger, (action) => new HydratedPassMerger(action)),
+        defineAction(
+            SellConvertedShares,
+            isSellConvertedShares,
+            (action) => new HydratedSellConvertedShares(action)
+        ),
         defineAction(
             BuyConvertedShare,
             isBuyConvertedShare,

@@ -14,12 +14,8 @@ import {
 import type { StockState } from './stockState.js'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { PresidencyChange, evaluatePresidency, applyPresidencyChange } from './presidency.js'
-import {
-    certificateLimitAllows,
-    exceedsStockLimits,
-    purchaseOwnershipCeiling,
-    type StockRules
-} from './stockRules.js'
+import { certificateLimitAllows, purchaseOwnershipCeiling, type StockRules } from './stockRules.js'
+import { mustSellShares } from './shareSale.js'
 
 export type ShareCertificate = Extract<Portfolio[number], { kind: 'share' }>
 export type PurchaseRequest = { playerId: string; buyer: Owner; certificateId: string }
@@ -70,7 +66,7 @@ export function evaluateShareAcquisition(
     terms: SharePurchaseTerms | string
 ): SharePurchaseResult {
     const { playerId, buyer } = request
-    if (exceedsStockLimits(state, { kind: 'player', playerId }, rules))
+    if (mustSellShares(state, playerId, rules))
         return { reason: 'Sell down to the stock limits before buying.' }
     if (!state.activePlayerIds.includes(playerId))
         return { reason: 'It is not this player’s turn.' }

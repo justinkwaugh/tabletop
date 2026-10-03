@@ -11,7 +11,7 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 2, "budget_ms": 30000,
+        "version": 3, "junction_count": 1, "budget_ms": 30000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,
@@ -23,7 +23,7 @@ fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
             "first_bonus": vec![0; nodes],
         })).collect::<Vec<_>>(),
         "arcs": edges.iter().enumerate().flat_map(|(id, &(a, b))| [(a,b),(b,a)].map(|(from,to)| json!({
-            "from": from, "to": to, "next": [], "resources": [id], "path": id, "hex": id, "crossings": 0, "terminal": false,
+            "from": from, "to": to, "next": [], "junctions": [], "resources": [id], "path": id, "hex": id, "crossings": 0, "terminal": false,
         }))).collect::<Vec<_>>(),
     })
 }
@@ -93,12 +93,12 @@ fn edge_ports_only_connect_through_the_neighbor() {
     let mut p = graph(3, &[(0, 1), (1, 2)], &[3]);
     p["trains"][0]["revenues"] = json!([10, 100, 30]);
     p["arcs"] = json!([
-        {"from": 0, "to": null, "next": [4], "resources": [0], "path": 0, "hex": 0, "crossings": 0, "terminal": false},
-        {"from": null, "to": 0, "next": [], "resources": [0], "path": 0, "hex": 0, "crossings": 0, "terminal": false},
-        {"from": 1, "to": null, "next": [4], "resources": [0], "path": 1, "hex": 0, "crossings": 0, "terminal": false},
-        {"from": null, "to": 1, "next": [], "resources": [0], "path": 1, "hex": 0, "crossings": 0, "terminal": false},
-        {"from": null, "to": 2, "next": [], "resources": [1], "path": 2, "hex": 1, "crossings": 0, "terminal": false},
-        {"from": 2, "to": null, "next": [1,3], "resources": [1], "path": 2, "hex": 1, "crossings": 0, "terminal": false}
+        {"from": 0, "to": null, "next": [4], "junctions": [], "resources": [0], "path": 0, "hex": 0, "crossings": 0, "terminal": false},
+        {"from": null, "to": 0, "next": [], "junctions": [], "resources": [0], "path": 0, "hex": 0, "crossings": 0, "terminal": false},
+        {"from": 1, "to": null, "next": [4], "junctions": [], "resources": [0], "path": 1, "hex": 0, "crossings": 0, "terminal": false},
+        {"from": null, "to": 1, "next": [], "junctions": [], "resources": [0], "path": 1, "hex": 0, "crossings": 0, "terminal": false},
+        {"from": null, "to": 2, "next": [], "junctions": [], "resources": [1], "path": 2, "hex": 1, "crossings": 0, "terminal": false},
+        {"from": 2, "to": null, "next": [1,3], "junctions": [], "resources": [1], "path": 2, "hex": 1, "crossings": 0, "terminal": false}
     ]);
     assert_eq!(solve(&p)["revenue"], 40);
 }
@@ -319,4 +319,42 @@ fn required_city_is_separate_from_the_station_requirement() {
     assert_eq!(solve(&p)["revenue"], 0);
     p["stops"][1]["city"] = json!(true);
     assert_eq!(solve(&p)["revenue"], 30);
+}
+
+#[test]
+fn junction_cannot_be_revisited_between_stops() {
+    let mut p = graph(2, &[(0, 1); 4], &[2]);
+    for id in 0..4 {
+        let fwd = id * 2;
+        let rev = fwd + 1;
+        p["arcs"][fwd]["from"] = if id == 0 { json!(0) } else { Value::Null };
+        p["arcs"][fwd]["to"] = if id == 3 { json!(1) } else { Value::Null };
+        p["arcs"][fwd]["next"] = if id == 3 { json!([]) } else { json!([fwd + 2]) };
+        p["arcs"][rev]["to"] = p["arcs"][fwd]["from"].clone();
+        p["arcs"][rev]["from"] = p["arcs"][fwd]["to"].clone();
+        p["arcs"][rev]["next"] = if id == 0 { json!([]) } else { json!([rev - 2]) };
+    }
+    p["arcs"][0]["junctions"] = json!([0]);
+    p["arcs"][1]["junctions"] = json!([0]);
+    p["arcs"][2]["junctions"] = json!([0]);
+    p["arcs"][3]["junctions"] = json!([0]);
+    assert_eq!(solve(&p)["revenue"], 30);
+    for arc in p["arcs"].as_array_mut().unwrap() {
+        arc["junctions"] = json!([0]);
+    }
+    assert_eq!(solve(&p)["revenue"], 0);
+}
+
+#[test]
+fn junction_can_be_revisited_after_another_stop_and_by_another_train() {
+    let mut p = graph(4, &[(0, 1), (1, 2), (2, 3)], &[4]);
+    for arc in p["arcs"].as_array_mut().unwrap() {
+        arc["junctions"] = json!([0]);
+    }
+    assert_eq!(solve(&p)["revenue"], 100);
+    let mut p = graph(3, &[(0, 1), (0, 2)], &[2, 2]);
+    for arc in p["arcs"].as_array_mut().unwrap() {
+        arc["junctions"] = json!([0]);
+    }
+    assert_eq!(solve(&p)["revenue"], 70);
 }

@@ -1088,7 +1088,8 @@ shares, and the company may borrow and buy the stations its size needs.
     buys no stations. Trains over the limit are discarded.
 - **After a conversion or merger** ([post-conversion], [post-conversion-loans]).
   Starting with the president, players in seat order may buy the company's treasury
-  shares at its price, one each, though the president may keep buying; buying closes a
+  shares at its price, one each, though the president may keep buying; a non-president
+  may instead sell a positive block and end their turn. Buying closes a
   short and is then free of the holding and certificate limits. Then the company may
   take loans, each moving its price left.
 - **Acquisition round** ([acquire]). Each president may offer their company for
@@ -1114,13 +1115,13 @@ presidency.
   title field `mergerRound` (the round's remaining companies, and the company being
   converted or merged with its traders and stations owed):
     - `MergerRound`: the current company's president converts, merges or passes;
-    - `TradingConvertedShares`: players in turn buy a treasury share or pass;
+    - `TradingConvertedShares`: players buy, sell a block (unless president), or pass;
     - `BorrowingAfterConversion`: the company takes loans or finishes, then buys its
       stations or is liquidated;
     - `ReducingStations` and `DiscardingMergedTrains`: the survivor's president
       removes stations over 8 and trains over the limit.
 - **Actions.** `ConvertCompany`, `MergeCompanies`, `PassMerger`, `BuyConvertedShare`,
-  `PassConvertedShares`, `FinishConversionLoans`, `RemoveStation` and
+  `SellConvertedShares`, `PassConvertedShares`, `FinishConversionLoans`, `RemoveStation` and
   `DiscardMergedTrain` are 1817 actions; the family's `TakeLoan` serves borrowing.
   The system actions `StartMergerRound` and `EndMergerRound` bracket the round.
 - **Family primitives.** The family gains what other merging titles reuse:
@@ -1143,7 +1144,7 @@ presidency.
   has run for it; `EndMergerRound` returns to the operating set, which starts the next
   OR or ends the set.
 - **Automatic steps.** A company with no conversion or merger passes by itself, a
-  player who cannot buy a treasury share passes, and a company that cannot borrow
+  player who can neither buy nor sell passes, and a company that cannot borrow
   finishes, so a round where nobody can act passes straight on.
 - **Trading.** `evaluateShareTransfer` and `applyShareTransfer` are the family's share
   purchase without the stock round's turn rules, which treasury purchases after a
@@ -1160,8 +1161,8 @@ presidency.
 ### Limits after slice 5
 
 - The acquisition round, its offers, auctions and liquidations come with slice 6.
-- Non-presidents cannot sell after a conversion (the reference allows it; the recorded
-  games never do).
+- Post-conversion sales were added by the [correctness fixes](correctness-fixes-2026-10-03.md),
+  including when the treasury is empty or the shareholder cannot afford a purchase.
 - The game ends after the final set's last OR, before its MR, as before.
 - The Station Subsidy private's discount comes with slice 9 (volatility).
 
@@ -1300,9 +1301,10 @@ pays it, 1848's company borrows from its president, 18NY writes it off.
   sale settles them; `transferCompanyAssets` therefore takes whether loans move.
   The target's own president's bid ceiling is the minimum, which the panel's bid input
   also uses.
-- **Limits.** A player's limit counts the loans their company may still take from the
-  bank's remaining supply; the reference also counts the target's loans as returning
-  to the bank, which differs only when the bank is nearly out of loans.
+- **Limits.** A player's limit counts the bank's remaining supply plus the loans it
+  would inherit, capped by its remaining loan capacity, before subtracting inherited
+  principal. Liquidation loans remain with the target and do not add supply. See the
+  [correctness fixes](correctness-fixes-2026-10-03.md).
 - **Excess** after a merger or an acquisition shares `ReducingStations` and
   `DiscardingMergedTrains` and one panel.
 - **The ending.** `EndingRules.roundPending` lets a title hold the final set's ending

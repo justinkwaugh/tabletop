@@ -358,12 +358,29 @@ export class TrackConstruction {
         }
         return pieces
     }
-    private basicTileAllowed(locationId: string, definition: TileDefinition): boolean {
+    hasFutureUpgrade(locationId: string): boolean {
+        const tile = this.mapState.tile(locationId)
+        const before = rotateTileFace(tile.face, tile.rotation)
+        return this.rules.tileSet.definitions.some(
+            (definition) =>
+                this.basicTileAllowed(locationId, definition, this.rules.colorOrder) &&
+                this.availablePieces(definition.id).length > 0 &&
+                Rotations.some(
+                    (rotation) =>
+                        tileUpgradeMappings(before, rotateTileFace(definition.face, rotation))
+                            .length > 0
+                )
+        )
+    }
+    private basicTileAllowed(
+        locationId: string,
+        definition: TileDefinition,
+        colors: readonly string[] = this.rules.availableColors(this.state)
+    ): boolean {
         const location = this.rules.map.location(locationId)
         const before = this.mapState.tile(locationId).face
         const after = definition.face
-        if (!location.buildable || !this.rules.availableColors(this.state).includes(after.color))
-            return false
+        if (!location.buildable || !colors.includes(after.color)) return false
         if (
             this.rules.colorOrder.indexOf(after.color) !==
             this.rules.colorOrder.indexOf(before.color) + 1

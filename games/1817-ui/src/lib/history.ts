@@ -33,7 +33,8 @@ import {
     isPassConvertedShares,
     isPassMerger,
     isRemoveStation,
-    isShortShare
+    isShortShare,
+    isSellConvertedShares
 } from '@tabletop/1817'
 import { plural } from './plural.js'
 
@@ -106,9 +107,14 @@ export function eighteenSeventeenHistoryDescription(
             text: `Bought a ${companyName(action.companyId)} share`,
             value: money(action.expectedPrice)
         }
+    if (isSellConvertedShares(action))
+        return {
+            text: `Sold ${plural(action.shares, `${companyName(action.companyId)} share`)}`,
+            value: money(action.expectedProceeds)
+        }
     if (isPassConvertedShares(action) && action.source === ActionSource.User)
         return {
-            text: `Bought no more ${companyName(action.companyId)} shares`,
+            text: `Passed on ${companyName(action.companyId)} shares`,
             routine: true
         }
     if (isFinishConversionLoans(action) && action.metadata?.liquidation)

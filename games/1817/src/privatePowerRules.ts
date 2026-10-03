@@ -1,4 +1,5 @@
 import type { EighteenSeventeenState } from './state.js'
+import { privateLaysMade, recordPrivateLay } from './state.js'
 import { assertExists } from '@tabletop/common'
 import {
     EighteenXXTransferTiming,
@@ -13,17 +14,17 @@ import {
     type CompanyDecisionState,
     type PrivatePowerRules,
     type PrivateTrackTerms,
-    type TrackRequest
+    type TrackRequest,
+    rotateTileEdge,
+    TrackConstruction
 } from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
 import { CityTilePrivates } from './privates.js'
-import { privateLaysMade, recordPrivateLay } from './state.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
+import { BridgeMarker, CityTile, MineMarker, RanchMarker } from './privateMarkers.js'
+import { EighteenSeventeenTrackRules } from './trackRules.js'
 
-export const MineMarker = 'mine'
-export const BridgeMarker = 'bridge'
-export const RanchMarker = 'ranch'
-export const CityTile = '1817:X00'
+export { BridgeMarker, CityTile, MineMarker, RanchMarker } from './privateMarkers.js'
 
 type LayPower = {
     uses: number
@@ -175,10 +176,21 @@ function facesStop(state: CompanyDecisionState, request: TrackRequest): string |
     const edges = rotateTileFace(definition.face, request.rotation).paths.flatMap((path) =>
         path.endpoints.flatMap((endpoint) => (endpoint.kind === 'edge' ? [endpoint.edge] : []))
     )
+    const construction = new TrackConstruction(state, EighteenSeventeenTrackRules)
     const faces = edges.some((edge) => {
         const neighbor = EighteenSeventeenMap.neighbor(request.locationId, edge)
+        if (!neighbor) return false
+        const tile = map.tile(neighbor.id)
+        const face = rotateTileFace(tile.face, tile.rotation)
         return (
-            !!neighbor && map.tile(neighbor.id).face.nodes.some((node) => node.kind !== 'junction')
+            face.nodes.some((node) => node.kind !== 'junction') &&
+            (face.paths.some((path) =>
+                path.endpoints.some(
+                    (endpoint) =>
+                        endpoint.kind === 'edge' && endpoint.edge === rotateTileEdge(edge, 3)
+                )
+            ) ||
+                construction.hasFutureUpgrade(neighbor.id))
         )
     })
     return faces ? undefined : 'The tile must face a neighbouring city, town or offboard.'

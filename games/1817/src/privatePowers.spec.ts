@@ -15,7 +15,8 @@ import {
     EighteenSeventeenRouteRules,
     EighteenSeventeenTrackRules,
     EighteenSeventeenTrainDepot,
-    buyOwedStations
+    buyOwedStations,
+    EighteenSeventeenTileSet
 } from './index.js'
 import { passUntil } from '../test/passTurns.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
@@ -78,6 +79,27 @@ describe('coal mines', () => {
         ).toBe('Nobody may upgrade a mine.')
         expect(EighteenSeventeenRouteRules.hexBonus?.(play.state, 'B25')).toBe(10)
     })
+
+    it.each([3, 0])(
+        'requires a reciprocal exit when the neighboring city has no upgrade (rotation %s)',
+        (rotation) => {
+            const { state } = playExample(EighteenSeventeenScenarios, 'construction', 3)
+            givePrivate(state, 'MAJC', 'BA')
+            state.phaseId = '7'
+            state.tileInventory = EighteenSeventeenTileSet.createInventory([
+                { locationId: 'C26', definitionId: '18xx:597', rotation },
+                { locationId: 'B27', definitionId: '18xx:7', rotation: 0 }
+            ])
+            const terms = EighteenSeventeenPrivatePowerRules.trackTerms(state, 'MAJC', 'blair')
+            assertExists(terms, 'The company can use its mine')
+            const result = privateTrackConstruction(
+                state,
+                terms,
+                EighteenSeventeenTrackRules
+            ).evaluate(mineLay('MAJC'))
+            expect(!!result.details).toBe(rotation === 0)
+        }
+    )
 
     it('close once their lays are used', () => {
         const play = mineReady('MINC')

@@ -12,8 +12,7 @@ export type RouteTrace = {
     end: { locationId: string; endpoint: TileEndpoint }
 }
 export type RouteTraceEvaluation =
-    | { trace: RouteTrace; reason?: never }
-    | { trace?: never; reason: string }
+    { trace: RouteTrace; reason?: never } | { trace?: never; reason: string }
 export class RouteNetwork {
     private readonly faces: Map<string, TileFace>
     constructor(readonly mapState: RailwayMapState) {
@@ -53,6 +52,7 @@ export class RouteNetwork {
             end: { locationId: start.locationId, endpoint: { kind: 'node', nodeId: start.nodeId } }
         }
         const used = new Set<string>()
+        const junctions = new Set<string>()
         for (const segment of paths) {
             let { locationId, endpoint } = trace.end
             if (endpoint.kind === 'edge') {
@@ -86,8 +86,15 @@ export class RouteNetwork {
                 const node = this.faces
                     .get(locationId)!
                     .nodes.find((node) => node.id === end.nodeId)!
-                if (node.kind !== 'junction')
+                if (node.kind === 'junction') {
+                    const key = JSON.stringify([locationId, node.id])
+                    if (junctions.has(key))
+                        return { reason: 'A route cannot revisit a junction between two stops.' }
+                    junctions.add(key)
+                } else {
                     trace.visits.push({ locationId, nodeId: node.id, node })
+                    junctions.clear()
+                }
             }
         }
         return { trace }

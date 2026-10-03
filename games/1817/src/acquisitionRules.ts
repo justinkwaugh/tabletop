@@ -1,5 +1,12 @@
 import type { EighteenSeventeenState } from './state.js'
 import {
+    formerPresident,
+    type CompanySale,
+    type MergerRound,
+    type SaleKind,
+    type SaleTerms
+} from './state.js'
+import {
     PassableBidding,
     companyLoans,
     companyMarketSpace,
@@ -14,13 +21,6 @@ import { corporationShareCount } from './corporations.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { closingZone, inClosingZone } from './marketZones.js'
 import { treasuryShareIds } from './mergerRules.js'
-import {
-    formerPresident,
-    type CompanySale,
-    type MergerRound,
-    type SaleKind,
-    type SaleTerms
-} from './state.js'
 
 export const AcquisitionIncrement = 10
 const LoanValue = EighteenSeventeenLoanRules.value
@@ -92,7 +92,7 @@ export function buyerLimit(
 ): number {
     const loans = Math.min(
         EighteenSeventeenLoanRules.capacity(state, buyerId) - companyLoans(state, buyerId),
-        loansRemaining(state, EighteenSeventeenLoanRules)
+        loansRemaining(state, EighteenSeventeenLoanRules) + inheritedLoans(state, sale)
     )
     return (
         companyCash(state, buyerId) +

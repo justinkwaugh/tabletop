@@ -16,14 +16,13 @@ import { isStartCompany, type HydratedStartCompany } from '../company/startCompa
 import { evaluateCompanyStart } from '../company/companyStart.js'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
-import { sharesOwned } from '../finance/finance.js'
 import { isBuyShares, type HydratedBuyShares } from './buyShares.js'
 import { HydratedOfferPrivatePurchase, privateSaleChoices } from './privateSale.js'
 import { isSellShares, type HydratedSellShares } from './sellShares.js'
 import { isFinishStockTurn, type HydratedFinishStockTurn } from './finishStockTurn.js'
 import { evaluateSharePurchase } from './sharePurchase.js'
-import { evaluateShareSale } from './shareSale.js'
-import { exceedsStockLimits, type StockRules } from './stockRules.js'
+import { evaluateShareSale, hasLegalShareSale, mustSellShares } from './shareSale.js'
+import type { StockRules } from './stockRules.js'
 import { CompanyAuctionModel, type CompanyAuctionState } from './companyAuction.js'
 import { HydratedAuctionCompany } from './auctionCompany.js'
 import { HydratedBidForCompany } from './bidForCompany.js'
@@ -95,10 +94,7 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
                 action.expectedProceeds ===
                 evaluateShareSale(state, action, this.rules).details?.proceeds
             )
-        return (
-            isFinishStockTurn(action) &&
-            !exceedsStockLimits(state, { kind: 'player', playerId: action.playerId }, this.rules)
-        )
+        return isFinishStockTurn(action) && !mustSellShares(state, action.playerId, this.rules)
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
@@ -155,31 +151,14 @@ export class StockRoundHandler implements MachineStateHandler<Action, State> {
         )
             actions.push('BuyShares')
         if (
-            this.rules.sellers(state, playerId).some((seller) =>
-                state.companies.some((company) => {
-                    for (
-                        let shares = 1;
-                        shares <= sharesOwned(state, company.id, seller);
-                        shares++
-                    ) {
-                        if (
-                            evaluateShareSale(
-                                state,
-                                { playerId, seller, sales: [{ companyId: company.id, shares }] },
-                                this.rules
-                            ).details
-                        )
-                            return true
-                    }
-                    return false
-                })
-            )
+            this.rules
+                .sellers(state, playerId)
+                .some((seller) => hasLegalShareSale(state, playerId, seller, this.rules))
         )
             actions.push('SellShares')
         if (privateSaleChoices(state, this.rules, playerId).length)
             actions.push('OfferPrivatePurchase')
-        if (!exceedsStockLimits(state, { kind: 'player', playerId }, this.rules))
-            actions.push('FinishStockTurn')
+        if (!mustSellShares(state, playerId, this.rules)) actions.push('FinishStockTurn')
         return actions
     }
     enter(context: MachineContext<State>): void {

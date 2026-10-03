@@ -667,10 +667,16 @@ may merge with is a card of its own below ("Or merge with") with its treasury, l
 assets, whose Merge button names the merged size and price, the treasury shares the merged
 company would hold and its stations. While players trade the converted company's treasury shares, the
 panel names the shares left and their price, who chooses now and who follows; that player
-buys a share or passes. The president then takes loans and finishes, buying the stations
+buys a share, sells a named block (unless president), or passes. Sell buttons show
+the share count and proceeds, and commit through the session immediately. A sale ends
+that player's turn. Shareholders with no cash or no treasury shares available still
+receive their sell/pass choice. These choices add no local selection or Back step;
+Undo restores the committed action through the usual history lifecycle.
+The president then takes loans and finishes, buying the stations
 owed (the panel says when the treasury cannot pay, and the button reads Finish and
 liquidate). A merged company over a limit removes a named station or discards a train.
-History records conversions and mergers as important rows, purchases with their price, the
+History records conversions and mergers as important rows, purchases with their price,
+sales with their quantity and proceeds, the
 stations bought or the liquidation, and the removals and discards; players' passes are
 routine.
 

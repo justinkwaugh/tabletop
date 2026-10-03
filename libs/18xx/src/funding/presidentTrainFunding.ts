@@ -7,6 +7,7 @@ import type { TrainFundingRules } from './trainFunding.js'
 export function presidentTrainFundingRules(options: {
     companyOrder: OperatingRules['companyOrder']
     saleTerms: TrainFundingRules['saleTerms']
+    sellInBlocks: boolean
     stockRules: Pick<StockRules, 'ownershipLimit'>
     protectsPresidency: TrainFundingRules['protectsPresidency']
 }): TrainFundingRules {
@@ -15,6 +16,7 @@ export function presidentTrainFundingRules(options: {
             reorderPendingOperatingCompanies(state, options.companyOrder(state))
         },
         includeMarketTrains: true,
+        sellInBlocks: options.sellInBlocks,
         contributors(state, companyId) {
             const president = getCompany(state, companyId).president
             assertExists(president, 'A railway requires its president')

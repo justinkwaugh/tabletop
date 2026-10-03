@@ -3,6 +3,14 @@ import type {
     EighteenSeventeenStateHandler,
     EighteenSeventeenState
 } from './state.js'
+import {
+    dropCompany,
+    activeMergerRound,
+    mergerRoundOf,
+    setMergerRound,
+    type Conversion,
+    type MergerRound
+} from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -32,7 +40,11 @@ import {
     settleCashPayments,
     turnOrderFrom,
     type OperatingState,
-    type SharePurchaseResult
+    type SharePurchaseResult,
+    ShareSaleDetails,
+    applyShareSale,
+    evaluateShareDisposal,
+    sharesOwned
 } from '@tabletop/18xx'
 import { liquidate } from './liquidation.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
@@ -53,15 +65,7 @@ import {
     treasuryShareIds,
     trimStations
 } from './mergerRules.js'
-import {
-    dropCompany,
-    activeMergerRound,
-    mergerRoundOf,
-    setMergerRound,
-    type Conversion,
-    type MergerRound
-} from './state.js'
-import { EighteenSeventeenStockRules } from './stockRules.js'
+import { EighteenSeventeenStockRules, marketSale } from './stockRules.js'
 import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
 type State = HydratedGameState & EighteenSeventeenState
@@ -98,8 +102,7 @@ export function stateAfterConversion(state: EighteenSeventeenState): string {
     if (!conversion) return 'MergerRound'
     if (stationsOverLimit(state, conversion.companyId)) return 'ReducingStations'
     if (trainsOverLimit(state, conversion.companyId)) return 'DiscardingMergedTrains'
-    if (conversion.traderIds.length && treasuryShareIds(state, conversion.companyId).length)
-        return 'TradingConvertedShares'
+    if (conversion.traderIds.length) return 'TradingConvertedShares'
     return 'BorrowingAfterConversion'
 }
 
@@ -520,6 +523,93 @@ export class HydratedBuyConvertedShare
     }
 }
 
+export function convertedShareSales(
+    state: EighteenSeventeenState,
+    playerId: string
+): ShareSaleDetails[] {
+    const conversion = requireRound(state).conversion
+    if (
+        !conversion ||
+        currentTrader(state) !== playerId ||
+        presidentOf(state, conversion.companyId) === playerId
+    )
+        return []
+    const seller = { kind: 'player' as const, playerId }
+    const choices: ShareSaleDetails[] = []
+    for (let shares = 1; shares <= sharesOwned(state, conversion.companyId, seller); shares++) {
+        const result = evaluateShareDisposal(
+            state,
+            seller,
+            [{ companyId: conversion.companyId, shares }],
+            {
+                saleTerms: marketSale,
+                presidencyCandidates: EighteenSeventeenStockRules.presidencyCandidates
+            }
+        )
+        if (result.details) choices.push(result.details)
+    }
+    return choices
+}
+
+export const SellConvertedShares = Type.Object(
+    {
+        ...CompanyFields,
+        type: Type.Literal('SellConvertedShares'),
+        shares: Type.Integer({ minimum: 1 }),
+        expectedProceeds: Type.Integer({ minimum: 1 }),
+        metadata: Type.Optional(ShareSaleDetails)
+    },
+    { additionalProperties: false }
+)
+export type SellConvertedShares = Type.Static<typeof SellConvertedShares>
+const SellValidator = Compile(SellConvertedShares)
+export function isSellConvertedShares(action: GameAction): action is SellConvertedShares {
+    return (
+        action instanceof HydratedSellConvertedShares ||
+        (action.type === 'SellConvertedShares' && SellValidator.Check(action))
+    )
+}
+export class HydratedSellConvertedShares
+    extends HydratableAction<typeof SellConvertedShares>
+    implements SellConvertedShares
+{
+    declare type: 'SellConvertedShares'
+    declare playerId: string
+    declare companyId: string
+    declare shares: number
+    declare expectedProceeds: number
+    declare metadata?: ShareSaleDetails
+    constructor(data: SellConvertedShares) {
+        super(data instanceof HydratedSellConvertedShares ? data.dehydrate() : data, SellValidator)
+    }
+    private sale(state: EighteenSeventeenState): ShareSaleDetails | undefined {
+        return convertedShareSales(state, this.playerId).find(
+            (details) =>
+                details.sales[0].companyId === this.companyId &&
+                details.sales[0].shares === this.shares &&
+                details.proceeds === this.expectedProceeds
+        )
+    }
+    isValidFor(state: EighteenSeventeenState): boolean {
+        return this.source === ActionSource.User && !!this.sale(state)
+    }
+    apply(state: State): void {
+        const details = this.sale(state)
+        assert(this.source === ActionSource.User && details, 'Choose a legal post-conversion sale')
+        applyShareSale(state, details)
+        EighteenSeventeenStockRules.afterSale?.(state)
+        requireConversion(state).traderIds.shift()
+        this.metadata = details
+    }
+}
+
+function canTradeConvertedShares(state: EighteenSeventeenState, playerId: string): boolean {
+    return (
+        !!convertedSharePurchase(state, playerId).details ||
+        convertedShareSales(state, playerId).length > 0
+    )
+}
+
 export const PassConvertedShares = Type.Object(
     { ...CompanyFields, type: Type.Literal('PassConvertedShares') },
     { additionalProperties: false }
@@ -549,8 +639,7 @@ export class HydratedPassConvertedShares
         return (
             requireRound(state).conversion?.companyId === this.companyId &&
             currentTrader(state) === this.playerId &&
-            (this.source === ActionSource.User ||
-                !convertedSharePurchase(state, this.playerId).details)
+            (this.source === ActionSource.User || !canTradeConvertedShares(state, this.playerId))
         )
     }
     apply(state: State): void {
@@ -559,10 +648,11 @@ export class HydratedPassConvertedShares
     }
 }
 
-/** From the president, players in turn buy the converted company's treasury shares or pass. */
+/** The president buys; other shareholders may buy once, sell a block, or pass. */
 export class TradingConvertedSharesHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         return action instanceof HydratedBuyConvertedShare ||
+            action instanceof HydratedSellConvertedShares ||
             action instanceof HydratedPassConvertedShares
             ? action.isValidFor(context.gameState)
             : false
@@ -572,6 +662,7 @@ export class TradingConvertedSharesHandler implements EighteenSeventeenStateHand
         if (currentTrader(state) !== playerId) return []
         return [
             ...(convertedSharePurchase(state, playerId).details ? ['BuyConvertedShare'] : []),
+            ...(convertedShareSales(state, playerId).length ? ['SellConvertedShares'] : []),
             'PassConvertedShares'
         ]
     }
@@ -581,7 +672,7 @@ export class TradingConvertedSharesHandler implements EighteenSeventeenStateHand
         const playerId = currentTrader(state)
         assertExists(playerId, 'A player is trading')
         state.activePlayerIds = [playerId]
-        if (!convertedSharePurchase(state, playerId).details)
+        if (!canTradeConvertedShares(state, playerId))
             context.addSystemAction(PassConvertedShares, {
                 playerId,
                 companyId: conversion.companyId

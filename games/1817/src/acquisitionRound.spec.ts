@@ -13,7 +13,13 @@ import {
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
-import { acquisitionRoundCompanyId, bidCeiling, bidRejection, isLiquidated } from './index.js'
+import {
+    acquisitionRoundCompanyId,
+    bidCeiling,
+    bidRejection,
+    isLiquidated,
+    buyerLimit
+} from './index.js'
 import { mergerRoundCompanyId } from './mergerRound.js'
 import { treasuryPoolId } from './roundRules.js'
 import { marketPool } from './shorts.js'
@@ -162,6 +168,37 @@ describe('the acquisition round', () => {
         play.act('GoBankrupt')
         expect(play.state.bankruptPlayerIds).toEqual(['casey'])
         expect(play.state.operatingSet?.roundNumber).toBe(2)
+    })
+
+    it('counts inherited loans as available when the loan pool is exhausted', () => {
+        const play = acquisitionRound()
+        const state = structuredClone(play.state)
+        setCash(state, 'BA', 150)
+        setCash(state, 'PLE', 0)
+        getCompany(state, 'PLE').loans = 1
+        let outstanding = 69
+        for (const company of state.companies.filter(
+            (company) => company.kind !== 'private' && !['BA', 'PLE'].includes(company.id)
+        )) {
+            if (!outstanding) break
+            company.shareCount = 10
+            company.loans = Math.min(10, outstanding)
+            outstanding -= company.loans
+        }
+        expect(outstanding).toBe(0)
+        expect(loansOutstanding(state)).toBe(70)
+        expect(buyerLimit(state, 'BA', { companyId: 'PLE', kind: 'offered' })).toBe(150)
+        // Liquidation loans stay with the seller, so neither add supply nor cost the buyer.
+        expect(buyerLimit(state, 'BA', { companyId: 'PLE', kind: 'liquidation' })).toBe(150)
+        play.replaceState(state)
+        play.act('OfferCompany', { companyId: 'PLE' })
+        const sale = activeAcquisitionRound(play.state)?.sale
+        assertExists(sale, 'PLE is offered for sale')
+        expect(bidCeiling(play.state, sale, 'blair')).toBe(150)
+        play.act('BidToAcquire', { companyId: 'PLE', amount: 120 })
+        expect(cash(play.state, company('BA'))).toBe(30)
+        expect(getCompany(play.state, 'BA').loans).toBe(1)
+        expect(loansOutstanding(play.state)).toBe(70)
     })
 
     it('limits a company’s own president to the minimum bid', () => {

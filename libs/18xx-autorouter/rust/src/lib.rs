@@ -9,6 +9,7 @@ pub struct Problem {
     arcs: Vec<Arc>,
     trains: Vec<Train>,
     resource_count: usize,
+    junction_count: usize,
     group_count: usize,
     hex_bonuses: Vec<i32>,
     budget_ms: f64,
@@ -30,6 +31,7 @@ struct Arc {
     to: Option<usize>,
     next: Vec<usize>,
     resources: Vec<usize>,
+    junctions: Vec<usize>,
     path: usize,
     hex: usize,
     terminal: bool,
@@ -118,7 +120,7 @@ fn milliseconds() -> f64 {
 
 fn validate(problem: &Problem) -> Result<(), String> {
     let n = problem.stops.len();
-    if problem.version != 2 || !problem.budget_ms.is_finite() || problem.budget_ms <= 0.0 {
+    if problem.version != 3 || !problem.budget_ms.is_finite() || problem.budget_ms <= 0.0 {
         return Err("Unsupported problem version or budget".into());
     }
     for stop in &problem.stops {
@@ -131,6 +133,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
             || arc.to.is_some_and(|s| s >= n)
             || arc.next.iter().any(|&a| a >= problem.arcs.len())
             || arc.resources.iter().any(|&r| r >= problem.resource_count)
+            || arc.junctions.iter().any(|&j| j >= problem.junction_count)
             || arc.hex >= problem.hex_bonuses.len()
             || arc.resources.is_empty()
         {
@@ -145,6 +148,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
         if arc.from != reverse.to
             || arc.to != reverse.from
             || arc.resources != reverse.resources
+            || arc.junctions != reverse.junctions
             || arc.path != reverse.path
             || arc.hex != reverse.hex
             || arc.terminal != reverse.terminal
@@ -178,6 +182,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
 struct Compiler<'a> {
     problem: &'a Problem,
     used: Vec<bool>,
+    junction_segments: Vec<u8>,
     walking: Vec<usize>,
     connections: Vec<Connection>,
     deadline: f64,
@@ -194,11 +199,16 @@ impl Compiler<'_> {
             return;
         }
         let arc = &self.problem.arcs[arc_id];
-        if arc.resources.iter().any(|&r| self.used[r]) {
+        if arc.resources.iter().any(|&r| self.used[r])
+            || arc.junctions.iter().any(|&j| self.junction_segments[j] >= 2)
+        {
             return;
         }
         for &r in &arc.resources {
             self.used[r] = true;
+        }
+        for &j in &arc.junctions {
+            self.junction_segments[j] += 1;
         }
         self.walking.push(arc_id);
         if let Some(to) = arc.to {
@@ -251,6 +261,9 @@ impl Compiler<'_> {
             }
         }
         self.walking.pop();
+        for &j in &arc.junctions {
+            self.junction_segments[j] -= 1;
+        }
         for &r in &arc.resources {
             self.used[r] = false;
         }
@@ -464,6 +477,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     let mut compiler = Compiler {
         problem,
         used: vec![false; problem.resource_count],
+        junction_segments: vec![0; problem.junction_count],
         walking: vec![],
         connections: vec![],
         deadline: started + problem.budget_ms,

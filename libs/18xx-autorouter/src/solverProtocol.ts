@@ -13,6 +13,7 @@ export type SolverArc = {
     to: number | null
     next: number[]
     resources: number[]
+    junctions: number[]
     path: number
     hex: number
     terminal: boolean
@@ -33,6 +34,7 @@ export type SolverProblem = {
     arcs: SolverArc[]
     trains: SolverTrain[]
     resource_count: number
+    junction_count: number
     group_count: number
     hex_bonuses: number[]
     budget_ms: number

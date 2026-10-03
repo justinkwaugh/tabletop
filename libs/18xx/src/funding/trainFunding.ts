@@ -45,6 +45,7 @@ export type FundingState = CompanyDecisionState & Type.Static<Type.TObject<typeo
 export interface TrainFundingRules {
     afterShareSale?(state: FundingState): void
     includeMarketTrains: boolean
+    sellInBlocks: boolean
     contributors(state: FundingState, companyId: string): Owner[]
     issuanceTerms(
         state: FundingState,
@@ -239,6 +240,7 @@ export class EmergencyTrainFunding {
             const required = this.rules.requiredSaleShares(this.state, owner, company.id)
             if (requiredOnly && !required) return []
             if (
+                this.rules.sellInBlocks &&
                 funding.sales.some(
                     (sale) => sameOwner(sale.seller, owner) && sale.companyId === company.id
                 )

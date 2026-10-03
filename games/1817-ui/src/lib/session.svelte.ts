@@ -1,7 +1,4 @@
 import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
-import { assert } from '@tabletop/common'
-import { PassableBidding } from '@tabletop/18xx'
-import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import {
     AcquireCompany,
     AcquisitionRoundStates,
@@ -42,8 +39,13 @@ import {
     conversionPreview,
     buyersFor,
     stationPurchase,
-    treasuryShareIds
+    treasuryShareIds,
+    SellConvertedShares,
+    convertedShareSales
 } from '@tabletop/1817'
+import { assert } from '@tabletop/common'
+import { PassableBidding } from '@tabletop/18xx'
+import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import { EighteenSeventeenMapView } from './mapView.js'
 import { EighteenSeventeenPresentation } from './presentation.js'
 
@@ -141,6 +143,10 @@ export class EighteenSeventeenSession extends BaseSession {
             price: conversion.price,
             remaining: treasuryShareIds(state, conversion.companyId).length,
             traderIds: conversion.traderIds,
+            sales:
+                playerId && this.validActionTypes.includes('SellConvertedShares')
+                    ? convertedShareSales(state, playerId)
+                    : [],
             purchase:
                 playerId && this.validActionTypes.includes('BuyConvertedShare')
                     ? convertedSharePurchase(state, playerId).details
@@ -298,6 +304,19 @@ export class EighteenSeventeenSession extends BaseSession {
             this.createPlayerAction(BuyConvertedShare, {
                 companyId: purchase.companyId,
                 expectedPrice: purchase.price
+            })
+        )
+    }
+    async sellConvertedShares(shares: number) {
+        const sale = this.convertedShareTrading?.sales.find(
+            (sale) => sale.sales[0].shares === shares
+        )
+        assert(sale, 'The player cannot sell this block now')
+        await this.applyAction(
+            this.createPlayerAction(SellConvertedShares, {
+                companyId: sale.sales[0].companyId,
+                shares,
+                expectedProceeds: sale.proceeds
             })
         )
     }

@@ -31,6 +31,7 @@ export class EncodedRoutes {
             this.centers.map((center, index) => [this.centerKey(center), index])
         )
         const resources = new Map<string, number>()
+        const junctions = new Map<string, number>()
         const locations = rules.map.definition.locations
         const hexIds = new Map(locations.map((location, index) => [location.id, index]))
         const tracks = locations.flatMap(({ id: locationId }) =>
@@ -95,6 +96,16 @@ export class EncodedRoutes {
                             : null,
                     next,
                     resources: pathResources,
+                    junctions: path.endpoints.flatMap((endpoint) =>
+                        endpoint.kind === 'node' &&
+                        network
+                            .face(locationId)
+                            .nodes.some(
+                                (node) => node.id === endpoint.nodeId && node.kind === 'junction'
+                            )
+                            ? [this.indexFor(junctions, this.endpointKey(locationId, endpoint))]
+                            : []
+                    ),
                     path: id,
                     hex,
                     terminal: false,
@@ -171,11 +182,12 @@ export class EncodedRoutes {
             }
         })
         this.problem = {
-            version: 2,
+            version: 3,
             stops,
             arcs,
             trains,
             resource_count: resources.size,
+            junction_count: junctions.size,
             group_count: groupIds.size,
             hex_bonuses: locations.map((location) => rules.hexBonus?.(state, location.id) ?? 0),
             budget_ms: timeLimitMs
