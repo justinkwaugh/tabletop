@@ -41,6 +41,6 @@
         {/if}
     </div>
     {#if gameSession.chosenVisitorCount !== undefined}
-        <p class="text-sm">Click a highlighted entrance to place them.</p>
+        <p class="text-sm">Choose a highlighted entrance to place them.</p>
     {/if}
 </div>

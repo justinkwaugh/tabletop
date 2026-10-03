@@ -4,7 +4,7 @@ import {
     auctionFirstShop,
     auctionableShops,
     createGame,
-    exitArrows,
+    destinationFountains,
     finishBidding,
     incomingVisitors,
     playOpeningRound
@@ -23,7 +23,7 @@ test.afterEach(() => {
 
 test('round 1 offers only auctions and collects a sealed bid from everyone', async ({ page }) => {
     await createGame(page)
-    await expect(actionPanel(page)).toHaveText(/click an unowned shop to auction it/)
+    await expect(actionPanel(page)).toHaveText(/choose an unowned shop to auction it/)
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
 
     await auctionFirstShop(page)
@@ -43,14 +43,14 @@ test('a chosen shop waits for confirmation and Back cancels it before anyone bid
     await expect(page.locator('path[filter*="candidate-halo"]')).toHaveCount(1)
 
     await page.getByRole('button', { name: 'Back', exact: true }).click()
-    await expect(actionPanel(page)).toHaveText(/click an unowned shop to auction it/)
+    await expect(actionPanel(page)).toHaveText(/choose an unowned shop to auction it/)
     await expect(auctionableShops(page)).toHaveCount(25)
 
     await auctionFirstShop(page)
     await expect(actionPanel(page)).toContainText('Sealed bid')
 })
 
-test('choosing a fountain shows its exits, previews a route and Back restores the turn', async ({
+test('choosing a fountain dims the board around its destinations, previews a route and Back restores the turn', async ({
     page
 }) => {
     await createGame(page)
@@ -59,24 +59,42 @@ test('choosing a fountain shows its exits, previews a route and Back restores th
 
     await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
     await expect(auctionableShops(page)).toHaveCount(0)
-    await expect(exitArrows(page)).toHaveCount(3)
+    await expect(destinationFountains(page)).toHaveCount(3)
+    await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
+    await expect(actionPanel(page)).toContainText('Choose the destination for these visitors.')
 
-    await page.getByRole('button', { name: 'Move visitors S to fountain 6' }).hover()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).hover()
     await expect(page.locator('polyline')).toHaveCount(2)
 
     await page.getByRole('button', { name: 'Back', exact: true }).click()
-    await expect(exitArrows(page)).toHaveCount(0)
+    await expect(destinationFountains(page)).toHaveCount(0)
     await expect(auctionableShops(page)).toHaveCount(21)
     await expect(page.locator('polyline')).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Keep the visitors at fountain 1' }).click()
+    await expect(destinationFountains(page)).toHaveCount(0)
+    await expect(auctionableShops(page)).toHaveCount(21)
+
+    await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 4' }).hover()
+    await expect(page.locator('g[aria-label$="entering shop Y1"]')).toHaveAttribute(
+        'aria-label',
+        '1 entering shop Y1'
+    )
+    await expect(page.locator('g[aria-label$="entering shop P1"]')).toHaveAttribute(
+        'aria-label',
+        '1 entering shop P1'
+    )
 })
 
 test('emptied entrances are refilled from a chosen end of the queue', async ({ page }) => {
     await createGame(page)
     await playOpeningRound(page)
     await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
-    await page.getByRole('button', { name: 'Move visitors S to fountain 6' }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
     await page.getByRole('button', { name: 'Fountain 8', exact: true }).click()
-    await page.getByRole('button', { name: 'Move visitors E to fountain 9' }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 9' }).click()
 
     await expect(actionPanel(page)).toContainText('Bring new visitors')
     await page.getByRole('button', { name: 'Front of queue' }).click()

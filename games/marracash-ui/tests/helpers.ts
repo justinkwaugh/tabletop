@@ -35,7 +35,7 @@ export function auctionableShops(page: Page): Locator {
     return page.locator('g[aria-label^="Auction shop"]')
 }
 
-export function exitArrows(page: Page): Locator {
+export function destinationFountains(page: Page): Locator {
     return page.locator('g[aria-label^="Move visitors"]')
 }
 
@@ -59,7 +59,7 @@ export async function playOpeningRound(page: Page, players = 4) {
         await auctionFirstShop(page)
         await finishBidding(page)
     }
-    await expect(actionPanel(page)).toContainText('click a fountain')
+    await expect(actionPanel(page)).toContainText('choose a fountain')
 }
 
 export function incomingVisitors(page: Page): Locator {

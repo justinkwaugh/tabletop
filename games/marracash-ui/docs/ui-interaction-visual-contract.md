@@ -4,23 +4,23 @@ Covers the board highlights and previews used while a player takes their turn. S
 
 ## Visual intents
 
-| Intent                    | Trigger                                                        | Emphasized                                                                                                                                                                                                                                                                  | Unaffected             |
-| ------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| Choose a fountain to move | `ChoosingAction`, the player may move, no fountain selected    | Every fountain with visitors gets a glowing white halo hugging its outline and is clickable (pointer, or focus and Enter)                                                                                                                                                   | Shops, queue, pawns    |
-| Choose a shop to auction  | `ChoosingAction`, the player may auction, no fountain selected | Every unowned shop gets a glowing white halo and is clickable; clicking one stages it for confirmation rather than starting the auction                                                                                                                                     | Fountains, queue       |
-| Choose a direction        | A fountain is selected                                         | That fountain gets a solid dark ring; an arrow appears on each exit; other movable fountains keep their halos and switch the selection when clicked                                                                                                                         | Shop colours, pawns    |
-| Preview a route           | Pointer over, or focus on, an exit arrow                       | A dashed path from the fountain along the route, and a white ring on the destination                                                                                                                                                                                        | Everything else        |
-| Choose an entrance        | `RefillingEntrances`, queue end and visitor count chosen       | Each empty entrance gets a glowing white halo hugging its star and is clickable; the queue pawns that would be brought in get the same halo, updating as the end or count changes                                                                                           | Shops, other fountains |
-| Spotlight the auction     | `auctionShopId` is set in the game state, or a shop is staged  | Everything else on the table, queue included, is dimmed under a half-black overlay; the auctioned shop stays at full colour above it with the white halo. The same spotlight shows while a chosen shop awaits confirmation, with Start auction and Back in the action panel | The auctioned shop     |
+| Intent                    | Trigger                                                        | Emphasized                                                                                                                                                                                                                                                                                                                                                                                                                         | Unaffected                    |
+| ------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Choose a fountain to move | `ChoosingAction`, the player may move, no fountain selected    | Every fountain with visitors gets a glowing white halo hugging its outline and is clickable (pointer, or focus and Enter)                                                                                                                                                                                                                                                                                                          | Shops, queue, pawns           |
+| Choose a shop to auction  | `ChoosingAction`, the player may auction, no fountain selected | Every unowned shop gets a glowing white halo and is clickable; clicking one stages it for confirmation rather than starting the auction                                                                                                                                                                                                                                                                                            | Fountains, queue              |
+| Choose a destination      | A fountain is selected                                         | Everything else on the table, queue included, is dimmed under the same half-black overlay as the auction spotlight; the selected fountain stays at full colour above it with a solid dark ring and is clickable to back out the same as Back, and each fountain one of its routes reaches stays at full colour with the white halo and is clickable. The action panel reads "Choose the destination for these visitors." with Back | Pawns on the lifted fountains |
+| Preview a route           | Pointer over, or focus on, a destination fountain              | A dashed path from the fountain along the route, branches into the owned shops the visitors would enter, which are lifted above the overlay at full colour without a halo, each with a chip where its branch meets the shop showing a pawn of the shop's colour and how many visitors walk in, and a pulse on the destination, all above the overlay                                                                               | Everything else               |
+| Choose an entrance        | `RefillingEntrances`, queue end and visitor count chosen       | Each empty entrance gets a glowing white halo hugging its star and is clickable; the queue pawns that would be brought in get the same halo, updating as the end or count changes                                                                                                                                                                                                                                                  | Shops, other fountains        |
+| Spotlight the auction     | `auctionShopId` is set in the game state, or a shop is staged  | Everything else on the table, queue included, is dimmed under a half-black overlay; the auctioned shop stays at full colour above it with the white halo. The same spotlight shows while a chosen shop awaits confirmation, with Start auction and Back in the action panel                                                                                                                                                        | The auctioned shop            |
 
 ## Coexistence and precedence
 
-| Intent A           | Intent B                   | Rule                                                                                                                                     |
-| ------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Choose a fountain  | Choose a shop              | Coexist until a fountain is selected. Selecting a fountain removes the shop highlights, because an auction can't follow choosing a move. |
-| Choose a direction | Choose a fountain          | Coexist: the other movable fountains stay highlighted so the player can switch.                                                          |
-| Preview a route    | Choose a direction         | The preview only exists while its route starts at the selected fountain.                                                                 |
-| Choose an entrance | Any move or auction intent | Can't overlap: refilling and choosing an action are different machine states.                                                            |
+| Intent A             | Intent B                   | Rule                                                                                                                                                                        |
+| -------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Choose a fountain    | Choose a shop              | Coexist until a fountain is selected. Selecting a fountain removes the shop highlights, because an auction can't follow choosing a move.                                    |
+| Choose a destination | Choose a fountain          | Exclusive: selecting a fountain removes the other movable fountains' halos under the overlay. Back returns to choosing an action, where any fountain or shop can be chosen. |
+| Preview a route      | Choose a destination       | The preview only exists while its route starts at the selected fountain.                                                                                                    |
+| Choose an entrance   | Any move or auction intent | Can't overlap: refilling and choosing an action are different machine states.                                                                                               |
 
 During bidding, while waiting for others, and in History View, the session reports no available actions, so no intent shows. The auction spotlight comes from game state, not available actions, so it shows to every player during bidding, including in History View.
 
@@ -33,14 +33,14 @@ During bidding, while waiting for others, and in History View, the session repor
     - Validity: each derived value is undefined unless its action is currently available, so stale choices never render.
     - A single legal visitor count is derived, never stored, so Back and Undo never consume it.
 - **Hovered route** (`Board`):
-    - Meaning: the exit route under the pointer or focus.
-    - Producer: `DirectionArrows`. Consumer: `RoutePreview`.
-    - Lifetime: cleared on pointer leave or blur.
+    - Meaning: the route to the destination fountain under the pointer or focus.
+    - Producer: the destination `FountainSpot`s. Consumer: `RoutePreview`.
+    - Lifetime: cleared on pointer leave or blur, and when the destination is chosen, because its spot unmounts without a pointer leave.
     - Validity: derived empty while a new state is publishing, or when the route doesn't start at the selected fountain.
 
 ## Render ownership
 
-- `Board` owns the layer order: the visitor queue in the margin outside the walls, then shops, then fountains, then the route preview, then the exit arrows, then the auction spotlight's overlay and the auctioned shop. The arrows stay on top of the preview so they remain clickable, because the preview ignores pointer events. The spotlight sits above everything but has nothing clickable under it, because no board action is available during bidding.
+- `Board` owns the layer order: the visitor queue in the margin outside the walls, then shops, then fountains, then the shared overlay, then whatever is lifted above it (the auctioned or staged shop, the shops the previewed route enters, or the selected fountain and its destinations), then the route preview. The overlay blocks clicks on everything beneath it, so only lifted pieces are interactive; the preview ignores pointer events so it never blocks a destination.
 
 ## Verification scenarios
 
@@ -48,9 +48,11 @@ All checked manually in the dev harness, using scripted browser runs.
 
 1. **Round 2 turn:**
     - At the start, both fountains with visitors and unowned shops are highlighted.
-    - Selecting fountain 1 removes the shop highlights and shows three arrows.
-    - Hovering the south arrow previews the route to fountain 6.
-    - Back restores the start-of-turn highlights.
+    - Selecting fountain 1 dims the table and leaves only fountain 1 and its destinations 2, 3 and 6 bright; the panel asks for the destination.
+    - Hovering fountain 6 previews the route to it.
+    - Back, or clicking fountain 1 again, restores the start-of-turn highlights.
+    - Hovering fountain 4 from fountain 8 lifts the yellow and purple shops its visitors would enter, each with a chip counting one visitor.
+    - Clicking fountain 6 moves the visitors there.
 2. **Entrance refill:**
     - After two moves that empty entrances 1 and 8, choose the front of the queue and 3 visitors; both empty entrances are highlighted.
     - Clicking entrance 1 places the visitors and clears the selection.

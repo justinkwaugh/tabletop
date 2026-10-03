@@ -1,5 +1,5 @@
 import { GameSession } from '@tabletop/frontend-components'
-import { assertExists, type CardinalDirection } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import {
     ActionType,
     BringVisitors,
@@ -62,7 +62,7 @@ export class MarracashGameSession extends GameSession<
     )
 
     readonly movableFountainIds: FountainId[] = $derived(
-        this.canMove && this.selectedShopId === undefined
+        this.canMove && this.selectedShopId === undefined && this.selectedFountainId === undefined
             ? this.gameState.fountains
                   .filter((fountain) => fountain.visitors.length > 0)
                   .map((fountain) => fountain.fountainId)
@@ -81,6 +81,10 @@ export class MarracashGameSession extends GameSession<
 
     readonly selectedRoutes: readonly Route[] = $derived(
         this.selectedFountainId === undefined ? [] : routesFrom(this.selectedFountainId)
+    )
+
+    readonly destinationFountainIds: FountainId[] = $derived(
+        this.selectedRoutes.map((route) => route.to)
     )
 
     readonly chosenQueueEnd: QueueEnd | undefined = $derived(
@@ -186,10 +190,14 @@ export class MarracashGameSession extends GameSession<
         )
     }
 
-    async moveVisitors(direction: CardinalDirection) {
+    async moveVisitorsTo(destinationId: FountainId) {
         const fountainId = this.selectedFountainId
         assertExists(fountainId, 'Moving visitors requires a selected fountain')
-        await this.applyAction(this.createPlayerAction(MoveVisitors, { fountainId, direction }))
+        const route = this.selectedRoutes.find((candidate) => candidate.to === destinationId)
+        assertExists(route, `No route from fountain ${fountainId} reaches ${destinationId}`)
+        await this.applyAction(
+            this.createPlayerAction(MoveVisitors, { fountainId, direction: route.direction })
+        )
     }
 
     async bringVisitorsTo(entranceId: FountainId) {

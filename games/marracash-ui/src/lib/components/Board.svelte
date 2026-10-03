@@ -7,11 +7,16 @@
     import PawnDefs from '$lib/components/PawnDefs.svelte'
     import FountainDefs from '$lib/components/FountainDefs.svelte'
     import FountainSpot from '$lib/components/FountainSpot.svelte'
-    import DirectionArrows from '$lib/components/DirectionArrows.svelte'
     import RoutePreview from '$lib/components/RoutePreview.svelte'
     import VisitorQueue from '$lib/components/VisitorQueue.svelte'
     import PalmTree from '$lib/components/PalmTree.svelte'
-    import type { FountainId, Route } from '@tabletop/marracash'
+    import {
+        shopVisits,
+        type FountainId,
+        type FountainState,
+        type Route,
+        type ShopVisit
+    } from '@tabletop/marracash'
     import {
         BoardHeight,
         BoardWidth,
@@ -35,9 +40,23 @@
     let spotlightShop = $derived(
         gameSession.gameState.shops.find((shop) => shop.shopId === spotlightShopId)
     )
-    let unspotlitShops = $derived(
-        gameSession.gameState.shops.filter((shop) => shop !== spotlightShop)
+
+    let liftedFountainIds: FountainId[] = $derived(
+        gameSession.selectedFountainId === undefined
+            ? []
+            : [gameSession.selectedFountainId, ...gameSession.destinationFountainIds]
     )
+    let liftedFountains = $derived(
+        gameSession.gameState.fountains.filter((fountain) =>
+            liftedFountainIds.includes(fountain.fountainId)
+        )
+    )
+    let groundFountains = $derived(
+        gameSession.gameState.fountains.filter(
+            (fountain) => !liftedFountainIds.includes(fountain.fountainId)
+        )
+    )
+    let dimmed = $derived(spotlightShop !== undefined || liftedFountains.length > 0)
 
     let hoveredRoute: Route | undefined = $state()
     let previewRoute = $derived(
@@ -48,13 +67,52 @@
             : undefined
     )
 
+    let previewVisits: readonly ShopVisit[] = $derived(
+        previewRoute === undefined
+            ? []
+            : shopVisits(
+                  previewRoute,
+                  gameSession.gameState.getFountainState(previewRoute.from).visitors,
+                  (shopId) => gameSession.gameState.getShopState(shopId).ownerId !== undefined
+              ).visits
+    )
+    let enteredShops = $derived(
+        gameSession.gameState.shops.filter((shop) =>
+            previewVisits.some((visit) => visit.shopId === shop.shopId)
+        )
+    )
+    let groundShops = $derived(
+        gameSession.gameState.shops.filter(
+            (shop) => shop !== spotlightShop && !enteredShops.includes(shop)
+        )
+    )
+
+    function previewDestination(destinationId: FountainId, previewing: boolean) {
+        hoveredRoute = previewing
+            ? gameSession.selectedRoutes.find((route) => route.to === destinationId)
+            : undefined
+    }
+
+    function fountainLabel(
+        fountainId: FountainId,
+        isSource: boolean,
+        isDestination: boolean
+    ): string | undefined {
+        if (isSource) return `Keep the visitors at fountain ${fountainId}`
+        if (isDestination) return `Move visitors to fountain ${fountainId}`
+        return undefined
+    }
+
     function chooseFountain(fountainId: FountainId) {
         if (gameSession.fillableEntranceIds.includes(fountainId)) {
             void gameSession.bringVisitorsTo(fountainId)
+        } else if (gameSession.selectedFountainId === fountainId) {
+            gameSession.back()
+        } else if (gameSession.destinationFountainIds.includes(fountainId)) {
+            hoveredRoute = undefined
+            void gameSession.moveVisitorsTo(fountainId)
         } else {
-            gameSession.selectFountain(
-                gameSession.selectedFountainId === fountainId ? undefined : fountainId
-            )
+            gameSession.selectFountain(fountainId)
         }
     }
 
@@ -62,6 +120,25 @@
         gateRect(fountain.coords)
     )
 </script>
+
+{#snippet fountainSpot(fountain: FountainState)}
+    {@const isSource = gameSession.selectedFountainId === fountain.fountainId}
+    {@const isDestination = gameSession.destinationFountainIds.includes(fountain.fountainId)}
+    <FountainSpot
+        {fountain}
+        selectable={isSource ||
+            isDestination ||
+            gameSession.movableFountainIds.includes(fountain.fountainId) ||
+            gameSession.fillableEntranceIds.includes(fountain.fountainId)}
+        selected={isSource}
+        destination={previewRoute?.to === fountain.fountainId}
+        label={fountainLabel(fountain.fountainId, isSource, isDestination)}
+        onselect={() => chooseFountain(fountain.fountainId)}
+        onpreview={isDestination
+            ? (previewing) => previewDestination(fountain.fountainId, previewing)
+            : undefined}
+    />
+{/snippet}
 
 <svg width={TableWidth} height={TableHeight} viewBox="0 0 {TableWidth} {TableHeight}">
     <defs>
@@ -120,35 +197,15 @@
             <PalmTree center={cellCenter(palm)} />
         {/each}
 
-        {#each unspotlitShops as shop (shop.shopId)}
+        {#each groundShops as shop (shop.shopId)}
             <ShopTile {shop} selectable={gameSession.auctionableShopIds.includes(shop.shopId)} />
         {/each}
 
-        {#each gameSession.gameState.fountains as fountain (fountain.fountainId)}
-            <FountainSpot
-                {fountain}
-                selectable={gameSession.movableFountainIds.includes(fountain.fountainId) ||
-                    gameSession.fillableEntranceIds.includes(fountain.fountainId)}
-                selected={gameSession.selectedFountainId === fountain.fountainId}
-                destination={previewRoute?.to === fountain.fountainId}
-                onselect={() => chooseFountain(fountain.fountainId)}
-            />
+        {#each groundFountains as fountain (fountain.fountainId)}
+            {@render fountainSpot(fountain)}
         {/each}
 
-        {#if previewRoute}
-            <!-- Remount per route so its dashes start in step with the destination's pulse. -->
-            {#key previewRoute}
-                <RoutePreview route={previewRoute} />
-            {/key}
-        {/if}
-
-        <DirectionArrows
-            routes={gameSession.selectedRoutes}
-            onpreview={(route) => (hoveredRoute = route)}
-            onchoose={(direction) => gameSession.moveVisitors(direction)}
-        />
-
-        {#if spotlightShop}
+        {#if dimmed}
             <rect
                 x={-QueueMargin}
                 y={-QueueMargin}
@@ -157,7 +214,25 @@
                 fill="#000000"
                 opacity="0.5"
             ></rect>
+        {/if}
+
+        {#if spotlightShop}
             <ShopTile shop={spotlightShop} selectable={false} spotlit />
+        {/if}
+
+        {#each enteredShops as shop (shop.shopId)}
+            <ShopTile {shop} selectable={false} />
+        {/each}
+
+        {#each liftedFountains as fountain (fountain.fountainId)}
+            {@render fountainSpot(fountain)}
+        {/each}
+
+        {#if previewRoute}
+            <!-- Remount per route so its dashes start in step with the destination's pulse. -->
+            {#key previewRoute}
+                <RoutePreview route={previewRoute} visits={previewVisits} />
+            {/key}
         {/if}
     </g>
 </svg>

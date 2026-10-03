@@ -35,13 +35,17 @@
         selectable,
         selected,
         destination = false,
-        onselect
+        label = `Fountain ${fountain.fountainId}`,
+        onselect,
+        onpreview
     }: {
         fountain: FountainState
         selectable: boolean
         selected: boolean
         destination?: boolean
+        label?: string
         onselect: () => void
+        onpreview?: (previewing: boolean) => void
     } = $props()
 
     let definition = $derived(getFountain(fountain.fountainId))
@@ -105,7 +109,7 @@
             filter="url(#{CandidateHaloFilterId})"
         ></path>
     {/if}
-    {#if selectable}
+    {#if selectable && !selected}
         <path
             d={outline(center, definition.entrance ? radii.trim : radii.rim)}
             fill="none"
@@ -209,8 +213,12 @@
     <g
         role="button"
         tabindex="0"
-        aria-label={`Fountain ${fountain.fountainId}`}
+        aria-label={label}
         class="cursor-pointer"
+        onpointerenter={() => onpreview?.(true)}
+        onpointerleave={() => onpreview?.(false)}
+        onfocus={() => onpreview?.(true)}
+        onblur={() => onpreview?.(false)}
         onclick={() => onselect()}
         onkeydown={(event) => event.key === 'Enter' && onselect()}
     >

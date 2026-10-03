@@ -1,8 +1,9 @@
 <script lang="ts">
     import type { Point } from '@tabletop/common'
-    import { getShop, shopVisits, type Route } from '@tabletop/marracash'
+    import { getShop, type Route, type ShopVisit } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { LineHaloFilterId } from '$lib/utils/boardGeometry.js'
+    import VisitCount from '$lib/components/VisitCount.svelte'
     import {
         BranchDash,
         flowSeconds,
@@ -11,7 +12,7 @@
         shopBranch
     } from '$lib/utils/routePreview.js'
 
-    let { route }: { route: Route } = $props()
+    let { route, visits }: { route: Route; visits: readonly ShopVisit[] } = $props()
 
     const gameSession = getGameSession()
 
@@ -24,18 +25,17 @@
     }
 
     let points = $derived(flowPoints(routeLine(route)))
-    let branches = $derived.by(() => {
-        const { visits } = shopVisits(
-            route,
-            gameSession.gameState.getFountainState(route.from).visitors,
-            (shopId) => gameSession.gameState.getShopState(shopId).ownerId !== undefined
-        )
-        return visits.map(({ shopId }) => ({
-            shopId,
-            points: flowPoints(shopBranch(route, shopId)),
-            color: gameSession.marketPalettes[getShop(shopId).color].fill
-        }))
-    })
+    let branches = $derived(
+        visits.map((visit) => {
+            const line = shopBranch(route, visit.shopId)
+            return {
+                visit,
+                end: line[1],
+                points: flowPoints(line),
+                color: gameSession.marketPalettes[getShop(visit.shopId).color].fill
+            }
+        })
+    )
 </script>
 
 {#snippet flowLine(
@@ -70,10 +70,13 @@
 {/snippet}
 
 <g pointer-events="none">
-    {#each branches as branch (branch.shopId)}
+    {#each branches as branch (branch.visit.shopId)}
         {@render flowLine(branch.points, branch.color, 5, BranchDash)}
     {/each}
     {@render flowLine(points, '#ffffff', 6, RouteDash)}
+    {#each branches as branch (branch.visit.shopId)}
+        <VisitCount visit={branch.visit} at={branch.end} />
+    {/each}
 </g>
 
 <style>
