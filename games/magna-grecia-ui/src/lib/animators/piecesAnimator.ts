@@ -10,9 +10,14 @@ import {
     marketTop,
     type MarketState
 } from '$lib/components/board/MarketArt.svelte'
-import { ORACLE_WHITE, oracleRotation } from '$lib/components/board/OracleArt.svelte'
+import {
+    blendLooks,
+    oracleDrop,
+    oracleLook,
+    oracleRotation,
+    oracleTone
+} from '$lib/components/board/OracleArt.svelte'
 import type { MarketView, OracleView, RoadView } from '$lib/utils/boardView.js'
-import { mixColor } from '$lib/utils/colorMix.js'
 import { hasPieceChanges, pieceChanges, type Change } from '$lib/utils/pieceChanges.js'
 
 export type PieceArrivals = { roads: RoadView[]; markets: MarketView[] }
@@ -198,19 +203,40 @@ export class PiecesAnimator {
         play: (at: number, duration: number, ease: string, draw: (p: number) => void) => void
     ) {
         const turn = node.querySelector('[data-part="turn"]')
-        const accents = [...node.querySelectorAll('[data-part="accent"]')]
-        const fromRotation = oracleRotation(from.attention?.angle ?? -90)
-        const toRotation = oracleRotation(to.attention?.angle ?? -90)
+        const tones = [...node.querySelectorAll<SVGElement>('[data-tone]')]
+        const drops = [...node.querySelectorAll('[data-part="drop"]')]
+        const edge = node.querySelector('[data-part="drop-edge"]')
+        const dashes = node.querySelector('[data-part="drop-dashes"]')
+        // A round (unfavoured) precinct has no direction, so it takes the other end's.
+        const fromAngle = from.attention?.angle ?? to.attention?.angle ?? -90
+        const toAngle = to.attention?.angle ?? fromAngle
+        const fromRotation = oracleRotation(fromAngle)
         // The short way round.
-        const sweep = ((((toRotation - fromRotation) % 360) + 540) % 360) - 180
-        const fromColor = from.attention
-            ? this.callbacks.colorOf(from.attention.playerId)
-            : ORACLE_WHITE
-        const toColor = to.attention ? this.callbacks.colorOf(to.attention.playerId) : ORACLE_WHITE
+        const sweep = ((((oracleRotation(toAngle) - fromRotation) % 360) + 540) % 360) - 180
+        const colorOf = (view: OracleView) =>
+            view.attention && this.callbacks.colorOf(view.attention.playerId)
+        const fromLook = oracleLook(colorOf(from))
+        const toLook = oracleLook(colorOf(to))
+        const fromReach = from.attention ? 1 : 0
+        const toReach = to.attention ? 1 : 0
         play(after, duration, 'power2.inOut', (p) => {
             turn?.setAttribute('transform', `rotate(${fromRotation + sweep * p})`)
-            const color = mixColor(fromColor, toColor, p)
-            for (const accent of accents) accent.setAttribute('fill', color)
+            const look = blendLooks(fromLook, toLook, p)
+            for (const element of tones) {
+                element.setAttribute(
+                    element.dataset.toneAttr ?? 'fill',
+                    oracleTone(look, element.dataset.tone ?? '')
+                )
+            }
+            if (fromReach !== toReach) {
+                // The tail runs out to the road as favour arrives, and back as it goes.
+                const reach = fromReach + (toReach - fromReach) * p
+                const shape = oracleDrop(reach)
+                for (const drop of drops) drop.setAttribute('d', shape.fill)
+                edge?.setAttribute('d', shape.edge)
+                dashes?.setAttribute('d', shape.dashes)
+                dashes?.setAttribute('opacity', `${reach > 0.05 ? 1 : 0}`)
+            }
         })
     }
 }
