@@ -96,6 +96,7 @@ export * from './util/pairing.js'
 export * from './util/typebox.js'
 
 export * from './game/engine/explorationHistory.js'
+export { RecordedHistory, type RecordedTransition } from './game/engine/recordedHistory.js'
 
 export * from './game/engine/actionHistory.js'
 export * from './game/engine/supersede.js'

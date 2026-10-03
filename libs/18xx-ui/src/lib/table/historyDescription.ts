@@ -1,3 +1,4 @@
+import type { AuctionAwardDetails } from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
     isLayTile,
@@ -188,17 +189,12 @@ function describeShared(
     const closures = (companyChanges?.closedCompanyIds ?? []).map(
         (id) => `${companyName(id)} closed`
     )
-    function awardExtras(): string {
-        const extras = (action.undoPatch ?? []).flatMap((patch) => {
-            const match = /^\/certificates\/(\d+)\/owner\/kind$/.exec(patch.path)
-            const certificate = match ? state.certificates[Number(match[1])] : undefined
-            if (certificate?.kind !== 'share') return []
-            return [
-                certificate.president
-                    ? `the ${companyName(certificate.companyId)} president’s certificate`
-                    : `${certificate.shares} ${companyName(certificate.companyId)}`
-            ]
-        })
+    function awardExtras(award: AuctionAwardDetails | undefined): string {
+        const extras = (award?.shares ?? []).map((share) =>
+            share.president
+                ? `the ${companyName(share.companyId)} president’s certificate`
+                : `${share.shares} ${companyName(share.companyId)}`
+        )
         return extras.length ? `, with ${extras.join(' and ')}` : ''
     }
     function receivedShare(certificateId: string) {
@@ -485,26 +481,20 @@ function describeShared(
     }
     if (isBuyAuctionLot(action))
         return {
-            text: `Bought ${companyName(action.lotId)}${awardExtras()}`,
+            text: `Bought ${companyName(action.lotId)}${awardExtras(action.metadata)}`,
             value: money(action.expectedPrice),
             important: true
         }
     if (isPassAuction(action)) return { text: 'Passed' }
     if (isResolveAuction(action)) {
-        const awards = (action.undoPatch ?? []).flatMap((patch) => {
-            const match = /^\/openingAuction\/awards\/(\d+)$/.exec(patch.path)
-            const award =
-                match && patch.op === 'remove'
-                    ? state.openingAuction?.awards[Number(match[1])]
-                    : undefined
-            return award ? [award] : []
-        })
+        if (!action.metadata) return { text: 'Auction resolved', routine: true }
+        const awards = action.metadata.kind === 'award' ? [action.metadata.award] : []
         return {
             text: awards.length ? 'Auction awarded' : 'Auction continued',
             detail: awards
                 .map(
                     (award) =>
-                        `${playerName(award.playerId)} won ${companyName(award.lotId)} for ${money(award.price)}${awardExtras()}`
+                        `${playerName(award.playerId)} won ${companyName(award.lotId)} for ${money(award.price)}${awardExtras(award)}`
                 )
                 .join(' · '),
             important: !!awards.length,

@@ -1,3 +1,4 @@
+import { RecordedHistory } from './recordedHistory.js'
 import jsonpatch from 'fast-json-patch'
 import { describe, expect, it } from 'vitest'
 import { assert, assertExists } from '../../util/assertions.js'
@@ -106,6 +107,11 @@ describe('Exploration boundary patches', () => {
             })
             const loaded = JSON.parse(JSON.stringify(future.updatedState))
             assert(CanonicalValidator.Check(loaded))
+            const reader = new RecordedHistory(loaded, [...actions, ...future.processedActions])
+            expect(reader.after(actions.at(-1)!.id)).toEqual(source)
+            expect(reader.select((state) => state).get(actions[0].id)?.before).toEqual(
+                recordedInitial
+            )
             let current: SharedState = history.recordedState(loaded, exploration)
             for (let pass = 0; pass < 10; pass++) {
                 for (const action of future.processedActions.toReversed())

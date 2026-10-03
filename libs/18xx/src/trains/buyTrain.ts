@@ -1,3 +1,4 @@
+import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -32,7 +33,11 @@ export const BuyTrain = Type.Object(
         expectedPrice: Type.Integer({ minimum: 0 }),
         metadata: Type.Optional(
             Type.Object(
-                { ...TrainPurchaseDetails.properties, departurePayments: DeparturePayments },
+                {
+                    ...TrainPurchaseDetails.properties,
+                    companyChanges: Type.Optional(CompanyChanges),
+                    departurePayments: DeparturePayments
+                },
                 { additionalProperties: false }
             )
         )
@@ -72,8 +77,13 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
         const result = purchase.evaluate(this)
         assert(result.details, result.reason ?? 'Invalid train purchase')
         assert(result.details.price === this.expectedPrice, 'Train price has changed')
+        const companies = new CompanyChangeRecorder(state)
         const payments = applyTrainPurchase(state, result.details, this.#rules)
-        this.metadata = { ...result.details, ...departurePaymentsField(payments) }
+        this.metadata = {
+            companyChanges: companies.changes(state),
+            ...result.details,
+            ...departurePaymentsField(payments)
+        }
     }
 }
 

@@ -1,37 +1,14 @@
-import type { EighteenXXState } from '@tabletop/18xx'
-import { assert, type GameAction } from '@tabletop/common'
-import jsonpatch from 'fast-json-patch'
+import type { HistoryStates } from './historyStates.js'
 
 export type HistoryCash = {
     before: ReadonlyMap<string, number>
     after: ReadonlyMap<string, number>
 }
 
-export function historyCash(
-    actions: readonly GameAction[],
-    state: EighteenXXState
-): Map<string, HistoryCash> {
-    let ledger = { cash: structuredClone(state.cash) }
+export function historyCash(states: HistoryStates): Map<string, HistoryCash> {
     const result = new Map<string, HistoryCash>()
-    function balances() {
-        const values = new Map<string, number>()
-        for (const entry of ledger.cash) {
-            if (entry.owner.kind !== 'company') continue
-            assert(typeof entry.amount === 'number', 'Company history requires finite cash')
-            values.set(entry.owner.companyId, entry.amount)
-        }
-        return values
-    }
-    let after = balances()
-    for (const action of actions.toReversed()) {
-        const patches = (action.undoPatch ?? []).filter(
-            (patch) => patch.path === '/cash' || patch.path.startsWith('/cash/')
-        )
-        if (patches.length)
-            ledger = jsonpatch.applyPatch(ledger, structuredClone(patches)).newDocument
-        const before = patches.length ? balances() : after
-        result.set(action.id, { before, after })
-        after = before
+    for (const [id, { before, after }] of states) {
+        if (before) result.set(id, { before: before.cash, after: after.cash })
     }
     return result
 }

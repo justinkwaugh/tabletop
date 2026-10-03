@@ -23,7 +23,7 @@ import {
 import { MachineContext } from './machineContext.js'
 import { type MachineStateHandler } from './machineStateHandler.js'
 import { type GameRuntime } from '../definition/gameDefinition.js'
-import { calculateActionChecksum } from '../../util/checksum.js'
+import { undoRecordedAction } from './recordedHistory.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
 import { assert, assertExists } from '../../util/assertions.js'
@@ -280,19 +280,7 @@ export class GameEngine<
     }
 
     undoProcessedAction({ action, state }: { action: GameAction; state: T }): T {
-        const initialChecksum = state.actionChecksum
-        const undoPatch = action.undoPatch
-        assertExists(undoPatch, 'Action has no undo patch')
-
-        const updatedState = this.applyStatePatch(state, undoPatch)
-        if (updatedState.actionChecksum === initialChecksum) {
-            console.log('Undoing an old action, calculating checksum manually')
-            // This is only for games created when undo was not a thing
-            updatedState.actionChecksum = calculateActionChecksum(updatedState.actionChecksum, [
-                action
-            ])
-        }
-        return updatedState
+        return undoRecordedAction(state, action)
     }
 
     private executeThroughRuntime({

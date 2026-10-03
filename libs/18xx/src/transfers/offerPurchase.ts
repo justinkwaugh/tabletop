@@ -1,3 +1,4 @@
+import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -36,6 +37,7 @@ export const OfferPurchase = Type.Object(
             Type.Object({
                 offer: PurchaseOffer,
                 accepted: Type.Boolean(),
+                companyChanges: Type.Optional(CompanyChanges),
                 departurePayments: DeparturePayments
             })
         )
@@ -84,12 +86,18 @@ export class HydratedOfferPurchase
             buyerPlayerId: result.buyerPlayerId,
             sellerPlayerId: result.sellerPlayerId
         }
+        const companies = new CompanyChangeRecorder(state)
         const accepted = offer.buyerPlayerId === offer.sellerPlayerId
         const payments = accepted
             ? settlePurchaseOffer(state, offer, this.#rules, this.#trains)
             : []
         if (!accepted) state.purchaseOffer = offer
-        this.metadata = { offer, accepted, ...departurePaymentsField(payments) }
+        this.metadata = {
+            companyChanges: companies.changes(state),
+            offer,
+            accepted,
+            ...departurePaymentsField(payments)
+        }
     }
 }
 export const RespondToPurchaseOffer = Type.Object(
@@ -102,6 +110,7 @@ export const RespondToPurchaseOffer = Type.Object(
             Type.Object({
                 offer: PendingPurchaseOffer,
                 accepted: Type.Boolean(),
+                companyChanges: Type.Optional(CompanyChanges),
                 departurePayments: DeparturePayments
             })
         )
@@ -158,6 +167,7 @@ export class HydratedRespondToPurchaseOffer
     apply(state: HydratedGameState & CompanyDecisionState): void {
         assert(this.isValid(state), 'Invalid or stale purchase response')
         const offer = state.purchaseOffer!
+        const companies = new CompanyChangeRecorder(state)
         const payments: CashPayment[] = []
         if (isCompanyPurchaseOffer(offer)) {
             if (this.accept)
@@ -167,7 +177,12 @@ export class HydratedRespondToPurchaseOffer
             state.activePlayerIds = [offer.buyerPlayerId]
         }
         delete state.purchaseOffer
-        this.metadata = { offer, accepted: this.accept, ...departurePaymentsField(payments) }
+        this.metadata = {
+            companyChanges: companies.changes(state),
+            offer,
+            accepted: this.accept,
+            ...departurePaymentsField(payments)
+        }
     }
 }
 

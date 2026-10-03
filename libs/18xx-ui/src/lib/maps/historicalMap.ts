@@ -1,6 +1,5 @@
 import { isLayTile, isPrivateTileLay, isRunTrains, type EighteenXXState } from '@tabletop/18xx'
-import { assert, assertExists, type GameAction } from '@tabletop/common'
-import jsonpatch from 'fast-json-patch'
+import { assert, assertExists, RecordedHistory, type GameAction } from '@tabletop/common'
 import {
     createMapDrawing,
     routeLocationIds,
@@ -14,44 +13,9 @@ export function isMapHistoryAction(action: GameAction) {
     return isLayTile(action) || isPrivateTileLay(action) || isRunTrains(action)
 }
 
-type MapSnapshot = Pick<
-    EighteenXXState,
-    | 'tileInventory'
-    | 'stations'
-    | 'stationReservations'
-    | 'operatingSet'
-    | 'companies'
-    | 'locationMarkers'
->
-
-export function historicalMapSnapshot(
-    state: MapSnapshot,
-    actions: readonly GameAction[],
-    actionId: string
-): MapSnapshot {
-    const index = actions.findIndex((action) => action.id === actionId)
-    assert(index >= 0, 'Historical map action must belong to the displayed history')
-    let snapshot = structuredClone({
-        tileInventory: state.tileInventory,
-        stations: state.stations,
-        stationReservations: state.stationReservations,
-        operatingSet: state.operatingSet,
-        companies: state.companies,
-        locationMarkers: state.locationMarkers
-    })
-    const roots = new Set(Object.keys(snapshot).map((key) => `/${key}`))
-    for (let i = actions.length - 1; i > index; i--) {
-        const patches = (actions[i].undoPatch ?? []).filter((patch) =>
-            roots.has(patch.path.split('/').slice(0, 2).join('/'))
-        )
-        if (patches.length)
-            snapshot = jsonpatch.applyPatch(snapshot, structuredClone(patches)).newDocument
-    }
-    return snapshot
-}
-
 export class HistoricalMaps {
     private source?: EighteenXXState
+    private actions?: readonly GameAction[]
     private view?: MapViewDefinition
     private readonly cache = new Map<string, HistoricalMap>()
     /** ``currentView`` is read per preview so presentation changes (token artwork) invalidate the cache. */
@@ -59,8 +23,9 @@ export class HistoricalMaps {
 
     preview(state: EighteenXXState, actions: readonly GameAction[], action: GameAction) {
         const view = this.currentView()
-        if (this.source !== state || this.view !== view) {
+        if (this.source !== state || this.actions !== actions || this.view !== view) {
             this.source = state
+            this.actions = actions
             this.view = view
             this.cache.clear()
         }
@@ -70,7 +35,7 @@ export class HistoricalMaps {
             this.cache.set(action.id, cached)
             return cached
         }
-        const snapshot = historicalMapSnapshot(state, actions, action.id)
+        const snapshot = new RecordedHistory(state, actions).after(action.id)
         assert(
             isLayTile(action) || isPrivateTileLay(action) || isRunTrains(action),
             'Historical map requires a company action'

@@ -1,3 +1,4 @@
+import { CompanyChanges, CompanyChangeRecorder } from './companyChanges.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -18,7 +19,15 @@ const FloatFields = Type.Object(
     {
         type: Type.Literal('FloatCompany'),
         companyId: Type.String(),
-        metadata: Type.Optional(CompanyFlotationDetails)
+        metadata: Type.Optional(
+            Type.Object(
+                {
+                    ...CompanyFlotationDetails.properties,
+                    companyChanges: Type.Optional(CompanyChanges)
+                },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -42,7 +51,7 @@ export class HydratedFloatCompany
 {
     declare type: 'FloatCompany'
     declare companyId: string
-    declare metadata?: CompanyFlotationDetails
+    declare metadata?: FloatCompany['metadata']
     readonly #rules: CompanyRules
     constructor(data: FloatCompany, rules: CompanyRules) {
         super(data instanceof HydratedFloatCompany ? data.dehydrate() : data, Validator)
@@ -52,12 +61,13 @@ export class HydratedFloatCompany
         assert(this.source === ActionSource.System, 'Flotation requires a system action')
         const details = evaluateCompanyFlotation(state, this.companyId, this.#rules)
         assert(details, 'Company does not qualify to float')
+        const companies = new CompanyChangeRecorder(state)
         settleCashPayments(state, details.payments)
         const company = getCompany(state, this.companyId)
         if (details.payments.length) company.funded = true
         company.floated = true
         const exchanges = this.#rules.onFloat?.(state, this.companyId)
         if (exchanges?.length) details.exchanges = exchanges
-        this.metadata = details
+        this.metadata = { ...details, companyChanges: companies.changes(state) }
     }
 }

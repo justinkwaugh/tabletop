@@ -332,3 +332,54 @@ Numbered certificate identities sometimes carry rights beyond percentage ownersh
 Portfolio station focus uses canonical placed stations and existing map-coordinate/scaling helpers, considering the family distinction between tokened railways, companies without tokens, and special entities such as PEIR/Union Bank. It frames the station bounds with context rather than computing an autoroute or assuming all stations form a connected network. TOP excludes PEIR through title-owned presentation configuration; 1889 uses ordinary station focus. Dispersed stations remain in one framing rectangle; no station means no focus target.
 
 Stock-round decision menus reuse the existing rule evaluations rather than assuming 1830's restrictions. The researched stock/share variation distinguishes different buy/sell sequences, IPO/market/treasury sources, corporate purchasers (TOP's Union Bank and 1841 cross-holdings), numbered rights (PEIR), and simultaneous sale ordering. Legal action availability stays in title rules; ordinary identical certificates may share one button only when buyer/source/size/presidency/number/price agree. Ordered sale batches remain available. The current menu serves TOP and 1889; it does not redesign title-specific corporate decisions beyond the supported start/purchase/sale/private exchange actions.
+
+### Recorded history boundary (2026-10-03)
+
+The history review found family renderers interpreting reversal paths and array
+positions as auction awards, company changes, and partial historical state.
+Descriptions now consume processed Action metadata: auction resolution and awarded
+share identities/quantities, plus presidency and closure effects of flotation,
+phase advancement, train purchases, and negotiated purchases. These are recorded
+while the procedure executes, before later ownership changes or certificate
+retirement can erase their meaning. Award details extend processed metadata only;
+the auction's persisted award/state schema does not change.
+
+Common's `RecordedHistory` supplies read-only state selection and an after-Action
+snapshot, using the same reversal primitive as GameEngine and the same Exploration
+boundary restoration as ExplorationHistory. It supports whole-state replacements,
+array edits, and move/copy operations without retaining aliases into Action
+records. Missing reversal data bounds available history; it is not an empty patch.
+The family selects only balances, round/phase identity, and operating order for
+its historical table views, once per displayed state/action prefix. Map previews
+request the complete historical state; their cache includes the action prefix and
+presentation. No family code knows reversal paths or applies JSON patches.
+
+Evidence: the domain-model study's auctions, certificates/presidency, company
+formation, reorganizations, and round-sequence sections, together with the full
+variation catalog and trait profiles, distinguish waterfall, selection, bid-box,
+and title-specific auctions; player and corporate control; changing denominations;
+and mergers/closures. 1830's share-bearing private awards and first-train closure,
+1889's waterfall auction, TOP's corporate president and flotation exchanges, and
+1817's selection auction, mergers, and acquisition rounds exercise these differences.
+1822 concessions/minor proxies, 1841 corporate ownership, 18MEX's denominations,
+and 1817 shorts rule out inferring event meaning from current certificate indexes
+or fixed share percentages. Titles without bonus shares need no synthetic award
+extras. The new award payload describes the existing waterfall/offer procedures;
+selection auctions retain their own recorded outcomes. Other future auction or
+reorganization procedures must record their own effects, rather than expanding a
+universal patch interpreter. Existing title-defined round boundaries remain policy.
+
+Compatibility: new fields are optional so earlier Action records still validate.
+Earlier records without award/company-effect metadata omit unavailable details;
+an old resolution is labelled neutrally as “Auction resolved.” Historical state
+views remain reconstructable from their engine records. No Game State migration,
+host dependency, or Game UI Host Bridge member changes. Adoption requires new UI
+and Logic artifacts for TOP, 1889, 1830, and 1817; older strict Action schemas do not
+understand the added metadata. Publish matched title artifacts, accounting for
+already-loaded clients. Other titles need no publication for this feature.
+
+Verification covers descriptions without patches/current certificates, full-state
+replacement and cross-field reversal, immutable snapshots, projected Exploration
+boundaries, unavailable history, map-cache invalidation, and complete recorded
+games for the four implemented titles. Runtime-contract snapshots change only the
+intentionally extended Action schemas.

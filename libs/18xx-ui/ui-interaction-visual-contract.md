@@ -2185,3 +2185,13 @@ including TOP's stalled-auction fallback and 1889's waterfall auction. TOP's
 branch-split editor uses the same centering. Negotiated purchase and track-consent
 responses remain grouped within the centered operating controls. Tall lists grow
 the scrollable action body; narrow layouts retain their natural content height.
+
+History descriptions read recorded auction awards and company effects from Action
+metadata. Historical balances, round headings, operating orders, and map previews
+read states through Common's RecordedHistory; the family does not interpret engine
+patch paths. Map previews retain their existing session lifetime and render owners;
+the cached preview is invalidated by displayed state, action prefix, or map
+presentation changes. Older records without descriptive metadata omit those
+details; an auction resolution with no recorded outcome is labelled “Auction
+resolved.” This adopts new Logic and UI artifacts together for all four 18xx titles,
+with no host-bridge change.

@@ -1,3 +1,4 @@
+import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -41,7 +42,11 @@ export const BuyPrivateTrain = Type.Object(
         expectedPrice: Type.Integer({ minimum: 0 }),
         metadata: Type.Optional(
             Type.Object(
-                { ...TrainPurchaseDetails.properties, departurePayments: DeparturePayments },
+                {
+                    ...TrainPurchaseDetails.properties,
+                    companyChanges: Type.Optional(CompanyChanges),
+                    departurePayments: DeparturePayments
+                },
                 { additionalProperties: false }
             )
         )
@@ -89,9 +94,14 @@ export class HydratedBuyPrivateTrain
         const details = privateTrainPurchase(state, this.companyId, this.#trains).evaluate(
             this
         ).details!
+        const companies = new CompanyChangeRecorder(state)
         closePrivate(state, this.privateCompanyId)
         const payments = applyTrainPurchase(state, details, this.#trains)
-        this.metadata = { ...details, ...departurePaymentsField(payments) }
+        this.metadata = {
+            companyChanges: companies.changes(state),
+            ...details,
+            ...departurePaymentsField(payments)
+        }
     }
 }
 

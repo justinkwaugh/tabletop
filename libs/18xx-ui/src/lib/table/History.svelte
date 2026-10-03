@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { historyStates } from './historyStates.js'
     import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
     import { controllingOwner } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
@@ -44,12 +45,13 @@
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
     const context = $derived(session.history.visibleContext)
     const gameState = $derived(context.state)
-    const orderChanges = $derived(historyOperatingOrder(context.actions, gameState))
-    const cash = $derived(historyCash(context.actions, gameState))
-    const companyChanges = $derived(historyCompanyChanges(context.actions, gameState))
+    const states = $derived(historyStates(context.actions, gameState))
+    const orderChanges = $derived(historyOperatingOrder(context.actions, states))
+    const cash = $derived(historyCash(states))
+    const companyChanges = $derived(historyCompanyChanges(context.actions))
     // A system action the title describes is one of its own events.
     const rounds = $derived(
-        historyRounds(context.actions, gameState, orderChanges, cash, {
+        historyRounds(context.actions, gameState, states, orderChanges, cash, {
             isEvent: (action) =>
                 action.source === ActionSource.System &&
                 !!describeAction?.(action, companyName, () => describeShared(action)),
