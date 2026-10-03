@@ -83,13 +83,13 @@
         font-variant-numeric: lining-nums;
     }
 
-    :global(.marracash-display) {
+    .marracash-text :global(.marracash-display) {
         font-family: 'Libre Caslon Text', Georgia, serif;
         font-weight: 700;
         font-variant-numeric: lining-nums;
     }
 
-    :global(.marracash-initial) {
+    .marracash-text :global(.marracash-initial) {
         font-family: Cinzel, Georgia, serif;
         font-weight: 700;
     }

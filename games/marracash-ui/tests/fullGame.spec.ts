@@ -11,6 +11,9 @@ async function pick(page: Page, locator: Locator, step: number) {
     await locator.nth(step % count).click()
 }
 
+// A late-game crowd walking single file can take several seconds
+const MoveAnimationTimeout = 20_000
+
 // Takes one step of whatever the action panel offers, rotating choices so play varies
 async function takeStep(page: Page, step: number) {
     const panel = actionPanel(page)
@@ -19,6 +22,17 @@ async function takeStep(page: Page, step: number) {
     const pass = page.getByRole('button', { name: 'Pass' })
     const confirmAuction = page.getByRole('button', { name: 'Start auction' })
     const confirmTurn = page.getByRole('button', { name: 'Confirm turn' })
+    // Choices are withheld while the session is busy, such as while a move animates
+    await expect(
+        confirmTurn
+            .or(confirmAuction)
+            .or(place)
+            .or(pass)
+            .or(front)
+            .or(selectableFountains(page))
+            .or(auctionableShops(page))
+            .first()
+    ).toBeVisible({ timeout: MoveAnimationTimeout })
     if (await confirmTurn.count()) {
         await confirmTurn.click()
     } else if (await confirmAuction.count()) {

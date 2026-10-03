@@ -12,7 +12,7 @@
     let queue = $derived(gameSession.gameState.queue)
     let layout = $derived(queueLayout(queue.length))
     let choices: QueuePawnChoice[] = $derived(
-        gameSession.canRefill ? queuePawnChoices(queue.length) : []
+        gameSession.canChooseRefill ? queuePawnChoices(queue.length) : []
     )
 
     function choosePawn(index: number) {

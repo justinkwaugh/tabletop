@@ -84,21 +84,28 @@ export class MarracashGameSession extends GameSession<
     readonly canConfirm = $derived(
         this.canAct && this.validActionTypes.includes(ActionType.ConfirmTurn)
     )
+    // Local choices wait while the session is busy: a choice staged mid-transition would be
+    // cleared as the new state publishes.
+    private readonly canChooseMove = $derived(this.canMove && !this.busy)
+    private readonly canChooseShop = $derived(this.canAuction && !this.busy)
+    readonly canChooseRefill = $derived(this.canRefill && !this.busy)
+
     readonly canUndoAction = $derived(
         this.isPlayable && !this.isViewingHistory && this.undoableAction !== undefined
     )
 
-    // Cleared while a new state publishes so a committed move's highlights are gone before its pawns walk.
     readonly selectedFountainId: FountainId | undefined = $derived(
-        this.canMove && !this.updatingVisibleState ? this.selection.fountain?.value : undefined
+        this.canChooseMove ? this.selection.fountain?.value : undefined
     )
 
     readonly selectedShopId: ShopId | undefined = $derived(
-        this.canAuction ? this.selection.shop?.value : undefined
+        this.canChooseShop ? this.selection.shop?.value : undefined
     )
 
     readonly movableFountainIds: FountainId[] = $derived(
-        this.canMove && this.selectedShopId === undefined && this.selectedFountainId === undefined
+        this.canChooseMove &&
+            this.selectedShopId === undefined &&
+            this.selectedFountainId === undefined
             ? this.gameState.fountains
                   .filter((fountain) => fountain.visitors.length > 0)
                   .map((fountain) => fountain.fountainId)
@@ -106,7 +113,7 @@ export class MarracashGameSession extends GameSession<
     )
 
     readonly auctionableShopIds: ShopId[] = $derived(
-        this.canAuction &&
+        this.canChooseShop &&
             this.selectedFountainId === undefined &&
             this.selectedShopId === undefined
             ? this.gameState.shops
@@ -124,7 +131,7 @@ export class MarracashGameSession extends GameSession<
     )
 
     readonly chosenQueueEnd: QueueEnd | undefined = $derived(
-        this.canRefill ? this.selection.queueEnd?.value : undefined
+        this.canChooseRefill ? this.selection.queueEnd?.value : undefined
     )
 
     readonly visitorCountOptions: number[] = $derived.by(() => {
@@ -137,7 +144,7 @@ export class MarracashGameSession extends GameSession<
     })
 
     readonly chosenVisitorCount: number | undefined = $derived.by(() => {
-        if (!this.canRefill) return undefined
+        if (!this.canChooseRefill) return undefined
         if (this.visitorCountOptions.length === 1) return this.visitorCountOptions[0]
         return this.selection.visitorCount?.value
     })
@@ -151,7 +158,7 @@ export class MarracashGameSession extends GameSession<
     })
 
     readonly refillEntranceIds: FountainId[] = $derived(
-        this.canRefill ? this.gameState.emptyEntranceIds() : []
+        this.canChooseRefill ? this.gameState.emptyEntranceIds() : []
     )
 
     showQueueTooShort = $derived.by<boolean>(() => {
@@ -201,6 +208,7 @@ export class MarracashGameSession extends GameSession<
     }
 
     back() {
+        if (this.busy) return
         if (this.hasManualSelection) {
             this.selection = popMarracashSelection(this.selection)
         }
@@ -215,6 +223,7 @@ export class MarracashGameSession extends GameSession<
     }
 
     chooseQueueEnd(end: QueueEnd) {
+        if (this.busy) return
         this.selection = setMarracashQueueEnd(this.selection, end)
     }
 
@@ -223,6 +232,7 @@ export class MarracashGameSession extends GameSession<
     }
 
     chooseRefill(choice: RefillChoice) {
+        if (this.busy) return
         this.hideQueueTooShort()
         this.selection = setMarracashRefill(this.selection, choice.end, choice.count)
     }
@@ -286,6 +296,7 @@ export class MarracashGameSession extends GameSession<
         stage: TStage,
         value: MarracashSelectionValues[TStage] | undefined
     ) {
+        if (this.busy) return
         this.selection = setMarracashSelection(this.selection, stage, value)
     }
 }
