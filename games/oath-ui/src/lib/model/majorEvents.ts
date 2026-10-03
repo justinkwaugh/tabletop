@@ -23,8 +23,10 @@ import {
     isTransferOathkeeper,
     isUseActionPower,
     kindOf,
+    visionsMetBy,
     worldDeckSearchCost,
     type Campaign,
+    type HydratedOathGameState,
     type OathType,
     type WinRule
 } from '@tabletop/oath'
@@ -311,22 +313,22 @@ export function endingRule(actions: readonly GameAction[]): WinRule | undefined 
 const VISION_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.2', 'R-3.4.3'])
 const USURPER_ENDINGS: ReadonlySet<WinRule> = new Set(['R-3.1', 'R-3.4.2'])
 
+/** R-3.2, R-3.4.3 — a Vision ending shows the Vision the winner met, their own before a shared one. */
 export function gameEndEvent(
+    state: HydratedOathGameState,
     winnerId: string,
     rule: WinRule,
-    round: number,
-    revealedVisionId: string | undefined,
     context: MajorEventContext
 ): MajorEvent & { sentence: string } {
-    const picture: EventPicture =
-        VISION_ENDINGS.has(rule) && revealedVisionId
-            ? { kind: 'card', cardId: revealedVisionId }
-            : { kind: 'title', usurper: USURPER_ENDINGS.has(rule) }
+    const [visionId] = VISION_ENDINGS.has(rule) ? visionsMetBy(state, winnerId) : []
+    const picture: EventPicture = visionId
+        ? { kind: 'card', cardId: visionId }
+        : { kind: 'title', usurper: USURPER_ENDINGS.has(rule) }
     const [how, why] = ENDINGS[rule].split(' — ')
     return {
         kind: MajorEventKind.GameEnd,
         heading: 'Game end',
-        aside: `round ${round}`,
+        aside: `round ${state.round}`,
         tone: 'heading',
         pictures: [picture],
         sentence: `${capitalized(seat(winnerId, context))} won ${how}`,

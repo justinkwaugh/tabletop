@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { ActionType, Banner, CardKind, OathType, SearchPlay, SearchSource } from '@tabletop/oath'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionType, Banner, CardKind, OathType, PlayerStatus, SearchPlay, SearchSource } from '@tabletop/oath'
+import { ActionSource, Color, type GameAction } from '@tabletop/common'
+import { testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import {
     MajorEventKind,
     campaignsBefore,
@@ -23,6 +24,20 @@ function action(fields: { type: ActionType; playerId?: string } & Record<string,
 }
 
 const VISION = 'vision.conquest'
+const FAITH = 'vision.faith'
+const REBELLION = 'vision.rebellion'
+
+/** R-3.2 — three Visions drawn, Cass holding the Darkest Secret that Faith's goal asks for. */
+function ended(over: Record<string, Record<string, unknown>> = {}, state: Record<string, unknown> = {}) {
+    return testState(
+        [
+            testPlayer({ playerId: 'p1', status: PlayerStatus.Chancellor, color: Color.Purple, ...over['p1'] }),
+            testPlayer({ playerId: 'p2', color: Color.Blue, ...over['p2'] }),
+            testPlayer({ playerId: 'p3', color: Color.Red, ...over['p3'] })
+        ],
+        { chancellorPlayerId: 'p1', visionsDrawn: 3, round: 7, banners: testBanners({ [Banner.DarkestSecret]: 'p3' }), ...state }
+    )
+}
 
 function search(metadata: Record<string, unknown>) {
     return action({ type: ActionType.Search, playerId: 'p3', drawFrom: SearchSource.WorldDeck, metadata: { supplySpent: 3, cardsDrawn: 2, ...metadata } })
@@ -120,11 +135,34 @@ describe('the History’s rows and its game-end row', () => {
     it('reads the ending from the action that recorded it (R-3)', () => {
         const ending = [action({ type: ActionType.RollEndDie, playerId: 'p1', metadata: { roll: 5, round: 6, threshold: 5, wonBy: 'R-3.3' } })]
         expect(endingRule(ending)).toBe('R-3.3')
-        const usurper = gameEndEvent('p3', 'R-3.1', 7, undefined, context('p1'))
+        const usurper = gameEndEvent(ended({ p3: { revealedVisionId: FAITH } }), 'p3', 'R-3.1', context('p1'))
         expect(usurper).toMatchObject({ heading: 'Game end', aside: 'round 7', pictures: [{ kind: 'title', usurper: true }] })
         expect(usurper.sentence).toBe('Cass won as Usurper')
         expect(usurper.consequence).toBe('An Exile holding the Oathkeeper title on its Usurper side')
-        expect(gameEndEvent('p3', 'R-3.2', 7, VISION, context('p3')).sentence).toMatch(/^You won as Visionary/)
-        expect(gameEndEvent('p3', 'R-3.2', 7, VISION, context()).pictures).toEqual([{ kind: 'card', cardId: VISION }])
+        expect(gameEndEvent(ended({ p3: { revealedVisionId: FAITH } }), 'p3', 'R-3.2', context('p3')).sentence).toMatch(/^You won as Visionary/)
+    })
+
+    describe('R-3.2, R-3.4.3 — a Vision ending shows the Vision the winner met', () => {
+        it('their own Vision', () => {
+            const state = ended({ p3: { revealedVisionId: FAITH } })
+            expect(gameEndEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([{ kind: 'card', cardId: FAITH }])
+            expect(gameEndEvent(state, 'p3', 'R-3.4.3', context()).pictures).toEqual([{ kind: 'card', cardId: FAITH }])
+        })
+
+        it('a Vision they share through False Prophet, with none of their own', () => {
+            const state = ended({ p2: { revealedVisionId: FAITH } }, { warbandsOnCards: { [FAITH]: { p3: 1 } } })
+            expect(gameEndEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([{ kind: 'card', cardId: FAITH }])
+        })
+
+        it('a Vision they share, beside an own Vision whose goal they did not meet', () => {
+            const state = ended({ p2: { revealedVisionId: FAITH }, p3: { revealedVisionId: VISION } }, { warbandsOnCards: { [FAITH]: { p3: 1 } } })
+            expect(gameEndEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([{ kind: 'card', cardId: FAITH }])
+        })
+
+        it('their own Vision before a shared one when they meet both', () => {
+            const banners = testBanners({ [Banner.DarkestSecret]: 'p3', [Banner.PeoplesFavor]: 'p3' })
+            const state = ended({ p2: { revealedVisionId: FAITH }, p3: { revealedVisionId: REBELLION } }, { banners, warbandsOnCards: { [FAITH]: { p3: 1 } } })
+            expect(gameEndEvent(state, 'p3', 'R-3.2', context()).pictures).toEqual([{ kind: 'card', cardId: REBELLION }])
+        })
     })
 })

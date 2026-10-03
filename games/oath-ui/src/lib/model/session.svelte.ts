@@ -1059,13 +1059,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         const [winnerId] = state.winningPlayerIds
         const rule = endingRule(this.actions)
         if (winnerId === undefined || rule === undefined) return undefined
-        return gameEndEvent(
-            winnerId,
-            rule,
-            state.round,
-            state.getPlayerState(winnerId).revealedVisionId,
-            this.majorEventContext
-        )
+        return gameEndEvent(state, winnerId, rule, this.majorEventContext)
     }
 
     private get majorEventContext(): Omit<MajorEventContext, 'campaign'> {
