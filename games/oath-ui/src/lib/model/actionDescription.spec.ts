@@ -184,7 +184,6 @@ describe('the history tab describes every action', () => {
     })
 
     describe('a power row names every seat in it, and only the viewer reads “you”', () => {
-        // The engine's own summary for Alice swapping her Enchantress with Bob's Wolves.
         const ENCHANTRESS_SWAP = (() => {
             const state = testState([
                 testPlayer({ playerId: 'p1', siteId: 'c1', secrets: 1, advisers: [{ cardId: 'denizen.discord.enchantress', faceUp: true }] }),
@@ -660,7 +659,6 @@ describe('the history tab describes every action', () => {
 })
 
 describe('R-10.13 — whose warbands a History row counts', () => {
-    // p1 is the Chancellor; every other seat's own warbands are their own.
     const own = (playerId: string) => (playerId === 'p1' ? IMPERIAL_WARBANDS : playerId)
     const group = (owner: string, count: number) => ({ at: { kind: 'site', siteId: 'c1' }, owner, count })
 
@@ -723,7 +721,6 @@ describe('R-10.13 — whose warbands a History row counts', () => {
         const battle = { attack: 4, defense: 3, attackerVictorious: true, sacrificed: 1 }
         expect(rowWarbandOwner(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 1, metadata: { ...battle, sacrificedOwner: IMPERIAL_WARBANDS } }), own)).toBe(IMPERIAL_WARBANDS)
         expect(rowWarbandOwner(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 2, sacrificeKills: [group(IMPERIAL_WARBANDS, 2)] }), own)).toBe(IMPERIAL_WARBANDS)
-        // Mixed owners, or a record from before the owner was kept: the actor's own.
         expect(rowWarbandOwner(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 2, sacrificeKills: [group(IMPERIAL_WARBANDS, 1), group('p2', 1)], metadata: { ...battle, sacrificed: 2 } }), own)).toBe('p2')
         expect(rowWarbandOwner(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 1 }), own)).toBe('p2')
     })

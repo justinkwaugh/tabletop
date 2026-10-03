@@ -207,7 +207,7 @@ export function reasonLossOrderOutsideForce(
     return stray === undefined ? undefined : `${stray.owner}'s warbands there are not in your force`
 }
 
-/** R-5.5.5, R-10.22 — the sources named first, in order, then the rest of the force by default; returns what died. */
+/** R-5.5.5, R-10.22 — the sources named first, in order, then the rest of the force by default. */
 export function killFromAttackingForce(
     state: HydratedOathGameState,
     campaign: CampaignState,

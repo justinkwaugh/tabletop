@@ -218,7 +218,7 @@ export class HydratedCampaignSacrifice
             : defenderId
     }
 
-    /** R-5.5.5, R-10.22 — sacrificing is choosing to kill your own warbands; returns what died. */
+    /** R-5.5.5, R-10.22 — sacrificing is choosing to kill your own warbands. */
     private killSacrifice(state: HydratedOathGameState, campaign: CampaignState): WarbandGroup[] {
         if (this.sacrifice <= 0) return []
         if (!this.sacrificeKills) {
