@@ -179,7 +179,7 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
         const unable = reasonCannotTravelByPower(ctx.state, them.playerId, here)
         if (unable) {
             return {
-                summary: `Whistle: ${them.playerId} cannot travel here (${unable})`,
+                summary: `Whistle: ${them.playerId} cannot travel here`,
                 targetPlayerId: them.playerId
             }
         }

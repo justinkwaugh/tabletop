@@ -380,7 +380,7 @@ describe('the Campaign relics', () => {
         const a = use(vowed, WHISTLE, [player('far')])
         expect(vowed.getPlayerState('far').siteId).toBe('h1')
         expect(vowed.getPlayerState('far').secrets).toBe(2)
-        expect(a.metadata?.summary).toMatch(/Vow of Union/)
+        expect(a.metadata?.summary).toBe('Whistle: far cannot travel here')
     })
 
     it('Circlet of Command guards "your other relics" against every take, and not itself', () => {
