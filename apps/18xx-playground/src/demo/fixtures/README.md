@@ -80,3 +80,11 @@ recorded games that their players ended by hand, in the same form. They are test
 `finishedGame.spec.ts` replays each to its last action and checks each player's value against
 the recorded result. 16852 stops in a player's cash crisis, and what they still owe counts
 against them.
+
+# Recorded 1817 Volatility bankruptcy
+
+`1817-bankruptcy.json` is the upstream recording `1817_game_end_bankrupt`: five players with the
+Volatility option, ending when four have gone bankrupt and one solvent player is left. Its
+opening takes the recording's city-tile private (Indianapolis Market) and pyramid, which our
+generator does not deal. It is a test fixture only: `finishedGame.spec.ts` replays it to its
+bankruptcy ending and checks the recorded final wealth.

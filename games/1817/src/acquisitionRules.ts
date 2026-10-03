@@ -6,7 +6,6 @@ import {
     finiteCashOwnedBy,
     getCompany,
     loansRemaining,
-    playersAfterPresident,
     stockMarketOrder,
     validBidStep,
     type EighteenXXState
@@ -15,7 +14,13 @@ import { corporationShareCount } from './corporations.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { closingZone, inClosingZone } from './marketZones.js'
 import { treasuryShareIds } from './mergerRules.js'
-import type { CompanySale, MergerRound, SaleKind, SaleTerms } from './state.js'
+import {
+    formerPresident,
+    type CompanySale,
+    type MergerRound,
+    type SaleKind,
+    type SaleTerms
+} from './state.js'
 
 export const AcquisitionIncrement = 10
 const LoanValue = EighteenSeventeenLoanRules.value
@@ -156,13 +161,18 @@ export function bidRejection(
     return undefined
 }
 
-/** Bidding starts left of the company's president. */
+/**
+ * Bidding starts left of the company's president, or of the president bankruptcy took from it,
+ * among the players still in the game.
+ */
 export function biddingOrder(state: EighteenXXState, companyId: string): string[] {
-    return controllingOwner(state, companyId)
-        ? playersAfterPresident(state, companyId, state.turnManager.turnOrder).flatMap((bidder) =>
-              bidder.kind === 'player' ? [bidder.playerId] : []
-          )
-        : [...state.turnManager.turnOrder]
+    const presidentId =
+        controllingOwner(state, companyId)?.playerId ?? formerPresident(state, companyId)
+    const { turnOrder } = state.turnManager
+    if (!presidentId) return [...turnOrder]
+    const seats = state.players.map((player) => player.playerId)
+    const after = seats.indexOf(presidentId) + 1
+    return [...seats.slice(after), ...seats.slice(0, after)].filter((id) => turnOrder.includes(id))
 }
 
 export function hasBidder(state: EighteenXXState, sale: SaleTerms): boolean {

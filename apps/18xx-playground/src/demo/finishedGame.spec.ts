@@ -347,3 +347,22 @@ it.each(['16281', '16852', '20758'])(
     },
     120000
 )
+
+it('replays the recorded 1817 Volatility game to its bankruptcy ending', async () => {
+    const fixture = (await import('./fixtures/1817-bankruptcy.json')).default
+    const { state } = await replayFinishedGame(
+        playgroundTitle('1817'),
+        fixture,
+        'local-user',
+        'Recorded game'
+    )
+    expect(state.machineState).toBe('GameOver')
+    expect(state.gameEnding?.reason).toBe('Bankruptcy')
+    expect(wealthByPlayer(state.finalWealth)).toEqual({
+        '4738': 1646,
+        '7791': 0,
+        '10573': 0,
+        '12235': 0,
+        '18003': 0
+    })
+}, 120000)

@@ -6,11 +6,13 @@ import {
     crisisSales,
     evaluateCrisisSale,
     getCompany,
+    stockMarketOrder,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     EighteenSeventeenCashCrisisRules,
+    biddingOrder,
     EighteenSeventeenStockRules,
     isLiquidated
 } from './index.js'
@@ -159,5 +161,22 @@ describe('bankruptcy', () => {
         play.act('GoBankrupt')
         expect(play.state.gameEnding).toEqual({ reason: 'Bankruptcy' })
         expect(play.state.machineState).toBe('GameOver')
+    })
+})
+
+describe('a bankrupt president’s companies', () => {
+    it('are liquidated in operating order, and later auctioned from the player after them', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) => {
+            getCompany(state, 'PLE').president = { kind: 'player', playerId: 'blair' }
+        })
+        const state = structuredClone(play.state)
+        expect(stockMarketOrder(state.stockMarket).indexOf('BA')).toBeLessThan(
+            stockMarketOrder(state.stockMarket).indexOf('PLE')
+        )
+        const record = EighteenSeventeenCashCrisisRules.bankrupt(state, 'blair')
+        expect(record.liquidatedCompanyIds).toEqual(['BA', 'PLE'])
+        expect(getCompany(state, 'BA').president).toBeUndefined()
+        expect(state.turnManager.turnOrder).toEqual(['alex', 'blair', 'casey'])
+        expect(biddingOrder(state, 'BA')).toEqual(['casey', 'alex', 'blair'])
     })
 })

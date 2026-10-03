@@ -1868,6 +1868,14 @@
         "const": true,
         "type": "boolean"
       },
+      "formerPresidents": {
+        "patternProperties": {
+          "^.*$": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "gameEnding": {
         "additionalProperties": false,
         "properties": {

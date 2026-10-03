@@ -1735,6 +1735,25 @@ are rules of the 1817 family.
 - **Absent privates.** `companyHolding` answers "which company holds this private" as
   nobody when the game does not have the private, since Volatility's may be absent.
 
+### Implementation notes for 9c
+
+The bankruptcy recording replays to its ending with the recorded values, as do the four base
+games again. The converter now filters undone actions as the reference does and expands its
+programmed passes, and its opening takes the recording's city-tile private and pyramid from the
+reference engine's dump.
+
+Differences found by replay, fixed in the rules:
+
+- **A bankrupt president's companies are liquidated in operating order** ([bankrupt]),
+  which orders their arrival in the liquidation space and so the acquisition round's
+  order. Ours went through the roster.
+- **A liquidated company's sale starts left of the president bankruptcy took from it**
+  ([acquire]), who is recorded as its former president in title state. Ours started from
+  the first player in turn order.
+
+Bridged in the converter: upstream moves a liquidated company's loans out of it as its sale
+opens, ours as it settles; both end alike.
+
 ### Limits after slice 9
 
 - The table's lasting presentation of the pyramid, Volatility privates and their

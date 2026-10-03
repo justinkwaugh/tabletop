@@ -125,6 +125,8 @@ const EighteenSeventeenState = extendEighteenXXState(
         privateLays: Type.Optional(PrivateLays),
         // The train types whose Inventor payout has been made.
         inventorPaid: Type.Optional(Type.Array(Type.String())),
+        // The presidents bankruptcy took from their companies, by company.
+        formerPresidents: Type.Optional(Type.Record(Type.String(), Type.String())),
         mergerRound: Type.Optional(MergerRound),
         acquisitionRound: Type.Optional(AcquisitionRound)
     },
@@ -151,6 +153,25 @@ export function privateLaysMade(state: object, privateId: string): number {
 export function recordPrivateLay(state: object, privateId: string): void {
     const lays = privateLaysOf(state)
     Object.assign(state, { privateLays: { ...lays, [privateId]: (lays[privateId] ?? 0) + 1 } })
+}
+
+const FormerPresidentsValidator = Compile(Type.Record(Type.String(), Type.String()))
+
+// A game without the record has had no president taken by bankruptcy.
+function formerPresidentsOf(state: object): Record<string, string> {
+    if (!('formerPresidents' in state)) return {}
+    assert(FormerPresidentsValidator.Check(state.formerPresidents), 'Invalid former presidents')
+    return state.formerPresidents
+}
+
+export function formerPresident(state: object, companyId: string): string | undefined {
+    return formerPresidentsOf(state)[companyId]
+}
+
+export function recordFormerPresident(state: object, companyId: string, playerId: string): void {
+    Object.assign(state, {
+        formerPresidents: { ...formerPresidentsOf(state), [companyId]: playerId }
+    })
 }
 
 export function inventorPaid(state: object): string[] {
@@ -226,6 +247,7 @@ export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
     declare pyramid?: Pyramid
     declare privateLays?: PrivateLays
     declare inventorPaid?: string[]
+    declare formerPresidents?: Record<string, string>
     declare mergerRound?: MergerRound
     declare acquisitionRound?: AcquisitionRound
     constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
