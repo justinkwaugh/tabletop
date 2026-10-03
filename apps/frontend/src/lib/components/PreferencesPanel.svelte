@@ -88,7 +88,7 @@
 
         {#if preferences.preferredColorsEnabled}
             <div class="mt-4 flex flex-col rounded-lg border-gray-600 border p-2">
-                <div class="flex flex-row justify-between items-center">
+                <div class="flex flex-row justify-center items-center gap-1">
                     {#each preferences.preferredColors as color, i (color)}
                         <div
                             role="button"
