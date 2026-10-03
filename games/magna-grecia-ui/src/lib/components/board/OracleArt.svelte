@@ -2,35 +2,46 @@
     import { HEX } from '$lib/utils/boardGeometry.js'
     import { mixColor } from '$lib/utils/colorMix.js'
 
-    // How an oracle is coloured: its precinct, the base its temple is tinted from, and how far the
-    // temple's tints are lifted toward white (1 when favoured, so it reads on any player colour).
-    export type OracleLook = { field: string; temple: string; lift: number }
-
-    const MARBLE: OracleLook = { field: '#fbf8f1', temple: '#8a7f68', lift: 0 }
+    // The precinct and temple are marble; the favoured player's colour is on the temple's dome and
+    // steps and on the teardrop's tail, which runs out from the precinct to the road.
+    const MARBLE = '#fbf8f1'
+    const MARBLE_TEMPLE = '#8a7f68'
     const LIGHT = '#fffaf0'
     const DARK = '#1d1a17'
 
+    // The base colour of the temple's dome and steps and how deep it is laid on (1 when favoured: a
+    // strong player colour, 0 when not: the marble temple's own tints), and the tail's colour.
+    export type OracleLook = { roof: string; depth: number; tail: string }
+
     export function oracleLook(attentionColor?: string): OracleLook {
-        return attentionColor ? { field: attentionColor, temple: attentionColor, lift: 1 } : MARBLE
+        return attentionColor
+            ? { roof: attentionColor, depth: 1, tail: attentionColor }
+            : { roof: MARBLE_TEMPLE, depth: 0, tail: MARBLE }
     }
 
     export function blendLooks(from: OracleLook, to: OracleLook, amount: number): OracleLook {
         return {
-            field: mixColor(from.field, to.field, amount),
-            temple: mixColor(from.temple, to.temple, amount),
-            lift: from.lift + (to.lift - from.lift) * amount
+            roof: mixColor(from.roof, to.roof, amount),
+            depth: from.depth + (to.depth - from.depth) * amount,
+            tail: mixColor(from.tail, to.tail, amount)
         }
     }
 
-    // A tone is "<field|temple>:<light|dark>:<amount>"; temple tones are lifted with the look.
+    // A tone is "<marble|temple|roof|tail>:<light|dark>:<amount>"; roof tones deepen with the look.
     export function oracleTone(look: OracleLook, tone: string): string {
         const [of, toward, value] = tone.split(':')
+        const target = toward === 'dark' ? DARK : LIGHT
         const amount = Number(value)
-        if (of === 'field') {
-            return mixColor(look.field, toward === 'dark' ? DARK : LIGHT, amount)
+        switch (of) {
+            case 'marble':
+                return mixColor(MARBLE, target, amount)
+            case 'temple':
+                return mixColor(MARBLE_TEMPLE, target, amount)
+            case 'tail':
+                return mixColor(look.tail, target, amount)
+            default:
+                return mixColor(look.roof, target, Math.max(0, amount - 0.22 * look.depth))
         }
-        const lifted = amount + look.lift * (0.38 - 0.25 * amount)
-        return mixColor(look.temple, toward === 'dark' ? DARK : LIGHT, lifted)
     }
 
     // The precinct points up and is turned toward the favoured city.
@@ -59,6 +70,7 @@
         // Two arcs through the bottom, so the round precinct (both tangents at the top) still draws.
         const arc = `A ${PRECINCT} ${PRECINCT} 0 0 0`
         const edge = `M ${-half} ${-end} L ${left.x} ${left.y} ${arc} 0 ${PRECINCT} ${arc} ${right.x} ${right.y} L ${half} ${-end}`
+        // The road's centre dashes carry on along the tail to the precinct.
         return { fill: `${edge} Z`, edge, dashes: `M 0 ${-end} V ${-PRECINCT - 2}` }
     }
 </script>
@@ -83,38 +95,23 @@
 <g>
     <polygon
         points={plinthShape}
-        fill="#ecdcae"
-        stroke="#b8954a"
+        fill="#f3e7c2"
+        stroke="#bd9b52"
         stroke-width="1.6"
         stroke-linejoin="round"
     ></polygon>
     <polygon
         points={trimShape}
         fill="none"
-        stroke="#cdb27a"
+        stroke="#d4bb85"
         stroke-width="1.2"
         stroke-dasharray="4 3"
         stroke-linejoin="round"
     ></polygon>
-    <!-- The precinct, drawn like a city field; favoured, it runs out to meet the road. -->
+    <!-- The precinct, drawn like a city field; favoured, a coloured tail runs out to the road. -->
     <g data-part="turn" transform="rotate({rotation})" filter="url(#mg-tile-shadow)">
-        <clipPath id="mg-oracle-drop-{uid}">
-            <path data-part="drop" d={drop.fill}></path>
-        </clipPath>
-        <clipPath id="mg-oracle-round-{uid}"><circle r="25"></circle></clipPath>
-        <path data-part="drop" data-tone="field:light:0" d={drop.fill} fill={tone('field:light:0')}
+        <path data-part="drop" data-tone="tail:light:0" d={drop.fill} fill={tone('tail:light:0')}
         ></path>
-        <g clip-path="url(#mg-oracle-drop-{uid})">
-            <circle
-                r="25"
-                fill="none"
-                data-tone="field:dark:0.22"
-                data-tone-attr="stroke"
-                stroke={tone('field:dark:0.22')}
-                stroke-width="8"
-                clip-path="url(#mg-oracle-round-{uid})"
-            ></circle>
-        </g>
         <path
             data-part="drop-dashes"
             d={drop.dashes}
@@ -133,25 +130,29 @@
             stroke-width="1.3"
             stroke-linejoin="round"
         ></path>
+        <!-- The marble precinct sits over the tail's root. -->
+        <clipPath id="mg-oracle-round-{uid}"><circle r="25"></circle></clipPath>
+        <circle r="25" fill={tone('marble:light:0')}></circle>
+        <circle
+            r="25"
+            fill="none"
+            stroke={tone('marble:dark:0.22')}
+            stroke-width="8"
+            clip-path="url(#mg-oracle-round-{uid})"
+        ></circle>
+        <circle r="25" fill="none" stroke={ROAD_EDGE} stroke-width="1.3"></circle>
     </g>
     <!-- A round temple (tholos) in the city temple's manner: tints, no ink. -->
     <g transform="translate(0 2) scale(0.88)">
-        <ellipse
-            cx="1"
-            cy="13"
-            rx="18"
-            ry="3.6"
-            data-tone="field:dark:0.11"
-            fill={tone('field:dark:0.11')}
-        ></ellipse>
+        <ellipse cx="1" cy="13" rx="18" ry="3.6" fill={tone('marble:dark:0.11')}></ellipse>
         <rect
             x="-17"
             y="9.5"
             width="34"
             height="3"
             rx="0.4"
-            data-tone="temple:light:0.42"
-            fill={tone('temple:light:0.42')}
+            data-tone="roof:light:0.42"
+            fill={tone('roof:light:0.42')}
         ></rect>
         <rect
             x="-15.5"
@@ -159,51 +160,27 @@
             width="31"
             height="2.8"
             rx="0.4"
-            data-tone="temple:light:0.52"
-            fill={tone('temple:light:0.52')}
+            data-tone="roof:light:0.52"
+            fill={tone('roof:light:0.52')}
         ></rect>
         {#each COLUMNS as x (x)}
-            <rect
-                x={x - 1.4}
-                y="-6.4"
-                width="2.8"
-                height="13.4"
-                data-tone="temple:light:0.62"
-                fill={tone('temple:light:0.62')}
+            <rect x={x - 1.4} y="-6.4" width="2.8" height="13.4" fill={tone('temple:light:0.62')}
             ></rect>
-            <rect
-                x={x + 0.4}
-                y="-6.4"
-                width="1"
-                height="13.4"
-                data-tone="temple:light:0.45"
-                fill={tone('temple:light:0.45')}
+            <rect x={x + 0.4} y="-6.4" width="1" height="13.4" fill={tone('temple:light:0.45')}
             ></rect>
         {/each}
-        <rect
-            x="-14"
-            y="-9.8"
-            width="28"
-            height="3.6"
-            data-tone="temple:light:0.58"
-            fill={tone('temple:light:0.58')}
-        ></rect>
+        <rect x="-14" y="-9.8" width="28" height="3.6" fill={tone('temple:light:0.58')}></rect>
         <path
             d="M -15 -9.8 Q -13.5 -21.5 0 -23 Q 13.5 -21.5 15 -9.8 Z"
-            data-tone="temple:light:0.3"
-            fill={tone('temple:light:0.3')}
+            data-tone="roof:light:0.3"
+            fill={tone('roof:light:0.3')}
         ></path>
         <path
             d="M -9.5 -10.8 Q -8.5 -18.6 0 -19.8 Q 8.5 -18.6 9.5 -10.8 Z"
-            data-tone="temple:light:0.5"
-            fill={tone('temple:light:0.5')}
+            data-tone="roof:light:0.5"
+            fill={tone('roof:light:0.5')}
         ></path>
-        <circle
-            cx="0"
-            cy="-24.3"
-            r="1.6"
-            data-tone="temple:light:0.5"
-            fill={tone('temple:light:0.5')}
+        <circle cx="0" cy="-24.3" r="1.6" data-tone="roof:light:0.5" fill={tone('roof:light:0.5')}
         ></circle>
     </g>
 </g>

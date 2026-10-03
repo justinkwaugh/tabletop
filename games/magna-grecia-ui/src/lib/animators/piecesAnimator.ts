@@ -229,7 +229,7 @@ export class PiecesAnimator {
                 )
             }
             if (fromReach !== toReach) {
-                // The tail runs out to the road as favour arrives, and back as it goes.
+                // The tail runs out to the hex edge as favour arrives, and back as it goes.
                 const reach = fromReach + (toReach - fromReach) * p
                 const shape = oracleDrop(reach)
                 for (const drop of drops) drop.setAttribute('d', shape.fill)
