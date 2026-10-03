@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onDestroy } from 'svelte'
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
@@ -12,6 +13,7 @@
     const timeAgo = createTimeAgo()
 
     let gameSession = getGameSession()
+    onDestroy(() => gameSession.highlightHistory(undefined))
 
     let reversedActions = $derived.by(() => {
         const reversed = gameSession.actions
@@ -47,9 +49,13 @@
             {/if}
             {#each reversedActions as action, i (action.id)}
                 <div
+                    role="group"
+                    aria-label="History entry"
                     in:fade={{ duration: 200, easing: quartIn }}
                     out:fade={{ duration: 50 }}
                     animate:flip={{ duration: 100 }}
+                    onpointerenter={() => gameSession.highlightHistory(action)}
+                    onpointerleave={() => gameSession.highlightHistory(undefined)}
                 >
                     <div
                         class="absolute w-3 h-3 bg-[#ad9c80] rounded-full mt-1.5 -start-1.5 border dark:border-[#ad9c80] dark:bg-[#ad9c80]"

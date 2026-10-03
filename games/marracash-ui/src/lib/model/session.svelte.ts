@@ -1,5 +1,5 @@
 import { GameSession } from '@tabletop/frontend-components'
-import { assertExists } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     BringVisitors,
@@ -33,6 +33,7 @@ import { marketPalettes } from '$lib/utils/marketColors.js'
 import { latestTurnStep, moneyReports, type MoneyReport } from '$lib/utils/moneyReport.js'
 import type { RefillChoice } from '$lib/utils/queueChoices.js'
 import type { VisitorWalker } from '$lib/animators/visitorMoveAnimator.js'
+import { historyHighlightFor, type HistoryHighlight } from '$lib/utils/historyHighlight.js'
 
 const QueueWarningSeconds = 4
 
@@ -66,6 +67,8 @@ export class MarracashGameSession extends GameSession<
             return customers === undefined ? shop : { ...shop, customers }
         })
     )
+
+    historyHighlight: HistoryHighlight | undefined = $state(undefined)
 
     readonly moneyReports: MoneyReport[] = $derived(moneyReports(latestTurnStep(this.actions)))
 
@@ -212,6 +215,10 @@ export class MarracashGameSession extends GameSession<
         if (this.hasManualSelection) {
             this.selection = popMarracashSelection(this.selection)
         }
+    }
+
+    highlightHistory(action: GameAction | undefined) {
+        this.historyHighlight = action === undefined ? undefined : historyHighlightFor(action)
     }
 
     resetAction() {

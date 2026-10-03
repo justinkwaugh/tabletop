@@ -34,3 +34,5 @@ function pawnOutline(): string {
 }
 
 export const PawnOutline = pawnOutline()
+
+export const HistoryPawnHeight = 20

@@ -5,15 +5,16 @@
     import PawnIcon from '$lib/components/PawnIcon.svelte'
     import AuctionBids from '$lib/components/AuctionBids.svelte'
     import { ordinal } from '$lib/utils/ordinal.js'
-    import { movedVisitors, type MoneyReport, type Payment } from '$lib/utils/moneyReport.js'
+    import {
+        movedVisitors,
+        signedAmount,
+        type MoneyReport,
+        type Payment
+    } from '$lib/utils/moneyReport.js'
 
     let { reports }: { reports: MoneyReport[] } = $props()
 
     const gameSession = getGameSession()
-
-    function signed(amount: number): string {
-        return amount < 0 ? `−${-amount}` : `+${amount}`
-    }
 
     function shopColor(shopId: ShopId): MarketColor {
         return getShop(shopId).color
@@ -64,7 +65,7 @@
                 <span
                     class="marracash-display text-right"
                     class:text-[#2e6b34]={payment.amount > 0}
-                    class:text-[#9b2c2c]={payment.amount < 0}>{signed(payment.amount)}</span
+                    class:text-[#9b2c2c]={payment.amount < 0}>{signedAmount(payment.amount)}</span
                 >
                 <span class="whitespace-nowrap">{@render reason(payment)}</span>
             {/each}

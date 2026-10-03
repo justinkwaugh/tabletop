@@ -9,6 +9,7 @@
     import FountainDefs from '$lib/components/FountainDefs.svelte'
     import FountainSpot from '$lib/components/FountainSpot.svelte'
     import RoutePreview from '$lib/components/RoutePreview.svelte'
+    import HistoryHighlight from '$lib/components/HistoryHighlight.svelte'
     import VisitorQueue from '$lib/components/VisitorQueue.svelte'
     import PalmTree from '$lib/components/PalmTree.svelte'
     import Pawn from '$lib/components/Pawn.svelte'
@@ -228,6 +229,10 @@
             {#key previewRoute}
                 <RoutePreview route={previewRoute} visits={previewVisits} />
             {/key}
+        {/if}
+
+        {#if gameSession.historyHighlight}
+            <HistoryHighlight highlight={gameSession.historyHighlight} />
         {/if}
 
         {#each gameSession.movingVisitors as walker (walker.id)}

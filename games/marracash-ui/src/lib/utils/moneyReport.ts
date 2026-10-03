@@ -1,6 +1,7 @@
 import { ActionSource, type GameAction } from '@tabletop/common'
 import {
     auctioneerOf,
+    MarketColor,
     getShop,
     isCompleteAntiqueSet,
     isMoveVisitors,
@@ -8,7 +9,6 @@ import {
     paidAntiqueCount,
     type AntiqueSetResult,
     type AuctionResult,
-    type MarketColor,
     type MoveResult
 } from '@tabletop/marracash'
 
@@ -76,6 +76,21 @@ export function pulledInCustomers(result: AuctionResult): { count: number; incom
     )
 }
 
+export function signedAmount(amount: number): string {
+    return amount < 0 ? `−${-amount}` : `+${amount}`
+}
+
+const ColorOrder = Object.values(MarketColor)
+
+export function movedVisitorColors(result: MoveResult): MarketColor[] {
+    const entered = result.entries.flatMap((entry) =>
+        Array<MarketColor>(entry.customers).fill(getShop(entry.shopId).color)
+    )
+    return [...entered, ...result.arrivals].toSorted(
+        (a, b) => ColorOrder.indexOf(a) - ColorOrder.indexOf(b)
+    )
+}
+
 export function movedVisitors(result: MoveResult): string {
     const count =
         result.arrivals.length + result.entries.reduce((total, entry) => total + entry.customers, 0)
@@ -116,7 +131,7 @@ export function antiqueSetPayments(collectorId: string, result: AntiqueSetResult
     ]
 }
 
-function moneyReport(action: GameAction): MoneyReport | undefined {
+export function actionMoneyReport(action: GameAction): MoneyReport | undefined {
     if (isResolveAuction(action) && action.metadata) {
         return {
             kind: 'auction',
@@ -145,7 +160,7 @@ function moneyReport(action: GameAction): MoneyReport | undefined {
 
 export function moneyReports(actions: readonly GameAction[]): MoneyReport[] {
     return actions
-        .map(moneyReport)
+        .map(actionMoneyReport)
         .filter(
             (report): report is MoneyReport => report !== undefined && report.payments.length > 0
         )

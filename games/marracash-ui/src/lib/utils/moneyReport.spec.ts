@@ -6,6 +6,7 @@ import {
     auctionPayments,
     latestTurnStep,
     moneyReports,
+    movedVisitorColors,
     movedVisitors,
     movePayments
 } from './moneyReport.js'
@@ -151,5 +152,19 @@ describe('MarraCash money report', () => {
         expect(movedVisitors({ ...move, arrivals: [MarketColor.Red], entries: [] })).toBe(
             '1 visitor'
         )
+    })
+
+    it('lists every moved visitor in market colour order, shop customers included', () => {
+        const move: MoveResult = {
+            destinationId: 5,
+            arrivals: [MarketColor.Yellow, MarketColor.Red],
+            entries: [{ shopId: 'B1', ownerId: 'dev', customers: 2, income: 300, moverCut: 100 }]
+        }
+        expect(movedVisitorColors(move)).toEqual([
+            MarketColor.Red,
+            MarketColor.Blue,
+            MarketColor.Blue,
+            MarketColor.Yellow
+        ])
     })
 })

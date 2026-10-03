@@ -9,7 +9,7 @@
 
 Bids:
 {#each bids as bid, index (bid.playerId)}
-    {index > 0 ? separator : ''}{#if bid.amount === 0}<span class="italic text-[#7a6650]"
+    {index > 0 ? separator : ''}{#if bid.amount === 0}<span class="italic opacity-70"
             ><PlayerTag playerId={bid.playerId} /> passed</span
         >{:else if bid.playerId === result.winnerId}<span class="font-bold"
             ><PlayerTag playerId={bid.playerId} /> {bid.amount}</span
