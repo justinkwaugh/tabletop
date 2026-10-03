@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/magna-grecia-ui",
-    "version": "0.13.2",
+    "version": "0.13.3",
     "private": true,
     "type": "module",
     "svelte": "./dist/index.js",
