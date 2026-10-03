@@ -8,7 +8,8 @@ const config = {
     preprocess: vitePreprocess({ script: true }),
     kit: {
         adapter: adapter({
-            fallback: 'index.html' // may differ from host to host
+            fallback: 'index.html', // may differ from host to host
+            precompress: true
         })
     }
 }

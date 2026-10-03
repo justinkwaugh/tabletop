@@ -34,18 +34,41 @@ export class AblyConnection implements RealtimeConnection {
                 callback(null, tokenRequest)
             }
         })
-        this.ably.connection.on('connected', async () => {
+        this.ably.connection.on('connected', () => {
             console.log('Realtime feed connected')
-            // Subscribe or attach to all channels on connect
-            for (const channelData of this.channels.values()) {
-                const channel = channelData.ablyChannel
-                if (channel.state === 'initialized') {
-                    await this.subscribeToChannel(channelData)
-                } else if (channel.state !== 'attached' && channel.state !== 'attaching') {
-                    await channel.attach()
-                }
-            }
+            void this.resubscribeChannels()
         })
+    }
+
+    private async resubscribeChannels() {
+        for (const channelData of this.channels.values()) {
+            try {
+                await this.resubscribeChannel(channelData)
+            } catch (error) {
+                // Closing the connection rejects pending attaches; the next 'connected' resubscribes.
+                if (this.isClosed()) {
+                    return
+                }
+                console.error(
+                    `Failed to resubscribe realtime channel ${channelData.ablyChannel.name}`,
+                    error
+                )
+            }
+        }
+    }
+
+    private async resubscribeChannel(channelData: ChannelData) {
+        const channel = channelData.ablyChannel
+        if (channel.state === 'initialized') {
+            await this.subscribeToChannel(channelData)
+        } else if (channel.state !== 'attached' && channel.state !== 'attaching') {
+            await channel.attach()
+        }
+    }
+
+    private isClosed() {
+        const state = this.ably.connection.state
+        return state === 'closing' || state === 'closed'
     }
 
     setHandler(handler: RealtimeEventHandler) {

@@ -16,6 +16,8 @@ import {
     withOptionPick,
     type PowerChoicePicks
 } from './powerChoices.js'
+import { assert } from '@tabletop/common'
+import type { ModifierDeclaration } from './oathSelection.svelte.js'
 import { powerUseKey, samePowerUse } from './powerUse.js'
 import type { OathGameSession } from './session.svelte.js'
 
@@ -56,6 +58,15 @@ export class ModifierDeclarations {
         })
     }
 
+    /** R-7.4 — the powers list opens an action with one card in use. */
+    open(use: PowerUseKey): void {
+        assert(
+            this.options.some((p) => samePowerUse(p, use)),
+            `${use.cardId} is not a modifier the staged action can use`
+        )
+        this.session.selection.set('modifiers', [{ use, opened: true }])
+    }
+
     isDeclared(use: PowerUseKey): boolean {
         return this.declared.some((m) => samePowerUse(m, use))
     }
@@ -65,16 +76,38 @@ export class ModifierDeclarations {
         const options = this.options
         const power = options.find((p) => samePowerUse(p, use))
         if (!power) return
-        const rest = this.session.selection.modifiers.filter((m) => !samePowerUse(m.use, use))
+        const staged = this.session.selection.modifiers
+        const rest = staged.filter((m) => !samePowerUse(m.use, use))
         if (!on) {
-            this.session.selection.set('modifiers', rest)
+            // An action only a card makes possible keeps one such card in use; Back leaves the menu.
+            if (this.aloneMakesPossible(use, rest)) return
+            this.session.selection.set('modifiers', this.keepingRoute(staged, rest))
             return
         }
         const namesPile = (p: CardPower) => this.drawPileChoice(p) !== undefined
         const kept = namesPile(power)
             ? rest.filter((m) => !options.some((p) => samePowerUse(p, m.use) && namesPile(p)))
             : rest
-        this.session.selection.set('modifiers', [...kept, { use }])
+        this.session.selection.set('modifiers', this.keepingRoute(staged, [...kept, { use }]))
+    }
+
+    private aloneMakesPossible(use: PowerUseKey, rest: readonly ModifierDeclaration[]): boolean {
+        const action = this.session.selection.action
+        const makers = this.session.actionCards.filter(
+            (card) => card.action === action && card.kind === 'makesPossible'
+        )
+        if (!makers.some((card) => samePowerUse(card, use))) return false
+        return !rest.some((m) => makers.some((card) => samePowerUse(card, m.use)))
+    }
+
+    /** An action entered from the powers list stays so while a card is in use, whichever card. */
+    private keepingRoute(
+        staged: readonly ModifierDeclaration[],
+        next: ModifierDeclaration[]
+    ): ModifierDeclaration[] {
+        const [first, ...others] = next
+        if (!first || next.some((m) => m.opened) || !staged.some((m) => m.opened)) return next
+        return [{ ...first, opened: true }, ...others]
     }
 
     picksOf(use: PowerUseKey): PowerChoicePicks {
@@ -142,7 +175,7 @@ export class ModifierDeclarations {
         if (!modifiers.some((m) => samePowerUse(m.use, use))) return
         this.session.selection.set(
             'modifiers',
-            modifiers.map((m) => (samePowerUse(m.use, use) ? { use, picks } : m))
+            modifiers.map((m) => (samePowerUse(m.use, use) ? { ...m, picks } : m))
         )
     }
 }
