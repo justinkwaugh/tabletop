@@ -3,7 +3,7 @@
     import { getShop, type Route, type ShopVisit } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { LineHaloFilterId } from '$lib/utils/boardGeometry.js'
-    import VisitCount from '$lib/components/VisitCount.svelte'
+    import PawnCountChip from '$lib/components/PawnCountChip.svelte'
     import {
         BranchDash,
         flowSeconds,
@@ -28,11 +28,13 @@
     let branches = $derived(
         visits.map((visit) => {
             const line = shopBranch(route, visit.shopId)
+            const marketColor = getShop(visit.shopId).color
             return {
                 visit,
+                marketColor,
                 end: line[1],
                 points: flowPoints(line),
-                color: gameSession.marketPalettes[getShop(visit.shopId).color].fill
+                color: gameSession.marketPalettes[marketColor].fill
             }
         })
     )
@@ -75,7 +77,13 @@
     {/each}
     {@render flowLine(points, '#ffffff', 6, RouteDash)}
     {#each branches as branch (branch.visit.shopId)}
-        <VisitCount visit={branch.visit} at={branch.end} />
+        <PawnCountChip
+            color={branch.marketColor}
+            count={branch.visit.customers}
+            x={branch.end.x}
+            y={branch.end.y}
+            label="{branch.visit.customers} entering shop {branch.visit.shopId}"
+        />
     {/each}
 </g>
 

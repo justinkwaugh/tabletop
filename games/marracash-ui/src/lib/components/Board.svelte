@@ -31,6 +31,7 @@
         WallThickness
     } from '$lib/utils/boardGeometry.js'
     import { CobblePatternId } from '$lib/utils/cobbles.js'
+    import { SignShadowFilterId } from '$lib/utils/shopSign.js'
 
     const gameSession = getGameSession()
 
@@ -164,6 +165,9 @@
                 <feMergeNode in="glow"></feMergeNode>
                 <feMergeNode in="SourceGraphic"></feMergeNode>
             </feMerge>
+        </filter>
+        <filter id={SignShadowFilterId} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
         </filter>
         <AwningDefs />
         <CobbleDefs />

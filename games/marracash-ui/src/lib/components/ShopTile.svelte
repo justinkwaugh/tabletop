@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getShop, type ShopState } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { ownerDiscOutline } from '$lib/utils/playerColors.js'
+    import ShopSign from '$lib/components/ShopSign.svelte'
     import { CandidateHaloFilterId, shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
     import {
         AwningClothFilterId,
@@ -35,17 +35,6 @@
     let clipId = $derived(`marracash-awning-${shop.shopId}`)
     let centerX = $derived(rect.x + rect.width / 2)
     let centerY = $derived(rect.y + rect.height / 2)
-
-    let ownerDisc = $derived.by(() => {
-        if (!shop.ownerId) return undefined
-        const colors = gameSession.colors
-        return {
-            fill: colors.getPlayerBgColorValue(shop.ownerId),
-            outline: ownerDiscOutline(colors.getPlayerColor(shop.ownerId)),
-            text: colors.getPlayerTextColorValue(shop.ownerId),
-            initial: gameSession.getPlayerName(shop.ownerId).charAt(0).toUpperCase()
-        }
-    })
 </script>
 
 {#snippet body()}
@@ -99,31 +88,14 @@
             ></circle>
         {/each}
     </g>
-    {#if ownerDisc}
-        <circle
-            cx={centerX}
-            cy={centerY}
-            r="20"
-            fill={ownerDisc.fill}
-            stroke={ownerDisc.outline}
-            stroke-width="2"
-        ></circle>
-        <text x={centerX} y={centerY} class="owner-initial marracash-initial" fill={ownerDisc.text}
-            >{ownerDisc.initial}</text
-        >
-        {#if shop.customers > 0}
-            <circle
-                cx={centerX + 18}
-                cy={centerY + 15}
-                r="10"
-                fill="#ffffff"
-                stroke="#1f1f1f"
-                stroke-width="1.5"
-            ></circle>
-            <text x={centerX + 18} y={centerY + 15} class="customer-count" fill="#1f1f1f"
-                >{shop.customers}</text
-            >
-        {/if}
+    {#if shop.ownerId}
+        <ShopSign
+            ownerId={shop.ownerId}
+            center={{ x: centerX, y: centerY }}
+            {vertical}
+            customers={shop.customers}
+            marketColor={shopColor}
+        />
     {/if}
 {/snippet}
 
@@ -141,18 +113,3 @@
 {:else}
     <g>{@render body()}</g>
 {/if}
-
-<style>
-    .owner-initial {
-        font-size: 22px;
-        text-anchor: middle;
-        dominant-baseline: central;
-    }
-
-    .customer-count {
-        font-size: 12px;
-        font-weight: 700;
-        text-anchor: middle;
-        dominant-baseline: central;
-    }
-</style>

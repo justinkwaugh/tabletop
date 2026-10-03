@@ -31,6 +31,7 @@ test('round 1 offers only auctions and collects a sealed bid from everyone', asy
     await expect(auctionableShops(page)).toHaveCount(0)
     await finishBidding(page)
     await expect(actionPanel(page)).toContainText('Your turn')
+    await expect(page.locator('g[aria-label^="Owned by"]')).toHaveCount(1)
 })
 
 test('a chosen shop waits for confirmation and Back cancels it before anyone bids', async ({

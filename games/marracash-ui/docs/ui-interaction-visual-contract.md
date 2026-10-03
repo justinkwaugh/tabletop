@@ -41,6 +41,7 @@ During bidding, while waiting for others, and in History View, the session repor
 ## Render ownership
 
 - `Board` owns the layer order: the visitor queue in the margin outside the walls, then shops, then fountains, then the shared overlay, then whatever is lifted above it (the auctioned or staged shop, the shops the previewed route enters, or the selected fountain and its destinations), then the route preview. The overlay blocks clicks on everything beneath it, so only lifted pieces are interactive; the preview ignores pointer events so it never blocks a destination.
+- `ShopTile` draws each owned shop's `ShopSign`: a flat cardboard sign in the owner's colour, cut in a shape unique to their seat, with the customer count beside it. That count and the route preview's entering counts use the same `PawnCountChip`, so a pawn with a number always means visitors of that colour in a shop.
 
 ## Verification scenarios
 
