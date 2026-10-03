@@ -8,44 +8,67 @@
         ghost = false
     }: { color: string; founding?: boolean; ghost?: boolean } = $props()
 
-    type House = { x: number; y: number; rotation: number; length: number }
+    type House = { x: number; y: number; rotation: number; length: number; tiles: string }
 
     const OUTLINE = '#1d1a17'
+    const WATER = '#4a90b8'
+    const WATER_GLINT = '#d8eef6'
     const WIDE = 12
     const NARROW = 9
-    // Tone-on-tone: small houses and temple in tints of the player colour keep the tile mostly
-    // that colour; the whole house drawing, outline included, is scaled down.
-    const HOUSE_SCALE = 0.66
-    const TEMPLE_SCALE = 0.7
+    const TILE_PITCH = 1.5
     const groundShape = localHexPoints(1.5)
     const bandShape = localHexPoints(4.4)
 
-    // Houses on a ring face the centre: their roof strip is on the outer side.
+    // The roof's tile courses: lines across the roof, ending in a scalloped eave.
+    function roofTiles(length: number): string {
+        const start = -length / 2
+        let path = ''
+        for (let x = start + TILE_PITCH; x < length / 2 - 0.5; x += TILE_PITCH) {
+            path += `M ${x.toFixed(2)} -6.6 V -1.4 `
+        }
+        path += `M ${start} -1.4`
+        for (let x = start; x < length / 2 - 0.01; x += TILE_PITCH) {
+            path += ` q 0.75 1 ${TILE_PITCH} 0`
+        }
+        return path
+    }
+
+    function house(x: number, y: number, rotation: number, length: number): House {
+        return { x, y, rotation, length, tiles: roofTiles(length) }
+    }
+
+    // Houses on a ring face the centre: their tiled roof is on the outer side.
     function ring(count: number, radius: number, isWide: (index: number) => boolean): House[] {
         return Array.from({ length: count }, (_, index) => {
             const angle = -90 + (index * 360) / count
             const radians = (angle * Math.PI) / 180
-            return {
-                x: radius * Math.cos(radians),
-                y: radius * Math.sin(radians),
-                rotation: angle + 90,
-                length: isWide(index) ? WIDE : NARROW
-            }
+            return house(
+                radius * Math.cos(radians),
+                radius * Math.sin(radians),
+                angle + 90,
+                isWide(index) ? WIDE : NARROW
+            )
         })
     }
 
-    const FOUNDING_HOUSES = ring(8, 24, (index) => index % 2 === 0)
+    const FOUNDING_HOUSES = ring(8, 27, (index) => index % 2 === 0)
     const EXTENSION_HOUSES: House[] = [
-        ...ring(7, 23, (index) => index % 3 === 0),
-        { x: -6 * HOUSE_SCALE, y: -2 * HOUSE_SCALE, rotation: 20, length: WIDE },
-        { x: 7 * HOUSE_SCALE, y: 5 * HOUSE_SCALE, rotation: -35, length: WIDE }
+        ...ring(7, 26, (index) => index % 3 === 0),
+        house(-6, -2, 20, WIDE),
+        house(7, 5, -35, WIDE)
     ]
+    const PAVING_JOINTS =
+        'M -12 -6 H 12 M -12 0 H 12 M -12 6 H 12 M -6 -12 V 12 M 0 -12 V 12 M 6 -12 V 12'
 
     const band = $derived(mixColor(color, '#000000', 0.22))
-    const keyline = $derived(mixColor(color, '#000000', 0.1))
-    const roof = $derived(mixColor(color, '#000000', 0.45))
-    const body = $derived(mixColor(color, '#ffffff', 0.2))
-    const columns = $derived(mixColor(color, '#000000', 0.35))
+    const keyline = $derived(mixColor(color, '#ffffff', 0.5))
+    const wall = $derived(mixColor(color, '#ffffff', 0.55))
+    const roof = $derived(mixColor(color, '#000000', 0.38))
+    const roofLines = $derived(mixColor(color, '#000000', 0.6))
+    const ridge = $derived(mixColor(color, '#000000', 0.15))
+    const paving = $derived(mixColor(color, '#ffffff', 0.62))
+    const joints = $derived(mixColor(color, '#000000', 0.18))
+    const basin = $derived(mixColor(color, '#ffffff', 0.75))
     const houses = $derived(founding ? FOUNDING_HOUSES : EXTENSION_HOUSES)
 </script>
 
@@ -55,38 +78,44 @@
     <polygon points={bandShape} fill="none" stroke={keyline} stroke-width="1.2"></polygon>
     <g stroke={OUTLINE} stroke-width="0.7" stroke-linejoin="round">
         {#each houses as house, index (index)}
-            <g
-                transform="translate({house.x} {house.y}) rotate({house.rotation}) scale({HOUSE_SCALE})"
-            >
+            {@const start = -house.length / 2}
+            <g transform="translate({house.x} {house.y}) rotate({house.rotation})">
+                <rect x={start} y="-1.5" width={house.length} height="7.5" rx="0.8" fill={wall}
+                ></rect>
                 <rect
-                    x={-house.length / 2}
-                    y="-6"
-                    width={house.length}
-                    height="4"
-                    rx="0.8"
+                    x={start - 0.6}
+                    y="-7"
+                    width={house.length + 1.2}
+                    height="6"
+                    rx="0.9"
                     fill={roof}
                 ></rect>
-                <rect
-                    x={-house.length / 2}
-                    y="-2"
-                    width={house.length}
-                    height="8"
-                    rx="0.8"
-                    fill={body}
-                ></rect>
+                <path d={house.tiles} fill="none" stroke={roofLines} stroke-width="0.55"></path>
+                <path
+                    d="M {start - 0.2} -6.2 H {house.length / 2 + 0.2}"
+                    stroke={ridge}
+                    stroke-width="0.9"
+                ></path>
             </g>
         {/each}
-        {#if founding}
-            <g transform="translate(0 2) scale({TEMPLE_SCALE})">
-                <rect x="-13" y="6" width="26" height="4" fill={roof}></rect>
-                <rect x="-11" y="-8" width="22" height="14" fill={body}></rect>
-                <path
-                    d="M -7 -6 V 4 M -3.5 -6 V 4 M 0 -6 V 4 M 3.5 -6 V 4 M 7 -6 V 4"
-                    stroke={columns}
-                ></path>
-                <rect x="-12" y="-11" width="24" height="3" fill={roof}></rect>
-                <path d="M -13 -11 L 0 -18 L 13 -11 Z" fill={roof}></path>
-            </g>
-        {/if}
     </g>
+    {#if founding}
+        <!-- The founding tile's agora: a paved square with a fountain. -->
+        <g transform="translate(0 1) scale(1.05)" stroke-linejoin="round">
+            <rect
+                x="-12"
+                y="-12"
+                width="24"
+                height="24"
+                rx="1.2"
+                fill={paving}
+                stroke={OUTLINE}
+                stroke-width="0.8"
+            ></rect>
+            <path d={PAVING_JOINTS} stroke={joints} stroke-width="0.45"></path>
+            <circle r="6.2" fill={basin} stroke={OUTLINE} stroke-width="0.8"></circle>
+            <circle r="4.3" fill={WATER} stroke={OUTLINE} stroke-width="0.6"></circle>
+            <circle r="1.4" fill={WATER_GLINT}></circle>
+        </g>
+    {/if}
 </g>
