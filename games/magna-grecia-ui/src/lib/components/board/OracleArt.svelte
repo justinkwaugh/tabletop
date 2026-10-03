@@ -64,7 +64,7 @@
 </script>
 
 <script lang="ts">
-    import { localHexPoints } from '$lib/utils/boardGeometry.js'
+    import { ROAD_DASHES, localHexPoints } from '$lib/utils/boardGeometry.js'
 
     let { angle = -90, attentionColor }: { angle?: number; attentionColor?: string } = $props()
 
@@ -121,7 +121,8 @@
             opacity={attentionColor ? 1 : 0}
             stroke="rgba(255, 244, 220, 0.55)"
             stroke-width="2.2"
-            stroke-dasharray="2 5"
+            stroke-dasharray={ROAD_DASHES.dasharray}
+            stroke-dashoffset={ROAD_DASHES.dashoffset}
             stroke-linecap="round"
         ></path>
         <path

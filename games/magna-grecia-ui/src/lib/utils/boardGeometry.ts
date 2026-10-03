@@ -52,18 +52,65 @@ export function edgeMidpoint(direction: PointyHexDirection, scale = 1): Point {
     return { x: offset.x * scale, y: offset.y * scale }
 }
 
+type Cubic = [Point, Point, Point, Point]
+
 // Straight tiles are drawn as a gentle S, like the printed tiles; curves bend through the centre.
-export function localRoadPath(ends: RoadEnds): string {
+// Every road leaves its edge head-on (toward the tile centre), so it meets the road, city or oracle
+// across that edge square, band to band.
+function roadCurves(ends: RoadEnds): Cubic[] {
     const [a, b] = ends.map((end) => edgeMidpoint(end))
+    const centre = { x: 0, y: 0 }
     if (roadShape(ends) === RoadShape.Curve) {
-        return `M ${a.x} ${a.y} Q 0 0 ${b.x} ${b.y}`
+        const pull = (p: Point) => ({ x: p.x / 3, y: p.y / 3 })
+        // The quadratic through the centre, as a cubic.
+        return [[a, pull(a), pull(b), b]]
     }
-    const length = Math.hypot(b.x - a.x, b.y - a.y)
-    const normal = { x: -(b.y - a.y) / length, y: (b.x - a.x) / length }
-    const sway = 9
-    const c1 = { x: a.x * 0.35 + normal.x * sway, y: a.y * 0.35 + normal.y * sway }
-    const c2 = { x: b.x * 0.35 - normal.x * sway, y: b.y * 0.35 - normal.y * sway }
-    return `M ${a.x} ${a.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}`
+    // The S crosses the centre turned a little off the line between the ends.
+    const span = Math.hypot(b.x - a.x, b.y - a.y)
+    const along = { x: (b.x - a.x) / span, y: (b.y - a.y) / span }
+    const turn = (18 * Math.PI) / 180
+    const reach = 22
+    const tangent = {
+        x: (along.x * Math.cos(turn) - along.y * Math.sin(turn)) * reach,
+        y: (along.x * Math.sin(turn) + along.y * Math.cos(turn)) * reach
+    }
+    const inward = (p: Point) => ({ x: p.x * 0.55, y: p.y * 0.55 })
+    return [
+        [a, inward(a), { x: -tangent.x, y: -tangent.y }, centre],
+        [centre, tangent, inward(b), b]
+    ]
+}
+
+export function localRoadPath(ends: RoadEnds): string {
+    const curves = roadCurves(ends)
+    return `M ${curves[0][0].x} ${curves[0][0].y} ${curves
+        .map(([, c1, c2, end]) => `C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`)
+        .join(' ')}`
+}
+
+// The road's centre dashes: a 2 dash every 7, starting and ending halfway through a gap, so the
+// dashes run on evenly from one tile to the next.
+export const ROAD_DASHES = { dasharray: '2 5', dashoffset: -4.5, period: 7 }
+
+export function localRoadDashLength(ends: RoadEnds): number {
+    const length = roadCurves(ends).reduce((total, curve) => total + cubicLength(curve), 0)
+    return Math.max(1, Math.round(length / ROAD_DASHES.period)) * ROAD_DASHES.period
+}
+
+function cubicLength([p0, p1, p2, p3]: Cubic): number {
+    let length = 0
+    let previous = p0
+    for (let i = 1; i <= 64; i++) {
+        const t = i / 64
+        const u = 1 - t
+        const point = {
+            x: u * u * u * p0.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * p3.x,
+            y: u * u * u * p0.y + 3 * u * u * t * p1.y + 3 * u * t * t * p2.y + t * t * t * p3.y
+        }
+        length += Math.hypot(point.x - previous.x, point.y - previous.y)
+        previous = point
+    }
+    return length
 }
 
 export function directionAngle(direction: PointyHexDirection): number {

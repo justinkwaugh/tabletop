@@ -1,6 +1,11 @@
 <script lang="ts">
     import type { RoadEnds } from '@tabletop/magna-grecia'
-    import { localHexPoints, localRoadPath } from '$lib/utils/boardGeometry.js'
+    import {
+        ROAD_DASHES,
+        localHexPoints,
+        localRoadDashLength,
+        localRoadPath
+    } from '$lib/utils/boardGeometry.js'
 
     let {
         ends,
@@ -10,6 +15,7 @@
 
     const tileShape = localHexPoints(1.5)
     const path = $derived(localRoadPath(ends))
+    const dashLength = $derived(localRoadDashLength(ends))
 </script>
 
 <g opacity={ghost ? 0.75 : 1}>
@@ -36,7 +42,9 @@
         fill="none"
         stroke="rgba(255, 244, 220, 0.55)"
         stroke-width="2.2"
-        stroke-dasharray="2 5"
+        stroke-dasharray={ROAD_DASHES.dasharray}
+        stroke-dashoffset={ROAD_DASHES.dashoffset}
+        pathLength={dashLength}
         stroke-linecap="round"
     ></path>
 </g>
