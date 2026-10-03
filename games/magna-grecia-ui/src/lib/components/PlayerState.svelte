@@ -101,6 +101,9 @@
     }
 
     .name {
+        position: relative;
+        /* Libre Baskerville's line box sits capitals high; centre them optically */
+        top: 0.09em;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
