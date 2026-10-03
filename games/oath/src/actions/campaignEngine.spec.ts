@@ -1,7 +1,7 @@
 import { engine } from '../testing/engine.js'
 import { buildAction, machineContext } from '../testing/actions.js'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { Color, Game, assertExists, type GameAction } from '@tabletop/common'
+import { ActionSource, Color, Game, assertExists, type GameAction } from '@tabletop/common'
 import { OathRuntime } from '../definition/runtime.js'
 import { ActionType } from '../definition/actions.js'
 import { Campaign } from './campaign.js'
@@ -10,7 +10,7 @@ import { CampaignSacrifice } from './campaignSacrifice.js'
 import { Travel } from './travel.js'
 import { AnswerConsent } from './answerConsent.js'
 import { MachineState } from '../definition/states.js'
-import { Banner, CardKind, PlayerStatus } from '../model/oathEnums.js'
+import { Banner, CardKind, OathType, PlayerStatus } from '../model/oathEnums.js'
 import { registerCards } from '../data/cardRegistry.js'
 import { bySuit } from '../data/typedData.js'
 import { CampaignTargetKind } from '../model/campaign.js'
@@ -20,6 +20,9 @@ import { expectOneWarbandOwnerPerSite, warbandCensus } from '../testing/census.j
 import { favorCensus } from '../testing/census.js'
 import { testGame } from '../testing/game.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { CampaignDefeatKills } from './campaignDefeatKills.js'
+import { HydratedCampaignSacrifice } from './campaignSacrifice.js'
+import { OathRevision } from '../util/revision.js'
 
 
 const ATTACKER = 'p1'
@@ -284,5 +287,85 @@ describe('R-5.5.2.a — a Citizen joins the defence, through the engine', () => 
         expect(state.machineState).toBe(MachineState.CampaignSacrifice)
         expect(state.activePlayerIds).toEqual([ATTACKER])
         expect(state.prng.invocations).toBeGreaterThan(0)
+    })
+})
+
+describe('R-2.11-H1 — from the turn-flow revision, a title moved inside a Campaign is its own System Action there', () => {
+    const VOW_OF_UNION = 'denizen.beast.vow-of-union'
+    const processed = (actions: readonly GameAction[]) => actions.map((a) => `${a.type}/${a.source}`)
+    const transferIn = (actions: readonly GameAction[]) => actions.find((a) => a.type === ActionType.TransferOathkeeper)
+
+    function supremacy(state: OathProjectedState, oathkeeperPlayerId: string): OathProjectedState {
+        return { ...state, oathType: OathType.Supremacy, oathkeeperPlayerId, oathRevision: OathRevision.TurnFlow }
+    }
+
+    it('the defender’s last warband dying vacates the title in Campaign Victory; the spoils give it to the attacker in the Act Phase', () => {
+        const game = buildGame()
+        let state = supremacy(buildState(seedWhereSwordsAlreadyWin()), DEFENDER)
+        state = engine.runNext(action(FULL_CAMPAIGN), state, game).updatedState
+        expect(state.oathkeeperPlayerId).toBe(DEFENDER)
+
+        const sacrifice = engine.runNext(buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0 }), state, game)
+        expect(processed(sacrifice.processedActions)).toEqual([`${ActionType.CampaignSacrifice}/${ActionSource.User}`, `${ActionType.TransferOathkeeper}/${ActionSource.System}`])
+        expect(transferIn(sacrifice.processedActions)).toMatchObject({ fromPlayerId: DEFENDER })
+        expect(transferIn(sacrifice.processedActions)).not.toHaveProperty('toPlayerId')
+        state = sacrifice.updatedState
+        expect(state.machineState).toBe(MachineState.CampaignVictory)
+        expect(state.activePlayerIds).toEqual([ATTACKER])
+        expect(state.oathkeeperPlayerId).toBeUndefined()
+
+        const spoils = engine.runNext(
+            buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [{ siteId: 'c1', owner: ATTACKER, count: 2 }], banishToSiteId: 'h3', burnFavor: true }),
+            state,
+            game
+        )
+        expect(processed(spoils.processedActions)).toEqual([`${ActionType.CampaignResolveVictory}/${ActionSource.User}`, `${ActionType.TransferOathkeeper}/${ActionSource.System}`])
+        expect(transferIn(spoils.processedActions)).toMatchObject({ toPlayerId: ATTACKER })
+        expect(spoils.updatedState.oathkeeperPlayerId).toBe(ATTACKER)
+        expect(spoils.updatedState.machineState).toBe(MachineState.ActPhase)
+    })
+
+    it('a sacrifice from a site the attacker rules moves the title while the defending side chooses its losses, with the defender on the clock', () => {
+        // R-10.21 (Vow of Union) — the warband the attacker rules c2 with is in the force, so it can be sacrificed.
+        const forTable = (seed: number) => {
+            const state = supremacy(buildState(seed), ATTACKER)
+            state.players[0].advisers = [{ cardId: VOW_OF_UNION, faceUp: true }]
+            state.players[1].warbandsOnBoard = { [DEFENDER]: 1 }
+            state.warbandsBySite = { ...state.warbandsBySite, c2: { [ATTACKER]: 1 } }
+            return state
+        }
+        const game = buildGame()
+        const declared = (seed: number) => engine.runNext(action(FULL_CAMPAIGN), forTable(seed), game).updatedState
+        let seed = 1
+        while (seed < 5000) {
+            const campaign = declared(seed).campaign
+            if (campaign && campaign.swords <= campaign.defense && HydratedCampaignSacrifice.sacrificeNeeded(campaign) === 1) break
+            seed += 1
+        }
+        expect(seed).toBeLessThan(5000)
+        let state = declared(seed)
+        expect(state.machineState).toBe(MachineState.CampaignSacrifice)
+        expect(state.oathkeeperPlayerId).toBe(ATTACKER)
+
+        const sacrifice = engine.runNext(
+            buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 1, sacrificeKills: [{ at: { kind: 'site', siteId: 'c2' }, owner: ATTACKER, count: 1 }] }),
+            state,
+            game
+        )
+        expect(processed(sacrifice.processedActions)).toEqual([`${ActionType.CampaignSacrifice}/${ActionSource.User}`, `${ActionType.TransferOathkeeper}/${ActionSource.System}`])
+        expect(transferIn(sacrifice.processedActions)).toMatchObject({ fromPlayerId: ATTACKER, toPlayerId: DEFENDER })
+        state = sacrifice.updatedState
+        expect(state.machineState).toBe(MachineState.CampaignDefeat)
+        expect(state.activePlayerIds).toEqual([DEFENDER])
+        expect(state.oathkeeperPlayerId).toBe(DEFENDER)
+
+        const losses = engine.runNext(
+            buildAction(CampaignDefeatKills, { playerId: DEFENDER, kills: [{ at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }] }),
+            state,
+            game
+        )
+        expect(transferIn(losses.processedActions)).toMatchObject({ fromPlayerId: DEFENDER })
+        expect(transferIn(losses.processedActions)).not.toHaveProperty('toPlayerId')
+        expect(losses.updatedState.machineState).toBe(MachineState.CampaignVictory)
     })
 })
