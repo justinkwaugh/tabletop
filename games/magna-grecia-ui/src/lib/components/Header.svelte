@@ -9,7 +9,7 @@
 </script>
 
 <div
-    class="flex h-[44px] max-sm:h-[30px] items-center justify-between border-b max-sm:border-b-0 border-[#d8c7a4] px-4 text-[#4a2c12] tracking-[0.08em]"
+    class="flex h-[44px] max-sm:h-[30px] items-center justify-between border-b max-sm:border-b-0 border-[#d8c7a4] px-4 max-sm:px-1 text-[#4a2c12] tracking-[0.08em]"
 >
     <div class="header-grid grid text-[18px] max-sm:text-[14px]">
         {#if gameSession.isViewingHistory}
