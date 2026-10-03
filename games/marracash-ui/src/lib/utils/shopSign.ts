@@ -1,7 +1,6 @@
 import type { Point } from '@tabletop/common'
 import { pawnCountChipWidth } from '$lib/utils/pawnCountChip.js'
 
-export const SignShadowFilterId = 'marracash-sign-shadow'
 export const SignShadowOffset = { x: 2.5, y: 3 }
 export const SignHeight = 58
 export const SignHalfWidth = 22

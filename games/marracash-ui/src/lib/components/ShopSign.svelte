@@ -4,12 +4,8 @@
     import PawnCountChip from '$lib/components/PawnCountChip.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { signEdgeColor } from '$lib/utils/playerColors.js'
-    import {
-        shopSignLayout,
-        SignShadowFilterId,
-        SignShadowOffset,
-        standeeOutline
-    } from '$lib/utils/shopSign.js'
+    import { CastShadowFilterId } from '$lib/utils/boardGeometry.js'
+    import { shopSignLayout, SignShadowOffset, standeeOutline } from '$lib/utils/shopSign.js'
 
     const Cream = '#f6e7c1'
     const FrameScale = 0.84
@@ -48,7 +44,7 @@
         transform="translate({SignShadowOffset.x} {SignShadowOffset.y})"
         fill="#000000"
         opacity="0.35"
-        filter="url(#{SignShadowFilterId})"
+        filter="url(#{CastShadowFilterId})"
     ></path>
     <path d={outline} {fill} stroke={edge} stroke-width="1.5" stroke-linejoin="round"></path>
     <path

@@ -21,17 +21,16 @@
         BoardHeight,
         BoardWidth,
         CellSize,
-        cellCenter,
         gateRect,
         QueueMargin,
         CandidateHaloFilterId,
+        CastShadowFilterId,
         LineHaloFilterId,
         TableHeight,
         TableWidth,
         WallThickness
     } from '$lib/utils/boardGeometry.js'
     import { CobblePatternId } from '$lib/utils/cobbles.js'
-    import { SignShadowFilterId } from '$lib/utils/shopSign.js'
 
     const gameSession = getGameSession()
 
@@ -166,7 +165,7 @@
                 <feMergeNode in="SourceGraphic"></feMergeNode>
             </feMerge>
         </filter>
-        <filter id={SignShadowFilterId} x="-20%" y="-20%" width="140%" height="140%">
+        <filter id={CastShadowFilterId} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
         </filter>
         <AwningDefs />
@@ -198,7 +197,7 @@
         {/each}
 
         {#each Palms as palm (`${palm.row},${palm.col}`)}
-            <PalmTree center={cellCenter(palm)} />
+            <PalmTree coords={palm} />
         {/each}
 
         {#each groundShops as shop (shop.shopId)}
