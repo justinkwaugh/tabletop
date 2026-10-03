@@ -448,11 +448,20 @@ function powerEffect(
 ): string {
     const summary = action.metadata?.summary
     if (!summary) return ''
+    const text = withoutCardName(summary, action.cardId)
+    const actorAlone = !names.seats.some(
+        (playerId) => playerId !== action.playerId && seatPattern(playerId).test(text)
+    )
+    const row = { actorId: action.playerId, actorAlone, viewerId }
     const named = names.seats.reduce(
-        (text, playerId) => nameSeat(text, playerId, action.playerId, viewerId, names.player),
-        withoutCardName(summary, action.cardId)
+        (sentence, playerId) => nameSeat(sentence, playerId, row, names.player),
+        text
     )
     return `: ${namedBanks(named)}`
+}
+
+function seatPattern(playerId: string, flags = ''): RegExp {
+    return new RegExp(`(?<![\\w-])${escapeRegExp(playerId)}(?![\\w-])`, flags)
 }
 
 export function withoutCardName(summary: string, cardId: string): string {
@@ -463,21 +472,20 @@ export function withoutCardName(summary: string, cardId: string): string {
 function nameSeat(
     text: string,
     playerId: string,
-    actorId: string,
-    viewerId: string | undefined,
+    row: { actorId: string; actorAlone: boolean; viewerId: string | undefined },
     nameOf: NameOf
 ): string {
     const id = escapeRegExp(playerId)
     const possessive = new RegExp(`(?<![\\w-])${id}['’]s(?![\\w-])`, 'g')
-    const bare = new RegExp(`(?<![\\w-])${id}(?![\\w-])`, 'g')
-    const own = playerId === actorId
-    const isViewer = playerId === viewerId
-    const whose = own
-        ? isViewer
+    const bare = seatPattern(playerId, 'g')
+    const own = playerId === row.actorId
+    const isViewer = playerId === row.viewerId
+    const whose = isViewer
+        ? own
             ? 'your own'
-            : 'their own'
-        : isViewer
-          ? 'your'
+            : 'your'
+        : own && row.actorAlone
+          ? 'their own'
           : `${nameOf(playerId)}'s`
     const seat = isViewer ? 'you' : nameOf(playerId)
     return text.replace(possessive, () => whose).replace(bare, () => seat)

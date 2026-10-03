@@ -2,12 +2,17 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionType,
     HydratedMuster,
+    HydratedUseActionPower,
     IMPERIAL_WARBANDS,
     Muster,
     PlayerStatus,
+    PowerChoiceKind,
+    PowerTiming,
     SearchPlay,
     SearchSource,
-    ownWarbandOwner
+    UseActionPower,
+    ownWarbandOwner,
+    powerIndexOf
 } from '@tabletop/oath'
 import { UNDESCRIBED, describeAction, rowWarbandOwner } from './actionDescription.js'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
@@ -179,6 +184,18 @@ describe('the history tab describes every action', () => {
     })
 
     describe('a power row names every seat in it, and only the viewer reads “you”', () => {
+        // The engine's own summary for Alice swapping her Enchantress with Bob's Wolves.
+        const ENCHANTRESS_SWAP = (() => {
+            const state = testState([
+                testPlayer({ playerId: 'p1', siteId: 'c1', secrets: 1, advisers: [{ cardId: 'denizen.discord.enchantress', faceUp: true }] }),
+                testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c1', advisers: [{ cardId: 'denizen.beast.wolves', faceUp: true }] }),
+                testPlayer({ playerId: 'p3', color: Color.Yellow, siteId: 'c1' })
+            ])
+            const use = new HydratedUseActionPower(buildAction(UseActionPower, { playerId: 'p1', cardId: 'denizen.discord.enchantress', powerIndex: powerIndexOf('denizen.discord.enchantress', PowerTiming.Action), choices: [{ kind: PowerChoiceKind.Card, cardId: 'denizen.beast.wolves' }] }))
+            use.apply(state)
+            return use.metadata?.summary ?? ''
+        })()
+
         const names = { ...nameOf, site: (slotId: string) => (slotId === 'slot.cradle.0' ? 'Plains' : slotId) }
         const effect = (cardId: string, summary: string, viewer: string) => {
             const line = describeAction(action({ type: ActionType.UseActionPower, playerId: 'p1', cardId, powerIndex: 0, metadata: { summary } }), names, viewer)
@@ -245,10 +262,17 @@ describe('the history tab describes every action', () => {
             },
             {
                 card: 'denizen.discord.enchantress',
-                summary: "Enchantress went to p2's advisers; denizen.beast.wolves to p3's advisers",
-                actor: "Enchantress went to Bob's advisers; Wolves to Cass's advisers",
-                target: "Enchantress went to your advisers; Wolves to Cass's advisers",
-                third: "Enchantress went to Bob's advisers; Wolves to your advisers"
+                summary: ENCHANTRESS_SWAP,
+                actor: "Enchantress went to Bob's advisers; Wolves to your own advisers",
+                target: "Enchantress went to your advisers; Wolves to Alice's advisers",
+                third: "Enchantress went to Bob's advisers; Wolves to Alice's advisers"
+            },
+            {
+                card: 'relic.whistle',
+                summary: 'Whistle: p2 cannot travel here',
+                actor: 'Bob cannot travel here',
+                target: 'you cannot travel here',
+                third: 'Bob cannot travel here'
             },
             {
                 card: 'denizen.arcane.witchs-bargain',
