@@ -1,11 +1,17 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
+import {
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    assert,
+    assertExists
+} from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { rollEndDie } from '../data/dice.js'
-import { endDieThreshold, stableRegimeWinner } from '../util/victory.js'
+import { endDieIsRolled, endDieThreshold, stableRegimeWinner } from '../util/victory.js'
 
 export type RollEndDieMetadata = Type.Static<typeof RollEndDieMetadata>
 export const RollEndDieMetadata = Type.Object({
@@ -51,6 +57,10 @@ export class HydratedRollEndDie extends HydratableAction<typeof RollEndDie> impl
         const round = state.round
         const threshold = endDieThreshold(round)
         assertExists(threshold, 'A roll the Chancellor may make has a threshold')
+        assert(
+            endDieIsRolled(state),
+            'R-3.3 — the end die is rolled only while an Imperial player holds the title'
+        )
 
         const roll = rollEndDie(state.getProtectedPrng())
         // R-X.3: the PRNG advanced, so this action is not undoable.
