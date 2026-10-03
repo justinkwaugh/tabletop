@@ -96,6 +96,10 @@ export function cardDefinition(cardId: string): CardDefinition | undefined {
     return byId.get(cardId)
 }
 
+export function cardDefinitions(): CardDefinition[] {
+    return [...byId.values()]
+}
+
 /** R-10.14 — undefined never Matches. */
 export function suitOf(cardId: string): Suit | undefined {
     return byId.get(cardId)?.suit
