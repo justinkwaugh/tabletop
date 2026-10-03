@@ -2,6 +2,14 @@
     import { BOARD_GRID, SpaceType } from '@tabletop/magna-grecia'
     import { coordsSeed, hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
     import Village from './Village.svelte'
+    // PROTOTYPE, throwaway: clear oracle styles show the land, so the village art goes.
+    import { sameCoordinates } from '@tabletop/common'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { oracleVariant } from './prototype-oracle/oracleVariant.svelte.js'
+    const gameSession = getGameSession()
+    const underOracle = (coords: { q: number; r: number }) =>
+        oracleVariant.value !== 'A' &&
+        gameSession.gameState.board.oracles.some((oracle) => sameCoordinates(oracle.coords, coords))
 
     const LAND_TINTS = ['#d6b564', '#d1af5d', '#d7b96c', '#cbac5a', '#d3b360']
 
@@ -72,7 +80,7 @@
                 stroke="rgba(255, 250, 235, 0.55)"
                 stroke-width="1.2"
             ></polygon>
-            {#if space.type === SpaceType.Village}
+            {#if space.type === SpaceType.Village && !underOracle(space.coords)}
                 <Village frontier={space.frontier} />
             {/if}
         </g>

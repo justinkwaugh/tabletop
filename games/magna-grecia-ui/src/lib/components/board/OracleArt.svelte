@@ -9,6 +9,9 @@
 
 <script lang="ts">
     import { localHexPoints } from '$lib/utils/boardGeometry.js'
+    // PROTOTYPE, throwaway: oracle style variants.
+    import { oracleVariant } from './prototype-oracle/oracleVariant.svelte.js'
+    import OracleVariantArt from './prototype-oracle/OracleVariantArt.svelte'
 
     let { angle = -90, attentionColor }: { angle?: number; attentionColor?: string } = $props()
 
@@ -21,84 +24,102 @@
     const accent = $derived(attentionColor ?? WHITE)
 </script>
 
-<g>
-    <polygon
-        points={plinthShape}
-        fill="#ecdcae"
-        stroke="#b8954a"
-        stroke-width="1.6"
-        stroke-linejoin="round"
-    ></polygon>
-    <polygon
-        points={trimShape}
-        fill="none"
-        stroke="#cdb27a"
-        stroke-width="1.2"
-        stroke-dasharray="4 3"
-        stroke-linejoin="round"
-    ></polygon>
-    <g data-part="turn" transform="rotate({rotation})">
-        <!-- Shifted so the figure's centroid, not its bounding box, sits on the tile centre. -->
-        <g
-            transform="translate(-0.05 -2.1)"
-            stroke={OUTLINE}
+{#if oracleVariant.value !== 'A'}
+    <OracleVariantArt variant={oracleVariant.value} {angle} {attentionColor} />
+{:else}
+    <g>
+        <polygon
+            points={plinthShape}
+            fill="#ecdcae"
+            stroke="#b8954a"
+            stroke-width="1.6"
             stroke-linejoin="round"
-            filter="url(#mg-tile-shadow)"
-        >
-            <rect
-                x="-19"
-                y="21"
-                width="38"
-                height="5"
-                rx="0.6"
-                data-part="accent"
-                fill={accent}
-                stroke-width="1.3"
-            ></rect>
-            <rect
-                x="-16"
-                y="17"
-                width="32"
-                height="4"
-                rx="0.6"
-                data-part="accent"
-                fill={accent}
-                stroke-width="1.3"
-            ></rect>
-            <rect x="-9" y="-13" width="18" height="30" fill={WHITE} stroke-width="1"></rect>
-            <rect
-                x="-3"
-                y="5"
-                width="6"
-                height="12"
-                data-part="accent"
-                fill={accent}
-                stroke-width="0.9"
-            ></rect>
-            <rect x="-11.25" y="-10.5" width="5.5" height="27.5" fill={WHITE} stroke-width="1.2"
-            ></rect>
-            <rect x="5.75" y="-10.5" width="5.5" height="27.5" fill={WHITE} stroke-width="1.2"
-            ></rect>
-            <rect x="-12.75" y="-13" width="8.5" height="2.5" rx="0.8" fill={WHITE} stroke-width="1"
-            ></rect>
-            <rect x="4.25" y="-13" width="8.5" height="2.5" rx="0.8" fill={WHITE} stroke-width="1"
-            ></rect>
-            <rect
-                x="-15"
-                y="-17.5"
-                width="30"
-                height="4.5"
-                rx="0.6"
-                data-part="accent"
-                fill={accent}
-                stroke-width="1.3"
-            ></rect>
-            <polygon
-                points="-15,-17.5 0,-28.5 15,-17.5"
-                data-part="accent"
-                fill={accent}
-                stroke-width="1.8"
-            ></polygon>
+        ></polygon>
+        <polygon
+            points={trimShape}
+            fill="none"
+            stroke="#cdb27a"
+            stroke-width="1.2"
+            stroke-dasharray="4 3"
+            stroke-linejoin="round"
+        ></polygon>
+        <g data-part="turn" transform="rotate({rotation})">
+            <!-- Shifted so the figure's centroid, not its bounding box, sits on the tile centre. -->
+            <g
+                transform="translate(-0.05 -2.1)"
+                stroke={OUTLINE}
+                stroke-linejoin="round"
+                filter="url(#mg-tile-shadow)"
+            >
+                <rect
+                    x="-19"
+                    y="21"
+                    width="38"
+                    height="5"
+                    rx="0.6"
+                    data-part="accent"
+                    fill={accent}
+                    stroke-width="1.3"
+                ></rect>
+                <rect
+                    x="-16"
+                    y="17"
+                    width="32"
+                    height="4"
+                    rx="0.6"
+                    data-part="accent"
+                    fill={accent}
+                    stroke-width="1.3"
+                ></rect>
+                <rect x="-9" y="-13" width="18" height="30" fill={WHITE} stroke-width="1"></rect>
+                <rect
+                    x="-3"
+                    y="5"
+                    width="6"
+                    height="12"
+                    data-part="accent"
+                    fill={accent}
+                    stroke-width="0.9"
+                ></rect>
+                <rect x="-11.25" y="-10.5" width="5.5" height="27.5" fill={WHITE} stroke-width="1.2"
+                ></rect>
+                <rect x="5.75" y="-10.5" width="5.5" height="27.5" fill={WHITE} stroke-width="1.2"
+                ></rect>
+                <rect
+                    x="-12.75"
+                    y="-13"
+                    width="8.5"
+                    height="2.5"
+                    rx="0.8"
+                    fill={WHITE}
+                    stroke-width="1"
+                ></rect>
+                <rect
+                    x="4.25"
+                    y="-13"
+                    width="8.5"
+                    height="2.5"
+                    rx="0.8"
+                    fill={WHITE}
+                    stroke-width="1"
+                ></rect>
+                <rect
+                    x="-15"
+                    y="-17.5"
+                    width="30"
+                    height="4.5"
+                    rx="0.6"
+                    data-part="accent"
+                    fill={accent}
+                    stroke-width="1.3"
+                ></rect>
+                <polygon
+                    points="-15,-17.5 0,-28.5 15,-17.5"
+                    data-part="accent"
+                    fill={accent}
+                    stroke-width="1.8"
+                ></polygon>
+            </g>
         </g>
     </g>
-</g>
+{/if}
