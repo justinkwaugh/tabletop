@@ -24,6 +24,8 @@ const WalkPixelsPerSecond = 240
 const WalkSpacing = 35
 const LeadInSeconds = 0.15
 const ShopEntrySeconds = 0.15
+// A large crowd walks faster, all at one speed, so no move outlasts this.
+const MaxWalkSeconds = 3
 // Undo and state-only history must settle within the shared 200ms fallback budget.
 const DirectSeconds = 0.2
 const InShopScale = 0.3
@@ -97,17 +99,22 @@ export class VisitorMoveAnimator {
 
         // Crowd spots sit at different distances from the walkway, so departures are
         // offset for the pawns to reach its first cell exactly one spacing apart.
-        const firstLegs = plans.map((plan) => this.walkSeconds(plan.points[0], plan.points[1]))
+        const firstLegs = plans.map((plan) => distance(plan.points[0], plan.points[1]))
         const longestFirstLeg = Math.max(...firstLegs)
+        const lineLengths = plans.map(
+            (plan, order) =>
+                longestFirstLeg - firstLegs[order] + order * WalkSpacing + this.pathLength(plan)
+        )
+        const speed = Math.max(
+            WalkPixelsPerSecond,
+            Math.max(...lineLengths) / (MaxWalkSeconds - LeadInSeconds - ShopEntrySeconds)
+        )
         let previousStart = 0
         plans.forEach((plan, order) => {
             const element = this.walkerElement(plan.walker)
             const start = Math.max(
                 previousStart,
-                LeadInSeconds +
-                    longestFirstLeg -
-                    firstLegs[order] +
-                    (order * WalkSpacing) / WalkPixelsPerSecond
+                LeadInSeconds + (longestFirstLeg - firstLegs[order] + order * WalkSpacing) / speed
             )
             previousStart = start
 
@@ -121,7 +128,7 @@ export class VisitorMoveAnimator {
 
             let at = start
             for (let leg = 1; leg < plan.points.length; leg++) {
-                const duration = this.walkSeconds(plan.points[leg - 1], plan.points[leg])
+                const duration = distance(plan.points[leg - 1], plan.points[leg]) / speed
                 const { x, y } = plan.points[leg]
                 timeline.to(element, { x, y, duration, ease: 'none' }, at)
                 at += duration
@@ -321,8 +328,10 @@ export class VisitorMoveAnimator {
         })
     }
 
-    private walkSeconds(from: Point, to: Point): number {
-        return distance(from, to) / WalkPixelsPerSecond
+    private pathLength(plan: WalkPlan): number {
+        return plan.points
+            .slice(1)
+            .reduce((total, point, leg) => total + distance(plan.points[leg], point), 0)
     }
 
     private showFountain(fountainId: FountainId, visitors: MarketColor[]) {
