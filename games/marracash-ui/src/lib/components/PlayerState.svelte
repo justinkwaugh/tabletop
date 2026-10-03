@@ -11,6 +11,7 @@
     import AntiqueCard from '$lib/components/AntiqueCard.svelte'
     import MarketSwatch from '$lib/components/MarketSwatch.svelte'
     import { antiqueProgress } from '$lib/utils/antiqueProgress.js'
+    import { antiqueColorSummary } from '$lib/utils/antiqueItems.js'
 
     let { player, playerState }: { player: Player; playerState: HydratedMarracashPlayerState } =
         $props()
@@ -23,6 +24,7 @@
     let paidCards = $derived(paidAntiques(playerState.revealedAntiques, revealRank))
     let hand = $derived(antiqueProgress(playerState.antiques, customers))
     let money = $derived(gameSession.visibleMoney(player.id))
+    let showHandSummary = $state(false)
 </script>
 
 <div
@@ -61,7 +63,7 @@
                 </p>
                 <div class="flex gap-1 rounded bg-white/85 p-1">
                     {#each playerState.revealedAntiques as card, index (index)}
-                        <AntiqueCard {card} dimmed={!paidCards.includes(card)} />
+                        <AntiqueCard {card} matched dimmed={!paidCards.includes(card)} />
                     {/each}
                 </div>
             {:else if player.id === gameSession.myPlayer?.id && playerState.antiques.length > 0}
@@ -70,11 +72,19 @@
                         .length}/{AntiquesPerPlayer}
                     matched
                 </p>
-                <div class="flex gap-1 rounded bg-white/85 p-1">
+                <button
+                    type="button"
+                    class="flex cursor-pointer gap-1 rounded bg-white/85 p-1"
+                    aria-expanded={showHandSummary}
+                    onclick={() => (showHandSummary = !showHandSummary)}
+                >
                     {#each hand as entry, index (index)}
-                        <AntiqueCard card={entry.card} dimmed={!entry.covered} />
+                        <AntiqueCard card={entry.card} matched={entry.covered} />
                     {/each}
-                </div>
+                </button>
+                {#if showHandSummary}
+                    <p class="mt-0.5">{antiqueColorSummary(playerState.antiques)}</p>
+                {/if}
             {:else}
                 <p>{AntiquesPerPlayer} hidden antique cards</p>
             {/if}
