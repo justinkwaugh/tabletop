@@ -52,7 +52,47 @@ const BaseSession = createEighteenXXSessionClass(
     EighteenSeventeenPresentation
 )
 
+/** The stock-round panels 1817 adds beside Buy and Sell. */
+export type StockPanel = 'company' | 'short'
+
 export class EighteenSeventeenSession extends BaseSession {
+    private chosenStockPanel = $state<StockPanel>()
+    constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
+        super(options)
+        this.localSelections.register(
+            {
+                hasManual: () => !!this.chosenStockPanel,
+                undo: () => {
+                    if (!this.chosenStockPanel) return false
+                    this.chosenStockPanel = undefined
+                    return true
+                },
+                clear: () => {
+                    this.chosenStockPanel = undefined
+                }
+            },
+            'first'
+        )
+    }
+    override get additionalStockMenuCount() {
+        return (this.corporateActions.length ? 1 : 0) + (this.shorts.length ? 1 : 0)
+    }
+    /** The open 1817 stock panel; while acting for a company, only its panel remains. */
+    stockPanel = $derived.by((): StockPanel | undefined => {
+        if (this.stock.openMenu) return undefined
+        if (this.gameState.stockRound.turn.corporateAction && this.corporateActions.length)
+            return 'company'
+        if (this.chosenStockPanel === 'company' && this.corporateActions.length) return 'company'
+        if (this.chosenStockPanel === 'short' && this.shorts.length) return 'short'
+        return undefined
+    })
+    chooseStockPanel(panel: StockPanel) {
+        this.stock.chooseMenu(undefined)
+        this.chosenStockPanel = panel
+    }
+    protected override onStockSelectionCancelled() {
+        this.chosenStockPanel = undefined
+    }
     corporateActions = $derived.by(() => {
         const playerId = this.gameState.activePlayerIds[0]
         return playerId &&

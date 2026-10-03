@@ -1887,6 +1887,17 @@ acquisition rounds remain 1817's own.
 - **Playground.** "Short positions" gives Casey a short of Boston & Albany and the market a
   short of its own.
 
+### Implementation notes for 10b
+
+- **Stock panels.** 1817's session keeps the chosen panel ("Act for company" or "Short")
+  as a local selection that Back clears, offers each as an extra stock action while it has
+  something to show, and keeps the corporate panel open while the player acts for a
+  company. Both panels are cards in the share cards' style (`CompanyActionCard`).
+- **Opening.** The family's `tiers` hook now returns empty slots as `null`; the shared lot
+  table draws tiers as a pyramid with the nominable tier highlighted, and shows the start
+  of each private's power below its name (the full text with the chosen lot, and in the
+  private's card). The seed money left is a game fact (10a).
+
 ### Limits after slice 10
 
 - Programmed actions (automatic passes in the merger and stock rounds) stay out of scope,

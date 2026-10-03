@@ -1,55 +1,52 @@
 <script lang="ts">
-    import { getCompany } from '@tabletop/18xx'
+    import { getCompany, openShorts } from '@tabletop/18xx'
+    import CompanyActionCard from './CompanyActionCard.svelte'
+    import StockPanelHeading from './StockPanelHeading.svelte'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session }: { session: EighteenSeventeenSession } = $props()
     const money = $derived(session.presentation.money)
     const busy = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory)
 </script>
 
-{#if session.shorts.length}
-    <section aria-label="Short selling">
-        <h2>Or short a company</h2>
-        <div class="choices">
-            {#each session.shorts as { companyId, price } (companyId)}
-                <button disabled={busy} onclick={() => session.shortShare(companyId)}
-                    >Short {getCompany(session.gameState, companyId).name} ({money(price)})</button
-                >
-            {/each}
-        </div>
-    </section>
-{/if}
+<section aria-label="Short selling">
+    <StockPanelHeading text="Short a company" />
+    <div class="cards">
+        {#each session.shorts as { companyId, price } (companyId)}
+            {@const company = getCompany(session.gameState, companyId)}
+            <CompanyActionCard
+                {session}
+                {companyId}
+                value={money(price)}
+                facts={[
+                    { label: 'Size', value: String(company.shareCount) },
+                    {
+                        label: 'Shorts',
+                        value: String(openShorts(session.gameState, companyId).length)
+                    }
+                ]}
+                actions={[
+                    {
+                        label: 'Short',
+                        detail: `+${money(price)}`,
+                        ariaLabel: `Short ${company.name} (${money(price)})`,
+                        disabled: busy,
+                        onclick: () => session.shortShare(companyId)
+                    }
+                ]}
+            />
+        {/each}
+    </div>
+</section>
 
 <style>
     section {
+        container-type: inline-size;
         padding: 6px 0;
-        font-size: 12px;
-        color: var(--rail-text, #514536);
-        text-align: center;
     }
-    h2 {
-        margin: 0 0 4px;
-        font-size: 13px;
-    }
-    .choices {
+    .cards {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         gap: 8px;
-    }
-    button {
-        padding: 5px 10px;
-        font: inherit;
-        color: inherit;
-        cursor: pointer;
-        background: var(--rail-surface, #fffdf8);
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 7px;
-    }
-    button:hover:not(:disabled) {
-        background: var(--rail-surface-raised, #efe7db);
-    }
-    button:disabled {
-        opacity: 0.45;
-        cursor: default;
     }
 </style>

@@ -20,15 +20,13 @@
         return privateLotDetail(session, lot)
     }
     const lots = $derived(model.auction.remainingLotIds.map(lotDetail))
+    const nominable = $derived(model.nominationLotIds)
     const tiers = $derived(
-        model.tiers
-            ? model.tiers
-                  .map((lotIds, index) => ({
-                      label: `Tier ${index + 1}`,
-                      lots: lotIds.map(lotDetail)
-                  }))
-                  .filter((tier) => tier.lots.length)
-            : [{ label: undefined, lots }]
+        model.tiers?.map((slots, index) => ({
+            label: `Tier ${index + 1}`,
+            open: slots.some((lotId) => !!lotId && nominable.includes(lotId)),
+            slots: slots.map((lotId) => (lotId ? lotDetail(lotId) : undefined))
+        }))
     )
     const selected = $derived(lots.find((lot) => lot.id === auction.selection?.lotId))
     const playerId = $derived(auction.playerId)
@@ -36,19 +34,44 @@
 
 <section class="centered-panel" aria-label="Private auction">
     <div class="layout">
-        <table class="auction-lot-table">
-            <thead
-                ><tr
-                    ><th><span class="sr-only">Action</span></th><th>Private</th><th class="amount"
-                        >Value</th
-                    ><th class="amount">Opening bid</th></tr
-                ></thead
-            >
-            {#each tiers as tier (tier.label)}<tbody>
-                    {#if tier.label}<tr class="tier"
-                            ><th colspan="4" scope="rowgroup">{tier.label}</th></tr
-                        >{/if}
-                    {#each tier.lots as lot (lot.id)}
+        {#if tiers}
+            <div class="pyramid" role="group" aria-label="Lot tiers">
+                {#each tiers as tier (tier.label)}
+                    <div class="tier" class:open={tier.open} role="group" aria-label={tier.label}>
+                        {#each tier.slots as lot, index (lot?.id ?? `empty:${index}`)}
+                            {#if lot}
+                                <button
+                                    class="slot"
+                                    class:selected={selected?.id === lot.id}
+                                    aria-label={`Auction ${lot.name}`}
+                                    aria-pressed={selected?.id === lot.id}
+                                    disabled={!auction.canNominate(
+                                        lot.id,
+                                        model.minimumBid(lot.id)
+                                    )}
+                                    onclick={() => auction.select(lot.id)}
+                                >
+                                    <span class="slot-name">{lot.name}</span>
+                                    <span class="slot-value">{money(lot.price)}</span>
+                                </button>
+                            {:else}
+                                <span class="slot empty" aria-label="Empty slot"></span>
+                            {/if}
+                        {/each}
+                    </div>
+                {/each}
+            </div>
+        {:else}
+            <table class="auction-lot-table">
+                <thead
+                    ><tr
+                        ><th><span class="sr-only">Action</span></th><th>Private</th><th
+                            class="amount">Value</th
+                        ><th class="amount">Opening bid</th></tr
+                    ></thead
+                >
+                <tbody>
+                    {#each lots as lot (lot.id)}
                         <tr data-private-description-row class:selected={selected?.id === lot.id}>
                             <td class="action">
                                 <button
@@ -69,24 +92,30 @@
                                             >{session.presentation.companyNames?.[lot.id]
                                                 ?.initials ?? lot.id}</span
                                         >{/if}
-                                    <PrivateDescription
-                                        {money}
-                                        phaseColors={session.presentation.phaseColors}
-                                        token={lot.token}
-                                        imageUrl={session.publishedCardImage(lot.id)}
-                                        name={lot.name}
-                                        description={lot.company.description}
-                                        value={lot.price}
-                                        income={lot.company.privateRevenue}
-                                    />
+                                    <span class="lot-name">
+                                        <PrivateDescription
+                                            {money}
+                                            phaseColors={session.presentation.phaseColors}
+                                            token={lot.token}
+                                            imageUrl={session.publishedCardImage(lot.id)}
+                                            name={lot.name}
+                                            description={lot.company.description}
+                                            value={lot.price}
+                                            income={lot.company.privateRevenue}
+                                        />
+                                        {#if lot.company.description}<span class="power"
+                                                >{lot.company.description}</span
+                                            >{/if}
+                                    </span>
                                 </div></th
                             >
                             <td class="amount value">{money(lot.price)}</td>
                             <td class="amount">{money(model.minimumBid(lot.id))}</td>
                         </tr>
                     {/each}
-                </tbody>{/each}
-        </table>
+                </tbody>
+            </table>
+        {/if}
         {#if playerId}
             <div class="turn">
                 <div class="summary">
@@ -98,6 +127,9 @@
                 {#if selected && auction.selection}
                     <div class="summary">
                         <span>Auction <strong>{selected.name}</strong></span>
+                        {#if tiers && selected.company.description}<span class="power full"
+                                >{selected.company.description}</span
+                            >{/if}
                     </div>
                     <AuctionBidControl
                         {money}
@@ -145,12 +177,83 @@
         flex: 0 1 560px;
         margin-inline: 0;
     }
-    tr.tier th {
-        padding-top: 8px;
+    .lot-name {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+    .power {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+        max-width: 26rem;
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 400;
+        line-height: 1.35;
         text-align: left;
-        color: var(--rail-text-muted, #8a7660);
+        color: var(--rail-muted, #887969);
+    }
+    .power.full {
+        display: block;
+    }
+    .pyramid {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        flex: 0 1 auto;
+    }
+    .tier {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        padding: 4px 6px;
+        border-radius: 8px;
+    }
+    .tier.open {
+        background: var(--rail-surface-raised, #efe7db);
+        box-shadow: inset 0 0 0 1px var(--rail-border, #c7b8a6);
+    }
+    .slot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        width: 116px;
+        min-height: 44px;
+        padding: 4px 6px;
+        border: 1px solid var(--rail-border, #c7b8a6);
+        border-radius: 6px;
+        background: var(--rail-surface, #fffdf8);
+        color: var(--rail-text, #514536);
+        font: inherit;
+        cursor: pointer;
+    }
+    .slot:disabled {
+        cursor: default;
+        opacity: 0.55;
+    }
+    .slot.selected {
+        background: var(--rail-surface-selected, #e6dccd);
+    }
+    .slot.empty {
+        border-style: dashed;
+        background: transparent;
+    }
+    .slot-name {
+        font-size: 12px;
+        line-height: 1.2;
+        text-align: center;
+    }
+    .slot-value {
+        font-size: 11px;
+        color: var(--rail-muted, #887969);
+        font-variant-numeric: tabular-nums;
     }
     tr.selected {
         background: var(--rail-surface-selected, #e6dccd);

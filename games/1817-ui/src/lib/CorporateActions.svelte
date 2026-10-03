@@ -1,71 +1,76 @@
 <script lang="ts">
-    import { cashOwnedBy, getCompany } from '@tabletop/18xx'
+    import { companyMarketSpace, finiteCashOwnedBy, getCompany } from '@tabletop/18xx'
+    import CompanyActionCard from './CompanyActionCard.svelte'
+    import StockPanelHeading from './StockPanelHeading.svelte'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session }: { session: EighteenSeventeenSession } = $props()
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
     const busy = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory)
+    const acting = $derived(gameState.stockRound.turn.corporateAction)
 </script>
 
-{#if session.corporateActions.length}
-    <section aria-label="Corporate actions">
-        <h2>
-            {gameState.stockRound.turn.corporateAction ? 'Acting for' : 'Or act for a company'}
-        </h2>
+<section aria-label="Corporate actions">
+    <StockPanelHeading
+        text={acting
+            ? `Acting for ${getCompany(gameState, acting.companyId).name}`
+            : 'Act for a company'}
+    />
+    <div class="cards">
         {#each session.corporateActions as { companyId, canBorrow, buyBack } (companyId)}
-            <div class="company">
-                <strong>{getCompany(gameState, companyId).name}</strong>
-                <span
-                    >Treasury {money(
-                        Number(cashOwnedBy(gameState, { kind: 'company', companyId }))
-                    )} · Loans {session.loans.loans(companyId)}/{session.loans.capacity(
-                        companyId
-                    )}</span
-                >
-                {#if canBorrow}<button disabled={busy} onclick={() => session.loans.take(companyId)}
-                        >Take a loan</button
-                    >{/if}
-                {#if buyBack}<button disabled={busy} onclick={() => session.buyBackShare(companyId)}
-                        >Buy back a share ({money(buyBack.price)})</button
-                    >{/if}
-            </div>
+            {@const name = getCompany(gameState, companyId).name}
+            <CompanyActionCard
+                {session}
+                {companyId}
+                value={money(companyMarketSpace(gameState.stockMarket, companyId).price)}
+                facts={[
+                    {
+                        label: 'Treasury',
+                        value: money(finiteCashOwnedBy(gameState, { kind: 'company', companyId }))
+                    },
+                    {
+                        label: 'Loans',
+                        value: `${session.loans.loans(companyId)}/${session.loans.capacity(companyId)}`
+                    }
+                ]}
+                actions={[
+                    ...(canBorrow
+                        ? [
+                              {
+                                  label: 'Take a loan',
+                                  detail: `+${money(100)}`,
+                                  ariaLabel: `Take a loan for ${name}`,
+                                  disabled: busy,
+                                  onclick: () => session.loans.take(companyId)
+                              }
+                          ]
+                        : []),
+                    ...(buyBack
+                        ? [
+                              {
+                                  label: 'Buy back a share',
+                                  detail: money(buyBack.price),
+                                  ariaLabel: `Buy back a ${name} share for ${money(buyBack.price)}`,
+                                  disabled: busy,
+                                  onclick: () => session.buyBackShare(companyId)
+                              }
+                          ]
+                        : [])
+                ]}
+            />
         {/each}
-    </section>
-{/if}
+    </div>
+</section>
 
 <style>
     section {
+        container-type: inline-size;
         padding: 6px 0;
-        font-size: 12px;
-        color: var(--rail-text, #514536);
-        text-align: center;
     }
-    h2 {
-        margin: 0 0 4px;
-        font-size: 13px;
-    }
-    .company {
+    .cards {
         display: flex;
         flex-wrap: wrap;
-        align-items: center;
         justify-content: center;
         gap: 8px;
-        margin-top: 4px;
-    }
-    button {
-        padding: 5px 10px;
-        font: inherit;
-        color: inherit;
-        cursor: pointer;
-        background: var(--rail-surface, #fffdf8);
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 7px;
-    }
-    button:hover:not(:disabled) {
-        background: var(--rail-surface-raised, #efe7db);
-    }
-    button:disabled {
-        opacity: 0.45;
-        cursor: default;
     }
 </style>

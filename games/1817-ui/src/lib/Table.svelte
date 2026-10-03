@@ -188,7 +188,31 @@
     }
 </script>
 
-<GameTable {session} {privateOperationDescription} {historyDescription}>
+<GameTable
+    {session}
+    {privateOperationDescription}
+    {historyDescription}
+    additionalStockActions={[
+        ...(session.corporateActions.length
+            ? [
+                  {
+                      label: 'Act for company',
+                      selected: session.stockPanel === 'company',
+                      onSelect: () => session.chooseStockPanel('company')
+                  }
+              ]
+            : []),
+        ...(session.shorts.length
+            ? [
+                  {
+                      label: 'Short',
+                      selected: session.stockPanel === 'short',
+                      onSelect: () => session.chooseStockPanel('short')
+                  }
+              ]
+            : [])
+    ]}
+>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.selectionAuction.active}
             {#if session.selectionAuction.model?.auction.bidding}
@@ -196,24 +220,23 @@
             {:else}
                 <SelectionAuctionLots {session} />
             {/if}
+        {:else if session.stockPanel === 'company'}
+            <CorporateActions {session} />
+        {:else if session.stockPanel === 'short'}
+            <ShortSelling {session} />
+        {:else if session.companyExcess}
+            <CompanyExcess {session} excess={session.companyExcess} />
+        {:else if session.mergerCompanyId}
+            <MergerRound {session} companyId={session.mergerCompanyId} />
+        {:else if session.acquisitionCompanyId}
+            <AcquisitionRound {session} companyId={session.acquisitionCompanyId} />
         {:else}
-            {#if session.gameState.machineState === 'StockRound'}<CorporateActions
-                    {session}
-                /><ShortSelling {session} />{/if}
-            {#if session.companyExcess}
-                <CompanyExcess {session} excess={session.companyExcess} />
-            {:else if session.mergerCompanyId}
-                <MergerRound {session} companyId={session.mergerCompanyId} />
-            {:else if session.acquisitionCompanyId}
-                <AcquisitionRound {session} companyId={session.acquisitionCompanyId} />
-            {:else}
-                <OperatingActions
-                    {privateOperationDescription}
-                    onFocusRoute={focusRoute}
-                    {session}
-                    {createRouteWorker}
-                />
-            {/if}
+            <OperatingActions
+                {privateOperationDescription}
+                onFocusRoute={focusRoute}
+                {session}
+                {createRouteWorker}
+            />
         {/if}
     {/snippet}
 </GameTable>

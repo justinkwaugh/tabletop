@@ -603,9 +603,12 @@ next round would fix when it differs ("5% → 10%"), and the loans the bank has 
 records borrowing and repayments with their price moves, and interest as a company
 row that is routine unless it needed loans or defaulted.
 
-A title's own stock-round corporate actions (1817's loans and buy-backs) appear
-above the stock actions while the player may still act for a company they preside,
-each as an immediately committed button.
+A title's own stock-round corporate actions (1817's loans and buy-backs) are a stock
+action of their own ("Act for company") beside Buy and Sell while the player may still act
+for a company they preside. It opens a card for each such company, in the share cards'
+style: its token and price, its treasury and loans, and Take a loan and Buy back a share as
+immediately committed buttons. Once the player has acted for a company, only its card
+remains open, headed "Acting for" the company. Back clears the choice of panel.
 
 ### Cash crisis and bankruptcy
 
@@ -634,8 +637,9 @@ shows a short as a signed italic count in the negative colour, read as "short", 
 shorts, such as the market's, count against its shares. Net worth subtracts each
 short at the share price. History notes a purchase that closed a short and lists what
 short holders owe on a payout; 1817 adds rows for opening a short and for the market
-closing its shorts. 1817's stock round lists the companies the player may short, each as
-an immediately committed button with its price.
+closing its shorts. 1817's stock round adds a Short stock action; it opens a card for each
+company the player may short, with its price, size and open shorts, and Short as an
+immediately committed button.
 
 Compact company cards narrow their summary columns so a fourth value, such as loans,
 fits without clipping.
@@ -1350,7 +1354,7 @@ Company auctions (a title's `stockRules.companyAuction`, such as 1817) replace S
 
 While a company auction stands, the stock action panel shows only the auction: the company, its home, opener, high bidder, high bid with its starting price, and the current bidder's limit. The bid amount is derived in the same way and becomes manual when changed; Bid and Pass submit directly. The winner then sees the formation panel: one button per allowed size and one per private that could be contributed toward the price. A size is pre-chosen only when the phase allows exactly one; otherwise none is pressed and Form stays disabled with "Choose a size". The formation is applied without the panel when there is one size and nothing to contribute. Size and contribution choices are manual and unwind before game history.
 
-A selection-auction opening shows the remaining lots with value and opening bid; a title that deals its lots into tiers (1817's Volatility pyramid) lists them under Tier headings, first tier first, omitting tiers with no lots left, and only the lots the title opens can be nominated. Auction stages a nomination with the bid control at the lot's opening bid; Bid submits NominateLot and Back clears the staged lot. Pass appears only while the title lets a player pass instead of nominating. An award's history entry names the lots it removed. While a lot is being auctioned the bidding card shows the nominator, high bidder and high bid; Bid submits BidForLot at the staged or minimum amount and Pass submits PassSelectionAuction.
+A selection-auction opening shows the remaining lots with value, opening bid and, below each name, the start of its power (the private's card shows it in full). A title that deals its lots into tiers (1817's Volatility pyramid) shows them as a pyramid, first tier on top: each lot a compact button with its name and value, each sold or removed lot a dashed empty slot, and the tier that may be nominated from highlighted; only its lots can be chosen, and choosing one shows its full power beside the bid control. Auction stages a nomination with the bid control at the lot's opening bid; Bid submits NominateLot and Back clears the staged lot. Pass appears only while the title lets a player pass instead of nominating. An award's history entry names the lots it removed. While a lot is being auctioned the bidding card shows the nominator, high bidder and high bid; Bid submits BidForLot at the staged or minimum amount and Pass submits PassSelectionAuction.
 
 Station tokens without artwork draw their label in the colour that contrasts with the token's fill, and labels of four or more characters use a smaller size to stay inside the token.
 

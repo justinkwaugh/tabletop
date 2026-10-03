@@ -35,8 +35,11 @@ export interface SelectionAuctionRules {
     lots(state: FinancialState): readonly AuctionLot[]
     /** The remaining lots a player may nominate now. */
     nominationLotIds(state: SelectionAuctionState): readonly string[]
-    /** The remaining lots in the tiers the title deals them into, the first tier first. */
-    tiers?(state: SelectionAuctionState): readonly (readonly string[])[] | undefined
+    /**
+     * The tiers the title deals its lots into, the first tier first, with `null` where a lot
+     * was sold or removed.
+     */
+    tiers?(state: SelectionAuctionState): readonly (readonly (string | null)[])[] | undefined
     /** Whether a player may pass instead of nominating a lot. */
     passingWhileNominating(state: SelectionAuctionState): boolean
     openingBid(state: SelectionAuctionState, lotId: string): number
@@ -77,8 +80,11 @@ export class SelectionAuctionModel {
     get lots(): readonly AuctionLot[] {
         return this.rules.lots(this.state)
     }
-    get tiers(): readonly (readonly string[])[] | undefined {
+    get tiers(): readonly (readonly (string | null)[])[] | undefined {
         return this.rules.tiers?.(this.state)
+    }
+    get nominationLotIds(): readonly string[] {
+        return this.rules.nominationLotIds(this.state)
     }
     get playerId(): string | undefined {
         const bidding = this.auction.bidding

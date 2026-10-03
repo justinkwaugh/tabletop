@@ -79,7 +79,7 @@ export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
         // Only the lowest tier with lots left is open.
         return pyramid.map(liveLots).findLast((lotIds) => lotIds.length) ?? []
     },
-    tiers: (state) => pyramidOf(state)?.map(liveLots),
+    tiers: (state) => pyramidOf(state),
     passingWhileNominating: (state) => !eighteenSeventeenOptions(state).volatility,
     openingBid: (state, lotId) =>
         eighteenSeventeenOptions(state).volatility
