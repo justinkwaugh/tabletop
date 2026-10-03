@@ -12,6 +12,7 @@
         cashOwnedBy,
         nextOperatingCompany,
         certificatesInPool,
+        signedShares,
         controllingOwner,
         getCompany,
         sameOwner,
@@ -187,13 +188,11 @@
             portfolioCompanyIds.map((id) => [`company:${id}`, companyNames[id]?.initials ?? id])
         )
     )
+    // A pool's shorts, such as the market's, count against its shares.
     function poolShares(poolId: string, companyId: string): number {
         return certificatesInPool(session.gameState, poolId).reduce(
             (sum, certificate) =>
-                sum +
-                (certificate.kind === 'share' && certificate.companyId === companyId
-                    ? certificate.shares
-                    : 0),
+                sum + (certificate.companyId === companyId ? signedShares(certificate) : 0),
             0
         )
     }
@@ -319,7 +318,13 @@
         ...ownerStatisticColumns,
         turnOrder: { value: (values) => values.turnOrder, directions: ['ascending'] }
     }
-    type CompanyStatistic = 'value' | 'cash' | 'lastRun'
+    type CompanyStatistic = 'value' | 'cash' | 'lastRun' | `column:${string}`
+    const titleColumns = $derived(session.presentation.companyColumns ?? [])
+    // The company statistic columns after the owners: value when shown, cash, trains, tokens,
+    // last run, and the title's own.
+    const companyStatisticCount = $derived(
+        (pricePresentation.showInSpreadsheet ? 5 : 4) + titleColumns.length
+    )
     let playerSort = $state<SpreadsheetSort<PlayerSortKey>>()
     let companySort = $state<SpreadsheetSort<CompanyStatistic>>()
     const seatedPlayers = $derived(
@@ -432,7 +437,16 @@
                     tieOrder: (a, b) => operatingOrder(a.company.id, b.company.id)
                 },
                 cash: { value: (row) => (typeof row.cash === 'number' ? row.cash : undefined) },
-                lastRun: { value: (row) => row.lastRun?.metadata?.revenue }
+                lastRun: { value: (row) => row.lastRun?.metadata?.revenue },
+                ...Object.fromEntries(
+                    titleColumns.map((column) => [
+                        `column:${column.id}`,
+                        {
+                            value: (row: CompanyRow) =>
+                                column.value(session.gameState, row.company.id)
+                        }
+                    ])
+                )
             }
         }
     )
@@ -615,6 +629,7 @@
         class:available-pool={!matrix}
         class:pool-alt={poolAlt}
         class:empty={shares === 0}
+        class:short={shares < 0}
         class:pool-start={poolStart}
         class:tradable={!!purchase || saleChoices.length > 0}
     >
@@ -633,6 +648,10 @@
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'sell', companyId, ownerId })}
                 >{@render shareHolding(String(shares), president, numbers)}</button
+            >
+        {:else if shares < 0}
+            <span class="share-value" title={`Short ${-shares}`}
+                >{shares}<span class="sr-only"> short</span></span
             >
         {:else}
             {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers)}
@@ -738,10 +757,7 @@
                                 {#each owners as owner (owner.id)}
                                     <col class:pool-section={owner.id in poolColumnLabels} />
                                 {/each}
-                                <col
-                                    span={pricePresentation.showInSpreadsheet ? 5 : 4}
-                                    class="financial-section"
-                                />
+                                <col span={companyStatisticCount} class="financial-section" />
                             {:else}
                                 {#each companies as company (company.id)}<col />{/each}
                                 <col span={ownerStatisticKeys.length} class="financial-section" />
@@ -793,6 +809,11 @@
                                     <th scope="col">Trains</th>
                                     <th scope="col">Tokens</th>
                                     {@render companySortHeader('col', 'Last run', 'lastRun')}
+                                    {#each titleColumns as column (column.id)}{@render companySortHeader(
+                                            'col',
+                                            column.label,
+                                            `column:${column.id}`
+                                        )}{/each}
                                 {:else}
                                     {#each rows as row (row.company.id)}
                                         <th
@@ -853,6 +874,13 @@
                                         <td class="company-stat-start"
                                             >{@render lastRunCell(row.company, row.lastRun)}</td
                                         >
+                                        {#each titleColumns as column (column.id)}<td
+                                                class="company-stat-start bright-cell"
+                                                >{column.text(
+                                                    session.gameState,
+                                                    row.company.id
+                                                )}</td
+                                            >{/each}
                                     </tr>
                                 {/each}
                                 {#each ownerStatisticKeys as key, index (key)}
@@ -874,7 +902,7 @@
                                                     )}{/if}</td
                                             >
                                         {/each}
-                                        {#each { length: pricePresentation.showInSpreadsheet ? 5 : 4 } as _, column (column)}<td
+                                        {#each { length: companyStatisticCount } as _, column (column)}<td
                                                 class="void"
                                             ></td>{/each}
                                     </tr>
@@ -1003,6 +1031,28 @@
                                             class="void"
                                         ></td>{/each}
                                 </tr>
+                                {#each titleColumns as column (column.id)}
+                                    <tr class="company-stat-start financial-row">
+                                        {@render companySortHeader(
+                                            'row',
+                                            column.label,
+                                            `column:${column.id}`
+                                        )}
+                                        {#each rows as row (row.company.id)}<td
+                                                class:operating-column={row.company.id ===
+                                                    operatingCompanyId}
+                                                class="bright-cell"
+                                                >{column.text(
+                                                    session.gameState,
+                                                    row.company.id
+                                                )}</td
+                                            >{/each}
+                                        {#each ownerStatisticKeys as _, index (index)}<td
+                                                class:stat-start={index === 0}
+                                                class="void"
+                                            ></td>{/each}
+                                    </tr>
+                                {/each}
                             {/if}
                         </tbody>
                     </table>
@@ -1720,6 +1770,11 @@
     .transposed tr.company-stat-start > th,
     .transposed tr.company-stat-start > td {
         border-top: 2px solid var(--sheet-divider);
+    }
+    /* A short reads as a signed count in the negative colour. */
+    .short .share-value {
+        color: var(--rail-negative, #b33a32);
+        font-style: italic;
     }
     .empty {
         color: var(--rail-muted, #a79888);

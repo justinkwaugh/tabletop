@@ -58,6 +58,9 @@ import {
     isSellSharesToPay,
     isGoBankrupt,
     stockMarketSpace,
+    isDiscardTrain,
+    isRustTrains,
+    type CashPayment,
     type Owner,
     type PresidencyChange,
     type EighteenXXState
@@ -77,6 +80,35 @@ export type HistoryDescription = {
     important?: boolean
 }
 
+/** What the bank paid as trains departed, as an action records it. */
+function departurePayments(action: GameAction): readonly CashPayment[] {
+    if (isAdvancePhase(action)) return action.metadata?.event.departurePayments ?? []
+    if (
+        isBuyTrain(action) ||
+        isBuyPrivateTrain(action) ||
+        isExportTrains(action) ||
+        isRustTrains(action) ||
+        isDiscardTrain(action) ||
+        isOfferPurchase(action) ||
+        isRespondToPurchaseOffer(action)
+    )
+        return action.metadata?.departurePayments ?? []
+    return []
+}
+
+/** Names who the bank paid as trains departed, such as a title's private paying out. */
+export function departurePaymentsDetail(
+    payments: readonly CashPayment[],
+    recipientName: (owner: Owner) => string,
+    money: MoneyFormat
+): string | undefined {
+    return (
+        payments
+            .map((payment) => `${recipientName(payment.to)} received ${money(payment.amount)}`)
+            .join(' · ') || undefined
+    )
+}
+
 export function historyDescription(
     action: GameAction,
     state: EighteenXXState,
@@ -84,6 +116,37 @@ export function historyDescription(
     playerName: (id: string) => string = (id) => id,
     companyChanges?: HistoryCompanyChanges,
     money: MoneyFormat = moneyFormat('$')
+): HistoryDescription {
+    const description = describeShared(
+        action,
+        state,
+        companyName,
+        playerName,
+        companyChanges,
+        money
+    )
+    const paid = departurePaymentsDetail(
+        departurePayments(action),
+        (owner) =>
+            owner.kind === 'company'
+                ? companyName(owner.companyId)
+                : owner.kind === 'player'
+                  ? playerName(owner.playerId)
+                  : state.bank.name,
+        money
+    )
+    return paid
+        ? { ...description, detail: [description.detail, paid].filter(Boolean).join(' · ') }
+        : description
+}
+
+function describeShared(
+    action: GameAction,
+    state: EighteenXXState,
+    companyName: (id: string) => string,
+    playerName: (id: string) => string,
+    companyChanges: HistoryCompanyChanges | undefined,
+    money: MoneyFormat
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects

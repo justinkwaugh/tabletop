@@ -38,7 +38,8 @@
         trainColors: Readonly<Record<string, string>>
         describeAction?: (
             action: GameAction,
-            companyName: (id: string) => string
+            companyName: (id: string) => string,
+            shared: () => HistoryDescription
         ) => HistoryDescription | undefined
     } = $props()
     const money = $derived(session.presentation.money)
@@ -107,8 +108,7 @@
                 : { text: `bid ${money(action.amount)} for ${lot.name}` }
         }
         if (isPassAuction(action)) return { text: 'passed' }
-        return (
-            describeAction?.(action, companyName) ??
+        const shared = () =>
             historyDescription(
                 action,
                 gameState,
@@ -117,7 +117,7 @@
                 undefined,
                 session.presentation.money
             )
-        )
+        return describeAction?.(action, companyName, shared) ?? shared()
     }
     const latest = $derived.by(() => {
         const paired = purchaseWithFlotation(actions)

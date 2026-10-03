@@ -597,7 +597,9 @@ step's finish then ends only the train step.
 The Loans step's panel names the company, its loans and treasury, and the interest
 paid (with any loans borrowed to pay it) or that it defaulted. Repay a loan, Take a
 loan and Finish turn commit at once; while both are offered the panel notes that
-borrowing ends repayments. Company details show loans against the limit. History
+borrowing ends repayments. Company details show loans against the limit. The game
+information shows the interest rate of the current or next operating round, the rate the
+next round would fix when it differs ("5% → 10%"), and the loans the bank has left. History
 records borrowing and repayments with their price moves, and interest as a company
 row that is routine unless it needed loans or defaulted.
 
@@ -618,13 +620,18 @@ bank and the bankruptcy with the companies it liquidated and the debt forgiven.
 Bankrupt players leave the turn order. The players panel lists them after the others,
 marked Bankrupt, and the ownership spreadsheet's turn-order sort places them last.
 History also shows system events that change no company's cash when they matter:
-exports, interest, and any system action the title describes.
+exports, interest, and any system action the title describes. An action whose train
+departures made the bank pay someone (1817's Inventor and Scrapper) names each recipient
+and amount in its detail. A title's own description receives the shared one, so it can add
+to it rather than replace it.
 
 ### Short positions
 
 Holdings are net: a short counts as a negative share. Player cards show a negative share
 count and percentage, company ownership tables list the short holder with a negative
-count, and a portfolio entry for a short reads "Short n shares". Net worth subtracts each
+count, and a portfolio entry for a short reads "Short n shares". The ownership spreadsheet
+shows a short as a signed italic count in the negative colour, read as "short", and a pool's
+shorts, such as the market's, count against its shares. Net worth subtracts each
 short at the share price. History notes a purchase that closed a short and lists what
 short holders owe on a payout; 1817 adds rows for opening a short and for the market
 closing its shorts. 1817's stock round lists the companies the player may short, each as
@@ -1002,6 +1009,14 @@ StockMarketScene renders title-owned company tokens in canonical market stacks. 
 
 Each mounted scene subscribes through MarketAnimationSource. Its caller supplies a market projection; the adapter registers one GameSession listener and forwards the original action and AnimationContext. The scene does not depend on a finance-example state class. Market tokens retain company-keyed DOM elements across cell changes. The shared AnimationContext owns committed movement, stack repositioning, and marker entry/exit; target stack z-order is applied before motion. Transient render entries cover the union of from/to markers for one replayed action, then settle to that action's destination. New markers fade in at their destination and departing markers fade out. Action moves take 300ms; actionless Undo/history take 180ms, reduced motion takes zero. Hidden scenes skip animation; silent restoration uses canonical props. Teardown removes the listener, kills its registered element tweens, and clears refs. No game/session host bridge shape changes are introduced.
 
+### Market zones
+
+A title may name the meaning of its market colours (1817's liquidation, acquisition, par
+and safe par). Each such cell's accessible name adds the zone's name and its hover text
+gives the name and explanation. The Market tab lists the zones below the market as a legend
+with a colour swatch, name and explanation, wrapping to the pane's width; the Board view's
+market inset has no legend.
+
 ### Tile manifest
 
 Tiles follows Spreadsheet in the table tabs. Colored filter pills select one color or All; remaining tile faces render in an unframed grid with their available count, omitting exhausted faces. The filter is local browsing state and persists across tab switches and visible game-state updates. Counts follow the displayed canonical inventory in live play, history, Undo and restoration; an uncommitted tile preview does not consume stock. The manifest includes future-phase tiles and does not imply that a displayed tile is currently legal to lay. Layout and orientation come from the title's map presentation. It creates no actions and does not affect map selection.
@@ -1015,7 +1030,9 @@ centered over the visible sheet even when its contents scroll horizontally.
 
 Spreadsheet shows open share companies against players in seat order, rotated so the viewer's own seat comes first; spectators see the unrotated seat order. Companies appear in start order, followed by title-included companies, so TOP lists PEIR last; PEIR has no market value and so also sorts last by Value. Neither order follows priority deal or market movement. Direct share counts appear at each intersection and subdued zeros. For title-numbered shares, each player cell follows the count with the player's certificate numbers in ascending order in muted parentheses, such as `2 (2,5)`; a president badge sits between them. The count stays centered in its cell, and the column widens to fit the numbers. Counts follow the displayed state through actions, history and Undo. It does not aggregate a controlled company's shares into a player's holdings. During the acting player's stock turn, a Market or Treasury share cell with a legal player purchase opens a small confirmation showing the certificate's share count, company token, and exact price. A legal Union Bank purchase adds a centered "As Bank" button below Yes and No, with any contribution owed by its player owner; Yes buys for the player. A holding cell with a legal sale opens a confirmation asking to sell the company token's share or shares, using the singular when only one share can be sold. If only one share can be sold, the popover shows its proceeds and Yes/No; otherwise it lists each legal amount with its proceeds and a No button. Confirming commits one purchase or sale through the Stock Module. No, Escape, and clicking outside dismiss without an action. Ineligible cells and History View remain read-only. The pending choice is local to the popover and does not consume Back or Undo.
 
-Title-selected corporate owners follow their controlling player in the ownership matrix. In Player view, each corporate row is indented, with a down-and-right connector from the controlling player's color dot. Company view preserves that owner order as columns, with a continuous horizontal connector across the player and corporate column boundary and vertically aligned header labels. Control comes from the shared controlling-owner calculation, including corporate control chains; uncontrolled corporate owners remain after the players, without a connector. Titles without corporate portfolios, including 1889, retain their player order. TOP's Union Bank remains a separate owner with its own shares and financial values; this grouping never aggregates its holdings into the player. The order and connector follow the displayed state through control changes, history and Undo. TOP explicitly marks Union Bank's net worth as included in its controlling player's total: both orientations use lighter text, an asterisk, and a matching footnote. This treatment is title-selected rather than assumed for all corporate holdings. Treasury shows each row company's own shares; Market counts shares in the title-supplied market pool only.
+Title-selected corporate owners follow their controlling player in the ownership matrix. In Player view, each corporate row is indented, with a down-and-right connector from the controlling player's color dot. Company view preserves that owner order as columns, with a continuous horizontal connector across the player and corporate column boundary and vertically aligned header labels. Control comes from the shared controlling-owner calculation, including corporate control chains; uncontrolled corporate owners remain after the players, without a connector. Titles without corporate portfolios, including 1889, retain their player order. TOP's Union Bank remains a separate owner with its own shares and financial values; this grouping never aggregates its holdings into the player. The order and connector follow the displayed state through control changes, history and Undo. TOP explicitly marks Union Bank's net worth as included in its controlling player's total: both orientations use lighter text, an asterisk, and a matching footnote. This treatment is title-selected rather than assumed for all corporate holdings. Treasury shows each row company's own shares; Market counts shares in the title-supplied market pool only, less any shorts that pool holds.
+
+A title may add company statistics after Last run (1817's Size and Loans), as rows in Player view and columns in Company view. They sort like the shared statistics, unstarted companies showing a dash and sorting last. Company details show a title's company facts after loans (1817's size, interest owed, stations still owed and closing zone).
 
 The label column is only as wide as its content; when the sheet fills its pane, the spare width goes to the data columns. The spreadsheet uses compact row spacing and container-responsive company names: full above 800px, title-supplied short names through 800px, initials through 560px. Accessible row headers retain full company names at every width; resizing changes no ownership or selection.
 
@@ -1556,6 +1573,9 @@ available depot type uses the title's train badge and canonical remaining count
 (infinity for unlimited supply); sold-out types are omitted. Clicking anywhere on
 the strip, Depot included, opens the full phase chart, whose train roster shows live
 remaining counts. All available types are highlighted; exhausted rows are muted.
+After the depot come the loan figures of a title with loans and any facts the title supplies
+(1817's seed money during the opening, and when the game ends once that is set), in the same
+label and value style; the strip wraps on narrow screens.
 Title-specific company roles share the compact information row; TOP labels them
 Main and Short. Additional title information such as tranches follows below.
 

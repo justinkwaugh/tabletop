@@ -243,3 +243,25 @@ test('1817 companies use their private powers in their operating turn', async ({
         'marked G6 with Union Bridge'
     )
 })
+
+test('1817 shows shorts, company sizes and loans, the interest rate and market zones', async ({
+    page
+}) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('shorts')
+    await expect(page.getByRole('button', { name: 'Open phase chart' }).first()).toContainText(
+        'Interest 5%'
+    )
+    await page.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
+    const sheet = page.getByRole('table', { name: 'Company share ownership' })
+    await expect(sheet.getByRole('cell', { name: '-1 short' })).toHaveCount(2)
+    await expect(sheet.getByRole('rowheader', { name: 'Size' })).toBeVisible()
+    await expect(sheet.getByRole('rowheader', { name: 'Loans' })).toBeVisible()
+    await page.getByRole('tab', { name: 'Market', exact: true }).click()
+    const zones = page.getByRole('definition').filter({ hasText: 'acquisition round' })
+    await expect(zones).toHaveCount(2)
+    await expect(
+        page.locator('[aria-label="Market value 0, Liquidation"]').filter({ visible: true })
+    ).toHaveCount(1)
+})

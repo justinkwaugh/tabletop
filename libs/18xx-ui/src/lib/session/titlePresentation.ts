@@ -23,6 +23,24 @@ export type TitleRound = {
     ends: (action: GameAction) => boolean
 }
 
+/** A labelled game-wide fact the game information shows beside the phase. */
+export type GameFact = { label: string; value: string }
+
+/** The meaning of the market spaces of one colour, for their descriptions and the legend. */
+export type MarketZone = { color: string; name: string; description: string }
+
+/** A labelled fact about a company that its details show beside its cash and value. */
+export type CompanyFact = { label: string; value: string }
+
+/** A company statistic of the title's own, shown as a sortable spreadsheet column. */
+export type CompanyColumn = {
+    id: string
+    label: string
+    /** What the column sorts by; companies without a value sort last. */
+    value: (state: EighteenXXState, companyId: string) => number | undefined
+    text: (state: EighteenXXState, companyId: string) => string
+}
+
 export type TitlePresentation = {
     money: MoneyFormat
     trainShortLabels?: Readonly<Record<string, string>>
@@ -45,6 +63,12 @@ export type TitlePresentation = {
     privateTilePrompts?: Readonly<Record<string, string>>
     privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
     titleRounds?: readonly TitleRound[]
+    /** Facts of the title's own for the game information, such as money left to subsidise. */
+    gameFacts?: (state: EighteenXXState) => readonly GameFact[]
+    companyColumns?: readonly CompanyColumn[]
+    /** Facts of the title's own about a company, such as its size or interest due. */
+    companyFacts?: (state: EighteenXXState, companyId: string) => readonly CompanyFact[]
+    marketZones?: readonly MarketZone[]
     /**
      * Published card artwork for the published presentation, keyed by private company id or
      * certificate id (for shares auctioned like privates). Shown in place of the generated card.

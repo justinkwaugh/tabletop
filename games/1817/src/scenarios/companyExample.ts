@@ -1,5 +1,7 @@
 import { assert, assertExists, type PlayerState } from '@tabletop/common'
 import {
+    addShort,
+    certificatesInPool,
     addCompanyStations,
     applyStationPlacement,
     getCompany,
@@ -56,6 +58,19 @@ export function createEighteenSeventeenCompanyExample(
         for (const privateId of ['UBC', 'MAJC', 'MTE', 'MAJM'])
             givePrivate(state, privateId, { kind: 'company', companyId: 'BA' })
         givePrivate(state, 'PSM', { kind: 'company', companyId: 'PLE' })
+    }
+    // Casey has shorted Boston & Albany, whose share Alex bought; the market holds a short of
+    // its own, as when a bankrupt player's shorts go to it, and Blair bought its share.
+    if (position === 'shorts') {
+        issueShareCertificates(state, 'BA', 1, { owner: alex })
+        addShort(state, 'BA', casey)
+        const marketShare = certificatesInPool(state, MarketPoolId).find(
+            (certificate) => certificate.kind === 'share' && certificate.companyId === 'BA'
+        )
+        assertExists(marketShare, 'Boston & Albany has a share in the market')
+        marketShare.owner = blair
+        delete marketShare.poolId
+        addShort(state, 'BA', { kind: 'bank' }, MarketPoolId)
     }
     // Boston & Albany is at its loan limit with nothing to pay interest, and its president has
     // no cash: it defaults when its trains are done.

@@ -1,11 +1,12 @@
 <script lang="ts">
     import type { GameSession } from '@tabletop/frontend-components'
-    import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
+    import type { CashPayment, EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
     import {
         GameTable,
         OperatingActions,
         SelectionAuctionBidding,
         SelectionAuctionLots,
+        departurePaymentsDetail,
         type HistoryDescription
     } from '@tabletop/18xx-ui'
     import { ActionSource, type GameAction } from '@tabletop/common'
@@ -58,6 +59,17 @@
         companyName: (id: string) => string
     ): HistoryDescription | undefined {
         const money = session.presentation.money
+        const paid = (payments: readonly CashPayment[]) =>
+            departurePaymentsDetail(
+                payments,
+                (owner) =>
+                    owner.kind === 'company'
+                        ? companyName(owner.companyId)
+                        : owner.kind === 'player'
+                          ? session.getPlayerName(owner.playerId)
+                          : 'Bank',
+                money
+            )
         if (isLiquidateCompany(action))
             return {
                 text: `${companyName(action.companyId)} liquidated: ${reasons[action.reason]}`,
@@ -115,7 +127,10 @@
         if (isRemoveStation(action))
             return { text: `Removed a ${companyName(action.companyId)} station` }
         if (isDiscardMergedTrain(action))
-            return { text: `Discarded a ${companyName(action.companyId)} train` }
+            return {
+                text: `Discarded a ${companyName(action.companyId)} train`,
+                detail: paid(action.metadata?.departurePayments ?? [])
+            }
         if (isOfferCompany(action))
             return { text: `Offered ${companyName(action.companyId)} for sale` }
         if (isDeclineOffer(action)) return { text: `Kept ${companyName(action.companyId)}` }
@@ -142,6 +157,7 @@
                     ? `The bank liquidated ${companyName(action.companyId)}`
                     : `${companyName(action.companyId)} was not sold`,
                 omitActor: true,
+                detail: paid(action.metadata?.departurePayments ?? []),
                 important: !!action.metadata
             }
         if (isAcquireCompany(action) && action.metadata)

@@ -34,7 +34,8 @@
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: (
             action: GameAction,
-            companyName: (id: string) => string
+            companyName: (id: string) => string,
+            shared: () => HistoryDescription
         ) => HistoryDescription | undefined
     } = $props()
     const money = $derived(session.presentation.money)
@@ -54,7 +55,8 @@
     const rounds = $derived(
         historyRounds(context.actions, gameState, orderChanges, cash, {
             isEvent: (action) =>
-                action.source === ActionSource.System && !!describeAction?.(action, companyName),
+                action.source === ActionSource.System &&
+                !!describeAction?.(action, companyName, () => describeShared(action)),
             rounds: session.presentation.titleRounds
         })
     )
@@ -68,17 +70,19 @@
     function companyName(id: string) {
         return companyNames?.[id]?.history ?? fullCompanyName(id)
     }
+    function describeShared(action: GameAction) {
+        return historyDescription(
+            action,
+            gameState,
+            companyName,
+            (id) => session.getPlayerName(id),
+            companyChanges.get(action.id),
+            session.presentation.money
+        )
+    }
     function describe(action: GameAction) {
-        const description =
-            describeAction?.(action, companyName) ??
-            historyDescription(
-                action,
-                gameState,
-                companyName,
-                (id) => session.getPlayerName(id),
-                companyChanges.get(action.id),
-                session.presentation.money
-            )
+        const shared = () => describeShared(action)
+        const description = describeAction?.(action, companyName, shared) ?? shared()
         return orderChanges.has(action.id) ? { ...description, important: true } : description
     }
 

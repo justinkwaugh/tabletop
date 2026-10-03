@@ -46,7 +46,12 @@ export { default as GameEnding } from './ending/GameEnding.svelte'
 export { default as GameTable } from './table/GameTable.svelte'
 export type { CompanyNameVariants, NumberedShareNames } from './table/companyPresentation.js'
 export type { HistoryDescription } from './table/historyDescription.js'
+export { departurePaymentsDetail } from './table/historyDescription.js'
 export type {
+    CompanyColumn,
+    CompanyFact,
+    GameFact,
+    MarketZone,
     PrivateTokenPresentation,
     TitlePresentation,
     TitleRound

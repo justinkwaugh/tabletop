@@ -59,6 +59,7 @@
     import MapScene from '../maps/MapScene.svelte'
     import HistoricalMapViewer from '../maps/HistoricalMapViewer.svelte'
     import StockMarketScene from '../stock/StockMarketScene.svelte'
+    import MarketLegend from '../stock/MarketLegend.svelte'
     import { marketLowerRightSpace } from '../stock/marketTokenLayout.js'
     import BoardInset from '../maps/BoardInset.svelte'
     import BoardFocus from './BoardFocus.svelte'
@@ -99,7 +100,8 @@
         actions: Snippet<[(locationId: string) => void, (trainId: string) => void]>
         historyDescription?: (
             action: GameAction,
-            companyName: (id: string) => string
+            companyName: (id: string) => string,
+            shared: () => HistoryDescription
         ) => HistoryDescription | undefined
         privateOperationDescription: (
             privateCompanyId: string,
@@ -772,6 +774,7 @@
                     appearances={session.mapView.stations}
                     market={session.gameState.stockMarket}
                     companies={session.gameState.companies}
+                    zones={session.presentation.marketZones}
                 />
                 {#if boardInformation && corner}<div
                         class="market-corner"
@@ -852,6 +855,25 @@
                 >
             {:else}<span>Empty</span>{/each}
         </span>
+        {#if session.loans.rate !== undefined}
+            <span class="game-information-item">
+                <span class="information-label">Interest</span>
+                <span
+                    >{session.loans.rate}%{#if session.loans.nextRate !== session.loans.rate}
+                        <span class="next-rate">→ {session.loans.nextRate}%</span>{/if}</span
+                >
+            </span>
+            <span class="game-information-item">
+                <span class="information-label">Loans left</span>
+                <span>{session.loans.remaining}</span>
+            </span>
+        {/if}
+        {#each session.presentation.gameFacts?.(session.gameState) ?? [] as fact (fact.label)}
+            <span class="game-information-item">
+                <span class="information-label">{fact.label}</span>
+                <span>{fact.value}</span>
+            </span>
+        {/each}
     </button>
 {/snippet}
 {#snippet sidebarInformation()}
@@ -1164,20 +1186,26 @@
                                     {/snippet}
                                 </ScalingWrapper>
                             </div>{:else if id === 'Market'}<div class="workspace-view market-area">
-                                <ScalingWrapper
-                                    justify="center"
-                                    controls="bottom-left"
-                                    expandable={true}
-                                    allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
-                                >
-                                    <StockMarketScene
-                                        animation={session.marketAnimation}
-                                        appearances={session.mapView.stations}
-                                        renderScale={2}
-                                        market={session.gameState.stockMarket}
-                                        companies={session.gameState.companies}
-                                    />
-                                </ScalingWrapper>
+                                <div class="market-scene">
+                                    <ScalingWrapper
+                                        justify="center"
+                                        controls="bottom-left"
+                                        expandable={true}
+                                        allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
+                                    >
+                                        <StockMarketScene
+                                            animation={session.marketAnimation}
+                                            appearances={session.mapView.stations}
+                                            renderScale={2}
+                                            market={session.gameState.stockMarket}
+                                            companies={session.gameState.companies}
+                                            zones={session.presentation.marketZones}
+                                        />
+                                    </ScalingWrapper>
+                                </div>
+                                {#if session.presentation.marketZones?.length}<MarketLegend
+                                        zones={session.presentation.marketZones}
+                                    />{/if}
                             </div>{:else if id === 'Spreadsheet'}<div
                                 class="workspace-view data-area"
                             >
@@ -1521,6 +1549,9 @@
         gap: 5px;
         white-space: nowrap;
     }
+    .next-rate {
+        color: var(--rail-muted, #887969);
+    }
     .depot-type {
         display: inline-flex;
         align-items: center;
@@ -1693,6 +1724,16 @@
     .map-area,
     .market-area {
         overflow: hidden;
+    }
+    /* The market scales to the space its zone legend leaves. */
+    .market-area {
+        display: flex;
+        flex-direction: column;
+    }
+    .market-scene {
+        position: relative;
+        flex: 1;
+        min-height: 0;
     }
     .data-area {
         padding-bottom: 8px;

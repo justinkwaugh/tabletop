@@ -182,6 +182,13 @@ export function inventorPaid(state: object): string[] {
     return state.inventorPaid
 }
 
+/** The bank's subsidy left for the opening auction, when the game has one. */
+export function seedMoneyLeft(state: object): number | undefined {
+    return 'seedMoney' in state && typeof state.seedMoney === 'number'
+        ? state.seedMoney
+        : undefined
+}
+
 /** The Volatility opening auction's tiers, when the game has them. */
 export function pyramidOf(state: object): Pyramid | undefined {
     if (!('pyramid' in state)) return undefined

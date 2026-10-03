@@ -16,7 +16,7 @@ import {
     EighteenSeventeenPrivateCatalog,
     VolatilityPrivateIds
 } from './privates.js'
-import { eighteenSeventeenOptions, pyramidOf, type Pyramid } from './state.js'
+import { eighteenSeventeenOptions, pyramidOf, seedMoneyLeft, type Pyramid } from './state.js'
 import { createEighteenSeventeenStockMarket } from './stockMarket.js'
 import { createEighteenSeventeenPosition } from './position.js'
 
@@ -37,11 +37,9 @@ export const EighteenSeventeenSeedMoney = 200
 // The bank subsidises privates sold below face value from its seed money; once that is spent,
 // bidding opens at face value. Under Volatility the subsidy has no limit.
 function seedMoney(state: SelectionAuctionState): number {
-    assert(
-        'seedMoney' in state && typeof state.seedMoney === 'number',
-        'The opening auction has seed money'
-    )
-    return state.seedMoney
+    const amount = seedMoneyLeft(state)
+    assertExists(amount, 'The opening auction has seed money')
+    return amount
 }
 
 function requirePyramid(state: SelectionAuctionState): Pyramid {

@@ -6,6 +6,7 @@
     import type { AnimationContext } from '@tabletop/frontend-components'
     import type { MarketAnimationSource, MarketStateChange } from './marketAnimationSource.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
+    import type { MarketZone } from '../session/titlePresentation.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import {
         marketTokenLayout,
@@ -21,12 +22,14 @@
         companies,
         appearances,
         animation,
+        zones = [],
         renderScale = 1
     }: {
         market: StockMarketModel
         companies: readonly Company[]
         appearances: Readonly<Record<string, StationAppearance>>
         animation?: MarketAnimationSource
+        zones?: readonly MarketZone[]
         renderScale?: number
     } = $props()
     const columns = $derived(Math.max(...market.spaces.map((space) => space.column)) + 1)
@@ -173,12 +176,14 @@
                 (token) => token.spaceId === space.id && token.overlapped
             )}
             {@const tinted = space.color !== 'white'}
+            {@const zone = zones.find((item) => item.color === space.color)}
             <div
                 class="space"
                 class:tinted
                 role="button"
                 tabindex={crowded ? 0 : -1}
-                aria-label={`Market value ${space.price}${crowded ? ', expand company stack' : ''}`}
+                aria-label={`Market value ${space.price}${zone ? `, ${zone.name}` : ''}${crowded ? ', expand company stack' : ''}`}
+                title={zone ? `${zone.name}: ${zone.description}` : undefined}
                 data-market-space={space.id}
                 style:grid-column={space.column + 1}
                 style:grid-row={space.row + 1}

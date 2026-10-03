@@ -4,6 +4,7 @@ import {
     TakeLoan,
     companyLoans,
     isPayInterest,
+    loansRemaining,
     nextOperatingCompany,
     type EighteenXXState,
     type EighteenXXTitleRules
@@ -23,6 +24,12 @@ export class LoanModule {
             ? (this.session.state.interestRate ?? rules.rate(this.session.state))
             : undefined
     })
+    /** The rate the next operating round would fix, from the loans now outstanding. */
+    nextRate = $derived.by(() => this.rules?.rate(this.session.state))
+    /** Loans the bank can still lend. */
+    remaining = $derived.by(() =>
+        this.rules ? loansRemaining(this.session.state, this.rules) : undefined
+    )
     operatingCompanyId = $derived.by(() =>
         this.rules && this.session.state.machineState !== 'StockRound'
             ? nextOperatingCompany(this.session.state)

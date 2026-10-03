@@ -1783,6 +1783,131 @@ opens, ours as it settles; both end alike.
 - A ranch lay marks its hex, routes through it earn $10, and nobody upgrades it.
 - `1817_game_end_bankrupt` replays to its bankruptcy ending with the recorded values.
 
+## Slice 10 design: the title UI
+
+Slice 10 turns 1817's prototype panels into lasting presentation, and shows the state
+slices 3 to 9 added but nothing displays: the interest rate and loan supply, company sizes
+and loans in the spreadsheet, shorts, the market's closing zones, and what Volatility's
+privates pay.
+
+### Evidence
+
+- **What is missing today** (the playground's 1817 positions):
+    - the interest rate shows only in the operating Loans step; the loan supply, the next
+      round's rate and the seed money show nowhere;
+    - the spreadsheet has no size or loans, and the market's shorts are not counted; a
+      player's short shows as a bare `-1`;
+    - the market colours its acquisition and liquidation zones without saying so;
+    - the opening's lot table has no private descriptions, and Volatility's tiers list top
+      first, so the open tier is the last;
+    - the stock round's corporate actions and shorts are lone centred buttons; the merger
+      round offers "Convert to 10 shares" without saying what that costs; an acquisition
+      bid is a bare number with no target summary, ceiling or buying company; the buyer's
+      loans panel describes the target, not the buyer;
+    - history does not name what trains' departures paid, the Golden Parachute or the
+      Loan Shark's $60, and lists every player's routine pass in the merger round.
+- **What the reference shows** ([bank-view], [corporation-view], [spreadsheet-view]): a
+  bank panel with the current and next interest rate, loans taken of the supply and the
+  loans until the rate changes, and seed money in the opening; per company its loans
+  against its limit, interest due (marked when it could not be paid), buying power and
+  shorts; spreadsheet columns for loans, shorts, buying power, interest and size; net
+  holdings with shorts negative; market zones labelled and explained; the acquisition
+  round's queue of companies still to offer; the pyramid as rows with empty slots.
+- **The shared table** ([contract]) has title hooks for actions, game and board
+  information, history and auction lots, but none for spreadsheet columns, company facts
+  or market zones; its game-information strip (phase, train limit, depot) is where
+  game-wide facts belong on every layout, phones included.
+
+### Survey
+
+Loans with interest appear in 22 researched titles (slice 3's survey), and shorts across
+the 1817 family, 18USA, 18FR, 1877 and 18Hiawatha (slice 4's); both are family mechanisms,
+so their presentation is too. Market spaces with a meaning beyond their price are common:
+the reference names twelve kinds (par, end game, close, multiple buy, unlimited holdings,
+no certificate limit, liquidation, acquisition, repar, ignore one sale, safe par, maximum
+price), and 47 of its game files define the text explaining them; TOP, 1889 and 1830 colour
+some. Payments as trains depart are family metadata since slice 9. Merger, conversion and
+acquisition rounds remain 1817's own.
+
+### Decisions
+
+- **Family presentation** (`@tabletop/18xx-ui`):
+    - The game-information strip shows, for a title with loans, the interest rate, the
+      rate the next round would fix, and the loans left of the supply; a title adds its own
+      facts through an optional `TitlePresentation.gameFacts(state)` (1817: seed money in
+      the opening, and the final set once the 8-train has come).
+    - The spreadsheet gains optional title columns, `TitlePresentation.companyColumns`,
+      in both orientations (1817: Size and Loans). A short holding is a distinct cell, signed
+      and labelled "short"; the market column counts the market's shorts.
+    - Company details show size when a title's companies vary in size, and a title's
+      `companyFacts(state, companyId)` (1817: interest due, stations owed, its zone).
+    - The market labels zones a title names in `marketZones` (colour, name, explanation),
+      in each cell's description and a legend beside the market.
+    - History describes `departurePayments` on every action that records them, naming
+      who was paid and why; a title's description receives the shared one, so it can add
+      to it rather than replace it.
+- **1817's panels** keep the shared visual language (cards, staged choices, Back):
+    - The stock round's corporate actions and shorts become stock actions in the action
+      strip ("Act for a company", "Short"), each opening a card list like Buy and Sell.
+    - The merger round shows the company's decision as a card: its size, price, treasury,
+      loans and stations, and what converting or each merger brings (size, new treasury
+      shares, stations owed and their cost). Treasury trading names who is buying and who
+      is still to choose; conversion loans show what the stations need.
+    - The acquisition round shows the queue still to offer, and the target as a card (cash,
+      trains, privates, stations, loans, zone). A bid is staged with the shared bid control,
+      showing the bidder's ceiling and which of their companies could pay it; the buyer's
+      loans panel describes the buyer.
+    - The opening shows each private's power, the seed money left, and Volatility's tiers
+      as a pyramid with the open tier marked and sold or removed lots as empty slots.
+- **History**: the Golden Parachute and the Loan Shark's $60 join their actions'
+  descriptions; routine merger-round passes are marked routine.
+- **Playground**: a "Short positions" position (1817) shows shorts held by players and the
+  market.
+- **Commits.** 10a: game facts, spreadsheet columns and shorts, company facts and market
+  zones, with history of departures. 10b: the stock-round and opening panels. 10c: the
+  merger and acquisition round panels and their history.
+
+### Implementation notes for 10a
+
+- **Game information.** The loan module gives the next round's rate and the loans left;
+  the strip shows them beside the current rate for any title with loans, then a title's
+  `gameFacts`. 1817's are the seed money left while the opening lasts and, once the 8-train
+  has set the end, "Game ends after AR 7.2".
+- **Spreadsheet.** `TitlePresentation.companyColumns` adds sortable statistics after Last
+  run in both views (1817: Size and Loans). A short is a signed italic cell read as
+  "short", and pool counts net the pool's shorts, so the market's show.
+- **Company details** show a title's `companyFacts` after loans. Size is one of 1817's facts
+  rather than a shared heuristic over varying sizes, with interest owed, stations still
+  owed and the closing zone.
+- **Market zones.** `marketZones` names colours; cells' accessible names and hover text
+  carry them, and the Market tab lists them in a legend.
+- **History.** The shared description names who each departure paid, and a title's
+  description receives the shared one (a thunk) as a third argument;
+  `departurePaymentsDetail` lets 1817 add the same to its own actions.
+- **Playground.** "Short positions" gives Casey a short of Boston & Albany and the market a
+  short of its own.
+
+### Limits after slice 10
+
+- Programmed actions (automatic passes in the merger and stock rounds) stay out of scope,
+  as for the other titles.
+
+### Acceptance examples
+
+- The game information shows "Interest 15%", the next round's rate and "Loans 54 left";
+  in the opening it shows the seed money left.
+- The spreadsheet shows each company's size and loans against its limit; a player's short
+  reads as a short; the market column counts its shorts.
+- Hovering a red market cell names the liquidation zone and what it means; a legend lists
+  the zones.
+- In the stock round, a president chooses "Act for a company" and sees each company they
+  preside with its loans and the shares it could buy back.
+- In the merger round, a 5-share company's card says converting makes it 10 shares, with
+  5 new treasury shares and the stations it would owe.
+- An acquisition bid shows the target's assets and the most the bidder's companies could
+  pay; the winner's loans panel shows the buyer.
+- History names an Inventor payout and a Golden Parachute.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/entities.rb
@@ -1805,3 +1930,7 @@ opens, ours as it settles; both end alike.
 [token-merger]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/token_merger.rb
 [fixtures]: https://github.com/tobymao/18xx/tree/715567bdc7e5cc68a68a286b21dc8edd1a125e50/public/fixtures/1817
 [tracker]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/step/tracker.rb
+[bank-view]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/assets/app/view/game/bank.rb
+[corporation-view]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/assets/app/view/game/corporation.rb
+[spreadsheet-view]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/assets/app/view/game/spreadsheet.rb
+[contract]: ../../libs/18xx-ui/ui-interaction-visual-contract.md

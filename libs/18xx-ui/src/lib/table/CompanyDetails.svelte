@@ -306,6 +306,10 @@
                     >{session.loans.loans(company.id)}/{session.loans.capacity(company.id)}</strong
                 >
             </div>{/if}
+        {#each session.presentation.companyFacts?.(session.gameState, company.id) ?? [] as fact (fact.label)}<div
+            >
+                <span>{fact.label}</span><strong>{fact.value}</strong>
+            </div>{/each}
         {#if !vertical}
             <div>
                 <span>Last run</span>
