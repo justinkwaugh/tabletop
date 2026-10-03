@@ -1,3 +1,12 @@
+<script lang="ts" module>
+    export const ORACLE_WHITE = '#fbf9f4'
+
+    // The temple is drawn pointing up; `angle` is the screen direction to the favoured city.
+    export function oracleRotation(angle: number): number {
+        return angle + 90
+    }
+</script>
+
 <script lang="ts">
     import { localHexPoints } from '$lib/utils/boardGeometry.js'
 
@@ -6,10 +15,9 @@
     const plinthShape = localHexPoints(1.5)
     const trimShape = localHexPoints(6)
     const OUTLINE = '#11161d'
-    const WHITE = '#fbf9f4'
+    const WHITE = ORACLE_WHITE
 
-    // The temple is drawn pointing up; `angle` is the screen direction to the favoured city.
-    const rotation = $derived(angle + 90)
+    const rotation = $derived(oracleRotation(angle))
     const accent = $derived(attentionColor ?? WHITE)
 </script>
 
@@ -29,7 +37,7 @@
         stroke-dasharray="4 3"
         stroke-linejoin="round"
     ></polygon>
-    <g transform="rotate({rotation})">
+    <g data-part="turn" transform="rotate({rotation})">
         <!-- Shifted so the figure's centroid, not its bounding box, sits on the tile centre. -->
         <g
             transform="translate(-0.05 -2.1)"
@@ -37,12 +45,36 @@
             stroke-linejoin="round"
             filter="url(#mg-tile-shadow)"
         >
-            <rect x="-19" y="21" width="38" height="5" rx="0.6" fill={accent} stroke-width="1.3"
+            <rect
+                x="-19"
+                y="21"
+                width="38"
+                height="5"
+                rx="0.6"
+                data-part="accent"
+                fill={accent}
+                stroke-width="1.3"
             ></rect>
-            <rect x="-16" y="17" width="32" height="4" rx="0.6" fill={accent} stroke-width="1.3"
+            <rect
+                x="-16"
+                y="17"
+                width="32"
+                height="4"
+                rx="0.6"
+                data-part="accent"
+                fill={accent}
+                stroke-width="1.3"
             ></rect>
             <rect x="-9" y="-13" width="18" height="30" fill={WHITE} stroke-width="1"></rect>
-            <rect x="-3" y="5" width="6" height="12" fill={accent} stroke-width="0.9"></rect>
+            <rect
+                x="-3"
+                y="5"
+                width="6"
+                height="12"
+                data-part="accent"
+                fill={accent}
+                stroke-width="0.9"
+            ></rect>
             <rect x="-11.25" y="-10.5" width="5.5" height="27.5" fill={WHITE} stroke-width="1.2"
             ></rect>
             <rect x="5.75" y="-10.5" width="5.5" height="27.5" fill={WHITE} stroke-width="1.2"
@@ -57,10 +89,16 @@
                 width="30"
                 height="4.5"
                 rx="0.6"
+                data-part="accent"
                 fill={accent}
                 stroke-width="1.3"
             ></rect>
-            <polygon points="-15,-17.5 0,-28.5 15,-17.5" fill={accent} stroke-width="1.8"></polygon>
+            <polygon
+                points="-15,-17.5 0,-28.5 15,-17.5"
+                data-part="accent"
+                fill={accent}
+                stroke-width="1.8"
+            ></polygon>
         </g>
     </g>
 </g>

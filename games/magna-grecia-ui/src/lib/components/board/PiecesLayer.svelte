@@ -1,8 +1,12 @@
 <script lang="ts">
-    import { spaceKey } from '@tabletop/magna-grecia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { hexCenter } from '$lib/utils/boardGeometry.js'
-    import { cityViews, connectionBadges, marketViews, oracleViews } from '$lib/utils/boardView.js'
+    import {
+        cityViews,
+        connectionBadges,
+        marketViews,
+        oracleViews,
+        roadViews
+    } from '$lib/utils/boardView.js'
     import CityArt from './CityArt.svelte'
     import CityFlowArt from './CityFlowArt.svelte'
     import MarketPiece from './MarketPiece.svelte'
@@ -10,24 +14,18 @@
     import RoadTileArt from './RoadTileArt.svelte'
 
     const gameSession = getGameSession()
+    const animator = gameSession.piecesAnimator
 
-    const board = $derived(gameSession.gameState.board)
+    const board = $derived(gameSession.pieceBoard)
     const network = $derived(board.network())
-    const roads = $derived(
-        board.roads.map((road) => ({
-            key: spaceKey(road.coords),
-            center: hexCenter(road.coords),
-            road
-        }))
-    )
+    const arrivals = $derived(gameSession.pieceArrivals)
+    const roads = $derived([...roadViews(board), ...(arrivals?.roads ?? [])])
     const cityFlow = $derived(gameSession.cityFlow)
     const cities = $derived(
-        cityViews(gameSession.cityBoard).filter(
-            (city) => !cityFlow?.plan.hiddenCityIds.includes(city.key)
-        )
+        cityViews(board).filter((city) => !cityFlow?.plan.hiddenCityIds.includes(city.key))
     )
     const oracles = $derived(oracleViews(board, network))
-    const markets = $derived(marketViews(board, network))
+    const markets = $derived([...marketViews(board, network), ...(arrivals?.markets ?? [])])
     const badges = $derived(connectionBadges(board, network))
 
     function playerColor(playerId: string): string {
@@ -37,7 +35,7 @@
 
 <g class="roads" filter="url(#mg-tile-shadow)">
     {#each roads as { key, center, road } (key)}
-        <g transform="translate({center.x} {center.y})">
+        <g transform="translate({center.x} {center.y})" {@attach animator.attach('road', key)}>
             <RoadTileArt ends={road.ends} color={playerColor(road.playerId)} />
         </g>
     {/each}
@@ -54,7 +52,10 @@
 
 <g class="oracles">
     {#each oracles as oracle (oracle.key)}
-        <g transform="translate({oracle.center.x} {oracle.center.y})">
+        <g
+            transform="translate({oracle.center.x} {oracle.center.y})"
+            {@attach animator.attach('oracle', oracle.key)}
+        >
             <OracleArt
                 angle={oracle.attention?.angle}
                 attentionColor={oracle.attention
@@ -67,7 +68,10 @@
 
 <g class="markets">
     {#each markets as market (market.key)}
-        <g transform="translate({market.point.x} {market.point.y})">
+        <g
+            transform="translate({market.point.x} {market.point.y})"
+            {@attach animator.attach('market', market.key)}
+        >
             <MarketPiece
                 color={playerColor(market.playerId)}
                 sold={market.sold}

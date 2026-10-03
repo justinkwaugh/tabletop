@@ -75,8 +75,8 @@
                 <SeaLayer />
                 <TerrainLayer />
                 <PiecesLayer />
-                <!-- Targets and the hover ghost would sit over a tile while it pours in. -->
-                {#if !gameSession.cityFlow}
+                <!-- Targets and previews would sit over pieces while they settle. -->
+                {#if !gameSession.boardAnimating}
                     <TargetLayer />
                 {/if}
             </svg>

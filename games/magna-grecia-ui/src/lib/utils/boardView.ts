@@ -5,10 +5,12 @@ import {
     directionBetween,
     isMarketActive,
     oraclePlaceId,
+    spaceKey,
     type HydratedBoard,
     type Network,
     type Place,
-    type PlaceId
+    type PlaceId,
+    type RoadTile
 } from '@tabletop/magna-grecia'
 import { directionAngle, hexCenter } from './boardGeometry.js'
 import { cityLayout, type CityLayout } from './cityLayout.js'
@@ -17,6 +19,12 @@ export type OracleView = {
     key: string
     center: Point
     attention?: { playerId: string; angle: number }
+}
+
+export type RoadView = {
+    key: string
+    center: Point
+    road: RoadTile
 }
 
 export type CityView = {
@@ -52,6 +60,14 @@ export function placeAnchor(place: Place): AxialCoordinates {
 
 export function placeCenter(place: Place): Point {
     return hexCenter(placeAnchor(place))
+}
+
+export function roadViews(board: HydratedBoard): RoadView[] {
+    return board.roads.map((road) => ({
+        key: `${spaceKey(road.coords)}`,
+        center: hexCenter(road.coords),
+        road
+    }))
 }
 
 export function cityViews(board: HydratedBoard): CityView[] {
