@@ -392,11 +392,17 @@ export function removableStations(
     state: EighteenSeventeenState,
     companyId: string
 ): PlacedStation[] {
-    if (!stationsOverLimit(state, companyId)) return []
-    return state.stations.filter(
+    const placed = state.stations.filter(
         (station): station is PlacedStation =>
             station.companyId === companyId && station.status === 'placed'
     )
+    const duplicates = placed.filter((station) =>
+        placed.some(
+            (other) =>
+                other.id !== station.id && other.position.locationId === station.position.locationId
+        )
+    )
+    return duplicates.length ? duplicates : stationsOverLimit(state, companyId) ? placed : []
 }
 
 export function discardableTrains(state: EighteenSeventeenState, companyId: string): Train[] {

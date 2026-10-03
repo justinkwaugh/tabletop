@@ -60,7 +60,7 @@ import {
     sizeAfterConversion,
     stationPurchase,
     stationsForConversion,
-    stationsOverLimit,
+    removableStations,
     trainsOverLimit,
     treasuryShareIds,
     trimStations
@@ -100,7 +100,7 @@ function convertingCompanyFor(state: EighteenSeventeenState, playerId: string): 
 export function stateAfterConversion(state: EighteenSeventeenState): string {
     const conversion = requireRound(state).conversion
     if (!conversion) return 'MergerRound'
-    if (stationsOverLimit(state, conversion.companyId)) return 'ReducingStations'
+    if (removableStations(state, conversion.companyId).length) return 'ReducingStations'
     if (trainsOverLimit(state, conversion.companyId)) return 'DiscardingMergedTrains'
     if (conversion.traderIds.length) return 'TradingConvertedShares'
     return 'BorrowingAfterConversion'

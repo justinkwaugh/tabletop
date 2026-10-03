@@ -1,5 +1,11 @@
 import { EighteenThirtyStockRules, Definition as Thirty } from '@tabletop/1830'
-import { exceedsStockLimits, mustSellShares, placeStockMarker } from '@tabletop/18xx'
+import {
+    exceedsStockLimits,
+    mustSellShares,
+    placeStockMarker,
+    evaluateSharePurchase,
+    stockCertificateCount
+} from '@tabletop/18xx'
 import { ActionSource, assertExists } from '@tabletop/common'
 import { Definition as Shikoku, Shikoku1889StockRules } from '@tabletop/shikoku-1889'
 import { expect, it } from 'vitest'
@@ -56,7 +62,9 @@ it.each([
         expect(engine.getValidActionTypesForPlayer(game, state, playerId)).toContain(
             'FinishStockTurn'
         )
-        expect(engine.getValidActionTypesForPlayer(game, state, playerId)).not.toContain('BuyShares')
+        expect(engine.getValidActionTypesForPlayer(game, state, playerId)).not.toContain(
+            'BuyShares'
+        )
         const action = {
             id: 'pass-over-limit',
             gameId: game.id,
@@ -66,6 +74,56 @@ it.each([
         }
         const result = engine.executeCanonicalAction({ game, state, action })
         expect(result.updatedState.activePlayerIds).not.toContain(playerId)
+        const otherOwner = {
+            kind: 'player' as const,
+            playerId: state.players.find((player) => player.playerId !== playerId)!.playerId
+        }
+        const exemptCompany = state.companies.filter((company) => company.kind !== 'private')[5]
+        const yellow = state.stockMarket.spaces.find((space) => space.color === 'yellow')
+        assertExists(yellow, 'The market has an exempt space')
+        Object.assign(exemptCompany, {
+            started: true,
+            floated: true,
+            funded: true,
+            operated: true,
+            president: otherOwner,
+            parPrice: space.price
+        })
+        placeStockMarker(state.stockMarket, exemptCompany.id, yellow.id)
+        const exemptShares = state.certificates
+            .filter((certificate) => !certificate.retired)
+            .filter((certificate) => certificate.companyId === exemptCompany.id)
+        exemptShares.forEach((certificate, index) => {
+            certificate.owner = index < 4 ? otherOwner : { kind: 'bank' }
+            if (index < 4) delete certificate.poolId
+            else certificate.poolId = 'open-market'
+        })
+        const exempt = exemptShares[4]
+        expect(rules.certificateWeight(state, exempt)).toBe(0)
+        expect(mustSellShares(state, playerId, rules)).toBe(false)
+        expect(engine.getValidActionTypesForPlayer(game, state, playerId)).toContain('BuyShares')
+        const purchase = {
+            ...action,
+            id: 'buy-exempt',
+            type: 'BuyShares',
+            buyer: owner,
+            certificateId: exempt.id,
+            expectedPrice: yellow.price
+        }
+        const bought = engine.executeCanonicalAction({ game, state, action: purchase })
+        expect(
+            bought.updatedState.certificates
+                .filter((certificate) => !certificate.retired)
+                .find((certificate) => certificate.id === exempt.id)?.owner
+        ).toEqual(owner)
+        expect(stockCertificateCount(bought.updatedState, owner, rules)).toBe(20)
+        let replay = state
+        for (const processed of bought.processedActions)
+            replay = engine.applyProcessedAction({ game, state: replay, action: processed })
+        expect(replay).toEqual(bought.updatedState)
+        for (const processed of [...bought.processedActions].reverse())
+            replay = engine.undoProcessedAction({ state: replay, action: processed })
+        expect(replay).toEqual(state)
         // Free one market slot while retaining enough holdings to stay over the limit.
         const available = state.certificates
             .filter((certificate) => !certificate.retired)
@@ -75,12 +133,20 @@ it.each([
                     certificate.poolId === 'open-market'
             )
         assertExists(available, 'The first market pool is full')
+        expect(
+            evaluateSharePurchase(
+                state,
+                { playerId, buyer: owner, certificateId: available.id },
+                rules
+            ).reason
+        ).toBe('The purchase exceeds the certificate limit.')
         available.owner = {
             kind: 'player',
             playerId: state.players.find((player) => player.playerId !== playerId)!.playerId
         }
         delete available.poolId
         expect(mustSellShares(state, playerId, rules)).toBe(true)
+        expect(() => engine.executeCanonicalAction({ game, state, action: purchase })).toThrow()
         expect(engine.getValidActionTypesForPlayer(game, state, playerId)).not.toContain(
             'FinishStockTurn'
         )

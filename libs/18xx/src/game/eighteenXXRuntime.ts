@@ -207,9 +207,17 @@ export function createEighteenXXRuntime<
               }
             : {}),
         FundingTrain: endsGame(
-            decides(
-                'FundingTrain',
-                new FundingTrainHandler(options.trainFundingRules, rules, options.trainRules)
+            allowsExchange(
+                decides(
+                    'FundingTrain',
+                    new FundingTrainHandler(
+                        options.trainFundingRules,
+                        rules,
+                        options.trainRules,
+                        options.privateRules,
+                        options.outOfTurnPrivatePowers === true
+                    )
+                )
             )
         ),
         GameOver: new TerminalStateHandler(),

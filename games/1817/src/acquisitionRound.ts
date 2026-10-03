@@ -51,7 +51,7 @@ import {
 } from './acquisitionSettlement.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { inClosingZone } from './marketZones.js'
-import { presidentOf, stationsOverLimit, trainsOverLimit } from './mergerRules.js'
+import { presidentOf, removableStations, trainsOverLimit } from './mergerRules.js'
 import {
     dropCompany,
     activeAcquisitionRound,
@@ -95,7 +95,7 @@ export function acquisitionRoundCompanyId(state: EighteenSeventeenState): string
 export function stateAfterAcquisition(state: EighteenSeventeenState): string {
     const acquisition = requireRound(state).acquisition
     if (!acquisition) return 'AcquisitionRound'
-    if (stationsOverLimit(state, acquisition.buyerId)) return 'ReducingStations'
+    if (removableStations(state, acquisition.buyerId).length) return 'ReducingStations'
     if (trainsOverLimit(state, acquisition.buyerId)) return 'DiscardingMergedTrains'
     return 'AcquisitionLoans'
 }

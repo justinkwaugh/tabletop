@@ -2,6 +2,7 @@ import { assert } from '@tabletop/common'
 import {
     BuyTrain,
     ContributeTrainFunds,
+    DeclareBankruptcy,
     EmergencyTrainFunding,
     FundTrain,
     IssueTreasuryShares,
@@ -49,7 +50,15 @@ export class TrainFundingModule {
         () =>
             this.session.interactive &&
             this.session.state.machineState === 'FundingTrain' &&
-            this.session.validActionTypes.length > 0
+            this.session.validActionTypes.some((type) =>
+                [
+                    'IssueTreasuryShares',
+                    'ContributeTrainFunds',
+                    'SellFundingShares',
+                    'BuyTrain',
+                    'DeclareBankruptcy'
+                ].includes(type)
+            )
     )
     purchase = $derived.by(() => this.session.state.trainFunding?.purchase ?? this.purchases[0])
     plan = $derived.by(() => (this.purchase ? this.model.preview(this.purchase) : undefined))
@@ -95,7 +104,8 @@ export class TrainFundingModule {
         if (sale) {
             await this.applyChoice(sale)
             await this.completeCashFunding(false)
-        } else await this.completeCashFunding(true)
+        } else if (this.choice?.kind === 'bankrupt') await this.applyChoice()
+        else await this.completeCashFunding(true)
     }
 
     private async applyChoice(sale?: ShareSaleDetails) {
@@ -103,6 +113,9 @@ export class TrainFundingModule {
         assert(this.canResolve && choice, 'Train funding is unavailable')
         const { applyAction, createPlayerAction } = this.session
         switch (choice.kind) {
+            case 'bankrupt':
+                await applyAction(createPlayerAction(DeclareBankruptcy, {}))
+                break
             case 'issue':
                 await applyAction(
                     createPlayerAction(IssueTreasuryShares, {

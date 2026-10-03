@@ -771,15 +771,36 @@ Issuance and contributions require explicit confirmation of the displayed amount
 A share-sale selection is a manual Game Session selection: Back clears it, and Undo
 clears it before reversing a committed Action. Selections hide in History View and
 while updatingVisibleState, and clear in beforeNewState. Components call session
-methods for every Action. Other operating, private, and stock actions are
-unavailable during funding. Only the responsible player may act.
+methods for every Action. Other operating and stock actions are unavailable during
+funding. Any-turn private exchanges remain available under the title's terms,
+including out-of-turn exchanges when supported. Their existing selection and
+confirmation controls preserve the funding obligation. Only the responsible
+player may perform funding actions; exchange-only permission enables none of them.
 
 The selected train purchase uses existing phase-change and discard handling and
 returns to ordinary train buying. Bankruptcy is a system consequence of exhausted
-legal funding sources; the panel shows the company, player, and remaining
-shortfall. It offers no further gameplay actions. Engine Undo restores the funding
+legal funding sources unless an optional private exchange is still available. In
+that case, the funding window stays open and the responsible player may exchange
+or choose Declare bankruptcy. A presidency-changing exchange transfers funding
+responsibility to the new president while retaining the train and sale history.
+Once bankruptcy is declared, the panel shows the company, player, and remaining
+shortfall and offers no further gameplay actions. Engine Undo restores the funding
 state, including the contribution that triggered bankruptcy. Final scoring is a
 later slice. Prototype save identity is version 22.
+
+### 1817 merger and acquisition station choices
+
+A duplicate New York placement requires a choice even below the eight-piece limit.
+The Company limits panel first offers only stations in the conflicting hex. Each
+button shows the current tile with a red cross on the placement to remove and names
+the upper/lower (or left/right) city. It uses the map's canonical face and drawing
+in both board presentations. The prompt explains that one station stays. The
+other returns to the charter unless excess beyond eight must leave play.
+After conflicts, any remaining station-limit choices precede train discards.
+Buttons call the session's RemoveStation method directly and disable while busy,
+updating visible state, or viewing history. Engine Undo restores the placements
+and decision. Action metadata determines whether history says the piece returned
+to the charter or left play; presentation never reads patches to infer it.
 
 ## Game table shell
 

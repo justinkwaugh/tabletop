@@ -54,7 +54,11 @@ export function evaluatePrivateExchange(
     const terms = rules.exchangeTerms(state, company.id)
     if (!terms || !terms.certificateIds.includes(request.certificateId))
         return { reason: 'This share is not available for this private exchange.' }
-    if (state.machineState !== 'StockRound' && !isOperatingStep(state.machineState))
+    if (
+        state.machineState !== 'StockRound' &&
+        state.machineState !== 'FundingTrain' &&
+        !isOperatingStep(state.machineState)
+    )
         return { reason: 'Resolve the current obligation before exchanging.' }
     if (
         state.machineState === 'StockRound' &&

@@ -86,9 +86,10 @@ export function certificateLimitAllows(
     certificate: Portfolio[number],
     rules: StockRules
 ): boolean {
+    const weight = rules.certificateWeight(state, certificate)
     return (
-        stockCertificateCount(state, owner, rules) + rules.certificateWeight(state, certificate) <=
-        rules.certificateLimit(state, owner)
+        weight === 0 ||
+        stockCertificateCount(state, owner, rules) + weight <= rules.certificateLimit(state, owner)
     )
 }
 

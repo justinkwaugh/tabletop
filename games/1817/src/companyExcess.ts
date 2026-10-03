@@ -20,7 +20,7 @@ import { unownedTrain, DeparturePayments, settleTrainDepartures } from '@tableto
 import { EighteenSeventeenTrainRules } from './trains.js'
 import { stateAfterAcquisition } from './acquisitionRound.js'
 import { stateAfterConversion } from './mergerRound.js'
-import { discardableTrains, presidentOf, removableStations } from './mergerRules.js'
+import { discardableTrains, presidentOf, removableStations, trimStations } from './mergerRules.js'
 import { activeAcquisitionRound, activeMergerRound } from './state.js'
 
 type State = HydratedGameState & EighteenSeventeenState
@@ -41,7 +41,20 @@ function excessCompanyFor(state: EighteenSeventeenState, playerId: string): stri
 const CompanyFields = { ...PlayerAction.properties, companyId: Type.String() }
 
 export const RemoveStation = Type.Object(
-    { ...CompanyFields, type: Type.Literal('RemoveStation'), stationId: Type.String() },
+    {
+        ...CompanyFields,
+        type: Type.Literal('RemoveStation'),
+        stationId: Type.String(),
+        metadata: Type.Optional(
+            Type.Object(
+                {
+                    locationId: Type.String(),
+                    destination: Type.Union([Type.Literal('available'), Type.Literal('removed')])
+                },
+                { additionalProperties: false }
+            )
+        )
+    },
     { additionalProperties: false }
 )
 export type RemoveStation = Type.Static<typeof RemoveStation>
@@ -60,11 +73,13 @@ export class HydratedRemoveStation
     declare playerId: string
     declare companyId: string
     declare stationId: string
+    declare metadata?: RemoveStation['metadata']
     constructor(data: RemoveStation) {
         super(data instanceof HydratedRemoveStation ? data.dehydrate() : data, RemoveValidator)
     }
     isValidFor(state: EighteenSeventeenState): boolean {
         return (
+            state.machineState === 'ReducingStations' &&
             excessCompanyFor(state, this.playerId) === this.companyId &&
             removableStations(state, this.companyId).some(
                 (station) => station.id === this.stationId
@@ -74,13 +89,26 @@ export class HydratedRemoveStation
     apply(state: State): void {
         assert(
             this.source === ActionSource.User && this.isValidFor(state),
-            'Only the president of the company over its limit removes its stations'
+            'Only the president may resolve the company’s station conflicts or limit'
         )
+        const chosen = removableStations(state, this.companyId).find(
+            (station) => station.id === this.stationId
+        )
+        assertExists(chosen, 'The station is eligible for removal')
         state.stations = state.stations.map((station) =>
             station.id === this.stationId
-                ? { id: station.id, companyId: station.companyId, status: 'removed' as const }
+                ? { id: station.id, companyId: station.companyId, status: 'available' as const }
                 : station
         )
+        trimStations(state, this.companyId)
+        this.metadata = {
+            locationId: chosen.position.locationId,
+            destination:
+                state.stations.find((station) => station.id === this.stationId)?.status ===
+                'removed'
+                    ? 'removed'
+                    : 'available'
+        }
     }
 }
 
@@ -120,6 +148,7 @@ export class HydratedDiscardMergedTrain
     }
     isValidFor(state: EighteenSeventeenState): boolean {
         return (
+            state.machineState === 'DiscardingMergedTrains' &&
             excessCompanyFor(state, this.playerId) === this.companyId &&
             discardableTrains(state, this.companyId).some((train) => train.id === this.trainId)
         )
@@ -146,7 +175,7 @@ export class HydratedDiscardMergedTrain
     }
 }
 
-/** A merged or acquiring company's president removes stations, or discards trains, over the limit. */
+/** The president resolves duplicate stations before station and train limits. */
 export class CompanyExcessHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         return action instanceof HydratedRemoveStation ||
@@ -165,7 +194,7 @@ export class CompanyExcessHandler implements EighteenSeventeenStateHandler {
     }
     enter(context: Context): void {
         const companyId = excessCompanyId(context.gameState)
-        assertExists(companyId, 'A merged or acquiring company is over its limits')
+        assertExists(companyId, 'A merged or acquiring company needs station or train choices')
         context.gameState.activePlayerIds = [presidentOf(context.gameState, companyId)]
     }
     onAction(_action: HydratedAction, context: Context): string {

@@ -9,6 +9,7 @@ import {
 import { ActionSource, type GameAction } from '@tabletop/common'
 import {
     EighteenSeventeenLoanRules,
+    EighteenSeventeenMap,
     LoanSharkCash,
     LoanSharkId,
     isAcquireCompany,
@@ -130,7 +131,16 @@ export function eighteenSeventeenHistoryDescription(
             value: money(action.metadata.payment.amount)
         }
     if (isRemoveStation(action))
-        return { text: `Removed a ${companyName(action.companyId)} station` }
+        return {
+            text:
+                action.metadata?.destination === 'available'
+                    ? `Returned a ${companyName(action.companyId)} station to its charter`
+                    : `Removed a ${companyName(action.companyId)} station`,
+            detail:
+                action.metadata &&
+                (EighteenSeventeenMap.location(action.metadata.locationId).name ??
+                    action.metadata.locationId)
+        }
     if (isDiscardMergedTrain(action))
         return {
             text: `Discarded a ${companyName(action.companyId)} train`,
