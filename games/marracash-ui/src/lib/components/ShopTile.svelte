@@ -35,6 +35,10 @@
     let clipId = $derived(`marracash-awning-${shop.shopId}`)
     let centerX = $derived(rect.x + rect.width / 2)
     let centerY = $derived(rect.y + rect.height / 2)
+    let customersHighlighted = $derived(
+        gameSession.customerHighlight?.playerId === shop.ownerId &&
+            gameSession.customerHighlight?.color === shopColor
+    )
 </script>
 
 {#snippet body()}
@@ -95,6 +99,7 @@
             {vertical}
             customers={shop.customers}
             marketColor={shopColor}
+            highlighted={customersHighlighted}
         />
     {/if}
 {/snippet}

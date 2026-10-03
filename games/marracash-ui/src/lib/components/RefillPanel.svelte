@@ -4,6 +4,10 @@
     import UndoButton from '$lib/components/UndoButton.svelte'
 
     const gameSession = getGameSession()
+
+    function choiceClass(selected: boolean): string {
+        return selected ? 'bg-[#8a6a46] text-white hover:bg-[#765a3b]' : 'hover:bg-[#8a6a46]/15'
+    }
 </script>
 
 <div class="flex flex-col items-center gap-2">
@@ -16,9 +20,9 @@
         <span class="text-sm">Take from the</span>
         {#each Object.values(QueueEnd) as end (end)}
             <button
-                class="rounded-md border border-[#8a6a46] px-3 py-1 text-sm"
-                class:bg-[#8a6a46]={gameSession.chosenQueueEnd === end}
-                class:text-white={gameSession.chosenQueueEnd === end}
+                class="rounded-md border border-[#8a6a46] px-3 py-1 text-sm {choiceClass(
+                    gameSession.chosenQueueEnd === end
+                )}"
                 onclick={() => gameSession.chooseQueueEnd(end)}
                 >{end === QueueEnd.Front ? 'Front' : 'Back'} of queue</button
             >
@@ -27,16 +31,16 @@
             <span class="ml-2 text-sm">How many?</span>
             {#each gameSession.visitorCountOptions as count (count)}
                 <button
-                    class="w-9 rounded-md border border-[#8a6a46] py-1 text-sm"
-                    class:bg-[#8a6a46]={gameSession.chosenVisitorCount === count}
-                    class:text-white={gameSession.chosenVisitorCount === count}
+                    class="w-9 rounded-md border border-[#8a6a46] py-1 text-sm {choiceClass(
+                        gameSession.chosenVisitorCount === count
+                    )}"
                     onclick={() => gameSession.chooseVisitorCount(count)}>{count}</button
                 >
             {/each}
         {/if}
         {#if gameSession.hasManualSelection}
             <button
-                class="ml-2 rounded-md border border-[#8a6a46] px-3 py-1 text-sm"
+                class="ml-2 rounded-md border border-[#8a6a46] px-3 py-1 text-sm hover:bg-[#8a6a46]/15"
                 onclick={() => gameSession.back()}>Back</button
             >
         {:else}

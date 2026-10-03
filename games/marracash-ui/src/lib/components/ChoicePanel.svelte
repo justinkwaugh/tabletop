@@ -20,11 +20,11 @@
             a sealed bid.
         </p>
         <button
-            class="rounded-md bg-[#8a6a46] px-3 py-1 text-sm font-semibold text-white"
+            class="rounded-md bg-[#8a6a46] px-3 py-1 text-sm font-semibold text-white hover:bg-[#765a3b]"
             onclick={() => gameSession.startAuction()}>Start auction</button
         >
         <button
-            class="rounded-md border border-[#8a6a46] px-3 py-1 text-sm"
+            class="rounded-md border border-[#8a6a46] px-3 py-1 text-sm hover:bg-[#8a6a46]/15"
             onclick={() => gameSession.back()}>Back</button
         >
     </div>
@@ -37,7 +37,7 @@
     <div class="flex items-center justify-center gap-4">
         <p class="font-semibold">Choose the destination for these visitors.</p>
         <button
-            class="rounded-md border border-[#8a6a46] px-3 py-1 text-sm"
+            class="rounded-md border border-[#8a6a46] px-3 py-1 text-sm hover:bg-[#8a6a46]/15"
             onclick={() => gameSession.back()}>Back</button
         >
     </div>

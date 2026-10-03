@@ -69,6 +69,7 @@ export class MarracashGameSession extends GameSession<
     )
 
     historyHighlight: HistoryHighlight | undefined = $state(undefined)
+    customerHighlight: { playerId: string; color: MarketColor } | undefined = $state(undefined)
 
     readonly moneyReports: MoneyReport[] = $derived(moneyReports(latestTurnStep(this.actions)))
 
@@ -219,6 +220,10 @@ export class MarracashGameSession extends GameSession<
 
     highlightHistory(action: GameAction | undefined) {
         this.historyHighlight = action === undefined ? undefined : historyHighlightFor(action)
+    }
+
+    highlightCustomers(highlight: { playerId: string; color: MarketColor } | undefined) {
+        this.customerHighlight = highlight
     }
 
     resetAction() {

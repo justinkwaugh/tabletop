@@ -5,6 +5,7 @@
         ScalingWrapper,
         DefaultSideContent,
         DefaultTableLayout,
+        GameChat,
         GameSession
     } from '@tabletop/frontend-components'
     import type { HydratedMarracashGameState, MarracashProjectedState } from '@tabletop/marracash'
@@ -59,6 +60,9 @@
                 {/snippet}
                 {#snippet history()}
                     <History />
+                {/snippet}
+                {#snippet chat()}
+                    <GameChat timeColor="text-[#ad9c80]" />
                 {/snippet}
             </DefaultSideContent>
         {/snippet}

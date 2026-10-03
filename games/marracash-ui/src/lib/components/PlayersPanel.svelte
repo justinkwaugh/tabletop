@@ -1,10 +1,12 @@
 <script lang="ts">
+    import { onDestroy } from 'svelte'
     import type { Player } from '@tabletop/common'
     import type { HydratedMarracashPlayerState } from '@tabletop/marracash'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
+    onDestroy(() => gameSession.highlightCustomers(undefined))
 
     type PlayerAndState = { player: Player; playerState: HydratedMarracashPlayerState }
 

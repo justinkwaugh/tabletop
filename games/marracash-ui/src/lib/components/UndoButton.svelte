@@ -6,7 +6,7 @@
 
 {#if gameSession.canUndoAction}
     <button
-        class="rounded-md border border-[#8a6a46] px-3 py-1 text-sm"
+        class="rounded-md border border-[#8a6a46] px-3 py-1 text-sm hover:bg-[#8a6a46]/15"
         disabled={gameSession.busy}
         onclick={() => gameSession.undo()}>Undo</button
     >

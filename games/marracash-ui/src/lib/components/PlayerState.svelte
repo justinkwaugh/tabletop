@@ -11,7 +11,11 @@
     import AntiqueCard from '$lib/components/AntiqueCard.svelte'
     import PawnIcon from '$lib/components/PawnIcon.svelte'
     import { antiqueProgress } from '$lib/utils/antiqueProgress.js'
-    import { antiqueColorSummary, sortedAntiques } from '$lib/utils/antiqueItems.js'
+    import {
+        completedSetLabel,
+        missingAntiquesSummary,
+        sortedAntiques
+    } from '$lib/utils/antiqueItems.js'
 
     let { player, playerState }: { player: Player; playerState: HydratedMarracashPlayerState } =
         $props()
@@ -30,6 +34,12 @@
     let money = $derived(gameSession.visibleMoney(player.id))
     let showHandSummary = $state(false)
 </script>
+
+{#snippet revealedSet()}
+    {#each revealedCards as card, index (index)}
+        <AntiqueCard {card} matched dimmed={!paidCards.includes(card)} />
+    {/each}
+{/snippet}
 
 <div
     class="rounded-lg px-3 py-1 text-left"
@@ -58,9 +68,13 @@
     <div class="flex w-fit items-center gap-1 rounded bg-white/85 px-1 py-0.5 text-xs text-black">
         {#each Object.values(MarketColor) as color (color)}
             <span
+                role="group"
                 class="flex items-center gap-0.5"
                 class:opacity-35={customers[color] === 0}
                 aria-label="{customers[color]} {color} customers"
+                onpointerenter={() =>
+                    gameSession.highlightCustomers({ playerId: player.id, color })}
+                onpointerleave={() => gameSession.highlightCustomers(undefined)}
             >
                 <PawnIcon {color} height={CounterPawnHeight} />
                 <span class="inline-block w-[2ch] text-sm font-semibold tabular-nums"
@@ -75,11 +89,21 @@
                 <p class="font-semibold">
                     Antique set completed {['1st', '2nd', '3rd', '4th'][revealRank]}
                 </p>
-                <div class="flex gap-1 rounded bg-white/85 p-1">
-                    {#each revealedCards as card, index (index)}
-                        <AntiqueCard {card} matched dimmed={!paidCards.includes(card)} />
-                    {/each}
-                </div>
+                {#if player.id === gameSession.myPlayer?.id}
+                    <button
+                        type="button"
+                        class="flex cursor-pointer gap-1 rounded bg-white/85 p-1"
+                        aria-expanded={showHandSummary}
+                        onclick={() => (showHandSummary = !showHandSummary)}
+                    >
+                        {@render revealedSet()}
+                    </button>
+                    {#if showHandSummary}
+                        <p class="mt-0.5">{completedSetLabel(revealRank)}</p>
+                    {/if}
+                {:else}
+                    <div class="flex gap-1 rounded bg-white/85 p-1">{@render revealedSet()}</div>
+                {/if}
             {:else if player.id === gameSession.myPlayer?.id && playerState.antiques.length > 0}
                 <p class="font-semibold">
                     Antiques: {hand.filter((entry) => entry.covered).length}/{AntiquesPerPlayer}
@@ -95,7 +119,7 @@
                     {/each}
                 </button>
                 {#if showHandSummary}
-                    <p class="mt-0.5">{antiqueColorSummary(handCards)}</p>
+                    <p class="mt-0.5">{missingAntiquesSummary(hand)}</p>
                 {/if}
             {:else}
                 <p>{AntiquesPerPlayer} hidden antique cards</p>

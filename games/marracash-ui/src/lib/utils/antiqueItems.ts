@@ -1,4 +1,6 @@
 import { MarketColor, type Antique } from '@tabletop/marracash'
+import type { AntiqueProgress } from '$lib/utils/antiqueProgress.js'
+import { ordinal } from '$lib/utils/ordinal.js'
 
 export const AntiqueItemNames: Record<MarketColor, string> = {
     [MarketColor.Yellow]: 'signet ring',
@@ -29,4 +31,14 @@ export function sortedAntiques<T extends Antique>(cards: readonly T[]): T[] {
     return cards.toSorted(
         (a, b) => ColorOrder.indexOf(a.color) - ColorOrder.indexOf(b.color) || a.value - b.value
     )
+}
+
+export function missingAntiquesSummary(progress: readonly AntiqueProgress[]): string {
+    const missing = progress.filter((entry) => !entry.covered).map((entry) => entry.card)
+    return missing.length === 0 ? 'Set complete' : `Missing: ${antiqueColorSummary(missing)}`
+}
+
+export function completedSetLabel(revealRank: number): string {
+    const rank = ordinal(revealRank)
+    return `${rank.charAt(0).toUpperCase()}${rank.slice(1)} completed set`
 }

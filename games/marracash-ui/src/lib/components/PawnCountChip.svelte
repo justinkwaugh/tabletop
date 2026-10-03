@@ -3,14 +3,23 @@
     import Pawn from '$lib/components/Pawn.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PawnCountChip, pawnCountChipWidth } from '$lib/utils/pawnCountChip.js'
+    import { CandidateHaloFilterId } from '$lib/utils/boardGeometry.js'
 
     let {
         color,
         count,
         x,
         y,
-        label
-    }: { color: MarketColor; count: number; x: number; y: number; label: string } = $props()
+        label,
+        highlighted = false
+    }: {
+        color: MarketColor
+        count: number
+        x: number
+        y: number
+        label: string
+        highlighted?: boolean
+    } = $props()
 
     const gameSession = getGameSession()
 
@@ -20,6 +29,19 @@
 </script>
 
 <g transform="translate({x} {y})" aria-label={label}>
+    {#if highlighted}
+        <rect
+            x={-width / 2}
+            y={-PawnCountChip.height / 2}
+            {width}
+            height={PawnCountChip.height}
+            rx="8"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="9"
+            filter="url(#{CandidateHaloFilterId})"
+        ></rect>
+    {/if}
     <rect
         x={-width / 2}
         y={-PawnCountChip.height / 2}

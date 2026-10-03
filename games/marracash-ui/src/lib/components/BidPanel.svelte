@@ -21,26 +21,26 @@
     <p class="font-semibold">
         Sealed bid for the highlighted {shop?.color} shop. You have {myMoney} Dirham.
     </p>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-3">
         <button
-            class="h-8 w-8 rounded-md border border-[#8a6a46]"
+            class="h-10 w-10 rounded-md border-2 border-[#8a6a46] bg-[#e3cfa8] text-2xl leading-none font-bold text-[#3d2f1f] hover:bg-[#d8bf91] disabled:opacity-40"
             aria-label="Lower bid"
             disabled={clampedAmount <= minimumBid}
             onclick={() => change(-DirhamIncrement)}>−</button
         >
         <span class="marracash-display w-24 text-xl">{clampedAmount}</span>
         <button
-            class="h-8 w-8 rounded-md border border-[#8a6a46]"
+            class="h-10 w-10 rounded-md border-2 border-[#8a6a46] bg-[#e3cfa8] text-2xl leading-none font-bold text-[#3d2f1f] hover:bg-[#d8bf91] disabled:opacity-40"
             aria-label="Raise bid"
             disabled={clampedAmount + DirhamIncrement > myMoney}
             onclick={() => change(DirhamIncrement)}>+</button
         >
-        <button
-            class="ml-2 w-28 rounded-md bg-[#8a6a46] py-1 text-center font-semibold whitespace-nowrap text-white"
-            onclick={() => gameSession.placeBid(clampedAmount)}
-            >{clampedAmount === 0 ? 'Pass' : 'Place bid'}</button
-        >
     </div>
+    <button
+        class="mt-2 w-32 rounded-md bg-[#8a6a46] py-1.5 text-center font-semibold whitespace-nowrap text-white hover:bg-[#765a3b]"
+        onclick={() => gameSession.placeBid(clampedAmount)}
+        >{clampedAmount === 0 ? 'Pass' : 'Place bid'}</button
+    >
     <p class="text-sm">
         Still to bid:
         {#each gameSession.gameState.auction?.participants.filter((p) => !p.submitted) ?? [] as participant, index (participant.playerId)}

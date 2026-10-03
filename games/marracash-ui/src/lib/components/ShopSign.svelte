@@ -16,13 +16,15 @@
         center,
         vertical,
         customers,
-        marketColor
+        marketColor,
+        highlighted = false
     }: {
         ownerId: string
         center: Point
         vertical: boolean
         customers: number
         marketColor: MarketColor
+        highlighted?: boolean
     } = $props()
 
     const gameSession = getGameSession()
@@ -69,6 +71,7 @@
         x={layout.chip.x}
         y={layout.chip.y}
         label="{customers} customers"
+        {highlighted}
     />
 {/if}
 
