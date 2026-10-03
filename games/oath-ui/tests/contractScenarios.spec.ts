@@ -1376,6 +1376,7 @@ test('scenario 58: a Vision drawn and the title changing hands are framed Histor
     await expect(drawn).toBeVisible()
     await expect(drawn).toContainText('Vision drawn')
     await expect(drawn).toContainText('the draw stopped on a Vision')
+    await expect(drawn).toContainText('Search cost up: the world deck now costs 3 Supply')
     await expect(drawn.getByRole('img', { name: 'Conquest' })).toBeVisible()
 
     const title = page.locator('[data-major-event="oathkeeper"]')
