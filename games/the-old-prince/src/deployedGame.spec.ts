@@ -1,5 +1,5 @@
 import type { TheOldPrinceState } from './state.js'
-import { GameEngine, PlayerStatus, type GameAction } from '@tabletop/common'
+import { assert, assertExists, GameEngine, PlayerStatus, type GameAction } from '@tabletop/common'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { Definition } from './definition/gameDefinition.js'
@@ -42,6 +42,10 @@ const game = Definition.runtime.initializer.initializeGame(
 // These resolutions ran before a player's last lot was offered automatically, so
 // current logic also draws an identifier for the offer the player then made by hand.
 const recordedBeforeAutomaticLotOffers = [56, 61, 66, 71]
+const recordedReservedShareOverpayments = new Map([
+    [136, 12],
+    [177, 12]
+])
 
 function recordedStates(): LegacyState[] {
     const states = [latestState]
@@ -73,7 +77,7 @@ describe('the deployed game', () => {
         }
     )
 
-    it('reproduces every recorded state from its recorded action', () => {
+    it('reproduces recorded actions with the corrected reserved-share payouts', () => {
         const states = recordedStates()
         const oldestFirstActions = [...newestFirstActions].reverse()
         expect(states).toHaveLength(oldestFirstActions.length + 1)
@@ -83,8 +87,26 @@ describe('the deployed game', () => {
                 state: states[index],
                 game
             })
-            const { usedPrivatePowerIds, ...recorded } = states[index + 1]
+            const { usedPrivatePowerIds, ...recorded } = structuredClone(states[index + 1])
             expect(usedPrivatePowerIds).toEqual([])
+            const overpayment = recordedReservedShareOverpayments.get(index)
+            if (overpayment) {
+                expect(action).toMatchObject({ type: 'DistributeEarnings', companyId: 'C' })
+                const treasury = recorded.cash.find(
+                    (cash) => cash.owner.kind === 'company' && cash.owner.companyId === 'C'
+                )
+                assert(treasury && typeof treasury.amount === 'number', 'Shortline has a treasury')
+                treasury.amount -= overpayment
+                const earnings = recorded.earningsDistribution
+                assertExists(earnings, 'The recorded action distributed earnings')
+                expect(earnings).toMatchObject({ dividendPerShare: 4, bankAdjustment: 0 })
+                const payment = earnings.payments.find(
+                    (entry) => entry.to.kind === 'company' && entry.to.companyId === 'C'
+                )
+                assertExists(payment, 'The recorded payout includes Shortline')
+                payment.amount -= overpayment
+                earnings.bankAdjustment -= overpayment
+            }
             expect(
                 recordedBeforeAutomaticLotOffers.includes(index)
                     ? { ...updatedState, prng: recorded.prng }

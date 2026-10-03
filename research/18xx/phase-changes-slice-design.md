@@ -22,7 +22,7 @@ Tile colors, revenue stages, train limits, and TOP starting prices already read
 phaseId. OperatingSet.roundCount remains its existing snapshot.
 
 TOP §§7.6,13.2,14: current capacity is checked before purchase, rusting is immediate,
-excess trains leave the game, and never-run 4+ trains survive diesel until their
+excess trains leave the game, and 4+ trains with no prior operating opportunity survive diesel until their
 next operating opportunity. They cannot be traded. Completing that company's run
 step consumes this opportunity, including a zero/suboptimal submitted run; it does
 not grant indefinite survival by omitting the train. TOP's rulebook does not order
@@ -75,8 +75,39 @@ No shared package imports a title. The small assembly helper covers these titles
 phase-triggered rusting; other titles can supply the display data directly and
 need explicit presentation for richer events rather than inventing rust triggers.
 
-TOP's never-run owned 4+ exception remains visible beside the schedule. 1889's
+TOP's owned 4+ operating-opportunity exception remains visible beside the schedule. 1889's
 diesel availability/trade-in and private closure exception are described below
 the tables. The chart shows each phase’s OR count without a separate explanatory note about set length.
 Browser verification covers both title charts, current-phase highlighting,
 operating token, keyboard dismissal/focus return, and backdrop dismissal.
+
+## TOP's first operating opportunity — review finding 8
+
+Confirmed with the user on 2026-10-03: a 4+ loses its first-opportunity protection
+when its owning company settles earnings, including empty routes and routes that
+omit that train. Buying a train later in the turn does not consume its opportunity.
+The pinned reference's `step/dividend.rb` marks every owned train operated, and
+`g_1871/game.rb` uses persistent `ever_operated` for diesel grace. Actual route use
+and an operating opportunity are distinct facts.
+
+Rechecked all 193 retirement assignments across 129 researched titles: 120 assign
+immediate rust, 30 obsolescence and 30 final operation; other assignments include
+maintenance, persistent trains, capacity loss and salvage. These are overlapping
+assignments, not mutually exclusive title counts. 1830 and 1889 need ordinary
+immediate rust; 1846's obsolete trains receive a final operation independently of
+prior use. Only TOP directly queries `ever_operated` in the pinned title source.
+The survey's unresolved profiles remain evidence gaps.
+
+The shared earnings Action exposes an optional `afterDistribution` policy callback
+after settlement and private effects. TOP alone records
+`fourPlusTrainIdsWithOperatingOpportunity`; the other titles acquire no state
+property. IDs persist across ownership changes. An absent record means no recorded
+opportunity; `hasRun` remains actual route use and is independently sufficient
+evidence that an opportunity occurred. The existing TOP save fixture is in phase
+3H, before 4+ acquisition, so no compatibility reader or migration is needed.
+This implements TOP's specific lifetime fact, not a general train-history system.
+
+Regression cases cover pre-diesel empty routes, omission while another train runs,
+ownership changes, a fresh 4+ purchased after earnings, immediate diesel rust,
+existing used/unused post-diesel final opportunities, and settlement replay/Undo.
+The phase-chart explanation uses operating opportunity rather than actual use.

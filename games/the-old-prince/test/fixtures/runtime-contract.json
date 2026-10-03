@@ -1335,6 +1335,13 @@
         },
         "type": "array"
       },
+      "fourPlusTrainIdsWithOperatingOpportunity": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
+      },
       "gameEnding": {
         "additionalProperties": false,
         "properties": {

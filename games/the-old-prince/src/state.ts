@@ -24,7 +24,10 @@ export const TheOldPrinceState = composeEighteenXXState(
         certificates: Type.Array(NumberedCertificate),
         ...OfferPileFields,
         ...TrancheFields,
-        ...OwnershipExemptionFields
+        ...OwnershipExemptionFields,
+        fourPlusTrainIdsWithOperatingOpportunity: Type.Optional(
+            Type.Array(Type.String(), { uniqueItems: true })
+        )
     },
     [...RailwayMachineStates, ...OfferAuctionMachineStates]
 )

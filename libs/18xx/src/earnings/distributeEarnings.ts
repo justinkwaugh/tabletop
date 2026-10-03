@@ -111,6 +111,7 @@ export class HydratedDistributeEarnings
         state.earningsDistribution = result.details
         const privateEffects = this.#privateRules.operationEffects(state, this.companyId)
         applyPrivateEffects(state, privateEffects, this.#stockRules)
+        this.#rules.afterDistribution?.(state, this.companyId)
         this.metadata = {
             ...result.details,
             ...(chargesPaid.length ? { chargesPaid } : {}),

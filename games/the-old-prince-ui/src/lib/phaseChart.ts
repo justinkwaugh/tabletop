@@ -5,7 +5,7 @@ export const TheOldPrincePhaseChart = createPhaseChart({
     phases: TheOldPrincePhases,
     depot: TheOldPrinceTrainDepot,
     rustNotes: {
-        '4+': 'At phase D, a never-run, company-owned 4+ survives until its company’s next run step, then rusts. It cannot be traded.'
+        '4+': 'At phase D, a company-owned 4+ survives only if it has had no operating opportunity. It rusts after its company’s next run step, even if unused, and cannot be traded.'
     },
     phaseNotes: {
         '2H': 'Par prices: 58, 65, 74, 80.',

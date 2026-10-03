@@ -18,6 +18,7 @@ import {
     getCompany,
     placeStockMarker,
     finishOperatingTurnReason,
+    createOrdinaryShareCertificates,
     type EighteenXXState,
     type EarningsChoice
 } from '@tabletop/18xx'
@@ -50,7 +51,7 @@ function earnings(state: EighteenXXState, companyId: string, revenue: number) {
     state.machineState = 'DistributingEarnings'
     state.routeStep = { companyId, result: { companyId, routes: [], revenue } }
 }
-it('pays TOP bank and treasury shares to the company, and Union Bank shares to Union Bank', () => {
+it('pays TOP market and treasury shares to the company, Union Bank shares to Union Bank, and no reserved dividends', () => {
     const { state } = example(Top, 'routes')
     earnings(state, 'ML', 100)
     const details = new EarningsDistribution(state, TheOldPrinceEarningsRules).evaluate(
@@ -61,10 +62,47 @@ it('pays TOP bank and treasury shares to the company, and Union Bank shares to U
         [{ kind: 'player', playerId: 'alex' }, 30],
         [{ kind: 'company', companyId: 'UB' }, 10],
         [{ kind: 'player', playerId: 'blair' }, 20],
-        [{ kind: 'company', companyId: 'ML' }, 40]
+        [{ kind: 'company', companyId: 'ML' }, 30]
     ])
-    expect(details.bankAdjustment).toBe(0)
+    expect(details.bankAdjustment).toBe(-10)
 })
+it.each([0, 1, 2, 3])(
+    'TOP pays Shortline shares only after release from reserve (%s exchanged)',
+    (exchanged) => {
+        const { state } = example(Top, 'routes')
+        const player = { kind: 'player', playerId: 'alex' } as const
+        const reserved = { owner: { kind: 'bank' } as const, poolId: 'reserved' }
+        state.certificates = [
+            ...state.certificates.filter((certificate) => certificate.companyId !== 'So'),
+            ...createOrdinaryShareCertificates(
+                'So',
+                [
+                    ...Array.from({ length: 4 }, () => ({ owner: player })),
+                    { owner: { kind: 'bank' }, poolId: 'market' },
+                    ...Array.from({ length: 3 }, (_, index) =>
+                        index < exchanged ? { owner: player } : reserved
+                    )
+                ],
+                player
+            )
+        ]
+        earnings(state, 'So', 100)
+        const distribution = new EarningsDistribution(state, TheOldPrinceEarningsRules)
+        expect(distribution.evaluate('So', 'pay').details).toMatchObject({
+            dividendPerShare: 10,
+            bankAdjustment: -30 + exchanged * 10,
+            payments: [
+                { to: player, amount: 60 + exchanged * 10 },
+                { to: { kind: 'company', companyId: 'So' }, amount: 10 }
+            ]
+        })
+        expect(distribution.evaluate('So', 'withhold').details).toMatchObject({
+            retained: 100,
+            bankAdjustment: 0,
+            payments: [{ to: { kind: 'company', companyId: 'So' }, amount: 100 }]
+        })
+    }
+)
 it('1889 leaves IPO dividends in the bank and pays Market shares to the treasury', () => {
     const { state } = example(Shikoku, 'routes')
     earnings(state, 'AR', 100)
@@ -123,7 +161,7 @@ it('TOP adds forty per share only when paying from the market ceiling', () => {
     expect(distribution.evaluate('ML', 'pay').details).toMatchObject({
         bonusPerShare: 40,
         dividendPerShare: 50,
-        bankAdjustment: 400
+        bankAdjustment: 350
     })
     expect(distribution.evaluate('ML', 'withhold').details).toMatchObject({
         bonusPerShare: 0,
