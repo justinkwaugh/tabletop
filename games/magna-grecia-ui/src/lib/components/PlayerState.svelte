@@ -74,19 +74,20 @@
 
 <style>
     .player {
+        --ring: 1.5px;
+        --ring-color: rgba(107, 63, 29, 0.35);
         overflow: hidden;
         border-radius: 14px;
         background: #fbf5e6;
         box-shadow:
-            inset 0 0 0 1.5px rgba(107, 63, 29, 0.35),
+            inset 0 0 0 var(--ring) var(--ring-color),
             0 2px 6px rgba(40, 24, 8, 0.15);
         color: #4a2c12;
     }
 
     .player.turn {
-        box-shadow:
-            inset 0 0 0 3px var(--player),
-            0 3px 10px rgba(40, 24, 8, 0.3);
+        --ring: 3px;
+        --ring-color: var(--player);
     }
 
     .banner {
@@ -155,7 +156,9 @@
         align-items: center;
         justify-content: space-between;
         gap: 6px;
-        padding: 4px 12px 5px;
+        /* centre the row between the rule and the ring; the total stays 10px so
+           the card's height does not change with the turn */
+        padding: calc(5px - var(--ring) / 2) 12px calc(5px + var(--ring) / 2);
         border-top: 1px solid rgba(107, 63, 29, 0.14);
         background: rgba(107, 63, 29, 0.07);
         font-size: 12px;
