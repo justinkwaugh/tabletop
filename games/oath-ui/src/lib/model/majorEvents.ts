@@ -129,13 +129,12 @@ function endDieEvent(
     const threshold = round === undefined ? undefined : endDieThreshold(round)
     const passes = threshold === undefined ? '' : `a ${endDieRollWords(threshold)}`
     const where = round === undefined ? '' : ` in round ${round}`
-    const follows = wonBy ? 'the game ends' : `play goes on to round ${(round ?? 0) + 1}`
     const consequence =
         threshold === undefined || round === undefined
             ? wonBy
                 ? 'The game ends'
                 : undefined
-            : `${passes} ends the game${where} · ${follows}`
+            : `${passes} ends the game${where} · ${wonBy ? 'the game ends' : `play goes on to round ${round + 1}`}`
     return {
         kind: MajorEventKind.EndDie,
         heading: 'End die',

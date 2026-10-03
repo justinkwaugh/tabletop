@@ -22,8 +22,12 @@ export class VisionsSeen {
         const last = this.draws.at(-1)
         if (seatId === undefined || last === undefined) return
         this.clearedThrough = { ...this.clearedThrough, [seatId]: last.actionId }
-        const storage = this.storage()
-        storage?.setItem(visionsClearedKey(this.session.game.id, seatId), last.actionId)
+        // A full or blocked storage throws on writing; the clear then lasts for this visit only.
+        try {
+            this.storage()?.setItem(visionsClearedKey(this.session.game.id, seatId), last.actionId)
+        } catch {
+            return
+        }
     }
 
     private stored(playerId: string): string | undefined {
