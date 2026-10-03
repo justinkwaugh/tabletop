@@ -20,7 +20,7 @@ const selectionRules: SelectionAuctionRules = {
     closeUnsold: () => {}
 }
 
-function selection(valid: string[]) {
+function selection(valid: string[], passingWhileNominating = () => true) {
     const state = {
         ...minimalPlayState(),
         cash: [
@@ -37,7 +37,11 @@ function selection(valid: string[]) {
             completed: false
         }
     }
-    const harness = testSession(state, { selectionAuctionRules: selectionRules }, valid)
+    const harness = testSession(
+        state,
+        { selectionAuctionRules: { ...selectionRules, passingWhileNominating } },
+        valid
+    )
     return { ...harness, module: new SelectionAuctionModule(harness.session) }
 }
 
@@ -78,8 +82,9 @@ describe('SelectionAuctionModule', () => {
     })
 
     it('nominates when the title forbids passing', async () => {
-        const { module, applied } = selection(['NominateLot'])
+        const { module, applied } = selection(['NominateLot'], () => false)
         expect(module.canPass).toBe(false)
+        expect(module.passOffered).toBe(false)
         module.select('P')
         await module.nominate()
         expect(applied).toMatchObject([{ type: 'NominateLot', lotId: 'P', amount: 10 }])

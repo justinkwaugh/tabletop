@@ -25,10 +25,9 @@ export function placeLocationMarker(state: LocationMarkerState, marker: Location
 export function removeLocationMarkers(
     state: LocationMarkerState,
     filter: Partial<LocationMarker>
-): LocationMarker[] {
+): void {
     const removed = locationMarkers(state, filter)
     state.locationMarkers = (state.locationMarkers ?? []).filter(
         (marker) => !removed.includes(marker)
     )
-    return removed
 }

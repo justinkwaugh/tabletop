@@ -9,9 +9,8 @@ import {
 } from '@tabletop/18xx'
 import { corporationShareCount } from './corporations.js'
 import { liquidate } from './liquidation.js'
-import { companyHolding } from './privateHolders.js'
+import { LoanSharkId, companyHolding } from './privateHolders.js'
 
-const LoanSharkId = 'P12'
 const LoanSharkInterest = 10
 const RateStep = 5
 const LoansPerStep = 5

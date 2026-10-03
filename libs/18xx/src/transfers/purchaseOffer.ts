@@ -153,7 +153,7 @@ export function settlePurchaseOffer(
     offer: PurchaseOffer,
     rules: TransferRules,
     trains: TrainRules
-): void {
+): CashPayment[] {
     const evaluation = evaluatePurchaseOffer(state, offer, rules, trains)
     assert(
         evaluation.buyerPlayerId === offer.buyerPlayerId &&
@@ -166,17 +166,20 @@ export function settlePurchaseOffer(
         { from: owner, to: offer.seller, amount: offer.price }
     ])
     const asset = offer.asset
+    const payments: CashPayment[] = []
     if (asset.kind === 'train') {
         const train = state.trainInventory.trains.find((item) => item.id === asset.trainId)
         assert(train?.status === 'owned', 'The train must still be owned')
-        settleTrainDepartures(state, trains, [
-            {
-                trainId: train.id,
-                definitionId: train.definitionId,
-                cause: 'purchase',
-                owner: { ...train.owner }
-            }
-        ])
+        payments.push(
+            ...settleTrainDepartures(state, trains, [
+                {
+                    trainId: train.id,
+                    definitionId: train.definitionId,
+                    cause: 'purchase',
+                    owner: { ...train.owner }
+                }
+            ])
+        )
         train.owner = owner
         closePrivatesOnTrainPurchase(state, trains, offer.companyId)
     } else {
@@ -192,6 +195,7 @@ export function settlePurchaseOffer(
         delete certificate.poolId
     }
     rules.afterPurchase(state, offer)
+    return payments
 }
 
 function canFund(

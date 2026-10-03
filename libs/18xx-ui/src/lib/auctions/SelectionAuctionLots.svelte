@@ -20,7 +20,6 @@
         return privateLotDetail(session, lot)
     }
     const lots = $derived(model.auction.remainingLotIds.map(lotDetail))
-    // A title that deals its lots into tiers lists each tier that has lots left.
     const tiers = $derived(
         model.tiers
             ? model.tiers
@@ -119,7 +118,7 @@
                         onBid={() => auction.nominate()}
                         onPass={() => auction.choice.clear()}
                     />
-                {:else if model.canPass(playerId)}
+                {:else if auction.passOffered}
                     <button
                         class="pass action-button"
                         disabled={!auction.canPass}

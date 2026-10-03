@@ -38,7 +38,7 @@ import { isLiquidated } from './liquidation.js'
 import { MarketPoolId, treasuryPoolId } from './roundRules.js'
 import { StationPrice } from './stockRules.js'
 import { EighteenSeventeenTrainRules } from './trains.js'
-import { companyHolding } from './privateHolders.js'
+import { StationSubsidyId, companyHolding } from './privateHolders.js'
 
 export const StationLimit = 8
 export const CharterShareCount = 2
@@ -296,7 +296,6 @@ export function stationsOverLimit(state: EighteenXXState, companyId: string): nu
 export type StationPurchase = { stations: number; cost: number; affordable: boolean }
 
 // The Station Subsidy's company pays $50 less for the stations it buys when it converts.
-const StationSubsidyId = 'P21'
 const StationSubsidy = 50
 
 export function stationPurchase(

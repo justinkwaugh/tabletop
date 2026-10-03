@@ -13,7 +13,11 @@ import type { TrainRules } from '../trains/trainPurchase.js'
 import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
 import { nextOperatingCompany, type OperatingRules, type OperatingState } from './operatingSet.js'
 import { BetweenCompaniesState } from './operatingSteps.js'
-import { settleTrainDepartures } from '../trains/trainDepartures.js'
+import {
+    DeparturePayments,
+    departurePaymentsField,
+    settleTrainDepartures
+} from '../trains/trainDepartures.js'
 
 type State = OperatingState & TrainState & PhaseState
 
@@ -42,7 +46,8 @@ const ExportFields = Type.Object({
                         { additionalProperties: false }
                     )
                 ),
-                toPhaseId: Type.Optional(Type.String())
+                toPhaseId: Type.Optional(Type.String()),
+                departurePayments: DeparturePayments
             },
             { additionalProperties: false }
         )
@@ -93,7 +98,7 @@ export class HydratedExportTrains
             }
             return { trainId: train.id, definitionId }
         })
-        settleTrainDepartures(
+        const payments = settleTrainDepartures(
             state,
             this.#trainRules,
             trains.map((train) => ({ ...train, cause: 'export' }))
@@ -103,6 +108,10 @@ export class HydratedExportTrains
             preparePhaseChange(state, phaseStarter.trainId, phaseStarter.definitionId, phaseId, {
                 machineState: BetweenCompaniesState
             })
-        this.metadata = { trains, ...(phaseStarter ? { toPhaseId: phaseId } : {}) }
+        this.metadata = {
+            trains,
+            ...(phaseStarter ? { toPhaseId: phaseId } : {}),
+            ...departurePaymentsField(payments)
+        }
     }
 }

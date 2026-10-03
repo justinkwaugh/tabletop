@@ -1,7 +1,7 @@
 {
   "actionSchemaDigests": {
     "AcquireCompany": "27234f242a1eadc8d6b59b3efda2edd72b01cc898e3be015966cf392057f065c",
-    "AdvancePhase": "c6c8fd9f31c5f61a3c338173a80fb01a820a0508bf46e406b3aa5cf9f4bd8e89",
+    "AdvancePhase": "ee08e411f5b378e80cc16caf6b40ecf49d2201f3c97e26cfe0c9168583109faa",
     "AuctionCompany": "d6e1ab4c05282303f508d784d0cef760c50854d2dea3a8115365735998efe5f3",
     "BidForCompany": "cbdac1504eb19b11350f9ffe4630961ed4d9756ce23ea8610e1d47ff27d7d779",
     "BidForLot": "8ab4c24d5d3df608d5ccef32d6ed194338b5153cec0957bf1cfaebdcfc59a819",
@@ -9,10 +9,10 @@
     "BuyBackShares": "8bc3e8889554550fb768d70bdda039943d7de41882ad04e6ceb4c4f00eb439db",
     "BuyConvertedShare": "181c403d298e970a710a1d2ced34ad732f4e79ceaab6e0da27a5188e653779c4",
     "BuyOwedStations": "c873d00fd4b8c831d5f51106b095a76a7094f6d376d511c90c57f5718fac085b",
-    "BuyPrivateTrain": "696b3122d45f99995e1d55d288ae6e0028d2a22240bccabde6de5184f2f8dd51",
+    "BuyPrivateTrain": "9b4e11415943cc738872bc95dac6370dc30144a941e52256eff33906b7ddccd5",
     "BuyShares": "4895ee63a251abf1bf45accdab50cfb49c0b57c2b59d31bfbb596cb029ffe85b",
-    "BuyTrain": "bcb7e409b1f80088d84dae125904f217c9dccff020d23c48b8a35286db866035",
-    "CloseCompanySale": "5e4414fc8f446859269c8c61c1b994b72826bad9a094b33d8445af44a60c2ea6",
+    "BuyTrain": "61967d721aa857a01e3937e8f7aca36875caf8fd9d6528ec87c1afb1b3b34af3",
+    "CloseCompanySale": "b2760f3381cfec7db7a88e2e9b19b62a5ee490218d5a5cf0eaccbfd2f0d0bf0d",
     "CloseMarketShorts": "e7a95564c786becb6cf7a14c147bf205070c60de16fa335c2234273049db60c3",
     "CloseTrainStation": "02e60e6908c37b973f6736ff9954d08454a3041e250d1a0c1c04fbff96769563",
     "CompleteStockRound": "7f7e57359cd8d0691ee16a31e9801a1eb157cc7e320d298447358e6951372882",
@@ -22,14 +22,14 @@
     "DeclareBankruptcy": "5ca00ef2afae7da19d8382234c57cd00091c69f2ad589e3567a9fa05be5509ed",
     "DeclineOffer": "32057b85393ec27bcc90e7256830d0eaea5c3aeddbca71538009c2a278a52573",
     "DeclinePrivateTile": "c4982db809f4f024354b9e0731dd49c5dcdf66c07687110e8325a3de35e0c8c4",
-    "DiscardMergedTrain": "94d75ae607069e6b79d2ee679764c2de444d0f9552c4dad4f10c3e7f35ee1b69",
-    "DiscardTrain": "8d2c18c38e3ffb08d8e767feedeb10f8cdaa07040957663c99cd38d350c50748",
+    "DiscardMergedTrain": "baa32bcc0c55662a643790d68bc6c39b0bb9af26830dcb2444f276777957a1f0",
+    "DiscardTrain": "e41b1e88ef90e0c6d3dd777c48a2f414147943c32d74b5941ac97ab0cd9acf73",
     "DistributeEarnings": "730b0d2c5db385382646eeb2d6fd54588254ea0e245e4b2fabaaf882755366a6",
     "EndAcquisitionRound": "35ac90cca4983490e56282b501866d15eac5cc7605b4427131093d108c85afde",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "EndMergerRound": "083610f8001cf930908d3d9f76c6ac3e93834732d00a64728d6812927558f09b",
     "ExchangePrivate": "04f1cc7dcb50539f7b72478c94a84f3996458316fc713deec6d5ecb20931dac0",
-    "ExportTrains": "a74484665da190c0d031ec797b964d548437ca92e3f2bed4019508b347a41dbb",
+    "ExportTrains": "7000ed5d4b202237364f4c5bfcdcbeb354c8d6b04d77ff8598202f040f0d5ae0",
     "FinishAcquisitionLoans": "e30e778ac17758d59eec1630746d4d128e999f3642a02df101d0da53381297b3",
     "FinishConversionLoans": "3f76e10e6d8670b996b4dc66f84ffaad222d01ecfbfe8e897f32402ca8c809f6",
     "FinishOperatingTurn": "5e9be2c15f5d19459fbfb1bd77c2c5d5d1a17860434e9ab50c813192dfae400b",
@@ -48,7 +48,7 @@
     "MergeCompanies": "40ef42616a732230e84f6c9faa49c5e7abe4a69f934cd2b200660a0d8f10bab7",
     "NominateLot": "ced79bf0b77f7263a8c0f7add24c6a7a5fef4cd2be2ffc8e85d9260e9b97cbb2",
     "OfferCompany": "4e1ded6ccc5a7434f4178fd06ae7ac96a75eaff788675be4e7dfc54fd6352b96",
-    "OfferPurchase": "51b45483436aeef619c452fa43f86c4d58cc47d99f7aaaaf64359fd7312c23ed",
+    "OfferPurchase": "cd58d86b83e8e319033684cc7d62c300ee590299e9fcd8fbc4975f81820de88f",
     "OpenCompanySale": "89cf80783a6228e7d3f7055653772202c386e25ddc3b832a7c4c25713ef83452",
     "PassCompanyAuction": "4a168b2924b9765af76f47dc46210be9dee7a257007e2d71b81214eb156708a7",
     "PassConvertedShares": "db09690cb190823aefe060d72024527a42acdea1543e385fcfc45b25354b8864",
@@ -64,10 +64,10 @@
     "RepayLoan": "2fab0a1010e7faa0ffa89e0d5e4e0ee85b68f87a72b1a5a44130182e215065a1",
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
     "ResolveSelectionAuction": "374bbdb83f214c608f00156060e4c0b4575c50e8400fd2d6b5cc47cfe386434a",
-    "RespondToPurchaseOffer": "810d8da94e40ac69f609dd9b95bd4d57aa9202bad25f5f1d7258f88acf574680",
+    "RespondToPurchaseOffer": "db23c6369b12bc7fcbe70303c346bd8e4484789d85b1ef2b989e0dbf34712429",
     "RespondToTrackConsent": "8cb4a062bcdd2427018382d8816a93233034ba05a8ed38e5ef0deec33c065eca",
     "RunTrains": "400af6a98bc8ebac73a1b5b917b8210edd476f6517ed68e0684049e9f517b4fc",
-    "RustTrains": "aaaa9fa915db39480aaec4985f0866177bbf1567750725a2b4cba6da35b82bc6",
+    "RustTrains": "d3eed7eeef96d6e106826fc6ac40c5b215be246f16b55ae8798cb3832bda4a06",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellFundingShares": "263e4bc7909651fd7c30a6d9a979cf467c678a207cb93222d5f41f50f0a6951f",
     "SellShares": "34e4448309811eec820fc4f20d58bac48d162be3498c081075b444c5416e9bd0",
@@ -2701,6 +2701,139 @@
             "definitionId": {
               "minLength": 1,
               "type": "string"
+            },
+            "departurePayments": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "amount": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "from": {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "const": "player",
+                                "type": "string"
+                              },
+                              "playerId": {
+                                "minLength": 1,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "playerId"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "companyId": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "company",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "companyId",
+                              "kind"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "bank",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "to": {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "const": "player",
+                                "type": "string"
+                              },
+                              "playerId": {
+                                "minLength": 1,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "playerId"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "companyId": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "kind": {
+                                "const": "company",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "companyId",
+                              "kind"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "bank",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "amount",
+                  "from",
+                  "to"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
             },
             "fromPhaseId": {
               "minLength": 1,

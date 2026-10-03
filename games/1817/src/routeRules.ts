@@ -5,8 +5,8 @@ import { eighteenSeventeenOptions } from './state.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenPhases, EighteenSeventeenTrainDepot } from './trains.js'
 
-const MineBonus = 10
-const RanchBonus = 10
+// Every route earns this for each mine or ranch hex it passes through.
+const HexMarkerBonuses: Readonly<Record<string, number>> = { [MineMarker]: 10, [RanchMarker]: 10 }
 const BridgeBonus = 10
 // With Modern Trains, what a train earns more at each city with its company's station.
 const ModernTrainBonus: Readonly<Record<string, number>> = { '7': 10, '8': 20 }
@@ -19,8 +19,10 @@ export const EighteenSeventeenRouteRules: RouteRules = {
     requiresCity: () => false,
     oneStopPerHex: true,
     hexBonus: (state, locationId) =>
-        (locationMarkers(state, { locationId, kind: MineMarker }).length ? MineBonus : 0) +
-        (locationMarkers(state, { locationId, kind: RanchMarker }).length ? RanchBonus : 0),
+        locationMarkers(state, { locationId }).reduce(
+            (sum, marker) => sum + (HexMarkerBonuses[marker.kind] ?? 0),
+            0
+        ),
     stopBonus(state, train, companyId, center) {
         const bridge = locationMarkers(state, { locationId: center.locationId, kind: BridgeMarker })
             .length

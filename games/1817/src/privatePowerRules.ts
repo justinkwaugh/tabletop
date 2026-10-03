@@ -165,7 +165,7 @@ function facesStop(state: CompanyDecisionState, request: TrackRequest): string |
     const definition = EighteenSeventeenTileSet.definitions.find(
         (tile) => tile.id === request.definitionId
     )
-    assertExists(definition, 'A mine is one of its private’s tiles')
+    assertExists(definition, 'A mine or ranch is one of its private’s tiles')
     const map = mapState(state)
     const edges = rotateTileFace(definition.face, request.rotation).paths.flatMap((path) =>
         path.endpoints.flatMap((endpoint) => (endpoint.kind === 'edge' ? [endpoint.edge] : []))

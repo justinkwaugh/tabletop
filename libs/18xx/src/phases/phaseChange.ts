@@ -13,7 +13,11 @@ import {
     type TrainPurchaseState
 } from '../trains/train.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
-import { settleTrainDepartures, type TrainDeparture } from '../trains/trainDepartures.js'
+import {
+    DeparturePayments,
+    settleTrainDepartures,
+    type TrainDeparture
+} from '../trains/trainDepartures.js'
 const Id = Type.String({ minLength: 1 })
 export const PhaseOccurrence = Type.Object(
     { id: Id, trainId: Id, definitionId: Id, fromPhaseId: Id, toPhaseId: Id },
@@ -25,7 +29,8 @@ export const PhaseEvent = Type.Object(
         ...PhaseOccurrence.properties,
         privateEffects: Type.Array(PrivateEffect),
         rustedTrainIds: Type.Array(Id),
-        pendingRustTrainIds: Type.Array(Id)
+        pendingRustTrainIds: Type.Array(Id),
+        departurePayments: DeparturePayments
     },
     { additionalProperties: false }
 )
@@ -129,7 +134,8 @@ export function advancePhase(
         }
         return train
     })
-    settleTrainDepartures(state, trainRules, departures)
+    const payments = settleTrainDepartures(state, trainRules, departures)
+    if (payments.length) event.departurePayments = payments
     state.phaseEvents.push(event)
     change.discardCompanyIds = rules
         .discardOrder(state, change.continuation.companyId)

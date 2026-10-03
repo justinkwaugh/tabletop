@@ -5,47 +5,31 @@ import {
     getCompany,
     locationMarkers,
     placeLocationMarker,
+    placeStockMarker,
     privateTrackConstruction,
+    sameOwner,
     type CompanyDecisionState,
     type EighteenXXState,
     type Owner
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
-    EighteenSeventeenPrivateCatalog,
     EighteenSeventeenPrivatePowerRules,
     EighteenSeventeenRouteRules,
     EighteenSeventeenStockRules,
     EighteenSeventeenTrainDepot,
     EighteenSeventeenTrackRules,
     EighteenSeventeenTrainRules,
+    recordPrivateLay,
     stationPurchase
 } from './index.js'
 import { mergerRoundCompanyId } from './mergerRound.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
 import { passUntil } from '../test/passTurns.js'
+import { addPrivate } from '../test/privates.js'
 
 const company = (companyId: string) => ({ kind: 'company' as const, companyId })
 const player = (playerId: string) => ({ kind: 'player' as const, playerId })
-
-/** Brings a Volatility private into a prepared game, held by the given owner. */
-function addPrivate(state: EighteenXXState, privateId: string, owner: Owner) {
-    const definition = EighteenSeventeenPrivateCatalog.definition(privateId)
-    state.companies.push({
-        id: privateId,
-        name: definition.name,
-        kind: 'private',
-        privateRevenue: 0
-    })
-    state.certificates.push({
-        id: `${privateId}:charter`,
-        companyId: privateId,
-        kind: 'private',
-        certificateLimitCount: 1,
-        retired: false,
-        owner
-    })
-}
 
 const cash = (play: ExamplePlay, owner: Owner) => finiteCashOwnedBy(play.state, owner)
 
@@ -77,6 +61,28 @@ describe('the Loan Shark', () => {
         play.act('FinishTrains', { companyId: 'BA' })
         expect(play.state.machineState).toBe('RepayingLoans')
         expect(cash(play, company('BA'))).toBe(before - 10)
+    })
+})
+
+describe('the Loan Shark’s interest', () => {
+    it('is owed with the loans’ when the company cannot pay at its limit', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) => {
+            state.interestRate = 10
+            getCompany(state, 'PLE').loans = 2
+            addPrivate(state, 'P12', company('PLE'))
+            for (const entry of state.cash)
+                if (
+                    sameOwner(entry.owner, company('PLE')) ||
+                    sameOwner(entry.owner, player('alex'))
+                )
+                    entry.amount = 0
+        })
+        play.act('FinishTrack', { companyId: 'BA' })
+        play.act('FinishTrains', { companyId: 'BA' })
+        play.act('FinishOperatingTurn', { companyId: 'BA' })
+        play.act('FinishTrack', { companyId: 'PLE' })
+        // $20 on two loans at 10%, and the Loan Shark's $10.
+        expect(play.state.cashCrisis?.debts).toEqual([{ playerId: 'alex', amount: 30 }])
     })
 })
 
@@ -143,6 +149,41 @@ describe('the Inventor and the Scrapper', () => {
             { from: { kind: 'bank' }, to: company('BA'), amount: 75 }
         ])
         expect(rust(company('PLE'))).toEqual([])
+    })
+})
+
+describe('the Scrapper in play', () => {
+    it('is paid for each of its company’s 2s the export of the first 4 rusts', () => {
+        const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) => {
+            state.phaseId = '3'
+            addPrivate(state, 'P15', company('BA'))
+            const give = (definitionId: string) => {
+                const index = state.trainInventory.trains.findIndex(
+                    (train) => train.status === 'depot' && train.definitionId === definitionId
+                )
+                state.trainInventory.trains[index] = {
+                    ...state.trainInventory.trains[index],
+                    status: 'owned',
+                    owner: company('BA')
+                }
+            }
+            give('3')
+            state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+                train.status === 'depot' && ['2', '2+', '3'].includes(train.definitionId)
+                    ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
+                    : train
+            )
+        })
+        const twos = play.state.trainInventory.trains.filter(
+            (train) =>
+                train.status === 'owned' &&
+                sameOwner(train.owner, company('BA')) &&
+                train.definitionId === '2'
+        ).length
+        passUntil(play, (state) => state.phaseId === '4')
+        expect(play.state.phaseEvents.at(-1)?.departurePayments).toEqual(
+            Array(twos).fill({ from: { kind: 'bank' }, to: company('BA'), amount: 30 })
+        )
     })
 })
 
@@ -267,7 +308,9 @@ describe('ranches and the city-tile privates', () => {
         const play = pittsburghTurn((state) => {
             addPrivate(state, 'P24', company('PLE'))
             addPrivate(state, 'P23', company('PLE'))
+            // The Rural Ranch has already made one of its lays, beside Indianapolis.
             placeLocationMarker(state, { locationId: 'E4', kind: 'ranch', privateCompanyId: 'P23' })
+            recordPrivateLay(state, 'P23')
         })
         privateLay(play, 'P24', 'F3')
         expect(play.state.tileInventory.placements['F3']).toMatchObject({
@@ -288,5 +331,41 @@ describe('ranches and the city-tile privates', () => {
             })
         )
         expect(reasons).toContain('A ranch may not be laid beside a city tile.')
+    })
+})
+
+describe('a bank liquidation', () => {
+    // PLE runs a 3-train; the 2s exported after the round were paid for already.
+    function liquidated(privateIds: readonly string[]) {
+        const play = playExample(EighteenSeventeenScenarios, 'construction', 3, (state) => {
+            placeStockMarker(state.stockMarket, 'PLE', '0:0')
+            for (const privateId of privateIds) addPrivate(state, privateId, company('PLE'))
+            Object.assign(state, { inventorPaid: ['2'] })
+            const three = state.trainInventory.trains.findIndex(
+                (train) => train.status === 'depot' && train.definitionId === '3'
+            )
+            state.trainInventory.trains = state.trainInventory.trains.map((train, index) =>
+                index === three
+                    ? { ...train, status: 'owned', owner: company('PLE') }
+                    : train.status === 'owned' && sameOwner(train.owner, company('PLE'))
+                      ? { id: train.id, definitionId: train.definitionId, status: 'removed' }
+                      : train
+            )
+        })
+        passUntil(play, (state) => state.machineState === 'MergerRound')
+        while (play.state.machineState === 'MergerRound')
+            play.act('PassMerger', { companyId: mergerRoundCompanyId(play.state) })
+        const before = cash(play, company('PLE'))
+        play.act('PassOnCompany', { companyId: 'PLE' })
+        return { alex: cash(play, player('alex')), inventor: cash(play, company('PLE')) - before }
+    }
+
+    it('pays the Inventor for the company’s trains', () => {
+        expect(liquidated(['P14']).inventor).toBe(30)
+        expect(liquidated([]).inventor).toBe(0)
+    })
+
+    it('pays the Golden Parachute to the company’s president', () => {
+        expect(liquidated(['P20']).alex).toBe(liquidated([]).alex + 100)
     })
 })

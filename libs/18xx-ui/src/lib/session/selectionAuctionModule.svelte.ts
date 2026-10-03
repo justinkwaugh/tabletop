@@ -44,6 +44,8 @@ export class SelectionAuctionModule {
     )
     /** The player whose nomination, bid or pass the auction awaits. */
     playerId = $derived.by(() => (this.active ? this.model?.playerId : undefined))
+    /** Whether the rules let that player pass now, which decides whether Pass is offered. */
+    passOffered = $derived.by(() => !!this.playerId && !!this.model?.canPass(this.playerId))
 
     canNominate(lotId: string, amount: number): boolean {
         const model = this.model

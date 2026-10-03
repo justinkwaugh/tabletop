@@ -12,7 +12,11 @@ import {
 } from '@tabletop/common'
 import { trainsOwnedBy, unownedTrain, type TrainState } from './train.js'
 import type { TrainRunningState } from '../routes/route.js'
-import { settleTrainDepartures } from './trainDepartures.js'
+import {
+    DeparturePayments,
+    departurePaymentsField,
+    settleTrainDepartures
+} from './trainDepartures.js'
 import type { TrainRules } from './trainPurchase.js'
 export function trainsRustingAfterOperation(state: TrainState, companyId: string) {
     return trainsOwnedBy(state, { kind: 'company', companyId }).filter(
@@ -23,7 +27,10 @@ const Fields = Type.Object({
     type: Type.Literal('RustTrains'),
     companyId: Type.String(),
     metadata: Type.Optional(
-        Type.Object({ trainIds: Type.Array(Type.String()) }, { additionalProperties: false })
+        Type.Object(
+            { trainIds: Type.Array(Type.String()), departurePayments: DeparturePayments },
+            { additionalProperties: false }
+        )
     )
 })
 export const RustTrains: Type.TObject<
@@ -55,7 +62,7 @@ export class HydratedRustTrains extends HydratableAction<typeof RustTrains> impl
         const rusting = trainsRustingAfterOperation(state, this.companyId)
         const ids = rusting.map((train) => train.id)
         assert(ids.length, 'No trains rust after this operation')
-        settleTrainDepartures(
+        const payments = settleTrainDepartures(
             state,
             this.#rules,
             rusting.map((train) => ({
@@ -68,7 +75,7 @@ export class HydratedRustTrains extends HydratableAction<typeof RustTrains> impl
         state.trainInventory.trains = state.trainInventory.trains.map((train) =>
             ids.includes(train.id) ? unownedTrain(train, 'removed') : train
         )
-        this.metadata = { trainIds: ids }
+        this.metadata = { trainIds: ids, ...departurePaymentsField(payments) }
     }
 }
 type State = HydratedGameState & TrainRunningState

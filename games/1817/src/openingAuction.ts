@@ -65,10 +65,10 @@ function isolatedNeighbours(pyramid: Pyramid, soldLotId: string): string[] {
     const row = pyramid.find((tier) => tier.includes(soldLotId))
     assertExists(row, 'A sold lot is in the pyramid')
     const sold = row.indexOf(soldLotId)
-    const live = (index: number) => index !== sold && !!row[index]
+    const unsold = (index: number) => index !== sold && !!row[index]
     return [-1, 1].flatMap((step) => {
         const lotId = row[sold + step]
-        return lotId && live(sold + step) && !live(sold + 2 * step) ? [lotId] : []
+        return lotId && unsold(sold + step) && !unsold(sold + 2 * step) ? [lotId] : []
     })
 }
 

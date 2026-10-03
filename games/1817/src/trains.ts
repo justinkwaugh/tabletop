@@ -1,6 +1,6 @@
 import { PhaseTable, TrainDepot, type CashPayment, type TrainRules } from '@tabletop/18xx'
 import { inventorPaid } from './state.js'
-import { companyHolding } from './privateHolders.js'
+import { InventorId, ScrapperId, companyHolding } from './privateHolders.js'
 
 const train = (id: string, price: number, rustsOn?: string) => ({
     id,
@@ -67,7 +67,6 @@ export const EighteenSeventeenCompanySizes: Readonly<Record<string, readonly num
     '8': [10]
 }
 
-const InventorId = 'P14'
 const InventorPayouts: Readonly<Record<string, number>> = {
     '2': 20,
     '3': 30,
@@ -77,7 +76,6 @@ const InventorPayouts: Readonly<Record<string, number>> = {
     '7': 70,
     '8': 80
 }
-const ScrapperId = 'P15'
 const ScrapValues: Readonly<Record<string, number>> = { '2': 30, '2+': 30, '3': 75, '4': 150 }
 const bankPays = (companyId: string, amount: number): CashPayment => ({
     from: { kind: 'bank' },

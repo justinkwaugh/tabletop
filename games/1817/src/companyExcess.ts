@@ -13,10 +13,13 @@ import {
 } from '@tabletop/common'
 import {
     unownedTrain,
+    DeparturePayments,
+    settleTrainDepartures,
     type EighteenXXState,
     type EighteenXXStateHandler,
     type HydratedEighteenXXState
 } from '@tabletop/18xx'
+import { EighteenSeventeenTrainRules } from './trains.js'
 import { stateAfterAcquisition } from './acquisitionRound.js'
 import { stateAfterConversion } from './mergerRound.js'
 import { discardableTrains, presidentOf, removableStations } from './mergerRules.js'
@@ -84,7 +87,14 @@ export class HydratedRemoveStation
 }
 
 export const DiscardMergedTrain = Type.Object(
-    { ...CompanyFields, type: Type.Literal('DiscardMergedTrain'), trainId: Type.String() },
+    {
+        ...CompanyFields,
+        type: Type.Literal('DiscardMergedTrain'),
+        trainId: Type.String(),
+        metadata: Type.Optional(
+            Type.Object({ departurePayments: DeparturePayments }, { additionalProperties: false })
+        )
+    },
     { additionalProperties: false }
 )
 export type DiscardMergedTrain = Type.Static<typeof DiscardMergedTrain>
@@ -103,6 +113,7 @@ export class HydratedDiscardMergedTrain
     declare playerId: string
     declare companyId: string
     declare trainId: string
+    declare metadata?: DiscardMergedTrain['metadata']
     constructor(data: DiscardMergedTrain) {
         super(
             data instanceof HydratedDiscardMergedTrain ? data.dehydrate() : data,
@@ -120,9 +131,20 @@ export class HydratedDiscardMergedTrain
             this.source === ActionSource.User && this.isValidFor(state),
             'Only the president of the company over its limit discards its trains'
         )
-        state.trainInventory.trains = state.trainInventory.trains.map((train) =>
-            train.id === this.trainId ? unownedTrain(train, 'market') : train
+        const train = state.trainInventory.trains.find((entry) => entry.id === this.trainId)
+        assertExists(train, 'The discarded train exists')
+        const payments = settleTrainDepartures(state, EighteenSeventeenTrainRules, [
+            {
+                trainId: train.id,
+                definitionId: train.definitionId,
+                cause: 'discard',
+                owner: { kind: 'company', companyId: this.companyId }
+            }
+        ])
+        state.trainInventory.trains = state.trainInventory.trains.map((entry) =>
+            entry.id === this.trainId ? unownedTrain(entry, 'market') : entry
         )
+        if (payments.length) this.metadata = { departurePayments: payments }
     }
 }
 

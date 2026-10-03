@@ -13,6 +13,8 @@ import {
 } from '@tabletop/common'
 import {
     CashPayment,
+    DeparturePayments,
+    departurePaymentsField,
     LoanRecord,
     PassableBidding,
     StockMarketMove,
@@ -40,7 +42,7 @@ import {
     canRepayAcquiredLoan,
     holdAside,
     liquidateByBank,
-    payGoldenParachute,
+    parachuteOnLiquidation,
     repayAcquiredLoan,
     moveBuyerForUnpaidLoans,
     settleHolders
@@ -563,7 +565,8 @@ const CloseFields = Type.Object({
             {
                 trainIds: Type.Array(Type.String()),
                 settlement: Settlement,
-                parachute: Type.Optional(CashPayment)
+                parachute: Type.Optional(CashPayment),
+                departurePayments: DeparturePayments
             },
             { additionalProperties: false }
         )
@@ -606,10 +609,11 @@ export class HydratedCloseCompanySale
         const sale = requireSale(state)
         delete requireRound(state).sale
         if (sale.kind !== 'liquidation') return
-        const parachute = payGoldenParachute(state, sale.companyId)
-        const trainIds = liquidateByBank(state, sale.companyId)
+        const parachute = parachuteOnLiquidation(state, sale.companyId)
+        const { trainIds, payments } = liquidateByBank(state, sale.companyId)
         this.metadata = {
             trainIds,
+            ...departurePaymentsField(payments),
             settlement: settleHolders(state, sale.companyId, 0, sale.heldAside),
             ...(parachute ? { parachute } : {})
         }

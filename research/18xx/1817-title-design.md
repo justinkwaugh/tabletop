@@ -1607,9 +1607,10 @@ replay of the recorded bankruptcy game, which uses the option.
   company.
 - **Ponzi Scheme** (P13, $100). It does nothing: it closes when its company forms, so
   it is $100 of bid credit.
-- **Inventor** (P14, $70). The first time each train type 2 to 8 leaves the depot or is
-  exported, rusted or sold between companies while a company owns the Inventor, the bank
-  pays that company $10 times the type (2+ pays nothing). Each amount is paid once.
+- **Inventor** (P14, $70). The first time each train type 2 to 8 leaves the depot or a
+  company (bought, exported, rusted, sold between companies, or discarded, including a
+  bank liquidation's trains) while a company owns the Inventor, the bank pays that company
+  $10 times the type (2+ pays nothing). Each amount is paid once.
 - **Scrapper** (P15, $40). When its company's trains rust, the bank pays $30 for a 2 or
   2+, $75 for a 3 and $150 for a 4, including 2+ trains removed after they run.
 - **City-tile privates** (P16 C14, P17 D7, P24 F3; the Steel Mill F13; $40 each). Each
@@ -1665,10 +1666,11 @@ are rules of the 1817 family.
   (lot ids, with removed and sold slots marked) and computes the nominable row. The
   family selection auction gains:
     - `passingWhileNominating(state)` in place of the fixed flag;
-    - `afterAward(state, lotId)`, returning lots it removes from the game, recorded
+    - `tiers(state)`, the lots in the tiers the table shows;
+    - `lotsRemovedBy(state, award)`, the lots an award removes from the game, recorded
       in the resolution so history can name them;
-    - `nominatorAfterAward(state, winnerId)`, defaulting to the player after the
-      previous nominator.
+    - `nominationFollowsWinner(state)`, whether the player after the winner rather than
+      after the nominator nominates next.
   Under Volatility 1817 leaves seed money out, opens bids at $0 and pays the
   difference from the bank at formation as before. The table shows the pyramid's rows,
   and a nomination works without a pass.
@@ -1677,10 +1679,10 @@ are rules of the 1817 family.
       `LoanRules.extraInterest(state, companyId)` adds the $10 to the interest owed, so
       a company without loans also pays, borrows or defaults.
     - Ponzi Scheme: closes at formation.
-    - Inventor and Scrapper: a new optional `TrainRules.trainEvents(state, events)`
-      returns payments for trains bought from the depot, exported, rusted or sold
-      between companies; 1817 pays the Inventor's unclaimed types, recorded in title
-      state, and the Scrapper's rust values.
+    - Inventor and Scrapper: a new optional `TrainRules.afterTrainsDepart(state,
+      departures)` returns payments for trains bought, sold between companies, exported,
+      rusted or discarded; each action records them; 1817 pays the Inventor's unclaimed
+      types, recorded in title state, and the Scrapper's rust values.
     - Express and Efficient Track: in 1817's `allowance`.
     - Golden Parachute: in 1817's acquisition settlement and bank liquidation, recorded
       in their metadata.
@@ -1722,12 +1724,15 @@ are rules of the 1817 family.
   charges interest whenever any is owed, loans or not. `TrainRules.afterTrainsDepart`
   receives each train leaving the depot or an owner (bought, sold between companies,
   exported or rusted, with its previous owner) and returns what the bank pays;
-  `settleTrainDepartures` calls it from every such place. `removeLocationMarkers`
-  clears markers.
+  `settleTrainDepartures` calls it from every such place, and the action records what was
+  paid as `departurePayments` (a phase change in its event). Discards count: the family's
+  train-limit discard, and 1817's merged-train discard and bank liquidation.
+  `removeLocationMarkers` clears markers.
 - **Lay powers.** The city-tile privates share one entry per city, and the Steel Mill's
   closure and X00 restriction now apply to whichever is in the game. Lays are counted in
   `privateLays` title state rather than by markers, since a ranch can be removed. Ranches
-  restrict like mines and refuse a hex beside a B-labelled tile.
+  restrict like mines and refuse a hex beside a B-labelled tile. 1817 has not been released, so
+  no stored game counted its mines by markers.
 - **Payments.** The Loan Shark's $60 and the Ponzi Scheme's closure happen in 1817's
   formation; Inventor payouts are recorded in `inventorPaid`; the Golden Parachute is
   recorded in the acquisition and bank liquidation metadata. A conversion whose stations
@@ -1749,7 +1754,9 @@ Differences found by replay, fixed in the rules:
   order. Ours went through the roster.
 - **A liquidated company's sale starts left of the president bankruptcy took from it**
   ([acquire]), who is recorded as its former president in title state. Ours started from
-  the first player in turn order.
+  the first player in turn order. Upstream records the owner each time it liquidates a
+  company, and bankruptcy liquidates every company the player presides, so the bankrupt
+  player is the one it starts from too.
 
 Bridged in the converter: upstream moves a liquidated company's loans out of it as its sale
 opens, ours as it settles; both end alike.

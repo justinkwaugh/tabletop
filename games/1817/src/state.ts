@@ -26,10 +26,14 @@ export const Conversion = Type.Object(
 export type Conversion = Type.Static<typeof Conversion>
 export const ClosingZone = Type.Union([Type.Literal('acquisition'), Type.Literal('liquidation')])
 export type ClosingZone = Type.Static<typeof ClosingZone>
-/** The merger and conversion round that follows an operating round. */
 /** How many lays each private with lay powers has made, since a ranch can later be removed. */
 export const PrivateLays = Type.Record(Type.String(), Type.Integer({ minimum: 1 }))
 export type PrivateLays = Type.Static<typeof PrivateLays>
+/** The train types whose Inventor payout has been made. */
+export const InventorPaid = Type.Array(Type.String())
+/** The presidents bankruptcy took from their companies, by company. */
+export const FormerPresidents = Type.Record(Type.String(), Type.String())
+export type FormerPresidents = Type.Static<typeof FormerPresidents>
 
 /**
  * The Volatility auction's tiers, the single top lot first. A sold or removed lot leaves an empty
@@ -38,6 +42,7 @@ export type PrivateLays = Type.Static<typeof PrivateLays>
 export const Pyramid = Type.Array(Type.Array(Type.Union([Type.String(), Type.Null()])))
 export type Pyramid = Type.Static<typeof Pyramid>
 
+/** The merger and conversion round that follows an operating round. */
 export const MergerRound = Type.Object(
     {
         set: Type.Integer({ minimum: 1 }),
@@ -123,10 +128,8 @@ const EighteenSeventeenState = extendEighteenXXState(
         volatility: Type.Optional(Type.Literal(true)),
         pyramid: Type.Optional(Pyramid),
         privateLays: Type.Optional(PrivateLays),
-        // The train types whose Inventor payout has been made.
-        inventorPaid: Type.Optional(Type.Array(Type.String())),
-        // The presidents bankruptcy took from their companies, by company.
-        formerPresidents: Type.Optional(Type.Record(Type.String(), Type.String())),
+        inventorPaid: Type.Optional(InventorPaid),
+        formerPresidents: Type.Optional(FormerPresidents),
         mergerRound: Type.Optional(MergerRound),
         acquisitionRound: Type.Optional(AcquisitionRound)
     },
@@ -135,7 +138,8 @@ const EighteenSeventeenState = extendEighteenXXState(
 const Validator = Compile(EighteenSeventeenState)
 const PyramidValidator = Compile(Pyramid)
 const PrivateLaysValidator = Compile(PrivateLays)
-const InventorPaidValidator = Compile(Type.Array(Type.String()))
+const InventorPaidValidator = Compile(InventorPaid)
+const FormerPresidentsValidator = Compile(FormerPresidents)
 const MergerRoundValidator = Compile(MergerRound)
 const AcquisitionRoundValidator = Compile(AcquisitionRound)
 
@@ -155,10 +159,8 @@ export function recordPrivateLay(state: object, privateId: string): void {
     Object.assign(state, { privateLays: { ...lays, [privateId]: (lays[privateId] ?? 0) + 1 } })
 }
 
-const FormerPresidentsValidator = Compile(Type.Record(Type.String(), Type.String()))
-
 // A game without the record has had no president taken by bankruptcy.
-function formerPresidentsOf(state: object): Record<string, string> {
+function formerPresidentsOf(state: object): FormerPresidents {
     if (!('formerPresidents' in state)) return {}
     assert(FormerPresidentsValidator.Check(state.formerPresidents), 'Invalid former presidents')
     return state.formerPresidents
@@ -247,7 +249,7 @@ export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
     declare pyramid?: Pyramid
     declare privateLays?: PrivateLays
     declare inventorPaid?: string[]
-    declare formerPresidents?: Record<string, string>
+    declare formerPresidents?: FormerPresidents
     declare mergerRound?: MergerRound
     declare acquisitionRound?: AcquisitionRound
     constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {

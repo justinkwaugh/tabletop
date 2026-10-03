@@ -10,6 +10,8 @@ import {
 } from '@tabletop/common'
 import { pendingCompanyDecision, type CompanyDecisionState } from '../privates/companyDecision.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
+import type { CashPayment } from '../finance/cashPayments.js'
+import { DeparturePayments, departurePaymentsField } from '../trains/trainDepartures.js'
 import {
     offerSaleRequest,
     privateSaleReason,
@@ -30,7 +32,13 @@ export const OfferPurchase = Type.Object(
         ...PlayerAction.properties,
         ...PurchaseOfferRequest.properties,
         type: Type.Literal('OfferPurchase'),
-        metadata: Type.Optional(Type.Object({ offer: PurchaseOffer, accepted: Type.Boolean() }))
+        metadata: Type.Optional(
+            Type.Object({
+                offer: PurchaseOffer,
+                accepted: Type.Boolean(),
+                departurePayments: DeparturePayments
+            })
+        )
     },
     { additionalProperties: false }
 )
@@ -77,9 +85,11 @@ export class HydratedOfferPurchase
             sellerPlayerId: result.sellerPlayerId
         }
         const accepted = offer.buyerPlayerId === offer.sellerPlayerId
-        if (accepted) settlePurchaseOffer(state, offer, this.#rules, this.#trains)
-        else state.purchaseOffer = offer
-        this.metadata = { offer, accepted }
+        const payments = accepted
+            ? settlePurchaseOffer(state, offer, this.#rules, this.#trains)
+            : []
+        if (!accepted) state.purchaseOffer = offer
+        this.metadata = { offer, accepted, ...departurePaymentsField(payments) }
     }
 }
 export const RespondToPurchaseOffer = Type.Object(
@@ -89,7 +99,11 @@ export const RespondToPurchaseOffer = Type.Object(
         offerId: Type.String(),
         accept: Type.Boolean(),
         metadata: Type.Optional(
-            Type.Object({ offer: PendingPurchaseOffer, accepted: Type.Boolean() })
+            Type.Object({
+                offer: PendingPurchaseOffer,
+                accepted: Type.Boolean(),
+                departurePayments: DeparturePayments
+            })
         )
     },
     { additionalProperties: false }
@@ -144,14 +158,16 @@ export class HydratedRespondToPurchaseOffer
     apply(state: HydratedGameState & CompanyDecisionState): void {
         assert(this.isValid(state), 'Invalid or stale purchase response')
         const offer = state.purchaseOffer!
+        const payments: CashPayment[] = []
         if (isCompanyPurchaseOffer(offer)) {
-            if (this.accept) settlePurchaseOffer(state, offer, this.#rules, this.#trains)
+            if (this.accept)
+                payments.push(...settlePurchaseOffer(state, offer, this.#rules, this.#trains))
         } else {
             if (this.accept) settlePlayerPurchaseOffer(state, offer, this.#stocks)
             state.activePlayerIds = [offer.buyerPlayerId]
         }
         delete state.purchaseOffer
-        this.metadata = { offer, accepted: this.accept }
+        this.metadata = { offer, accepted: this.accept, ...departurePaymentsField(payments) }
     }
 }
 

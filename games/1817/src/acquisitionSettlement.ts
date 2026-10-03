@@ -15,14 +15,17 @@ import {
     repayLoan,
     resetCompany,
     sameOwner,
+    settleTrainDepartures,
     settleCashPayments,
     shareholderPayout,
     takeLoan,
     transferCompanyAssets,
     turnOrderFrom,
+    trainsOwnedBy,
     unownedTrain,
     type EighteenXXState
 } from '@tabletop/18xx'
+import { EighteenSeventeenTrainRules } from './trains.js'
 import {
     companyCash,
     inheritedLoans,
@@ -32,38 +35,45 @@ import {
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { CharterShareCount, trimStations } from './mergerRules.js'
 import type { Acquisition, HeldAside, SaleTerms } from './state.js'
-import { companyHolding } from './privateHolders.js'
+import { GoldenParachuteId, companyHolding } from './privateHolders.js'
 
 const Loans = EighteenSeventeenLoanRules
 // Repaying the loans an acquisition brings moves no price.
 const { repayMove: _repayMove, ...RepaymentInPlace } = Loans
 
-const GoldenParachuteId = 'P20'
 const GoldenParachuteValue = 100
 
-/**
- * The Golden Parachute pays its company's president when the bank liquidates the company, or a
- * company with another president acquires it.
- */
-export function payGoldenParachute(
-    state: EighteenXXState,
-    companyId: string,
-    buyerId?: string
-): CashPayment | undefined {
-    if (companyHolding(state, GoldenParachuteId) !== companyId) return undefined
-    const president = controllingOwner(state, companyId)
-    if (
-        !president ||
-        (buyerId && controllingOwner(state, buyerId)?.playerId === president.playerId)
-    )
-        return undefined
+function payGoldenParachute(state: EighteenXXState, playerId: string): CashPayment {
     const payment = {
         from: { kind: 'bank' as const },
-        to: { kind: 'player' as const, playerId: president.playerId },
+        to: { kind: 'player' as const, playerId },
         amount: GoldenParachuteValue
     }
     settleCashPayments(state, [payment])
     return payment
+}
+
+/** The Golden Parachute pays its company's president when another president's company buys it. */
+export function parachuteOnAcquisition(
+    state: EighteenXXState,
+    companyId: string,
+    buyerId: string
+): CashPayment | undefined {
+    if (companyHolding(state, GoldenParachuteId) !== companyId) return undefined
+    const president = controllingOwner(state, companyId)
+    if (!president || controllingOwner(state, buyerId)?.playerId === president.playerId)
+        return undefined
+    return payGoldenParachute(state, president.playerId)
+}
+
+/** It also pays when the bank liquidates its company, if the company still has a president. */
+export function parachuteOnLiquidation(
+    state: EighteenXXState,
+    companyId: string
+): CashPayment | undefined {
+    if (companyHolding(state, GoldenParachuteId) !== companyId) return undefined
+    const president = controllingOwner(state, companyId)
+    return president ? payGoldenParachute(state, president.playerId) : undefined
 }
 
 export const AcquisitionRecord = Type.Object(
@@ -92,7 +102,7 @@ export function acquireCompany(
     buyerId: string,
     price: number
 ): AcquisitionRecord {
-    const parachute = payGoldenParachute(state, sale.companyId, buyerId)
+    const parachute = parachuteOnAcquisition(state, sale.companyId, buyerId)
     const compensation = treasuryCompensation(state, sale.companyId, sale.kind)
     const treasuryPayment = compensation
         ? {
@@ -221,15 +231,30 @@ export function holdAside(state: EighteenXXState, companyId: string): HeldAside 
     return { cash, loans: companyLoans(state, companyId) }
 }
 
-/** With no buyer, a liquidated company's trains leave play and its privates close. */
-export function liquidateByBank(state: EighteenXXState, companyId: string): string[] {
+/**
+ * With no buyer, a liquidated company's trains leave play, which may pay its Inventor, and then
+ * its privates close.
+ */
+export function liquidateByBank(
+    state: EighteenXXState,
+    companyId: string
+): { trainIds: string[]; payments: CashPayment[] } {
     const owner = { kind: 'company' as const, companyId }
-    const trainIds: string[] = []
-    state.trainInventory.trains = state.trainInventory.trains.map((train) => {
-        if (train.status !== 'owned' || !sameOwner(train.owner, owner)) return train
-        trainIds.push(train.id)
-        return unownedTrain(train, 'removed')
-    })
+    const trains = trainsOwnedBy(state, owner)
+    const payments = settleTrainDepartures(
+        state,
+        EighteenSeventeenTrainRules,
+        trains.map((train) => ({
+            trainId: train.id,
+            definitionId: train.definitionId,
+            cause: 'discard',
+            owner
+        }))
+    )
+    const trainIds = trains.map((train) => train.id)
+    state.trainInventory.trains = state.trainInventory.trains.map((train) =>
+        trainIds.includes(train.id) ? unownedTrain(train, 'removed') : train
+    )
     const privateIds = state.certificates.flatMap((certificate) =>
         !certificate.retired &&
         certificate.kind === 'private' &&
@@ -238,5 +263,5 @@ export function liquidateByBank(state: EighteenXXState, companyId: string): stri
             : []
     )
     for (const privateId of privateIds) closePrivate(state, privateId)
-    return trainIds
+    return { trainIds, payments }
 }

@@ -14,11 +14,11 @@ import { CityTile, MineMarker, RanchMarker } from './privatePowerRules.js'
 import { CityTilePrivates } from './privates.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenPhases } from './trains.js'
-import { companyHolding } from './privateHolders.js'
+import { EfficientTrackId, ExpressTrackId, companyHolding, privateOpen } from './privateHolders.js'
 
 const SecondLayCost = 20
-const ExpressTrackId = 'P18'
-const EfficientTrackId = 'P19'
+const ExpressFirstLayCost = 10
+const EfficientSecondLayCost = 10
 const BridgeDiscount = 10
 const BridgePrivateIds = ['OBC', 'UBC']
 const MountainEngineersId = 'MTE'
@@ -42,7 +42,7 @@ function closedCityTilePrivates(state: ConstructionState, details: TrackLayDetai
     if (details.definitionId === CityTile) return []
     return Object.entries(CityTilePrivates).flatMap(([privateId, locationId]) =>
         details.locationId === locationId &&
-        state.companies.some((company) => company.id === privateId && !company.closed) &&
+        privateOpen(state, privateId) &&
         privateOwner(state, privateId)?.kind !== 'player'
             ? [privateId]
             : []
@@ -57,8 +57,13 @@ function layCosts(state: ConstructionState): readonly [number, number] {
     const express = owns(ExpressTrackId)
     const efficient = owns(EfficientTrackId)
     if (express && efficient) return [0, 0]
-    if (express) return [10, 0]
-    return [0, efficient ? 10 : SecondLayCost]
+    if (express) return [ExpressFirstLayCost, 0]
+    return [0, efficient ? EfficientSecondLayCost : SecondLayCost]
+}
+// The markers whose hexes nobody may upgrade, by what they are called.
+const UnupgradableMarkers: Readonly<Record<string, string>> = {
+    [MineMarker]: 'mine',
+    [RanchMarker]: 'ranch'
 }
 const isUpgrade = (color: string) => color !== 'yellow'
 const cityCount = (face: TileFace) => face.nodes.filter((node) => node.kind === 'city').length
@@ -109,10 +114,10 @@ export const EighteenSeventeenTrackRules: TrackRules = {
     }),
     restriction(state, request) {
         if (request.definitionId === CityTile) return 'Only a city-tile private lays X00.'
-        if (locationMarkers(state, { locationId: request.locationId, kind: MineMarker }).length)
-            return 'Nobody may upgrade a mine.'
-        if (locationMarkers(state, { locationId: request.locationId, kind: RanchMarker }).length)
-            return 'Nobody may upgrade a ranch.'
+        const [marker] = locationMarkers(state, { locationId: request.locationId }).filter(
+            (item) => item.kind in UnupgradableMarkers
+        )
+        if (marker) return `Nobody may upgrade a ${UnupgradableMarkers[marker.kind]}.`
         if (state.trackStep?.lays.some((lay) => lay.locationId === request.locationId))
             return 'The second lay must be on a different hex'
         return undefined
