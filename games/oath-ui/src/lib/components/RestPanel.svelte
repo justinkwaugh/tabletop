@@ -6,9 +6,8 @@
     import Magnifier from '$lib/components/Magnifier.svelte'
     import { cardImage } from '$lib/images/cardImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
-    import { suitName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cardName, humanizeReason } from '$lib/model/names.js'
+    import { cardName, humanizeReason, suitName } from '$lib/model/names.js'
 
     // R-4.3.5, R-7.3.4 — Rest powers once each. R-X.3 — from round 5, R-3.3's end die stops undo here.
     let gameSession = getGameSession()
@@ -58,8 +57,9 @@
                                         type="button"
                                         class="rest-button"
                                         disabled={busy || !bank.enabled}
-                                        aria-label="{suitName(bank.suit)} bank: take {row.gain
-                                            .count} favor, {bank.inBank} in bank"
+                                        aria-label="{suitName(
+                                            bank.suit
+                                        )} bank: take {bank.takes} favor, {bank.inBank} in bank"
                                         onclick={() => draft.useWithBank(row, bank.suit)}
                                     >
                                         <span
@@ -70,7 +70,7 @@
                                                 src={suitImage(bank.suit)}
                                                 alt={suitName(bank.suit)}
                                             />
-                                            <TokenText text="{row.gain.count} favor" />
+                                            <TokenText text="{bank.takes} favor" />
                                         </span>
                                         <span class="text-[11px] text-oath-text-muted"
                                             >{bank.inBank} in bank</span

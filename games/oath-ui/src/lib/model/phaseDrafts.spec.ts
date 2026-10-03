@@ -33,6 +33,7 @@ const CHANCELLOR = 'chancellor'
 const OBEDIENCE = 'denizen.order.vow-of-obedience'
 const SILVER_TONGUE = 'denizen.discord.silver-tongue'
 const INSOMNIA = 'denizen.discord.insomnia'
+const POVERTY = 'denizen.beast.vow-of-poverty'
 const INN = 'denizen.hearth.wayside-inn'
 const OAK = 'denizen.beast.the-old-oak'
 const SNARE = 'denizen.arcane.spirit-snare'
@@ -470,8 +471,15 @@ describe('the Rest panel’s rows (turn-flow revision)', () => {
         expect(session.rest.turnFlow).toBe(true)
         const banks = required(row(session, OBEDIENCE).banks, 'Vow of Obedience names banks')
         expect(banks.map((bank) => bank.suit)).toEqual([...FAVOR_BANK_ORDER])
-        expect(banks.find((bank) => bank.suit === Suit.Discord)).toEqual({ suit: Suit.Discord, inBank: 0, enabled: false })
+        expect(banks.find((bank) => bank.suit === Suit.Discord)).toEqual({ suit: Suit.Discord, inBank: 0, takes: 0, enabled: false })
         expect(banks.filter((bank) => bank.enabled)).toHaveLength(5)
+    })
+
+    it('names no more favor on a bank’s button than the bank holds (Vow of Poverty)', () => {
+        const session = opened(table(MachineState.RestPhase, { favor: 0, advisers: [{ cardId: POVERTY, faceUp: true }] }, { oathRevision: OathRevision.TurnFlow, favorBank: { arcane: 3, beast: 2, discord: 0, hearth: 4, nomad: 1, order: 3 } }))
+        const banks = required(row(session, POVERTY).banks, 'Vow of Poverty names banks')
+        expect(banks.find((bank) => bank.suit === Suit.Nomad)?.takes).toBe(1)
+        expect(banks.find((bank) => bank.suit === Suit.Hearth)?.takes).toBe(2)
     })
 
     it('lists only the banks matching a card at the site for Silver Tongue', () => {

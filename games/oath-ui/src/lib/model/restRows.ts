@@ -40,6 +40,7 @@ const REST_POWERS: Record<string, { does: string; gain: number; token: 'favor' |
 export interface RestBankButton {
     suit: Suit
     inBank: number
+    takes: number
     enabled: boolean
 }
 
@@ -112,7 +113,14 @@ export function restRows(
                           const choice = banks.find((option) => suitOf(option) === suit)
                           if (!choice) return []
                           const inBank = state.favorBank[suit]
-                          return [{ suit, inBank, enabled: inBank > 0 && accepts([choice]) }]
+                          return [
+                              {
+                                  suit,
+                                  inBank,
+                                  takes: Math.min(described.gain, inBank),
+                                  enabled: inBank > 0 && accepts([choice])
+                              }
+                          ]
                       }),
             fromPlayerId:
                 power.cardId === 'denizen.discord.naysayers' ? state.chancellorId() : undefined,
