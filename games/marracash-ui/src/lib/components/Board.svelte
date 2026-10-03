@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onDestroy } from 'svelte'
     import { BoardColumns, BoardRows, Palms } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ShopTile from '$lib/components/ShopTile.svelte'
@@ -10,6 +11,9 @@
     import RoutePreview from '$lib/components/RoutePreview.svelte'
     import VisitorQueue from '$lib/components/VisitorQueue.svelte'
     import PalmTree from '$lib/components/PalmTree.svelte'
+    import Pawn from '$lib/components/Pawn.svelte'
+    import { animateWalker, VisitorMoveAnimator } from '$lib/animators/visitorMoveAnimator.js'
+    import { FountainPawnSize } from '$lib/utils/fountainPawns.js'
     import CityWall from '$lib/components/CityWall.svelte'
     import CityGates from '$lib/components/CityGates.svelte'
     import type { FountainId, FountainState, Route, ShopVisit } from '@tabletop/marracash'
@@ -29,11 +33,15 @@
 
     const gameSession = getGameSession()
 
+    const visitorMoveAnimator = new VisitorMoveAnimator(gameSession)
+    visitorMoveAnimator.register()
+    onDestroy(() => visitorMoveAnimator.unregister())
+
     let spotlightShopId = $derived(
         gameSession.gameState.auctionShopId ?? gameSession.selectedShopId
     )
     let spotlightShop = $derived(
-        gameSession.gameState.shops.find((shop) => shop.shopId === spotlightShopId)
+        gameSession.visibleShops.find((shop) => shop.shopId === spotlightShopId)
     )
 
     let liftedFountainIds: FountainId[] = $derived(
@@ -43,12 +51,12 @@
     )
     let queueLifted = $derived(gameSession.refillEntranceIds.length > 0)
     let liftedFountains = $derived(
-        gameSession.gameState.fountains.filter((fountain) =>
+        gameSession.visibleFountains.filter((fountain) =>
             liftedFountainIds.includes(fountain.fountainId)
         )
     )
     let groundFountains = $derived(
-        gameSession.gameState.fountains.filter(
+        gameSession.visibleFountains.filter(
             (fountain) => !liftedFountainIds.includes(fountain.fountainId)
         )
     )
@@ -71,12 +79,12 @@
         previewRoute === undefined ? [] : gameSession.gameState.visitsAlong(previewRoute).visits
     )
     let enteredShops = $derived(
-        gameSession.gameState.shops.filter((shop) =>
+        gameSession.visibleShops.filter((shop) =>
             previewVisits.some((visit) => visit.shopId === shop.shopId)
         )
     )
     let groundShops = $derived(
-        gameSession.gameState.shops.filter(
+        gameSession.visibleShops.filter(
             (shop) => shop !== spotlightShop && !enteredShops.includes(shop)
         )
     )
@@ -221,6 +229,16 @@
                 <RoutePreview route={previewRoute} visits={previewVisits} />
             {/key}
         {/if}
+
+        {#each gameSession.movingVisitors as walker (walker.id)}
+            <g
+                pointer-events="none"
+                opacity="0"
+                use:animateWalker={{ animator: visitorMoveAnimator, id: walker.id }}
+            >
+                <Pawn color={walker.color} x={0} y={0} size={FountainPawnSize} />
+            </g>
+        {/each}
     </g>
     {#if queueLifted}
         <VisitorQueue />

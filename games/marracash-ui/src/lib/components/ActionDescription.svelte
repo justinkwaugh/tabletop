@@ -17,6 +17,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import AuctionBids from '$lib/components/AuctionBids.svelte'
     import { ordinal } from '$lib/utils/ordinal.js'
+    import { movedVisitors, pulledInCustomers } from '$lib/utils/moneyReport.js'
 
     let { action }: { action: GameAction } = $props()
     const gameSession = getGameSession()
@@ -47,14 +48,12 @@
             ? 'as the auctioneer'
             : 'sitting closer clockwise to the auctioneer'}.
     {/if}
-    {#each result.pullIns as pullIn (pullIn.fountainId)}
-        {pullIn.customers} customer{pullIn.customers === 1 ? '' : 's'} walked in from fountain
-        {pullIn.fountainId}, paying {pullIn.income}.
-    {/each}
+    {@const walkIns = pulledInCustomers(result)}
+    {#if walkIns.count > 0}
+        {walkIns.count} customer{walkIns.count === 1 ? '' : 's'} walked in, paying {walkIns.income}.
+    {/if}
 {:else if isMoveVisitors(action)}
-    moved the visitors at fountain {action.fountainId}{action.metadata
-        ? ` to fountain ${action.metadata.destinationId}`
-        : ''}.
+    moved {action.metadata ? movedVisitors(action.metadata) : 'visitors'}.
     {#each action.metadata?.entries ?? [] as entry (entry.shopId)}
         {entry.customers} entered {shopName(entry.shopId)}, paying
         <PlayerTag playerId={entry.ownerId} />
@@ -65,5 +64,5 @@
     set and earned {action.metadata.payout} Dirham.
 {:else if isBringVisitors(action)}
     brought {action.count} visitor{action.count === 1 ? '' : 's'} from the
-    {action.end === QueueEnd.Front ? 'front' : 'back'} of the queue to fountain {action.entranceId}.
+    {action.end === QueueEnd.Front ? 'front' : 'back'} of the queue to an entrance.
 {/if}

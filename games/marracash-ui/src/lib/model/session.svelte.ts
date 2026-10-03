@@ -5,17 +5,20 @@ import {
     BringVisitors,
     ConfirmTurn,
     isValidVisitorCount,
+    type MarketColor,
     MaxVisitorsBroughtIn,
     MoveVisitors,
     PlaceBid,
     routesFrom,
     StartAuction,
     type FountainId,
+    type FountainState,
     type HydratedMarracashGameState,
     type MarracashProjectedState,
     QueueEnd,
     type Route,
-    type ShopId
+    type ShopId,
+    type ShopState
 } from '@tabletop/marracash'
 import {
     hasManualMarracashSelection,
@@ -29,6 +32,7 @@ import {
 import { marketPalettes } from '$lib/utils/marketColors.js'
 import { latestTurnStep, moneyReports, type MoneyReport } from '$lib/utils/moneyReport.js'
 import type { RefillChoice } from '$lib/utils/queueChoices.js'
+import type { VisitorWalker } from '$lib/animators/visitorMoveAnimator.js'
 
 const QueueWarningSeconds = 4
 
@@ -45,6 +49,23 @@ export class MarracashGameSession extends GameSession<
     )
 
     readonly marketPalettes = $derived(marketPalettes(this.colors.colorBlind))
+
+    movingVisitors: VisitorWalker[] = $state([])
+    fountainVisitorOverrides: Partial<Record<FountainId, MarketColor[]>> = $state({})
+    shopCustomerOverrides: Partial<Record<ShopId, number>> = $state({})
+
+    readonly visibleFountains: FountainState[] = $derived(
+        this.gameState.fountains.map((fountain) => {
+            const visitors = this.fountainVisitorOverrides[fountain.fountainId]
+            return visitors === undefined ? fountain : { ...fountain, visitors }
+        })
+    )
+    readonly visibleShops: ShopState[] = $derived(
+        this.gameState.shops.map((shop) => {
+            const customers = this.shopCustomerOverrides[shop.shopId]
+            return customers === undefined ? shop : { ...shop, customers }
+        })
+    )
 
     readonly moneyReports: MoneyReport[] = $derived(moneyReports(latestTurnStep(this.actions)))
 
@@ -67,8 +88,9 @@ export class MarracashGameSession extends GameSession<
         this.isPlayable && !this.isViewingHistory && this.undoableAction !== undefined
     )
 
+    // Cleared while a new state publishes so a committed move's highlights are gone before its pawns walk.
     readonly selectedFountainId: FountainId | undefined = $derived(
-        this.canMove ? this.selection.fountain?.value : undefined
+        this.canMove && !this.updatingVisibleState ? this.selection.fountain?.value : undefined
     )
 
     readonly selectedShopId: ShopId | undefined = $derived(
@@ -165,6 +187,8 @@ export class MarracashGameSession extends GameSession<
 
     override beforeNewState() {
         this.resetAction()
+        this.fountainVisitorOverrides = {}
+        this.shopCustomerOverrides = {}
     }
 
     override async undo() {

@@ -6,6 +6,7 @@ import {
     auctionPayments,
     latestTurnStep,
     moneyReports,
+    movedVisitors,
     movePayments
 } from './moneyReport.js'
 
@@ -37,10 +38,25 @@ describe('MarraCash money report', () => {
                 amount: 300,
                 color: MarketColor.Purple,
                 count: 2,
-                fromFountainId: 5
+                walkedIn: true
             },
             { kind: 'auctioneerCut', playerId: 'chadia', amount: 100 }
         ])
+    })
+
+    it('combines walk-ins from several fountains into one row', () => {
+        const pullIns: AuctionResult['pullIns'] = [
+            { fountainId: 5, customers: 2, income: 300 },
+            { fountainId: 6, customers: 1, income: 200 }
+        ]
+        expect(auctionPayments({ ...auction, pullIns })).toContainEqual({
+            kind: 'customers',
+            playerId: 'amira',
+            amount: 500,
+            color: MarketColor.Purple,
+            count: 3,
+            walkedIn: true
+        })
     })
 
     it('gives no cut row when the auctioneer wins', () => {
@@ -123,5 +139,17 @@ describe('MarraCash money report', () => {
             metadata: { destinationId: 9, entries: [], arrivals: [MarketColor.Red] }
         })
         expect(moneyReports([quietMove])).toEqual([])
+    })
+
+    it('counts every moved visitor, whether they entered a shop or walked on', () => {
+        const move: MoveResult = {
+            destinationId: 5,
+            arrivals: [MarketColor.Red, MarketColor.Yellow, MarketColor.Green, MarketColor.Yellow],
+            entries: [{ shopId: 'B1', ownerId: 'dev', customers: 2, income: 300, moverCut: 100 }]
+        }
+        expect(movedVisitors(move)).toBe('6 visitors')
+        expect(movedVisitors({ ...move, arrivals: [MarketColor.Red], entries: [] })).toBe(
+            '1 visitor'
+        )
     })
 })

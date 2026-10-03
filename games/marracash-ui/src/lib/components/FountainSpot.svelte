@@ -4,6 +4,11 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PawnHeight, PawnUnitSize, PawnWidth } from '$lib/utils/pawnShape.js'
     import { cellCenter, clusterPositions } from '$lib/utils/boardGeometry.js'
+    import {
+        FountainPawnSize,
+        fountainPawnPositions,
+        MaxPawnsShown
+    } from '$lib/utils/fountainPawns.js'
     import { CandidateHaloFilterId } from '$lib/utils/boardGeometry.js'
     import { PulsePeakSeconds, PulseSeconds } from '$lib/utils/routePreview.js'
     import {
@@ -18,11 +23,7 @@
         octagon
     } from '$lib/utils/fountainShape.js'
 
-    const MaxPawnsShown = 9
-    const PawnSpacing = { x: 20, y: 15 }
     const TallySpacing = { x: 22, y: 24 }
-    const LabelOffset = { x: -38, y: -30 }
-    const EntranceLabelOffset = { x: -44, y: -34 }
     const TallyPawnOffset = -6
     const TallyCountOffset = { x: 3, y: 5 }
     const TallyPawnSize = 15
@@ -54,12 +55,11 @@
     let center = $derived(cellCenter(definition.coords))
     let outline = $derived(definition.entrance ? eightPointedStar : octagon)
     let radii = $derived(definition.entrance ? EntranceRadii : FountainRadii)
-    let labelOffset = $derived(definition.entrance ? EntranceLabelOffset : LabelOffset)
     const gameSession = getGameSession()
 
     let crowded = $derived(fountain.visitors.length > MaxPawnsShown)
     let pawns = $derived(
-        clusterPositions(fountain.visitors.length, center, PawnSpacing).map((position, index) => ({
+        fountainPawnPositions(fountain.visitors.length, center).map((position, index) => ({
             ...position,
             color: fountain.visitors[index]
         }))
@@ -172,13 +172,6 @@
             stroke-linejoin="round"
         ></path>
     {/if}
-    <text
-        x={center.x + labelOffset.x}
-        y={center.y + labelOffset.y}
-        font-size="12"
-        font-weight="700"
-        fill="#2d5566">{fountain.fountainId}</text
-    >
     {#if crowded}
         <rect
             x={tallyPanel.x}
@@ -206,7 +199,7 @@
         {/each}
     {:else}
         {#each pawns as pawn, index (index)}
-            <Pawn color={pawn.color} x={pawn.x} y={pawn.y} size={18} />
+            <Pawn color={pawn.color} x={pawn.x} y={pawn.y} size={FountainPawnSize} />
         {/each}
     {/if}
 {/snippet}

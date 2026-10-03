@@ -8,7 +8,6 @@ import {
     paidAntiqueCount,
     type AntiqueSetResult,
     type AuctionResult,
-    type FountainId,
     type MarketColor,
     type MoveResult
 } from '@tabletop/marracash'
@@ -22,7 +21,7 @@ export type Payment =
           kind: 'customers'
           color: MarketColor
           count: number
-          fromFountainId?: FountainId
+          walkedIn?: boolean
       })
     | (PaymentBase & { kind: 'moverCut'; toPlayerId: string })
     | (PaymentBase & { kind: 'antiqueSet'; cardCount: number })
@@ -32,7 +31,6 @@ export type MoneyReport =
     | {
           kind: 'move'
           moverId: string
-          fromFountainId: FountainId
           result: MoveResult
           payments: Payment[]
       }
@@ -47,14 +45,15 @@ export function auctionPayments(result: AuctionResult): Payment[] {
     const winnerId = result.winnerId
     const payments: Payment[] = [{ kind: 'winningBid', playerId: winnerId, amount: -result.price }]
     const color = getShop(result.shopId).color
-    for (const pullIn of result.pullIns) {
+    const walkIns = pulledInCustomers(result)
+    if (walkIns.count > 0) {
         payments.push({
             kind: 'customers',
             playerId: winnerId,
-            amount: pullIn.income,
+            amount: walkIns.income,
             color,
-            count: pullIn.customers,
-            fromFountainId: pullIn.fountainId
+            count: walkIns.count,
+            walkedIn: true
         })
     }
     if (result.auctioneerCut > 0) {
@@ -65,6 +64,22 @@ export function auctionPayments(result: AuctionResult): Payment[] {
         })
     }
     return payments
+}
+
+export function pulledInCustomers(result: AuctionResult): { count: number; income: number } {
+    return result.pullIns.reduce(
+        (total, pullIn) => ({
+            count: total.count + pullIn.customers,
+            income: total.income + pullIn.income
+        }),
+        { count: 0, income: 0 }
+    )
+}
+
+export function movedVisitors(result: MoveResult): string {
+    const count =
+        result.arrivals.length + result.entries.reduce((total, entry) => total + entry.customers, 0)
+    return `${count} visitor${count === 1 ? '' : 's'}`
 }
 
 export function movePayments(moverId: string, result: MoveResult): Payment[] {
@@ -113,7 +128,6 @@ function moneyReport(action: GameAction): MoneyReport | undefined {
         return {
             kind: 'move',
             moverId: action.playerId,
-            fromFountainId: action.fountainId,
             result: action.metadata,
             payments: movePayments(action.playerId, action.metadata)
         }

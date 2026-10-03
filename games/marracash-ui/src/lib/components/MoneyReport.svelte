@@ -5,7 +5,7 @@
     import PawnIcon from '$lib/components/PawnIcon.svelte'
     import AuctionBids from '$lib/components/AuctionBids.svelte'
     import { ordinal } from '$lib/utils/ordinal.js'
-    import type { MoneyReport, Payment } from '$lib/utils/moneyReport.js'
+    import { movedVisitors, type MoneyReport, type Payment } from '$lib/utils/moneyReport.js'
 
     let { reports }: { reports: MoneyReport[] } = $props()
 
@@ -27,8 +27,7 @@
         <span style:color={gameSession.marketPalettes[color].stroke}>{color} shop</span>
         for {report.result.price}.
     {:else if report.kind === 'move'}
-        <PlayerTag playerId={report.moverId} /> moved fountain {report.fromFountainId}'s visitors to
-        fountain {report.result.destinationId}.
+        <PlayerTag playerId={report.moverId} /> moved {movedVisitors(report.result)}.
     {:else}
         <PlayerTag playerId={report.collectorId} /> completed the {ordinal(report.result.rank)} antique
         set.
@@ -44,10 +43,8 @@
         {#each Array.from({ length: payment.count }) as _, index (index)}<PawnIcon
                 color={payment.color}
             />{/each}
-        {payment.count} customer{payment.count === 1
-            ? ''
-            : 's'}{#if payment.fromFountainId !== undefined}
-            from fountain {payment.fromFountainId}{/if}
+        {payment.count} customer{payment.count === 1 ? '' : 's'}{#if payment.walkedIn}
+            walked in{/if}
     {:else if payment.kind === 'moverCut'}
         <span class="text-[#7a6650]">→</span>
         <PlayerTag playerId={payment.toPlayerId} /> mover's cut
