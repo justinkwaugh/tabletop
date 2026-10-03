@@ -151,6 +151,10 @@ export function nameIds(text: string, siteOf: (slotId: string) => string): strin
         .replace(/\breliquary\.\d+\b/g, (id) => reliquaryLabel(id))
 }
 
+export function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 export function plural(count: number, noun: string): string {
     return `${count} ${noun}${count === 1 ? '' : 's'}`
 }

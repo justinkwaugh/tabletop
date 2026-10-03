@@ -55,6 +55,7 @@ import {
     bannerName,
     campaignTargetText,
     cardName,
+    escapeRegExp,
     plural,
     reliquaryLabel,
     nameIds,
@@ -444,7 +445,7 @@ function nameSeat(
     viewerId: string | undefined,
     nameOf: NameOf
 ): string {
-    const id = playerId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const id = escapeRegExp(playerId)
     const possessive = new RegExp(`(?<![\\w-])${id}['’]s(?![\\w-])`, 'g')
     const bare = new RegExp(`(?<![\\w-])${id}(?![\\w-])`, 'g')
     const own = playerId === actorId
