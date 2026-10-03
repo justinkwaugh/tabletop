@@ -86,7 +86,6 @@
     .player.turn {
         box-shadow:
             inset 0 0 0 3px var(--player),
-            0 0 0 2px #fff7df,
             0 3px 10px rgba(40, 24, 8, 0.3);
     }
 
@@ -119,7 +118,7 @@
         align-items: center;
         gap: 4px;
         border-radius: 999px;
-        padding: 1px 8px 1px 3px;
+        padding: 1px 8px 1px 5px;
         background: rgba(255, 248, 225, 0.92);
         color: #4a2c12;
         font-size: 18px;
