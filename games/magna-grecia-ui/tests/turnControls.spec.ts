@@ -56,6 +56,13 @@ async function roadCount(page: Page) {
     return page.evaluate(() => window.magnaGreciaSession.gameState.board.roads.length)
 }
 
+// A placed city tile pours in before the state updates; input waits for it.
+async function citySettled(page: Page) {
+    await expect
+        .poll(() => page.evaluate(() => window.magnaGreciaSession.gameState.board.cities.length))
+        .toBe(1)
+}
+
 async function foundFrontierCity(page: Page) {
     await createGame(page)
     await page.getByRole('button', { name: /^Cities/ }).click()
@@ -94,6 +101,7 @@ test('starts each turn with no tool selected', async ({ page }) => {
     await page.getByRole('button', { name: /^Cities/ }).click()
     await expect.poll(tool).toBe('City')
     await page.getByRole('button', { name: 'Place a city tile here', exact: true }).first().click()
+    await citySettled(page)
     await page.getByRole('button', { name: 'End turn', exact: true }).click()
     await expect.poll(tool).toBeUndefined()
     await expect(roadTargets(page)).toHaveCount(0)
@@ -284,6 +292,7 @@ test('the keyboard jump button jumps to history without starting a replay', asyn
     await createGame(page)
     await page.getByRole('button', { name: /^Cities/ }).click()
     await page.getByRole('button', { name: 'Place a city tile here', exact: true }).first().click()
+    await citySettled(page)
     await page.getByRole('button', { name: 'End turn', exact: true }).click()
     await page.getByRole('tab', { name: 'History' }).click()
 

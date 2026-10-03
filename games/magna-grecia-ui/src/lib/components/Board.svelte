@@ -75,7 +75,10 @@
                 <SeaLayer />
                 <TerrainLayer />
                 <PiecesLayer />
-                <TargetLayer />
+                <!-- Targets and the hover ghost would sit over a tile while it pours in. -->
+                {#if !gameSession.cityFlow}
+                    <TargetLayer />
+                {/if}
             </svg>
             <div class="map-legend">
                 <MapLegend />
