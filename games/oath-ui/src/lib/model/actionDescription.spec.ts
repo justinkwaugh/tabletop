@@ -268,10 +268,10 @@ describe('the history tab describes every action', () => {
             },
             {
                 card: 'relic.whistle',
-                summary: 'Whistle: p2 cannot travel here',
-                actor: 'Bob cannot travel here',
-                target: 'you cannot travel here',
-                third: 'Bob cannot travel here'
+                summary: 'Whistle: p2 cannot travel to slot.cradle.0',
+                actor: 'Bob cannot travel to Plains',
+                target: 'you cannot travel to Plains',
+                third: 'Bob cannot travel to Plains'
             },
             {
                 card: 'denizen.arcane.witchs-bargain',

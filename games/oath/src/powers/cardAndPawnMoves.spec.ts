@@ -146,7 +146,8 @@ describe('Nomad', () => {
 
     it("Twin Brother — may swap itself with another player's faceup nomad adviser", () => {
         const s = rulerTable([], [WOLVES])
-        playDrawnCard(s, TWIN, SearchPlay.Adviser, [card(TENTS)])
+        const swapped = playDrawnCard(s, TWIN, SearchPlay.Adviser, [card(TENTS)])
+        expect(swapped.metadata?.whenPlayed).toBe(`Twin Brother went to other's advisers; ${TENTS} to ruler's advisers`)
         expect(s.getPlayerState('ruler').advisers).toEqual([{ cardId: WOLVES, faceUp: true }, { cardId: TENTS, faceUp: true }])
         expect(s.getPlayerState('other').advisers).toEqual([{ cardId: TWIN, faceUp: true }])
         const keep = rulerTable([])

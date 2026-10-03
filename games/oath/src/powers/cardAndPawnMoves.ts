@@ -331,7 +331,7 @@ registerEffect(TWIN, powerIndexOf(TWIN, PowerTiming.WhenPlayed), {
         me.replaceAdviser(TWIN, { cardId: target.cardId, faceUp: true })
         them.replaceAdviser(target.cardId, { cardId: TWIN, faceUp: true })
         return {
-            summary: `Twin Brother went to ${them.playerId}'s advisers; ${target.cardId} to ${ctx.playerId}'s`,
+            summary: `Twin Brother went to ${them.playerId}'s advisers; ${target.cardId} to ${ctx.playerId}'s advisers`,
             targetPlayerId: them.playerId
         }
     }
@@ -348,7 +348,7 @@ registerModifier(
                     ctx.state
                 )
                 return {
-                    summary: `Knights Errant: ${ctx.playerId}'s next action may be a Campaign that spends no Supply`
+                    summary: 'Knights Errant: the next action may be a Campaign that spends no Supply'
                 }
             }
         }
@@ -371,7 +371,7 @@ registerModifier(
                     ctx.state
                 )
                 return {
-                    summary: `Hunting Party: ${ctx.playerId}'s next action may be a Campaign that spends no Supply`
+                    summary: 'Hunting Party: the next action may be a Campaign that spends no Supply'
                 }
             }
         }
