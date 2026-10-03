@@ -32,35 +32,35 @@
     </div>
     <div class="stats">
         <div class="stat" title="Road tiles: supply (staging area)">
-            <RoadIcon size={22} {color} />
+            <RoadIcon size={30} {color} />
             <strong>{playerState.supplyRoads}</strong>
             <span class="staged">({playerState.stagingRoads})</span>
         </div>
         <div class="stat" title="City tiles: supply (staging area)">
-            <CityIcon size={22} {color} />
+            <CityIcon size={30} {color} />
             <strong>{playerState.supplyCities}</strong>
             <span class="staged">({playerState.stagingCities})</span>
         </div>
         <div class="stat" title="Markets left to build">
-            <MarketIcon size={22} {color} />
+            <MarketIcon size={30} {color} />
             <strong>{marketsLeft}</strong>
         </div>
     </div>
     <div class="score">
         <span class="score-label">Score</span>
         <span class="part" title="Points to spend">
-            <PointsIcon size={18} />
+            <PointsIcon size={14} />
             <strong>{score.points}</strong>
         </span>
         <span class="part" title="Points from markets">
-            <MarketIcon size={18} />
+            <MarketIcon size={14} />
             <strong>{score.markets}</strong>
         </span>
         <span
             class="part"
             title="Points from oracles ({score.oracles / ORACLE_POINTS} × {ORACLE_POINTS})"
         >
-            <OracleIcon size={18} />
+            <OracleIcon size={14} />
             <strong>{score.oracles}</strong>
         </span>
         <span class="total" title="Score if the game ended now"
@@ -127,19 +127,24 @@
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 4px;
-        padding: 8px 10px 6px;
+        padding: 10px 10px 9px;
     }
 
     .stat {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
-        font-size: 16px;
+        gap: 5px;
+        font-size: 22px;
+        line-height: 1;
+    }
+
+    .stat strong {
+        color: #3d2410;
     }
 
     .staged {
-        font-size: 13px;
+        font-size: 14px;
         color: #8c6a45;
     }
 
@@ -148,16 +153,18 @@
         align-items: center;
         justify-content: space-between;
         gap: 6px;
-        padding: 0 12px 8px;
-        font-size: 14px;
-        color: #7a5732;
+        padding: 4px 12px 5px;
+        border-top: 1px solid rgba(107, 63, 29, 0.14);
+        background: rgba(107, 63, 29, 0.07);
+        font-size: 12px;
+        color: #8c6a45;
     }
 
     .score-label {
-        font-size: 10px;
+        font-size: 9px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #9b7a52;
+        color: #a68660;
     }
 
     .part {
@@ -166,13 +173,17 @@
         gap: 3px;
     }
 
+    .part strong {
+        font-weight: 600;
+    }
+
     .total {
         cursor: help;
     }
 
     .total strong {
-        font-size: 15px;
-        color: #4a2c12;
+        font-size: 13px;
+        color: #6b4520;
     }
 
     .debug {
