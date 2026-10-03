@@ -728,11 +728,12 @@ describe('R-10.13 — whose warbands a History row counts', () => {
         expect(rowWarbandOwner(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 1 }), own)).toBe('p2')
     })
 
-    it('R-5.5.5 — the skulls’ losses count the owner the battle recorded', () => {
-        const battle = { attackPool: 3, defensePool: 1, defense: 2, swords: 3, skullsKilled: 1 }
-        expect(rowWarbandOwner(action({ type: ActionType.Campaign, playerId: 'p2', defender: { kind: 'bandits' }, targets: [], attackDice: 3, metadata: { supplySpent: 1, battle: { ...battle, skullsKilledOwner: IMPERIAL_WARBANDS } } }), own)).toBe(IMPERIAL_WARBANDS)
-        expect(rowWarbandOwner(action({ type: ActionType.CampaignAttackPlans, playerId: 'p2', plans: [], metadata: { battle: { ...battle, skullsKilledOwner: IMPERIAL_WARBANDS } } }), own)).toBe(IMPERIAL_WARBANDS)
-        expect(rowWarbandOwner(action({ type: ActionType.Campaign, playerId: 'p2', defender: { kind: 'bandits' }, targets: [], attackDice: 3, metadata: { supplySpent: 1, battle } }), own)).toBe('p2')
+    it('R-5.5.5 — the skulls’ losses stay words, so a battle’s row counts the actor’s own', () => {
+        const battle = { attackPool: 3, defensePool: 1, defense: 2, swords: 3, skullsKilled: 1, skullsKilledOwner: IMPERIAL_WARBANDS }
+        const row = action({ type: ActionType.Campaign, playerId: 'p2', defender: { kind: 'bandits' }, targets: [], attackDice: 3, metadata: { supplySpent: 1, battle } })
+        expect(rowWarbandOwner(row, own)).toBe('p2')
+        expect(rowWarbandOwner(action({ type: ActionType.CampaignAttackPlans, playerId: 'p2', plans: [], metadata: { battle } }), own)).toBe('p2')
+        expect(describeAction(row, nameOf)).toContain('losing 1 to skulls')
     })
 
     it('R-5.5.6.a — a choice of losses counts the owner it names, when it names one', () => {

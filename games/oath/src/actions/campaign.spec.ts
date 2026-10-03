@@ -445,7 +445,7 @@ describe('the defense total (R-5.5.4)', () => {
 })
 
 describe('skulls (R-5.5.5)', () => {
-    it('kills one warband in the attacker\'s force per skull, immediately', () => {
+    it('kills one warband in the attacker\'s force per skull, immediately, and records how many and whose', () => {
         const seed = seedRollingSkulls(1)
         const state = table({ prng: { seed, invocations: 0 } })
         const action = campaign({ attackDice: 5 })
@@ -496,7 +496,6 @@ describe('skulls (R-5.5.5)', () => {
         expect(state.getPlayerState(CHANCELLOR).warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(
             15 + skulls
         )
-        // R-10.13 — the History draws these losses in the Empire's colour.
         expect(action.metadata?.battle?.skullsKilledOwner).toBe(IMPERIAL_WARBANDS)
     })
 })
