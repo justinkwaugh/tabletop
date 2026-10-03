@@ -39,7 +39,7 @@
         color: #4a2c12;
         font-family: 'Libre Baskerville', Georgia, serif;
         white-space: nowrap;
-        opacity: 0.6;
+        opacity: 0.85;
     }
 
     .next-label {

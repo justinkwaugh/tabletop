@@ -20,16 +20,6 @@
     const textColor = $derived(gameSession.colors.getPlayerTextColorValue(playerId))
     const isTurn = $derived(gameSession.gameState.activePlayerIds.includes(playerId))
     const marketsLeft = $derived(gameSession.gameState.board.marketsRemaining(playerId))
-    const ORDINALS = ['1st', '2nd', '3rd', '4th']
-    const nextRoundPlace = $derived.by(() => {
-        const state = gameSession.gameState
-        const upcoming = state.result ? undefined : state.upcomingCard()
-        if (!upcoming) {
-            return undefined
-        }
-        const index = state.turnOrderForCard(upcoming).indexOf(playerId)
-        return index >= 0 ? ORDINALS[index] : undefined
-    })
 </script>
 
 <div class="player" class:turn={isTurn} style:--player={color} style:--player-text={textColor}>
@@ -56,22 +46,27 @@
             <strong>{marketsLeft}</strong>
         </div>
     </div>
-    <div class="projection" title="Score if the game ended now">
-        <div class="projection-caption">If the game ended now</div>
-        <div class="projection-row">
-            <span>Markets <strong>{score.markets}</strong></span>
-            <span class="oracles" title="Oracles: {score.oracles} points">
-                <OracleIcon size={18} />
-                <strong>{score.oracles / ORACLE_POINTS}</strong>
-            </span>
-            <span class="total">Total <strong>{score.total}</strong></span>
-        </div>
+    <div class="score">
+        <span class="score-label">Score</span>
+        <span class="part" title="Points to spend">
+            <PointsIcon size={18} />
+            <strong>{score.points}</strong>
+        </span>
+        <span class="part" title="Points from markets">
+            <MarketIcon size={18} />
+            <strong>{score.markets}</strong>
+        </span>
+        <span
+            class="part"
+            title="Points from oracles ({score.oracles / ORACLE_POINTS} × {ORACLE_POINTS})"
+        >
+            <OracleIcon size={18} />
+            <strong>{score.oracles}</strong>
+        </span>
+        <span class="total" title="Score if the game ended now"
+            >Total <strong>{score.total}</strong></span
+        >
     </div>
-    {#if nextRoundPlace}
-        <div class="next-round" title="Turn order in the next round">
-            Next round: <strong>{nextRoundPlace}</strong>
-        </div>
-    {/if}
     {#if gameSession.showDebug}
         <div class="debug">id: {playerId}</div>
     {/if}
@@ -132,7 +127,7 @@
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 4px;
-        padding: 8px 10px 10px;
+        padding: 8px 10px 6px;
     }
 
     .stat {
@@ -148,38 +143,31 @@
         color: #8c6a45;
     }
 
-    .projection {
-        margin: 0 10px;
-        padding: 0 2px 8px;
-        border-top: 1px dashed rgba(107, 63, 29, 0.35);
-        font-size: 13px;
+    .score {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 0 12px 8px;
+        font-size: 14px;
         color: #7a5732;
     }
 
-    /* The caption sits on the dashed rule, marking the row below as a projection, not a tally. */
-    .projection-caption {
-        width: fit-content;
-        margin: -7px auto 2px;
-        padding: 0 6px;
-        background: #fbf5e6;
+    .score-label {
         font-size: 10px;
-        line-height: 13px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: #9b7a52;
     }
 
-    .projection-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-    }
-
-    .oracles {
+    .part {
         display: inline-flex;
         align-items: center;
-        gap: 2px;
+        gap: 3px;
+    }
+
+    .total {
+        cursor: help;
     }
 
     .total strong {
@@ -187,12 +175,6 @@
         color: #4a2c12;
     }
 
-    .next-round {
-        margin-top: -4px;
-        padding: 0 12px 8px;
-        font-size: 13px;
-        color: #7a5732;
-    }
     .debug {
         padding: 0 12px 6px;
         font-size: 10px;

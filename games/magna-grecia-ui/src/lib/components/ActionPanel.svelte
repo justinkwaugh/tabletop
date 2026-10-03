@@ -4,7 +4,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { ActionAllowanceKind } from '$lib/utils/actionAllowances.js'
     import AllowanceList from './AllowanceList.svelte'
-    import EnhancedText from './EnhancedText.svelte'
     import AllowanceIcon from './icons/AllowanceIcon.svelte'
     import MarketIcon from './icons/MarketIcon.svelte'
     import PointsIcon from './icons/PointsIcon.svelte'
@@ -87,15 +86,12 @@
         return tileButtons
     })
 
-    function allowanceHint(allowance: Allowance, plural: string, singular: string) {
-        if (allowance.bonus === 0) {
-            return undefined
-        }
-        if (allowance.basic === 0) {
-            return `One more ${singular} makes this your enhanced +${allowance.bonus} action, with no other tile action after it`
-        }
-        const basicNoun = allowance.basic === 1 ? singular : plural
-        return `Up to ${allowance.basic} ${basicNoun} as one of two actions, or ${allowance.basic + allowance.bonus} as your only action (enhanced +${allowance.bonus})`
+    // The buttons' counts and the phase label already give both limits; a hint is only worth a
+    // row when the next tile turns the action enhanced and closes the other tile actions.
+    function lastTileHint(allowance: Allowance, singular: string) {
+        return allowance.basic === 0 && allowance.bonus > 0
+            ? `One more ${singular} makes this your enhanced action and ends your tile actions`
+            : undefined
     }
 
     const marketStatus = $derived(tookMarketAction ? 'Done' : 'None available')
@@ -187,17 +183,14 @@
     })
 
     const toolHint = $derived.by(() => {
-        if (gameSession.resupplyOpen) {
-            const split = gameSession.resupplySplit
-            return split.bonus > 0
-                ? `Move up to ${split.basic} as one of two actions, or up to ${split.basic + split.bonus} as your only action (enhanced +${split.bonus})`
-                : undefined
+        if (gameSession.resupplyOpen || gameSession.onlyEndTurnLeft) {
+            return undefined
         }
         switch (gameSession.activeTool) {
             case BuildTool.Road:
-                return allowanceHint(gameSession.roadAllowance, 'roads', 'road')
+                return lastTileHint(gameSession.roadAllowance, 'road')
             case BuildTool.City:
-                return allowanceHint(gameSession.cityAllowance, 'city tiles', 'city tile')
+                return lastTileHint(gameSession.cityAllowance, 'city tile')
             default:
                 return undefined
         }
@@ -209,10 +202,7 @@
         if (gameSession.cityUnfinished) {
             return undefined
         }
-        if (!gameSession.onlyEndTurnLeft && (gameSession.resupplyOpen || gameSession.activeTool)) {
-            return toolHint
-        }
-        return endTurnNote
+        return toolHint ?? endTurnNote
     })
     const hintIsWarning = $derived(hint === CANNOT_UNDO)
 </script>
@@ -244,13 +234,13 @@
             {/if}
         </div>
         {#if hint}
-            <div class="hint" class:warning={hintIsWarning}><EnhancedText text={hint} /></div>
+            <div class="hint" class:warning={hintIsWarning}>{hint}</div>
         {/if}
         {#if !gameSession.cityUnfinished}
             <div class="phases" data-step={mobileStep}>
                 <div class="phase tiles" class:closed={tilePhaseClosed}>
                     <div class="phase-label">
-                        <EnhancedText text="Two actions, or one enhanced +n" />
+                        Two actions, or one enhanced<sup class="key">+n</sup>
                     </div>
                     <div class="phase-buttons">
                         {#each shownTileButtons as { kind, label, split, active, choose } (kind)}
@@ -266,7 +256,7 @@
                             </button>
                         {/each}
                         {#if tilePhaseClosed}
-                            <span class="phase-status"><EnhancedText text={tileStatus} /></span>
+                            <span class="phase-status">{tileStatus}</span>
                         {/if}
                     </div>
                     <button type="button" class="skip" onclick={() => gameSession.skipTiles()}>
@@ -373,6 +363,15 @@
         font-size: 11px;
         letter-spacing: 0.04em;
         color: rgba(74, 44, 18, 0.75);
+    }
+
+    /* Keys the phase's "enhanced" to the superscript extras on its buttons. */
+    .key {
+        margin-left: 1px;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-size: 0.8em;
+        font-weight: 700;
+        line-height: 0;
     }
 
     .phase.closed .phase-label {

@@ -58,7 +58,7 @@
         background: #fbf7ee;
         box-shadow: 0 6px 16px rgba(74, 44, 18, 0.14);
         /* Tall enough from the start for the resupply picker, the tallest common state. */
-        --action-card-floor: 170px;
+        --action-card-floor: 147px;
     }
 
     .content {

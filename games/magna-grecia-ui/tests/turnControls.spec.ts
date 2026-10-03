@@ -323,11 +323,22 @@ test('marks the enhanced extra apart from the basic allowance', async ({ page })
     await expect(cities.locator('.bonus')).toHaveText('+1')
     await expect(page.getByText('Two actions, or one enhanced+n', { exact: true })).toBeVisible()
     await cities.click()
-    const hint = page.getByText(`or ${split.basic + 1} as your only action (enhanced+1)`, {
-        exact: false
-    })
-    await expect(hint).toBeVisible()
-    await expect(hint.locator('sup')).toHaveText('+1')
+    await expect(page.locator('.hint')).toHaveCount(0)
+})
+
+test('the resupply button names the amount and marks an enhanced one with +', async ({ page }) => {
+    await createGame(page)
+    await page.getByRole('button', { name: /^Resupply/ }).click()
+    const split = await page.evaluate(() => window.magnaGreciaSession.resupplySplit)
+    const confirm = page.locator('.picker .confirm')
+    await expect(confirm).toHaveText('Resupply 0')
+    const more = page.getByRole('button', { name: 'More' }).first()
+    for (let step = 1; step <= split.basic; step++) await more.click()
+    await expect(confirm).toHaveText(`Resupply ${split.basic}`)
+    await expect(confirm.locator('sup')).toHaveCount(0)
+    await more.click()
+    await expect(confirm).toHaveText(`Resupply ${split.basic + 1}+`)
+    await expect(confirm.locator('sup')).toHaveText('+')
 })
 
 test('a market action keeps the turn open and highlights End turn', async ({ page }) => {
