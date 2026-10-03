@@ -114,8 +114,12 @@ export class MarracashGameSession extends GameSession<
         return new Set(Array.from({ length: count }, (_, offset) => first + offset))
     })
 
+    readonly refillEntranceIds: FountainId[] = $derived(
+        this.canRefill ? this.gameState.emptyEntranceIds() : []
+    )
+
     readonly fillableEntranceIds: FountainId[] = $derived(
-        this.chosenVisitorCount === undefined ? [] : this.gameState.emptyEntranceIds()
+        this.chosenVisitorCount === undefined ? [] : this.refillEntranceIds
     )
 
     myMoney(): number {

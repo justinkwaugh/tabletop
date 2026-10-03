@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
     actionPanel,
+    board,
     auctionFirstShop,
     auctionableShops,
     createGame,
@@ -98,6 +99,9 @@ test('emptied entrances are refilled from a chosen end of the queue', async ({ p
     await page.getByRole('button', { name: 'Move visitors to fountain 9' }).click()
 
     await expect(actionPanel(page)).toContainText('Bring new visitors')
+    const boardHalos = board(page).locator('path[filter*="candidate-halo"]')
+    await expect(boardHalos).toHaveCount(2)
+    await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
     await page.getByRole('button', { name: 'Front of queue' }).click()
     await expect(incomingVisitors(page)).toHaveCount(0)
     await page.getByRole('button', { name: '3', exact: true }).click()

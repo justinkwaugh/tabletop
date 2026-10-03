@@ -37,9 +37,10 @@
 
     let liftedFountainIds: FountainId[] = $derived(
         gameSession.selectedFountainId === undefined
-            ? []
+            ? gameSession.refillEntranceIds
             : [gameSession.selectedFountainId, ...gameSession.destinationFountainIds]
     )
+    let queueLifted = $derived(gameSession.refillEntranceIds.length > 0)
     let liftedFountains = $derived(
         gameSession.gameState.fountains.filter((fountain) =>
             liftedFountainIds.includes(fountain.fountainId)
@@ -115,12 +116,15 @@
 {#snippet fountainSpot(fountain: FountainState)}
     {@const isSource = gameSession.selectedFountainId === fountain.fountainId}
     {@const isDestination = gameSession.destinationFountainIds.includes(fountain.fountainId)}
+    {@const selectable =
+        isSource ||
+        isDestination ||
+        gameSession.movableFountainIds.includes(fountain.fountainId) ||
+        gameSession.fillableEntranceIds.includes(fountain.fountainId)}
     <FountainSpot
         {fountain}
-        selectable={isSource ||
-            isDestination ||
-            gameSession.movableFountainIds.includes(fountain.fountainId) ||
-            gameSession.fillableEntranceIds.includes(fountain.fountainId)}
+        {selectable}
+        highlighted={selectable || gameSession.refillEntranceIds.includes(fountain.fountainId)}
         selected={isSource}
         destination={previewRoute?.to === fountain.fountainId}
         label={fountainLabel(fountain.fountainId, isSource, isDestination)}
@@ -164,7 +168,9 @@
         <PawnDefs />
         <FountainDefs />
     </defs>
-    <VisitorQueue />
+    {#if !queueLifted}
+        <VisitorQueue />
+    {/if}
     <g role="img" aria-label="MarraCash market" transform="translate({QueueMargin} {QueueMargin})">
         <rect width={BoardWidth} height={BoardHeight} rx="14" fill="#8a6a46"></rect>
         <rect
@@ -229,4 +235,7 @@
             {/key}
         {/if}
     </g>
+    {#if queueLifted}
+        <VisitorQueue />
+    {/if}
 </svg>

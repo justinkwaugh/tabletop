@@ -33,6 +33,7 @@
     let {
         fountain,
         selectable,
+        highlighted = selectable,
         selected,
         destination = false,
         label = `Fountain ${fountain.fountainId}`,
@@ -41,6 +42,7 @@
     }: {
         fountain: FountainState
         selectable: boolean
+        highlighted?: boolean
         selected: boolean
         destination?: boolean
         label?: string
@@ -109,7 +111,7 @@
             filter="url(#{CandidateHaloFilterId})"
         ></path>
     {/if}
-    {#if selectable && !selected}
+    {#if highlighted && !selected}
         <path
             d={outline(center, definition.entrance ? radii.trim : radii.rim)}
             fill="none"
