@@ -1,15 +1,16 @@
 import {
-    privateOwner,
+    controllingOwner,
     EighteenXXTransferTiming,
     nextOperatingCompany,
-    controllingOwner,
+    privateOwner,
+    privatePowerUsed,
     type PrivatePowerRules
 } from '@tabletop/18xx'
 export const Shikoku1889PrivatePowerRules: PrivatePowerRules = {
     trackTerms(state, privateCompanyId, playerId) {
         if (
             state.companies.find((company) => company.id === privateCompanyId)?.closed ||
-            state.usedPrivatePowerIds.includes(privateCompanyId)
+            privatePowerUsed(state, privateCompanyId)
         )
             return undefined
         const pending = state.privateTrackLay

@@ -4,17 +4,17 @@ import {
     GameStorage,
     PlayerStatus,
     type Game,
-    type HydratedGameState,
-    type GameDefinition
+    type GameDefinition,
+    type HydratedGameState
 } from '@tabletop/common'
+import type { President } from '../finance/finance.js'
 import type {
-    TitleStateSchema,
     EighteenXXState,
-    HydratedEighteenXXState
+    HydratedEighteenXXState,
+    TitleStateSchema
 } from '../game/eighteenXXState.js'
 import type { EighteenXXTitleRules } from '../game/eighteenXXTitleRules.js'
 import type { BuyShares } from '../stock/buyShares.js'
-import type { President } from '../finance/finance.js'
 import { ScenarioInitializer, type ScenarioFixtures } from './scenarioInitializer.js'
 import { ScenarioConfigurator, type ScenarioPosition } from './scenarioPosition.js'
 
@@ -22,7 +22,7 @@ export type ScenarioDefinition = GameDefinition<EighteenXXState, HydratedEightee
 
 export function withScenarios<
     Schema extends TitleStateSchema,
-    State extends HydratedEighteenXXState<Schema>
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 >(
     definition: GameDefinition<EighteenXXState<Schema>, State>,
     rules: EighteenXXTitleRules<Schema, State>,

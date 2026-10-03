@@ -194,12 +194,13 @@ it.each(Titles)(
             count < expectedTurns * 7 && current.machineState !== 'StockRound';
             count++
         ) {
+            const roundState: EighteenXXState = current
             const id =
-                current.privatePowerWindow?.companyId ??
+                roundState.privatePowerWindow?.companyId ??
                 current.trackStep?.companyId ??
                 current.routeStep?.companyId ??
                 current.trainPurchaseStep!.companyId
-            const type = current.privatePowerWindow
+            const type = roundState.privatePowerWindow
                 ? 'ContinueOperatingRound'
                 : current.machineState === 'LayingTrack'
                   ? 'FinishTrack'

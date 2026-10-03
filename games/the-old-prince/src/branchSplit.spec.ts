@@ -1,12 +1,7 @@
+import type { TheOldPrinceState } from './state.js'
 import { describe, expect, it } from 'vitest'
 import { TheOldPrinceBranchSplit, TheOldPrinceBranches } from './index.js'
-import {
-    getCompany,
-    sameOwner,
-    sharesOwned,
-    type Owner,
-    type EighteenXXState
-} from '@tabletop/18xx'
+import { getCompany, sameOwner, sharesOwned, type Owner } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import { TheOldPrinceScenarios } from './scenarios/index.js'
 const alex = { kind: 'player', playerId: 'alex' } as const
@@ -21,7 +16,7 @@ function preview(state = exampleGame(TheOldPrinceScenarios, 'split').state) {
     if (!result.details) throw new Error(result.reason)
     return result.details
 }
-function allocate(state: EighteenXXState, owners: { owner: Owner; poolId?: string }[]) {
+function allocate(state: TheOldPrinceState, owners: { owner: Owner; poolId?: string }[]) {
     for (const [index, allocation] of owners.entries()) {
         const certificate = state.certificates.find((c) => c.id === `So:share:${index + 1}`)
         if (!certificate || certificate.retired) throw new Error('Missing parent share')
@@ -145,25 +140,25 @@ describe('split eligibility', () => {
     it.each([
         [
             'unfloated',
-            (state: EighteenXXState) => {
+            (state: TheOldPrinceState) => {
                 getCompany(state, 'So').floated = false
             }
         ],
         [
             'closed',
-            (state: EighteenXXState) => {
+            (state: TheOldPrinceState) => {
                 getCompany(state, 'So').closed = true
             }
         ],
         [
             'wrong president',
-            (state: EighteenXXState) => {
+            (state: TheOldPrinceState) => {
                 getCompany(state, 'So').president = blair
             }
         ],
         [
             'one station',
-            (state: EighteenXXState) => {
+            (state: TheOldPrinceState) => {
                 state.stations = state.stations.filter(
                     (s) => s.companyId !== 'So' || s.id === 'So:home'
                 )
@@ -171,31 +166,31 @@ describe('split eligibility', () => {
         ],
         [
             'bought',
-            (state: EighteenXXState) => {
+            (state: TheOldPrinceState) => {
                 state.stockRound.turn.bought = true
             }
         ],
         [
             'other turn',
-            (state: EighteenXXState) => {
+            (state: TheOldPrinceState) => {
                 state.activePlayerIds = ['blair']
             }
         ],
         [
             'outside stock round',
-            (state: EighteenXXState) => {
+            (state: TheOldPrinceState) => {
                 state.machineState = 'BuyingTrains'
             }
         ],
         [
             'full chart',
-            (state: EighteenXXState) => {
+            (state: TheOldPrinceState) => {
                 state.tranches = state.tranches.slice(0, 1)
             }
         ],
         [
             'locked tranche',
-            (state: EighteenXXState) => {
+            (state: TheOldPrinceState) => {
                 getCompany(state, 'So').operated = false
             }
         ]

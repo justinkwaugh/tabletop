@@ -1,27 +1,30 @@
-import type { TitleStateSchema } from '@tabletop/18xx'
-import { RoutesModule } from './routesModule.svelte.js'
-import { StationsModule } from './stationsModule.svelte.js'
-import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
-import { TrainFundingModule } from './trainFundingModule.svelte.js'
-import { TableNotices } from './tableNotices.svelte.js'
-import { PrivatesModule } from './privatesModule.svelte.js'
-import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
-import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
-import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
-import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
-import type { ModuleSession } from './moduleSession.js'
-import { EarningsModule } from './earningsModule.svelte.js'
-import { DiscardModule } from './discardModule.svelte.js'
-import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
-import { PrivateActionsModule } from './privateActionsModule.svelte.js'
-import { TrackModule } from './trackModule.svelte.js'
-import { StockModule } from './stockModule.svelte.js'
-import { StockInstructionModule } from './stockInstructionModule.svelte.js'
-import { MapModule } from './mapModule.svelte.js'
-import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
-import { LoanModule } from './loanModule.svelte.js'
-import { CashCrisisModule } from './cashCrisisModule.svelte.js'
-import { LocalSelections } from './localSelections.js'
+import type { EighteenXXRuntimeSchema, TitleStateSchema } from '@tabletop/18xx'
+import {
+    cashOwnedBy,
+    EighteenXXPreferenceDefinition,
+    getCompany,
+    isPrivateExchangeAction,
+    isPrivateTileLay,
+    priorityOrder,
+    shareSaleValue,
+    stockCertificateCount,
+    stockMarketOrder,
+    titleComponents,
+    trainsOwnedBy,
+    type EighteenXXPreferences,
+    type EighteenXXState,
+    type EighteenXXTitleRules,
+    type HydratedEighteenXXState,
+    type Owner,
+    type Portfolio
+} from '@tabletop/18xx'
+import type { GameAction } from '@tabletop/common'
+import { assert, GameStorage } from '@tabletop/common'
+import type { TitlePreferences } from '@tabletop/frontend-components'
+import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
+import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
+import { type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
+import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
@@ -30,44 +33,40 @@ import {
     MutedTileAppearance,
     type TileAppearance
 } from '../tiles/tileAppearance.js'
-import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
-import { EighteenXXPreferenceDefinition, type EighteenXXPreferences } from '@tabletop/18xx'
-import type { TitlePreferences } from '@tabletop/frontend-components'
-import type { GameAction } from '@tabletop/common'
-import { HistoricalMaps, type HistoricalMap } from '../maps/historicalMap.js'
-import {
-    cashOwnedBy,
-    shareSaleValue,
-    priorityOrder,
-    stockCertificateCount,
-    stockMarketOrder,
-    titleComponents
-} from '@tabletop/18xx'
-import { type HydratedEighteenXXState, type EighteenXXTitleRules } from '@tabletop/18xx'
-import { GameStorage } from '@tabletop/common'
-import { trainsOwnedBy } from '@tabletop/18xx'
-import { type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
-import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
-import { assert } from '@tabletop/common'
-import type { TitlePresentation } from './titlePresentation.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
-import {
-    type EighteenXXState,
-    getCompany,
-    isPrivateExchangeAction,
-    isPrivateTileLay,
-    type Owner,
-    type Portfolio
-} from '@tabletop/18xx'
+import { CashCrisisModule } from './cashCrisisModule.svelte.js'
+import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
+import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
+import { DiscardModule } from './discardModule.svelte.js'
+import { EarningsModule } from './earningsModule.svelte.js'
+import { LoanModule } from './loanModule.svelte.js'
+import { LocalSelections } from './localSelections.js'
+import { MapModule } from './mapModule.svelte.js'
+import type { ModuleSession } from './moduleSession.js'
+import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
+import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
+import { PrivateActionsModule } from './privateActionsModule.svelte.js'
+import { PrivatesModule } from './privatesModule.svelte.js'
+import { RoutesModule } from './routesModule.svelte.js'
+import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
+import { StationsModule } from './stationsModule.svelte.js'
+import { StockInstructionModule } from './stockInstructionModule.svelte.js'
+import { StockModule } from './stockModule.svelte.js'
+import { TableNotices } from './tableNotices.svelte.js'
+import type { TitlePresentation } from './titlePresentation.js'
+import { TrackModule } from './trackModule.svelte.js'
+import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
+import { TrainFundingModule } from './trainFundingModule.svelte.js'
+import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
 
 type SessionOptions<
     Schema extends TitleStateSchema,
-    State extends HydratedEighteenXXState<Schema> & EighteenXXState<Schema>
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 > = ConstructorParameters<typeof GameSession<EighteenXXState<Schema>, State>>[0]
 export class EighteenXXSession<
-    Schema extends TitleStateSchema = TitleStateSchema,
-    State extends HydratedEighteenXXState<Schema> & EighteenXXState<Schema> =
-        HydratedEighteenXXState<Schema> & EighteenXXState<Schema>
+    Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState =
+        HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 > extends GameSession<EighteenXXState<Schema>, State> {
     privateCompanyTokens: Readonly<Record<string, StationAppearance>> = $derived.by(() =>
         Object.fromEntries(
@@ -92,54 +91,59 @@ export class EighteenXXSession<
     private get localHotseat() {
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
     }
-    private readonly moduleSession: ModuleSession<HydratedEighteenXXState, EighteenXXTitleRules> =
-        ((session: EighteenXXSession<Schema, State>) => ({
-            get state() {
-                return session.gameState
-            },
-            get rules() {
-                return session.rules
-            },
-            get validActionTypes() {
-                return session.validActionTypes
-            },
-            get publishing() {
-                return session.updatingVisibleState
-            },
-            get viewingHistory() {
-                return session.isViewingHistory
-            },
-            get selectionsVisible() {
-                return !session.updatingVisibleState && !session.isViewingHistory
-            },
-            get interactive() {
-                return !session.busy && !session.updatingVisibleState && !session.isViewingHistory
-            },
-            get ordinaryHotseatPlay() {
-                return session.localHotseat && !session.isDeveloperHarness
-            },
-            get viewingAsNonActivePlayer() {
-                return session.isViewingAsNonActivePlayer
-            },
-            get playerId() {
-                return session.myPlayer?.id
-            },
-            get actingPlayerIds() {
-                return session.localHotseat
-                    ? session.gameState.activePlayerIds
-                    : session.myPlayer
-                      ? [session.myPlayer.id]
-                      : []
-            },
-            canActFor: (playerId) => session.localHotseat || session.myPlayer?.id === playerId,
-            get recordedActions() {
-                return session.actions.slice(0, session.gameState.actionCount)
-            },
-            settled: () => session.waitForVisibleTransitionSettled(),
-            withSupersededAction: (action) => session.withSupersededAction(action),
-            createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
-            applyAction: (action) => session.applyAction(action)
-        }))(this)
+    private readonly moduleSession: ModuleSession<
+        HydratedEighteenXXState,
+        Omit<
+            EighteenXXTitleRules,
+            'state' | 'createOpening' | 'decisionHandlers' | 'titleStateHandlers'
+        >
+    > = ((session: EighteenXXSession<Schema, State>) => ({
+        get state() {
+            return session.gameState
+        },
+        get rules() {
+            return session.rules
+        },
+        get validActionTypes() {
+            return session.validActionTypes
+        },
+        get publishing() {
+            return session.updatingVisibleState
+        },
+        get viewingHistory() {
+            return session.isViewingHistory
+        },
+        get selectionsVisible() {
+            return !session.updatingVisibleState && !session.isViewingHistory
+        },
+        get interactive() {
+            return !session.busy && !session.updatingVisibleState && !session.isViewingHistory
+        },
+        get ordinaryHotseatPlay() {
+            return session.localHotseat && !session.isDeveloperHarness
+        },
+        get viewingAsNonActivePlayer() {
+            return session.isViewingAsNonActivePlayer
+        },
+        get playerId() {
+            return session.myPlayer?.id
+        },
+        get actingPlayerIds() {
+            return session.localHotseat
+                ? session.gameState.activePlayerIds
+                : session.myPlayer
+                  ? [session.myPlayer.id]
+                  : []
+        },
+        canActFor: (playerId) => session.localHotseat || session.myPlayer?.id === playerId,
+        get recordedActions() {
+            return session.actions.slice(0, session.gameState.actionCount)
+        },
+        settled: () => session.waitForVisibleTransitionSettled(),
+        withSupersededAction: (action) => session.withSupersededAction(action),
+        createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
+        applyAction: (action) => session.applyAction(action)
+    }))(this)
     readonly offers = new OfferAuctionModule(this.moduleSession)
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
     readonly selectionAuction = new SelectionAuctionModule(this.moduleSession)
@@ -325,7 +329,16 @@ export class EighteenXXSession<
             mapViewDefinition.map === map && mapViewDefinition.tileSet === tileSet,
             'The map view must present the title’s map and tile set'
         )
-        this.historicalMaps = new HistoricalMaps(() => this.mapView)
+        this.historicalMaps = new HistoricalMaps(
+            () => this.mapView,
+            (state) =>
+                this.rules.state.hydrate(
+                    state,
+                    this.rules.trackRules.map,
+                    this.rules.trackRules.tileSet,
+                    this.rules.trainRules.depot
+                )
+        )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
     }
@@ -416,7 +429,7 @@ export class EighteenXXSession<
     get passing() {
         return this.rules.stockRules.round.passing
     }
-    private readonly historicalMaps: HistoricalMaps
+    private readonly historicalMaps: HistoricalMaps<EighteenXXState<Schema>>
     // A new object whenever the visible state changes or starts/stops updating. A preview map is
     // only shown for the visible state it was opened on.
     private visibleStateKey = $derived({
@@ -510,7 +523,7 @@ export class EighteenXXSession<
 }
 export function createEighteenXXSessionClass<
     Schema extends TitleStateSchema,
-    State extends HydratedEighteenXXState<Schema> & EighteenXXState<Schema>
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 >(
     rules: EighteenXXTitleRules<Schema, State>,
     mapView: MapViewDefinition,

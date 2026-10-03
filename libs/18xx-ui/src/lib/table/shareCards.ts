@@ -1,11 +1,11 @@
-import type { GameAction } from '@tabletop/common'
 import {
     isBuyShares,
-    isSellShares,
-    isSellFundingShares,
     isIssueTreasuryShares,
+    isSellFundingShares,
+    isSellShares,
     type Certificate
 } from '@tabletop/18xx'
+import type { GameAction } from '@tabletop/common'
 import type { TitlePresentation } from '../session/titlePresentation.js'
 
 export type ShareCard = {
@@ -57,7 +57,13 @@ export function shareSign(action: GameAction): 'plus' | 'minus' | undefined {
 /** Published card art for a share certificate: numbered certificates by id, else by company and kind. */
 export function shareCard(
     certificate: Certificate,
-    presentation: TitlePresentation,
+    presentation: Pick<
+        TitlePresentation,
+        | 'publishedCardImages'
+        | 'publishedShareImages'
+        | 'publishedCardThumbnails'
+        | 'publishedShareThumbnails'
+    >,
     companyName: (id: string) => string
 ): ShareCard | undefined {
     if (certificate.kind !== 'share') return undefined

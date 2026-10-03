@@ -1,5 +1,5 @@
 import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
-import { ActionSource, assert, type GameAction } from '@tabletop/common'
+import { ActionSource, assert, type GameAction, type GameEngine } from '@tabletop/common'
 import {
     Definition as Top,
     TheOldPrinceAuctionRules,
@@ -34,6 +34,7 @@ import {
     discardableTrains,
     trainsOwnedBy,
     type EighteenXXState,
+    type HydratedEighteenXXState,
     type TrainRoute
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
@@ -60,8 +61,8 @@ export const FullGameTitles = [
 ]
 export class CompleteGameRun {
     readonly game
-    readonly engine
-    readonly initial
+    readonly engine: GameEngine<EighteenXXState, HydratedEighteenXXState>
+    readonly initial: EighteenXXState
     state: EighteenXXState
     readonly history: GameAction[] = []
     constructor(

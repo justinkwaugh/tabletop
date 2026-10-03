@@ -1,27 +1,36 @@
 import { isLayTile, isPrivateTileLay, isRunTrains, type EighteenXXState } from '@tabletop/18xx'
-import { assert, assertExists, RecordedHistory, type GameAction } from '@tabletop/common'
+import {
+    assert,
+    assertExists,
+    RecordedHistory,
+    type GameAction,
+    type GameState
+} from '@tabletop/common'
+import { routeColor } from '../routes/routePresentation.js'
 import {
     createMapDrawing,
     routeLocationIds,
-    type MapSelection,
-    type MapRoute
+    type MapRoute,
+    type MapSelection
 } from './mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from './stationPresentation.js'
-import { routeColor } from '../routes/routePresentation.js'
 
 export function isMapHistoryAction(action: GameAction) {
     return isLayTile(action) || isPrivateTileLay(action) || isRunTrains(action)
 }
 
-export class HistoricalMaps {
-    private source?: EighteenXXState
+export class HistoricalMaps<State extends GameState = EighteenXXState> {
+    private source?: State
     private actions?: readonly GameAction[]
     private view?: MapViewDefinition
     private readonly cache = new Map<string, HistoricalMap>()
     /** ``currentView`` is read per preview so presentation changes (token artwork) invalidate the cache. */
-    constructor(private readonly currentView: () => MapViewDefinition) {}
+    constructor(
+        private readonly currentView: () => MapViewDefinition,
+        private readonly read: (state: State) => EighteenXXState
+    ) {}
 
-    preview(state: EighteenXXState, actions: readonly GameAction[], action: GameAction) {
+    preview(state: State, actions: readonly GameAction[], action: GameAction) {
         const view = this.currentView()
         if (this.source !== state || this.actions !== actions || this.view !== view) {
             this.source = state
@@ -35,7 +44,7 @@ export class HistoricalMaps {
             this.cache.set(action.id, cached)
             return cached
         }
-        const snapshot = new RecordedHistory(state, actions).after(action.id)
+        const snapshot = this.read(new RecordedHistory(state, actions).after(action.id))
         assert(
             isLayTile(action) || isPrivateTileLay(action) || isRunTrains(action),
             'Historical map requires a company action'

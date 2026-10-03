@@ -1,6 +1,15 @@
-import { expect, it } from 'vitest'
+import {
+    CashCrisisMachineStates,
+    LoanMachineStates,
+    OfferAuctionMachineStates,
+    RailwayMachineStates,
+    SelectionAuctionMachineStates,
+    WaterfallAuctionMachineStates,
+    type EighteenXXState,
+    type HydratedEighteenXXState
+} from '@tabletop/18xx'
 import { GameEngine, PlayerStatus, assertExists, type GameDefinition } from '@tabletop/common'
-import { EighteenXXState, type HydratedEighteenXXState } from '@tabletop/18xx'
+import { expect, it } from 'vitest'
 
 export function machineStateCoverageTests(
     definition: GameDefinition<EighteenXXState, HydratedEighteenXXState>,
@@ -25,9 +34,14 @@ export function machineStateCoverageTests(
         definition
     )
     const state = new GameEngine(runtime).startGame(game).initialState
-    const familyMachineStates = EighteenXXState.properties.machineState.anyOf.map(
-        (literal) => literal.const
-    )
+    const familyMachineStates = [
+        ...RailwayMachineStates,
+        ...OfferAuctionMachineStates,
+        ...WaterfallAuctionMachineStates,
+        ...SelectionAuctionMachineStates,
+        ...LoanMachineStates,
+        ...CashCrisisMachineStates
+    ]
 
     it('accepts exactly the machine states that have a handler', () => {
         expect(validator.Check(state)).toBe(true)

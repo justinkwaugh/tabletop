@@ -1,6 +1,11 @@
+import {
+    EighteenXXTransferTiming,
+    privateOwner,
+    privatePowerUsed,
+    type TransferRules
+} from '@tabletop/18xx'
 import { Shikoku1889PrivateCatalog } from './privates.js'
 import { Shikoku1889Phases } from './trains.js'
-import { EighteenXXTransferTiming, privateOwner, type TransferRules } from '@tabletop/18xx'
 export const Shikoku1889TransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
     priceRange(state, _companyId, asset) {
@@ -15,7 +20,7 @@ export const Shikoku1889TransferRules: TransferRules = {
         if (
             offer.asset.kind === 'private' &&
             offer.asset.privateCompanyId === 'ER' &&
-            !state.usedPrivatePowerIds.includes('ER')
+            !privatePowerUsed(state, 'ER')
         )
             state.privateTrackLay = {
                 privateCompanyId: 'ER',

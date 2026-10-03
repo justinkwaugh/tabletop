@@ -1,3 +1,4 @@
+import { privatePowerUsed } from '@tabletop/18xx'
 import { assert, assertExists } from '@tabletop/common'
 import {
     BuyPrivateTrain,
@@ -120,7 +121,7 @@ export class CompanyDecisionsModule {
                     (company) =>
                         company.kind === 'private' &&
                         !company.closed &&
-                        !state.usedPrivatePowerIds.includes(company.id)
+                        !privatePowerUsed(state, company.id)
                 )
                 .flatMap((company) => {
                     const terms = rules.privatePowerRules.trackTerms(state, company.id, playerId)

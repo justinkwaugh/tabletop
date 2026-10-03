@@ -1,26 +1,26 @@
-import type { EighteenThirtyState, HydratedEighteenThirtyState } from './state.js'
-import { EighteenThirtyMajors } from './majors.js'
-import { assert } from '@tabletop/common'
 import {
     awardCertificates,
-    requirePar,
-    createOrdinaryShareCertificates,
-    privateIncomePayments,
-    settleCashPayments,
     beginWaterfallAuction,
     createCompanyStations,
-    type WaterfallAuctionRules,
+    createOrdinaryShareCertificates,
+    privateIncomePayments,
+    requirePar,
+    settleCashPayments,
     type InitialPosition,
     type Opening,
-    type OpeningSetup
+    type OpeningSetup,
+    type WaterfallAuctionRules
 } from '@tabletop/18xx'
-import { EighteenThirtyPrivateCatalog, EighteenThirtyPrivates } from './privates.js'
+import { assert } from '@tabletop/common'
+import { EighteenThirtyGameConfig } from './definition/gameConfig.js'
+import { EighteenThirtyMajors } from './majors.js'
 import { EighteenThirtyMap } from './map.js'
-import { EighteenThirtyTileSet } from './tiles.js'
-import { createEighteenThirtyTrainInventory } from './trains.js'
+import { EighteenThirtyPrivateCatalog, EighteenThirtyPrivates } from './privates.js'
+import type { EighteenThirtyState, HydratedEighteenThirtyState } from './state.js'
 import { EighteenThirtyStationCounts } from './stationRules.js'
 import { createEighteenThirtyStockMarket } from './stockMarket.js'
-import { EighteenThirtyGameConfig } from './definition/gameConfig.js'
+import { EighteenThirtyTileSet } from './tiles.js'
+import { createEighteenThirtyTrainInventory } from './trains.js'
 
 export const EighteenThirtyBank = 12000
 export const EighteenThirtyStartingCash: Readonly<Record<number, number>> = {
@@ -114,8 +114,6 @@ export function createEighteenThirtyOpening({
                 owner: { kind: 'bank' as const }
             }))
         ],
-        tranches: [],
-        ownershipLimitExemptions: [],
         stations: majors.flatMap((company) =>
             createCompanyStations(company.id, EighteenThirtyStationCounts[company.id])
         ),

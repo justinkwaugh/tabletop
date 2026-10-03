@@ -42,7 +42,10 @@ export type PlaygroundTitle = {
     /** Short label used by the harness selectors. */
     key: string
     name: string
-    rules: EighteenXXTitleRules
+    rules: Omit<
+        EighteenXXTitleRules,
+        'state' | 'createOpening' | 'decisionHandlers' | 'titleStateHandlers'
+    >
     scenarios: ScenarioDefinition
     host: Component<ScenarioHostProps>
     map: RailwayMap

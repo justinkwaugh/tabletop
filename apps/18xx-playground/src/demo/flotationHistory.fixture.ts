@@ -1,6 +1,6 @@
-import { ActionSource } from '@tabletop/common'
-import { EighteenXXStateValidator, isFinishStockTurn } from '@tabletop/18xx'
-import { Definition as Top } from '@tabletop/the-old-prince'
+import { ActionSource, assert } from '@tabletop/common'
+import { isFinishStockTurn } from '@tabletop/18xx'
+import { Definition as Top, type TheOldPrinceState } from '@tabletop/the-old-prince'
 import { UiDefinition } from '@tabletop/the-old-prince-ui'
 import { GameContext } from '@tabletop/frontend-components'
 import { GameHistory } from '../../../../libs/frontend-components/dist/model/gameHistory.svelte.js'
@@ -39,7 +39,6 @@ export async function flotationHistorySteps() {
     const position = () => {
         const visible = history.visibleContext
         visible.verifyFullChecksum()
-        if (!EighteenXXStateValidator.Check(visible.state)) throw Error('Expected 18xx state')
         return {
             actionTypes: visible.actions.map((action) => action.type),
             floated: visible.state.companies.find((company) => company.id === 'A')?.floated
@@ -78,6 +77,9 @@ export async function finishedStockTurnHistorySteps() {
     let excerptState = initialState
     for (const action of excerpt)
         excerptState = engine.applyProcessedAction({ game, state: excerptState, action })
+    const isTopState = (data: unknown): data is TheOldPrinceState =>
+        Top.runtime.canonicalStateValidator?.Check(data) === true
+    assert(isTopState(excerptState), 'History excerpt requires TOP state')
     const context = new GameContext({
         runtime: await UiDefinition.runtime(),
         game,

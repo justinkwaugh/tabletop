@@ -1,17 +1,18 @@
 import type { GameConfig, PlayerState, Prng, StartingPositionAssignment } from '@tabletop/common'
 import { assert } from '@tabletop/common'
+import type * as Type from 'typebox'
 import type { OfferPileAuction } from '../auctions/offerPileAuction.js'
-import type { WaterfallAuctionRules } from '../auctions/waterfallAuction.js'
 import type { SelectionAuctionRules } from '../auctions/selectionAuction.js'
+import type { WaterfallAuctionRules } from '../auctions/waterfallAuction.js'
 import type { CompanyState } from '../company/companyState.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { StockMarket } from '../stock/stockMarket.js'
 import type { TrainState } from '../trains/train.js'
-import type * as Type from 'typebox'
 import type {
+    EighteenXXRuntimeSchema,
     EighteenXXState,
-    TitleStateSchema,
-    HydratedEighteenXXState
+    HydratedEighteenXXState,
+    TitleStateSchema
 } from './eighteenXXState.js'
 
 export type OpeningSetup = {
@@ -29,8 +30,9 @@ export type InitialTitleState<Schema extends TitleStateSchema> = Omit<
 >
 
 export type Opening<
-    Schema extends TitleStateSchema = TitleStateSchema,
-    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+    Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState =
+        HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 > = {
     position: InitialPosition
     begin(state: State): void

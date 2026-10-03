@@ -1,16 +1,16 @@
-import * as Type from 'typebox'
 import {
     assert,
     assertExists,
+    AuctionType,
     availableBidAmount,
     BidCommitment,
-    SimpleAuction,
     HydratedSimpleAuction,
-    AuctionType,
+    SimpleAuction,
     type GameState
 } from '@tabletop/common'
-import { finiteCashOwnedBy, type FinancialState } from '../finance/finance.js'
+import * as Type from 'typebox'
 import { PendingParFields } from '../company/pendingPar.js'
+import { finiteCashOwnedBy, type FinancialState } from '../finance/finance.js'
 
 export const AuctionLot = Type.Object(
     { id: Type.String(), name: Type.String(), price: Type.Integer({ minimum: 1 }) },
@@ -42,12 +42,11 @@ export const WaterfallAuction = Type.Object(
 )
 export type WaterfallAuction = Type.Static<typeof WaterfallAuction>
 export const AuctionFields = {
-    openingAuction: Type.Optional(WaterfallAuction),
-    ...PendingParFields
+    openingAuction: Type.Optional(WaterfallAuction)
 }
 export type AuctionState = FinancialState &
     Pick<GameState, 'players' | 'activePlayerIds' | 'turnManager'> &
-    Type.Static<Type.TObject<typeof AuctionFields>>
+    Type.Static<Type.TObject<typeof AuctionFields & typeof PendingParFields>>
 export interface WaterfallAuctionRules {
     lots(state: FinancialState): readonly AuctionLot[]
     increment: number

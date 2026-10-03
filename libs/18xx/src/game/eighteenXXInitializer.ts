@@ -1,34 +1,32 @@
-import type * as Type from 'typebox'
-import { Prng } from '@tabletop/common'
-import { applyPrivateEffects } from '../privates/privateLifecycle.js'
 import {
-    BaseGameInitializer,
-    Color,
-    HydratedTurnManager,
     type Game,
     type PlayerState,
     type StartingPositionAssignment,
     type UninitializedGameState,
+    BaseGameInitializer,
+    Color,
+    HydratedTurnManager,
+    Prng,
     validateStartingPositionAssignment
 } from '@tabletop/common'
+import type * as Type from 'typebox'
+import { applyPrivateEffects } from '../privates/privateLifecycle.js'
 import { createStockRound } from '../stock/stockRound.js'
-import {
-    type TitleStateSchema,
-    HydratedEighteenXXState,
-    inKnownPhase
-} from './eighteenXXState.js'
+import type { EighteenXXRuntimeSchema } from './eighteenXXState.js'
+import { type TitleStateSchema, HydratedEighteenXXState, inKnownPhase } from './eighteenXXState.js'
 import type { EighteenXXTitleRules } from './eighteenXXTitleRules.js'
 import type { InitialPosition, Opening } from './opening.js'
 import { titleComponents } from './titleComponents.js'
-export type InitialStateParts<Schema extends TitleStateSchema = TitleStateSchema> = {
+export type InitialStateParts<Schema extends TitleStateSchema = EighteenXXRuntimeSchema> = {
     stockRoundNumber: number
     position: InitialPosition
     titleState?: Opening<Schema>['titleState']
     startingPositions?: StartingPositionAssignment
 }
 export type EighteenXXInitializerRules<
-    Schema extends TitleStateSchema = TitleStateSchema,
-    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+    Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState =
+        HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 > = Pick<
     EighteenXXTitleRules<Schema, State>,
     | 'state'
@@ -42,8 +40,9 @@ export type EighteenXXInitializerRules<
     | 'stockRules'
 >
 export class EighteenXXInitializer<
-    Schema extends TitleStateSchema = TitleStateSchema,
-    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+    Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState =
+        HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 > extends BaseGameInitializer<Type.Static<Schema>, State> {
     static readonly playerColors = [
         Color.Blue,
@@ -108,7 +107,9 @@ export class EighteenXXInitializer<
                     activePlayerIds: [seatOrder[0]],
                     example: 'finances',
                     phaseEvents: [],
-                    usedPrivatePowerIds: [],
+                    ...('usedPrivatePowerIds' in this.rules.state.schema.properties
+                        ? { usedPrivatePowerIds: [] }
+                        : {}),
                     machineState: 'StockRound',
                     stockRound: createStockRound(parts.stockRoundNumber),
                     turnManager: new HydratedTurnManager({

@@ -1,15 +1,29 @@
-import * as Type from 'typebox'
-import { Compile } from 'typebox/compile'
-import { SimpleAuction, assert } from '@tabletop/common'
 import {
-    HydratedEighteenXXState,
-    extendEighteenXXState,
-    type EighteenXXStateDefinition,
+    BorrowingCompany,
+    CashCrisisFields,
+    CashCrisisMachineStates,
+    CompanyAuctionFields,
+    composeEighteenXXState,
+    defineEighteenXXState,
+    LoanFields,
+    LoanMachineStates,
+    LocationMarkerFields,
+    PrivatePowerFields,
+    RailwayFields,
+    RailwayMachineStates,
+    SelectionAuctionFields,
+    SelectionAuctionMachineStates,
+    ShortingCertificate,
+    validateCashCrisis,
+    validateCompanyAuction,
+    validateLoanStep,
+    validateRailwayState,
+    validateSelectionAuction,
     type EighteenXXStateHandler,
-    type RailwayMap,
-    type TileSet,
-    type TrainDepot
+    type HydratedEighteenXXState
 } from '@tabletop/18xx'
+import { assert, SimpleAuction } from '@tabletop/common'
+import * as Type from 'typebox'
 
 const Id = Type.String({ minLength: 1 })
 /** The company converted or merged this turn, until its trading, loans and stations are done. */
@@ -117,8 +131,17 @@ export const AcquisitionRoundStates = [
 /** Where a merged or acquiring company gives up the stations and trains over its limits. */
 export const CompanyExcessStates = ['ReducingStations', 'DiscardingMergedTrains'] as const
 
-export const EighteenSeventeenState = extendEighteenXXState(
+export const EighteenSeventeenState = composeEighteenXXState(
     {
+        ...RailwayFields,
+        ...PrivatePowerFields,
+        companies: Type.Array(BorrowingCompany),
+        certificates: Type.Array(ShortingCertificate),
+        ...SelectionAuctionFields,
+        ...LoanFields,
+        ...CashCrisisFields,
+        ...CompanyAuctionFields,
+        ...LocationMarkerFields,
         // The bank's remaining subsidy toward privates sold below face value in the opening
         // auction; positions prepared after the opening have none.
         seedMoney: Type.Optional(Type.Integer({ minimum: 0 })),
@@ -133,7 +156,15 @@ export const EighteenSeventeenState = extendEighteenXXState(
         mergerRound: Type.Optional(MergerRound),
         acquisitionRound: Type.Optional(AcquisitionRound)
     },
-    [...MergerRoundStates, ...AcquisitionRoundStates, ...CompanyExcessStates]
+    [
+        ...RailwayMachineStates,
+        ...SelectionAuctionMachineStates,
+        ...LoanMachineStates,
+        ...CashCrisisMachineStates,
+        ...MergerRoundStates,
+        ...AcquisitionRoundStates,
+        ...CompanyExcessStates
+    ]
 )
 export type EighteenSeventeenState = Type.Static<typeof EighteenSeventeenState>
 export type EighteenSeventeenOptions = Pick<
@@ -141,7 +172,6 @@ export type EighteenSeventeenOptions = Pick<
     'shortSqueeze' | 'fiveShorts' | 'modernTrains' | 'volatility'
 >
 export type EighteenSeventeenStateHandler = EighteenXXStateHandler<HydratedEighteenSeventeenState>
-const Validator = Compile(EighteenSeventeenState)
 export function privateLaysMade(
     state: Pick<EighteenSeventeenState, 'privateLays'>,
     privateId: string
@@ -241,25 +271,17 @@ export function eighteenSeventeenOptions(state: EighteenSeventeenOptions): {
     }
 }
 
-export class HydratedEighteenSeventeenState extends HydratedEighteenXXState<
-    typeof EighteenSeventeenState
-> {
-    declare seedMoney?: number
-    declare shortSqueeze?: true
-    declare fiveShorts?: true
-    declare modernTrains?: true
-    declare volatility?: true
-    declare pyramid?: Pyramid
-    declare privateLays?: PrivateLays
-    declare inventorPaid?: string[]
-    declare formerPresidents?: FormerPresidents
-    declare mergerRound?: MergerRound
-    declare acquisitionRound?: AcquisitionRound
-    constructor(data: unknown, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
-        super(data, map, tileSet, depot, Validator)
-        const inStates = (states: readonly string[]) => states.includes(this.machineState)
-        const merging = !!activeMergerRound(this)
-        const acquiring = !!activeAcquisitionRound(this)
+export type HydratedEighteenSeventeenState = HydratedEighteenXXState<typeof EighteenSeventeenState>
+export const EighteenSeventeenStateDefinition = defineEighteenXXState(EighteenSeventeenState, [
+    validateRailwayState,
+    validateSelectionAuction,
+    validateCompanyAuction,
+    validateLoanStep,
+    validateCashCrisis,
+    (state) => {
+        const inStates = (states: readonly string[]) => states.includes(state.machineState)
+        const merging = !!activeMergerRound(state)
+        const acquiring = !!activeAcquisitionRound(state)
         assert(
             merging === inStates(MergerRoundStates) || (merging && inStates(CompanyExcessStates)),
             'A merger round in progress belongs to its own states'
@@ -273,13 +295,4 @@ export class HydratedEighteenSeventeenState extends HydratedEighteenXXState<
             'A company gives up its excess in a merger or acquisition round'
         )
     }
-}
-
-export const EighteenSeventeenStateDefinition: EighteenXXStateDefinition<
-    typeof EighteenSeventeenState,
-    HydratedEighteenSeventeenState
-> = {
-    schema: EighteenSeventeenState,
-    hydrate: (data, map, tileSet, depot) =>
-        new HydratedEighteenSeventeenState(data, map, tileSet, depot)
-}
+])

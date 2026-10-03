@@ -1,9 +1,14 @@
 import { assertExists } from '@tabletop/common'
-import { getCompany, sameOwner, sharesOwned } from '../finance/finance.js'
 import * as Type from 'typebox'
-import { Owner, type FinancialState } from '../finance/finance.js'
-import type { StockState } from '../stock/stockState.js'
+import {
+    getCompany,
+    Owner,
+    sameOwner,
+    sharesOwned,
+    type FinancialState
+} from '../finance/finance.js'
 import { StationFields } from '../map/station.js'
+import type { StockState } from '../stock/stockState.js'
 
 export const CompanyTranche = Type.Object(
     {
@@ -27,14 +32,20 @@ export const OwnershipLimitExemption = Type.Object(
 export type OwnershipLimitExemption = Type.Static<typeof OwnershipLimitExemption>
 
 export const StockCompanyFields = {
-    phaseId: Type.String(),
-    ownershipLimitExemptions: Type.Array(OwnershipLimitExemption)
+    phaseId: Type.String()
 }
 export const TrancheFields = { tranches: Type.Array(CompanyTranche) }
-export const CompanyFields = { ...StockCompanyFields, ...TrancheFields, ...StationFields }
+export type TrancheState = Type.Static<Type.TObject<typeof TrancheFields>>
+export const OwnershipExemptionFields = {
+    ownershipLimitExemptions: Type.Array(OwnershipLimitExemption)
+}
+export const CompanyFields = { ...StockCompanyFields, ...StationFields }
 export type StockCompanyState = FinancialState &
-    Type.Static<Type.TObject<typeof StockCompanyFields>>
-export type CompanyState = FinancialState & Type.Static<Type.TObject<typeof CompanyFields>>
+    Type.Static<Type.TObject<typeof StockCompanyFields>> & {
+        ownershipLimitExemptions?: OwnershipLimitExemption[]
+    }
+export type CompanyState = StockCompanyState &
+    Type.Static<Type.TObject<typeof CompanyFields>> & { tranches?: CompanyTranche[] }
 export type FormationState = StockState & CompanyState
 
 export function availableCompanyTranche(
@@ -56,6 +67,7 @@ export function grantOwnershipLimitExemption(
     const company = getCompany(state, companyId)
     assertExists(company.shareCount, 'Ownership exemptions require shares')
     const maximumShares = sharesOwned(state, companyId, owner)
+    assertExists(state.ownershipLimitExemptions, 'Ownership exemptions require their title state')
     const existing = state.ownershipLimitExemptions.find(
         (entry) => entry.companyId === companyId && sameOwner(entry.owner, owner)
     )

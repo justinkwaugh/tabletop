@@ -1,33 +1,34 @@
-import { FamilyStateDefinition } from '@tabletop/18xx'
+import { createEighteenXXRuntime, defineAction, type EighteenXXTitleRules } from '@tabletop/18xx'
+import type { GameDefinition } from '@tabletop/common'
+import { TheOldPrinceCompanyRules } from '../companyRules.js'
+import { TheOldPrinceEarningsRules } from '../earningsRules.js'
 import { TheOldPrinceEndingRules } from '../endingRules.js'
-import { TheOldPrinceStockRoundHandler } from '../stockRoundHandler.js'
-import { SplitCompany, HydratedSplitCompany, isSplitCompany } from '../splitCompany.js'
 import { TheOldPrinceAuctionRules, createTheOldPrinceOpening } from '../openingAuction.js'
-import { TheOldPrinceTrainFundingRules } from '../trainFundingRules.js'
-import { TheOldPrinceTransferRules } from '../transferRules.js'
+import { TheOldPrincePhaseRules } from '../phaseRules.js'
 import { TheOldPrincePrivatePowerRules } from '../privatePowerRules.js'
 import { TheOldPrincePrivateRules } from '../privateRules.js'
-import { TheOldPrincePhaseRules } from '../phaseRules.js'
-import { TheOldPrinceEarningsRules } from '../earningsRules.js'
-import { TheOldPrinceRouteRules } from '../routeRules.js'
-import { TheOldPrincePhases, TheOldPrinceTrainRules } from '../trains.js'
-import { TheOldPrinceStationRules } from '../stationRules.js'
-import { TheOldPrinceTrackRules } from '../trackRules.js'
 import { TheOldPrinceOperatingRules } from '../roundRules.js'
-import { TheOldPrinceCompanyRules } from '../companyRules.js'
-import { TheOldPrinceStockRules } from '../stockRules.js'
-import type { GameDefinition } from '@tabletop/common'
-import { TheOldPrinceInfo } from './info.js'
+import { TheOldPrinceRouteRules } from '../routeRules.js'
+import { HydratedSplitCompany, SplitCompany, isSplitCompany } from '../splitCompany.js'
 import {
-    createEighteenXXRuntime,
-    defineAction,
-    type EighteenXXState,
-    type EighteenXXTitleRules,
-    type HydratedEighteenXXState
-} from '@tabletop/18xx'
+    TheOldPrinceState,
+    TheOldPrinceStateDefinition,
+    type HydratedTheOldPrinceState
+} from '../state.js'
+import { TheOldPrinceStationRules } from '../stationRules.js'
+import { TheOldPrinceStockRoundHandler } from '../stockRoundHandler.js'
+import { TheOldPrinceStockRules } from '../stockRules.js'
+import { TheOldPrinceTrackRules } from '../trackRules.js'
+import { TheOldPrinceTrainFundingRules } from '../trainFundingRules.js'
+import { TheOldPrincePhases, TheOldPrinceTrainRules } from '../trains.js'
+import { TheOldPrinceTransferRules } from '../transferRules.js'
+import { TheOldPrinceInfo } from './info.js'
 
-export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
-    state: FamilyStateDefinition,
+export const TheOldPrinceTitleRules: EighteenXXTitleRules<
+    typeof TheOldPrinceState,
+    HydratedTheOldPrinceState
+> = {
+    state: TheOldPrinceStateDefinition,
     endingRules: TheOldPrinceEndingRules,
     decisionHandlers: { StockRound: (family) => new TheOldPrinceStockRoundHandler(family) },
     titleActions: [
@@ -51,7 +52,7 @@ export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
     trainRules: TheOldPrinceTrainRules
 }
 
-export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
+export const Definition: GameDefinition<TheOldPrinceState, HydratedTheOldPrinceState> = {
     info: TheOldPrinceInfo,
     runtime: createEighteenXXRuntime(TheOldPrinceTitleRules)
 }

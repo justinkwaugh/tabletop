@@ -1,12 +1,12 @@
-import { isOperatingStep } from '../operating/operatingSteps.js'
+import { assert, assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
-import type { StockState } from '../stock/stockState.js'
-import type { OperatingState } from '../operating/operatingSet.js'
 import { TrackLayDetails, type ConstructionState } from '../construction/trackConstruction.js'
-import type { TrainState } from '../trains/train.js'
+import type { OperatingState } from '../operating/operatingSet.js'
+import { isOperatingStep } from '../operating/operatingSteps.js'
 import type { PhaseState } from '../phases/phaseChange.js'
+import type { StockState } from '../stock/stockState.js'
+import type { TrainState } from '../trains/train.js'
 import { PendingPurchaseOffer, isCompanyPurchaseOffer } from '../transfers/purchaseOffer.js'
-import { assert } from '@tabletop/common'
 const Id = Type.String({ minLength: 1 })
 export const PrivateTrackLay = Type.Object(
     { privateCompanyId: Id, companyId: Id, playerId: Id },
@@ -28,14 +28,23 @@ export const PrivatePowerWindow = Type.Object(
     { additionalProperties: false }
 )
 export type PrivatePowerWindow = Type.Static<typeof PrivatePowerWindow>
+export const PrivatePowerFields = { usedPrivatePowerIds: Type.Array(Id, { uniqueItems: true }) }
+export const PrivateWindowFields = { privatePowerWindow: Type.Optional(PrivatePowerWindow) }
+export const PrivateRequestFields = {
+    privatePowerRequests: Type.Optional(Type.Array(Id, { uniqueItems: true }))
+}
+export const PurchaseOfferFields = { purchaseOffer: Type.Optional(PendingPurchaseOffer) }
+export const PrivateTrackFields = { privateTrackLay: Type.Optional(PrivateTrackLay) }
+export const PrivateStationFields = { privateStation: Type.Optional(PrivateStation) }
+export const TrackConsentFields = { trackConsent: Type.Optional(TrackConsent) }
 export const CompanyDecisionFields = {
-    privatePowerWindow: Type.Optional(PrivatePowerWindow),
-    privatePowerRequests: Type.Optional(Type.Array(Id, { uniqueItems: true })),
-    purchaseOffer: Type.Optional(PendingPurchaseOffer),
-    privateTrackLay: Type.Optional(PrivateTrackLay),
-    privateStation: Type.Optional(PrivateStation),
-    trackConsent: Type.Optional(TrackConsent),
-    usedPrivatePowerIds: Type.Array(Id, { uniqueItems: true })
+    usedPrivatePowerIds: Type.Optional(PrivatePowerFields.usedPrivatePowerIds),
+    ...PrivateWindowFields,
+    ...PrivateRequestFields,
+    ...PurchaseOfferFields,
+    ...PrivateTrackFields,
+    ...PrivateStationFields,
+    ...TrackConsentFields
 }
 export type CompanyDecisionState = StockState &
     OperatingState &
@@ -43,6 +52,17 @@ export type CompanyDecisionState = StockState &
     TrainState &
     PhaseState &
     Type.Static<Type.TObject<typeof CompanyDecisionFields>> & { machineState: string }
+export type PrivatePowerUsage = Pick<CompanyDecisionState, 'usedPrivatePowerIds'>
+
+export function privatePowerUsed(state: PrivatePowerUsage, privateCompanyId: string): boolean {
+    return state.usedPrivatePowerIds?.includes(privateCompanyId) ?? false
+}
+
+export function recordPrivatePowerUse(state: PrivatePowerUsage, privateCompanyId: string): void {
+    assertExists(state.usedPrivatePowerIds, 'Consuming a private power requires usage tracking')
+    state.usedPrivatePowerIds.push(privateCompanyId)
+}
+
 type PendingDecisions = Pick<
     CompanyDecisionState,
     'purchaseOffer' | 'privateTrackLay' | 'privateStation' | 'trackConsent'

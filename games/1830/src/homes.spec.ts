@@ -5,11 +5,11 @@ import {
     TrackConstruction,
     rotateTileFace,
     tileUpgradeMappings,
-    type EighteenXXState,
     type TileRotation
 } from '@tabletop/18xx'
 import { exampleGame, playExample } from '@tabletop/18xx/scenarios'
 import { Definition } from './definition/gameDefinition.js'
+import type { EighteenThirtyState } from './state.js'
 import { EighteenThirtyScenarios, completeOpeningAuction } from './scenarios/index.js'
 import {
     EighteenThirtyMap,
@@ -22,7 +22,9 @@ const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
 
 // Plays the opening auction, floats Erie at $100 and passes to Erie's first operating turn,
 // optionally changing the map before the stock round ends.
-function erieOperates(prepareMap: (state: EighteenXXState) => EighteenXXState = (state) => state) {
+function erieOperates(
+    prepareMap: (state: EighteenThirtyState) => EighteenThirtyState = (state) => state
+) {
     const play = playExample(EighteenThirtyScenarios, 'opening', 3)
     const player = () => ({ kind: 'player', playerId: play.state.activePlayerIds[0] }) as const
     completeOpeningAuction(play)

@@ -1,20 +1,22 @@
-import type { PreparedPosition } from '@tabletop/18xx/scenarios'
-import { Shikoku1889Majors } from '../index.js'
-import { prepareShikoku1889Privates } from './privateExamples.js'
-import { Shikoku1889TrainDepot } from '../index.js'
-import { Shikoku1889StationCounts } from '../index.js'
-import { Shikoku1889TileSet } from '../index.js'
-import { assert, type PlayerState } from '@tabletop/common'
 import {
-    createOrdinaryShareCertificates,
     applyStationPlacement,
+    createOrdinaryShareCertificates,
     getCompany,
     type CompanyState,
-    type TrainState,
-    type MapStateData
+    type MapStateData,
+    type TrainState
 } from '@tabletop/18xx'
+import type { PreparedPosition } from '@tabletop/18xx/scenarios'
+import { assert, type PlayerState } from '@tabletop/common'
+import {
+    Shikoku1889Majors,
+    Shikoku1889Map,
+    Shikoku1889StationCounts,
+    Shikoku1889TileSet,
+    Shikoku1889TrainDepot
+} from '../index.js'
 import { createShikoku1889FinanceExample } from './financeFixture.js'
-import { Shikoku1889Map } from '../index.js'
+import { prepareShikoku1889Privates } from './privateExamples.js'
 
 export function createShikoku1889CompanyExample(
     players: readonly PlayerState[],
@@ -24,8 +26,6 @@ export function createShikoku1889CompanyExample(
         ...createShikoku1889FinanceExample(players),
         trainInventory: Shikoku1889TrainDepot.createInventory(),
         phaseId: '2',
-        tranches: [],
-        ownershipLimitExemptions: [],
         stations: [],
         stationReservations: [],
         tileInventory: Shikoku1889TileSet.createInventory([

@@ -580,10 +580,6 @@
                   "const": "share",
                   "type": "string"
                 },
-                "number": {
-                  "minimum": 1,
-                  "type": "integer"
-                },
                 "owner": {
                   "anyOf": [
                     {
@@ -782,10 +778,6 @@
                 "kind": {
                   "const": "share",
                   "type": "string"
-                },
-                "number": {
-                  "minimum": 1,
-                  "type": "integer"
                 },
                 "president": {
                   "type": "boolean"
@@ -1064,10 +1056,6 @@
             "privateRevenue": {
               "minimum": 0,
               "type": "integer"
-            },
-            "role": {
-              "minLength": 1,
-              "type": "string"
             },
             "shareCount": {
               "minimum": 1,
@@ -1957,34 +1945,6 @@
       "machineState": {
         "anyOf": [
           {
-            "const": "SelectionAuction",
-            "type": "string"
-          },
-          {
-            "const": "FundingTrain",
-            "type": "string"
-          },
-          {
-            "const": "GameOver",
-            "type": "string"
-          },
-          {
-            "const": "Bankrupt",
-            "type": "string"
-          },
-          {
-            "const": "AdvancingPhase",
-            "type": "string"
-          },
-          {
-            "const": "DiscardingTrains",
-            "type": "string"
-          },
-          {
-            "const": "RustingTrains",
-            "type": "string"
-          },
-          {
             "const": "StockRound",
             "type": "string"
           },
@@ -2009,6 +1969,34 @@
             "type": "string"
           },
           {
+            "const": "BuyingTrains",
+            "type": "string"
+          },
+          {
+            "const": "FundingTrain",
+            "type": "string"
+          },
+          {
+            "const": "Bankrupt",
+            "type": "string"
+          },
+          {
+            "const": "GameOver",
+            "type": "string"
+          },
+          {
+            "const": "AdvancingPhase",
+            "type": "string"
+          },
+          {
+            "const": "DiscardingTrains",
+            "type": "string"
+          },
+          {
+            "const": "RustingTrains",
+            "type": "string"
+          },
+          {
             "const": "RunningTrains",
             "type": "string"
           },
@@ -2017,7 +2005,7 @@
             "type": "string"
           },
           {
-            "const": "BuyingTrains",
+            "const": "SelectionAuction",
             "type": "string"
           },
           {
@@ -2041,14 +2029,6 @@
             "type": "string"
           },
           {
-            "const": "ReducingStations",
-            "type": "string"
-          },
-          {
-            "const": "DiscardingMergedTrains",
-            "type": "string"
-          },
-          {
             "const": "AcquisitionRound",
             "type": "string"
           },
@@ -2062,6 +2042,14 @@
           },
           {
             "const": "AcquisitionLoans",
+            "type": "string"
+          },
+          {
+            "const": "ReducingStations",
+            "type": "string"
+          },
+          {
+            "const": "DiscardingMergedTrains",
             "type": "string"
           }
         ]
@@ -2183,301 +2171,6 @@
         "const": true,
         "type": "boolean"
       },
-      "offerAuction": {
-        "additionalProperties": false,
-        "properties": {
-          "auctioneerId": {
-            "type": "string"
-          },
-          "awards": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "lotId": {
-                  "type": "string"
-                },
-                "playerId": {
-                  "type": "string"
-                },
-                "price": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "lotId",
-                "playerId",
-                "price"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "bidding": {
-            "additionalProperties": false,
-            "properties": {
-              "auction": {
-                "properties": {
-                  "auctioneerId": {
-                    "type": "string"
-                  },
-                  "highBid": {
-                    "type": "number"
-                  },
-                  "id": {
-                    "type": "string"
-                  },
-                  "participants": {
-                    "items": {
-                      "properties": {
-                        "bid": {
-                          "type": "number"
-                        },
-                        "passed": {
-                          "default": false,
-                          "type": "boolean"
-                        },
-                        "playerId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "passed",
-                        "playerId"
-                      ],
-                      "type": "object"
-                    },
-                    "type": "array"
-                  },
-                  "type": {
-                    "const": "simple",
-                    "type": "string"
-                  },
-                  "winnerId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id",
-                  "participants",
-                  "type"
-                ],
-                "type": "object"
-              },
-              "firstPassed": {
-                "type": "boolean"
-              },
-              "lotId": {
-                "type": "string"
-              },
-              "playerId": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "auction",
-              "firstPassed",
-              "lotId",
-              "playerId"
-            ],
-            "type": "object"
-          },
-          "completed": {
-            "type": "boolean"
-          },
-          "incomePayments": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "piles": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "lotIds": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array",
-                  "uniqueItems": true
-                },
-                "playerId": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "lotIds",
-                "playerId"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "stalled": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "auctioneerId",
-          "awards",
-          "completed",
-          "incomePayments",
-          "piles",
-          "stalled"
-        ],
-        "type": "object"
-      },
-      "openingAuction": {
-        "additionalProperties": false,
-        "properties": {
-          "awards": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "lotId": {
-                  "type": "string"
-                },
-                "playerId": {
-                  "type": "string"
-                },
-                "price": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "lotId",
-                "playerId",
-                "price"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "bidding": {
-            "additionalProperties": false,
-            "properties": {
-              "auction": {
-                "properties": {
-                  "auctioneerId": {
-                    "type": "string"
-                  },
-                  "highBid": {
-                    "type": "number"
-                  },
-                  "id": {
-                    "type": "string"
-                  },
-                  "participants": {
-                    "items": {
-                      "properties": {
-                        "bid": {
-                          "type": "number"
-                        },
-                        "passed": {
-                          "default": false,
-                          "type": "boolean"
-                        },
-                        "playerId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "passed",
-                        "playerId"
-                      ],
-                      "type": "object"
-                    },
-                    "type": "array"
-                  },
-                  "type": {
-                    "const": "simple",
-                    "type": "string"
-                  },
-                  "winnerId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id",
-                  "participants",
-                  "type"
-                ],
-                "type": "object"
-              },
-              "lotId": {
-                "type": "string"
-              },
-              "playerId": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "auction",
-              "lotId",
-              "playerId"
-            ],
-            "type": "object"
-          },
-          "completed": {
-            "type": "boolean"
-          },
-          "discount": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "nextPlayerId": {
-            "type": "string"
-          },
-          "passedPlayerIds": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "remainingLotIds": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "reservations": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "amount": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "lotId": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "playerId": {
-                  "minLength": 1,
-                  "type": "string"
-                }
-              },
-              "required": [
-                "amount",
-                "lotId",
-                "playerId"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "awards",
-          "completed",
-          "discount",
-          "nextPlayerId",
-          "passedPlayerIds",
-          "remainingLotIds",
-          "reservations"
-        ],
-        "type": "object"
-      },
       "operatingSet": {
         "additionalProperties": false,
         "properties": {
@@ -2526,102 +2219,6 @@
           "privateIncomePaid",
           "roundCount",
           "roundNumber"
-        ],
-        "type": "object"
-      },
-      "ownershipLimitExemptions": {
-        "items": {
-          "additionalProperties": false,
-          "properties": {
-            "companyId": {
-              "type": "string"
-            },
-            "maximumShares": {
-              "minimum": 1,
-              "type": "integer"
-            },
-            "owner": {
-              "anyOf": [
-                {
-                  "anyOf": [
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "player",
-                          "type": "string"
-                        },
-                        "playerId": {
-                          "minLength": 1,
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "kind",
-                        "playerId"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "companyId": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "kind": {
-                          "const": "company",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "companyId",
-                        "kind"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                },
-                {
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "bank",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "kind"
-                  ],
-                  "type": "object"
-                }
-              ]
-            }
-          },
-          "required": [
-            "companyId",
-            "maximumShares",
-            "owner"
-          ],
-          "type": "object"
-        },
-        "type": "array"
-      },
-      "pendingPar": {
-        "additionalProperties": false,
-        "properties": {
-          "companyId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "playerId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "companyId",
-          "playerId"
         ],
         "type": "object"
       },
@@ -3001,87 +2598,6 @@
             "type": "integer"
           }
         },
-        "type": "object"
-      },
-      "privatePowerRequests": {
-        "items": {
-          "minLength": 1,
-          "type": "string"
-        },
-        "type": "array",
-        "uniqueItems": true
-      },
-      "privatePowerWindow": {
-        "additionalProperties": false,
-        "properties": {
-          "companyId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "passedPlayerIds": {
-            "items": {
-              "minLength": 1,
-              "type": "string"
-            },
-            "type": "array",
-            "uniqueItems": true
-          }
-        },
-        "required": [
-          "companyId",
-          "passedPlayerIds"
-        ],
-        "type": "object"
-      },
-      "privateStation": {
-        "additionalProperties": false,
-        "properties": {
-          "companyId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "locationId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "playerId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "privateCompanyId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "companyId",
-          "locationId",
-          "playerId",
-          "privateCompanyId"
-        ],
-        "type": "object"
-      },
-      "privateTrackLay": {
-        "additionalProperties": false,
-        "properties": {
-          "companyId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "playerId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "privateCompanyId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "companyId",
-          "playerId",
-          "privateCompanyId"
-        ],
         "type": "object"
       },
       "prng": {
@@ -4404,41 +3920,6 @@
         ],
         "type": "object"
       },
-      "stockTurnPurchases": {
-        "items": {
-          "additionalProperties": false,
-          "properties": {
-            "companyId": {
-              "type": "string"
-            },
-            "kind": {
-              "anyOf": [
-                {
-                  "const": "share",
-                  "type": "string"
-                },
-                {
-                  "const": "start",
-                  "type": "string"
-                },
-                {
-                  "const": "private",
-                  "type": "string"
-                }
-              ]
-            },
-            "poolId": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "companyId",
-            "kind"
-          ],
-          "type": "object"
-        },
-        "type": "array"
-      },
       "systemVersion": {
         "type": "number"
       },
@@ -4514,472 +3995,6 @@
           "placements",
           "retiredPieceIds",
           "tileSetId"
-        ],
-        "type": "object"
-      },
-      "trackConsent": {
-        "additionalProperties": false,
-        "properties": {
-          "details": {
-            "additionalProperties": false,
-            "properties": {
-              "allowanceCost": {
-                "minimum": 0,
-                "type": "integer"
-              },
-              "companyId": {
-                "type": "string"
-              },
-              "consentPlayerId": {
-                "type": "string"
-              },
-              "cost": {
-                "minimum": 0,
-                "type": "integer"
-              },
-              "definitionId": {
-                "type": "string"
-              },
-              "effects": {
-                "additionalProperties": false,
-                "properties": {
-                  "closedPrivateIds": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  "payments": {
-                    "items": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "amount": {
-                          "minimum": 1,
-                          "type": "integer"
-                        },
-                        "from": {
-                          "anyOf": [
-                            {
-                              "anyOf": [
-                                {
-                                  "additionalProperties": false,
-                                  "properties": {
-                                    "kind": {
-                                      "const": "player",
-                                      "type": "string"
-                                    },
-                                    "playerId": {
-                                      "minLength": 1,
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "kind",
-                                    "playerId"
-                                  ],
-                                  "type": "object"
-                                },
-                                {
-                                  "additionalProperties": false,
-                                  "properties": {
-                                    "companyId": {
-                                      "minLength": 1,
-                                      "type": "string"
-                                    },
-                                    "kind": {
-                                      "const": "company",
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "companyId",
-                                    "kind"
-                                  ],
-                                  "type": "object"
-                                }
-                              ]
-                            },
-                            {
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "bank",
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "kind"
-                              ],
-                              "type": "object"
-                            }
-                          ]
-                        },
-                        "to": {
-                          "anyOf": [
-                            {
-                              "anyOf": [
-                                {
-                                  "additionalProperties": false,
-                                  "properties": {
-                                    "kind": {
-                                      "const": "player",
-                                      "type": "string"
-                                    },
-                                    "playerId": {
-                                      "minLength": 1,
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "kind",
-                                    "playerId"
-                                  ],
-                                  "type": "object"
-                                },
-                                {
-                                  "additionalProperties": false,
-                                  "properties": {
-                                    "companyId": {
-                                      "minLength": 1,
-                                      "type": "string"
-                                    },
-                                    "kind": {
-                                      "const": "company",
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "companyId",
-                                    "kind"
-                                  ],
-                                  "type": "object"
-                                }
-                              ]
-                            },
-                            {
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "bank",
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "kind"
-                              ],
-                              "type": "object"
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "amount",
-                        "from",
-                        "to"
-                      ],
-                      "type": "object"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "closedPrivateIds",
-                  "payments"
-                ],
-                "type": "object"
-              },
-              "locationId": {
-                "type": "string"
-              },
-              "nodeMapping": {
-                "patternProperties": {
-                  "^.*$": {
-                    "type": "string"
-                  }
-                },
-                "type": "object"
-              },
-              "placement": {
-                "additionalProperties": false,
-                "properties": {
-                  "definitionId": {
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "pieceId": {
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "rotation": {
-                    "anyOf": [
-                      {
-                        "const": 0,
-                        "type": "number"
-                      },
-                      {
-                        "const": 1,
-                        "type": "number"
-                      },
-                      {
-                        "const": 2,
-                        "type": "number"
-                      },
-                      {
-                        "const": 3,
-                        "type": "number"
-                      },
-                      {
-                        "const": 4,
-                        "type": "number"
-                      },
-                      {
-                        "const": 5,
-                        "type": "number"
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "definitionId",
-                  "pieceId",
-                  "rotation"
-                ],
-                "type": "object"
-              },
-              "previous": {
-                "additionalProperties": false,
-                "properties": {
-                  "definitionId": {
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "pieceId": {
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "rotation": {
-                    "anyOf": [
-                      {
-                        "const": 0,
-                        "type": "number"
-                      },
-                      {
-                        "const": 1,
-                        "type": "number"
-                      },
-                      {
-                        "const": 2,
-                        "type": "number"
-                      },
-                      {
-                        "const": 3,
-                        "type": "number"
-                      },
-                      {
-                        "const": 4,
-                        "type": "number"
-                      },
-                      {
-                        "const": 5,
-                        "type": "number"
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "definitionId",
-                  "pieceId",
-                  "rotation"
-                ],
-                "type": "object"
-              },
-              "rotation": {
-                "anyOf": [
-                  {
-                    "const": 0,
-                    "type": "number"
-                  },
-                  {
-                    "const": 1,
-                    "type": "number"
-                  },
-                  {
-                    "const": 2,
-                    "type": "number"
-                  },
-                  {
-                    "const": 3,
-                    "type": "number"
-                  },
-                  {
-                    "const": 4,
-                    "type": "number"
-                  },
-                  {
-                    "const": 5,
-                    "type": "number"
-                  }
-                ]
-              },
-              "stationReservations": {
-                "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "companyId": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "locationId": {
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "nodeId": {
-                      "minLength": 1,
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "companyId",
-                    "locationId",
-                    "nodeId"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "stations": {
-                "items": {
-                  "anyOf": [
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "companyId": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "id": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "status": {
-                          "const": "available",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "companyId",
-                        "id",
-                        "status"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "companyId": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "id": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "position": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "locationId": {
-                              "minLength": 1,
-                              "type": "string"
-                            },
-                            "nodeId": {
-                              "minLength": 1,
-                              "type": "string"
-                            },
-                            "slot": {
-                              "minimum": 0,
-                              "type": "integer"
-                            }
-                          },
-                          "required": [
-                            "locationId",
-                            "nodeId",
-                            "slot"
-                          ],
-                          "type": "object"
-                        },
-                        "status": {
-                          "const": "placed",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "companyId",
-                        "id",
-                        "position",
-                        "status"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "companyId": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "id": {
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "status": {
-                          "const": "removed",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "companyId",
-                        "id",
-                        "status"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                },
-                "type": "array"
-              },
-              "terrainCost": {
-                "minimum": 0,
-                "type": "integer"
-              }
-            },
-            "required": [
-              "allowanceCost",
-              "companyId",
-              "cost",
-              "definitionId",
-              "locationId",
-              "nodeMapping",
-              "placement",
-              "rotation",
-              "stationReservations",
-              "stations",
-              "terrainCost"
-            ],
-            "type": "object"
-          },
-          "id": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "playerId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "details",
-          "id",
-          "playerId"
         ],
         "type": "object"
       },
@@ -5422,38 +4437,6 @@
         ],
         "type": "object"
       },
-      "tranches": {
-        "items": {
-          "additionalProperties": false,
-          "properties": {
-            "capacity": {
-              "minimum": 1,
-              "type": "integer"
-            },
-            "companyIds": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array",
-              "uniqueItems": true
-            },
-            "id": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "capacity",
-            "companyIds",
-            "id",
-            "name"
-          ],
-          "type": "object"
-        },
-        "type": "array"
-      },
       "turnManager": {
         "properties": {
           "series": {
@@ -5535,7 +4518,6 @@
       "gameId",
       "id",
       "machineState",
-      "ownershipLimitExemptions",
       "phaseEvents",
       "phaseId",
       "players",
@@ -5546,7 +4528,6 @@
       "stockRound",
       "tileInventory",
       "trainInventory",
-      "tranches",
       "turnManager",
       "usedPrivatePowerIds",
       "winningPlayerIds"

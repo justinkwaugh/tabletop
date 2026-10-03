@@ -1,13 +1,8 @@
-import { expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
-import { Definition, Shikoku1889AuctionRules } from './index.js'
-import {
-    ReserveBidAuction,
-    cashOwnedBy,
-    EighteenXXStateValidator,
-    type EighteenXXState
-} from '@tabletop/18xx'
+import { ReserveBidAuction, cashOwnedBy } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
+import { ActionSource, type GameAction } from '@tabletop/common'
+import { expect, it } from 'vitest'
+import { Definition, Shikoku1889AuctionRules } from './index.js'
 import { Shikoku1889Scenarios } from './scenarios/index.js'
 function opening(count = 3) {
     const { game, engine, state: initial } = exampleGame(Shikoku1889Scenarios, 'opening', count)
@@ -42,7 +37,7 @@ function opening(count = 3) {
             })
             state = result.updatedState
             history.push(...result.processedActions)
-            expect(EighteenXXStateValidator.Check(state)).toBe(true)
+            expect(Definition.runtime.canonicalStateValidator?.Check(state)).toBe(true)
             expect(
                 Definition.runtime.hydrator
                     .hydrateState(JSON.parse(JSON.stringify(state)))
@@ -211,7 +206,7 @@ it('replays and undoes user actions and automatic cascades exactly without seria
     run.act('PassAuction')
     for (let i = 0; i < 3; i++) run.act('PassAuction')
     while (run.state.machineState !== 'StockRound') run.buy()
-    let replay: EighteenXXState = run.initial
+    let replay = run.initial
     for (const action of run.history) {
         expect(Object.keys(action)).not.toContain('rules')
         replay = run.engine.applyProcessedAction({ game: run.game, state: replay, action })

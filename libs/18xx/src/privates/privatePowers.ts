@@ -1,13 +1,14 @@
-import type { Owner } from '../finance/finance.js'
 import {
     TrackConstruction,
+    type TrackEvaluation,
     type TrackLayDetails,
     type TrackLayEffects,
-    type TrackRules,
     type TrackRequest,
-    type TrackEvaluation
+    type TrackRules
 } from '../construction/trackConstruction.js'
+import type { Owner } from '../finance/finance.js'
 import type { CompanyDecisionState } from './companyDecision.js'
+import { privatePowerUsed } from './companyDecision.js'
 export interface PrivateTrackTerms {
     companyId: string
     locationIds: readonly string[]
@@ -100,7 +101,7 @@ export function evaluatePrivateTrack(
     if (
         !terms ||
         terms.companyId !== request.companyId ||
-        state.usedPrivatePowerIds.includes(privateCompanyId)
+        privatePowerUsed(state, privateCompanyId)
     )
         return { reason: 'This private tile lay is unavailable.' }
     return privateTrackConstruction(state, terms, track).evaluate(request)

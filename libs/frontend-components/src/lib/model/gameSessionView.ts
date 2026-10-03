@@ -34,7 +34,6 @@ export type GameSessionView<
     | 'chatService'
     | 'colors'
     | 'currentGameChat'
-    | 'explorations'
     | 'forkGame'
     | 'game'
     | 'gameState'
@@ -68,4 +67,15 @@ export type GameSessionView<
     | 'undoableAction'
     | 'updatingVisibleState'
     | 'validActionTypes'
-> & { readonly history: GameHistoryView<Raw, State> }
+> & {
+    readonly history: GameHistoryView<Raw, State>
+    readonly explorations: Pick<
+        GameSession<Raw, State>['explorations'],
+        | 'endExploring'
+        | 'saveExploration'
+        | 'deleteExploration'
+        | 'switchExploration'
+        | 'createNewExploration'
+        | 'hasUnsavedChanges'
+    >
+}

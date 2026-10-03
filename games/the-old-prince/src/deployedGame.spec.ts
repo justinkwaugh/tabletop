@@ -1,7 +1,7 @@
+import type { TheOldPrinceState } from './state.js'
+import { GameEngine, PlayerStatus, type GameAction } from '@tabletop/common'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { GameEngine, PlayerStatus, type GameAction } from '@tabletop/common'
-import type { EighteenXXState } from '@tabletop/18xx'
 import { Definition } from './definition/gameDefinition.js'
 
 function readFixture(name: string) {
@@ -13,7 +13,8 @@ function readFixture(name: string) {
     )
 }
 
-const latestState: EighteenXXState = readFixture('state')
+type LegacyState = TheOldPrinceState & { usedPrivatePowerIds?: string[] }
+const latestState: LegacyState = readFixture('state')
 const newestFirstActions: GameAction[] = readFixture('actions').map(
     ({ createdAt, updatedAt, ...action }: Record<string, string>) => ({
         ...action,
@@ -42,7 +43,7 @@ const game = Definition.runtime.initializer.initializeGame(
 // current logic also draws an identifier for the offer the player then made by hand.
 const recordedBeforeAutomaticLotOffers = [56, 61, 66, 71]
 
-function recordedStates(): EighteenXXState[] {
+function recordedStates(): LegacyState[] {
     const states = [latestState]
     for (const action of newestFirstActions)
         states.unshift(engine.undoProcessedAction({ action, state: states[0] }))
@@ -50,11 +51,11 @@ function recordedStates(): EighteenXXState[] {
 }
 
 describe('the deployed game', () => {
-    it('loads its latest canonical state without changing it', () => {
+    it('loads its latest state, dropping only unused legacy power tracking', () => {
         engine.validateCanonicalState(latestState)
-        expect(Definition.runtime.hydrator.hydrateState(latestState).dehydrate()).toEqual(
-            latestState
-        )
+        const { usedPrivatePowerIds, ...expected } = latestState
+        expect(usedPrivatePowerIds).toEqual([])
+        expect(Definition.runtime.hydrator.hydrateState(latestState).dehydrate()).toEqual(expected)
     })
 
     it('offers the active player the same actions', () => {
@@ -62,6 +63,15 @@ describe('the deployed game', () => {
             engine.getValidActionTypesForPlayer(game, latestState, latestState.activePlayerIds[0])
         ).toEqual(['LayTile', 'FinishTrack'])
     })
+
+    it.each([{ value: ['unexpected'] }, { value: null }, { value: 'invalid' }])(
+        'rejects an unexpected legacy power tracker: $value',
+        ({ value: usedPrivatePowerIds }) => {
+            const invalid = { ...latestState, usedPrivatePowerIds }
+            expect(Definition.runtime.canonicalStateValidator?.Check(invalid)).toBe(false)
+            expect(() => Definition.runtime.hydrator.hydrateState(invalid)).toThrow()
+        }
+    )
 
     it('reproduces every recorded state from its recorded action', () => {
         const states = recordedStates()
@@ -73,7 +83,8 @@ describe('the deployed game', () => {
                 state: states[index],
                 game
             })
-            const recorded = states[index + 1]
+            const { usedPrivatePowerIds, ...recorded } = states[index + 1]
+            expect(usedPrivatePowerIds).toEqual([])
             expect(
                 recordedBeforeAutomaticLotOffers.includes(index)
                     ? { ...updatedState, prng: recorded.prng }

@@ -1,5 +1,5 @@
-import type { GameAction } from '@tabletop/common'
-import type { CertificatePool, EighteenXXState } from '@tabletop/18xx'
+import type { CertificatePool, EighteenXXState, StockInstructionStopReason } from '@tabletop/18xx'
+import type { GameAction, GameState } from '@tabletop/common'
 import type { PhaseChartData } from '../phases/phaseChart.js'
 import type { MoneyFormat } from '../presentation/money.js'
 import type {
@@ -7,7 +7,6 @@ import type {
     CompanyPricePresentation,
     NumberedShareNames
 } from '../table/companyPresentation.js'
-import type { StockInstructionStopReason } from '@tabletop/18xx'
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
 
 export type PrivateTokenPresentation = { companyId: string } | { tileSymbol: TileSymbolName }
@@ -15,7 +14,7 @@ export type PrivateTokenPresentation = { companyId: string } | { tileSymbol: Til
 export type TitleStopReason = Extract<StockInstructionStopReason, { code: 'title' }>
 
 /** A round of the title's own that follows an operating round and is numbered after it. */
-export type TitleRound<State extends EighteenXXState = EighteenXXState> = {
+export type TitleRound<State extends GameState = EighteenXXState> = {
     name: string
     abbreviation: string
     inProgress(state: State): boolean
@@ -30,7 +29,7 @@ export type TitleFact = { label: string; value: string }
 export type MarketZone = { color: string; name: string; description: string }
 
 /** A company statistic of the title's own, shown as a sortable spreadsheet column. */
-export type CompanyColumn<State extends EighteenXXState = EighteenXXState> = {
+export type CompanyColumn<State extends GameState = EighteenXXState> = {
     id: string
     label: string
     /** What the column sorts by; companies without a value sort last. */
@@ -38,7 +37,7 @@ export type CompanyColumn<State extends EighteenXXState = EighteenXXState> = {
     text(state: State, companyId: string): string
 }
 
-export type TitlePresentation<State extends EighteenXXState = EighteenXXState> = {
+export type TitlePresentation<State extends GameState = EighteenXXState> = {
     money: MoneyFormat
     trainShortLabels?: Readonly<Record<string, string>>
     phaseChart: PhaseChartData

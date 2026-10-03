@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { privatePowerUsed } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import {
         companySharePrice,
@@ -362,8 +363,7 @@
             >
         </div>
         {#if !vertical && !item.closed && description}<p>{description}</p>{/if}
-        {#if gameState.usedPrivatePowerIds.includes(item.id)}<span class="status"
-                >One-time power used</span
+        {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
             >{/if}
     </article>
 {/snippet}

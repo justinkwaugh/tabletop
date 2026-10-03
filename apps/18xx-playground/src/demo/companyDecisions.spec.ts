@@ -15,7 +15,8 @@ import {
     Shikoku1889TransferRules,
     Shikoku1889TrainRules,
     Shikoku1889PrivatePowerRules,
-    Shikoku1889TrackRules
+    Shikoku1889TrackRules,
+    type Shikoku1889State
 } from '@tabletop/shikoku-1889'
 import {
     purchaseChoices,
@@ -361,7 +362,7 @@ function requestWindow(state: EighteenXXState, requested = true) {
         requested
     })
 }
-function portLay(state: EighteenXXState, type: 'LayPrivateTile' | 'LayPrivateTileOutOfTurn') {
+function portLay(state: Shikoku1889State, type: 'LayPrivateTile' | 'LayPrivateTileOutOfTurn') {
     const hydrated = Shikoku.runtime.hydrator.hydrateState(state)
     const terms = Shikoku1889PrivatePowerRules.trackTerms(hydrated, 'MF', 'casey')!
     const { companyId, locationId, definitionId, rotation, nodeMapping, cost } =

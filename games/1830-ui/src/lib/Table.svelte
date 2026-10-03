@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { privatePowerUsed } from '@tabletop/18xx'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenThirtyState, HydratedEighteenThirtyState } from '@tabletop/1830'
     import {
@@ -31,9 +32,9 @@
     }
     const privateOperationDescription = (id: string) => {
         const power = PrivatePowers[id]
-        const { usedPrivatePowerIds, tileInventory } = session.gameState
+        const { tileInventory } = session.gameState
         return power &&
-            !usedPrivatePowerIds.includes(id) &&
+            !privatePowerUsed(session.gameState, id) &&
             !tileInventory.placements[power.locationId]
             ? power.description
             : undefined

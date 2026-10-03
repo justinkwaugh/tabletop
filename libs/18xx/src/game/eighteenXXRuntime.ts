@@ -1,86 +1,122 @@
-import * as Type from 'typebox'
-import { Compile, type Validator } from 'typebox/compile'
-import { AutomaticTrackCompletionHandler } from '../construction/automaticTrackCompletionHandler.js'
-import { AutomaticTrainCompletionHandler } from '../trains/automaticTrainCompletionHandler.js'
-import { GameEndingHandler } from '../ending/gameEndingHandler.js'
-import { FinalWealthScoring } from '../ending/finalScores.js'
-import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
-import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
-import { SelectionAuctionHandler } from '../auctions/selectionAuctionHandler.js'
-import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
-import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
-import { PendingParHandler } from '../company/pendingPar.js'
-import { BankruptHandler } from '../funding/bankruptHandler.js'
-import { BetweenCompaniesHandler } from '../privates/betweenCompaniesHandler.js'
-import { CompanyDecisionsHandler } from '../privates/companyDecisionsHandler.js'
-import { PrivateExchangeHandler } from '../privates/privateExchangeHandler.js'
-import { AdvancingPhaseHandler } from '../phases/advancePhase.js'
-import { DiscardingTrainsHandler } from '../trains/discardTrain.js'
-import { RustingTrainsHandler } from '../trains/rustTrains.js'
-import { DistributingEarningsHandler } from '../earnings/distributingEarningsHandler.js'
-import { RunningTrainsHandler } from '../routes/runningTrainsHandler.js'
-import { BuyingTrainsHandler } from '../trains/buyingTrainsHandler.js'
-import { PlacingStationHandler } from '../stations/placingStationHandler.js'
-import { LayingTrackHandler } from '../construction/layingTrackHandler.js'
-import { StartOperatingTurnHandler } from '../operating/startOperatingTurn.js'
-import { StartOperatingSetHandler } from '../operating/startOperatingSetHandler.js'
 import { TerminalStateHandler, assert, type GameRuntime } from '@tabletop/common'
-import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
-import { StockInstructionHandler } from '../stock/stockInstructionHandler.js'
-import { PrivatePowerRequestHandler } from '../privates/privatePowerRequestHandler.js'
-import { StockRoundHandler } from '../stock/stockRoundHandler.js'
-import {
-    type TitleStateSchema,
-    HydratedEighteenXXState,
-    inKnownPhase,
-    type EighteenXXMachineState
-} from './eighteenXXState.js'
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
 import { ActionRegistry } from '../actions/actionDefinition.js'
-import { endingActions } from '../ending/endingActions.js'
 import { auctionActions } from '../auctions/auctionActions.js'
-import { fundingActions } from '../funding/fundingActions.js'
-import { privateActions } from '../privates/privateActions.js'
-import { trackActions } from '../construction/trackActions.js'
-import { transferActions } from '../transfers/transferActions.js'
-import { phaseActions } from '../phases/phaseActions.js'
-import { operatingActions } from '../operating/operatingActions.js'
-import { stockActions } from '../stock/stockActions.js'
-import { stationActions } from '../stations/stationActions.js'
-import { trainActions } from '../trains/trainActions.js'
-import { routeActions } from '../routes/routeActions.js'
-import { earningsActions } from '../earnings/earningsActions.js'
+import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
+import { SelectionAuctionHandler } from '../auctions/selectionAuctionHandler.js'
+import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
 import { companyActions } from '../company/companyActions.js'
+import { PendingParHandler } from '../company/pendingPar.js'
+import { AutomaticTrackCompletionHandler } from '../construction/automaticTrackCompletionHandler.js'
+import { LayingTrackHandler } from '../construction/layingTrackHandler.js'
+import { trackActions } from '../construction/trackActions.js'
+import { DistributingEarningsHandler } from '../earnings/distributingEarningsHandler.js'
+import { earningsActions } from '../earnings/earningsActions.js'
+import { endingActions } from '../ending/endingActions.js'
+import { FinalWealthScoring } from '../ending/finalScores.js'
+import { GameEndingHandler } from '../ending/gameEndingHandler.js'
+import { BankruptHandler } from '../funding/bankruptHandler.js'
+import { cashCrisisActions } from '../funding/cashCrisisActions.js'
+import { fundingActions } from '../funding/fundingActions.js'
+import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
+import { RaisingCashHandler } from '../funding/raisingCashHandler.js'
 import { loanActions } from '../loans/loanActions.js'
 import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
 import { RepayingLoansHandler } from '../loans/repayingLoansHandler.js'
-import { RaisingCashHandler } from '../funding/raisingCashHandler.js'
-import { cashCrisisActions } from '../funding/cashCrisisActions.js'
+import { operatingActions } from '../operating/operatingActions.js'
 import {
     BetweenCompaniesState,
     OperatingStepStates,
     stateAfterOperatingStep
 } from '../operating/operatingSteps.js'
-import { EighteenXXInitializer } from './eighteenXXInitializer.js'
+import { StartOperatingSetHandler } from '../operating/startOperatingSetHandler.js'
+import { StartOperatingTurnHandler } from '../operating/startOperatingTurn.js'
+import { AdvancingPhaseHandler } from '../phases/advancePhase.js'
+import { phaseActions } from '../phases/phaseActions.js'
+import { BetweenCompaniesHandler } from '../privates/betweenCompaniesHandler.js'
+import { CompanyDecisionsHandler } from '../privates/companyDecisionsHandler.js'
+import { privateActions } from '../privates/privateActions.js'
+import { PrivateExchangeHandler } from '../privates/privateExchangeHandler.js'
+import { PrivatePowerRequestHandler } from '../privates/privatePowerRequestHandler.js'
+import { routeActions } from '../routes/routeActions.js'
+import { RunningTrainsHandler } from '../routes/runningTrainsHandler.js'
+import { HomeStationChoiceHandler } from '../stations/chooseHomeStation.js'
+import { PlacingStationHandler } from '../stations/placingStationHandler.js'
+import { stationActions } from '../stations/stationActions.js'
+import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
+import { stockActions } from '../stock/stockActions.js'
+import { StockInstructionHandler } from '../stock/stockInstructionHandler.js'
+import { StockRoundHandler } from '../stock/stockRoundHandler.js'
+import { AutomaticTrainCompletionHandler } from '../trains/automaticTrainCompletionHandler.js'
+import { BuyingTrainsHandler } from '../trains/buyingTrainsHandler.js'
+import { DiscardingTrainsHandler } from '../trains/discardTrain.js'
+import { RustingTrainsHandler } from '../trains/rustTrains.js'
+import { trainActions } from '../trains/trainActions.js'
+import { transferActions } from '../transfers/transferActions.js'
 import { EighteenXXGameExploration } from './eighteenXXGameExploration.js'
-import { titleComponents } from './titleComponents.js'
+import { EighteenXXInitializer } from './eighteenXXInitializer.js'
+import {
+    HydratedEighteenXXState,
+    inKnownPhase,
+    type EighteenXXMachineState,
+    type TitleStateSchema
+} from './eighteenXXState.js'
 import type { EighteenXXStateHandler, EighteenXXTitleRules } from './eighteenXXTitleRules.js'
-function handledStateValidator(
+import { titleComponents } from './titleComponents.js'
+function validateStateComposition(
     schema: Type.TObject,
-    machineStates: readonly string[]
-): Pick<Validator, 'Check'> {
-    return Compile(
-        Type.Object(
-            {
-                ...schema.properties,
-                machineState: Type.Union(machineStates.map((name) => Type.Literal(name)))
-            },
-            { additionalProperties: false }
+    options: Pick<
+        EighteenXXTitleRules,
+        | 'offerAuctionRules'
+        | 'auctionRules'
+        | 'selectionAuctionRules'
+        | 'loanRules'
+        | 'cashCrisisRules'
+        | 'companyRules'
+        | 'stockRules'
+        | 'privatePowerRules'
+    >,
+    handlers: Readonly<Record<string, unknown>>
+): void {
+    const features: readonly (readonly [string, boolean])[] = [
+        ['offerAuction', !!options.offerAuctionRules],
+        ['openingAuction', !!options.auctionRules],
+        ['selectionAuction', !!options.selectionAuctionRules],
+        ['pendingPar', !!options.companyRules.parAfterAward],
+        ['companyAuction', !!options.stockRules.companyAuction],
+        ['stockTurnPurchases', !!options.stockRules.multipleBuys],
+        ['loanStep', !!options.loanRules],
+        ['interestRate', !!options.loanRules],
+        ['cashCrisis', !!options.cashCrisisRules],
+        ['bankruptPlayerIds', !!options.cashCrisisRules],
+        ['privatePowerWindow', !!options.privatePowerRules.betweenTurnsPrivateIds?.length],
+        ['privatePowerRequests', !!options.privatePowerRules.betweenTurnsPrivateIds?.length],
+        ['privateStation', !!options.privatePowerRules.stationPrivateIds?.length],
+        ['locationMarkers', !!options.privatePowerRules.markerTerms]
+    ]
+    for (const [field, supported] of features)
+        assert(
+            field in schema.properties === supported,
+            `${field} state and rules must be selected together`
         )
-    )
+    const machine = schema.properties.machineState
+    const states = 'anyOf' in machine && Array.isArray(machine.anyOf) ? machine.anyOf : [machine]
+    const declared = new Set<string>()
+    for (const state of states) {
+        assert(
+            Type.IsLiteral(state) && typeof state.const === 'string',
+            'Declare literal machine states'
+        )
+        declared.add(state.const)
+        assert(state.const in handlers, `${state.const} has no state handler`)
+    }
+    for (const name of Object.keys(handlers))
+        assert(declared.has(name), `${name} handler requires its declared machine state`)
 }
 export function createEighteenXXRuntime<
     Schema extends TitleStateSchema,
-    State extends HydratedEighteenXXState<Schema>
+    State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 >(options: EighteenXXTitleRules<Schema, State>): GameRuntime<Type.Static<Schema>, State> {
     const { stockRules: rules, companyRules, operatingRules } = options
     const { map, tileSet, depot } = titleComponents(options)
@@ -327,6 +363,13 @@ export function createEighteenXXRuntime<
         ...trainActions(options.trainRules, options.phaseRules, !loanRules),
         ...(options.titleActions ?? [])
     ])
+    validateStateComposition(stateDefinition.schema, options, stateHandlers)
+    const handledValidator = Compile(stateDefinition.schema)
+    const canonicalStateValidator = {
+        Check: (data: unknown): data is unknown =>
+            handledValidator.Check(stateDefinition.read(data)),
+        Type: () => stateDefinition.schema
+    }
     return {
         initializer: new EighteenXXInitializer(options),
         hydrator: {
@@ -338,15 +381,17 @@ export function createEighteenXXRuntime<
                 return hydrated
             }
         },
-        canonicalStateValidator: handledStateValidator(
-            stateDefinition.schema,
-            Object.keys(stateHandlers)
-        ),
+        canonicalStateValidator,
         playerColors: EighteenXXInitializer.playerColors,
         randomnessVersion: 1,
-        scoring: FinalWealthScoring,
+        scoring: {
+            finalScores: (state) =>
+                FinalWealthScoring.finalScores(stateDefinition.hydrate(state, map, tileSet, depot))
+        },
         apiActions: actions.schemas,
-        exploration: new EighteenXXGameExploration<Type.Static<Schema>>(),
+        exploration: new EighteenXXGameExploration<Type.Static<Schema>>((state) =>
+            stateDefinition.hydrate(state, map, tileSet, depot)
+        ),
         stateHandlers
     }
 }

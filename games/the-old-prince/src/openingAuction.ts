@@ -1,29 +1,30 @@
-import { addTheOldPrinceBranches } from './branches.js'
-import { assert, shuffle } from '@tabletop/common'
 import {
     awardCertificates,
+    beginOfferPileAuction,
     cashOwnedBy,
+    createCompanyStations,
+    createOrdinaryShareCertificates,
+    drawFirstPlayer,
     getCompany,
+    placeStockMarker,
     privateIncomePayments,
     settleCashPayments,
-    createOrdinaryShareCertificates,
-    placeStockMarker,
-    beginOfferPileAuction,
-    drawFirstPlayer,
-    createCompanyStations,
-    type OfferPileAuctionRules,
     type InitialPosition,
+    type MapStateData,
+    type OfferPileAuctionRules,
     type Opening,
-    type OpeningSetup,
-    type MapStateData
+    type OpeningSetup
 } from '@tabletop/18xx'
+import { assert, shuffle } from '@tabletop/common'
+import { addTheOldPrinceBranches } from './branches.js'
 import { TheOldPrinceCompanies, theOldPrinceRole } from './companies.js'
-import { TheOldPrincePrivateCatalog, TheOldPrincePrivates } from './privates.js'
-import { peirPresident } from './peir.js'
 import { TheOldPrinceMap } from './map.js'
+import { peirPresident } from './peir.js'
+import { TheOldPrincePrivateCatalog, TheOldPrincePrivates } from './privates.js'
+import type { HydratedTheOldPrinceState, TheOldPrinceState } from './state.js'
+import { createTheOldPrinceStockMarket } from './stockMarket.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { TheOldPrinceTrainDepot } from './trains.js'
-import { createTheOldPrinceStockMarket } from './stockMarket.js'
 export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
     increment: 5,
     autoOfferSingleLot: true,
@@ -88,7 +89,7 @@ export function createTheOldPrinceOpening({
     players,
     prng,
     startingPositions
-}: OpeningSetup): Opening {
+}: OpeningSetup): Opening<typeof TheOldPrinceState, HydratedTheOldPrinceState> {
     assert(players.length === 3 || players.length === 4, 'TOP supports three or four players')
     const shuffled = [...TheOldPrinceCompanies]
     shuffle(shuffled, prng.random)

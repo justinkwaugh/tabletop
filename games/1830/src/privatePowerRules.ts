@@ -2,6 +2,7 @@ import {
     EighteenXXTransferTiming,
     controllingOwner,
     privateOwner,
+    privatePowerUsed,
     type PrivatePowerRules
 } from '@tabletop/18xx'
 
@@ -20,7 +21,7 @@ const PrivateLays: Readonly<
 export const EighteenThirtyPrivatePowerRules: PrivatePowerRules = {
     trackTerms(state, privateCompanyId, playerId) {
         const lay = PrivateLays[privateCompanyId]
-        if (!lay || state.usedPrivatePowerIds.includes(privateCompanyId)) return undefined
+        if (!lay || privatePowerUsed(state, privateCompanyId)) return undefined
         const owner = privateOwner(state, privateCompanyId)
         const companyId = EighteenXXTransferTiming.operatingCompany(state)
         if (

@@ -1,25 +1,28 @@
-import type { PreparedPosition } from '@tabletop/18xx/scenarios'
-import { prepareTheOldPrinceBranchSplit } from './branchSplitExample.js'
-import { prepareTheOldPrincePrivates } from './privateExamples.js'
-import { TheOldPrinceTrainDepot } from '../index.js'
-import { TheOldPrinceTileSet } from '../index.js'
-import { assert, type PlayerState } from '@tabletop/common'
+import type { TrancheState } from '@tabletop/18xx'
 import {
     createOrdinaryShareCertificates,
     getCompany,
     type CompanyState,
-    type TrainState,
-    type MapStateData
+    type MapStateData,
+    type TrainState
 } from '@tabletop/18xx'
+import type { PreparedPosition } from '@tabletop/18xx/scenarios'
+import { assert, type PlayerState } from '@tabletop/common'
+import {
+    peirCompanies,
+    TheOldPrinceMap,
+    TheOldPrinceTileSet,
+    TheOldPrinceTrainDepot
+} from '../index.js'
+import { prepareTheOldPrinceBranchSplit } from './branchSplitExample.js'
 import { createTheOldPrinceFinanceExample } from './financeFixture.js'
-import { peirCompanies } from '../index.js'
-import { TheOldPrinceMap } from '../index.js'
+import { prepareTheOldPrincePrivates } from './privateExamples.js'
 
 export function createTheOldPrinceCompanyExample(
     players: readonly PlayerState[],
     position: PreparedPosition
-): CompanyState & MapStateData & TrainState {
-    const state: CompanyState & MapStateData & TrainState = {
+): CompanyState & TrancheState & MapStateData & TrainState {
+    const state: CompanyState & TrancheState & MapStateData & TrainState = {
         ...createTheOldPrinceFinanceExample(players),
         trainInventory: TheOldPrinceTrainDepot.createInventory(),
         phaseId: '3H',

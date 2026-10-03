@@ -1,35 +1,38 @@
-import * as Type from 'typebox'
-import { Compile } from 'typebox/compile'
 import {
-    HydratedEighteenXXState,
-    extendEighteenXXState,
-    type EighteenXXStateDefinition,
-    type RailwayMap,
-    type TileSet,
-    type TrainDepot
+    AuctionFields,
+    composeEighteenXXState,
+    defineEighteenXXState,
+    PendingParFields,
+    PrivatePowerFields,
+    PrivateStationFields,
+    RailwayFields,
+    RailwayMachineStates,
+    StockTurnPurchaseFields,
+    validatePendingPar,
+    validateRailwayState,
+    validateWaterfallAuction,
+    WaterfallAuctionMachineStates,
+    type HydratedEighteenXXState
 } from '@tabletop/18xx'
+import * as Type from 'typebox'
 
-export const EighteenThirtyState = extendEighteenXXState({
-    // Set at setup when the game allows several brown-zone shares from the IPO in one turn.
-    multipleBrownFromIpo: Type.Optional(Type.Literal(true))
-})
+export const EighteenThirtyState = composeEighteenXXState(
+    {
+        ...RailwayFields,
+        ...PrivatePowerFields,
+        ...PrivateStationFields,
+        ...PendingParFields,
+        ...StockTurnPurchaseFields,
+
+        ...AuctionFields,
+        multipleBrownFromIpo: Type.Optional(Type.Literal(true))
+    },
+    [...RailwayMachineStates, ...WaterfallAuctionMachineStates]
+)
 export type EighteenThirtyState = Type.Static<typeof EighteenThirtyState>
-const Validator = Compile(EighteenThirtyState)
-
-export class HydratedEighteenThirtyState extends HydratedEighteenXXState<
-    typeof EighteenThirtyState
-> {
-    declare multipleBrownFromIpo?: true
-    constructor(data: unknown, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
-        super(data, map, tileSet, depot, Validator)
-    }
-}
-
-export const EighteenThirtyStateDefinition: EighteenXXStateDefinition<
-    typeof EighteenThirtyState,
-    HydratedEighteenThirtyState
-> = {
-    schema: EighteenThirtyState,
-    hydrate: (data, map, tileSet, depot) =>
-        new HydratedEighteenThirtyState(data, map, tileSet, depot)
-}
+export type HydratedEighteenThirtyState = HydratedEighteenXXState<typeof EighteenThirtyState>
+export const EighteenThirtyStateDefinition = defineEighteenXXState(EighteenThirtyState, [
+    validateRailwayState,
+    validateWaterfallAuction,
+    validatePendingPar
+])

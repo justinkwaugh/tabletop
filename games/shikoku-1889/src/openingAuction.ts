@@ -1,23 +1,24 @@
-import { Shikoku1889Majors } from './majors.js'
-import { assert } from '@tabletop/common'
 import {
     awardPrivate,
+    beginWaterfallAuction,
+    createCompanyStations,
     createOrdinaryShareCertificates,
     privateIncomePayments,
     settleCashPayments,
-    beginWaterfallAuction,
-    createCompanyStations,
-    type WaterfallAuctionRules,
     type InitialPosition,
     type Opening,
-    type OpeningSetup
+    type OpeningSetup,
+    type WaterfallAuctionRules
 } from '@tabletop/18xx'
-import { Shikoku1889PrivateCatalog, Shikoku1889Privates } from './privates.js'
+import { assert } from '@tabletop/common'
+import { Shikoku1889Majors } from './majors.js'
 import { Shikoku1889Map } from './map.js'
-import { Shikoku1889TileSet } from './tiles.js'
-import { Shikoku1889TrainDepot } from './trains.js'
+import { Shikoku1889PrivateCatalog, Shikoku1889Privates } from './privates.js'
+import type { HydratedShikoku1889State, Shikoku1889State } from './state.js'
 import { Shikoku1889StationCounts } from './stationRules.js'
 import { createShikoku1889StockMarket } from './stockMarket.js'
+import { Shikoku1889TileSet } from './tiles.js'
+import { Shikoku1889TrainDepot } from './trains.js'
 export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
     lots: (state) => Shikoku1889PrivateCatalog.lots(state),
     increment: 5,
@@ -27,7 +28,10 @@ export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
         settleCashPayments(state, privateIncomePayments(state))
     }
 }
-export function createShikoku1889Opening({ players, startingPositions }: OpeningSetup): Opening {
+export function createShikoku1889Opening({
+    players,
+    startingPositions
+}: OpeningSetup): Opening<typeof Shikoku1889State, HydratedShikoku1889State> {
     assert(players.length >= 2 && players.length <= 6, '1889 supports two through six players')
     const privates = Shikoku1889Privates.slice(
         0,
@@ -88,8 +92,6 @@ export function createShikoku1889Opening({ players, startingPositions }: Opening
                 owner: { kind: 'bank' as const }
             }))
         ],
-        tranches: [],
-        ownershipLimitExemptions: [],
         stations: majors.flatMap((company) =>
             createCompanyStations(company.id, Shikoku1889StationCounts[company.id])
         ),

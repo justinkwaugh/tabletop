@@ -86,6 +86,9 @@
     async function load() {
         try {
             const runtime = await definition.runtime()
+            const validator = runtime.canonicalStateValidator
+            assertExists(validator, 'An 18xx runtime validates its canonical state')
+            const canonical = (state: GameState): state is Raw => validator.Check(state)
             await app.gameService.loadGames()
             const owner = app.authorizationService.getSessionUser()
             assertExists(owner, 'The local harness requires a user')
@@ -93,6 +96,7 @@
             if (disposed) return
             if (
                 loaded?.game?.state &&
+                canonical(loaded.game.state) &&
                 migrateOperatingIncome(
                     loaded.game.state,
                     loaded.actions,
@@ -154,9 +158,6 @@
             const { game, actions } = loaded
             assertExists(game, 'Local example is missing')
             assertExists(game.state, 'Local example has no gameState')
-            const validator = runtime.canonicalStateValidator
-            assertExists(validator, 'An 18xx runtime validates its canonical state')
-            const canonical = (state: GameState): state is Raw => validator.Check(state)
             if (!canonical(game.state))
                 throw new Error('Local example has an invalid finance gameState')
             if (migrateCompanyNames(loaded)) {

@@ -1,40 +1,65 @@
+import {
+    AuctionFields,
+    composeEighteenXXState,
+    beginWaterfallAuction,
+    createEighteenXXRuntime,
+    defineEighteenXXState,
+    LoanStep,
+    OrdinaryCompany,
+    PrivatePowerFields,
+    PrivateRequestFields,
+    PrivateTrackFields,
+    PrivateWindowFields,
+    RailwayFields,
+    RailwayMachineStates,
+    titleComponents,
+    validateRailwayState,
+    validateWaterfallAuction,
+    WaterfallAuctionMachineStates,
+    type EighteenXXState,
+    type EighteenXXStateHandler,
+    type EighteenXXTitleRules,
+    type HydratedEighteenXXState,
+    type Opening
+} from '@tabletop/18xx'
+import { startFromPublicSeed } from '@tabletop/18xx/scenarios'
+import {
+    GameEngine,
+    assert,
+    GameState,
+    PlayerStatus,
+    type GameDefinition,
+    type HydratedGameState
+} from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import {
-    GameEngine,
-    PlayerStatus,
-    type HydratedGameState,
-    type GameDefinition
-} from '@tabletop/common'
-import {
-    HydratedEighteenXXState,
-    createEighteenXXRuntime,
-    titleComponents,
-    extendEighteenXXState,
-    type EighteenXXState,
-    type EighteenXXMachineState,
-    type EighteenXXStateHandler,
-    type EighteenXXTitleRules,
-    type Opening,
-    type RailwayMap,
-    type TileSet,
-    type TrainDepot
-} from '@tabletop/18xx'
-import { Definition as Shikoku, Shikoku1889TitleRules } from './index.js'
-import { startFromPublicSeed } from '@tabletop/18xx/scenarios'
+import { Definition as Shikoku, Shikoku1889TitleRules, Shikoku1889AuctionRules } from './index.js'
 
-const CharterState = extendEighteenXXState({ charterVotes: Type.Array(Type.String()) }, [
-    'CharterRound'
-])
-const CharterStateValidator = Compile(CharterState)
+const CharterState = composeEighteenXXState(
+    {
+        ...RailwayFields,
+        ...PrivatePowerFields,
+        ...AuctionFields,
+        ...PrivateTrackFields,
+        ...PrivateWindowFields,
+        ...PrivateRequestFields,
+        charterVotes: Type.Array(Type.String()),
+        companies: Type.Array(
+            Type.Object(
+                { ...OrdinaryCompany.properties, charterLicense: Type.Optional(Type.String()) },
+                { additionalProperties: false }
+            )
+        )
+    },
+    [...RailwayMachineStates, ...WaterfallAuctionMachineStates, 'CharterRound']
+)
 type CharterState = Type.Static<typeof CharterState>
-class HydratedCharterState extends HydratedEighteenXXState<typeof CharterState> {
-    declare charterVotes: string[]
-    constructor(data: unknown, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
-        super(data, map, tileSet, depot, CharterStateValidator)
-    }
-}
+type HydratedCharterState = HydratedEighteenXXState<typeof CharterState>
+const CharterStateDefinition = defineEighteenXXState(CharterState, [
+    validateRailwayState,
+    validateWaterfallAuction
+])
 
 type CharterHandler = EighteenXXStateHandler<HydratedCharterState>
 const charterRound: CharterHandler = {
@@ -58,12 +83,10 @@ function offersCharterPetition(family: CharterHandler): CharterHandler {
 
 const CharterRules: EighteenXXTitleRules<typeof CharterState, HydratedCharterState> = {
     ...Shikoku1889TitleRules,
-    state: {
-        schema: CharterState,
-        hydrate: (data, map, tileSet, depot) => new HydratedCharterState(data, map, tileSet, depot)
-    },
+    state: CharterStateDefinition,
     createOpening: (setup) => ({
-        ...Shikoku1889TitleRules.createOpening(setup),
+        position: Shikoku1889TitleRules.createOpening(setup).position,
+        begin: beginWaterfallAuction(Shikoku1889AuctionRules, setup.startingPositions),
         titleState: { charterVotes: [] }
     }),
     decisionHandlers: { WaterfallAuction: offersCharterPetition },
@@ -134,7 +157,9 @@ describe('a title that defines its own state', () => {
         expectTypeOf(hydrated.dehydrate()).toEqualTypeOf<CharterState>()
         expectTypeOf<CharterState>().not.toHaveProperty('charterVtoes')
         expectTypeOf<CharterState['machineState']>().toEqualTypeOf<
-            EighteenXXMachineState | 'CharterRound'
+            | (typeof RailwayMachineStates)[number]
+            | (typeof WaterfallAuctionMachineStates)[number]
+            | 'CharterRound'
         >()
         expectTypeOf<
             Opening<typeof CharterState, HydratedCharterState>['titleState']
@@ -156,7 +181,7 @@ describe('a title that defines its own state', () => {
         const stored = inCharterRound(state, ['AR'])
         engine.validateCanonicalState(stored)
         const hydrated = Charter.runtime.hydrator.hydrateState(stored)
-        expect(hydrated).toBeInstanceOf(HydratedCharterState)
+        expect(hydrated.turnManager.currentTurn()).toBeDefined()
         expect(hydrated.dehydrate()).toEqual(stored)
     })
 
@@ -207,22 +232,77 @@ describe('a title that defines its own state', () => {
         const withTitleField = { ...state, charterVotes: [] }
         expect(() => engine.validateCanonicalState(withTitleField)).toThrow()
         expect(() =>
-            Shikoku.runtime.hydrator.hydrateState({ ...state, machineState: 'CharterRound' })
+            Shikoku1889TitleRules.state.hydrate(
+                { ...state, machineState: 'CharterRound' },
+                Shikoku1889TitleRules.trackRules.map,
+                Shikoku1889TitleRules.trackRules.tileSet,
+                Shikoku1889TitleRules.trainRules.depot
+            )
         ).toThrow()
     })
 
     it('cannot redefine what the family owns', () => {
-        expect(() => extendEighteenXXState({ stockRound: Type.String() })).toThrow(
-            'stockRound already belongs'
+        expect(() => composeEighteenXXState({ players: Type.String() }, ['StockRound'])).toThrow(
+            'players already belongs'
         )
-        expect(() => extendEighteenXXState({}, ['StockRound'])).toThrow(
-            'StockRound already belongs'
+        expect(() => composeEighteenXXState({}, ['StockRound', 'StockRound'])).toThrow(
+            'Duplicate machine state'
         )
         expect(() =>
             createEighteenXXRuntime({
-                ...Shikoku1889TitleRules,
+                ...CharterRules,
                 titleStateHandlers: { StockRound: charterRound }
             })
         ).toThrow('StockRound already has a family handler')
     })
+})
+
+it('composes a state without railway, finance, or auction mechanisms', () => {
+    const schema = composeEighteenXXState({ bids: Type.Array(Type.Number()) }, ['Bidding'])
+    const definition = defineEighteenXXState(schema, [])
+    const { state } = start(Shikoku)
+    const coreValidator = Compile(GameState)
+    const core = coreValidator.Clean(state)
+    assert(coreValidator.Check(core), 'The common state envelope is valid')
+    const stored = { ...core, machineState: 'Bidding', bids: [10] }
+    const { map, tileSet, depot } = titleComponents(Shikoku1889TitleRules)
+    const hydrated = definition.hydrate(stored, map, tileSet, depot)
+    expect(hydrated.dehydrate()).toEqual(stored)
+    expectTypeOf(hydrated).not.toHaveProperty('stockRound')
+    expectTypeOf(hydrated).not.toHaveProperty('companies')
+    expectTypeOf(hydrated).not.toHaveProperty('loanStep')
+})
+
+it('allows title-owned company fields without extending the family company', () => {
+    const { state } = start(Charter)
+    state.companies[0].charterLicense = 'Northern charter'
+    expect(Charter.runtime.hydrator.hydrateState(state).dehydrate()).toEqual(state)
+    const ordinary = start(Shikoku).state
+    const invalid = {
+        ...ordinary,
+        companies: ordinary.companies.map((company) => ({
+            ...company,
+            charterLicense: 'Northern charter'
+        }))
+    }
+    expect(() => Shikoku.runtime.hydrator.hydrateState(invalid)).toThrow()
+})
+
+it('requires selected mechanism state and rules to agree', () => {
+    const state = Shikoku1889TitleRules.state
+    expect(() =>
+        createEighteenXXRuntime({
+            ...Shikoku1889TitleRules,
+            state: {
+                ...state,
+                schema: Type.Object(
+                    { ...state.schema.properties, loanStep: Type.Optional(LoanStep) },
+                    { additionalProperties: false }
+                )
+            }
+        })
+    ).toThrow('loanStep state and rules must be selected together')
+    expect(() => createEighteenXXRuntime({ ...CharterRules, titleStateHandlers: {} })).toThrow(
+        'CharterRound has no state handler'
+    )
 })

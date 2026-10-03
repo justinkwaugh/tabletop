@@ -1,21 +1,24 @@
-import type { PreparedPosition } from '@tabletop/18xx/scenarios'
-import { EighteenThirtyMajors } from '../index.js'
-import { prepareEighteenThirtyPrivates } from './privateExamples.js'
-import { EighteenThirtyTrainDepot, createEighteenThirtyTrainInventory } from '../index.js'
-import { EighteenThirtyStationCounts } from '../index.js'
-import { EighteenThirtyTileSet } from '../index.js'
-import { assert, type PlayerState } from '@tabletop/common'
 import {
-    createOrdinaryShareCertificates,
     applyStationPlacement,
+    createOrdinaryShareCertificates,
     getCompany,
     homeStationId,
     type CompanyState,
-    type TrainState,
-    type MapStateData
+    type MapStateData,
+    type TrainState
 } from '@tabletop/18xx'
+import type { PreparedPosition } from '@tabletop/18xx/scenarios'
+import { assert, type PlayerState } from '@tabletop/common'
+import {
+    EighteenThirtyMajors,
+    EighteenThirtyMap,
+    EighteenThirtyStationCounts,
+    EighteenThirtyTileSet,
+    EighteenThirtyTrainDepot,
+    createEighteenThirtyTrainInventory
+} from '../index.js'
 import { createEighteenThirtyFinanceExample } from './financeFixture.js'
-import { EighteenThirtyMap } from '../index.js'
+import { prepareEighteenThirtyPrivates } from './privateExamples.js'
 
 // Pittsburgh, a plain hex and Lancaster carry track east and west of PRR's Altoona home.
 const BuiltTrack = [
@@ -32,8 +35,6 @@ export function createEighteenThirtyCompanyExample(
         ...createEighteenThirtyFinanceExample(players),
         trainInventory: createEighteenThirtyTrainInventory(false),
         phaseId: '2',
-        tranches: [],
-        ownershipLimitExemptions: [],
         stations: [],
         stationReservations: [],
         tileInventory: EighteenThirtyTileSet.createInventory()

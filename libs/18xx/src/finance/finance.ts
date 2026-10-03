@@ -1,6 +1,6 @@
-import * as Type from 'typebox'
-import { Compile } from 'typebox/compile'
 import { assert, assertExists } from '@tabletop/common'
+import * as Type from 'typebox'
+import { Compile, type Validator } from 'typebox/compile'
 
 const Id = Type.String({ minLength: 1 })
 const PlayerOwner = Type.Object(
@@ -21,23 +21,33 @@ export const Owner = Type.Union([
 ])
 export type Owner = Type.Static<typeof Owner>
 
+export const CompanyProperties = {
+    id: Id,
+    name: Id,
+    kind: Id,
+    shareCount: Type.Optional(Type.Integer({ minimum: 1 })),
+    parPrice: Type.Optional(Type.Integer({ minimum: 1 })),
+    started: Type.Optional(Type.Boolean()),
+    funded: Type.Optional(Type.Boolean()),
+    closed: Type.Optional(Type.Boolean()),
+    operated: Type.Optional(Type.Boolean()),
+    floated: Type.Optional(Type.Boolean()),
+    president: Type.Optional(President),
+    privateRevenue: Type.Optional(Type.Integer({ minimum: 0 }))
+}
+export const CompanyLoanFields = { loans: Type.Optional(Type.Integer({ minimum: 1 })) }
+export const CompanyRoleFields = { role: Type.Optional(Id) }
+export const OrdinaryCompany = Type.Object(CompanyProperties, { additionalProperties: false })
+export const BorrowingCompany = Type.Object(
+    { ...CompanyProperties, ...CompanyLoanFields },
+    { additionalProperties: false }
+)
+export const RoleCompany = Type.Object(
+    { ...CompanyProperties, ...CompanyRoleFields },
+    { additionalProperties: false }
+)
 export const Company = Type.Object(
-    {
-        id: Id,
-        name: Id,
-        kind: Id,
-        role: Type.Optional(Id),
-        shareCount: Type.Optional(Type.Integer({ minimum: 1 })),
-        parPrice: Type.Optional(Type.Integer({ minimum: 1 })),
-        started: Type.Optional(Type.Boolean()),
-        funded: Type.Optional(Type.Boolean()),
-        closed: Type.Optional(Type.Boolean()),
-        operated: Type.Optional(Type.Boolean()),
-        floated: Type.Optional(Type.Boolean()),
-        president: Type.Optional(President),
-        privateRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
-        loans: Type.Optional(Type.Integer({ minimum: 1 }))
-    },
+    { ...CompanyProperties, ...CompanyLoanFields, ...CompanyRoleFields },
     { additionalProperties: false }
 )
 export type Company = Type.Static<typeof Company>
@@ -73,8 +83,7 @@ const ShareFields = {
     ...CertificateFields,
     kind: Type.Literal('share'),
     shares: Type.Integer({ minimum: 1 }),
-    president: Type.Boolean(),
-    number: Type.Optional(Type.Integer({ minimum: 1 }))
+    president: Type.Boolean()
 }
 const PrivateFields = { ...CertificateFields, kind: Type.Literal('private') }
 // A short owes its holder's shares of the company back: it nets against their shares.
@@ -85,13 +94,48 @@ const ShortFields = {
 }
 const OwnedFields = { retired: Type.Literal(false), owner: Owner, poolId: Type.Optional(Id) }
 const RetiredFields = { retired: Type.Literal(true) }
-export const Certificate = Type.Union([
+const ShareCertificates = [
     Type.Object({ ...ShareFields, ...OwnedFields }, { additionalProperties: false }),
+    Type.Object({ ...ShareFields, ...RetiredFields }, { additionalProperties: false })
+] as const
+const PrivateCertificates = [
     Type.Object({ ...PrivateFields, ...OwnedFields }, { additionalProperties: false }),
-    Type.Object({ ...ShareFields, ...RetiredFields }, { additionalProperties: false }),
-    Type.Object({ ...PrivateFields, ...RetiredFields }, { additionalProperties: false }),
+    Type.Object({ ...PrivateFields, ...RetiredFields }, { additionalProperties: false })
+] as const
+const ShortCertificates = [
     Type.Object({ ...ShortFields, ...OwnedFields }, { additionalProperties: false }),
     Type.Object({ ...ShortFields, ...RetiredFields }, { additionalProperties: false })
+] as const
+const NumberedShareFields = { ...ShareFields, number: Type.Optional(Type.Integer({ minimum: 1 })) }
+const NumberedShareCertificates = [
+    Type.Object({ ...NumberedShareFields, ...OwnedFields }, { additionalProperties: false }),
+    Type.Object({ ...NumberedShareFields, ...RetiredFields }, { additionalProperties: false })
+] as const
+export const OrdinaryCertificate = Type.Union([
+    ShareCertificates[0],
+    PrivateCertificates[0],
+    ShareCertificates[1],
+    PrivateCertificates[1]
+])
+export const ShortingCertificate = Type.Union([
+    ShareCertificates[0],
+    PrivateCertificates[0],
+    ShareCertificates[1],
+    PrivateCertificates[1],
+    ...ShortCertificates
+])
+export const NumberedCertificate = Type.Union([
+    NumberedShareCertificates[0],
+    PrivateCertificates[0],
+    NumberedShareCertificates[1],
+    PrivateCertificates[1]
+])
+export const Certificate = Type.Union([
+    NumberedShareCertificates[0],
+    PrivateCertificates[0],
+    NumberedShareCertificates[1],
+    PrivateCertificates[1],
+    ...ShortCertificates
 ])
 export type Certificate = Type.Static<typeof Certificate>
 export type Portfolio = Extract<Certificate, { retired: false }>[]
@@ -107,7 +151,15 @@ export const FinanceFields = {
     certificates: Type.Array(Certificate)
 }
 export type FinancialState = Type.Static<Type.TObject<typeof FinanceFields>>
-const FinanceValidator = Compile(Type.Object(FinanceFields))
+const FinanceValidator: Pick<Validator, 'Check'> = Compile(
+    Type.Object({
+        ...FinanceFields,
+        companies: Type.Array(Type.Object(Company.properties)),
+        certificates: Type.Array(
+            Type.Union(Certificate.anyOf.map((certificate) => Type.Object(certificate.properties)))
+        )
+    })
+)
 
 export function sameOwner(a: Owner, b: Owner): boolean {
     switch (a.kind) {
@@ -171,7 +223,7 @@ export function validateFinances(state: FinancialState, playerIds: readonly stri
     }
 }
 
-export function getCompany(state: Pick<FinancialState, 'companies'>, id: string): Company {
+export function getCompany<C extends Company>(state: { companies: C[] }, id: string): C {
     const company = state.companies.find((company) => company.id === id)
     assertExists(company, `Unknown company: ${id}`)
     return company
@@ -283,7 +335,7 @@ export function controllingOwner(
     while (current?.kind === 'company') {
         if (visited.has(current.companyId)) return undefined
         visited.add(current.companyId)
-        const company = getCompany(state, current.companyId)
+        const company: Company = getCompany(state, current.companyId)
         current = company.kind === 'private' ? privateOwner(state, company.id) : company.president
     }
     return current?.kind === 'player' ? current : undefined
@@ -305,7 +357,7 @@ export function createOrdinaryShareCertificates(
     companyId: string,
     ordinary: readonly CertificateAllocation[],
     president: President | CertificateAllocation
-): Certificate[] {
+): Extract<Certificate, { kind: 'share'; retired: false }>[] {
     return [
         {
             id: `${companyId}:president`,
@@ -356,7 +408,7 @@ function ordinaryShareCertificate(
     companyId: string,
     number: number,
     allocation: CertificateAllocation
-): Certificate {
+): Extract<Certificate, { kind: 'share'; retired: false }> {
     return {
         id: `${ordinaryShareIdPrefix(companyId)}${number}`,
         companyId,
