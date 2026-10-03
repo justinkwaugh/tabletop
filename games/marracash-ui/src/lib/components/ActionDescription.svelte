@@ -10,9 +10,13 @@
         isResolveAuction,
         isStartAuction,
         QueueEnd,
+        auctioneerOf,
+        tiedBidderIds,
         type ShopId
     } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import AuctionBids from '$lib/components/AuctionBids.svelte'
+    import { ordinal } from '$lib/utils/ordinal.js'
 
     let { action }: { action: GameAction } = $props()
     const gameSession = getGameSession()
@@ -20,8 +24,6 @@
     function shopName(shopId: ShopId): string {
         return `the ${getShop(shopId).color} shop ${shopId}`
     }
-
-    const Ordinals = ['first', 'second', 'third', 'fourth']
 </script>
 
 {#if isStartAuction(action)}
@@ -36,16 +38,18 @@
     {/if}
 {:else if isResolveAuction(action) && action.metadata}
     {@const result = action.metadata}
-    <PlayerTag playerId={result.winnerId} /> bought {shopName(result.shopId)} for {result.price}
-    Dirham{#if result.auctioneerCut > 0}, and the auctioneer took a {result.auctioneerCut} Dirham cut{/if}.
-    Bids:
-    {#each result.bids as bid, index (bid.playerId)}
-        {index > 0 ? ', ' : ''}<PlayerTag playerId={bid.playerId} />
-        {bid.amount}
-    {/each}.
+    {@const auctioneerId = auctioneerOf(result)}
+    <PlayerTag playerId={result.winnerId} /> bought {shopName(result.shopId)} for {result.price}{#if result.auctioneerCut > 0};
+        <PlayerTag playerId={auctioneerId} /> took a {result.auctioneerCut} auctioneer's cut{/if}.
+    <AuctionBids {result} separator=", " />.
+    {#if tiedBidderIds(result).length > 0}
+        <PlayerTag playerId={result.winnerId} /> won the tie, {result.winnerId === auctioneerId
+            ? 'as the auctioneer'
+            : 'sitting closer clockwise to the auctioneer'}.
+    {/if}
     {#each result.pullIns as pullIn (pullIn.fountainId)}
-        {pullIn.customers} customer{pullIn.customers === 1 ? '' : 's'} walked straight in from fountain
-        {pullIn.fountainId}, paying {pullIn.income} Dirham.
+        {pullIn.customers} customer{pullIn.customers === 1 ? '' : 's'} walked in from fountain
+        {pullIn.fountainId}, paying {pullIn.income}.
     {/each}
 {:else if isMoveVisitors(action)}
     moved the visitors at fountain {action.fountainId}{action.metadata
@@ -57,8 +61,8 @@
         {entry.income} Dirham{#if entry.moverCut > 0}, who paid a {entry.moverCut} Dirham cut{/if}.
     {/each}
 {:else if isCompleteAntiqueSet(action) && action.metadata}
-    <PlayerTag playerId={action.collectorId} /> completed an antique set
-    {Ordinals[action.metadata.rank]} and earned {action.metadata.payout} Dirham.
+    <PlayerTag playerId={action.collectorId} /> completed the {ordinal(action.metadata.rank)} antique
+    set and earned {action.metadata.payout} Dirham.
 {:else if isBringVisitors(action)}
     brought {action.count} visitor{action.count === 1 ? '' : 's'} from the
     {action.end === QueueEnd.Front ? 'front' : 'back'} of the queue to fountain {action.entranceId}.

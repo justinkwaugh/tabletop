@@ -33,6 +33,8 @@ test('round 1 offers only auctions and collects a sealed bid from everyone', asy
     await finishBidding(page)
     await expect(actionPanel(page)).toContainText('Your turn')
     await expect(page.locator('g[aria-label^="Owned by"]')).toHaveCount(1)
+    await expect(actionPanel(page)).toContainText('winning bid')
+    await expect(actionPanel(page)).toContainText('Bids:')
 })
 
 test('a chosen shop waits for confirmation and Back cancels it before anyone bids', async ({
@@ -137,5 +139,5 @@ test('the history keeps other players’ bids sealed until the auction resolves'
     await finishBidding(page)
     await page.getByText('History', { exact: true }).click()
     await expect(page.getByText('placed a sealed bid')).toHaveCount(3)
-    await expect(page.getByText(/bought the .* shop .* Bids:/s)).toBeVisible()
+    await expect(page.getByRole('tabpanel').getByText(/bought the .* shop .* Bids:/s)).toBeVisible()
 })

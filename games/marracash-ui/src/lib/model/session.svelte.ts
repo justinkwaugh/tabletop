@@ -25,6 +25,7 @@ import {
     type MarracashSelectionValues
 } from './stagedSelection.js'
 import { marketPalettes } from '$lib/utils/marketColors.js'
+import { latestTurnStep, moneyReports, type MoneyReport } from '$lib/utils/moneyReport.js'
 
 export class MarracashGameSession extends GameSession<
     MarracashProjectedState,
@@ -39,6 +40,8 @@ export class MarracashGameSession extends GameSession<
     )
 
     readonly marketPalettes = $derived(marketPalettes(this.colors.colorBlind))
+
+    readonly moneyReports: MoneyReport[] = $derived(moneyReports(latestTurnStep(this.actions)))
 
     private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)
 

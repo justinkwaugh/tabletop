@@ -38,6 +38,12 @@ During bidding, while waiting for others, and in History View, the session repor
     - Lifetime: cleared on pointer leave or blur, and reset whenever the selected fountain changes or a new state starts publishing, so choosing a destination (whose spot unmounts without a pointer leave) never leaves a stale preview.
     - Validity: derived empty while a new state is publishing, or when the route doesn't start at the selected fountain.
 
+- **Money report** (`moneyReports` in the session):
+    - Meaning: every payment made by the latest player action and the system actions that followed it (an auction resolving, an antique set paying out), one row per payment, plus the bids and any tie winner for an auction. Never running totals.
+    - Producer: derived from the visible actions by `moneyReport.ts`. Consumers: `MoneyReport` at the top of the action panel; the history reuses `AuctionBids`.
+    - Lifetime: replaced by the next player action; a step that moves no money, such as a sealed bid or a move into no owned shop, shows nothing.
+    - Validity: derived from the visible context, so History View shows the report for the step being viewed. Payments are public under Concealed Cash (see the title's rulings), so every player sees the same report.
+
 ## Render ownership
 
 - `Board` owns the layer order: the visitor queue in the margin outside the walls (drawn last instead, above the overlay, while entrances are being refilled), then shops, then fountains, then the shared overlay, then whatever is lifted above it (the auctioned or staged shop, the shops the previewed route enters, the selected fountain and its destinations, or the empty entrances awaiting a refill), then the route preview. The overlay blocks clicks on everything beneath it, so only lifted pieces are interactive; the preview ignores pointer events so it never blocks a destination.
@@ -60,3 +66,7 @@ All checked manually in the dev harness, using scripted browser runs.
     - Clicking entrance 1 places the visitors and clears the selection.
     - The second refill starts from a fresh selection.
 3. **Auction:** clicking an unowned shop dims the table around it, haloes it and asks for confirmation; Back restores the turn. Start auction starts bidding, and the spotlight stays until the auction resolves.
+4. **Money report:**
+    - The first auction of a game, with every bid at 100, reports the auctioneer's winning bid, lists all four bids and says the auctioneer wins the tie; the history entry gives the reason.
+    - A move into two owned shops shows each owner's customers and each mover's cut as separate rows, the cut pointing to the mover.
+    - The next player action, such as starting the next auction, clears the report.

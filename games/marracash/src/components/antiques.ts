@@ -62,11 +62,14 @@ export function coversAntiqueSet(
     )
 }
 
+export function paidAntiqueCount(revealRank: number): number {
+    return AntiquesPerPlayer - revealRank
+}
+
 export function antiqueSetPayout(cards: readonly Antique[], revealRank: number): number {
-    const paidCards = AntiquesPerPlayer - revealRank
     return cards
         .map((card) => card.value)
         .toSorted((a, b) => b - a)
-        .slice(0, paidCards)
+        .slice(0, paidAntiqueCount(revealRank))
         .reduce((total, value) => total + value, 0)
 }

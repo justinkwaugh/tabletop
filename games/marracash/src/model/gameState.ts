@@ -91,6 +91,18 @@ export const AuctionResult = Type.Object({
     pullIns: Type.Array(PullIn)
 })
 
+// Bids are recorded clockwise from the auctioneer, who must bid and so never passes.
+export function auctioneerOf(result: AuctionResult): string {
+    const first = result.bids[0]
+    assertExists(first, 'An auction result has no bids')
+    return first.playerId
+}
+
+export function tiedBidderIds(result: AuctionResult): string[] {
+    const tied = result.bids.filter((bid) => bid.amount === result.price)
+    return tied.length > 1 ? tied.map((bid) => bid.playerId) : []
+}
+
 export type ShopEntry = Type.Static<typeof ShopEntry>
 export const ShopEntry = Type.Object({
     shopId: Type.Enum(ShopIds),

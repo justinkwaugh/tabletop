@@ -1,4 +1,4 @@
-import { GameEngine } from '@tabletop/common'
+import { assertExists, GameEngine } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { ActionType } from '../definition/actions.js'
 import { MarracashRuntime } from '../definition/runtime.js'
@@ -8,6 +8,7 @@ import { StartingMoney } from '../model/playerState.js'
 import { Shops, type ShopId } from '../components/board.js'
 import { startTestGame, type TestSession } from '../util/testHelper.js'
 import { isResolveAuction } from './resolveAuction.js'
+import { auctioneerOf, tiedBidderIds } from '../model/gameState.js'
 
 function seats(session: TestSession): string[] {
     return session.state.turnManager.turnOrder
@@ -110,6 +111,20 @@ describe('MarraCash auctions', () => {
         const clockwiseTie = startTestGame(4)
         const second = runAuction(clockwiseTie, 'Y1', [100, 0, 300, 300])
         expect(owner(clockwiseTie, 'Y1')).toBe(second.clockwise[2])
+    })
+
+    it('names the auctioneer and any tied bidders in the auction result', () => {
+        const clear = runAuction(startTestGame(4), 'Y1', [100, 300, 0, 200])
+        const clearResult = clear.resolution?.metadata
+        assertExists(clearResult, 'The auction resolved without a result')
+        expect(auctioneerOf(clearResult)).toBe(clear.auctioneer)
+        expect(tiedBidderIds(clearResult)).toEqual([])
+
+        const tie = runAuction(startTestGame(4), 'Y1', [100, 0, 300, 300])
+        const tieResult = tie.resolution?.metadata
+        assertExists(tieResult, 'The auction resolved without a result')
+        expect(auctioneerOf(tieResult)).toBe(tie.auctioneer)
+        expect(tiedBidderIds(tieResult)).toEqual([tie.clockwise[2], tie.clockwise[3]])
     })
 
     it('rejects bids that break the money rules', () => {
