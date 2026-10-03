@@ -3,6 +3,7 @@ import { assertExists } from '@tabletop/common'
 import {
     ActionType,
     BringVisitors,
+    ConfirmTurn,
     isValidVisitorCount,
     MaxVisitorsBroughtIn,
     MoveVisitors,
@@ -54,6 +55,12 @@ export class MarracashGameSession extends GameSession<
     readonly canBid = $derived(this.canAct && this.validActionTypes.includes(ActionType.PlaceBid))
     readonly canRefill = $derived(
         this.canAct && this.validActionTypes.includes(ActionType.BringVisitors)
+    )
+    readonly canConfirm = $derived(
+        this.canAct && this.validActionTypes.includes(ActionType.ConfirmTurn)
+    )
+    readonly canUndoAction = $derived(
+        this.isPlayable && !this.isViewingHistory && this.undoableAction !== undefined
     )
 
     readonly selectedFountainId: FountainId | undefined = $derived(
@@ -186,6 +193,10 @@ export class MarracashGameSession extends GameSession<
         const shopId = this.selectedShopId
         assertExists(shopId, 'Starting an auction requires a chosen shop')
         await this.applyAction(this.createPlayerAction(StartAuction, { shopId }))
+    }
+
+    async confirmTurn() {
+        await this.applyAction(this.createPlayerAction(ConfirmTurn, {}))
     }
 
     async placeBid(amount: number) {

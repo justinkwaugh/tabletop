@@ -4,6 +4,7 @@
     import BidPanel from '$lib/components/BidPanel.svelte'
     import RefillPanel from '$lib/components/RefillPanel.svelte'
     import WaitingPanel from '$lib/components/WaitingPanel.svelte'
+    import ConfirmPanel from '$lib/components/ConfirmPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import MoneyReport from '$lib/components/MoneyReport.svelte'
 
@@ -20,6 +21,8 @@
         <BidPanel />
     {:else if gameSession.canRefill}
         <RefillPanel />
+    {:else if gameSession.canConfirm}
+        <ConfirmPanel />
     {:else if gameSession.canMove || gameSession.canAuction}
         <ChoicePanel />
     {:else}

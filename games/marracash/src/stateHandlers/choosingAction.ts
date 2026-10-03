@@ -11,8 +11,12 @@ import { HydratedStartAuction, isStartAuction } from '../actions/startAuction.js
 import { HydratedMoveVisitors, isMoveVisitors } from '../actions/moveVisitors.js'
 import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
-import { queueAntiqueSetCompletions, queueEndTurn } from '../util/automaticActions.js'
-import { closeTurn } from '../util/turns.js'
+import {
+    queueAntiqueSetCompletions,
+    queueAutomaticPasses,
+    queueEndTurn
+} from '../util/automaticActions.js'
+import { finishTurn, stateAfterTurnAction } from '../util/turns.js'
 
 type ChoosingActionAction =
     | HydratedStartAuction
@@ -34,7 +38,7 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
         if (isCompleteAntiqueSet(action)) {
             return (
                 action.source === ActionSource.System &&
-                context.gameState.pendingAntiqueSets[0] === action.collectorId
+                context.gameState.isNextAntiqueSet(action.collectorId)
             )
         }
         const gameState = context.gameState
@@ -62,7 +66,7 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedMarracashGameState>) {
         const gameState = context.gameState
-        if (gameState.pendingAntiqueSets.length > 0) {
+        if (context.getPendingActions().length > 0) {
             return
         }
 
@@ -81,17 +85,21 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
     ): MachineState {
         switch (true) {
             case isStartAuction(action): {
+                action.revealsInfo = true
+                queueAntiqueSetCompletions(context)
+                queueAutomaticPasses(context)
                 return MachineState.Bidding
             }
             case isMoveVisitors(action): {
-                queueAntiqueSetCompletions(context)
-                return MachineState.ChoosingAction
+                return stateAfterTurnAction(context)
             }
             case isCompleteAntiqueSet(action): {
-                return MachineState.ChoosingAction
+                return context.gameState.pendingAntiqueSets.length > 0
+                    ? MachineState.ChoosingAction
+                    : stateAfterTurnAction(context)
             }
             case isEndTurn(action): {
-                return closeTurn(context.gameState)
+                return finishTurn(context.gameState)
             }
             default: {
                 throw Error('Invalid action type')
@@ -103,10 +111,7 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
         gameState: HydratedMarracashGameState,
         playerId: string
     ): ActionType[] {
-        if (
-            !gameState.activePlayerIds.includes(playerId) ||
-            gameState.pendingAntiqueSets.length > 0
-        ) {
+        if (!gameState.activePlayerIds.includes(playerId)) {
             return []
         }
         const actions: ActionType[] = []

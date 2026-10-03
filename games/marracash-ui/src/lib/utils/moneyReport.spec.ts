@@ -95,6 +95,26 @@ describe('MarraCash money report', () => {
         expect(latestTurnStep([])).toEqual([])
     })
 
+    it('reports an antique set when the turn that completed it is confirmed', () => {
+        const confirmed = latestTurnStep([
+            action(ActionType.MoveVisitors, ActionSource.User),
+            action(ActionType.ConfirmTurn, ActionSource.User),
+            action(ActionType.CompleteAntiqueSet, ActionSource.System, {
+                collectorId: 'bashir',
+                metadata: { cards: [], rank: 1, payout: 525 }
+            }),
+            action(ActionType.EndTurn, ActionSource.System)
+        ])
+        expect(moneyReports(confirmed)).toEqual([
+            {
+                kind: 'antiqueSet',
+                collectorId: 'bashir',
+                result: { cards: [], rank: 1, payout: 525 },
+                payments: [{ kind: 'antiqueSet', playerId: 'bashir', amount: 525, cardCount: 4 }]
+            }
+        ])
+    })
+
     it('leaves out actions that moved no money', () => {
         const quietMove = action(ActionType.MoveVisitors, ActionSource.User, {
             playerId: 'chadia',

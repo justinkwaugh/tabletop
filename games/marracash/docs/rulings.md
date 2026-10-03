@@ -26,6 +26,8 @@ The source files aren't in the repository.
 - **Ties:** the auctioneer counts as closest to themselves, so they win any tie they're in. Other tied players are ranked by clockwise distance from the auctioneer.
 - **Starting an auction:** a player needs at least 100 Dirham and fewer than 6 shops.
 - **Turn order of actions:** a turn has two actions, and the only limit is that an auction can't be followed by a move. A move pays everyone as soon as it's confirmed, so its profits count toward a second-action auction.
+- **Undo and committing a turn:** moves, and the visitors placed at emptied entrances, can be undone until the turn is committed. A turn commits when its player confirms it (offered once no actions and no refills remain), places the last visitors at an emptied entrance, or starts an auction; a turn with nothing left to undo commits by itself. Undo can't cross a commit, so it never reaches an auction or the previous player's turn.
+- **When a move completes an antique set:** the set stays secret, hidden even from players' own views of the game, until the turn commits, then it's revealed and paid. Starting an auction commits the moves before it, so their sets are paid before anyone bids and still count toward the bids, as the turn-order rule requires.
 - **Sealed bids:** non-auctioneers may bid 0, which counts as passing. The auctioneer must bid at least 100. A player with 6 shops is entered as 0 automatically and isn't asked. All bids are revealed when the auction resolves, even with Concealed Cash on.
 - **Pull-in:** when a shop is auctioned, every visitor of its colour at a fountain next to its doors goes straight in as a customer. The new owner is paid for them at once. Nobody gets a mover's cut for them, because nobody moved them; the auctioneer still gets the usual cut.
 
@@ -43,7 +45,7 @@ The **Antique Cards** game option, on by default. The original rulebook calls it
 - A completed set is detected, revealed and paid automatically, and every player sees it in the game history.
 - Undealt cards stay hidden all game. Hands that were never completed stay hidden after the game ends.
 - Antique payouts don't count toward the mover's-cut profit. The original variant counted card money, but it sold face-up cards one customer at a time; a completed set pays out all at once.
-- If one move completes two sets, they're ranked by the order their final customers entered.
+- If one move completes two sets, they're ranked by the order their final customers entered, and sets completed by a turn's two moves rank in the order they were completed, even though all of them are revealed only when the turn commits.
 
 ### Cash
 

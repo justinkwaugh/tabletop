@@ -1,11 +1,12 @@
 import { CardinalDirection } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import type { Antique } from '../components/antiques.js'
+import { paidAntiques, type Antique } from '../components/antiques.js'
 import { EntranceFountainIds, type FountainId, type ShopId } from '../components/board.js'
 import { ActionType } from '../definition/actions.js'
 import { MarketColor } from '../definition/marketColor.js'
 import { MachineState } from '../definition/states.js'
 import { startTestGame, type TestSession } from '../util/testHelper.js'
+import { QueueEnd } from '../components/visitors.js'
 import { isCompleteAntiqueSet } from './completeAntiqueSet.js'
 import { isMoveVisitors } from './moveVisitors.js'
 
@@ -183,15 +184,23 @@ describe('MarraCash movement', () => {
         expect(() => move(auctionFirst, 9, CardinalDirection.East)).toThrow()
     })
 
-    it('ends the turn after two moves', () => {
+    it('waits for the mover to confirm after two moves, then ends the turn behind an undo barrier', () => {
         const session = startTestGame(3)
         const { mover, other } = players(session)
         arrange(session, { fountains: { 9: [Red], 14: [Green] } })
         move(session, 9, CardinalDirection.East)
         move(session, 14, CardinalDirection.East)
+        expect(session.state.machineState).toBe(MachineState.ConfirmingTurn)
+        expect(session.currentPlayerId()).toBe(mover)
+
+        const processed = session.confirmTurn(mover)
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.ConfirmTurn,
+            ActionType.EndTurn
+        ])
+        expect(processed.at(-1)?.revealsInfo).toBe(true)
         expect(session.currentPlayerId()).toBe(other)
         expect(session.state.machineState).toBe(MachineState.ChoosingAction)
-        expect(mover).not.toBe(other)
     })
 })
 
@@ -204,7 +213,40 @@ describe('MarraCash antique sets', () => {
         { color: Green, value: 100 }
     ]
 
-    it('reveals and pays a set the moment its last customer arrives', () => {
+    it('keeps a completed set secret until the turn is confirmed, then reveals and pays it', () => {
+        const session = startTestGame(3)
+        const { mover, other } = players(session)
+        arrange(session, {
+            fountains: { 9: [Blue], 14: [Purple] },
+            shops: {
+                B4: { ownerId: other, customers: 1 },
+                R1: { ownerId: other, customers: 2 },
+                G1: { ownerId: other, customers: 1 }
+            },
+            money: { [mover]: 1000, [other]: 1000 },
+            antiques: { [other]: hand }
+        })
+        const firstMove = move(session, 9, CardinalDirection.East)
+        expect(firstMove.find(isCompleteAntiqueSet)).toBeUndefined()
+        expect(session.state.pendingAntiqueSets).toEqual([other])
+        expect(money(session, other)).toBe(1000 + 200 - 50)
+        expect(money(session, mover)).toBe(1000 + 50)
+
+        move(session, 14, CardinalDirection.East)
+        const processed = session.confirmTurn(mover)
+        const completion = processed.find(isCompleteAntiqueSet)
+        expect(completion?.collectorId).toBe(other)
+        expect(completion?.revealsInfo).toBe(true)
+        expect(completion?.metadata).toEqual({ cards: hand, rank: 0, payout: 725 })
+
+        const collector = session.state.players.find((player) => player.playerId === other)
+        expect(collector?.revealedAntiques).toEqual(hand)
+        expect(collector?.antiques).toEqual([])
+        expect(session.state.antiqueRevealOrder).toEqual([other])
+        expect(money(session, other)).toBe(1000 + 200 - 50 + 725)
+    })
+
+    it('completes a pending set before anyone bids when the mover then starts an auction', () => {
         const session = startTestGame(3)
         const { mover, other } = players(session)
         arrange(session, {
@@ -217,18 +259,93 @@ describe('MarraCash antique sets', () => {
             money: { [mover]: 1000, [other]: 1000 },
             antiques: { [other]: hand }
         })
-        const processed = move(session, 9, CardinalDirection.East)
-        const completion = processed.find(isCompleteAntiqueSet)
-        expect(completion?.collectorId).toBe(other)
-        expect(completion?.revealsInfo).toBe(true)
-        expect(completion?.metadata).toEqual({ cards: hand, rank: 0, payout: 725 })
-
-        const collector = session.state.players.find((player) => player.playerId === other)
-        expect(collector?.revealedAntiques).toEqual(hand)
-        expect(collector?.antiques).toEqual([])
-        expect(session.state.antiqueRevealOrder).toEqual([other])
+        move(session, 9, CardinalDirection.East)
+        const processed = session.startAuction(mover, 'Y1')
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.StartAuction,
+            ActionType.CompleteAntiqueSet
+        ])
+        expect(processed[0].revealsInfo).toBe(true)
         expect(money(session, other)).toBe(1000 + 200 - 50 + 725)
-        expect(money(session, mover)).toBe(1000 + 50)
+        expect(session.state.machineState).toBe(MachineState.Bidding)
+    })
+
+    it('commits the turn, set included, when the last emptied entrance is refilled', () => {
+        const session = startTestGame(3)
+        const { mover, other } = players(session)
+        arrange(session, {
+            fountains: { 9: [Blue] },
+            shops: {
+                B4: { ownerId: other, customers: 1 },
+                R1: { ownerId: other, customers: 2 },
+                G1: { ownerId: other, customers: 1 }
+            },
+            antiques: { [other]: hand }
+        })
+        move(session, 9, CardinalDirection.East)
+        move(session, 16, CardinalDirection.West)
+        expect(session.state.machineState).toBe(MachineState.RefillingEntrances)
+        expect(session.state.antiqueRevealOrder).toEqual([])
+
+        const processed = session.bringVisitors(mover, QueueEnd.Front, 3, 16)
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.BringVisitors,
+            ActionType.CompleteAntiqueSet,
+            ActionType.EndTurn
+        ])
+        expect(processed.at(-1)?.revealsInfo).toBe(true)
+        expect(session.state.antiqueRevealOrder).toEqual([other])
+        expect(session.currentPlayerId()).toBe(other)
+    })
+
+    function oneColorHand(color: MarketColor): Antique[] {
+        return [225, 200, 150, 100, 50].map((value) => ({ color, value }))
+    }
+
+    function completionOrder(processed: ReturnType<TestSession['act']>) {
+        return processed
+            .filter(isCompleteAntiqueSet)
+            .map((action) => [action.collectorId, action.metadata?.rank])
+    }
+
+    it('ranks sets one move completes by the order its path enters their shops', () => {
+        const session = startTestGame(3)
+        const { mover, other, third } = players(session)
+        arrange(session, {
+            fountains: { 1: [Purple, Green], 14: [Red] },
+            shops: {
+                G2: { ownerId: third, customers: 4 },
+                P2: { ownerId: other, customers: 4 }
+            },
+            antiques: { [other]: oneColorHand(Purple), [third]: oneColorHand(Green) }
+        })
+        move(session, 1, CardinalDirection.South)
+        move(session, 14, CardinalDirection.East)
+        const processed = session.bringVisitors(mover, QueueEnd.Front, 3, 1)
+        expect(completionOrder(processed)).toEqual([
+            [third, 0],
+            [other, 1]
+        ])
+    })
+
+    it('ranks sets completed by a turn’s two moves in the order they were completed', () => {
+        const session = startTestGame(3)
+        const { mover, other, third } = players(session)
+        arrange(session, {
+            fountains: { 1: [Green], 3: [Blue] },
+            shops: {
+                G2: { ownerId: third, customers: 4 },
+                B1: { ownerId: other, customers: 4 }
+            },
+            antiques: { [other]: oneColorHand(Blue), [third]: oneColorHand(Green) }
+        })
+        move(session, 1, CardinalDirection.South)
+        move(session, 3, CardinalDirection.South)
+        const processed = session.bringVisitors(mover, QueueEnd.Front, 3, 1)
+        expect(completionOrder(processed)).toEqual([
+            [third, 0],
+            [other, 1]
+        ])
     })
 
     it('never completes a set when antique cards are turned off', () => {
@@ -262,7 +379,7 @@ describe('MarraCash antique sets', () => {
         const session = startTestGame(3)
         const { mover, other, third } = players(session)
         arrange(session, {
-            fountains: { 9: [Blue] },
+            fountains: { 9: [Blue], 14: [Purple] },
             shops: {
                 B4: { ownerId: other, customers: 1 },
                 R1: { ownerId: other, customers: 2 },
@@ -274,8 +391,11 @@ describe('MarraCash antique sets', () => {
         session.edit((state) => {
             state.antiqueRevealOrder = [mover, third]
         })
-        const processed = move(session, 9, CardinalDirection.East)
+        move(session, 9, CardinalDirection.East)
+        move(session, 14, CardinalDirection.East)
+        const processed = session.confirmTurn(mover)
         expect(processed.find(isCompleteAntiqueSet)?.metadata?.payout).toBe(225 + 200 + 150)
+        expect(paidAntiques(hand, 2)).toEqual([hand[0], hand[1], hand[2]])
     })
 
     it('records a set completed by an auction before the turn passes on', () => {

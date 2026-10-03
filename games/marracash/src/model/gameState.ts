@@ -143,7 +143,10 @@ export const MarracashGameState = Type.Evaluate(
             auction: Type.Optional(SimultaneousAuction),
             auctionShopId: Type.Optional(Type.Enum(ShopIds)),
             finalRound: Type.Boolean(),
-            pendingAntiqueSets: Type.Array(Type.String()),
+            pendingAntiqueSets: Visibility.protect(Type.Array(Type.String()), {
+                policy: Visibility.Policy.HostOnly,
+                redaction: Visibility.redaction.emptyArray()
+            }),
             antiqueRevealOrder: Type.Array(Type.String())
         })
     ])
@@ -294,7 +297,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
 
     completeAntiqueSet(collectorId: string): AntiqueSetResult {
         assert(
-            this.pendingAntiqueSets[0] === collectorId,
+            this.isNextAntiqueSet(collectorId),
             `Player ${collectorId} is not next to complete an antique set`
         )
         const collector = this.getPlayerState(collectorId)
@@ -369,6 +372,16 @@ export class HydratedMarracashGameState extends HydratableGameState<
             auctioneerCut: cut,
             pullIns
         }
+    }
+
+    turnPlayerId(): string {
+        const turn = this.turnManager.currentTurn()
+        assertExists(turn, 'No turn is in progress')
+        return turn.playerId
+    }
+
+    isNextAntiqueSet(collectorId: string): boolean {
+        return this.pendingAntiqueSets[0] === collectorId
     }
 
     canAct(playerId: string): boolean {

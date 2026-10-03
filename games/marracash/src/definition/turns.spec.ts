@@ -106,6 +106,7 @@ describe('MarraCash end of game', () => {
             if (!next) throw Error('No visitors left to move')
             const [nextRoute] = routesFrom(next.fountainId)
             session.move(playerId, next.fountainId, nextRoute.direction)
+            session.confirmTurn(playerId)
         }
 
         expect(session.state.machineState).toBe(MachineState.EndOfGame)
@@ -130,7 +131,8 @@ describe('MarraCash end of game', () => {
         })
         const playerId = session.currentPlayerId()
         moveTwice(session)
-        expect(session.state.machineState).not.toBe(MachineState.RefillingEntrances)
+        expect(session.state.machineState).toBe(MachineState.ConfirmingTurn)
+        session.confirmTurn(playerId)
         expect(session.currentPlayerId()).not.toBe(playerId)
     })
 
@@ -152,6 +154,7 @@ describe('MarraCash end of game', () => {
         session.move(first, 9, CardinalDirection.East)
         session.move(first, 10, CardinalDirection.East)
         expect(session.state.fountains.every((f) => f.visitors.length === 0)).toBe(true)
+        session.confirmTurn(first)
         expect(session.currentPlayerId()).toBe(third)
     })
 

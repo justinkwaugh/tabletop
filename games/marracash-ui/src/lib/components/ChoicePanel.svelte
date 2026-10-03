@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getShop } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import UndoButton from '$lib/components/UndoButton.svelte'
 
     const gameSession = getGameSession()
 
@@ -28,7 +29,10 @@
         >
     </div>
 {:else if gameSession.selectedFountainId === undefined}
-    <p class="font-semibold">Your turn: {options.join(', or ')}.</p>
+    <div class="flex flex-wrap items-center justify-center gap-4">
+        <p class="font-semibold">Your turn: {options.join(', or ')}.</p>
+        <UndoButton />
+    </div>
 {:else}
     <div class="flex items-center justify-center gap-4">
         <p class="font-semibold">Choose the destination for these visitors.</p>

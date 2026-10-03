@@ -10,14 +10,12 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedMarracashGameState } from '../model/gameState.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { HydratedResolveAuction, isResolveAuction } from '../actions/resolveAuction.js'
+import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
 import { MaxShopsPerPlayer } from '../components/payments.js'
-import {
-    queueAntiqueSetCompletions,
-    queueAuctionResolution,
-    queueAutomaticPasses
-} from '../util/automaticActions.js'
+import { queueAntiqueSetCompletions, queueAuctionResolution } from '../util/automaticActions.js'
+import { stateAfterTurnAction } from '../util/turns.js'
 
-type BiddingAction = HydratedPlaceBid | HydratedResolveAuction
+type BiddingAction = HydratedPlaceBid | HydratedResolveAuction | HydratedCompleteAntiqueSet
 
 export class BiddingStateHandler implements MachineStateHandler<
     BiddingAction,
@@ -32,6 +30,12 @@ export class BiddingStateHandler implements MachineStateHandler<
                 this.isAwaitingBid(context.gameState, action.playerId) &&
                 (action.source === ActionSource.System ||
                     this.canBid(context.gameState, action.playerId))
+            )
+        }
+        if (isCompleteAntiqueSet(action)) {
+            return (
+                action.source === ActionSource.System &&
+                context.gameState.isNextAntiqueSet(action.collectorId)
             )
         }
         return isResolveAuction(action) && context.gameState.auction?.winnerId !== undefined
@@ -54,9 +58,6 @@ export class BiddingStateHandler implements MachineStateHandler<
         gameState.activePlayerIds = auction.participants
             .filter((participant) => !participant.submitted)
             .map((participant) => participant.playerId)
-        if (auction.participants.every((participant) => !participant.submitted)) {
-            queueAutomaticPasses(context)
-        }
     }
 
     onAction(
@@ -71,9 +72,15 @@ export class BiddingStateHandler implements MachineStateHandler<
                 }
                 return MachineState.Bidding
             }
+            case isCompleteAntiqueSet(action): {
+                return MachineState.Bidding
+            }
             case isResolveAuction(action): {
-                queueAntiqueSetCompletions(context)
-                return MachineState.ChoosingAction
+                if (gameState.pendingAntiqueSets.length > 0) {
+                    queueAntiqueSetCompletions(context)
+                    return MachineState.ChoosingAction
+                }
+                return stateAfterTurnAction(context)
             }
             default: {
                 throw Error('Invalid action type')

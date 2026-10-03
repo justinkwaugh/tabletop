@@ -3,7 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedMarracashGameState } from '../model/gameState.js'
 import { HydratedBringVisitors, isBringVisitors } from '../actions/bringVisitors.js'
-import { closeTurn } from '../util/turns.js'
+import { queueTurnCommit } from '../util/automaticActions.js'
 
 type RefillingEntrancesAction = HydratedBringVisitors
 
@@ -38,6 +38,10 @@ export class RefillingEntrancesStateHandler implements MachineStateHandler<
         _action: RefillingEntrancesAction,
         context: MachineContext<HydratedMarracashGameState>
     ): MachineState {
-        return closeTurn(context.gameState)
+        if (context.gameState.needsRefill()) {
+            return MachineState.RefillingEntrances
+        }
+        queueTurnCommit(context)
+        return MachineState.ConfirmingTurn
     }
 }

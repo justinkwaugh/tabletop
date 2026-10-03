@@ -27,6 +27,12 @@ export function queueAntiqueSetCompletions(context: MachineContext<HydratedMarra
     }
 }
 
+// Ending a turn is flagged as revealing so Undo can never rewind into a finished turn.
 export function queueEndTurn(context: MachineContext<HydratedMarracashGameState>) {
-    context.addSystemAction(EndTurn, {})
+    context.addSystemAction(EndTurn, { revealsInfo: true })
+}
+
+export function queueTurnCommit(context: MachineContext<HydratedMarracashGameState>) {
+    queueAntiqueSetCompletions(context)
+    queueEndTurn(context)
 }

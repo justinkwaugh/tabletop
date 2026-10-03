@@ -92,6 +92,37 @@ test('choosing a fountain dims the board around its destinations, previews a rou
     )
 })
 
+test('moves can be undone until the turn is confirmed, but never into the previous turn', async ({
+    page
+}) => {
+    await createGame(page)
+    await playOpeningRound(page)
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    await expect(undo).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
+    await undo.click()
+    await expect(actionPanel(page)).toContainText('Your turn')
+    await expect(undo).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Fountain 6', exact: true })).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Fountain 1', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 6' }).click()
+    await page.getByRole('button', { name: 'Fountain 6', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 1' }).click()
+    await expect(actionPanel(page)).toContainText('Confirm your turn')
+
+    await undo.click()
+    await expect(actionPanel(page)).toContainText('Your turn')
+    await expect(undo).toBeVisible()
+    await page.getByRole('button', { name: 'Fountain 6', exact: true }).click()
+    await page.getByRole('button', { name: 'Move visitors to fountain 1' }).click()
+    await page.getByRole('button', { name: 'Confirm turn' }).click()
+    await expect(actionPanel(page)).toContainText('Your turn')
+    await expect(undo).toHaveCount(0)
+})
+
 test('emptied entrances are refilled from a chosen end of the queue', async ({ page }) => {
     await createGame(page)
     await playOpeningRound(page)

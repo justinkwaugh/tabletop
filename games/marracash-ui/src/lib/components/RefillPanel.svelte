@@ -1,6 +1,7 @@
 <script lang="ts">
     import { QueueEnd } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import UndoButton from '$lib/components/UndoButton.svelte'
 
     const gameSession = getGameSession()
 </script>
@@ -38,6 +39,8 @@
                 class="ml-2 rounded-md border border-[#8a6a46] px-3 py-1 text-sm"
                 onclick={() => gameSession.back()}>Back</button
             >
+        {:else}
+            <span class="ml-2"><UndoButton /></span>
         {/if}
     </div>
     {#if gameSession.chosenVisitorCount !== undefined}

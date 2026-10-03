@@ -4,6 +4,7 @@
         AntiquesPerPlayer,
         MarketColor,
         MaxShopsPerPlayer,
+        paidAntiques,
         type HydratedMarracashPlayerState
     } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -19,6 +20,7 @@
     let customers = $derived(gameSession.gameState.customersByColor(player.id))
     let shopCount = $derived(gameSession.gameState.ownedShopCount(player.id))
     let revealRank = $derived(gameSession.gameState.antiqueRevealOrder.indexOf(player.id))
+    let paidCards = $derived(paidAntiques(playerState.revealedAntiques, revealRank))
     let hand = $derived(antiqueProgress(playerState.antiques, customers))
     let money = $derived(gameSession.visibleMoney(player.id))
 </script>
@@ -59,7 +61,7 @@
                 </p>
                 <div class="flex gap-1 rounded bg-white/85 p-1">
                     {#each playerState.revealedAntiques as card, index (index)}
-                        <AntiqueCard {card} />
+                        <AntiqueCard {card} dimmed={!paidCards.includes(card)} />
                     {/each}
                 </div>
             {:else if player.id === gameSession.myPlayer?.id && playerState.antiques.length > 0}

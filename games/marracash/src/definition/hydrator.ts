@@ -6,6 +6,7 @@ import { HydratedResolveAuction, isResolveAuction } from '../actions/resolveAuct
 import { HydratedMoveVisitors, isMoveVisitors } from '../actions/moveVisitors.js'
 import { HydratedBringVisitors, isBringVisitors } from '../actions/bringVisitors.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
+import { HydratedConfirmTurn, isConfirmTurn } from '../actions/confirmTurn.js'
 import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
 
 export class MarracashHydrator implements GameHydrator<
@@ -34,6 +35,9 @@ export class MarracashHydrator implements GameHydrator<
             }
             case isEndTurn(data): {
                 return new HydratedEndTurn(data)
+            }
+            case isConfirmTurn(data): {
+                return new HydratedConfirmTurn(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)

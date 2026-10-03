@@ -66,10 +66,10 @@ export function paidAntiqueCount(revealRank: number): number {
     return AntiquesPerPlayer - revealRank
 }
 
+export function paidAntiques(cards: readonly Antique[], revealRank: number): Antique[] {
+    return cards.toSorted((a, b) => b.value - a.value).slice(0, paidAntiqueCount(revealRank))
+}
+
 export function antiqueSetPayout(cards: readonly Antique[], revealRank: number): number {
-    return cards
-        .map((card) => card.value)
-        .toSorted((a, b) => b - a)
-        .slice(0, paidAntiqueCount(revealRank))
-        .reduce((total, value) => total + value, 0)
+    return paidAntiques(cards, revealRank).reduce((total, card) => total + card.value, 0)
 }

@@ -12,7 +12,7 @@ import type { MoveVisitors } from '../actions/moveVisitors.js'
 import { isPlaceBid } from '../actions/placeBid.js'
 import { isResolveAuction } from '../actions/resolveAuction.js'
 import { AntiquesPerPlayer, coversAntiqueSet } from '../components/antiques.js'
-import { Shops } from '../components/board.js'
+import { Shops, type ShopId } from '../components/board.js'
 import { MarracashGameStateValidator, type MarracashProjectedState } from '../model/gameState.js'
 import { createGame, createTestSession, playToEnd, TestMasterSeed } from '../util/testHelper.js'
 import type { MarracashGameConfig } from './config.js'
@@ -88,6 +88,37 @@ describe('MarraCash visibility', () => {
             expect(view.antiqueDeck).toEqual({ items: [], remaining: 10 })
             expect(view).not.toHaveProperty('masterSeed')
             expect(view.protectedPrng).toEqual({ seed: 0, invocations: 0 })
+        }
+    })
+
+    it('hides a pending antique set from every player until the turn commits', () => {
+        const { session } = startSession()
+        const [mover, other] = session.state.turnManager.turnOrder
+        session.edit((state) => {
+            state.round = 2
+            for (const fountain of state.fountains) {
+                fountain.visitors = fountain.fountainId === 9 ? [MarketColor.Blue] : []
+            }
+            const collectorShops: Partial<Record<ShopId, number>> = { B4: 1, R1: 2, G1: 1 }
+            for (const shop of state.shops) {
+                const customers = collectorShops[shop.shopId]
+                shop.ownerId = customers === undefined ? undefined : other
+                shop.customers = customers ?? 0
+            }
+            const collector = state.players.find((player) => player.playerId === other)
+            assertExists(collector, 'The collector is seated')
+            collector.antiques = [
+                { color: MarketColor.Blue, value: 225 },
+                { color: MarketColor.Blue, value: 200 },
+                { color: MarketColor.Red, value: 150 },
+                { color: MarketColor.Red, value: 50 },
+                { color: MarketColor.Green, value: 100 }
+            ]
+        })
+        session.move(mover, 9, CardinalDirection.East)
+        expect(session.state.pendingAntiqueSets).toEqual([other])
+        for (const perspective of perspectivesFor(session.state)) {
+            expect(project(session, perspective).pendingAntiqueSets).toEqual([])
         }
     })
 
