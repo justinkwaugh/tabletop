@@ -13,6 +13,7 @@ import { trainCanBeTraded, trainsOwnedBy } from '../trains/train.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { closePrivatesOnTrainPurchase } from '../trains/buyTrain.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
+import { settleTrainDepartures } from '../trains/trainDepartures.js'
 
 const Id = Type.String({ minLength: 1 })
 export const PurchaseAsset = Type.Union([
@@ -168,6 +169,14 @@ export function settlePurchaseOffer(
     if (asset.kind === 'train') {
         const train = state.trainInventory.trains.find((item) => item.id === asset.trainId)
         assert(train?.status === 'owned', 'The train must still be owned')
+        settleTrainDepartures(state, trains, [
+            {
+                trainId: train.id,
+                definitionId: train.definitionId,
+                cause: 'purchase',
+                owner: { ...train.owner }
+            }
+        ])
         train.owner = owner
         closePrivatesOnTrainPurchase(state, trains, offer.companyId)
     } else {
@@ -197,8 +206,10 @@ function canFund(
     return (
         !!funding &&
         request.price <= funding.maximumPrice &&
-        funding.contributors.reduce((sum, owner) => sum + finiteCashOwnedBy(state, owner), treasury) >=
-            request.price
+        funding.contributors.reduce(
+            (sum, owner) => sum + finiteCashOwnedBy(state, owner),
+            treasury
+        ) >= request.price
     )
 }
 

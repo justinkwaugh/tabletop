@@ -19,6 +19,7 @@ import {
 import { unownedTrain, type TrainPurchaseState } from './train.js'
 import { getCompany } from '../finance/finance.js'
 import { closePrivate } from '../privates/privateCompany.js'
+import { settleTrainDepartures } from './trainDepartures.js'
 export const BuyTrain = Type.Object(
     {
         ...PlayerAction.properties,
@@ -84,6 +85,9 @@ export function applyTrainPurchase(
             train.id === details.exchangeTrainId ? unownedTrain(train, 'market') : train
         )
     const toPhaseId = rules.phaseAfterPurchase(state, details.definitionId)
+    settleTrainDepartures(state, rules, [
+        { trainId: details.trainId, definitionId: details.definitionId, cause: 'purchase' }
+    ])
     rules.depot.purchase(state.trainInventory, details.trainId, details.definitionId, {
         kind: 'company',
         companyId: details.companyId

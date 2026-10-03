@@ -16,7 +16,7 @@ import {
 import { nextOperatingCompany } from '../operating/operatingSet.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
-import { companyLoans, type LoanRules, type LoanState } from './loans.js'
+import { interestOwed, type LoanRules, type LoanState } from './loans.js'
 import type { CashCrisisState } from '../funding/cashCrisis.js'
 import { PayInterest, isPayInterest } from './payInterest.js'
 import { canRepayLoan, isRepayLoan } from './repayLoan.js'
@@ -90,7 +90,7 @@ export class RepayingLoansHandler implements MachineStateHandler<HydratedAction,
         const state = context.gameState
         const companyId = this.companyId(state)
         if (!state.loanStep) {
-            if (companyLoans(state, companyId)) {
+            if (interestOwed(state, this.rules, companyId) > 0) {
                 context.addSystemAction(PayInterest, { companyId })
                 return
             }

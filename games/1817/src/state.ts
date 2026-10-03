@@ -27,6 +27,10 @@ export type Conversion = Type.Static<typeof Conversion>
 export const ClosingZone = Type.Union([Type.Literal('acquisition'), Type.Literal('liquidation')])
 export type ClosingZone = Type.Static<typeof ClosingZone>
 /** The merger and conversion round that follows an operating round. */
+/** How many lays each private with lay powers has made, since a ranch can later be removed. */
+export const PrivateLays = Type.Record(Type.String(), Type.Integer({ minimum: 1 }))
+export type PrivateLays = Type.Static<typeof PrivateLays>
+
 /**
  * The Volatility auction's tiers, the single top lot first. A sold or removed lot leaves an empty
  * slot, since a lot's neighbours decide what a sale removes.
@@ -118,6 +122,9 @@ const EighteenSeventeenState = extendEighteenXXState(
         modernTrains: Type.Optional(Type.Literal(true)),
         volatility: Type.Optional(Type.Literal(true)),
         pyramid: Type.Optional(Pyramid),
+        privateLays: Type.Optional(PrivateLays),
+        // The train types whose Inventor payout has been made.
+        inventorPaid: Type.Optional(Type.Array(Type.String())),
         mergerRound: Type.Optional(MergerRound),
         acquisitionRound: Type.Optional(AcquisitionRound)
     },
@@ -125,8 +132,32 @@ const EighteenSeventeenState = extendEighteenXXState(
 )
 const Validator = Compile(EighteenSeventeenState)
 const PyramidValidator = Compile(Pyramid)
+const PrivateLaysValidator = Compile(PrivateLays)
+const InventorPaidValidator = Compile(Type.Array(Type.String()))
 const MergerRoundValidator = Compile(MergerRound)
 const AcquisitionRoundValidator = Compile(AcquisitionRound)
+
+// A game without the record has made no private lays.
+function privateLaysOf(state: object): PrivateLays {
+    if (!('privateLays' in state)) return {}
+    assert(PrivateLaysValidator.Check(state.privateLays), 'Invalid private lays')
+    return state.privateLays
+}
+
+export function privateLaysMade(state: object, privateId: string): number {
+    return privateLaysOf(state)[privateId] ?? 0
+}
+
+export function recordPrivateLay(state: object, privateId: string): void {
+    const lays = privateLaysOf(state)
+    Object.assign(state, { privateLays: { ...lays, [privateId]: (lays[privateId] ?? 0) + 1 } })
+}
+
+export function inventorPaid(state: object): string[] {
+    if (!('inventorPaid' in state)) return []
+    assert(InventorPaidValidator.Check(state.inventorPaid), 'Invalid Inventor payouts')
+    return state.inventorPaid
+}
 
 /** The Volatility opening auction's tiers, when the game has them. */
 export function pyramidOf(state: object): Pyramid | undefined {
@@ -193,6 +224,8 @@ export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
     declare modernTrains?: true
     declare volatility?: true
     declare pyramid?: Pyramid
+    declare privateLays?: PrivateLays
+    declare inventorPaid?: string[]
     declare mergerRound?: MergerRound
     declare acquisitionRound?: AcquisitionRound
     constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {

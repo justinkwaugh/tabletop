@@ -1,11 +1,12 @@
 import { locationMarkers, type RouteRules } from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
-import { BridgeMarker, MineMarker } from './privatePowerRules.js'
+import { BridgeMarker, MineMarker, RanchMarker } from './privatePowerRules.js'
 import { eighteenSeventeenOptions } from './state.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenPhases, EighteenSeventeenTrainDepot } from './trains.js'
 
 const MineBonus = 10
+const RanchBonus = 10
 const BridgeBonus = 10
 // With Modern Trains, what a train earns more at each city with its company's station.
 const ModernTrainBonus: Readonly<Record<string, number>> = { '7': 10, '8': 20 }
@@ -18,7 +19,8 @@ export const EighteenSeventeenRouteRules: RouteRules = {
     requiresCity: () => false,
     oneStopPerHex: true,
     hexBonus: (state, locationId) =>
-        locationMarkers(state, { locationId, kind: MineMarker }).length ? MineBonus : 0,
+        (locationMarkers(state, { locationId, kind: MineMarker }).length ? MineBonus : 0) +
+        (locationMarkers(state, { locationId, kind: RanchMarker }).length ? RanchBonus : 0),
     stopBonus(state, train, companyId, center) {
         const bridge = locationMarkers(state, { locationId: center.locationId, kind: BridgeMarker })
             .length

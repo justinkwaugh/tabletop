@@ -27,6 +27,6 @@ export function trainActions(
             isDiscardTrain,
             (action) => new HydratedDiscardTrain(action, trains, phases)
         ),
-        defineAction(RustTrains, isRustTrains, (action) => new HydratedRustTrains(action))
+        defineAction(RustTrains, isRustTrains, (action) => new HydratedRustTrains(action, trains))
     ]
 }

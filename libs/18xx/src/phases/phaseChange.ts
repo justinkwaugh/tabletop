@@ -13,6 +13,7 @@ import {
     type TrainPurchaseState
 } from '../trains/train.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
+import { settleTrainDepartures, type TrainDeparture } from '../trains/trainDepartures.js'
 const Id = Type.String({ minLength: 1 })
 export const PhaseOccurrence = Type.Object(
     { id: Id, trainId: Id, definitionId: Id, fromPhaseId: Id, toPhaseId: Id },
@@ -108,6 +109,7 @@ export function advancePhase(
         rustedTrainIds: [],
         pendingRustTrainIds: []
     }
+    const departures: TrainDeparture[] = []
     state.trainInventory.trains = state.trainInventory.trains.map((train) => {
         if (train.status === 'removed') return train
         const rustTiming = rules.rustTiming(state, train)
@@ -117,10 +119,17 @@ export function advancePhase(
         }
         if (rustTiming) {
             event.rustedTrainIds.push(train.id)
+            departures.push({
+                trainId: train.id,
+                definitionId: train.definitionId,
+                cause: 'rust',
+                ...(train.status === 'owned' ? { owner: { ...train.owner } } : {})
+            })
             return unownedTrain(train, 'removed')
         }
         return train
     })
+    settleTrainDepartures(state, trainRules, departures)
     state.phaseEvents.push(event)
     change.discardCompanyIds = rules
         .discardOrder(state, change.continuation.companyId)

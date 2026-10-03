@@ -205,7 +205,7 @@ describe('the Pittsburgh Steel Mill', () => {
                 rotation: 0,
                 nodeMapping: {}
             })
-        ).toBe('Only the Pittsburgh Steel Mill lays X00.')
+        ).toBe('Only a city-tile private lays X00.')
     })
 })
 

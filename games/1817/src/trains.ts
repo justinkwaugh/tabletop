@@ -1,4 +1,6 @@
-import { PhaseTable, TrainDepot, type TrainRules } from '@tabletop/18xx'
+import { PhaseTable, TrainDepot, type CashPayment, type TrainRules } from '@tabletop/18xx'
+import { inventorPaid } from './state.js'
+import { companyHolding } from './privateHolders.js'
 
 const train = (id: string, price: number, rustsOn?: string) => ({
     id,
@@ -65,6 +67,24 @@ export const EighteenSeventeenCompanySizes: Readonly<Record<string, readonly num
     '8': [10]
 }
 
+const InventorId = 'P14'
+const InventorPayouts: Readonly<Record<string, number>> = {
+    '2': 20,
+    '3': 30,
+    '4': 40,
+    '5': 50,
+    '6': 60,
+    '7': 70,
+    '8': 80
+}
+const ScrapperId = 'P15'
+const ScrapValues: Readonly<Record<string, number>> = { '2': 30, '2+': 30, '3': 75, '4': 150 }
+const bankPays = (companyId: string, amount: number): CashPayment => ({
+    from: { kind: 'bank' },
+    to: { kind: 'company', companyId },
+    amount
+})
+
 export const EighteenSeventeenTrainRules: TrainRules = {
     depot: EighteenSeventeenTrainDepot,
     exchangePrice: () => undefined,
@@ -76,5 +96,30 @@ export const EighteenSeventeenTrainRules: TrainRules = {
     phaseAfterPurchase: (state, definitionId) =>
         EighteenSeventeenPhases.phaseAfterPurchase(state.phaseId, definitionId),
     trainLimit: (state) => EighteenSeventeenPhases.phase(state.phaseId).trainLimit,
-    purchaseLimit: () => 'unlimited'
+    purchaseLimit: () => 'unlimited',
+    // The Inventor's company is paid the first time each type departs while it holds the
+    // Inventor; the Scrapper's company is paid for each of its trains that rusts.
+    afterTrainsDepart(state, departures) {
+        const payments: CashPayment[] = []
+        const paid = [...inventorPaid(state)]
+        const inventorCompanyId = companyHolding(state, InventorId)
+        const scrapperCompanyId = companyHolding(state, ScrapperId)
+        for (const departure of departures) {
+            const payout = InventorPayouts[departure.definitionId]
+            if (inventorCompanyId && payout && !paid.includes(departure.definitionId)) {
+                paid.push(departure.definitionId)
+                payments.push(bankPays(inventorCompanyId, payout))
+            }
+            const scrap = ScrapValues[departure.definitionId]
+            if (
+                departure.cause === 'rust' &&
+                scrap &&
+                departure.owner?.kind === 'company' &&
+                departure.owner.companyId === scrapperCompanyId
+            )
+                payments.push(bankPays(scrapperCompanyId, scrap))
+        }
+        if (paid.length > inventorPaid(state).length) Object.assign(state, { inventorPaid: paid })
+        return payments
+    }
 }

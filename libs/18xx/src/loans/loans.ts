@@ -44,6 +44,8 @@ export interface LoanRules {
     repayMove?: LoanMarketMove
     /** The title's consequence when a company cannot pay interest after borrowing all it can. */
     interestDefault(state: LoanState, companyId: string, owed: number): InterestDefault
+    /** Interest a company owes each operating round beyond its loans'. */
+    extraInterest?(state: LoanState, companyId: string): number
 }
 
 export function companyLoans(state: LoanState, companyId: string): number {
@@ -60,7 +62,10 @@ export function loansRemaining(state: LoanState, rules: LoanRules): number {
 
 export function interestOwed(state: LoanState, rules: LoanRules, companyId: string): number {
     assertExists(state.interestRate, 'Interest is charged at a fixed rate')
-    return (state.interestRate * companyLoans(state, companyId) * rules.value) / 100
+    return (
+        (state.interestRate * companyLoans(state, companyId) * rules.value) / 100 +
+        (rules.extraInterest?.(state, companyId) ?? 0)
+    )
 }
 
 export function takeLoanReason(

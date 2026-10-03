@@ -9,7 +9,10 @@ import {
 } from '@tabletop/18xx'
 import { corporationShareCount } from './corporations.js'
 import { liquidate } from './liquidation.js'
+import { companyHolding } from './privateHolders.js'
 
+const LoanSharkId = 'P12'
+const LoanSharkInterest = 10
 const RateStep = 5
 const LoansPerStep = 5
 const MaximumRate = 70
@@ -24,6 +27,9 @@ export const EighteenSeventeenLoanRules: LoanRules = {
             MaximumRate,
             Math.max(RateStep, RateStep * Math.ceil(loansOutstanding(state) / LoansPerStep))
         ),
+    // The Loan Shark's company pays $10 more each round for the rest of the game.
+    extraInterest: (state, companyId) =>
+        companyHolding(state, LoanSharkId) === companyId ? LoanSharkInterest : 0,
     takeMove: { direction: 'left', steps: 1 },
     repayMove: { direction: 'right', steps: 1 },
     // The company is liquidated and its cash goes to the president, who owes the interest.

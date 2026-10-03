@@ -13,6 +13,7 @@ import type { TrainRules } from '../trains/trainPurchase.js'
 import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
 import { nextOperatingCompany, type OperatingRules, type OperatingState } from './operatingSet.js'
 import { BetweenCompaniesState } from './operatingSteps.js'
+import { settleTrainDepartures } from '../trains/trainDepartures.js'
 
 type State = OperatingState & TrainState & PhaseState
 
@@ -92,6 +93,11 @@ export class HydratedExportTrains
             }
             return { trainId: train.id, definitionId }
         })
+        settleTrainDepartures(
+            state,
+            this.#trainRules,
+            trains.map((train) => ({ ...train, cause: 'export' }))
+        )
         set.exportedRound = set.roundNumber
         if (phaseStarter)
             preparePhaseChange(state, phaseStarter.trainId, phaseStarter.definitionId, phaseId, {

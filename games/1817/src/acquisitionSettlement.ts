@@ -32,14 +32,44 @@ import {
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { CharterShareCount, trimStations } from './mergerRules.js'
 import type { Acquisition, HeldAside, SaleTerms } from './state.js'
+import { companyHolding } from './privateHolders.js'
 
 const Loans = EighteenSeventeenLoanRules
 // Repaying the loans an acquisition brings moves no price.
 const { repayMove: _repayMove, ...RepaymentInPlace } = Loans
 
+const GoldenParachuteId = 'P20'
+const GoldenParachuteValue = 100
+
+/**
+ * The Golden Parachute pays its company's president when the bank liquidates the company, or a
+ * company with another president acquires it.
+ */
+export function payGoldenParachute(
+    state: EighteenXXState,
+    companyId: string,
+    buyerId?: string
+): CashPayment | undefined {
+    if (companyHolding(state, GoldenParachuteId) !== companyId) return undefined
+    const president = controllingOwner(state, companyId)
+    if (
+        !president ||
+        (buyerId && controllingOwner(state, buyerId)?.playerId === president.playerId)
+    )
+        return undefined
+    const payment = {
+        from: { kind: 'bank' as const },
+        to: { kind: 'player' as const, playerId: president.playerId },
+        amount: GoldenParachuteValue
+    }
+    settleCashPayments(state, [payment])
+    return payment
+}
+
 export const AcquisitionRecord = Type.Object(
     {
         price: Type.Integer({ minimum: 1 }),
+        parachute: Type.Optional(CashPayment),
         treasuryPayment: Type.Optional(CashPayment),
         loans: Type.Array(LoanRecord),
         assets: AssetTransfer,
@@ -62,6 +92,7 @@ export function acquireCompany(
     buyerId: string,
     price: number
 ): AcquisitionRecord {
+    const parachute = payGoldenParachute(state, sale.companyId, buyerId)
     const compensation = treasuryCompensation(state, sale.companyId, sale.kind)
     const treasuryPayment = compensation
         ? {
@@ -93,6 +124,7 @@ export function acquireCompany(
         repayments.push(repayAcquiredLoan(state, buyerId).payment)
     return {
         price,
+        ...(parachute ? { parachute } : {}),
         ...(treasuryPayment ? { treasuryPayment } : {}),
         loans,
         assets,

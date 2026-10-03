@@ -12,6 +12,7 @@ import {
     type MachineContext
 } from '@tabletop/common'
 import {
+    CashPayment,
     LoanRecord,
     PassableBidding,
     StockMarketMove,
@@ -39,6 +40,7 @@ import {
     canRepayAcquiredLoan,
     holdAside,
     liquidateByBank,
+    payGoldenParachute,
     repayAcquiredLoan,
     moveBuyerForUnpaidLoans,
     settleHolders
@@ -558,7 +560,11 @@ const CloseFields = Type.Object({
     companyId: Type.String(),
     metadata: Type.Optional(
         Type.Object(
-            { trainIds: Type.Array(Type.String()), settlement: Settlement },
+            {
+                trainIds: Type.Array(Type.String()),
+                settlement: Settlement,
+                parachute: Type.Optional(CashPayment)
+            },
             { additionalProperties: false }
         )
     )
@@ -600,10 +606,12 @@ export class HydratedCloseCompanySale
         const sale = requireSale(state)
         delete requireRound(state).sale
         if (sale.kind !== 'liquidation') return
+        const parachute = payGoldenParachute(state, sale.companyId)
         const trainIds = liquidateByBank(state, sale.companyId)
         this.metadata = {
             trainIds,
-            settlement: settleHolders(state, sale.companyId, 0, sale.heldAside)
+            settlement: settleHolders(state, sale.companyId, 0, sale.heldAside),
+            ...(parachute ? { parachute } : {})
         }
     }
 }

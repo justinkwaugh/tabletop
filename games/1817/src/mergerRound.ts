@@ -658,9 +658,9 @@ export class HydratedFinishConversionLoans
             to: { kind: 'bank' as const },
             amount: purchase.cost
         }
-        settleCashPayments(state, [payment])
+        if (payment.amount) settleCashPayments(state, [payment])
         addCompanyStations(state, this.companyId, purchase.stations)
-        this.metadata = { stations: purchase.stations, payment }
+        this.metadata = { stations: purchase.stations, ...(payment.amount ? { payment } : {}) }
     }
 }
 

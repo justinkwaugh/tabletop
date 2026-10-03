@@ -153,13 +153,21 @@ function formationReason(state: CompanyAuctionState, formation: CompanyFormation
     return undefined
 }
 
+// The Loan Shark brings its company $60 when contributed; the Ponzi Scheme closes then.
+const LoanSharkId = 'P12'
+const LoanSharkCash = 60
+const PonziSchemeId = 'P13'
+
 function form(state: CompanyAuctionState, formation: CompanyFormation): void {
     const company = { kind: 'company' as const, companyId: formation.companyId }
     const player = { kind: 'player' as const, playerId: formation.playerId }
     const contributed = privateValue(formation.privateIds)
     const payments: CashPayment[] = [
         { from: player, to: company, amount: formation.price },
-        { from: company, to: player, amount: contributed }
+        { from: company, to: player, amount: contributed },
+        ...(formation.privateIds.includes(LoanSharkId)
+            ? [{ from: { kind: 'bank' as const }, to: company, amount: LoanSharkCash }]
+            : [])
     ]
     settleCashPayments(
         state,
@@ -174,6 +182,7 @@ function form(state: CompanyAuctionState, formation: CompanyFormation): void {
             certificate.owner = company
             delete certificate.poolId
         }
+    if (formation.privateIds.includes(PonziSchemeId)) closePrivate(state, PonziSchemeId)
     getCompany(state, formation.companyId).shareCount = formation.shareCount
     issueShareCertificates(state, formation.companyId, formation.shareCount - 2, {
         owner: company,

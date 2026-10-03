@@ -1,6 +1,6 @@
 {
   "actionSchemaDigests": {
-    "AcquireCompany": "130615a07342f3a5f01d03f20a0ca2b11abc1c9f4875566697b2d8ddaf7821e6",
+    "AcquireCompany": "27234f242a1eadc8d6b59b3efda2edd72b01cc898e3be015966cf392057f065c",
     "AdvancePhase": "c6c8fd9f31c5f61a3c338173a80fb01a820a0508bf46e406b3aa5cf9f4bd8e89",
     "AuctionCompany": "d6e1ab4c05282303f508d784d0cef760c50854d2dea3a8115365735998efe5f3",
     "BidForCompany": "cbdac1504eb19b11350f9ffe4630961ed4d9756ce23ea8610e1d47ff27d7d779",
@@ -12,7 +12,7 @@
     "BuyPrivateTrain": "696b3122d45f99995e1d55d288ae6e0028d2a22240bccabde6de5184f2f8dd51",
     "BuyShares": "4895ee63a251abf1bf45accdab50cfb49c0b57c2b59d31bfbb596cb029ffe85b",
     "BuyTrain": "bcb7e409b1f80088d84dae125904f217c9dccff020d23c48b8a35286db866035",
-    "CloseCompanySale": "b8cb1b55aa650146134553f826fdd5f70fd868932ddd9bc8df6df22ffc56adb5",
+    "CloseCompanySale": "5e4414fc8f446859269c8c61c1b994b72826bad9a094b33d8445af44a60c2ea6",
     "CloseMarketShorts": "e7a95564c786becb6cf7a14c147bf205070c60de16fa335c2234273049db60c3",
     "CloseTrainStation": "02e60e6908c37b973f6736ff9954d08454a3041e250d1a0c1c04fbff96769563",
     "CompleteStockRound": "7f7e57359cd8d0691ee16a31e9801a1eb157cc7e320d298447358e6951372882",
@@ -1898,6 +1898,12 @@
         "minimum": 0,
         "type": "integer"
       },
+      "inventorPaid": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "loanStep": {
         "additionalProperties": false,
         "properties": {
@@ -2843,6 +2849,15 @@
           "type": "object"
         },
         "type": "array"
+      },
+      "privateLays": {
+        "patternProperties": {
+          "^.*$": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
       },
       "privatePowerRequests": {
         "items": {

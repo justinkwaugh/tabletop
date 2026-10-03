@@ -1,5 +1,4 @@
 import {
-    getCompany,
     locationMarkers,
     privateOwner,
     privateOwningCompany,
@@ -11,11 +10,15 @@ import {
     type TrackRules
 } from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
-import { MineMarker, SteelMillId, SteelMillLocation, SteelMillTile } from './privatePowerRules.js'
+import { CityTile, MineMarker, RanchMarker } from './privatePowerRules.js'
+import { CityTilePrivates } from './privates.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenPhases } from './trains.js'
+import { companyHolding } from './privateHolders.js'
 
 const SecondLayCost = 20
+const ExpressTrackId = 'P18'
+const EfficientTrackId = 'P19'
 const BridgeDiscount = 10
 const BridgePrivateIds = ['OBC', 'UBC']
 const MountainEngineersId = 'MTE'
@@ -34,15 +37,28 @@ function mountainIncome(state: ConstructionState, details: TrackLayDetails, paye
     return amount ? [{ from: { kind: 'bank' as const }, to: { ...payer }, amount }] : []
 }
 
-// Another tile on the Steel Mill's hex closes it, unless a player still holds it.
-function closedSteelMill(state: ConstructionState, details: TrackLayDetails): string[] {
-    const owner = privateOwner(state, SteelMillId)
-    return details.locationId === SteelMillLocation &&
-        details.definitionId !== SteelMillTile &&
-        !getCompany(state, SteelMillId).closed &&
-        owner?.kind !== 'player'
-        ? [SteelMillId]
-        : []
+// Another tile on a city-tile private's city closes it, unless a player still holds it.
+function closedCityTilePrivates(state: ConstructionState, details: TrackLayDetails): string[] {
+    if (details.definitionId === CityTile) return []
+    return Object.entries(CityTilePrivates).flatMap(([privateId, locationId]) =>
+        details.locationId === locationId &&
+        state.companies.some((company) => company.id === privateId && !company.closed) &&
+        privateOwner(state, privateId)?.kind !== 'player'
+            ? [privateId]
+            : []
+    )
+}
+
+// Express Track makes the lays $10 and free, Efficient Track the second $10; both make both free.
+function layCosts(state: ConstructionState): readonly [number, number] {
+    const companyId = state.trackStep?.companyId
+    const owns = (privateId: string) =>
+        !!companyId && companyHolding(state, privateId) === companyId
+    const express = owns(ExpressTrackId)
+    const efficient = owns(EfficientTrackId)
+    if (express && efficient) return [0, 0]
+    if (express) return [10, 0]
+    return [0, efficient ? 10 : SecondLayCost]
 }
 const isUpgrade = (color: string) => color !== 'yellow'
 const cityCount = (face: TileFace) => face.nodes.filter((node) => node.kind === 'city').length
@@ -66,11 +82,12 @@ export const EighteenSeventeenTrackRules: TrackRules = {
     // Two lays a turn, of which at most one is an upgrade; the second costs $20.
     allowance(state, color) {
         const lays = state.trackStep?.lays ?? []
-        if (!lays.length) return { cost: 0 }
+        const [first, second] = layCosts(state)
+        if (!lays.length) return { cost: first }
         if (lays.length > 1) return { reason: '1817 permits two lays a turn' }
         if (isUpgrade(lays[0].color) && isUpgrade(color))
             return { reason: '1817 permits one upgrade a turn' }
-        return { cost: SecondLayCost }
+        return { cost: second }
     },
     preservesStops,
     mostExits: (before) => before.nodes.some((node) => node.kind === 'city'),
@@ -88,13 +105,14 @@ export const EighteenSeventeenTrackRules: TrackRules = {
     },
     afterLay: (state, details, payer) => ({
         payments: mountainIncome(state, details, payer),
-        closedPrivateIds: closedSteelMill(state, details)
+        closedPrivateIds: closedCityTilePrivates(state, details)
     }),
     restriction(state, request) {
-        if (request.definitionId === SteelMillTile)
-            return 'Only the Pittsburgh Steel Mill lays X00.'
+        if (request.definitionId === CityTile) return 'Only a city-tile private lays X00.'
         if (locationMarkers(state, { locationId: request.locationId, kind: MineMarker }).length)
             return 'Nobody may upgrade a mine.'
+        if (locationMarkers(state, { locationId: request.locationId, kind: RanchMarker }).length)
+            return 'Nobody may upgrade a ranch.'
         if (state.trackStep?.lays.some((lay) => lay.locationId === request.locationId))
             return 'The second lay must be on a different hex'
         return undefined

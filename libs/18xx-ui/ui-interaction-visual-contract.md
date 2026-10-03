@@ -717,9 +717,11 @@ A private power that marks a location (a title's `markerTerms`, such as 1817's
 bridges) appears under Use privates as one immediately committed button per location,
 "Place [marker] on [location] ([private])". Placed markers join the map's printed
 markers, by the names the title's map view gives them, in the live and historical maps.
-A title's reusable private lays (1817's coal mines) stay offered until its terms end
-them. History notes what a lay paid its company or which privates it closed (1817's
-Mountain Engineers, Steel Mill and used-up coal mines). An operating round's start
+A title's reusable private lays (1817's coal mines and ranches) stay offered until its
+terms end them. A lay can also clear markers (1817's city tiles clear the ranches beside
+them), which leave the live and historical maps with it. History notes what a lay paid
+its company or which privates it closed (1817's Mountain Engineers, city-tile privates
+and used-up coal mines and ranches). An operating round's start
 appears in history as Private income when privates paid companies (1817's mail).
 
 A pending par after an opening award (a title's `parAfterAward`, such as 1830's B&O)

@@ -5,21 +5,24 @@ import {
     controllingOwner,
     locationMarkers,
     placeLocationMarker,
+    removeLocationMarkers,
     privateOwningCompany,
     rotateTileFace,
+    TileEdges,
     type CompanyDecisionState,
     type PrivatePowerRules,
     type PrivateTrackTerms,
     type TrackRequest
 } from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
+import { CityTilePrivates } from './privates.js'
+import { privateLaysMade, recordPrivateLay } from './state.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 
 export const MineMarker = 'mine'
 export const BridgeMarker = 'bridge'
-export const SteelMillId = 'PSM'
-export const SteelMillLocation = 'F13'
-export const SteelMillTile = '1817:X00'
+export const RanchMarker = 'ranch'
+export const CityTile = '1817:X00'
 
 type LayPower = {
     uses: number
@@ -50,17 +53,62 @@ const Mine = {
     connected: true,
     terrainDiscount: 15
 }
+// A ranch lays on one of these hexes, which it may not do beside a city tile.
+const Ranch = {
+    locationIds: [
+        'B3',
+        'B11',
+        'B15',
+        'B19',
+        'B21',
+        'B23',
+        'C4',
+        'C16',
+        'C18',
+        'D5',
+        'D13',
+        'D15',
+        'D17',
+        'E4',
+        'E6',
+        'E8',
+        'E10',
+        'E12',
+        'E14',
+        'F5',
+        'F7',
+        'F11',
+        'G2',
+        'G4',
+        'G8',
+        'G10',
+        'H5',
+        'H7',
+        'I2',
+        'I4'
+    ],
+    definitionIds: ['18xx:7', '18xx:8', '18xx:9'],
+    marker: RanchMarker,
+    connected: true
+}
 const LayPowers: Readonly<Record<string, LayPower>> = {
     MINC: { ...Mine, uses: 1 },
     CM: { ...Mine, uses: 2 },
     MAJC: { ...Mine, uses: 3 },
-    [SteelMillId]: {
-        uses: 1,
-        locationIds: [SteelMillLocation],
-        definitionIds: [SteelMillTile],
-        connected: false,
-        relabels: true
-    }
+    P22: { ...Ranch, uses: 1 },
+    P23: { ...Ranch, uses: 2 },
+    ...Object.fromEntries(
+        Object.entries(CityTilePrivates).map(([privateId, locationId]) => [
+            privateId,
+            {
+                uses: 1,
+                locationIds: [locationId],
+                definitionIds: [CityTile],
+                connected: false,
+                relabels: true
+            }
+        ])
+    )
 }
 const Bridges: Readonly<Record<string, number>> = { OBC: 1, UBC: 2 }
 const BridgeLocations = ['H3', 'G6', 'H9']
@@ -89,32 +137,46 @@ function layingCompany(
         : undefined
 }
 
-function usesLeft(state: CompanyDecisionState, privateId: string, uses: number): number {
+function laysLeft(state: CompanyDecisionState, privateId: string, power: LayPower): number {
+    return power.uses - privateLaysMade(state, privateId)
+}
+
+function bridgesLeft(state: CompanyDecisionState, privateId: string, uses: number): number {
     return uses - locationMarkers(state, { privateCompanyId: privateId }).length
 }
 
-// A mine faces a neighbouring city, town or offboard.
+function mapState(state: CompanyDecisionState): RailwayMapState {
+    return new RailwayMapState(EighteenSeventeenMap, EighteenSeventeenTileSet, state.tileInventory)
+}
+
+const neighbourIds = (locationId: string) =>
+    TileEdges.flatMap((edge) => EighteenSeventeenMap.neighbor(locationId, edge)?.id ?? [])
+
+// A ranch may not be laid beside a city tile.
+function besideCityTile(state: CompanyDecisionState, request: TrackRequest): string | undefined {
+    const map = mapState(state)
+    return neighbourIds(request.locationId).some((id) => map.tile(id).face.labels.includes('B'))
+        ? 'A ranch may not be laid beside a city tile.'
+        : undefined
+}
+
+// A mine or ranch faces a neighbouring city, town or offboard.
 function facesStop(state: CompanyDecisionState, request: TrackRequest): string | undefined {
     const definition = EighteenSeventeenTileSet.definitions.find(
         (tile) => tile.id === request.definitionId
     )
     assertExists(definition, 'A mine is one of its private’s tiles')
-    const mapState = new RailwayMapState(
-        EighteenSeventeenMap,
-        EighteenSeventeenTileSet,
-        state.tileInventory
-    )
+    const map = mapState(state)
     const edges = rotateTileFace(definition.face, request.rotation).paths.flatMap((path) =>
         path.endpoints.flatMap((endpoint) => (endpoint.kind === 'edge' ? [endpoint.edge] : []))
     )
     const faces = edges.some((edge) => {
         const neighbor = EighteenSeventeenMap.neighbor(request.locationId, edge)
         return (
-            !!neighbor &&
-            mapState.tile(neighbor.id).face.nodes.some((node) => node.kind !== 'junction')
+            !!neighbor && map.tile(neighbor.id).face.nodes.some((node) => node.kind !== 'junction')
         )
     })
-    return faces ? undefined : 'A mine must face a neighbouring city, town or offboard.'
+    return faces ? undefined : 'The tile must face a neighbouring city, town or offboard.'
 }
 
 export function markersOf(state: CompanyDecisionState, kind: string): string[] {
@@ -125,8 +187,7 @@ export const EighteenSeventeenPrivatePowerRules: PrivatePowerRules = {
     trackTerms(state, privateId, playerId) {
         const power = LayPowers[privateId]
         const companyId = layingCompany(state, privateId, playerId)
-        if (!power || !companyId) return undefined
-        if (power.marker && usesLeft(state, privateId, power.uses) <= 0) return undefined
+        if (!power || !companyId || laysLeft(state, privateId, power) <= 0) return undefined
         return {
             companyId,
             locationIds: power.locationIds,
@@ -137,24 +198,33 @@ export const EighteenSeventeenPrivatePowerRules: PrivatePowerRules = {
             ...(power.marker
                 ? {
                       reusable: true,
-                      restriction: (request: TrackRequest) => facesStop(state, request)
+                      restriction: (request: TrackRequest) =>
+                          facesStop(state, request) ??
+                          (power.marker === RanchMarker
+                              ? besideCityTile(state, request)
+                              : undefined)
                   }
                 : {}),
             ...(power.terrainDiscount ? { terrainDiscount: power.terrainDiscount } : {}),
             ...(power.relabels ? { relabels: true } : {})
         }
     },
-    // A private closes once its lays are used up; a mine lay also marks its hex.
+    // A private closes once its lays are used up. A mine or ranch lay marks its hex; a city
+    // tile clears the ranches beside it.
     afterTrackLay(state, privateId, details) {
         const power = LayPowers[privateId]
         assertExists(power, 'Only a private with a lay power lays track')
+        recordPrivateLay(state, privateId)
         if (power.marker)
             placeLocationMarker(state, {
                 locationId: details.locationId,
                 kind: power.marker,
                 privateCompanyId: privateId
             })
-        const usedUp = !power.marker || usesLeft(state, privateId, power.uses) <= 0
+        if (details.definitionId === CityTile)
+            for (const locationId of neighbourIds(details.locationId))
+                removeLocationMarkers(state, { locationId, kind: RanchMarker })
+        const usedUp = laysLeft(state, privateId, power) <= 0
         return { payments: [], closedPrivateIds: usedUp ? [privateId] : [] }
     },
     markerTerms(state, privateId, playerId) {
@@ -164,7 +234,7 @@ export const EighteenSeventeenPrivatePowerRules: PrivatePowerRules = {
             !uses ||
             !companyId ||
             EighteenXXTransferTiming.operatingCompany(state) !== companyId ||
-            usesLeft(state, privateId, uses) <= 0
+            bridgesLeft(state, privateId, uses) <= 0
         )
             return undefined
         const bridged = markersOf(state, BridgeMarker)

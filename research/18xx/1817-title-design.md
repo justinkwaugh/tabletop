@@ -1716,10 +1716,30 @@ are rules of the 1817 family.
 - **Playground.** A title-specific `optional-opening` position ("Opening with options")
   opens with the optional rules the title's scenarios name; 1817's is Volatility.
 
+### Implementation notes for 9b
+
+- **Family hooks.** `LoanRules.extraInterest` adds to `interestOwed`, and the loans step
+  charges interest whenever any is owed, loans or not. `TrainRules.afterTrainsDepart`
+  receives each train leaving the depot or an owner (bought, sold between companies,
+  exported or rusted, with its previous owner) and returns what the bank pays;
+  `settleTrainDepartures` calls it from every such place. `removeLocationMarkers`
+  clears markers.
+- **Lay powers.** The city-tile privates share one entry per city, and the Steel Mill's
+  closure and X00 restriction now apply to whichever is in the game. Lays are counted in
+  `privateLays` title state rather than by markers, since a ranch can be removed. Ranches
+  restrict like mines and refuse a hex beside a B-labelled tile.
+- **Payments.** The Loan Shark's $60 and the Ponzi Scheme's closure happen in 1817's
+  formation; Inventor payouts are recorded in `inventorPaid`; the Golden Parachute is
+  recorded in the acquisition and bank liquidation metadata. A conversion whose stations
+  the subsidy pays in full records no payment.
+- **Absent privates.** `companyHolding` answers "which company holds this private" as
+  nobody when the game does not have the private, since Volatility's may be absent.
+
 ### Limits after slice 9
 
 - The table's lasting presentation of the pyramid, Volatility privates and their
-  effects comes with slice 10.
+  effects comes with slice 10; until then the Loan Shark's $60 and the Inventor's and
+  Scrapper's payments show only as cash changes in history.
 
 ### Acceptance examples
 
