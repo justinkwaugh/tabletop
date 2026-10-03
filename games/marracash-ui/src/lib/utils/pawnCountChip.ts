@@ -1,12 +1,14 @@
 import { PawnUnitSize, PawnWidth } from '$lib/utils/pawnShape.js'
 
+const ChipPawnSize = 18
+
 export const PawnCountChip = {
     height: 32,
     padding: 7,
     gap: 4,
     digitWidth: 9.5,
-    pawnSize: 18,
-    pawnWidth: (PawnWidth * 18) / PawnUnitSize
+    pawnSize: ChipPawnSize,
+    pawnWidth: (PawnWidth * ChipPawnSize) / PawnUnitSize
 } as const
 
 export function pawnCountChipWidth(count: number): number {

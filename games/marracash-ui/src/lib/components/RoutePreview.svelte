@@ -1,28 +1,21 @@
 <script lang="ts">
-    import type { Point } from '@tabletop/common'
     import { getShop, type Route, type ShopVisit } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { LineHaloFilterId } from '$lib/utils/boardGeometry.js'
     import PawnCountChip from '$lib/components/PawnCountChip.svelte'
     import {
         BranchDash,
+        flowPoints,
         flowSeconds,
         routeLine,
         RouteDash,
-        shopBranch
+        shopBranch,
+        type DashPattern
     } from '$lib/utils/routePreview.js'
 
     let { route, visits }: { route: Route; visits: readonly ShopVisit[] } = $props()
 
     const gameSession = getGameSession()
-
-    // Each line is drawn from its end back to its start; see routePreview.ts.
-    function flowPoints(line: Point[]): string {
-        return line
-            .toReversed()
-            .map((point) => `${point.x},${point.y}`)
-            .join(' ')
-    }
 
     let points = $derived(flowPoints(routeLine(route)))
     let branches = $derived(
@@ -40,12 +33,7 @@
     )
 </script>
 
-{#snippet flowLine(
-    linePoints: string,
-    color: string,
-    width: number,
-    pattern: { dash: number; gap: number }
-)}
+{#snippet flowLine(linePoints: string, color: string, width: number, pattern: DashPattern)}
     <polyline
         points={linePoints}
         fill="none"

@@ -10,13 +10,7 @@
     import RoutePreview from '$lib/components/RoutePreview.svelte'
     import VisitorQueue from '$lib/components/VisitorQueue.svelte'
     import PalmTree from '$lib/components/PalmTree.svelte'
-    import {
-        shopVisits,
-        type FountainId,
-        type FountainState,
-        type Route,
-        type ShopVisit
-    } from '@tabletop/marracash'
+    import type { FountainId, FountainState, Route, ShopVisit } from '@tabletop/marracash'
     import {
         BoardHeight,
         BoardWidth,
@@ -58,7 +52,11 @@
     )
     let dimmed = $derived(spotlightShop !== undefined || liftedFountains.length > 0)
 
-    let hoveredRoute: Route | undefined = $state()
+    let hoveredRoute = $derived.by<Route | undefined>(() => {
+        gameSession.updatingVisibleState
+        gameSession.selectedFountainId
+        return undefined
+    })
     let previewRoute = $derived(
         !gameSession.updatingVisibleState &&
             hoveredRoute !== undefined &&
@@ -68,13 +66,7 @@
     )
 
     let previewVisits: readonly ShopVisit[] = $derived(
-        previewRoute === undefined
-            ? []
-            : shopVisits(
-                  previewRoute,
-                  gameSession.gameState.getFountainState(previewRoute.from).visitors,
-                  (shopId) => gameSession.gameState.getShopState(shopId).ownerId !== undefined
-              ).visits
+        previewRoute === undefined ? [] : gameSession.gameState.visitsAlong(previewRoute).visits
     )
     let enteredShops = $derived(
         gameSession.gameState.shops.filter((shop) =>
@@ -109,7 +101,6 @@
         } else if (gameSession.selectedFountainId === fountainId) {
             gameSession.back()
         } else if (gameSession.destinationFountainIds.includes(fountainId)) {
-            hoveredRoute = undefined
             void gameSession.moveVisitorsTo(fountainId)
         } else {
             gameSession.selectFountain(fountainId)

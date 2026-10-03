@@ -282,14 +282,15 @@ export type Route = {
 }
 
 export type ShopVisit = { shopId: ShopId; customers: number }
+export type RouteOutcome = { visits: ShopVisit[]; arrivals: MarketColor[] }
 
-// Each owned shop along the route takes every walking visitor of its color;
-// whoever is left arrives at the destination.
+// Ruling (docs/rulings.md): all matching visitors in the moved group enter the
+// first matching shop they pass.
 export function shopVisits(
     route: Route,
     visitors: readonly MarketColor[],
     isOwned: (shopId: ShopId) => boolean
-): { visits: ShopVisit[]; arrivals: MarketColor[] } {
+): RouteOutcome {
     let walking = [...visitors]
     const visits: ShopVisit[] = []
     for (const shopId of route.shopsPassed) {

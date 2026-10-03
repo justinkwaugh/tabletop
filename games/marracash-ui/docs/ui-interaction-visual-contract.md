@@ -35,13 +35,13 @@ During bidding, while waiting for others, and in History View, the session repor
 - **Hovered route** (`Board`):
     - Meaning: the route to the destination fountain under the pointer or focus.
     - Producer: the destination `FountainSpot`s. Consumer: `RoutePreview`.
-    - Lifetime: cleared on pointer leave or blur, and when the destination is chosen, because its spot unmounts without a pointer leave.
+    - Lifetime: cleared on pointer leave or blur, and reset whenever the selected fountain changes or a new state starts publishing, so choosing a destination (whose spot unmounts without a pointer leave) never leaves a stale preview.
     - Validity: derived empty while a new state is publishing, or when the route doesn't start at the selected fountain.
 
 ## Render ownership
 
 - `Board` owns the layer order: the visitor queue in the margin outside the walls, then shops, then fountains, then the shared overlay, then whatever is lifted above it (the auctioned or staged shop, the shops the previewed route enters, or the selected fountain and its destinations), then the route preview. The overlay blocks clicks on everything beneath it, so only lifted pieces are interactive; the preview ignores pointer events so it never blocks a destination.
-- `ShopTile` draws each owned shop's `ShopSign`: a flat cardboard sign in the owner's colour, cut in a shape unique to their seat, with the customer count beside it. That count and the route preview's entering counts use the same `PawnCountChip`, so a pawn with a number always means visitors of that colour in a shop.
+- `ShopTile` draws each owned shop's `ShopSign`: a flat cardboard sign in the owner's colour, cut in a shape unique to their seat, with the customer count beside it. That count and the route preview's entering counts use the same `PawnCountChip`: a chip with a pawn and a number on or beside a shop always means visitors of that colour in the shop. Crowded fountains use their own tally panel instead.
 
 ## Verification scenarios
 

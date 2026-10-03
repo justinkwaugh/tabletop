@@ -3,32 +3,37 @@ import { getFountain, shopsNextTo, type Route, type ShopId } from '@tabletop/mar
 import { cellCenter, shopRect, ShopTileInset } from '$lib/utils/boardGeometry.js'
 import { EntranceRadii, FountainRadii } from '$lib/utils/fountainShape.js'
 
-// Dashes travel at one speed everywhere; the destination pulses once per
-// route dash period, so each dash that reaches the fountain feeds one pulse.
-export const FlowSpeed = 48
-export const RouteDash = { dash: 18, gap: 26 }
-export const BranchDash = { dash: 8, gap: 8 }
-export const PulseSeconds = (RouteDash.dash + RouteDash.gap) / FlowSpeed
+export type DashPattern = { dash: number; gap: number }
 
-// Flow lines run from their end back to their start, so the dash pattern is
-// anchored where the dashes arrive. A dash's tail therefore finishes reaching
-// the destination at the same moment in every cycle, whatever the route's
-// length, and the pulse peaks then.
+export const FlowSpeed = 48
+export const RouteDash: DashPattern = { dash: 18, gap: 26 }
+export const BranchDash: DashPattern = { dash: 8, gap: 8 }
+
+export function flowSeconds(pattern: DashPattern): number {
+    return (pattern.dash + pattern.gap) / FlowSpeed
+}
+
+export const PulseSeconds = flowSeconds(RouteDash)
 export const PulsePeakSeconds = RouteDash.dash / FlowSpeed
 
-export function flowSeconds(pattern: { dash: number; gap: number }): number {
-    return (pattern.dash + pattern.gap) / FlowSpeed
+// Lines are drawn end-to-start so the dash pattern is anchored at the
+// destination: arrivals, and the pulse peak, then line up on any route length.
+export function flowPoints(line: Point[]): string {
+    return line
+        .toReversed()
+        .map((point) => `${point.x},${point.y}`)
+        .join(' ')
+}
+
+function cardinalEdgeDistance(entrance: boolean): number {
+    return entrance ? EntranceRadii.trim : FountainRadii.rim * Math.cos(Math.PI / 8)
 }
 
 export function routeLine(route: Route): Point[] {
     const destination = getFountain(route.to)
     const center = cellCenter(destination.coords)
     const last = cellCenter(route.path.at(-2) ?? getFountain(route.from).coords)
-    // Routes reach a fountain along a cardinal direction: a star's point, or
-    // the middle of an octagon's side.
-    const edge = destination.entrance
-        ? EntranceRadii.trim
-        : FountainRadii.rim * Math.cos(Math.PI / 8)
+    const edge = cardinalEdgeDistance(destination.entrance)
     const distance = Math.hypot(last.x - center.x, last.y - center.y)
     const stop = {
         x: center.x + ((last.x - center.x) * edge) / distance,

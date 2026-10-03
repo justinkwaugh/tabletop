@@ -34,6 +34,8 @@ import {
     shopVisits,
     ShopIds,
     type FountainId,
+    type Route,
+    type RouteOutcome,
     type ShopId
 } from '../components/board.js'
 import {
@@ -243,6 +245,14 @@ export class HydratedMarracashGameState extends HydratableGameState<
         )
     }
 
+    visitsAlong(route: Route): RouteOutcome {
+        return shopVisits(
+            route,
+            this.getFountainState(route.from).visitors,
+            (shopId) => this.getShopState(shopId).ownerId !== undefined
+        )
+    }
+
     moveVisitors(
         moverId: string,
         fountainId: FountainId,
@@ -253,11 +263,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
         const origin = this.getFountainState(fountainId)
         assert(origin.visitors.length > 0, `Fountain ${fountainId} has no visitors to move`)
 
-        const { visits, arrivals } = shopVisits(
-            route,
-            origin.visitors,
-            (shopId) => this.getShopState(shopId).ownerId !== undefined
-        )
+        const { visits, arrivals } = this.visitsAlong(route)
         origin.visitors = []
         const entries: ShopEntry[] = []
         for (const { shopId, customers } of visits) {
