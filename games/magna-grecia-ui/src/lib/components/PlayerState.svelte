@@ -35,10 +35,6 @@
 <div class="player" class:turn={isTurn} style:--player={color} style:--player-text={textColor}>
     <div class="banner">
         <span class="name">{gameSession.getPlayerName(playerId)}</span>
-        <span class="points" title="Points to spend">
-            <PointsIcon size={22} />
-            {playerState.points}
-        </span>
     </div>
     <div class="stats">
         <div class="stat" title="Road tiles: supply (staging area)">
@@ -56,16 +52,26 @@
             <strong>{marketsLeft}</strong>
         </div>
     </div>
-    <div class="projection" title="Score if the game ended now">
-        <div class="projection-caption">If the game ended now</div>
-        <div class="projection-row">
-            <span>Markets <strong>{score.markets}</strong></span>
-            <span class="oracles" title="Oracles: {score.oracles} points">
-                <OracleIcon size={18} />
-                <strong>{score.oracles / ORACLE_POINTS}</strong>
-            </span>
-            <span class="total">Total <strong>{score.total}</strong></span>
-        </div>
+    <div class="score">
+        <span class="score-label">Score</span>
+        <span class="part" title="Points to spend">
+            <PointsIcon size={18} />
+            <strong>{score.points}</strong>
+        </span>
+        <span class="part" title="Points from markets">
+            <MarketIcon size={18} />
+            <strong>{score.markets}</strong>
+        </span>
+        <span
+            class="part"
+            title="Points from oracles ({score.oracles / ORACLE_POINTS} × {ORACLE_POINTS})"
+        >
+            <OracleIcon size={18} />
+            <strong>{score.oracles}</strong>
+        </span>
+        <span class="total" title="Score if the game ended now"
+            >Total <strong>{score.total}</strong></span
+        >
     </div>
     {#if nextRoundPlace}
         <div class="next-round" title="Turn order in the next round">
@@ -116,23 +122,11 @@
         text-transform: uppercase;
     }
 
-    .points {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        border-radius: 999px;
-        padding: 1px 8px 1px 3px;
-        background: rgba(255, 248, 225, 0.92);
-        color: #4a2c12;
-        font-size: 18px;
-        font-weight: 700;
-    }
-
     .stats {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 4px;
-        padding: 8px 10px 10px;
+        padding: 8px 10px 6px;
     }
 
     .stat {
@@ -148,38 +142,31 @@
         color: #8c6a45;
     }
 
-    .projection {
-        margin: 0 10px;
-        padding: 0 2px 8px;
-        border-top: 1px dashed rgba(107, 63, 29, 0.35);
-        font-size: 13px;
+    .score {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 0 12px 8px;
+        font-size: 14px;
         color: #7a5732;
     }
 
-    /* The caption sits on the dashed rule, marking the row below as a projection, not a tally. */
-    .projection-caption {
-        width: fit-content;
-        margin: -7px auto 2px;
-        padding: 0 6px;
-        background: #fbf5e6;
+    .score-label {
         font-size: 10px;
-        line-height: 13px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: #9b7a52;
     }
 
-    .projection-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-    }
-
-    .oracles {
+    .part {
         display: inline-flex;
         align-items: center;
-        gap: 2px;
+        gap: 3px;
+    }
+
+    .total {
+        cursor: help;
     }
 
     .total strong {

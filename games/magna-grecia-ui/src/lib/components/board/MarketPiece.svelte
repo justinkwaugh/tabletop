@@ -52,15 +52,9 @@
                 stroke="#1a1208"
                 stroke-width="1.2"
             ></rect>
-            <rect x="-3.5" y="-6" width="2.2" height="12" rx="1" fill="rgba(255,255,255,0.28)"></rect>
-            <ellipse
-                cx="0"
-                cy="-8"
-                rx="5.5"
-                ry="2.4"
-                fill={top}
-                stroke="#1a1208"
-                stroke-width="1.2"
+            <rect x="-3.5" y="-6" width="2.2" height="12" rx="1" fill="rgba(255,255,255,0.28)"
+            ></rect>
+            <ellipse cx="0" cy="-8" rx="5.5" ry="2.4" fill={top} stroke="#1a1208" stroke-width="1.2"
             ></ellipse>
             <ellipse
                 cx="0"
@@ -77,7 +71,7 @@
     .halo {
         fill: #fffaf0;
         stroke: #fffaf0;
-        stroke-width: 3.2;
+        stroke-width: 1.2;
         stroke-linejoin: round;
     }
 </style>
