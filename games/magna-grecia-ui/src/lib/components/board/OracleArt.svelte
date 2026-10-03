@@ -110,7 +110,7 @@
         stroke-linejoin="round"
     ></polygon>
     <!-- The precinct, drawn like a city field; favoured, a coloured tail runs out to the road. -->
-    <g data-part="turn" transform="rotate({rotation})" filter="url(#mg-tile-shadow)">
+    <g data-part="turn" transform="rotate({rotation})">
         <path data-part="drop" data-tone="tail:light:0" d={drop.fill} fill={tone('tail:light:0')}
         ></path>
         <path
