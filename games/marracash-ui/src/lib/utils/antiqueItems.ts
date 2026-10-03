@@ -22,3 +22,11 @@ export function antiqueColorSummary(cards: readonly Antique[]): string {
         })
         .join(', ')
 }
+
+const ColorOrder = Object.values(MarketColor)
+
+export function sortedAntiques<T extends Antique>(cards: readonly T[]): T[] {
+    return cards.toSorted(
+        (a, b) => ColorOrder.indexOf(a.color) - ColorOrder.indexOf(b.color) || a.value - b.value
+    )
+}

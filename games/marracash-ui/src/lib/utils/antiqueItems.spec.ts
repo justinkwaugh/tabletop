@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MarketColor } from '@tabletop/marracash'
-import { antiqueColorSummary } from './antiqueItems.js'
+import { antiqueColorSummary, sortedAntiques } from './antiqueItems.js'
 
 function cards(...colors: MarketColor[]) {
     return colors.map((color, index) => ({ color, value: 50 + 25 * index }))
@@ -22,5 +22,21 @@ describe('antique colour summary', () => {
         expect(
             antiqueColorSummary(cards(MarketColor.Blue, MarketColor.Yellow, MarketColor.Blue))
         ).toBe('Blue, Yellow, Blue')
+    })
+
+    it('groups each colour once after sorting by market colour, then by value', () => {
+        const hand = [
+            { color: MarketColor.Red, value: 150 },
+            { color: MarketColor.Blue, value: 100 },
+            { color: MarketColor.Yellow, value: 200 },
+            { color: MarketColor.Red, value: 50 }
+        ]
+        expect(sortedAntiques(hand)).toEqual([
+            { color: MarketColor.Red, value: 50 },
+            { color: MarketColor.Red, value: 150 },
+            { color: MarketColor.Blue, value: 100 },
+            { color: MarketColor.Yellow, value: 200 }
+        ])
+        expect(antiqueColorSummary(sortedAntiques(hand))).toBe('2x Red, Blue, Yellow')
     })
 })

@@ -9,20 +9,24 @@
     } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import AntiqueCard from '$lib/components/AntiqueCard.svelte'
-    import MarketSwatch from '$lib/components/MarketSwatch.svelte'
+    import PawnIcon from '$lib/components/PawnIcon.svelte'
     import { antiqueProgress } from '$lib/utils/antiqueProgress.js'
-    import { antiqueColorSummary } from '$lib/utils/antiqueItems.js'
+    import { antiqueColorSummary, sortedAntiques } from '$lib/utils/antiqueItems.js'
 
     let { player, playerState }: { player: Player; playerState: HydratedMarracashPlayerState } =
         $props()
     const gameSession = getGameSession()
+
+    const CounterPawnHeight = 20
 
     let isTurn = $derived(gameSession.gameState.activePlayerIds.includes(player.id))
     let customers = $derived(gameSession.gameState.customersByColor(player.id))
     let shopCount = $derived(gameSession.gameState.ownedShopCount(player.id))
     let revealRank = $derived(gameSession.gameState.antiqueRevealOrder.indexOf(player.id))
     let paidCards = $derived(paidAntiques(playerState.revealedAntiques, revealRank))
-    let hand = $derived(antiqueProgress(playerState.antiques, customers))
+    let handCards = $derived(sortedAntiques(playerState.antiques))
+    let revealedCards = $derived(sortedAntiques(playerState.revealedAntiques))
+    let hand = $derived(antiqueProgress(handCards, customers))
     let money = $derived(gameSession.visibleMoney(player.id))
     let showHandSummary = $state(false)
 </script>
@@ -38,22 +42,32 @@
         <h1 class="marracash-display {isTurn ? 'text-lg' : 'text-base'}">
             {isTurn ? '⇢ ' : ''}{player.name}
         </h1>
-        <span class="marracash-display text-sm">
-            {money === undefined ? 'Cash hidden' : `${money} Dirham`}
-        </span>
+        {#if money === undefined}
+            <span class="marracash-display text-sm">Cash hidden</span>
+        {:else}
+            <span class="whitespace-nowrap">
+                <span class="marracash-display text-xl">{money}</span>
+                <span class="text-xs">Dirham</span>
+            </span>
+        {/if}
     </div>
-    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        <span>Shops {shopCount}/{MaxShopsPerPlayer}</span>
-        <span class="flex items-center gap-1 rounded bg-white/85 px-1 text-black">
-            {#each Object.values(MarketColor) as color (color)}
-                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-                    <MarketSwatch {color} x={6} y={6} size={10} />
-                </svg>
-                <span class="mr-1 font-semibold" aria-label="{color} customers"
+    <div class="flex items-center justify-between gap-2 text-xs">
+        <span>Customers:</span>
+        <span>Shops: {shopCount}/{MaxShopsPerPlayer}</span>
+    </div>
+    <div class="flex w-fit items-center gap-1 rounded bg-white/85 px-1 py-0.5 text-xs text-black">
+        {#each Object.values(MarketColor) as color (color)}
+            <span
+                class="flex items-center gap-0.5"
+                class:opacity-35={customers[color] === 0}
+                aria-label="{customers[color]} {color} customers"
+            >
+                <PawnIcon {color} height={CounterPawnHeight} />
+                <span class="inline-block w-[2ch] text-sm font-semibold tabular-nums"
                     >{customers[color]}</span
                 >
-            {/each}
-        </span>
+            </span>
+        {/each}
     </div>
     {#if gameSession.gameState.antiqueCards}
         <div class="mt-1 text-xs">
@@ -62,15 +76,13 @@
                     Antique set completed {['1st', '2nd', '3rd', '4th'][revealRank]}
                 </p>
                 <div class="flex gap-1 rounded bg-white/85 p-1">
-                    {#each playerState.revealedAntiques as card, index (index)}
+                    {#each revealedCards as card, index (index)}
                         <AntiqueCard {card} matched dimmed={!paidCards.includes(card)} />
                     {/each}
                 </div>
             {:else if player.id === gameSession.myPlayer?.id && playerState.antiques.length > 0}
                 <p class="font-semibold">
-                    Your antiques: {hand.filter((entry) => entry.covered)
-                        .length}/{AntiquesPerPlayer}
-                    matched
+                    Antiques: {hand.filter((entry) => entry.covered).length}/{AntiquesPerPlayer}
                 </p>
                 <button
                     type="button"
@@ -83,7 +95,7 @@
                     {/each}
                 </button>
                 {#if showHandSummary}
-                    <p class="mt-0.5">{antiqueColorSummary(playerState.antiques)}</p>
+                    <p class="mt-0.5">{antiqueColorSummary(handCards)}</p>
                 {/if}
             {:else}
                 <p>{AntiquesPerPlayer} hidden antique cards</p>

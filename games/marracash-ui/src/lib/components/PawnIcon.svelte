@@ -8,15 +8,15 @@
     const Bottom = PawnBaseY + 1.5 + Margin
     const Width = PawnWidth + 2 * Margin
     const Height = Bottom - Top
-    const DisplayHeight = 19
+    const DefaultHeight = 19
 
-    let { color }: { color: MarketColor } = $props()
+    let { color, height = DefaultHeight }: { color: MarketColor; height?: number } = $props()
 </script>
 
 <svg
     class="inline-block align-[-4px]"
-    width={(DisplayHeight * Width) / Height}
-    height={DisplayHeight}
+    width={(height * Width) / Height}
+    {height}
     viewBox="{-Width / 2} {Top} {Width} {Height}"
     aria-hidden="true"
 >
