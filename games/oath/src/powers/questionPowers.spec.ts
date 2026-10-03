@@ -107,7 +107,7 @@ describe('Blackmail — pay or lose the relic', () => {
         expect(() => playDrawnCard(far, BLACKMAIL, SearchPlay.Adviser, [card(CUP)])).toThrow(/not among the options/)
         const none = rulerTable([])
         const a = playDrawnCard(none, BLACKMAIL, SearchPlay.Adviser)
-        expect(a.metadata?.whenPlayed).toMatch(/nobody at your site holds a relic/)
+        expect(a.metadata?.whenPlayed).toBe("Blackmail: nobody at ruler's site holds a relic")
     })
 })
 

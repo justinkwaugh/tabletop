@@ -62,7 +62,7 @@ registerEffect(BLACKMAIL, powerIndexOf(BLACKMAIL, PowerTiming.WhenPlayed), {
             : undefined,
     resolve: (ctx) => {
         const [relic] = chosen(ctx, PowerChoiceKind.Card)
-        if (!relic) return { summary: 'Blackmail: nobody at your site holds a relic' }
+        if (!relic) return { summary: `Blackmail: nobody at ${ctx.playerId}'s site holds a relic` }
         const holder = ctx.state.relicHolderOf(relic.cardId)
         assertExists(holder, `nobody holds ${relic.cardId}`)
         const note = askQuestion(ctx.state, ctx.playerId, {

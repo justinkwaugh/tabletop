@@ -291,7 +291,7 @@ describe('travel and triggers', () => {
         const a = new HydratedTravel(buildAction(Travel, { playerId: 'other', siteId: 'c2' }))
         a.apply(v)
         expect(v.getPlayerState('other').warbandsOnBoard['other']).toBe(2)
-        expect(a.metadata?.modifierNotes).toEqual(['Grasping Vines: killed a warband on your board'])
+        expect(a.metadata?.modifierNotes).toEqual(["Grasping Vines: killed a warband on other's board"])
         const r = board({ c1: [VINES] })
         new HydratedTravel(buildAction(Travel, { playerId: 'ruler', siteId: 'c2' })).apply(r)
         expect(r.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)

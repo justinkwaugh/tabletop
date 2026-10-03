@@ -190,7 +190,7 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
         ctx.state.addTokensOn(WHISTLE, { secrets: -given })
         other.secrets += given
         return {
-            summary: `Whistle: ${them.playerId} travelled to ${here} and was given ${given} secret${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`,
+            summary: `Whistle: ${them.playerId} travelled to ${here}, gaining ${given} secret${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`,
             targetPlayerId: them.playerId
         }
     }

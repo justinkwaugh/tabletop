@@ -95,7 +95,9 @@ registerEffect(
             let killed = 0
             for (const c of chosen(ctx, PowerChoiceKind.Warbands))
                 killed += killWarbandGroup(ctx.state, c.group)
-            return { summary: `Terror Spells: killed ${killed} warbands in your region` }
+            return {
+                summary: `Terror Spells: killed ${killed} warbands in ${ctx.playerId}'s region`
+            }
         }
     }
 )
@@ -241,7 +243,7 @@ registerEffect(ENCHANTRESS, powerIndexOf(ENCHANTRESS, PowerTiming.Action), {
         holder.replaceAdviser(ENCHANTRESS, { cardId: target.cardId, faceUp: true })
         owner.replaceAdviser(target.cardId, { cardId: ENCHANTRESS, faceUp: true })
         return {
-            summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${holder.playerId}'s`,
+            summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${holder.playerId}'s advisers`,
             targetPlayerId: owner.playerId
         }
     }
@@ -266,7 +268,7 @@ registerEffect(KEY, powerIndexOf(KEY, PowerTiming.WhenPlayed), {
         const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
         if (cannotPlaceWarbandsAtSites(ctx.state, ctx.playerId)) {
             return {
-                summary: `Key to the City: killed ${killed} at ${site}, gained ${gained}; placed none — you cannot place warbands at sites`
+                summary: `Key to the City: killed ${killed} at ${site}, gained ${gained}; placed none — ${ctx.playerId} cannot place warbands at sites`
             }
         }
         const own = ownWarbandOwner(ctx.state, ctx.playerId)
@@ -292,7 +294,7 @@ registerEffect(ALE, powerIndexOf(ALE, PowerTiming.Action), {
         }
         const secrets = returnSecretsToBoard(ctx.state, ctx.playerId)
         return {
-            summary: `A Round of Ale: returned ${favor} favor to the banks and ${secrets} secrets to your board`
+            summary: `A Round of Ale: returned ${favor} favor to the banks and ${secrets} secrets to ${ctx.playerId}'s board`
         }
     }
 })

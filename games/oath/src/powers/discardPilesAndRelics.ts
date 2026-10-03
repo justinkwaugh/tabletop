@@ -199,7 +199,7 @@ registerEffect('denizen.nomad.oracle', powerIndexOf('denizen.nomad.oracle', Powe
         // R-2.7.1 — a Vision drawn moves the Visions Drawn marker, "as if you searched".
         ctx.state.visionsDrawn = visionsDrawnAfter(ctx.state.visionsDrawn, 1)
         return {
-            summary: 'Oracle: drew the next Vision; keep it or discard it as if you had searched',
+            summary: `Oracle: drew the next Vision; keep it or discard it as if ${ctx.playerId} had searched`,
             opensSearch: true,
             visionDrawn: true
         }

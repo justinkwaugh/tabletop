@@ -285,7 +285,7 @@ registerPersistent(
             if (!from || !enemyOfOwners(ctx, actorId)) return undefined
             if (!ownersRuleSite(ctx, from)) return undefined
             const { killed } = killWarbandsOnBoard(ctx.state, actorId, 1)
-            return killed ? 'Grasping Vines: killed a warband on your board' : undefined
+            return killed ? `Grasping Vines: killed a warband on ${actorId}'s board` : undefined
         }
     }
 )
@@ -296,7 +296,7 @@ registerPersistent(BOILING_LAKE, powerIndexOf(BOILING_LAKE, PowerTiming.Persiste
     afterTravel: (ctx, actorId, _from, to) => {
         if (to !== ctx.siteId || rulesCard(ctx.state, actorId, BOILING_LAKE)) return undefined
         const { killed } = killWarbandsOnBoard(ctx.state, actorId, 2)
-        return killed ? `Boiling Lake: killed ${killed} warbands on your board` : undefined
+        return killed ? `Boiling Lake: killed ${killed} warbands on ${actorId}'s board` : undefined
     }
 })
 

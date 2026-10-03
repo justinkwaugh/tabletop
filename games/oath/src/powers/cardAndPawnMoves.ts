@@ -226,7 +226,7 @@ registerEffect(PIPER, powerIndexOf(PIPER, PowerTiming.Action), {
         them.addAdviser(PIPER, true)
         const taken = takeFavorFromPlayer(ctx.state, ctx.playerId, target.playerId, 2)
         return {
-            summary: `Pied Piper: moved to ${target.playerId}'s advisers and took ${taken} favor from them`,
+            summary: `Pied Piper: moved to ${target.playerId}'s advisers and took ${taken} favor from ${target.playerId}`,
             targetPlayerId: target.playerId
         }
     }
@@ -331,7 +331,7 @@ registerEffect(TWIN, powerIndexOf(TWIN, PowerTiming.WhenPlayed), {
         me.replaceAdviser(TWIN, { cardId: target.cardId, faceUp: true })
         them.replaceAdviser(target.cardId, { cardId: TWIN, faceUp: true })
         return {
-            summary: `Twin Brother went to ${them.playerId}'s advisers; ${target.cardId} to yours`,
+            summary: `Twin Brother went to ${them.playerId}'s advisers; ${target.cardId} to ${ctx.playerId}'s`,
             targetPlayerId: them.playerId
         }
     }
@@ -348,8 +348,7 @@ registerModifier(
                     ctx.state
                 )
                 return {
-                    summary:
-                        'Knights Errant: your next action may be a Campaign that spends no Supply'
+                    summary: `Knights Errant: ${ctx.playerId}'s next action may be a Campaign that spends no Supply`
                 }
             }
         }
@@ -372,8 +371,7 @@ registerModifier(
                     ctx.state
                 )
                 return {
-                    summary:
-                        'Hunting Party: your next action may be a Campaign that spends no Supply'
+                    summary: `Hunting Party: ${ctx.playerId}'s next action may be a Campaign that spends no Supply`
                 }
             }
         }
@@ -434,13 +432,13 @@ registerEffect(
                     fromSiteId
                 })
                 return {
-                    summary: `Palanquin: you went to ${site.siteId}; ${note ?? `the Shrouded Wood's ruler chooses where ${target.playerId} goes`}`,
+                    summary: `Palanquin: ${ctx.playerId} went to ${site.siteId}; ${note ?? `the Shrouded Wood's ruler chooses ${target.playerId}'s destination`}`,
                     targetPlayerId: target.playerId
                 }
             }
             const { notes } = travelByPower(ctx.state, target.playerId, site.siteId)
             return {
-                summary: `Palanquin: you and ${target.playerId} went to ${site.siteId}, spending no Supply${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`,
+                summary: `Palanquin: ${ctx.playerId} and ${target.playerId} went to ${site.siteId}, spending no Supply${notes.length > 0 ? ` (${notes.join('; ')})` : ''}`,
                 targetPlayerId: target.playerId
             }
         }

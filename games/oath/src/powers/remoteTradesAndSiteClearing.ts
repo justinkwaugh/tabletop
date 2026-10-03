@@ -70,7 +70,9 @@ registerEffect(DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), {
     resolve: (ctx) => {
         const [a, b] = chosen(ctx, PowerChoiceKind.FacedownAdviser)
         if (a.playerId === b.playerId)
-            return { summary: `Dream Thief: both advisers were ${a.playerId}'s, so nothing moved` }
+            return {
+                summary: `Dream Thief: both advisers belonged to ${a.playerId}, so nothing moved`
+            }
         const pa = ctx.state.getPlayerState(a.playerId)
         const pb = ctx.state.getPlayerState(b.playerId)
         const adviserA = pa.knownAdvisers()[a.index]
@@ -81,7 +83,7 @@ registerEffect(DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), {
         pb.replaceAdviser(adviserB.cardId, handedOver(adviserA, pa.playerId, pb.playerId))
         // R-9.4 — each holder now knows a card they had not seen.
         return {
-            summary: `Dream Thief: swapped a facedown adviser of ${pa.playerId}'s with one of ${pb.playerId}'s`,
+            summary: `Dream Thief: swapped facedown advisers between ${pa.playerId} and ${pb.playerId}`,
             disclosed: true
         }
     }

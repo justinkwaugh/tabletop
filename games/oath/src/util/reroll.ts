@@ -46,7 +46,7 @@ export function settleRoll(
     const taker = state.getPlayerState(roll.takerPlayerId)
     const relics = roll.relicCardIds.filter((id) => taker.relicIds.includes(id))
     if (roll.shields > 0) {
-        return `Relic Thief: rolled ${roll.shields} shields, so ${roll.takerPlayerId} keeps ${relics.join(', ')}`
+        return `Relic Thief: rolled ${roll.shields} shields; ${relics.join(', ')} stayed with ${roll.takerPlayerId}`
     }
     const notes = takeRelicsFrom(state, roll.takerPlayerId, rollerId, relics)
     return `Relic Thief: rolled no shields and took ${relics.join(', ')} from ${roll.takerPlayerId}${takeNotes(notes)}`

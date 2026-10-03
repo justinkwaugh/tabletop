@@ -74,7 +74,7 @@ registerEffect(INQUISITOR, powerIndexOf(INQUISITOR, PowerTiming.Action), {
         ctx.state.addTokensOn(INQUISITOR, { favor: -given })
         receiveFavor(ctx.state, holder.playerId, given)
         return {
-            summary: `Inquisitor: peeked at ${holder.playerId}'s adviser, not the Conspiracy; gave them ${given} favor`,
+            summary: `Inquisitor: peeked at ${holder.playerId}'s adviser, not the Conspiracy; gave ${holder.playerId} ${given} favor`,
             peeked: [cardId]
         }
     }
