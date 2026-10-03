@@ -1578,6 +1578,165 @@ Bridged in the converter, since only the procedure differs:
 - 16281, 16852 and 20758 replay to their last action with every player's recorded
   value.
 
+## Slice 9 design: the Volatility expansion
+
+Slice 9 adds the Volatility option: thirteen more privates, a seeded choice of one of
+four city-tile privates, the pyramid auction that replaces the opening auction, and the
+replay of the recorded bankruptcy game, which uses the option.
+
+### Evidence
+
+- **The option** ([meta], [game]). Volatility adds thirteen privates (P12 to P24,
+  [entities]) to the eleven base ones. At setup one of the four city-tile privates
+  (the Steel Mill, P16 Buffalo Rail Center, P17 Toledo Industry, P24 Indianapolis
+  Market) is drawn at random and the other three leave the game, so even the Steel
+  Mill may be absent. 21 privates remain.
+- **The pyramid auction** ([selection]). The 21 are shuffled into rows of 1 to 6, the
+  kept city-tile private alone at the top. Only the bottom remaining row may be
+  nominated. When a lot is sold, a neighbour in its row left without a live neighbour
+  is removed from the game; a row with nothing left exposes the row above, so the
+  city-tile private is always sold last and nothing is left unsold. There is no seed
+  money limit: bids open at $0 in steps of $5, and the bank makes up the face value
+  however low the price. A player who is not in an auction must nominate (no passing);
+  a player in an auction may pass. The player after the last winner nominates next,
+  and the player after the last winner has priority in the first stock round.
+- **Loan Shark** (P12, $60). The company it is contributed to at formation receives
+  $60 from the bank (not when it moves by merger or acquisition), and pays $10 more
+  interest each operating round for the rest of the game, loans or not; failing to pay
+  liquidates it like unpaid interest. It closes only when the bank liquidates its
+  company.
+- **Ponzi Scheme** (P13, $100). It does nothing: it closes when its company forms, so
+  it is $100 of bid credit.
+- **Inventor** (P14, $70). The first time each train type 2 to 8 leaves the depot or is
+  exported, rusted or sold between companies while a company owns the Inventor, the bank
+  pays that company $10 times the type (2+ pays nothing). Each amount is paid once.
+- **Scrapper** (P15, $40). When its company's trains rust, the bank pays $30 for a 2 or
+  2+, $75 for a 3 and $150 for a 4, including 2+ trains removed after they run.
+- **City-tile privates** (P16 C14, P17 D7, P24 F3; the Steel Mill F13; $40 each). Each
+  lays the X00 tile on its city as the Steel Mill does: one of its company's lays, no
+  connection needed, paying the lay's cost and Toledo's $20 lake. Its lay removes the
+  ranches on neighbouring hexes. It closes when used, or when a company lays another
+  tile on its city while no player holds it.
+- **Express Track** (P18, $30). Its company's first lay costs $10 and its second $0.
+  **Efficient Track** (P19, $40). The second lay costs $10. Together, both lays are free.
+  The costs apply to every lay that counts as one of the company's, private lays
+  included.
+- **Golden Parachute** (P20, $100). When its company is acquired by a company with a
+  different president, or liquidated by the bank, the bank pays the president $100
+  ([acquire]). Mergers do not pay it.
+- **Station Subsidy** (P21, $70). The stations its company must buy when it converts
+  cost $50 less; it pays nothing when none are owed.
+- **Ranches** (P22 Country Ranch $30, one lay; P23 Rural Ranch $60, two). Each lays a
+  yellow 7, 8 or 9 on one of 30 listed hexes as one of its company's lays, connected,
+  paying terrain, facing a neighbouring city, town or offboard, and not next to a city
+  tile (label B). The hex then holds a ranch: nobody may upgrade it, and every route
+  earns $10 for each ranch hex it passes through.
+- **The bankruptcy recording** ([fixtures]) `1817_game_end_bankrupt`: five players,
+  seed 1917565315, 1476 actions of which 135 are undos or redos (no `skip` marks), 1192
+  after upstream's undo filtering. P24 is the city-tile private. Two players go
+  bankrupt in acquisition round 3.1 after winning liquidated companies whose debts fall
+  on them, and two in operating round 4.1 from dividends owed on their shorts; the game
+  ends when one solvent player is left, with $1,646. It uses the Loan Shark, Express
+  Track, Inventor, Scrapper, Station Subsidy, P24 and the Country Ranch, and programmed
+  passes (`program_share_pass`, `program_merger_pass`) whose passes ride in
+  `auto_actions`.
+
+### Survey
+
+Tiered availability in an opening allocation also appears in 1828 (waterfall rows of
+equal-value companies, eligibility depending on bids elsewhere in the row) and 1835
+(a tiered draft); neither removes isolated neighbours, so the pyramid is 1817's own,
+shared by its variants. A random choice at setup appears in 1889's beginner game, 1858's
+quick-start packets and 1871's offer piles; this repo already draws the first player and
+TOP's piles from the game's seeded generator. Payments when trains are retired appear in
+18MS (scheduled salvage) and 18Dixie (spare parts). Lay costs set by a company's privates
+fit this repo's `TrackRules.allowance`, which is already per company. Extra interest from
+a private, payouts on a company's acquisition, and markers that block upgrades (slice 7)
+are rules of the 1817 family.
+
+### Decisions
+
+- **The option** is a configurator checkbox stored as `volatility` title state, like
+  Modern Trains. The roster gains P12 to P24 as data; the city-tile privates share one
+  table of city and power, and the Steel Mill's existing rules read it, so whichever is
+  kept behaves the same. The opening draws the kept one from the game's seeded
+  generator and leaves the other three out of the game.
+- **The pyramid is title state; the family auction gains hooks.** 1817 keeps the rows
+  (lot ids, with removed and sold slots marked) and computes the nominable row. The
+  family selection auction gains:
+    - `passingWhileNominating(state)` in place of the fixed flag;
+    - `afterAward(state, lotId)`, returning lots it removes from the game, recorded
+      in the resolution so history can name them;
+    - `nominatorAfterAward(state, winnerId)`, defaulting to the player after the
+      previous nominator.
+  Under Volatility 1817 leaves seed money out, opens bids at $0 and pays the
+  difference from the bank at formation as before. The table shows the pyramid's rows,
+  and a nomination works without a pass.
+- **Private powers:**
+    - Loan Shark: 1817's formation pays the $60; a new optional
+      `LoanRules.extraInterest(state, companyId)` adds the $10 to the interest owed, so
+      a company without loans also pays, borrows or defaults.
+    - Ponzi Scheme: closes at formation.
+    - Inventor and Scrapper: a new optional `TrainRules.trainEvents(state, events)`
+      returns payments for trains bought from the depot, exported, rusted or sold
+      between companies; 1817 pays the Inventor's unclaimed types, recorded in title
+      state, and the Scrapper's rust values.
+    - Express and Efficient Track: in 1817's `allowance`.
+    - Golden Parachute: in 1817's acquisition settlement and bank liquidation, recorded
+      in their metadata.
+    - Station Subsidy: in 1817's conversion station cost.
+    - Ranches: lay powers with a `ranch` marker, like mines; their uses are counted
+      apart from markers, since a city-tile lay can remove a ranch. Route bonus and
+      no-upgrade as mines; a family `removeLocationMarkers` helper for the city-tile
+      lay.
+- **The bankruptcy replay** extends the converter with upstream's undo filtering,
+  programmed passes from `auto_actions`, `bankrupt` and the new privates' actions. Our
+  generator cannot reproduce upstream's, so the converted game's opening state carries
+  the recording's pyramid and kept private. The game becomes a fixture replayed to its
+  bankruptcy ending with the recorded values, like 1830's.
+- **Three commits.** 9a: the option, roster, city-tile draw and pyramid auction with
+  its table. 9b: the privates' powers. 9c: the bankruptcy replay and its fixes.
+
+### Implementation notes for 9a
+
+- **Roster.** The catalog holds all 24 privates; `BasePrivateIds`, `VolatilityPrivateIds`
+  and `CityTilePrivates` (each city-tile private's city) name the sets, and
+  `createEighteenSeventeenPosition` takes the game's private ids. Volatility's cards are
+  shown by their printed numbers (P12 to P24).
+- **Opening.** With `volatility`, the opening draws the kept city-tile private with the
+  setup's seeded generator, shuffles the other 20 with it, and stores `volatility` and
+  `pyramid` (tiers of lot ids, `null` for a sold or removed slot) as title state, with no
+  `seedMoney`.
+- **Family auction.** `passingWhileNominating` is now a function of state, and
+  `SelectionAuctionRules` gains optional `tiers`, `lotsRemovedBy` and
+  `nominationFollowsWinner`. An award's resolution records `removedLotIds`, which close
+  with the unsold lots' closing, and history names them.
+- **Table.** The lot table lists tiers when the title has them, and Pass shows only where
+  passing is allowed; the auction module no longer needs a pass to nominate.
+- **Playground.** A title-specific `optional-opening` position ("Opening with options")
+  opens with the optional rules the title's scenarios name; 1817's is Volatility.
+
+### Limits after slice 9
+
+- The table's lasting presentation of the pyramid, Volatility privates and their
+  effects comes with slice 10.
+
+### Acceptance examples
+
+- With Volatility, a 4-player game opens with 21 privates in rows of 1 to 6, one
+  city-tile private at the top; a player nominates only in the bottom row and cannot
+  pass outside an auction; after a sale an isolated neighbour leaves the game; the
+  player after the winner nominates next.
+- A company formed with the Loan Shark receives $60 and pays $10 interest each
+  operating round without loans.
+- Express Track makes a company's lays $10 and $0; with Efficient Track both are free.
+- The Inventor's company receives $30 when the first 3-train is bought; the Scrapper's
+  $75 when its 3-train rusts.
+- A Golden Parachute pays its president $100 when another president's company acquires
+  its company.
+- A ranch lay marks its hex, routes through it earn $10, and nobody upgrades it.
+- `1817_game_end_bankrupt` replays to its bankruptcy ending with the recorded values.
+
 [game]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/game.rb
 [meta]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/meta.rb
 [entities]: https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1817/entities.rb

@@ -11,5 +11,6 @@ export * from './market.js'
 export const EighteenSeventeenScenarios = withScenarios(Definition, EighteenSeventeenTitleRules, {
     createMarket: createEighteenSeventeenScenarioMarket,
     createFinances: createEighteenSeventeenCompanyExample,
-    prepareEnding: prepareEighteenSeventeenEnding
+    prepareEnding: prepareEighteenSeventeenEnding,
+    optionalOpening: { volatility: true }
 })

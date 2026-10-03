@@ -14,6 +14,7 @@ import {
 } from '@tabletop/18xx'
 import type { PreparedPosition } from '@tabletop/18xx/scenarios'
 import {
+    BasePrivateIds,
     EighteenSeventeenTrainDepot,
     MarketPoolId,
     createEighteenSeventeenPosition,
@@ -37,7 +38,8 @@ export function createEighteenSeventeenCompanyExample(
         playerId: player.playerId
     }))
     const state = createEighteenSeventeenPosition(
-        players.map((player, index) => ({ playerId: player.playerId, amount: PlayerCash[index] }))
+        players.map((player, index) => ({ playerId: player.playerId, amount: PlayerCash[index] })),
+        BasePrivateIds
     )
     startCompany(state, 'PLE', alex, { shareCount: 2, parPrice: 50, treasury: 100 }, 'F13')
     startCompany(state, 'BA', blair, { shareCount: 5, parPrice: 120, treasury: 200 }, 'C26')

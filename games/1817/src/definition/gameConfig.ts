@@ -33,11 +33,21 @@ const modernTrainsOption: BooleanConfigOption = {
     default: false
 }
 
+const volatilityOption: BooleanConfigOption = {
+    id: 'volatility',
+    type: ConfigOptionType.Boolean,
+    name: 'Volatility',
+    description:
+        'Thirteen more privates, one of four city-tile privates drawn at random, and a pyramid opening auction.',
+    default: false
+}
+
 const Schema = Type.Object(
     {
         shortSqueeze: Type.Optional(Type.Boolean({ default: shortSqueezeOption.default })),
         fiveShorts: Type.Optional(Type.Boolean({ default: fiveShortsOption.default })),
-        modernTrains: Type.Optional(Type.Boolean({ default: modernTrainsOption.default }))
+        modernTrains: Type.Optional(Type.Boolean({ default: modernTrainsOption.default })),
+        volatility: Type.Optional(Type.Boolean({ default: volatilityOption.default }))
     },
     { additionalProperties: false }
 )
@@ -47,11 +57,17 @@ export const EighteenSeventeenGameConfig = {
     options: (config: GameConfig | undefined) => ({
         shortSqueeze: config?.shortSqueeze === true,
         fiveShorts: config?.fiveShorts === true,
-        modernTrains: config?.modernTrains === true
+        modernTrains: config?.modernTrains === true,
+        volatility: config?.volatility === true
     })
 }
 
 export class EighteenSeventeenConfigurator extends BaseConfigurator implements GameConfigurator {
     schema = Schema
-    options: GameConfigOptions = [shortSqueezeOption, fiveShortsOption, modernTrainsOption]
+    options: GameConfigOptions = [
+        shortSqueezeOption,
+        fiveShortsOption,
+        modernTrainsOption,
+        volatilityOption
+    ]
 }

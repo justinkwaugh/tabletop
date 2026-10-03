@@ -1,6 +1,8 @@
 import {
     assert,
+    assertExists,
     type Game,
+    type GameConfig,
     type PlayerState,
     type StartingPositionAssignment,
     type UninitializedGameState
@@ -17,7 +19,7 @@ import { settleCashPayments } from '../finance/cashPayments.js'
 import type { StockMarket } from '../stock/stockMarket.js'
 import { ScenarioPosition } from './scenarioPosition.js'
 
-export type PreparedPosition = Exclude<ScenarioPosition, 'opening' | 'ending'>
+export type PreparedPosition = Exclude<ScenarioPosition, 'opening' | 'optional-opening' | 'ending'>
 export interface ScenarioFixtures {
     createMarket(position: PreparedPosition): StockMarket
     createFinances(
@@ -25,6 +27,8 @@ export interface ScenarioFixtures {
         position: PreparedPosition
     ): Omit<InitialPosition, 'stockMarket'>
     prepareEnding(state: HydratedEighteenXXState): void
+    /** The optional rules the title's optional opening is set up with. */
+    optionalOpening?: GameConfig
 }
 
 const PositionValidator = Compile(ScenarioPosition)
@@ -71,6 +75,11 @@ export class ScenarioInitializer extends EighteenXXInitializer {
         assert(PositionValidator.Check(requested), 'Unknown scenario position')
         if (requested === 'opening')
             return super.initializeGameState(game, state, startingPositions)
+        if (requested === 'optional-opening') {
+            assertExists(this.fixtures.optionalOpening, 'The title has no optional opening')
+            const config = { ...game.config, ...this.fixtures.optionalOpening }
+            return super.initializeGameState({ ...game, config }, state, startingPositions)
+        }
         assert(
             startingPositions === undefined,
             'Prepared scenarios do not support assigned starting positions'

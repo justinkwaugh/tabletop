@@ -27,6 +27,13 @@ export type Conversion = Type.Static<typeof Conversion>
 export const ClosingZone = Type.Union([Type.Literal('acquisition'), Type.Literal('liquidation')])
 export type ClosingZone = Type.Static<typeof ClosingZone>
 /** The merger and conversion round that follows an operating round. */
+/**
+ * The Volatility auction's tiers, the single top lot first. A sold or removed lot leaves an empty
+ * slot, since a lot's neighbours decide what a sale removes.
+ */
+export const Pyramid = Type.Array(Type.Array(Type.Union([Type.String(), Type.Null()])))
+export type Pyramid = Type.Static<typeof Pyramid>
+
 export const MergerRound = Type.Object(
     {
         set: Type.Integer({ minimum: 1 }),
@@ -109,14 +116,24 @@ const EighteenSeventeenState = extendEighteenXXState(
         shortSqueeze: Type.Optional(Type.Literal(true)),
         fiveShorts: Type.Optional(Type.Literal(true)),
         modernTrains: Type.Optional(Type.Literal(true)),
+        volatility: Type.Optional(Type.Literal(true)),
+        pyramid: Type.Optional(Pyramid),
         mergerRound: Type.Optional(MergerRound),
         acquisitionRound: Type.Optional(AcquisitionRound)
     },
     [...MergerRoundStates, ...AcquisitionRoundStates, ...CompanyExcessStates]
 )
 const Validator = Compile(EighteenSeventeenState)
+const PyramidValidator = Compile(Pyramid)
 const MergerRoundValidator = Compile(MergerRound)
 const AcquisitionRoundValidator = Compile(AcquisitionRound)
+
+/** The Volatility opening auction's tiers, when the game has them. */
+export function pyramidOf(state: object): Pyramid | undefined {
+    if (!('pyramid' in state)) return undefined
+    assert(PyramidValidator.Check(state.pyramid), 'Invalid pyramid')
+    return state.pyramid
+}
 
 /** The latest merger and conversion round, as recorded in the state. */
 export function mergerRoundOf(state: object): MergerRound | undefined {
@@ -159,11 +176,13 @@ export function eighteenSeventeenOptions(state: object): {
     shortSqueeze: boolean
     fiveShorts: boolean
     modernTrains: boolean
+    volatility: boolean
 } {
     return {
         shortSqueeze: 'shortSqueeze' in state,
         fiveShorts: 'fiveShorts' in state,
-        modernTrains: 'modernTrains' in state
+        modernTrains: 'modernTrains' in state,
+        volatility: 'volatility' in state
     }
 }
 
@@ -172,6 +191,8 @@ export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
     declare shortSqueeze?: true
     declare fiveShorts?: true
     declare modernTrains?: true
+    declare volatility?: true
+    declare pyramid?: Pyramid
     declare mergerRound?: MergerRound
     declare acquisitionRound?: AcquisitionRound
     constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {

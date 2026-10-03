@@ -13,7 +13,7 @@ import { testSession } from './moduleTestSession.js'
 const selectionRules: SelectionAuctionRules = {
     lots: () => [{ id: 'P', name: 'Private', price: 40 }],
     nominationLotIds: () => ['P'],
-    passingWhileNominating: true,
+    passingWhileNominating: () => true,
     openingBid: () => 10,
     increment: 5,
     award: () => {},
@@ -75,6 +75,14 @@ describe('SelectionAuctionModule', () => {
         module.setBid(20)
         await module.nominate()
         expect(applied).toMatchObject([{ type: 'NominateLot', lotId: 'P', amount: 20 }])
+    })
+
+    it('nominates when the title forbids passing', async () => {
+        const { module, applied } = selection(['NominateLot'])
+        expect(module.canPass).toBe(false)
+        module.select('P')
+        await module.nominate()
+        expect(applied).toMatchObject([{ type: 'NominateLot', lotId: 'P', amount: 10 }])
     })
 
     it('passes as one action and drops a staged nomination', async () => {

@@ -4,7 +4,7 @@ import {
     type InitialPosition
 } from '@tabletop/18xx'
 import { EighteenSeventeenCorporations } from './corporations.js'
-import { EighteenSeventeenPrivates } from './privates.js'
+import { EighteenSeventeenPrivateCatalog } from './privates.js'
 import { EighteenSeventeenMap } from './map.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenTrainDepot } from './trains.js'
@@ -12,10 +12,12 @@ import { MarketPoolId, treasuryPoolId } from './roundRules.js'
 
 const bank = { kind: 'bank' } as const
 
-/** Every corporation unstarted with one station, every private with the bank. */
+/** Every corporation unstarted with one station, the game's privates with the bank. */
 export function createEighteenSeventeenPosition(
-    playerCash: readonly { playerId: string; amount: number }[]
+    playerCash: readonly { playerId: string; amount: number }[],
+    privateIds: readonly string[]
 ): Omit<InitialPosition, 'stockMarket'> {
+    const privates = privateIds.map((id) => EighteenSeventeenPrivateCatalog.definition(id))
     return {
         bank: { name: 'Bank' },
         companies: [
@@ -29,7 +31,7 @@ export function createEighteenSeventeenPosition(
                 funded: false,
                 operated: false
             })),
-            ...EighteenSeventeenPrivates.map((company) => ({
+            ...privates.map((company) => ({
                 id: company.id,
                 name: company.name,
                 kind: 'private',
@@ -59,7 +61,7 @@ export function createEighteenSeventeenPosition(
             ...EighteenSeventeenCorporations.flatMap((company) =>
                 createOrdinaryShareCertificates(company.id, [], { owner: bank })
             ),
-            ...EighteenSeventeenPrivates.map((company) => ({
+            ...privates.map((company) => ({
                 id: `${company.id}:charter`,
                 companyId: company.id,
                 kind: 'private' as const,

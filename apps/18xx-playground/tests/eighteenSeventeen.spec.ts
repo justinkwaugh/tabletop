@@ -36,6 +36,30 @@ test('1817 opens with a selection auction and starts companies by auction', asyn
     )
 })
 
+test('1817 Volatility auctions its privates from the bottom tier of a pyramid', async ({
+    page
+}) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('optional-opening')
+    const lots = page.getByRole('region', { name: 'Private auction' })
+    const tier = (label: string) => lots.getByRole('rowgroup').filter({ hasText: label })
+    await expect(tier('Tier 1').getByRole('button', { name: /^Auction / })).toBeDisabled()
+    await expect(lots.getByRole('button', { name: 'Pass', exact: true })).toHaveCount(0)
+    const bottom = tier('Tier 6').getByRole('button', { name: /^Auction / })
+    await expect(bottom).toHaveCount(6)
+    // Selling the second lot leaves the first without a neighbour, so it is removed.
+    await bottom.nth(1).click()
+    await lots.getByRole('button', { name: 'Bid', exact: true }).click()
+    const bidding = page.getByRole('article', { name: 'Current auction' })
+    for (let pass = 0; pass < 2; pass++)
+        await bidding.getByRole('button', { name: 'Pass', exact: true }).click()
+    await expect(page.getByRole('article', { name: 'Current auction' })).toHaveCount(0)
+    await expect(bottom).toHaveCount(4)
+    await page.getByRole('tab', { name: 'History', exact: true }).click()
+    await expect(page.getByRole('list', { name: 'Action history' })).toContainText('removed')
+})
+
 test('1817 companies borrow during their turn and settle interest in a Loans step', async ({
     page
 }) => {

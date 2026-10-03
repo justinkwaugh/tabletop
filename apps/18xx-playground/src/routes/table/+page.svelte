@@ -9,6 +9,7 @@
     // In menu order; title-specific positions appear only for titles that offer them.
     const Positions: readonly { id: Position; label: string; titleSpecific?: true }[] = [
         { id: 'opening', label: 'Opening auction' },
+        { id: 'optional-opening', label: 'Opening with options', titleSpecific: true },
         { id: 'trading', label: 'Stock round' },
         { id: 'starting', label: 'Company starts' },
         { id: 'flotation', label: 'Company flotation' },

@@ -1,6 +1,10 @@
 import { assertExists } from '@tabletop/common'
 import type { CompanyNameVariants } from '@tabletop/18xx-ui'
-import { EighteenSeventeenCorporations, EighteenSeventeenPrivates } from '@tabletop/1817'
+import {
+    EighteenSeventeenCorporations,
+    EighteenSeventeenPrivates,
+    VolatilityPrivateIds
+} from '@tabletop/1817'
 
 const PrivateInitials: Readonly<Record<string, string>> = {
     MINC: 'MinC',
@@ -13,7 +17,9 @@ const PrivateInitials: Readonly<Record<string, string>> = {
     UBC: 'UBC',
     MAIL: 'Mail',
     MAJC: 'MajC',
-    MAJM: 'MajM'
+    MAJM: 'MajM',
+    // The Volatility privates are known by their printed numbers.
+    ...Object.fromEntries(VolatilityPrivateIds.map((id) => [id, id]))
 }
 
 export const EighteenSeventeenCompanyNames: Readonly<Record<string, CompanyNameVariants>> =

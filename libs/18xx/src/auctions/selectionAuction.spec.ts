@@ -9,7 +9,7 @@ const rules = (overrides: Partial<SelectionAuctionRules> = {}): SelectionAuction
         { id: 'B', name: 'B', price: 30 }
     ],
     nominationLotIds: () => ['A'],
-    passingWhileNominating: true,
+    passingWhileNominating: () => true,
     openingBid: () => 0,
     increment: 5,
     award: () => {},
@@ -48,9 +48,31 @@ describe('SelectionAuctionModel', () => {
     })
 
     it('forbids passing while nominating when the title requires a nomination', () => {
-        const model = auction({ passingWhileNominating: false })
+        const model = auction({ passingWhileNominating: () => false })
         expect(model.canPass(TestPlayerId)).toBe(false)
         model.nominate(TestPlayerId, 'A', 0, 'bid')
         expect(model.canPass('blair')).toBe(true)
+    })
+
+    it('removes the lots an award leaves out and follows the winner when the title asks', () => {
+        const closed: string[] = []
+        const model = auction({
+            nominationLotIds: () => ['A', 'B'],
+            lotsRemovedBy: () => ['B'],
+            nominationFollowsWinner: () => true,
+            closeUnsold: (_state, lotIds) => closed.push(...lotIds)
+        })
+        model.nominate(TestPlayerId, 'A', 0, 'bid')
+        model.bid('blair', 'A', 5)
+        model.pass(TestPlayerId)
+        expect(model.resolve()).toEqual({
+            kind: 'award',
+            award: { lotId: 'A', playerId: 'blair', price: 5 },
+            removedLotIds: ['B']
+        })
+        expect(closed).toEqual(['B'])
+        expect(model.auction.closedLotIds).toEqual(['B'])
+        expect(model.auction.completed).toBe(true)
+        expect(model.auction.nominatorId).toBe(TestPlayerId)
     })
 })

@@ -28,23 +28,33 @@ export type SelectionAuctionState = FinancialState &
     Type.Static<Type.TObject<typeof SelectionAuctionFields>>
 
 /**
- * An opening in which players in turn choose any remaining lot to auction, or pass; once every
+ * An opening in which players in turn choose a remaining lot to auction, or pass; once every
  * player has passed in succession, the unsold lots close.
  */
 export interface SelectionAuctionRules {
     lots(state: FinancialState): readonly AuctionLot[]
     /** The remaining lots a player may nominate now. */
     nominationLotIds(state: SelectionAuctionState): readonly string[]
+    /** The remaining lots in the tiers the title deals them into, the first tier first. */
+    tiers?(state: SelectionAuctionState): readonly (readonly string[])[] | undefined
     /** Whether a player may pass instead of nominating a lot. */
-    passingWhileNominating: boolean
+    passingWhileNominating(state: SelectionAuctionState): boolean
     openingBid(state: SelectionAuctionState, lotId: string): number
     increment: number
     award(state: SelectionAuctionState, award: AuctionAward): void
+    /** Unsold lots that leave the game because this award was made. */
+    lotsRemovedBy?(state: SelectionAuctionState, award: AuctionAward): readonly string[]
+    /** Whether the player after the winner, rather than after the nominator, nominates next. */
+    nominationFollowsWinner?(state: SelectionAuctionState): boolean
     closeUnsold(state: SelectionAuctionState, lotIds: readonly string[]): void
 }
 export const SelectionAuctionResolution = Type.Union([
     Type.Object(
-        { kind: Type.Literal('award'), award: AuctionAward },
+        {
+            kind: Type.Literal('award'),
+            award: AuctionAward,
+            removedLotIds: Type.Optional(Type.Array(Type.String(), { minItems: 1 }))
+        },
         { additionalProperties: false }
     ),
     Type.Object(
@@ -66,6 +76,9 @@ export class SelectionAuctionModel {
     }
     get lots(): readonly AuctionLot[] {
         return this.rules.lots(this.state)
+    }
+    get tiers(): readonly (readonly string[])[] | undefined {
+        return this.rules.tiers?.(this.state)
     }
     get playerId(): string | undefined {
         const bidding = this.auction.bidding
@@ -106,7 +119,7 @@ export class SelectionAuctionModel {
             !this.auction.completed &&
             !this.resolution() &&
             playerId === this.playerId &&
-            (!!this.auction.bidding || this.rules.passingWhileNominating)
+            (!!this.auction.bidding || this.rules.passingWhileNominating(this.state))
         )
     }
     nominate(playerId: string, lotId: string, amount: number, actionId: string): void {
@@ -145,16 +158,10 @@ export class SelectionAuctionModel {
         const bidding = this.auction.bidding
         if (bidding) {
             const winner = new PassableBidding(bidding.auction).winner
-            return winner
-                ? {
-                      kind: 'award',
-                      award: {
-                          lotId: bidding.lotId,
-                          playerId: winner.playerId,
-                          price: winner.amount
-                      }
-                  }
-                : undefined
+            if (!winner) return undefined
+            const award = { lotId: bidding.lotId, playerId: winner.playerId, price: winner.amount }
+            const removedLotIds = [...(this.rules.lotsRemovedBy?.(this.state, award) ?? [])]
+            return { kind: 'award', award, ...(removedLotIds.length ? { removedLotIds } : {}) }
         }
         if (!this.auction.remainingLotIds.length) return { kind: 'complete' }
         if (this.auction.passedPlayerIds.length === this.state.players.length)
@@ -167,12 +174,22 @@ export class SelectionAuctionModel {
         switch (resolution.kind) {
             case 'award': {
                 const bidding = this.requireBidding()
-                this.rules.award(this.state, resolution.award)
-                this.auction.awards.push(resolution.award)
+                const { award } = resolution
+                const removed = resolution.removedLotIds ?? []
+                this.rules.award(this.state, award)
+                this.auction.awards.push(award)
+                if (removed.length) {
+                    this.rules.closeUnsold(this.state, removed)
+                    this.auction.closedLotIds.push(...removed)
+                }
                 this.auction.remainingLotIds = this.auction.remainingLotIds.filter(
-                    (id) => id !== resolution.award.lotId
+                    (id) => id !== award.lotId && !removed.includes(id)
                 )
-                this.auction.nominatorId = this.nextNominator(bidding.nominatorId)
+                this.auction.nominatorId = this.nextNominator(
+                    this.rules.nominationFollowsWinner?.(this.state)
+                        ? award.playerId
+                        : bidding.nominatorId
+                )
                 delete this.auction.bidding
                 if (!this.auction.remainingLotIds.length) this.auction.completed = true
                 break
@@ -212,9 +229,7 @@ export class SelectionAuctionModel {
         const index = order.indexOf(playerId)
         assert(index >= 0, 'Unknown auction player')
         const following = order.map((_, offset) => order[(index + 1 + offset) % order.length])
-        return (
-            following.find((id) => !this.auction.passedPlayerIds.includes(id)) ?? following[0]
-        )
+        return following.find((id) => !this.auction.passedPlayerIds.includes(id)) ?? following[0]
     }
 }
 

@@ -5,6 +5,7 @@ export const ScenarioPosition = Type.Union([
     Type.Literal('ending'),
     Type.Literal('split'),
     Type.Literal('opening'),
+    Type.Literal('optional-opening'),
     Type.Literal('starting'),
     Type.Literal('flotation'),
     Type.Literal('construction'),

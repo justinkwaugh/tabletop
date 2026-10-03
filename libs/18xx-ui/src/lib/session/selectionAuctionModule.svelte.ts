@@ -35,7 +35,12 @@ export class SelectionAuctionModule {
     canAct = $derived.by(
         () =>
             this.session.interactive &&
-            this.session.validActionTypes.includes('PassSelectionAuction')
+            ['PassSelectionAuction', 'NominateLot', 'BidForLot'].some((type) =>
+                this.session.validActionTypes.includes(type)
+            )
+    )
+    canPass = $derived.by(
+        () => this.canAct && this.session.validActionTypes.includes('PassSelectionAuction')
     )
     /** The player whose nomination, bid or pass the auction awaits. */
     playerId = $derived.by(() => (this.active ? this.model?.playerId : undefined))
@@ -88,7 +93,7 @@ export class SelectionAuctionModule {
         )
     }
     async pass() {
-        assert(this.canAct, 'Passing is unavailable')
+        assert(this.canPass, 'Passing is unavailable')
         this.choice.clear()
         await this.session.applyAction(this.session.createPlayerAction(PassSelectionAuction, {}))
     }

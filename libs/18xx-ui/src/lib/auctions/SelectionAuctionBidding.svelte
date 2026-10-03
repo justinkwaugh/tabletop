@@ -44,7 +44,7 @@
     {amount}
     increment={model.rules.increment}
     canBid={(value) => auction.canBid(value)}
-    canPass={auction.canAct}
+    canPass={auction.canPass}
     onChange={changeBid}
     onBid={() => auction.bid(amount)}
     onPass={() => auction.pass()}

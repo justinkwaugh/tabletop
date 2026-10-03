@@ -63,7 +63,7 @@
     "RepayAcquiredLoan": "d463de114fe3fbc5dd633f65edc2b55036b594c91949c4def4ca4630fc2bbf95",
     "RepayLoan": "2fab0a1010e7faa0ffa89e0d5e4e0ee85b68f87a72b1a5a44130182e215065a1",
     "RequestTrackConsent": "543507e4556cb358e5e03a17295c0ff69ca01b71eb48d95f09278231345d5227",
-    "ResolveSelectionAuction": "65f0765d984b7d4a0a4efcc5ab447d94ff1895a6f437923636e2fb44d5a4fd19",
+    "ResolveSelectionAuction": "374bbdb83f214c608f00156060e4c0b4575c50e8400fd2d6b5cc47cfe386434a",
     "RespondToPurchaseOffer": "810d8da94e40ac69f609dd9b95bd4d57aa9202bad25f5f1d7258f88acf574680",
     "RespondToTrackConsent": "8cb4a062bcdd2427018382d8816a93233034ba05a8ed38e5ef0deec33c065eca",
     "RunTrains": "400af6a98bc8ebac73a1b5b917b8210edd476f6517ed68e0684049e9f517b4fc",
@@ -3250,6 +3250,22 @@
           }
         ]
       },
+      "pyramid": {
+        "items": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "type": "array"
+      },
       "result": {
         "enum": [
           "Abandoned",
@@ -5335,6 +5351,10 @@
         },
         "type": "array",
         "uniqueItems": true
+      },
+      "volatility": {
+        "const": true,
+        "type": "boolean"
       },
       "winningPlayerIds": {
         "items": {

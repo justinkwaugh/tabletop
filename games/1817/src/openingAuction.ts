@@ -1,5 +1,5 @@
 import { EighteenSeventeenGameConfig } from './definition/gameConfig.js'
-import { assert, assertExists } from '@tabletop/common'
+import { assert, assertExists, shuffle, type Prng } from '@tabletop/common'
 import {
     awardPrivate,
     beginSelectionAuction,
@@ -10,7 +10,13 @@ import {
     type SelectionAuctionRules,
     type SelectionAuctionState
 } from '@tabletop/18xx'
-import { EighteenSeventeenPrivateCatalog } from './privates.js'
+import {
+    BasePrivateIds,
+    CityTilePrivates,
+    EighteenSeventeenPrivateCatalog,
+    VolatilityPrivateIds
+} from './privates.js'
+import { eighteenSeventeenOptions, pyramidOf, type Pyramid } from './state.js'
 import { createEighteenSeventeenStockMarket } from './stockMarket.js'
 import { createEighteenSeventeenPosition } from './position.js'
 
@@ -29,7 +35,7 @@ export const EighteenSeventeenStartingCash: Readonly<Record<number, number>> = {
 export const EighteenSeventeenSeedMoney = 200
 
 // The bank subsidises privates sold below face value from its seed money; once that is spent,
-// bidding opens at face value.
+// bidding opens at face value. Under Volatility the subsidy has no limit.
 function seedMoney(state: SelectionAuctionState): number {
     assert(
         'seedMoney' in state && typeof state.seedMoney === 'number',
@@ -38,31 +44,93 @@ function seedMoney(state: SelectionAuctionState): number {
     return state.seedMoney
 }
 
+function requirePyramid(state: SelectionAuctionState): Pyramid {
+    const pyramid = pyramidOf(state)
+    assertExists(pyramid, 'The Volatility auction has its pyramid')
+    return pyramid
+}
+
+const liveLots = (row: readonly (string | null)[]) =>
+    row.flatMap((lotId) => (lotId === null ? [] : [lotId]))
+
+function clearSlots(state: SelectionAuctionState, lotIds: readonly string[]): void {
+    for (const row of requirePyramid(state))
+        row.forEach((lotId, index) => {
+            if (lotId !== null && lotIds.includes(lotId)) row[index] = null
+        })
+}
+
+/** A sale removes a neighbour in its row that is left without a live neighbour of its own. */
+function isolatedNeighbours(pyramid: Pyramid, soldLotId: string): string[] {
+    const row = pyramid.find((tier) => tier.includes(soldLotId))
+    assertExists(row, 'A sold lot is in the pyramid')
+    const sold = row.indexOf(soldLotId)
+    const live = (index: number) => index !== sold && !!row[index]
+    return [-1, 1].flatMap((step) => {
+        const lotId = row[sold + step]
+        return lotId && live(sold + step) && !live(sold + 2 * step) ? [lotId] : []
+    })
+}
+
 export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
     lots: (state) => EighteenSeventeenPrivateCatalog.lots(state),
     nominationLotIds(state) {
         assertExists(state.selectionAuction, 'Nominations belong to the selection auction')
-        return state.selectionAuction.remainingLotIds
+        const pyramid = pyramidOf(state)
+        if (!pyramid) return state.selectionAuction.remainingLotIds
+        // Only the lowest tier with lots left is open.
+        return pyramid.map(liveLots).findLast((lotIds) => lotIds.length) ?? []
     },
-    passingWhileNominating: true,
+    tiers: (state) => pyramidOf(state)?.map(liveLots),
+    passingWhileNominating: (state) => !eighteenSeventeenOptions(state).volatility,
     openingBid: (state, lotId) =>
-        Math.max(0, EighteenSeventeenPrivateCatalog.faceValue(lotId) - seedMoney(state)),
+        eighteenSeventeenOptions(state).volatility
+            ? 0
+            : Math.max(0, EighteenSeventeenPrivateCatalog.faceValue(lotId) - seedMoney(state)),
     increment: 5,
     award(state, award) {
         awardPrivate(state, award)
+        if (eighteenSeventeenOptions(state).volatility) {
+            clearSlots(state, [award.lotId])
+            return
+        }
         const subsidy = Math.max(
             0,
             EighteenSeventeenPrivateCatalog.faceValue(award.lotId) - award.price
         )
         Object.assign(state, { seedMoney: seedMoney(state) - subsidy })
     },
+    lotsRemovedBy: (state, award) => {
+        const pyramid = pyramidOf(state)
+        return pyramid ? isolatedNeighbours(pyramid, award.lotId) : []
+    },
+    nominationFollowsWinner: (state) => eighteenSeventeenOptions(state).volatility,
     closeUnsold(state, lotIds) {
         for (const id of lotIds) closePrivate(state, id)
+        if (pyramidOf(state)) clearSlots(state, lotIds)
     }
+}
+
+/**
+ * Volatility keeps one city-tile private, drawn at random, and deals the 21 privates into tiers
+ * of one to six, the city-tile private alone at the top.
+ */
+function volatilityOpening(prng: Prng): { privateIds: string[]; pyramid: Pyramid } {
+    const cityTileIds = Object.keys(CityTilePrivates)
+    const keptId = cityTileIds[prng.randInt(cityTileIds.length)]
+    const others = [...BasePrivateIds, ...VolatilityPrivateIds].filter(
+        (id) => !cityTileIds.includes(id)
+    )
+    shuffle(others, prng.random)
+    const pyramid: Pyramid = [[keptId]]
+    for (let start = 0, size = 2; start < others.length; start += size, size++)
+        pyramid.push(others.slice(start, start + size))
+    return { privateIds: [keptId, ...others], pyramid }
 }
 
 export function createEighteenSeventeenOpening({
     players,
+    prng,
     startingPositions,
     config
 }: OpeningSetup): Opening {
@@ -72,16 +140,20 @@ export function createEighteenSeventeenOpening({
         '1817 supports three through twelve players'
     )
     const capital = EighteenSeventeenStartingCash[players.length]
+    const volatility = options.volatility ? volatilityOpening(prng) : undefined
     const position: InitialPosition = {
         ...createEighteenSeventeenPosition(
-            players.map((player) => ({ playerId: player.playerId, amount: capital }))
+            players.map((player) => ({ playerId: player.playerId, amount: capital })),
+            volatility?.privateIds ?? BasePrivateIds
         ),
         stockMarket: createEighteenSeventeenStockMarket()
     }
     return {
         position,
         titleState: {
-            seedMoney: EighteenSeventeenSeedMoney,
+            ...(volatility
+                ? { volatility: true, pyramid: volatility.pyramid }
+                : { seedMoney: EighteenSeventeenSeedMoney }),
             ...(options.shortSqueeze ? { shortSqueeze: true } : {}),
             ...(options.fiveShorts ? { fiveShorts: true } : {}),
             ...(options.modernTrains ? { modernTrains: true } : {})

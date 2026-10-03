@@ -442,7 +442,10 @@ export function historyDescription(
         if (resolution.kind === 'award')
             return {
                 text: 'Auction awarded',
-                detail: `${playerName(resolution.award.playerId)} won ${companyName(resolution.award.lotId)} for ${money(resolution.award.price)}`,
+                detail: [
+                    `${playerName(resolution.award.playerId)} won ${companyName(resolution.award.lotId)} for ${money(resolution.award.price)}`,
+                    ...(resolution.removedLotIds ?? []).map((id) => `${companyName(id)} removed`)
+                ].join(' · '),
                 important: true
             }
         if (resolution.kind === 'close-unsold')
