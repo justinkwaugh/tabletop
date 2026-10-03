@@ -4,12 +4,16 @@
     import OperatingLoanActions from '../loans/OperatingLoanActions.svelte'
     import { ActionSource } from '@tabletop/common'
     import { isFinishTrack, isFinishStations, isPayInterest, isRunTrains } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
         privatePurchaseLabel = 'Buy privates',
         readOnly = false
-    }: { session: EighteenXXSession; privatePurchaseLabel?: string; readOnly?: boolean } = $props()
+    }: {
+        session: EighteenXXSessionView
+        privatePurchaseLabel?: string
+        readOnly?: boolean
+    } = $props()
     const money = $derived(session.presentation.money)
     const context = $derived(session.history.visibleContext)
     const gameState = $derived(readOnly ? context.state : session.gameState)

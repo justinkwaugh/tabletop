@@ -1,6 +1,6 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { auctionLotDetails } from './auctionLotDetails.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -11,7 +11,7 @@
         lotInfo,
         onFocus
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         lotInfo: (id: string) => { locationId?: string; description: string }
         onFocus: (locationId: string) => void
     } = $props()

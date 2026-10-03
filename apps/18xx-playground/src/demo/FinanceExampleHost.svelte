@@ -1,4 +1,7 @@
-<script lang="ts">
+<script
+    lang="ts"
+    generics="Raw extends EighteenXXState, State extends HydratedEighteenXXState & HydratedGameState<Raw> & Raw"
+>
     import { onMount, onDestroy, untrack } from 'svelte'
     import { migrateOperatingIncome } from './migrateOperatingIncome.js'
     import { playgroundTitleForType } from '../titles.js'
@@ -29,7 +32,7 @@
         position = 'trading',
         playerCount
     }: {
-        definition: GameUiDefinition<EighteenXXState, HydratedEighteenXXState>
+        definition: GameUiDefinition<Raw, State>
         position?: ScenarioPosition | 'finished'
         playerCount?: number
     } = $props()
@@ -39,7 +42,7 @@
         )
     )
     setAppContext(app)
-    let session: GameSession<EighteenXXState, HydratedEighteenXXState> | undefined = $state.raw()
+    let session: GameSession<Raw, State> | undefined = $state.raw()
     let error = $state<string>()
     let bridge: BridgedContext | undefined
     let disposed = false
@@ -153,7 +156,7 @@
             assertExists(game.state, 'Local example has no gameState')
             const validator = runtime.canonicalStateValidator
             assertExists(validator, 'An 18xx runtime validates its canonical state')
-            const canonical = (state: GameState): state is EighteenXXState => validator.Check(state)
+            const canonical = (state: GameState): state is Raw => validator.Check(state)
             if (!canonical(game.state))
                 throw new Error('Local example has an invalid finance gameState')
             if (migrateCompanyNames(loaded)) {

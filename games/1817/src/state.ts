@@ -4,8 +4,8 @@ import { SimpleAuction, assert } from '@tabletop/common'
 import {
     HydratedEighteenXXState,
     extendEighteenXXState,
-    type EighteenXXState,
     type EighteenXXStateDefinition,
+    type EighteenXXStateHandler,
     type RailwayMap,
     type TileSet,
     type TrainDepot
@@ -117,7 +117,7 @@ export const AcquisitionRoundStates = [
 /** Where a merged or acquiring company gives up the stations and trains over its limits. */
 export const CompanyExcessStates = ['ReducingStations', 'DiscardingMergedTrains'] as const
 
-const EighteenSeventeenState = extendEighteenXXState(
+export const EighteenSeventeenState = extendEighteenXXState(
     {
         // The bank's remaining subsidy toward privates sold below face value in the opening
         // auction; positions prepared after the opening have none.
@@ -135,71 +135,61 @@ const EighteenSeventeenState = extendEighteenXXState(
     },
     [...MergerRoundStates, ...AcquisitionRoundStates, ...CompanyExcessStates]
 )
+export type EighteenSeventeenState = Type.Static<typeof EighteenSeventeenState>
+export type EighteenSeventeenOptions = Pick<
+    EighteenSeventeenState,
+    'shortSqueeze' | 'fiveShorts' | 'modernTrains' | 'volatility'
+>
+export type EighteenSeventeenStateHandler = EighteenXXStateHandler<HydratedEighteenSeventeenState>
 const Validator = Compile(EighteenSeventeenState)
-const PyramidValidator = Compile(Pyramid)
-const PrivateLaysValidator = Compile(PrivateLays)
-const InventorPaidValidator = Compile(InventorPaid)
-const FormerPresidentsValidator = Compile(FormerPresidents)
-const MergerRoundValidator = Compile(MergerRound)
-const AcquisitionRoundValidator = Compile(AcquisitionRound)
-
-// A game without the record has made no private lays.
-function privateLaysOf(state: object): PrivateLays {
-    if (!('privateLays' in state)) return {}
-    assert(PrivateLaysValidator.Check(state.privateLays), 'Invalid private lays')
-    return state.privateLays
+export function privateLaysMade(
+    state: Pick<EighteenSeventeenState, 'privateLays'>,
+    privateId: string
+): number {
+    return state.privateLays?.[privateId] ?? 0
 }
 
-export function privateLaysMade(state: object, privateId: string): number {
-    return privateLaysOf(state)[privateId] ?? 0
+export function recordPrivateLay(
+    state: Pick<EighteenSeventeenState, 'privateLays'>,
+    privateId: string
+): void {
+    state.privateLays ??= {}
+    state.privateLays[privateId] = privateLaysMade(state, privateId) + 1
 }
 
-export function recordPrivateLay(state: object, privateId: string): void {
-    const lays = privateLaysOf(state)
-    Object.assign(state, { privateLays: { ...lays, [privateId]: (lays[privateId] ?? 0) + 1 } })
+export function formerPresident(
+    state: Pick<EighteenSeventeenState, 'formerPresidents'>,
+    companyId: string
+): string | undefined {
+    return state.formerPresidents?.[companyId]
 }
 
-// A game without the record has had no president taken by bankruptcy.
-function formerPresidentsOf(state: object): FormerPresidents {
-    if (!('formerPresidents' in state)) return {}
-    assert(FormerPresidentsValidator.Check(state.formerPresidents), 'Invalid former presidents')
-    return state.formerPresidents
+export function recordFormerPresident(
+    state: Pick<EighteenSeventeenState, 'formerPresidents'>,
+    companyId: string,
+    playerId: string
+): void {
+    state.formerPresidents ??= {}
+    state.formerPresidents[companyId] = playerId
 }
 
-export function formerPresident(state: object, companyId: string): string | undefined {
-    return formerPresidentsOf(state)[companyId]
+export function inventorPaid(state: Pick<EighteenSeventeenState, 'inventorPaid'>): string[] {
+    return state.inventorPaid ?? []
 }
 
-export function recordFormerPresident(state: object, companyId: string, playerId: string): void {
-    Object.assign(state, {
-        formerPresidents: { ...formerPresidentsOf(state), [companyId]: playerId }
-    })
+export function seedMoneyLeft(
+    state: Pick<EighteenSeventeenState, 'seedMoney'>
+): number | undefined {
+    return state.seedMoney
 }
 
-export function inventorPaid(state: object): string[] {
-    if (!('inventorPaid' in state)) return []
-    assert(InventorPaidValidator.Check(state.inventorPaid), 'Invalid Inventor payouts')
-    return state.inventorPaid
-}
-
-/** The bank's subsidy left for the opening auction, when the game has one. */
-export function seedMoneyLeft(state: object): number | undefined {
-    return 'seedMoney' in state && typeof state.seedMoney === 'number'
-        ? state.seedMoney
-        : undefined
-}
-
-/** The Volatility opening auction's tiers, when the game has them. */
-export function pyramidOf(state: object): Pyramid | undefined {
-    if (!('pyramid' in state)) return undefined
-    assert(PyramidValidator.Check(state.pyramid), 'Invalid pyramid')
+export function pyramidOf(state: Pick<EighteenSeventeenState, 'pyramid'>): Pyramid | undefined {
     return state.pyramid
 }
 
-/** The latest merger and conversion round, as recorded in the state. */
-export function mergerRoundOf(state: object): MergerRound | undefined {
-    if (!('mergerRound' in state)) return undefined
-    assert(MergerRoundValidator.Check(state.mergerRound), 'Invalid merger round')
+export function mergerRoundOf(
+    state: Pick<EighteenSeventeenState, 'mergerRound'>
+): MergerRound | undefined {
     return state.mergerRound
 }
 
@@ -207,47 +197,53 @@ export function dropCompany(round: { companyIds: string[] }, companyId: string):
     round.companyIds = round.companyIds.filter((id) => id !== companyId)
 }
 
-export function setMergerRound(state: object, round: MergerRound): void {
-    Object.assign(state, { mergerRound: round })
+export function setMergerRound(state: EighteenSeventeenState, round: MergerRound): void {
+    state.mergerRound = round
 }
 
 /** The round in progress, whose conversion is underway when one is. */
-export function activeMergerRound(state: object): MergerRound | undefined {
+export function activeMergerRound(
+    state: Pick<EighteenSeventeenState, 'mergerRound'>
+): MergerRound | undefined {
     const round = mergerRoundOf(state)
     return round && !round.completed ? round : undefined
 }
 
-export function acquisitionRoundOf(state: object): AcquisitionRound | undefined {
-    if (!('acquisitionRound' in state)) return undefined
-    assert(AcquisitionRoundValidator.Check(state.acquisitionRound), 'Invalid acquisition round')
+export function acquisitionRoundOf(
+    state: Pick<EighteenSeventeenState, 'acquisitionRound'>
+): AcquisitionRound | undefined {
     return state.acquisitionRound
 }
 
-export function setAcquisitionRound(state: object, round: AcquisitionRound): void {
-    Object.assign(state, { acquisitionRound: round })
+export function setAcquisitionRound(state: EighteenSeventeenState, round: AcquisitionRound): void {
+    state.acquisitionRound = round
 }
 
-export function activeAcquisitionRound(state: object): AcquisitionRound | undefined {
+export function activeAcquisitionRound(
+    state: Pick<EighteenSeventeenState, 'acquisitionRound'>
+): AcquisitionRound | undefined {
     const round = acquisitionRoundOf(state)
     return round && !round.completed ? round : undefined
 }
 
 /** The optional rules chosen when the game was set up. */
-export function eighteenSeventeenOptions(state: object): {
+export function eighteenSeventeenOptions(state: EighteenSeventeenOptions): {
     shortSqueeze: boolean
     fiveShorts: boolean
     modernTrains: boolean
     volatility: boolean
 } {
     return {
-        shortSqueeze: 'shortSqueeze' in state,
-        fiveShorts: 'fiveShorts' in state,
-        modernTrains: 'modernTrains' in state,
-        volatility: 'volatility' in state
+        shortSqueeze: state.shortSqueeze === true,
+        fiveShorts: state.fiveShorts === true,
+        modernTrains: state.modernTrains === true,
+        volatility: state.volatility === true
     }
 }
 
-export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
+export class HydratedEighteenSeventeenState extends HydratedEighteenXXState<
+    typeof EighteenSeventeenState
+> {
     declare seedMoney?: number
     declare shortSqueeze?: true
     declare fiveShorts?: true
@@ -259,7 +255,7 @@ export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
     declare formerPresidents?: FormerPresidents
     declare mergerRound?: MergerRound
     declare acquisitionRound?: AcquisitionRound
-    constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
+    constructor(data: unknown, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
         super(data, map, tileSet, depot, Validator)
         const inStates = (states: readonly string[]) => states.includes(this.machineState)
         const merging = !!activeMergerRound(this)
@@ -279,7 +275,10 @@ export class HydratedEighteenSeventeenState extends HydratedEighteenXXState {
     }
 }
 
-export const EighteenSeventeenStateDefinition: EighteenXXStateDefinition = {
+export const EighteenSeventeenStateDefinition: EighteenXXStateDefinition<
+    typeof EighteenSeventeenState,
+    HydratedEighteenSeventeenState
+> = {
     schema: EighteenSeventeenState,
     hydrate: (data, map, tileSet, depot) =>
         new HydratedEighteenSeventeenState(data, map, tileSet, depot)

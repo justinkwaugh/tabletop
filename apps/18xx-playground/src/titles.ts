@@ -24,16 +24,10 @@ import {
 } from '@tabletop/1817'
 import { EighteenSeventeenScenarios } from '@tabletop/1817/scenarios'
 import { UiDefinition as EighteenSeventeenUi, EighteenSeventeenMapView } from '@tabletop/1817-ui'
-import type {
-    EighteenXXState,
-    EighteenXXTitleRules,
-    HydratedEighteenXXState,
-    RailwayMap,
-    TileRotation,
-    TileSet
-} from '@tabletop/18xx'
+import type { EighteenXXTitleRules, RailwayMap, TileRotation, TileSet } from '@tabletop/18xx'
 import type { ScenarioDefinition, ScenarioPosition } from '@tabletop/18xx/scenarios'
-import type { GameUiDefinition } from '@tabletop/frontend-components'
+import type { Component } from 'svelte'
+import { scenarioHost, type ScenarioHostProps } from './scenarios/uiDefinitions.js'
 import type { TileLayout } from '@tabletop/18xx-ui'
 
 export type FinishedGameFixture = {
@@ -50,7 +44,7 @@ export type PlaygroundTitle = {
     name: string
     rules: EighteenXXTitleRules
     scenarios: ScenarioDefinition
-    ui: GameUiDefinition<EighteenXXState, HydratedEighteenXXState>
+    host: Component<ScenarioHostProps>
     map: RailwayMap
     /** Node positions for printed multi-node hexes, keyed by location. */
     mapLayouts?: Readonly<Record<string, TileLayout>>
@@ -74,7 +68,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         name: 'The Old Prince 1871',
         rules: TheOldPrinceTitleRules,
         scenarios: TheOldPrinceScenarios,
-        ui: TheOldPrinceUi,
+        host: scenarioHost(TheOldPrinceUi, TheOldPrinceScenarios),
         map: TheOldPrinceMap,
         mapExample: { locationId: 'K19', definitionId: '18xx:5', rotation: 0, label: 'CB' },
         tileSets: { 'The Old Prince 1871': TheOldPrinceTileSet },
@@ -86,7 +80,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         name: 'Shikoku 1889',
         rules: Shikoku1889TitleRules,
         scenarios: Shikoku1889Scenarios,
-        ui: Shikoku1889Ui,
+        host: scenarioHost(Shikoku1889Ui, Shikoku1889Scenarios),
         map: Shikoku1889Map,
         mapExample: { locationId: 'I2', definitionId: '18xx:5', rotation: 2, label: 'SR' },
         tileSets: {
@@ -101,7 +95,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         name: '1830',
         rules: EighteenThirtyTitleRules,
         scenarios: EighteenThirtyScenarios,
-        ui: EighteenThirtyUi,
+        host: scenarioHost(EighteenThirtyUi, EighteenThirtyScenarios),
         map: EighteenThirtyMap,
         mapLayouts: EighteenThirtyMapView.layouts,
         mapExample: { locationId: 'H10', definitionId: '18xx:57', rotation: 1, label: 'PRR' },
@@ -114,7 +108,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         name: '1817',
         rules: EighteenSeventeenTitleRules,
         scenarios: EighteenSeventeenScenarios,
-        ui: EighteenSeventeenUi,
+        host: scenarioHost(EighteenSeventeenUi, EighteenSeventeenScenarios),
         map: EighteenSeventeenMap,
         mapLayouts: EighteenSeventeenMapView.layouts,
         mapExample: { locationId: 'F13', definitionId: '18xx:57', rotation: 0, label: 'PLE' },

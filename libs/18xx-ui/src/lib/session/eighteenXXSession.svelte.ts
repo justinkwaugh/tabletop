@@ -1,3 +1,4 @@
+import type { TitleStateSchema } from '@tabletop/18xx'
 import { RoutesModule } from './routesModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
@@ -46,7 +47,7 @@ import { type HydratedEighteenXXState, type EighteenXXTitleRules } from '@tablet
 import { GameStorage } from '@tabletop/common'
 import { trainsOwnedBy } from '@tabletop/18xx'
 import { type MapViewDefinition, type StationAppearance } from '../maps/stationPresentation.js'
-import { GameSession } from '@tabletop/frontend-components'
+import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
 import { assert } from '@tabletop/common'
 import type { TitlePresentation } from './titlePresentation.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
@@ -59,10 +60,15 @@ import {
     type Portfolio
 } from '@tabletop/18xx'
 
-type SessionOptions = ConstructorParameters<
-    typeof GameSession<EighteenXXState, HydratedEighteenXXState>
->[0]
-export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEighteenXXState> {
+type SessionOptions<
+    Schema extends TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> & EighteenXXState<Schema>
+> = ConstructorParameters<typeof GameSession<EighteenXXState<Schema>, State>>[0]
+export class EighteenXXSession<
+    Schema extends TitleStateSchema = TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> & EighteenXXState<Schema> =
+        HydratedEighteenXXState<Schema> & EighteenXXState<Schema>
+> extends GameSession<EighteenXXState<Schema>, State> {
     privateCompanyTokens: Readonly<Record<string, StationAppearance>> = $derived.by(() =>
         Object.fromEntries(
             Object.entries(this.presentationDefinition.privateTokens ?? {}).map(
@@ -87,7 +93,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
     }
     private readonly moduleSession: ModuleSession<HydratedEighteenXXState, EighteenXXTitleRules> =
-        ((session: EighteenXXSession) => ({
+        ((session: EighteenXXSession<Schema, State>) => ({
             get state() {
                 return session.gameState
             },
@@ -294,7 +300,7 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         }
     })
     /** The title presentation for the current mode: published badge colours replace the generic ones when selected. */
-    readonly presentation: TitlePresentation = $derived.by(() => {
+    readonly presentation: TitlePresentation<EighteenXXState<Schema>> = $derived.by(() => {
         const definition = this.presentationDefinition
         const trains = definition.publishedTrainColors
         if (!this.publishedArtwork || !trains) return definition
@@ -308,10 +314,10 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         }
     })
     constructor(
-        options: SessionOptions,
-        private readonly rules: EighteenXXTitleRules,
+        options: SessionOptions<Schema, State>,
+        private readonly rules: EighteenXXTitleRules<Schema, State>,
         private readonly mapViewDefinition: MapViewDefinition,
-        private readonly presentationDefinition: TitlePresentation
+        private readonly presentationDefinition: TitlePresentation<EighteenXXState<Schema>>
     ) {
         super(options)
         const { map, tileSet } = titleComponents(rules)
@@ -502,20 +508,26 @@ export class EighteenXXSession extends GameSession<EighteenXXState, HydratedEigh
         localSelections.register(this.cashCrisis.bankruptcy)
     }
 }
-export function createEighteenXXSessionClass(
-    rules: EighteenXXTitleRules,
+export function createEighteenXXSessionClass<
+    Schema extends TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> & EighteenXXState<Schema>
+>(
+    rules: EighteenXXTitleRules<Schema, State>,
     mapView: MapViewDefinition,
-    presentation: TitlePresentation
-): new (options: SessionOptions) => EighteenXXSession {
-    return class extends EighteenXXSession {
-        constructor(options: SessionOptions) {
+    presentation: TitlePresentation<EighteenXXState<Schema>>
+): new (options: SessionOptions<Schema, State>) => EighteenXXSession<Schema, State> {
+    return class extends EighteenXXSession<Schema, State> {
+        constructor(options: SessionOptions<Schema, State>) {
             super(options, rules, mapView, presentation)
         }
     }
 }
 export function requireEighteenXXSession(
-    session: GameSession<EighteenXXState, HydratedEighteenXXState>
-): EighteenXXSession {
+    session: GameSessionView<EighteenXXState, HydratedEighteenXXState>
+): EighteenXXSessionView {
     assert(session instanceof EighteenXXSession, 'Expected an 18xx session')
     return session
 }
+
+export type EighteenXXSessionView = GameSessionView<EighteenXXState, HydratedEighteenXXState> &
+    Omit<EighteenXXSession, keyof GameSession<EighteenXXState, HydratedEighteenXXState>>

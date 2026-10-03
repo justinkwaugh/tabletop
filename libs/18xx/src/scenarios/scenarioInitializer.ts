@@ -9,9 +9,9 @@ import {
 } from '@tabletop/common'
 import { Compile } from 'typebox/compile'
 import { EighteenXXInitializer } from '../game/eighteenXXInitializer.js'
-import type { HydratedEighteenXXState } from '../game/eighteenXXState.js'
+import type { TitleStateSchema, HydratedEighteenXXState } from '../game/eighteenXXState.js'
 import type { EighteenXXTitleRules } from '../game/eighteenXXTitleRules.js'
-import type { InitialPosition } from '../game/opening.js'
+import type { InitialPosition, Opening } from '../game/opening.js'
 import { StationPlacement, applyStationPlacement } from '../stations/stationPlacement.js'
 import { controllingOwner } from '../finance/finance.js'
 import { privateIncomePayments } from '../operating/startOperatingRound.js'
@@ -20,16 +20,19 @@ import type { StockMarket } from '../stock/stockMarket.js'
 import { ScenarioPosition } from './scenarioPosition.js'
 
 export type PreparedPosition = Exclude<ScenarioPosition, 'opening' | 'optional-opening' | 'ending'>
-export interface ScenarioFixtures {
+export type ScenarioFixtures<
+    Schema extends TitleStateSchema = TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+> = {
     createMarket(position: PreparedPosition): StockMarket
     createFinances(
         players: readonly PlayerState[],
         position: PreparedPosition
     ): Omit<InitialPosition, 'stockMarket'>
-    prepareEnding(state: HydratedEighteenXXState): void
+    prepareEnding(state: State): void
     /** The optional rules the title's optional opening is set up with. */
     optionalOpening?: GameConfig
-}
+} & Pick<Opening<Schema, State>, 'titleState'>
 
 const PositionValidator = Compile(ScenarioPosition)
 const OperatingPositions: readonly ScenarioPosition[] = [
@@ -59,10 +62,13 @@ const TrainBuyingPositions: readonly ScenarioPosition[] = [
     'bankruptcy'
 ]
 
-export class ScenarioInitializer extends EighteenXXInitializer {
+export class ScenarioInitializer<
+    Schema extends TitleStateSchema = TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+> extends EighteenXXInitializer<Schema, State> {
     constructor(
-        private readonly titleRules: EighteenXXTitleRules,
-        private readonly fixtures: ScenarioFixtures
+        private readonly titleRules: EighteenXXTitleRules<Schema, State>,
+        private readonly fixtures: ScenarioFixtures<Schema, State>
     ) {
         super(titleRules)
     }
@@ -70,7 +76,7 @@ export class ScenarioInitializer extends EighteenXXInitializer {
         game: Game,
         state: UninitializedGameState,
         startingPositions?: StartingPositionAssignment
-    ): HydratedEighteenXXState {
+    ): State {
         const requested = game.config?.examplePosition ?? 'opening'
         assert(PositionValidator.Check(requested), 'Unknown scenario position')
         if (requested === 'opening')
@@ -91,6 +97,7 @@ export class ScenarioInitializer extends EighteenXXInitializer {
         )
         const initialized = this.createInitialState(game, state, {
             stockRoundNumber: 2,
+            titleState: this.fixtures.titleState,
             position: {
                 ...this.fixtures.createFinances(this.playerStates(game), position),
                 stockMarket: this.fixtures.createMarket(position)

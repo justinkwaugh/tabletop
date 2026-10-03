@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getCompany, type CertificatePool } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
         stockInstructionKindLabel,
         stockInstructionText,
@@ -11,7 +11,7 @@
     import SlidingToggle from '../table/SlidingToggle.svelte'
     import SwitchTrack from '../table/SwitchTrack.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    let { session }: { session: EighteenXXSession } = $props()
+    let { session }: { session: EighteenXXSessionView } = $props()
     const gameState = $derived(session.gameState)
     const instructions = $derived(session.instructions)
     function poolLabel(pool: CertificatePool): string {

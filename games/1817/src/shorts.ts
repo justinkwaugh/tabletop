@@ -1,3 +1,8 @@
+import type {
+    HydratedEighteenSeventeenState,
+    EighteenSeventeenStateHandler,
+    EighteenSeventeenState
+} from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -23,10 +28,7 @@ import {
     recordStockAction,
     settleCashPayments,
     sharesOwned,
-    type EighteenXXState,
-    type EighteenXXStateHandler,
     type FinancialState,
-    type HydratedEighteenXXState,
     type OpenShare
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
@@ -44,7 +46,7 @@ export function marketPool(state: Pick<FinancialState, 'certificatePools'>) {
 }
 
 export function shortReason(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     playerId: string,
     companyId: string
 ): string | undefined {
@@ -75,7 +77,7 @@ export function shortReason(
 }
 
 export function shortOptions(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     playerId: string
 ): { companyId: string; price: number }[] {
     return state.companies
@@ -124,13 +126,13 @@ export class HydratedShortShare extends HydratableAction<typeof ShortShare> impl
     constructor(data: ShortShare) {
         super(data instanceof HydratedShortShare ? data.dehydrate() : data, ShortValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             !shortReason(state, this.playerId, this.companyId) &&
             companyMarketSpace(state.stockMarket, this.companyId).price === this.expectedPrice
         )
     }
-    apply(state: HydratedGameState & EighteenXXState): void {
+    apply(state: HydratedGameState & EighteenSeventeenState): void {
         assert(
             this.source === ActionSource.User && this.isValidFor(state),
             shortReason(state, this.playerId, this.companyId) ?? 'The share price has changed'
@@ -146,11 +148,11 @@ export class HydratedShortShare extends HydratableAction<typeof ShortShare> impl
     }
 }
 
-export class ShortSellingHandler implements EighteenXXStateHandler {
-    constructor(private readonly handler: EighteenXXStateHandler) {}
+export class ShortSellingHandler implements EighteenSeventeenStateHandler {
+    constructor(private readonly handler: EighteenSeventeenStateHandler) {}
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedEighteenXXState>
+        context: MachineContext<HydratedEighteenSeventeenState>
     ): boolean {
         return action instanceof HydratedShortShare
             ? action.source === ActionSource.User && action.isValidFor(context.gameState)
@@ -158,7 +160,7 @@ export class ShortSellingHandler implements EighteenXXStateHandler {
     }
     validActionsForPlayer(
         playerId: string,
-        context: MachineContext<HydratedEighteenXXState>
+        context: MachineContext<HydratedEighteenSeventeenState>
     ): string[] {
         const actions = this.handler.validActionsForPlayer(playerId, context)
         return actions.includes('FinishStockTurn') &&
@@ -166,10 +168,13 @@ export class ShortSellingHandler implements EighteenXXStateHandler {
             ? [...actions, 'ShortShare']
             : actions
     }
-    enter(context: MachineContext<HydratedEighteenXXState>): void {
+    enter(context: MachineContext<HydratedEighteenSeventeenState>): void {
         this.handler.enter(context)
     }
-    onAction(action: HydratedAction, context: MachineContext<HydratedEighteenXXState>): string {
+    onAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedEighteenSeventeenState>
+    ): string {
         return isShortShare(action) ? 'StockRound' : this.handler.onAction(action, context)
     }
 }
@@ -184,7 +189,7 @@ export function closeMarketShortsAgainstPool(state: FinancialState): void {
  * The company whose market shorts the bank closes as a stock round begins, by buying its
  * treasury shares for the market, outside the closing zones.
  */
-function marketShortToBuyOut(state: EighteenXXState): string | undefined {
+function marketShortToBuyOut(state: EighteenSeventeenState): string | undefined {
     if (!canStartStockRound(state)) return undefined
     const market = marketPool(state)
     return state.companies.find(
@@ -195,7 +200,7 @@ function marketShortToBuyOut(state: EighteenXXState): string | undefined {
     )?.id
 }
 
-function treasuryShares(state: EighteenXXState, companyId: string): OpenShare[] {
+function treasuryShares(state: EighteenSeventeenState, companyId: string): OpenShare[] {
     return ordinaryShares(state, companyId).filter(
         (share) => share.poolId === treasuryPoolId(companyId)
     )
@@ -236,7 +241,7 @@ export class HydratedCloseMarketShorts
     constructor(data: CloseMarketShorts) {
         super(data instanceof HydratedCloseMarketShorts ? data.dehydrate() : data, CloseValidator)
     }
-    apply(state: HydratedGameState & EighteenXXState): void {
+    apply(state: HydratedGameState & EighteenSeventeenState): void {
         assert(
             this.source === ActionSource.System && marketShortToBuyOut(state) === this.companyId,
             'The bank closes the market’s shorts as a stock round begins'
@@ -262,7 +267,9 @@ export class HydratedCloseMarketShorts
     }
 }
 
-export function buysOutMarketShorts(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+export function buysOutMarketShorts(
+    handler: EighteenSeventeenStateHandler
+): EighteenSeventeenStateHandler {
     return new SystemActionFirstHandler(handler, CloseMarketShorts, (state) => {
         const companyId = marketShortToBuyOut(state)
         return companyId ? { companyId } : undefined

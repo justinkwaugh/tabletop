@@ -1,3 +1,4 @@
+import type { EighteenSeventeenState } from './state.js'
 import { assertExists } from '@tabletop/common'
 import {
     EighteenXXTransferTiming,
@@ -137,7 +138,11 @@ function layingCompany(
         : undefined
 }
 
-function laysLeft(state: CompanyDecisionState, privateId: string, power: LayPower): number {
+function laysLeft(
+    state: CompanyDecisionState & Pick<EighteenSeventeenState, 'privateLays'>,
+    privateId: string,
+    power: LayPower
+): number {
     return power.uses - privateLaysMade(state, privateId)
 }
 
@@ -211,7 +216,11 @@ export const EighteenSeventeenPrivatePowerRules: PrivatePowerRules = {
     },
     // A private closes once its lays are used up. A mine or ranch lay marks its hex; a city
     // tile clears the ranches beside it.
-    afterTrackLay(state, privateId, details) {
+    afterTrackLay(
+        state: CompanyDecisionState & Pick<EighteenSeventeenState, 'privateLays'>,
+        privateId,
+        details
+    ) {
         const power = LayPowers[privateId]
         assertExists(power, 'Only a private with a lay power lays track')
         recordPrivateLay(state, privateId)

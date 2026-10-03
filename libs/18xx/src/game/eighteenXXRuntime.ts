@@ -30,8 +30,7 @@ import { StockInstructionHandler } from '../stock/stockInstructionHandler.js'
 import { PrivatePowerRequestHandler } from '../privates/privatePowerRequestHandler.js'
 import { StockRoundHandler } from '../stock/stockRoundHandler.js'
 import {
-    EighteenXXState,
-    FamilyStateDefinition,
+    type TitleStateSchema,
     HydratedEighteenXXState,
     inKnownPhase,
     type EighteenXXMachineState
@@ -79,19 +78,20 @@ function handledStateValidator(
         )
     )
 }
-export function createEighteenXXRuntime(
-    options: EighteenXXTitleRules
-): GameRuntime<EighteenXXState, HydratedEighteenXXState> {
+export function createEighteenXXRuntime<
+    Schema extends TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema>
+>(options: EighteenXXTitleRules<Schema, State>): GameRuntime<Type.Static<Schema>, State> {
     const { stockRules: rules, companyRules, operatingRules } = options
     const { map, tileSet, depot } = titleComponents(options)
-    type Handler = EighteenXXStateHandler
-    const stateDefinition = options.state ?? FamilyStateDefinition
+    type Handler = EighteenXXStateHandler<State>
+    const stateDefinition = options.state
     const decides = (machineState: EighteenXXMachineState, family: Handler): Handler =>
         options.decisionHandlers?.[machineState]?.(family) ?? family
     const endsGame = (handler: Handler): Handler =>
-        new GameEndingHandler<HydratedEighteenXXState>(handler, options.endingRules)
+        new GameEndingHandler<State>(handler, options.endingRules)
     const allowsExchange = (handler: Handler): Handler =>
-        new PrivateExchangeHandler<HydratedEighteenXXState>(
+        new PrivateExchangeHandler<State>(
             handler,
             options.privateRules,
             rules,
@@ -99,7 +99,7 @@ export function createEighteenXXRuntime(
             options.outOfTurnPrivatePowers === true
         )
     const allowsCompanyDecisions = (handler: Handler): Handler =>
-        new CompanyDecisionsHandler<HydratedEighteenXXState>(
+        new CompanyDecisionsHandler<State>(
             handler,
             options.transferRules,
             options.privatePowerRules,
@@ -110,10 +110,7 @@ export function createEighteenXXRuntime(
         )
     const allowsPrivatePowerRequests = (handler: Handler): Handler =>
         options.privatePowerRules.betweenTurnsPrivateIds?.length
-            ? new PrivatePowerRequestHandler<HydratedEighteenXXState>(
-                  handler,
-                  options.privatePowerRules
-              )
+            ? new PrivatePowerRequestHandler<State>(handler, options.privatePowerRules)
             : handler
     const choosesHome = (handler: Handler): Handler =>
         options.stationRules.homeChoice
@@ -349,7 +346,7 @@ export function createEighteenXXRuntime(
         randomnessVersion: 1,
         scoring: FinalWealthScoring,
         apiActions: actions.schemas,
-        exploration: new EighteenXXGameExploration(),
+        exploration: new EighteenXXGameExploration<Type.Static<Schema>>(),
         stateHandlers
     }
 }

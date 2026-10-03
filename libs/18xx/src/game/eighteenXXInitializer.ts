@@ -1,3 +1,4 @@
+import type * as Type from 'typebox'
 import { Prng } from '@tabletop/common'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
 import {
@@ -12,22 +13,24 @@ import {
 } from '@tabletop/common'
 import { createStockRound } from '../stock/stockRound.js'
 import {
-    EighteenXXState,
-    FamilyStateDefinition,
+    type TitleStateSchema,
     HydratedEighteenXXState,
     inKnownPhase
 } from './eighteenXXState.js'
 import type { EighteenXXTitleRules } from './eighteenXXTitleRules.js'
 import type { InitialPosition, Opening } from './opening.js'
 import { titleComponents } from './titleComponents.js'
-export type InitialStateParts = {
+export type InitialStateParts<Schema extends TitleStateSchema = TitleStateSchema> = {
     stockRoundNumber: number
     position: InitialPosition
-    titleState?: Opening['titleState']
+    titleState?: Opening<Schema>['titleState']
     startingPositions?: StartingPositionAssignment
 }
-export type EighteenXXInitializerRules = Pick<
-    EighteenXXTitleRules,
+export type EighteenXXInitializerRules<
+    Schema extends TitleStateSchema = TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+> = Pick<
+    EighteenXXTitleRules<Schema, State>,
     | 'state'
     | 'phases'
     | 'createOpening'
@@ -38,10 +41,10 @@ export type EighteenXXInitializerRules = Pick<
     | 'privateRules'
     | 'stockRules'
 >
-export class EighteenXXInitializer extends BaseGameInitializer<
-    EighteenXXState,
-    HydratedEighteenXXState
-> {
+export class EighteenXXInitializer<
+    Schema extends TitleStateSchema = TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+> extends BaseGameInitializer<Type.Static<Schema>, State> {
     static readonly playerColors = [
         Color.Blue,
         Color.Red,
@@ -51,14 +54,14 @@ export class EighteenXXInitializer extends BaseGameInitializer<
         Color.Orange
     ]
     readonly supportsStartingPositions = true
-    constructor(protected readonly rules: EighteenXXInitializerRules) {
+    constructor(protected readonly rules: EighteenXXInitializerRules<Schema, State>) {
         super()
     }
     initializeGameState(
         game: Game,
         state: UninitializedGameState,
         startingPositions?: StartingPositionAssignment
-    ): HydratedEighteenXXState {
+    ): State {
         const players = this.playerStates(game)
         if (startingPositions !== undefined)
             validateStartingPositionAssignment(
@@ -90,15 +93,15 @@ export class EighteenXXInitializer extends BaseGameInitializer<
     protected createInitialState(
         game: Game,
         state: UninitializedGameState,
-        parts: InitialStateParts
-    ): HydratedEighteenXXState {
+        parts: InitialStateParts<Schema>
+    ): State {
         const players = this.playerStates(game)
         const seatOrder = [
             ...(parts.startingPositions?.playerIds ?? players.map((player) => player.playerId))
         ]
         const { map, tileSet, depot } = titleComponents(this.rules)
         return inKnownPhase(
-            (this.rules.state ?? FamilyStateDefinition).hydrate(
+            this.rules.state.hydrate(
                 {
                     ...state,
                     players,

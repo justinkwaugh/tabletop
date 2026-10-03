@@ -1,13 +1,13 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { PrivateTrackPower } from '../session/privateActionsModule.svelte.js'
 
     let {
         session,
         power,
         label = 'Use'
-    }: { session: EighteenXXSession; power: PrivateTrackPower; label?: string } = $props()
+    }: { session: EighteenXXSessionView; power: PrivateTrackPower; label?: string } = $props()
     const selected = $derived(
         session.privateActions.trackPowerSelection?.value.privateCompanyId ===
             power.privateCompanyId &&

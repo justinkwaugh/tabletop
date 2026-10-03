@@ -13,7 +13,7 @@ the title's machine states. `EighteenXXTitleRules` then accepts:
   completion), so those keep applying. It replaces `stockRoundHandler`; TOP uses it to
   make the stock round accept `SplitCompany`.
 
-A title that supplies none of these gets exactly the family state and handlers.
+A title without additional state uses `FamilyStateDefinition` and gets the family handlers.
 
 ## Evidence surveyed
 
@@ -61,7 +61,7 @@ This change moves no field and adds no machine state. It is held by:
   loads unchanged, its active player is offered the same Actions, and each of its 181
   recorded States is reproduced from its recorded Action. Four auction resolutions
   predate automatic lot offers and differ only in identifiers drawn;
-- `apps/18xx-playground/src/demo/titleState.spec.ts`: a title with its own field,
+- `games/shikoku-1889/src/titleState.spec.ts`: a title with its own field,
   machine state and wrapped decision, and the refusals above.
 
 On 2026-09-21 the pre-change runtime (`ebcd2f60`, built in a separate worktree) and the
@@ -85,22 +85,72 @@ Runtime (ADR 0004).
 
 ## Intentional limits
 
-- No title uses the capability yet. `tranches`, the auction fields, the ownership
-  exemptions and `companyPurchases` remain family fields until a later slice makes
-  them opt-in; for TOP they must keep their names, positions and required-ness.
+- 1817 uses title-owned merger/acquisition records and machine states; 1830 owns its
+  optional IPO purchase flag. `tranches`, the auction fields, the ownership exemptions
+  and `companyPurchases` remain family fields; moving them must preserve deployed
+  names, positions and required-ness.
 - `Company.role` and certificate `number` stay in the shared entity schemas. They are
   TOP's; moving them would change the deployed game's State shape.
 - The first change that adds a field or machine state to a deployed title must keep
   the field optional for stored games and move the title to `1.0.0`: the version check
   compares only the first number, and both titles are at `0.x`.
-- The shared session is `GameSession<EighteenXXState, HydratedEighteenXXState>`, so the
-  shared UI reads history State already typed and never re-validates it against the
-  family schema; a title's own fields pass through. The host harness is still typed over
-  base `GameState`, so a title's dev page and the playground host cast the definition at
-  that boundary, as the other games do. `gameState` is now an alias of `gameState`.
 - A title's added handlers receive none of the family's cross-cutting handlers. Which
   of them a dedicated round needs is left to the first title with such a round.
-- `hydrate` receives the family-typed State; a title reads its own fields from its
-  subclass. The class is not generic over the title's schema.
 - A title's initial fields and first machine state come from its `createOpening`
   (`titleState` and `begin`); see [opening contract](opening-contract-design.md).
+
+## Preserving title types (2026-10-03)
+
+The original extension schema retained title fields at runtime but composition erased
+its static type. 1817 consequently read its own records through `object`, membership
+checks and repeated subrecord validation, and wrote them through `Object.assign`.
+The extension must preserve both the schema-derived raw State and its hydrated class.
+
+`HydratedEighteenXXState`, the state definition, opening, title rules, initializer,
+runtime, scenarios and session now carry that schema and class through composition.
+`extendEighteenXXState` retains the union of family and title machine-state literals.
+A required title field must be supplied in the opening and prepared scenario fixtures.
+Hydration accepts untrusted input and validates against the title schema; downstream
+rules use typed properties. The family constructor still enforces shared invariants.
+1817's full-state procedures and handlers use its concrete State; 1830's option and
+1817's optional records use typed property access. Focused mechanism rule interfaces
+remain focused: a title policy adds only the title fields that policy consumes.
+
+The catalog evidence above also governs this change. Titles with no extra state use
+the family definition; 1830 demonstrates optional configuration; 1817 demonstrates
+persistent records and extra decision rounds. The required-field regression fixture
+challenges the assumption that every future extension is optional. No merger,
+nationalization, conversion or round policy is promoted into the family by this work.
+
+Title UI runtime, session and presentation definitions retain the concrete State,
+including history and dehydration. Shared rendering consumes `EighteenXXSessionView`;
+shared client controls consume `GameSessionView`. These expose the controls' existing
+operations and history navigation without requiring the renderer, runtime or context
+replacement machinery. Those implementation slots made the whole session invariant
+in its State type and forced title callers to widen their types. They remain owned
+by the concrete session. The playground registers a scenario host with each matching
+UI and scenario initializer while their concrete types are known, instead of putting
+incompatible UI runtimes in a family-typed registry. `GameUI` and the scenario host
+carry those types through rendering. The context stores the same session object and uses the same
+visible-state, selection, history, Undo and exploration lifecycle.
+
+This is a source-level contract change. There is no new bridge message, host dependency,
+serialized field, action or schema version. Old UI Artifacts and new Logic Artifacts
+retain their existing wire contract. TOP, 1889, 1830 and 1817 UI Artifacts must be rebuilt
+to include the changed family session/client code; publishing the Site Frontend alone
+cannot update embedded clients. Other games need no coordinated publication for this
+type-only client interface change.
+
+Verification includes all four canonical schema/action snapshots, existing title and
+family behavior suites, client session/history tests, and a required-field title fixture
+that type-checks handlers, opening, initialization, hydration and dehydration while
+rejecting missing/malformed serialized fields. Title UI checks cover concrete sessions
+being accepted by shared controls without casts.
+
+Validation for this revision: 1,223 targeted tests and 11 full-game replay checks pass;
+Common's suite also passes. All four Logic builds, the four title UI checks, the shared
+18xx UI check, the shared client check, and the required-field type fixture pass.
+The unchanged canonical schema/action snapshots are included in the title suites.
+Broader checks retain existing failures in the playground's `HistoryLoading.fixture.svelte`
+(missing `onReturn`), the site's `startupBackground.spec.ts` (nullable canvas context),
+and the shared UI's `mapDrawing.ts` lint (unused `TileLayout` import).

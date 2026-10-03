@@ -1,27 +1,42 @@
-import { ActionSource, assert, type Game, type GameAction, type GameEngine } from '@tabletop/common'
+import {
+    ActionSource,
+    assert,
+    type Game,
+    type GameAction,
+    type GameEngine,
+    type GameDefinition,
+    type HydratedGameState
+} from '@tabletop/common'
 import type { EighteenXXState, HydratedEighteenXXState } from '../game/eighteenXXState.js'
 import type { ScenarioPosition } from './scenarioPosition.js'
-import { exampleGame, type ScenarioDefinition } from './scenarioDefinition.js'
+import { exampleGame } from './scenarioDefinition.js'
 
-export type ExamplePlay = {
+export type ExamplePlay<
+    Raw extends EighteenXXState = EighteenXXState,
+    State extends HydratedEighteenXXState & HydratedGameState<Raw> = HydratedEighteenXXState &
+        HydratedGameState<Raw>
+> = {
     readonly game: Game
-    readonly engine: GameEngine<EighteenXXState, HydratedEighteenXXState>
-    readonly state: EighteenXXState
+    readonly engine: GameEngine<Raw, State>
+    readonly state: Raw
     act(type: string, fields?: object, playerId?: string): void
     valid(playerId: string): string[]
-    replaceState(state: EighteenXXState): void
+    replaceState(state: Raw): void
 }
 
-export function playExample(
-    definition: ScenarioDefinition,
+export function playExample<
+    Raw extends EighteenXXState,
+    State extends HydratedEighteenXXState & HydratedGameState<Raw>
+>(
+    definition: GameDefinition<Raw, State>,
     position: ScenarioPosition,
     playerCount?: number,
-    prepare: (state: EighteenXXState) => void = () => {}
-): ExamplePlay {
+    prepare: (state: Raw) => void = () => {}
+): ExamplePlay<Raw, State> {
     const { game, engine, state: initial } = exampleGame(definition, position, playerCount)
-    let state: EighteenXXState = structuredClone(initial)
+    let state: Raw = structuredClone(initial)
     prepare(state)
-    const check = (next: EighteenXXState) => {
+    const check = (next: Raw) => {
         assert(
             definition.runtime.canonicalStateValidator?.Check(next) !== false,
             'The example state is not canonical'

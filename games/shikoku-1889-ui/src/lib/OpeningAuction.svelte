@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { WaterfallAuctionPanel, type EighteenXXSession } from '@tabletop/18xx-ui'
-    let { session, showUndo = true }: { session: EighteenXXSession; showUndo?: boolean } = $props()
+    import { WaterfallAuctionPanel, type EighteenXXSessionView } from '@tabletop/18xx-ui'
+    let { session, showUndo = true }: { session: EighteenXXSessionView; showUndo?: boolean } =
+        $props()
 </script>
 
 {#if session.waterfall.model && !session.waterfall.model.auction.completed}

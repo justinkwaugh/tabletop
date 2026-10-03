@@ -3,7 +3,7 @@
     import { tableHeaderState } from './tableHeaderState.js'
     import { currentRoundHeading } from './roundHeading.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { CompanyNameVariants } from './companyPresentation.js'
     let {
@@ -20,7 +20,7 @@
         onToggleArtwork?: () => void
         bordered?: boolean
         centered?: boolean
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
     } = $props()
     let compact = $state(false)

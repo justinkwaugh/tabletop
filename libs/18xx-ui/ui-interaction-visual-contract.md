@@ -2195,3 +2195,12 @@ presentation changes. Older records without descriptive metadata omit those
 details; an auction resolution with no recorded outcome is labelled “Auction
 resolved.” This adopts new Logic and UI artifacts together for all four 18xx titles,
 with no host-bridge change.
+
+## Title state in shared controls
+
+A title session preserves its schema-derived State and hydrated State class through
+Live View, History and exploration. Shared panels accept `EighteenXXSessionView`, which
+exposes the family controls and displayed State without owning the title runtime or
+renderer. Title panels retain their concrete session type. Both views refer to the same
+session; action authorization, transient selection lifetimes, Back/Undo and visible
+state publication keep their existing ownership and order.

@@ -1,3 +1,5 @@
+import type { EighteenSeventeenState } from './state.js'
+import type { TrainRunningState } from '@tabletop/18xx'
 import { locationMarkers, type RouteRules } from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
 import { BridgeMarker, MineMarker, RanchMarker } from './privatePowerRules.js'
@@ -23,7 +25,12 @@ export const EighteenSeventeenRouteRules: RouteRules = {
             (sum, marker) => sum + (HexMarkerBonuses[marker.kind] ?? 0),
             0
         ),
-    stopBonus(state, train, companyId, center) {
+    stopBonus(
+        state: TrainRunningState & Pick<EighteenSeventeenState, 'modernTrains'>,
+        train,
+        companyId,
+        center
+    ) {
         const bridge = locationMarkers(state, { locationId: center.locationId, kind: BridgeMarker })
             .length
             ? BridgeBonus

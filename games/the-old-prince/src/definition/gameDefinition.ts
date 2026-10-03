@@ -1,3 +1,4 @@
+import { FamilyStateDefinition } from '@tabletop/18xx'
 import { TheOldPrinceEndingRules } from '../endingRules.js'
 import { TheOldPrinceStockRoundHandler } from '../stockRoundHandler.js'
 import { SplitCompany, HydratedSplitCompany, isSplitCompany } from '../splitCompany.js'
@@ -26,6 +27,7 @@ import {
 } from '@tabletop/18xx'
 
 export const TheOldPrinceTitleRules: EighteenXXTitleRules = {
+    state: FamilyStateDefinition,
     endingRules: TheOldPrinceEndingRules,
     decisionHandlers: { StockRound: (family) => new TheOldPrinceStockRoundHandler(family) },
     titleActions: [

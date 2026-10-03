@@ -1,6 +1,6 @@
+import type { HydratedEighteenSeventeenState, EighteenSeventeenStateHandler } from './state.js'
 import type * as Type from 'typebox'
 import { ActionSource, type HydratedAction, type MachineContext } from '@tabletop/common'
-import type { EighteenXXStateHandler, HydratedEighteenXXState } from '@tabletop/18xx'
 
 type ActionSchema = Type.TObject<{ type: Type.TLiteral<string> }>
 
@@ -10,12 +10,12 @@ type ActionSchema = Type.TObject<{ type: Type.TLiteral<string> }>
  */
 export class SystemActionFirstHandler<
     Schema extends ActionSchema
-> implements EighteenXXStateHandler {
+> implements EighteenSeventeenStateHandler {
     constructor(
-        private readonly handler: EighteenXXStateHandler,
+        private readonly handler: EighteenSeventeenStateHandler,
         private readonly schema: Schema,
         private readonly due: (
-            state: HydratedEighteenXXState
+            state: HydratedEighteenSeventeenState
         ) => Partial<Type.Static<Schema>> | undefined,
         private readonly next?: string
     ) {}
@@ -24,7 +24,7 @@ export class SystemActionFirstHandler<
     }
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedEighteenXXState>
+        context: MachineContext<HydratedEighteenSeventeenState>
     ): boolean {
         if (!this.owns(action)) return this.handler.isValidAction(action, context)
         const fields = this.due(context.gameState)
@@ -36,16 +36,19 @@ export class SystemActionFirstHandler<
     }
     validActionsForPlayer(
         playerId: string,
-        context: MachineContext<HydratedEighteenXXState>
+        context: MachineContext<HydratedEighteenSeventeenState>
     ): string[] {
         return this.handler.validActionsForPlayer(playerId, context)
     }
-    enter(context: MachineContext<HydratedEighteenXXState>): void {
+    enter(context: MachineContext<HydratedEighteenSeventeenState>): void {
         const fields = this.due(context.gameState)
         if (fields) context.addSystemAction(this.schema, fields)
         else this.handler.enter(context)
     }
-    onAction(action: HydratedAction, context: MachineContext<HydratedEighteenXXState>): string {
+    onAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedEighteenSeventeenState>
+    ): string {
         return this.owns(action)
             ? (this.next ?? context.gameState.machineState)
             : this.handler.onAction(action, context)

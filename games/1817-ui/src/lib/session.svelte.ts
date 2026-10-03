@@ -1,7 +1,7 @@
+import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
 import { assert } from '@tabletop/common'
-import { PassableBidding, type EighteenXXState, type HydratedEighteenXXState } from '@tabletop/18xx'
+import { PassableBidding } from '@tabletop/18xx'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
-import type { GameSession } from '@tabletop/frontend-components'
 import {
     AcquireCompany,
     AcquisitionRoundStates,
@@ -47,7 +47,12 @@ import {
 import { EighteenSeventeenMapView } from './mapView.js'
 import { EighteenSeventeenPresentation } from './presentation.js'
 
-const BaseSession = createEighteenXXSessionClass(
+const BaseSession: ReturnType<
+    typeof createEighteenXXSessionClass<
+        typeof EighteenSeventeenState,
+        HydratedEighteenSeventeenState
+    >
+> = createEighteenXXSessionClass(
     EighteenSeventeenTitleRules,
     EighteenSeventeenMapView,
     EighteenSeventeenPresentation
@@ -355,9 +360,7 @@ export class EighteenSeventeenSession extends BaseSession {
     }
 }
 
-export function requireEighteenSeventeenSession(
-    session: GameSession<EighteenXXState, HydratedEighteenXXState>
-): EighteenSeventeenSession {
+export function requireEighteenSeventeenSession(session: unknown): EighteenSeventeenSession {
     assert(session instanceof EighteenSeventeenSession, 'Expected a 1817 session')
     return session
 }

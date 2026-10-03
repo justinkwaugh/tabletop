@@ -1,3 +1,8 @@
+import type {
+    HydratedEighteenSeventeenState,
+    EighteenSeventeenStateHandler,
+    EighteenSeventeenState
+} from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -18,16 +23,13 @@ import {
     finiteCashOwnedBy,
     isTakeLoan,
     recordStockAction,
-    settleCashPayments,
-    type EighteenXXState,
-    type EighteenXXStateHandler,
-    type HydratedEighteenXXState
+    settleCashPayments
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
 import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
 
-export function buyBackCertificateIds(state: EighteenXXState, companyId: string): string[] {
+export function buyBackCertificateIds(state: EighteenSeventeenState, companyId: string): string[] {
     if (inClosingZone(state.stockMarket, companyId)) return []
     return state.certificates
         .filter(
@@ -41,7 +43,11 @@ export function buyBackCertificateIds(state: EighteenXXState, companyId: string)
         .map((certificate) => certificate.id)
 }
 
-function corporateTurnOpen(state: EighteenXXState, playerId: string, companyId: string): boolean {
+function corporateTurnOpen(
+    state: EighteenSeventeenState,
+    playerId: string,
+    companyId: string
+): boolean {
     const turn = state.stockRound.turn
     return (
         state.machineState === 'StockRound' &&
@@ -53,7 +59,7 @@ function corporateTurnOpen(state: EighteenXXState, playerId: string, companyId: 
 }
 
 export function canTakeCorporateLoan(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     playerId: string,
     companyId: string
 ): boolean {
@@ -65,7 +71,7 @@ export function canTakeCorporateLoan(
 }
 
 export function buyBackReason(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     playerId: string,
     companyId: string,
     certificateIds: readonly string[]
@@ -88,7 +94,7 @@ export function buyBackReason(
 }
 
 function buyBackPrice(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     certificateIds: readonly string[]
 ): number {
@@ -112,7 +118,7 @@ export type CorporateActionOption = {
 
 /** The companies the player may act for now and what each may do. */
 export function corporateActionOptions(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     playerId: string
 ): CorporateActionOption[] {
     return state.companies.flatMap((company) => {
@@ -141,7 +147,7 @@ export function corporateActionOptions(
     })
 }
 
-export function corporateActionTypes(state: EighteenXXState, playerId: string): string[] {
+export function corporateActionTypes(state: EighteenSeventeenState, playerId: string): string[] {
     const options = corporateActionOptions(state, playerId)
     return [
         ...(options.some((option) => option.canBorrow) ? ['TakeLoan'] : []),
@@ -182,7 +188,7 @@ export class HydratedBuyBackShares
     constructor(data: BuyBackShares) {
         super(data instanceof HydratedBuyBackShares ? data.dehydrate() : data, Validator)
     }
-    apply(state: HydratedGameState & EighteenXXState): void {
+    apply(state: HydratedGameState & EighteenSeventeenState): void {
         const reason = buyBackReason(state, this.playerId, this.companyId, this.certificateIds)
         assert(this.source === ActionSource.User && !reason, reason ?? 'Invalid buy-back')
         const company = { kind: 'company' as const, companyId: this.companyId }
@@ -207,11 +213,11 @@ export class HydratedBuyBackShares
  * In place of their own action, a player may act for one company they preside: take loans, then
  * buy back its market shares. Afterwards only finishing the turn remains.
  */
-export class CorporateActionsHandler implements EighteenXXStateHandler {
-    constructor(private readonly handler: EighteenXXStateHandler) {}
+export class CorporateActionsHandler implements EighteenSeventeenStateHandler {
+    constructor(private readonly handler: EighteenSeventeenStateHandler) {}
     isValidAction(
         action: HydratedAction,
-        context: MachineContext<HydratedEighteenXXState>
+        context: MachineContext<HydratedEighteenSeventeenState>
     ): boolean {
         const state = context.gameState
         if (isTakeLoan(action))
@@ -234,7 +240,7 @@ export class CorporateActionsHandler implements EighteenXXStateHandler {
     }
     validActionsForPlayer(
         playerId: string,
-        context: MachineContext<HydratedEighteenXXState>
+        context: MachineContext<HydratedEighteenSeventeenState>
     ): string[] {
         const state = context.gameState
         const actions = this.handler.validActionsForPlayer(playerId, context)
@@ -244,10 +250,13 @@ export class CorporateActionsHandler implements EighteenXXStateHandler {
             ? [...corporate, 'FinishStockTurn']
             : [...actions, ...corporate]
     }
-    enter(context: MachineContext<HydratedEighteenXXState>): void {
+    enter(context: MachineContext<HydratedEighteenSeventeenState>): void {
         this.handler.enter(context)
     }
-    onAction(action: HydratedAction, context: MachineContext<HydratedEighteenXXState>): string {
+    onAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedEighteenSeventeenState>
+    ): string {
         return isTakeLoan(action) || isBuyBackShares(action)
             ? 'StockRound'
             : this.handler.onAction(action, context)

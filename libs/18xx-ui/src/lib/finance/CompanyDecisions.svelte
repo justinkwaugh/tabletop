@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import { privateMarkerLabel } from '../maps/mapDrawing.js'
@@ -19,7 +19,7 @@
         trainColors: Readonly<Record<string, string>>
         excludeTrainPurchases?: boolean
         showUndo?: boolean
-        session: EighteenXXSession
+        session: EighteenXXSessionView
     } = $props()
     const money = $derived(session.presentation.money)
     const purchaseOptions = $derived(

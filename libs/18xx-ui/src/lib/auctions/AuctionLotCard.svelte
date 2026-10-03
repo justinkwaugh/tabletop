@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import PrivateCard from '../privates/PrivateCard.svelte'
     import CardLightbox from '../privates/CardLightbox.svelte'
@@ -13,7 +13,7 @@
         description = '',
         token
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         id: string
         name: string
         price?: number

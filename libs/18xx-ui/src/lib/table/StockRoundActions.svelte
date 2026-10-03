@@ -11,7 +11,7 @@
         sameOwner,
         type Owner
     } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
     import type { CertificatePool } from '@tabletop/18xx'
@@ -24,7 +24,7 @@
         session,
         poolName
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         poolName?: (pool: CertificatePool) => string
     } = $props()
     const money = $derived(session.presentation.money)

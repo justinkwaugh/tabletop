@@ -4,7 +4,7 @@
     import { prefersReducedMotion } from 'svelte/motion'
     import { StandardTileLayouts } from '../tiles/standardTileLayouts.js'
     import type { Point } from '@tabletop/common'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import Tile from '../tiles/Tile.svelte'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
     import { tileChoiceArc } from './tileChoiceArc.js'
@@ -13,7 +13,7 @@
         session,
         viewport,
         appearance
-    }: { session: EighteenXXSession; viewport: HTMLDivElement; appearance?: TileAppearance } =
+    }: { session: EighteenXXSessionView; viewport: HTMLDivElement; appearance?: TileAppearance } =
         $props()
     const money = $derived(session.presentation.money)
     let center: Point = $state({ x: 0, y: 0 })

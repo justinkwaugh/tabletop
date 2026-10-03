@@ -1,3 +1,4 @@
+import type { EighteenThirtyState, HydratedEighteenThirtyState } from './state.js'
 import { EighteenThirtyMajors } from './majors.js'
 import { assert } from '@tabletop/common'
 import {
@@ -55,7 +56,7 @@ export function createEighteenThirtyOpening({
     players,
     config,
     startingPositions
-}: OpeningSetup): Opening {
+}: OpeningSetup): Opening<typeof EighteenThirtyState, HydratedEighteenThirtyState> {
     assert(players.length >= 2 && players.length <= 6, '1830 supports two through six players')
     const options = EighteenThirtyGameConfig.options(config)
     const majors = Object.values(EighteenThirtyMajors)

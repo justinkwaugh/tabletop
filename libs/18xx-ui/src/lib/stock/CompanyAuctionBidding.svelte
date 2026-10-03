@@ -1,11 +1,11 @@
 <script lang="ts">
     import { assertExists } from '@tabletop/common'
     import { getCompany, stockMarketSpace } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import AuctionBidControl from '../auctions/AuctionBidControl.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
 
-    let { session }: { session: EighteenXXSession } = $props()
+    let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
     const module = $derived(session.companyAuction)
     const model = $derived.by(() => {

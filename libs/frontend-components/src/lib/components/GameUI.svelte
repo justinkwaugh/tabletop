@@ -1,9 +1,9 @@
-<script lang="ts">
+<script lang="ts" generics="Raw extends GameState, State extends HydratedGameState<Raw> & Raw">
     import type { GameSession } from '$lib/model/gameSession.svelte.js'
     import { attachDynamicComponent } from '$lib/utils/dynamicComponent.js'
     import type { GameState, HydratedGameState } from '@tabletop/common'
 
-    let { gameSession }: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
+    let { gameSession }: { gameSession: GameSession<Raw, State> } = $props()
 
     const gameTypeClassSuffix = $derived.by(() => {
         const rawTypeId = gameSession.game.typeId ?? 'unknown'

@@ -1,3 +1,4 @@
+import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from './state.js'
 import { EighteenSeventeenGameConfig } from './definition/gameConfig.js'
 import { assert, assertExists, shuffle, type Prng } from '@tabletop/common'
 import {
@@ -20,6 +21,9 @@ import { eighteenSeventeenOptions, pyramidOf, seedMoneyLeft, type Pyramid } from
 import { createEighteenSeventeenStockMarket } from './stockMarket.js'
 import { createEighteenSeventeenPosition } from './position.js'
 
+type OpeningState = SelectionAuctionState &
+    Pick<EighteenSeventeenState, 'seedMoney' | 'pyramid' | 'volatility'>
+
 export const EighteenSeventeenStartingCash: Readonly<Record<number, number>> = {
     3: 420,
     4: 315,
@@ -36,13 +40,13 @@ export const EighteenSeventeenSeedMoney = 200
 
 // The bank subsidises privates sold below face value from its seed money; once that is spent,
 // bidding opens at face value. Under Volatility the subsidy has no limit.
-function seedMoney(state: SelectionAuctionState): number {
+function seedMoney(state: OpeningState): number {
     const amount = seedMoneyLeft(state)
     assertExists(amount, 'The opening auction has seed money')
     return amount
 }
 
-function requirePyramid(state: SelectionAuctionState): Pyramid {
+function requirePyramid(state: OpeningState): Pyramid {
     const pyramid = pyramidOf(state)
     assertExists(pyramid, 'The Volatility auction has its pyramid')
     return pyramid
@@ -51,7 +55,7 @@ function requirePyramid(state: SelectionAuctionState): Pyramid {
 const liveLots = (row: readonly (string | null)[]) =>
     row.flatMap((lotId) => (lotId === null ? [] : [lotId]))
 
-function clearSlots(state: SelectionAuctionState, lotIds: readonly string[]): void {
+function clearSlots(state: OpeningState, lotIds: readonly string[]): void {
     for (const row of requirePyramid(state))
         row.forEach((lotId, index) => {
             if (lotId !== null && lotIds.includes(lotId)) row[index] = null
@@ -71,22 +75,22 @@ function isolatedNeighbours(pyramid: Pyramid, soldLotId: string): string[] {
 }
 
 export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
-    lots: (state) => EighteenSeventeenPrivateCatalog.lots(state),
-    nominationLotIds(state) {
+    lots: (state: OpeningState) => EighteenSeventeenPrivateCatalog.lots(state),
+    nominationLotIds(state: OpeningState) {
         assertExists(state.selectionAuction, 'Nominations belong to the selection auction')
         const pyramid = pyramidOf(state)
         if (!pyramid) return state.selectionAuction.remainingLotIds
         // Only the lowest tier with lots left is open.
         return pyramid.map(liveLots).findLast((lotIds) => lotIds.length) ?? []
     },
-    tiers: (state) => pyramidOf(state),
-    passingWhileNominating: (state) => !eighteenSeventeenOptions(state).volatility,
-    openingBid: (state, lotId) =>
+    tiers: (state: OpeningState) => pyramidOf(state),
+    passingWhileNominating: (state: OpeningState) => !eighteenSeventeenOptions(state).volatility,
+    openingBid: (state: OpeningState, lotId) =>
         eighteenSeventeenOptions(state).volatility
             ? 0
             : Math.max(0, EighteenSeventeenPrivateCatalog.faceValue(lotId) - seedMoney(state)),
     increment: 5,
-    award(state, award) {
+    award(state: OpeningState, award) {
         awardPrivate(state, award)
         if (eighteenSeventeenOptions(state).volatility) {
             clearSlots(state, [award.lotId])
@@ -96,14 +100,14 @@ export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
             0,
             EighteenSeventeenPrivateCatalog.faceValue(award.lotId) - award.price
         )
-        Object.assign(state, { seedMoney: seedMoney(state) - subsidy })
+        state.seedMoney = seedMoney(state) - subsidy
     },
-    lotsRemovedBy: (state, award) => {
+    lotsRemovedBy: (state: OpeningState, award) => {
         const pyramid = pyramidOf(state)
         return pyramid ? isolatedNeighbours(pyramid, award.lotId) : []
     },
-    nominationFollowsWinner: (state) => eighteenSeventeenOptions(state).volatility,
-    closeUnsold(state, lotIds) {
+    nominationFollowsWinner: (state: OpeningState) => eighteenSeventeenOptions(state).volatility,
+    closeUnsold(state: OpeningState, lotIds) {
         for (const id of lotIds) closePrivate(state, id)
         if (pyramidOf(state)) clearSlots(state, lotIds)
     }
@@ -131,7 +135,7 @@ export function createEighteenSeventeenOpening({
     prng,
     startingPositions,
     config
-}: OpeningSetup): Opening {
+}: OpeningSetup): Opening<typeof EighteenSeventeenState, HydratedEighteenSeventeenState> {
     const options = EighteenSeventeenGameConfig.options(config)
     assert(
         players.length >= 3 && players.length <= 12,

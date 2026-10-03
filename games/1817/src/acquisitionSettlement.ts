@@ -1,3 +1,4 @@
+import type { EighteenSeventeenState } from './state.js'
 import * as Type from 'typebox'
 import {
     AssetTransfer,
@@ -22,8 +23,7 @@ import {
     transferCompanyAssets,
     turnOrderFrom,
     trainsOwnedBy,
-    unownedTrain,
-    type EighteenXXState
+    unownedTrain
 } from '@tabletop/18xx'
 import { EighteenSeventeenTrainRules } from './trains.js'
 import {
@@ -43,7 +43,7 @@ const { repayMove: _repayMove, ...RepaymentInPlace } = Loans
 
 const GoldenParachuteValue = 100
 
-function payGoldenParachute(state: EighteenXXState, playerId: string): CashPayment {
+function payGoldenParachute(state: EighteenSeventeenState, playerId: string): CashPayment {
     const payment = {
         from: { kind: 'bank' as const },
         to: { kind: 'player' as const, playerId },
@@ -55,7 +55,7 @@ function payGoldenParachute(state: EighteenXXState, playerId: string): CashPayme
 
 /** The Golden Parachute pays its company's president when another president's company buys it. */
 export function parachuteOnAcquisition(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     buyerId: string
 ): CashPayment | undefined {
@@ -68,7 +68,7 @@ export function parachuteOnAcquisition(
 
 /** It also pays when the bank liquidates its company, if the company still has a president. */
 export function parachuteOnLiquidation(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string
 ): CashPayment | undefined {
     if (companyHolding(state, GoldenParachuteId) !== companyId) return undefined
@@ -97,7 +97,7 @@ export type AcquisitionRecord = Type.Static<typeof AcquisitionRecord>
  * before it chooses to repay any others.
  */
 export function acquireCompany(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     sale: SaleTerms,
     buyerId: string,
     price: number
@@ -144,20 +144,23 @@ export function acquireCompany(
     }
 }
 
-export function canRepayAcquiredLoan(state: EighteenXXState, acquisition: Acquisition): boolean {
+export function canRepayAcquiredLoan(
+    state: EighteenSeventeenState,
+    acquisition: Acquisition
+): boolean {
     return (
         acquisition.repaidLoans < acquisition.inheritedLoans &&
         companyCash(state, acquisition.buyerId) >= Loans.value
     )
 }
 
-export function repayAcquiredLoan(state: EighteenXXState, buyerId: string): LoanRecord {
+export function repayAcquiredLoan(state: EighteenSeventeenState, buyerId: string): LoanRecord {
     return repayLoan(state, RepaymentInPlace, buyerId)
 }
 
 /** Each inherited loan the buyer still holds moves its price left. */
 export function moveBuyerForUnpaidLoans(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     acquisition: Acquisition
 ): StockMarketMove[] {
     const marketMoves: StockMarketMove[] = []
@@ -181,7 +184,7 @@ export type Settlement = Type.Static<typeof Settlement>
 
 // Charges are met in turn order from the sold company's president.
 function chargesInTurnOrder(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     charges: readonly Debt[]
 ): Debt[] {
@@ -202,7 +205,7 @@ function chargesInTurnOrder(
  * proceeds first repay its loans, and its president owes any shortfall.
  */
 export function settleHolders(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     proceeds: number,
     held: HeldAside | undefined
@@ -224,7 +227,7 @@ export function settleHolders(
 }
 
 /** A liquidated company's cash goes to the bank while it is sold; its loans stay until settled. */
-export function holdAside(state: EighteenXXState, companyId: string): HeldAside {
+export function holdAside(state: EighteenSeventeenState, companyId: string): HeldAside {
     const company = { kind: 'company' as const, companyId }
     const cash = companyCash(state, companyId)
     if (cash) settleCashPayments(state, [{ from: company, to: { kind: 'bank' }, amount: cash }])
@@ -236,7 +239,7 @@ export function holdAside(state: EighteenXXState, companyId: string): HeldAside 
  * its privates close.
  */
 export function liquidateByBank(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string
 ): { trainIds: string[]; payments: CashPayment[] } {
     const owner = { kind: 'company' as const, companyId }

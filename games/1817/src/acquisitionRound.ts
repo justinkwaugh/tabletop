@@ -1,3 +1,8 @@
+import type {
+    HydratedEighteenSeventeenState,
+    EighteenSeventeenStateHandler,
+    EighteenSeventeenState
+} from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -20,10 +25,7 @@ import {
     StockMarketMove,
     canTakeLoan,
     isTakeLoan,
-    type EighteenXXState,
-    type OperatingState,
-    type EighteenXXStateHandler,
-    type HydratedEighteenXXState
+    type OperatingState
 } from '@tabletop/18xx'
 import {
     acquisitionRoundCompanyIds,
@@ -64,33 +66,33 @@ import {
 } from './state.js'
 import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 
-type State = HydratedGameState & EighteenXXState
-type Context = MachineContext<HydratedEighteenXXState>
+type State = HydratedGameState & EighteenSeventeenState
+type Context = MachineContext<HydratedEighteenSeventeenState>
 
-function requireRound(state: object): AcquisitionRound {
+function requireRound(state: EighteenSeventeenState): AcquisitionRound {
     const round = activeAcquisitionRound(state)
     assertExists(round, 'An acquisition round is in progress')
     return round
 }
 
-function requireSale(state: object): CompanySale {
+function requireSale(state: EighteenSeventeenState): CompanySale {
     const sale = requireRound(state).sale
     assertExists(sale, 'A company is being sold')
     return sale
 }
 
-function requireAcquisition(state: object): Acquisition {
+function requireAcquisition(state: EighteenSeventeenState): Acquisition {
     const acquisition = requireRound(state).acquisition
     assertExists(acquisition, 'A company has been bought')
     return acquisition
 }
 
-export function acquisitionRoundCompanyId(state: object): string | undefined {
+export function acquisitionRoundCompanyId(state: EighteenSeventeenState): string | undefined {
     const round = activeAcquisitionRound(state)
     return round?.sale?.companyId ?? round?.acquisition?.sale.companyId ?? round?.companyIds[0]
 }
 
-export function stateAfterAcquisition(state: EighteenXXState): string {
+export function stateAfterAcquisition(state: EighteenSeventeenState): string {
     const acquisition = requireRound(state).acquisition
     if (!acquisition) return 'AcquisitionRound'
     if (stationsOverLimit(state, acquisition.buyerId)) return 'ReducingStations'
@@ -98,11 +100,13 @@ export function stateAfterAcquisition(state: EighteenXXState): string {
     return 'AcquisitionLoans'
 }
 
-function stateAfterSettling(state: EighteenXXState): string {
+function stateAfterSettling(state: EighteenSeventeenState): string {
     return state.cashCrisis ? 'RaisingCash' : 'AcquisitionRound'
 }
 
-export function acquisitionRoundDue(state: OperatingState): boolean {
+export function acquisitionRoundDue(
+    state: OperatingState & Pick<EighteenSeventeenState, 'mergerRound' | 'acquisitionRound'>
+): boolean {
     const set = state.operatingSet
     const merger = mergerRoundOf(state)
     const latest = acquisitionRoundOf(state)
@@ -116,7 +120,9 @@ export function acquisitionRoundDue(state: OperatingState): boolean {
     )
 }
 
-export function acquisitionRoundPending(state: OperatingState): boolean {
+export function acquisitionRoundPending(
+    state: OperatingState & Pick<EighteenSeventeenState, 'mergerRound' | 'acquisitionRound'>
+): boolean {
     const set = state.operatingSet
     const latest = acquisitionRoundOf(state)
     return (
@@ -128,7 +134,7 @@ export function acquisitionRoundPending(state: OperatingState): boolean {
 const SkipReason = Type.Union([Type.Literal('entered-zone'), Type.Literal('no-bidder')])
 type SkipReason = Type.Static<typeof SkipReason>
 
-function skipReason(state: EighteenXXState, companyId: string): SkipReason | undefined {
+function skipReason(state: EighteenSeventeenState, companyId: string): SkipReason | undefined {
     const merger = mergerRoundOf(state)
     assertExists(merger, 'An acquisition round follows a merger round')
     if (enteredClosingZone(state, merger, companyId)) return 'entered-zone'
@@ -137,12 +143,12 @@ function skipReason(state: EighteenXXState, companyId: string): SkipReason | und
     return undefined
 }
 
-function nextCompanyId(state: object): string | undefined {
+function nextCompanyId(state: EighteenSeventeenState): string | undefined {
     const round = requireRound(state)
     return round.sale || round.acquisition ? undefined : round.companyIds[0]
 }
 
-function openSale(state: EighteenXXState, companyId: string, kind: SaleKind): CompanySale {
+function openSale(state: EighteenSeventeenState, companyId: string, kind: SaleKind): CompanySale {
     const round = requireRound(state)
     dropCompany(round, companyId)
     const heldAside = kind === 'liquidation' ? holdAside(state, companyId) : undefined
@@ -210,7 +216,9 @@ export class HydratedStartAcquisitionRound
     }
 }
 
-export function startsAcquisitionRounds(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+export function startsAcquisitionRounds(
+    handler: EighteenSeventeenStateHandler
+): EighteenSeventeenStateHandler {
     return new SystemActionFirstHandler(
         handler,
         StartAcquisitionRound,
@@ -242,7 +250,7 @@ export class HydratedEndAcquisitionRound
     constructor(data: EndAcquisitionRound) {
         super(data instanceof HydratedEndAcquisitionRound ? data.dehydrate() : data, EndValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         const round = requireRound(state)
         return (
             this.source === ActionSource.System &&
@@ -289,7 +297,7 @@ export class HydratedSkipCompanySale
     constructor(data: SkipCompanySale) {
         super(data instanceof HydratedSkipCompanySale ? data.dehydrate() : data, SkipValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             this.source === ActionSource.System &&
             nextCompanyId(state) === this.companyId &&
@@ -333,7 +341,7 @@ export class HydratedOpenCompanySale
     constructor(data: OpenCompanySale) {
         super(data instanceof HydratedOpenCompanySale ? data.dehydrate() : data, OpenValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             this.source === ActionSource.System &&
             nextCompanyId(state) === this.companyId &&
@@ -363,7 +371,7 @@ export function isOfferCompany(action: GameAction): action is OfferCompany {
     )
 }
 
-function offersFor(state: EighteenXXState, playerId: string, companyId: string): boolean {
+function offersFor(state: EighteenSeventeenState, playerId: string, companyId: string): boolean {
     return (
         nextCompanyId(state) === companyId &&
         saleKind(state, companyId) === 'offered' &&
@@ -382,7 +390,7 @@ export class HydratedOfferCompany
     constructor(data: OfferCompany) {
         super(data instanceof HydratedOfferCompany ? data.dehydrate() : data, OfferValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return offersFor(state, this.playerId, this.companyId)
     }
     apply(state: State): void {
@@ -416,7 +424,7 @@ export class HydratedDeclineOffer
     constructor(data: DeclineOffer) {
         super(data instanceof HydratedDeclineOffer ? data.dehydrate() : data, DeclineValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return offersFor(state, this.playerId, this.companyId)
     }
     apply(state: State): void {
@@ -430,7 +438,7 @@ export class HydratedDeclineOffer
 }
 
 /** Each company in turn is auctioned or offered by its president, until all are done. */
-export class AcquisitionRoundHandler implements EighteenXXStateHandler {
+export class AcquisitionRoundHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         if (
             action instanceof HydratedEndAcquisitionRound ||
@@ -497,7 +505,7 @@ export class HydratedBidToAcquire
     constructor(data: BidToAcquire) {
         super(data instanceof HydratedBidToAcquire ? data.dehydrate() : data, BidValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         const sale = requireRound(state).sale
         return (
             sale?.companyId === this.companyId &&
@@ -537,7 +545,7 @@ export class HydratedPassOnCompany
     constructor(data: PassOnCompany) {
         super(data instanceof HydratedPassOnCompany ? data.dehydrate() : data, PassValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         const sale = requireRound(state).sale
         return (
             sale?.companyId === this.companyId &&
@@ -596,7 +604,7 @@ export class HydratedCloseCompanySale
     constructor(data: CloseCompanySale) {
         super(data instanceof HydratedCloseCompanySale ? data.dehydrate() : data, CloseValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         const sale = requireRound(state).sale
         return (
             this.source === ActionSource.System &&
@@ -621,7 +629,7 @@ export class HydratedCloseCompanySale
 }
 
 /** Players bid in turn or pass for good; a sale nobody bids on closes. */
-export class AcquisitionBiddingHandler implements EighteenXXStateHandler {
+export class AcquisitionBiddingHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         if (
             action instanceof HydratedBidToAcquire ||
@@ -675,7 +683,7 @@ export function isAcquireCompany(action: GameAction): action is AcquireCompany {
 }
 
 export function acquirerChoice(
-    state: EighteenXXState
+    state: EighteenSeventeenState
 ): { playerId: string; amount: number; buyerIds: string[] } | undefined {
     const sale = activeAcquisitionRound(state)?.sale
     const winner = sale && new PassableBidding(sale.bidding).winner
@@ -695,7 +703,7 @@ export class HydratedAcquireCompany
     constructor(data: AcquireCompany) {
         super(data instanceof HydratedAcquireCompany ? data.dehydrate() : data, AcquireValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         const choice = acquirerChoice(state)
         return (
             requireRound(state).sale?.companyId === this.companyId &&
@@ -725,7 +733,7 @@ export class HydratedAcquireCompany
 }
 
 /** The winning bidder names the company that pays, by itself when only one can. */
-export class ChoosingAcquirerHandler implements EighteenXXStateHandler {
+export class ChoosingAcquirerHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         return action instanceof HydratedAcquireCompany
             ? action.isValidFor(context.gameState)
@@ -752,14 +760,17 @@ export class ChoosingAcquirerHandler implements EighteenXXStateHandler {
     }
 }
 
-function buyerPresidentFor(state: EighteenXXState, playerId: string): Acquisition | undefined {
+function buyerPresidentFor(
+    state: EighteenSeventeenState,
+    playerId: string
+): Acquisition | undefined {
     const acquisition = requireRound(state).acquisition
     return acquisition && presidentOf(state, acquisition.buyerId) === playerId
         ? acquisition
         : undefined
 }
 
-function canBorrowAfterAcquisition(state: EighteenXXState, playerId: string): boolean {
+function canBorrowAfterAcquisition(state: EighteenSeventeenState, playerId: string): boolean {
     const acquisition = buyerPresidentFor(state, playerId)
     return (
         !!acquisition &&
@@ -768,7 +779,7 @@ function canBorrowAfterAcquisition(state: EighteenXXState, playerId: string): bo
     )
 }
 
-function canRepayAfterAcquisition(state: EighteenXXState, playerId: string): boolean {
+function canRepayAfterAcquisition(state: EighteenSeventeenState, playerId: string): boolean {
     const acquisition = buyerPresidentFor(state, playerId)
     return !!acquisition && canRepayAcquiredLoan(state, acquisition)
 }
@@ -800,7 +811,7 @@ export class HydratedRepayAcquiredLoan
     constructor(data: RepayAcquiredLoan) {
         super(data instanceof HydratedRepayAcquiredLoan ? data.dehydrate() : data, RepayValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             buyerPresidentFor(state, this.playerId)?.buyerId === this.companyId &&
             canRepayAfterAcquisition(state, this.playerId)
@@ -856,7 +867,7 @@ export class HydratedFinishAcquisitionLoans
             FinishValidator
         )
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             buyerPresidentFor(state, this.playerId)?.buyerId === this.companyId &&
             (this.source === ActionSource.User ||
@@ -890,7 +901,7 @@ export class HydratedFinishAcquisitionLoans
 }
 
 /** The buyer may borrow or repay the loans it took on, then its holders are settled. */
-export class AcquisitionLoansHandler implements EighteenXXStateHandler {
+export class AcquisitionLoansHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         const state = context.gameState
         if (isTakeLoan(action))

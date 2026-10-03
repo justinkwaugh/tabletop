@@ -13,7 +13,7 @@
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import RoundHistory from './RoundHistory.svelte'
     import AuctionHistoryCard from './AuctionHistoryCard.svelte'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
         onPreviewMap,
@@ -26,7 +26,7 @@
         companyNames
     }: {
         onPreviewMap: (action: GameAction) => void
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
         phaseColors: Readonly<Record<string, string>>
         phaseTileColors: Readonly<Record<string, readonly string[]>>

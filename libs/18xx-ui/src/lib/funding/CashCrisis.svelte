@@ -1,7 +1,8 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSessionView } =
+        $props()
     const money = $derived(session.presentation.money)
     const debt = $derived(session.cashCrisis.debt)
     const companyName = (id: string) => getCompany(session.gameState, id).name

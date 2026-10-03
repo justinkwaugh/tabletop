@@ -1,7 +1,5 @@
 <script lang="ts">
     import type { ScenarioPosition } from '@tabletop/18xx/scenarios'
-    import { withScenarioUi } from '../../scenarios/uiDefinitions.js'
-    import FinanceExampleHost from '../../demo/FinanceExampleHost.svelte'
     import { PlaygroundTitles, playgroundTitle, type PlaygroundTitle } from '../../titles.js'
     import '../../table.css'
 
@@ -63,10 +61,7 @@
                 >{/each}
         </select>
     </nav>
-    {#key `${titleKey}:${position}`}<FinanceExampleHost
-            definition={withScenarioUi(title.ui)}
-            {position}
-        />{/key}
+    {#key `${titleKey}:${position}`}<title.host {position} />{/key}
 </div>
 
 <style>

@@ -1,3 +1,4 @@
+import type { EighteenThirtyState } from './state.js'
 import { EighteenThirtyStockRoundRules } from './roundRules.js'
 import { assertExists } from '@tabletop/common'
 import {
@@ -93,10 +94,14 @@ export const EighteenThirtyStockRules: StockRules = {
     // Brown-zone shares of one company may be bought several at a time: from the market, or
     // also from the IPO when the game's option allows it.
     multipleBuys: {
-        allowsAnother(state, certificate, earlier) {
+        allowsAnother(
+            state: StockState & Pick<EighteenThirtyState, 'multipleBrownFromIpo'>,
+            certificate,
+            earlier
+        ) {
             if (companyMarketSpace(state.stockMarket, certificate.companyId).color !== 'brown')
                 return false
-            if ('multipleBrownFromIpo' in state && state.multipleBrownFromIpo === true) return true
+            if (state.multipleBrownFromIpo === true) return true
             return (
                 certificate.poolId === 'open-market' &&
                 earlier.every((purchase) => purchase.poolId !== 'initial-offering')

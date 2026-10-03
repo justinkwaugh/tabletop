@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { GameSession } from '@tabletop/frontend-components'
-    import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
+    import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
     import {
         GameTable,
         OperatingActions,
@@ -18,7 +18,9 @@
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
-    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
+    let {
+        gameSession
+    }: { gameSession: GameSession<EighteenSeventeenState, HydratedEighteenSeventeenState> } =
         $props()
     const session = $derived(requireEighteenSeventeenSession(gameSession))
     const privateOperationDescription = () => undefined

@@ -1,6 +1,7 @@
 <script lang="ts">
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, purchaseLabel }: { session: EighteenXXSession; purchaseLabel: string } = $props()
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session, purchaseLabel }: { session: EighteenXXSessionView; purchaseLabel: string } =
+        $props()
     const canBuy = $derived(session.decisions.privatePurchases.length > 0)
     const canUse = $derived(session.privateActions.powersAvailable)
     let menu = $state<HTMLDivElement>()

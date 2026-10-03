@@ -1,10 +1,10 @@
 <script lang="ts">
     import { getCompany } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import AuctionBidControl from '../auctions/AuctionBidControl.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
 
-    let { session }: { session: EighteenXXSession } = $props()
+    let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
     const auction = $derived(session.companyAuction)
     const terms = $derived(auction.model?.terms)

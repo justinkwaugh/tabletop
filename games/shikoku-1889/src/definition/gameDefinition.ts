@@ -1,3 +1,4 @@
+import { FamilyStateDefinition } from '@tabletop/18xx'
 import { Shikoku1889EndingRules } from '../endingRules.js'
 import { Shikoku1889AuctionRules, createShikoku1889Opening } from '../openingAuction.js'
 import { Shikoku1889TrainFundingRules } from '../trainFundingRules.js'
@@ -23,6 +24,7 @@ import {
 } from '@tabletop/18xx'
 
 export const Shikoku1889TitleRules: EighteenXXTitleRules = {
+    state: FamilyStateDefinition,
     endingRules: Shikoku1889EndingRules,
     auctionRules: Shikoku1889AuctionRules,
     trainFundingRules: Shikoku1889TrainFundingRules,

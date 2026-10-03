@@ -1,14 +1,22 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { describe, expect, it } from 'vitest'
-import { GameEngine, PlayerStatus, type GameDefinition } from '@tabletop/common'
+import { describe, expect, expectTypeOf, it } from 'vitest'
+import {
+    GameEngine,
+    PlayerStatus,
+    type HydratedGameState,
+    type GameDefinition
+} from '@tabletop/common'
 import {
     HydratedEighteenXXState,
     createEighteenXXRuntime,
+    titleComponents,
     extendEighteenXXState,
     type EighteenXXState,
+    type EighteenXXMachineState,
     type EighteenXXStateHandler,
     type EighteenXXTitleRules,
+    type Opening,
     type RailwayMap,
     type TileSet,
     type TrainDepot
@@ -16,28 +24,27 @@ import {
 import { Definition as Shikoku, Shikoku1889TitleRules } from './index.js'
 import { startFromPublicSeed } from '@tabletop/18xx/scenarios'
 
-const CharterState = extendEighteenXXState(
-    { charterVotes: Type.Optional(Type.Array(Type.String())) },
-    ['CharterRound']
-)
+const CharterState = extendEighteenXXState({ charterVotes: Type.Array(Type.String()) }, [
+    'CharterRound'
+])
 const CharterStateValidator = Compile(CharterState)
-class HydratedCharterState extends HydratedEighteenXXState {
-    declare charterVotes?: string[]
-    constructor(data: EighteenXXState, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
+type CharterState = Type.Static<typeof CharterState>
+class HydratedCharterState extends HydratedEighteenXXState<typeof CharterState> {
+    declare charterVotes: string[]
+    constructor(data: unknown, map: RailwayMap, tileSet: TileSet, depot: TrainDepot) {
         super(data, map, tileSet, depot, CharterStateValidator)
     }
 }
 
-const charterRound: EighteenXXStateHandler = {
+type CharterHandler = EighteenXXStateHandler<HydratedCharterState>
+const charterRound: CharterHandler = {
     isValidAction: () => false,
     validActionsForPlayer: (_playerId, context) =>
-        context.gameState instanceof HydratedCharterState
-            ? (context.gameState.charterVotes ?? []).map((vote) => `Vote:${vote}`)
-            : [],
+        context.gameState.charterVotes.map((vote) => `Vote:${vote}`),
     enter: () => {},
     onAction: () => 'StockRound'
 }
-function offersCharterPetition(family: EighteenXXStateHandler): EighteenXXStateHandler {
+function offersCharterPetition(family: CharterHandler): CharterHandler {
     return {
         isValidAction: (action, context) => family.isValidAction(action, context),
         validActionsForPlayer: (playerId, context) => [
@@ -49,21 +56,28 @@ function offersCharterPetition(family: EighteenXXStateHandler): EighteenXXStateH
     }
 }
 
-const CharterRules: EighteenXXTitleRules = {
+const CharterRules: EighteenXXTitleRules<typeof CharterState, HydratedCharterState> = {
     ...Shikoku1889TitleRules,
     state: {
         schema: CharterState,
         hydrate: (data, map, tileSet, depot) => new HydratedCharterState(data, map, tileSet, depot)
     },
+    createOpening: (setup) => ({
+        ...Shikoku1889TitleRules.createOpening(setup),
+        titleState: { charterVotes: [] }
+    }),
     decisionHandlers: { WaterfallAuction: offersCharterPetition },
     titleStateHandlers: { CharterRound: charterRound }
 }
-const Charter: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
+const Charter: GameDefinition<CharterState, HydratedCharterState> = {
     info: Shikoku.info,
     runtime: createEighteenXXRuntime(CharterRules)
 }
 
-function start(definition: typeof Charter) {
+function start<
+    Raw extends EighteenXXState,
+    State extends HydratedEighteenXXState & HydratedGameState<Raw>
+>(definition: GameDefinition<Raw, State>) {
     const game = definition.runtime.initializer.initializeGame(
         {
             id: 'title-state',
@@ -86,12 +100,12 @@ function start(definition: typeof Charter) {
     }
 }
 
-function inCharterRound(state: EighteenXXState, charterVotes: string[]) {
+function inCharterRound(state: CharterState, charterVotes: string[]): CharterState {
     const { openingAuction, ...afterOpening } = state
     return { ...afterOpening, machineState: 'CharterRound', charterVotes }
 }
 
-const CharterOpening: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
+const CharterOpening: GameDefinition<CharterState, HydratedCharterState> = {
     info: Shikoku.info,
     runtime: createEighteenXXRuntime({
         ...CharterRules,
@@ -112,6 +126,31 @@ const CharterOpening: GameDefinition<EighteenXXState, HydratedEighteenXXState> =
 }
 
 describe('a title that defines its own state', () => {
+    it('preserves the declared types through composition', () => {
+        const { state } = start(Charter)
+        const hydrated = Charter.runtime.hydrator.hydrateState(state)
+        expectTypeOf(state.charterVotes).toEqualTypeOf<string[]>()
+        expectTypeOf(hydrated).toEqualTypeOf<HydratedCharterState>()
+        expectTypeOf(hydrated.dehydrate()).toEqualTypeOf<CharterState>()
+        expectTypeOf<CharterState>().not.toHaveProperty('charterVtoes')
+        expectTypeOf<CharterState['machineState']>().toEqualTypeOf<
+            EighteenXXMachineState | 'CharterRound'
+        >()
+        expectTypeOf<
+            Opening<typeof CharterState, HydratedCharterState>['titleState']
+        >().toEqualTypeOf<{ charterVotes: string[] }>()
+    })
+
+    it('rejects missing or malformed title fields at hydration', () => {
+        const { state } = start(Charter)
+        const { charterVotes, ...missing } = state
+        expect(charterVotes).toEqual([])
+        const hydrate = CharterRules.state.hydrate
+        const { map, tileSet, depot } = titleComponents(CharterRules)
+        expect(() => hydrate(missing, map, tileSet, depot)).toThrow()
+        expect(() => hydrate({ ...state, charterVotes: [17] }, map, tileSet, depot)).toThrow()
+    })
+
     it('keeps its fields and machine states through hydration', () => {
         const { engine, state } = start(Charter)
         const stored = inCharterRound(state, ['AR'])

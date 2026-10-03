@@ -1,8 +1,8 @@
 <script lang="ts">
     import PrivateCard from './PrivateCard.svelte'
     import { getCompany } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showEntry = true }: { session: EighteenXXSession; showEntry?: boolean } =
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session, showEntry = true }: { session: EighteenXXSessionView; showEntry?: boolean } =
         $props()
     const money = $derived(session.presentation.money)
     const mine = $derived(

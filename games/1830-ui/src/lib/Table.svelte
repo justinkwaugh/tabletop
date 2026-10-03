@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { GameSession } from '@tabletop/frontend-components'
-    import type { EighteenXXState, HydratedEighteenXXState } from '@tabletop/18xx'
+    import type { EighteenThirtyState, HydratedEighteenThirtyState } from '@tabletop/1830'
     import {
         CompanyPar,
         GameTable,
@@ -12,8 +12,9 @@
     function createRouteWorker() {
         return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
     }
-    let { gameSession }: { gameSession: GameSession<EighteenXXState, HydratedEighteenXXState> } =
-        $props()
+    let {
+        gameSession
+    }: { gameSession: GameSession<EighteenThirtyState, HydratedEighteenThirtyState> } = $props()
     const session = $derived(requireEighteenXXSession(gameSession))
     // A company-owned C&StL or D&H power lasts until used or until its hex has a tile.
     const PrivatePowers: Readonly<Record<string, { locationId: string; description: string }>> = {

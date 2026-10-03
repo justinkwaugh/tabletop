@@ -1,3 +1,4 @@
+import type { EighteenSeventeenState } from './state.js'
 import {
     PassableBidding,
     companyLoans,
@@ -7,8 +8,7 @@ import {
     getCompany,
     loansRemaining,
     stockMarketOrder,
-    validBidStep,
-    type EighteenXXState
+    validBidStep
 } from '@tabletop/18xx'
 import { corporationShareCount } from './corporations.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
@@ -26,19 +26,19 @@ export const AcquisitionIncrement = 10
 const LoanValue = EighteenSeventeenLoanRules.value
 
 /** Lowest price first, so the closing zones come before the companies that could buy. */
-export function acquisitionRoundCompanyIds(state: EighteenXXState): string[] {
+export function acquisitionRoundCompanyIds(state: EighteenSeventeenState): string[] {
     return stockMarketOrder(state.stockMarket)
         .filter((companyId) => getCompany(state, companyId).floated)
         .reverse()
 }
 
-export function saleKind(state: EighteenXXState, companyId: string): SaleKind {
+export function saleKind(state: EighteenSeventeenState, companyId: string): SaleKind {
     return closingZone(state.stockMarket, companyId) ?? 'offered'
 }
 
 /** A company that has moved into a closing zone since its operating round ended sits out. */
 export function enteredClosingZone(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     mergerRound: MergerRound,
     companyId: string
 ): boolean {
@@ -47,15 +47,19 @@ export function enteredClosingZone(
     return !!zone && zone !== before
 }
 
-export function companyCash(state: EighteenXXState, companyId: string): number {
+export function companyCash(state: EighteenSeventeenState, companyId: string): number {
     return finiteCashOwnedBy(state, { kind: 'company', companyId })
 }
 
-function price(state: EighteenXXState, companyId: string): number {
+function price(state: EighteenSeventeenState, companyId: string): number {
     return companyMarketSpace(state.stockMarket, companyId).price
 }
 
-export function openingBid(state: EighteenXXState, companyId: string, kind: SaleKind): number {
+export function openingBid(
+    state: EighteenSeventeenState,
+    companyId: string,
+    kind: SaleKind
+): number {
     if (kind !== 'offered') return AcquisitionIncrement
     const value = corporationShareCount(state, companyId) * price(state, companyId)
     return Math.ceil(value / AcquisitionIncrement) * AcquisitionIncrement
@@ -63,7 +67,7 @@ export function openingBid(state: EighteenXXState, companyId: string, kind: Sale
 
 /** The bank pays an offered company for the shares in its treasury. */
 export function treasuryCompensation(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     kind: SaleKind
 ): number {
@@ -73,7 +77,7 @@ export function treasuryCompensation(
 }
 
 /** A liquidated company keeps its loans until its sale settles them; any other passes them on. */
-export function inheritedLoans(state: EighteenXXState, sale: SaleTerms): number {
+export function inheritedLoans(state: EighteenSeventeenState, sale: SaleTerms): number {
     return sale.kind === 'liquidation' ? 0 : companyLoans(state, sale.companyId)
 }
 
@@ -81,7 +85,11 @@ export function inheritedLoans(state: EighteenXXState, sale: SaleTerms): number 
  * The most a company could pay: its cash, the loans it may still take, and what it gains with
  * the target, less the target's loans it takes on.
  */
-export function buyerLimit(state: EighteenXXState, buyerId: string, sale: SaleTerms): number {
+export function buyerLimit(
+    state: EighteenSeventeenState,
+    buyerId: string,
+    sale: SaleTerms
+): number {
     const loans = Math.min(
         EighteenSeventeenLoanRules.capacity(state, buyerId) - companyLoans(state, buyerId),
         loansRemaining(state, EighteenSeventeenLoanRules)
@@ -95,7 +103,11 @@ export function buyerLimit(state: EighteenXXState, buyerId: string, sale: SaleTe
     )
 }
 
-function buyingCompanies(state: EighteenXXState, playerId: string, targetId: string): string[] {
+function buyingCompanies(
+    state: EighteenSeventeenState,
+    playerId: string,
+    targetId: string
+): string[] {
     return state.companies
         .filter(
             (company) =>
@@ -109,7 +121,7 @@ function buyingCompanies(state: EighteenXXState, playerId: string, targetId: str
 }
 
 export function buyersFor(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     playerId: string,
     sale: SaleTerms,
     amount: number
@@ -119,7 +131,11 @@ export function buyersFor(
     )
 }
 
-export function playerLimit(state: EighteenXXState, playerId: string, sale: SaleTerms): number {
+export function playerLimit(
+    state: EighteenSeventeenState,
+    playerId: string,
+    sale: SaleTerms
+): number {
     return Math.max(
         0,
         ...buyingCompanies(state, playerId, sale.companyId).map((buyerId) =>
@@ -128,7 +144,7 @@ export function playerLimit(state: EighteenXXState, playerId: string, sale: Sale
     )
 }
 
-export function minimumBid(state: EighteenXXState, sale: CompanySale): number {
+export function minimumBid(state: EighteenSeventeenState, sale: CompanySale): number {
     const bidding = new PassableBidding(sale.bidding)
     return bidding.hasBid
         ? bidding.highBid + AcquisitionIncrement
@@ -136,7 +152,11 @@ export function minimumBid(state: EighteenXXState, sale: CompanySale): number {
 }
 
 /** A company's own president may bid only the minimum. */
-export function bidCeiling(state: EighteenXXState, sale: CompanySale, playerId: string): number {
+export function bidCeiling(
+    state: EighteenSeventeenState,
+    sale: CompanySale,
+    playerId: string
+): number {
     const limit = playerLimit(state, playerId, sale)
     return controllingOwner(state, sale.companyId)?.playerId === playerId
         ? Math.min(limit, minimumBid(state, sale))
@@ -144,7 +164,7 @@ export function bidCeiling(state: EighteenXXState, sale: CompanySale, playerId: 
 }
 
 export function bidRejection(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     sale: CompanySale,
     playerId: string,
     amount: number
@@ -165,7 +185,7 @@ export function bidRejection(
  * Bidding starts left of the company's president, or of the president bankruptcy took from it,
  * among the players still in the game.
  */
-export function biddingOrder(state: EighteenXXState, companyId: string): string[] {
+export function biddingOrder(state: EighteenSeventeenState, companyId: string): string[] {
     const presidentId =
         controllingOwner(state, companyId)?.playerId ?? formerPresident(state, companyId)
     const { turnOrder } = state.turnManager
@@ -175,7 +195,7 @@ export function biddingOrder(state: EighteenXXState, companyId: string): string[
     return [...seats.slice(after), ...seats.slice(0, after)].filter((id) => turnOrder.includes(id))
 }
 
-export function hasBidder(state: EighteenXXState, sale: SaleTerms): boolean {
+export function hasBidder(state: EighteenSeventeenState, sale: SaleTerms): boolean {
     const opening = openingBid(state, sale.companyId, sale.kind)
     return state.turnManager.turnOrder.some(
         (playerId) => playerLimit(state, playerId, sale) >= opening
@@ -183,7 +203,10 @@ export function hasBidder(state: EighteenXXState, sale: SaleTerms): boolean {
 }
 
 /** Withdraws every bidder who cannot reach the next minimum. */
-export function withdrawUnableBidders(state: EighteenXXState, sale: CompanySale): CompanySale {
+export function withdrawUnableBidders(
+    state: EighteenSeventeenState,
+    sale: CompanySale
+): CompanySale {
     return {
         ...sale,
         bidding: new PassableBidding(sale.bidding).withdrawBelow(minimumBid(state, sale), (id) =>
@@ -193,7 +216,7 @@ export function withdrawUnableBidders(state: EighteenXXState, sale: CompanySale)
 }
 
 export function perShareProceeds(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     amount: number
 ): number {

@@ -1,3 +1,4 @@
+import type { EighteenSeventeenState } from './state.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
     addShort,
@@ -23,7 +24,6 @@ import {
     trainsOwnedBy,
     type AssetTransfer,
     type CashPayment,
-    type EighteenXXState,
     type Owner,
     type PlacedStation,
     type Station,
@@ -45,45 +45,47 @@ export const CharterShareCount = 2
 const SizeAfter: Readonly<Record<number, number>> = { 2: 5, 5: 10 }
 
 /** The companies that take part in a merger round, in operating order. */
-export function mergerRoundCompanyIds(state: EighteenXXState): string[] {
+export function mergerRoundCompanyIds(state: EighteenSeventeenState): string[] {
     return stockMarketOrder(state.stockMarket).filter((companyId) => {
         const company = getCompany(state, companyId)
         return company.floated && !inClosingZone(state.stockMarket, companyId)
     })
 }
 
-export function presidentOf(state: EighteenXXState, companyId: string): string {
+export function presidentOf(state: EighteenSeventeenState, companyId: string): string {
     const president = controllingOwner(state, companyId)
     assertExists(president, 'The company has a president')
     return president.playerId
 }
 
-export function closingZones(state: EighteenXXState): { companyId: string; zone: ClosingZone }[] {
+export function closingZones(
+    state: EighteenSeventeenState
+): { companyId: string; zone: ClosingZone }[] {
     return state.companies.flatMap((company) => {
         const zone = company.floated ? closingZone(state.stockMarket, company.id) : undefined
         return zone ? [{ companyId: company.id, zone }] : []
     })
 }
 
-export function canConvert(state: EighteenXXState, companyId: string): boolean {
+export function canConvert(state: EighteenSeventeenState, companyId: string): boolean {
     return SizeAfter[corporationShareCount(state, companyId)] !== undefined
 }
 
-export function sizeAfterConversion(state: EighteenXXState, companyId: string): number {
+export function sizeAfterConversion(state: EighteenSeventeenState, companyId: string): number {
     const size = SizeAfter[corporationShareCount(state, companyId)]
     assertExists(size, 'Only a 2- or 5-share company converts')
     return size
 }
 
 /** The stations a company holds, placed or not. */
-export function heldStations(state: EighteenXXState, companyId: string): number {
+export function heldStations(state: EighteenSeventeenState, companyId: string): number {
     return state.stations.filter(
         (station) => station.companyId === companyId && station.status !== 'removed'
     ).length
 }
 
 /** Stations a company converted to this size must buy: one more at 5 shares, up to two at 10. */
-function stationsForSize(state: EighteenXXState, companyId: string, size: number): number {
+function stationsForSize(state: EighteenSeventeenState, companyId: string, size: number): number {
     const held = heldStations(state, companyId)
     return size === 5
         ? held < StationLimit
@@ -93,7 +95,7 @@ function stationsForSize(state: EighteenXXState, companyId: string, size: number
 }
 
 /** Stations a converted company must buy. */
-export function stationsForConversion(state: EighteenXXState, companyId: string): number {
+export function stationsForConversion(state: EighteenSeventeenState, companyId: string): number {
     return stationsForSize(state, companyId, corporationShareCount(state, companyId))
 }
 
@@ -105,7 +107,10 @@ export type ConversionPreview = {
 }
 
 /** What converting would make of the company, for its president to weigh. */
-export function conversionPreview(state: EighteenXXState, companyId: string): ConversionPreview {
+export function conversionPreview(
+    state: EighteenSeventeenState,
+    companyId: string
+): ConversionPreview {
     const shareCount = sizeAfterConversion(state, companyId)
     return {
         shareCount,
@@ -115,7 +120,7 @@ export function conversionPreview(state: EighteenXXState, companyId: string): Co
 }
 
 /** Grows the company to its next size, adding the new shares to its treasury. */
-export function convertCompany(state: EighteenXXState, companyId: string): string[] {
+export function convertCompany(state: EighteenSeventeenState, companyId: string): string[] {
     const before = corporationShareCount(state, companyId)
     const after = sizeAfterConversion(state, companyId)
     getCompany(state, companyId).shareCount = after
@@ -126,7 +131,7 @@ export function convertCompany(state: EighteenXXState, companyId: string): strin
 }
 
 function largestCombinedPercent(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     targetId: string
 ): number {
@@ -144,7 +149,11 @@ function largestCombinedPercent(
 }
 
 /** The merged company's price: the sum of two 2-share prices or the average of two 5-share. */
-export function mergerPrice(state: EighteenXXState, companyId: string, targetId: string): number {
+export function mergerPrice(
+    state: EighteenSeventeenState,
+    companyId: string,
+    targetId: string
+): number {
     const a = companyMarketSpace(state.stockMarket, companyId).price
     const b = companyMarketSpace(state.stockMarket, targetId).price
     const value = getCompany(state, companyId).shareCount === 2 ? a + b : Math.floor((a + b) / 2)
@@ -167,7 +176,7 @@ export type MergerPreview = {
  * gains only the target's treasury shares.
  */
 export function mergerPreview(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     targetId: string
 ): MergerPreview {
@@ -189,18 +198,19 @@ export function mergerPreview(
     }
 }
 
-function mergerSpace(state: EighteenXXState, value: number): StockMarketSpace {
+function mergerSpace(state: EighteenSeventeenState, value: number): StockMarketSpace {
     const space = state.stockMarket.spaces
         .filter((space) => space.price > 0 && space.price <= value)
-        .reduce<
-            StockMarketSpace | undefined
-        >((best, space) => (!best || space.price > best.price ? space : best), undefined)
+        .reduce<StockMarketSpace | undefined>(
+            (best, space) => (!best || space.price > best.price ? space : best),
+            undefined
+        )
     assertExists(space, 'A merged company has a market space')
     return space
 }
 
 export function mergeReason(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     targetId: string,
     convertedIds: readonly string[]
@@ -230,7 +240,7 @@ export function mergeReason(
 }
 
 export function mergeTargetIds(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     convertedIds: readonly string[]
 ): string[] {
@@ -251,7 +261,7 @@ export type MergerRecord = {
  * to its next size, the target's holders receive its shares, and the target's charter resets.
  */
 export function mergeCompanies(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     targetId: string
 ): MergerRecord {
@@ -282,7 +292,11 @@ export function mergeCompanies(
     return { price, assets, stations, payments }
 }
 
-function giveShare(state: EighteenXXState, certificateId: string | undefined, owner: Owner): void {
+function giveShare(
+    state: EighteenSeventeenState,
+    certificateId: string | undefined,
+    owner: Owner
+): void {
     const certificate = state.certificates.find((certificate) => certificate.id === certificateId)
     assert(certificate && !certificate.retired, 'A merger gives an issued share')
     certificate.owner = { ...owner }
@@ -292,7 +306,7 @@ function giveShare(state: EighteenXXState, certificateId: string | undefined, ow
 // Each share and short of the target becomes one of the company's for the same holder: the
 // target's treasury shares stay in the company's treasury, the market's go to the market.
 function migrateHoldings(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     targetId: string,
     newShareIds: string[]
@@ -331,7 +345,7 @@ function migrateHoldings(
     for (const owner of holders) cancelShorts(state, companyId, owner)
 }
 
-export function trainsOverLimit(state: EighteenXXState, companyId: string): number {
+export function trainsOverLimit(state: EighteenSeventeenState, companyId: string): number {
     return Math.max(
         0,
         trainsOwnedBy(state, { kind: 'company', companyId }).length -
@@ -340,7 +354,7 @@ export function trainsOverLimit(state: EighteenXXState, companyId: string): numb
 }
 
 /** Unplaced stations past the limit leave first; placed ones past it await the president. */
-export function trimStations(state: EighteenXXState, companyId: string): void {
+export function trimStations(state: EighteenSeventeenState, companyId: string): void {
     let excess = heldStations(state, companyId) - StationLimit
     state.stations = state.stations.map((station): Station => {
         if (excess <= 0 || station.companyId !== companyId || station.status !== 'available')
@@ -350,7 +364,7 @@ export function trimStations(state: EighteenXXState, companyId: string): void {
     })
 }
 
-export function stationsOverLimit(state: EighteenXXState, companyId: string): number {
+export function stationsOverLimit(state: EighteenSeventeenState, companyId: string): number {
     return Math.max(0, heldStations(state, companyId) - StationLimit)
 }
 
@@ -360,7 +374,7 @@ export type StationPurchase = { stations: number; cost: number; affordable: bool
 const StationSubsidy = 50
 
 export function stationPurchase(
-    state: EighteenXXState,
+    state: EighteenSeventeenState,
     companyId: string,
     stations: number
 ): StationPurchase {
@@ -374,7 +388,10 @@ export function stationPurchase(
     }
 }
 
-export function removableStations(state: EighteenXXState, companyId: string): PlacedStation[] {
+export function removableStations(
+    state: EighteenSeventeenState,
+    companyId: string
+): PlacedStation[] {
     if (!stationsOverLimit(state, companyId)) return []
     return state.stations.filter(
         (station): station is PlacedStation =>
@@ -382,13 +399,13 @@ export function removableStations(state: EighteenXXState, companyId: string): Pl
     )
 }
 
-export function discardableTrains(state: EighteenXXState, companyId: string): Train[] {
+export function discardableTrains(state: EighteenSeventeenState, companyId: string): Train[] {
     return trainsOverLimit(state, companyId)
         ? trainsOwnedBy(state, { kind: 'company', companyId })
         : []
 }
 
-export function treasuryShareIds(state: EighteenXXState, companyId: string): string[] {
+export function treasuryShareIds(state: EighteenSeventeenState, companyId: string): string[] {
     return ordinaryShares(state, companyId)
         .filter((share) => share.poolId === treasuryPoolId(companyId))
         .map((share) => share.id)

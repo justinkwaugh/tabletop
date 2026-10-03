@@ -14,7 +14,7 @@
         isPrivateTileLay,
         isRespondToTrackConsent
     } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
         historyDescription,
         type HistoryDescription,
@@ -38,7 +38,7 @@
         trainColors,
         describeAction
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
         describeAction?: TitleActionDescription
     } = $props()

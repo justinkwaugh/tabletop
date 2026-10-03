@@ -15,15 +15,17 @@ import { EighteenThirtyCompanyRules } from '../companyRules.js'
 import { EighteenThirtyStockRules } from '../stockRules.js'
 import { type GameDefinition } from '@tabletop/common'
 import { EighteenThirtyInfo } from './info.js'
-import { EighteenThirtyStateDefinition } from '../state.js'
 import {
-    createEighteenXXRuntime,
-    type EighteenXXState,
-    type EighteenXXTitleRules,
-    type HydratedEighteenXXState
-} from '@tabletop/18xx'
+    EighteenThirtyStateDefinition,
+    EighteenThirtyState,
+    type HydratedEighteenThirtyState
+} from '../state.js'
+import { createEighteenXXRuntime, type EighteenXXTitleRules } from '@tabletop/18xx'
 
-export const EighteenThirtyTitleRules: EighteenXXTitleRules = {
+export const EighteenThirtyTitleRules: EighteenXXTitleRules<
+    typeof EighteenThirtyState,
+    HydratedEighteenThirtyState
+> = {
     state: EighteenThirtyStateDefinition,
     endingRules: EighteenThirtyEndingRules,
     auctionRules: EighteenThirtyAuctionRules,
@@ -45,7 +47,7 @@ export const EighteenThirtyTitleRules: EighteenXXTitleRules = {
     trainRules: EighteenThirtyTrainRules
 }
 
-export const Definition: GameDefinition<EighteenXXState, HydratedEighteenXXState> = {
+export const Definition: GameDefinition<EighteenThirtyState, HydratedEighteenThirtyState> = {
     info: EighteenThirtyInfo,
     runtime: createEighteenXXRuntime(EighteenThirtyTitleRules)
 }

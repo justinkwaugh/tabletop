@@ -14,8 +14,9 @@
         stockMarketSpace,
         type PresidencyChange
     } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSession } = $props()
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSessionView } =
+        $props()
     const gameState = $derived(session.gameState)
 </script>
 

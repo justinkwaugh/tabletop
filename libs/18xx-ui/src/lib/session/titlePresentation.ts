@@ -15,10 +15,10 @@ export type PrivateTokenPresentation = { companyId: string } | { tileSymbol: Til
 export type TitleStopReason = Extract<StockInstructionStopReason, { code: 'title' }>
 
 /** A round of the title's own that follows an operating round and is numbered after it. */
-export type TitleRound = {
+export type TitleRound<State extends EighteenXXState = EighteenXXState> = {
     name: string
     abbreviation: string
-    inProgress: (state: EighteenXXState) => boolean
+    inProgress(state: State): boolean
     starts: (action: GameAction) => boolean
     ends: (action: GameAction) => boolean
 }
@@ -30,15 +30,15 @@ export type TitleFact = { label: string; value: string }
 export type MarketZone = { color: string; name: string; description: string }
 
 /** A company statistic of the title's own, shown as a sortable spreadsheet column. */
-export type CompanyColumn = {
+export type CompanyColumn<State extends EighteenXXState = EighteenXXState> = {
     id: string
     label: string
     /** What the column sorts by; companies without a value sort last. */
-    value: (state: EighteenXXState, companyId: string) => number | undefined
-    text: (state: EighteenXXState, companyId: string) => string
+    value(state: State, companyId: string): number | undefined
+    text(state: State, companyId: string): string
 }
 
-export type TitlePresentation = {
+export type TitlePresentation<State extends EighteenXXState = EighteenXXState> = {
     money: MoneyFormat
     trainShortLabels?: Readonly<Record<string, string>>
     phaseChart: PhaseChartData
@@ -59,12 +59,12 @@ export type TitlePresentation = {
     privatePurchaseHeading?: string
     privateTilePrompts?: Readonly<Record<string, string>>
     privateTokens?: Readonly<Record<string, PrivateTokenPresentation>>
-    titleRounds?: readonly TitleRound[]
+    titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
-    gameFacts?: (state: EighteenXXState) => readonly TitleFact[]
-    companyColumns?: readonly CompanyColumn[]
+    gameFacts?(state: State): readonly TitleFact[]
+    companyColumns?: readonly CompanyColumn<State>[]
     /** Facts of the title's own about a company, such as its size or interest due. */
-    companyFacts?: (state: EighteenXXState, companyId: string) => readonly TitleFact[]
+    companyFacts?(state: State, companyId: string): readonly TitleFact[]
     marketZones?: readonly MarketZone[]
     /**
      * Published card artwork for the published presentation, keyed by private company id or

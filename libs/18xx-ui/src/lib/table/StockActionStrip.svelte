@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
         stockActionLabels,
         type StockAction,
@@ -11,7 +11,7 @@
         additionalActions = [],
         readOnly = false
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         additionalActions?: readonly StockMenuOption[]
         readOnly?: boolean
     } = $props()

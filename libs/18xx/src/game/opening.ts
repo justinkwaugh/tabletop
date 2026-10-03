@@ -7,7 +7,12 @@ import type { CompanyState } from '../company/companyState.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { StockMarket } from '../stock/stockMarket.js'
 import type { TrainState } from '../trains/train.js'
-import type { HydratedEighteenXXState } from './eighteenXXState.js'
+import type * as Type from 'typebox'
+import type {
+    EighteenXXState,
+    TitleStateSchema,
+    HydratedEighteenXXState
+} from './eighteenXXState.js'
 
 export type OpeningSetup = {
     players: readonly PlayerState[]
@@ -18,11 +23,20 @@ export type OpeningSetup = {
 export type InitialPosition = CompanyState &
     MapStateData &
     TrainState & { stockMarket: StockMarket }
-export type Opening = {
+export type InitialTitleState<Schema extends TitleStateSchema> = Omit<
+    Type.Static<Schema>,
+    keyof EighteenXXState
+>
+
+export type Opening<
+    Schema extends TitleStateSchema = TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+> = {
     position: InitialPosition
-    titleState?: Readonly<Record<string, unknown>>
-    begin(state: HydratedEighteenXXState): void
-}
+    begin(state: State): void
+} & (Record<never, never> extends InitialTitleState<Schema>
+    ? { titleState?: InitialTitleState<Schema> }
+    : { titleState: InitialTitleState<Schema> })
 
 function beginWith(state: HydratedEighteenXXState, machineState: string, playerId: string): void {
     state.turnManager.newFirstPlayer(playerId)

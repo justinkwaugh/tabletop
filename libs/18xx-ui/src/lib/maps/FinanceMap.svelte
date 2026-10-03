@@ -6,8 +6,8 @@
     import MapViewer from './MapViewer.svelte'
     import TileLibraryViewer from '../tiles/TileLibraryViewer.svelte'
     import { ClassicTileAppearance, MutedTileAppearance } from '../tiles/tileAppearance.js'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
-    let { session }: { session: EighteenXXSession } = $props()
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    let { session }: { session: EighteenXXSessionView } = $props()
     let showTiles = $state(false)
     const historyDisabled = $derived(
         session.busy || session.updatingVisibleState || session.history.isDisabled()

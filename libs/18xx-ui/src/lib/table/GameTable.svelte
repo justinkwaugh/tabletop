@@ -48,7 +48,7 @@
         ScalingWrapper,
         setGameSession
     } from '@tabletop/frontend-components'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import {
         isMapSelectionValid,
         mapSelectionRect,
@@ -91,7 +91,7 @@
         historyDescription,
         privateOperationDescription
     }: {
-        session: EighteenXXSession
+        session: EighteenXXSessionView
         additionalStockActions?: readonly StockMenuOption[]
         gameInformation?: Snippet
         boardInformation?: Snippet

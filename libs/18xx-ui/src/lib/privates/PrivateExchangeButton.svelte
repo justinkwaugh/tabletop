@@ -1,13 +1,13 @@
 <script lang="ts">
     import { getCompany, type PrivateExchangeRequest } from '@tabletop/18xx'
-    import type { EighteenXXSession } from '../session/eighteenXXSession.svelte.js'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
 
     let {
         session,
         option,
         label = 'Exchange'
-    }: { session: EighteenXXSession; option: PrivateExchangeRequest; label?: string } = $props()
+    }: { session: EighteenXXSessionView; option: PrivateExchangeRequest; label?: string } = $props()
     const company = $derived(session.privates.exchangeCompany(option.certificateId))
 </script>
 

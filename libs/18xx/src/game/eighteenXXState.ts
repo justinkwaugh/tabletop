@@ -128,13 +128,27 @@ export const EighteenXXState: Type.TObject<
     { additionalProperties: false }
 )
 export type EighteenXXMachineState = Type.Static<typeof FamilyMachineState>
-type TitleMachineState = { machineState: Type.TUnsafe<string> }
-type TitleStateSchema<Fields extends Type.TProperties = Record<never, never>> = Type.TObject<
-    Omit<typeof EighteenXXState.properties, 'machineState'> & Fields & TitleMachineState
+type TitleMachineState<Machine extends string> = {
+    machineState: Type.TUnsafe<Machine | EighteenXXMachineState>
+}
+export type TitleStateSchema<
+    Fields extends Type.TProperties = Record<never, never>,
+    Machine extends string = string
+> = Type.TObject<
+    Omit<typeof EighteenXXState.properties, 'machineState'> & Fields & TitleMachineState<Machine>
 >
-export type EighteenXXState = Type.Static<TitleStateSchema>
-export type EighteenXXStateValidator = Validator<Record<never, never>, TitleStateSchema>
+export type EighteenXXState<Schema extends TitleStateSchema = TitleStateSchema> =
+    Type.Static<Schema>
+export type EighteenXXStateValidator<Schema extends TitleStateSchema = TitleStateSchema> =
+    Validator<Record<never, never>, Schema>
 
+export function extendEighteenXXState<Fields extends Type.TProperties>(
+    fields: Fields
+): TitleStateSchema<Fields, EighteenXXMachineState>
+export function extendEighteenXXState<
+    Fields extends Type.TProperties,
+    const States extends readonly string[]
+>(fields: Fields, machineStates: States): TitleStateSchema<Fields, States[number]>
 export function extendEighteenXXState<Fields extends Type.TProperties>(
     fields: Fields,
     machineStates: readonly string[] = []
@@ -160,8 +174,8 @@ export function extendEighteenXXState<Fields extends Type.TProperties>(
     )
 }
 export const EighteenXXStateValidator: EighteenXXStateValidator = Compile(extendEighteenXXState({}))
-export class HydratedEighteenXXState
-    extends HydratableGameState<TitleStateSchema, PlayerState>
+export class HydratedEighteenXXState<Schema extends TitleStateSchema = TitleStateSchema>
+    extends HydratableGameState<Schema, PlayerState>
     implements EighteenXXState
 {
     declare offerAuction?: OfferPileAuction
@@ -199,7 +213,7 @@ export class HydratedEighteenXXState
     declare stations: CompanyState['stations']
     declare stationReservations: CompanyState['stationReservations']
     declare example: 'finances'
-    declare machineState: string
+    declare machineState: Type.Static<Schema>['machineState']
     declare operatingSet?: OperatingSet
     declare stationStep?: StationStep
     declare trackStep?: TrackStep
@@ -211,13 +225,15 @@ export class HydratedEighteenXXState
     declare cash: FinancialState['cash']
     declare certificates: FinancialState['certificates']
     constructor(
-        data: EighteenXXState,
+        data: unknown,
         map: RailwayMap,
         tileSet: TileSet,
         depot: TrainDepot,
-        validator: EighteenXXStateValidator = EighteenXXStateValidator
+        validator: EighteenXXStateValidator<Schema>
     ) {
-        super(data instanceof HydratedEighteenXXState ? data.dehydrate() : data, validator)
+        if (data instanceof HydratedEighteenXXState) data = data.dehydrate()
+        if (!validator.Check(data)) throw new Error(JSON.stringify(validator.Errors(data)))
+        super(data, validator)
         assert(
             new Set(this.players.map((player) => player.playerId)).size === this.players.length,
             'Duplicate player identity'
@@ -260,24 +276,23 @@ export class HydratedEighteenXXState
     }
 }
 
-export type EighteenXXStateDefinition = {
-    schema: Type.TObject
-    hydrate(
-        data: EighteenXXState,
-        map: RailwayMap,
-        tileSet: TileSet,
-        depot: TrainDepot
-    ): HydratedEighteenXXState
+export type EighteenXXStateDefinition<
+    Schema extends TitleStateSchema = TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+> = {
+    schema: Schema
+    hydrate(data: unknown, map: RailwayMap, tileSet: TileSet, depot: TrainDepot): State
 }
 export const FamilyStateDefinition: EighteenXXStateDefinition = {
-    schema: EighteenXXState,
-    hydrate: (data, map, tileSet, depot) => new HydratedEighteenXXState(data, map, tileSet, depot)
+    schema: EighteenXXStateValidator.Type(),
+    hydrate: (data, map, tileSet, depot) =>
+        new HydratedEighteenXXState(data, map, tileSet, depot, EighteenXXStateValidator)
 }
 
-export function inKnownPhase(
-    state: HydratedEighteenXXState,
+export function inKnownPhase<State extends HydratedEighteenXXState>(
+    state: State,
     phases: PhaseTable
-): HydratedEighteenXXState {
+): State {
     assert(phases.has(state.phaseId), `Unknown phase ${state.phaseId}`)
     return state
 }

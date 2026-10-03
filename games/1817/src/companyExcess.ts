@@ -1,3 +1,8 @@
+import type {
+    HydratedEighteenSeventeenState,
+    EighteenSeventeenStateHandler,
+    EighteenSeventeenState
+} from './state.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -11,31 +16,24 @@ import {
     type HydratedGameState,
     type MachineContext
 } from '@tabletop/common'
-import {
-    unownedTrain,
-    DeparturePayments,
-    settleTrainDepartures,
-    type EighteenXXState,
-    type EighteenXXStateHandler,
-    type HydratedEighteenXXState
-} from '@tabletop/18xx'
+import { unownedTrain, DeparturePayments, settleTrainDepartures } from '@tabletop/18xx'
 import { EighteenSeventeenTrainRules } from './trains.js'
 import { stateAfterAcquisition } from './acquisitionRound.js'
 import { stateAfterConversion } from './mergerRound.js'
 import { discardableTrains, presidentOf, removableStations } from './mergerRules.js'
 import { activeAcquisitionRound, activeMergerRound } from './state.js'
 
-type State = HydratedGameState & EighteenXXState
-type Context = MachineContext<HydratedEighteenXXState>
+type State = HydratedGameState & EighteenSeventeenState
+type Context = MachineContext<HydratedEighteenSeventeenState>
 
-export function excessCompanyId(state: object): string | undefined {
+export function excessCompanyId(state: EighteenSeventeenState): string | undefined {
     return (
         activeMergerRound(state)?.conversion?.companyId ??
         activeAcquisitionRound(state)?.acquisition?.buyerId
     )
 }
 
-function excessCompanyFor(state: EighteenXXState, playerId: string): string | undefined {
+function excessCompanyFor(state: EighteenSeventeenState, playerId: string): string | undefined {
     const companyId = excessCompanyId(state)
     return companyId && presidentOf(state, companyId) === playerId ? companyId : undefined
 }
@@ -65,7 +63,7 @@ export class HydratedRemoveStation
     constructor(data: RemoveStation) {
         super(data instanceof HydratedRemoveStation ? data.dehydrate() : data, RemoveValidator)
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             excessCompanyFor(state, this.playerId) === this.companyId &&
             removableStations(state, this.companyId).some(
@@ -120,7 +118,7 @@ export class HydratedDiscardMergedTrain
             DiscardValidator
         )
     }
-    isValidFor(state: EighteenXXState): boolean {
+    isValidFor(state: EighteenSeventeenState): boolean {
         return (
             excessCompanyFor(state, this.playerId) === this.companyId &&
             discardableTrains(state, this.companyId).some((train) => train.id === this.trainId)
@@ -149,7 +147,7 @@ export class HydratedDiscardMergedTrain
 }
 
 /** A merged or acquiring company's president removes stations, or discards trains, over the limit. */
-export class CompanyExcessHandler implements EighteenXXStateHandler {
+export class CompanyExcessHandler implements EighteenSeventeenStateHandler {
     isValidAction(action: HydratedAction, context: Context): boolean {
         return action instanceof HydratedRemoveStation ||
             action instanceof HydratedDiscardMergedTrain

@@ -23,23 +23,32 @@ import type { CashCrisisRules } from '../funding/cashCrisis.js'
 import type { Opening, OpeningSetup } from './opening.js'
 import type {
     EighteenXXMachineState,
+    TitleStateSchema,
     EighteenXXStateDefinition,
     HydratedEighteenXXState
 } from './eighteenXXState.js'
-export type EighteenXXStateHandler = MachineStateHandler<HydratedAction, HydratedEighteenXXState>
-export interface EighteenXXTitleRules {
+export type EighteenXXStateHandler<
+    State extends HydratedEighteenXXState = HydratedEighteenXXState
+> = MachineStateHandler<HydratedAction, State>
+export interface EighteenXXTitleRules<
+    Schema extends TitleStateSchema = TitleStateSchema,
+    State extends HydratedEighteenXXState<Schema> = HydratedEighteenXXState<Schema>
+> {
     endingRules: EndingRules
-    state?: EighteenXXStateDefinition
+    state: EighteenXXStateDefinition<Schema, State>
     decisionHandlers?: Partial<
-        Record<EighteenXXMachineState, (family: EighteenXXStateHandler) => EighteenXXStateHandler>
+        Record<
+            EighteenXXMachineState,
+            (family: EighteenXXStateHandler<State>) => EighteenXXStateHandler<State>
+        >
     >
-    titleStateHandlers?: Readonly<Record<string, EighteenXXStateHandler>>
+    titleStateHandlers?: Readonly<Record<string, EighteenXXStateHandler<State>>>
     titleActions?: readonly ActionDefinition[]
     offerAuctionRules?: OfferPileAuctionRules
     auctionRules?: WaterfallAuctionRules
     selectionAuctionRules?: SelectionAuctionRules
     trainFundingRules: TrainFundingRules
-    createOpening: (setup: OpeningSetup) => Opening
+    createOpening: (setup: OpeningSetup) => Opening<Schema, State>
     stockRules: StockRules
     companyRules: CompanyRules
     operatingRules: OperatingRules
