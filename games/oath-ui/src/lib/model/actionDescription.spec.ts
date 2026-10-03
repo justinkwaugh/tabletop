@@ -5,7 +5,7 @@ import { ActionSource, Color, type GameAction } from '@tabletop/common'
 import { testPlayer, testState } from '@tabletop/oath/testing'
 import { siteName, slotLabel } from './names.js'
 
-const nameOf = { player: (playerId: string) => ({ p1: 'Alice', p2: 'Bob' })[playerId] ?? playerId, site: slotLabel }
+const nameOf = { player: (playerId: string) => ({ p1: 'Alice', p2: 'Bob', p3: 'Cass' })[playerId] ?? playerId, site: slotLabel, seats: ['p1', 'p2', 'p3'] }
 
 function action(fields: { type: ActionType; playerId?: string } & Record<string, unknown>): GameAction {
     return { id: 'a1', gameId: 'g1', source: ActionSource.User, ...fields }
@@ -67,7 +67,7 @@ describe('a history line names a site by its printed name', () => {
 
     it('Setup, Travel and Campaign targets name the site through the resolver', () => {
         const printed: Record<string, string> = { 'slot.provinces.2': 'Tribunal', 'slot.cradle.0': 'Plains', 'slot.hinterland.1': 'Mine' }
-        const names = { player: nameOf.player, site: (slotId: string) => printed[slotId] }
+        const names = { ...nameOf, site: (slotId: string) => printed[slotId] }
         expect(describeAction(action({ type: ActionType.Travel, playerId: 'p1', siteId: 'slot.provinces.2' }), names)).toContain(
             'travelled to Tribunal'
         )
@@ -83,7 +83,7 @@ describe('a history line names a site by its printed name', () => {
     })
 
     it('a site id inside a power summary is named too', () => {
-        const names = { player: nameOf.player, site: (slotId: string) => (slotId === 'slot.cradle.0' ? 'Plains' : slotId) }
+        const names = { ...nameOf, site: (slotId: string) => (slotId === 'slot.cradle.0' ? 'Plains' : slotId) }
         const line = describeAction(
             action({ type: ActionType.UseRestPower, playerId: 'p1', cardId: 'denizen.discord.insomnia', powerIndex: 0, choices: [], metadata: { summary: 'moved to slot.cradle.0' } }),
             names
@@ -166,6 +166,129 @@ describe('the history tab describes every action', () => {
         it('names a Rest power’s card once and its bank by its printed name', () => {
             const rest = describeAction(action({ type: ActionType.UseRestPower, playerId: 'p1', cardId: 'denizen.order.vow-of-obedience', powerIndex: 1, metadata: { summary: 'Vow of Obedience: took 1 favor from the order bank' } }), nameOf)
             expect(rest).toBe('rested with Vow of Obedience: took 1 favor from the Order bank')
+        })
+    })
+
+    describe('a power row names every seat in it, and only the viewer reads “you”', () => {
+        const names = { ...nameOf, site: (slotId: string) => (slotId === 'slot.cradle.0' ? 'Plains' : slotId) }
+        const effect = (cardId: string, summary: string, viewer: string) => {
+            const line = describeAction(action({ type: ActionType.UseActionPower, playerId: 'p1', cardId, powerIndex: 0, metadata: { summary } }), names, viewer)
+            return line.slice(line.indexOf(': ') + 2)
+        }
+
+        // Alice (p1) acts; Bob (p2) is the seat acted on; Cass (p3) is a third seat.
+        const ROWS: Array<{ card: string; summary: string; actor: string; target: string; third: string }> = [
+            {
+                card: 'denizen.order.palanquin',
+                summary: "Palanquin: p1 and p2 went to slot.cradle.0, spending no Supply (Boiling Lake: killed 2 warbands on p2's board)",
+                actor: "you and Bob went to Plains, spending no Supply (Boiling Lake: killed 2 warbands on Bob's board)",
+                target: 'Alice and you went to Plains, spending no Supply (Boiling Lake: killed 2 warbands on your board)',
+                third: "Alice and Bob went to Plains, spending no Supply (Boiling Lake: killed 2 warbands on Bob's board)"
+            },
+            {
+                card: 'denizen.order.palanquin',
+                summary: "Palanquin: p1 went to slot.cradle.0; the Shrouded Wood's ruler chooses p2's destination",
+                actor: "you went to Plains; the Shrouded Wood's ruler chooses Bob's destination",
+                target: "Alice went to Plains; the Shrouded Wood's ruler chooses your destination",
+                third: "Alice went to Plains; the Shrouded Wood's ruler chooses Bob's destination"
+            },
+            {
+                card: 'denizen.arcane.dream-thief',
+                summary: 'Dream Thief: swapped facedown advisers between p2 and p3',
+                actor: 'swapped facedown advisers between Bob and Cass',
+                target: 'swapped facedown advisers between you and Cass',
+                third: 'swapped facedown advisers between Bob and you'
+            },
+            {
+                card: 'denizen.arcane.dream-thief',
+                summary: 'Dream Thief: both advisers belonged to p2, so nothing moved',
+                actor: 'both advisers belonged to Bob, so nothing moved',
+                target: 'both advisers belonged to you, so nothing moved',
+                third: 'both advisers belonged to Bob, so nothing moved'
+            },
+            {
+                card: 'denizen.arcane.inquisitor',
+                summary: "Inquisitor: peeked at p2's adviser, not the Conspiracy; gave p2 1 favor",
+                actor: "peeked at Bob's adviser, not the Conspiracy; gave Bob 1 favor",
+                target: 'peeked at your adviser, not the Conspiracy; gave you 1 favor',
+                third: "peeked at Bob's adviser, not the Conspiracy; gave Bob 1 favor"
+            },
+            {
+                card: 'denizen.arcane.inquisitor',
+                summary: "Inquisitor: p2's adviser is the Conspiracy — play it, or discard it",
+                actor: "Bob's adviser is the Conspiracy — play it, or discard it",
+                target: 'your adviser is the Conspiracy — play it, or discard it',
+                third: "Bob's adviser is the Conspiracy — play it, or discard it"
+            },
+            {
+                card: 'denizen.beast.pied-piper',
+                summary: "Pied Piper: moved to p2's advisers and took 2 favor from p2",
+                actor: "moved to Bob's advisers and took 2 favor from Bob",
+                target: 'moved to your advisers and took 2 favor from you',
+                third: "moved to Bob's advisers and took 2 favor from Bob"
+            },
+            {
+                card: 'relic.whistle',
+                summary: 'Whistle: p2 travelled to slot.cradle.0, gaining 1 secret',
+                actor: 'Bob travelled to Plains, gaining 1 secret',
+                target: 'you travelled to Plains, gaining 1 secret',
+                third: 'Bob travelled to Plains, gaining 1 secret'
+            },
+            {
+                card: 'denizen.discord.enchantress',
+                summary: "Enchantress went to p2's advisers; denizen.beast.wolves to p3's advisers",
+                actor: "Enchantress went to Bob's advisers; Wolves to Cass's advisers",
+                target: "Enchantress went to your advisers; Wolves to Cass's advisers",
+                third: "Enchantress went to Bob's advisers; Wolves to your advisers"
+            },
+            {
+                card: 'denizen.arcane.witchs-bargain',
+                summary: "Witch's Bargain: with p2, gave 1 secrets for 2 favor and 0 favor for 0 secrets",
+                actor: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets',
+                target: 'with you, gave 1 secrets for 2 favor and 0 favor for 0 secrets',
+                third: 'with Bob, gave 1 secrets for 2 favor and 0 favor for 0 secrets'
+            },
+            {
+                card: 'denizen.discord.relic-thief',
+                summary: 'Relic Thief: rolled 1 shields; relic.brass-horse stayed with p2',
+                actor: 'rolled 1 shields; Brass Horse stayed with Bob',
+                target: 'rolled 1 shields; Brass Horse stayed with you',
+                third: 'rolled 1 shields; Brass Horse stayed with Bob'
+            },
+            {
+                card: 'denizen.arcane.terror-spells',
+                summary: "Terror Spells: killed 2 warbands in p1's region",
+                actor: 'killed 2 warbands in your own region',
+                target: 'killed 2 warbands in their own region',
+                third: 'killed 2 warbands in their own region'
+            },
+            {
+                card: 'denizen.hearth.a-round-of-ale',
+                summary: "A Round of Ale: returned 3 favor to the banks and 2 secrets to p1's board",
+                actor: 'returned 3 favor to the banks and 2 secrets to your own board',
+                target: 'returned 3 favor to the banks and 2 secrets to their own board',
+                third: 'returned 3 favor to the banks and 2 secrets to their own board'
+            },
+            {
+                card: 'denizen.nomad.oracle',
+                summary: 'Oracle: drew the next Vision; keep it or discard it as if p1 had searched',
+                actor: 'drew the next Vision; keep it or discard it as if you had searched',
+                target: 'drew the next Vision; keep it or discard it as if Alice had searched',
+                third: 'drew the next Vision; keep it or discard it as if Alice had searched'
+            }
+        ]
+
+        it.each(ROWS)('$summary', (row) => {
+            expect(effect(row.card, row.summary, 'p1')).toBe(row.actor)
+            expect(effect(row.card, row.summary, 'p2')).toBe(row.target)
+            expect(effect(row.card, row.summary, 'p3')).toBe(row.third)
+        })
+
+        it('prints a display name as written, even one with replacement patterns in it', () => {
+            const odd = "B$&b $' $$ $1"
+            const named = { ...names, player: (playerId: string) => (playerId === 'p2' ? odd : nameOf.player(playerId)) }
+            const line = describeAction(action({ type: ActionType.UseActionPower, playerId: 'p1', cardId: 'denizen.beast.pied-piper', powerIndex: 0, metadata: { summary: "Pied Piper: moved to p2's advisers and took 2 favor from p2" } }), named, 'p3')
+            expect(line).toContain(`moved to ${odd}'s advisers and took 2 favor from ${odd}`)
         })
     })
 

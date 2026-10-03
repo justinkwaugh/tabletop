@@ -281,7 +281,8 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     get historyNames(): HistoryNames {
         return {
             player: (playerId) => this.getPlayerName(playerId),
-            site: (slotId) => siteName(this.gameState, slotId)
+            site: (slotId) => siteName(this.gameState, slotId),
+            seats: this.gameState.players.map((player) => player.playerId)
         }
     }
 

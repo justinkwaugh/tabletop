@@ -75,7 +75,11 @@ import {
 export type NameOf = (playerId: string) => string
 
 /** How a history line names a player and a site; a site by its printed name once faceup. */
-export type HistoryNames = { player: NameOf; site: (slotId: string) => string }
+export type HistoryNames = {
+    player: NameOf
+    site: (slotId: string) => string
+    seats: readonly string[]
+}
 
 function shownCard(cardId: string | undefined): string {
     return cardId ? cardName(cardId) : 'a card'
@@ -242,7 +246,7 @@ function describeActionCited(
         return `chose the attacking battle plans — ${describeBattle(action.metadata?.battle)}`
     }
     if (isUseRestPower(action)) {
-        return `rested with ${cardName(action.cardId)}${powerEffect(action, nameOf, viewerId)}`
+        return `rested with ${cardName(action.cardId)}${powerEffect(action, names, viewerId)}`
     }
     if (isCampaignDefend(action)) {
         const meta = action.metadata
@@ -287,7 +291,7 @@ function describeActionCited(
         return (
             `used ${cardName(action.cardId)}` +
             printedCost(action.cardId, action.powerIndex) +
-            powerEffect(action, nameOf, viewerId)
+            powerEffect(action, names, viewerId)
         )
     }
     if (isPeek(action)) {
@@ -416,18 +420,14 @@ function printedCost(cardId: string, powerIndex: number): string {
 
 function powerEffect(
     action: UseActionPower | UseRestPower,
-    nameOf: NameOf,
+    names: HistoryNames,
     viewerId: string | undefined
 ): string {
     const summary = action.metadata?.summary
     if (!summary) return ''
-    const effect = withoutCardName(summary, action.cardId)
-    const seats = [action.metadata?.targetPlayerId, action.playerId].filter(
-        (playerId): playerId is string => playerId !== undefined
-    )
-    const named = seats.reduce(
-        (text, playerId) => nameSeat(text, playerId, action.playerId, viewerId, nameOf),
-        effect
+    const named = names.seats.reduce(
+        (text, playerId) => nameSeat(text, playerId, action.playerId, viewerId, names.player),
+        withoutCardName(summary, action.cardId)
     )
     return `: ${namedBanks(named)}`
 }
@@ -456,7 +456,8 @@ function nameSeat(
         : isViewer
           ? 'your'
           : `${nameOf(playerId)}'s`
-    return text.replace(possessive, whose).replace(bare, isViewer ? 'you' : nameOf(playerId))
+    const seat = isViewer ? 'you' : nameOf(playerId)
+    return text.replace(possessive, () => whose).replace(bare, () => seat)
 }
 
 function namedBanks(text: string): string {
