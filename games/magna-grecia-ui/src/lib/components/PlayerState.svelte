@@ -2,7 +2,7 @@
     import type { HydratedMagnaGreciaPlayerState, ScoreBreakdown } from '@tabletop/magna-grecia'
     import { ORACLE_POINTS } from '@tabletop/magna-grecia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import CityIcon from './icons/CityIcon.svelte'
+    import CityTileIcon from './icons/CityTileIcon.svelte'
     import MarketIcon from './icons/MarketIcon.svelte'
     import OracleIcon from './icons/OracleIcon.svelte'
     import PointsIcon from './icons/PointsIcon.svelte'
@@ -37,7 +37,7 @@
             <span class="staged">({playerState.stagingRoads})</span>
         </div>
         <div class="stat" title="City tiles: supply (staging area)">
-            <CityIcon size={30} {color} />
+            <CityTileIcon size={30} {color} />
             <strong>{playerState.supplyCities}</strong>
             <span class="staged">({playerState.stagingCities})</span>
         </div>
