@@ -80,7 +80,8 @@ export function clusterPositions(count: number, center: Point, spacing: Point): 
     })
 }
 
-const GateWidth = 52
+// Wider than a cell so the gate pillars clear the entrance fountains' number labels.
+const GateWidth = CellSize + 28
 
 export function gateRect(coords: OffsetCoordinates): Rect {
     const center = cellCenter(coords)

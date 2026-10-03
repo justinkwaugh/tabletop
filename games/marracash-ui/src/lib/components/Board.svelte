@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { BoardColumns, BoardRows, Fountains, Palms } from '@tabletop/marracash'
+    import { BoardColumns, BoardRows, Palms } from '@tabletop/marracash'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ShopTile from '$lib/components/ShopTile.svelte'
     import AwningDefs from '$lib/components/AwningDefs.svelte'
@@ -10,12 +10,13 @@
     import RoutePreview from '$lib/components/RoutePreview.svelte'
     import VisitorQueue from '$lib/components/VisitorQueue.svelte'
     import PalmTree from '$lib/components/PalmTree.svelte'
+    import CityWall from '$lib/components/CityWall.svelte'
+    import CityGates from '$lib/components/CityGates.svelte'
     import type { FountainId, FountainState, Route, ShopVisit } from '@tabletop/marracash'
     import {
         BoardHeight,
         BoardWidth,
         CellSize,
-        gateRect,
         QueueMargin,
         CandidateHaloFilterId,
         CastShadowFilterId,
@@ -107,10 +108,6 @@
             gameSession.selectFountain(fountainId)
         }
     }
-
-    const gates = Fountains.filter((fountain) => fountain.entrance).map((fountain) =>
-        gateRect(fountain.coords)
-    )
 </script>
 
 {#snippet fountainSpot(fountain: FountainState)}
@@ -172,7 +169,7 @@
         <VisitorQueue />
     {/if}
     <g role="img" aria-label="MarraCash market" transform="translate({QueueMargin} {QueueMargin})">
-        <rect width={BoardWidth} height={BoardHeight} rx="14" fill="#8a6a46"></rect>
+        <CityWall />
         <rect
             x={WallThickness}
             y={WallThickness}
@@ -181,17 +178,7 @@
             fill="url(#{CobblePatternId})"
         ></rect>
 
-        {#each gates as gate (`${gate.x},${gate.y}`)}
-            <rect
-                x={gate.x}
-                y={gate.y}
-                width={gate.width}
-                height={gate.height}
-                fill="url(#{CobblePatternId})"
-                stroke="#c99a2e"
-                stroke-width="3"
-            ></rect>
-        {/each}
+        <CityGates />
 
         {#each Palms as palm (`${palm.row},${palm.col}`)}
             <PalmTree coords={palm} />
