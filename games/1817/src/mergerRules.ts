@@ -81,14 +81,36 @@ function heldStations(state: EighteenXXState, companyId: string): number {
     ).length
 }
 
-/** Stations a converted company must buy: one more at 5 shares, up to two more at 10. */
-export function stationsForConversion(state: EighteenXXState, companyId: string): number {
+/** Stations a company converted to this size must buy: one more at 5 shares, up to two at 10. */
+function stationsForSize(state: EighteenXXState, companyId: string, size: number): number {
     const held = heldStations(state, companyId)
-    return getCompany(state, companyId).shareCount === 5
+    return size === 5
         ? held < StationLimit
             ? 1
             : 0
         : Math.min(Math.max(StationLimit - held, 0), 2)
+}
+
+/** Stations a converted company must buy. */
+export function stationsForConversion(state: EighteenXXState, companyId: string): number {
+    return stationsForSize(state, companyId, corporationShareCount(state, companyId))
+}
+
+export type ConversionPreview = {
+    shareCount: number
+    /** Shares the conversion adds to the treasury. */
+    newShares: number
+    stations: StationPurchase
+}
+
+/** What converting would make of the company, for its president to weigh. */
+export function conversionPreview(state: EighteenXXState, companyId: string): ConversionPreview {
+    const shareCount = sizeAfterConversion(state, companyId)
+    return {
+        shareCount,
+        newShares: shareCount - corporationShareCount(state, companyId),
+        stations: stationPurchase(state, companyId, stationsForSize(state, companyId, shareCount))
+    }
 }
 
 /** Grows the company to its next size, adding the new shares to its treasury. */

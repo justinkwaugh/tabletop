@@ -220,8 +220,11 @@ test('1817 companies are sold in the acquisition round after the merger round', 
     await expect(page.getByLabel('Game phase')).toContainText(/Acquisition round.* 1\.1/)
     await expect(sale).toContainText('Pittsburgh and Lake Erie Railroad')
     await sale.getByRole('button', { name: 'Offer for sale' }).click()
-    await expect(sale).toContainText('No bids yet')
-    await sale.getByRole('button', { name: 'Bid $120' }).click()
+    await expect(sale).toContainText('no bids yet')
+    await expect(sale).toContainText('Paid by Boston and Albany Railroad')
+    await sale.getByRole('button', { name: 'Bid', exact: true }).click()
+    // The winner's loans step describes the buyer.
+    await expect(sale).toContainText('Bought Pittsburgh and Lake Erie Railroad for $120')
     await sale.getByRole('button', { name: 'Finish' }).click()
     await expect(page.getByRole('region', { name: 'Acquisition round' })).toHaveCount(0)
 

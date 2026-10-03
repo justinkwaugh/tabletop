@@ -30,7 +30,7 @@ import { EighteenSeventeenPrivateCatalog } from './privates.js'
 import { EighteenSeventeenCompanySizes } from './trains.js'
 import { inClosingZone } from './marketZones.js'
 import { closeMarketShortsAgainstPool } from './shorts.js'
-import { LoanSharkId, PonziSchemeId } from './privateHolders.js'
+import { LoanSharkCash, LoanSharkId, PonziSchemeId } from './privateHolders.js'
 
 export const EighteenSeventeenCertificateLimits: Readonly<Record<number, number>> = {
     3: 21,
@@ -155,8 +155,6 @@ function formationReason(state: CompanyAuctionState, formation: CompanyFormation
 }
 
 // The Loan Shark brings its company $60 when contributed; the Ponzi Scheme closes then.
-const LoanSharkCash = 60
-
 function form(state: CompanyAuctionState, formation: CompanyFormation): void {
     const company = { kind: 'company' as const, companyId: formation.companyId }
     const player = { kind: 'player' as const, playerId: formation.playerId }

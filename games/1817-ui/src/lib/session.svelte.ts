@@ -40,6 +40,8 @@ import {
     removableStations,
     shortOptions,
     sizeAfterConversion,
+    conversionPreview,
+    buyersFor,
     stationPurchase,
     treasuryShareIds
 } from '@tabletop/1817'
@@ -115,9 +117,10 @@ export class EighteenSeventeenSession extends BaseSession {
         const round = activeMergerRound(state)
         assert(round, 'A merger round is in progress')
         return {
-            convertsTo: this.validActionTypes.includes('ConvertCompany')
-                ? sizeAfterConversion(state, companyId)
+            conversion: this.validActionTypes.includes('ConvertCompany')
+                ? conversionPreview(state, companyId)
                 : undefined,
+            mergedSize: sizeAfterConversion(state, companyId),
             targets: this.validActionTypes.includes('MergeCompanies')
                 ? mergeTargetIds(state, companyId, round.convertedIds).map((targetId) => ({
                       companyId: targetId,
@@ -134,6 +137,8 @@ export class EighteenSeventeenSession extends BaseSession {
         return {
             price: conversion.price,
             remaining: treasuryShareIds(state, conversion.companyId).length,
+            // The player choosing now comes first.
+            traderIds: conversion.traderIds,
             purchase:
                 playerId && this.validActionTypes.includes('BuyConvertedShare')
                     ? convertedSharePurchase(state, playerId).details
@@ -163,6 +168,14 @@ export class EighteenSeventeenSession extends BaseSession {
             ? acquisitionRoundCompanyId(this.gameState)
             : undefined
     )
+    /** The companies the acquisition round has still to offer after the current one. */
+    acquisitionQueue = $derived.by(() => {
+        const companyId = this.acquisitionCompanyId
+        if (!companyId) return []
+        const round = activeAcquisitionRound(this.gameState)
+        assert(round, 'An acquisition round is in progress')
+        return round.companyIds.filter((id) => id !== companyId)
+    })
     acquisitionOffer = $derived.by(() => {
         const companyId = this.acquisitionCompanyId
         return companyId && this.validActionTypes.includes('OfferCompany')
@@ -184,7 +197,9 @@ export class EighteenSeventeenSession extends BaseSession {
             maximum:
                 playerId && this.validActionTypes.includes('BidToAcquire')
                     ? bidCeiling(state, sale, playerId)
-                    : undefined
+                    : undefined,
+            /** The bidder's companies that could pay this amount. */
+            payers: (amount: number) => (playerId ? buyersFor(state, playerId, sale, amount) : [])
         }
     })
     acquirerChoice = $derived(

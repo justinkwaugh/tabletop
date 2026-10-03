@@ -1,81 +1,78 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import { cashOwnedBy, companyMarketSpace, getCompany } from '@tabletop/18xx'
-    import { CompanyToken } from '@tabletop/18xx-ui'
+    import { companyMarketSpace, getCompany } from '@tabletop/18xx'
+    import CompanyActionCard, { type CardAction } from './CompanyActionCard.svelte'
+    import { companyRoundFacts } from './roundFacts.js'
+    import StockPanelHeading from './StockPanelHeading.svelte'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let {
         session,
         label,
         companyId,
+        actions = [],
         children
     }: {
         session: EighteenSeventeenSession
         label: string
         companyId: string
-        children: Snippet
+        actions?: readonly CardAction[]
+        children?: Snippet
     } = $props()
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
-    const company = $derived(getCompany(gameState, companyId))
     const waitingFor = $derived(
         gameState.activePlayerIds.map((id) => session.getPlayerName(id)).join(', ')
     )
 </script>
 
 <section aria-label={label} class="round-panel">
-    <header>
-        <CompanyToken appearance={session.mapView.stations[company.id]} size={24} />
-        <strong>{company.name}</strong>
-        <span
-            >{company.shareCount} shares · {money(
-                companyMarketSpace(gameState.stockMarket, company.id).price
-            )} · Treasury {money(
-                Number(cashOwnedBy(gameState, { kind: 'company', companyId: company.id }))
-            )}</span
-        >
-    </header>
-    {@render children()}
-    {#if !session.validActionTypes.length}<p>Waiting for {waitingFor}.</p>{/if}
+    <StockPanelHeading text={label} />
+    <div class="subject">
+        <CompanyActionCard
+            {session}
+            {companyId}
+            title={getCompany(gameState, companyId).name}
+            value={money(companyMarketSpace(gameState.stockMarket, companyId).price)}
+            facts={companyRoundFacts(gameState, companyId, money)}
+            {actions}
+        />
+    </div>
+    {#if children}{@render children()}{/if}
+    {#if !session.validActionTypes.length}<p class="waiting">Waiting for {waitingFor}.</p>{/if}
 </section>
 
 <style>
     section {
+        container-type: inline-size;
         padding: 6px 0;
         font-size: 12px;
         color: var(--rail-text, #514536);
         text-align: center;
     }
-    header {
+    .subject {
         display: flex;
-        align-items: center;
         justify-content: center;
-        gap: 6px;
+        margin-bottom: 10px;
     }
-    .round-panel :global(p) {
+    .waiting {
+        margin: 6px 0 0;
+        color: var(--rail-muted, #887969);
+    }
+    :global(.round-panel p) {
         margin: 4px 0;
     }
-    .round-panel :global(.choices) {
+    :global(.round-panel .cards) {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        align-items: center;
         gap: 8px;
-        margin-top: 4px;
+        margin-top: 6px;
     }
-    .round-panel :global(button) {
-        padding: 5px 10px;
-        font: inherit;
-        color: inherit;
-        cursor: pointer;
-        background: var(--rail-surface, #fffdf8);
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 7px;
-    }
-    .round-panel :global(button:hover:not(:disabled)) {
-        background: var(--rail-surface-raised, #efe7db);
-    }
-    .round-panel :global(button:disabled) {
-        opacity: 0.45;
-        cursor: default;
+    :global(.round-panel h3) {
+        margin: 10px 0 4px;
+        font-size: 12px;
+        font-weight: 400;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
     }
 </style>

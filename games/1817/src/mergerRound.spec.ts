@@ -13,7 +13,14 @@ import {
     type Train
 } from '@tabletop/18xx'
 import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
-import { isLiquidated, stationsOverLimit, treasuryPoolId, trimStations } from './index.js'
+import {
+    conversionPreview,
+    isLiquidated,
+    stationsForConversion,
+    stationsOverLimit,
+    treasuryPoolId,
+    trimStations
+} from './index.js'
 import { mergerRoundCompanyId } from './mergerRound.js'
 import { mergerRoundOf } from './state.js'
 import { EighteenSeventeenScenarios } from './scenarios/index.js'
@@ -113,6 +120,19 @@ describe('conversion', () => {
         expect(stations(play.state, 'PLE')).toBe(2)
         expect(treasury(play.state, 'PLE')).toBe(cash + 2 * 60 + 100 - 50)
         expect(play.state.machineState).toBe('AcquisitionRound')
+    })
+
+    it('previews the shares and stations a conversion brings before the president converts', () => {
+        const play = mergerRound()
+        const preview = conversionPreview(play.state, 'BA')
+        expect([preview.shareCount, preview.newShares]).toEqual([10, 5])
+        play.act('ConvertCompany', { companyId: 'BA' })
+        expect(stationsForConversion(play.state, 'BA')).toBe(preview.stations.stations)
+        expect(conversionPreview(mergerRound().state, 'PLE')).toEqual({
+            shareCount: 5,
+            newShares: 3,
+            stations: { stations: 1, cost: 50, affordable: true }
+        })
     })
 
     it('liquidates a converted company that cannot pay for its stations', () => {

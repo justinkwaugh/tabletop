@@ -2,6 +2,8 @@ import { privateOwningCompany, type FinancialState } from '@tabletop/18xx'
 
 // The Volatility privates whose powers the rules look up.
 export const LoanSharkId = 'P12'
+/** What the Loan Shark brings the company it is contributed to. */
+export const LoanSharkCash = 60
 export const PonziSchemeId = 'P13'
 export const InventorId = 'P14'
 export const ScrapperId = 'P15'

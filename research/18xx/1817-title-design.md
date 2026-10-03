@@ -1898,6 +1898,24 @@ acquisition rounds remain 1817's own.
   of each private's power below its name (the full text with the chosen lot, and in the
   private's card). The seed money left is a game fact (10a).
 
+### Implementation notes for 10c
+
+- **Round panels.** The merger and acquisition rounds share a `RoundPanel`: a heading and
+  a card for the company in question (size, treasury, loans, trains, stations), carrying
+  its actions. While a buyer settles its loans the card is the buyer's, under a line
+  naming the price and the loans it took on and repaid.
+- **Merger round.** `conversionPreview` (1817 rules) gives the size, new treasury shares
+  and stations owed, with their cost after the Station Subsidy, so the Convert button can
+  say what converting brings. Each merger partner gets its own card with its merge price.
+  Trading converted shares names the shares left, their price and who chooses next.
+- **Acquisition round.** The bid control names the companies that would pay and the most
+  any of them could pay; the winner chooses its buyer from cards showing their treasuries
+  and loans; the companies still to be offered are listed as tokens.
+- **History.** 1817's history text lives in `history.ts`, apart from the table, so it can
+  be tested. Passes in the merger round are routine; a company sold or liquidated by the
+  bank names a Golden Parachute payment, and a company formed with the Loan Shark names
+  its $60.
+
 ### Limits after slice 10
 
 - Programmed actions (automatic passes in the merger and stock rounds) stay out of scope,

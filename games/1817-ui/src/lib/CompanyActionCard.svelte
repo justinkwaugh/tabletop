@@ -1,7 +1,4 @@
-<script lang="ts">
-    import { CompanyToken } from '@tabletop/18xx-ui'
-    import type { EighteenSeventeenSession } from './session.svelte.js'
-
+<script module lang="ts">
     export type CardFact = { label: string; value: string }
     export type CardAction = {
         label: string
@@ -10,16 +7,24 @@
         disabled?: boolean
         onclick: () => void
     }
+</script>
+
+<script lang="ts">
+    import { CompanyToken } from '@tabletop/18xx-ui'
+    import type { EighteenSeventeenSession } from './session.svelte.js'
 
     let {
         session,
         companyId,
+        title,
         value,
         facts = [],
         actions = []
     }: {
         session: EighteenSeventeenSession
         companyId: string
+        /** The company's name, shown when the card is the subject rather than one of a list. */
+        title?: string
         value?: string
         facts?: readonly CardFact[]
         actions?: readonly CardAction[]
@@ -30,6 +35,7 @@
 <div class="company-card" aria-label={company?.name ?? companyId}>
     <div class="identity">
         <CompanyToken appearance={session.mapView.stations[companyId]} size={30} />
+        {#if title}<span class="title">{title}</span>{/if}
         {#if value}<span class="value">{value}</span>{/if}
     </div>
     {#if facts.length}
@@ -74,6 +80,10 @@
         padding: clamp(4px, 1cqw, 10px) clamp(8px, 2cqw, 18px);
         background: var(--rail-surface-raised, #f3ede4);
         font-size: 15px;
+    }
+    .title {
+        font-size: 14px;
+        font-weight: 600;
     }
     .facts {
         display: flex;

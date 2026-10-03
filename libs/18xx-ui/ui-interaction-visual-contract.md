@@ -652,26 +652,38 @@ round's number, such as "Merger round 2.1", shortening to its abbreviation like 
 history groups its actions as a round of their own, such as "MR 2.1", from its start to
 its end action.
 
-1817's merger round replaces the operating panels with one panel for the company being
-dealt with: its size, price and treasury, then the current decision as immediately
-committed buttons. The president converts, merges with a named company at the merged
-price, or passes; players in turn buy a treasury share at the conversion price or pass;
-the president takes loans, then finishes, buying the stations owed or, when the
-treasury cannot pay, liquidating; a merged company over a limit removes a named
-station or discards a train. Other players see whom the round is waiting for. History
-records conversions and mergers as important rows, purchases with their price, the
-stations bought or the liquidation, and the removals and discards.
+1817's merger and acquisition rounds replace the operating panels with a panel headed
+by the round's name and a card for the company being dealt with, in the share cards'
+style: its name and price; its size, treasury, loans, trains and stations; and the current
+decision as immediately committed buttons in the card's foot. Other players see whom the
+round is waiting for.
 
-1817's acquisition round shows the company being sold in the same kind of panel. Its
-president offers it for sale from its opening bid or keeps it; while it is auctioned the
-panel names how it came up for sale and the high bid, and the bidder enters an amount
-(starting at the minimum, a manual selection the panel discards when the bidding
-changes) and bids or passes; the winner names the company that pays when more than one
-could; the buyer then takes loans, repays loans it took on, and finishes. A company
-over its limits after a merger or an acquisition gets its own panel to remove stations
-or discard trains. History records offers, bids and passes, auctions of companies in a
-closing zone, acquisitions with their price, the bank's liquidations, unsold
-companies, the holders' payment per share and repayments.
+In the merger round the president converts, the button naming the new size, the treasury
+shares it adds and the stations it would owe with their cost, or passes; each company it
+may merge with is a card of its own below ("Or merge with"), whose Merge button names the
+merged size and price. While players trade the converted company's treasury shares, the
+panel names the shares left and their price, who chooses now and who follows; that player
+buys a share or passes. The president then takes loans and finishes, buying the stations
+owed (the panel says when the treasury cannot pay, and the button reads Finish and
+liquidate). A merged company over a limit removes a named station or discards a train.
+History records conversions and mergers as important rows, purchases with their price, the
+stations bought or the liquidation, and the removals and discards; players' passes are
+routine.
+
+In the acquisition round the panel also lists the companies still to offer as tokens. The
+president offers the company for sale (the button giving its opening bid) or keeps it.
+While it is auctioned the panel names how it came up for sale and the high bid; the bidder
+stages an amount with the shared bid control, starting at the minimum and limited to what
+their companies could pay, with the companies that could pay it named, and bids or passes.
+The staged amount resets when the bidding changes. The winner chooses the paying company
+from a card for each that could. The buyer's card then heads the panel, noting what it paid
+and the loans it took on and repaid, and it takes loans, repays loans it took on, and
+finishes. A company over its limits after a merger or an acquisition gets its own panel to
+remove stations or discard trains. History records offers, bids and passes, auctions of
+companies in a closing zone, acquisitions with their price and any Golden Parachute paid,
+the bank's liquidations with what the Inventor and Golden Parachute paid, unsold companies,
+the holders' payment per share and repayments. A formation with the Loan Shark notes the
+$60 it brought.
 
 ## Private exchanges and lifecycle
 
