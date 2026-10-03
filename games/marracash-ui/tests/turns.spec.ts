@@ -135,6 +135,15 @@ test('emptied entrances are refilled from a chosen end of the queue', async ({ p
     const boardHalos = board(page).locator('path[filter*="candidate-halo"]')
     await expect(boardHalos).toHaveCount(2)
     await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: '3', exact: true })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Bring 4 visitors from the back' }).first().click()
+    await expect(incomingVisitors(page)).toHaveCount(4)
+    await expect(page.locator('g[role="button"][aria-label^="Fountain"]')).toHaveCount(2)
+    await page.getByRole('button', { name: 'Back', exact: true }).click()
+    await page.getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(incomingVisitors(page)).toHaveCount(0)
+
     await page.getByRole('button', { name: 'Front of queue' }).click()
     await expect(incomingVisitors(page)).toHaveCount(0)
     await page.getByRole('button', { name: '3', exact: true }).click()

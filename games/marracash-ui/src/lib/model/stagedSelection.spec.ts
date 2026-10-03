@@ -4,6 +4,7 @@ import {
     hasManualMarracashSelection,
     popMarracashSelection,
     setMarracashQueueEnd,
+    setMarracashRefill,
     setMarracashSelection,
     type MarracashSelection
 } from './stagedSelection.js'
@@ -31,6 +32,14 @@ describe('MarraCash staged selection', () => {
         selection = popMarracashSelection(selection)
         expect(selection.queueEnd?.value).toBe(QueueEnd.Back)
         expect(selection.visitorCount).toBeUndefined()
+    })
+
+    it('takes a queue end and count together from a pawn, after a count chosen first', () => {
+        let selection: MarracashSelection = {}
+        selection = setMarracashSelection(selection, 'visitorCount', 3)
+        selection = setMarracashRefill(selection, QueueEnd.Back, 2)
+        expect(selection.queueEnd).toEqual({ value: QueueEnd.Back, source: 'manual' })
+        expect(selection.visitorCount).toEqual({ value: 2, source: 'manual' })
     })
 
     it('removes only the newest manual choice on Back or Undo', () => {

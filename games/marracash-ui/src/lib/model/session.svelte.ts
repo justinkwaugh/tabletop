@@ -21,12 +21,16 @@ import {
     hasManualMarracashSelection,
     popMarracashSelection,
     setMarracashQueueEnd,
+    setMarracashRefill,
     setMarracashSelection,
     type MarracashSelection,
     type MarracashSelectionValues
 } from './stagedSelection.js'
 import { marketPalettes } from '$lib/utils/marketColors.js'
 import { latestTurnStep, moneyReports, type MoneyReport } from '$lib/utils/moneyReport.js'
+import type { RefillChoice } from '$lib/utils/queueChoices.js'
+
+const QueueWarningSeconds = 4
 
 export class MarracashGameSession extends GameSession<
     MarracashProjectedState,
@@ -111,7 +115,7 @@ export class MarracashGameSession extends GameSession<
     })
 
     readonly chosenVisitorCount: number | undefined = $derived.by(() => {
-        if (!this.canRefill || this.chosenQueueEnd === undefined) return undefined
+        if (!this.canRefill) return undefined
         if (this.visitorCountOptions.length === 1) return this.visitorCountOptions[0]
         return this.selection.visitorCount?.value
     })
@@ -128,8 +132,17 @@ export class MarracashGameSession extends GameSession<
         this.canRefill ? this.gameState.emptyEntranceIds() : []
     )
 
+    showQueueTooShort = $derived.by<boolean>(() => {
+        void this.updatingVisibleState
+        void this.canRefill
+        return false
+    })
+    private queueWarningTimer: ReturnType<typeof setTimeout> | undefined
+
     readonly fillableEntranceIds: FountainId[] = $derived(
-        this.chosenVisitorCount === undefined ? [] : this.refillEntranceIds
+        this.chosenQueueEnd === undefined || this.chosenVisitorCount === undefined
+            ? []
+            : this.refillEntranceIds
     )
 
     myMoney(): number {
@@ -183,6 +196,25 @@ export class MarracashGameSession extends GameSession<
 
     chooseVisitorCount(count: number) {
         this.setSelection('visitorCount', count)
+    }
+
+    chooseRefill(choice: RefillChoice) {
+        this.hideQueueTooShort()
+        this.selection = setMarracashRefill(this.selection, choice.end, choice.count)
+    }
+
+    warnQueueTooShort() {
+        this.hideQueueTooShort()
+        this.showQueueTooShort = true
+        this.queueWarningTimer = setTimeout(
+            () => this.hideQueueTooShort(),
+            QueueWarningSeconds * 1000
+        )
+    }
+
+    private hideQueueTooShort() {
+        clearTimeout(this.queueWarningTimer)
+        this.showQueueTooShort = false
     }
 
     chooseShopToAuction(shopId: ShopId) {

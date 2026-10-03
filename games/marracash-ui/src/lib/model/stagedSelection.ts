@@ -65,6 +65,18 @@ export function setMarracashQueueEnd(
           )
 }
 
+export function setMarracashRefill(
+    selection: MarracashSelection,
+    end: QueueEnd,
+    count: number
+): MarracashSelection {
+    return setMarracashSelection(
+        setMarracashSelection(selection, 'queueEnd', end),
+        'visitorCount',
+        count
+    )
+}
+
 export function hasManualMarracashSelection(selection: MarracashSelection): boolean {
     return hasManualStagedSelection<MarracashSelectionValues>(selection, STAGE_ORDER)
 }

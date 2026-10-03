@@ -23,7 +23,7 @@
                 >{end === QueueEnd.Front ? 'Front' : 'Back'} of queue</button
             >
         {/each}
-        {#if gameSession.chosenQueueEnd !== undefined && gameSession.visitorCountOptions.length > 1}
+        {#if gameSession.visitorCountOptions.length > 1}
             <span class="ml-2 text-sm">How many?</span>
             {#each gameSession.visitorCountOptions as count (count)}
                 <button
@@ -43,7 +43,14 @@
             <span class="ml-2"><UndoButton /></span>
         {/if}
     </div>
-    {#if gameSession.chosenVisitorCount !== undefined}
+    {#if gameSession.fillableEntranceIds.length > 0}
         <p class="text-sm">Choose a highlighted entrance to place them.</p>
+    {:else if gameSession.showQueueTooShort}
+        <p role="alert" class="text-sm text-[#9b2c2c]">
+            <span class="font-semibold">Queue is too short.</span> Please use the buttons above to make
+            your selection.
+        </p>
+    {:else}
+        <p class="text-sm">Or choose pawns at either end of the queue.</p>
     {/if}
 </div>
