@@ -35,6 +35,10 @@
 <div class="player" class:turn={isTurn} style:--player={color} style:--player-text={textColor}>
     <div class="banner">
         <span class="name">{gameSession.getPlayerName(playerId)}</span>
+        <span class="points" title="Points to spend">
+            <PointsIcon size={22} />
+            {playerState.points}
+        </span>
     </div>
     <div class="stats">
         <div class="stat" title="Road tiles: supply (staging area)">
@@ -120,6 +124,18 @@
         font-weight: 700;
         letter-spacing: 0.05em;
         text-transform: uppercase;
+    }
+
+    .points {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 999px;
+        padding: 1px 8px 1px 3px;
+        background: rgba(255, 248, 225, 0.92);
+        color: #4a2c12;
+        font-size: 18px;
+        font-weight: 700;
     }
 
     .stats {
