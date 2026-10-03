@@ -1,6 +1,7 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
+    import Magnifier from '$lib/components/Magnifier.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import DiscardOrderCards from '$lib/components/DiscardOrderCards.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -53,19 +54,24 @@
     {#if !search.kept}
         <div class="flex flex-wrap gap-2">
             {#each search.drawn as cardId (cardId)}
-                <button
-                    type="button"
-                    class="rounded-[5px] ring-1 ring-oath-control-hover hover:ring-oath-accent"
-                    disabled={busy}
-                    onclick={() => search.keep(cardId)}
-                >
-                    <CardImage
-                        {cardId}
-                        width={widthAtHeight(112, { cardId })}
+                <div class="relative">
+                    <button
+                        type="button"
+                        class="rounded-[5px] ring-1 ring-oath-control-hover hover:ring-oath-accent"
+                        disabled={busy}
+                        onclick={() => search.keep(cardId)}
+                    >
+                        <CardImage
+                            {cardId}
+                            width={widthAtHeight(112, { cardId })}
+                            label={cardName(cardId)}
+                        />
+                    </button>
+                    <Magnifier
+                        preview={{ cardId, label: cardName(cardId) }}
                         label={cardName(cardId)}
-                        inspect
                     />
-                </button>
+                </div>
             {/each}
         </div>
     {:else if !search.placement}
@@ -159,23 +165,28 @@
     {:else if search.needsDisplaced}
         <div class="flex flex-wrap gap-2">
             {#each search.displaceable as cardId (cardId)}
-                <button
-                    type="button"
-                    class="rounded-[5px] ring-1 hover:ring-oath-accent {search.displaced.includes(
-                        cardId
-                    )
-                        ? 'ring-2 ring-oath-danger'
-                        : 'ring-oath-control-hover'}"
-                    disabled={busy}
-                    onclick={() => search.chooseDisplaced(cardId)}
-                >
-                    <CardImage
-                        {cardId}
-                        width={widthAtHeight(112, { cardId })}
+                <div class="relative">
+                    <button
+                        type="button"
+                        class="rounded-[5px] ring-1 hover:ring-oath-accent {search.displaced.includes(
+                            cardId
+                        )
+                            ? 'ring-2 ring-oath-danger'
+                            : 'ring-oath-control-hover'}"
+                        disabled={busy}
+                        onclick={() => search.chooseDisplaced(cardId)}
+                    >
+                        <CardImage
+                            {cardId}
+                            width={widthAtHeight(112, { cardId })}
+                            label={cardName(cardId)}
+                        />
+                    </button>
+                    <Magnifier
+                        preview={{ cardId, label: cardName(cardId) }}
                         label={cardName(cardId)}
-                        inspect
                     />
-                </button>
+                </div>
             {/each}
         </div>
     {:else if search.needsConspiracy}

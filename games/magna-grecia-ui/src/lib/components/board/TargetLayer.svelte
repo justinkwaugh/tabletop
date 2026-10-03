@@ -1,11 +1,11 @@
 <script lang="ts">
     import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import { spaceKey } from '@tabletop/magna-grecia'
-    import { BuildTool } from '$lib/model/session.svelte.js'
+    import { BuildTool } from '$lib/model/buildTool.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
-    import { placeCenter } from '$lib/utils/boardView.js'
-    import CityTileArt from './CityTileArt.svelte'
+    import { ghostCityLayout, placeCenter } from '$lib/utils/boardView.js'
+    import CityArt from './CityArt.svelte'
     import TileLayingWidget from './TileLayingWidget.svelte'
 
     const gameSession = getGameSession()
@@ -71,7 +71,7 @@
     </g>
 {/each}
 
-{#each gameSession.cityTargets as { coords, startsClaim, startsFounding } (spaceKey(coords))}
+{#each gameSession.cityTargets as { coords, joinsCityId, startsClaim, startsFounding } (spaceKey(coords))}
     {@const center = hexCenter(coords)}
     {@const claim = gameSession.cityUnfinished}
     <g
@@ -92,7 +92,13 @@
         onkeydown={(event) => activate(event, () => gameSession.placeCity(coords))}
     >
         {#if hoveredCity && sameCoordinates(hoveredCity, coords)}
-            <CityTileArt color={myColor} ghost />
+            <g transform="translate({-center.x} {-center.y})">
+                <CityArt
+                    color={myColor}
+                    layout={ghostCityLayout(gameSession.gameState.board, coords, joinsCityId)}
+                    ghost
+                />
+            </g>
         {/if}
         <polygon points={targetShape} class="target-hex"></polygon>
         {#if !hoveredCity || !sameCoordinates(hoveredCity, coords)}
@@ -172,7 +178,7 @@
         stroke-width: 1.5;
     }
     .price-text {
-        font-family: Georgia, 'Times New Roman', serif;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 13px;
         font-weight: 700;
         fill: #6b3f1d;

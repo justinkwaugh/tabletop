@@ -8,7 +8,7 @@ import { validSpringPlacements } from '../util/placement.js'
 // One-time setup step, before round 1 begins: the first player (seatOrder[0]) places the
 // spring on any intersection - corners included. Only reached when the game's
 // "Randomize Spring Location" config option is off — otherwise the spring is placed
-// randomly during game initialization and play starts directly in Bidding.
+// randomly during game initialization and play starts directly in TileReveal.
 export class SpringPlacementStateHandler
     implements MachineStateHandler<HydratedPlaceSpring, HydratedSantiagoGameState>
 {
@@ -39,6 +39,6 @@ export class SpringPlacementStateHandler
         _action: HydratedPlaceSpring,
         _context: MachineContext<HydratedSantiagoGameState>
     ): MachineState {
-        return MachineState.Bidding
+        return MachineState.TileReveal
     }
 }

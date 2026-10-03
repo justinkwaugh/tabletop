@@ -16,9 +16,9 @@ export class EndOfGameStateHandler implements MachineStateHandler<
     HydratedBusGameState
 > {
     isValidAction(
-        action: HydratedAction,
+        _action: HydratedAction,
         _context: MachineContext<HydratedBusGameState>
-    ): action is EndOfGameAction {
+    ): _action is EndOfGameAction {
         // Leave this comment if you want the template to generate code for valid actions
         return false
     }

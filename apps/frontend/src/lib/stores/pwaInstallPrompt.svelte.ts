@@ -34,3 +34,7 @@ export function registerPwaInstallPrompt(): void {
     window.addEventListener('beforeinstallprompt', (event) => pwaInstallPrompt.capture(event))
     window.addEventListener('appinstalled', () => pwaInstallPrompt.clear())
 }
+
+export function isInstalledApp(): boolean {
+    return window.matchMedia('(display-mode: standalone)').matches
+}

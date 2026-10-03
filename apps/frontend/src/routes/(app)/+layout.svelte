@@ -23,10 +23,17 @@
     import { afterNavigate, goto, onNavigate } from '$app/navigation'
     import LoginPanel, { loginViewTitles, type LoginView } from '$lib/components/LoginPanel.svelte'
     import AuthModal from '$lib/components/AuthModal.svelte'
+    import BugReportModal from '$lib/components/BugReportModal.svelte'
+    import PreferencesPanel from '$lib/components/PreferencesPanel.svelte'
     import { setLoginModal } from '$lib/stores/loginModal'
     import { onMount } from 'svelte'
     import { fromStore } from 'svelte/store'
-    import { UserStatus, GameVisibility, getTitleVisibility } from '@tabletop/common'
+    import {
+        UserStatus,
+        GameVisibility,
+        getTitleVisibility,
+        findPlayerForUserId
+    } from '@tabletop/common'
     import {
         VersionChange,
         GameEditForm,
@@ -37,6 +44,7 @@
     import { onceMounted } from '$lib/components/RunOnceMounted.svelte'
     import { BellSolid, DownloadOutline, RefreshOutline } from 'flowbite-svelte-icons'
     import {
+        isInstalledApp,
         pwaInstallPrompt,
         registerPwaInstallPrompt
     } from '$lib/stores/pwaInstallPrompt.svelte.js'
@@ -74,7 +82,16 @@
               )
             : undefined
     )
+    let bugReportSession = $derived(
+        sessionUser &&
+            gameService.currentGameSession &&
+            findPlayerForUserId(gameService.currentGameSession.primaryGame, sessionUser.id)
+            ? gameService.currentGameSession
+            : undefined
+    )
     let accountMenuOpen = $state(false)
+    let showBugReport = $state(false)
+    let showPreferences = $state(false)
     let showCreateGameModel = $state(false)
     let showCancelPrompt = $state(false)
     let showLoginModal = $state(false)
@@ -92,6 +109,8 @@
 
     afterNavigate(() => {
         showLoginModal = false
+        showBugReport = false
+        showPreferences = false
     })
 
     function selectTransitionCover(titleId: string | undefined) {
@@ -197,9 +216,9 @@
         await goto('/profile')
     }
 
-    async function gotoPreferences() {
+    function openPreferences() {
         showCancelPrompt = false
-        await goto('/preferences')
+        showPreferences = true
     }
 
     async function gotoNotifications() {
@@ -275,7 +294,7 @@
 
     onMount(() => {
         registerPwaInstallPrompt()
-        isInstalledPwa = window.matchMedia('(display-mode: standalone)').matches
+        isInstalledPwa = isInstalledApp()
         notificationService.onMounted()
         visibilityService.setDocument(document)
         if (/mobile/i.test(navigator.userAgent ?? '') && !location.hash) {
@@ -382,7 +401,7 @@
                                 href="https://github.com/justinkwaugh/tabletop"
                                 target="_blank"
                                 rel="noreferrer"
-                                class="inline-flex items-center leading-none"
+                                class="community-link inline-flex items-center leading-none"
                             >
                                 <span class="sr-only">GitHub</span>
                                 <svg
@@ -401,7 +420,7 @@
                                 href="https://discord.gg/5ggK5VGGvA"
                                 target="_blank"
                                 rel="noreferrer"
-                                class="inline-flex items-center leading-none"
+                                class="community-link inline-flex items-center leading-none"
                             >
                                 <span class="sr-only">Discord</span>
                                 <svg
@@ -416,6 +435,27 @@
                                     ></path>
                                 </svg>
                             </a>
+                            {#if bugReportSession}
+                                <button
+                                    type="button"
+                                    class="bug-report-button inline-flex items-center leading-none cursor-pointer text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                                    title="Report a bug"
+                                    onclick={() => (showBugReport = true)}
+                                >
+                                    <span class="sr-only">Report a bug</span>
+                                    <svg
+                                        aria-hidden="true"
+                                        viewBox="0 0 24 24"
+                                        preserveAspectRatio="xMidYMid meet"
+                                        class="h-5 w-5 block"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M12 4a4 4 0 0 1 3.995 3.8l.005 .2a1 1 0 0 1 .428 .096l3.033 -1.938a1 1 0 1 1 1.078 1.684l-3.015 1.931a7.17 7.17 0 0 1 .476 2.227h3a1 1 0 0 1 0 2h-3v1a6.01 6.01 0 0 1 -.195 1.525l2.708 1.616a1 1 0 1 1 -1.026 1.718l-2.514 -1.501a6.002 6.002 0 0 1 -3.973 2.56v-5.918a1 1 0 0 0 -2 0v5.917a6.002 6.002 0 0 1 -3.973 -2.56l-2.514 1.503a1 1 0 1 1 -1.026 -1.718l2.708 -1.616a6.01 6.01 0 0 1 -.195 -1.526v-1h-3a1 1 0 0 1 0 -2h3.001v-.055a7 7 0 0 1 .474 -2.173l-3.014 -1.93a1 1 0 1 1 1.078 -1.684l3.032 1.939l.024 -.012l.068 -.027l.019 -.005l.016 -.006l.032 -.008l.04 -.013l.034 -.007l.034 -.004l.045 -.008l.015 -.001l.015 -.002l.087 -.004a4 4 0 0 1 4 -4zm0 2a2 2 0 0 0 -2 2h4a2 2 0 0 0 -2 -2z"
+                                        ></path>
+                                    </svg>
+                                </button>
+                            {/if}
                         </div>
                     </div>
                     {#if sessionUser}
@@ -492,7 +532,7 @@
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
                                     >Profile</DropdownItem
                                 >
-                                <DropdownItem class="w-full text-left" onclick={gotoPreferences}
+                                <DropdownItem class="w-full text-left" onclick={openPreferences}
                                     >Preferences</DropdownItem
                                 >
                                 <DropdownItem class="w-full text-left" onclick={gotoNotifications}
@@ -587,6 +627,14 @@
         <LoginPanel bind:view={loginView} />
     </AuthModal>
 {/if}
+{#if bugReportSession}
+    <BugReportModal bind:open={showBugReport} session={bugReportSession} />
+{/if}
+{#if sessionUser}
+    <Modal bind:open={showPreferences} title="Preferences" size="sm" outsideclose autoclose={false}>
+        <PreferencesPanel />
+    </Modal>
+{/if}
 <Modal
     bind:open={showCreateGameModel}
     size="xs"
@@ -623,7 +671,7 @@
                 size="xs"
                 color="blue">Got it</Button
             >
-            <Button onclick={() => gotoPreferences()} size="xs" outline color="light"
+            <Button onclick={openPreferences} size="xs" outline color="light"
                 >Go to Preferences</Button
             >
         </div>
@@ -684,7 +732,9 @@
         .mobile-game-header .my-games-label,
         .mobile-game-header .full-logo,
         .mobile-game-header .account-avatar { display: none; }
-        .game-session-header .header-links { display: none; }
+        .game-session-header .header-links { margin-right: 4px; }
+        .game-session-header .community-link { display: none; }
+        .mobile-game-header .bug-report-button { justify-content: center; width: 40px; height: 40px; }
         .mobile-game-header .game-logo { display: block; width: 28px; height: 28px; }
         .mobile-game-header .game-menu-icon { display: block; }
         .mobile-game-header .account-menu { width: 40px; height: 40px; }

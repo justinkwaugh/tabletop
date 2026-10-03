@@ -16,6 +16,7 @@
     import TableNotices from './TableNotices.svelte'
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
+    import StandingInstruction from '../stock/StandingInstruction.svelte'
     import {
         companyFocusLocations,
         companyNetworkFocusLocations
@@ -1054,6 +1055,9 @@
                                         {trainColors}
                                         describeAction={historyDescription}
                                     />
+                                    {#if !session.isViewingHistory}<StandingInstruction
+                                            {session}
+                                        />{/if}
                                 {:else}
                                     {@render actions(focusLocation, focusRoute)}
                                 {/if}

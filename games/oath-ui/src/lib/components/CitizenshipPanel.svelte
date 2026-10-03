@@ -1,5 +1,7 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
+    import CountPicker from '$lib/components/CountPicker.svelte'
+    import { range } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { CardKind } from '@tabletop/oath'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
@@ -65,33 +67,32 @@
         <div class="mb-2 grid grid-cols-2 gap-2 text-xs">
             <div class="border-t border-oath-divider pt-1.5">
                 <div class="text-oath-text-muted mb-1">You also give</div>
-                <label class="block mb-1">
-                    <TokenText text="favor" />
-                    {offer.offerTerms.givenFavor} of {held.offerer.favor}
-                    <input
+                <div class="mb-1">
+                    <div class="mb-0.5">
+                        <TokenText text="favor" />
+                        <span class="text-oath-text-muted">you hold {held.offerer.favor}</span>
+                    </div>
+                    <CountPicker
+                        values={range(0, held.offerer.favor + 1)}
+                        picked={offer.offerTerms.givenFavor}
+                        label={(n) => `you give ${n} favor`}
+                        onpick={(n) => offer.setTerm('givenFavor', n)}
                         disabled={busy}
-                        type="range"
-                        min="0"
-                        max={held.offerer.favor}
-                        value={offer.offerTerms.givenFavor}
-                        oninput={(e) => offer.setTerm('givenFavor', Number(e.currentTarget.value))}
-                        class="w-full"
                     />
-                </label>
-                <label class="block">
-                    <TokenText text="secrets" />
-                    {offer.offerTerms.givenSecrets} of {held.offerer.secrets}
-                    <input
+                </div>
+                <div class="mb-1">
+                    <div class="mb-0.5">
+                        <TokenText text="secrets" />
+                        <span class="text-oath-text-muted">you hold {held.offerer.secrets}</span>
+                    </div>
+                    <CountPicker
+                        values={range(0, held.offerer.secrets + 1)}
+                        picked={offer.offerTerms.givenSecrets}
+                        label={(n) => `you give ${n} secrets`}
+                        onpick={(n) => offer.setTerm('givenSecrets', n)}
                         disabled={busy}
-                        type="range"
-                        min="0"
-                        max={held.offerer.secrets}
-                        value={offer.offerTerms.givenSecrets}
-                        oninput={(e) =>
-                            offer.setTerm('givenSecrets', Number(e.currentTarget.value))}
-                        class="w-full"
                     />
-                </label>
+                </div>
                 {#if held.offerer.relicIds.length > 0}
                     <div class="my-1">
                         <CardChoiceRow
@@ -123,33 +124,32 @@
             </div>
             <div class="border-t border-oath-divider pt-1.5">
                 <div class="text-oath-text-muted mb-1">They give</div>
-                <label class="block mb-1">
-                    <TokenText text="favor" />
-                    {offer.offerTerms.askedFavor} of {held.exile.favor}
-                    <input
+                <div class="mb-1">
+                    <div class="mb-0.5">
+                        <TokenText text="favor" />
+                        <span class="text-oath-text-muted">they hold {held.exile.favor}</span>
+                    </div>
+                    <CountPicker
+                        values={range(0, held.exile.favor + 1)}
+                        picked={offer.offerTerms.askedFavor}
+                        label={(n) => `they give ${n} favor`}
+                        onpick={(n) => offer.setTerm('askedFavor', n)}
                         disabled={busy}
-                        type="range"
-                        min="0"
-                        max={held.exile.favor}
-                        value={offer.offerTerms.askedFavor}
-                        oninput={(e) => offer.setTerm('askedFavor', Number(e.currentTarget.value))}
-                        class="w-full"
                     />
-                </label>
-                <label class="block">
-                    <TokenText text="secrets" />
-                    {offer.offerTerms.askedSecrets} of {held.exile.secrets}
-                    <input
+                </div>
+                <div class="mb-1">
+                    <div class="mb-0.5">
+                        <TokenText text="secrets" />
+                        <span class="text-oath-text-muted">they hold {held.exile.secrets}</span>
+                    </div>
+                    <CountPicker
+                        values={range(0, held.exile.secrets + 1)}
+                        picked={offer.offerTerms.askedSecrets}
+                        label={(n) => `they give ${n} secrets`}
+                        onpick={(n) => offer.setTerm('askedSecrets', n)}
                         disabled={busy}
-                        type="range"
-                        min="0"
-                        max={held.exile.secrets}
-                        value={offer.offerTerms.askedSecrets}
-                        oninput={(e) =>
-                            offer.setTerm('askedSecrets', Number(e.currentTarget.value))}
-                        class="w-full"
                     />
-                </label>
+                </div>
                 {#if held.exile.relicIds.length > 0}
                     <div class="my-1">
                         <CardChoiceRow

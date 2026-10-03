@@ -5,7 +5,7 @@ import {
     HydratedSantiagoGameState
 } from '../model/gameState.js'
 import { isFieldSquare } from '../model/board.js'
-import { buildTileBag } from '../util/tileBag.js'
+import { buildTileBag, tilesPerRound } from '../util/tileBag.js'
 
 export class SantiagoGameExploration implements GameExploration<SantiagoProjectedState> {
     createFromCanonicalState(state: SantiagoProjectedState): SantiagoProjectedState {
@@ -25,7 +25,7 @@ export class SantiagoGameExploration implements GameExploration<SantiagoProjecte
             'Exploration is unavailable with private money'
         )
         const tileBag = buildTileBag()
-        const setupDiscardCount = tileBag.length % Math.max(4, state.players.length)
+        const setupDiscardCount = tileBag.length % tilesPerRound(state.players.length)
         const visibleTiles = [
             ...state.board.squares.flat().filter(isFieldSquare),
             ...state.revealedTiles

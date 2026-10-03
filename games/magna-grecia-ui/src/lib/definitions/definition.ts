@@ -4,7 +4,7 @@ import type {
     HydratedMagnaGreciaGameState,
     MagnaGreciaProjectedState
 } from '@tabletop/magna-grecia'
-import coverImg from '$lib/images/magna_grecia_cover.svg'
+import coverImg from '$lib/images/magna_grecia_cover.jpg'
 
 export const UiDefinition: GameUiDefinition<
     MagnaGreciaProjectedState,

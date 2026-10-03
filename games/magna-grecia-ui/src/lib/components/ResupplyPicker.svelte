@@ -59,9 +59,14 @@
         type="button"
         class="confirm"
         disabled={total === 0}
+        aria-label="Confirm resupply of {total} {total === 1 ? 'tile' : 'tiles'}{total > basic
+            ? ', enhanced'
+            : ''}"
         onclick={() => gameSession.resupply(roads, cities)}
     >
-        Move {total} of {allowance} to supply{total > basic ? ' (★ enhanced)' : ''}
+        Resupply <span class="amount"
+            >{total}{#if total > basic}<sup class="enhanced" title="Enhanced">+</sup>{/if}</span
+        >
     </button>
 </div>
 
@@ -109,11 +114,29 @@
         color: #8c6a45;
     }
 
+    /* Wide enough for "Resupply n+", so the superscript appearing never shifts the − and + buttons. */
     .confirm {
+        min-width: 7.5em;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
         border-radius: 999px;
         padding: 3px 12px;
         background: #6b3f1d;
         color: #fbf3dc;
         font-size: 15px;
+    }
+
+    .amount {
+        display: inline-block;
+        min-width: 1.3em;
+        text-align: left;
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-weight: 700;
+    }
+
+    .enhanced {
+        margin-left: 1px;
+        font-size: 0.75em;
+        line-height: 0;
     }
 </style>

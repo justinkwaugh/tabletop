@@ -1,5 +1,7 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
+    import CountPicker from '$lib/components/CountPicker.svelte'
+    import { range } from '@tabletop/common'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices } from '$lib/model/cardChoice.js'
     import { siteName } from '$lib/model/names.js'
@@ -62,34 +64,27 @@
         {@const favor = usableFavor(gameState, giver)}
         <div class="border-t border-oath-divider pt-1.5">
             <div class="text-oath-text-muted mb-1">{gameSession.getPlayerName(giver)} gives</div>
-            <label class="flex items-center gap-2 mb-1">
+            <div class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span class="w-14"><TokenText text="favor" /></span>
-                <input
+                <CountPicker
+                    values={range(0, favor + 1)}
+                    picked={side(key).favor ?? 0}
+                    label={(n) => `${gameSession.getPlayerName(giver)} gives ${n} favor`}
+                    onpick={(n) => set(key, { favor: n })}
                     disabled={busy}
-                    type="number"
-                    min="0"
-                    max={favor}
-                    class="w-16 rounded bg-oath-surface-raised px-1 py-0.5"
-                    value={side(key).favor ?? 0}
-                    oninput={(e) =>
-                        set(key, { favor: Math.max(0, Number(e.currentTarget.value) || 0) })}
                 />
-                <span class="text-oath-text-muted">of {favor}</span>
-            </label>
-            <label class="flex items-center gap-2 mb-1">
+            </div>
+            <div class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span class="w-14"><TokenText text="secrets" /></span>
-                <input
+                <CountPicker
+                    values={range(0, player.secrets + 1)}
+                    picked={side(key).secrets ?? 0}
+                    label={(n) =>
+                        `${gameSession.getPlayerName(giver)} gives ${n} ${n === 1 ? 'secret' : 'secrets'}`}
+                    onpick={(n) => set(key, { secrets: n })}
                     disabled={busy}
-                    type="number"
-                    min="0"
-                    max={player.secrets}
-                    class="w-16 rounded bg-oath-surface-raised px-1 py-0.5"
-                    value={side(key).secrets ?? 0}
-                    oninput={(e) =>
-                        set(key, { secrets: Math.max(0, Number(e.currentTarget.value) || 0) })}
                 />
-                <span class="text-oath-text-muted">of {player.secrets}</span>
-            </label>
+            </div>
             {#if allows.relics && player.relicIds.length > 0}
                 <div class="mb-1">
                     <CardChoiceRow
@@ -129,28 +124,17 @@
                         {siteName(gameState, siteId)}
                     </label>
                     {#if on}
-                        <label class="flex items-center gap-2 pl-5 mb-1">
+                        <div class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-5">
                             <span>{gameSession.getPlayerName(receiver)} moves in</span>
-                            <input
+                            <CountPicker
+                                values={range(1, warbandsOnBoardOf(gameState, receiver))}
+                                picked={siteWarbandsIn(side(key), siteId)}
+                                label={(n) =>
+                                    `${gameSession.getPlayerName(receiver)} moves ${n} in from their board`}
+                                onpick={(n) => set(key, withSiteWarbands(side(key), siteId, n))}
                                 disabled={busy}
-                                type="number"
-                                min="1"
-                                class="w-14 rounded bg-oath-surface-raised px-1 py-0.5"
-                                value={siteWarbandsIn(side(key), siteId)}
-                                oninput={(e) =>
-                                    set(
-                                        key,
-                                        withSiteWarbands(
-                                            side(key),
-                                            siteId,
-                                            Math.max(1, Number(e.currentTarget.value) || 1)
-                                        )
-                                    )}
                             />
-                            <span class="text-oath-text-muted"
-                                >of {warbandsOnBoardOf(gameState, receiver)} on board</span
-                            >
-                        </label>
+                        </div>
                     {/if}
                 {/each}
             {/if}

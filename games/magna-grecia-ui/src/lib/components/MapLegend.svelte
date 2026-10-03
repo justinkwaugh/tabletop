@@ -2,17 +2,22 @@
     import { PointyHexDirection } from '@tabletop/common'
     import type { RoadEnds } from '@tabletop/magna-grecia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { localHexPoints } from '$lib/utils/boardGeometry.js'
-    import CityTileArt from './board/CityTileArt.svelte'
+    import { hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
+    import { cityLayout } from '$lib/utils/cityLayout.js'
+    import CityArt from './board/CityArt.svelte'
     import MarketPiece from './board/MarketPiece.svelte'
+    import OracleArt from './board/OracleArt.svelte'
     import RoadTileArt from './board/RoadTileArt.svelte'
     import Village from './board/Village.svelte'
 
     const NEUTRAL_COLOR = '#c0673f'
     const HEX_VIEW = '-48 -53 96 106'
-    const MARKET_VIEW = '-20 -21 42 42'
+    const MARKET_VIEW = '-15 -14 31 31'
     const LEGEND_ROAD: RoadEnds = [PointyHexDirection.West, PointyHexDirection.East]
     const hexShape = localHexPoints()
+    const LEGEND_CITY_SPACE = { q: 0, r: 0 }
+    const legendCity = cityLayout([LEGEND_CITY_SPACE], LEGEND_CITY_SPACE)
+    const legendCityOffset = hexCenter(LEGEND_CITY_SPACE)
 
     const gameSession = getGameSession()
     const color = $derived(
@@ -65,9 +70,17 @@
         </li>
         <li>
             <svg viewBox={HEX_VIEW} aria-hidden="true">
-                <CityTileArt {color} />
+                <g transform="translate({-legendCityOffset.x} {-legendCityOffset.y})">
+                    <CityArt {color} layout={legendCity} />
+                </g>
             </svg>
             <span>City</span>
+        </li>
+        <li>
+            <svg viewBox={HEX_VIEW} aria-hidden="true">
+                <OracleArt />
+            </svg>
+            <span>Oracle</span>
         </li>
     </ul>
     <div class="markets">
@@ -89,24 +102,26 @@
     .legend {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
         border-radius: 10px;
-        padding: 10px 12px 12px;
-        background: rgba(243, 223, 180, 0.55);
-        box-shadow: inset 0 0 0 1px rgba(107, 74, 42, 0.3);
+        padding: 8px 12px 10px;
+        background: rgba(243, 230, 196, 0.94);
+        box-shadow:
+            inset 0 0 0 1px rgba(107, 74, 42, 0.35),
+            0 6px 14px rgba(20, 50, 70, 0.35);
     }
 
     .legend-title {
-        font-size: 30px;
-        letter-spacing: 0.06em;
+        font-size: 20px;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         text-align: center;
     }
 
     .entries {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px 10px;
+        grid-template-columns: 1fr;
+        gap: 2px;
         margin: 0;
         padding: 0;
         list-style: none;
@@ -116,43 +131,41 @@
     .market {
         display: flex;
         align-items: center;
-        gap: 6px;
-        font-size: 17px;
+        gap: 8px;
+        font-size: 15px;
         color: #3b2a18;
     }
 
     .entries svg {
         flex-shrink: 0;
-        width: 48px;
-        height: 54px;
+        width: 34px;
+        height: 38px;
     }
 
     .markets {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 6px;
+        align-items: stretch;
+        gap: 2px;
         border-top: 1px solid rgba(107, 74, 42, 0.25);
-        padding-top: 8px;
+        padding-top: 6px;
     }
 
     .markets-label {
-        font-size: 17px;
+        font-size: 15px;
         font-weight: 700;
-        text-align: center;
         color: #3b2a18;
     }
 
     .market-row {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 4px 14px;
+        flex-direction: column;
+        gap: 2px;
     }
 
     .market svg {
         flex-shrink: 0;
-        width: 40px;
-        height: 40px;
+        width: 34px;
+        height: 30px;
     }
 </style>

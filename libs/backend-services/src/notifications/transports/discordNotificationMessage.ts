@@ -4,6 +4,7 @@ import {
     ComponentType,
     RESTPostAPIChannelMessageJSONBody
 } from 'discord-api-types/v10'
+import { siteUrl, truncate } from '../../discord/discordFormatting.js'
 
 export type DiscordNotificationContext = {
     frontendHost: string
@@ -125,12 +126,4 @@ function notificationCopy(notification: UserNotification): NotificationCopy {
                 buttonLabel: 'Open dashboard'
             }
     }
-}
-
-function siteUrl(pathOrUrl: string, frontendHost: string): string {
-    return new URL(pathOrUrl, frontendHost).href
-}
-
-function truncate(text: string, maxLength: number): string {
-    return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text
 }

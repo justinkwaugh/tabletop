@@ -1,8 +1,13 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
-    import { ActionType, discardRegionFor } from '@tabletop/oath'
+    import { ActionType, CardKind, Region, discardRegionFor } from '@tabletop/oath'
+    import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
+    import CountPicker from '$lib/components/CountPicker.svelte'
+    import { range } from '@tabletop/common'
+    import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import CardImage from '$lib/components/CardImage.svelte'
+    import Magnifier from '$lib/components/Magnifier.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { discardPositionLabel } from '$lib/model/discardOrder.js'
     import { cardName, regionName, siteName } from '$lib/model/names.js'
@@ -21,6 +26,22 @@
     let tapped = $derived(gameSession.setup.tapped)
     let ordering = $derived(gameSession.setup.ordering)
     let canGoBack = $derived(gameSession.selection.hasManualSelection())
+
+    // R-1.23.1 — the start sites by region in the board's order; one legal site is taken for the player.
+    const REGIONS = [Region.Cradle, Region.Provinces, Region.Hinterland]
+    let siteGroups = $derived(
+        legalSites.length < 2
+            ? []
+            : REGIONS.map((region) => ({
+                  region,
+                  sites: legalSites.filter((site) => gameState.regionOf(site) === region)
+              })).filter((group) => group.sites.length > 0)
+    )
+
+    function siteImage(slotId: string): string {
+        const cardId = gameState.siteCardAt(slotId)
+        return (cardId ? cardImage(cardId) : undefined) ?? cardBack(CardKind.Site)
+    }
 </script>
 
 <div>
@@ -36,26 +57,17 @@
                 {gameSession.setup.siteFavorPlaced} of {gameState.favorSupply} placed.
             </div>
             {#each split as { siteCardId, favor }, index (siteCardId)}
-                <div class="mb-1 flex items-center gap-2">
-                    <span class="grow">{cardName(siteCardId)} (prints {pending[index].wanted})</span
+                <div class="mb-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <span class="w-56 max-sm:w-full"
+                        >{cardName(siteCardId)} (prints {pending[index].wanted})</span
                     >
-                    <button
-                        type="button"
-                        class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
-                        disabled={busy || favor <= 0}
-                        onclick={() => gameSession.setup.setSiteFavor(siteCardId, favor - 1)}
-                    >
-                        −
-                    </button>
-                    <span class="w-6 text-center font-semibold">{favor}</span>
-                    <button
-                        type="button"
-                        class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-2 py-0.5"
-                        disabled={busy || favor >= pending[index].wanted}
-                        onclick={() => gameSession.setup.setSiteFavor(siteCardId, favor + 1)}
-                    >
-                        +
-                    </button>
+                    <CountPicker
+                        values={range(0, pending[index].wanted + 1)}
+                        picked={favor}
+                        label={(n) => `place ${n} favor on ${cardName(siteCardId)}`}
+                        onpick={(n) => gameSession.setup.setSiteFavor(siteCardId, n)}
+                        disabled={busy}
+                    />
                 </div>
             {/each}
         </div>
@@ -65,25 +77,30 @@
         {#if ordering}
             <div class="flex flex-wrap gap-2 mb-2">
                 {#each others as cardId (cardId)}
-                    <button
-                        class="flex flex-col items-center gap-0.5 rounded border p-1 {tapped.includes(
-                            cardId
-                        )
-                            ? 'border-oath-accent bg-oath-accent-soft'
-                            : 'border-oath-divider hover:border-oath-accent'}"
-                        disabled={busy}
-                        onclick={() => gameSession.setup.tapDiscard(cardId)}
-                    >
-                        <CardImage
-                            {cardId}
-                            width={widthAtHeight(100, { cardId })}
-                            label={cardName(cardId)}
-                            inspect
-                        />
-                        <span class="text-[10px] text-oath-heading h-3"
-                            >{discardPositionLabel(cardId, tapped, others)}</span
+                    <div class="relative">
+                        <button
+                            class="flex flex-col items-center gap-0.5 rounded border p-1 {tapped.includes(
+                                cardId
+                            )
+                                ? 'border-oath-accent bg-oath-accent-soft'
+                                : 'border-oath-divider hover:border-oath-accent'}"
+                            disabled={busy}
+                            onclick={() => gameSession.setup.tapDiscard(cardId)}
                         >
-                    </button>
+                            <CardImage
+                                {cardId}
+                                width={widthAtHeight(100, { cardId })}
+                                label={cardName(cardId)}
+                            />
+                            <span class="text-[10px] text-oath-heading h-3"
+                                >{discardPositionLabel(cardId, tapped, others)}</span
+                            >
+                        </button>
+                        <Magnifier
+                            preview={{ cardId, label: cardName(cardId) }}
+                            label={cardName(cardId)}
+                        />
+                    </div>
                 {/each}
             </div>
         {:else}
@@ -99,6 +116,28 @@
                     {busy}
                     height={100}
                 />
+            </div>
+        {/if}
+        {#if !ordering && siteGroups.length > 0}
+            <div class="mb-2 flex flex-col gap-1.5" role="list" aria-label="Start sites">
+                {#each siteGroups as group (group.region)}
+                    <h4
+                        class="mt-1 text-[11px] font-semibold uppercase tracking-widest text-oath-heading"
+                    >
+                        {regionName(group.region)}
+                    </h4>
+                    {#each group.sites as slotId (slotId)}
+                        <MenuToggleRow
+                            image={siteImage(slotId)}
+                            name={siteName(gameState, slotId)}
+                            tag="start here"
+                            on={siteId === slotId}
+                            points={{ kind: 'site', slotId }}
+                            disabled={busy}
+                            onclick={() => gameSession.setup.chooseSite(slotId)}
+                        />
+                    {/each}
+                {/each}
             </div>
         {/if}
         <div class="flex items-start justify-between gap-2">
@@ -123,14 +162,10 @@
                 <p class="text-sm">
                     Keeping <span class="font-semibold">{cardName(adviserCardId)}</span>.
                     <span class="font-semibold">Tap the site where your pawn starts.</span>
-                    <span class="text-oath-text-muted"
-                        >Any faceup site — they are lit on the map.</span
-                    >
                 </p>
             {:else}
                 <p class="text-sm">
                     <span class="font-semibold">Tap the site where your pawn starts</span>
-                    <span class="text-oath-text-muted">(lit on the map)</span>
                     <span class="font-semibold">and the card to keep</span> as a facedown adviser.
                 </p>
             {/if}

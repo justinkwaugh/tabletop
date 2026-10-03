@@ -56,6 +56,7 @@ export * from './data/cardPowers.js'
 export * from './data/mapSlots.js'
 export * from './data/visionsDrawnTrack.js'
 export * from './data/reliquary.js'
+export * from './data/siteReference.js'
 export * from './data/favorBanks.js'
 export * from './data/dice.js'
 

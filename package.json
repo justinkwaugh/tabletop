@@ -40,6 +40,6 @@
         "tools/*"
     ],
     "dependencies": {
-        "nanoid": "^5.1.6"
+        "nanoid": "5.1.6"
     }
 }

@@ -10,8 +10,11 @@ import { StagedFlow, type StagesCover } from './stagedFlow.svelte.js'
 import type { PowerChoicePicks } from './powerChoices.js'
 import type { ConspiracyPick } from './conspiracyTake.js'
 
-/** R-7.4 — a modifier declared on the staged action, with the choices its text opens. */
-export type ModifierDeclaration = { use: PowerUseKey; picks?: PowerChoicePicks }
+/**
+ * R-7.4 — a modifier declared on the staged action, with the choices its text opens. `opened`
+ * marks the card the powers list opened the action with.
+ */
+export type ModifierDeclaration = { use: PowerUseKey; picks?: PowerChoicePicks; opened?: true }
 
 // A `type`, not an `interface`: the shared helpers are generic over `Record<string, unknown>`.
 export type OathValueByStage = {
@@ -78,9 +81,16 @@ export class OathSelection extends StagedFlow<OathValueByStage> {
     // Back takes the last modifier declared, one at a time, before the action under it.
     back(): OathStage | undefined {
         const modifiers = this.modifiers
-        if (this.highestManualStage() === 'modifiers' && modifiers.length > 1) {
-            this.set('modifiers', modifiers.slice(0, -1))
-            return 'modifiers'
+        if (this.highestManualStage() === 'modifiers') {
+            if (modifiers.length > 1) {
+                this.set('modifiers', modifiers.slice(0, -1))
+                return 'modifiers'
+            }
+            // The action's own tile may be dimmed, so its last card returns to the powers list.
+            if (modifiers[0]?.opened) {
+                this.set('action', ActionType.UseActionPower)
+                return 'modifiers'
+            }
         }
         return super.back()
     }

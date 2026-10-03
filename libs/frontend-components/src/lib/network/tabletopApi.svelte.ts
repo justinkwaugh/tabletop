@@ -12,6 +12,7 @@ import {
     type AdminAssignableRole,
     assertExists,
     Bookmark,
+    type BugReportRequest,
     CanonicalActionReplay,
     ProcessedActionReplay,
     Game,
@@ -514,6 +515,14 @@ export class TabletopApi {
     async deleteGame(gameId: string): Promise<void> {
         await this.wretch
             .post({ gameId }, '/game/delete')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
+    }
+
+    async reportBug(report: BugReportRequest): Promise<void> {
+        await this.wretch
+            .post(report, '/game/reportBug')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<void>()

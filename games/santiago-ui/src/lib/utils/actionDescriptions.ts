@@ -1,5 +1,6 @@
 import type { GameAction } from '@tabletop/common'
 import {
+    isRevealTiles,
     isPlaceBid,
     isPlaceField,
     isPlaceNeutralTile,
@@ -29,6 +30,9 @@ export type DescriptionPart = string | { playerId: string }
 // callers that show them stacked (the banner above the board) render one per line instead,
 // per Justin's request not to run multi-part end-of-round summaries together with dashes.
 export function getDescriptionSegments(action: GameAction, ctx?: ActionDescriptionContext): DescriptionPart[][] {
+    if (isRevealTiles(action)) {
+        return [["revealed this round's fields"]]
+    }
     if (isPlaceBid(action)) {
         const amount = action.amount ?? 0
         const bidText = `bid ${amount} escudo${amount !== 1 ? 's' : ''}`

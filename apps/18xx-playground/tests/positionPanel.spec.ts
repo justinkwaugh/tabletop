@@ -1,5 +1,10 @@
-import { expect, test } from '@playwright/test'
-import { putLocalRecords, readLocalRecords } from './localGameStore.js'
+import { expect, test, type Page } from '@playwright/test'
+import { hostLocalGames, readLocalRecords } from './localGameStore.js'
+
+async function reopenTrading(page: Page) {
+    await page.reload()
+    await page.getByLabel('Position', { exact: true }).selectOption('trading')
+}
 
 test('history shows recorded auction details without action controls', async ({ page }) => {
     test.setTimeout(60000)
@@ -32,18 +37,8 @@ test('a local spectator sees the active player and a disabled stock strip', asyn
     await page.goto('/table')
     await page.getByLabel('Position', { exact: true }).selectOption('trading')
     await expect(page.getByRole('navigation', { name: 'Stock actions' })).toBeVisible()
-    const games = await readLocalRecords(page, 'games')
-    await putLocalRecords(
-        page,
-        'games',
-        games.map((game) => ({
-            ...game,
-            hotseat: false,
-            players: game.players.map((player) => ({ ...player, userId: 'another-user' }))
-        }))
-    )
-    await page.reload()
-    await page.getByLabel('Position', { exact: true }).selectOption('trading')
+    await hostLocalGames(page)
+    await reopenTrading(page)
     const panel = page.getByRole('region', { name: 'Current action', exact: true })
     await expect(panel.getByLabel('Position summary')).toBeVisible()
     await expect(panel).not.toContainText('Stock round')
@@ -57,6 +52,30 @@ test('a local spectator sees the active player and a disabled stock strip', asyn
     await expect(strip.getByRole('button', { name: 'Sell', exact: true })).toBeDisabled()
     await expect(strip.locator('button:enabled')).toHaveCount(0)
     await expect(strip.getByRole('button', { name: /Pass|End turn/ })).toHaveCount(0)
+})
+
+test('a seated player declares a standing instruction off-turn', async ({ page }) => {
+    test.setTimeout(60000)
+    await page.goto('/table')
+    await page.getByLabel('Position', { exact: true }).selectOption('trading')
+    await expect(page.getByRole('navigation', { name: 'Stock actions' })).toBeVisible()
+    const activePlayer = page.locator('header[aria-label="Game phase"] .player-name').first()
+    const active = await activePlayer.innerText()
+    const [game] = await readLocalRecords(page, 'games')
+    const seat = game.players.find((player) => player.name !== active)
+    if (!seat) throw new Error('Expected a seated player who is not active')
+    await hostLocalGames(page, seat.id)
+    await reopenTrading(page)
+    const panel = page.getByRole('region', { name: 'Current action', exact: true })
+    await expect(panel.getByLabel('Position summary')).toBeVisible()
+    await expect(activePlayer).toHaveText(active)
+    await expect(page.getByLabel('Standing instruction', { exact: true })).toHaveCount(1)
+    const bar = panel.getByLabel('Standing instruction', { exact: true })
+    await bar.getByRole('button', { name: 'Autopass', exact: true }).click()
+    await bar.getByRole('button', { name: 'Enable', exact: true }).click()
+    await expect(bar).toContainText('Autopass for the rest of the round')
+    await expect(bar.getByRole('button', { name: 'Cancel', exact: true })).toBeEnabled()
+    await expect(activePlayer).toHaveText(active)
 })
 
 test('backward navigation separates the last payout from its train run', async ({ page }) => {

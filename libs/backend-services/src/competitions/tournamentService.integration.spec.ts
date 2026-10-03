@@ -1,6 +1,6 @@
 import { createClient, type RedisClientType } from 'redis'
 import { cacheFixture } from '../cache/tests/cacheFixture.js'
-import { Firestore, Transaction } from '@google-cloud/firestore'
+import { Transaction } from '@google-cloud/firestore'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
     BaseConfigurator,
@@ -18,6 +18,7 @@ import { generateTournamentSchedule } from './tournamentScheduler.js'
 import { GameService } from '../games/gameService.js'
 import { TournamentService } from './tournamentService.js'
 import { FirestoreTournamentStore } from '../persistence/firestore/tournamentStore.js'
+import { isolatedFirestore } from '../persistence/firestore/tests/isolatedFirestore.js'
 import { SyntheticRuntime } from '../games/tests/syntheticGame.js'
 
 class Configurator extends BaseConfigurator {
@@ -47,7 +48,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
     { timeout: 15_000 },
     () => {
         const cachePrefix = `demo-tournaments-${Date.now()}`
-        const firestore = new Firestore({ projectId: cachePrefix })
+        const firestore = isolatedFirestore()
         const client: RedisClientType = createClient({
             socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
         })

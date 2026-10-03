@@ -1,10 +1,12 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
-    import { siteHolding } from '@tabletop/oath'
+    import { siteHolding, siteReference } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import CardWarbands from '$lib/components/CardWarbands.svelte'
+    import SiteSentence from '$lib/components/SiteSentence.svelte'
     import { cardAspect } from '$lib/images/cardShape.js'
     import { cardPreview } from '$lib/model/cardPreview.svelte.js'
+    import { previewSourceWidth, previewWidth } from '$lib/model/previewSize.js'
     import { cardName, plural } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { banditWarbandImage, pawnImage, warbandImage } from '$lib/images/pieceImages.js'
@@ -14,6 +16,9 @@
     import { warbandsOnCardOf } from '$lib/model/cardWarbands.js'
 
     // Mounted outside the table layout: a transformed ancestor would be the containing block of this fixed layer.
+    // Rule 5 — an enlarged site offers to focus the board on its row.
+    let { onZoomSite }: { onZoomSite?: (slotId: string) => void } = $props()
+
     let areaWidth = $state(0)
     let areaHeight = $state(0)
     let stackHeight = $state(0)
@@ -37,6 +42,10 @@
         const relics = gameState.relicSlotsAt(slotId).length
         return { ...onSite, pawns, tokens, denizens, relics }
     })
+
+    let sentence = $derived(
+        preview?.cardId && preview.back === undefined ? siteReference(preview.cardId) : undefined
+    )
 
     function namesOf(playerIds: string[]): string {
         return playerIds.map((id) => gameSession.getPlayerName(id)).join(', ')
@@ -75,11 +84,14 @@
         return () => observer.disconnect()
     }
 
-    // Capped: past a point more pixels hide the board.
     let width = $derived.by(() => {
         if (!preview) return 0
         const aspect = preview.aspect ?? cardAspect(preview)
-        return Math.round(Math.min(areaWidth * 0.46, areaHeight * 0.82 * aspect, 460))
+        return previewWidth(
+            { width: areaWidth, height: areaHeight },
+            aspect,
+            previewSourceWidth(preview)
+        )
     })
 
     // The boxes under the card can outgrow what the card leaves; the whole stack shrinks to fit.
@@ -87,23 +99,23 @@
 </script>
 
 {#if preview}
-    <!-- Inert under a mouse, so picking never depends on how long the pointer
-         was still; on touch the sticky preview takes and swallows the closing tap. -->
+    <!-- Rule 4 — over a backdrop that takes the next press, so the press that closes it does nothing else. -->
     <div
         class="card-preview"
-        class:card-preview--sticky={cardPreview.sticky}
-        aria-hidden={!cardPreview.sticky}
         role="button"
-        tabindex={cardPreview.sticky ? 0 : -1}
+        tabindex="0"
+        aria-label="Close the enlarged card"
         onpointerdown={(event) => {
-            if (!cardPreview.sticky) return
+            event.preventDefault()
+            event.stopPropagation()
+        }}
+        onclick={(event) => {
             event.preventDefault()
             event.stopPropagation()
             cardPreview.dismiss()
         }}
         onkeydown={(event) => {
-            if (cardPreview.sticky && (event.key === 'Escape' || event.key === 'Enter'))
-                cardPreview.dismiss()
+            if (event.key === 'Enter' || event.key === ' ') cardPreview.dismiss()
         }}
     >
         <div class="card-preview__area" {@attach measureArea}>
@@ -206,6 +218,26 @@
                             {/if}
                         </div>
                     {/if}
+                    {#if sentence}
+                        <div class="card-preview__pieces" style="width:{width}px;">
+                            <SiteSentence {sentence} />
+                        </div>
+                    {/if}
+                    {#if preview.slotId && onZoomSite}
+                        {@const slotId = preview.slotId}
+                        <button
+                            type="button"
+                            class="rounded-md bg-oath-primary px-3.5 py-1.5 text-[15px] font-bold
+                                   text-oath-primary-text hover:bg-oath-primary-hover"
+                            onclick={(event) => {
+                                event.stopPropagation()
+                                onZoomSite(slotId)
+                                cardPreview.dismiss()
+                            }}
+                        >
+                            Zoom the board here
+                        </button>
+                    {/if}
                 </div>
             {/if}
         </div>
@@ -219,7 +251,8 @@
         z-index: 60;
         padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
             env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-        pointer-events: none;
+        background: rgba(0, 0, 0, 0.35);
+        cursor: pointer;
     }
 
     .card-preview__area {
@@ -230,11 +263,6 @@
         justify-content: center;
     }
 
-    .card-preview--sticky {
-        pointer-events: auto;
-        background: rgba(0, 0, 0, 0.35);
-        cursor: pointer;
-    }
     .figure {
         height: 26px;
         width: auto;

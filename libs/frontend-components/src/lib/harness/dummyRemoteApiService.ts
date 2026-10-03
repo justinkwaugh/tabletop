@@ -1,5 +1,6 @@
 import type Ably from 'ably'
 import type {
+    BugReportRequest,
     AdminAssignableRole,
     Bookmark,
     GameCatalogEntry,
@@ -221,6 +222,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async deleteGame(_gameId: string): Promise<void> {
         return this.fail('deleteGame')
+    }
+
+    async reportBug(_report: BugReportRequest): Promise<void> {
+        return this.fail('reportBug')
     }
 
     async checkInvitation(_token: string): Promise<Game> {

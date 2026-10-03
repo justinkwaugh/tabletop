@@ -1,6 +1,7 @@
 <script lang="ts">
     import TokenText from '$lib/components/TokenText.svelte'
-    import { assertExists } from '@tabletop/common'
+    import { assertExists, range } from '@tabletop/common'
+    import CountPicker from '$lib/components/CountPicker.svelte'
     import { PowerQuestionKind, RerolledRollKind, type RerolledRoll } from '@tabletop/oath'
     import QuestionConspiracy from '$lib/components/QuestionConspiracy.svelte'
     import QuestionGatheringFloor from '$lib/components/QuestionGatheringFloor.svelte'
@@ -61,19 +62,16 @@
                 text="You may burn any number of favor to gain as many secrets. You have {draft.myFavor} favor."
             />
         </p>
-        <label class="flex items-center gap-2 text-xs mb-2">
-            burn
-            <input
-                type="number"
-                min="0"
-                max={draft.myFavor}
+        <div class="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+            <TokenText text="burn favor" />
+            <CountPicker
+                values={range(0, draft.myFavor + 1)}
+                picked={draft.burn}
+                label={(n) => `burn ${n} favor`}
+                onpick={(n) => draft.setBurn(n)}
                 disabled={busy}
-                value={draft.burn}
-                oninput={(e) => draft.setBurn(Number(e.currentTarget.value) || 0)}
-                class="w-16 rounded bg-oath-surface-raised px-1 py-0.5"
             />
-            <TokenText text="favor" />
-        </label>
+        </div>
         <QuestionYesNo yes="Burn {draft.burn} for {draft.burn} secrets" no="Burn none" />
     {:else if mine.kind === PowerQuestionKind.PayOrLoseRelic}
         <p class="text-sm mb-2">

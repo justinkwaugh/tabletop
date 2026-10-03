@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/frontend",
-    "version": "22.6.0",
+    "version": "22.7.4",
     "private": true,
     "type": "module",
     "scripts": {
@@ -23,7 +23,7 @@
         "es-iterator-helpers": "^1.2.2",
         "idb": "^8.0.3",
         "javascript-time-ago": "^2.5.10",
-        "nanoid": "^5.1.6",
+        "nanoid": "5.1.6",
         "svelte-sonner": "^0.3.27",
         "typebox": "^1.0.79",
         "wretch": "^2.9.0",

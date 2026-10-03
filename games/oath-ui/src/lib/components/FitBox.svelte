@@ -7,10 +7,12 @@
     let {
         fraction = 0.4,
         portraitFraction = 0.55,
+        basis = undefined,
         children
     }: {
         fraction?: number
         portraitFraction?: number
+        basis?: number
         children: Snippet
     } = $props()
 
@@ -20,7 +22,9 @@
 
     const portrait = new MediaQuery('(max-width: 640px) and (orientation: portrait)')
 
-    let budget = $derived(columnHeight * (portrait.current ? portraitFraction : fraction))
+    let budget = $derived(
+        (basis ?? columnHeight) * (portrait.current ? portraitFraction : fraction)
+    )
 
     const measureColumn: Attachment<HTMLElement> = (node) => {
         const column = node.parentElement

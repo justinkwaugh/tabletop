@@ -1,4 +1,5 @@
 import { PlaceSpring } from '../actions/placeSpring.js'
+import { RevealTiles } from '../actions/revealTiles.js'
 import { PlaceBid } from '../actions/placeBid.js'
 import { PlaceField } from '../actions/placeField.js'
 import { PlaceNeutralTile } from '../actions/placeNeutralTile.js'
@@ -11,6 +12,7 @@ import { ActionType } from './actions.js'
 
 export const SantiagoApiActions = {
     [ActionType.PlaceSpring]: PlaceSpring,
+    [ActionType.RevealTiles]: RevealTiles,
     [ActionType.PlaceBid]: PlaceBid,
     [ActionType.PlaceField]: PlaceField,
     [ActionType.PlaceNeutralTile]: PlaceNeutralTile,

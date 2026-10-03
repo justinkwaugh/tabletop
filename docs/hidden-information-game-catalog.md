@@ -55,7 +55,7 @@ Sources: [state and scoring](../games/estates/src/model/gameState.ts), [initiali
 
 ## Santiago
 
-Sources: [state and scoring](../games/santiago/src/model/gameState.ts), [initializer](../games/santiago/src/definition/gameInitializer.ts), [options](../games/santiago/src/definition/gameConfig.ts), [bidding handler](../games/santiago/src/stateHandlers/bidding.ts), [PlaceBid](../games/santiago/src/actions/placeBid.ts), [round transition](../games/santiago/src/stateHandlers/extraIrrigation.ts).
+Sources: [state and scoring](../games/santiago/src/model/gameState.ts), [initializer](../games/santiago/src/definition/gameInitializer.ts), [options](../games/santiago/src/definition/gameConfig.ts), [tile reveal handler](../games/santiago/src/stateHandlers/tileReveal.ts), [bidding handler](../games/santiago/src/stateHandlers/bidding.ts), [PlaceBid](../games/santiago/src/actions/placeBid.ts), [round transition](../games/santiago/src/stateHandlers/extraIrrigation.ts).
 
 Implemented in the [Santiago visibility contract](../games/santiago/docs/visibility.md):
 

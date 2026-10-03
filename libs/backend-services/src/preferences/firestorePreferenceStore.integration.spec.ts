@@ -1,8 +1,8 @@
-import { Firestore } from '@google-cloud/firestore'
 import { afterAll, expect, it } from 'vitest'
 import { FirestorePreferenceStore } from './firestorePreferenceStore.js'
+import { isolatedFirestore } from '../persistence/firestore/tests/isolatedFirestore.js'
 
-const firestore = new Firestore({ projectId: 'pane-preference-test' })
+const firestore = isolatedFirestore()
 const store = new FirestorePreferenceStore(firestore)
 const userId = `layout-${Date.now()}`
 afterAll(async () => {

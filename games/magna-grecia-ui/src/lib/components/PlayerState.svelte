@@ -20,16 +20,6 @@
     const textColor = $derived(gameSession.colors.getPlayerTextColorValue(playerId))
     const isTurn = $derived(gameSession.gameState.activePlayerIds.includes(playerId))
     const marketsLeft = $derived(gameSession.gameState.board.marketsRemaining(playerId))
-    const ORDINALS = ['1st', '2nd', '3rd', '4th']
-    const nextRoundPlace = $derived.by(() => {
-        const state = gameSession.gameState
-        const upcoming = state.result ? undefined : state.upcomingCard()
-        if (!upcoming) {
-            return undefined
-        }
-        const index = state.turnOrderForCard(upcoming).indexOf(playerId)
-        return index >= 0 ? ORDINALS[index] : undefined
-    })
 </script>
 
 <div class="player" class:turn={isTurn} style:--player={color} style:--player-text={textColor}>
@@ -56,19 +46,27 @@
             <strong>{marketsLeft}</strong>
         </div>
     </div>
-    <div class="projection" title="Score if the game ended now">
-        <span>Markets <strong>{score.markets}</strong></span>
-        <span class="oracles">
-            <OracleIcon size={18} />
-            <strong>{score.oracles / ORACLE_POINTS}</strong>
+    <div class="score">
+        <span class="score-label">Score</span>
+        <span class="part" title="Points to spend">
+            <PointsIcon size={18} />
+            <strong>{score.points}</strong>
         </span>
-        <span class="total">Total <strong>{score.total}</strong></span>
+        <span class="part" title="Points from markets">
+            <MarketIcon size={18} />
+            <strong>{score.markets}</strong>
+        </span>
+        <span
+            class="part"
+            title="Points from oracles ({score.oracles / ORACLE_POINTS} × {ORACLE_POINTS})"
+        >
+            <OracleIcon size={18} />
+            <strong>{score.oracles}</strong>
+        </span>
+        <span class="total" title="Score if the game ended now"
+            >Total <strong>{score.total}</strong></span
+        >
     </div>
-    {#if nextRoundPlace}
-        <div class="next-round" title="Turn order in the next round">
-            Next round: <strong>{nextRoundPlace}</strong>
-        </div>
-    {/if}
     {#if gameSession.showDebug}
         <div class="debug">id: {playerId}</div>
     {/if}
@@ -106,8 +104,9 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 18px;
-        font-weight: 600;
+        font-weight: 700;
         letter-spacing: 0.05em;
         text-transform: uppercase;
     }
@@ -128,7 +127,7 @@
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 4px;
-        padding: 8px 10px 4px;
+        padding: 8px 10px 6px;
     }
 
     .stat {
@@ -144,20 +143,31 @@
         color: #8c6a45;
     }
 
-    .projection {
+    .score {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 6px;
-        padding: 3px 12px 8px;
-        font-size: 13px;
+        padding: 0 12px 8px;
+        font-size: 14px;
         color: #7a5732;
     }
 
-    .oracles {
+    .score-label {
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9b7a52;
+    }
+
+    .part {
         display: inline-flex;
         align-items: center;
-        gap: 2px;
+        gap: 3px;
+    }
+
+    .total {
+        cursor: help;
     }
 
     .total strong {
@@ -165,12 +175,6 @@
         color: #4a2c12;
     }
 
-    .next-round {
-        margin-top: -4px;
-        padding: 0 12px 8px;
-        font-size: 13px;
-        color: #7a5732;
-    }
     .debug {
         padding: 0 12px 6px;
         font-size: 10px;
