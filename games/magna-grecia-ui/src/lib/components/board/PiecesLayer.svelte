@@ -4,6 +4,7 @@
     import { hexCenter } from '$lib/utils/boardGeometry.js'
     import { cityViews, connectionBadges, marketViews, oracleViews } from '$lib/utils/boardView.js'
     import CityArt from './CityArt.svelte'
+    import CityFlowArt from './CityFlowArt.svelte'
     import MarketPiece from './MarketPiece.svelte'
     import OracleArt from './OracleArt.svelte'
     import RoadTileArt from './RoadTileArt.svelte'
@@ -19,7 +20,12 @@
             road
         }))
     )
-    const cities = $derived(cityViews(board))
+    const cityFlow = $derived(gameSession.cityFlow)
+    const cities = $derived(
+        cityViews(gameSession.cityBoard).filter(
+            (city) => !cityFlow?.plan.hiddenCityIds.includes(city.key)
+        )
+    )
     const oracles = $derived(oracleViews(board, network))
     const markets = $derived(marketViews(board, network))
     const badges = $derived(connectionBadges(board, network))
@@ -41,6 +47,9 @@
     {#each cities as city (city.key)}
         <CityArt color={playerColor(city.playerId)} layout={city.layout} />
     {/each}
+    {#if cityFlow}
+        <CityFlowArt flow={cityFlow} color={playerColor(cityFlow.plan.playerId)} />
+    {/if}
 </g>
 
 <g class="oracles">
