@@ -1,4 +1,5 @@
-import { Suit } from '@tabletop/oath'
+import { RELIQUARY_MODIFIERS, Suit, cardDefinitions } from '@tabletop/oath'
+import { escapeRegExp } from '$lib/model/names.js'
 
 /** A run of panel text: words, a favor, secret or warband token with its count, or a suit's symbol. */
 export type TextPart =
@@ -29,6 +30,12 @@ const WARBANDS = String.raw`\b(?<warbandCount>\d+|an?|one) (?<warbandWhose>(?<im
 const PATTERN = new RegExp(ALTERNATIVES.join('|'), 'gi')
 const PATTERN_WITH_WARBANDS = new RegExp([WARBANDS, ...ALTERNATIVES].join('|'), 'gi')
 
+const CARD_NAMES = [
+    ...cardDefinitions().map((card) => card.name),
+    ...RELIQUARY_MODIFIERS.map((trait) => trait.name)
+].sort((a, b) => b.length - a.length)
+const CARD_NAME = new RegExp(String.raw`\b(${CARD_NAMES.map(escapeRegExp).join('|')})\b`)
+
 function countOf(word: string | undefined): number | undefined {
     if (word === undefined) return undefined
     return ONE.has(word.toLowerCase()) ? 1 : Number(word)
@@ -42,9 +49,24 @@ function suitNamed(name: string): Suit {
 
 /** Panel text with favor, secrets and suits as their tokens and symbols, the rest as words. */
 export function tokenParts(text: string, options: TokenOptions = {}): TextPart[] {
+    const pattern = options.warbands ? PATTERN_WITH_WARBANDS : PATTERN
+    const runs = text
+        .split(CARD_NAME)
+        .flatMap((run, i): TextPart[] =>
+            i % 2 === 1 ? [{ kind: 'text', text: run }] : tokenRun(run, pattern)
+        )
+    return runs.reduce<TextPart[]>((parts, part) => {
+        const last = parts.at(-1)
+        if (part.kind === 'text' && last?.kind === 'text') last.text += part.text
+        else parts.push(part)
+        return parts
+    }, [])
+}
+
+function tokenRun(text: string, pattern: RegExp): TextPart[] {
     const parts: TextPart[] = []
     let from = 0
-    for (const match of text.matchAll(options.warbands ? PATTERN_WITH_WARBANDS : PATTERN)) {
+    for (const match of text.matchAll(pattern)) {
         const at = match.index ?? 0
         if (at > from) parts.push({ kind: 'text', text: text.slice(from, at) })
         const groups = match.groups ?? {}

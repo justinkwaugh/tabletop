@@ -92,4 +92,19 @@ describe('History text, which draws warbands too', () => {
     it('leaves warbands as words in the panels', () => {
         expect(tokenParts('get 2 warbands')).toEqual([text('get 2 warbands')])
     })
+    it('keeps a card’s name whole, though it holds a token’s word', () => {
+        expect(tokenParts('used A Small Favor, placing a favor on it')).toEqual([
+            text('used A Small Favor, placing '),
+            { kind: 'favor', count: 1 },
+            text(' on it')
+        ])
+        expect(tokenParts('mustered at Secret Police, gaining 2 warbands', { warbands: true })).toEqual([
+            text('mustered at Secret Police, gaining '),
+            { kind: 'warband', count: 2, imperial: false, words: 'warbands' }
+        ])
+        expect(tokenParts('used Secret Signal: gained a secret')).toEqual([
+            text('used Secret Signal: gained '),
+            { kind: 'secret', count: 1 }
+        ])
+    })
 })
