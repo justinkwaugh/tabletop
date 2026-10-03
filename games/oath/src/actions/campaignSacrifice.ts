@@ -26,11 +26,13 @@ import {
     selectionExceedsForce,
     boardOwnersOwnFirst,
     defeatChoiceMatters,
+    soleOwner,
     warbandGroupsAtSites
 } from '../util/force.js'
 import { BRUTAL, hasTrait } from '../util/reliquaryTraits.js'
 import { reasonPersistentForbidsSacrifice } from '../util/persistent.js'
 import { countOf } from '../util/warbands.js'
+import { WarbandOwner } from '../model/warbandCounts.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 export type CampaignSacrificeMetadata = Type.Static<typeof CampaignSacrificeMetadata>
@@ -40,6 +42,8 @@ export const CampaignSacrificeMetadata = Type.Object({
     defense: Type.Number(),
     attackerVictorious: Type.Boolean(),
     sacrificed: Type.Number(),
+    /** R-10.13 — whose warbands were sacrificed, when they were one owner's. */
+    sacrificedOwner: Type.Optional(WarbandOwner),
     /** R-5.5.6 — rounded down; absent while the defending side chooses. */
     defeatKilled: Type.Optional(Type.Number()),
     /** R-5.5.6.a */
@@ -103,7 +107,7 @@ export class HydratedCampaignSacrifice
         assertExists(campaign, 'A sacrifice requires a Campaign in progress')
 
         // R-5.5.5
-        this.killSacrifice(state, campaign)
+        const sacrificedOwner = soleOwner(this.killSacrifice(state, campaign))
         const attack = HydratedCampaignSacrifice.attackTotal(campaign, this.sacrifice)
 
         // R-5.5.5.b — strictly higher: a tie is the defender's, unless a plan decided it already.
@@ -123,6 +127,7 @@ export class HydratedCampaignSacrifice
                 defense: campaign.defense,
                 attackerVictorious,
                 sacrificed: this.sacrifice,
+                sacrificedOwner,
                 awaitingLossesOf: chooserId
             }
             return
@@ -138,6 +143,7 @@ export class HydratedCampaignSacrifice
             defense: campaign.defense,
             attackerVictorious,
             sacrificed: this.sacrifice,
+            sacrificedOwner,
             ...finished
         }
 
@@ -212,16 +218,16 @@ export class HydratedCampaignSacrifice
             : defenderId
     }
 
-    /** R-5.5.5, R-10.22 — sacrificing is choosing to kill your own warbands. */
-    private killSacrifice(state: HydratedOathGameState, campaign: CampaignState) {
-        if (this.sacrifice <= 0) return
+    /** R-5.5.5, R-10.22 — sacrificing is choosing to kill your own warbands; returns what died. */
+    private killSacrifice(state: HydratedOathGameState, campaign: CampaignState): WarbandGroup[] {
+        if (this.sacrifice <= 0) return []
         if (!this.sacrificeKills) {
-            killFromAttackingForce(state, campaign, this.sacrifice)
-            return
+            return killFromAttackingForce(state, campaign, this.sacrifice)
         }
         for (const group of this.sacrificeKills) {
             killOrRedirect(state, campaign, group.at, group.owner, group.count)
         }
+        return this.sacrificeKills
     }
 
     private static resolveDefeat(

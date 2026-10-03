@@ -448,14 +448,17 @@ describe('skulls (R-5.5.5)', () => {
     it('kills one warband in the attacker\'s force per skull, immediately', () => {
         const seed = seedRollingSkulls(1)
         const state = table({ prng: { seed, invocations: 0 } })
+        const action = campaign({ attackDice: 5 })
 
-        expectWarbandsConserved(state, () => campaign({ attackDice: 5 }).apply(state))
+        expectWarbandsConserved(state, () => action.apply(state))
 
         const attacker = state.getPlayerState(ATTACKER)
         const skulls = state.campaign?.attackRoll.reduce((n, f) => n + f.skulls, 0) ?? 0
         expect(skulls).toBeGreaterThan(0)
         expect(attacker.warbandsOnBoard[ATTACKER]).toBe(5 - skulls)
         expect(attacker.warbandsInPersonalBank[ATTACKER]).toBe(7 + skulls)
+        expect(action.metadata?.battle?.skullsKilled).toBe(skulls)
+        expect(action.metadata?.battle?.skullsKilledOwner).toBe(ATTACKER)
     })
 
     it('still counts the two swords on the skull face', () => {
@@ -478,22 +481,23 @@ describe('skulls (R-5.5.5)', () => {
         citizen.warbandsOnBoard = { [IMPERIAL_WARBANDS]: 5 }
         citizen.supply = 7
 
-        expectWarbandsConserved(state, () => {
-            new HydratedCampaign(
-                buildAction(Campaign, {
-                    playerId: CITIZEN,
-                    defender: { kind: 'player', playerId: DEFENDER },
-                    targets: [siteTarget('c1')],
-                    attackDice: 5,
-                })
-            ).apply(state)
-        })
+        const action = new HydratedCampaign(
+            buildAction(Campaign, {
+                playerId: CITIZEN,
+                defender: { kind: 'player', playerId: DEFENDER },
+                targets: [siteTarget('c1')],
+                attackDice: 5,
+            })
+        )
+        expectWarbandsConserved(state, () => action.apply(state))
 
         const skulls = state.campaign?.attackRoll.reduce((n, f) => n + f.skulls, 0) ?? 0
         expect(skulls).toBeGreaterThan(0)
         expect(state.getPlayerState(CHANCELLOR).warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(
             15 + skulls
         )
+        // R-10.13 — the History draws these losses in the Empire's colour.
+        expect(action.metadata?.battle?.skullsKilledOwner).toBe(IMPERIAL_WARBANDS)
     })
 })
 

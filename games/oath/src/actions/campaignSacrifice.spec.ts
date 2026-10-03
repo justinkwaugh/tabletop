@@ -144,6 +144,32 @@ describe('the sacrifice (R-5.5.5, R-5.5.5.c, R-9.5)', () => {
         expect(state.getPlayerState(ATTACKER).warbandsInPersonalBank[ATTACKER]).toBe(8 + 3)
     })
 
+    it('records whose warbands were sacrificed when they are one owner’s, as a Citizen’s Imperial ones (R-10.13)', () => {
+        const own = sacrifice({ sacrifice: 3 })
+        own.apply(midBattle({ swords: 3, defense: 5 }))
+        expect(own.metadata?.sacrificedOwner).toBe(ATTACKER)
+
+        const citizen = midBattle({ swords: 3, defense: 5, attackerPlayerId: CITIZEN })
+        citizen.getPlayerState(CITIZEN).warbandsOnBoard = { [IMPERIAL_WARBANDS]: 4 }
+        const imperial = sacrifice({ playerId: CITIZEN, sacrifice: 3 })
+        imperial.apply(citizen)
+        expect(imperial.metadata?.sacrificedOwner).toBe(IMPERIAL_WARBANDS)
+        expect(citizen.getPlayerState(CITIZEN).warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(1)
+
+        const mixed = midBattle({ swords: 3, defense: 5, attackerPlayerId: CITIZEN })
+        mixed.getPlayerState(CITIZEN).warbandsOnBoard = { [IMPERIAL_WARBANDS]: 2, [CITIZEN]: 1 }
+        const both = sacrifice({
+            playerId: CITIZEN,
+            sacrifice: 3,
+            sacrificeKills: [
+                { at: { kind: 'board', playerId: CITIZEN }, owner: IMPERIAL_WARBANDS, count: 2 },
+                { at: { kind: 'board', playerId: CITIZEN }, owner: CITIZEN, count: 1 }
+            ]
+        })
+        both.apply(mixed)
+        expect(both.metadata?.sacrificedOwner).toBeUndefined()
+    })
+
     it('refuses more than exactly enough', () => {
         const state = midBattle({ swords: 3, defense: 5 })
         expect(() => sacrifice({ sacrifice: 4 }).apply(state)).toThrow(/exactly 3/)

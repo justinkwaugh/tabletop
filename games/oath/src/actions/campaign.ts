@@ -14,7 +14,8 @@ import {
     CampaignTarget,
     type CampaignState,
     CampaignTargetKind,
-    LossSource
+    LossSource,
+    type WarbandGroup
 } from '../model/campaign.js'
 import type { CampaignDeclaration } from '../model/pendingCampaign.js'
 import { ConsentRequestKind } from '../model/consent.js'
@@ -34,7 +35,8 @@ import { attackDiceFromSites } from '../util/sitePowers.js'
 import { isImperialPlayer, rulingWarbandOwners, warbandsAt } from '../util/rule.js'
 import { holdTurnForSneakAttack, sneakAttackOfferedTo } from '../util/sneakAttack.js'
 import { reasonPersistentForbidsCampaign, persistentForceSites } from '../util/persistent.js'
-import { warbandsOnBoardOf } from '../util/force.js'
+import { forceTotal, soleOwner, warbandsOnBoardOf } from '../util/force.js'
+import { WarbandOwner } from '../model/warbandCounts.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
 import {
     applyBattlePlans,
@@ -100,6 +102,8 @@ export const CampaignBattleMetadata = Type.Object({
     swords: Type.Number(),
     /** R-5.5.5 — before the sacrifice decision. */
     skullsKilled: Type.Number(),
+    /** R-10.13 — whose warbands the skulls killed, when they were one owner's. */
+    skullsKilledOwner: Type.Optional(WarbandOwner),
     /** R-5.5.3 — the bandits' compelled plans included. */
     plansUsed: Type.Optional(Type.Array(Type.String())),
     /** R-11.4 */
@@ -326,14 +330,14 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
               )
         const awaitingDefender = answering.length > 0
 
-        let skullsKilled = 0
+        let skullKills: WarbandGroup[] = []
         if (awaitingDefender) {
             campaign.pendingDefenderPlans = {
                 skullLossOrder: declaration.skullLossOrder,
                 queue: answering
             }
         } else {
-            skullsKilled = rollCampaign(state, campaign, declaration.skullLossOrder)
+            skullKills = rollCampaign(state, campaign, declaration.skullLossOrder)
         }
 
         return {
@@ -341,7 +345,8 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             defensePool: pools.defensePool,
             defense: campaign.defense,
             swords: campaign.swords,
-            skullsKilled,
+            skullsKilled: forceTotal(skullKills),
+            skullsKilledOwner: soleOwner(skullKills),
             plansUsed: campaign.plansUsed.length > 0 ? campaign.plansUsed : undefined,
             siteDice: siteDice.length > 0 ? siteDice : undefined,
             planNotes: attackerPlans.notes.length > 0 ? attackerPlans.notes : undefined,

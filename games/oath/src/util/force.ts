@@ -16,6 +16,12 @@ export function forceTotal(force: readonly WarbandGroup[]): number {
     return force.reduce((sum, group) => sum + group.count, 0)
 }
 
+/** R-10.13 — the owner of every warband in the groups, when they are one owner's. */
+export function soleOwner(groups: readonly WarbandGroup[]): WarbandOwner | undefined {
+    const owners = new Set(groups.filter((group) => group.count > 0).map((group) => group.owner))
+    return owners.size === 1 ? [...owners][0] : undefined
+}
+
 /** R-10.13 — their own warbands first, then the others on the board: the order losses come from. */
 export function boardOwnersOwnFirst(
     state: HydratedOathGameState,
