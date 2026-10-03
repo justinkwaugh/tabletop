@@ -39,6 +39,7 @@ import {
     isUseActionPower,
     isUseRestPower,
     cardPower,
+    soleOwner,
     IMPERIAL_WARBANDS,
     type AnswerConsentMetadata,
     type CampaignBattleMetadata,
@@ -107,35 +108,37 @@ export function rowActorOf(action: GameAction): string | undefined {
     return action.playerId
 }
 
-export type WarbandOwnerRules = {
-    own: (playerId: string) => WarbandOwner
-    mustered: (playerId: string) => WarbandOwner
-}
-
 /**
- * R-10.13 — whose warbands a row counts: those a move or a choice of losses names, a Muster's
- * (R-5.2.2: a Citizen's are Imperial), the ones an exile leaves Imperial (R-9.3), the seat a
- * power acted on, else the actor's own.
+ * R-10.13 — whose warbands a row counts, from the record alone so the row never changes: those a
+ * move names, the owner a Muster (R-5.2.2: a Citizen's are Imperial), a sacrifice, the skulls or a
+ * choice of losses recorded, the ones an exile leaves Imperial (R-9.3), the seat a power acted on,
+ * else the actor's own.
  */
 export function rowWarbandOwner(
     action: GameAction,
-    owners: WarbandOwnerRules
+    ownWarbandsOf: (playerId: string) => WarbandOwner
 ): WarbandOwner | undefined {
-    if (isMoveWarbands(action)) return action.owner
-    if (isMuster(action)) return owners.mustered(action.playerId)
-    if (isSelfExile(action) || isExileCitizen(action)) return IMPERIAL_WARBANDS
-    const chosen = isCampaignSacrifice(action)
-        ? action.sacrificeKills
-        : isCampaignDefeatKills(action)
-          ? action.kills
-          : undefined
-    const chosenOwners = new Set(chosen?.map((group) => group.owner))
-    if (chosenOwners.size === 1) return [...chosenOwners][0]
+    const recorded = recordedWarbandOwner(action)
+    if (recorded !== undefined) return recorded
     const seat =
         (isUseActionPower(action) || isUseRestPower(action)
             ? action.metadata?.targetPlayerId
             : undefined) ?? action.playerId
-    return seat === undefined ? undefined : owners.own(seat)
+    return seat === undefined ? undefined : ownWarbandsOf(seat)
+}
+
+function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
+    if (isMoveWarbands(action)) return action.owner
+    if (isMuster(action)) return action.metadata?.warbandOwner
+    if (isSelfExile(action) || isExileCitizen(action)) return IMPERIAL_WARBANDS
+    if (isCampaignSacrifice(action)) {
+        return action.metadata?.sacrificedOwner ?? soleOwner(action.sacrificeKills ?? [])
+    }
+    if (isCampaign(action) || isCampaignAttackPlans(action)) {
+        return action.metadata?.battle?.skullsKilledOwner
+    }
+    if (isCampaignDefeatKills(action)) return soleOwner(action.kills)
+    return undefined
 }
 
 export function describeAction(action: GameAction, names: HistoryNames, viewerId?: string): string {

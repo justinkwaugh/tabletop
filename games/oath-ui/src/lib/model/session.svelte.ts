@@ -1079,10 +1079,9 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     /** R-10.13 — a History row's warbands in their owner's colour, the Empire's in the Chancellor's. */
     historyWarbandColors(action: GameAction): { own: Color; imperial: Color } {
         const imperial = this.warbandColor(IMPERIAL_WARBANDS)
-        const owner = rowWarbandOwner(action, {
-            own: (playerId) => ownWarbandOwner(this.gameState, playerId),
-            mustered: (playerId) => HydratedMuster.warbandOwnerFor(this.gameState, playerId)
-        })
+        const owner = rowWarbandOwner(action, (playerId) =>
+            ownWarbandOwner(this.gameState, playerId)
+        )
         return { own: owner === undefined ? imperial : this.warbandColor(owner), imperial }
     }
 

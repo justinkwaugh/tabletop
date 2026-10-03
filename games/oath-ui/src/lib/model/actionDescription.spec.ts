@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { ActionType, IMPERIAL_WARBANDS, SearchPlay, SearchSource } from '@tabletop/oath'
+import {
+    ActionType,
+    HydratedMuster,
+    IMPERIAL_WARBANDS,
+    Muster,
+    PlayerStatus,
+    SearchPlay,
+    SearchSource,
+    ownWarbandOwner
+} from '@tabletop/oath'
 import { UNDESCRIBED, describeAction, rowWarbandOwner } from './actionDescription.js'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
-import { testPlayer, testState } from '@tabletop/oath/testing'
+import { buildAction, testPlayer, testState } from '@tabletop/oath/testing'
 import { siteName, slotLabel } from './names.js'
 
 const nameOf = { player: (playerId: string) => ({ p1: 'Alice', p2: 'Bob', p3: 'Cass' })[playerId] ?? playerId, site: slotLabel, seats: ['p1', 'p2', 'p3'] }
@@ -627,8 +636,9 @@ describe('the history tab describes every action', () => {
 })
 
 describe('R-10.13 — whose warbands a History row counts', () => {
-    // p1 is the Chancellor, p2 a Citizen, p3 an Exile.
-    const own = { own: (playerId: string) => (playerId === 'p1' ? IMPERIAL_WARBANDS : playerId), mustered: (playerId: string) => (playerId === 'p3' ? playerId : IMPERIAL_WARBANDS) }
+    // p1 is the Chancellor; every other seat's own warbands are their own.
+    const own = (playerId: string) => (playerId === 'p1' ? IMPERIAL_WARBANDS : playerId)
+    const group = (owner: string, count: number) => ({ at: { kind: 'site', siteId: 'c1' }, owner, count })
 
     it('a warband move counts the owner it names', () => {
         expect(rowWarbandOwner(action({ type: ActionType.MoveWarbands, playerId: 'p2', owner: IMPERIAL_WARBANDS, count: 2, move: { kind: 'siteToBoard', siteId: 'c1' } }), own)).toBe(IMPERIAL_WARBANDS)
@@ -638,10 +648,40 @@ describe('R-10.13 — whose warbands a History row counts', () => {
         expect(rowWarbandOwner(action({ type: ActionType.UseActionPower, playerId: 'p1', cardId: 'denizen.beast.wolves', powerIndex: 0, metadata: { summary: '', targetPlayerId: 'p2' } }), own)).toBe('p2')
     })
 
-    it('R-5.2.2 — a Muster counts the warbands it gains: the Empire’s for a Citizen and the Chancellor', () => {
-        expect(rowWarbandOwner(action({ type: ActionType.Muster, playerId: 'p1', cardId: CARD }), own)).toBe(IMPERIAL_WARBANDS)
-        expect(rowWarbandOwner(action({ type: ActionType.Muster, playerId: 'p2', cardId: CARD }), own)).toBe(IMPERIAL_WARBANDS)
-        expect(rowWarbandOwner(action({ type: ActionType.Muster, playerId: 'p3', cardId: CARD }), own)).toBe('p3')
+    describe('R-5.2.2 — a Muster counts the owner it recorded, whatever the seat is later', () => {
+        function table(status: PlayerStatus) {
+            return testState(
+                [
+                    testPlayer({ playerId: 'p1', status: PlayerStatus.Chancellor, color: Color.Purple, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 } }),
+                    testPlayer({ playerId: 'p2', status, color: Color.Blue, siteId: 'c1', favor: 2 })
+                ],
+                { denizensBySite: { c1: ['card-a'] }, chancellorPlayerId: 'p1' }
+            )
+        }
+        function musterAs(status: PlayerStatus) {
+            const state = table(status)
+            const muster = new HydratedMuster(buildAction(Muster, { playerId: 'p2', cardId: 'card-a' }))
+            muster.apply(state)
+            return { state, muster }
+        }
+        const ownIn = (state: ReturnType<typeof table>) => (playerId: string) => ownWarbandOwner(state, playerId)
+
+        it('an Exile’s Muster keeps their own colour after they become a Citizen', () => {
+            const { state, muster } = musterAs(PlayerStatus.Exile)
+            state.getPlayerState('p2').status = PlayerStatus.Citizen
+            expect(rowWarbandOwner(muster, ownIn(state))).toBe('p2')
+        })
+
+        it('a Citizen’s Muster stays Imperial after they are exiled', () => {
+            const { state, muster } = musterAs(PlayerStatus.Citizen)
+            state.getPlayerState('p2').status = PlayerStatus.Exile
+            expect(rowWarbandOwner(muster, ownIn(state))).toBe(IMPERIAL_WARBANDS)
+        })
+
+        it('a Muster recorded with no owner counts the actor’s own', () => {
+            expect(rowWarbandOwner(action({ type: ActionType.Muster, playerId: 'p2', cardId: CARD }), own)).toBe('p2')
+            expect(rowWarbandOwner(action({ type: ActionType.Muster, playerId: 'p1', cardId: CARD }), own)).toBe(IMPERIAL_WARBANDS)
+        })
     })
 
     it('R-9.3 — an exile’s warbands left Imperial are the Empire’s', () => {
@@ -649,11 +689,25 @@ describe('R-10.13 — whose warbands a History row counts', () => {
         expect(rowWarbandOwner(action({ type: ActionType.ExileCitizen, playerId: 'p1', citizenPlayerId: 'p2', metadata: { favorGiven: 0, unreplacedCount: 2 } }), own)).toBe(IMPERIAL_WARBANDS)
     })
 
-    it('R-5.5.5 — a choice of losses counts the owner it names, when it names one', () => {
-        const group = (owner: string, count: number) => ({ at: { kind: 'site', siteId: 'c1' }, owner, count })
+    it('R-5.5.5 — a sacrifice counts the owner the engine recorded killing, a Citizen’s Imperial force the Empire’s', () => {
+        const battle = { attack: 4, defense: 3, attackerVictorious: true, sacrificed: 1 }
+        expect(rowWarbandOwner(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 1, metadata: { ...battle, sacrificedOwner: IMPERIAL_WARBANDS } }), own)).toBe(IMPERIAL_WARBANDS)
         expect(rowWarbandOwner(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 2, sacrificeKills: [group(IMPERIAL_WARBANDS, 2)] }), own)).toBe(IMPERIAL_WARBANDS)
-        expect(rowWarbandOwner(action({ type: ActionType.CampaignDefeatKills, playerId: 'p2', kills: [group(IMPERIAL_WARBANDS, 1)] }), own)).toBe(IMPERIAL_WARBANDS)
+        // Mixed owners, or a record from before the owner was kept: the actor's own.
+        expect(rowWarbandOwner(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 2, sacrificeKills: [group(IMPERIAL_WARBANDS, 1), group('p2', 1)], metadata: { ...battle, sacrificed: 2 } }), own)).toBe('p2')
         expect(rowWarbandOwner(action({ type: ActionType.CampaignSacrifice, playerId: 'p2', sacrifice: 1 }), own)).toBe('p2')
+    })
+
+    it('R-5.5.5 — the skulls’ losses count the owner the battle recorded', () => {
+        const battle = { attackPool: 3, defensePool: 1, defense: 2, swords: 3, skullsKilled: 1 }
+        expect(rowWarbandOwner(action({ type: ActionType.Campaign, playerId: 'p2', defender: { kind: 'bandits' }, targets: [], attackDice: 3, metadata: { supplySpent: 1, battle: { ...battle, skullsKilledOwner: IMPERIAL_WARBANDS } } }), own)).toBe(IMPERIAL_WARBANDS)
+        expect(rowWarbandOwner(action({ type: ActionType.CampaignAttackPlans, playerId: 'p2', plans: [], metadata: { battle: { ...battle, skullsKilledOwner: IMPERIAL_WARBANDS } } }), own)).toBe(IMPERIAL_WARBANDS)
+        expect(rowWarbandOwner(action({ type: ActionType.Campaign, playerId: 'p2', defender: { kind: 'bandits' }, targets: [], attackDice: 3, metadata: { supplySpent: 1, battle } }), own)).toBe('p2')
+    })
+
+    it('R-5.5.6.a — a choice of losses counts the owner it names, when it names one', () => {
+        expect(rowWarbandOwner(action({ type: ActionType.CampaignDefeatKills, playerId: 'p1', kills: [group('p2', 1), group(IMPERIAL_WARBANDS, 0)] }), own)).toBe('p2')
+        expect(rowWarbandOwner(action({ type: ActionType.CampaignDefeatKills, playerId: 'p1', kills: [group('p2', 1), group(IMPERIAL_WARBANDS, 1)] }), own)).toBe(IMPERIAL_WARBANDS)
     })
 
     it('anything else counts the actor’s own, the Empire’s for the Chancellor', () => {
