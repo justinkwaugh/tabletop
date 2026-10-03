@@ -73,7 +73,7 @@ export function purchaseOwnershipCeiling(
     state: StockState,
     companyId: string,
     buyer: Owner,
-    rules: StockRules
+    rules: Pick<StockRules, 'ownershipLimit'>
 ): number {
     const company = getCompany(state, companyId)
     assertExists(company.shareCount, 'Ownership limits require a share count')
