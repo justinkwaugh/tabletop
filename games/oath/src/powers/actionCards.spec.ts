@@ -4,7 +4,8 @@ import { Color, assert, assertExists } from '@tabletop/common'
 import { HydratedUseActionPower } from '../actions/useActionPower.js'
 import { MachineState } from '../definition/states.js'
 import { ActPhaseStateHandler } from '../stateHandlers/actPhase.js'
-import { Banner, CardKind, Suit } from '../model/oathEnums.js'
+import { Banner, CardKind, PlayerStatus, Suit } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { PowerTiming, registerCardPowers } from '../data/cardPowers.js'
@@ -371,6 +372,45 @@ describe('Nomad', () => {
         expect(rich.getPlayerState('ruler').secrets).toBe(0)
         expect(rich.tokensOn('denizen.nomad.ancient-binding').secrets).toBe(1)
         expect(rich.getPlayerState('other').secrets).toBe(1)
+    })
+})
+
+describe('a power records whose warbands its summary counts', () => {
+    it('Wolves on a Citizen\'s board of Imperial warbands records the Empire\'s', () => {
+        const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('other')])
+        a.apply(board(['denizen.beast.wolves'], {
+            ruler: { status: PlayerStatus.Chancellor, warbandsOnBoard: {}, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } },
+            other: { status: PlayerStatus.Citizen, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } }
+        }))
+        expect(a.metadata?.warbandOwner).toBe(IMPERIAL_WARBANDS)
+        expect(OathVisibility.actions.project(a.dehydrate(), spectator)).toHaveProperty('metadata.warbandOwner', IMPERIAL_WARBANDS)
+    })
+
+    it('Wolves on an Exile\'s board records theirs', () => {
+        const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('other')])
+        a.apply(board(['denizen.beast.wolves']))
+        expect(a.metadata?.warbandOwner).toBe('other')
+    })
+
+    it('Wolves on the Chancellor\'s board records the Empire\'s', () => {
+        const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('ruler')])
+        a.apply(board(['denizen.beast.wolves'], {
+            ruler: { status: PlayerStatus.Chancellor, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } }
+        }))
+        expect(a.metadata?.warbandOwner).toBe(IMPERIAL_WARBANDS)
+    })
+
+    it('records no owner when the warbands killed were two owners\' or none died', () => {
+        const s = board(['denizen.order.siege-engines'])
+        s.warbandsBySite['c2'] = { other: 1, ruler: 1 }
+        const mixed = actionPowerUse('ruler', 'denizen.order.siege-engines', [site('c2')])
+        mixed.apply(s)
+        expect(mixed.metadata?.summary).toBe('killed 2 warbands at c2')
+        expect(mixed.metadata?.warbandOwner).toBeUndefined()
+
+        const empty = actionPowerUse('ruler', 'denizen.beast.wolves', [player('away')])
+        empty.apply(board(['denizen.beast.wolves'], { away: { warbandsOnBoard: {} } }))
+        expect(empty.metadata?.warbandOwner).toBeUndefined()
     })
 })
 

@@ -110,9 +110,9 @@ export function rowActorOf(action: GameAction): string | undefined {
 
 /**
  * R-10.13 — whose warbands a row counts, from the record alone so the row never changes: those a
- * move names, the owner a Muster (R-5.2.2: a Citizen's are Imperial), a sacrifice, the skulls or a
- * choice of losses recorded, the ones an exile leaves Imperial (R-9.3), the seat a power acted on,
- * else the actor's own.
+ * move names, the owner a Muster (R-5.2.2: a Citizen's are Imperial), an Action power, a
+ * sacrifice, the skulls or a choice of losses recorded, the ones an exile leaves Imperial (R-9.3),
+ * the seat a power acted on, else the actor's own.
  */
 export function rowWarbandOwner(
     action: GameAction,
@@ -130,6 +130,7 @@ export function rowWarbandOwner(
 function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
     if (isMoveWarbands(action)) return action.owner
     if (isMuster(action)) return action.metadata?.warbandOwner
+    if (isUseActionPower(action)) return action.metadata?.warbandOwner
     if (isSelfExile(action) || isExileCitizen(action)) return IMPERIAL_WARBANDS
     if (isCampaignSacrifice(action)) {
         return action.metadata?.sacrificedOwner ?? soleOwner(action.sacrificeKills ?? [])

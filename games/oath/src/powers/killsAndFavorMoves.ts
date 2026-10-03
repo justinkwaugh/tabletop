@@ -31,6 +31,9 @@ import {
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
 import { BANDIT_CHIEF } from '../util/bandits.js'
+import { soleOwner } from '../util/force.js'
+import { ownerIfAny } from '../util/warbands.js'
+import type { WarbandGroup } from '../model/campaign.js'
 
 // "Action: Each player (even you) places one favor per site they rule into
 // the arcane bank." (R-7.1.3: as much as each has.)
@@ -92,11 +95,14 @@ registerEffect(
                 : `Terror Spells kills two warbands: ${named} named, ${required} to kill`
         },
         resolve: (ctx) => {
-            let killed = 0
-            for (const c of chosen(ctx, PowerChoiceKind.Warbands))
-                killed += killWarbandGroup(ctx.state, c.group)
+            const killed: WarbandGroup[] = chosen(ctx, PowerChoiceKind.Warbands).map(({ group }) => ({
+                ...group,
+                count: killWarbandGroup(ctx.state, group)
+            }))
+            const total = killed.reduce((n, group) => n + group.count, 0)
             return {
-                summary: `Terror Spells: killed ${killed} warbands in ${ctx.playerId}'s region`
+                summary: `Terror Spells: killed ${total} warbands in ${ctx.playerId}'s region`,
+                warbandOwner: soleOwner(killed)
             }
         }
     }
@@ -166,7 +172,7 @@ registerEffect(
         ],
         resolve: (ctx) => {
             const [target] = chosen(ctx, PowerChoiceKind.Player)
-            const { killed } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
+            const { owner, killed } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
             if (!killed)
                 return {
                     summary: `${target.playerId}'s board held no warband; nothing gained`,
@@ -175,7 +181,8 @@ registerEffect(
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
             return {
                 summary: `killed a warband on ${target.playerId}'s board and gained ${gained}`,
-                targetPlayerId: target.playerId
+                targetPlayerId: target.playerId,
+                warbandOwner: owner
             }
         }
     }
@@ -419,7 +426,10 @@ registerEffect(
             const [c] = chosen(ctx, PowerChoiceKind.Warbands)
             const killed = killWarbandGroup(ctx.state, c.group)
             const secrets = gainSecrets(ctx.state, ctx.playerId, Math.floor(killed / 2))
-            return { summary: `Blood Pact: sacrificed ${killed} warbands for ${secrets} secrets` }
+            return {
+                summary: `Blood Pact: sacrificed ${killed} warbands for ${secrets} secrets`,
+                warbandOwner: ownerIfAny(killed, c.group.owner)
+            }
         }
     }
 )

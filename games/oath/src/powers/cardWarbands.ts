@@ -9,6 +9,7 @@ import {
     forceTotal,
     removeWarbandsFrom,
     removeWarbandsFromCard,
+    soleOwner,
     warbandsInBankFor
 } from '../util/force.js'
 import { optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
@@ -88,7 +89,8 @@ registerEffect(OBSIDIAN_CAGE, powerIndexOf(OBSIDIAN_CAGE, PowerTiming.Action), {
             addWarbandsToBoard(ctx.state, at.playerId, owner, count)
         }
         return {
-            summary: `Obsidian Cage: moved ${forceTotal(moves)} warbands from the Cage to their owners' boards`
+            summary: `Obsidian Cage: moved ${forceTotal(moves)} warbands from the Cage to their owners' boards`,
+            warbandOwner: soleOwner(moves)
         }
     }
 })

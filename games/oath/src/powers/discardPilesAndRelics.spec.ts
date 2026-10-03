@@ -142,6 +142,13 @@ describe('relics', () => {
         expect(s.players.map((player) => player.knownRelicDeckBottom)).toEqual([[], [CUP]])
         expect(() => serverUse(board({ c1: [BREAKER] }), vaultFor(), BREAKER, [slot('slot-1')])).toThrow()
     })
+
+    it('Relic Breaker used by a Citizen records the warbands gained as their own', () => {
+        const s = board({ c1: [BREAKER] }, {}, { ruler: { status: PlayerStatus.Citizen } }, { relicsBySite: { c1: [{ slotId: 'slot-1' }] } })
+        const a = serverUse(s, vaultFor({ relicFacedown: { 'slot-1': CUP } }), BREAKER, [slot('slot-1')])
+        expect(a.metadata?.summary).toBe('Relic Breaker: the relic went to the bottom of the relic deck; gained 3 warbands')
+        expect(a.metadata?.warbandOwner).toBe('ruler')
+    })
 })
 
 describe('discard piles', () => {

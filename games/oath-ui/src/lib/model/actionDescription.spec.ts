@@ -668,7 +668,13 @@ describe('R-10.13 — whose warbands a History row counts', () => {
         expect(rowWarbandOwner(action({ type: ActionType.MoveWarbands, playerId: 'p2', owner: IMPERIAL_WARBANDS, count: 2, move: { kind: 'siteToBoard', siteId: 'c1' } }), own)).toBe(IMPERIAL_WARBANDS)
     })
 
-    it('a power counts the seat it acted on', () => {
+    it('a power counts the owner it recorded, a Citizen’s Imperial warbands the Empire’s', () => {
+        const wolves = { type: ActionType.UseActionPower, playerId: 'p3', cardId: 'denizen.beast.wolves', powerIndex: 0 }
+        expect(rowWarbandOwner(action({ ...wolves, metadata: { summary: "killed a warband on p2's board", targetPlayerId: 'p2', warbandOwner: IMPERIAL_WARBANDS } }), own)).toBe(IMPERIAL_WARBANDS)
+        expect(rowWarbandOwner(action({ ...wolves, metadata: { summary: "killed a warband on p1's board", targetPlayerId: 'p1', warbandOwner: IMPERIAL_WARBANDS } }), own)).toBe(IMPERIAL_WARBANDS)
+    })
+
+    it('a power recorded with no owner counts the seat it acted on', () => {
         expect(rowWarbandOwner(action({ type: ActionType.UseActionPower, playerId: 'p1', cardId: 'denizen.beast.wolves', powerIndex: 0, metadata: { summary: '', targetPlayerId: 'p2' } }), own)).toBe('p2')
     })
 

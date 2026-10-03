@@ -26,3 +26,12 @@ export function describeWarbands(count: number, owner: WarbandOwner): string {
     if (owner === IMPERIAL_WARBANDS) return `${count} Imperial warbands`
     return `${count} of ${owner}'s warbands`
 }
+
+export function soleOwnerOf(counts: Readonly<WarbandCounts>): WarbandOwner | undefined {
+    const owners = warbandEntries(counts).filter(([, count]) => count > 0)
+    return owners.length === 1 ? owners[0][0] : undefined
+}
+
+export function ownerIfAny(count: number, owner: WarbandOwner): WarbandOwner | undefined {
+    return count > 0 ? owner : undefined
+}

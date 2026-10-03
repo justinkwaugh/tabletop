@@ -10,7 +10,8 @@ import {
     reliquarySlotChoices
 } from '../util/powerChoice.js'
 import { becomeCitizenByPower, visionDeposits } from '../util/citizenship.js'
-import { sitesRuledBy } from '../util/rule.js'
+import { ownWarbandOwner, sitesRuledBy } from '../util/rule.js'
+import { ownerIfAny } from '../util/warbands.js'
 import { giveBanner } from '../util/seize.js'
 import { registerEffect, registerModifier, type EffectContext, chosen } from './registry.js'
 import { gainWarbandsToBoard, pawnSiteId, regionOfPawn } from './vocabulary.js'
@@ -68,7 +69,8 @@ registerEffect(
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 3)
             return {
                 summary: `Relic Breaker: the relic went to the bottom of the relic deck; gained ${gained} warbands`,
-                relicSlotToBottom: slot.slotId
+                relicSlotToBottom: slot.slotId,
+                warbandOwner: ownerIfAny(gained, ownWarbandOwner(ctx.state, ctx.playerId))
             }
         }
     }

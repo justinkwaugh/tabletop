@@ -11,6 +11,7 @@ import {
     chosen
 } from './registry.js'
 import { gainFavorFromBank, siteHasCardOfSuit, hasFaceupAdviserOfSuit } from './vocabulary.js'
+import { ownerIfAny } from '../util/warbands.js'
 import { siteHolding } from '../util/access.js'
 import { otherRegionChoices } from './choiceDomains.js'
 import { opposingLeadId } from '../util/battlePlans.js'
@@ -135,6 +136,7 @@ registerEffect(
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             return {
                 summary: `Ballot Box: became a Citizen (${c.replacedCount} warbands became Imperial); Supply refreshed, Act Phase over`,
+                warbandOwner: ownerIfAny(c.replacedCount, ctx.playerId),
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
             }

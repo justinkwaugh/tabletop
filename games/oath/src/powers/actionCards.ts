@@ -32,7 +32,7 @@ import {
 } from './vocabulary.js'
 import { rulesSite, rulingWarbandOwners, sitesRuledBy, warbandsFreeToLeave } from '../util/rule.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { totalWarbands, countOf } from '../util/warbands.js'
+import { totalWarbands, countOf, soleOwnerOf } from '../util/warbands.js'
 import { playerChoicesAtYourSite, siteChoicesYouRule } from './choiceDomains.js'
 import { RerolledRollKind } from '../model/question.js'
 import { offerReroll, settleRoll } from '../util/reroll.js'
@@ -187,12 +187,13 @@ registerEffect('denizen.beast.wolves', powerIndexOf('denizen.beast.wolves', Powe
     choices: [one(PowerChoiceKind.Player, { what: 'a board', domain: anyPlayer })],
     resolve: (ctx) => {
         const [target] = chosen(ctx, PowerChoiceKind.Player)
-        const { killed } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
+        const { owner, killed } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
         return {
             summary: killed
                 ? `killed a warband on ${target.playerId}'s board`
                 : `${target.playerId}'s board held no warbands`,
-            targetPlayerId: target.playerId
+            targetPlayerId: target.playerId,
+            warbandOwner: owner
         }
     }
 })
@@ -413,7 +414,10 @@ registerEffect(
             const [site] = chosen(ctx, PowerChoiceKind.Site)
             const killed = killWarbandsAtSite(ctx.state, site.siteId, 2)
             const total = totalWarbands(killed)
-            return { summary: `killed ${total} warbands at ${site.siteId}` }
+            return {
+                summary: `killed ${total} warbands at ${site.siteId}`,
+                warbandOwner: soleOwnerOf(killed)
+            }
         }
     }
 )
