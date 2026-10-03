@@ -6,6 +6,7 @@ import { ActionType } from '../definition/actions.js'
 import { rollEndDie } from '../data/dice.js'
 import { endDieIsRolled, stableRegimeWinner, warExhaustionWinner } from '../util/victory.js'
 import { reasonNotYourTurn } from '../util/turn.js'
+import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 // R-3.4
 export const FINAL_ROUND = 8
@@ -13,6 +14,8 @@ export const FINAL_ROUND = 8
 export type CompleteRestMetadata = Type.Static<typeof CompleteRestMetadata>
 export const CompleteRestMetadata = Type.Object({
     endedRound: Type.Optional(Type.Boolean()),
+    /** R-3.3 — from the turn-flow revision, the Chancellor's roll comes next (`RollEndDie`). */
+    awaitsEndDie: Type.Optional(Type.Boolean()),
     endDieRoll: Type.Optional(Type.Number()),
     round: Type.Optional(Type.Number()),
     wonBy: Type.Optional(Type.String())
@@ -70,6 +73,12 @@ export class HydratedCompleteRest
         }
 
         metadata.endedRound = true
+
+        if (isAtLeastOathRevision(state, OathRevision.TurnFlow) && endDieIsRolled(state)) {
+            metadata.awaitsEndDie = true
+            this.metadata = metadata
+            return
+        }
 
         // R-4: check the Stable Regime Win before advancing the marker; R-3.3 thresholds differ per round.
         if (endDieIsRolled(state)) {

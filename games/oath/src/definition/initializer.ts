@@ -35,6 +35,7 @@ import { createOathVault } from '../model/vault.js'
 import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'
 import { bySuit } from '../data/typedData.js'
 import { SetupVariant } from '../model/oathEnums.js'
+import { CURRENT_OATH_REVISION } from '../util/revision.js'
 
 const OathGameConfigValidator = Compile(OathGameConfig)
 
@@ -122,6 +123,7 @@ export class OathGameInitializer
             resolveSetupDeal(initial.requireVault(), initial.turnManager.turnOrder)
         )
         teachReliquaryToScepterHolder(initial)
+        initial.oathRevision = CURRENT_OATH_REVISION
         return initial
     }
 

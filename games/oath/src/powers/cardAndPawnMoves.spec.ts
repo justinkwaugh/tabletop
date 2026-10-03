@@ -146,7 +146,8 @@ describe('Nomad', () => {
 
     it("Twin Brother — may swap itself with another player's faceup nomad adviser", () => {
         const s = rulerTable([], [WOLVES])
-        playDrawnCard(s, TWIN, SearchPlay.Adviser, [card(TENTS)])
+        const swapped = playDrawnCard(s, TWIN, SearchPlay.Adviser, [card(TENTS)])
+        expect(swapped.metadata?.whenPlayed).toBe(`Twin Brother went to other's advisers; ${TENTS} to ruler's advisers`)
         expect(s.getPlayerState('ruler').advisers).toEqual([{ cardId: WOLVES, faceUp: true }, { cardId: TENTS, faceUp: true }])
         expect(s.getPlayerState('other').advisers).toEqual([{ cardId: TWIN, faceUp: true }])
         const keep = rulerTable([])
@@ -220,8 +221,10 @@ describe('Order', () => {
 
     it('Palanquin — "a site that they can travel to": their travel restrictions bind and their after-travel powers fire', () => {
         const lake = rulerTable([PALANQUIN], [], {}, { denizensBySite: { c1: [PALANQUIN], c2: ['denizen.discord.boiling-lake'], p1: [], h1: [] } })
-        actionPowerUse('ruler', PALANQUIN, [player('other'), site('c2')]).apply(lake)
+        const carried = actionPowerUse('ruler', PALANQUIN, [player('other'), site('c2')])
+        carried.apply(lake)
         expect(lake.getPlayerState('other').warbandsOnBoard['other']).toBe(0)
+        expect(carried.metadata?.summary).toMatch(/^Palanquin: ruler and other went to c2, spending no Supply \(Boiling Lake: killed \d warbands on other's board\)$/)
         const vowed = rulerTable([PALANQUIN], [], { other: { advisers: [{ cardId: 'denizen.beast.vow-of-union', faceUp: true }] } }, { warbandsBySite: { c1: { other: 1 }, c2: { ruler: 2 }, p1: { other: 3 } } })
         expect(() => actionPowerUse('ruler', PALANQUIN, [player('other'), site('c2')]).apply(vowed)).toThrow(/Vow of Union/)
     })

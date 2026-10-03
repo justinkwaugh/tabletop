@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ActionSource, Color } from '@tabletop/common'
 import {
     ActionType,
     Banner,
@@ -10,13 +10,19 @@ import {
     PowerTiming,
     Suit,
     allPowersWithTiming,
+    FAVOR_BANK_ORDER,
+    OathRevision,
+    powerIndexOf,
+    powerKey,
     legalChoices,
     one,
     type HydratedOathGameState,
-    type LegalPowerUse
+    type LegalPowerUse,
+    type UseRestPower
 } from '@tabletop/oath'
 import { openTurn, required, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { emptyPicks } from './powerChoices.js'
+import { restRows } from './restRows.js'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
@@ -26,6 +32,8 @@ const ME = 'me'
 const CHANCELLOR = 'chancellor'
 const OBEDIENCE = 'denizen.order.vow-of-obedience'
 const SILVER_TONGUE = 'denizen.discord.silver-tongue'
+const INSOMNIA = 'denizen.discord.insomnia'
+const POVERTY = 'denizen.beast.vow-of-poverty'
 const INN = 'denizen.hearth.wayside-inn'
 const OAK = 'denizen.beast.the-old-oak'
 const SNARE = 'denizen.arcane.spirit-snare'
@@ -434,5 +442,68 @@ describe('the Citizenship replacement draft (docs/user-interactions.md)', () => 
         consent.setPicked(1, 0)
         consent.setPicked(0, 0)
         expect(consent.picked).toEqual([0, 0])
+    })
+})
+
+/** R-4.3.5, R-4.3-H1 — from the turn-flow revision, a row per usable power and a button per bank. */
+describe('the Rest panel’s rows (turn-flow revision)', () => {
+    const resting = (favorBank: Partial<Record<Suit, number>> = {}) =>
+        opened(
+            table(
+                MachineState.RestPhase,
+                {
+                    advisers: [
+                        { cardId: OBEDIENCE, faceUp: true },
+                        { cardId: SILVER_TONGUE, faceUp: true }
+                    ]
+                },
+                {
+                    oathRevision: OathRevision.TurnFlow,
+                    favorBank: { arcane: 3, beast: 2, discord: 0, hearth: 4, nomad: 1, order: 3, ...favorBank }
+                }
+            )
+        )
+    const row = (session: ReturnType<typeof resting>, cardId: string) =>
+        required(session.rest.rows.find((r) => r.cardId === cardId), `${cardId} has a row`)
+
+    it('lists every bank a power can name in the board’s order, an empty one not tappable', () => {
+        const session = resting()
+        expect(session.rest.turnFlow).toBe(true)
+        const banks = required(row(session, OBEDIENCE).banks, 'Vow of Obedience names banks')
+        expect(banks.map((bank) => bank.suit)).toEqual([...FAVOR_BANK_ORDER])
+        expect(banks.find((bank) => bank.suit === Suit.Discord)).toEqual({ suit: Suit.Discord, inBank: 0, takes: 0, enabled: false })
+        expect(banks.filter((bank) => bank.enabled)).toHaveLength(5)
+    })
+
+    it('names no more favor on a bank’s button than the bank holds (Vow of Poverty)', () => {
+        const session = opened(table(MachineState.RestPhase, { favor: 0, advisers: [{ cardId: POVERTY, faceUp: true }] }, { oathRevision: OathRevision.TurnFlow, favorBank: { arcane: 3, beast: 2, discord: 0, hearth: 4, nomad: 1, order: 3 } }))
+        const banks = required(row(session, POVERTY).banks, 'Vow of Poverty names banks')
+        expect(banks.find((bank) => bank.suit === Suit.Nomad)?.takes).toBe(1)
+        expect(banks.find((bank) => bank.suit === Suit.Hearth)?.takes).toBe(2)
+    })
+
+    it('lists only the banks matching a card at the site for Silver Tongue', () => {
+        const banks = required(row(resting(), SILVER_TONGUE).banks, 'Silver Tongue names banks')
+        expect(banks.map((bank) => bank.suit).sort()).toEqual([Suit.Beast, Suit.Hearth].sort())
+    })
+
+    it('a tap on a bank uses the power with it, with nothing else to press', async () => {
+        const session = resting()
+        const sent = vi.spyOn(session, 'useRestPower').mockResolvedValue()
+        await session.rest.useWithBank(row(session, OBEDIENCE), Suit.Hearth)
+        expect(sent).toHaveBeenCalledWith(OBEDIENCE, row(session, OBEDIENCE).powerIndex, [{ kind: PowerChoiceKind.FavorBank, suit: Suit.Hearth }])
+    })
+
+    it('a power used this turn stays as a dimmed line saying what it did', () => {
+        const state = table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }, { cardId: INSOMNIA, faceUp: true }] }, { oathRevision: OathRevision.TurnFlow })
+        state.getPlayerState(ME).restPowersUsedThisTurn = [powerKey(INSOMNIA, powerIndexOf(INSOMNIA, PowerTiming.Rest))]
+        const used: UseRestPower = { id: 'a0', gameId: state.gameId, source: ActionSource.User, type: ActionType.UseRestPower, playerId: ME, index: 0, cardId: INSOMNIA, powerIndex: powerIndexOf(INSOMNIA, PowerTiming.Rest), metadata: { summary: 'Insomnia: gained 1 secret' } }
+        const rows = restRows(state, ME, [used])
+        expect(rows.map((r) => [r.cardId, r.used])).toEqual([[OBEDIENCE, undefined], [INSOMNIA, 'used: gained 1 secret']])
+    })
+
+    it('keeps today’s panel in a game created before the revision', () => {
+        const session = opened(table(MachineState.RestPhase, { advisers: [{ cardId: OBEDIENCE, faceUp: true }] }))
+        expect(session.rest.turnFlow).toBe(false)
     })
 })

@@ -4,7 +4,8 @@ import { Color, assert, assertExists } from '@tabletop/common'
 import { HydratedUseActionPower } from '../actions/useActionPower.js'
 import { MachineState } from '../definition/states.js'
 import { ActPhaseStateHandler } from '../stateHandlers/actPhase.js'
-import { Banner, CardKind, Suit } from '../model/oathEnums.js'
+import { Banner, CardKind, PlayerStatus, Suit } from '../model/oathEnums.js'
+import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { testPlayer, testState, openTurn } from '../testing/fixture.js'
 import { PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
 import { PowerTiming, registerCardPowers } from '../data/cardPowers.js'
@@ -14,6 +15,8 @@ import { effectiveSiteCapacity } from '../util/capacity.js'
 import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { answerQuestion } from '../testing/steps.js'
 import { actionPowerUse, bank, card, player, site } from '../testing/choices.js'
+import { OathVisibility } from '../definition/runtime.js'
+import { spectator } from '../testing/projection.js'
 
 const JINX = 'denizen.arcane.jinx'
 
@@ -196,6 +199,39 @@ describe('Beast', () => {
     })
 })
 
+describe('a power that acts on one seat records it, for the History to name', () => {
+    it('Wolves records the board it hit, whoever holds it, and whether or not a warband died', () => {
+        const other = actionPowerUse('ruler', 'denizen.beast.wolves', [player('other')])
+        other.apply(board(['denizen.beast.wolves']))
+        expect(other.metadata?.targetPlayerId).toBe('other')
+
+        const self = actionPowerUse('ruler', 'denizen.beast.wolves', [player('ruler')])
+        self.apply(board(['denizen.beast.wolves']))
+        expect(self.metadata?.targetPlayerId).toBe('ruler')
+
+        const empty = actionPowerUse('ruler', 'denizen.beast.wolves', [player('away')])
+        empty.apply(board(['denizen.beast.wolves'], { away: { warbandsOnBoard: {} } }))
+        expect(empty.metadata?.targetPlayerId).toBe('away')
+        expect(OathVisibility.actions.project(empty.dehydrate(), spectator)).toHaveProperty('metadata.targetPlayerId', 'away')
+    })
+
+    it('Sleight of Hand and Charming Friend record the player they took from', () => {
+        const sleight = actionPowerUse('ruler', 'denizen.discord.sleight-of-hand', [player('other')])
+        sleight.apply(board(['denizen.discord.sleight-of-hand']))
+        expect(sleight.metadata?.targetPlayerId).toBe('other')
+
+        const friend = actionPowerUse('ruler', 'denizen.hearth.charming-friend', [player('other')])
+        friend.apply(board(['denizen.hearth.charming-friend']))
+        expect(friend.metadata?.targetPlayerId).toBe('other')
+    })
+
+    it('a power acting on no seat records none', () => {
+        const a = actionPowerUse('ruler', 'denizen.hearth.storyteller')
+        a.apply(board(['denizen.hearth.storyteller']))
+        expect(a.metadata?.targetPlayerId).toBeUndefined()
+    })
+})
+
 describe('Discord', () => {
     it('Sleight of Hand — takes a secret from a player at your site, never their last', () => {
         const s = board(['denizen.discord.sleight-of-hand'])
@@ -336,6 +372,45 @@ describe('Nomad', () => {
         expect(rich.getPlayerState('ruler').secrets).toBe(0)
         expect(rich.tokensOn('denizen.nomad.ancient-binding').secrets).toBe(1)
         expect(rich.getPlayerState('other').secrets).toBe(1)
+    })
+})
+
+describe('a power records whose warbands its summary counts', () => {
+    it('Wolves on a Citizen\'s board of Imperial warbands records the Empire\'s', () => {
+        const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('other')])
+        a.apply(board(['denizen.beast.wolves'], {
+            ruler: { status: PlayerStatus.Chancellor, warbandsOnBoard: {}, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } },
+            other: { status: PlayerStatus.Citizen, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } }
+        }))
+        expect(a.metadata?.warbandOwner).toBe(IMPERIAL_WARBANDS)
+        expect(OathVisibility.actions.project(a.dehydrate(), spectator)).toHaveProperty('metadata.warbandOwner', IMPERIAL_WARBANDS)
+    })
+
+    it('Wolves on an Exile\'s board records theirs', () => {
+        const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('other')])
+        a.apply(board(['denizen.beast.wolves']))
+        expect(a.metadata?.warbandOwner).toBe('other')
+    })
+
+    it('Wolves on the Chancellor\'s board records the Empire\'s', () => {
+        const a = actionPowerUse('ruler', 'denizen.beast.wolves', [player('ruler')])
+        a.apply(board(['denizen.beast.wolves'], {
+            ruler: { status: PlayerStatus.Chancellor, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 5 } }
+        }))
+        expect(a.metadata?.warbandOwner).toBe(IMPERIAL_WARBANDS)
+    })
+
+    it('records no owner when the warbands killed were two owners\' or none died', () => {
+        const s = board(['denizen.order.siege-engines'])
+        s.warbandsBySite['c2'] = { other: 1, ruler: 1 }
+        const mixed = actionPowerUse('ruler', 'denizen.order.siege-engines', [site('c2')])
+        mixed.apply(s)
+        expect(mixed.metadata?.summary).toBe('killed 2 warbands at c2')
+        expect(mixed.metadata?.warbandOwner).toBeUndefined()
+
+        const empty = actionPowerUse('ruler', 'denizen.beast.wolves', [player('away')])
+        empty.apply(board(['denizen.beast.wolves'], { away: { warbandsOnBoard: {} } }))
+        expect(empty.metadata?.warbandOwner).toBeUndefined()
     })
 })
 

@@ -24,5 +24,9 @@ export const PowerOutcome = Type.Object({
         })
     ),
     mergePiles: Type.Optional(Type.Object({ from: Type.Enum(Region), to: Type.Enum(Region) })),
+    /** The one seat the effect acted on, so the History can name it from the record. */
+    targetPlayerId: Type.Optional(Type.String()),
+    /** R-2.7.1 — the Visions Drawn track is public; the drawn card stays the drawer's (R-9.4). */
+    visionDrawn: Type.Optional(Type.Boolean()),
     pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 }))
 })

@@ -33,7 +33,9 @@ import {
     type PowerUseKey,
     type Suit,
     type WakeFavorStep,
-    type WarbandGroup
+    type WarbandGroup,
+    OathRevision,
+    isAtLeastOathRevision
 } from '@tabletop/oath'
 import { assertExists, range } from '@tabletop/common'
 import {
@@ -45,6 +47,7 @@ import {
 import { samePowerUse } from './powerUse.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
+import { restBankChoice, restRows, type RestRow } from './restRows.js'
 
 /** The panel drafts with one step: Back clears the draft, and the derived default returns. */
 abstract class OneStepDraft<V> implements PanelDraft {
@@ -280,6 +283,27 @@ export class RestDraft extends OneStepDraft<Record<string, Suit>> {
     async use(power: LegalPowerUse): Promise<void> {
         if (!this.playerId) return
         await this.session.useRestPower(power.cardId, power.powerIndex, this.choicesFor(power))
+    }
+
+    /** R-X.4 — a game created before the turn-flow revision keeps its Rest panel. */
+    get turnFlow(): boolean {
+        return isAtLeastOathRevision(this.session.gameState, OathRevision.TurnFlow)
+    }
+
+    get rows(): RestRow[] {
+        return this.playerId
+            ? restRows(this.session.gameState, this.playerId, this.session.actions)
+            : []
+    }
+
+    async useWithBank(row: RestRow, suit: Suit): Promise<void> {
+        if (!this.playerId) return
+        await this.session.useRestPower(row.cardId, row.powerIndex, restBankChoice(suit))
+    }
+
+    async useAlone(row: RestRow): Promise<void> {
+        if (!this.playerId) return
+        await this.session.useRestPower(row.cardId, row.powerIndex, [])
     }
 }
 

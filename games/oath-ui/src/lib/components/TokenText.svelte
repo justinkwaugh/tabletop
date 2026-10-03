@@ -1,12 +1,16 @@
 <script lang="ts">
+    import type { Color } from '@tabletop/common'
     import { suitImage } from '$lib/images/suitImages.js'
     import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
+    import { warbandImage } from '$lib/images/pieceImages.js'
     import { suitName } from '$lib/model/names.js'
     import { tokenParts } from '$lib/model/tokenText.js'
 
     // A panel names favor, secrets and suits by their tokens and symbols; the word is the image's alt.
-    let { text }: { text: string } = $props()
-    let parts = $derived(tokenParts(text))
+    // R-10.13 — given colours, warbands are their token in their owner's colour, the Empire's in its own.
+    let { text, warbandColors }: { text: string; warbandColors?: { own: Color; imperial: Color } } =
+        $props()
+    let parts = $derived(tokenParts(text, { warbands: warbandColors !== undefined }))
 </script>
 
 {#each parts as part, i (i)}
@@ -15,7 +19,14 @@
             src={suitImage(part.suit)}
             alt={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
             title={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
-        />{:else}<span class="token-text__count"
+        />{:else if part.kind === 'warband'}<span class="token-text__count"
+            >{part.count}{#if warbandColors}<img
+                    class="token-text__token"
+                    src={warbandImage(part.imperial ? warbandColors.imperial : warbandColors.own)}
+                    alt={part.words}
+                    title={part.words}
+                />{/if}</span
+        >{:else}<span class="token-text__count"
             >{#if part.count !== undefined}{part.count}{/if}<img
                 class="token-text__token"
                 src={part.kind === 'favor' ? favorTokenImage() : secretTokenImage()}

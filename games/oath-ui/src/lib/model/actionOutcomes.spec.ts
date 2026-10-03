@@ -22,7 +22,7 @@ import {
 import { describeAction } from './actionDescription.js'
 import { slotLabel } from './names.js'
 
-const nameOf = { player: (playerId: string) => ({ me: 'Alice', other: 'Bob' })[playerId] ?? playerId, site: slotLabel }
+const nameOf = { player: (playerId: string) => ({ me: 'Alice', other: 'Bob' })[playerId] ?? playerId, site: slotLabel, seats: ['me', 'other'] }
 
 const powerUse = buildAction(UseActionPower, {
     playerId: 'me',

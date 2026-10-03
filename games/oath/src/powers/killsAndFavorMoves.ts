@@ -31,6 +31,9 @@ import {
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
 import { BANDIT_CHIEF } from '../util/bandits.js'
+import { soleOwner } from '../util/force.js'
+import { ownerIfAny } from '../util/warbands.js'
+import type { WarbandGroup } from '../model/campaign.js'
 
 // "Action: Each player (even you) places one favor per site they rule into
 // the arcane bank." (R-7.1.3: as much as each has.)
@@ -92,10 +95,15 @@ registerEffect(
                 : `Terror Spells kills two warbands: ${named} named, ${required} to kill`
         },
         resolve: (ctx) => {
-            let killed = 0
-            for (const c of chosen(ctx, PowerChoiceKind.Warbands))
-                killed += killWarbandGroup(ctx.state, c.group)
-            return { summary: `Terror Spells: killed ${killed} warbands in your region` }
+            const killed: WarbandGroup[] = chosen(ctx, PowerChoiceKind.Warbands).map(({ group }) => ({
+                ...group,
+                count: killWarbandGroup(ctx.state, group)
+            }))
+            const total = killed.reduce((n, group) => n + group.count, 0)
+            return {
+                summary: `Terror Spells: killed ${total} warbands in ${ctx.playerId}'s region`,
+                warbandOwner: soleOwner(killed)
+            }
         }
     }
 )
@@ -164,12 +172,17 @@ registerEffect(
         ],
         resolve: (ctx) => {
             const [target] = chosen(ctx, PowerChoiceKind.Player)
-            const { killed } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
+            const { owner, killed } = killWarbandsOnBoard(ctx.state, target.playerId, 1)
             if (!killed)
-                return { summary: `${target.playerId}'s board held no warband; nothing gained` }
+                return {
+                    summary: `${target.playerId}'s board held no warband; nothing gained`,
+                    targetPlayerId: target.playerId
+                }
             const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
             return {
-                summary: `killed a warband on ${target.playerId}'s board and gained ${gained}`
+                summary: `killed a warband on ${target.playerId}'s board and gained ${gained}`,
+                targetPlayerId: target.playerId,
+                warbandOwner: owner
             }
         }
     }
@@ -228,7 +241,8 @@ registerEffect(ENCHANTRESS, powerIndexOf(ENCHANTRESS, PowerTiming.Action), {
             )
             owner.replaceAdviser(target.cardId, { cardId: ENCHANTRESS, faceUp: true })
             return {
-                summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${site}`
+                summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${site}`,
+                targetPlayerId: owner.playerId
             }
         }
         const holder = ctx.state.adviserHolderOf(ENCHANTRESS)
@@ -236,7 +250,8 @@ registerEffect(ENCHANTRESS, powerIndexOf(ENCHANTRESS, PowerTiming.Action), {
         holder.replaceAdviser(ENCHANTRESS, { cardId: target.cardId, faceUp: true })
         owner.replaceAdviser(target.cardId, { cardId: ENCHANTRESS, faceUp: true })
         return {
-            summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${holder.playerId}'s`
+            summary: `Enchantress went to ${owner.playerId}'s advisers; ${target.cardId} to ${holder.playerId}'s advisers`,
+            targetPlayerId: owner.playerId
         }
     }
 })
@@ -260,7 +275,7 @@ registerEffect(KEY, powerIndexOf(KEY, PowerTiming.WhenPlayed), {
         const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 1)
         if (cannotPlaceWarbandsAtSites(ctx.state, ctx.playerId)) {
             return {
-                summary: `Key to the City: killed ${killed} at ${site}, gained ${gained}; placed none — you cannot place warbands at sites`
+                summary: `Key to the City: killed ${killed} at ${site}, gained ${gained}; placed none — ${ctx.playerId} cannot place warbands at sites`
             }
         }
         const own = ownWarbandOwner(ctx.state, ctx.playerId)
@@ -286,7 +301,7 @@ registerEffect(ALE, powerIndexOf(ALE, PowerTiming.Action), {
         }
         const secrets = returnSecretsToBoard(ctx.state, ctx.playerId)
         return {
-            summary: `A Round of Ale: returned ${favor} favor to the banks and ${secrets} secrets to your board`
+            summary: `A Round of Ale: returned ${favor} favor to the banks and ${secrets} secrets to ${ctx.playerId}'s board`
         }
     }
 })
@@ -336,6 +351,7 @@ registerEffect(
             const [card] = chosen(ctx, PowerChoiceKind.Card)
             return {
                 summary: `Armed Mob: discarded ${target.playerId}'s adviser ${card.cardId}`,
+                targetPlayerId: target.playerId,
                 pileDeposits: discardAdviser(
                     ctx.state,
                     ctx.playerId,
@@ -410,7 +426,10 @@ registerEffect(
             const [c] = chosen(ctx, PowerChoiceKind.Warbands)
             const killed = killWarbandGroup(ctx.state, c.group)
             const secrets = gainSecrets(ctx.state, ctx.playerId, Math.floor(killed / 2))
-            return { summary: `Blood Pact: sacrificed ${killed} warbands for ${secrets} secrets` }
+            return {
+                summary: `Blood Pact: sacrificed ${killed} warbands for ${secrets} secrets`,
+                warbandOwner: ownerIfAny(killed, c.group.owner)
+            }
         }
     }
 )

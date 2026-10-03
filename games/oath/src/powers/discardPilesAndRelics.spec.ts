@@ -142,6 +142,13 @@ describe('relics', () => {
         expect(s.players.map((player) => player.knownRelicDeckBottom)).toEqual([[], [CUP]])
         expect(() => serverUse(board({ c1: [BREAKER] }), vaultFor(), BREAKER, [slot('slot-1')])).toThrow()
     })
+
+    it('Relic Breaker used by a Citizen records the warbands gained as their own', () => {
+        const s = board({ c1: [BREAKER] }, {}, { ruler: { status: PlayerStatus.Citizen } }, { relicsBySite: { c1: [{ slotId: 'slot-1' }] } })
+        const a = serverUse(s, vaultFor({ relicFacedown: { 'slot-1': CUP } }), BREAKER, [slot('slot-1')])
+        expect(a.metadata?.summary).toBe('Relic Breaker: the relic went to the bottom of the relic deck; gained 3 warbands')
+        expect(a.metadata?.warbandOwner).toBe('ruler')
+    })
 })
 
 describe('discard piles', () => {
@@ -221,6 +228,9 @@ describe('discard piles', () => {
         expect(s.topCardBackType).toBe(CardKind.Denizen)
         expect(s.worldDeckExhausted).toBe(false)
         expect(a.metadata?.opensSearch).toBe(true)
+        // R-2.7.1 — the draw itself is public, as a Search's stop on a Vision is.
+        expect(a.metadata?.visionDrawn).toBe(true)
+        expect(OathVisibility.actions.project(a.dehydrate(), spectator)).toHaveProperty('metadata.visionDrawn', true)
         expect(new ActPhaseStateHandler().onAction(a, machineContext(s))).toBe(MachineState.Searching)
         expect(s.getPlayerState('ruler').secrets).toBe(2)
         // R-9.4 — the Vision drawn reaches its drawer alone, in state and in the record.

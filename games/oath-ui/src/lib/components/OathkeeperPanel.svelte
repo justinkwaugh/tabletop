@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { OATHKEEPER_GOALS, Goal } from '@tabletop/oath'
+    import { OATHKEEPER_GOALS } from '@tabletop/oath'
+    import { goalText } from '$lib/model/names.js'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -12,13 +13,6 @@
     let isMine = $derived(
         !!gameSession.myPlayer && pending?.holderPlayerId === gameSession.myPlayer.id
     )
-
-    const GOAL_TEXT: Record<Goal, string> = {
-        [Goal.MostSites]: 'rule the most sites',
-        [Goal.PeoplesFavor]: "hold the Banner of the People's Favor",
-        [Goal.MostRelicsAndBanners]: 'hold the most relics and banners',
-        [Goal.DarkestSecret]: 'hold the Banner of the Darkest Secret'
-    }
 
     function blockedBecause(candidateId: string): string | undefined {
         return gameSession.reasonCannotChooseOathkeeper(candidateId)
@@ -39,8 +33,8 @@
         </p>
     {:else}
         <p class="text-sm mb-1">
-            You no longer {GOAL_TEXT[OATHKEEPER_GOALS[gameState.oathType]]}, and more than one
-            player now does. Choose who takes the Oathkeeper title.
+            You no longer {goalText(OATHKEEPER_GOALS[gameState.oathType])}, and more than one player
+            now does. Choose who takes the Oathkeeper title.
         </p>
         <p class="mb-2 text-[11px] text-oath-text-muted leading-snug">
             You cannot keep it, and you cannot decline — the rules give the outgoing holder the

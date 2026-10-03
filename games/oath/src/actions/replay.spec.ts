@@ -28,10 +28,12 @@ const MASTER_SEED = '0000000000000000000000000000002a'
 
 type Step = { from: OathProjectedState; actions: GameAction[]; to: OathProjectedState }
 
-function walkSetup() {
+function walkSetup(createdBeforeRevisions = false) {
     // The seed's deal reaches the Drowned City.
     const game = testGame(['p1', 'p2'], { config: { setupVariant: SetupVariant.Randomized } })
     const { initialState } = engine.startGame(game, { masterSeed: MASTER_SEED })
+    // R-X.4 — a game stored under 0.2.0 carries no revision.
+    if (createdBeforeRevisions) delete initialState.oathRevision
     const vault = vaultOf(initialState)
 
     const steps: Step[] = []
@@ -67,9 +69,14 @@ function walkSetup() {
     return { game, vault, steps, record, state: () => current }
 }
 
-function walkTwoTurns() {
-    const walk = walkSetup()
+function walkTwoTurns(createdBeforeRevisions = false) {
+    const walk = walkSetup(createdBeforeRevisions)
     const { record } = walk
+    // R-4.3.5 — no seat holds a Rest power here: from the turn-flow revision the Rest resolves by itself, and before it the player sends it.
+    const endTurn = (playerId: string | undefined) => {
+        record(buildAction(EndActPhase, { playerId }))
+        if (createdBeforeRevisions) record(buildAction(CompleteRest, { playerId }))
+    }
 
     const chancellor = walk.state().chancellorPlayerId
     expect(walk.state().activePlayerIds).toEqual([chancellor])
@@ -137,14 +144,12 @@ function walkTwoTurns() {
         burnFavor: false
     }))
 
-    record(buildAction(EndActPhase, { playerId: chancellor }))
-    record(buildAction(CompleteRest, { playerId: chancellor }))
+    endTurn(chancellor)
 
     const next = required(walk.state().activePlayerIds[0], 'the next active player')
     expect(next).not.toBe(chancellor)
     expect(walk.state().machineState).toBe(MachineState.ActPhase)
-    record(buildAction(EndActPhase, { playerId: next }))
-    record(buildAction(CompleteRest, { playerId: next }))
+    endTurn(next)
 
     return walk
 }
@@ -173,6 +178,28 @@ describe('every action replays from its recorded form', () => {
 
     it('R-4 through R-6 — two full turns replay, vault reads included', () => {
         const { game, steps } = walkTwoTurns()
+        expectEveryStepReplays(game, steps)
+    })
+
+    it('R-4.3 — from the turn-flow revision the Rest is a System Action after End the Act Phase', () => {
+        const { steps } = walkTwoTurns()
+        const ends = steps.filter((s) => s.actions[0].type === ActionType.EndActPhase)
+        expect(ends).toHaveLength(2)
+        for (const end of ends) {
+            expect(end.actions.map((a) => [a.type, a.source]).slice(0, 2)).toEqual([
+                [ActionType.EndActPhase, ActionSource.User],
+                [ActionType.CompleteRest, ActionSource.System]
+            ])
+        }
+        expect(recorded(steps).filter((a) => a.type === ActionType.CompleteRest && a.source === ActionSource.User)).toHaveLength(0)
+    })
+
+    it('R-X.4 — a game created before the revision rests by the player’s hand, and replays unchanged', () => {
+        const { game, steps, state } = walkTwoTurns(true)
+        expect(state().oathRevision).toBeUndefined()
+        const rests = recorded(steps).filter((a) => a.type === ActionType.CompleteRest)
+        expect(rests.map((a) => a.source)).toEqual([ActionSource.User, ActionSource.User])
+        expect(recorded(steps).some((a) => a.type === ActionType.TransferOathkeeper)).toBe(false)
         expectEveryStepReplays(game, steps)
     })
 
