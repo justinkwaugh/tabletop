@@ -6,9 +6,8 @@
         OperatingActions,
         SelectionAuctionBidding,
         SelectionAuctionLots,
-        type HistoryDescription
+        type TitleActionDescription
     } from '@tabletop/18xx-ui'
-    import type { GameAction } from '@tabletop/common'
     import { eighteenSeventeenHistoryDescription } from './history.js'
     import CorporateActions from './CorporateActions.svelte'
     import AcquisitionRound from './AcquisitionRound.svelte'
@@ -23,18 +22,15 @@
         $props()
     const session = $derived(requireEighteenSeventeenSession(gameSession))
     const privateOperationDescription = () => undefined
-    function historyDescription(
-        action: GameAction,
-        companyName: (id: string) => string,
-        shared: () => HistoryDescription
-    ): HistoryDescription | undefined {
+    const historyDescription: TitleActionDescription = (action, companyName, shared) => {
         return eighteenSeventeenHistoryDescription(
             action,
             {
                 companyName,
                 playerName: (id) => session.getPlayerName(id),
-                money: session.presentation.money
+                bankName: session.gameState.bank.name
             },
+            session.presentation.money,
             shared
         )
     }
@@ -48,7 +44,7 @@
         ...(session.corporateActions.length
             ? [
                   {
-                      label: 'Act for company',
+                      label: 'Act for a company',
                       selected: session.stockPanel === 'company',
                       onSelect: () => session.chooseStockPanel('company')
                   }

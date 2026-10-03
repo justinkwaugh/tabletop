@@ -60,7 +60,7 @@ import {
     stockMarketSpace,
     isDiscardTrain,
     isRustTrains,
-    type CashPayment,
+    type DeparturePayment,
     type Owner,
     type PresidencyChange,
     type EighteenXXState
@@ -81,7 +81,7 @@ export type HistoryDescription = {
 }
 
 /** What the bank paid as trains departed, as an action records it. */
-function departurePayments(action: GameAction): readonly CashPayment[] {
+function departurePayments(action: GameAction): readonly DeparturePayment[] {
     if (isAdvancePhase(action)) return action.metadata?.event.departurePayments ?? []
     if (
         isBuyTrain(action) ||
@@ -96,16 +96,45 @@ function departurePayments(action: GameAction): readonly CashPayment[] {
     return []
 }
 
-/** Names who the bank paid as trains departed, such as a title's private paying out. */
+/** The names a history row gives the owners of cash and certificates. */
+export type HistoryNames = {
+    companyName: (id: string) => string
+    playerName: (id: string) => string
+    bankName: string
+}
+
+export function ownerName(owner: Owner, names: HistoryNames): string {
+    return owner.kind === 'bank'
+        ? names.bankName
+        : owner.kind === 'player'
+          ? names.playerName(owner.playerId)
+          : names.companyName(owner.companyId)
+}
+
+/** Joins a row's details, leaving out those it lacks. */
+export function joinDetails(...details: (string | undefined)[]): string | undefined {
+    return details.filter(Boolean).join(' · ') || undefined
+}
+
+/** A title's own history row for an action, given the shared row it may add to. */
+export type TitleActionDescription = (
+    action: GameAction,
+    companyName: (id: string) => string,
+    shared: () => HistoryDescription
+) => HistoryDescription | undefined
+
+/** Names who the bank paid as trains departed, and the private it paid for. */
 export function departurePaymentsDetail(
-    payments: readonly CashPayment[],
-    recipientName: (owner: Owner) => string,
+    payments: readonly DeparturePayment[],
+    names: HistoryNames,
     money: MoneyFormat
 ): string | undefined {
-    return (
-        payments
-            .map((payment) => `${recipientName(payment.to)} received ${money(payment.amount)}`)
-            .join(' · ') || undefined
+    return joinDetails(
+        ...payments.map((payment) =>
+            payment.privateId
+                ? `${names.companyName(payment.privateId)} paid ${ownerName(payment.to, names)} ${money(payment.amount)}`
+                : `${ownerName(payment.to, names)} received ${money(payment.amount)}`
+        )
     )
 }
 
@@ -127,17 +156,10 @@ export function historyDescription(
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
-        (owner) =>
-            owner.kind === 'company'
-                ? companyName(owner.companyId)
-                : owner.kind === 'player'
-                  ? playerName(owner.playerId)
-                  : state.bank.name,
+        { companyName, playerName, bankName: state.bank.name },
         money
     )
-    return paid
-        ? { ...description, detail: [description.detail, paid].filter(Boolean).join(' · ') }
-        : description
+    return paid ? { ...description, detail: joinDetails(description.detail, paid) } : description
 }
 
 function describeShared(
@@ -155,17 +177,13 @@ function describeShared(
                   ...effects.closedPrivateIds.map((privateId) => `${companyName(privateId)} closed`)
               ].join(' · ')
             : undefined
-    const ownerName = (owner: Owner) =>
-        owner.kind === 'bank'
-            ? state.bank.name
-            : owner.kind === 'player'
-              ? playerName(owner.playerId)
-              : companyName(owner.companyId)
+    const names = { companyName, playerName, bankName: state.bank.name }
+    const nameOf = (owner: Owner) => ownerName(owner, names)
     const presidency = (change: PresidencyChange) =>
-        `President: ${ownerName(change.previous)} → ${ownerName(change.next)}`
+        `President: ${nameOf(change.previous)} → ${nameOf(change.next)}`
     const presidentChanges = (companyChanges?.presidents ?? []).map(
         (change) =>
-            `${companyName(change.companyId)} President: ${change.previous ? ownerName(change.previous) : 'None'} → ${change.next ? ownerName(change.next) : 'None'}`
+            `${companyName(change.companyId)} President: ${change.previous ? nameOf(change.previous) : 'None'} → ${change.next ? nameOf(change.next) : 'None'}`
     )
     const closures = (companyChanges?.closedCompanyIds ?? []).map(
         (id) => `${companyName(id)} closed`
@@ -274,8 +292,7 @@ function describeShared(
                         : '',
                     details.bonusPerShare ? `${money(details.bonusPerShare)}/share bonus` : '',
                     ...(details.charges ?? []).map(
-                        (charge) =>
-                            `${ownerName(charge.from)} owes ${money(charge.amount)} on shorts`
+                        (charge) => `${nameOf(charge.from)} owes ${money(charge.amount)} on shorts`
                     ),
                     details.marketMove &&
                     details.marketMove.fromMarketSpaceId !== details.marketMove.toMarketSpaceId
@@ -565,7 +582,7 @@ function describeShared(
                             certificate.kind === 'share' && certificate.number
                                 ? ` #${certificate.number}`
                                 : ''
-                        return `${ownerName(exchange.owner)} exchanged ${companyName(certificate.companyId)}${number} for ${receivedShare(exchange.receivedId)}`
+                        return `${nameOf(exchange.owner)} exchanged ${companyName(certificate.companyId)}${number} for ${receivedShare(exchange.receivedId)}`
                     }),
                     ...presidentChanges,
                     ...closures
@@ -604,7 +621,7 @@ function describeShared(
             ? {
                   text: 'Private income',
                   detail: companyIncome
-                      .map((payment) => `${ownerName(payment.to)} ${money(payment.amount)}`)
+                      .map((payment) => `${nameOf(payment.to)} ${money(payment.amount)}`)
                       .join(' · ')
               }
             : { text: 'Operating order', important: true }
@@ -631,7 +648,7 @@ function describeShared(
                 trainDefinitionIds: [train.definitionId],
                 omitActor: true,
                 value: money(offer.price),
-                detail: [`From ${ownerName(offer.seller)}`, ...closures].join(' · '),
+                detail: [`From ${nameOf(offer.seller)}`, ...closures].join(' · '),
                 important: true
             }
         }
@@ -645,7 +662,7 @@ function describeShared(
                 : `Offered to buy ${asset} for ${money(offer.price)}`,
             omitActor: accepted,
             value: accepted ? money(offer.price) : undefined,
-            detail: `From ${offer.seller.kind === 'bank' ? state.bank.name : ownerName(offer.seller)}`,
+            detail: `From ${offer.seller.kind === 'bank' ? state.bank.name : nameOf(offer.seller)}`,
             important: accepted
         }
     }

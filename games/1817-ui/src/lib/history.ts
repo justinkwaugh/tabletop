@@ -1,8 +1,9 @@
-import type { CashPayment } from '@tabletop/18xx'
-import { isFormCompany } from '@tabletop/18xx'
+import { isFormCompany, type CashPayment, type DeparturePayment } from '@tabletop/18xx'
 import {
     departurePaymentsDetail,
+    joinDetails,
     type HistoryDescription,
+    type HistoryNames,
     type MoneyFormat
 } from '@tabletop/18xx-ui'
 import { ActionSource, type GameAction } from '@tabletop/common'
@@ -36,12 +37,6 @@ import {
 } from '@tabletop/1817'
 import { plural } from './plural.js'
 
-export type HistoryNames = {
-    companyName: (id: string) => string
-    playerName: (id: string) => string
-    money: MoneyFormat
-}
-
 const reasons = {
     'no-train': 'it has no train',
     'unpaid-stations': 'it did not pay for its stations'
@@ -51,31 +46,21 @@ const reasons = {
 export function eighteenSeventeenHistoryDescription(
     action: GameAction,
     names: HistoryNames,
+    money: MoneyFormat,
     shared: () => HistoryDescription
 ): HistoryDescription | undefined {
-    const { companyName, playerName, money } = names
-    const details = (...parts: (string | undefined)[]) =>
-        parts.filter(Boolean).join(' · ') || undefined
+    const { companyName, playerName } = names
     const parachute = (payment: CashPayment | undefined) =>
         payment && payment.to.kind === 'player'
             ? `Golden Parachute paid ${playerName(payment.to.playerId)} ${money(payment.amount)}`
             : undefined
-    const paid = (payments: readonly CashPayment[]) =>
-        departurePaymentsDetail(
-            payments,
-            (owner) =>
-                owner.kind === 'company'
-                    ? companyName(owner.companyId)
-                    : owner.kind === 'player'
-                      ? playerName(owner.playerId)
-                      : 'Bank',
-            money
-        )
+    const paid = (payments: readonly DeparturePayment[] = []) =>
+        departurePaymentsDetail(payments, names, money)
     if (isFormCompany(action) && action.privateIds.includes(LoanSharkId)) {
         const description = shared()
         return {
             ...description,
-            detail: details(
+            detail: joinDetails(
                 description.detail,
                 `Loan Shark paid ${companyName(action.companyId)} ${money(LoanSharkCash)}`
             )
@@ -143,7 +128,7 @@ export function eighteenSeventeenHistoryDescription(
     if (isDiscardMergedTrain(action))
         return {
             text: `Discarded a ${companyName(action.companyId)} train`,
-            detail: paid(action.metadata?.departurePayments ?? [])
+            detail: paid(action.metadata?.departurePayments)
         }
     if (isOfferCompany(action)) return { text: `Offered ${companyName(action.companyId)} for sale` }
     if (isDeclineOffer(action)) return { text: `Kept ${companyName(action.companyId)}` }
@@ -170,8 +155,8 @@ export function eighteenSeventeenHistoryDescription(
                 ? `The bank liquidated ${companyName(action.companyId)}`
                 : `${companyName(action.companyId)} was not sold`,
             omitActor: true,
-            detail: details(
-                paid(action.metadata?.departurePayments ?? []),
+            detail: joinDetails(
+                paid(action.metadata?.departurePayments),
                 parachute(action.metadata?.parachute)
             ),
             important: !!action.metadata

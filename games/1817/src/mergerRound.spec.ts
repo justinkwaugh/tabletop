@@ -16,6 +16,8 @@ import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     conversionPreview,
     isLiquidated,
+    mergerPreview,
+    treasuryShareIds,
     stationsForConversion,
     stationsOverLimit,
     treasuryPoolId,
@@ -210,6 +212,36 @@ describe('mergers', () => {
                 (certificate) => !certificate.retired && certificate.poolId === treasuryPoolId('BA')
             )
         ).toHaveLength(2)
+    })
+
+    it.each([
+        [
+            'two 2-share companies',
+            (state: EighteenXXState) => {
+                getCompany(state, 'BA').shareCount = 2
+                retireCertificates(state, ['BA:share:1', 'BA:share:2', 'BA:share:3'])
+            }
+        ],
+        [
+            'two 5-share companies',
+            (state: EighteenXXState) => {
+                getCompany(state, 'PLE').shareCount = 5
+                issueShareCertificates(state, 'PLE', 3, {
+                    owner: { kind: 'company', companyId: 'PLE' },
+                    poolId: treasuryPoolId('PLE')
+                })
+            }
+        ]
+    ])('previews what merging %s makes of the company', (_, prepare) => {
+        const play = mergerRound(prepare)
+        const preview = mergerPreview(play.state, 'BA', 'PLE')
+        play.act('MergeCompanies', { companyId: 'BA', targetId: 'PLE' })
+        expect(preview).toEqual({
+            price: price(play.state, 'BA'),
+            shareCount: getCompany(play.state, 'BA').shareCount,
+            treasuryShares: treasuryShareIds(play.state, 'BA').length,
+            stations: stations(play.state, 'BA')
+        })
     })
 
     it('has the merged company discard the trains over its limit', () => {

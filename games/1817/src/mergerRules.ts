@@ -75,7 +75,8 @@ export function sizeAfterConversion(state: EighteenXXState, companyId: string): 
     return size
 }
 
-function heldStations(state: EighteenXXState, companyId: string): number {
+/** The stations a company holds, placed or not. */
+export function heldStations(state: EighteenXXState, companyId: string): number {
     return state.stations.filter(
         (station) => station.companyId === companyId && station.status !== 'removed'
     ).length
@@ -148,6 +149,44 @@ export function mergerPrice(state: EighteenXXState, companyId: string, targetId:
     const b = companyMarketSpace(state.stockMarket, targetId).price
     const value = getCompany(state, companyId).shareCount === 2 ? a + b : Math.floor((a + b) / 2)
     return mergerSpace(state, value).price
+}
+
+export type MergerPreview = {
+    price: number
+    shareCount: number
+    /** Shares the merged company holds in its treasury. */
+    treasuryShares: number
+    /** Stations the merged company holds, before any over the limit are removed. */
+    stations: number
+}
+
+/**
+ * What merging the target in would make of the company, for its president to weigh. Two
+ * 2-share companies' new shares stay in the treasury but for one the president sells to the
+ * target's president; two 5-share companies' holders swap share for share, so the treasury
+ * gains only the target's treasury shares.
+ */
+export function mergerPreview(
+    state: EighteenXXState,
+    companyId: string,
+    targetId: string
+): MergerPreview {
+    const shareCount = sizeAfterConversion(state, companyId)
+    const president = controllingOwner(state, companyId)
+    const targetPresident = controllingOwner(state, targetId)
+    assertExists(president, 'A merging company has a president')
+    assertExists(targetPresident, 'A merged company has a president')
+    const size = corporationShareCount(state, companyId)
+    const added =
+        size === CharterShareCount
+            ? shareCount - size - (sameOwner(president, targetPresident) ? 0 : 1)
+            : treasuryShareIds(state, targetId).length
+    return {
+        price: mergerPrice(state, companyId, targetId),
+        shareCount,
+        treasuryShares: treasuryShareIds(state, companyId).length + added,
+        stations: heldStations(state, companyId) + heldStations(state, targetId)
+    }
 }
 
 function mergerSpace(state: EighteenXXState, value: number): StockMarketSpace {

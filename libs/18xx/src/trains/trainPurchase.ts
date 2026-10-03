@@ -4,8 +4,7 @@ import { assert } from '@tabletop/common'
 import { cashOwnedBy, controllingOwner, getCompany } from '../finance/finance.js'
 import { trainsOwnedBy, trainCanBeTraded, type Train, type TrainPurchaseState } from './train.js'
 import type { TrainDepot } from './trainDepot.js'
-import type { CashPayment } from '../finance/cashPayments.js'
-import type { TrainDeparture } from './trainDepartures.js'
+import type { DeparturePayment, TrainDeparture } from './trainDepartures.js'
 export interface TrainRules {
     depot: TrainDepot
     exchangePrice(
@@ -25,7 +24,7 @@ export interface TrainRules {
     afterTrainsDepart?(
         state: TrainPurchaseState,
         departures: readonly TrainDeparture[]
-    ): CashPayment[]
+    ): DeparturePayment[]
 }
 export const TrainPurchaseRequest = Type.Object(
     {

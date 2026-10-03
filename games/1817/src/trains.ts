@@ -1,4 +1,4 @@
-import { PhaseTable, TrainDepot, type CashPayment, type TrainRules } from '@tabletop/18xx'
+import { PhaseTable, TrainDepot, type DeparturePayment, type TrainRules } from '@tabletop/18xx'
 import { inventorPaid } from './state.js'
 import { InventorId, ScrapperId, companyHolding } from './privateHolders.js'
 
@@ -77,10 +77,11 @@ const InventorPayouts: Readonly<Record<string, number>> = {
     '8': 80
 }
 const ScrapValues: Readonly<Record<string, number>> = { '2': 30, '2+': 30, '3': 75, '4': 150 }
-const bankPays = (companyId: string, amount: number): CashPayment => ({
+const bankPays = (companyId: string, amount: number, privateId: string): DeparturePayment => ({
     from: { kind: 'bank' },
     to: { kind: 'company', companyId },
-    amount
+    amount,
+    privateId
 })
 
 export const EighteenSeventeenTrainRules: TrainRules = {
@@ -98,7 +99,7 @@ export const EighteenSeventeenTrainRules: TrainRules = {
     // The Inventor's company is paid the first time each type departs while it holds the
     // Inventor; the Scrapper's company is paid for each of its trains that rusts.
     afterTrainsDepart(state, departures) {
-        const payments: CashPayment[] = []
+        const payments: DeparturePayment[] = []
         const paid = [...inventorPaid(state)]
         const inventorCompanyId = companyHolding(state, InventorId)
         const scrapperCompanyId = companyHolding(state, ScrapperId)
@@ -106,7 +107,7 @@ export const EighteenSeventeenTrainRules: TrainRules = {
             const payout = InventorPayouts[departure.definitionId]
             if (inventorCompanyId && payout && !paid.includes(departure.definitionId)) {
                 paid.push(departure.definitionId)
-                payments.push(bankPays(inventorCompanyId, payout))
+                payments.push(bankPays(inventorCompanyId, payout, InventorId))
             }
             const scrap = ScrapValues[departure.definitionId]
             if (
@@ -115,7 +116,7 @@ export const EighteenSeventeenTrainRules: TrainRules = {
                 departure.owner?.kind === 'company' &&
                 departure.owner.companyId === scrapperCompanyId
             )
-                payments.push(bankPays(scrapperCompanyId, scrap))
+                payments.push(bankPays(scrapperCompanyId, scrap, ScrapperId))
         }
         if (paid.length > inventorPaid(state).length) Object.assign(state, { inventorPaid: paid })
         return payments

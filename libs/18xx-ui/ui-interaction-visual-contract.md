@@ -599,15 +599,15 @@ paid (with any loans borrowed to pay it) or that it defaulted. Repay a loan, Tak
 loan and Finish turn commit at once; while both are offered the panel notes that
 borrowing ends repayments. Company details show loans against the limit. The game
 information shows the interest rate of the current or next operating round, the rate the
-next round would fix when it differs ("5% → 10%"), and the loans the bank has left. History
+next round would fix ("5% next 10%"), and the loans the bank has left ("Loans 54 left"). History
 records borrowing and repayments with their price moves, and interest as a company
 row that is routine unless it needed loans or defaulted.
 
 A title's own stock-round corporate actions (1817's loans and buy-backs) are a stock
-action of their own ("Act for company") beside Buy and Sell while the player may still act
+action of their own ("Act for a company") beside Buy and Sell while the player may still act
 for a company they preside. It opens a card for each such company, in the share cards'
-style: its token and price, its treasury and loans, and Take a loan and Buy back a share as
-immediately committed buttons. Once the player has acted for a company, only its card
+style: its token and price, its treasury and loans, and Take a loan and Buy back a share
+(with its price and the shares the market holds) as immediately committed buttons. Once the player has acted for a company, only its card
 remains open, headed "Acting for" the company. Back clears the choice of panel.
 
 ### Cash crisis and bankruptcy
@@ -624,8 +624,8 @@ Bankrupt players leave the turn order. The players panel lists them after the ot
 marked Bankrupt, and the ownership spreadsheet's turn-order sort places them last.
 History also shows system events that change no company's cash when they matter:
 exports, interest, and any system action the title describes. An action whose train
-departures made the bank pay someone (1817's Inventor and Scrapper) names each recipient
-and amount in its detail. A title's own description receives the shared one, so it can add
+departures made the bank pay someone names each recipient and amount in its detail, and
+the private it paid for when there was one ("Inventor paid PLE $30"). A title's own description receives the shared one, so it can add
 to it rather than replace it.
 
 ### Short positions
@@ -654,14 +654,16 @@ its end action.
 
 1817's merger and acquisition rounds replace the operating panels with a panel headed
 by the round's name and a card for the company being dealt with, in the share cards'
-style: its name and price; its size, treasury, loans, trains and stations; and the current
+style: its name and price; its size, treasury, loans, trains, privates, stations and any
+closing zone; and the current
 decision as immediately committed buttons in the card's foot. Other players see whom the
 round is waiting for.
 
 In the merger round the president converts, the button naming the new size, the treasury
 shares it adds and the stations it would owe with their cost, or passes; each company it
-may merge with is a card of its own below ("Or merge with"), whose Merge button names the
-merged size and price. While players trade the converted company's treasury shares, the
+may merge with is a card of its own below ("Or merge with") with its treasury, loans and
+assets, whose Merge button names the merged size and price, the treasury shares the merged
+company would hold and its stations. While players trade the converted company's treasury shares, the
 panel names the shares left and their price, who chooses now and who follows; that player
 buys a share or passes. The president then takes loans and finishes, buying the stations
 owed (the panel says when the treasury cannot pay, and the button reads Finish and
@@ -681,7 +683,7 @@ and the loans it took on and repaid, and it takes loans, repays loans it took on
 finishes. A company over its limits after a merger or an acquisition gets its own panel to
 remove stations or discard trains. History records offers, bids and passes, auctions of
 companies in a closing zone, acquisitions with their price and any Golden Parachute paid,
-the bank's liquidations with what the Inventor and Golden Parachute paid, unsold companies,
+the bank's liquidations with what departing trains and the Golden Parachute paid, unsold companies,
 the holders' payment per share and repayments. A formation with the Loan Shark notes the
 $60 it brought.
 
@@ -1366,7 +1368,7 @@ Company auctions (a title's `stockRules.companyAuction`, such as 1817) replace S
 
 While a company auction stands, the stock action panel shows only the auction: the company, its home, opener, high bidder, high bid with its starting price, and the current bidder's limit. The bid amount is derived in the same way and becomes manual when changed; Bid and Pass submit directly. The winner then sees the formation panel: one button per allowed size and one per private that could be contributed toward the price. A size is pre-chosen only when the phase allows exactly one; otherwise none is pressed and Form stays disabled with "Choose a size". The formation is applied without the panel when there is one size and nothing to contribute. Size and contribution choices are manual and unwind before game history.
 
-A selection-auction opening shows the remaining lots with value, opening bid and, below each name, the start of its power (the private's card shows it in full). A title that deals its lots into tiers (1817's Volatility pyramid) shows them as a pyramid, first tier on top: each lot a compact button with its name and value, each sold or removed lot a dashed empty slot, and the tier that may be nominated from highlighted; only its lots can be chosen, and choosing one shows its full power beside the bid control. Auction stages a nomination with the bid control at the lot's opening bid; Bid submits NominateLot and Back clears the staged lot. Pass appears only while the title lets a player pass instead of nominating. An award's history entry names the lots it removed. While a lot is being auctioned the bidding card shows the nominator, high bidder and high bid; Bid submits BidForLot at the staged or minimum amount and Pass submits PassSelectionAuction.
+A selection-auction opening shows the remaining lots with value, opening bid and, below each name, the start of its power (the private's card shows it in full). A title that deals its lots into tiers (1817's Volatility pyramid) shows them as a pyramid, first tier on top: each lot a compact button with its name and value, each sold or removed lot a dashed empty slot, and the tier that may be nominated from highlighted. Only that tier's lots can be chosen, and only they show the start of their power, which keeps the pyramid within the panel; every lot gives its power on hover, and choosing one shows it in full beside the bid control. Auction stages a nomination with the bid control at the lot's opening bid; Bid submits NominateLot and Back clears the staged lot. Pass appears only while the title lets a player pass instead of nominating. An award's history entry names the lots it removed. While a lot is being auctioned the bidding card shows the nominator, high bidder and high bid; Bid submits BidForLot at the staged or minimum amount and Pass submits PassSelectionAuction.
 
 Station tokens without artwork draw their label in the colour that contrasts with the token's fill, and labels of four or more characters use a smaller size to stay inside the token.
 

@@ -48,6 +48,8 @@ test('1817 Volatility auctions its privates from the bottom tier of a pyramid', 
     await expect(lots.getByRole('button', { name: 'Pass', exact: true })).toHaveCount(0)
     const bottom = tier('Tier 6').getByRole('button', { name: /^Auction / })
     await expect(bottom).toHaveCount(6)
+    // Each slot shows its private's power after its name and value.
+    await expect(bottom.first()).toHaveText(/\$\d+\s*\S.{10,}/)
     // Selling the second lot leaves the first without a neighbour, so it is removed.
     await bottom.nth(1).click()
     await lots.getByRole('button', { name: 'Bid', exact: true }).click()
@@ -122,13 +124,14 @@ test('1817 presidents act for a company in place of their stock turn', async ({ 
     await page.getByLabel('Game', { exact: true }).selectOption('1817')
     await page.getByLabel('Position', { exact: true }).selectOption('trading')
     await page.getByRole('button', { name: 'Pass', exact: true }).first().click()
-    await page.getByRole('button', { name: 'Act for company', exact: true }).click()
+    await page.getByRole('button', { name: 'Act for a company', exact: true }).click()
     const corporate = page.getByRole('region', { name: 'Corporate actions' })
     await corporate
         .getByRole('button', { name: 'Take a loan for Boston and Albany Railroad' })
         .click()
     await expect(corporate).toContainText('Acting for Boston and Albany Railroad')
     await expect(corporate).toContainText('Loans 1/5')
+    await expect(corporate).toContainText(/\$110 · \d+ in the market/)
     await corporate
         .getByRole('button', { name: 'Buy back a Boston and Albany Railroad share for $110' })
         .click()
@@ -223,7 +226,6 @@ test('1817 companies are sold in the acquisition round after the merger round', 
     await expect(sale).toContainText('no bids yet')
     await expect(sale).toContainText('Paid by Boston and Albany Railroad')
     await sale.getByRole('button', { name: 'Bid', exact: true }).click()
-    // The winner's loans step describes the buyer.
     await expect(sale).toContainText('Bought Pittsburgh and Lake Erie Railroad for $120')
     await sale.getByRole('button', { name: 'Finish' }).click()
     await expect(page.getByRole('region', { name: 'Acquisition round' })).toHaveCount(0)
@@ -258,9 +260,9 @@ test('1817 shows shorts, company sizes and loans, the interest rate and market z
     await page.goto('/table')
     await page.getByLabel('Game', { exact: true }).selectOption('1817')
     await page.getByLabel('Position', { exact: true }).selectOption('shorts')
-    await expect(page.getByRole('button', { name: 'Open phase chart' }).first()).toContainText(
-        'Interest 5%'
-    )
+    const information = page.getByRole('button', { name: 'Open phase chart' }).first()
+    await expect(information).toContainText(/Interest 5%\s*next \d+%/)
+    await expect(information).toContainText(/Loans \d+ left/)
     await page.getByRole('tab', { name: 'Spreadsheet', exact: true }).click()
     const sheet = page.getByRole('table', { name: 'Company share ownership' })
     await expect(sheet.getByRole('cell', { name: '-1 short' })).toHaveCount(2)

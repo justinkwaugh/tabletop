@@ -1870,7 +1870,7 @@ acquisition rounds remain 1817's own.
 ### Implementation notes for 10a
 
 - **Game information.** The loan module gives the next round's rate and the loans left;
-  the strip shows them beside the current rate for any title with loans, then a title's
+  the strip shows them beside the current rate ("Interest 15% next 20%", "Loans 54 left") for any title with loans, then a title's
   `gameFacts`. 1817's are the seed money left while the opening lasts and, once the 8-train
   has set the end, "Game ends after AR 7.2".
 - **Spreadsheet.** `TitlePresentation.companyColumns` adds sortable statistics after Last
@@ -1881,32 +1881,39 @@ acquisition rounds remain 1817's own.
   owed and the closing zone.
 - **Market zones.** `marketZones` names colours; cells' accessible names and hover text
   carry them, and the Market tab lists them in a legend.
-- **History.** The shared description names who each departure paid, and a title's
-  description receives the shared one (a thunk) as a third argument;
-  `departurePaymentsDetail` lets 1817 add the same to its own actions.
+- **History.** The shared description names who each departure paid and, as a departure
+  payment records the private it pays for, which private ("Inventor paid PLE $30"). A
+  title's description (`TitleActionDescription`) receives the shared one (a thunk) as a
+  third argument; `departurePaymentsDetail`, `ownerName` and `joinDetails` let 1817 add the
+  same to its own actions.
 - **Playground.** "Short positions" gives Casey a short of Boston & Albany and the market a
   short of its own.
 
 ### Implementation notes for 10b
 
-- **Stock panels.** 1817's session keeps the chosen panel ("Act for company" or "Short")
+- **Stock panels.** 1817's session keeps the chosen panel ("Act for a company" or "Short")
   as a local selection that Back clears, offers each as an extra stock action while it has
   something to show, and keeps the corporate panel open while the player acts for a
-  company. Both panels are cards in the share cards' style (`CompanyActionCard`).
+  company. Both panels are cards in the share cards' style (`CompanyActionCard`). Buy back
+  a share names its price and how many shares the market holds.
 - **Opening.** The family's `tiers` hook now returns empty slots as `null`; the shared lot
-  table draws tiers as a pyramid with the nominable tier highlighted, and shows the start
-  of each private's power below its name (the full text with the chosen lot, and in the
-  private's card). The seed money left is a game fact (10a).
+  table draws tiers as a pyramid with the nominable tier highlighted. That tier's lots
+  show the start of their power below their name; the others give it on hover, so six
+  tiers fit the panel (the full text shows with the chosen lot, and in the private's
+  card). The seed money left is a game fact (10a).
 
 ### Implementation notes for 10c
 
 - **Round panels.** The merger and acquisition rounds share a `RoundPanel`: a heading and
-  a card for the company in question (size, treasury, loans, trains, stations), carrying
+  a card for the company in question (size, treasury, loans, trains, privates, stations
+  and closing zone), carrying
   its actions. While a buyer settles its loans the card is the buyer's, under a line
   naming the price and the loans it took on and repaid.
 - **Merger round.** `conversionPreview` (1817 rules) gives the size, new treasury shares
   and stations owed, with their cost after the Station Subsidy, so the Convert button can
-  say what converting brings. Each merger partner gets its own card with its merge price.
+  say what converting brings. `mergerPreview` does the same for each merger partner, whose
+  card's Merge button names the merged size and price, the treasury shares the merged
+  company would hold and its stations; a merger owes no stations.
   Trading converted shares names the shares left, their price and who chooses next.
 - **Acquisition round.** The bid control names the companies that would pay and the most
   any of them could pay; the winner chooses its buyer from cards showing their treasuries

@@ -1,8 +1,10 @@
 <script lang="ts">
-    import { finiteCashOwnedBy, getCompany } from '@tabletop/18xx'
+    import { getCompany } from '@tabletop/18xx'
     import { AuctionBidControl, CompanyToken } from '@tabletop/18xx-ui'
     import { EighteenSeventeenLoanRules } from '@tabletop/1817'
+    import { takeLoanAction } from './cardActions.js'
     import CompanyActionCard, { type CardAction } from './CompanyActionCard.svelte'
+    import { companyFinanceFacts } from './roundFacts.js'
     import RoundPanel from './RoundPanel.svelte'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session, companyId }: { session: EighteenSeventeenSession; companyId: string } = $props()
@@ -20,7 +22,7 @@
         acquisition: 'In the acquisition zone',
         liquidation: 'Being liquidated'
     }
-    // The bid staged in the control; it follows the minimum as bids come in.
+    // Derived so that another player's bid lifts it to the new minimum.
     let amount = $derived(sale?.minimum ?? 0)
     const payers = $derived(sale ? sale.payers(amount) : [])
 
@@ -44,15 +46,7 @@
         if (acquisition && valid.includes('FinishAcquisitionLoans'))
             return [
                 ...(valid.includes('TakeLoan')
-                    ? [
-                          {
-                              label: 'Take a loan',
-                              detail: `+${money(EighteenSeventeenLoanRules.value)}`,
-                              ariaLabel: 'Take a loan',
-                              disabled: busy,
-                              onclick: () => session.loans.take(acquisition.buyerId)
-                          }
-                      ]
+                    ? [takeLoanAction(session, acquisition.buyerId, 'Take a loan', busy)]
                     : []),
                 ...(valid.includes('RepayAcquiredLoan')
                     ? [
@@ -124,21 +118,7 @@
                 <CompanyActionCard
                     {session}
                     companyId={buyerId}
-                    facts={[
-                        {
-                            label: 'Treasury',
-                            value: money(
-                                finiteCashOwnedBy(gameState, {
-                                    kind: 'company',
-                                    companyId: buyerId
-                                })
-                            )
-                        },
-                        {
-                            label: 'Loans',
-                            value: `${session.loans.loans(buyerId)}/${session.loans.capacity(buyerId)}`
-                        }
-                    ]}
+                    facts={companyFinanceFacts(gameState, buyerId, money)}
                     actions={[
                         {
                             label: `Buy with ${name(buyerId)}`,

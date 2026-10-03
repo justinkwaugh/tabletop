@@ -71,7 +71,7 @@
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import type { BoundingBox, GameAction } from '@tabletop/common'
-    import type { HistoryDescription } from './historyDescription.js'
+    import type { TitleActionDescription } from './historyDescription.js'
     import History from './History.svelte'
     import TableHeader from './TableHeader.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
@@ -98,11 +98,7 @@
         auctionLotDescription?: (id: string) => string
         numberedShareLocation?: (companyId: string, number: number) => string | undefined
         actions: Snippet<[(locationId: string) => void, (trainId: string) => void]>
-        historyDescription?: (
-            action: GameAction,
-            companyName: (id: string) => string,
-            shared: () => HistoryDescription
-        ) => HistoryDescription | undefined
+        historyDescription?: TitleActionDescription
         privateOperationDescription: (
             privateCompanyId: string,
             companyId: string
@@ -859,13 +855,13 @@
             <span class="game-information-item">
                 <span class="information-label">Interest</span>
                 <span
-                    >{session.loans.rate}%{#if session.loans.nextRate !== session.loans.rate}
-                        <span class="next-rate">→ {session.loans.nextRate}%</span>{/if}</span
+                    >{session.loans.rate}%
+                    <span class="next-rate">next {session.loans.nextRate}%</span></span
                 >
             </span>
             <span class="game-information-item">
-                <span class="information-label">Loans left</span>
-                <span>{session.loans.remaining}</span>
+                <span class="information-label">Loans</span>
+                <span>{session.loans.remaining} left</span>
             </span>
         {/if}
         {#each session.presentation.gameFacts?.(session.gameState) ?? [] as fact (fact.label)}
@@ -1721,14 +1717,13 @@
         align-items: center;
         justify-content: center;
     }
-    .map-area,
-    .market-area {
+    .map-area {
         overflow: hidden;
     }
-    /* The market scales to the space its zone legend leaves. */
     .market-area {
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
     .market-scene {
         position: relative;

@@ -45,14 +45,20 @@
                                     class:selected={selected?.id === lot.id}
                                     aria-label={`Auction ${lot.name}`}
                                     aria-pressed={selected?.id === lot.id}
+                                    title={lot.company.description}
                                     disabled={!auction.canNominate(
                                         lot.id,
                                         model.minimumBid(lot.id)
                                     )}
                                     onclick={() => auction.select(lot.id)}
                                 >
-                                    <span class="slot-name">{lot.name}</span>
-                                    <span class="slot-value">{money(lot.price)}</span>
+                                    <span class="slot-heading"
+                                        ><span class="slot-name">{lot.name}</span>
+                                        <span class="slot-value">{money(lot.price)}</span></span
+                                    >
+                                    {#if tier.open && lot.company.description}<span
+                                            class="power slot-power">{lot.company.description}</span
+                                        >{/if}
                                 </button>
                             {:else}
                                 <span class="slot empty" aria-label="Empty slot"></span>
@@ -199,6 +205,10 @@
     .power.full {
         display: block;
     }
+    .slot-power {
+        font-size: 10px;
+        text-align: center;
+    }
     .pyramid {
         display: flex;
         flex-direction: column;
@@ -224,7 +234,7 @@
         align-items: center;
         justify-content: center;
         gap: 2px;
-        width: 116px;
+        width: 146px;
         min-height: 44px;
         padding: 4px 6px;
         border: 1px solid var(--rail-border, #c7b8a6);
@@ -244,6 +254,12 @@
     .slot.empty {
         border-style: dashed;
         background: transparent;
+    }
+    .slot-heading {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 6px;
     }
     .slot-name {
         font-size: 12px;

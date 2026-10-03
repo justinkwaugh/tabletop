@@ -320,11 +320,15 @@
     }
     type CompanyStatistic = 'value' | 'cash' | 'lastRun' | `column:${string}`
     const titleColumns = $derived(session.presentation.companyColumns ?? [])
-    // The company statistic columns after the owners: value when shown, cash, trains, tokens,
-    // last run, and the title's own.
-    const companyStatisticCount = $derived(
-        (pricePresentation.showInSpreadsheet ? 5 : 4) + titleColumns.length
-    )
+    const companyStatisticHeadings = $derived([
+        ...(pricePresentation.showInSpreadsheet ? ['Value'] : []),
+        'Cash',
+        'Trains',
+        'Tokens',
+        'Last run',
+        ...titleColumns.map((column) => column.label)
+    ])
+    const companyStatisticCount = $derived(companyStatisticHeadings.length)
     let playerSort = $state<SpreadsheetSort<PlayerSortKey>>()
     let companySort = $state<SpreadsheetSort<CompanyStatistic>>()
     const seatedPlayers = $derived(

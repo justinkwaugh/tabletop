@@ -154,7 +154,7 @@ function formationReason(state: CompanyAuctionState, formation: CompanyFormation
     return undefined
 }
 
-// The Loan Shark brings its company $60 when contributed; the Ponzi Scheme closes then.
+// The Loan Shark brings its company cash when contributed; the Ponzi Scheme closes then.
 function form(state: CompanyAuctionState, formation: CompanyFormation): void {
     const company = { kind: 'company' as const, companyId: formation.companyId }
     const player = { kind: 'player' as const, playerId: formation.playerId }

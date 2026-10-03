@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, assertExists } from '@tabletop/common'
 import { placeStockMarker, type BuyTrain, type FormCompany } from '@tabletop/18xx'
-import type { AcquireCompany, CloseCompanySale, PassMerger } from '@tabletop/1817'
+import {
+    InventorId,
+    type AcquireCompany,
+    type CloseCompanySale,
+    type PassMerger
+} from '@tabletop/1817'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenSeventeenScenarios } from '@tabletop/1817/scenarios'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
+import { moneyFormat } from '../../../../libs/18xx-ui/src/lib/presentation/money.js'
 import {
     EighteenSeventeenCompanyColumns,
     eighteenSeventeenCompanyFacts,
@@ -65,7 +71,7 @@ describe('1817’s company presentation', () => {
     })
 })
 
-it('names who the bank paid as a train departed', () => {
+it('names who the bank paid as a train departed, and for which private', () => {
     const play = playExample(EighteenSeventeenScenarios, 'construction', 3)
     const action: BuyTrain = {
         id: 'buy',
@@ -83,19 +89,28 @@ it('names who the bank paid as a train departed', () => {
             definitionId: '3',
             price: 250,
             departurePayments: [
-                { from: { kind: 'bank' }, to: { kind: 'company', companyId: 'PLE' }, amount: 30 }
+                {
+                    from: { kind: 'bank' },
+                    to: { kind: 'company', companyId: 'PLE' },
+                    amount: 30,
+                    privateId: InventorId
+                },
+                { from: { kind: 'bank' }, to: { kind: 'company', companyId: 'BA' }, amount: 10 }
             ]
         }
     }
-    expect(historyDescription(action, play.state).detail).toBe('PLE received $30')
+    expect(historyDescription(action, play.state).detail).toBe(
+        `${InventorId} paid PLE $30 · BA received $10`
+    )
 })
 
 describe('1817’s history', () => {
     const names = {
         companyName: (id: string) => id,
         playerName: (id: string) => id,
-        money: (amount: number) => `$${amount}`
+        bankName: 'Bank'
     }
+    const money = moneyFormat('$')
     const base = { gameId: 'game', source: ActionSource.User, playerId: 'blair' }
     const shared = () => ({ text: 'Formed BA' })
     const parachute = {
@@ -113,12 +128,14 @@ describe('1817’s history', () => {
             shareCount: 2,
             privateIds: ['P12']
         }
-        expect(eighteenSeventeenHistoryDescription(action, names, shared)).toEqual({
+        expect(eighteenSeventeenHistoryDescription(action, names, money, shared)).toEqual({
             text: 'Formed BA',
             detail: 'Loan Shark paid BA $60'
         })
         const withoutShark: FormCompany = { ...action, privateIds: [] }
-        expect(eighteenSeventeenHistoryDescription(withoutShark, names, shared)).toBeUndefined()
+        expect(
+            eighteenSeventeenHistoryDescription(withoutShark, names, money, shared)
+        ).toBeUndefined()
     })
 
     it('names who the Golden Parachute paid when a company is sold or liquidated', () => {
@@ -142,7 +159,9 @@ describe('1817’s history', () => {
                 repayments: []
             }
         }
-        expect(eighteenSeventeenHistoryDescription(acquisition, names, shared)).toMatchObject({
+        expect(
+            eighteenSeventeenHistoryDescription(acquisition, names, money, shared)
+        ).toMatchObject({
             text: 'BA acquired PLE',
             detail: 'Golden Parachute paid alex $40'
         })
@@ -158,7 +177,9 @@ describe('1817’s history', () => {
                 parachute
             }
         }
-        expect(eighteenSeventeenHistoryDescription(liquidation, names, shared)).toMatchObject({
+        expect(
+            eighteenSeventeenHistoryDescription(liquidation, names, money, shared)
+        ).toMatchObject({
             text: 'The bank liquidated PLE',
             detail: 'Golden Parachute paid alex $40'
         })
@@ -166,7 +187,7 @@ describe('1817’s history', () => {
 
     it('marks a passed merger as routine', () => {
         const action: PassMerger = { ...base, id: 'pass', type: 'PassMerger', companyId: 'BA' }
-        expect(eighteenSeventeenHistoryDescription(action, names, shared)).toEqual({
+        expect(eighteenSeventeenHistoryDescription(action, names, money, shared)).toEqual({
             text: 'Passed with BA',
             routine: true
         })

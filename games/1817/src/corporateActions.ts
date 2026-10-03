@@ -106,8 +106,8 @@ function buyBackPrice(
 export type CorporateActionOption = {
     companyId: string
     canBorrow: boolean
-    /** The next market share the company could buy back, and what it would pay. */
-    buyBack?: { certificateId: string; price: number }
+    /** The next market share it could buy back, its price, and how many the market holds. */
+    buyBack?: { certificateId: string; price: number; available: number }
 }
 
 /** The companies the player may act for now and what each may do. */
@@ -122,7 +122,8 @@ export function corporateActionOptions(
             controllingOwner(state, company.id)?.playerId !== playerId
         )
             return []
-        const certificateId = buyBackCertificateIds(state, company.id)[0]
+        const certificateIds = buyBackCertificateIds(state, company.id)
+        const certificateId = certificateIds[0]
         const option: CorporateActionOption = {
             companyId: company.id,
             canBorrow: canTakeCorporateLoan(state, playerId, company.id),
@@ -130,7 +131,8 @@ export function corporateActionOptions(
                 ? {
                       buyBack: {
                           certificateId,
-                          price: buyBackPrice(state, company.id, [certificateId])
+                          price: buyBackPrice(state, company.id, [certificateId]),
+                          available: certificateIds.length
                       }
                   }
                 : {})

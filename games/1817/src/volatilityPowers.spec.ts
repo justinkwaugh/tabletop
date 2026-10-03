@@ -20,6 +20,8 @@ import {
     EighteenSeventeenTrainDepot,
     EighteenSeventeenTrackRules,
     EighteenSeventeenTrainRules,
+    InventorId,
+    ScrapperId,
     recordPrivateLay,
     stationPurchase
 } from './index.js'
@@ -116,7 +118,9 @@ describe('the Inventor and the Scrapper', () => {
             EighteenSeventeenTrainRules.afterTrainsDepart?.(play.state, [
                 { trainId: `t${definitionId}`, definitionId, cause: 'purchase' }
             ])
-        expect(depart('3')).toEqual([{ from: { kind: 'bank' }, to: company('BA'), amount: 30 }])
+        expect(depart('3')).toEqual([
+            { from: { kind: 'bank' }, to: company('BA'), amount: 30, privateId: InventorId }
+        ])
         expect(depart('3')).toEqual([])
         expect(depart('2+')).toEqual([])
     })
@@ -146,7 +150,7 @@ describe('the Inventor and the Scrapper', () => {
                 { trainId: 't', definitionId: '3', cause: 'rust', owner }
             ])
         expect(rust(company('BA'))).toEqual([
-            { from: { kind: 'bank' }, to: company('BA'), amount: 75 }
+            { from: { kind: 'bank' }, to: company('BA'), amount: 75, privateId: ScrapperId }
         ])
         expect(rust(company('PLE'))).toEqual([])
     })
@@ -182,7 +186,12 @@ describe('the Scrapper in play', () => {
         ).length
         passUntil(play, (state) => state.phaseId === '4')
         expect(play.state.phaseEvents.at(-1)?.departurePayments).toEqual(
-            Array(twos).fill({ from: { kind: 'bank' }, to: company('BA'), amount: 30 })
+            Array(twos).fill({
+                from: { kind: 'bank' },
+                to: company('BA'),
+                amount: 30,
+                privateId: ScrapperId
+            })
         )
     })
 })

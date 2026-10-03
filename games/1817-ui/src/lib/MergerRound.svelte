@@ -1,8 +1,9 @@
 <script lang="ts">
     import { companyMarketSpace, getCompany } from '@tabletop/18xx'
+    import { takeLoanAction } from './cardActions.js'
     import CompanyActionCard, { type CardAction } from './CompanyActionCard.svelte'
     import { plural } from './plural.js'
-    import { companyRoundFacts } from './roundFacts.js'
+    import { companyAssetFacts, companyFinanceFacts } from './roundFacts.js'
     import RoundPanel from './RoundPanel.svelte'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session, companyId }: { session: EighteenSeventeenSession; companyId: string } = $props()
@@ -59,35 +60,25 @@
                     onclick: () => session.passConvertedShares()
                 }
             ]
-        if (stations && valid.includes('FinishConversionLoans'))
+        if (stations && valid.includes('FinishConversionLoans')) {
+            const finish = !stations.stations
+                ? 'Finish'
+                : stations.affordable
+                  ? `Buy ${plural(stations.stations, 'station')}`
+                  : 'Finish and liquidate'
             return [
                 ...(valid.includes('TakeLoan')
-                    ? [
-                          {
-                              label: 'Take a loan',
-                              detail: `+${money(100)}`,
-                              ariaLabel: 'Take a loan',
-                              disabled: busy,
-                              onclick: () => session.loans.take(companyId)
-                          }
-                      ]
+                    ? [takeLoanAction(session, companyId, 'Take a loan', busy)]
                     : []),
                 {
-                    label: !stations.stations
-                        ? 'Finish'
-                        : stations.affordable
-                          ? `Buy ${plural(stations.stations, 'station')}`
-                          : 'Finish and liquidate',
+                    label: finish,
                     detail: stations.stations ? money(stations.cost) : undefined,
-                    ariaLabel: !stations.stations
-                        ? 'Finish'
-                        : stations.affordable
-                          ? `Buy ${plural(stations.stations, 'station')}`
-                          : 'Finish and liquidate',
+                    ariaLabel: finish,
                     disabled: busy,
                     onclick: () => session.finishConversionLoans()
                 }
             ]
+        }
         return []
     })
 </script>
@@ -118,14 +109,15 @@
                     {session}
                     companyId={target.companyId}
                     value={money(companyMarketSpace(gameState.stockMarket, target.companyId).price)}
-                    facts={companyRoundFacts(gameState, target.companyId, money).filter(
-                        (fact) => fact.label !== 'Size'
-                    )}
+                    facts={[
+                        ...companyFinanceFacts(gameState, target.companyId, money),
+                        ...companyAssetFacts(gameState, target.companyId)
+                    ]}
                     actions={[
                         {
                             label: 'Merge',
-                            detail: `${decision.mergedSize} shares at ${money(target.price)}`,
-                            ariaLabel: `Merge with ${name(target.companyId)} (${money(target.price)})`,
+                            detail: `${target.preview.shareCount} shares at ${money(target.preview.price)} · ${plural(target.preview.treasuryShares, 'treasury share')} · ${plural(target.preview.stations, 'station')}`,
+                            ariaLabel: `Merge with ${name(target.companyId)} (${money(target.preview.price)})`,
                             disabled: busy,
                             onclick: () => session.mergeCompanies(target.companyId)
                         }

@@ -7,7 +7,7 @@
     import { historyRounds } from './historyRounds.js'
     import type { CompanyNameVariants } from './companyPresentation.js'
     import { historyGroups } from './historyGroups.js'
-    import { historyDescription, type HistoryDescription } from './historyDescription.js'
+    import { historyDescription, type TitleActionDescription } from './historyDescription.js'
     import HistoryGroup from './HistoryGroup.svelte'
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import RoundHistory from './RoundHistory.svelte'
@@ -32,11 +32,7 @@
         tileColors?: Readonly<Record<string, string>>
         tileColorNames?: Readonly<Record<string, string>>
         companyNames?: Readonly<Record<string, CompanyNameVariants>>
-        describeAction?: (
-            action: GameAction,
-            companyName: (id: string) => string,
-            shared: () => HistoryDescription
-        ) => HistoryDescription | undefined
+        describeAction?: TitleActionDescription
     } = $props()
     const money = $derived(session.presentation.money)
     const jumpDisabled = $derived(

@@ -35,11 +35,10 @@ import {
     corporateActionOptions,
     discardableTrains,
     mergeTargetIds,
-    mergerPrice,
+    mergerPreview,
     mergerRoundCompanyId,
     removableStations,
     shortOptions,
-    sizeAfterConversion,
     conversionPreview,
     buyersFor,
     stationPurchase,
@@ -120,11 +119,10 @@ export class EighteenSeventeenSession extends BaseSession {
             conversion: this.validActionTypes.includes('ConvertCompany')
                 ? conversionPreview(state, companyId)
                 : undefined,
-            mergedSize: sizeAfterConversion(state, companyId),
             targets: this.validActionTypes.includes('MergeCompanies')
                 ? mergeTargetIds(state, companyId, round.convertedIds).map((targetId) => ({
                       companyId: targetId,
-                      price: mergerPrice(state, companyId, targetId)
+                      preview: mergerPreview(state, companyId, targetId)
                   }))
                 : []
         }
@@ -137,7 +135,6 @@ export class EighteenSeventeenSession extends BaseSession {
         return {
             price: conversion.price,
             remaining: treasuryShareIds(state, conversion.companyId).length,
-            // The player choosing now comes first.
             traderIds: conversion.traderIds,
             purchase:
                 playerId && this.validActionTypes.includes('BuyConvertedShare')

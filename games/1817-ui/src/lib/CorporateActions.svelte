@@ -1,6 +1,8 @@
 <script lang="ts">
-    import { companyMarketSpace, finiteCashOwnedBy, getCompany } from '@tabletop/18xx'
+    import { companyMarketSpace, getCompany } from '@tabletop/18xx'
+    import { takeLoanAction } from './cardActions.js'
     import CompanyActionCard from './CompanyActionCard.svelte'
+    import { companyFinanceFacts } from './roundFacts.js'
     import StockPanelHeading from './StockPanelHeading.svelte'
     import type { EighteenSeventeenSession } from './session.svelte.js'
     let { session }: { session: EighteenSeventeenSession } = $props()
@@ -23,33 +25,16 @@
                 {session}
                 {companyId}
                 value={money(companyMarketSpace(gameState.stockMarket, companyId).price)}
-                facts={[
-                    {
-                        label: 'Treasury',
-                        value: money(finiteCashOwnedBy(gameState, { kind: 'company', companyId }))
-                    },
-                    {
-                        label: 'Loans',
-                        value: `${session.loans.loans(companyId)}/${session.loans.capacity(companyId)}`
-                    }
-                ]}
+                facts={companyFinanceFacts(gameState, companyId, money)}
                 actions={[
                     ...(canBorrow
-                        ? [
-                              {
-                                  label: 'Take a loan',
-                                  detail: `+${money(100)}`,
-                                  ariaLabel: `Take a loan for ${name}`,
-                                  disabled: busy,
-                                  onclick: () => session.loans.take(companyId)
-                              }
-                          ]
+                        ? [takeLoanAction(session, companyId, `Take a loan for ${name}`, busy)]
                         : []),
                     ...(buyBack
                         ? [
                               {
                                   label: 'Buy back a share',
-                                  detail: money(buyBack.price),
+                                  detail: `${money(buyBack.price)} · ${buyBack.available} in the market`,
                                   ariaLabel: `Buy back a ${name} share for ${money(buyBack.price)}`,
                                   disabled: busy,
                                   onclick: () => session.buyBackShare(companyId)
