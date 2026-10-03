@@ -10,11 +10,10 @@ import {
     reliquarySlotChoices
 } from '../util/powerChoice.js'
 import { becomeCitizenByPower, visionDeposits } from '../util/citizenship.js'
-import { ownWarbandOwner, sitesRuledBy } from '../util/rule.js'
-import { ownerIfAny } from '../util/warbands.js'
+import { sitesRuledBy } from '../util/rule.js'
 import { giveBanner } from '../util/seize.js'
 import { registerEffect, registerModifier, type EffectContext, chosen } from './registry.js'
-import { gainWarbandsToBoard, pawnSiteId, regionOfPawn } from './vocabulary.js'
+import { gainWarbandsWithOwner, pawnSiteId, regionOfPawn } from './vocabulary.js'
 import { takeRelics, takeNotes, clearSiteRelicSlot, clearReliquarySlot } from '../util/relics.js'
 import { otherRegionChoices } from './choiceDomains.js'
 import { askQuestion } from '../util/questions.js'
@@ -66,11 +65,11 @@ registerEffect(
             const [slot] = chosen(ctx, PowerChoiceKind.RelicSlot)
             const here = pawnSiteId(ctx.state, ctx.playerId)
             clearSiteRelicSlot(ctx.state, here, slot.slotId)
-            const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 3)
+            const { owner, gained } = gainWarbandsWithOwner(ctx.state, ctx.playerId, 3)
             return {
                 summary: `Relic Breaker: the relic went to the bottom of the relic deck; gained ${gained} warbands`,
                 relicSlotToBottom: slot.slotId,
-                warbandOwner: ownerIfAny(gained, ownWarbandOwner(ctx.state, ctx.playerId))
+                warbandOwner: owner
             }
         }
     }

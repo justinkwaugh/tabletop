@@ -241,13 +241,21 @@ export function gainWarbandsToBoard(
     playerId: string,
     count: number
 ): number {
+    return gainWarbandsWithOwner(state, playerId, count).gained
+}
+
+export function gainWarbandsWithOwner(
+    state: HydratedOathGameState,
+    playerId: string,
+    count: number
+): { owner?: WarbandOwner; gained: number } {
     const player = state.getPlayerState(playerId)
     const own = ownWarbandOwner(state, playerId)
     const available = countOf(player.warbandsInPersonalBank, own)
     const gained = Math.max(0, Math.min(count, available))
     player.warbandsInPersonalBank[own] = available - gained
     addWarbandsToBoard(state, playerId, own, gained)
-    return gained
+    return { owner: gained > 0 ? own : undefined, gained }
 }
 
 /** R-5.5.6 — every survivor goes to its board, so only owners and boards tell the losses apart. */
