@@ -51,6 +51,26 @@
                             flood-opacity="0.45"
                         ></feDropShadow>
                     </filter>
+                    <filter id="mg-piece-outline" x="-60%" y="-60%" width="220%" height="220%">
+                        <feMorphology
+                            in="SourceAlpha"
+                            operator="dilate"
+                            radius="0.6"
+                            result="spread"
+                        ></feMorphology>
+                        <feFlood flood-color="#1a1208"></feFlood>
+                        <feComposite in2="spread" operator="in" result="outline"></feComposite>
+                        <feGaussianBlur in="spread" stdDeviation="1.2" result="blur"
+                        ></feGaussianBlur>
+                        <feOffset in="blur" dx="1.4" dy="1.8" result="offset"></feOffset>
+                        <feFlood flood-color="#1a1208" flood-opacity="0.45"></feFlood>
+                        <feComposite in2="offset" operator="in" result="shadow"></feComposite>
+                        <feMerge>
+                            <feMergeNode in="shadow"></feMergeNode>
+                            <feMergeNode in="outline"></feMergeNode>
+                            <feMergeNode in="SourceGraphic"></feMergeNode>
+                        </feMerge>
+                    </filter>
                 </defs>
                 <SeaLayer />
                 <TerrainLayer />

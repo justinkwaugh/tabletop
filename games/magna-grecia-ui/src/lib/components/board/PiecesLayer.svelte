@@ -2,8 +2,8 @@
     import { spaceKey } from '@tabletop/magna-grecia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexCenter } from '$lib/utils/boardGeometry.js'
-    import { connectionBadges, marketViews, oracleViews } from '$lib/utils/boardView.js'
-    import CityTileArt from './CityTileArt.svelte'
+    import { cityViews, connectionBadges, marketViews, oracleViews } from '$lib/utils/boardView.js'
+    import CityArt from './CityArt.svelte'
     import MarketPiece from './MarketPiece.svelte'
     import OracleArt from './OracleArt.svelte'
     import RoadTileArt from './RoadTileArt.svelte'
@@ -19,16 +19,7 @@
             road
         }))
     )
-    const cityTiles = $derived(
-        board.cities.flatMap((city) =>
-            city.spaces.map((coords, index) => ({
-                key: spaceKey(coords),
-                center: hexCenter(coords),
-                playerId: city.playerId,
-                founding: index === 0
-            }))
-        )
-    )
+    const cities = $derived(cityViews(board))
     const oracles = $derived(oracleViews(board, network))
     const markets = $derived(marketViews(board, network))
     const badges = $derived(connectionBadges(board, network))
@@ -47,10 +38,8 @@
 </g>
 
 <g class="cities" filter="url(#mg-tile-shadow)">
-    {#each cityTiles as { key, center, playerId, founding } (key)}
-        <g transform="translate({center.x} {center.y})">
-            <CityTileArt color={playerColor(playerId)} {founding} />
-        </g>
+    {#each cities as city (city.key)}
+        <CityArt color={playerColor(city.playerId)} layout={city.layout} />
     {/each}
 </g>
 

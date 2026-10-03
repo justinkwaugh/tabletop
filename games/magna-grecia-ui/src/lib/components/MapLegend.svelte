@@ -2,8 +2,9 @@
     import { PointyHexDirection } from '@tabletop/common'
     import type { RoadEnds } from '@tabletop/magna-grecia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { localHexPoints } from '$lib/utils/boardGeometry.js'
-    import CityTileArt from './board/CityTileArt.svelte'
+    import { hexCenter, localHexPoints } from '$lib/utils/boardGeometry.js'
+    import { cityLayout } from '$lib/utils/cityLayout.js'
+    import CityArt from './board/CityArt.svelte'
     import MarketPiece from './board/MarketPiece.svelte'
     import OracleArt from './board/OracleArt.svelte'
     import RoadTileArt from './board/RoadTileArt.svelte'
@@ -11,9 +12,12 @@
 
     const NEUTRAL_COLOR = '#c0673f'
     const HEX_VIEW = '-48 -53 96 106'
-    const MARKET_VIEW = '-20 -21 42 42'
+    const MARKET_VIEW = '-15 -14 31 31'
     const LEGEND_ROAD: RoadEnds = [PointyHexDirection.West, PointyHexDirection.East]
     const hexShape = localHexPoints()
+    const LEGEND_CITY_SPACE = { q: 0, r: 0 }
+    const legendCity = cityLayout([LEGEND_CITY_SPACE], LEGEND_CITY_SPACE)
+    const legendCityOffset = hexCenter(LEGEND_CITY_SPACE)
 
     const gameSession = getGameSession()
     const color = $derived(
@@ -66,7 +70,9 @@
         </li>
         <li>
             <svg viewBox={HEX_VIEW} aria-hidden="true">
-                <CityTileArt {color} founding />
+                <g transform="translate({-legendCityOffset.x} {-legendCityOffset.y})">
+                    <CityArt {color} layout={legendCity} />
+                </g>
             </svg>
             <span>City</span>
         </li>

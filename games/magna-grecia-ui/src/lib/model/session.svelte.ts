@@ -19,6 +19,7 @@ import {
     marketValue,
     spaceKey,
     type Allowance,
+    type CityPlacementPlan,
     type HydratedMagnaGreciaGameState,
     type MagnaGreciaProjectedState,
     type Place,
@@ -59,7 +60,7 @@ export type MarketTarget = { place: Place; amount: number }
 export type SellTarget = { coords: AxialCoordinates; amount: number }
 export type CityTarget = {
     coords: AxialCoordinates
-    founds: boolean
+    joinsCityId?: string
     startsClaim: boolean
     startsFounding: boolean
 }
@@ -95,6 +96,17 @@ export class MagnaGreciaGameSession extends GameSession<
     pendingFounding = $derived(this.pendingCity?.kind === PendingCityKind.Founding)
 
     cityUnfinished = $derived(this.pendingCity !== undefined)
+
+    private joinedCityId(plan: CityPlacementPlan): string | undefined {
+        switch (plan.kind) {
+            case CityPlacementKind.Expand:
+                return plan.cityIds[0]
+            case CityPlacementKind.CompleteClaim:
+                return plan.cityId
+            case CityPlacementKind.Found:
+                return undefined
+        }
+    }
 
     private canTarget(actionType: ActionType): string | undefined {
         const playerId = this.myPlayerId
@@ -164,8 +176,14 @@ export class MagnaGreciaGameSession extends GameSession<
             }
             const startsClaim = plan.kind !== CityPlacementKind.CompleteClaim && !!plan.claimVillage
             const startsFounding = plan.kind === CityPlacementKind.Found && !!plan.awaitsVillage
-            const founds = plan.kind === CityPlacementKind.Found
-            return [{ coords: space.coords, founds, startsClaim, startsFounding }]
+            return [
+                {
+                    coords: space.coords,
+                    joinsCityId: this.joinedCityId(plan),
+                    startsClaim,
+                    startsFounding
+                }
+            ]
         })
     })
 
