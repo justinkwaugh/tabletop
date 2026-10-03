@@ -83,6 +83,7 @@
     const plinthShape = localHexPoints(1.5)
     const trimShape = localHexPoints(6)
     const ROAD_EDGE = '#2a1a0a'
+    const TEMPLE_INK = '#3a2c1c'
     const COLUMNS = [-10.5, -3.5, 3.5, 10.5]
     const uid = $props.id()
 
@@ -143,8 +144,15 @@
         <circle r="25" fill="none" stroke={ROAD_EDGE} stroke-width="1.3"></circle>
     </g>
     <!-- A round temple (tholos) in the city temple's manner: tints, no ink. -->
-    <g transform="translate(0 2) scale(0.88)">
-        <ellipse cx="1" cy="13" rx="18" ry="3.6" fill={tone('marble:dark:0.11')}></ellipse>
+    <!-- A fine ink line around each part keeps the temple crisp on every colour, yellow too. -->
+    <g
+        transform="translate(0 2) scale(0.88)"
+        stroke={TEMPLE_INK}
+        stroke-width="0.8"
+        stroke-linejoin="round"
+    >
+        <ellipse cx="1" cy="13" rx="18" ry="3.6" fill={tone('marble:dark:0.11')} stroke="none"
+        ></ellipse>
         <rect
             x="-17"
             y="9.5"
@@ -166,7 +174,13 @@
         {#each COLUMNS as x (x)}
             <rect x={x - 1.4} y="-6.4" width="2.8" height="13.4" fill={tone('temple:light:0.62')}
             ></rect>
-            <rect x={x + 0.4} y="-6.4" width="1" height="13.4" fill={tone('temple:light:0.45')}
+            <rect
+                x={x + 0.4}
+                y="-6.4"
+                width="1"
+                height="13.4"
+                fill={tone('temple:light:0.45')}
+                stroke="none"
             ></rect>
         {/each}
         <rect x="-14" y="-9.8" width="28" height="3.6" fill={tone('temple:light:0.58')}></rect>
@@ -179,6 +193,7 @@
             d="M -9.5 -10.8 Q -8.5 -18.6 0 -19.8 Q 8.5 -18.6 9.5 -10.8 Z"
             data-tone="roof:light:0.5"
             fill={tone('roof:light:0.5')}
+            stroke="none"
         ></path>
         <circle cx="0" cy="-24.3" r="1.6" data-tone="roof:light:0.5" fill={tone('roof:light:0.5')}
         ></circle>
