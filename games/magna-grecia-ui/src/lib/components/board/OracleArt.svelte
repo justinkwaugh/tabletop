@@ -3,14 +3,16 @@
     import { mixColor } from '$lib/utils/colorMix.js'
 
     // The precinct and temple are marble; the favoured player's colour is on the temple's dome and
-    // steps and on the teardrop's tail, which runs out from the precinct to the road.
+    // steps, on the precinct's inner shadow, and on the teardrop's tail, which runs out from the
+    // precinct to the road.
     const MARBLE = '#fbf8f1'
     const MARBLE_TEMPLE = '#8a7f68'
     const LIGHT = '#fffaf0'
     const DARK = '#1d1a17'
 
     // The base colour of the temple's dome and steps and how deep it is laid on (1 when favoured: a
-    // strong player colour, 0 when not: the marble temple's own tints), and the tail's colour.
+    // strong player colour, 0 when not: the marble temple's own tints), and the colour of the tail
+    // and the precinct's inner shadow.
     export type OracleLook = { roof: string; depth: number; tail: string }
 
     export function oracleLook(attentionColor?: string): OracleLook {
@@ -137,7 +139,9 @@
         <circle
             r="25"
             fill="none"
-            stroke={tone('marble:dark:0.22')}
+            data-tone="tail:dark:0.22"
+            data-tone-attr="stroke"
+            stroke={tone('tail:dark:0.22')}
             stroke-width="8"
             clip-path="url(#mg-oracle-round-{uid})"
         ></circle>
@@ -195,7 +199,5 @@
             fill={tone('roof:light:0.5')}
             stroke="none"
         ></path>
-        <circle cx="0" cy="-24.3" r="1.6" data-tone="roof:light:0.5" fill={tone('roof:light:0.5')}
-        ></circle>
     </g>
 </g>
