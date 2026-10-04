@@ -249,12 +249,17 @@
                 return 'Tied'
             case GameResult.Abandoned:
                 return 'Abandoned'
+            case GameResult.Loss:
+                return 'Lost'
             default:
                 return 'Winner'
         }
     }
 
     function gameResultPlayerText() {
+        if (game.result === GameResult.Loss) {
+            return 'Everyone'
+        }
         if (game.winningPlayerIds.includes(myPlayer?.id ?? '')) {
             return `You${game.winningPlayerIds.length > 1 ? ' and others' : ''}`
         }

@@ -70,6 +70,23 @@ describe('split win points', () => {
     )
 })
 
+describe('lost games', () => {
+    it('count as completed for every player and award no points', () => {
+        const tournament = miniTournament()
+        const standings = createTournamentStandings(tournament)
+        const game = tableGame(tournament, GameResult.Loss, [])
+        expect(() =>
+            applyTournamentGameScore(tournament, standings, { ...game, winningPlayerIds: ['a'] })
+        ).toThrow('cannot declare winners')
+        applyTournamentGameScore(tournament, standings, game)
+        expect(standings).toEqual(
+            createTournamentStandings(tournament).map((row) => ({ ...row, completed: 1 }))
+        )
+        applyTournamentGameScore(tournament, standings, game, -1)
+        expect(standings).toEqual(createTournamentStandings(tournament))
+    })
+})
+
 describe('tiebreak totals', () => {
     it('totals final scores for every player and reverses them exactly', () => {
         const tournament = miniTournament()

@@ -50,5 +50,9 @@
   {
     "gameId": "magna-grecia",
     "packageId": "magna-grecia"
+  },
+  {
+    "gameId": "stellar-horizons-2",
+    "packageId": "stellar-horizons-2"
   }
 ]

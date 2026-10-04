@@ -39,6 +39,10 @@ export const GameEnd = ({ result, title, gameName, winners, url = `` }: GameEndP
         previewText = `Your ${title} game ${gameName} was abandoned.`
         resultLabel = 'Abandoned'
         resultColor = 'text-[#6b7280]'
+    } else if (result === GameResult.Loss) {
+        previewText = `Your ${title} game ${gameName} has ended without a winner.`
+        resultLabel = 'Nobody won'
+        resultColor = 'text-[#b91c1c]'
     } else {
         previewText = `Your ${title} game ${gameName} has ended.`
         resultLabel = `${winnerNames} won!`
