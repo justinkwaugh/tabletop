@@ -10,8 +10,11 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedMarracashGameState } from '../model/gameState.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { HydratedResolveAuction, isResolveAuction } from '../actions/resolveAuction.js'
-import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
-import { MaxShopsPerPlayer } from '../components/payments.js'
+import {
+    HydratedCompleteAntiqueSet,
+    isCompleteAntiqueSet,
+    isNextAntiqueSetCompletion
+} from '../actions/completeAntiqueSet.js'
 import { queueAntiqueSetCompletions, queueAuctionResolution } from '../util/automaticActions.js'
 import { stateAfterTurnAction } from '../util/turns.js'
 
@@ -33,12 +36,9 @@ export class BiddingStateHandler implements MachineStateHandler<
             )
         }
         if (isCompleteAntiqueSet(action)) {
-            return (
-                action.source === ActionSource.System &&
-                context.gameState.isNextAntiqueSet(action.collectorId)
-            )
+            return isNextAntiqueSetCompletion(action, context.gameState)
         }
-        return isResolveAuction(action) && context.gameState.auction?.winnerId !== undefined
+        return isResolveAuction(action) && context.gameState.auction?.bidding.winnerId !== undefined
     }
 
     validActionsForPlayer(
@@ -53,11 +53,8 @@ export class BiddingStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedMarracashGameState>) {
         const gameState = context.gameState
-        const auction = gameState.auction
-        assertExists(auction, 'Bidding requires an auction')
-        gameState.activePlayerIds = auction.participants
-            .filter((participant) => !participant.submitted)
-            .map((participant) => participant.playerId)
+        assertExists(gameState.auction, 'Bidding requires an auction')
+        gameState.activePlayerIds = gameState.auction.awaitingBidderIds()
     }
 
     onAction(
@@ -67,7 +64,7 @@ export class BiddingStateHandler implements MachineStateHandler<
         const gameState = context.gameState
         switch (true) {
             case isPlaceBid(action): {
-                if (gameState.auction?.allBidsSubmitted()) {
+                if (gameState.auction?.bidding.allBidsSubmitted()) {
                     queueAuctionResolution(context)
                 }
                 return MachineState.Bidding
@@ -89,13 +86,10 @@ export class BiddingStateHandler implements MachineStateHandler<
     }
 
     private isAwaitingBid(gameState: HydratedMarracashGameState, playerId: string): boolean {
-        const participant = gameState.auction?.participants.find(
-            (candidate) => candidate.playerId === playerId
-        )
-        return participant !== undefined && !participant.submitted
+        return gameState.auction?.awaitingBidderIds().includes(playerId) ?? false
     }
 
     private canBid(gameState: HydratedMarracashGameState, playerId: string): boolean {
-        return gameState.ownedShopCount(playerId) < MaxShopsPerPlayer
+        return !gameState.isAtShopLimit(playerId)
     }
 }

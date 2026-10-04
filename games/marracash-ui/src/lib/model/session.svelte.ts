@@ -88,21 +88,12 @@ export class MarracashGameSession extends GameSession<
 
     private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)
 
-    readonly canMove = $derived(
-        this.canAct && this.validActionTypes.includes(ActionType.MoveVisitors)
-    )
-    readonly canAuction = $derived(
-        this.canAct && this.validActionTypes.includes(ActionType.StartAuction)
-    )
-    readonly canBid = $derived(this.canAct && this.validActionTypes.includes(ActionType.PlaceBid))
-    readonly canRefill = $derived(
-        this.canAct && this.validActionTypes.includes(ActionType.BringVisitors)
-    )
-    readonly canConfirm = $derived(
-        this.canAct && this.validActionTypes.includes(ActionType.ConfirmTurn)
-    )
-    // Local choices wait while the session is busy: a choice staged mid-transition would be
-    // cleared as the new state publishes.
+    readonly canMove = $derived(this.canTake(ActionType.MoveVisitors))
+    readonly canAuction = $derived(this.canTake(ActionType.StartAuction))
+    readonly canBid = $derived(this.canTake(ActionType.PlaceBid))
+    readonly canRefill = $derived(this.canTake(ActionType.BringVisitors))
+    readonly canConfirm = $derived(this.canTake(ActionType.ConfirmTurn))
+    // A choice staged mid-transition would be cleared as the new state publishes.
     private readonly canChooseMove = $derived(this.canMove && !this.busy)
     private readonly canChooseShop = $derived(this.canAuction && !this.busy)
     readonly canChooseRefill = $derived(this.canRefill && !this.busy)
@@ -129,12 +120,7 @@ export class MarracashGameSession extends GameSession<
             : []
     )
 
-    // The round in which the queue runs out is the last; it ends with the last seat's turn
-    readonly finalTurnPlayerId: string | undefined = $derived(
-        this.gameState.finalRound && this.gameState.result === undefined
-            ? this.gameState.turnManager.turnOrder.at(-1)
-            : undefined
-    )
+    readonly finalTurnPlayerId: string | undefined = $derived(this.gameState.finalTurnPlayerId())
 
     // A staged auction is a fresh decision, so the previous step's payments stay out of its way
     readonly showsMoneyReport = $derived(
@@ -201,11 +187,7 @@ export class MarracashGameSession extends GameSession<
         this.canChooseRefill ? this.gameState.emptyEntranceIds() : []
     )
 
-    showQueueTooShort = $derived.by<boolean>(() => {
-        void this.updatingVisibleState
-        void this.canRefill
-        return false
-    })
+    showQueueTooShort = $state(false)
     private queueWarningTimer: ReturnType<typeof setTimeout> | undefined
 
     readonly fillableEntranceIds: FountainId[] = $derived(
@@ -220,11 +202,12 @@ export class MarracashGameSession extends GameSession<
     }
 
     visibleMoney(playerId: string): number | undefined {
-        const concealed =
-            this.primaryGame.config?.concealedCash === true &&
-            playerId !== this.myPlayer?.id &&
-            this.gameState.result === undefined
-        return concealed ? undefined : this.gameState.getPlayerState(playerId).money
+        const visible = this.gameState.isMoneyVisibleTo(
+            this.myPlayer?.id,
+            playerId,
+            this.primaryGame.config
+        )
+        return visible ? this.gameState.getPlayerState(playerId).money : undefined
     }
 
     myMinimumBid(): number {
@@ -275,6 +258,7 @@ export class MarracashGameSession extends GameSession<
 
     resetAction() {
         this.selection = {}
+        this.hideQueueTooShort()
     }
 
     selectFountain(fountainId: FountainId | undefined) {
@@ -338,7 +322,7 @@ export class MarracashGameSession extends GameSession<
         await this.applyAction(
             this.createPlayerAction(PlaceBid, {
                 amount,
-                simultaneousGroupId: this.gameState.auction?.id
+                simultaneousGroupId: this.gameState.auction?.bidding.id
             })
         )
     }
@@ -359,6 +343,10 @@ export class MarracashGameSession extends GameSession<
         assertExists(end, 'Bringing visitors requires a chosen queue end')
         assertExists(count, 'Bringing visitors requires a chosen visitor count')
         await this.applyAction(this.createPlayerAction(BringVisitors, { end, count, entranceId }))
+    }
+
+    private canTake(type: ActionType): boolean {
+        return this.canAct && this.validActionTypes.includes(type)
     }
 
     private setSelection<TStage extends keyof MarracashSelectionValues>(

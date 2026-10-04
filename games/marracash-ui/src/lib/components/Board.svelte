@@ -39,7 +39,7 @@
     onDestroy(() => visitorMoveAnimator.unregister())
 
     let spotlightShopId = $derived(
-        gameSession.gameState.auctionShopId ?? gameSession.selectedShopId
+        gameSession.gameState.auction?.shopId ?? gameSession.selectedShopId
     )
     let spotlightShop = $derived(
         gameSession.visibleShops.find((shop) => shop.shopId === spotlightShopId)

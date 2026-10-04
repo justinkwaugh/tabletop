@@ -137,7 +137,7 @@ export function playToEnd(session: TestSession): MarracashProjectedState {
                 const auction = state.auction
                 if (!auction) throw Error('Expected an auction')
                 for (const bidder of [...state.activePlayerIds]) {
-                    session.bid(bidder, bidder === auction.auctioneerId ? 100 : 0)
+                    session.bid(bidder, bidder === auction.bidding.auctioneerId ? 100 : 0)
                 }
                 break
             }

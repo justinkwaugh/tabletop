@@ -92,16 +92,7 @@ export class VisitorMoveAnimator {
             result.entries.map((entry) => [entry.shopId, from.getShopState(entry.shopId).customers])
         )
 
-        // Crowd spots sit at different distances from the walkway, so departures are
-        // offset for the pawns to reach its first cell exactly one spacing apart.
-        const firstLegs = plans.map((plan) => distance(plan.points[0], plan.points[1]))
-        const longestFirstLeg = Math.max(...firstLegs)
-        // Departures never overtake one another, so each waits at least as long as the last.
-        const departures: number[] = []
-        plans.forEach((_, order) => {
-            const offset = longestFirstLeg - firstLegs[order] + order * WalkSpacing
-            departures.push(Math.max(departures.at(-1) ?? 0, offset))
-        })
+        const departures = evenlySpacedDepartures(plans)
         const lineLengths = plans.map((plan, order) => departures[order] + this.pathLength(plan))
         const speed = Math.max(
             WalkPixelsPerSecond,
@@ -157,8 +148,7 @@ export class VisitorMoveAnimator {
         })
     }
 
-    // Pawns leave from the back of the crowd, so the remaining crowd is always the
-    // front of the origin's visitor list.
+    // Pawns leave from the back, so the crowd left behind is the front of the visitor list.
     private walkPlans(
         actionId: string,
         route: Route,
@@ -334,6 +324,19 @@ export class VisitorMoveAnimator {
     private showShop(shopId: ShopId, customers: number) {
         this.gameSession.shopCustomerOverrides[shopId] = customers
     }
+}
+
+// Crowd spots sit at different distances from the walkway, so pawns set off at staggered
+// offsets to reach it one spacing apart.
+function evenlySpacedDepartures(plans: readonly WalkPlan[]): number[] {
+    const firstLegs = plans.map((plan) => distance(plan.points[0], plan.points[1]))
+    const longestFirstLeg = Math.max(...firstLegs)
+    const departures: number[] = []
+    firstLegs.forEach((firstLeg, order) => {
+        const offset = longestFirstLeg - firstLeg + order * WalkSpacing
+        departures.push(Math.max(departures.at(-1) ?? 0, offset))
+    })
+    return departures
 }
 
 export function animateWalker(

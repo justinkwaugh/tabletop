@@ -9,7 +9,11 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedMarracashGameState } from '../model/gameState.js'
 import { HydratedStartAuction, isStartAuction } from '../actions/startAuction.js'
 import { HydratedMoveVisitors, isMoveVisitors } from '../actions/moveVisitors.js'
-import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
+import {
+    HydratedCompleteAntiqueSet,
+    isCompleteAntiqueSet,
+    isNextAntiqueSetCompletion
+} from '../actions/completeAntiqueSet.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import {
     queueAntiqueSetCompletions,
@@ -19,10 +23,7 @@ import {
 import { finishTurn, stateAfterTurnAction } from '../util/turns.js'
 
 type ChoosingActionAction =
-    | HydratedStartAuction
-    | HydratedMoveVisitors
-    | HydratedCompleteAntiqueSet
-    | HydratedEndTurn
+    HydratedStartAuction | HydratedMoveVisitors | HydratedCompleteAntiqueSet | HydratedEndTurn
 
 export class ChoosingActionStateHandler implements MachineStateHandler<
     ChoosingActionAction,
@@ -36,10 +37,7 @@ export class ChoosingActionStateHandler implements MachineStateHandler<
             return action.source === ActionSource.System
         }
         if (isCompleteAntiqueSet(action)) {
-            return (
-                action.source === ActionSource.System &&
-                context.gameState.isNextAntiqueSet(action.collectorId)
-            )
+            return isNextAntiqueSetCompletion(action, context.gameState)
         }
         const gameState = context.gameState
         if (isStartAuction(action)) {

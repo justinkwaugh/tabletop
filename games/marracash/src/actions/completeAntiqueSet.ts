@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction } from '@tabletop/common'
+import { ActionSource, GameAction, HydratableAction } from '@tabletop/common'
 import { AntiqueSetResult, HydratedMarracashGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
@@ -21,6 +21,13 @@ export const CompleteAntiqueSetValidator = Compile(CompleteAntiqueSet)
 
 export function isCompleteAntiqueSet(action?: GameAction): action is CompleteAntiqueSet {
     return action?.type === ActionType.CompleteAntiqueSet
+}
+
+export function isNextAntiqueSetCompletion(
+    action: CompleteAntiqueSet,
+    state: HydratedMarracashGameState
+): boolean {
+    return action.source === ActionSource.System && state.isNextAntiqueSet(action.collectorId)
 }
 
 export class HydratedCompleteAntiqueSet

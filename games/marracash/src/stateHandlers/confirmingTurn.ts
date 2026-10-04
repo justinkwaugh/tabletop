@@ -8,7 +8,11 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedMarracashGameState } from '../model/gameState.js'
 import { HydratedConfirmTurn, isConfirmTurn } from '../actions/confirmTurn.js'
-import { HydratedCompleteAntiqueSet, isCompleteAntiqueSet } from '../actions/completeAntiqueSet.js'
+import {
+    HydratedCompleteAntiqueSet,
+    isCompleteAntiqueSet,
+    isNextAntiqueSetCompletion
+} from '../actions/completeAntiqueSet.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { queueTurnCommit } from '../util/automaticActions.js'
 import { activateTurnPlayer, finishTurn } from '../util/turns.js'
@@ -28,10 +32,7 @@ export class ConfirmingTurnStateHandler implements MachineStateHandler<
             return gameState.activePlayerIds.includes(action.playerId)
         }
         if (isCompleteAntiqueSet(action)) {
-            return (
-                action.source === ActionSource.System &&
-                gameState.isNextAntiqueSet(action.collectorId)
-            )
+            return isNextAntiqueSetCompletion(action, gameState)
         }
         return isEndTurn(action) && action.source === ActionSource.System
     }

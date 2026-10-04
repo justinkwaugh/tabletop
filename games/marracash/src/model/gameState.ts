@@ -9,12 +9,12 @@ import {
     HydratedSimultaneousAuction,
     HydratedTurnManager,
     PrngState,
-    SimultaneousAuction,
     TieResolutionStrategy,
     Visibility
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
+import type { MarracashGameConfig } from '../definition/config.js'
 import { MachineState } from '../definition/states.js'
 import { emptyColorCounts, MarketColor } from '../definition/marketColor.js'
 import {
@@ -45,6 +45,7 @@ import {
     MinimumAuctionBid,
     moverCut
 } from '../components/payments.js'
+import { HydratedShopAuction, ShopAuction } from '../components/shopAuction.js'
 import { isValidVisitorCount, QueueEnd } from '../components/visitors.js'
 import { HydratedMarracashPlayerState, MarracashPlayerState } from './playerState.js'
 
@@ -140,8 +141,7 @@ export const MarracashGameState = Type.Evaluate(
             antiqueDeck: AntiqueDeck,
             round: Type.Number(),
             turnActions: Type.Array(Type.Enum(TurnAction)),
-            auction: Type.Optional(SimultaneousAuction),
-            auctionShopId: Type.Optional(Type.Enum(ShopIds)),
+            auction: Type.Optional(ShopAuction),
             finalRound: Type.Boolean(),
             pendingAntiqueSets: Visibility.protect(Type.Array(Type.String()), {
                 policy: Visibility.Policy.HostOnly,
@@ -180,8 +180,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
     declare antiqueDeck: HydratedAntiqueDeck
     declare round: number
     declare turnActions: TurnAction[]
-    declare auction?: HydratedSimultaneousAuction
-    declare auctionShopId?: ShopId
+    declare auction?: HydratedShopAuction
     declare finalRound: boolean
     declare pendingAntiqueSets: string[]
     declare antiqueRevealOrder: string[]
@@ -192,7 +191,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
         this.players = data.players.map((player) => new HydratedMarracashPlayerState(player))
         this.antiqueDeck = new HydratedAntiqueDeck(data.antiqueDeck)
         if (data.auction) {
-            this.auction = new HydratedSimultaneousAuction(data.auction)
+            this.auction = new HydratedShopAuction(data.auction)
         }
     }
 
@@ -212,6 +211,10 @@ export class HydratedMarracashGameState extends HydratableGameState<
         return this.shops.filter((shop) => shop.ownerId === playerId).length
     }
 
+    isAtShopLimit(playerId: string): boolean {
+        return this.ownedShopCount(playerId) >= MaxShopsPerPlayer
+    }
+
     hasUnownedShop(): boolean {
         return this.shops.some((shop) => shop.ownerId === undefined)
     }
@@ -226,13 +229,13 @@ export class HydratedMarracashGameState extends HydratableGameState<
         return (
             this.canTakeTurnAction() &&
             this.hasUnownedShop() &&
-            this.ownedShopCount(playerId) < MaxShopsPerPlayer &&
+            !this.isAtShopLimit(playerId) &&
             this.getPlayerState(playerId).getMoney() >= MinimumAuctionBid
         )
     }
 
     minimumBid(playerId: string): number {
-        return playerId === this.auction?.auctioneerId ? MinimumAuctionBid : 0
+        return playerId === this.auction?.bidding.auctioneerId ? MinimumAuctionBid : 0
     }
 
     hasVisitorsToMove(): boolean {
@@ -307,7 +310,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
 
         collector.revealedAntiques = cards
         collector.antiques = []
-        collector.money = collector.getMoney() + payout
+        collector.adjustMoney(payout)
         this.pendingAntiqueSets.shift()
         this.antiqueRevealOrder.push(collectorId)
         return { cards, rank, payout }
@@ -322,44 +325,39 @@ export class HydratedMarracashGameState extends HydratableGameState<
             ...order.slice(0, auctioneerIndex)
         ]
 
-        this.auction = new HydratedSimultaneousAuction({
-            id: auctionId,
-            type: AuctionType.Simultaneous,
-            participants: clockwiseFromAuctioneer.map((playerId) => ({
-                playerId,
-                passed: false,
-                submitted: false
-            })),
-            auctioneerId,
-            tie: false,
-            tieResolution: TieResolutionStrategy.FirstInOrder
+        this.auction = new HydratedShopAuction({
+            shopId,
+            bidding: new HydratedSimultaneousAuction({
+                id: auctionId,
+                type: AuctionType.Simultaneous,
+                participants: clockwiseFromAuctioneer.map((playerId) => ({
+                    playerId,
+                    passed: false,
+                    submitted: false
+                })),
+                auctioneerId,
+                tie: false,
+                tieResolution: TieResolutionStrategy.FirstInOrder
+            })
         })
-        this.auctionShopId = shopId
         this.turnActions.push(TurnAction.Auction)
     }
 
     resolveAuction(): AuctionResult {
-        const auction = this.auction
-        const shopId = this.auctionShopId
-        assertExists(auction, 'No auction to resolve')
-        assertExists(shopId, 'No shop is being auctioned')
+        assertExists(this.auction, 'No auction to resolve')
+        const { shopId, bidding: auction } = this.auction
         assertExists(auction.winnerId, 'The auction has no winner yet')
         assertExists(auction.highBid, 'The auction has no winning bid')
         assertExists(auction.auctioneerId, 'The auction has no auctioneer')
 
-        const winner = this.getPlayerState(auction.winnerId)
-        winner.money = winner.getMoney() - auction.highBid
+        this.getPlayerState(auction.winnerId).adjustMoney(-auction.highBid)
         const cut = auction.winnerId === auction.auctioneerId ? 0 : auctioneerCut(auction.highBid)
-        if (cut > 0) {
-            const auctioneer = this.getPlayerState(auction.auctioneerId)
-            auctioneer.money = auctioneer.getMoney() + cut
-        }
+        this.getPlayerState(auction.auctioneerId).adjustMoney(cut)
 
         this.getShopState(shopId).ownerId = auction.winnerId
         const pullIns = this.pullInCustomers(shopId)
 
         this.auction = undefined
-        this.auctionShopId = undefined
 
         return {
             shopId,
@@ -425,6 +423,31 @@ export class HydratedMarracashGameState extends HydratableGameState<
         return { gameOver: this.finalRound && roundComplete }
     }
 
+    // The round in which the queue runs out is the last, and it ends with the last seat's turn.
+    finalTurnPlayerId(): string | undefined {
+        return this.finalRound && this.machineState !== MachineState.EndOfGame
+            ? this.turnManager.turnOrder.at(-1)
+            : undefined
+    }
+
+    // Mirrors the money visibility policy, for views that hold every player's cash.
+    isMoneyVisibleTo(
+        viewerId: string | undefined,
+        ownerId: string,
+        config: Partial<MarracashGameConfig> | undefined
+    ): boolean {
+        return (
+            config?.concealedCash !== true ||
+            viewerId === ownerId ||
+            this.machineState === MachineState.EndOfGame
+        )
+    }
+
+    completesAntiqueSet(playerId: string, customers: Record<MarketColor, number>): boolean {
+        const player = this.getPlayerState(playerId)
+        return player.revealedAntiques.length === 0 && coversAntiqueSet(player.antiques, customers)
+    }
+
     leadingPlayerIds(): string[] {
         const mostMoney = Math.max(...this.players.map((player) => player.getMoney()))
         return this.players
@@ -459,20 +482,14 @@ export class HydratedMarracashGameState extends HydratableGameState<
             shop.customers += 1
             income += customerPayment(shop.customers)
         }
-        const owner = this.getPlayerState(shop.ownerId)
-        owner.money = owner.getMoney() + income
+        this.getPlayerState(shop.ownerId).adjustMoney(income)
         this.noteAntiqueSetIfComplete(shop.ownerId)
         return income
     }
 
     private transferMoney(fromId: string, toId: string, amount: number) {
-        if (amount === 0) {
-            return
-        }
-        const from = this.getPlayerState(fromId)
-        const to = this.getPlayerState(toId)
-        from.money = from.getMoney() - amount
-        to.money = to.getMoney() + amount
+        this.getPlayerState(fromId).adjustMoney(-amount)
+        this.getPlayerState(toId).adjustMoney(amount)
     }
 
     private noteAntiqueSetIfComplete(playerId: string) {
@@ -488,7 +505,7 @@ export class HydratedMarracashGameState extends HydratableGameState<
             player.antiques.length === AntiquesPerPlayer,
             `Player ${playerId}'s antique hand is not known in this representation`
         )
-        if (coversAntiqueSet(player.antiques, this.customersByColor(playerId))) {
+        if (this.completesAntiqueSet(playerId, this.customersByColor(playerId))) {
             this.pendingAntiqueSets.push(playerId)
         }
     }

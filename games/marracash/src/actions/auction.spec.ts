@@ -165,7 +165,7 @@ describe('MarraCash auctions', () => {
         giveShops(session, full, 6)
         session.startAuction(auctioneer, 'Y1')
         expect(session.hydrated().getPlayerState(full).money).toBe(StartingMoney)
-        const participant = session.state.auction?.participants.find(
+        const participant = session.state.auction?.bidding.participants.find(
             (candidate) => candidate.playerId === full
         )
         expect(participant?.submitted).toBe(true)

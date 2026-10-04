@@ -8,7 +8,7 @@
 
     let myMoney = $derived(gameSession.myMoney())
     let minimumBid = $derived(gameSession.myMinimumBid())
-    let shopId = $derived(gameSession.gameState.auctionShopId)
+    let shopId = $derived(gameSession.gameState.auction?.shopId)
     let shop = $derived(shopId ? getShop(shopId) : undefined)
     let amount = $state(gameSession.myMinimumBid())
     let clampedAmount = $derived(withinBidLimits(amount))
@@ -51,8 +51,8 @@
     >
     <p class="text-sm">
         Still to bid:
-        {#each gameSession.gameState.auction?.participants.filter((p) => !p.submitted) ?? [] as participant, index (participant.playerId)}
-            {index > 0 ? ', ' : ''}<PlayerTag playerId={participant.playerId} />
+        {#each gameSession.gameState.auction?.awaitingBidderIds() ?? [] as playerId, index (playerId)}
+            {index > 0 ? ', ' : ''}<PlayerTag {playerId} />
         {/each}
     </p>
 </div>

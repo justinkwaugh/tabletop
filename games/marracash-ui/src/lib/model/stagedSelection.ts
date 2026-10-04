@@ -17,14 +17,14 @@ export type MarracashSelectionValues = {
 
 export type MarracashSelection = StagedSelectionState<MarracashSelectionValues>
 
-const STAGE_ORDER = [
+export const MarracashStageOrder = [
     'fountain',
     'destination',
     'shop',
     'queueEnd',
     'visitorCount'
 ] as const satisfies readonly (keyof MarracashSelectionValues)[]
-type MissingStages = Exclude<keyof MarracashSelectionValues, (typeof STAGE_ORDER)[number]>
+type MissingStages = Exclude<keyof MarracashSelectionValues, (typeof MarracashStageOrder)[number]>
 const stageCoverage: MissingStages extends never ? true : never = true
 void stageCoverage
 
@@ -36,20 +36,19 @@ export function setMarracashSelection<TStage extends keyof MarracashSelectionVal
     return value === undefined
         ? clearStagedSelectionAtOrAfter<MarracashSelectionValues, TStage>(
               selection,
-              STAGE_ORDER,
+              MarracashStageOrder,
               stage
           )
         : setStagedSelectionValue<MarracashSelectionValues, TStage>(
               selection,
-              STAGE_ORDER,
+              MarracashStageOrder,
               stage,
               value,
               'manual'
           )
 }
 
-// The valid visitor counts depend only on the queue's length, so a chosen count
-// still applies after switching which end of the queue it comes from.
+// Valid counts depend only on the queue's length, so a chosen count survives switching ends.
 export function setMarracashQueueEnd(
     selection: MarracashSelection,
     end: QueueEnd
@@ -60,7 +59,7 @@ export function setMarracashQueueEnd(
         ? next
         : setStagedSelectionValue<MarracashSelectionValues, 'visitorCount'>(
               next,
-              STAGE_ORDER,
+              MarracashStageOrder,
               'visitorCount',
               count.value,
               count.source
@@ -80,10 +79,10 @@ export function setMarracashRefill(
 }
 
 export function hasManualMarracashSelection(selection: MarracashSelection): boolean {
-    return hasManualStagedSelection<MarracashSelectionValues>(selection, STAGE_ORDER)
+    return hasManualStagedSelection<MarracashSelectionValues>(selection, MarracashStageOrder)
 }
 
 export function popMarracashSelection(selection: MarracashSelection): MarracashSelection {
-    return popHighestManualStagedSelection<MarracashSelectionValues>(selection, STAGE_ORDER)
+    return popHighestManualStagedSelection<MarracashSelectionValues>(selection, MarracashStageOrder)
         .nextState
 }

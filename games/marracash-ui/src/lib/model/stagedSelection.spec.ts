@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { setStagedSelectionValue } from '@tabletop/frontend-components'
 import { QueueEnd } from '@tabletop/marracash'
 import {
+    MarracashStageOrder,
     hasManualMarracashSelection,
     popMarracashSelection,
     setMarracashQueueEnd,
@@ -10,6 +12,18 @@ import {
 } from './stagedSelection.js'
 
 describe('MarraCash staged selection', () => {
+    it('throws for a stage outside its stage order', () => {
+        expect(() =>
+            setStagedSelectionValue<Record<string, string>, string>(
+                {},
+                MarracashStageOrder,
+                'notAStage',
+                'x',
+                'manual'
+            )
+        ).toThrow(/does not exist in stage order/)
+    })
+
     it('clears later stages when an earlier stage is set', () => {
         let selection: MarracashSelection = {}
         selection = setMarracashSelection(selection, 'queueEnd', QueueEnd.Front)

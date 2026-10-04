@@ -51,4 +51,12 @@ export class HydratedMarracashPlayerState
         assertExists(this.money, 'Player money is unavailable in this representation')
         return this.money
     }
+
+    adjustMoney(amount: number) {
+        // A zero change must not read cash that a projection has hidden.
+        if (amount === 0) {
+            return
+        }
+        this.money = this.getMoney() + amount
+    }
 }

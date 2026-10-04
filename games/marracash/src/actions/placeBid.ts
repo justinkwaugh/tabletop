@@ -38,7 +38,7 @@ export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implemen
             throw Error(reason)
         }
         assertExists(state.auction, 'There is no auction to bid in')
-        state.auction.placeBid(this.playerId, this.amount)
+        state.auction.bidding.placeBid(this.playerId, this.amount)
     }
 
     static isValidBid(
@@ -46,8 +46,7 @@ export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implemen
         playerId: string,
         amount: number
     ): { valid: boolean; reason: string } {
-        const auction = state.auction
-        if (!auction) {
+        if (!state.auction) {
             return { valid: false, reason: 'There is no auction to bid in' }
         }
         if (!isWholeDirhamAmount(amount)) {

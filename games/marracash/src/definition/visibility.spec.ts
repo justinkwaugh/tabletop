@@ -11,8 +11,13 @@ import { describe, expect, it } from 'vitest'
 import type { MoveVisitors } from '../actions/moveVisitors.js'
 import { isPlaceBid } from '../actions/placeBid.js'
 import { isResolveAuction } from '../actions/resolveAuction.js'
-import { AntiquesPerPlayer, coversAntiqueSet, hasDealtHandShape } from '../components/antiques.js'
-import { Shops, type ShopId } from '../components/board.js'
+import {
+    AntiquesPerPlayer,
+    coversAntiqueSet,
+    hasDealtHandShape,
+    type Antique
+} from '../components/antiques.js'
+import { Shops, type FountainId, type ShopId } from '../components/board.js'
 import { MarracashGameStateValidator, type MarracashProjectedState } from '../model/gameState.js'
 import { createGame, createTestSession, playToEnd, TestMasterSeed } from '../util/testHelper.js'
 import type { MarracashGameConfig } from './config.js'
@@ -57,6 +62,60 @@ function playOpeningRound(session: ReturnType<typeof startSession>['session']) {
     }
 }
 
+type Collector = {
+    playerId: string
+    shops: Partial<Record<ShopId, number>>
+    antiques: Antique[]
+}
+
+function setUpCollectors(
+    session: ReturnType<typeof startSession>['session'],
+    visitors: Partial<Record<FountainId, MarketColor[]>>,
+    collectors: Collector[]
+) {
+    session.edit((state) => {
+        state.round = 2
+        for (const fountain of state.fountains) {
+            fountain.visitors = visitors[fountain.fountainId] ?? []
+        }
+        for (const shop of state.shops) {
+            const owner = collectors.find((collector) => shop.shopId in collector.shops)
+            shop.ownerId = owner?.playerId
+            shop.customers = owner?.shops[shop.shopId] ?? 0
+        }
+        for (const collector of collectors) {
+            const player = state.players.find((seat) => seat.playerId === collector.playerId)
+            assertExists(player, 'The collector is seated')
+            player.antiques = collector.antiques
+        }
+    })
+}
+
+const BlueCollectorHand: Antique[] = [
+    { color: MarketColor.Blue, value: 225 },
+    { color: MarketColor.Blue, value: 200 },
+    { color: MarketColor.Red, value: 150 },
+    { color: MarketColor.Green, value: 100 },
+    { color: MarketColor.Purple, value: 75 }
+]
+
+const RedCollectorHand: Antique[] = [
+    { color: MarketColor.Red, value: 125 },
+    { color: MarketColor.Red, value: 100 },
+    { color: MarketColor.Blue, value: 175 },
+    { color: MarketColor.Green, value: 125 },
+    { color: MarketColor.Yellow, value: 150 }
+]
+
+function completeAntiqueSetByMove(session: ReturnType<typeof startSession>['session']) {
+    const [mover, collector] = session.state.turnManager.turnOrder
+    setUpCollectors(session, { 9: [MarketColor.Blue] }, [
+        { playerId: collector, shops: { B4: 1, R1: 1, G1: 1, P1: 1 }, antiques: BlueCollectorHand }
+    ])
+    session.move(mover, 9, CardinalDirection.East)
+    return { mover, collector }
+}
+
 describe('MarraCash visibility', () => {
     it('marks new games as protecting information', () => {
         expect(startSession().startedGame.protectedInformation).toBe(true)
@@ -93,34 +152,33 @@ describe('MarraCash visibility', () => {
 
     it('hides a pending antique set from every player until the turn commits', () => {
         const { session } = startSession()
-        const [mover, other] = session.state.turnManager.turnOrder
-        session.edit((state) => {
-            state.round = 2
-            for (const fountain of state.fountains) {
-                fountain.visitors = fountain.fountainId === 9 ? [MarketColor.Blue] : []
-            }
-            const collectorShops: Partial<Record<ShopId, number>> = { B4: 1, R1: 2, G1: 1 }
-            for (const shop of state.shops) {
-                const customers = collectorShops[shop.shopId]
-                shop.ownerId = customers === undefined ? undefined : other
-                shop.customers = customers ?? 0
-            }
-            const collector = state.players.find((player) => player.playerId === other)
-            assertExists(collector, 'The collector is seated')
-            collector.antiques = [
-                { color: MarketColor.Blue, value: 225 },
-                { color: MarketColor.Blue, value: 200 },
-                { color: MarketColor.Red, value: 150 },
-                { color: MarketColor.Red, value: 50 },
-                { color: MarketColor.Green, value: 100 }
-            ]
-        })
-        session.move(mover, 9, CardinalDirection.East)
-        expect(session.state.pendingAntiqueSets).toEqual([other])
+        const { collector } = completeAntiqueSetByMove(session)
+        expect(session.state.pendingAntiqueSets).toEqual([collector])
         for (const perspective of perspectivesFor(session.state)) {
             expect(project(session, perspective).pendingAntiqueSets).toEqual([])
         }
     })
+
+    it.each([false, true])(
+        'reports money visibility the same way the projection applies it (%s)',
+        (concealedCash) => {
+            const { session } = startSession({ concealedCash })
+            const midGame = structuredClone(session.state)
+            const finished = playToEnd(session)
+            for (const state of [midGame, finished]) {
+                const hydrated = MarracashRuntime.hydrator.hydrateState(state)
+                for (const perspective of perspectivesFor(state)) {
+                    const viewerId =
+                        perspective.kind === 'player' ? perspective.playerId : undefined
+                    for (const player of project(session, perspective, state).players) {
+                        expect(Object.hasOwn(player, 'money')).toBe(
+                            hydrated.isMoneyVisibleTo(viewerId, player.playerId, { concealedCash })
+                        )
+                    }
+                }
+            }
+        }
+    )
 
     it('reveals cash to everyone at the end of the game', () => {
         const { session } = startSession({ concealedCash: true })
@@ -139,15 +197,16 @@ describe('MarraCash visibility', () => {
         session.bid(auctioneer, 150)
 
         const secondView = project(session, asPlayer(second))
-        const auctioneerEntry = secondView.auction?.participants.find(
+        const auctioneerEntry = secondView.auction?.bidding.participants.find(
             (participant) => participant.playerId === auctioneer
         )
         expect(auctioneerEntry?.submitted).toBe(true)
         expect(auctioneerEntry?.bid).toBeUndefined()
         const ownView = project(session, asPlayer(auctioneer))
         expect(
-            ownView.auction?.participants.find((participant) => participant.playerId === auctioneer)
-                ?.bid
+            ownView.auction?.bidding.participants.find(
+                (participant) => participant.playerId === auctioneer
+            )?.bid
         ).toBe(150)
 
         const history = Visibility.projectActionHistory({
@@ -287,6 +346,95 @@ describe('MarraCash exploration', () => {
         }
     })
 
+    it('keeps a set completed this turn pending in the collector’s own sample', () => {
+        const { session } = startSession()
+        const { collector } = completeAntiqueSetByMove(session)
+        const sample = populate(session, asPlayer(collector))
+        expect(sample.pendingAntiqueSets).toEqual([collector])
+    })
+
+    it('lets an opponent’s hand be complete only through this turn’s customers', () => {
+        const { session } = startSession()
+        const { mover, collector } = completeAntiqueSetByMove(session)
+        const pendingSamples = Array.from({ length: 100 }, (_, seed) =>
+            populate(session, asPlayer(mover), seed)
+        ).map((sample) => {
+            const hydrated = MarracashRuntime.hydrator.hydrateState(sample)
+            const covers = coversAntiqueSet(
+                hydrated.getPlayerState(collector).antiques,
+                hydrated.customersByColor(collector)
+            )
+            expect(sample.pendingAntiqueSets).toEqual(covers ? [collector] : [])
+            return covers
+        })
+        expect(pendingSamples).toContain(true)
+    })
+
+    function pendingFromCoveringHands(
+        sample: MarracashProjectedState,
+        collectorIds: string[]
+    ): string[] {
+        const hydrated = MarracashRuntime.hydrator.hydrateState(sample)
+        return collectorIds.filter((playerId) =>
+            coversAntiqueSet(
+                hydrated.getPlayerState(playerId).antiques,
+                hydrated.customersByColor(playerId)
+            )
+        )
+    }
+
+    it('rebuilds two sets completed by one move in the order their customers entered', () => {
+        const { session } = startSession()
+        const [mover, blueCollector, redCollector] = session.state.turnManager.turnOrder
+        setUpCollectors(session, { 4: [MarketColor.Blue, MarketColor.Red] }, [
+            {
+                playerId: blueCollector,
+                shops: { B2: 1, R1: 1, G1: 1, P1: 1 },
+                antiques: BlueCollectorHand
+            },
+            {
+                playerId: redCollector,
+                shops: { R3: 1, B4: 1, G3: 1, Y1: 1 },
+                antiques: RedCollectorHand
+            }
+        ])
+        session.move(mover, 4, CardinalDirection.South)
+        expect(session.state.pendingAntiqueSets).toEqual([blueCollector, redCollector])
+
+        for (const perspective of perspectivesFor(session.state)) {
+            for (let seed = 0; seed < 20; seed++) {
+                const sample = populate(session, perspective, seed)
+                expect(sample.pendingAntiqueSets).toEqual(
+                    pendingFromCoveringHands(sample, [blueCollector, redCollector])
+                )
+            }
+        }
+        expect(populate(session, asPlayer(blueCollector)).pendingAntiqueSets[0]).toBe(blueCollector)
+    })
+
+    it('rebuilds a set that only the turn’s second move completes', () => {
+        const { session } = startSession()
+        const [mover, collector] = session.state.turnManager.turnOrder
+        setUpCollectors(session, { 9: [MarketColor.Blue], 4: [MarketColor.Blue] }, [
+            {
+                playerId: collector,
+                shops: { B4: 0, B2: 0, R1: 1, G1: 1, P1: 1 },
+                antiques: BlueCollectorHand
+            }
+        ])
+        session.move(mover, 9, CardinalDirection.East)
+        expect(session.state.pendingAntiqueSets).toEqual([])
+        expect(populate(session, asPlayer(collector)).pendingAntiqueSets).toEqual([])
+
+        session.move(mover, 4, CardinalDirection.South)
+        expect(session.state.pendingAntiqueSets).toEqual([collector])
+        expect(populate(session, asPlayer(collector)).pendingAntiqueSets).toEqual([collector])
+        for (let seed = 0; seed < 20; seed++) {
+            const sample = populate(session, asPlayer(mover), seed)
+            expect(sample.pendingAntiqueSets).toEqual(pendingFromCoveringHands(sample, [collector]))
+        }
+    })
+
     it('samples the same way whatever the hidden hands really are', () => {
         const { session } = startSession()
         playOpeningRound(session)
@@ -326,7 +474,7 @@ describe('MarraCash exploration', () => {
         session.startAuction(auctioneer, 'Y1')
         session.bid(auctioneer, 150)
         const sample = populate(session, asPlayer(second))
-        const bid = sample.auction?.participants.find(
+        const bid = sample.auction?.bidding.participants.find(
             (participant) => participant.playerId === auctioneer
         )?.bid
         assertExists(bid, 'Expected a sampled auctioneer bid')

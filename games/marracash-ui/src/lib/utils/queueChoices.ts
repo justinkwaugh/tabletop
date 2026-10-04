@@ -41,10 +41,7 @@ function pawnChoice(index: number, queueLength: number, reachesFifth: boolean): 
     return front === undefined ? { kind: 'none' } : { kind: 'ambiguous' }
 }
 
-// A pawn picks the end it's near and a count: the first two pawns bring in 2, the
-// third 3, the fourth and fifth 4. When a short queue lets one pawn be read from
-// both ends, the fifth-pawn shortcut goes first; pawns still read both ways
-// are left for the panel's buttons.
+// The fifth-pawn shortcut is dropped when it would let one pawn name both ends.
 export function queuePawnChoices(queueLength: number): QueuePawnChoice[] {
     const indices = Array.from({ length: queueLength }, (_, index) => index)
     const withFifth = indices.map((index) => pawnChoice(index, queueLength, true))
