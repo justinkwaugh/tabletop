@@ -26,11 +26,11 @@ const users: User[] = ['a', 'b', 'c'].map((id) => ({
 }))
 afterEach(() => vi.restoreAllMocks())
 
-function fixture({ isPublic = true, lastSlot = false } = {}) {
+function fixture({ isPublic = true, lastSlot = false, ownerId = 'a' } = {}) {
     const stored: Game = {
         id: 'lobby',
         typeId: 'synthetic',
-        ownerId: 'a',
+        ownerId,
         name: 'Lobby',
         isPublic,
         deleted: false,
@@ -190,11 +190,11 @@ describe('lobby membership transactions', () => {
     })
 })
 
-describe('public game auto-start', () => {
+describe('game auto-start', () => {
     const now = Date.parse('2026-09-26T12:00:00Z')
     const autoStartAt = now + 60_000
 
-    async function fillLobby(options?: { isPublic?: boolean }) {
+    async function fillLobby(options?: { isPublic?: boolean; ownerId?: string }) {
         vi.spyOn(Date, 'now').mockReturnValue(now)
         const lobby = fixture(options)
         for (const user of users.slice(1)) await lobby.service.joinGame({ user, gameId: 'lobby' })
@@ -215,7 +215,15 @@ describe('public game auto-start', () => {
         })
     })
 
-    it('does not schedule a start for an invite-only game', async () => {
+    it('schedules a start for an invite-only game whose owner holds no seat', async () => {
+        const { read, tasks } = await fillLobby({ isPublic: false, ownerId: 'developer' })
+        expect(read().autoStartAt).toEqual(new Date(autoStartAt))
+        expect(tasks.createPushTask).toHaveBeenCalledExactlyOnceWith(
+            expect.objectContaining({ payload: { gameId: 'lobby', autoStartAt } })
+        )
+    })
+
+    it('does not schedule a start for an invite-only game the owner plays in', async () => {
         const { read, tasks } = await fillLobby({ isPublic: false })
         expect(read().status).toBe(GameStatus.WaitingToStart)
         expect(read().autoStartAt).toBeUndefined()
