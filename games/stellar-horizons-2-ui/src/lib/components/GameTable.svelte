@@ -5,6 +5,7 @@
         DefaultTableLayout,
         GameSession,
         GameChat,
+        CustomFont,
         HistoryControls,
         DefaultTabs
     } from '@tabletop/frontend-components'
@@ -13,7 +14,7 @@
         HydratedStellarHorizonsGameState,
         StellarHorizonsProjectedState
     } from '@tabletop/stellar-horizons-2'
-    import { TurnStep } from '@tabletop/stellar-horizons-2'
+    import { TECH_FIELDS, TurnStep, type TechField } from '@tabletop/stellar-horizons-2'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
@@ -21,9 +22,11 @@
     import ActionCard from '$lib/components/ActionCard.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
-    import TechChart from '$lib/components/TechChart.svelte'
+    import TechTree from '$lib/components/TechTree.svelte'
+    import PrototypeSwitcher from '$lib/components/board/prototype/PrototypeSwitcher.svelte'
     import { StellarHorizonsGameSession } from '$lib/model/session.svelte'
     import { getGameSession, setGameSession } from '$lib/model/sessionContext.svelte'
+    import HindDigitsFont from '$lib/fonts/Hind-Bold-digits.woff2'
 
     let {
         gameSession
@@ -60,6 +63,8 @@
         return () => observer.disconnect()
     }
 
+    let techFocus: TechField | undefined = $state()
+
     function choose(next: TableView) {
         chosenView = { step: session.actingStep, view: next }
     }
@@ -75,6 +80,10 @@
         {/if}
     </ActionCard>
 {/snippet}
+
+<CustomFont fontFamily="Hind Digits" url={HindDigitsFont} format="woff2" fontWeight="700" />
+
+<PrototypeSwitcher />
 
 <div class="table-surface">
     <DefaultTableLayout>
@@ -125,6 +134,21 @@
                         class:active={view === 'techs'}
                         onclick={() => choose('techs')}>Tech chart</button
                     >
+                    {#if view === 'techs'}
+                        <span class="divider"></span>
+                        <button
+                            type="button"
+                            class:active={techFocus === undefined}
+                            onclick={() => (techFocus = undefined)}>All</button
+                        >
+                        {#each TECH_FIELDS as field (field)}
+                            <button
+                                type="button"
+                                class:active={techFocus === field}
+                                onclick={() => (techFocus = field)}>{field}</button
+                            >
+                        {/each}
+                    {/if}
                 </div>
             </div>
             <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
@@ -132,7 +156,7 @@
                     {#if view === 'map'}
                         <Board />
                     {:else}
-                        <TechChart />
+                        <TechTree focus={techFocus} />
                     {/if}
                     {#snippet toolbar()}
                         <div {@attach watchExpansion}>
@@ -175,6 +199,12 @@
         background: #7fd3ff;
         border-color: #7fd3ff;
         color: #05070d;
+    }
+
+    .divider {
+        width: 1px;
+        background: #2a3a57;
+        margin: 0 6px;
     }
 
     .fullscreen-controls {

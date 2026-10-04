@@ -336,20 +336,22 @@ import art333 from '$lib/images/art/markers/tech-Biology-2.webp'
 import art334 from '$lib/images/art/markers/tech-Biology-3.webp'
 import art335 from '$lib/images/art/markers/tech-Biology-4.webp'
 import art336 from '$lib/images/art/markers/tech-Biology-5.webp'
-import art337 from '$lib/images/art/markers/exploration-Biology.webp'
-import art338 from '$lib/images/art/markers/tech-Physics-1.webp'
-import art339 from '$lib/images/art/markers/tech-Physics-2.webp'
-import art340 from '$lib/images/art/markers/tech-Physics-3.webp'
-import art341 from '$lib/images/art/markers/tech-Physics-4.webp'
-import art342 from '$lib/images/art/markers/tech-Physics-5.webp'
-import art343 from '$lib/images/art/markers/exploration-Physics.webp'
-import art344 from '$lib/images/art/markers/tech-Engineering-1.webp'
-import art345 from '$lib/images/art/markers/tech-Engineering-2.webp'
-import art346 from '$lib/images/art/markers/tech-Engineering-3.webp'
-import art347 from '$lib/images/art/markers/tech-Engineering-4.webp'
-import art348 from '$lib/images/art/markers/tech-Engineering-5.webp'
-import art349 from '$lib/images/art/markers/exploration-Engineering.webp'
-import techTree from '$lib/images/art/charts/tech-tree.webp'
+import art337 from '$lib/images/art/markers/tech-Biology-blank.webp'
+import art338 from '$lib/images/art/markers/exploration-Biology.webp'
+import art339 from '$lib/images/art/markers/tech-Physics-1.webp'
+import art340 from '$lib/images/art/markers/tech-Physics-2.webp'
+import art341 from '$lib/images/art/markers/tech-Physics-3.webp'
+import art342 from '$lib/images/art/markers/tech-Physics-4.webp'
+import art343 from '$lib/images/art/markers/tech-Physics-5.webp'
+import art344 from '$lib/images/art/markers/tech-Physics-blank.webp'
+import art345 from '$lib/images/art/markers/exploration-Physics.webp'
+import art346 from '$lib/images/art/markers/tech-Engineering-1.webp'
+import art347 from '$lib/images/art/markers/tech-Engineering-2.webp'
+import art348 from '$lib/images/art/markers/tech-Engineering-3.webp'
+import art349 from '$lib/images/art/markers/tech-Engineering-4.webp'
+import art350 from '$lib/images/art/markers/tech-Engineering-5.webp'
+import art351 from '$lib/images/art/markers/tech-Engineering-blank.webp'
+import art352 from '$lib/images/art/markers/exploration-Engineering.webp'
 
 export const SYSTEM_ART: Record<string, string> = {
     sol: art0,
@@ -755,22 +757,26 @@ export const TECH_MARKER_ART: Record<string, string> = {
     'Biology-3': art334,
     'Biology-4': art335,
     'Biology-5': art336,
-    'Physics-1': art338,
-    'Physics-2': art339,
-    'Physics-3': art340,
-    'Physics-4': art341,
-    'Physics-5': art342,
-    'Engineering-1': art344,
-    'Engineering-2': art345,
-    'Engineering-3': art346,
-    'Engineering-4': art347,
-    'Engineering-5': art348
+    'Physics-1': art339,
+    'Physics-2': art340,
+    'Physics-3': art341,
+    'Physics-4': art342,
+    'Physics-5': art343,
+    'Engineering-1': art346,
+    'Engineering-2': art347,
+    'Engineering-3': art348,
+    'Engineering-4': art349,
+    'Engineering-5': art350
+}
+
+export const TECH_MARKER_BLANK_ART: Record<string, string> = {
+    Biology: art337,
+    Physics: art344,
+    Engineering: art351
 }
 
 export const EXPLORATION_MARKER_ART: Record<string, string> = {
-    Biology: art337,
-    Physics: art343,
-    Engineering: art349
+    Biology: art338,
+    Physics: art345,
+    Engineering: art352
 }
-
-export const TECH_TREE_ART = techTree
