@@ -43,7 +43,10 @@ export class ConfirmingTurnStateHandler implements MachineStateHandler<
         return context.gameState.activePlayerIds.includes(playerId) ? [ActionType.ConfirmTurn] : []
     }
 
-    enter(_context: MachineContext<HydratedMarracashGameState>) {}
+    // An auction leaves no one active, so the turn player is restored on entry.
+    enter(context: MachineContext<HydratedMarracashGameState>) {
+        context.gameState.activePlayerIds = [context.gameState.turnPlayerId()]
+    }
 
     onAction(
         action: ConfirmingTurnAction,

@@ -202,6 +202,22 @@ describe('MarraCash movement', () => {
         expect(session.currentPlayerId()).toBe(other)
         expect(session.state.machineState).toBe(MachineState.ChoosingAction)
     })
+
+    it('asks the turn player to refill an entrance emptied before an auction', () => {
+        const session = startTestGame(3)
+        const { mover } = players(session)
+        arrange(session, { fountains: { 16: [Blue] } })
+        move(session, 16, CardinalDirection.West)
+        session.startAuction(mover, 'Y1')
+        for (const playerId of session.state.turnManager.turnOrder) {
+            session.bid(playerId, playerId === mover ? 100 : 0)
+        }
+
+        expect(session.state.machineState).toBe(MachineState.RefillingEntrances)
+        expect(session.state.activePlayerIds).toEqual([mover])
+        session.bringVisitors(mover, QueueEnd.Front, 3, 16)
+        expect(session.state.fountains.find((f) => f.fountainId === 16)?.visitors).toHaveLength(3)
+    })
 })
 
 describe('MarraCash antique sets', () => {
