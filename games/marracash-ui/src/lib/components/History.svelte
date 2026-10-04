@@ -92,7 +92,8 @@
     </div>
 </div>
 
-<!--  fixes a styling issue with timeline-item -->
+<!-- Flowbite's TimelineItem draws its own dot and connector, which cannot take this table's tan;
+     each entry draws its own dot instead. -->
 <style>
     .history :global(.timeline-item > div) {
         display: none;

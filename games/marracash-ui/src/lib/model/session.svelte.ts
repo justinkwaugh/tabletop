@@ -37,6 +37,8 @@ import { historyHighlightFor, type HistoryHighlight } from '$lib/utils/historyHi
 
 const QueueWarningSeconds = 4
 
+export type CustomerHighlight = { playerId: string; color: MarketColor }
+
 export class MarracashGameSession extends GameSession<
     MarracashProjectedState,
     HydratedMarracashGameState
@@ -69,7 +71,7 @@ export class MarracashGameSession extends GameSession<
     )
 
     historyHighlight: HistoryHighlight | undefined = $state(undefined)
-    customerHighlight: { playerId: string; color: MarketColor } | undefined = $state(undefined)
+    customerHighlight: CustomerHighlight | undefined = $state(undefined)
 
     readonly moneyReports: MoneyReport[] = $derived(moneyReports(latestTurnStep(this.actions)))
 
@@ -222,7 +224,7 @@ export class MarracashGameSession extends GameSession<
         this.historyHighlight = action === undefined ? undefined : historyHighlightFor(action)
     }
 
-    highlightCustomers(highlight: { playerId: string; color: MarketColor } | undefined) {
+    highlightCustomers(highlight: CustomerHighlight | undefined) {
         this.customerHighlight = highlight
     }
 

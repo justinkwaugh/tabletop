@@ -1,7 +1,7 @@
 import { tick } from 'svelte'
 import { gsap } from 'gsap'
-import { assertExists, type GameAction, type Point } from '@tabletop/common'
-import type { AnimationContext } from '@tabletop/frontend-components'
+import { assertExists, type Point } from '@tabletop/common'
+import type { AnimationContext, GameStateChangeListener } from '@tabletop/frontend-components'
 import {
     getFountain,
     getShop,
@@ -38,12 +38,7 @@ type Place = { point: Point; color: MarketColor; inShop: boolean }
 
 type Trip = { walker: VisitorWalker; from: Place; to: Place }
 
-type GameStateChange = {
-    to: HydratedMarracashGameState
-    from?: HydratedMarracashGameState
-    action?: GameAction
-    animationContext: AnimationContext
-}
+type GameStateChange = Parameters<GameStateChangeListener<HydratedMarracashGameState>>[0]
 
 export class VisitorMoveAnimator {
     private elements = new Map<string, SVGElement>()
@@ -101,22 +96,20 @@ export class VisitorMoveAnimator {
         // offset for the pawns to reach its first cell exactly one spacing apart.
         const firstLegs = plans.map((plan) => distance(plan.points[0], plan.points[1]))
         const longestFirstLeg = Math.max(...firstLegs)
-        const lineLengths = plans.map(
-            (plan, order) =>
-                longestFirstLeg - firstLegs[order] + order * WalkSpacing + this.pathLength(plan)
-        )
+        // Departures never overtake one another, so each waits at least as long as the last.
+        const departures: number[] = []
+        plans.forEach((_, order) => {
+            const offset = longestFirstLeg - firstLegs[order] + order * WalkSpacing
+            departures.push(Math.max(departures.at(-1) ?? 0, offset))
+        })
+        const lineLengths = plans.map((plan, order) => departures[order] + this.pathLength(plan))
         const speed = Math.max(
             WalkPixelsPerSecond,
             Math.max(...lineLengths) / (MaxWalkSeconds - LeadInSeconds - ShopEntrySeconds)
         )
-        let previousStart = 0
         plans.forEach((plan, order) => {
             const element = this.walkerElement(plan.walker)
-            const start = Math.max(
-                previousStart,
-                LeadInSeconds + (longestFirstLeg - firstLegs[order] + order * WalkSpacing) / speed
-            )
-            previousStart = start
+            const start = LeadInSeconds + departures[order] / speed
 
             this.place(element, plan.points[0], 1)
             timeline.set(element, { opacity: 1 }, start)
