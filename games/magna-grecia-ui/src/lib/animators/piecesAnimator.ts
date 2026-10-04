@@ -204,9 +204,7 @@ export class PiecesAnimator {
     ) {
         const turn = node.querySelector('[data-part="turn"]')
         const tones = [...node.querySelectorAll<SVGElement>('[data-tone]')]
-        const drops = [...node.querySelectorAll('[data-part="drop"]')]
-        const edge = node.querySelector('[data-part="drop-edge"]')
-        const dashes = node.querySelector('[data-part="drop-dashes"]')
+        const drops = [...node.querySelectorAll('[data-part="drop"], [data-part="drop-edge"]')]
         // A round (unfavoured) precinct has no direction, so it takes the other end's.
         const fromAngle = from.attention?.angle ?? to.attention?.angle ?? -90
         const toAngle = to.attention?.angle ?? fromAngle
@@ -229,13 +227,10 @@ export class PiecesAnimator {
                 )
             }
             if (fromReach !== toReach) {
-                // The tail runs out to the hex edge as favour arrives, and back as it goes.
+                // The tail points out to the hex edge as favour arrives, and back as it goes.
                 const reach = fromReach + (toReach - fromReach) * p
                 const shape = oracleDrop(reach)
-                for (const drop of drops) drop.setAttribute('d', shape.fill)
-                edge?.setAttribute('d', shape.edge)
-                dashes?.setAttribute('d', shape.dashes)
-                dashes?.setAttribute('opacity', `${reach > 0.05 ? 1 : 0}`)
+                for (const drop of drops) drop.setAttribute('d', shape)
             }
         })
     }
