@@ -6,7 +6,7 @@ import type { RailwayMap } from '../map/map.js'
 import { Station, StationReservation } from '../map/station.js'
 import { CashPayment } from '../finance/cashPayments.js'
 import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
-import { TileRotation, type TileDefinition, type TileFace } from '../tiles/tile.js'
+import { TileRotation, type TileDefinition, type TileFace, type TileEdge } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import { ConstructionReachability } from './constructionReachability.js'
 import {
@@ -72,8 +72,7 @@ export const TrackLayDetails = Type.Object(
 )
 export type TrackLayDetails = Type.Static<typeof TrackLayDetails>
 export type TrackEvaluation =
-    | { details: TrackLayDetails; reason?: never }
-    | { reason: string; details?: never }
+    { details: TrackLayDetails; reason?: never } | { reason: string; details?: never }
 export interface TrackRules {
     map: RailwayMap
     tileSet: TileSet
@@ -96,6 +95,12 @@ export interface TrackRules {
     }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
+    borderCost?(
+        state: ConstructionState,
+        request: TrackRequest,
+        edge: TileEdge,
+        cost: number
+    ): number
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
     afterLay?(state: ConstructionState, details: TrackLayDetails, payer: Owner): TrackLayEffects
     relabels?(locationId: string, definitionId: string): boolean
@@ -266,8 +271,10 @@ export class TrackConstruction {
                 !before.paths.some((path) =>
                     path.endpoints.some((end) => end.kind === 'edge' && end.edge === edge)
                 )
-            )
-                borderCost += Math.max(0, ...borders.map((border) => border.cost ?? 0))
+            ) {
+                const cost = Math.max(0, ...borders.map((border) => border.cost ?? 0))
+                borderCost += this.rules.borderCost?.(this.state, request, edge, cost) ?? cost
+            }
         }
         const printedTerrainCost =
             (!previous.placement ? (location.terrain?.cost ?? 0) : 0) +

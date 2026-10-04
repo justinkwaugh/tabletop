@@ -202,3 +202,8 @@ export * from './preferences.js'
 export * from './game/transferTiming.js'
 
 export * from './operating/operatingRoundSnapshot.js'
+
+export * from './actions/actionDefinition.js'
+export * from './stock/stockActions.js'
+export * from './company/companyActions.js'
+export * from './stock/ordinaryStockRoundHandler.js'

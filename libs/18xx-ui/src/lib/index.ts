@@ -91,3 +91,5 @@ export * from './stock/marketAnimationSource.js'
 
 export { marketColors } from './stock/marketColors.js'
 export { MarketTokenSize } from './stock/marketTokenLayout.js'
+
+export { default as BoardInset } from './maps/BoardInset.svelte'

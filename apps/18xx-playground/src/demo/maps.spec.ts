@@ -1,3 +1,5 @@
+import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
+import { createMarket as create1846Market } from '../../../../games/1846/src/stock.js'
 import { describe, expect, it } from 'vitest'
 import { createMapDrawing, mapSelectionPoint, assertMapOverlays } from '@tabletop/18xx-ui'
 import { rotateTileEdge, type RailwayMap } from '@tabletop/18xx'
@@ -78,6 +80,15 @@ describe('complete title maps', () => {
             ).toThrow('Multiple tokens')
         }
     )
+    it('aligns the 1846 preprint and every phase-I tile orientation with neighboring hexes', () => {
+        const view = MapView1846
+        const scene = createMapDrawing(view.map, undefined, view)
+        expect(alignedEdges(scene, view.map)).toBeGreaterThan(30)
+        for (const rotation of [0, 1, 2, 3, 4, 5] as const) {
+            const prepared = createMapDrawing(view.map, { tileSet: view.tileSet, inventory: view.tileSet.createInventory([{ locationId: 'C13', definitionId: '18xx:7', rotation }]) }, view)
+            alignedEdges(prepared, view.map, entry => entry.placed)
+        }
+    })
     it('draws a rotated pointy-hex tile meeting both neighbors', () => {
         const example = MapExamples['1830']
         const prepared = createMapDrawing(
@@ -119,6 +130,7 @@ describe('complete title maps', () => {
 })
 
 describe.each([
+    { name: '1846', view: MapView1846, createMarket: create1846Market },
     { name: '1830', view: EighteenThirtyMapView, createMarket: createEighteenThirtyStockMarket },
     {
         name: '1817',

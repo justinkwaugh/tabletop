@@ -30,7 +30,8 @@
         "@tabletop/shikoku-1889-ui": "workspace:*",
         "@tabletop/1830-ui": "workspace:*",
         "@tabletop/1817": "workspace:*",
-        "@tabletop/1817-ui": "workspace:*"
+        "@tabletop/1817-ui": "workspace:*",
+        "@tabletop/1846-ui": "workspace:*"
     },
     "devDependencies": {
         "@sveltejs/kit": "^2.48.4",
